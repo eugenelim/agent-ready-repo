@@ -1818,52 +1818,6 @@ open = [
   # it would look like a control without being one. Unblocks now; no dependency.
   { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Require a repair round to carry its own dispatch assertion: three transition edges re-enter code implementation without moving the wave pointer, so a wave's exit is discharged a second time by the first pass's records", needs = [] },
 
-  # Found 2026-09-18 by the post-gates security review of
-  # docs/specs/wave-complete-dispatch-receipts. The wave-exit guard reads
-  # `state.json` while the engine holds only `engine-state.json.lock`, and
-  # `loop-cohort wave advance` mutates `current_wave_index` while holding
-  # `state.json.lock`. The two locks are distinct files, so nothing serialises
-  # the guard's read against a cohort mutation. In a two-wave run a
-  # `wave-complete` whose guard approved accounted wave 0 can commit
-  # CODE-VERIFICATION after a concurrent advance moved the pointer to
-  # unaccounted wave 1, and `gates-clean` then sees wave 1 as final -- so wave 1
-  # exits with no record, using only sanctioned verbs and no `state.json` write.
-  # This is introduced by the receipts change: before it the guard was a stub
-  # with no accounting to race. It is NOT one of the four off-switches the spec
-  # discloses, all of which need a direct state write. Not closed in this
-  # delivery because a guard verdict that must stay valid until another layer
-  # commits is an atomicity property, which ADR-0061 assigns to Option B and its
-  # absent `pending_transition` schema; the reviewer's remedy -- the engine
-  # taking the cohort lock across its transition -- crosses the ownership split
-  # that ADR draws and would need its own design and deadlock analysis.
-  #
-  # Adjudicated 2026-09-18 by finding-adjudicator: sustained at ADVISORY tier,
-  # and the author's deferral held. Two facts from that adjudication bound this
-  # entry. It needs two concurrent processes on one spec directory and is NOT
-  # reachable from the sequential single-controller flow -- `_statelock.py`'s own
-  # docstring names concurrent verbs on one spec directory as the class the lock
-  # exists to close, and this is that shape across two lock domains. And the
-  # reviewer's prescribed remedy is NOT SAFE as written: holding the cohort lock
-  # across the engine's whole transition commit nests a two-lock hold spanning
-  # the FSM lookup, plan-hash pre-guard, event guard and outbox finalisation,
-  # which `_statelock.py:88-93` requires be provably inside
-  # `timeout < maximum hold < stale_after`, and it asserts a fixed lock order
-  # without establishing no other site takes the pair in the opposite order. Do
-  # not adopt it; it trades a narrow window for an unanalysed deadlock and
-  # lock-expiry surface.
-  #
-  # Required outcome: a `wave-complete` verdict about wave `n` cannot discharge a
-  # commit once cohort state no longer names wave `n`. Constraints: no engine
-  # write to cohort state (ADR-0061 D3); no `pending_transition`, idempotency key
-  # or crash-safe replay (the spec's Never do); any added lock hold provably
-  # inside `_statelock`'s budget with a globally fixed acquisition order; and a
-  # regression test that forces the interleaving. At least four defensible
-  # mechanisms exist -- engine-held cohort lock, post-guard re-validation under
-  # the cohort lock, a pointer-generation compare-and-swap token, or disclosure
-  # as a fifth Boundaries residual -- and nothing external chooses among them,
-  # which is why the tier is advisory rather than blocker.
-  # Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-engine.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Serialise the wave-exit verdict against the cohort mutation that can invalidate it: the guard reads state.json under the engine lock while wave advance moves current_wave_index under the cohort lock, so a concurrent advance lets a wave exit with no dispatch receipt through sanctioned verbs alone", needs = [] },
 
   # A wave exit that passes with no receipts container, or with every task
   # declined, leaves no record an after-the-fact reader can find: the read-only
