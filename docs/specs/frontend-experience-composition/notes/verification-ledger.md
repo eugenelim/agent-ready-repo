@@ -851,3 +851,73 @@ exists for a documentation change and inventing one would be worse than naming
 its absence. Its aesthetic-fit and platform-fit lenses are skipped on that
 ground; the marketing-clarity lens applies to the copy-bearing artifacts and is
 the reason the reviewer is warranted at all.
+
+## Post-gates review, round 5 — the specialist pass
+
+`quality-engineer` and `experience-reviewer` ran in parallel at the close of the
+spec, each adjudicated independently. **25 findings raised, 18 sustained, 7
+refuted.** Recorded as one fan-out round: `review_round_count` 5, review retry
+4 of 5.
+
+### Two more controls that could not fail — six and seven
+
+Both reproduced before repair, both green on the unrepaired tree:
+
+| Control | The mutation it survived |
+| --- | --- |
+| AC-0021's agreement check, *journey* side | Renaming the journey's `design-system` row to `design-tokens` **and** flipping its verdict — the exact disagreement AC-0021 forbids — left all 18 tests green |
+| AC-0022's minimal-thread check | Deleting all four numbered steps left it green, because the `####` heading alone carries the phrase it matched |
+
+The first is the sharper lesson. Round 3 sustained this same criterion going
+vacuous and the repair added `GUIDE_OWNED_SKILLS` — on the guide side only. The
+mirror-image hole on the journey side went untouched, so the repair fixed its
+cited instance and left the sibling. That is the failure mode the repository's
+own guidance names as repairing the instance rather than the class, and it cost
+a full extra review round.
+
+The guard is now symmetric: both named skills must be represented on **both**
+sides before any comparison runs. Five mutations now die where two survived.
+
+The second repair had a trap the adjudicator caught before it was written: the
+obvious remedy, resolving thread steps against the journey's `skills:`
+frontmatter, **fails on the current tree** — step 4 names `experience-reviewer`,
+which is a say-this row and not a frontmatter skill, and step 3 names
+`information-architecture`, which the say-this table did not carry. The
+assertion resolves against the union of both lists, and all five step names were
+walked before the list was chosen.
+
+### The experience blocker
+
+The state-coverage map sits under `### States and Permissions`, annotated
+`<!-- Required: pilot+ -->`. Every reader-facing surface sends an adopter to
+that map and tells them `explore` owes ten states including four that are
+WCAG-bearing — while the section enclosing it says nothing there is owed until
+`pilot`.
+
+The distinction is real: the annotation bands the contract *field*, the map
+bands which states an implementation handles. The artifact never said so, and a
+reader cannot reconcile two obligations that are never distinguished. The map
+now states it, in all four copies.
+
+The obvious fix was a trap in the same family. Splitting state coverage into its
+own `Required: explore+` field would add an annotation, and AC-0015 counts
+exactly those annotations to derive the ladder both journeys state — so it would
+have made 10 / 25 / 32 wrong in two published files. The note carries no
+annotation; the counts are unchanged, measured after the edit.
+
+### What the refutations protected, again
+
+Of the seven refuted, three had remedies that would have broken the spec:
+moving the journeys' counts would falsify AC-0027 and AC-0015; retiring the
+`Required` reconciliation paragraph would reverse an adjudicated round-3 repair;
+and a shared table-reader module would violate the spec's `Never do` rule
+against adding a module. That is now the third consecutive round in which
+applying a reviewer's fix on sight would have broken something.
+
+### Two residuals, owned rather than noted
+
+Recorded in the spec's `Follow-ons`, which is working material an author
+corrects in place: the five hand-derived counts that live in eight homes and no
+gate reads, and the absence of any standing comparison between the committed web
+journey copies and their sources once this spec's `Always do` rule stops
+applying. Both were known; neither had an owner until now.
