@@ -28,15 +28,20 @@ an edit to `init`'s, and this delivery corrects the sentence.
   `hashlib` alongside phase 2's existing set.
 - No new module. The apply path extends `commands/catalogue_sync.py`. Outside
   it and `cli.py` there are exactly two edits: one exported helper in
-  `catalogue.py`, and an **opt-in** non-replacing mode on `safety.write_jailed`
-  and `safety.write_companion` that only this command passes, per AC-0070. The
-  second touches a blessed security helper and is an owner decision of record,
-  taken because the primitive's unconditional rename makes AC-0070 otherwise
-  unsatisfiable. It is opt-in because `write_companion` has four production
-  callers outside this feature — `upgrade.py`, `install.py`, `render.py` and
-  the shared seed writer in `_common.py` — each of which rewrites an existing
-  companion on every run and would begin failing; `upgrade` catches only the
-  jail error, so the new failure would escape uncaught mid-write.
+  `catalogue.py`, and a non-replacing publish mode on `safety.write_jailed`
+  and `safety.write_companion` whose **default is the behaviour those helpers
+  have today**, per AC-0070. The second touches a blessed security helper and
+  is an owner decision of record, taken because the primitive's unconditional
+  rename makes AC-0070 otherwise unsatisfiable.
+
+  The default is what makes it safe, not the caller list. § Grounding's
+  write-helper derivation counts the two sets by resolution: `write_companion`
+  has 4 call sites in 4 modules, `write_jailed` 16 in 10 — so a list walked for
+  the first understates the second fourfold. The four `write_companion` callers
+  were walked, and each rewrites an existing companion on every run: they would
+  all begin failing under a flipped default, and `upgrade` catches only the jail
+  error, so the failure would escape uncaught mid-write after earlier paths
+  landed.
 - Every target-tree write goes through `safety.write_jailed` or
   `safety.write_companion`, the latter passing the non-replacing mode; the ownership state keeps going through
   `_write_ownership_state`, so its symlink refusal and its random `O_EXCL`
@@ -47,7 +52,10 @@ an edit to `init`'s, and this delivery corrects the sentence.
 ## Construction tests
 
 `packages/agentbundle/tests/unit/test_catalogue_sync.py` holds every check that
-runs against fixtures alone. `packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py`
+runs against fixtures alone, with one exception: AC-0052's default-mode guard
+belongs in the write helper's own suite, `test_safety.py`, because that is
+where a flipped default would be observed and the shipped companion test there
+writes to a path that does not yet exist, so it passes unchanged today. `packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py`
 holds the tree-walk registry, because the helper and the cases already live
 there and splitting them would leave two walks to keep agreeing.
 
@@ -106,10 +114,18 @@ delivery forever while reporting only an occupancy count. It also lands the
 destination at a umask-dependent mode where the staged path yields 0600.
 
 Staging as today and publishing with a link avoids both. A link fails when
-anything is already at the destination — including a symlink — and is atomic,
-so no partial artifact is ever observable and the destination inherits the
-staged file's permission bits. The two modes then differ only in how they
-publish, not in what they leave behind.
+anything is already at the destination — including a symlink, a dangling
+symlink or a directory, each checked separately in § Grounding's publish
+derivation — and is atomic, so no partial artifact is ever observable and the
+destination inherits the staged file's permission bits.
+
+It differs from a rename in one way that matters, and the criterion carries
+it: a link does not consume the staged name. Until the publish unlinks it the
+destination has a link count above one, which the confinement helpers this
+command is bound to refuse outright — so an unlink that does not happen leaves
+a companion the tool itself cannot read. The two modes leave the same thing
+behind only on the success path; the crash window between link and unlink is
+the exception AC-0070's third outcome names.
 
 **The removal set needs its own filter, and it is not the keep-set.** The two
 constraints on removal are independent and compose rather than conflict:
@@ -329,10 +345,19 @@ filesystem.
   after the run, absent from the write set, and named on the plan and under
   `companion_occupied` in the JSON summary. Verifies AC-0070's admission half.
 - A destination that is absent at admission and created before the write is
-  byte-identical afterwards and the run takes the write-failed row. This is the
-  case the criterion exists for: a stat-at-admission implementation using the
-  clobbering rename passes the bullet above and fails only this one. Verifies
-  AC-0070's outcome half.
+  byte-identical afterwards and the run takes the write-failed row. A
+  stat-at-admission implementation using the clobbering rename passes the
+  bullet above and fails only this one. Verifies AC-0070's admission race.
+- After a successful publish the destination's link count is one, no staged
+  sibling remains, and the confinement helpers read it back without refusing.
+  A publish that links and omits the unlink passes every occupancy case and
+  fails this one. Verifies AC-0070's post-publish state.
+- A publish failing for a reason other than an existing destination takes the
+  write-failed row and is not counted as `companion_occupied`. Verifies
+  AC-0070's failure attribution.
+- In the write helper's own suite: a call passing no mode replaces an existing
+  destination. Verifies AC-0052's default. It lives there rather than here
+  because that is where a flipped default is observed.
 - A source planning both `x.md` and `x.upstream.md` against a Tier-2 `x.md`
   refuses the whole run, reports both paths under `companion_collision`,
   returns the cannot-answer code, and leaves the tree identical on AC-0041's
@@ -585,6 +610,8 @@ passage that uses it, and this section holds the command that reproduces it.
 | Jailed-write admission | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-jailed-write-admits-planned-paths.py` | Every planned path is admitted as a direct write and as a companion write, in both tooling modes |
 | Snapshot bound | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-rollback-snapshot-bound.py` | The rollback snapshot's worst-case peak alongside the replay |
 | Release surfaces | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-release-surfaces.py` | The closed set of surfaces a version bump must move, each read by the form that surface states its version in, and whether they agree |
+| Write-helper callers | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-write-helper-callers.py` | Each write helper's call sites and modules, counted by resolution, so the opt-in audit names the set it was walked against |
+| Non-replacing publish | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-non-replacing-publish.py` | Whether a link publish refuses each occupant kind, matches the staged permission bits, and what it leaves behind after success |
 | Mode asymmetry | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-mode-asymmetry.py` | How many recorded paths a run's own modes fail to plan, per mode, and which of them any named exclusion covers |
 | Recorded recipe shapes | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-recorded-recipe-shapes.py` | Which selection shapes `init` actually writes, read from the state file after real runs rather than from a hand-built dataclass |
 | Selection widening | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-empty-recipe-widening.py` | Which recorded selection values, over the type-and-validity domain and across both `packs` and `profiles`, resolve to the source's full contents, and whether the existing underivable check fires on each |
