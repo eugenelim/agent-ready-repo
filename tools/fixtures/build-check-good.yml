@@ -157,6 +157,28 @@ jobs:
           python -c "import cryptography, argon2"
           python -m pytest -rs 2>&1 | tee "$RUNNER_TEMP/credbroker-out.txt"
           ! grep -Eq "^SKIPPED" "$RUNNER_TEMP/credbroker-out.txt"
+  gate-css-tokens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: gate-css-tokens
+    # The Node job. Represented here because the fixture must be
+    # SHAPE-representative: it is the only job with no setup-python step, so
+    # without it `setup-python-with[*]`'s enumerated exemption and
+    # `python-free-job-is-python-free[*]` are never evaluated by any proof.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up Node (gate-css-tokens)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install web dependencies (gate-css-tokens)
+        run: npm ci --prefix web
+      - name: CSS token gate (stylelint)
+        run: npm run lint:css --prefix web
   build-check:
     name: make build-check
     needs:
@@ -164,6 +186,7 @@ jobs:
       - gate-sast
       - gate-export-boundary
       - gate-credbroker
+      - gate-css-tokens
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: ${{ always() }}
@@ -189,6 +212,7 @@ jobs:
           GATE_SAST_RESULT: ${{ needs.gate-sast.result }}
           GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
           GATE_CREDBROKER_RESULT: ${{ needs.gate-credbroker.result }}
+          GATE_CSS_TOKENS_RESULT: ${{ needs.gate-css-tokens.result }}
         # Comparison order must equal REQUIRED_WORK_JOBS order: _differential_failures
         # builds _GUARD_BASE from that tuple and splices it in by exact text match,
         # reporting "harness is blind" rather than failing usefully if it is absent.
@@ -198,4 +222,5 @@ jobs:
           [ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" && exit 1
           [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
           [ "$GATE_CREDBROKER_RESULT" != "success" ] && echo "::error::gate-credbroker reported $GATE_CREDBROKER_RESULT" && exit 1
+          [ "$GATE_CSS_TOKENS_RESULT" != "success" ] && echo "::error::gate-css-tokens reported $GATE_CSS_TOKENS_RESULT" && exit 1
           echo "every gate passed"

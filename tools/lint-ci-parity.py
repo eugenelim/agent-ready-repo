@@ -365,6 +365,25 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         CI_ONLY(
             "Provisioning."
         ),
+    "<unnamed step in gate-css-tokens>":
+        CI_ONLY(
+            "`uses: actions/checkout`. Provisioning: a working tree is the "
+            "local precondition, not a gate. No fetch-depth: 0 — nothing in "
+            "this job invokes git."
+        ),
+    "Set up Node (gate-css-tokens)":
+        CI_ONLY(
+            "`uses: actions/setup-node@v4`. Provisioning."
+        ),
+    "Install web dependencies (gate-css-tokens)":
+        CI_ONLY(
+            "`npm ci --prefix web`. Provisioning: it installs the toolchain "
+            "the gate runs. A local web/node_modules is a precondition "
+            "rather than a gate — `make test` states it as a guarded hint "
+            "instead of installing for you."
+        ),
+    "CSS token gate (stylelint)":
+        LOCAL("test-after-build-check"),
     "Install bandit unconditionally (lint-nosec-form's ID registry)":
         CI_ONLY(
             "Provisioning — but not interchangeable with the conditional step "
@@ -714,6 +733,9 @@ _PROVISIONING_IDS = {
     "Install credbroker (editable, with crypto extra) (gate-export-boundary)":
         "credbroker_export_boundary",
     "<unnamed step in gate-credbroker>": "checkout_gate_credbroker",
+    "<unnamed step in gate-css-tokens>": "checkout_gate_css_tokens",
+    "Set up Node (gate-css-tokens)": "node_gate_css_tokens",
+    "Install web dependencies (gate-css-tokens)": "web_deps_gate_css_tokens",
     "Set up Python (gate-credbroker)": "python_gate_credbroker",
     "Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)":
         "credbroker_gate_credbroker",
@@ -926,6 +948,7 @@ _NON_GATE_MAIN_CHECKS = (
     "pytest credbroker (RFC-0023 Phase 1)",
     "Run the build-check.yml posture test",
     "Require every gate",
+    "CSS token gate (stylelint)",
 )
 
 _STEP_PHASE = {
@@ -1601,6 +1624,15 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Shell guard, not a suite: `make test` stops here with an `npm ci` "
             "hint when the docs-site dependencies are absent."
         ),
+    "test -d web/node_modules":
+        NO_PR_GATE(
+            "Shell guard, not a suite: `make test` stops here with an `npm ci` "
+            "hint when the web dependencies are absent."
+        ),
+    "npm run lint:css":
+        PR_GATED(
+            "build-check.yml / gate-css-tokens / CSS token gate (stylelint)"
+        ),
     "npm run test:plugins":
         NO_PR_GATE(
             "A real test suite — `node --test` over two `.test.ts` files, per "
@@ -1627,6 +1659,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
 _SUBSTRING_KEYS = frozenset({
     "command -v npm",
     "test -d docs-site/node_modules",
+    "test -d web/node_modules",
+    "npm run lint:css",
     "npm run test:plugins",
     '$(PYTHON) -c "import httpx"',
 })
@@ -2310,6 +2344,17 @@ def is_covered(target: str, local: set[str]) -> bool:
 # what it said when a human last looked. That residual is the honest cost of the
 # trade, and strictly smaller than a parser that invents coverage.
 _SUITE_SOURCE_EXCEPTIONS: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
+    (
+        "build-check.yml",
+        "CSS token gate (stylelint)",
+    ): (
+        "`npm run lint:css --prefix web` yields no path operand, and `npm` is "
+        "a provisioning prefix, so extraction attributes nothing to this step "
+        "— the same shape as `npm run test:plugins`, which needs no exception "
+        "only because it is NO_PR_GATE. The declared key is the literal text "
+        "of this step's own `run`",
+        ("npm run lint:css",),
+    ),
     (
         "catalogue-tooling-ci-gates.yml",
         "Run repo/pack hook suites (Linux)",

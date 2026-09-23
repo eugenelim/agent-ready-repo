@@ -1257,6 +1257,55 @@ jobs:
           python -m pytest tools/test_check_artifact_contents.py -q -rs 2>&1 | tee "$RUNNER_TEMP/out.txt"
           ! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"
 
+  gate-css-tokens:
+    name: gate-css-tokens
+    runs-on: ubuntu-latest
+    # The CSS token gate: semantic `var(--ds-*)` required for colour,
+    # background-color, border-color and font-size across every `web/src`
+    # stylesheet and every `.astro` <style> block. `web/stylelint.config.mjs`
+    # owns which literals stay legal and why.
+    #
+    # It shipped configured, mutation-checked and reporting, and wired into
+    # nothing -- so neither its findings nor a newly hardcoded colour could red
+    # a pull request. This job is the pull-request half; `make test` runs the
+    # identical command as the local half, which is what lint-ci-parity's
+    # SUITE_DISPOSITION entry for `npm run lint:css` claims.
+    #
+    # ITS OWN JOB, not a step in gate-main, for two reasons. gate-main is
+    # Python-only and its ordered provisioning partition is measured evidence
+    # (docs/specs/ci-gate-main-failure-reporting/notes/partition-evidence.md);
+    # a Node toolchain added there would need a matrix row that only a real CI
+    # spike run can supply. And a separate job gets independent failure
+    # reporting from GitHub rather than from an `if:` guard.
+    #
+    # NO `if:` ANYWHERE in this job, and that is load-bearing: lint-ci-parity
+    # admits a PR_GATED claim only from an unconditional source, and GitHub
+    # already skips a step whose predecessor failed -- so a broken install
+    # skips the gate instead of reddening it, with no condition to write.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # NO fetch-depth: 0, same carve-out and same reason as
+          # gate-credbroker above: nothing in this job invokes git, so full
+          # history buys nothing and costs clone time.
+          persist-credentials: false
+      - name: Set up Node (gate-css-tokens)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          # 24 matches web/package.json engines; docs.yml's guidebook-walk job
+          # pins the same major from the same action SHA.
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install web dependencies (gate-css-tokens)
+        # `npm ci`, not `npm install`: the lockfile is the pinned set stylelint
+        # and its two plugins resolve from, and `ci` fails rather than silently
+        # rewriting it.
+        run: npm ci --prefix web
+      - name: CSS token gate (stylelint)
+        run: npm run lint:css --prefix web
+
   gate-credbroker:
     name: gate-credbroker
     runs-on: ubuntu-latest
@@ -1336,6 +1385,7 @@ jobs:
       - gate-sast
       - gate-export-boundary
       - gate-credbroker
+      - gate-css-tokens
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: ${{ always() }}
@@ -1364,10 +1414,12 @@ jobs:
           GATE_SAST_RESULT: ${{ needs.gate-sast.result }}
           GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
           GATE_CREDBROKER_RESULT: ${{ needs.gate-credbroker.result }}
+          GATE_CSS_TOKENS_RESULT: ${{ needs.gate-css-tokens.result }}
         run: |
           set -euo pipefail
           [ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1
           [ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" && exit 1
           [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
           [ "$GATE_CREDBROKER_RESULT" != "success" ] && echo "::error::gate-credbroker reported $GATE_CREDBROKER_RESULT" && exit 1
+          [ "$GATE_CSS_TOKENS_RESULT" != "success" ] && echo "::error::gate-css-tokens reported $GATE_CSS_TOKENS_RESULT" && exit 1
           echo "every gate passed"

@@ -1130,6 +1130,22 @@ open = [
   # on hover alone — so this is a polish gap, not an accessibility one.
   # Unblocks when: ready now.
 
+  # RESOLVED 2026-09-22. The type scale gained the two steps it was missing and
+  # all 11 literals are tokens. Grouped by role the 11 were three things:
+  # --ds-type-mono-xs (0.6875rem/11px, new) took the five mono micro-labels;
+  # --ds-type-read (1.0625rem/17px, new) took the reading column, the measure
+  # the editorial direction exists to demonstrate and the one whose 61ch
+  # verification comment was taken at that size; the three mono 13px sites took
+  # the existing --ds-type-mono-sm. The two remaining sans values were
+  # incidental rather than load-bearing and snapped to existing steps instead of
+  # earning tokens: .dp__navlinks 13 -> 14px and .dp__control 15 -> 16px. That
+  # settles the second open question as NO -- --ds-type-mono-sm stays mono-only
+  # and never carries a sans element. Scale 8 -> 10 steps, not 12. Measured in
+  # Chromium with the paper-ground sanity check passing: 9 of 11 sites
+  # computed-identical, the 2 intended shifts at exactly 14px and 16px. Kept as
+  # a closed note because the discriminator below is why this took a decision
+  # rather than a substitution.
+  # The original entry, for the record:
   # MINOR, NEEDS A SCALE DECISION. 11 off-scale font sizes survive the new
   # stylelint gate, all in web/src/pages/direction-preview.astro: 11px x5 (no
   # token exists), 13px x4, 0.9375rem, and 1.0625rem.
@@ -1154,10 +1170,46 @@ open = [
   #     separator, leaving it dangling. Channel 1 only.
   # Unblocks when: ready now.
 
+  # RESOLVED 2026-09-22. web/AGENTS.md is 77 lines against the 80-line cap in
+  # tools/lint-agents-md.py (MAX_SCOPED_LINES), so there is headroom again. The
+  # three lines came from rewrapping the `astro preview` bullet, which had been
+  # wrapped short: pure reflow, not a single word changed or dropped. One wrap
+  # point was then adjusted by hand because the automatic wrap split
+  # `npm exec --prefix web -- astro preview stop --root web` across a line
+  # break, and a command in this file is meant to be pasted.
   # HAZARD, NOT A TASK. web/AGENTS.md now sits EXACTLY on its 80-line cap. The
   # next line added there fails tools/lint-agents-md.py. Anyone documenting the
   # next dependency or command in that file must remove a line to add one.
 
+  # RESOLVED 2026-09-22. The gate now fires on both sides, and it is green
+  # because the 11 findings were fixed rather than excluded -- stylelint.config.mjs
+  # is unchanged and no file is exempt.
+  # PULL-REQUEST HALF: a new `gate-css-tokens` job in build-check.yml, fanned
+  # into the aggregator's `needs:` and its `Require every gate` comparison. The
+  # aggregator is one of the four contexts branch protection requires
+  # (tools/test-build-check-workflow.py records this), so the gate blocks a
+  # merge with NO branch-protection change -- which a standalone job would have
+  # needed a human for.
+  # ITS OWN JOB, not a step in gate-main, for two measured reasons: gate-main is
+  # Python-only and its ordered provisioning partition is CI-run evidence
+  # (docs/specs/ci-gate-main-failure-reporting/notes/partition-evidence.md), so a
+  # Node toolchain there would need a matrix row only a real spike run can
+  # supply; and a separate job gets independent failure reporting from GitHub
+  # instead of from an `if:` guard. The job carries no `if:` anywhere, which is
+  # load-bearing -- lint-ci-parity admits a PR_GATED claim only from an
+  # unconditional source.
+  # LOCAL HALF: two lines in the Makefile's run-test-suite define, beside the
+  # docs-site npm block they mirror. NOT added to `make ci`'s prerequisites:
+  # ADR-0096 pins those to exactly four and three tests enforce it, so the local
+  # half reaches `make ci` through test-after-build-check instead. The
+  # SUITE_DISPOSITION the entry below anticipated is therefore PR_GATED, not
+  # NO_PR_GATE -- the honest answer changed once the gate got a real PR home.
+  # RESIDUAL: `npm run lint:css` yields no path operand, so extraction can
+  # attribute nothing to the CI step and the claim rests on a
+  # _SUITE_SOURCE_EXCEPTIONS declaration -- the one source in that linter that
+  # asserts coverage rather than reading it. It is digest-pinned on both the
+  # step body and the declared tuple, so any edit reddens and a human re-checks.
+  # The original entry, for the record:
   # A GATE THAT NEVER FIRES. `npm run lint:css --prefix web` (stylelint with
   # stylelint-declaration-strict-value, added 2026-09-18) is wired into NOTHING
   # — not the Makefile, not any workflow. It works, it is mutation-proven, and
