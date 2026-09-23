@@ -578,6 +578,16 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_workspace_status_progressive_disclosure.py
 
+      # contracts/REGISTRY.md is the backward-traceability channel for contracts
+      # whose format carries no `x-spec` key. The module reads `contracts/` and
+      # `docs/specs/`, both above packs/core, so lint-pack-test-boundary forbids a
+      # pack home. It sits ABOVE the carve-out step below, whose `pytest tests/ -q`
+      # also collects it, so that a failure is attributed to this named step
+      # rather than to the broad one.
+      - name: pytest contract backward-traceability registry (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_contract_backward_registry.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
