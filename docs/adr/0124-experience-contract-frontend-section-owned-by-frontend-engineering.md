@@ -1,4 +1,4 @@
-# ADR-0123: The experience contract's frontend section is owned by `frontend-engineering`, not `core`
+# ADR-0124: The experience contract's frontend section is owned by `frontend-engineering`, not `core`
 
 - **Status:** Accepted
 - **Date:** 2026-09-22

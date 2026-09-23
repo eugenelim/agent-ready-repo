@@ -73,34 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `git rev-parse`, while a process that changes directories still resolves the
   new repository and a failed lookup is retried rather than remembered.
 
-## [core][2.26.37] — 2026-09-23
-
-### Fixed
-
-- A work-loop transition now commits only against the cohort state its own
-  reads saw. The engine fingerprints `state.json` before its first cohort read
-  and re-checks it under the cohort lock before committing, so a concurrent
-  `loop-cohort` verb can no longer change the ground a guard just ruled on.
-  Previously a `wave-complete` approved for one wave could commit after the
-  wave pointer had moved, leaving a verdict about one wave discharging a commit
-  about another. Note what this does not change: `gates-clean` still does not
-  read dispatch receipts at all, which needs no concurrency to reach and is not
-  addressed here.
-
-### Changed
-
-- Refusals that were not reachable before are now possible on paths that took
-  no cohort lock. A transition refuses when cohort state changed under it, and
-  refuses on cohort-lock contention; both clear on retry once the competing
-  verb finishes, and neither can occur in a sequential single-controller run —
-  they need two processes working on one spec directory at the same time. A
-  lock reclaimed at release is reported separately and says whether the
-  transition committed, because the remedy differs: a reclaim after the write
-  must not be re-run, while one after a refusal should be. Two lock conditions
-  never clear on retry — a `state.json.lock` that is not a regular file, and a
-  lock record written by something other than this tool — and both need the
-  file removed by hand.
-
 ## [frontend-engineering][0.3.2] — 2026-09-23
 
 ### Highlights
@@ -201,6 +173,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   map, and its frontend section names `frontend-engineering` as owner.
 - `synthesize-stakeholder-research` gains an eval case covering a synthesis
   organized by theme that names its coverage gaps.
+
+## [core][2.26.37] — 2026-09-23
+
+### Fixed
+
+- A work-loop transition now commits only against the cohort state its own
+  reads saw. The engine fingerprints `state.json` before its first cohort read
+  and re-checks it under the cohort lock before committing, so a concurrent
+  `loop-cohort` verb can no longer change the ground a guard just ruled on.
+  Previously a `wave-complete` approved for one wave could commit after the
+  wave pointer had moved, leaving a verdict about one wave discharging a commit
+  about another. Note what this does not change: `gates-clean` still does not
+  read dispatch receipts at all, which needs no concurrency to reach and is not
+  addressed here.
+
+### Changed
+
+- Refusals that were not reachable before are now possible on paths that took
+  no cohort lock. A transition refuses when cohort state changed under it, and
+  refuses on cohort-lock contention; both clear on retry once the competing
+  verb finishes, and neither can occur in a sequential single-controller run —
+  they need two processes working on one spec directory at the same time. A
+  lock reclaimed at release is reported separately and says whether the
+  transition committed, because the remedy differs: a reclaim after the write
+  must not be re-run, while one after a refusal should be. Two lock conditions
+  never clear on retry — a `state.json.lock` that is not a regular file, and a
+  lock record written by something other than this tool — and both need the
+  file removed by hand.
 
 ## [core][2.26.36] — 2026-09-22
 

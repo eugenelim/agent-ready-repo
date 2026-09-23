@@ -992,3 +992,57 @@ the annotation, so re-tiering the section would have left it false silently.
 Counts re-measured after the edit: per-tier 10 / 15 / 7, cumulative 10 / 25 / 32,
 and the `<!-- Required: -->` annotation is still the first non-blank line after
 its heading.
+
+## Post-gates review, round 7 — and the ordinal that moved underneath us
+
+Three reviewers ran. `experience-reviewer` and `quality-engineer` returned
+clean; `adversarial-reviewer` found two blockers, both created by `origin/main`
+moving again rather than by any repair.
+
+### The ADR ordinal collided
+
+`origin/main` had gained its own `docs/adr/0123-product-changelog-per-update-
+sources-and-generated-views.md`, Accepted 2026-09-22 and already cited from four
+files. Merging would have put **two different ADR-0123 records** in `docs/adr/`,
+and AC-0003's "ordinal allocated from current repository state" was no longer
+true — it had been true when the record was written.
+
+This is the failure mode a reserved ordinal always has: it is allocated from a
+snapshot, and the snapshot expires. Nothing in the local gate chain reports it,
+because both files are individually well-formed and the shape lint reads each
+record rather than the set.
+
+Reallocated to `0124` after rebasing, with all three citations repointed — the
+record's own title, and the two frozen-record `Status` pointers. The frozen-diff
+shapes still hold exactly: the spec's diff touches one line, the plan's adds
+one. AC-0003, AC-0004, AC-0005 and AC-0047 all re-taken green at the new
+ordinal.
+
+The four `ADR-0123` references remaining in `docs/specs/changelog-fragment-
+assembly-spike/` are correct: they cite upstream's record, not this one.
+
+### The ADR index was never regenerated
+
+`python3 .claude/skills/new-adr/scripts/index-records.py --check docs/adr` exited
+1 — every record from 0001 to 0122 had a row in `docs/adr/README.md` and this
+one had none. No CI step runs that check, so the drift would have shipped
+silently and the next person to run it would have inherited it. Regenerated;
+`--check` now exits 0.
+
+`docs/adr/README.md` is inside T8's pinned `Touches:` (`docs/adr/`), so the
+regeneration needed no scope change.
+
+### The changelog moved again, for the second time
+
+`origin/main` had added `## [core][2.26.38]`, so the four pack entries were once
+more following the second-newest core entry rather than the newest. Moved up
+again. That is twice in one delivery that an external release reordered this
+block — the entry position is a function of what else shipped, and it has to be
+re-checked at every rebase, not once.
+
+### The retry cap
+
+Review retry stood at 5 of 5 when these blockers arrived. Both were external
+drift rather than repair churn, and the owner authorized continuing past the cap
+on that basis. The distinction is the point: the cap exists to stop a loop
+re-repairing its own defects, and neither of these was one.
