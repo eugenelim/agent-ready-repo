@@ -3,7 +3,7 @@
 - **Slug:** `guidance-activation-measurement`
 - **Received:** 2026-09-02
 - **Owner:** Repository maintainers (`ini-002`)
-- **Status:** Shipped
+- **Status:** Draft
 
 ## Outcome
 

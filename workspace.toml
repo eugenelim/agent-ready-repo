@@ -213,6 +213,11 @@ draft     = [
   # documentation, not unknowns. `continue` owns Ready after the owner closes
   # the two open decisions.
   {path = "docs/product/briefs/work-loop-next-action.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give a work-loop turn one authoritative next action from persisted state, and decide separately what owns stopping a non-converging authoring loop", needs = []},
+  # Returned from `shipped` 2026-09-23: both briefs carry an EMPTY Spec map,
+  # so `Shipped` was never eligible — a brief is delivered only when its map
+  # is non-empty and every mapped spec is Shipped.
+  {path = "docs/product/briefs/guidance-activation-measurement.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Measure whether the written-guidance mechanism binds -- graded on what an author produced while a rule was in context rather than on whether it was loaded -- across a mandatory local stratum of six named rules and a portability stratum of pinned adopter repositories, reported separately and never blended", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/policy-arrival-validator.md"}]},
+  {path = "docs/product/briefs/stage-input-readiness.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make each authoring handoff ask whether the next stage can work from its input and record the answer: a pre-creation pressure test with a redirect to brief authoring, a bounded-spike disposition for an open unknown, readiness checks at new-spec's input and at the spec-and-plan handoff, and a readiness gate sequenced ahead of review", needs = []},
 ]
 # tech-site-completion is Status: Shipped, so `ready` was an impossible
 # transition. It moves to the engine's terminal brief collection rather than
@@ -220,11 +225,6 @@ draft     = [
 # `ref` and `parent`, and dropping it would orphan those references.
 shipped   = [
   {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
-  # Both moved from `draft` 2026-09-22: their Spec maps are fully Shipped and
-  # their `- **Status:**` lines now read Shipped, so `draft` was an impossible
-  # transition. Same remedy as tech-site-completion above.
-  {path = "docs/product/briefs/guidance-activation-measurement.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Measure whether the written-guidance mechanism binds -- graded on what an author produced while a rule was in context rather than on whether it was loaded -- across a mandatory local stratum of six named rules and a portability stratum of pinned adopter repositories, reported separately and never blended", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/policy-arrival-validator.md"}]},
-  {path = "docs/product/briefs/stage-input-readiness.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make each authoring handoff ask whether the next stage can work from its input and record the answer: a pre-creation pressure test with a redirect to brief authoring, a bounded-spike disposition for an open unknown, readiness checks at new-spec's input and at the spec-and-plan handoff, and a readiness gate sequenced ahead of review", needs = []},
 ]
 
 ["ini-002".work]
