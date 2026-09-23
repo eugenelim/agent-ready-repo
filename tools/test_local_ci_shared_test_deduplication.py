@@ -40,6 +40,14 @@ SHARED_TESTS = (
 )
 
 CORE_COLLECTIONS = {
+    # Re-pinned 2026-09-23 for the pointer-grammar migration. Dispositioned
+    # against `origin/main` before re-pinning, as the note below requires:
+    # 16 additions, 0 removals. SHARED_TESTS[1] +1
+    # (`test_typed_form_backlink_joins_to_brief`, the `brief:<slug>` coverage
+    # join) and SHARED_TESTS[2] +15, each named for a criterion the migration
+    # discharges — ambiguity refusal, `intent:` node recognition, the absent
+    # `Slug:` pair, ordinal refusal, and local-producer in-edge preference.
+    # Nothing was removed, which is the half a count-only comparison misses.
     # Re-pinned by RFC-0096 Wave 4 (AC2d). Reconciled on every rebase by the
     # same check: this branch's node set must match main's exactly except for
     # one rename, `test_invariant_ii_transition_ok_when_deferred` ->
@@ -113,8 +121,8 @@ CORE_COLLECTIONS = {
     # crossing with a child's Approved/Implementing/Shipped state). Nothing else
     # was removed, and the surviving 15 keep their original relative order.
     SHARED_TESTS[1]: (
-        27,
-        "fccaac7b6628f5848f29f22c64bd613f7bfcb688433aadee39fbcd90d1448821",
+        28,
+        "f2e8743d576e63b9a7cf0ce39167f8742ec0f272237bf898e79701041a421d40",
     ),
     # Re-pinned 2026-09-10: 45 -> 48, same change as SHARED_TESTS[0]. A passing
     # traceability run now withholds its per-item detail lines, and three
@@ -125,8 +133,8 @@ CORE_COLLECTIONS = {
     # otherwise be unsuppressible. Dispositioned by the same AST diff: three
     # additions, no removal, no rename.
     SHARED_TESTS[2]: (
-        48,
-        "1f360511421f260d9d25850f8c889a59007f5c66ceeb40e6dee12fcb86416010",
+        63,
+        "1a9d10be9aaaff85df11c343fb4925d54d59bd94b69868cec31e8a5c4fa6f34e",
     ),
 }
 

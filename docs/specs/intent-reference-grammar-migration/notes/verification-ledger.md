@@ -1340,3 +1340,35 @@ cross-tree invariants living in `tests/roster/`, which is dispatch-only and must
 not be run locally. `make lint-ruff lint-mypy` and the three pack suites were
 green through every one of them. A version bump is not verified until the roster
 has seen it.
+
+### 2026-09-23 — two more closeout surfaces, both roster-owned
+
+**The spec's status and its queue membership contradicted each other.**
+`tests/roster/test_workspace_status_projection.py::test_no_fail_closed_lifecycle_findings`
+raised `impossible_transition` on this spec: `Status: Shipped` while the entry
+still sat in `["ini-010".work].active`. The code's own comment states the rule —
+"an artifact's status and its lifecycle membership cannot coexist" — and it is
+zero-tolerance, not ceilinged. Moving the entry to `shipped` clears it; the
+whole fail-closed set is now empty, checked by running the reconciliation
+directly rather than inferring it from the suite.
+
+Setting `Status:` is half of shipping. The other half is the membership move,
+and nothing local couples them.
+
+**The shared-test dedup guard pins core node-id sets.**
+`tools/test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact`
+holds a count and a SHA-256 over the collected node ids of three directory-collected
+core files. Adding a test moves both. Its own comment forbids re-pinning without
+dispositioning the delta first, so the delta was computed against `origin/main`:
+
+| File | Pinned | Actual | Delta |
+| --- | --- | --- | --- |
+| `test_lint_spec_status.py` | 87 | 87 | unchanged |
+| `test_lint_brief_coverage.py` | 27 | 28 | +1, −0 |
+| `test_lint_traceability.py` | 48 | 63 | +15, −0 |
+
+All 16 additions are this delivery's own tests, each named for a criterion it
+discharges. **Nothing was removed** — the half a count-only comparison cannot
+see, and the one that would matter, since a bulk edit can delete a test and
+leave a suite green. Re-pinned with the disposition recorded in the table's
+comment. `tools/test_local_ci_shared_test_deduplication.py`: 51 passed, 92s.
