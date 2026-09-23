@@ -49,7 +49,7 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# ── the lock-hold budget (ADR-0074 / spec/work-loop-in-process-guards AC22) ─
+# ── the lock-hold budget (ADR-0074) ─────────────────────────────────────────
 #
 # `cmd_transition` holds the state lock across a read-decide-write section. Three
 # numbers are ONE budget, and breaking the ordering silently reinstates the lost
@@ -1295,8 +1295,7 @@ def stop(reason: str, code: int = 1) -> int:
 # read-decide-write around it is not. Two concurrent transitions both validate
 # against the same `current_state`, so BOTH are admitted where the second must
 # fail `illegal transition`, both compute the same `transition_sequence`, and the
-# durable outbox records the collision. Reproduced at 10/10 trials; see
-# docs/specs/loop-cohort-state-lock/notes/reproduction.md.
+# durable outbox records the collision. Reproduced at 10/10 trials.
 #
 # `_statelock.py` is a work-loop script owned by this skill (ADR-0074):
 # stdlib-only, so it works where `agentbundle` is not installed. `agentbundle`
