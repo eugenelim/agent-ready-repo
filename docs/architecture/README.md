@@ -48,6 +48,8 @@ rules live with that split.
   transition history and a `schema_version` bump that refuses in-flight state.
   [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D8 defers the schema and
   D5 defers parallel-wave orchestration.
+  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D5 defers the bounded
+  round cap and its *Revisit if* clause names this condition.
 - **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by

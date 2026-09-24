@@ -393,6 +393,21 @@ a backend can do with it are a cross-cutting concern: see
 - `loop-cohort.py` requires `--expect-run-id` for cohort mutations.
 - Each state file is written under its own advisory lock, so a read-modify-write
   on one file is atomic against another process running the same tool.
+- The `spec-plan` `findings-remain` edge is guarded, but by a counter nothing
+  on that path increments. `loop-engine.py` maps
+  `("spec-plan", "findings-remain")` to the same `_guard_check_phase_review`
+  the code path uses, and that guard refuses at
+  `review_retry_count >= max_review_retries`. `review_retry_count` is
+  incremented in exactly one place — `loop-cohort.py` `review record
+  --fingerprint` — which an ordinary pre-EXECUTE round does not call; the
+  work-loop skill's `references/pre-execute-review.md` states that separation
+  deliberately, reserving the call for the bounded evidence-replacement path.
+  So an ordinary spec/plan revision cycle reads `0/5` on every round and the
+  cap never fires. Whether such a loop stops is therefore an orchestrator
+  judgement, not a mechanical refusal. Reproduced directly: twelve consecutive
+  `findings-remain` transitions in `mode=code` all succeeded with
+  `review_retry_count` at `0`. ADR-0061's *Revisit if* clause names a bounded
+  round cap for unattended `spec-plan` runs (D5); no such change is designed.
 - No invariant spans the two lock domains. A guard verdict derived from cohort
   state is not revalidated before the engine commits, so an invariant whose
   terms live in both files — the wave-exit verdict and `current_wave_index`
