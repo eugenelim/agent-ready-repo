@@ -64,6 +64,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [governance-extras][0.11.1] — 2026-09-24
+
+### Highlights
+
+- **`new-adr`'s infra mode no longer claims its seven topics cover the whole
+  governance index.** Each of the seven maps to a domain, and `observability`
+  is named as the domain with no authoring topic of its own — so you can see
+  the gap instead of assuming the list is complete.
+
+### Fixed
+
+- `new-adr` `references/infra-decisions.md`: the header said the seven IaC
+  topics "correspond to" the `generate-iac` governance-index domains. The
+  manifest carries eight. The sentence now states that each topic maps to a
+  domain and names `observability` as the one without a dedicated topic.
+
 ## [product-engineering][0.13.18] — 2026-09-24
 
 ### Highlights
