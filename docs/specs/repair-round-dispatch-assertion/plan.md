@@ -546,8 +546,6 @@ one verb.
 
 ## Changelog
 
-- 2026-09-24 — all six tasks complete; 29 of 29 criteria met, none deferred.
-
 - 2026-09-24 — amended plan re-approved by eugenelim: T1-T5 unchanged and
   hash-pinned where completed, T6 carries the implementation review's findings
   and the oracle's deletion.
