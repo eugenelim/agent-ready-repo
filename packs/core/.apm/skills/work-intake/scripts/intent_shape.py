@@ -95,13 +95,15 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
     "direct-light",
 )
 
-# ── Lifecycle refusal registry (AC-0012) ─────────────────────────────────────
-# Every refusal class the lifecycle-state-coherence rules add is declared here.
-# A `Violation` produced by those rules carries one of these strings in its
-# `refusal_class` field. Declared once so a set comparison decides AC-0012
-# rather than a substring search over reason text.
+# ── Lifecycle refusal registry ───────────────────────────────────────────────
+# Every refusal class the lifecycle-state-coherence rules add is declared here,
+# and a `Violation` those rules produce carries one of these strings in its
+# `refusal_class` field. Declaring them in one place is what lets a caller
+# compare the classes it expects against the classes this module states, as a
+# set. The alternative is substring-matching reason text, which silently stops
+# matching the first time a message is reworded.
 #
-# `lifecycle_record_required`   — a status requires a record that is absent.
+# `lifecycle_record_required`    — a status requires a record that is absent.
 # `lifecycle_record_not_allowed` — a status forbids a record that is present.
 LIFECYCLE_REFUSAL_CLASSES: tuple[str, ...] = (
     "lifecycle_record_required",
@@ -126,11 +128,11 @@ _HEADING = "## "
 class Violation:
     """One refusal, naming the field at fault, why it was refused, and its class.
 
-    ``refusal_class`` defaults to the empty string so the seven existing
-    construction sites keep working unchanged. Lifecycle-state-coherence rules
-    (T2 of the lifecycle-transition-contract spec) set it to a member of
-    ``LIFECYCLE_REFUSAL_CLASSES``, which turns AC-0012's obligation into a set
-    comparison rather than a substring search over reason text.
+    ``refusal_class`` defaults to the empty string, so every construction site
+    predating the registry keeps working unchanged. The lifecycle-state-coherence
+    rules set it to a member of ``LIFECYCLE_REFUSAL_CLASSES``, which is what lets
+    a caller compare refusal classes as a set rather than substring-matching
+    reason text.
     """
 
     field: str
