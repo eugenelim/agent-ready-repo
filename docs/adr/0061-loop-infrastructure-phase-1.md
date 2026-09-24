@@ -120,3 +120,37 @@ Whether to re-align the code to D3 and D4 or to supersede them is a decision thi
 erratum does not take, and an erratum could not carry it. Current behaviour is
 described in `docs/architecture/loop-infrastructure.md` § 3, § 4 and § 6. The body
 above is left as written. Approver: eugenelim.
+
+**2026-09-24 Erratum — a passing wave exit records that it passed, not why.**
+The decision is unchanged and this erratum takes none. It records one
+consequence of D1 and D2 that the *Tradeoff accepted* list above does not state.
+
+D1 and D2 make guard enforcement read-only: `loop-cohort.py` is the only writer
+of cohort state, so a guard row that *passes* cannot record that it was the row
+which did. `check --phase wave-exit`, which postdates this ADR, has two rows
+held open on purpose, so that a run already in flight when dispatch receipts
+shipped still reaches its wave boundary: one passes cohort state whose
+`schema_version` it does not support, the other passes cohort state carrying no
+receipts container. Between them they emit at most a line on stdout, and no
+durable record says which row decided the pass.
+
+That is narrower than "the exit leaves no trace", and a reader should not take
+the stronger claim. The `wave-complete` transition this guard gates appends a
+record to `.loop-run/events.jsonl` carrying the run, the sequence, the event and
+the time, so *that* the exit occurred is durable for every row. What is absent
+is the verdict: no record says whether accounting was enforced, exempted, or
+satisfied.
+
+Two neighbouring facts do not follow from the above and are stated so they are
+not inferred from it. A wave whose tasks all carry a `decline` is fully
+accounted for rather than exempted — a decline is a record, and
+`references/state-schema.md` states that both kinds count. And
+`loop-cohort status`'s `dispatch_receipts_enforced` reports whether the
+container is present when the call is made, so it is the exemption's current
+status rather than a trace of any past exit, and it refuses outright on an
+unsupported `schema_version`.
+
+Option B remains out of reach on the prerequisite the 2026-08-31 erratum named:
+a `pending_transition` schema is still absent. Current behaviour is described in
+`docs/architecture/loop-infrastructure.md`. The body above is left as written.
+Approver: eugenelim.

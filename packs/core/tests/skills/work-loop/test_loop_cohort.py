@@ -4068,3 +4068,93 @@ def test_wave_advance_does_not_carry_a_long_state_value_whole(tmp: Path) -> None
         fail(name, f"stderr is {len(err)} chars — no bound applied")
     else:
         ok(name)
+
+
+# ── what a passing wave exit leaves for a later reader ────────────────────
+#
+# Contract: ADR-0061's 2026-09-24 erratum. Both cases below PASS
+# `check --phase wave-exit`, and both are pinned against `loop-cohort status`
+# rather than against the guard: the guard half of each already belongs to
+# `_WAVE_EXIT_CLI_ROWS` above, and `status` is the surface an after-the-fact
+# reader actually reaches for. The guard's stdout notice is not that surface —
+# it is one line on a run nobody is watching.
+
+
+def _tolerated_exit_state(**over) -> dict:
+    state = {
+        "schema_version": 1, "run_id": str(uuid.uuid4()),
+        "schedule_waves": _WAVES, "current_wave_index": 0,
+    }
+    state.update(over)
+    return state
+
+
+def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
+    tmp: Path,
+) -> None:
+    """Differential: two waves alike but for the record kind, one reported value.
+
+    A decline is accounting, not an exemption, so both waves exit accounted for.
+    Asserted as a DIFFERENCE rather than as the literal `True`, because `True`
+    is also what an implemented wave reports — a row pinning that constant stays
+    green when the two stop being alike, which is the whole claim.
+    """
+    name = "status-conflates-decline-with-receipt"
+    fixtures = {
+        "receipt": {"kind": _mod.RECEIPT_KIND},
+        "decline": {"kind": _mod.DECLINE_KIND,
+                    "reason": _mod.DECLINE_REASONS[0]},
+    }
+    # Without this the differential is vacuous: if the two fixtures ever stop
+    # differing, every comparison below compares a thing to itself and the test
+    # reports agreement it never observed.
+    if fixtures["receipt"] == fixtures["decline"]:
+        fail(name, "the two fixtures are identical — nothing is being compared")
+        return
+    seen = {}
+    for kind, record in fixtures.items():
+        spec_dir = make_spec_dir(tmp, f"{name}-{kind}")
+        write_state(spec_dir, _tolerated_exit_state(
+            **{_RECEIPTS_KEY: _receipts_container(
+                _WAVES, 0, ["T1", "T2"], record=record)}))
+        rc, out, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
+        if rc != 0:
+            fail(name, f"the {kind} wave must exit accounted for: {err.strip()!r}")
+            return
+        if (out + err).strip():
+            fail(name, f"the {kind} exit must be silent; got {(out + err).strip()!r}")
+            return
+        rc, out, err = run_cohort("status", str(spec_dir), "--json")
+        if rc != 0:
+            fail(name, f"status refused the {kind} wave: {err.strip()!r}")
+            return
+        seen[kind] = json.loads(out).get("dispatch_receipts_enforced")
+    if seen["receipt"] != seen["decline"]:
+        fail(name, f"status now distinguishes them: {seen!r}")
+    else:
+        ok(name)
+
+
+def test_status_refuses_the_oldest_state_the_wave_exit_tolerates(
+    tmp: Path,
+) -> None:
+    """The exit tolerates an unsupported schema; `status` will not read it.
+
+    The asymmetry is the point: the row the guard passes most permissively is
+    the one cohort state offers no reader for.
+    """
+    name = "status-refuses-the-tolerated-schema"
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, _tolerated_exit_state(schema_version=99))
+
+    rc, _, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
+    if rc != 0:
+        fail(name, f"the exit must tolerate this state; got {err.strip()!r}")
+        return
+    rc, _, err = run_cohort("status", str(spec_dir), "--json")
+    if rc == 0:
+        fail(name, "status now reads this state — the erratum's asymmetry is gone")
+    elif "unsupported schema_version" not in err:
+        fail(name, f"status refused for the wrong reason: {err.strip()!r}")
+    else:
+        ok(name)
