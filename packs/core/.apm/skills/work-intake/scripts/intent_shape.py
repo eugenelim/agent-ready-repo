@@ -7,9 +7,25 @@ carrying its own copy of the table is a second home that drifts from this one.
 Two surfaces read it. ``validate_live_intent`` decides a rule from one artifact
 alone, and is the surface the shaping reviewer's preamble condition refers to —
 that condition names the obligation and defers every member list here rather
-than restating it. ``validate_supersession`` is called by the corpus lint alone,
-and holds the rules that need more than one artifact or that ask what another
-field's value requires.
+than restating it. ``validate_corpus_scoped`` is the corpus-only entry point;
+it delegates to ``validate_supersession`` and ``_check_state_coherence``, so a
+rule added to either reaches every consumer without the consumer changing.
+
+**Surface placement rule.** Among the rules deciding a live intent, a rule
+whose verdict depends only on the field it constrains belongs on the shared
+surface; a rule whose verdict depends on a different field's value, or on
+another artifact, belongs on the corpus-lint-only surface. "Only the field it
+constrains" covers that field's presence, its name, how often it occurs, its
+value, and — where its value gates whether the check runs at all — a fixed
+location in the same artifact.
+
+The state-coherence rules use the corpus-lint-only surface because each rule's
+verdict depends on ``Status``, a different field from the one constrained. Every
+refusal they produce carries one of the classes declared in
+``LIFECYCLE_REFUSAL_CLASSES``:
+
+- ``lifecycle_record_required`` — a status requires a record that is absent.
+- ``lifecycle_record_not_allowed`` — a status forbids a record that is present.
 
 What a shaping reviewer then emits is not this module's to state: it retrieves
 nothing, so that depends on what a caller puts in its packet.
@@ -424,12 +440,9 @@ def validate_supersession(text: str, live: set[str]) -> list[Violation]:
     Two faults, reported in the order they can be fixed: the status and the
     pointer must be present together, and the pointer must then resolve.
 
-    Kept out of ``validate_live_intent`` deliberately, for two reasons that
-    happen to point the same way. ``validate_live_intent`` decides a rule from
-    one artifact alone, and resolution needs the rest of the corpus. The pairing
-    rule is settleable from one artifact, but it is a rule about which field
-    another field's value requires, which the reviewer's preamble condition does
-    not reach; ``_check_supersession_pair`` states that at length.
+    Corpus-lint-only: the pairing rule depends on a different field's value,
+    and resolution needs the whole corpus. See the module docstring's surface
+    placement rule.
     """
     violations = _check_supersession_pair(text)
     if violations:
@@ -578,13 +591,8 @@ def _check_supersession_pair(text: str) -> list[Violation]:
     lived inside the value, a status change discarded it, and now it survives one
     — so a pointer left beside `Draft` would otherwise go unread and unrefused.
 
-    Corpus-lint-only, and the seam is the point. ``validate_live_intent`` is the
-    surface the shaping reviewer's preamble condition refers to, and that
-    condition obliges "every field whose values the contract fixes carries one of
-    them" — a rule about one field's *value*. This is a rule about which field
-    another field's value *requires*, which those words do not reach, so it is
-    not a rule that condition can be read as covering. Any rule of that kind
-    belongs here, beside the ones that need the whole corpus.
+    Corpus-lint-only: its verdict depends on a different field's value. See the
+    module docstring's surface placement rule.
     """
     present = present_fields(text)
     status = present.get("Status")

@@ -64,6 +64,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.41] — 2026-09-24
+
+### Added
+
+- The corpus lint now refuses a `Fulfilled` intent that carries no `Accepted:`
+  or `Fulfilled:` record, a `Cancelled` intent that carries no `Accepted:`
+  record, and any intent whose records contradict its `Status` — for example, a
+  `Draft` intent carrying either record, or an `Accepted` or non-delivering
+  intent carrying a `Fulfilled:` record. Every refusal names the file and the
+  field at fault.
+
 ## [core][2.26.40] — 2026-09-24
 
 ### Highlights

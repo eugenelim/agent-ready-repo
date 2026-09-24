@@ -229,7 +229,7 @@ def lint_corpus(root: Path, directory: Path) -> LintResult:
             result.violations.append(
                 FileViolation(name, violation.field, violation.reason)
             )
-        for violation in _shape.validate_supersession(text, resolvable):
+        for violation in _shape.validate_corpus_scoped(text, resolvable):
             result.violations.append(
                 FileViolation(name, violation.field, violation.reason)
             )

@@ -759,6 +759,23 @@ def test_ac0012_a_violation_may_carry_a_registry_member_as_its_class() -> None:
     assert v.refusal_class in registry
 
 
+def test_ac0013_every_lifecycle_refusal_class_is_named_in_the_module_docstring() -> None:
+    """AC-0013: every refusal class the lifecycle rules add is named in the docstring.
+
+    Compared registry-against-docstring so a class added to the registry without
+    a corresponding line in the docstring fails here rather than drifting silently.
+    The registry is the enumerable set; the docstring is what the module's reader
+    sees first.
+    """
+    shape = lint._shape
+    docstring = shape.__doc__ or ""
+    for cls in shape.LIFECYCLE_REFUSAL_CLASSES:
+        assert cls in docstring, (
+            f"refusal class {cls!r} is declared in LIFECYCLE_REFUSAL_CLASSES "
+            f"but is not named in intent_shape's module docstring"
+        )
+
+
 # ── State-coherence rules ─────────────────────────────────────────────────────
 # AC-0001, AC-0002, AC-0003, AC-0004: delivered-terminal rules.
 # AC-0005, AC-0006: positive paths — own fixtures so an implementation that

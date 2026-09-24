@@ -382,6 +382,39 @@
         "Follows the date with non-empty text rather than leaving the date alone",
         "Does not offer `no` as an available value for this field"
       ]
+    },
+    {
+      "id": "corpus-lint-refuses-fulfilled-without-ratification",
+      "prompt": "The corpus lint refused this intent with Status: Fulfilled and a Fulfilled: record but no Accepted: record. Explain what is wrong and how to fix it.",
+      "expected_output": "A Fulfilled intent must carry both an Accepted: record and a Fulfilled: record. The Accepted: record is what proves the bet was ratified before delivery. Without it the corpus lint raises a `lifecycle_record_required` refusal on the Accepted field. Add `- **Accepted:** YYYY-MM-DD <who ratified it and on what evidence>` to the preamble.",
+      "assertions": [
+        "Names both required records, not only the missing one",
+        "Attributes the refusal to the corpus lint rather than to a shaping review",
+        "States that Accepted: must carry a date and evidence text, not a bare date",
+        "Does not claim the intent can be closed without ratification evidence"
+      ]
+    },
+    {
+      "id": "corpus-lint-refuses-draft-with-lifecycle-records",
+      "prompt": "The corpus lint refused a Draft intent because it carries an Accepted: record. Explain why and what the author should do.",
+      "expected_output": "Draft means the bet is still open, so no ratification or delivery records belong beside it. The corpus lint raises a `lifecycle_record_not_allowed` refusal on the Accepted field. Either remove the record to keep the intent open, or advance the status to the state that earned the record.",
+      "assertions": [
+        "Explains that Draft means open and forbids both records",
+        "Attributes the refusal class `lifecycle_record_not_allowed` to the corpus lint",
+        "Offers the two repairs: remove the record or advance the status",
+        "Does not suggest editing the record's value as a repair"
+      ]
+    },
+    {
+      "id": "corpus-lint-refuses-cancelled-without-accepted-record",
+      "prompt": "This intent has Status: Cancelled but no Accepted: record. The corpus lint refused it. What does the author owe and why?",
+      "expected_output": "A Cancelled intent requires an Accepted: record, because it was ratified before the decision to cancel was taken. Without the record the corpus lint raises a `lifecycle_record_required` refusal. The author must add `- **Accepted:** YYYY-MM-DD <who ratified it>` to show the bet reached Accepted before it was cancelled. A Fulfilled: record must not be added — Cancelled did not deliver.",
+      "assertions": [
+        "Requires Accepted: but explicitly forbids Fulfilled:",
+        "Names the `lifecycle_record_required` class as the refusal's cause",
+        "States that Cancelled means the bet was ratified, then cancelled, not that it delivered",
+        "Does not accept a bare date as a valid Accepted: value"
+      ]
     }
   ]
 }

@@ -7,9 +7,25 @@ carrying its own copy of the table is a second home that drifts from this one.
 Two surfaces read it. ``validate_live_intent`` decides a rule from one artifact
 alone, and is the surface the shaping reviewer's preamble condition refers to —
 that condition names the obligation and defers every member list here rather
-than restating it. ``validate_supersession`` is called by the corpus lint alone,
-and holds the rules that need more than one artifact or that ask what another
-field's value requires.
+than restating it. ``validate_corpus_scoped`` is the corpus-only entry point;
+it delegates to ``validate_supersession`` and ``_check_state_coherence``, so a
+rule added to either reaches every consumer without the consumer changing.
+
+**Surface placement rule.** Among the rules deciding a live intent, a rule
+whose verdict depends only on the field it constrains belongs on the shared
+surface; a rule whose verdict depends on a different field's value, or on
+another artifact, belongs on the corpus-lint-only surface. "Only the field it
+constrains" covers that field's presence, its name, how often it occurs, its
+value, and — where its value gates whether the check runs at all — a fixed
+location in the same artifact.
+
+The state-coherence rules use the corpus-lint-only surface because each rule's
+verdict depends on ``Status``, a different field from the one constrained. Every
+refusal they produce carries one of the classes declared in
+``LIFECYCLE_REFUSAL_CLASSES``:
+
+- ``lifecycle_record_required`` — a status requires a record that is absent.
+- ``lifecycle_record_not_allowed`` — a status forbids a record that is present.
 
 What a shaping reviewer then emits is not this module's to state: it retrieves
 nothing, so that depends on what a caller puts in its packet.
@@ -95,6 +111,21 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
     "direct-light",
 )
 
+# ── Lifecycle refusal registry ───────────────────────────────────────────────
+# Every refusal class the lifecycle-state-coherence rules add is declared here,
+# and a `Violation` those rules produce carries one of these strings in its
+# `refusal_class` field. Declaring them in one place is what lets a caller
+# compare the classes it expects against the classes this module states, as a
+# set. The alternative is substring-matching reason text, which silently stops
+# matching the first time a message is reworded.
+#
+# `lifecycle_record_required`    — a status requires a record that is absent.
+# `lifecycle_record_not_allowed` — a status forbids a record that is present.
+LIFECYCLE_REFUSAL_CLASSES: tuple[str, ...] = (
+    "lifecycle_record_required",
+    "lifecycle_record_not_allowed",
+)
+
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # `*`/`+` markers and up to three spaces of indentation are ordinary Markdown
 # for a list item. Matching only an unindented hyphen made an indented item
@@ -111,10 +142,18 @@ _HEADING = "## "
 
 @dataclass(frozen=True)
 class Violation:
-    """One refusal, naming the field at fault and why it was refused."""
+    """One refusal, naming the field at fault, why it was refused, and its class.
+
+    ``refusal_class`` defaults to the empty string, so every construction site
+    predating the registry keeps working unchanged. The lifecycle-state-coherence
+    rules set it to a member of ``LIFECYCLE_REFUSAL_CLASSES``, which is what lets
+    a caller compare refusal classes as a set rather than substring-matching
+    reason text.
+    """
 
     field: str
     reason: str
+    refusal_class: str = ""
 
 
 # ── The normalization stage ───────────────────────────────────────────────────
@@ -401,12 +440,9 @@ def validate_supersession(text: str, live: set[str]) -> list[Violation]:
     Two faults, reported in the order they can be fixed: the status and the
     pointer must be present together, and the pointer must then resolve.
 
-    Kept out of ``validate_live_intent`` deliberately, for two reasons that
-    happen to point the same way. ``validate_live_intent`` decides a rule from
-    one artifact alone, and resolution needs the rest of the corpus. The pairing
-    rule is settleable from one artifact, but it is a rule about which field
-    another field's value requires, which the reviewer's preamble condition does
-    not reach; ``_check_supersession_pair`` states that at length.
+    Corpus-lint-only: the pairing rule depends on a different field's value,
+    and resolution needs the whole corpus. See the module docstring's surface
+    placement rule.
     """
     violations = _check_supersession_pair(text)
     if violations:
@@ -427,6 +463,125 @@ def validate_supersession(text: str, live: set[str]) -> list[Violation]:
     ]
 
 
+def _check_state_coherence(text: str) -> list[Violation]:
+    """Refuse records that contradict an intent's lifecycle state.
+
+    Corpus-lint-only. Each rule's verdict depends on the value of ``Status``,
+    which is a different field from the one the rule constrains — the same
+    reason ``validate_supersession`` stays off the shared surface.
+
+    An absent, empty, or unrecognised ``Status`` leaves nothing to decide.
+    The rules by state:
+
+    * ``Fulfilled`` — requires both ``Accepted:`` and ``Fulfilled:`` records.
+    * ``Cancelled`` — requires ``Accepted:``, forbids ``Fulfilled:``.
+    * ``Withdrawn`` — does not require ``Accepted:``; forbids ``Fulfilled:``.
+      Abandoning an unratified bet needs no ratification.
+    * ``Draft`` — forbids both records; ``Draft`` means open.
+    * ``Accepted`` — forbids ``Fulfilled:``; the intent has not yet delivered.
+    * ``Superseded`` — not decided here.
+    """
+    present = present_fields(text)
+    status = present.get("Status")
+    has_accepted = "Accepted" in present
+    has_fulfilled = "Fulfilled" in present
+
+    violations: list[Violation] = []
+
+    if status == "Fulfilled":
+        if not has_accepted:
+            violations.append(
+                Violation(
+                    "Accepted",
+                    "status `Fulfilled` requires an `Accepted:` record",
+                    refusal_class="lifecycle_record_required",
+                )
+            )
+        if not has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Fulfilled` requires a `Fulfilled:` record",
+                    refusal_class="lifecycle_record_required",
+                )
+            )
+    elif status == "Cancelled":
+        if not has_accepted:
+            violations.append(
+                Violation(
+                    "Accepted",
+                    "status `Cancelled` requires an `Accepted:` record",
+                    refusal_class="lifecycle_record_required",
+                )
+            )
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Cancelled` carries a `Fulfilled:` record; "
+                    "`Cancelled` did not deliver",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+    elif status == "Withdrawn":
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Withdrawn` carries a `Fulfilled:` record; "
+                    "`Withdrawn` did not deliver",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+    elif status == "Draft":
+        if has_accepted:
+            violations.append(
+                Violation(
+                    "Accepted",
+                    "status `Draft` carries an `Accepted:` record; "
+                    "`Draft` means open",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Draft` carries a `Fulfilled:` record; "
+                    "`Draft` means open",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+    elif status == "Accepted":
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Accepted` carries a `Fulfilled:` record; "
+                    "`Accepted` has not yet delivered",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+
+    return violations
+
+
+def validate_corpus_scoped(text: str, live: set[str]) -> list[Violation]:
+    """Decide all corpus-scoped rules for one intent.
+
+    The single entry point for corpus-only checks. Delegates to both
+    ``validate_supersession`` and ``_check_state_coherence``, so a rule added
+    to either reaches every consumer without the consumer changing.
+
+    Kept out of ``validate_live_intent`` for the same reason each delegate is:
+    these rules decide one field from another field's value, or need the whole
+    corpus.
+    """
+    violations = list(validate_supersession(text, live))
+    violations.extend(_check_state_coherence(text))
+    return violations
+
+
 def _check_supersession_pair(text: str) -> list[Violation]:
     """Refuse a `Superseded` status and a `Superseded by:` pointer apart.
 
@@ -436,13 +591,8 @@ def _check_supersession_pair(text: str) -> list[Violation]:
     lived inside the value, a status change discarded it, and now it survives one
     — so a pointer left beside `Draft` would otherwise go unread and unrefused.
 
-    Corpus-lint-only, and the seam is the point. ``validate_live_intent`` is the
-    surface the shaping reviewer's preamble condition refers to, and that
-    condition obliges "every field whose values the contract fixes carries one of
-    them" — a rule about one field's *value*. This is a rule about which field
-    another field's value *requires*, which those words do not reach, so it is
-    not a rule that condition can be read as covering. Any rule of that kind
-    belongs here, beside the ones that need the whole corpus.
+    Corpus-lint-only: its verdict depends on a different field's value. See the
+    module docstring's surface placement rule.
     """
     present = present_fields(text)
     status = present.get("Status")
