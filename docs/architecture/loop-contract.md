@@ -38,6 +38,21 @@ implement or verify it.** A task cites the design for why; it does not restate
 it. The reverse error is equally live — an acceptance criterion never lives in
 the design, and a criterion's verification mode never does either.
 
+The design section is **shape-pruned, not fixed**. The spec's optional
+`Shape:` field — `ui`, `service`, `data`, `integration` or `mixed` — selects
+which of the plan's nine `## Design (LLD)` sub-sections scaffold; the rest are
+deleted rather than left empty, and an omitted or `mixed` shape scaffolds the
+full set to prune by hand. The field names the *kind* of work and never a
+framework. The plan template carries the shape-to-subsection map, and labels
+it a guide rather than a gate: nothing binds `Shape:` to it and nothing
+enforces the pruning, so the map is a convention the author applies.
+
+One category is deliberately not a design sub-heading. Rollout and deployment
+is realised by `## Rollout`, which sits *after* `## Tasks` rather than in the
+design block, and a design sub-section cross-links to it rather than restating
+it. Keeping it out of the design block is what stops the same rollout
+decision being written twice.
+
 ## 3. Item identity
 
 [ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md) decides
@@ -67,7 +82,9 @@ matrix](../product/research/item-id-management-comparison-matrix.md):
 
 ## 4. Change detection
 
-> **STATUS: PLANNED.** Nothing in the skill implements this. It is recorded here
+> **STATUS: PLANNED**, for the *per-item* mechanism this section describes.
+> Nothing in the skill implements that; a whole-artifact approval pin is
+> shipped and is described at the end of this section. It is recorded here
 > because the pairing is what the identity decision is *for*; the decision
 > itself is
 > [ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md), and
@@ -128,6 +145,49 @@ source at check time and compare it against a recorded baseline; the mismatch is
 the signal. That is the deliberate exception to the rule against storing a value
 a check reads, and it only holds while the stored side is the baseline and never
 the answer.
+
+### What is shipped: the whole-artifact approval pin
+
+The per-item fingerprint above is unbuilt. A **whole-artifact** one is not, and
+reading this section without that distinction leaves the impression that
+nothing compares a contract against its approved form.
+
+`approve-plan` records a digest of each artifact's canonical form, and
+`plan check-current` is the verb that recomputes both and compares them against
+those recorded digests. The other two users of the canonical form do something
+narrower: `schedule` computes and stores a fresh `plan_hash` of its own rather
+than comparing with the approved one, and `schedule check-current` compares
+against *that* scheduled hash. Approval drift and schedule drift are separate
+questions, answered by separate values.
+
+The canonical form normalises exactly four things:
+
+- CRLF and CR to LF;
+- per-line trailing whitespace;
+- the status **token** only, on the preamble status line only;
+- the **bracket contents** only of a ticked checkbox.
+
+What it refuses to normalise carries as much weight. Leading whitespace and the
+bullet run are preserved byte-for-byte, so re-indenting a criterion — which
+changes what the list contains — still moves the digest. Checkbox
+normalisation is scoped by artifact: a spec's applies only inside its
+acceptance-criteria region, so a checkbox anywhere else in the spec stays
+pinned, while a plan has no such region and its checkboxes are task progress,
+so a plan normalises file-wide. The pin recognises that region more loosely
+than the lint does — a lower-case or `###` heading, or a bold lead-in, opens
+it — so the two agree on typical specs without agreeing by construction.
+
+The contract this buys: **lifecycle bookkeeping does not break an approval pin;
+substantive edits do.** Bumping a spec through `Approved → Implementing →
+Shipped`, or ticking criteria off as they land, leaves the pin intact. Changing
+what a criterion says does not.
+
+The status and checkbox recognisers are imported from the spec-status lint
+rather than re-implemented, which keeps one definition of what a status line
+and a ticked box look like. It does not make the two identical: the pin has to
+map its match back to a raw line number, so it strips HTML comments
+newline-preservingly where the lint strips them outright, and a multi-line
+comment before the status line can be read differently by each.
 
 ## 5. Grounding: which probes run when
 
@@ -197,7 +257,25 @@ and no source converges on a universal one.
 - `workspace.toml` `[backlog].open` is the sole authoritative register for a
   historical deferred marker; `docs/backlog.md` is not consulted. A marker
   resolves through either a legacy `slug` field or a canonical artifact path
-  reduced to its canonical anchor.
+  reduced to its canonical anchor. A `(deferred: <anchor>)` marker no longer
+  makes a *new* ship transition valid — separable work leaves the final
+  criterion list through an approved amendment and a non-criterion follow-on.
+- The canonical status vocabulary is `{Draft, Approved, Implementing, Shipped,
+  Archived}`, matched against the **leading token** only: the first word after
+  `Status:`, truncated at the first ` (`, ` →` or `<!--`. An annotated frozen
+  status such as `Shipped (2026-05-26)` or `Approved → Shipped (…)` therefore
+  passes, while a genuine out-of-vocabulary token such as `Drafting` fails.
+- The every-criterion-closed check is **diff-triggered**, not a standing scan.
+  It fires on a spec whose header status *changes to* `Shipped` in the diff
+  against the base ref; specs already `Shipped` on the base are grandfathered,
+  and where no base ref resolves the invariant is skipped with a warning.
+- These invariants read the artifact, not the system it describes. Several
+  reach well into the body — dangling intra-repo doc and code references,
+  body-wide deferral markers, and the Acceptance Criteria section itself — so
+  "metadata only" understates them. What none
+  of them can see is whether a spec still describes the code it was written
+  against. That is semantic drift, and it is the adversarial reviewer's job,
+  not a lint's.
 
 ## 8. Present-tense bodies
 

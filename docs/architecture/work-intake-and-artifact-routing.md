@@ -43,6 +43,31 @@ design context, and delivery questions. Existing content and source fields keep
 the outcome, assumptions, evidence, locator, revision, and proposed authority.
 Absence of the object is standalone Core and follows the existing routes.
 
+### Where work enters, and at what altitude
+
+A brand-new repository has its own entry, distinct from the routes above.
+`init-project` runs a trigger gate that sends a script, a spike or a throwaway
+straight past the flow — a single feature is excluded before the skill is
+invoked at all, and goes to `new-spec` — then a value gate over fed-in
+discovery, then records a foundation — an ADR plus a resolved `current-architecture`
+destination, for which `docs/architecture/reference.md` is the fallback rather
+than a fixed filename — and authors a **walking-skeleton** spec that hands the
+build to `work-loop`. Greenfield does not get a different build loop; it gets
+a different way in.
+
+Above a spec, an intent carries a **`Level`** drawn from an open recognized
+set — `product-vision` › `product-strategy` › `capability` › `feature`.
+`Scale` is a separate axis, inferred at intake and running app ↔ business-unit.
+[ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)
+decoupled the two: `Scale` *suggests* a starting altitude and no longer stamps
+one, so a product-level bet is authorable directly instead of being flattened
+to a feature. `Scale` still shapes where decomposition bottoms out, but it
+does not by itself pick the leaf artifact: one independently shippable feature
+emits a delivery contract for `new-spec`, and only multi-spec or
+cross-repository work emits a delivery brief. Business-unit scale is where a
+value-stream meta-repo holds the cross-component artifacts a polyrepo has
+nowhere else to put and rolls up delivery across the per-component slices.
+
 ## 2. Entrypoints
 
 - `work-intake` selects direct-light, intent, brief, spec, defect,
@@ -383,6 +408,15 @@ artifacts and migration evidence.
   resolution shapes.
 - Reconciliation owns stable finding codes and never makes legacy entries
   dispatchable by inference.
+- The traceability lint recognizes a discovery-side producer node by a
+  **bold-body** marker in the rendered document — `**Type:** screen-brief` for
+  a screen, `**Action:**` and `**Service:**` for journey and blueprint entries
+  extracted from a container, `**Kind:**` and `**Level:**` for intent-ladder
+  rungs. YAML frontmatter is not the recognized form, so a file carrying
+  `type: screen-flow` and no bold-body marker is not a producer to it. That is
+  the trap worth knowing. Which directories it reads, when it uses a sidecar
+  instead of walking the tree, and what an unrecognized shape costs are all
+  the lint's to answer.
 - The `workspace-status` verbs differ by analysis depth. `status` and `explain`
   run the workspace-wide bounded Type 2 and Type 3 analysis; `reconcile` runs
   the exhaustive Type 1, Type 2, and Type 3 scan.

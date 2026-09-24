@@ -95,6 +95,48 @@ Architecture review stays at design altitude and routes control-level
 verification to `security-reviewer` and `security-checklists` rather than
 performing it.
 
+### The same mechanism carries a second library, keyed differently
+
+`security-checklists` is not the only progressive-disclosure depth library, and
+the inlining mechanism above is not security-specific. `operational-safety`
+uses it too: a Module index is the deterministic routing authority, the
+orchestrator loads only the modules the change warrants, and it is never a flat
+march.
+
+What the two index **on** is different, and assuming otherwise gets the routing
+wrong. `security-checklists` keys on the **trust boundary** a diff or spec
+crosses. `operational-safety` keys on the **operational failure mode** the
+change raises — provisioning or mutating infra, a destroy path, production
+reach, billable resources, drift, user-reachable deploys. Seven modules sit in
+that index.
+
+The consumer differs too. `security-checklists` depth goes into the
+`security-reviewer`'s brief; `operational-safety` depth goes into the
+`quality-engineer`'s. That is the **reliability-versus-security carve**, and on
+infrastructure work it splits one diff between two reviewers: IaC *security*
+routes to `config-misconfig` under `security-reviewer`, IaC *reliability* to
+`operational-safety` under `quality-engineer`. The `quality-engineer` route
+also fires on a persistent-representation or mixed-version-deployment change,
+whether or not the work is labelled infrastructure.
+
+Two of `operational-safety`'s files are not reached the way the rest are.
+`cloud-implementation-craft` is in the index *and* inlined into the
+implementer's EXECUTE brief, so it is craft guidance before it is review depth.
+`fidelity-ladder` is not in the index at all — it is an EXECUTE/QUALIFY module
+the work-loop routes directly when a task needs local infrastructure
+equivalents. Counting `references/*.md` therefore overcounts what the reviewer
+route can load.
+
+Neither library adds a reviewer, which is the point of shipping depth this
+way. The governing record is
+[ADR-0042](../adr/0042-agent-additions-keyed-to-loop-and-work-type.md), which
+superseded ADR-0023: an agent is added only when it clears a value test keyed
+to the loop and work type it serves, and the charter's "three reviewers is the
+ceiling" binds the core `work-loop` code-review gate specifically rather than
+agents catalogue-wide. Loading a library into a reviewer that already exists
+does not engage that test at all. Both libraries are prose. Neither adds
+executable code.
+
 ## Untrusted inbound artifact text
 
 Source text and locators arriving on a brief or an intake record are **passive

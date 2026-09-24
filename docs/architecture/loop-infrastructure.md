@@ -22,6 +22,26 @@ not restate it, while the classification contract that consumes the report
 belongs here. A second copy of the selection rules would be falsified by the
 next edit to the skill with nothing comparing the two.
 
+### Sibling loops, and why only this one has an engine
+
+`work-loop` is one of three loops, not the whole of the lifecycle.
+`discovery-loop` sits upstream in `product-engineering` and `release-loop`
+downstream in `release-engineering`, each run by its own supervisor agent —
+`discovery-lead` and `release-lead` — that is a **peer** of `work-loop`'s
+supervisor rather than a mode of it. They meet at numbered gates: discovery
+hands off at **G3**, and the build hands off to release at **G4**, the point
+where the build is locally done and deploy-ready.
+[The three loops](../../guides/_shared/explanation/the-three-loops.md) is the
+guide that reconciles the numbering across all three.
+
+Neither sibling has an engine. `discovery-loop`'s transitions are file edits on
+a typed sidecar; `release-loop` ships no executable engine. Both still have an orchestrating
+agent and both keep state on disk; what neither has is a program that advances
+it.
+Everything on this page — the phase machine, the cohort state, the locks, the
+replay markers — is `work-loop`'s alone. They also differ in install scope:
+discovery ships at user scope, while build and release are repo-scoped.
+
 ## 2. Entrypoints
 
 - `loop-engine.py`: `init`, `transition`, `status`, and `reset`.
@@ -56,6 +76,26 @@ directory rather than the installed skill.
 These instructions are byte-identical across the generated Codex and Claude
 projections; they are one source projected twice, not two copies to keep in
 step.
+
+### Three linters ship here, reached three different ways
+
+A skill's `scripts/` directory is a first-class projecting surface, so
+everything here reaches an adopter's tree. Three of these files are
+linters — `lint-knowledge.py`, `lint-spec-status.py` and
+`lint-traceability.py` — and the directory listing makes them look like peers.
+They are not: each is reached by a different route, no route is discoverable
+from the tree, and the routes disagree with the files' own headers in at least
+one case.
+
+Resolve the question per linter against the routes themselves — the shipped
+`pre-pr.py` hook, the `work-loop` skill's finish-time checklist, other packs'
+skills, and `tools/repo/build_gate_chain.py` for what this catalogue's CI
+runs. Do not infer a linter's route from a sibling's, and do not infer it from
+the linter's own module docstring.
+
+Two facts do hold across all three. CI runs the **projected** copy rather than
+the pack source. And none of it is a literal Makefile line, so grepping the
+Makefile and finding nothing is not evidence that a linter is ungated.
 
 ## 3. Owned state and write authority
 

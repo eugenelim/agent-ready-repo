@@ -184,6 +184,65 @@ asserts the runner satisfies that floor, so this is the one leg on which a
 remote scan and a local scan can disagree without either reporting a version
 problem.
 
+### 2.4 Inside `make sast`: a self-test in front of each gate
+
+The SAST leg is not four tool invocations. Every scanner runs behind a wrapper
+script — `run-bandit-gate.py`, `audit-requirements.py`, `audit-npm.py`,
+`run-semgrep-gate.py` — and each wrapper is preceded by a self-test of its own.
+pip-audit is the mixed case: four recipe calls go through the wrapper, and two
+more run it directly — one against `tools/requirements-sast.txt`, the single
+manifest the wrapper deliberately excludes, and one against a generated list of the
+optional extras declared by the two packages that have any.
+
+| Self-test | Gate it precedes |
+| --- | --- |
+| `tools/test-sast-stderr-gate.py` | `tools/run-bandit-gate.py` |
+| `tools/test-audit-requirements.py` | `tools/audit-requirements.py` |
+| `tools/test-audit-npm.py` | `tools/audit-npm.py` |
+| `tools/test-semgrep-strict-gate.py` | `tools/run-semgrep-gate.py` |
+
+The ordering is the point. The Makefile gives the reason for the Bandit leg
+directly: a live scan against a healthy input is silent when the gate works and
+just as silent when it has been broken, so from the outside the two look
+identical, and the self-test runs first to be loud about the difference. The
+npm and pip-audit self-tests are ordered the same way, for the narrower risk
+that the wrapper's own logic stops reaching the scanner — a filter bug that
+dropped a third-party pin would take the leg green over an unaudited
+dependency.
+
+Read each self-test for what it actually covers before citing one as evidence.
+They exercise their wrapper's own logic — filtering, payload handling, canary
+detection, diagnostic reporting — and stop at the subprocess boundary; none of
+them proves the scanner ran. `tools/test-semgrep-argv-boundary.py` is the
+exception and runs *after* the scan rather than before: it asserts an exact
+finding count against a deliberately vulnerable fixture and its fixed twin, so
+that rule cannot quietly become a no-op. It covers one of the two custom rule
+files. The other, `tools/semgrep/env-path-taint.yml`, records in its own body
+that it has no fixture and no self-test, and so can match nothing while the
+leg reads green.
+
+The wrappers exist because two of these scanners have a failure mode a bare
+invocation cannot see. Bandit's stderr is a gate signal rather than chatter
+([ADR-0084](../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md)): under
+`-q` it carries only diagnostics about the scan's own integrity — an
+unparseable `# nosec`, one that matched no finding, a file it could not read —
+and none of those move its exit code. Semgrep under `--strict --quiet`, as
+measured at 1.166.0, exits non-zero with zero bytes on both streams for a
+strict-promoted partial-parse or timeout diagnostic, so a bare line would fail
+with nothing to read.
+
+The SCA leg carries no suppressions today. Adding one requires a written
+diagnosis and a recorded unblock condition, which is the discipline that
+retired the last four when semgrep 1.174 cleared their advisories.
+
+One gap here is known and registered rather than closed. `--strict` escalates a
+*partial* parse failure, but a whole-file or whole-construct parse failure still
+yields empty errors, empty skipped, empty stderr and exit 0 — a target that was
+never really scanned reads as scanned with no findings. It is carried as
+`sast-semgrep-unparseable-target-reads-clean` in
+[the gates-that-read-clean register](../product/intents/gates-that-read-clean-while-gating-nothing.md),
+whose unblock condition is a parse-success assertion per ratcheted target.
+
 ## 3. The remote workflow fleet
 
 Sixteen workflows. Every `uses:` in the fleet is pinned to a 40-character
