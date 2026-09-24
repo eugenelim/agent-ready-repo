@@ -19,8 +19,9 @@ path to the running engine without the control that refuses it.
 ## Constraints
 
 - Phase 2's § Boundaries, phase 3's § Agent Rules, and this spec's § Agent
-  Rules all bind. Where this spec supersedes a criterion, its identifier names
-  what it replaces; nothing edits the frozen phase-3 spec.
+  Rules all bind. Supersession is fixed by the three clauses in spec
+  § What this spec supersedes, not annotated at each phase-3 criterion's own
+  site; nothing edits the frozen phase-3 spec.
 - Commits touching `packages/agentbundle/` carry an `Engine-Change-RFC:`
   trailer, and so does the squash body.
 - `.agentbundle/tooling/` is empty in this repository, which self-hosts in
@@ -201,7 +202,12 @@ prefix, and the new tests pass.
 
 **Tests:**
 - `--package agentbundle` without `--tooling vendored` exits 2 and names both
-  flags, with the resolver monkeypatched to raise. Verifies AC-0082.
+  flags, with the resolver monkeypatched to raise. Verifies AC-0082's
+  `agentbundle` half.
+- `--package credbroker` over a recorded selection the replay resolves without
+  `credential-brokers` exits 2, and the resolver **is** reached — the fetch
+  running is what distinguishes this half, per AC-0084. Verifies AC-0082's
+  `credbroker` half.
 - A run whose write set would reach the `agentbundle` destination exits 3 and
   leaves the pre-run walk tuple of the whole target tree unchanged, once per
   AC-0083 input: with `_detect_editable_source` returning the target root, and
@@ -300,8 +306,9 @@ vendored fixture is zero for package paths a vendored run could have planned.
 
 **Tests:**
 - The `--format json` summary's key set and the printed counts line's tokens
-  each equal a fixed expected set carrying no `deferred_package` and no
-  `deferred-package`. Verifies AC-0088. Rewrites the anchor at `:5601`.
+  each equal the expected set **for that invocation mode** — an apply document
+  and a `--dry-run` document differ by exactly `tree_modified` — and neither
+  carries `deferred_package` or `deferred-package`. Verifies AC-0088. Rewrites the anchor at `:5601`.
 - `tree_modified` is false on a declined-consent run and on a no-terminal run,
   and true on a completed apply with non-zero `companion_occupied` — the three
   conditions sharing exit 1. Each is cross-checked against a pre-run and
@@ -363,7 +370,10 @@ feature.
   its three prose surfaces state the `--package` change. Verifies AC-0097 and
   AC-0098.
 
-**Done when:** all three greps pass and the site build is clean.
+**Done when:** the three architecture greps pass, every citation in the file
+this task edits resolves, the site build is clean, and the derivation reports
+five surfaces at `0.50.0` with its three prose surfaces stating the
+`--package` change.
 
 **Touches:** docs/architecture/catalogue/upstream-sync.md, guides/_shared/how-to/create-a-self-hosted-catalogue.md, packages/agentbundle/README-pypi.md, packages/agentbundle/CHANGELOG.md, docs/product/changelog.md
 
@@ -374,8 +384,12 @@ feature.
 **Tests:** visual / manual QA. Build a vendored fixture catalogue, run
 `agentbundle catalogue sync --source <fixture> --tooling vendored --package
 agentbundle <target>` for real, and record the printed plan, the consent
-prompt, the exit code and the post-run tree. Then run it against a target that
-*is* the editable install root and record the refusal.
+prompt, the exit code and the post-run tree. Then repeat against a second
+vendored fixture into which `agentbundle` has been pip-installed editable in a
+temporary venv, so the target supplies the running engine, and record the
+refusal. **Not** against this worktree: it is the editable install root here,
+and § Agent Rules forbids a check writing there whatever it asserts — manual
+QA is exactly where an unverified refusal would write for real.
 
 **Done when:** both transcripts are in the verification ledger and AC-0099 and
 AC-0100 hold against them.

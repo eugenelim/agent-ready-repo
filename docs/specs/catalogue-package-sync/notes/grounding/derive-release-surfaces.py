@@ -85,7 +85,20 @@ def main() -> int:
     # function of the table means adding a surface cannot leave its kind
     # unset, which a parallel set would.
     def surface_kind(pattern: str) -> str:
-        return "prose" if pattern.lstrip("^").startswith("## ") else "literal"
+        # Fail loudly on a pattern that is neither shape. A silent "literal"
+        # default would quietly shrink AC-0098's quantifier: a prose surface
+        # that stated its version as `Version: 0.51.0` would be marked literal
+        # and drop out of the criterion with no error anywhere.
+        body = pattern.lstrip("^")
+        if body.startswith("## "):
+            return "prose"
+        if " = " in body or body.startswith("version = "):
+            return "literal"
+        raise ValueError(
+            f"unclassifiable release-surface pattern {pattern!r}: it is "
+            "neither a Markdown heading nor an assignment, so its prose/"
+            "literal kind cannot be derived. Classify it explicitly."
+        )
 
     print(f"release surfaces: {len(surfaces)}")
     found: list[str] = []
