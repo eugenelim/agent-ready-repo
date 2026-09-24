@@ -60,12 +60,23 @@ shipped predicate is `parity`'s job, and M1, M2, M3, M4 and M5 all turned it red
 - **The repair-round parity check (`tests/roster/test_repair_round_predicate_parity.py`)
   carries the properties the deleted oracle used to hold.** The oracle compared
   its own inline restatement against itself — a tautology. The parity check
-  replaces it with properties measured against the shipped code: a read refusal
-  never reaches the verdict; every refusal names a live record read from the
-  container; superseding clears every `_repair_round_verdict` refusal; only R7
-  moves at the wave exit (to R8), and no other row moves; and both sides of
-  the predicate are non-empty in the domain. (`test_wave_exit_row_movement_from_superseding`
-  and `test_wave_reopen_check_is_read_only` carry the last two.)
+  replaces it with comparisons against the shipped code. What the check actually
+  asserts, test by test — an earlier revision of this list credited it with
+  properties no test in it carries, so each is now named with its test:
+
+  | Property | Asserted by |
+  | --- | --- |
+  | the transcribed record rule agrees with shipped `accounts_for_task` | `test_the_accounting_rule_agrees_record_by_record` |
+  | the transcribed unaccounted list agrees with shipped `unaccounted_wave_tasks` | `test_the_accounting_predicate_agrees_over_the_whole_domain` |
+  | the transcribed verdict agrees with the shipped verdict | `test_the_verdict_agrees_over_the_whole_domain` |
+  | superseding moves a state from accounted to unaccounted and moves no other | `test_wave_exit_row_movement_from_superseding` |
+  | `check --phase wave-reopen` writes nothing | `test_wave_reopen_check_is_read_only` |
+  | both outcomes occur, so no comparison is vacuous | the non-degeneracy asserts inside the three agreement tests |
+
+  Withdrawn from the earlier list because nothing asserts them: "a read refusal
+  never reaches the verdict" (those states are skipped by `continue`, which
+  asserts nothing) and "every refusal names a live record read from the
+  container" (no assertion exists).
 - **The parity check's transcription was wrong once, and the check found it.**
   The first version omitted the absent-container exemption that the shipped
   predicate carries inside itself, and 32 states disagreed. Fixed by moving the
@@ -113,11 +124,9 @@ non-detection (documented below rather than papered over).
 Each mutation was reverted immediately after its result was observed and the
 file diffed byte-identical (`sha256sum -c`) against its pre-mutation copy
 before the next mutation began. No `git checkout`, `git reset` or `git stash`
-was used at any point. `gates-failed`'s own source-state discriminator
-(`_guard_gates_failed_repair_round`, mirroring M6) was not separately mutated:
-`gates-failed` has exactly one source state in `_CODE_TRANSITIONS` today, the
-same non-detection M6 already establishes and explains, so a second run of the
-identical result would add no information.
+was used at any point. `gates-failed`'s own source-state discriminator was not
+mutated in the T1-T3 runs; it is mutated in § T6 below as M3, after a review
+found this ledger asserting a result for it that no run had produced.
 
 ## Observations (T3)
 
@@ -178,8 +187,12 @@ state makes that event's discrimination load-bearing.
 **T6 direct test:** `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong`
 calls `_guard_gates_failed_repair_round` and `_guard_blocker_applied` directly with
 a wrong source state and asserts both return `None`. Removing either discriminator
-makes the guard proceed to the repair-round check, which refuses given the live-record
-fixture, turning that test red (confirmed by the T6 mutation run; see § T6 below).
+makes the guard proceed to the repair-round check, which refuses given the
+live-record fixture, turning that test red. Both halves are observed, not
+inferred: § T6's M2 removes `_guard_blocker_applied`'s read and M3 removes
+`_guard_gates_failed_repair_round`'s. An earlier revision of this paragraph
+claimed both were "confirmed by the T6 mutation run" when only the first had
+been run; the correction is recorded here rather than silently applied.
 
 The inert discriminators now have two independent controls: a tripwire on the
 table shape that would make them load-bearing, and a direct unit test that kills
@@ -247,13 +260,14 @@ coverage instead of licensing the exception.
 
 ### T6 — refusal text distinction, inert discriminators, parity row movement
 
-Run 2026-09-24 against `_loop_guards.py` and `loop-engine.py`. Two new clauses,
-two reds, none survived.
+Run 2026-09-24 against `_loop_guards.py` and `loop-engine.py`. Three clauses,
+three reds, none survived.
 
 | # | Clause removed | Mutation applied | Suites that turned red | Observed failure |
 | --- | --- | --- | --- | --- |
-| M1 | `superseded_wave_tasks` categorization in `_wave_exit_verdict` | replaced with flat `"no dispatch receipt: {bounded_id_list(unaccounted)}"` | cli, parity | cli: `test_wave_exit_refusal_distinguishes_superseded_from_absent` — the superseded case rendered identically to the absent case; parity: `test_wave_exit_row_movement_from_superseding` — `_shipped_row` returned `"unknown"` for superseded states because the reason text no longer contained the expected discriminating strings, so `moved == 0` |
+| M1 | `superseded_wave_tasks` categorization in `_wave_exit_verdict` | replaced with flat `"no dispatch receipt: {bounded_id_list(unaccounted)}"` | cli, parity | cli: `test_wave_exit_refusal_distinguishes_superseded_from_absent` — the superseded case rendered identically to the absent case; parity: `test_wave_exit_row_movement_from_superseding` — replayed 2026-09-24, it reports **8 row-movement violations with `moved == 8`**; the `violations` assertion fires before the `moved` one, so an earlier revision of this row recording `moved == 0` did not describe what the suite prints |
 | M2 | `_guard_blocker_applied`'s source-state discriminator | `if engine_state.get("state") != "CODE-HUMAN-GATE": return None` deleted | engine | `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong`: `_guard_blocker_applied` with `{"state": "CODE-REVIEW"}` returned the repair-round refusal text instead of `None` |
+| M3 | `_guard_gates_failed_repair_round`'s source-state discriminator | `if engine_state.get("state") != "CODE-VERIFICATION": return None` deleted | engine | run 2026-09-24: `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong` fails — `1 failed, 215 deselected`. Run because a review found this ledger asserting this result without it having been produced |
 
 Each mutation was reverted immediately after its red was observed and the file
 diffed against its pre-mutation copy (`python3 -m pytest` re-run passing) before
