@@ -498,8 +498,14 @@ def write_jailed(
         # The link already landed at `target`; only the staged sibling's
         # own unlink failed. `target` keeps its independent link to the
         # same inode, so removing the (now-redundant) staged name is safe
-        # and does not touch what was published.
-        tmp.unlink(missing_ok=True)
+        # and does not touch what was published. A cleanup failure here
+        # must never replace the typed exception already in flight — a
+        # persistent EPERM/EACCES on the same staged name would otherwise
+        # raise a fresh, untyped `OSError` out of this handler instead of
+        # the `CompanionLinkPublishedError` the caller depends on to
+        # attribute the destination as actually written (round 3, F1).
+        with contextlib.suppress(OSError):
+            tmp.unlink(missing_ok=True)
         raise
     except OSError as exc:
         tmp.unlink(missing_ok=True)
@@ -523,12 +529,16 @@ def _publish_never_replace(tmp: Path, target: Path) -> None:
     inherits the staged file's permission bits (a link cannot itself change
     them).
 
-    Raises the raw ``OSError`` on any failure — an existing occupant
-    (``FileExistsError``) and an environment lacking hard-link support are
-    both just "could not publish" from here; the caller's admission-time
-    check (before this is ever invoked) is what already decided the
-    destination was absent, so no further classification happens here. The
-    caller (``write_jailed``) wraps whatever this raises into a
+    Raises the raw ``OSError`` on a failure before the link ever lands — an
+    existing occupant (``FileExistsError``) and an environment lacking
+    hard-link support are both just "could not publish" from here; the
+    caller's admission-time check (before this is ever invoked) is what
+    already decided the destination was absent, so no further
+    classification happens here. The caller (``write_jailed``) wraps that
+    raw ``OSError`` into a ``WriteError``. A failure *after* the link has
+    landed — only the staged sibling's own unlink failing — instead raises
+    the typed :class:`CompanionLinkPublishedError` below, so the caller can
+    tell the two apart rather than folding both into the same generic
     ``WriteError``.
 
     ``tmp`` does not consume its own name the way a rename does — until the

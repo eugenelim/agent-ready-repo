@@ -1090,9 +1090,11 @@ def execute_write_sequence(
     prior walk tuple in memory"; spec AC-0039's trailing note on the
     snapshot row).
 
-    *removal_set*/*out_of_coverage* are :func:`select_removal_set`'s own
-    return values, computed once by the caller for the printed plan
-    (AC-0057) and handed in here unchanged rather than recomputed — a
+    *removal_set* is :func:`_terminal_safe_removal_set`'s screened result
+    (itself derived from :func:`select_removal_set`); *out_of_coverage* is
+    :func:`select_removal_set`'s own return value, unscreened. Both are
+    computed once by the caller for the printed plan (AC-0057) and handed
+    in here unchanged rather than recomputed — a
     second post-consent call would re-read the tree and could admit a
     recorded path that only became present or readable during the
     consent wait, deleting a path the printed plan never named (spec §

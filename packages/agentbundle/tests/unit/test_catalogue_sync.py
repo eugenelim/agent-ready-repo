@@ -5274,6 +5274,54 @@ def test_run_apply_post_write_failure_names_what_it_left_behind(
     assert "recorded state was NOT updated" in err
 
 
+def test_run_apply_post_write_receipt_names_a_landed_companion(
+    tmp_path, monkeypatch, capsys
+):
+    """Round 3, F3: the receipt repair (printing `result.acted`, the write
+    loop's own record, instead of `result.written`, which AC-0059 keeps a
+    companion destination out of by construction) was pinned only at the
+    `WriteSequenceResult` dataclass -- no test ever called
+    `_print_post_write_receipt` and checked the companion actually appears
+    in its "wrote N path(s)" line. Reverting the receipt to `result.written`
+    stays green against every other fixture in this file, since none of
+    them lands a companion before a post-write failure and then reads
+    stderr; this is a real command-level `_run_apply` run, so it drives
+    both `execute_write_sequence`'s write loop and the receipt printer for
+    real.
+    """
+    target, source = _apply_run_target(
+        tmp_path,
+        "receipt-names-companion",
+        managed_paths=[
+            {
+                "path": "packs/alpha/README.md",
+                "sha256": hashlib.sha256(b"original upstream\n").hexdigest(),
+            },
+        ],
+    )
+    readme = target / "packs" / "alpha" / "README.md"
+    readme.parent.mkdir(parents=True, exist_ok=True)
+    # Differs from the recorded sha -- classifies Tier-2, which lands a
+    # `README.upstream.md` companion rather than overwriting the original.
+    readme.write_bytes(b"adopter edited\n")
+
+    def _boom(target_arg, merged_state):
+        raise OSError("simulated state write failure")
+
+    monkeypatch.setattr(catalogue_sync, "write_merged_state", _boom)
+
+    code = _call_run_apply(target, source)
+    err = capsys.readouterr().err
+
+    assert code == 4
+    companion = "packs/alpha/README.upstream.md"
+    # The companion really landed on disk -- proving this exercised the
+    # write loop, not merely a fixture that never wrote anything.
+    assert (target / Path(companion)).exists()
+    assert "not rolled back" in err
+    assert companion in err
+
+
 def test_run_apply_post_write_receipt_removed_list_carries_no_control_character(
     tmp_path, monkeypatch, capsys
 ):
@@ -5321,8 +5369,9 @@ def test_run_apply_post_write_receipt_removed_list_carries_no_control_character(
     # rather than skipping it.
     assert "packs/alpha/gone.md" in err
     # The hostile path was screened out of the removal set before
-    # execution (Blocker 4), so it was never removed and never printed.
-    assert hostile not in err
+    # execution (Blocker 4), so it still exists on disk -- distinct proof
+    # from the control-character assertion above, which alone already
+    # guarantees `hostile` (which contains `\x1b`) cannot appear in `err`.
     assert hostile_path.exists()
 
 
@@ -5825,7 +5874,6 @@ def test_sync_dry_run_gates_and_reports_the_resolved_selection_not_the_replay(
     # entry naming "alpha", the pack this preview selects none of, even
     # though a baseline mismatch exists for it to warn about.
     assert doc["compatibility"] == []
-    assert not any("alpha" in line for line in doc["compatibility"])
 
 
 def test_sync_dry_run_narrows_an_empty_recorded_profiles_field_to_nothing(
@@ -5860,3 +5908,10 @@ def test_sync_dry_run_narrows_an_empty_recorded_profiles_field_to_nothing(
     # an *explicit* empty list to every shipped profile; the recorded
     # field must not widen the same way.
     assert doc["profiles"] == []
+    # `doc["profiles"]` alone is `_resolve_effective_selection`'s output,
+    # not `_narrow_replayed_paths`'s -- an unconditionally-admitting
+    # `profiles/` branch in the latter would leave this field untouched
+    # while still letting `profiles/default.toml` reach classification as
+    # a verdict row (and, downstream, become writable by apply). Assert
+    # the narrowed set directly, at the surface it actually feeds.
+    assert "profiles/default.toml" not in {row["path"] for row in doc["verdicts"]}

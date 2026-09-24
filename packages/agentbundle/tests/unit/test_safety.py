@@ -209,6 +209,49 @@ def test_write_jailed_never_replace_other_failure_is_a_write_error_not_occupancy
     assert cause.errno == errno.EPERM
 
 
+def test_write_jailed_never_replace_persistent_staged_unlink_failure_stays_typed(
+    tmp_path, monkeypatch
+):
+    """Round 3, F1/F2: a persistent staged-unlink failure (an EACCES/EPERM
+    that recurs on every attempt, unlike a one-shot failure `missing_ok`
+    could paper over) must surface as `CompanionLinkPublishedError`, not a
+    fresh, untyped `OSError` from `write_jailed`'s own cleanup replacing it.
+
+    Exercises the real `_publish_never_replace`/`write_jailed` handler
+    chain end to end -- a stub that raises `CompanionLinkPublishedError`
+    directly (as the apply-level consumer test does) never touches either:
+
+    - `_publish_never_replace`'s own `except OSError` -> typed-raise
+      (safety.py:541-549): reverting it to a bare `tmp.unlink()` would let
+      a raw `OSError` escape here instead, failing this test's
+      `pytest.raises(safety.CompanionLinkPublishedError)`.
+    - `write_jailed`'s `except CompanionLinkPublishedError` cleanup
+      (safety.py:497-503): dropping its `contextlib.suppress` would let
+      the *second* unlink attempt's own persistent failure raise a fresh,
+      untyped `OSError` out of the handler, replacing the typed exception
+      already in flight -- same observable failure here.
+    """
+    real_unlink = safety.os.unlink
+
+    def _persistent_staged_unlink_failure(path, *args, **kwargs):
+        if str(path).endswith(".tmp"):
+            raise OSError(errno.EACCES, "permission denied")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(safety.os, "unlink", _persistent_staged_unlink_failure)
+
+    with pytest.raises(safety.CompanionLinkPublishedError) as exc_info:
+        safety.write_jailed(
+            tmp_path, "fresh.upstream.md", b"new", publish=safety.Publish.NEVER_REPLACE
+        )
+
+    dest = tmp_path / "fresh.upstream.md"
+    assert exc_info.value.target == dest
+    # The link really landed even though the call raised -- the whole
+    # point of carrying a typed exception instead of a generic failure.
+    assert dest.read_bytes() == b"new"
+
+
 # ---------------------------------------------------------------------------
 # `Publish.REPLACE_IF_UNCHANGED` — spec AC-0077's rename recheck.
 # ---------------------------------------------------------------------------

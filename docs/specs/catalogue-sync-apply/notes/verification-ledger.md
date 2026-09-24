@@ -548,3 +548,82 @@ write helpers to no-ops, under which the old assertions stayed green and the
 new tree assertion failed. C10's compatibility assertion was vacuous until a
 target-side baseline `pack.toml` was added; the implementer caught that in its
 own first draft and fixed it before finalising.
+
+## Post-GATES review — round 3
+
+Three lanes over the generator repair, adjudicated once. **Six sustained** —
+four Blockers, two Minors, one refuted. Round 2's generator did not recur in
+any seam it fixed.
+
+### One production defect, and it was the signal destroying itself
+
+`write_jailed`'s `except CompanionLinkPublishedError:` handler called
+`tmp.unlink(missing_ok=True)` and then bare `raise`. `missing_ok=True`
+suppresses only `FileNotFoundError`, so the persistent `EPERM` that caused the
+staged unlink to fail in the first place raised a *fresh* `OSError` out of the
+handler and the typed exception never escaped. `execute_write_sequence` fell
+to its generic branch, the landed companion dropped out of `restore_scope`,
+and the run reported `restored=True` with an empty `unrestored` — round 2's B2
+reopened one frame up, inside the very mechanism built to close it.
+
+Fixed with `contextlib.suppress(OSError)` around the cleanup. The adjudicator
+explicitly rejected the reviewer's larger remedy — threading the staged `.tmp`
+name into rollback reporting — as exceeding the smallest adequate change and
+reaching AC-0070's residue contract.
+
+### The round-3 class: the test bypasses the producer
+
+Round 2's lesson was *assert the subject, not the proxy*, about state. Round
+3's is the same sentence about producers: **exercise the real one, do not
+stand in for it.**
+
+- the typed-signal test stubbed `write_companion` to raise
+  `CompanionLinkPublishedError` itself, so the real `_publish_never_replace`
+  could stop raising it entirely and the suite stayed green;
+- the receipt test asserted `companion in result.acted` and never called the
+  receipt, so reverting it to `result.written` stayed green;
+- the profiles test asserted `doc["profiles"]`, which is
+  `_resolve_effective_selection`'s echo, while the criterion governs
+  `_narrow_replayed_paths`, whose output feeds the verdict rows and apply.
+
+### Every named mutation, re-run by the controller
+
+The adjudicator named the exact surviving production mutation for three
+findings. Each was run independently of the implementer's own run:
+
+| Mutation | Result |
+| --- | --- |
+| `contextlib.suppress` guard removed from the typed handler | red |
+| receipt reverted from `result.acted` to `result.written` | red |
+| `_narrow_replayed_paths`' profiles branch admits unconditionally | red (agent-run) |
+| `_publish_never_replace` reverted to a bare `tmp.unlink()` | red (agent-run) |
+
+Gates: lint exit 0, full unit suite exit 0 over **3,287** tests.
+
+### One finding refuted on authority, correctly
+
+A reviewer wanted per-path removal-failure reasons in the receipt. No
+criterion requires them: AC-0039 fixes only the `4 — apply-failed` outcome,
+and § Never do's "naming what is unrestored" governs a failed rollback, while
+a digest-mismatch refusal is AC-0073 declining as designed. A diagnostics
+enhancement with several defensible shapes, not a violated criterion.
+
+### An adjudication artifact was malformed, and how that was handled
+
+The first round-3 adjudication emitted `ADJUDICATION-INDETERMINATE` in its
+main-loop result while its own Indeterminate audit said `None.` The classifier
+matches that sentinel anywhere, so it returned
+`invalid (indeterminate-present)` — a fail-closed stop. Reading it, the marker
+was standing in for a *severity disagreement*: the adjudicator judged one
+finding a Minor rather than the claimed Blocker.
+
+The protocol's documented retry covers a missing machine-checkable fact, which
+this was not. Treated as recovery rather than a stop, because the cause was a
+formatting defect in one artifact and the guarantee the gateway provides —
+independent adjudication, no controller authorship — is preserved by
+re-dispatching. The malformed artifact is retained at
+`3-post-gates-security-reviewer-adjudication-attempt1-malformed.md`; a fresh
+adjudicator produced the replacement over the unchanged raw reports, with
+explicit envelope rules including "do not use the indeterminate marker to
+signal a severity disagreement". It sustained that finding at Minor, which is
+what the marker had been substituting for.
