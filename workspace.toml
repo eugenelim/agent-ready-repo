@@ -527,6 +527,9 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 active  = [
 ]
 queue   = [
+    {path = "docs/specs/creative-direction-modes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give creative-direction five operations, divergence generation, and a capability-gated visual step, with a smaller always-loaded body; standalone, no brief", needs = []},
+    {path = "docs/specs/xd-genre-router/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Fold six genre skills and information-architecture into one genre-aware skill and repair frontend-engineering's genre routing", needs = [{type = "local", kind = "spec", path = "docs/specs/creative-direction-modes/spec.md"}]},
+    {path = "docs/specs/xd-copy-router/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Fold content-design, copy-direction and tone-of-voice into one copy-layer skill with three modes, reconciling six drifted shared references", needs = [{type = "local", kind = "spec", path = "docs/specs/xd-genre-router/spec.md"}]}
 ]
 shipped = [
   # Shipped 2026-09-23. The composition and depth half of a two-spec split with
@@ -575,7 +578,7 @@ shipped = [
 ]
 ["ini-003".brief_queue]
 executing = []
-ready     = []
+ready     = [{path = "docs/product/briefs/experience-design-skill-consolidation.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Fold the experience-design pack from twenty registrations to twelve: six genre skills plus information-architecture into one genre-aware skill, then the three copy-layer skills into one with three modes, with every surface genre reachable from the frontend pre-flight", needs = []}]
 draft     = [
   {path = "docs/product/briefs/digital-experience-doctrine-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0071-digital-experience-doctrine.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Frame the remaining Digital Experience Doctrine outcomes as one Draft delivery brief", needs = []},
 ]
