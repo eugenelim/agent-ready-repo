@@ -12,6 +12,7 @@ shared across worktrees.
 
 Suites: `guards` = `packs/core/tests/skills/work-loop/test_loop_guards.py`;
 `cli` = `packs/core/tests/skills/work-loop/test_loop_cohort.py`;
+`engine` = `packs/core/tests/skills/work-loop/test_loop_engine.py`;
 `parity` = `tests/roster/test_repair_round_predicate_parity.py`;
 `oracle` = `notes/walk_reopen_partition.py`.
 
@@ -93,3 +94,84 @@ M6 and M7 are the two halves of the criterion the multi-wave, multi-digest
 fixture exists to catch: marking by digest alone (M6) or by wave index alone
 (M7) instead of the `(digest, wave index)` pair together, per plan.md T2's own
 call-out that this is "the only fixture shape that can catch" either defect.
+
+### T3 — the three edges' guard entries in `loop-engine.py`
+
+Run 2026-09-24 against `loop-engine.py`. Six clauses, five reds, one confirmed
+non-detection (documented below rather than papered over).
+
+| # | Clause removed | Mutation applied | Suite(s) that turned red | Observed failure |
+| --- | --- | --- | --- | --- |
+| M1 | `_guard_repair_round`'s check itself | body replaced with `return None` | `engine` — `test_the_three_edges_refuse_then_admit_after_a_reopen[gates-failed]`, `[findings-remain]`, `[blocker-applied]` | all three edges admitted a transition while wave 0 still held a live, unsuperseded dispatch record — the defect this whole task exists to close |
+| M2 | `_guard_check_phase_review_repair_round`'s source-state discriminator, replaced with the mode-only check the task explicitly asks for | `if engine_state.get("state") != "CODE-REVIEW": return None` replaced with `if False: return None` (this entry only ever runs for `mode == "code"`, so a mode-only condition degenerates to "always apply") | `engine` — `test_findings_remain_from_fresh_spec_plan_review_is_admitted_with_live_records`, `test_findings_remain_from_spec_plan_review_after_amendment_is_admitted` | `findings-remain` from `SPEC-PLAN-REVIEW` was refused: `"repair round: wave 0 still holds live dispatch records for: 'T1'; supersede them with \`loop-cohort wave reopen\`..."` — the twin-sourced edge the Agent Rules call out by name |
+| M3 | `_guard_gates_failed_repair_round`'s composition order (existing guard first) | swapped to run the repair round before the retry-cap check | `engine` — `test_gates_failed_composition_order_retry_cap_reason_wins` | refusal reason became the repair-round text instead of `"implementation retry cap reached (5/5)"` |
+| M4 | `_guard_check_phase_review_repair_round`'s composition order (existing guard first) | same swap, for the review cap | `engine` — `test_findings_remain_composition_order_retry_cap_reason_wins` | refusal reason became the repair-round text instead of `"review retry cap reached (5/5)"` |
+| M5 | `blocker-applied`'s `_GUARDS` entry — its first guard ever | `("code", "blocker-applied"): _guard_blocker_applied` line removed from `_GUARDS` | `engine` — `test_the_three_edges_refuse_then_admit_after_a_reopen[blocker-applied]` | `blocker-applied` admitted a transition with wave 0's record still live — no guard fired at all |
+| M6 | `_guard_blocker_applied`'s source-state discriminator | `if engine_state.get("state") != "CODE-HUMAN-GATE": return None` deleted | none — the full `engine` suite (214 cases) stayed green | **did not turn red.** `blocker-applied` has exactly one entry in `_CODE_TRANSITIONS` — `("CODE-HUMAN-GATE", "blocker-applied")` — so it is never twin-sourced today and the discriminator is unreachable dead code by the current transition table, exactly as its docstring and `_guard_gates_failed_repair_round`'s docstring both say. Recorded rather than hidden: the mutation is real, its non-detection is expected given the shipped FSM, and the same clause would matter the day a second source state is added for this event |
+
+Each mutation was reverted immediately after its result was observed and the
+file diffed byte-identical (`sha256sum -c`) against its pre-mutation copy
+before the next mutation began. No `git checkout`, `git reset` or `git stash`
+was used at any point. `gates-failed`'s own source-state discriminator
+(`_guard_gates_failed_repair_round`, mirroring M6) was not separately mutated:
+`gates-failed` has exactly one source state in `_CODE_TRANSITIONS` today, the
+same non-detection M6 already establishes and explains, so a second run of the
+identical result would add no information.
+
+## Observations (T3)
+
+- **The composition-order criterion needs the retry cap AND the live record
+  in the same state**, or the "first" guard's refusal is unreachable and the
+  test cannot distinguish "runs first" from "is the only one that runs". Both
+  M3 and M4 fixtures carry a retry count already at its cap AND a live,
+  unsuperseded dispatch record for the current wave.
+- **The twin-sourced edge (`findings-remain`) is the only one where the
+  source-state discriminator is live code today.** `gates-failed` and
+  `blocker-applied` each have exactly one source state in `_CODE_TRANSITIONS`,
+  so M6 (and the equivalent mutation on `gates-failed`, not separately run) is
+  expected to pass — not a gap, but the flip side of `_guard_check_spec_status_on_code_review`'s
+  existing pattern this task's guards were built to match: the read is
+  defensive against a transition table that does not exist yet, not against
+  one that exists today.
+- **`unsupported-schema`, among the seven falsifying conjuncts, is refused for
+  a reason that is not the repair-round guard's.** `check_identity`'s schema
+  check runs at `cmd_transition`'s Step 0 — before the FSM table, before
+  Step 1b, before any `_GUARDS` entry — for every event alike, including
+  `blocker-applied`, which carries no guard of its own before this task. The
+  falsified-conjunct test for that one case therefore asserts the narrower,
+  honest claim: the transition IS refused, but the refusal names neither
+  `"wave reopen"` nor `"repair round"` — proving the repair-round guard was
+  never reached, rather than asserting an admission the shipped engine does
+  not produce.
+
+### T3 addendum — the discriminator's inert half, made into a tripwire
+
+The implementer reported one clause whose removal left the suite green, and the
+report was accurate: `_GUARDS` is keyed `(mode, event)`, and in code mode
+`gates-failed` and `blocker-applied` each have exactly one source state, so
+reading `engine_state["state"]` on those two guards cannot change an outcome
+today. Only `findings-remain` is twin-sourced — `CODE-REVIEW` and
+`SPEC-PLAN-REVIEW` — and its discriminator is load-bearing, proved by the
+implementer's M2.
+
+Verified independently against the parsed tables 2026-09-24:
+
+| Event | Source states, code mode | Discriminator |
+| --- | --- | --- |
+| `gates-failed` | `CODE-VERIFICATION` | inert today |
+| `findings-remain` | `CODE-REVIEW`, `SPEC-PLAN-REVIEW` | load-bearing |
+| `blocker-applied` | `CODE-HUMAN-GATE` | inert today |
+
+Disposition: the inert checks stay, because they make the three guards read
+alike and fail safe if the table grows. Keeping unfalsifiable code silently is
+the part that is not acceptable, so
+`test_only_findings_remain_is_twin_sourced_in_code_mode` pins the table's shape
+and names, in its failure message, the fact that a new source state makes that
+event's discrimination load-bearing.
+
+| # | Clause removed | Mutation applied | Result |
+| --- | --- | --- | --- |
+| M8 | the table shape the tripwire pins | added `("CODE-REVIEW", "blocker-applied")` to `_CODE_TRANSITIONS` | **RED** — the tripwire fails and names the changed event |
+
+So the inert discriminator is no longer un-checked: the condition that would
+make it live now has its own failing test.

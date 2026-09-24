@@ -1090,6 +1090,21 @@ def _guard_check_phase_gates_failed(spec_dir: Path, engine_state: dict, _) -> st
     )
 
 
+def _guard_repair_round(spec_dir: Path, engine_state: dict, _) -> str | None:
+    """The repair-round check: refuse while a live record remains for this wave.
+
+    Callers compose this AFTER their own existing guard, per
+    docs/specs/repair-round-dispatch-assertion/spec.md § The three edges: a
+    state failing both is refused with the existing guard's reason, never this
+    one's, and no caller-visible message changes for a state this check would
+    have passed anyway.
+    """
+    return _guard_reason(
+        "check --phase wave-reopen failed",
+        _guards().check_phase(spec_dir, phase="wave-reopen"),
+    )
+
+
 def _guard_wave_check_more(spec_dir: Path, engine_state: dict, event_args: dict) -> str | None:
     wave_index = event_args.get("wave_index")
     if wave_index is None:
@@ -1213,6 +1228,58 @@ def _guard_check_spec_status_on_code_review(
     return _guard_check_spec_status(spec_dir, engine_state, event_args)
 
 
+def _guard_gates_failed_repair_round(
+    spec_dir: Path, engine_state: dict, event_args: dict
+) -> str | None:
+    """gates-failed: its existing retry-cap guard, then the repair round.
+
+    `gates-failed` fires only from `CODE-VERIFICATION` in `_CODE_TRANSITIONS`,
+    unlike the twin-sourced `findings-remain` and `reviewers-clean`. The source-
+    state read below is not load-bearing today for that reason, but it keeps
+    this guard's shape identical to the other two composed guards and to
+    docs/specs/repair-round-dispatch-assertion/spec.md's Agent Rules, which
+    require the source state — never the run mode — to decide the check.
+    """
+    err = _guard_check_phase_gates_failed(spec_dir, engine_state, event_args)
+    if err:
+        return err
+    if engine_state.get("state") != "CODE-VERIFICATION":
+        return None
+    return _guard_repair_round(spec_dir, engine_state, event_args)
+
+
+def _guard_check_phase_review_repair_round(
+    spec_dir: Path, engine_state: dict, event_args: dict
+) -> str | None:
+    """findings-remain: its existing review-cap guard, then the repair round.
+
+    findings-remain fires from both `SPEC-PLAN-REVIEW` and `CODE-REVIEW` in a
+    code-mode run, through this same `("code", "findings-remain")` entry — see
+    `_guard_check_spec_status_on_code_review` for the identical twin-sourced
+    shape. The repair-round check applies only at `CODE-REVIEW`; a
+    `SPEC-PLAN-REVIEW` firing (reached at the start of every code run, and
+    again after `contract-amendment`) is admitted regardless of what
+    `dispatch_receipts` holds. `("spec-plan", "findings-remain")` stays wired to
+    `_guard_check_phase_review` directly — that edge never reaches a CODE-*
+    state, so it carries no repair-round check at all.
+    """
+    err = _guard_check_phase_review(spec_dir, engine_state, event_args)
+    if err:
+        return err
+    if engine_state.get("state") != "CODE-REVIEW":
+        return None
+    return _guard_repair_round(spec_dir, engine_state, event_args)
+
+
+def _guard_blocker_applied(
+    spec_dir: Path, engine_state: dict, event_args: dict
+) -> str | None:
+    """blocker-applied's first guard entry. It fires only from CODE-HUMAN-GATE."""
+    if engine_state.get("state") != "CODE-HUMAN-GATE":
+        return None
+    return _guard_repair_round(spec_dir, engine_state, event_args)
+
+
 # Guard dispatch: (mode, event) → guard_fn | None
 _GUARDS: dict[tuple[str, str], object] = {
     ("code", "spec-approved"): _guard_spec_approved,
@@ -1222,12 +1289,13 @@ _GUARDS: dict[tuple[str, str], object] = {
     ("code", "plan-locked"): _guard_plan_locked_code,
     ("spec-plan", "plan-locked"): _guard_plan_locked_spec_plan,
     ("code", "wave-complete"): _guard_check_phase_wave_exit,
-    ("code", "gates-failed"): _guard_check_phase_gates_failed,
+    ("code", "gates-failed"): _guard_gates_failed_repair_round,
     ("code", "wave-passed"): _guard_wave_check_more,
     ("code", "gates-clean"): _guard_wave_check_last,
-    ("code", "findings-remain"): _guard_check_phase_review,
+    ("code", "findings-remain"): _guard_check_phase_review_repair_round,
     ("spec-plan", "findings-remain"): _guard_check_phase_review,
     ("code", "reviewers-clean"): _guard_check_spec_status_on_code_review,
+    ("code", "blocker-applied"): _guard_blocker_applied,
     ("code", "done"): _guard_done,
 }
 
