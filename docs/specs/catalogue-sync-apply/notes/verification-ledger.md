@@ -706,3 +706,42 @@ primary checkout and would have measured the wrong code.
   ]
 }
 ```
+
+## Hard links on the three major platforms
+
+Asked at merge time. Separating what was measured from what was inferred.
+
+**macOS — measured.** Run directly on this host (macOS 26.5.2, arm64, APFS,
+CPython 3.13.13) through the real `write_jailed(..., Publish.NEVER_REPLACE)`
+path: a fresh destination publishes at `st_nlink` 1 with no staged residue; an
+occupied destination is refused with `errno 17` (`EEXIST`) and the occupant's
+bytes are unchanged. The full AC-0070 contract holds on APFS.
+
+**Linux — measured by this PR's own CI.** The Ubuntu leg of
+`catalogue-tooling-ci-gates.yml` runs `pytest tests/`, the whole tree, which
+includes all ten `Publish` tests in `test_safety.py`. None carries a `skipif`,
+and that leg additionally fails the job if any test skips for an import
+reason, so a silently-not-run outcome is not available to it.
+
+**Windows — was not measured by anything, and that gap was structural.**
+`os.link` exists on Windows in CPython 3.2+ and maps to `CreateHardLinkW`,
+which NTFS supports — but that is documentation, not a measurement. The
+curated Windows subset was seven named files and `test_safety.py` was not one
+of them, so no leg exercised the publish path on Windows at all.
+
+Two risks rode on that. Whether `os.link` works there at all, and — narrower
+but likelier — Windows semantics around unlinking a name while a handle is
+open, which is exactly what the publish does to the staged sibling. A failure
+there would be swallowed by the `contextlib.suppress(OSError)` round 3 added,
+leaving `st_nlink` 2, which this repository's own confined reader refuses.
+
+**Closed by adding `tests/unit/test_safety.py` to the curated Windows leg**
+(owner decision 2026-09-24). One line, and the gap becomes a measurement on
+this PR rather than a known unknown after it. `lint-ci-parity` stays clean:
+it dispositions paths against gate claims and does not pin the list's
+contents.
+
+The filesystem axis is a separate, still-open residual: § Follow-ons records
+companion delivery on FAT, exFAT and several network and FUSE mounts, where no
+hard link is available on any OS. That entry is unchanged and still
+owner-unassigned.

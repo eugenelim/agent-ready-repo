@@ -113,6 +113,12 @@ jobs:
           python -m pytest tests/build_pipeline/test_user_libs_projection.py
           python -m pytest tests/integration/test_credential_brokers_pack_install.py
           python -m pytest tests/unit/test_packstate_source_provenance.py
+          # test_safety.py is here for the hard-link publish AC-0070 uses:
+          # `os.link` maps to CreateHardLinkW on Windows and NTFS supports it,
+          # but nothing measured that until this line existed. It also covers
+          # the unlink-while-open case, where a Windows-only failure would
+          # otherwise leave st_nlink 2 that the confined reader refuses.
+          python -m pytest tests/unit/test_safety.py
 
   # ── Gate A-packs: repo/pack hook suites ───────────────────────────────────
   # AC8: the ubuntu leg runs py3.12 ONLY. These suites exercise skill scripts under
