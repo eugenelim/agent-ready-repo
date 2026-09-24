@@ -181,9 +181,10 @@ None added. The verb reuses `_locked`, `read_state`, `write_state_atomic`,
 
 **Tests:** TDD. Discharges § The repair-round verdict entire; the `wave advance`,
 refusal-wording and absence-rule criteria of § The accounting predicate; and the
-three oracle criteria of § Proof. The `references/state-schema.md` criterion
-belongs to T4, the task that writes documentation, and § Proof's mutation-record
-criterion is closed jointly by T1, T2 and T3, each appending its own entries.
+frozen-walk, domain, row-movement and transcription criteria of § Proof. The
+`references/state-schema.md` criterion belongs to T4, the task that writes
+documentation, and § Proof's mutation-record criterion is closed jointly by T1,
+T2 and T3, each appending its own entries.
 
 - The predicate change lands first and alone: `unaccounted_wave_tasks` returns a
   task whose only record is superseded, and does not return one whose record
@@ -201,10 +202,15 @@ criterion is closed jointly by T1, T2 and T3, each appending its own entries.
 - The CLI-level exemption case drives `check --phase wave-reopen` through
   `cmd_check` against an unsupported `schema_version`, not the verdict function,
   because that is the only surface where `_SCHEMA_EXEMPT_PHASES` is observable.
-- `notes/walk_reopen_partition.py` imports `_loop_guards` and calls the shipped
-  `unaccounted_wave_tasks` and verdict functions, so the walk moves when the code
-  moves. The frozen walk is read, run and compared — never edited; it transcribes
-  another spec's words and this spec has no standing over it.
+- `notes/walk_reopen_partition.py` transcribes the predicates from the spec's
+  words and imports nothing from the implementation, because the frozen walk
+  states that a notes script under `docs/` does not import `_loop_guards` and
+  routes that coupling to a test. This plan follows the same split: a suite
+  assertion in `packs/core/tests/skills/work-loop/` drives the transcribed
+  superseded rule and `unaccounted_wave_tasks` over the oracle's domain and
+  refuses any state they disagree on. The frozen walk itself is read, run and
+  compared — never edited; this spec has no standing over another spec's
+  committed artifact.
 - That oracle's domain is built from the axis list
   `wave-complete-dispatch-receipts` § Acceptance Criteria declares canonical
   plus a superseded axis over each record, container values generated from
@@ -309,11 +315,20 @@ procedure and its content pin.
   firing site and is outside the count, which is why the predicate is fenced
   blocks and not a grep for the literal.
 - `SKILL.md` and `references/session-resumption.md` hold no fenced transition
-  block. `session-resumption.md`'s row that instructs a controller to fire one of
-  the three edges is the `wave-complete` / `CODE-VERIFICATION` row, which says
-  "fire `wave-passed` or `gates-clean` or `gates-failed`"; the `gates-failed` and
-  `findings-remain` rows are keyed on the event already fired and re-issue a
-  cohort record, so they are not firing sites.
+  block, and `session-resumption.md` holds **two** firing sites as table cells:
+  the `wave-complete` / `CODE-VERIFICATION` row, which says "fire `wave-passed`
+  or `gates-clean` or `gates-failed`", and the `reviewers-clean` /
+  `CODE-HUMAN-GATE` row, which says "fire `blocker-applied` → apply fix → run
+  `loop-cohort check --phase wave-exit` → fire `wave-complete`". The
+  `gates-failed` and `findings-remain` rows are keyed on the event already fired
+  and re-issue a cohort record, so they are not firing sites.
+- **The invocation count cannot see a table cell.** It counts fenced-block
+  invocations, and both rows above are prose in a Markdown table. Those two are
+  pinned by name instead, and that is the content pin's stated blind spot: a
+  firing site added later as a table cell is caught by neither the count nor the
+  named assertions. Saying so is what the demotion buys — the obligation is
+  working material, so its check is allowed to be partial as long as the gap is
+  written down rather than implied closed.
 - `references/state-schema.md`'s `dispatch_receipts` row is edited here, because
   the row and the procedure prose have to agree and a reader meets them together.
 - `make build-self` reports three-copy parity across `.apm/`, `.claude/` and
@@ -377,6 +392,10 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-23 — round-6 repairs: the oracle transcribes rather than imports, per
+  the norm the frozen walk states; `session-resumption.md`'s `reviewers-clean`
+  row was restored to the survey after a round-5 repair dropped it; and the
+  content pin's table-cell blind spot is stated.
 - 2026-09-23 — round-5 repairs: the frozen oracle is read and never edited, task
   ownership was made one-to-one, and the eval entry regained a producing step.
 - 2026-09-23 — the owner demoted the controller-facing-surfaces obligation from
