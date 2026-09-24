@@ -794,7 +794,7 @@ def test_state_coherence_refuses_fulfilled_without_accepted_record(
     """AC-0001: a Fulfilled intent requires an Accepted: record."""
     text = _broken("a", status="Fulfilled", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Accepted" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -806,7 +806,7 @@ def test_state_coherence_refuses_cancelled_without_accepted_record(
 ) -> None:
     """AC-0002: a Cancelled intent requires an Accepted: record."""
     result = _run(tmp_path, {"FEAT-0001-a.md": _broken("a", status="Cancelled")})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Accepted" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -828,7 +828,7 @@ def test_state_coherence_refuses_fulfilled_without_fulfilled_record(
     """AC-0004: a Fulfilled intent requires a Fulfilled: record."""
     text = _broken("a", status="Fulfilled", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -860,7 +860,7 @@ def test_state_coherence_refuses_draft_with_accepted_record(tmp_path: Path) -> N
     """AC-0007: Draft means open — an Accepted: record is not allowed."""
     text = _broken("a", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Accepted" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -871,7 +871,7 @@ def test_state_coherence_refuses_draft_with_fulfilled_record(tmp_path: Path) -> 
     """AC-0007: Draft means open — a Fulfilled: record is not allowed."""
     text = _broken("a", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -884,7 +884,7 @@ def test_state_coherence_refuses_accepted_with_fulfilled_record(
     """AC-0008: Accepted has not yet delivered — a Fulfilled: record is not allowed."""
     text = _broken("a", status="Accepted", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -898,7 +898,7 @@ def test_state_coherence_refuses_cancelled_with_fulfilled_record(
     extra = f"- **Accepted:** {_VALID_ACCEPTED}\n- **Fulfilled:** {_VALID_FULFILLED}"
     text = _broken("a", status="Cancelled", extra=extra)
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -911,7 +911,7 @@ def test_state_coherence_refuses_withdrawn_with_fulfilled_record(
     """AC-0009: Withdrawn did not deliver — a Fulfilled: record is not allowed."""
     text = _broken("a", status="Withdrawn", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
-    assert result.exit_code != 0
+    assert result.exit_code == 1
     assert any(
         v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
         for v in result.violations
@@ -932,13 +932,57 @@ def test_state_coherence_violation_names_the_path_and_the_record(
     assert violation.field == "Accepted"
 
 
-def test_state_coherence_violation_carries_a_registry_refusal_class() -> None:
-    """AC-0012: every state-coherence refusal sets refusal_class to a registry member."""
+@pytest.mark.parametrize(
+    "text",
+    [
+        # AC-0001: Fulfilled without Accepted: (lifecycle_record_required)
+        _broken("a", status="Fulfilled", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # AC-0004: Fulfilled without Fulfilled: (lifecycle_record_required)
+        _broken("a", status="Fulfilled", extra=f"- **Accepted:** {_VALID_ACCEPTED}"),
+        # AC-0002: Cancelled without Accepted: (lifecycle_record_required)
+        _broken("a", status="Cancelled"),
+        # AC-0009: Cancelled with Fulfilled: (lifecycle_record_not_allowed)
+        _broken(
+            "a",
+            status="Cancelled",
+            extra=f"- **Accepted:** {_VALID_ACCEPTED}\n- **Fulfilled:** {_VALID_FULFILLED}",
+        ),
+        # AC-0009: Withdrawn with Fulfilled: (lifecycle_record_not_allowed)
+        _broken("a", status="Withdrawn", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # AC-0007: Draft with Accepted: (lifecycle_record_not_allowed)
+        _broken("a", extra=f"- **Accepted:** {_VALID_ACCEPTED}"),
+        # AC-0007: Draft with Fulfilled: (lifecycle_record_not_allowed)
+        _broken("a", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # AC-0008: Accepted with Fulfilled: (lifecycle_record_not_allowed)
+        _broken("a", status="Accepted", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # Fulfilled without either record: both sites (lifecycle_record_required x2)
+        _broken("a", status="Fulfilled"),
+    ],
+    ids=[
+        "fulfilled-no-accepted",
+        "fulfilled-no-fulfilled-record",
+        "cancelled-no-accepted",
+        "cancelled-with-fulfilled",
+        "withdrawn-with-fulfilled",
+        "draft-with-accepted",
+        "draft-with-fulfilled",
+        "accepted-with-fulfilled",
+        "fulfilled-no-records-both",
+    ],
+)
+def test_state_coherence_violation_carries_a_registry_refusal_class(
+    text: str,
+) -> None:
+    """AC-0012: every state-coherence refusal at every site carries a registry class.
+
+    Parametrized over all nine refusal sites so a mistyped, bare, or missing
+    class on any single site reds for that fixture while every other stays green.
+    Scoped to ``_check_state_coherence`` directly so supersession violations
+    (which carry ``refusal_class=""``) do not interfere with the assertion.
+    """
     shape = lint._shape
-    # Fulfilled without either record: two violations, both must carry a class.
-    text = _broken("a", status="Fulfilled")
-    violations = shape.validate_corpus_scoped(text, set())
-    assert violations
+    violations = shape._check_state_coherence(text)
+    assert violations, f"expected at least one state-coherence violation from: {text!r}"
     registry = shape.LIFECYCLE_REFUSAL_CLASSES
     for v in violations:
         assert v.refusal_class in registry, (
@@ -966,6 +1010,75 @@ def test_validate_corpus_scoped_delegates_to_both_rule_sets() -> None:
     state_only = _broken("a", status="Fulfilled")
     assert shape.validate_corpus_scoped(state_only, set()), (
         "state-coherence violation must reach validate_corpus_scoped"
+    )
+
+
+# ── F3: permissive-state accepting fixtures ───────────────────────────────────
+# Accepted does not require its own Accepted: record (not decided here, per the
+# spec's Not-changed paragraph). Superseded is entirely undecided by the
+# state-coherence rules. Both need accepting fixtures so a rule added to either
+# reds in the unit suite rather than surviving silently until a corpus scan.
+
+
+def test_state_coherence_accepts_accepted_with_no_lifecycle_records(
+    tmp_path: Path,
+) -> None:
+    """Accepted status requires no Accepted: record.
+
+    A rule added to require it would produce a violation that this fixture
+    catches here rather than at the next real-tree corpus scan.
+    """
+    result = _run(tmp_path, {"FEAT-0001-a.md": _broken("a", status="Accepted")})
+    assert result.violations == [], result.violations
+
+
+@pytest.mark.parametrize(
+    ("has_accepted", "has_fulfilled"),
+    [(False, False), (True, False), (False, True), (True, True)],
+    ids=["neither", "accepted-only", "fulfilled-only", "both"],
+)
+def test_state_coherence_leaves_superseded_entirely_undecided(
+    has_accepted: bool,
+    has_fulfilled: bool,
+) -> None:
+    """Superseded is not decided by state-coherence rules.
+
+    All four record combinations return no violations. A rule added to the
+    Superseded arm reds for the combination it constrains while the others stay
+    green, so a single-fixture version would miss a rule that only fires on one
+    combination.
+
+    Asserts against ``_check_state_coherence`` directly so the supersession
+    pairing failure (Status: Superseded with no Superseded by:) does not
+    interfere with the state-coherence assertion.
+    """
+    shape = lint._shape
+    extra_parts = []
+    if has_accepted:
+        extra_parts.append(f"- **Accepted:** {_VALID_ACCEPTED}")
+    if has_fulfilled:
+        extra_parts.append(f"- **Fulfilled:** {_VALID_FULFILLED}")
+    text = _broken("a", status="Superseded", extra="\n".join(extra_parts))
+    violations = shape._check_state_coherence(text)
+    assert violations == [], (
+        f"_check_state_coherence must not decide Superseded; got: {violations}"
+    )
+
+
+def test_state_coherence_rules_cover_all_decided_statuses() -> None:
+    """F2 exhaustiveness: _STATE_COHERENCE_RULES keys cover STATUS_VALUES
+    minus Superseded, which is the only deliberately undecided status.
+
+    A new status added to STATUS_VALUES without a corresponding rule entry
+    (or a deliberate exclusion here) reds, so coverage gaps are caught at test
+    time rather than at the next corpus scan.
+    """
+    shape = lint._shape
+    decided = set(shape._STATE_COHERENCE_RULES.keys())
+    undecided = set(shape.STATUS_VALUES) - decided
+    assert undecided == {"Superseded"}, (
+        f"Unexpected undecided statuses: {undecided - {'Superseded'}}. "
+        "Add a rule entry to _STATE_COHERENCE_RULES or document why none is needed."
     )
 
 

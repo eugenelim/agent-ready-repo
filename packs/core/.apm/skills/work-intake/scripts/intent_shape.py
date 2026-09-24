@@ -119,8 +119,7 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
 # set. The alternative is substring-matching reason text, which silently stops
 # matching the first time a message is reworded.
 #
-# `lifecycle_record_required`    — a status requires a record that is absent.
-# `lifecycle_record_not_allowed` — a status forbids a record that is present.
+# Class descriptions are in the module docstring, which is the canonical source.
 LIFECYCLE_REFUSAL_CLASSES: tuple[str, ...] = (
     "lifecycle_record_required",
     "lifecycle_record_not_allowed",
@@ -463,6 +462,32 @@ def validate_supersession(text: str, live: set[str]) -> list[Violation]:
     ]
 
 
+# ── State-coherence rule table ────────────────────────────────────────────────
+# Per-status required and forbidden records. ``Superseded`` is not decided here;
+# see the spec's *Not changed here* paragraph. Every key must be a member of
+# ``STATUS_VALUES``, and the set of decided statuses is testable as a set
+# comparison against ``STATUS_VALUES``.
+#
+# Shape: status → (required_records, forbidden_records)
+_STATE_COHERENCE_RULES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "Fulfilled": (("Accepted", "Fulfilled"), ()),
+    "Cancelled": (("Accepted",), ("Fulfilled",)),
+    "Withdrawn": ((), ("Fulfilled",)),
+    "Draft": ((), ("Accepted", "Fulfilled")),
+    "Accepted": ((), ("Fulfilled",)),
+    # "Superseded": not decided here
+}
+
+# Rationale appended to a forbidden-record refusal: "status `X` carries …;
+# `X` <rationale>". One entry per status that forbids any record.
+_FORBIDDEN_RATIONALES: dict[str, str] = {
+    "Draft": "means open",
+    "Accepted": "has not yet delivered",
+    "Cancelled": "did not deliver",
+    "Withdrawn": "did not deliver",
+}
+
+
 def _check_state_coherence(text: str) -> list[Violation]:
     """Refuse records that contradict an intent's lifecycle state.
 
@@ -471,98 +496,39 @@ def _check_state_coherence(text: str) -> list[Violation]:
     reason ``validate_supersession`` stays off the shared surface.
 
     An absent, empty, or unrecognised ``Status`` leaves nothing to decide.
-    The rules by state:
-
-    * ``Fulfilled`` — requires both ``Accepted:`` and ``Fulfilled:`` records.
-    * ``Cancelled`` — requires ``Accepted:``, forbids ``Fulfilled:``.
-    * ``Withdrawn`` — does not require ``Accepted:``; forbids ``Fulfilled:``.
-      Abandoning an unratified bet needs no ratification.
-    * ``Draft`` — forbids both records; ``Draft`` means open.
-    * ``Accepted`` — forbids ``Fulfilled:``; the intent has not yet delivered.
-    * ``Superseded`` — not decided here.
+    The rules by state are declared in ``_STATE_COHERENCE_RULES``; ``Superseded``
+    is not decided here. See the module docstring's surface placement rule.
     """
     present = present_fields(text)
     status = present.get("Status")
-    has_accepted = "Accepted" in present
-    has_fulfilled = "Fulfilled" in present
+    if status not in _STATE_COHERENCE_RULES:
+        return []
 
+    required, forbidden = _STATE_COHERENCE_RULES[status]
     violations: list[Violation] = []
 
-    if status == "Fulfilled":
-        if not has_accepted:
+    for record in required:
+        if record not in present:
+            article = "an" if record[0] in "AEIOU" else "a"
             violations.append(
                 Violation(
-                    "Accepted",
-                    "status `Fulfilled` requires an `Accepted:` record",
-                    refusal_class="lifecycle_record_required",
+                    record,
+                    f"status `{status}` requires {article} `{record}:` record",
+                    refusal_class=LIFECYCLE_REFUSAL_CLASSES[0],
                 )
             )
-        if not has_fulfilled:
+    for record in forbidden:
+        if record in present:
+            article = "an" if record[0] in "AEIOU" else "a"
+            rationale = _FORBIDDEN_RATIONALES[status]
             violations.append(
                 Violation(
-                    "Fulfilled",
-                    "status `Fulfilled` requires a `Fulfilled:` record",
-                    refusal_class="lifecycle_record_required",
+                    record,
+                    f"status `{status}` carries {article} `{record}:` record; "
+                    f"`{status}` {rationale}",
+                    refusal_class=LIFECYCLE_REFUSAL_CLASSES[1],
                 )
             )
-    elif status == "Cancelled":
-        if not has_accepted:
-            violations.append(
-                Violation(
-                    "Accepted",
-                    "status `Cancelled` requires an `Accepted:` record",
-                    refusal_class="lifecycle_record_required",
-                )
-            )
-        if has_fulfilled:
-            violations.append(
-                Violation(
-                    "Fulfilled",
-                    "status `Cancelled` carries a `Fulfilled:` record; "
-                    "`Cancelled` did not deliver",
-                    refusal_class="lifecycle_record_not_allowed",
-                )
-            )
-    elif status == "Withdrawn":
-        if has_fulfilled:
-            violations.append(
-                Violation(
-                    "Fulfilled",
-                    "status `Withdrawn` carries a `Fulfilled:` record; "
-                    "`Withdrawn` did not deliver",
-                    refusal_class="lifecycle_record_not_allowed",
-                )
-            )
-    elif status == "Draft":
-        if has_accepted:
-            violations.append(
-                Violation(
-                    "Accepted",
-                    "status `Draft` carries an `Accepted:` record; "
-                    "`Draft` means open",
-                    refusal_class="lifecycle_record_not_allowed",
-                )
-            )
-        if has_fulfilled:
-            violations.append(
-                Violation(
-                    "Fulfilled",
-                    "status `Draft` carries a `Fulfilled:` record; "
-                    "`Draft` means open",
-                    refusal_class="lifecycle_record_not_allowed",
-                )
-            )
-    elif status == "Accepted":
-        if has_fulfilled:
-            violations.append(
-                Violation(
-                    "Fulfilled",
-                    "status `Accepted` carries a `Fulfilled:` record; "
-                    "`Accepted` has not yet delivered",
-                    refusal_class="lifecycle_record_not_allowed",
-                )
-            )
-
     return violations
 
 
@@ -573,9 +539,7 @@ def validate_corpus_scoped(text: str, live: set[str]) -> list[Violation]:
     ``validate_supersession`` and ``_check_state_coherence``, so a rule added
     to either reaches every consumer without the consumer changing.
 
-    Kept out of ``validate_live_intent`` for the same reason each delegate is:
-    these rules decide one field from another field's value, or need the whole
-    corpus.
+    See the module docstring's surface placement rule.
     """
     violations = list(validate_supersession(text, live))
     violations.extend(_check_state_coherence(text))
