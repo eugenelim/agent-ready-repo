@@ -245,18 +245,17 @@ active  = [
   # artifacts' current bytes, so a computed one would assert a provenance check
   # that is not actually performed.
   {path = "docs/specs/checkable-adr-metadata/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0102-mechanically-checkable-adrs.md"}, summary = "Make an ADR's metadata mechanically checkable and split acceptance's freeze so it binds prose rather than metadata", needs = []},
-  # Closes the `_loop_guards.py` defect registered under [backlog].open whose
-  # summary opens "Require a repair round to carry its own dispatch assertion".
-  # Registered active at authoring time: the work started in the same session.
-  # The design scopes a round by supersession rather than by a counter -- a new
-  # `wave reopen` verb supersedes the current wave's dispatch records (marks them
-  # `superseded: True`), and the three edges that re-enter code implementation
-  # refuse until it has run -- so no key is added to cohort state and the shipped
-  # wave-exit verdict keeps its eight rows. `needs` is empty: the sibling ADR-0061 defect is independent and stays
-  # open.
-  {path = "docs/specs/repair-round-dispatch-assertion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md"}, summary = "Require every edge that re-enters code implementation without moving the wave pointer to reopen its wave first, so a repair round's exit is discharged by its own dispatch records", needs = []},
 ]
 shipped = [
+  # Shipped 2026-09-24, closing the `_loop_guards.py` repair-round defect that
+  # was registered under [backlog].open and is retired in the same change. The
+  # mechanism is supersession, not a counter and not deletion: `wave reopen`
+  # marks the current wave's dispatch records superseded, removing none, because
+  # the frozen receipts contract names the only three paths that may remove one.
+  # gates-failed, findings-remain from code review, and blocker-applied refuse
+  # until it has run. wave-passed is a fourth edge with the same shape and is
+  # recorded as a follow-on rather than fixed here.
+  {path = "docs/specs/repair-round-dispatch-assertion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md"}, summary = "Require every edge that re-enters code implementation without moving the wave pointer to reopen its wave first, so a repair round's exit is discharged by its own dispatch records", needs = []},
   # Rewrites the desk-research pack's arXiv retriever as a production retriever
   # with three optional modes: search, get, and enrich. The originating evidence
   # is the 429 recorded in the agents-md-size survey, which cost that survey its
@@ -1993,21 +1992,16 @@ open = [
   { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 41 of those pins are stale across 28 topics, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; the recorded drop-the-pin disposition is capable but not affordable, because the skill registers exactly one committed-topic write path and it costs one pending captured observation per topic, of which three remain against 20 active topics with a stale owning pin" },
 
   # Found 2026-09-17 by the pre-EXECUTE review of
-  # docs/specs/wave-complete-dispatch-receipts. The entries below are limits
-  # that spec discloses and deliberately does not close, each recorded there
-  # under Follow-ons with the reasoning. They are registered here so the spec's
-  # references resolve to real entries rather than to an intention. A fourth
+  # docs/specs/wave-complete-dispatch-receipts. The entry below is a limit that
+  # spec discloses and deliberately does not close, recorded there under
+  # Follow-ons with the reasoning. It is registered here so the spec's
+  # references resolve to a real entry rather than to an intention. A fourth
   # limit -- the uncoupled `wave advance` -- was folded into the spec instead
-  # and sits in `closed`.
+  # and sits in `closed`. The repair-round limit that sat here was closed by
+  # docs/specs/repair-round-dispatch-assertion (Shipped 2026-09-24), which
+  # supersedes the wave's records on reopen rather than scoping them with a
+  # counter; its entry is retired.
   #
-  # gates-failed, findings-remain and blocker-applied all re-enter
-  # CODE-IMPLEMENTATION without moving current_wave_index, so the first pass's
-  # records satisfy every later exit for that wave -- and a repair round is
-  # where the controller most often works alone. Not closed in the receipts
-  # spec because scoping a record to a round needs a counter advancing on all
-  # three edges, and implementation_retry_count advances on one, so building on
-  # it would look like a control without being one. Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Require a repair round to carry its own dispatch assertion: three transition edges re-enter code implementation without moving the wave pointer, so a wave's exit is discharged a second time by the first pass's records", needs = [] },
 
 
   # A wave exit that passes with no receipts container records nothing about
