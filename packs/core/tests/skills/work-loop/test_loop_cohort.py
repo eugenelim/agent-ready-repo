@@ -4132,7 +4132,14 @@ def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
         if rc != 0:
             fail(name, f"status refused the {kind} wave: {err.strip()!r}")
             return
-        seen[kind] = json.loads(out).get("dispatch_receipts_enforced")
+        payload = json.loads(out)
+        # Presence, not just value: `.get` yields None for both arms once the
+        # key is gone, and two Nones compare equal, so a deleted field would
+        # read as the agreement this test exists to report.
+        if "dispatch_receipts_enforced" not in payload:
+            fail(name, "status no longer reports dispatch_receipts_enforced")
+            return
+        seen[kind] = payload["dispatch_receipts_enforced"]
     if seen["receipt"] != seen["decline"]:
         fail(name, f"status now distinguishes them: {seen!r}")
     else:

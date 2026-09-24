@@ -134,17 +134,14 @@ shipped still reaches its wave boundary: one passes cohort state whose
 receipts container. Between them they emit at most a line on stdout, and no
 durable record says which row decided the pass.
 
-Whether anything else makes such an exit traceable is unsettled in this
-repository, and this erratum records the disagreement rather than resolving it.
-The `wave-complete` transition this guard gates appends a line to
-`.loop-run/events.jsonl` carrying the run, the sequence, the event and the time;
-`loop-engine.py` calls that file a durable audit record, and nothing deletes,
-rotates or truncates it. `docs/architecture/telemetry.md` calls the same file
-gitignored and not meant to last, and the owned-state tables there and in
-`docs/architecture/loop-infrastructure.md` label it ephemeral. A reader looking
-for evidence that a wave exit passed therefore will or will not find it
-depending on which source holds. Neither source claims the verdict is recorded
-anywhere: nothing says whether accounting was enforced, exempted, or satisfied.
+The transition log does not soften that. The `wave-complete` transition this
+guard gates appends a line to `.loop-run/events.jsonl`, but ADR-0064 D1 records
+that file as append-only and *ephemeral*, `loop-engine reset` removes it, and
+the owned-state tables in `docs/architecture/telemetry.md` and
+`docs/architecture/loop-infrastructure.md` label it the same way. It is
+therefore not a durable record that the exit occurred, and nothing records the
+verdict: no surface says whether accounting was enforced, exempted, or
+satisfied.
 
 Two neighbouring facts do not follow from the above and are stated so they are
 not inferred from it. A wave whose tasks all carry a `decline` is fully
