@@ -23,29 +23,24 @@
 ## Outcome
 
 A maintainer asks `workspace-status` which delivery contracts are retirement
-candidates and gets a set where every entry is free of every blocker this
-capability carries, and every rejection names the blockers that hold it back.
-Being reported eligible authorizes nothing. A candidate
-still holding the only copy of a lasting fact is reported ineligible with the
-semantic role that fact must reach first, so retirement never silently destroys
-the claim.
+candidates and gets a read-only report where every entry is free of every
+blocker this capability carries, and every rejection names the blockers holding
+it back. Evidence the run could not read withholds eligibility rather than
+passing silently, so a shorter list never means a cleaner one.
 
 ## What Changes
 
 - Candidate discovery — a new read-only `retirement-candidates` subcommand on
-  `packs/core/.apm/skills/workspace-status/scripts/`, discharging Wave 7e and
-  closing the gap that skill's own prune authorization names.
-- Area map authoring — a separate `areas-refresh` subcommand, the only surface
-  in this delivery that writes.
-- Migration obligations — computed per candidate and reported as blocking
-  preconditions with a named RFC-0096 §2 semantic role.
-- Brief retirability — `lint-brief-coverage.py` resolves an absent spec three
-  ways instead of one, across every consumer of that resolution.
-- Area attribution — inferred from the adopter's own repository shape, persisted
-  under a new `[areas]` table in `workspace.toml`, and surfaced read-only by
-  `status` as orientation context.
+  `packs/core/.apm/skills/workspace-status/scripts/`, discharging Wave 7e.
+- Blocker vocabulary — twelve codes saying why each candidate is held back,
+  including `evidence-unread` for a candidate whose evidence was never read.
+- Fail-closed reading — fourteen refusal codes, each naming the input it could
+  not use and the candidates whose eligibility it withholds.
+- Migration obligations — computed per candidate and reported with a named
+  RFC-0096 §2 semantic role.
 - Output contract — `contracts/jsonschema/spec-retirement-candidates.schema.json`
   owns the emitted JSON's field set.
+- Area attribution — inferred per run and held in memory; nothing is persisted.
 
 ## Durable Outputs
 
@@ -109,29 +104,36 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **Blocker detection — TDD.** It is logic with a compressible invariant over a
-  fixture tree, and each blocker has a distinct code to assert.
-- **Reproducibility — goal-based check.** Two invocations over an unchanged tree,
-  compared byte-for-byte. A one-liner answers it; a unit test cannot, because the
-  property is about the whole emitted document.
-- **Migration-obligation classification — TDD.** Each obligation class is a
-  predicate over a candidate's content, and the fixture carries one candidate per
-  class including the common empty case.
-- **Brief resolution — TDD, exercised as an integration test.** All three
-  absent-spec resolutions cross the boundary between the lint and a real git
-  object store, so the fixture is a temporary repository with a real deleted
-  commit rather than a mocked resolver, driven through the lint's entry point
-  rather than its resolver alone.
-- **Age reporting — goal-based check.** The emitted cutoff and each candidate's
-  age are read from one run's output; no second surface exists to compare against.
-- **Area inference and its persisted map — TDD.** Inference is a pure function of
-  the repository shape, and staleness detection is a comparison against a
-  recorded fingerprint.
-- **Output contract — goal-based check.** The emitted JSON is validated against
-  the schema by a one-command run.
-- **Subcommand wiring and refusal codes — goal-based check.** An end-to-end
-  invocation against a disposable fixture, asserting the exit code and the
-  refusal token.
+One mode per criteria group, so no group ships without a declared verification.
+
+- **Fail closed — TDD.** Each substrate input is driven unreadable, then
+  unparseable, and the assertion is on the *suppression*: a candidate whose
+  evidence was not read must carry `evidence-unread` and must not be eligible.
+  A test asserting only that a refusal appeared would pass while the hole stays
+  open, which is how the first version of this group shipped broken.
+- **Confinement — TDD.** An escaping path and a link component are each asserted
+  by the absence of the read, using a reader stub that fails the test if called,
+  not by the refusal alone.
+- **Determinism — goal-based check.** Two invocations against the same supplied
+  run date, compared byte-for-byte. The property is of the whole document, so no
+  unit test reaches it.
+- **Status vocabulary — TDD.** Both line formats and the leading-token reduction,
+  over a fixture carrying an annotated value, a bare bold line, and an
+  unrecognised token.
+- **Blocker emission — TDD.** One fixture per code, enumerated from the schema
+  enum restricted to the codes this command can emit, each asserting the code
+  fires and that its negative case does not.
+- **Age reporting — TDD.** The cutoff is derived from the supplied run date, so
+  no case depends on the wall clock.
+- **Area attribution — TDD.** Inference is a pure function of the tracked file
+  list; two calls over the same list return equal results.
+- **Output hygiene — goal-based check.** A scan of the emitted document for an
+  absolute path or exception text.
+- **Contract — goal-based check.** Schema validation over the emitted output,
+  plus a case that an unlisted code fails validation.
+- **Subcommand wiring and refusals — manual QA, exercised end to end.** The real
+  built subcommand is invoked against a disposable fixture and its exit code and
+  document recorded; a passing unit gate does not substitute.
 
 ## Acceptance Criteria
 
@@ -240,9 +242,8 @@ suppression on the blockers it produced suppresses nothing.
       `inbound-cited` does not reach.
 - [ ] A spec named in the `Spec map` of a brief whose own status is `Shipped` is
       reported `shipped-brief-member` while that row carries no commit pin.
-- [ ] The `shipped-brief-member` blocker clears only when the row carries a pin
-      that satisfies every pin criterion below and its status cell still reads
-      `Shipped`.
+- [ ] The `shipped-brief-member` blocker names what a maintainer must do to
+      clear it, and reports it as unclearable by this capability alone.
 - [ ] A `shipped-brief-member` blocker names the brief whose map holds the spec.
 - [ ] A spec whose directory holds a `notes/` file that no surface outside that
       directory cites is reported `lasting-facts-unsettled`, and a spec whose
@@ -272,33 +273,6 @@ suppression on the blockers it produced suppresses nothing.
 - [ ] A spec naming a path that does not resolve is reported
       `references-unresolved`, and a spec whose named paths all resolve is not.
 
-### Commit pins
-
-`unverifiable` exists for exactly one honest case: this clone cannot resolve an
-object that may well be correct. A malformed pin and a pin refuted by the object
-it names are both authoring errors, and neither may resolve more permissively
-than supplying no pin at all — otherwise corrupting the evidence field is the
-cheapest route past a shipped gate.
-
-- [ ] A commit pin is accepted only when it matches a full hexadecimal object
-      identifier of the length this repository's git produces.
-- [ ] A pin present but failing that shape is reported `pin-malformed`, is never
-      passed to git, and fails the lint exactly as an absent pin does.
-- [ ] A pin whose object resolves and demonstrably does not contain the mapped
-      spec's `spec.md` is reported `pin-refuted` and fails the lint.
-- [ ] A pin renders its child `unverifiable` only when the object cannot be
-      resolved in this clone at all.
-- [ ] A pin renders its child `Retired` only when the object it names resolves
-      and contains the mapped spec's `spec.md` carrying a leading status token of
-      `Shipped`.
-- [ ] The mapped slug is validated against the published slug shape before it is
-      used to build any path, whether that path is opened on the filesystem or
-      handed to a subprocess.
-- [ ] An accepted pin is passed to git with no shell, in a fixed argument
-      position. The shape check is the control that prevents option and
-      revision-expression interpretation; no invocation form is credited with
-      preventing either.
-
 ### Age reporting
 
 - [ ] The emitted `cutoff_date` is a calendar date on every run.
@@ -309,78 +283,17 @@ cheapest route past a shipped gate.
 - [ ] No field name or enum value in the schema reuses RFC-0096 §6's clock
       vocabulary — `completed_on`, `review_on`, `cooling`, or `due`.
 
-### Brief resolution
+### Area attribution
 
-- [ ] `lint-brief-coverage` exits `0` for a `Shipped` brief whose children are
-      `Shipped` and `Retired`.
-- [ ] `lint-brief-coverage` resolves an absent mapped spec carrying no commit
-      pin as `missing` and exits `1`.
-- [ ] `lint-brief-coverage` exits `0` for a `Shipped` brief whose absent child
-      renders `unverifiable`.
-- [ ] `lint-brief-coverage` exits `1` for a brief carrying a `pin-malformed` or
-      `pin-refuted` row, so neither is more permissive than an absent pin.
-- [ ] An `unverifiable` child is not execution evidence, so a `Draft` brief
-      carrying one exits `0`.
-- [ ] A `Retired` child is execution evidence, so a `Draft` brief carrying one
-      exits `1`.
-- [ ] `lint-brief-coverage` exits `0` for an `Executing` brief whose children are
-      one `Retired` and one `Shipped`.
-- [ ] A `Shipped` brief whose pinned-`Retired` and `Shipped` children all resolve
-      is reported delivered.
-- [ ] A mapped row whose status cell reads `Retired` and whose pin resolves
-      reports no drift violation.
-- [ ] A mapped row whose spec is absent with a resolving pin but whose status
-      cell still reads `Shipped` reports a drift violation and exits `1`.
-- [ ] A mapped row whose child renders `unverifiable` reports no drift violation,
-      whatever its status cell reads.
-- [ ] A `pin-malformed` or `pin-refuted` row reports its own violation rather
-      than being absorbed by the drift check.
-- [ ] A mapped child that is present and carries `Status: Archived` resolves to
-      `Archived`, unchanged by this delivery.
-- [ ] The commit pin is read from the column its header names, so a map carrying
-      both a `Story` column and a pin column reads the pin from the pin column.
-- [ ] For every brief whose `Spec map` carries at least one row and no commit
-      pin, each row renders the mapped spec's own `Status:` value, unchanged by
-      this delivery.
-
-### Area attribution and its writer
+Attribution is computed per run and held in memory. Persisting it, and the
+subcommand that would write it, are a separate delivery.
 
 - [ ] In a fixture whose only top-level source directory is named something
       other than `packs`, a spec whose body names that directory is attributed
       to it.
 - [ ] A candidate matching no inferred namespace is attributed `unscoped`.
-- [ ] Every non-writing subcommand the dispatch table defines leaves
-      `workspace.toml` byte-identical, including when the `[areas]` map is
-      absent and when its recorded fingerprint is stale.
-- [ ] `areas-refresh` writes the `[areas]` table where none exists.
-- [ ] A second `areas-refresh` replaces the existing `[areas]` table rather than
-      appending a second one.
-- [ ] `areas-refresh` leaves every byte of `workspace.toml` outside the
-      `[areas]` table unchanged.
-- [ ] After any `areas-refresh`, the whole `workspace.toml` re-parses and its
-      parsed `[areas]` equals the mapping the run intended to write.
-- [ ] An area key or value that cannot be represented in the emitted table form
-      is refused as `area-value-unrepresentable` rather than escaped.
-- [ ] An `areas-refresh` that fails or is interrupted leaves `workspace.toml`
-      byte-identical to its pre-run content, achieved by writing a confined
-      temporary file and replacing the target atomically rather than editing it
-      in place.
-- [ ] The replacement preserves the target's existing file mode.
-- [ ] A `workspace.toml` that is not a regular file is refused rather than
-      written through.
-- [ ] `areas-refresh` locates the `[areas]` byte span and replaces it within one
-      continuous hold of the shared workspace lock.
-- [ ] `areas-refresh` refuses as `lock-busy` when the shared lock is already
-      held, and that refusal appears in the emitted document.
-- [ ] Changing the repository's top-level directory shape changes the
-      fingerprint `areas-refresh` records, and leaving the shape unchanged
-      leaves it equal.
-- [ ] A run whose recorded fingerprint does not match the current repository
-      shape reports the map as stale and names `areas-refresh` as the refresh.
-- [ ] A `status` run against a repository carrying an `[areas]` map includes
-      that map in its output.
-- [ ] A `status` run against a repository carrying no `[areas]` map emits its
-      remaining output unchanged.
+- [ ] `retirement-candidates` writes no file, and a run against a read-only
+      checkout emits its report and exits `0`.
 
 ### Output hygiene
 
@@ -402,22 +315,32 @@ cheapest route past a shipped gate.
 
 ## Follow-ons
 
+This delivery was split after a review round returned seventeen blockers against
+a single contract carrying all three capabilities. The two below are separately
+shippable, each behind this one, and each owns the blockers that attached to it.
+
+- eugenelim: `docs/specs/brief-spec-retirability/` (to author) — make a spec
+  named in a `Shipped` brief's Spec map retirable. Owns the commit-pin contract,
+  the three pin outcomes, and the six read sites in `lint-brief-coverage.py`. It
+  is the only half taking adversarial input, and it changes a second skill's
+  shipped CI gate. This spec reports `shipped-brief-member`; that one clears it.
+- eugenelim: `docs/specs/workspace-area-map/` (to author) — persist area
+  attribution as an `[areas]` table and surface it from `status`. Owns the only
+  writer: the byte-span splice, the lock window, atomic replacement, TOML
+  validity, and staleness. This spec infers area in memory instead.
 - eugenelim: `docs/product/findings/rfc-candidates.md` — the citation-direction
-  prevention rule (ADR/RFC→spec forbidden, brief→spec required, intent→spec the
-  decomposition output) needs an RFC, because it changes an adopter-facing
-  authoring rule across three skills against a corpus already far out of
-  compliance, so a hard gate would fail on day one.
+  prevention rule needs an RFC, because it changes an adopter-facing authoring
+  rule across three skills against a corpus already far out of compliance.
 - eugenelim: [`notes/repo-root-layout-survey.md`](notes/repo-root-layout-survey.md)
   — consolidating this tool family's repository-root entries into one
   dot-directory is warranted on the evidence and deliberately not taken here.
 - eugenelim: [`docs/product/briefs/internal-repo-topology.md`](../../product/briefs/internal-repo-topology.md)
   — area inference ships here as a narrow derived map over one repository's
-  directory shape. It is available as prior art for that brief's unmade
-  derived-versus-accreted decision; this spec claims none of that scope.
+  directory shape, available as prior art for that brief's unmade
+  derived-versus-accreted decision.
 - eugenelim: [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md)
-  — the 2026-09-13 Errata cites `docs/CONVENTIONS.md:105-112` and `:408-415`,
-  and that file was retired in `813f533f1`. The rule survives; its evidence
-  links dangle.
+  — the 2026-09-13 Errata cites `docs/CONVENTIONS.md`, retired in `813f533f1`.
+  The rule survives; its evidence links dangle.
 
 ## Assumptions
 

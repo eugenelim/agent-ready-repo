@@ -98,12 +98,11 @@ property of the corpus on one day, so it is not recorded here.
 | --- | --- | --- | --- |
 | Interface contract — `spec-retirement-candidates.schema.json` | T6, T7 | Schema validation over emitted output | Schema carries `x-spec`; emitter validates |
 | User promise — `workspace-status/SKILL.md` | T8 | Roster test plus end-to-end fixture invocation | Documented invocations, blocker vocabulary, and refusal codes match shipped behaviour |
-| Interface compatibility — `lint-brief-coverage.py` and its owning guide | T1, T2 | Three resolutions driven through the lint entry point, plus the unpinned-row regression | Documented `Spec map` shape names the commit-pin column |
 | Decision rationale — RFC-0096 Errata 2026-09-24 | T0 | The accepted erratum in tree | Wave 7e's objective and non-goals match what shipped |
 | Current architecture — `work-intake-and-artifact-routing.md` | T8 | Whole-surface read | The file states who reports eligibility and who may act on it |
 | Release history — `docs/product/changelog.md` | T9 | Core-led entry | Topmost dated `[core]` heading equals `packs/core/pack.toml` |
 | Pack release surface — `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | T9 | Matching patch bump, plus a clean `self-host --check` | Both manifests agree, and every `.claude/` and `.agents/` projection of the two edited skills matches its `.apm/` source |
-| Eval harness — each edited skill's `evals/evals.json` | T9 | A case per added behaviour, or a recorded deviation | `packs/AGENTS.md`'s non-cosmetic-update rule is satisfied, or its deviation is stated and reviewed as a deviation rather than as compliance |
+| Eval harness — `workspace-status/evals/evals.json` | T9 | A case per added behaviour, or a recorded deviation | `packs/AGENTS.md`'s non-cosmetic-update rule is satisfied, or its deviation is stated and reviewed as a deviation rather than as compliance |
 | Reusable learning — `notes/repo-root-layout-survey.md` | T9 | The survey, already written | Accepted capture receipt or explicit not-applicable finding |
 
 ## Design (LLD)
@@ -137,67 +136,6 @@ skills bans cross-skill relative imports, and `lint-brief-coverage.py` already
 hand-duplicates a helper for that reason. Shared code would have to move to
 `.apm/shared-libs/`, which is larger than this capability needs.
 
-**Brief resolution touches three resolutions and five consumers, enumerated by
-line rather than by description.** The count went 1→3→4→5→6 across review rounds
-while it was stated as responsibilities; the verification ledger's T0b pass
-pinned it to call sites, and that enumeration is what T1's revert condition
-cites. Resolutions: `L263` (mapped rows, feeding `derived`), `L291` (untracked
-back-links), `L317` (renderer, which re-resolves rather than reusing `derived`).
-Consumers: `L160`, `L166`, `L270`, `L309`, and the renderer's own row output.
-Each carries a different consequence. A `Retired` state reaching the renderer alone is worse than no
-change at all.
-
-- `_brief_lifecycle_is_valid`'s `Shipped` branch requires the child set to
-  normalise to exactly `{"shipped"}`. A `Retired` child makes the lifecycle
-  invalid and **returns exit 1** — the opposite of the criterion.
-- The same function's `execution_evidence` term is computed from
-  `{"implementing", "shipped"}` before any branch runs. A `Retired` child is
-  absent from it, so a `Draft`, `Ready`, or `Withdrawn` brief whose children have
-  all retired **passes** while carrying the strongest evidence that execution
-  happened, and an `Executing` or `Cancelled` brief whose children have all
-  retired **fails**. Both directions are wrong, and neither touches the `Shipped`
-  path above.
-- The `delivered` predicate requires every derived state to equal `shipped`. It
-  feeds the printed delivery line only and never the exit code, so a test
-  asserting exit codes alone cannot observe it.
-- The recorded-cell drift check compares the map's status cell against the
-  derived status, and fires a hard violation **exiting 1** on its own,
-  independently of every branch above.
-- The renderer decides which token a reader sees.
-- A sixth site resolves an untracked back-linked child independently. It is
-  unreachable for a retired child — the spec index globs `docs/specs/*/spec.md`,
-  so a deleted spec never enters it — and is listed because the argument that
-  retires it is the part worth recording.
-
-Four of the six learn a permitted child set; the drift check and the renderer
-learn the resolution instead. Each reachable site independently returns the exit
-code the criterion forbids, which is why T1 drives the lint's entry point rather
-than its resolver and asserts the delivery line alongside the exit code.
-
-**Every consumer admits two new derived states, and they differ.** `Retired` and
-`unverifiable` both join `missing` as outcomes for an absent child, but they
-carry different evidential weight and the consumers must not treat them alike.
-
-`Retired` means the pin resolved and the object carried a `Shipped` body, so
-execution is proven: the `Shipped` branch admits it, and the execution-evidence
-term admits it. `unverifiable` means nothing could be proven, so it is **not**
-execution evidence — a `Draft` brief carrying one stays valid, and an
-`Executing` brief carrying only unverifiable children does not. The `Shipped`
-branch admits it because a delivered brief whose spec is gone and whose pin no
-longer resolves is not evidence the brief failed. The drift check treats it as
-non-drift, because a pin that cannot resolve says nothing about whether the
-recorded cell is stale.
-
-The child-state domain also contains `governance-reference`, which L261 appends
-for a row naming a governance record rather than a spec. It is already a hard
-violation on its own, so no new state interacts with it — but it is in the
-domain, and a permitted-set statement that omits it is incomplete.
-
-**Retiring a spec edits two cells, not one.** The pin column takes the commit and
-the status cell takes `Retired`. A pin without the cell update leaves the row
-stale and the drift check fires; a cell without a pin renders `missing`. They
-travel together, and the shipped guide says so.
-
 ### Data & schema
 
 The `[areas]` table carries a schema version, a `sha256-bytes-v1` fingerprint of
@@ -207,11 +145,6 @@ derived cache sharing a file with hand-curated content goes stale silently
 otherwise; fingerprint-only designs have documented silent-staleness gaps, and
 the repository already uses `sha256-bytes-v1` as a digest kind.
 
-`Retired` is a rendering derived from an absent directory plus a resolving
-commit pin. It is never a `Status:` token, and it is distinct from `Archived`,
-which is a status a present spec carries and which this delivery leaves
-untouched.
-
 The brief `Spec map` gains one column carrying the commit where the spec was
 `Shipped`. `parse_spec_map` reads the first column as the slug and the **last** column as
 the status, and returns nothing in between, so position alone cannot tell a pin
@@ -219,24 +152,13 @@ cell from the Shape-B `Story` cell its docstring already anticipates in that
 slot. The pin is therefore identified by its column header, not its index, and
 existing two-column and three-column maps continue to parse unchanged.
 
-**`areas-refresh` splices one table; it never round-trips the document.**
-`workspace.toml` is hand-curated and comment-bearing, and `tomllib` has no
-writer — dumping a parsed document back would strip every comment in the file.
-`tomlkit` is declared for `repair-apply` only (`packs/core/AGENTS.md` § skill
-dependencies) and this capability does not widen that declaration. So the write
-locates the `[areas]` table's byte span and replaces exactly that span, or
-appends the table where none exists. The byte-preservation criterion is then the
-property the mechanism guarantees rather than one it hopes for, and the
-re-refresh case exists because replacing a span and appending one are different
-code paths.
-
 ### Interfaces & contracts
 
 `retirement-candidates` emits one JSON document validated by
 `contracts/jsonschema/spec-retirement-candidates.schema.json`. The envelope
-carries the cutoff used, the area-map freshness verdict, one entry per spec, and
-a refusal list. `areas-refresh` is the delivery's only writer and emits the
-skill's existing mutate-shaped result.
+carries the supplied run date, the cutoff derived from it, the in-memory area
+attribution, one entry per spec, and a refusal list. This delivery writes
+nothing.
 
 ### Component / module decomposition
 
@@ -268,10 +190,9 @@ date on the run where no candidate carries a record.
 ### Failure, edge cases & resilience
 
 Three absences are distinct: a `workspace.toml` entry naming a slug with no
-directory behind it, a directory holding no `spec.md`, and a mapped spec whose
-commit pin does not resolve. The third must not fail closed, because a shallow
-clone cannot resolve any pin and an adopter's CI would break on a condition they
-cannot fix.
+directory behind it, a directory holding no `spec.md`, and a `spec.md` that
+cannot be read. Each carries its own refusal code, because a maintainer acts
+differently on each and a shared code erases the difference.
 
 ### Quality attributes (NFRs)
 
@@ -363,93 +284,6 @@ it is never reconciled by widening the probe.
 **Done when:** deleting any single fail-closed branch makes a candidate whose
 evidence is missing report eligible, and that is what turns the case red.
 
-### T0d: A commit pin cannot be a revision expression or an option
-
-**Depends on:** T0b
-
-**Tests:**
-- A pin of `HEAD`, of `:/Status`, and of a branch name are each rejected on
-  shape and render `unverifiable` without git being invoked. Verifies the shape
-  and the never-reaches-git criteria.
-- A pin of `--output=/tmp/x` is rejected on shape; a full object id beginning
-  with `-` cannot occur, and the positional-after-`--` form is asserted by
-  inspecting the invocation rather than by its result.
-- A full object id that resolves but does not contain the mapped spec's
-  `spec.md` renders `unverifiable`, not `Retired`.
-- A full object id whose `spec.md` carries an annotated `Shipped (<date>)`
-  renders `Retired`, exercising the leading-token reduction on the pin path too.
-
-**Approach:**
-- Shape validation precedes resolution because the attack is against the
-  argument parser, not the object store: `git cat-file -e --output=x` reports
-  `unknown option`, which means the value was read as an option, and a check
-  that runs after invocation has already lost.
-
-**Done when:** each rejected form is proven not to reach git — by a stub that
-fails the test if called — rather than by observing a benign result.
-
-### T1: A retired spec passes its brief's lint through the entry point
-
-**Depends on:** T0b
-
-**Tests:**
-- Temporary repository, spec committed `Shipped` then deleted, row carries the
-  pin: the lint's entry point exits `0` and renders the child `Retired`.
-  Verifies the `Retired` criterion.
-- Same fixture, pin points at a commit not containing the path: exits `0`,
-  renders `unverifiable`. Verifies the unverifiable criterion.
-- Same fixture, no pin column: exits `1`, renders `missing`. Verifies the
-  unchanged-path criterion.
-- `git` absent from `PATH`: every pinned row renders `unverifiable`, exit `0`.
-- An `Executing` brief with one `Retired` and one `Shipped` child exits `0`, and
-  a `Draft` brief with a `Retired` child exits `1`.
-- A `Draft` brief with an `unverifiable` child exits `0`, and an `Executing`
-  brief whose children are all `unverifiable` exits `1`. Verifies that an
-  unresolvable pin is not execution evidence. Verifies the two
-  execution-evidence criteria.
-- The `Shipped` fixture's printed delivery line reports delivered, which is the
-  only case that observes the `delivered` predicate.
-- A mapped child present and carrying `Status: Archived` renders `Archived`.
-- A row whose cell reads `Retired` with a resolving pin reports no drift; a row
-  whose cell still reads `Shipped` with the spec absent reports drift and exits
-  `1`. Verifies the two drift criteria, and covers the consumer that fires
-  independently of every lifecycle branch.
-
-**Approach:**
-- Cases drive `main()`, not the resolver, because the defect this task exists to
-  prevent lives in the two consumers downstream of the resolver — the lifecycle
-  validity check and the delivered predicate — and a resolver-level test passes
-  while both are still wrong.
-- The fixture is a real git object store rather than a mock, because the
-  property under test is that a deleted file is recoverable from history; a mock
-  would assert the test's own model of git instead.
-
-**Done when:** every case is green through the lint's entry point, and reverting
-any one of the enumerated reachable consumers individually turns at least one
-case red.
-
-### T2: Unpinned rows are untouched
-
-**Depends on:** T1
-
-**Tests:**
-- For every brief whose `Spec map` carries at least one row and no commit pin,
-  each row renders the mapped spec's own `Status:` value. Verifies the
-  additivity criterion as a property rather than a snapshot, so it still runs
-  after the change ships and needs no recorded file.
-- A three-column map and a two-column map both parse, confirming the pin column
-  does not displace the last-column status read.
-
-**Approach:**
-- The corpus is enumerated at run time from `docs/product/briefs/` rather than
-  from a recorded count, so a brief added after this plan is covered rather than
-  silently skipped.
-
-**Done when:** the property holds for every brief the run enumerates, and a
-mapped row whose spec carries a status the property does not predict fails it.
-The pre-change behaviour needs no recorded file: it is recoverable from the
-commit that precedes this change.
-
 ### T3: Area inference is a pure function of repository shape
 
 **Depends on:** none
@@ -471,35 +305,9 @@ commit that precedes this change.
 repository's unattributed count is recorded in the verification ledger rather
 than asserted.
 
-### T4: Only `areas-refresh` writes, and it writes under the lock
-
-**Depends on:** T0b, T3
-
-**Tests:**
-- `areas-refresh` creates `[areas]` carrying a schema version, a
-  `sha256-bytes-v1` fingerprint, the namespace list, and the attributions.
-- Hand-curated content elsewhere in `workspace.toml` is byte-identical across
-  the write. Verifies the isolation criterion.
-- `areas-refresh` refuses with `lock-busy` when the lock is already held.
-- A shape change alters the recorded fingerprint; an unchanged shape leaves it
-  equal. Verifies the fingerprint criterion.
-- Every non-writing branch of the subcommand dispatch leaves `workspace.toml`
-  byte-identical, with the map absent and with it stale. The case enumerates the
-  branches by reading the dispatch table, so a subcommand added later is covered
-  without editing the test.
-
-**Approach:**
-- The write reuses the prune's existing lock and atomic-write seam rather than a
-  second one, so a concurrent intake transaction serialises against it the same
-  way every other workspace writer does.
-
-**Done when:** deleting the lock acquisition turns the `lock-busy` case red, and
-the byte-identity case fails if a non-writing branch is added to the dispatch
-without being covered.
-
 ### T5: Each blocker holds a candidate back
 
-**Depends on:** T0b, T1, T2
+**Depends on:** T0b, T0c
 
 **Tests:**
 - One fixture candidate per blocker code, enumerated from the schema enum rather
@@ -580,7 +388,7 @@ case red.
 
 ### T8: The subcommands are reachable, documented, and refuse cleanly
 
-**Depends on:** T4, T7
+**Depends on:** T3, T7
 
 **Tests:**
 - End-to-end invocation against a disposable fixture returns the documented exit
@@ -618,8 +426,9 @@ its entry, which a prune preview against that slug proves by refusing it.
   the `.apm/` edits, proving the `.claude/` and `.agents/` projections of both
   edited skills match their sources. The `--write` form is how they are brought
   into line; the `--check` form is the test.
-- Each edited skill's `evals/evals.json` gains a case covering the behaviour this
+- `workspace-status/evals/evals.json` gains a case covering the subcommand this
   delivery adds, or the plan records a deviation naming why no case changes.
+  Only this skill is edited; `author-delivery-brief` left with the brief half.
 - The topmost dated `[core]` changelog heading equals `packs/core/pack.toml`.
 - A whole-surface read of `docs/architecture/work-intake-and-artifact-routing.md`
   against shipped behaviour, recorded in the verification ledger.
@@ -641,10 +450,9 @@ ledger.
 
 ## Rollout
 
-- **Delivery:** additive for every brief map row carrying no commit pin, which
-  is every row today. The subcommands are new and the `[areas]` table is absent
-  until `areas-refresh` runs. Reversible by removing both subcommands and the
-  two new brief resolutions.
+- **Delivery:** purely additive. One new read-only subcommand and one new
+  schema; no existing file changes behaviour and nothing is written. Reversible
+  by removing the subcommand.
 - **Infrastructure:** none.
 - **External-system integration:** none. `git` is already required by the skill.
 - **Deployment sequencing:** each task's `Depends on:` is the canonical
@@ -653,9 +461,9 @@ ledger.
 
 ## Risks
 
-- **A shallow-cloned adopter cannot resolve any commit pin.** The `unverifiable`
-  resolution keeps their CI passing, but their brief-derived specs stay
-  unretirable in practice. No adopter corpus was reachable to size this.
+- **A spec held by a `Shipped` brief stays unretirable until the
+  brief-retirability follow-on ships.** This capability reports the hold and
+  names what would clear it; it cannot clear it.
 - **The reported age is not RFC-0096 §6's cooling clock, and a reader may treat
   it as one.** §6 runs from a selected delivery-completion event; this runs from
   the last recorded change, which §6 says never starts the clock. A squash or
@@ -669,10 +477,10 @@ ledger.
 - **The whole-tree walk grows with the corpus.** At roughly three times the
   measured corpus it leaves an interactive budget, and the report would then
   need incremental input.
-- **Every spec mapped by a `Shipped` brief ages past the cooling window and
-  becomes a retirement candidate.** Until T1 ships, retiring any of them fails
-  `gate-main`. Exposure grows with each brief that ships, and the currently
-  mapped set ages in within weeks of this plan.
+- **A spec mapped by a `Shipped` brief cannot be retired at all until the
+  brief-retirability follow-on ships.** This capability reports
+  `shipped-brief-member` and names the hold; it cannot clear it. Exposure grows
+  with each brief that ships.
 
 ## Changelog
 

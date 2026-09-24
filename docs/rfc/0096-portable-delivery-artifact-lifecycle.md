@@ -568,7 +568,12 @@ record. Corrections are appended here, Approver-signed.
   one back, and attribute each candidate to the area of the repository that owns
   it. Dependencies: Wave 6 for the projection surface and
   Wave 7c for the prune it feeds. Wave 7e does not depend on Wave 5: it reads no
-  lifecycle record and no cooling verdict. Behavior: reporting eligibility authorizes
+  lifecycle record and no cooling verdict.
+
+  Wave 7e ships in slices. The first is read-only and writes nothing; persisting
+  the area attribution, and making a spec named in a delivered brief retirable,
+  are separate slices behind it. The write boundary below governs the wave, not
+  the first slice, which has no writer at all. Behavior: reporting eligibility authorizes
   nothing, and every deletion still runs the unchanged Wave 7c seam under
   independent confirmation. Write boundary: every reporting surface is
   read-only, and exactly one named subcommand writes, touching only the

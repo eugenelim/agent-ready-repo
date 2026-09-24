@@ -93,7 +93,7 @@
     },
     "areaMap": {
       "type": "object",
-      "description": "The persisted area attribution this run read. Never written by this command.",
+      "description": "Area attribution computed for this run. Nothing is persisted; a persisted map is a separate delivery.",
       "additionalProperties": false,
       "required": [
         "present",
@@ -104,21 +104,8 @@
           "type": "boolean"
         },
         "freshness": {
-          "enum": [
-            "fresh",
-            "stale",
-            "absent"
-          ],
-          "description": "`stale` means the recorded fingerprint does not match the current repository shape."
-        },
-        "schema_version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 32
-        },
-        "fingerprint": {
-          "type": "string",
-          "pattern": "^sha256-bytes-v1:[0-9a-f]{64}$"
+          "const": "in-memory",
+          "description": "Attribution is derived per run."
         },
         "namespaces": {
           "type": "array",
@@ -128,36 +115,8 @@
             "minLength": 1,
             "maxLength": 255
           }
-        },
-        "refresh_command": {
-          "type": "string",
-          "description": "Present when freshness is `stale` or `absent`: the explicit invocation that rewrites the map.",
-          "minLength": 1,
-          "maxLength": 512
         }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "freshness": {
-                "enum": [
-                  "stale",
-                  "absent"
-                ]
-              }
-            },
-            "required": [
-              "freshness"
-            ]
-          },
-          "then": {
-            "required": [
-              "refresh_command"
-            ]
-          }
-        }
-      ]
+      }
     },
     "candidate": {
       "type": "object",
@@ -456,10 +415,8 @@
             "needs-shape-unrecognised",
             "collection-unrecognised",
             "path-escapes-root",
-            "area-value-unrepresentable",
             "input-too-large",
             "subprocess-timeout",
-            "lock-busy",
             "evidence-ungathered"
           ]
         },
@@ -483,16 +440,6 @@
         }
       },
       "description": "An input this run would have had to guess about, or a path it refused to read. Every refusal names the input; none is defaulted, because a silent default reports a shorter candidate list with no sign anything was dropped."
-    },
-    "pinVerdict": {
-      "enum": [
-        "retired",
-        "unverifiable",
-        "pin-malformed",
-        "pin-refuted",
-        "missing"
-      ],
-      "description": "How an absent mapped child resolved. Only `unverifiable` and `retired` are non-failing."
     }
   }
 }
