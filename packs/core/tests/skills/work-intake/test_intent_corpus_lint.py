@@ -255,14 +255,19 @@ def test_ac0017_the_partition_reads_only_the_preamble(tmp_path: Path) -> None:
     assert result.violations == []
 
 
-# ── AC-0021 at corpus scope ───────────────────────────────────────────────────
+# ── AC-0005 at corpus scope ───────────────────────────────────────────────────
 
 
-def test_ac0021_refuses_a_supersession_naming_no_live_slug(tmp_path: Path) -> None:
+def _superseded(slug: str, *, by: str) -> str:
+    """A live intent superseded by ``by``, in the split two-field form."""
+    return _broken(slug, status="Superseded", extra=f"- **Superseded by:** {by}")
+
+
+def test_ac0005_refuses_a_supersession_naming_no_live_slug(tmp_path: Path) -> None:
     result = _run(
         tmp_path,
         {
-            "FEAT-0001-a.md": _broken("a", status="Superseded by a-ghost"),
+            "FEAT-0001-a.md": _superseded("a", by="a-ghost"),
             "FEAT-0002-b.md": _live("b"),
         },
     )
@@ -270,32 +275,117 @@ def test_ac0021_refuses_a_supersession_naming_no_live_slug(tmp_path: Path) -> No
     assert any("a-ghost" in v.reason for v in result.violations)
 
 
-def test_ac0021_accepts_a_supersession_naming_a_live_slug(tmp_path: Path) -> None:
+def test_ac0005_names_the_intent_and_the_pointer_field(tmp_path: Path) -> None:
+    """The lint supplies the intent; the reason supplies the slug; the field
+    names the line an author edits to fix it."""
     result = _run(
         tmp_path,
         {
-            "FEAT-0001-a.md": _broken("a", status="Superseded by b"),
+            "FEAT-0001-a.md": _superseded("a", by="a-ghost"),
+            "FEAT-0002-b.md": _live("b"),
+        },
+    )
+    (violation,) = [v for v in result.violations if "a-ghost" in v.reason]
+    assert violation.path == "FEAT-0001-a.md"
+    assert violation.field == "Superseded by"
+
+
+def test_ac0005_accepts_a_supersession_naming_a_live_slug(tmp_path: Path) -> None:
+    result = _run(
+        tmp_path,
+        {
+            "FEAT-0001-a.md": _superseded("a", by="b"),
             "FEAT-0002-b.md": _live("b"),
         },
     )
     assert result.violations == [], result.violations
 
 
-def test_ac0021_a_tombstone_slug_does_not_satisfy_a_supersession(
+def test_ac0005_a_tombstone_slug_does_not_satisfy_a_supersession(
     tmp_path: Path,
 ) -> None:
-    """`Superseded by` resolves against a *live* intent's slug, so a retired
+    """`Superseded by:` resolves against a *live* intent's slug, so a retired
     artifact carrying the same slug does not answer it."""
     result = _run(
         tmp_path,
         {
-            "FEAT-0001-a.md": _broken("a", status="Superseded by gone"),
+            "FEAT-0001-a.md": _superseded("a", by="gone"),
             "FEAT-0002-gone.md": TOMBSTONE.format(
                 slug="gone", edge="Retired", target="a value"
             ),
         },
     )
     assert result.exit_code != 0
+
+
+def test_ac0002_refuses_superseded_with_no_pointer_at_corpus_scope(
+    tmp_path: Path,
+) -> None:
+    """The pairing rule is corpus-lint-only, so this is its end-to-end control
+    rather than a second copy of a unit case."""
+    result = _run(
+        tmp_path,
+        {"FEAT-0001-a.md": _broken("a", status="Superseded"), "FEAT-0002-b.md": _live("b")},
+    )
+    assert result.exit_code != 0
+    assert any(v.field == "Superseded by" for v in result.violations)
+
+
+def test_ac0003_refuses_a_stranded_pointer_at_corpus_scope(tmp_path: Path) -> None:
+    result = _run(
+        tmp_path,
+        {
+            "FEAT-0001-a.md": _broken(
+                "a", extra="- **Superseded by:** b"
+            ),
+            "FEAT-0002-b.md": _live("b"),
+        },
+    )
+    assert result.exit_code != 0
+    assert any(v.field == "Superseded by" for v in result.violations)
+
+
+def test_ac0005_refuses_a_chain_through_a_superseded_intent(tmp_path: Path) -> None:
+    """One hop, asserted where the partition is actually decided.
+
+    `a` points at `b`, which is itself `Superseded`. The unit suite cannot
+    settle this: it would have to hand `validate_supersession` a slug set built
+    by the test, which asserts what the test believes the lint passes. Only the
+    lint knows, so the control lives here.
+    """
+    result = _run(
+        tmp_path,
+        {
+            "FEAT-0001-a.md": _superseded("a", by="b"),
+            "FEAT-0002-b.md": _superseded("b", by="c"),
+            "FEAT-0003-c.md": _live("c"),
+        },
+    )
+    assert result.exit_code != 0
+    assert any(
+        v.path == "FEAT-0001-a.md" and "'b'" in v.reason for v in result.violations
+    ), result.violations
+
+
+def test_ac0005_a_two_intent_supersession_still_resolves(tmp_path: Path) -> None:
+    """The accept case the chain rule must not swallow: `b` is live, so `a`
+    resolves. Without this, refusing every pointer passes the case above."""
+    result = _run(
+        tmp_path,
+        {"FEAT-0001-a.md": _superseded("a", by="b"), "FEAT-0002-b.md": _live("b")},
+    )
+    assert result.violations == [], result.violations
+
+
+def test_ac0004_refuses_a_dated_record_without_evidence_at_corpus_scope(
+    tmp_path: Path,
+) -> None:
+    result = _run(
+        tmp_path,
+        {"FEAT-0001-a.md": _broken("a", extra="- **Accepted:** 2026-09-20")},
+    )
+    assert result.exit_code != 0
+    assert any(v.field == "Accepted" for v in result.violations)
 
 
 # ── AC-0023: the progress report ──────────────────────────────────────────────

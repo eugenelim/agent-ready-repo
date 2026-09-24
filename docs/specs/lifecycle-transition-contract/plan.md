@@ -44,7 +44,7 @@ The migration's oracle is the real-tree run, not a fixture: `--dir docs/product/
 
 ### Data & schema
 
-Two preamble records, each an ISO 8601 calendar date `YYYY-MM-DD` optionally followed by free text carrying the decider and the evidence. The bare literal `no` is refused: unlike the progress fields, these record a fact rather than offer an opt-out.
+Two preamble records, whose value shape `intent-preamble-lifecycle-records` fixed and this spec consumes: an ISO 8601 calendar date `YYYY-MM-DD`, a space, then non-empty text carrying the decider and the evidence. The text is **required**, not optional — a bare date is refused, because the record exists to carry the evidence. The bare literal `no` is refused too: unlike the progress fields, these record a fact rather than offer an opt-out.
 
 ### Behavior & rules
 
@@ -57,7 +57,7 @@ The spec's criteria own the rule set. This table is the implementation's dispatc
 | `Fulfilled` | required | required |
 | `Cancelled` | required | refused if present |
 | `Withdrawn` | not required | refused if present |
-| `Superseded by <slug>` | not decided here — see the spec's not-changed paragraph | not decided here |
+| `Superseded` | not decided here — see the spec's not-changed paragraph | not decided here |
 
 ### Failure, edge cases & resilience
 
@@ -132,3 +132,4 @@ The spec's criteria own the rule set. This table is the implementation's dispatc
 
 - 2026-09-23 — drafted from `brief:intent-lifecycle-and-closure` slice 1, cut confirmed at three slices.
 - 2026-09-23 — approved by eugenelim alongside the spec, on the basis its `Approved:` line records.
+- 2026-09-24 — **amended by eugenelim, on explicit instruction, while `Approved`.** Two lines in `## Design (LLD)` were stale against the value shape this plan defers to `intent-preamble-lifecycle-records`, which shipped that shape on 2026-09-23. `## Data & schema` called the evidence text optional when it is required and a bare date is refused; the behaviour table's last row named the retired `Superseded by <slug>` status form, which no longer exists — the status is the bare token `Superseded` beside a separate `Superseded by:` field. Wording only: no criterion, task, scope or verification changes, and `Status` stays `Approved`. **`spec.md` § What Changes was amended the same way and on the same instruction**, for the same reason: its *Not changed here* paragraph named the retired `Superseded by <slug>` form and described both handed-off shapes as still pending, when both had landed. Its deferral was always correct — only the description of what it defers to was stale. No criterion changed there either, and that spec's `Status` stays `Approved`.

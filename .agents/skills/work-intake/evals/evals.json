@@ -349,6 +349,39 @@
         "Registers the intent as usual",
         "Reports no failure, because the intent was admitted"
       ]
+    },
+    {
+      "id": "superseded-status-carries-its-pointer-in-a-field",
+      "prompt": "This intent was replaced by another bet. Record that on it: Status Superseded, the replacement's slug is a-successor.",
+      "expected_output": "The preamble carries `- **Status:** Superseded` as a bare token and `- **Superseded by:** a-successor` as a field of its own. No pointer is written inside the Status value.",
+      "assertions": [
+        "Writes Superseded as a bare Status token, never `Superseded by <slug>`",
+        "Writes the replacement's slug in a separate `Superseded by:` preamble field",
+        "Writes both fields together, because either alone is refused",
+        "Uses the slug rather than a filename or an ordinal alias"
+      ]
+    },
+    {
+      "id": "a-stranded-supersession-pointer-is-a-corpus-refusal",
+      "prompt": "The corpus check refuses an intent for `Superseded by:` even though its Status is Draft. Explain what to fix.",
+      "expected_output": "The pointer and `Status: Superseded` are required together and refused apart. Either the bet was replaced, and Status becomes Superseded, or it was not, and the pointer is deleted. The check that reports this walks the whole directory; a cold shaping review does not decide it.",
+      "assertions": [
+        "Names both halves and offers the two repairs rather than one",
+        "Attributes the refusal to the corpus check rather than to a shaping review",
+        "Does not claim a `MALFORMED(shape)` token stands for this refusal",
+        "Leaves the artifact unchanged until the author chooses which half was wrong"
+      ]
+    },
+    {
+      "id": "a-ratification-record-carries-its-evidence",
+      "prompt": "Mark this intent Accepted as of 2026-09-20.",
+      "expected_output": "`- **Accepted:** 2026-09-20` followed by a space and text saying who decided and on what evidence. A bare date is refused, and so is the literal `no`.",
+      "assertions": [
+        "Writes the calendar date as YYYY-MM-DD, never the basic form",
+        "Writes no punctuation immediately after the date, which would land inside the date token",
+        "Follows the date with non-empty text rather than leaving the date alone",
+        "Does not offer `no` as an available value for this field"
+      ]
     }
   ]
 }

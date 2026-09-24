@@ -175,6 +175,31 @@ def test_adr0121_admit_repository_intent_renders_a_conforming_intent() -> None:
     assert shape.validate_live_intent(admission.content) == []
 
 
+def test_the_rendered_intent_also_satisfies_the_corpus_scoped_rules() -> None:
+    """Both surfaces, because passing one is not passing the contract.
+
+    `validate_live_intent` accepts a stranded `Superseded by:` by design — that
+    pairing rule is corpus-scoped — so a renderer seeding one would pass every
+    check above and still emit an intent the corpus lint refuses.
+    """
+    rendered = _render()
+    slugs = shape.resolvable_slugs([rendered])
+    assert shape.validate_supersession(rendered, slugs) == []
+
+
+def test_a_rendered_intent_seeding_a_stranded_pointer_would_be_caught() -> None:
+    """The mutation that makes the control above able to fail.
+
+    Calling an always-clean surface on a conforming render proves nothing: it
+    passes just as well with the rule deleted. This feeds the same surface the
+    output it is meant to reject.
+    """
+    seeded = _render().replace(
+        "- **Status:**", "- **Superseded by:** a-successor\n- **Status:**", 1
+    )
+    assert shape.validate_supersession(seeded, {"a-successor"}) != []
+
+
 def test_the_slug_reaches_the_rendered_preamble_and_the_target() -> None:
     """One slug decides both, so a divergence between them cannot hide."""
     admission = renderer.admit_repository_intent(

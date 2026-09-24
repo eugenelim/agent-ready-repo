@@ -61,6 +61,17 @@
         "Seeds the assumptions that must be true for the bet to pay off",
         "Resolves and surfaces the output path before writing"
       ]
+    },
+    {
+      "id": "status-is-one-bare-token-and-supersession-is-a-field",
+      "prompt": "An earlier bet has been replaced by the one just framed. Record that on the earlier intent's preamble, using the template's lifecycle fields.",
+      "expected_output": "On the **replaced** intent: `Status: Superseded` as a bare token, and a separate `Superseded by:` field naming the slug of the live intent that replaced it. The pointer goes on the bet that was retired and names its successor, never the other way round, and the two fields are written together or not at all.",
+      "assertions": [
+        "Writes the pointer on the retired intent, not on the one that replaced it",
+        "Names the successor's slug, not the retired bet's own",
+        "Offers Superseded as a bare Status token, not `Superseded by <slug>`",
+        "Writes `Superseded by:` only alongside `Status: Superseded`, since either alone is refused"
+      ]
     }
   ]
 }

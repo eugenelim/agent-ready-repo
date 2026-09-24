@@ -50,13 +50,15 @@ ordinal out of circulation for as long as its tombstone stands.
 - An operator how-to — `guides/product-engineering/how-to/`
 - Where it ships — inside `packs/core`, so an adopter installing core has it,
   beside the allocator it depends on
-- A tombstone retires a *filename*; `Status: Superseded by <slug>` retires a
-  *bet*. They cannot substitute for each other: a renumber preserves `Slug:`
-  by AC-0002, and `Superseded by` takes a slug that
-  `intent-metadata-shape-contract` resolves against a live intent's
-  `Slug:`, so expressing a renumber that way would point an artifact at itself.
-  Whether `Superseded by` stays on `Status:` is that spec's open question and
-  `FEAT-0005-lifecycle-and-closure`'s to settle
+- A tombstone retires a *filename*; `Status: Superseded` and its `Superseded by:`
+  field retire a *bet*. They cannot substitute for each other: a renumber
+  preserves `Slug:` by AC-0002, and `Superseded by:` takes a slug resolved
+  against a live intent's `Slug:`, so expressing a renumber that way would point
+  an artifact at itself. The open question of whether that pointer lives on
+  `Status:` is **settled**: `intent-preamble-lifecycle-records` split it into a
+  bare `Status: Superseded` token and a separate `Superseded by:` field, and
+  `docs/product/briefs/intent-identity-and-registration.md` § Post-Ready
+  decisions records why
 
 ## Durable Outputs
 
