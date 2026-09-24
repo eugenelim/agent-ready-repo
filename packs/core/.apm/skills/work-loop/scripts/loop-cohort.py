@@ -1942,7 +1942,6 @@ def cmd_dispatch_receipt(args: argparse.Namespace) -> int:
 
 # ── wave reopen ───────────────────────────────────────────────────────────
 #
-# Spec: docs/specs/repair-round-dispatch-assertion/spec.md, § The reopen verb.
 # The repair-round mutation: supersedes every record held under the LIVE
 # partition digest at `current_wave_index`, and removes none.
 # `wave-complete-dispatch-receipts` § Never do names the only three paths that

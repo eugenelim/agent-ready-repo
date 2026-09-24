@@ -1093,11 +1093,10 @@ def _guard_check_phase_gates_failed(spec_dir: Path, engine_state: dict, _) -> st
 def _guard_repair_round(spec_dir: Path, engine_state: dict, _) -> str | None:
     """The repair-round check: refuse while a live record remains for this wave.
 
-    Callers compose this AFTER their own existing guard, per
-    docs/specs/repair-round-dispatch-assertion/spec.md § The three edges: a
-    state failing both is refused with the existing guard's reason, never this
-    one's, and no caller-visible message changes for a state this check would
-    have passed anyway.
+    Callers compose this AFTER their own existing guard. A state failing both is
+    refused with the existing guard's reason, never this one's, so no
+    caller-visible message changes for a state this check would have passed
+    anyway.
     """
     return _guard_reason(
         "check --phase wave-reopen failed",
@@ -1236,9 +1235,10 @@ def _guard_gates_failed_repair_round(
     `gates-failed` fires only from `CODE-VERIFICATION` in `_CODE_TRANSITIONS`,
     unlike the twin-sourced `findings-remain` and `reviewers-clean`. The source-
     state read below is not load-bearing today for that reason, but it keeps
-    this guard's shape identical to the other two composed guards and to
-    docs/specs/repair-round-dispatch-assertion/spec.md's Agent Rules, which
-    require the source state — never the run mode — to decide the check.
+    this guard's shape identical to the other two composed guards, and it holds
+    the rule they all follow: the source state decides whether the repair-round
+    check applies, never the run mode. `_GUARDS` is keyed by mode, so mode alone
+    cannot tell these edges apart.
     """
     err = _guard_check_phase_gates_failed(spec_dir, engine_state, event_args)
     if err:
