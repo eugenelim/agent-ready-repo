@@ -1,12 +1,14 @@
 # Catalogue trust and adoption
 
 - **Slug:** `catalogue-trust-and-adoption` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:trustworthy-org-owned-catalogues
+- **Accepted:** 2026-09-24 three independent intent-mode shaping reviews of this revision; two returned zero MALFORMED tokens and one returned MALFORMED(owner) against an Owner field byte-identical to the revision that passed that condition earlier the same day, with CAP-0007 passing it on an identical field in the same minutes; eugenelim confirmed
+- **Shaping-reviewed:** 2026-09-24
 
 ## Outcome
 

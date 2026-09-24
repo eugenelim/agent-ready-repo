@@ -1,12 +1,14 @@
 # Catalogue publication
 
 - **Slug:** `catalogue-publication` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:trustworthy-org-owned-catalogues
+- **Accepted:** 2026-09-24 independent intent-mode shaping review returned zero MALFORMED tokens on first review; eugenelim confirmed
+- **Shaping-reviewed:** 2026-09-24
 
 ## Outcome
 
