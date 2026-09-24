@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** feature
 - **Owner:** eugenelim
+- **Parent intent:** capability:catalogue-contracts-composition-and-discovery
 - **Governed by:** [RFC-0076 D9](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 
 ## Outcome

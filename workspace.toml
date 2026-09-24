@@ -2118,7 +2118,7 @@ open = [
 # a deterministic neutral catalogue index, and audience-specific information
 # architecture across the docs site, marketing site, and repository README.
 #
-# Governing RFC: RFC-0076 (to be authored and accepted before schema changes).
+# Governing RFC: RFC-0076, accepted 2026-07-29 (docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md).
 # Source brief: .context/attachments/HZQyuH/pasted_text_2026-07-29_13-27-49.txt
 #
 # Non-goals: hosted registry, publisher namespaces, exact version selectors,
@@ -2156,17 +2156,17 @@ shipped = [
   {path = "docs/specs/catalogue-sync-apply/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "8cf5b8b3561c6790b259cd8eee7a5430ffe7c3e5"}, summary = "agentbundle catalogue sync apply path plus the four scoping flags: consent, jailed writes, guarded stale removal, and a pinned state write", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-sync-dry-run/spec.md"}]},
 ]
 queue   = [
-  # Empty. Phase 3 shipped; phase 4 (package sync for both `--package`
-  # subtrees) is not yet specified, so nothing queues here until it is. The
-  # phase order lives in docs/architecture/catalogue/upstream-sync.md
-  # § Rollout, which is the design of record.
+  {path = "docs/specs/catalogue-package-sync/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "52cb5911c5f90cadec3ee161cfbb9eab65663203"}, summary = "agentbundle catalogue sync package sync for both --package destinations: the vendored tooling root and packages/credbroker/, applied last, with a two-input self-replacement refusal", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-sync-apply/spec.md"}]},
 ]
 
 ["ini-007".brief_queue]
 executing = []
 ready     = []
 draft     = [
-  {path = "docs/product/briefs/catalogue-discovery-and-release-integrity.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Frame the remaining catalogue discovery and release-integrity outcomes as one Draft delivery brief", needs = []},
+  # Empty. The Draft brief that sat here was removed on 2026-09-24 and replaced
+  # by docs/product/intents/CAP-0006-catalogue-contracts-composition-and-discovery.md,
+  # which carries the same tranche as a capability intent rather than a brief
+  # with no proposed slices. See STRAT-0004 § Decomposition decisions.
 ]
 
 ["ini-007".shaping_queue]

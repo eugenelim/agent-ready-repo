@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** feature
 - **Owner:** eugenelim
+- **Parent intent:** capability:catalogue-contracts-composition-and-discovery
 
 ## Outcome
 
