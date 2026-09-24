@@ -1711,6 +1711,15 @@ statement about the filter.
 
 ### 13.5 The wave-exit verdict table, row by row
 
+> **Note (2026-09-24):** The wave-exit refusal text for the R8-unaccounted row
+> was reworded by the `repair-round-dispatch-assertion` delivery on 2026-09-24.
+> The old text (`"wave exit: wave N has tasks with no dispatch receipt: …"`) no
+> longer reproduces; the shipped code now emits
+> `"wave exit: wave N has tasks with no live record — …"` with a breakdown into
+> superseded and absent sub-lists. Observed-failure quotes below that use the
+> old text are frozen observations of the code as it stood during that delivery,
+> not the current emitter.
+
 `notes/walk_verdict_partition.py` names eight rows. `R1-read-refuses` is decided
 upstream in `_state_or_reason` and is pre-existing T1a code, not a clause T2 or
 T3 added; the other seven are the table's own branches, and each was mutated

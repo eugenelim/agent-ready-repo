@@ -5300,3 +5300,26 @@ def test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong
         "If this fails after removing the `engine_state[\"state\"] != "
         "\"CODE-HUMAN-GATE\"` guard, the mutation is confirmed."
     )
+
+    # Positive control: with the CORRECT source state and a live record present,
+    # both guards must REFUSE (not return None). Without this, fixture drift —
+    # a digest change, a schema bump, a retry-count default — would make both
+    # None-assertions pass vacuously while the guards stopped working.
+    result_gf_correct = _engine._guard_gates_failed_repair_round(
+        spec_dir, {"state": "CODE-VERIFICATION"}, {}
+    )
+    assert result_gf_correct is not None, (
+        "_guard_gates_failed_repair_round must refuse (not None) for CODE-VERIFICATION "
+        "with a live dispatch record in the fixture; fixture has implementation_retry_count=0 "
+        "< max_implementation_retries=5, so the retry-cap guard passes and the repair-round "
+        "check is the decision. If this assertion fails the fixture needs a live record."
+    )
+
+    result_ba_correct = _engine._guard_blocker_applied(
+        spec_dir, {"state": "CODE-HUMAN-GATE"}, {}
+    )
+    assert result_ba_correct is not None, (
+        "_guard_blocker_applied must refuse (not None) for CODE-HUMAN-GATE "
+        "with a live dispatch record in the fixture. If this assertion fails "
+        "the fixture needs a live record."
+    )

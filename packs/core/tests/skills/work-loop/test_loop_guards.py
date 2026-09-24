@@ -3163,3 +3163,101 @@ def test_the_repair_round_verdict_fails_open_on_every_falsified_conjunct(
     mutate(state, g)
     result = g._repair_round_verdict(state)
     assert result.ok is True, f"{label} must pass, got: {result.reason}"
+
+
+def test_superseded_wave_tasks_derives_from_unaccounted(g) -> None:
+    """superseded_wave_tasks is a subset of unaccounted_wave_tasks and excludes absent tasks.
+
+    Three properties per spec:
+    - Returns a subset of unaccounted_wave_tasks for any state.
+    - Excludes tasks with no record at all (absent ≠ superseded).
+    - Returns [] for any state where unaccounted_wave_tasks returns [] (all precondition
+      checks are inherited, so callers need not repeat them).
+    """
+    waves = [["T1", "T2", "T3"]]
+    digest = g.partition_digest(waves)
+    # T1 superseded, T2 live (accounted), T3 absent (no record).
+    state_mixed = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {digest: {"0": {
+            "T1": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+            "T2": {"kind": "receipt"},
+        }}},
+    }
+    unaccounted = g.unaccounted_wave_tasks(state_mixed, 0)
+    superseded = g.superseded_wave_tasks(state_mixed, 0)
+    # Subset: every superseded task is also unaccounted.
+    assert set(superseded) <= set(unaccounted), (
+        f"superseded_wave_tasks must be a subset of unaccounted_wave_tasks; "
+        f"superseded={superseded!r}, unaccounted={unaccounted!r}"
+    )
+    # T1 has a superseded record and must appear.
+    assert "T1" in superseded, "T1 carries a superseded record and must appear"
+    # T3 has no record at all and must not appear.
+    assert "T3" not in superseded, "T3 has no record and must not appear in superseded"
+    # T2 is accounted and must appear in neither.
+    assert "T2" not in superseded and "T2" not in unaccounted, (
+        "T2 is live-accounted and must appear in neither list"
+    )
+
+    # Returns [] when unaccounted_wave_tasks returns [] (all tasks accounted).
+    all_accounted = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {digest: {"0": {
+            "T1": {"kind": "receipt"},
+            "T2": {"kind": "receipt"},
+            "T3": {"kind": "receipt"},
+        }}},
+    }
+    assert g.unaccounted_wave_tasks(all_accounted, 0) == [], "fixture must have no unaccounted"
+    assert g.superseded_wave_tasks(all_accounted, 0) == [], (
+        "returns [] when unaccounted_wave_tasks returns [] (all accounted)"
+    )
+
+    # Returns [] for precondition-violating states (no container, bad waves, etc.).
+    assert g.superseded_wave_tasks({}, 0) == [], "returns [] for empty state"
+    assert g.superseded_wave_tasks({"schedule_waves": []}, 0) == [], (
+        "returns [] for empty schedule_waves"
+    )
+
+
+def test_the_malformed_container_pass_clause_is_reachable_and_killable(g) -> None:
+    """The fail-open malformed-container clause, with a fixture that can kill it.
+
+    The parametrised fail-open case above uses a container holding no live
+    digest, so removing this clause changes nothing: the accounting walk finds no
+    record either way and the verdict passes regardless. That made the clause
+    unfalsifiable — a mutation of it left the suite green.
+
+    This fixture keeps the LIVE digest populated with one accounted task while a
+    sibling digest carries a non-record leaf. The container is malformed, so the
+    clause fires and the verdict passes; delete the clause and the accounting
+    walk finds `T1` still live and refuses. That difference is what makes the
+    clause's removal observable.
+    """
+    waves = [["T1", "T2"]]
+    live = g.partition_digest(waves)
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {
+            live: {"0": {"T1": {"kind": "receipt"}}},
+            "0" * 64: {"0": {"T2": 42}},
+        },
+    }
+    assert g.malformed_receipts_position(state[g.RECEIPTS_KEY]) is not None, (
+        "the fixture must present a malformed container, or the clause never fires"
+    )
+    assert g._repair_round_verdict(state).ok is True, (
+        "a malformed container must pass the repair-round verdict: it fails open"
+    )
+    # The positive control that makes the assertion above mean something: without
+    # the clause, the accounting walk has a live task to refuse on.
+    assert [t for t in waves[0] if t not in set(g.unaccounted_wave_tasks(state, 0))], (
+        "the fixture must leave a live task, or removing the clause changes nothing"
+    )

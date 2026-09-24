@@ -38,7 +38,7 @@ still lack one.
 - Guard entries on the three named edges, discriminated by source state, including the first guard `blocker-applied` has ever carried — `loop-engine.py`'s `_GUARDS`
 - The controller's repair-round protocol, which now runs the reopen before firing the edge — three fenced blocks in `references/full-mode-engine.md`, two in `references/finding-adjudication.md`, `SKILL.md`'s repair-round paragraphs, and two rows of `references/session-resumption.md`: `wave-complete`, which fires `gates-failed`, and `reviewers-clean`, which fires `blocker-applied`
 - A `superseded` member on a dispatch record, whose absence means live — `references/state-schema.md`'s `dispatch_receipts` row, which today tells adopters that a receipt and a decline "both count as accounted for"
-- A committed oracle that walks the repair-round verdict over the frozen spec's declared field axes — this spec's `notes/`
+- The `tests/roster/test_repair_round_predicate_parity.py` parity check that walks the repair-round verdict over the frozen spec's declared field axes — the oracle artifact originally noted here was deleted in T6 and its properties are now asserted against the shipped code
 - A mutation record for every new guard clause, verb clause, and the accounting predicate's superseded clause — this spec's `notes/verification-ledger.md`
 
 ## Durable Outputs

@@ -1284,24 +1284,26 @@ def superseded_wave_tasks(state: dict, wave_index: int) -> list[str]:
     Returns only tasks from `unaccounted_wave_tasks`'s result that carry such a
     record; tasks with no record at all are not returned. Used to categorise the
     unaccounted list into two groups so a refusal can distinguish the two cases.
+
+    Derived from `unaccounted_wave_tasks`: all precondition checks (container
+    presence, schedule_waves validity, pointer range, wave shape) are inherited
+    from that call, so the two cannot drift into disagreeing about which tasks
+    need accounting. One container traversal then partitions the result by
+    whether the stored record is a superseded record.
     """
-    if RECEIPTS_KEY not in state:
+    unaccounted = unaccounted_wave_tasks(state, wave_index)
+    if not unaccounted:
         return []
+    # Unaccounted is non-empty → RECEIPTS_KEY is in state and waves/wave are valid.
+    # One traversal to distinguish tasks with a superseded record from absent ones.
     waves = state.get("schedule_waves", [])
-    if not isinstance(waves, list) or not 0 <= wave_index < len(waves):
-        return []
-    wave = waves[wave_index]
-    if not wave_is_well_formed(wave):
-        return []
     held = state.get(RECEIPTS_KEY)
     for key in (partition_digest(waves), str(wave_index)):
         held = held.get(key) if isinstance(held, dict) else None
     if not isinstance(held, dict):
+        # Subtree absent: all unaccounted tasks lack a record entirely.
         return []
-    return [
-        task for task in wave
-        if is_dispatch_record(held.get(task)) and not accounts_for_task(held.get(task))
-    ]
+    return [task for task in unaccounted if is_dispatch_record(held.get(task))]
 
 
 def malformed_receipts_position(container: object, depth: int | None = None) -> str | None:

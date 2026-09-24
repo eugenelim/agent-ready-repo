@@ -198,35 +198,6 @@ def _repair_round_refuses(state) -> bool:
     return any(_accounts(held.get(t)) for t in wave)
 
 
-def _wave_exit_row(state) -> str:
-    """Transcribed from the frozen spec's eight-row table (wave-complete-dispatch-receipts)."""
-    if not state["read"]:
-        return "R1-read-refuses"
-    doc = materialise(state)
-    if doc.get("schema_version") != SUPPORTED_SCHEMA:
-        return "R2-schema-unsupported"
-    waves = doc.get("schedule_waves", [])
-    if not isinstance(waves, list) or not waves:
-        return "R3-malformed"
-    if _RECEIPTS_KEY in doc and not _container_well_formed(doc[_RECEIPTS_KEY]):
-        return "R3-malformed"
-    if _RECEIPTS_KEY not in doc:
-        return "R4-container-absent"
-    idx = _pointer_ok(state, waves)
-    if idx is None:
-        return "R5-pointer-invalid"
-    if not _wave_well_formed(waves[idx]):
-        return "R6-wave-malformed"
-    # live_tasks computed the same way as in _repair_round_refuses
-    held = doc.get(_RECEIPTS_KEY)
-    for key in (_digest_of(waves), str(idx)):
-        held = held.get(key) if isinstance(held, dict) else None
-    if not isinstance(held, dict):
-        return "R8-unaccounted"
-    live = [t for t in waves[idx] if _accounts(held.get(t))]
-    return "R7-accounted" if len(live) == len(waves[idx]) else "R8-unaccounted"
-
-
 def _supersede_everything(state):
     """Return the same state with every record in the container superseded."""
     def walk(node, depth):
@@ -373,6 +344,11 @@ def test_the_accounting_predicate_agrees_over_the_whole_domain(guards) -> None:
     only reads whether the live set is empty, so a wrong task identifier in the
     returned list is invisible to it and visible in `wave advance`'s refusal text.
 
+    Compares over every readable state — both `_unaccounted` and the shipped
+    `unaccounted_wave_tasks` are total and need no pre-filter. Earlier versions
+    filtered on `_pointer_ok` and `_wave_well_formed`, skipping ~90 % of
+    readable states and hiding any shipped divergence in exactly those guards.
+
     Non-degeneracy: the domain must return a non-empty unaccounted list for at
     least one state, AND return an empty list for at least one.
     """
@@ -382,12 +358,13 @@ def test_the_accounting_predicate_agrees_over_the_whole_domain(guards) -> None:
         if not state["read"]:
             continue
         doc = materialise(state)
-        waves = doc.get("schedule_waves", [])
-        if not isinstance(waves, list) or not waves:
-            continue
-        idx = _pointer_ok(state, waves)
-        if idx is None or not _wave_well_formed(waves[idx]):
-            continue
+        # Derive the index without pre-filtering: both functions handle any
+        # value (returning [] for invalid inputs), so no states are skipped.
+        raw_idx = state["idx"]
+        if raw_idx is ABSENT or isinstance(raw_idx, bool) or not isinstance(raw_idx, int):
+            idx = 0
+        else:
+            idx = raw_idx
         transcribed = _unaccounted(state, idx)
         shipped = guards.unaccounted_wave_tasks(doc, idx)
         if transcribed != shipped:
@@ -404,128 +381,125 @@ def test_the_accounting_predicate_agrees_over_the_whole_domain(guards) -> None:
     assert found_empty, "unaccounted_wave_tasks never returns empty in domain"
 
 
-def test_wave_exit_row_movement_from_superseding(guards) -> None:
-    """Superseding every record in a state moves it from R7 to R8 and nothing else.
+def _is_accounted(guards, doc: dict) -> bool:
+    """True when the shipped code treats the state as R7-accounted.
 
-    This is the row movement the superseded clause causes at the wave exit,
-    measured against the shipped ``_wave_exit_verdict`` rather than against a
-    second transcription of it.
+    A state is accounted when the shipped ``_wave_exit_verdict`` returns ok AND
+    ``schema_version`` is the supported value AND the container is present AND
+    the shipped ``unaccounted_wave_tasks`` returns [] for the current pointer.
+    This is expressed in terms of shipped return values, not refusal strings.
 
-    Non-degeneracy: at least one R7→R8 move must be observed in the domain.
+    The absent-pointer case defaults to 0, matching ``non_negative_int``'s
+    behaviour in ``_wave_exit_verdict``.
     """
-    moved = stayed = 0
+    if not guards._wave_exit_verdict(doc).ok:
+        return False
+    if doc.get("schema_version") != SUPPORTED_SCHEMA:
+        return False
+    if _RECEIPTS_KEY not in doc:
+        return False
+    waves = doc.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return False
+    # Replicate non_negative_int's absent-key default of 0.
+    raw_idx = doc.get("current_wave_index")
+    if raw_idx is None:
+        idx = 0
+    elif isinstance(raw_idx, bool) or not isinstance(raw_idx, int) or raw_idx < 0:
+        return False
+    else:
+        idx = raw_idx
+    if idx >= len(waves):
+        return False
+    return guards.unaccounted_wave_tasks(doc, idx) == []
+
+
+def test_wave_exit_row_movement_from_superseding(guards) -> None:
+    """Superseding every record in an accounted state moves it to unaccounted.
+
+    For every non-accounted state, superseding must leave the shipped verdict's
+    ok flag unchanged. This measures the row movement the superseded clause
+    causes, expressed in terms of what the shipped functions return rather than
+    by matching substrings in refusal strings.
+
+    Non-degeneracy: at least one accounted state must exist in the domain.
+    """
+    moved = 0
     violations = []
     for state in build_domain():
-        after_state = _supersede_everything(state)
-
         if not state["read"]:
             continue
 
-        # Measure against the SHIPPED verdict, not the transcription.
-        before_doc = materialise(state)
+        doc = materialise(state)
+        after_state = _supersede_everything(state)
         after_doc = materialise(after_state)
-        before_shipped = _shipped_row(guards, state, before_doc)
-        after_shipped = _shipped_row(guards, after_state, after_doc)
 
-        if before_shipped == "R7-accounted":
-            if after_shipped != "R8-unaccounted":
-                violations.append(
-                    f"superseding R7 must yield R8 but got {after_shipped}: "
-                    f"state={before_doc!r}"
-                )
+        acc = _is_accounted(guards, doc)
+        if acc:
             moved += 1
-        else:
-            if after_shipped != before_shipped:
+            # Superseding an accounted state must make the verdict refuse.
+            if guards._wave_exit_verdict(after_doc).ok:
                 violations.append(
-                    f"superseding {before_shipped} must leave the row unchanged "
-                    f"but got {after_shipped}: state={before_doc!r}"
+                    f"superseding an accounted state must refuse (ok=False) but "
+                    f"got ok=True: {doc!r}"
                 )
-            stayed += 1
+            # And unaccounted_wave_tasks must return the whole wave.
+            waves = doc.get("schedule_waves", [])
+            idx = doc.get("current_wave_index", 0)
+            wave = waves[idx] if (isinstance(idx, int) and 0 <= idx < len(waves)) else []
+            after_unaccounted = guards.unaccounted_wave_tasks(after_doc, idx)
+            if sorted(after_unaccounted) != sorted(wave):
+                violations.append(
+                    f"superseding an accounted state must make unaccounted = whole wave "
+                    f"{sorted(wave)!r}, got {sorted(after_unaccounted)!r}: {doc!r}"
+                )
+        else:
+            # Not accounted: ok flag must be unchanged after superseding.
+            before_ok = guards._wave_exit_verdict(doc).ok
+            after_ok = guards._wave_exit_verdict(after_doc).ok
+            if before_ok != after_ok:
+                violations.append(
+                    f"superseding a non-accounted state must leave ok flag unchanged "
+                    f"(before={before_ok}, after={after_ok}): {doc!r}"
+                )
 
-    assert not violations, f"{len(violations)} row-movement violations:\n" + "\n".join(violations[:3])
-    assert moved, "no R7→R8 movement observed; the superseded clause is not exercised"
-
-
-def _shipped_row(guards, state, doc: dict) -> str:
-    """Map a state dict to its wave-exit verdict row using the SHIPPED code.
-
-    R2 and R7 both return ``ok=True, message=""``.  They are told apart by
-    checking ``schema_version`` in the document directly, which is the same
-    discriminator ``_wave_exit_verdict`` uses internally.
-    """
-    if not state["read"]:
-        return "R1-read-refuses"
-    result = guards._wave_exit_verdict(doc)
-    if result.ok:
-        msg = result.message or ""
-        if "is absent" in msg:
-            return "R4-container-absent"
-        # R2 passes with an empty message; so does R7.  Distinguish by schema.
-        if doc.get("schema_version") != 1:
-            return "R2-schema-unsupported"
-        return "R7-accounted"
-    # ok=False: classify by the reason text produced by the shipped function.
-    r = result.reason or ""
-    # R6 reason: "wave exit: schedule_waves[{index}] is malformed ..."
-    if "schedule_waves[" in r and "is malformed" in r:
-        return "R6-wave-malformed"
-    # R3 reason: "...schedule_waves is malformed..." or "...is malformed..."
-    # (container malformed and schedule_waves non-list both land here)
-    if "is malformed" in r:
-        return "R3-malformed"
-    # R5: pointer invalid — two shapes from _wave_exit_verdict:
-    #   "wave exit: {non_neg_int_error}; run reset to rebuild cohort state"
-    #   "wave exit: current_wave_index=N is not an index into schedule_waves"
-    if "is not an index into schedule_waves" in r or "must be a non-negative integer" in r:
-        return "R5-pointer-invalid"
-    if "tasks with no live record" in r:
-        return "R8-unaccounted"
-    return "unknown"
+    assert not violations, (
+        f"{len(violations)} row-movement violations:\n" + "\n".join(violations[:3])
+    )
+    assert moved, "no accounted state in domain; the superseded clause is not exercised"
 
 
 def test_wave_reopen_check_is_read_only(guards, tmp_path) -> None:
-    """check --phase wave-reopen must not write to state.json.
+    """check --phase wave-reopen must not write to state.json for any domain state.
 
-    The verdict is a guard function (read-only by design), but this test makes the
-    property explicit so a future change that accidentally adds a write is detected.
+    The verdict is a guard function (read-only by design). This test drives
+    it over every readable state in the full domain — not three hand-built
+    examples — so a future change that accidentally adds a write is detected
+    regardless of which state triggers it.
 
-    Covers three representative states from the domain:
-    - a passing state (all records superseded → verdict passes)
-    - a refusing state (live record → verdict refuses)
-    - a schema-mismatch state (verdict passes due to fail-open)
+    One temp directory is reused across all states (overwriting state.json each
+    time) to avoid creating thousands of subdirectories and keep the test fast.
     """
-    live_sw = [["T1"], ["T2"]]
     run_id = "00000000-0000-0000-0000-000000000001"
-    states_to_check = [
-        # All-superseded: verdict passes.
-        {
-            "schema_version": 1, "run_id": run_id,
-            "schedule_waves": live_sw, "current_wave_index": 0,
-            _RECEIPTS_KEY: _keyed_container(
-                live_sw, 0, ["T1"], record={"kind": "receipt", _SUPERSEDED_KEY: True}
-            ),
-        },
-        # Live record: verdict refuses.
-        {
-            "schema_version": 1, "run_id": run_id,
-            "schedule_waves": live_sw, "current_wave_index": 0,
-            _RECEIPTS_KEY: _keyed_container(live_sw, 0, ["T1"]),
-        },
-        # Schema mismatch: verdict passes (fail-open).
-        {
-            "schema_version": 99, "run_id": run_id,
-            "schedule_waves": live_sw, "current_wave_index": 0,
-        },
-    ]
-    for i, state in enumerate(states_to_check):
-        spec_dir = tmp_path / f"spec-{i}"
-        spec_dir.mkdir()
-        path = spec_dir / "state.json"
-        path.write_text(json.dumps(state, indent=2), encoding="utf-8")
-        before = path.read_bytes()
+    spec_dir = tmp_path / "spec"
+    spec_dir.mkdir()
+    path = spec_dir / "state.json"
+
+    checked = 0
+    for state in build_domain():
+        if not state["read"]:
+            continue
+        doc = materialise(state)
+        # Ensure run_id is present so the shared reader does not refuse on it.
+        doc.setdefault("run_id", run_id)
+        raw = json.dumps(doc, indent=2, sort_keys=True).encode("utf-8")
+        path.write_bytes(raw)
+        before = hashlib.sha256(raw).hexdigest()
         # Call the guard in-process: read-only means the file must not change.
         guards.check_phase(spec_dir, phase="wave-reopen")
-        after = path.read_bytes()
+        after = hashlib.sha256(path.read_bytes()).hexdigest()
         assert before == after, (
-            f"state-{i}: check_phase(wave-reopen) wrote to state.json"
+            f"check_phase(wave-reopen) wrote to state.json for state: {doc!r}"
         )
+        checked += 1
+    assert checked, "no readable state was checked; domain is empty or all unreadable"
