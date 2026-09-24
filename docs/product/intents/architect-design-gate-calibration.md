@@ -6,6 +6,7 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Shaping-reviewed:** 2026-09-20
+- **Fulfilled:** 2026-09-20 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py` decides both gates it names — its module docstring states `DA3` flags a prose paragraph carrying more than three sentences and `DA10` flags on size — and the calibration against an independent corpus landed in `63aad7ddd` (#1379). Record written by the 2026-09-24 corpus migration, which added the record and not the closure.
 
 ## Outcome
 

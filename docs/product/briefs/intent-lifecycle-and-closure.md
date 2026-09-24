@@ -3,8 +3,9 @@
 - **Slug:** `intent-lifecycle-and-closure`
 - **Received:** 2026-09-23
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Ready
+- **Status:** Executing
 - **Parent intent:** intent:lifecycle-and-closure
+- **Executing since:** 2026-09-24. Slice 1, [`lifecycle-transition-contract`](../../specs/lifecycle-transition-contract/spec.md), started: its T3 corpus migration is delivered and the spec is `Implementing`. The slice cut stays at three slices; slices 2 and 3 are not yet cut.
 - **Ready confirmed:** 2026-09-23 by eugenelim, lifecycle owner. Taken on a `Findings` result, not a `Clean` one — recorded here because `author-delivery-brief` expects a revision-bound `Clean` and this transition did not have one. Six delivery-brief shaping reviews ran. The first found two Blockers, both resolved by moving work rather than arguing: the supersession split went to [`intent-identity-and-registration`](intent-identity-and-registration.md), which owns the shipped spec it touches. The five rounds after that returned no Blocker. The last returned two Concerns and one Nit; all three are fixed above and were not re-reviewed. The owner judged the contract sound and the residual findings to be authoring craft rather than contract defects.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0005-lifecycle-and-closure.md`](../intents/FEAT-0005-lifecycle-and-closure.md), de-risked 2026-09-23. Authored under [ADR-0119](../../adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md).
 

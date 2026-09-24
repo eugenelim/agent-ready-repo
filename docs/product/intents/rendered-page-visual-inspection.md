@@ -8,6 +8,8 @@
 - **Maturity:** `brownfield`
 - **Parent intent:** none
 - **Decomposed:** 2026-09-13 spec
+- **Accepted:** 2026-09-24 by eugenelim, on an owner waiver rather than an independent shaping review. This intent reached a delivered state without ever passing `Draft` → `Accepted`, so the ratification is taken now rather than reconstructed from a review that never ran; the owner waived the intent-mode review that gate names, for this one-off migration only. Three of its five revisions predate the `Status:` field entirely, so no ratification could have been recorded on them. Basis: `docs/specs/lifecycle-transition-contract/notes/migration-record.md`.
+- **Fulfilled:** 2026-09-24 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. Its spec `docs/specs/rendered-page-visual-inspection/spec.md` is `Shipped`, and its one narrower criterion was not dropped but strengthened: the Status line records that the height-only scroll-pair criterion is superseded by AC-0007 of `rendered-page-channel-axis`, which holds the same obligation at every captured viewport pair. Record written by the 2026-09-24 corpus migration.
 
 ## Who this is for
 

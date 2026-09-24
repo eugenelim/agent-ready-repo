@@ -1,6 +1,6 @@
 # Spec: An intent's lifecycle state is a closed contract a lint can decide
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Approved:** 2026-09-23 by eugenelim. Taken on a `Findings` result, not a `Clean` one. Three spec-mode shaping rounds ran, returning 3 then 2 then 2 Blockers; every Blocker was verified against source before repair and all were resolved. Round 3's two were one structural problem — this spec was defining an intent preamble field's shape, which the parent's § Boundary assigns to `FEAT-0001` — and the owner resolved it by moving the value shape and the adopter field-table rows to `intent-identity-and-registration` rather than by rewording. Those repairs were not re-reviewed. The adversarial spec-mode review that `new-spec` step 7 calls for did not run.
 - **Plan:** [`plan.md`](plan.md)
