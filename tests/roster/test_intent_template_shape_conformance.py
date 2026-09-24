@@ -101,6 +101,38 @@ def test_the_resolved_frame_intent_template_satisfies_the_contract() -> None:
     assert violations == [], [f"{v.field}: {v.reason}" for v in violations]
 
 
+def test_the_resolved_template_also_satisfies_the_corpus_scoped_rules() -> None:
+    """Both surfaces, because passing one is not passing the contract.
+
+    `validate_live_intent` accepts a `Superseded by:` stranded beside a
+    non-`Superseded` status by design — that pairing rule is corpus-scoped. A
+    template seeding one would therefore pass the check above and still produce
+    an intent the corpus lint refuses at the next admission, which is the exact
+    failure this file exists to prevent.
+    """
+    shape = _load_validator()
+    resolved = _resolve(TEMPLATE.read_text(encoding="utf-8"))
+
+    slugs = shape.resolvable_slugs([resolved])
+    violations = shape.validate_supersession(resolved, slugs)
+    assert violations == [], [f"{v.field}: {v.reason}" for v in violations]
+
+
+def test_a_template_seeding_a_stranded_pointer_would_be_caught() -> None:
+    """The mutation that makes the control above able to fail.
+
+    Calling an always-clean surface on a conforming template proves nothing: the
+    check passes just as well with the rule deleted. This feeds the same surface
+    the template it is meant to reject — a populated `Superseded by:` beside
+    `Status: Draft` — so the pair discriminates.
+    """
+    shape = _load_validator()
+    seeded = _resolve(TEMPLATE.read_text(encoding="utf-8")).replace(
+        "- **Superseded by:**", "- **Superseded by:** a-successor <!--", 1
+    )
+    assert shape.validate_supersession(seeded, {"a-successor"}) != []
+
+
 def test_every_required_field_is_seeded_by_the_template() -> None:
     """Resolving a placeholder cannot invent a field the template omits."""
     shape = _load_validator()

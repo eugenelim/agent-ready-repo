@@ -21,7 +21,7 @@ Every intent's `Status` names a state the corpus lint can decide from the artifa
 - **`Draft` narrows to mean open.** It stops carrying shaping progress, which the three shipped shaping-progress fields already record.
 - **The corpus is migrated.** Two sets, derived at migration time rather than pinned here: the intents the new rules refuse, and within them the intents that never reached `Accepted` in their history. The first owes a record; the second owes a status judgement, walked back through the parent's `Draft` → `Accepted` gate or reclassified to a state it qualifies for. The second set is the smaller one, and conflating them overstates the judgement work.
 
-**Not changed here.** The value shape of either record, whether `Accepted` requires its own `Accepted:` record, and every rule for `Superseded by <slug>`, stay as they are. `Superseded` is the delivery brief's handoff to `intent-identity-and-registration` and is not this spec's to settle.
+**Not changed here.** Whether `Accepted` requires its own `Accepted:` record, and every supersession rule, stay as they are and are not this spec's to settle. The value shape of the two records, and the form supersession takes, were both handed to `intent-identity-and-registration` and have since landed there: a record carries an ISO 8601 date, a space and non-empty text, and supersession is a bare `Status: Superseded` token beside a separate `Superseded by:` field. This spec consumes both and decides presence by state.
 
 ## Durable Outputs
 

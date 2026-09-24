@@ -64,6 +64,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.39] — 2026-09-23
+
+### Highlights
+
+- Saying that an intent was replaced now takes two plain fields instead of one
+  packed line: the status reads `Superseded`, and a `Superseded by:` field names
+  the bet that took over. Each is refused without the other, so a pointer can no
+  longer be left behind when a status moves on.
+- The `Accepted:` and `Fulfilled:` lines now have to carry more than a date.
+  Each takes a date, a space, and text — a date on its own is refused, because
+  these lines exist to hold the reasoning. What that text should say, who decided
+  and on what evidence, is for you; the check asks only that it is there.
+
+### Changed
+
+- The intent `Status` vocabulary is six bare tokens — `Draft`, `Accepted`,
+  `Fulfilled`, `Withdrawn`, `Cancelled`, `Superseded`. No value carries a
+  payload. The retired `Superseded by <slug>` form is refused.
+- `Superseded by:` is a preamble field, paired with `Status: Superseded` in both
+  directions. Supersession resolution reads that field, still resolves one hop
+  against live intents only, and now names the pointer field rather than
+  `Status` when it refuses.
+- `Accepted:` and `Fulfilled:` move from unconstrained to constrained when
+  present: an ISO 8601 calendar date, a space, then non-empty text. The bare
+  date and the literal `no` are both refused. The calendar-date rule is the one
+  the contract already had, so a comma written straight after a date falls
+  inside the date token and is refused.
+
+The `Status` vocabulary and the dated-evidence rule are decided from one
+artifact, by `validate_live_intent`. The supersession pairing and resolution
+rules are decided over the corpus, by `validate_supersession`, because one asks
+what another field's value requires and the other reads every intent. The
+shaping reviewer's own text is byte-unchanged.
+
+## [product-engineering][0.13.17] — 2026-09-23
+
+### Changed
+
+- The `frame-intent` intent template carries `Superseded` in its `Status`
+  choices and a `Superseded by:` line, matching the split the core contract now
+  decides.
+
 ## [core][2.26.38] — 2026-09-23
 
 ### Changed

@@ -90,8 +90,12 @@ Recorded so they are not mistaken for omissions. `author-delivery-brief` §4 pla
 
 - Whether the derived pointer-migration cohort lands as one sweep or per artifact type.
 - Sequencing against `workspace-coordination-reorganization`, which decides whether the renumber path sweep is built once or twice.
-- **Inbound 2026-09-23 — the value shape of the `Accepted:` and `Fulfilled:` records.** Handed here by [`intent-lifecycle-and-closure`](intent-lifecycle-and-closure.md) slice 1, whose round-3 spec review found it had crossed the same boundary the supersession split respects: an intent preamble field's name, value vocabulary and validation are `FEAT-0001`'s under [`FEAT-0005`](../intents/FEAT-0005-lifecycle-and-closure.md) § Boundary, and these are two such fields. What is owed is the value shape — an ISO 8601 calendar date followed by a space and non-empty evidence text, with a bare date and the literal `no` both refused, because the record exists to carry the evidence — plus a row for each in `guides/product-engineering/reference/intent-fields-and-modes.md`, which carries neither today. That reference is this brief's Interface-compatibility surface, and its closeout condition already requires that no field the lint decides on is absent from it. Slice 1 keeps only what a record's presence means for a transition and consumes whatever shape lands here.
-- **Inbound 2026-09-23 — splitting supersession into a bare `Status: Superseded` plus a `Superseded by:` pointer field.** Handed here by [`intent-lifecycle-and-closure`](intent-lifecycle-and-closure.md), whose Ready review found it could not own the change: [`intent-metadata-shape-contract`](../../specs/intent-metadata-shape-contract/spec.md) is `Shipped` in this brief's Spec map, and its ticked AC-0002 fixes `Superseded by <slug>` inside the `Status` vocabulary while AC-0021 reads the pointer out of `Status`. Both would need amending, and an intent preamble field's shape is this brief's parent's under `FEAT-0005`'s § Boundary as amended on 2026-09-23. The decision itself is settled and recorded in [`FEAT-0005`](../intents/FEAT-0005-lifecycle-and-closure.md) § Legal transitions, on the ADR precedent that `checkable-adr-metadata` states: `Status` is one bare lifecycle token and supersession is a separate mirrored field. What is open here is whether it lands as a sixth slice or as an amendment to the shipped spec, and which readers of the `Status`-embedded pointer it has to carry — `intent_shape.py` and its tests are the known ones, and the ADR migration had to teach its index generator the same lesson. No intent carries the status today, so the corpus migration is empty; the cost is contract and readers.
+- **Settled 2026-09-23 — the value shape of the `Accepted:` and `Fulfilled:` records.** Cut into `intent-preamble-lifecycle-records` with the entry below, on the same confirmation. The owed shape is fixed as the entry below hands it over: an ISO 8601 calendar date `YYYY-MM-DD`, a space, then non-empty evidence text, with a bare date and the literal `no` both refused. The second-order question the entry records is answered by **placement rather than by a claim about the reviewer**, which is where the first draft went wrong and independent review put it right. The value rule sits on `validate_live_intent()` — the per-artifact surface the reviewer's preamble condition refers to — because condition 7 obliges "every field whose values the contract fixes carries one of them", which a value shape is. The supersession pairing rule sits on the corpus-lint-only seam beside resolution, because it says which field another field's value requires, which that condition does not reach. What is **not** claimed: that a reviewer emits `MALFORMED(shape)` for either. The reviewer retrieves nothing and enumerates no vocabulary, so whether it decides a field rule turns on what a caller puts in its packet — `intent-metadata-shape-contract`'s mechanism, inherited unchanged here and neither strengthened nor weakened. The reviewer's text is byte-unchanged, which is the only reviewer-side fact this delivery establishes. **Corrected while cutting:** the entry's cost estimate was short by one artifact. Six intents already carried these records as unconstrained organic fields, and one — `architect-design-gate-calibration.md` — was refused by the owed shape, because its date token carried a trailing comma. There was a corpus migration after all; it was one file and one character, and the slice made it, so the corpus lint exits zero over `docs/product/intents/` as delivered. Original entry follows.
+
+  - **Inbound 2026-09-23 — the value shape of the `Accepted:` and `Fulfilled:` records.** Handed here by [`intent-lifecycle-and-closure`](intent-lifecycle-and-closure.md) slice 1, whose round-3 spec review found it had crossed the same boundary the supersession split respects: an intent preamble field's name, value vocabulary and validation are `FEAT-0001`'s under [`FEAT-0005`](../intents/FEAT-0005-lifecycle-and-closure.md) § Boundary, and these are two such fields. What is owed is the value shape — an ISO 8601 calendar date followed by a space and non-empty evidence text, with a bare date and the literal `no` both refused, because the record exists to carry the evidence — plus a row for each in `guides/product-engineering/reference/intent-fields-and-modes.md`, which carries neither today. That reference is this brief's Interface-compatibility surface, and its closeout condition already requires that no field the lint decides on is absent from it. Slice 1 keeps only what a record's presence means for a transition and consumes whatever shape lands here.
+- **Settled 2026-09-23 — splitting supersession into a bare `Status: Superseded` plus a `Superseded by:` pointer field.** It lands as a **sixth slice**, `intent-preamble-lifecycle-records`, not as an amendment. The ground is `intent-metadata-shape-contract`'s § Follow-ons, which states the precedent twice — a shipped spec's criteria record what was true at delivery, not a standing assertion, so that record stays historical. Its AC-0002 and AC-0021 keep their ticks and stay historical; the new slice's criteria carry the behaviour that replaces them and say so. Its AC-0012 and AC-0026 are about what a shaping reviewer emits, which the new slice establishes nothing about, so they are inherited rather than superseded. The reader set is larger than this entry's estimate: beyond `intent_shape.py` and its two suites, the retired `Superseded by <slug>` form is inlined on four prose surfaces — `frame-intent`'s template, `frame-the-intent.md`, `hand-it-to-build.md` and `fix-a-refused-intent.md` — plus the field table. That inlining is this brief's equivalent of the ADR migration's index generator, and the new slice's AC-0010 closes it over a named set. `intake-intent`'s template is *not* among them: it seeds `Status: Draft`, never carried the retired form, and is unchanged — it is a conformance target the slice keeps passing, not a surface it migrated. Original entry follows.
+
+  - **Inbound 2026-09-23 — splitting supersession into a bare `Status: Superseded` plus a `Superseded by:` pointer field.** Handed here by [`intent-lifecycle-and-closure`](intent-lifecycle-and-closure.md), whose Ready review found it could not own the change: [`intent-metadata-shape-contract`](../../specs/intent-metadata-shape-contract/spec.md) is `Shipped` in this brief's Spec map, and its ticked AC-0002 fixes `Superseded by <slug>` inside the `Status` vocabulary while AC-0021 reads the pointer out of `Status`. Both would need amending, and an intent preamble field's shape is this brief's parent's under `FEAT-0005`'s § Boundary as amended on 2026-09-23. The decision itself is settled and recorded in [`FEAT-0005`](../intents/FEAT-0005-lifecycle-and-closure.md) § Legal transitions, on the ADR precedent that `checkable-adr-metadata` states: `Status` is one bare lifecycle token and supersession is a separate mirrored field. What is open here is whether it lands as a sixth slice or as an amendment to the shipped spec, and which readers of the `Status`-embedded pointer it has to carry — `intent_shape.py` and its tests are the known ones, and the ADR migration had to teach its index generator the same lesson. No intent carries the status today, so the corpus migration is empty; the cost is contract and readers.
 
 ## Source
 
@@ -111,12 +115,15 @@ These constrain or explain delivery. They do not affect coverage or closure roll
 
 ## Spec map
 
-Five slices. The Status column is auto-derived from each spec; it is not hand-edited.
+Six slices. The Status column is auto-derived from each spec; it is not hand-edited.
 
 **Sequencing, as planning guidance rather than blocking edges.** `typed-intent-ordinal-allocator` goes first, and
 `intent-renumber-and-reissue` follows it. Nothing gates the allocator on a resolved folder.
 `frame-intent-escape-verdicts`, `intent-metadata-shape-contract` and `intent-reference-grammar-migration` are enterable
-at any point; none depends on an ordinal existing.
+at any point; none depends on an ordinal existing. `intent-preamble-lifecycle-records`, cut 2026-09-23, is enterable at any
+point and depends on no other slice. Nothing blocks on it either: `lifecycle-transition-contract` consumes whichever form
+its two records have landed in. Running it first is a preference, because that spec's migration writes those records onto
+every intent the new rules refuse and doing so before the shape is fixed migrates the same artifacts twice.
 
 | Spec | Status |
 | --- | --- |
@@ -125,12 +132,21 @@ at any point; none depends on an ordinal existing.
 | `typed-intent-ordinal-allocator` | <auto> |
 | `intent-reference-grammar-migration` | <auto> |
 | `intent-renumber-and-reissue` | <auto> |
+| `intent-preamble-lifecycle-records` | <auto> |
 
 ### Slice map note
 
 The map is confirmed and its slices are dispatchable. A later material change to
 it needs a fresh revision-bound review and explicit owner confirmation before
 they are again.
+
+**Sixth slice cut 2026-09-23 by eugenelim**, on an explicit confirmation distinct
+from the 2026-09-20 Ready confirmation, as the post-Ready slice path requires.
+`intent-preamble-lifecycle-records` delivers the two inbound entries under
+§ Post-Ready decisions, which that section now records as settled together with
+the grounds. One slice rather than two: both items edit `intent_shape.py` and the
+same adopter field table, and both are measured against the same frozen spec,
+so two slices would give the restated packet-decidable enumeration two homes.
 
 
 ## Errata

@@ -2166,12 +2166,29 @@ backlog = [
 # split and these records' value shape -- because it consumes whichever form each
 # has landed in when it is built. Sequencing them first is a preference, not a
 # dependency, and the spec says so.
+#
+# `needs` stays empty, and that is correct: this item does not wait on
+# `intent-preamble-lifecycle-records` reaching a terminal state. Both handoffs
+# landed there on 2026-09-23, and the two lines of this item's plan that went
+# stale against them were amended on 2026-09-24 by owner instruction -- wording
+# only, `Status` untouched, recorded in that plan's own changelog. Nothing is
+# owed here before this item starts.
 queue   = [
   { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam that leaves the shaping reviewer's decided set untouched", needs = [] },
 ]
 active  = [
 ]
 shipped = [
+  # Slice 6 of `intent-identity-and-registration`, cut 2026-09-23 on the second
+  # distinct confirmation the post-Ready slice path requires. It delivers the two
+  # 2026-09-23 inbound entries in that brief's Post-Ready decisions, both handed
+  # over from `intent-lifecycle-and-closure` because an intent preamble field's
+  # shape is FEAT-0001's under FEAT-0005 § Boundary. It lands as a new slice
+  # rather than an amendment to the Shipped `intent-metadata-shape-contract`,
+  # on that spec's own twice-stated precedent that a shipped spec's criteria are
+  # historical. `needs` is empty: ini-010's other queued spec takes no blocking
+  # edge on it and consumes whichever form lands.
+  { path = "docs/specs/intent-preamble-lifecycle-records/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Split supersession into a bare Status: Superseded plus a Superseded by: pointer field, and give the Accepted: and Fulfilled: records a dated-evidence value shape; the value rules sit on the per-artifact surface and the pairing and resolution rules on the corpus-lint-only one", needs = [] },
   { path = "docs/specs/intent-reference-grammar-migration/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Cross-artifact reference grammar and pointer migration", needs = [] },
   { path = "docs/specs/typed-intent-ordinal-allocator/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Prefix-type-aware intent ordinal allocator", needs = [] },
 ]

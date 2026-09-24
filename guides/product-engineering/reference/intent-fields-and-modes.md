@@ -23,7 +23,9 @@ Four tiers:
 
 - **Required** — absent is refused.
 - **Constrained when present** — omitting it is fine; a value outside its set is refused.
-- **Unconstrained** — read, never judged.
+- **Unconstrained** — no rule judges the value on the artifact alone. A rule
+  that needs the rest of the corpus may still apply, and the row says so when
+  one does.
 - **Retired** — the name itself is refused; use the replacement.
 
 A field whose name appears in none of these tiers is accepted, so your own
@@ -34,7 +36,10 @@ additions keep working.
 | `Owner` | required | who is accountable — a person or a role. Declared, never inferred from commit history |
 | `Slug` | required | the canonical identity, independent of the filename's ordinal. Presence is checked; the value is not, so kebab-case is a convention the check does not enforce |
 | `Level` | required | the altitude — an **open recognized set**, `product-vision › product-strategy › capability › feature`. Present or absent is checked; the value never is, so name an intervening altitude if your org has one |
-| `Status` | required | one of `Draft`, `Accepted`, `Fulfilled`, `Withdrawn`, `Cancelled`, or `Superseded by <slug>` naming a live intent. `Withdrawn` and `Cancelled` are peers of `Fulfilled`, not flavours of it |
+| `Status` | required | exactly one of these bare tokens: `Draft`, `Accepted`, `Fulfilled`, `Withdrawn`, `Cancelled`, `Superseded`. No value carries a payload — the supersession pointer is a field of its own, below. `Withdrawn` and `Cancelled` are peers of `Fulfilled`, not flavours of it |
+| `Superseded by` | unconstrained | the `Slug` of the live intent that replaced this bet. The value itself is never judged, exactly as `Slug` is not — whatever a target may be called, a pointer may name. Two rules still apply, and both are checked **over the corpus** rather than on one file, so they are the corpus lint's and not the shaping review's: `Status` and this field are required together and refused apart, and resolution is one hop, so this may not name an intent that is itself `Superseded` |
+| `Accepted` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, a space, then non-empty text. The check asks only that the text is there; make it say who ratified the bet and on what evidence, which is why the field exists. A bare date is refused, and so is the literal `no` that the progress fields accept — an unratified intent omits the field |
+| `Fulfilled` | constrained when present | the same shape as `Accepted`: a `YYYY-MM-DD` date, a space, then non-empty evidence text. The date is the text up to the first space, so punctuation written straight after it lands inside the date token and is refused |
 | `Kind` | constrained when present | `outcome` or `opportunity` — the rung this intent occupies on the opportunity-solution tree |
 | `Scale` | constrained when present | `app` or `business-unit` — resolved at intake (see Modes) |
 | `Maturity` | constrained when present | `greenfield` or `brownfield` — gates current-state inputs |

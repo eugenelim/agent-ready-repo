@@ -147,16 +147,16 @@ def test_ac0001_accepts_the_conforming_baseline() -> None:
 # own table so a new member needs no test edit, but an implementation whose
 # table gained or lost a member has to fail somewhere — and iterating a table
 # against itself cannot fail. This assertion is that somewhere.
-STATUS_BARE_VALUES = frozenset(
-    {"Draft", "Accepted", "Fulfilled", "Withdrawn", "Cancelled"}
+STATUS_VALUES = frozenset(
+    {"Draft", "Accepted", "Fulfilled", "Withdrawn", "Cancelled", "Superseded"}
 )
 
 
-def test_ac0002_status_bare_vocabulary_is_exactly_the_five_named_values() -> None:
-    assert frozenset(intent_shape.STATUS_BARE_VALUES) == STATUS_BARE_VALUES
+def test_ac0001_status_vocabulary_is_exactly_the_six_named_tokens() -> None:
+    assert frozenset(intent_shape.STATUS_VALUES) == STATUS_VALUES
 
 
-@pytest.mark.parametrize("value", sorted(STATUS_BARE_VALUES))
+@pytest.mark.parametrize("value", sorted(STATUS_VALUES - {"Superseded"}))
 @pytest.mark.parametrize("shape", SHAPES)
 def test_ac0002_accepts_each_bare_status_value(value: str, shape: str) -> None:
     """AC-0002 accept path, re-asserted through all four value shapes."""
@@ -164,9 +164,15 @@ def test_ac0002_accepts_each_bare_status_value(value: str, shape: str) -> None:
 
 
 @pytest.mark.parametrize("shape", SHAPES)
-def test_ac0002_accepts_the_superseded_by_parameterized_form(shape: str) -> None:
-    text = _preamble(_with(Status="Superseded by a-live-intent"), shape=shape)
-    assert _accepted(text)
+def test_ac0001_accepts_superseded_paired_with_its_pointer_field(shape: str) -> None:
+    """The state the two pairing rules exist to admit, not merely to refuse.
+
+    Asserted through all four shapes because the pointer is a value both rules
+    read, so an order-sensitive normalization fails here and nowhere else.
+    """
+    fields = _with(Status="Superseded")
+    fields["Superseded by"] = "a-successor"
+    assert _accepted(_preamble(fields, shape=shape))
 
 
 @pytest.mark.parametrize(
@@ -174,13 +180,13 @@ def test_ac0002_accepts_the_superseded_by_parameterized_form(shape: str) -> None
     [
         "Shipped",              # a spec status, not an intent status
         "draft",                # case is not a member
-        "Superseded by",        # the form with no slug payload
-        "Superseded by ",       # payload present but empty
-        "Superseded",           # the bare word is not a member
+        "Superseded by",        # the retired form, payload absent
+        "Superseded by ",       # the retired form, payload empty
+        "Superseded by a-slug",  # the retired form as it was actually written
         "",                     # empty is absent, and absence is AC-0001's
     ],
 )
-def test_ac0002_refuses_a_status_value_outside_the_vocabulary(value: str) -> None:
+def test_ac0001_refuses_a_status_value_outside_the_vocabulary(value: str) -> None:
     assert "Status" in _fields_at_fault(_preamble(_with(Status=value)))
 
 
@@ -593,76 +599,323 @@ def _intent_with_slug(slug: str, *, shape: str = BARE) -> str:
     return _preamble(fields, shape=shape)
 
 
-def test_ac0021_accepts_a_superseded_by_slug_that_resolves() -> None:
-    text = _preamble(_with(Status="Superseded by a-successor"))
-    assert intent_shape.validate_supersession(text, {"a-successor"}) == []
+def _superseded(slug: str, *, shape: str = BARE) -> str:
+    """An intent superseded by ``slug``, in the split two-field form."""
+    fields = _with(Status="Superseded")
+    fields["Superseded by"] = slug
+    return _preamble(fields, shape=shape)
 
 
-def test_ac0021_refuses_a_superseded_by_slug_that_resolves_to_nothing() -> None:
-    text = _preamble(_with(Status="Superseded by a-ghost"))
-    violations = intent_shape.validate_supersession(text, {"a-successor"})
+def test_ac0005_accepts_a_superseded_by_slug_that_resolves() -> None:
+    assert intent_shape.validate_supersession(
+        _superseded("a-successor"), {"a-successor"}
+    ) == []
+
+
+def test_ac0005_refuses_a_superseded_by_slug_that_resolves_to_nothing() -> None:
+    violations = intent_shape.validate_supersession(
+        _superseded("a-ghost"), {"a-successor"}
+    )
     assert violations
     assert any("a-ghost" in v.reason for v in violations), violations
 
 
-def test_ac0021_names_the_unresolved_slug_in_its_reason() -> None:
-    """AC-0021 requires both the intent and the slug named; the corpus lint
-    supplies the intent, so the reason must carry the slug."""
-    text = _preamble(_with(Status="Superseded by a-ghost"))
-    (violation,) = intent_shape.validate_supersession(text, set())
+def test_ac0005_names_the_unresolved_slug_and_the_pointer_field() -> None:
+    """AC-0005 requires both the intent and the slug named; the corpus lint
+    supplies the intent, so the reason must carry the slug. The field moves to
+    the pointer, because that is now the line an author edits to fix it."""
+    (violation,) = intent_shape.validate_supersession(_superseded("a-ghost"), set())
     assert "a-ghost" in violation.reason
-    assert violation.field == "Status"
+    assert violation.field == "Superseded by"
 
 
-def test_ac0021_an_empty_live_slug_set_resolves_nothing() -> None:
-    text = _preamble(_with(Status="Superseded by a-successor"))
-    assert intent_shape.validate_supersession(text, set()) != []
+def test_ac0005_an_empty_live_slug_set_resolves_nothing() -> None:
+    assert intent_shape.validate_supersession(_superseded("a-successor"), set()) != []
 
 
-@pytest.mark.parametrize("status_shape", SHAPES)
-def test_ac0021_reads_the_superseding_value_through_every_shape(
-    status_shape: str,
-) -> None:
-    text = _preamble(_with(Status="Superseded by a-successor"), shape=status_shape)
-    assert intent_shape.validate_supersession(text, {"a-successor"}) == []
+@pytest.mark.parametrize("pointer_shape", SHAPES)
+def test_ac0005_reads_the_pointer_through_every_shape(pointer_shape: str) -> None:
+    assert intent_shape.validate_supersession(
+        _superseded("a-successor", shape=pointer_shape), {"a-successor"}
+    ) == []
 
 
 @pytest.mark.parametrize("slug_shape", SHAPES)
-def test_ac0021_comparand_is_the_normalized_slug_value(slug_shape: str) -> None:
+def test_ac0005_comparand_is_the_normalized_slug_value(slug_shape: str) -> None:
     """The corpus's dominant `Slug:` shape is backticked *and* commented, which
     is the case an unnormalized comparison fails."""
     target = _intent_with_slug("a-successor", shape=slug_shape)
-    live = intent_shape.live_slugs([target])
-    assert live == {"a-successor"}, slug_shape
-    superseded = _preamble(_with(Status="Superseded by a-successor"))
-    assert intent_shape.validate_supersession(superseded, live) == []
+    resolvable = intent_shape.resolvable_slugs([target])
+    assert resolvable == {"a-successor"}, slug_shape
+    assert intent_shape.validate_supersession(
+        _superseded("a-successor"), resolvable
+    ) == []
 
 
-def test_ac0021_live_slugs_collects_one_slug_per_intent() -> None:
+def test_ac0005_resolvable_slugs_collects_one_slug_per_intent() -> None:
     corpus = [_intent_with_slug("first"), _intent_with_slug("second", shape=COMPOSED)]
-    assert intent_shape.live_slugs(corpus) == {"first", "second"}
+    assert intent_shape.resolvable_slugs(corpus) == {"first", "second"}
 
 
-def test_ac0021_live_slugs_ignores_a_body_level_slug_line() -> None:
+def test_ac0005_resolvable_slugs_ignores_a_body_level_slug_line() -> None:
     """The preamble bound applies to slug collection too."""
     text = _preamble(body="- **Slug:** a-body-level-slug")
-    assert intent_shape.live_slugs([text]) == {"a-live-intent"}
+    assert intent_shape.resolvable_slugs([text]) == {"a-live-intent"}
 
 
-def test_ac0021_a_non_superseded_status_resolves_nothing() -> None:
+@pytest.mark.parametrize("shape", SHAPES)
+def test_ac0005_a_superseded_intent_is_not_a_resolution_target(shape: str) -> None:
+    """One hop: an intent that is itself `Superseded` offers no slug.
+
+    Asserted on `resolvable_slugs` rather than by handing `validate_supersession`
+    a set built here. A hand-built set asserts what this test believes the caller
+    passes, which is exactly the premise that was wrong — so the end-to-end
+    control for this rule runs through the corpus lint, in
+    `test_intent_corpus_lint.py`.
+    """
+    retired = _superseded("a-successor", shape=shape)
+    assert intent_shape.resolvable_slugs([retired]) == set(), shape
+
+
+def test_ac0005_a_non_superseded_status_resolves_nothing() -> None:
     for value in ("Draft", "Accepted", "Fulfilled", "Withdrawn", "Cancelled"):
         text = _preamble(_with(Status=value))
         assert intent_shape.validate_supersession(text, set()) == [], value
 
 
-def test_ac0021_is_not_reachable_from_the_packet_decidable_contract() -> None:
+def test_ac0005_is_not_reachable_from_the_packet_decidable_contract() -> None:
     """`validate_live_intent` must not refuse an unresolved slug.
 
-    This is the boundary AC-0012's biconditional rests on, so it is asserted
-    rather than left to the call graph.
+    This is the boundary AC-0006's biconditional rests on, so it is asserted
+    rather than left to the call graph. The fixture is otherwise conforming —
+    it carries the pointer *and* the status — so the only thing that could
+    refuse it is resolution.
     """
-    text = _preamble(_with(Status="Superseded by a-ghost"))
-    assert _accepted(text)
+    assert _accepted(_superseded("a-ghost"))
+
+
+# ── AC-0002, AC-0003: the pointer and the status are paired ──────────────────
+#
+# Asserted through `validate_supersession`, not `validate_live_intent`. The rule
+# is corpus-lint-only on purpose: it says which field another field's *value*
+# requires, which the shaping reviewer's preamble condition does not reach.
+
+
+def _superseded_fields(pointer: str) -> dict[str, str]:
+    fields = _with(Status="Superseded")
+    fields["Superseded by"] = pointer
+    return fields
+
+
+def _paired_faults(text: str) -> set[str]:
+    return {v.field for v in intent_shape.validate_supersession(text, set())}
+
+
+def test_ac0002_refuses_superseded_with_no_pointer_field() -> None:
+    assert "Superseded by" in _paired_faults(_preamble(_with(Status="Superseded")))
+
+
+@pytest.mark.parametrize("shape", SHAPES)
+def test_ac0002_a_pointer_emptied_by_normalization_is_absent(shape: str) -> None:
+    """The `frame-intent` template's comment-only line renders exactly this.
+
+    It is absent rather than malformed, so AC-0002 refuses it for absence and
+    no value rule fires — and through COMPOSED, where an order-sensitive
+    normalization would leave a backtick behind and read it as present.
+    """
+    fields = _with(Status="Superseded")
+    fields["Superseded by"] = ""
+    assert "Superseded by" in _paired_faults(_preamble(fields, shape=shape)), shape
+
+
+@pytest.mark.parametrize("status", sorted(STATUS_VALUES - {"Superseded"}))
+def test_ac0003_refuses_a_pointer_beside_every_other_status(status: str) -> None:
+    """Its own case, not a variant of AC-0002's: an implementation that refuses
+    every `Superseded by:` outright passes every AC-0002 fixture."""
+    fields = _with(Status=status)
+    fields["Superseded by"] = "a-successor"
+    assert "Superseded by" in _paired_faults(_preamble(fields)), status
+
+
+def test_ac0003_names_both_fields_when_a_pointer_is_stranded() -> None:
+    fields = _with(Status="Draft")
+    fields["Superseded by"] = "a-successor"
+    (violation,) = intent_shape.validate_supersession(_preamble(fields), set())
+    assert violation.field == "Superseded by"
+    assert "Status" in violation.reason
+    assert "Superseded" in violation.reason
+
+
+def test_ac0003_refuses_a_pointer_when_status_is_absent() -> None:
+    """An absent `Status:` is AC-0001's, but the pointer is still stranded and
+    the reverse rule must not crash or silently pass on `None`."""
+    fields = _without("Status")
+    fields["Superseded by"] = "a-successor"
+    assert "Superseded by" in _paired_faults(_preamble(fields))
+
+
+# ── The pointer's own value is not judged ────────────────────────────────────
+
+
+@pytest.mark.parametrize("pointer", ["two words", "CamelCase", "under_score", "0001"])
+def test_a_pointer_value_is_accepted_wherever_the_same_slug_is(pointer: str) -> None:
+    """A pointer may name whatever a `Slug:` may be called.
+
+    `Slug:` is presence-checked and never judged on its value, so a rule here
+    would refuse a pointer at an intent the contract itself accepts. Asserted as
+    a pair so the two fields cannot drift apart: the same value is fed to both.
+    """
+    target = _intent_with_slug(pointer)
+    assert _accepted(target), pointer
+    assert _accepted(_preamble(_superseded_fields(pointer))), pointer
+    assert intent_shape.resolvable_slugs([target]) == {pointer}, pointer
+
+
+def test_the_value_rules_do_not_reach_the_corpus_only_surface() -> None:
+    """AC-0006's other direction, and the one that was missing.
+
+    The companion below proves the pairing rules stay off the shared surface.
+    Without this, an implementation that also judged `Status:` or a dated record
+    inside `validate_supersession()` would satisfy every other case in this file
+    — the seam would be one-way, and the two surfaces would quietly both decide
+    the same rules.
+    """
+    for fields in (
+        _with(Status="Shipped"),
+        {**BASE, "Accepted": "2026-09-20"},
+        {**BASE, "Fulfilled": "no"},
+    ):
+        text = _preamble(fields)
+        assert _fields_at_fault(text), fields          # the shared surface refuses
+        assert intent_shape.validate_supersession(text, set()) == [], fields
+
+
+def test_ac0002_and_ac0003_do_not_reach_the_shared_surface() -> None:
+    """The seam AC-0006's biconditional rests on, asserted rather than assumed.
+
+    Both malformed pairs are accepted by `validate_live_intent`, so the shaping
+    reviewer is never obliged to apply a rule its own text does not state.
+    """
+    orphan = _preamble(_with(Status="Superseded"))
+    stranded_fields = _with(Status="Draft")
+    stranded_fields["Superseded by"] = "a-successor"
+    assert _accepted(orphan)
+    assert _accepted(_preamble(stranded_fields))
+
+
+def test_a_malformed_pair_suppresses_the_resolution_failure() -> None:
+    """One fault per broken pair: an orphan status has no pointer to resolve,
+    so it must not also be reported as an unresolved slug."""
+    (violation,) = intent_shape.validate_supersession(
+        _preamble(_with(Status="Superseded")), set()
+    )
+    assert "carries no" in violation.reason
+
+
+# ── AC-0004: the dated-evidence records ──────────────────────────────────────
+
+DATED_EVIDENCE_FIELDS = ("Accepted", "Fulfilled")
+
+
+@pytest.mark.parametrize("field", DATED_EVIDENCE_FIELDS)
+@pytest.mark.parametrize("shape", SHAPES)
+def test_ac0004_accepts_a_date_followed_by_evidence(field: str, shape: str) -> None:
+    fields = dict(BASE)
+    fields[field] = "2026-09-20 by eugenelim, on an independent review"
+    assert _accepted(_preamble(fields, shape=shape))
+
+
+@pytest.mark.parametrize("field", DATED_EVIDENCE_FIELDS)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2026-09-20",                 # a bare date carries no evidence
+        "2026-09-20 ",                # trailing space only
+        "2026-09-20    ",             # whitespace is not evidence
+        "no",                         # the progress fields' opt-out, not this
+        "2026-09-20, by eugenelim",   # the comma sits inside the date token
+        "20260920 by eugenelim",      # the basic form is refused
+        "2026-9-20 by eugenelim",     # unpadded month
+        "2026-02-30 by eugenelim",    # well-shaped but not a real date
+        "by eugenelim on 2026-09-20",  # the date is not the prefix
+    ],
+)
+def test_ac0004_refuses_a_value_that_is_not_a_date_plus_evidence(
+    field: str, value: str
+) -> None:
+    fields = dict(BASE)
+    fields[field] = value
+    assert field in _fields_at_fault(_preamble(fields)), value
+
+
+@pytest.mark.parametrize("field", DATED_EVIDENCE_FIELDS)
+@pytest.mark.parametrize("separator", [" ", "  ", "   "])
+def test_ac0004_further_spaces_before_the_evidence_are_accepted(
+    field: str, separator: str
+) -> None:
+    """Decided, not accidental. The contracted separator is a space; refusing a
+    doubled one would reject a value no reader can tell apart from a correct
+    one, and the date token is delimited either way."""
+    fields = dict(BASE)
+    fields[field] = f"2026-09-20{separator}by eugenelim"
+    assert _accepted(_preamble(fields)), separator
+
+
+@pytest.mark.parametrize("field", DATED_EVIDENCE_FIELDS)
+def test_ac0004_a_tab_separator_is_refused(field: str) -> None:
+    """A tab is not a space, so the whole token is the date candidate and fails
+    — pinned because `partition` makes this a consequence rather than a choice."""
+    fields = dict(BASE)
+    fields[field] = "2026-09-20\tby eugenelim"
+    assert field in _fields_at_fault(_preamble(fields))
+
+
+@pytest.mark.parametrize("field", DATED_EVIDENCE_FIELDS)
+def test_ac0004_an_emptied_value_is_absent_not_malformed(field: str) -> None:
+    """The normalization stage is inherited unchanged, so a comment-only line
+    is an absent record — and these records are constrained-when-present, so
+    absence is accepted here and decided by state elsewhere."""
+    fields = dict(BASE)
+    fields[field] = ""
+    assert _accepted(_preamble(fields))
+
+
+def test_ac0004_agrees_with_the_calendar_date_predicate() -> None:
+    """Necessary but not sufficient: a duplicate implementation agrees too.
+
+    `test_ac0004_leaves_the_calendar_date_rule_in_one_home` is what makes this
+    pair able to fail; this half names the values the two must agree on.
+    """
+    assert intent_shape._is_iso_date("2026-09-20")
+    for bad in ("2026-09-20,", "20260920", "2026-9-20", "2026-02-30"):
+        assert not intent_shape._is_iso_date(bad), bad
+        fields = dict(BASE)
+        fields["Accepted"] = f"{bad} by eugenelim"
+        assert "Accepted" in _fields_at_fault(_preamble(fields)), bad
+
+
+@pytest.mark.parametrize("field", DATED_EVIDENCE_FIELDS)
+def test_ac0004_leaves_the_calendar_date_rule_in_one_home(
+    field: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The dated-evidence rule *consumes* `_is_iso_date`; it does not agree with it.
+
+    Agreement is what a second, duplicated date implementation also achieves, so
+    running matching examples through both proves nothing about where the rule
+    lives. This replaces the predicate and asserts the rule changes with it: if
+    it grew its own pattern, the substitution would be invisible here and the
+    Agent Rule would be silently broken.
+
+    Run at both fields, because each could stop delegating on its own — they
+    share a function today, and a test that only names one does not hold them
+    to sharing it tomorrow.
+    """
+    fields = dict(BASE)
+    fields[field] = "2026-09-20 by eugenelim"
+    assert _accepted(_preamble(fields)), field
+
+    monkeypatch.setattr(intent_shape, "_is_iso_date", lambda value: False)
+    assert field in _fields_at_fault(_preamble(fields)), field
 
 
 # ══ An emptied value: which rules still see the line ══════════════════════════

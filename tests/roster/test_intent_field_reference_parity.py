@@ -136,6 +136,91 @@ def test_every_documented_tier_matches_the_validator() -> None:
     assert mismatched == {}, mismatched
 
 
+# `| `Field` | tier | value |` — the third cell, for a named field. Uses the
+# same tolerant spacing as ROW: a check that recognises only one spelling of a
+# valid table row is a check the next author defeats by reformatting.
+VALUE_CELL = re.compile(r"^\|\s*`([^`]+)`\s*\|[^|]*\|\s*(.+?)\s*\|\s*$", re.M)
+
+
+def _value_cells(section: str, field: str) -> list[str]:
+    """Every value cell documented for ``field``, in order.
+
+    A list rather than one value on purpose: taking the first silently ignores
+    a second row documenting something different.
+
+    The field name is matched after the same ``.strip()`` ``_documented`` applies,
+    not as a literal. A check that recognises one spelling of a name its own
+    parser normalizes is a check the next author defeats with a space.
+    """
+    return [
+        value
+        for name, value in VALUE_CELL.findall(section)
+        if name.strip() == field
+    ]
+
+
+def test_each_documented_field_has_exactly_one_row() -> None:
+    """A duplicate row is a second answer, and readers get whichever they hit."""
+    names = [
+        name.strip()
+        for name, _ in ROW.findall(_field_section(PAGE.read_text(encoding="utf-8")))
+    ]
+    duplicated = sorted({name for name in names if names.count(name) > 1})
+    assert duplicated == [], duplicated
+
+
+def test_the_supersession_and_lifecycle_records_carry_their_documented_tier() -> None:
+    """Named rows, because the tier checks above cannot see these three.
+
+    `Superseded by` is `unconstrained`, and direction-two exempts every
+    unconstrained row by design — so deleting it leaves the rest of this file
+    green. `Accepted` and `Fulfilled` are in `VALUE_RULES`, so direction-one
+    catches their deletion but not a tier rewrite.
+    """
+    documented = _documented()
+
+    assert documented.get("Superseded by") == UNCONSTRAINED
+    for field in ("Accepted", "Fulfilled"):
+        assert documented.get(field) == CONSTRAINED, field
+
+
+def test_the_status_row_names_exactly_the_validators_vocabulary() -> None:
+    """The one thing on this page a test can settle, settled exactly.
+
+    Every backticked run in the value cell, compared as a set against the
+    module. Not a membership check, which passes once a further token is
+    documented; not a parse scoped to the first sentence, which passes once one
+    is documented in the second; and not a character class, which passed
+    `Draft2`. The cell is kept free of any backticked name that is not a member
+    — the row names the pointer field in prose — so this needs no exclusion
+    list and has nowhere left to hide.
+    """
+    shape = _load_validator()
+    cells = _value_cells(_field_section(PAGE.read_text(encoding="utf-8")), "Status")
+    assert len(cells) == 1, cells
+
+    documented = set(re.findall(r"`([^`]+)`", cells[0]))
+    assert documented == set(shape.STATUS_VALUES), documented ^ set(shape.STATUS_VALUES)
+    assert "Superseded by <slug>" not in cells[0]
+
+
+# ── What this file deliberately does not check ────────────────────────────────
+#
+# Whether each row's prose *describes its rule correctly* is not asserted here,
+# and three rounds of trying is why. A keyword check cannot tell "resolution is
+# one hop" from "resolution is not one hop", and every tightening moved the
+# blind spot rather than closing it: a scoped parse, then a character class,
+# then a literal row spelling. A predicate welded to prose has no convergent
+# form, so asserting one produces a check that reads green while the page says
+# the opposite of the contract.
+#
+# What is mechanizable lives above: which fields are documented, at which tier,
+# with exactly one row each, and the `Status` vocabulary as an exact set derived
+# from the module. Whether the prose is *true* is a human closeout condition,
+# and the owning spec's Durable Outputs says so rather than pretending a test
+# covers it.
+
+
 def test_the_page_states_the_four_tiers() -> None:
     """The tier vocabulary is the page's own contract with its reader."""
     section = _field_section(PAGE.read_text(encoding="utf-8")).lower()

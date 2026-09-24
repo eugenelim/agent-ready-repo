@@ -2,7 +2,7 @@
 
 - **Slug:** `architect-design-gate-calibration`
 - **Status:** Fulfilled
-- **Accepted:** 2026-09-20, on a clean intent-mode shaping review of this revision, after the outcome was narrowed from `DA1`-`DA10` to the two gates the script decides.
+- **Accepted:** 2026-09-20 on a clean intent-mode shaping review of this revision, after the outcome was narrowed from `DA1`-`DA10` to the two gates the script decides.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Shaping-reviewed:** 2026-09-20

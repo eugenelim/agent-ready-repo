@@ -7,9 +7,15 @@ kind: how-to
 
 # Fix a refused intent
 
-Two things check an intent's shape, and both name the field at fault. The
-corpus check walks a directory of intents and exits non-zero. A cold shaping
-review reads one intent and emits `MALFORMED(shape)`. This page takes each
+Two things check an intent's shape, and they neither tell you the same amount
+nor cover the same rules. The corpus check walks a directory of intents, exits
+non-zero, and names the field at fault — every message quoted on this page is
+one of its, and the rules decided over the whole corpus are its alone. A cold
+shaping review reads one intent against the packet it was handed and emits a
+token per failed condition, of which `MALFORMED(shape)` is the preamble one; a
+missing owner emits `MALFORMED(owner)` alone and suppresses the rest. A token
+names the condition, never the field or the rule, so a returned token tells you
+to run the check, not which message to read. This page takes each
 refusal to its remedy.
 
 :::note
@@ -63,12 +69,13 @@ person accountable for the outcome.
 
 ```text
 FEAT-0002-bad-status.md: Status: value 'Shipped' is outside Draft, Accepted,
-Fulfilled, Withdrawn, Cancelled, and `Superseded by <slug>`
+Fulfilled, Withdrawn, Cancelled, Superseded
 FEAT-0003-bad-kind.md: Kind: value 'objective' is outside outcome, opportunity
 ```
 
-The reason lists the whole set, so the remedy is in the message. `Status` also
-accepts `Superseded by <slug>`, where the slug names a live intent.
+The reason lists the whole set, so the remedy is in the message. Every `Status`
+value is one bare word; the supersession pointer is a field of its own, covered
+below.
 
 A near-miss is still a miss: `Shipped` is a spec status, not an intent status,
 and lowercase `draft` is not `Draft`.
@@ -154,19 +161,66 @@ that something is owed without saying what.
 The other three termini leave the section unread, because the child intent,
 brief, or spec carries the detail instead.
 
+### A supersession is missing half of itself
+
+Supersession is two fields, not one value. `Status: Superseded` says this bet
+was replaced; `Superseded by:` says what replaced it. Neither is meaningful
+alone, so each is refused without the other.
+
+```text
+FEAT-0009-orphan.md: Superseded by: `Status: Superseded` carries no
+`Superseded by:` field naming the intent that replaced this bet
+FEAT-0010-stranded.md: Superseded by: field is present beside `Status: Draft`,
+and only `Status: Superseded` carries a supersession pointer
+```
+
+For the first, add the field. For the second, decide which half was wrong: if
+the bet really was replaced, set `Status: Superseded`; if it was not, delete the
+pointer. A pointer left behind after a status moved on is the usual cause.
+
+A line whose value is only a comment counts as absent, so a template's
+`- **Superseded by:** <!-- ... -->` does not satisfy the first message.
+
 ### A supersession points at nothing
 
 ```text
-FEAT-0009-ghost.md: Status: `Superseded by` slug 'a-ghost' matches no live
-intent's `Slug:`
+FEAT-0011-ghost.md: Superseded by: slug 'a-ghost' matches no intent this
+pointer may resolve to: the target must be live and not itself `Superseded`
 ```
 
-`Superseded by` takes the `Slug` of a **live** intent — the bet that replaced
+`Superseded by:` takes the `Slug` of a **live** intent — the bet that replaced
 this one. Fix the slug, or choose a different status: `Withdrawn` and
 `Cancelled` both end an intent without naming a successor.
 
 A retired artifact's slug does not answer this. A supersession says which bet
-took over, and a retired file is not a bet.
+took over, and a retired file is not a bet. Neither does an intent that is
+itself `Superseded`: the pointer resolves one hop, so a chain has to be
+re-pointed rather than followed. That is the whole rule — the target must be in
+the live corpus and must not itself be `Superseded`. No other status is checked,
+so a pointer at a `Cancelled` or `Withdrawn` intent resolves, and whether that
+reads sensibly is a judgement the check leaves to you.
+
+### A ratification or fulfilment record carries no evidence
+
+```text
+FEAT-0012-bare.md: Accepted: value '2026-09-20' is not an ISO 8601 date
+followed by evidence text
+FEAT-0013-comma.md: Fulfilled: '2026-09-20,' is not an ISO 8601 date
+```
+
+`Accepted:` and `Fulfilled:` each take a date, a space, then text. A date alone
+is refused on purpose: these records exist to carry the reasoning, and a date
+carries none. The check asks only that text is present — write what justifies
+the claim, who decided and on what evidence, because that is the whole point of
+the field.
+
+The second message is the one that surprises people. The date is the text up to
+the first space, so a comma written straight after it lands *inside* the date
+token. Move the punctuation, or drop it:
+`2026-09-20 by you, on an independent review`.
+
+Unlike `De-risked:` and `Shaping-reviewed:`, the literal `no` is not accepted
+here. An intent that was never ratified omits the field rather than denying it.
 
 ### A tombstone is malformed
 
@@ -205,11 +259,21 @@ date the way every other date in an intent is written.
 ### The shaping review says `MALFORMED(shape)`
 
 The cold review reads one intent and reports conditions it can settle from the
-text alone. `MALFORMED(shape)` means the preamble fails one of the rules above.
-Run the corpus check over the directory and read the line for that file to
-learn which — the review names the condition, the check names the field. The
-check takes a directory rather than a single file, so there is nothing to
+packet it was given. `MALFORMED(shape)` means the preamble failed that
+condition — it does not say which rule, and it may also mean the packet could
+not settle it, because an unsettled condition fails closed.
+
+So run the corpus check over the directory and read the line for that file.
+That is what names the field and the rule; the token only says where to look.
+The check takes a directory rather than a single file, so there is nothing to
 narrow.
+
+**The two do not cover the same rules, so the check may say nothing.** A
+supersession pair split across `Status` and `Superseded by:`, and a pointer
+that resolves nowhere, are decided over the whole corpus — the review never
+sees them, and `MALFORMED(shape)` is not how they surface. The reverse also
+holds: a shape token with no corpus line behind it means the review's packet,
+not your intent, is what could not settle the condition.
 
 One exception: a preamble with no owner emits `MALFORMED(owner)` alone, and
 every other condition stays silent. Fix the owner first, then re-run.
