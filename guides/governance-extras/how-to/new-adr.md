@@ -210,6 +210,26 @@ A previously-accepted ADR no longer reflects the team's call. You do *not* edit 
 
 If the reversal is contested or non-obvious, the reversal should go through an RFC first; the accepted RFC then produces this superseding ADR as follow-on. See [`new-rfc.md` § The RFC lifecycle](new-rfc.md#the-rfc-lifecycle) for the trigger conditions.
 
+### Superseding part of an ADR
+
+A new decision carves out one or two numbered constraints from an older record and leaves the rest standing. That is a different edge from whole-record supersession, and it uses a different pair of fields.
+
+Write the fact on **both** records, as a mirrored pair, so either can be read alone:
+
+```
+# the OLDER record, ADR-NNNN          # the NEWER record, ADR-MMMM
+- **Status:** Accepted                - **Status:** Accepted
+- **Superseded in part:** ADR-MMMM D3 - **Supersedes in part:** ADR-NNNN D3
+```
+
+Three things are easy to get wrong. Only the first is caught by the shape lint; check the other two yourself:
+
+- **In both halves the D-IDs belong to the superseded record** — the older one. Both sides above name `D3`, and `D3` is defined in the *older* record's `## Decision`. The newer record's own D-numbering never appears in either field. The lint checks that the cited D-ID exists in the record that defines it, and that both halves name the same set.
+- **A partially superseded record keeps `Status: Accepted`.** `Superseded` is for whole-record replacement only — most of the older record still binds, so its status has not changed. The lint checks only that `Status` holds an allowed token, so a wrongly-`Superseded` record passes.
+- **Spelling of multiple entries.** Several D-IDs against one ordinal join with a comma and no space; separate ordinals join with a semicolon and a space — `ADR-NNNN D3,D4; ADR-PPPP D1`. The parser tolerates a space after the comma, so this one is house style rather than a gate.
+
+These fields stay writable after acceptance, so recording a partial supersession you discover later edits no frozen prose. Add it to both records in the same change — a half-written pair does fail the lint, and it reports on both files.
+
 ### Originating from an accepted RFC
 
 The RFC carried the debate; its accepted outcome lists "one or more ADRs to record the architectural decisions" as follow-on artifacts. Run `new-adr` per architectural decision named, cite the RFC in `Related:`, and let the RFC carry the prior-art and alternatives weight — the ADR's `Alternatives considered` can be terse when the RFC already exhausted them.

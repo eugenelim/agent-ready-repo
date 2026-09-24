@@ -1,0 +1,68 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-DESIGN"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-17T21:50:38Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-d943ac9f2fc0b5953218267ed9425514662b2a8623d8ce8ebeb73528b56b146b",
+      "evidence_digest": {
+        "byte_length": 20173,
+        "kind": "sha256-bytes-v1",
+        "sha256": "40e77eae27c3763765c33a4d1e4410d250b438117d5e23e89239ca505c7859bf"
+      },
+      "mutation_id": "1eb80727031daa72729b2a688fd93113a71f4aca269667b79269ed94e2351f7c",
+      "observed_at": "2026-09-17T21:50:38Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "docs/specs/load-bearing-claim-grounding/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 20173,
+      "kind": "sha256-bytes-v1",
+      "sha256": "40e77eae27c3763765c33a4d1e4410d250b438117d5e23e89239ca505c7859bf"
+    },
+    "path": "docs/specs/load-bearing-claim-grounding/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/new-spec",
+    "packs/core/tests/skills/new-spec"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 40761,
+        "kind": "sha256-bytes-v1",
+        "sha256": "2efa7d6484c0af1a61215b62d68dccd56a94312bb861f444a2c166cb8158239e"
+      },
+      "path": "docs/specs/load-bearing-claim-grounding/notes/verification-ledger.md"
+    },
+    {
+      "digest": {
+        "byte_length": 16933,
+        "kind": "sha256-bytes-v1",
+        "sha256": "0e1b3f5432c8b6e39d7d50655e069da6438abecc30d1d0a3a6a6397ceb2b521a"
+      },
+      "path": "packs/core/tests/skills/new-spec/test_load_bearing_claim_grounding.py"
+    }
+  ],
+  "synthesis": {
+    "body": "A criterion that asserts a table is total \"over the inputs it names\" takes its domain from the artifact under test, so an omitted or renamed row redefines the property instead of failing it. Two separate defects in one delivery came from that shape: a routing table was total over its own three row keys while two of the six consequences in the firing predicate beside it matched no row at all, and an evidence-shape table's key set was checked against itself. The repair is two-part and neither half works alone. First, write the control's expected key set as a literal fixture in the test and compare the parsed keys against it before building any mapping, so a renamed or missing row fails. Second, make the table total by construction rather than by a second enumeration: one row is the residual route defined as \"any of the above unless a row below applies\", and the exception rows are made mutually exclusive on a single stated discriminator. A second enumeration of a domain is a second home for it and is free to drift from the first, which is how the two unmapped consequences arose.",
+    "kind": "antipattern"
+  },
+  "title": "A totality criterion that names its own domain cannot fail — pin the key set and make the table total by construction",
+  "topic_key": "a-totality-criterion-that-names-its-own-domain-cannot-fail"
+}

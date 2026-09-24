@@ -27,7 +27,7 @@ The brief template is a **guide, not a schema**. Create mode records a Draft and
 | Section | Required? | Meaning |
 | --- | --- | --- |
 | `Outcome` | **yes (load-bearing)** | The problem and the user-facing outcome, in the user's terms. The one field a brief cannot do without — it's what every slice is measured against. |
-| `Success metrics` | optional | Observable signals that the outcome landed (not activities). E.g. "p95 checkout under 400ms", "reset tickets down 60%". |
+| `Success metrics` | optional | Observable signals that the outcome landed (not activities). E.g. "p95 checkout under 400ms", "reset tickets down 60%". Stays at brief altitude — see [below](#keeping-success-metrics-at-brief-altitude). |
 | `Scope / Non-goals` | **yes** | The boundary of this repo's slice. Non-goals are as load-bearing as scope — they stop the decomposition from sprawling. |
 | `Appetite` | optional | A *constraint*, not an estimate: how much time/effort the outcome is worth ("a few weeks, not a quarter"). Bounds the decomposition. |
 | `User stories` | optional (Shape B) | Stories with ids (`US-1`, `US-2`, …). Present → decomposition groups stories into specs and coverage is story-granular. Absent → Shape A, spec-granular coverage. |
@@ -36,6 +36,33 @@ The brief template is a **guide, not a schema**. Create mode records a Draft and
 | `Rabbit holes` | optional | Named design traps, constraints, or out-of-bounds explorations to avoid. |
 | `Source` | optional until Ready | Durable source provenance. Tracker-origin work also records the reviewed source revision. |
 | `Status` | set by the owning workflow | One of `Draft`, `Ready`, `Executing`, `Shipped`, `Withdrawn`, or `Cancelled`. `create` sets Draft; `continue` may set Ready; terminal transitions go through `close-work`. |
+
+## Keeping Success metrics at brief altitude
+
+A brief sits between the roadmap and a spec, and `Success metrics` inherits that
+altitude. Write each one as an outcome-level observation that can fail, and say
+in the section itself that the falsifiable criteria which operationalise them
+are spec-owned.
+
+**Make each metric bind in both directions.** A metric worth keeping is one an
+over-restrictive implementation fails as surely as a permissive one. "A
+placement path that escapes its root refuses; one that merely leaves the
+repository asks" fails both ways. "Unsafe paths are rejected" fails only one.
+
+**The tell that the section has dropped below brief altitude** is a review
+finding that asks for a checker name, an exit code, a read boundary, or a
+fixture cohort. Those are spec-owned details. When a finding asks for one, the
+section has gone too far down, not too little.
+
+**Rebuild rather than patch.** Answering a "one-sided contract" finding by
+adding another criterion makes the section grow, and each addition tends to
+contradict scope or non-goals somewhere else — so the next round finds more. If
+the section has taken two rounds of additions, replace it with a handful of
+outcome-level observations instead of amending it a third time.
+
+**Sweep every section the rule touches.** Repairing only the section a finding
+names leaves the same defect in its siblings — a fixed count removed from
+`Non-goals` can survive in a later section and return as a fresh finding.
 
 ## DoR gate
 
