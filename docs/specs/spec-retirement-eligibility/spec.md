@@ -1,6 +1,6 @@
 # Spec: Spec-retirement eligibility projection
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) Wave 7e (Errata 2026-09-24), §7 helper split, §2 semantic roles, and the Wave 7d carve-out surfaces (Errata 2026-09-13). §6 cooling is explicitly out of scope: this capability reads no lifecycle record.
@@ -67,9 +67,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Always do
 
-- Parse structured inputs with a parser. TOML through `tomllib`, JSON through
-  `json`, and a spec header through the owning lint's helper. Where a lint
-  already owns a parser, import it rather than re-deriving the rule.
+- Parse structured inputs with a parser: TOML through `tomllib`, JSON through
+  `json`, never a grep. Import a helper only from within this skill —
+  cross-skill relative imports are banned as unportable across adapter
+  projections, so a vocabulary another skill owns is duplicated and pinned by a
+  test that fails when the copies diverge.
+- Resolve every repository path through this skill's own confinement helper
+  before reading it.
 - Report age from recorded change history and label it as such. RFC-0096 §6's
   cooling clock runs from a lifecycle record this capability does not read.
 - Treat every emitted verdict as advisory. This capability reports; a human
@@ -131,77 +135,129 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-Every blocker code below is emitted by exactly one named condition. The schema's
-enum owns the code vocabulary; RFC-0096's Wave 7e erratum owns the coverage
-obligation those codes must satisfy.
+Every blocker code is emitted by exactly one named condition. The schema's enum
+owns the code vocabulary; RFC-0096's Wave 7e erratum owns the coverage
+obligation those codes satisfy. Substrate shapes named below are those the
+verification ledger's T0b enumeration found; a shape it did not find is refused,
+never defaulted.
 
-- [ ] A candidate free of every condition named below is reported eligible with
-      an empty blocker list.
+### Fail closed, or report nothing
+
+- [ ] An input a blocker depends on that cannot be read is refused as
+      `spec-unreadable` when it is a spec body, and as `input-unparseable`
+      otherwise, naming that input.
+- [ ] An input that reads but cannot be parsed is refused as `input-unparseable`,
+      naming that input.
+- [ ] A refusal naming an input suppresses the eligibility of every candidate
+      whose blockers depend on that input.
+- [ ] No candidate is reported eligible while a refusal covering any of its
+      evidence is present.
+- [ ] A candidate free of every condition named below, with no refusal covering
+      its evidence, is reported eligible with an empty blocker list.
 - [ ] A candidate reported eligible carries an empty blocker list, and a
       candidate reported not eligible carries at least one.
-- [ ] Two `retirement-candidates` invocations over an unchanged tree, run against
+
+### Confinement
+
+- [ ] A path derived from repository content that resolves outside the
+      repository root is refused as `path-escapes-root` and is not read.
+- [ ] A path reached through a symlink whose target leaves the repository root
+      is refused as `path-escapes-root` and is not read.
+- [ ] Every repository read resolves its path through the confinement helper
+      `workspace-status` already owns, not through a check re-derived here.
+
+### Determinism
+
+- [ ] Two `retirement-candidates` invocations over an unchanged tree, against
       the same supplied run date, emit byte-identical output.
+
+### Status vocabulary
+
+- [ ] A `Status:` value is reduced to its leading token before comparison, so an
+      annotated value such as `Shipped (2026-05-26)` is classified by `Shipped`.
+- [ ] A spec whose leading status token is `Shipped` or `Archived` is not
+      reported `status-not-terminal`.
+- [ ] A spec whose leading status token is a recognised value other than those
+      two is reported `status-not-terminal`.
+- [ ] A spec carrying no `Status:` field, or whose leading token is outside the
+      recognised set, is refused as `spec-status-unrecognised`.
+- [ ] The recognised set this capability compares against is identical to the
+      set `lint-spec-status` enforces, and a test fails when the two diverge.
 
 ### Blocker emission
 
-- [ ] A spec that any `workspace.toml` entry names in a `needs` field is reported
-      `needed-by`, whichever collection holds that entry, and a spec no entry
-      names is not.
+- [ ] A spec that any `workspace.toml` entry names in a `needs` field is
+      reported `needed-by`, whichever collection holds that entry, and a spec no
+      entry names is not.
 - [ ] `needed-by` resolves both shapes the file carries: a list of tables each
-      naming a `path`, and a bare string of the form `<room>:<kind>/<slug>`.
-- [ ] A `needed-by` blocker names every entry declaring the dependency, not only
-      the first.
-- [ ] A `needed-by` blocker names, for each declaring entry, the `needs` edge a
-      maintainer removes to clear it.
+      naming a `path`, and a bare `<room>:<kind>/<slug>` string.
+- [ ] A `needs` value in a shape the run does not resolve is refused as
+      `needs-shape-unrecognised`.
+- [ ] A `needed-by` blocker names every entry declaring the dependency and, for
+      each, the `needs` edge a maintainer removes to clear it.
 - [ ] A spec whose declaring edges have all been removed is no longer reported
-      `needed-by`.
+      `needed-by`, and one with a single edge remaining still is.
 - [ ] A spec carrying an inbound literal reference from any surface RFC-0096's
       Wave 7d carve-out enumerates is reported `inbound-cited`, and a spec
       carrying none is not.
+- [ ] `inbound-cited` fires on each citation form the emitted output enumerates
+      as recognised, including a repository-relative path and a link carrying a
+      fragment or trailing slash.
+- [ ] A spec whose slug is a strict prefix of another spec's slug is not
+      reported `inbound-cited` on the longer slug's citations alone.
 - [ ] An `inbound-cited` blocker names each citing surface.
-- [ ] The emitted output states which citing surfaces `inbound-cited` does not
-      reach, so a reader does not read its absence as proof of no citation.
-- [ ] A `shipped-brief-member` blocker names the brief whose map holds the spec.
+- [ ] The emitted output states which citing surfaces and which citation forms
+      `inbound-cited` does not reach.
 - [ ] A spec named in the `Spec map` of a brief whose own status is `Shipped` is
       reported `shipped-brief-member` while that row carries no commit pin.
-- [ ] The `shipped-brief-member` blocker clears only when the row carries a
-      commit pin resolving to a `Status: Shipped` body and its status cell still
-      reads `Shipped`, so the row is prepared but not yet half-edited.
+- [ ] The `shipped-brief-member` blocker clears only when the row carries a pin
+      that satisfies every pin criterion below and its status cell still reads
+      `Shipped`.
+- [ ] A `shipped-brief-member` blocker names the brief whose map holds the spec.
 - [ ] A spec whose directory holds a `notes/` file that no surface outside that
       directory cites is reported `lasting-facts-unsettled`, and a spec whose
-      `notes/` files are all cited from outside are not.
-- [ ] A candidate reported `lasting-facts-unsettled` carries an obligation naming
-      the RFC-0096 §2 semantic role that fact must reach.
+      `notes/` files are all cited from outside is not.
+- [ ] A candidate reported `lasting-facts-unsettled` carries an obligation
+      naming the RFC-0096 §2 semantic role that fact must reach.
 - [ ] That obligation names a destination where §4's precedence order resolves
       one, and omits the destination where it does not.
 - [ ] A spec named in the protected-directory manifest is reported `protected`,
       and a spec absent from it is not.
 - [ ] A spec named by an `x-spec` key in any contract is reported
       `xspec-pinned`, and a spec no `x-spec` key names is not.
-- [ ] A spec whose own `spec.md` or directory is the `path` of a `workspace.toml`
-      entry in a collection not named `shipped` is reported `inflight`, and a
-      spec whose only such entries sit in a `shipped` collection is not.
+- [ ] A spec is reported `inflight` when a `workspace.toml` entry whose own
+      `path` is that spec's directory or its `spec.md` sits in a collection the
+      run classifies as non-terminal, and is not when every such entry sits in a
+      collection it classifies as terminal.
 - [ ] An entry whose `path` names a file inside a spec directory rather than the
       spec itself does not make that spec `inflight`.
-- [ ] A spec whose `Status:` is a recognised value other than `Shipped` or
-      `Archived` is reported `status-not-terminal`, and a spec carrying either of
-      those two is not. The recognised set is the one `lint-spec-status` owns.
-- [ ] A spec carrying no `Status:` field, or one whose value is outside the
-      recognised set, is refused as `spec-status-unrecognised` rather than
-      emitted with a guessed status.
-- [ ] A `needs` value in a shape the run does not resolve is refused as
-      `needs-shape-unrecognised` rather than skipped.
-- [ ] A spec carrying no `last_touched` value is reported `history-missing`.
-- [ ] A spec whose change history resolves is not reported `history-missing`,
-      and carries a `last_touched` value.
+- [ ] A collection name the run cannot classify as terminal or non-terminal is
+      refused as `collection-unrecognised` rather than defaulted to either.
+- [ ] A spec whose last recorded change is newer than the emitted cutoff is
+      reported `recently-changed`, and one whose change is older is not.
+- [ ] A spec whose last recorded change cannot be determined is reported
+      `history-missing` and carries no `last_touched` value.
+- [ ] A spec whose change history resolves is not reported `history-missing` and
+      carries a `last_touched` value.
 - [ ] A spec naming a path that does not resolve is reported
       `references-unresolved`, and a spec whose named paths all resolve is not.
 
+### Commit pins
+
+- [ ] A commit pin is accepted only when it matches a full hexadecimal object
+      identifier of the length this repository's git produces.
+- [ ] A pin failing that shape renders its child `unverifiable` and is never
+      passed to git.
+- [ ] An accepted pin is passed to git as a positional argument after `--`, with
+      no shell, so a value beginning with `-` cannot be read as an option.
+- [ ] A pin renders its child `Retired` only when the object it names both
+      resolves and contains the mapped spec's `spec.md` carrying a leading status
+      token of `Shipped`.
+- [ ] A pin naming a resolvable revision that does not contain that path renders
+      its child `unverifiable`.
+
 ### Age reporting
 
-- [ ] A candidate whose last recorded change is newer than the emitted cutoff is
-      reported `recently-changed`, and one whose last recorded change is older is
-      not.
 - [ ] The emitted `cutoff_date` is a calendar date on every run.
 - [ ] The emitted `cutoff_date` equals the run date minus `stale_after_days`.
 - [ ] `stale_after_days` is 30 when the caller supplies no value.
@@ -213,28 +269,25 @@ obligation those codes must satisfy.
 ### Brief resolution
 
 - [ ] `lint-brief-coverage` exits `0` for a `Shipped` brief whose children are
-      `Shipped` and `Retired`, where each `Retired` child is absent and carries a
-      commit pin resolving to a `Status: Shipped` body.
-- [ ] `lint-brief-coverage` resolves an absent mapped spec carrying no commit pin
-      as `missing` and exits `1`.
+      `Shipped` and `Retired`.
+- [ ] `lint-brief-coverage` resolves an absent mapped spec carrying no commit
+      pin as `missing` and exits `1`.
 - [ ] `lint-brief-coverage` exits `0` for a `Shipped` brief whose absent child
-      carries a commit pin that does not resolve.
-- [ ] An absent child whose commit pin does not resolve is rendered
-      `unverifiable`.
-- [ ] `lint-brief-coverage` exits `0` for a `Draft` brief carrying an
-      `unverifiable` child.
-- [ ] A mapped row whose status cell reads `Retired` and whose child renders
-      `unverifiable` reports no drift violation.
+      renders `unverifiable`.
+- [ ] An `unverifiable` child is not execution evidence, so a `Draft` brief
+      carrying one exits `0`.
+- [ ] A `Retired` child is execution evidence, so a `Draft` brief carrying one
+      exits `1`.
 - [ ] `lint-brief-coverage` exits `0` for an `Executing` brief whose children are
       one `Retired` and one `Shipped`.
-- [ ] `lint-brief-coverage` exits `1` for a `Draft` brief carrying a `Retired`
-      child.
+- [ ] A `Shipped` brief whose pinned-`Retired` and `Shipped` children all resolve
+      is reported delivered.
 - [ ] A mapped row whose status cell reads `Retired` and whose pin resolves
       reports no drift violation.
 - [ ] A mapped row whose spec is absent with a resolving pin but whose status
       cell still reads `Shipped` reports a drift violation and exits `1`.
-- [ ] A `Shipped` brief whose pinned-`Retired` and `Shipped` children are all
-      resolved is reported delivered.
+- [ ] A mapped row whose child renders `unverifiable` reports no drift violation,
+      whatever its status cell reads.
 - [ ] A mapped child that is present and carries `Status: Archived` resolves to
       `Archived`, unchanged by this delivery.
 - [ ] The commit pin is read from the column its header names, so a map carrying
@@ -243,30 +296,44 @@ obligation those codes must satisfy.
       pin, each row renders the mapped spec's own `Status:` value, unchanged by
       this delivery.
 
-### Area attribution
+### Area attribution and its writer
 
-- [ ] In a fixture whose only top-level source directory is named something other
-      than `packs`, a spec whose body names that directory is attributed to it.
+- [ ] In a fixture whose only top-level source directory is named something
+      other than `packs`, a spec whose body names that directory is attributed
+      to it.
 - [ ] A candidate matching no inferred namespace is attributed `unscoped`.
 - [ ] Every non-writing subcommand the dispatch table defines leaves
-      `workspace.toml` byte-identical, including when the `[areas]` map is absent
-      and when its recorded fingerprint is stale. `areas-refresh` is the only
-      subcommand this delivery adds that writes.
+      `workspace.toml` byte-identical, including when the `[areas]` map is
+      absent and when its recorded fingerprint is stale.
 - [ ] `areas-refresh` writes the `[areas]` table where none exists.
 - [ ] A second `areas-refresh` replaces the existing `[areas]` table rather than
       appending a second one.
 - [ ] `areas-refresh` leaves every byte of `workspace.toml` outside the
       `[areas]` table unchanged.
-- [ ] `areas-refresh` refuses with `lock_busy` when the shared workspace lock is
-      already held.
-- [ ] Changing the repository's top-level directory shape changes the fingerprint
-      `areas-refresh` records, and leaving the shape unchanged leaves it equal.
+- [ ] After any `areas-refresh`, the whole `workspace.toml` re-parses and its
+      parsed `[areas]` equals the mapping the run intended to write.
+- [ ] An area key or value that cannot be represented in the emitted table form
+      is refused as `area-value-unrepresentable` rather than escaped.
+- [ ] An `areas-refresh` that fails or is interrupted leaves `workspace.toml`
+      byte-identical to its pre-run content.
+- [ ] `areas-refresh` locates the `[areas]` byte span and replaces it within one
+      continuous hold of the shared workspace lock.
+- [ ] `areas-refresh` refuses with `lock_busy` when the shared lock is already
+      held.
+- [ ] Changing the repository's top-level directory shape changes the
+      fingerprint `areas-refresh` records, and leaving the shape unchanged
+      leaves it equal.
 - [ ] A run whose recorded fingerprint does not match the current repository
       shape reports the map as stale and names `areas-refresh` as the refresh.
-- [ ] A `status` run against a repository carrying an `[areas]` map includes that
-      map in its output.
+- [ ] A `status` run against a repository carrying an `[areas]` map includes
+      that map in its output.
 - [ ] A `status` run against a repository carrying no `[areas]` map emits its
       remaining output unchanged.
+
+### Output hygiene
+
+- [ ] Every path the output emits is repository-relative.
+- [ ] No emitted string carries an absolute host path or raw exception text.
 
 ### Contract and refusals
 
@@ -276,12 +343,10 @@ obligation those codes must satisfy.
 - [ ] The schema's semantic-role enum equals the ten roles RFC-0096 §2's
       "Other roles are separate" sentence names.
 - [ ] A `workspace.toml` entry naming a `docs/specs/<slug>` path with no
-      directory behind it is refused as `spec-directory-absent` rather than
-      emitted as a candidate.
-- [ ] A spec directory holding no `spec.md` is refused as `spec-file-absent`
-      rather than emitted as a candidate.
+      directory behind it is refused as `spec-directory-absent`.
+- [ ] A spec directory holding no `spec.md` is refused as `spec-file-absent`.
 - [ ] A spec directory whose `spec.md` cannot be read is refused as
-      `spec-unreadable` rather than emitted as a candidate.
+      `spec-unreadable`.
 
 ## Follow-ons
 

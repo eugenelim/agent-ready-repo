@@ -1,7 +1,7 @@
 # Plan: Spec-retirement eligibility projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`AGENTS.md`](../../../AGENTS.md); [`packs/AGENTS.md`](../../../packs/AGENTS.md); [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) § skill dependencies; [`tests/AGENTS.md`](../../../tests/AGENTS.md); [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) §§2, 4, 6, 7 and the Wave 7e Errata
 
 ## Approach
@@ -137,8 +137,14 @@ skills bans cross-skill relative imports, and `lint-brief-coverage.py` already
 hand-duplicates a helper for that reason. Shared code would have to move to
 `.apm/shared-libs/`, which is larger than this capability needs.
 
-**Brief resolution touches six read sites, and each carries a different
-consequence.** A `Retired` state reaching the renderer alone is worse than no
+**Brief resolution touches three resolutions and five consumers, enumerated by
+line rather than by description.** The count went 1→3→4→5→6 across review rounds
+while it was stated as responsibilities; the verification ledger's T0b pass
+pinned it to call sites, and that enumeration is what T1's revert condition
+cites. Resolutions: `L263` (mapped rows, feeding `derived`), `L291` (untracked
+back-links), `L317` (renderer, which re-resolves rather than reusing `derived`).
+Consumers: `L160`, `L166`, `L270`, `L309`, and the renderer's own row output.
+Each carries a different consequence. A `Retired` state reaching the renderer alone is worse than no
 change at all.
 
 - `_brief_lifecycle_is_valid`'s `Shipped` branch requires the child set to
@@ -168,11 +174,24 @@ learn the resolution instead. Each reachable site independently returns the exit
 code the criterion forbids, which is why T1 drives the lint's entry point rather
 than its resolver and asserts the delivery line alongside the exit code.
 
-**Every consumer admits three new derived states, not one.** The `Shipped` branch
-admits `{shipped, retired, unverifiable}`; the execution-evidence term admits
-`{implementing, shipped, retired, unverifiable}`; the drift check treats
-`unverifiable` as non-drift, because a pin that cannot resolve says nothing about
-whether the recorded cell is stale.
+**Every consumer admits two new derived states, and they differ.** `Retired` and
+`unverifiable` both join `missing` as outcomes for an absent child, but they
+carry different evidential weight and the consumers must not treat them alike.
+
+`Retired` means the pin resolved and the object carried a `Shipped` body, so
+execution is proven: the `Shipped` branch admits it, and the execution-evidence
+term admits it. `unverifiable` means nothing could be proven, so it is **not**
+execution evidence — a `Draft` brief carrying one stays valid, and an
+`Executing` brief carrying only unverifiable children does not. The `Shipped`
+branch admits it because a delivered brief whose spec is gone and whose pin no
+longer resolves is not evidence the brief failed. The drift check treats it as
+non-drift, because a pin that cannot resolve says nothing about whether the
+recorded cell is stale.
+
+The child-state domain also contains `governance-reference`, which L261 appends
+for a row naming a governance record rather than a spec. It is already a hard
+violation on its own, so no new state interacts with it — but it is in the
+domain, and a permitted-set statement that omits it is incomplete.
 
 **Retiring a spec edits two cells, not one.** The pin column takes the commit and
 the status cell takes `Retired`. A pin without the cell update leaves the row
@@ -305,9 +324,69 @@ in it resolves to text that does not support the sentence quoting it.
   shapes it finds there will differ, and the capability must refuse what it
   cannot resolve instead of silently skipping it.
 
-**Done when:** every criterion naming a substrate shape cites the enumeration
-rather than a read, and introducing an unclassifiable shape into a fixture
-produces a refusal rather than a missing candidate.
+**Done when:** the enumeration is recorded in the verification ledger, every
+criterion naming a substrate shape matches it, and introducing an unclassifiable
+shape into a fixture produces a refusal rather than a missing candidate.
+
+**When the enumeration disagrees with a criterion**, the criterion is wrong: the
+probe reads the substrate and the criterion only described it. Before approval
+the criterion is rewritten from the ledger. After approval it takes the
+controlled amendment route in
+[`delivery-contract-lifecycle.md`](../../../.claude/skills/work-loop/references/delivery-contract-lifecycle.md);
+it is never reconciled by widening the probe.
+
+### T0c: Every reader fails closed, and no path escapes the root
+
+**Depends on:** T0b
+
+**Tests:**
+- Each substrate input in turn — `workspace.toml`, the protected manifest, a
+  contract carrying `x-spec`, a brief body, a spec body — made unreadable, then
+  unparseable: each produces a named refusal naming that input, and every
+  candidate whose blockers depend on it is withheld from eligible. Verifies the
+  three fail-closed criteria.
+- A `needs` slug of `../../../../etc/passwd` and a spec directory symlinked
+  outside the root are each refused `path-escapes-root` and never opened,
+  asserted by the absence of the read rather than by the refusal alone.
+- Every repository read routes through the skill's own confinement helper;
+  removing that call turns a case red.
+
+**Approach:**
+- The helper is `workspace-status`'s own, in the same skill, so importing it is
+  legal where a cross-skill import would not be. The blessed
+  `agentbundle.catalogue_tooling.file_safety` helpers are not reachable from
+  shipped pack content an adopter installs without that package.
+- The unreadable case is distinct from the unparseable case and both are tested:
+  a permission error and a syntax error arrive by different paths and only one
+  of them raises where a naive reader expects it.
+
+**Done when:** deleting any single fail-closed branch makes a candidate whose
+evidence is missing report eligible, and that is what turns the case red.
+
+### T0d: A commit pin cannot be a revision expression or an option
+
+**Depends on:** T0b
+
+**Tests:**
+- A pin of `HEAD`, of `:/Status`, and of a branch name are each rejected on
+  shape and render `unverifiable` without git being invoked. Verifies the shape
+  and the never-reaches-git criteria.
+- A pin of `--output=/tmp/x` is rejected on shape; a full object id beginning
+  with `-` cannot occur, and the positional-after-`--` form is asserted by
+  inspecting the invocation rather than by its result.
+- A full object id that resolves but does not contain the mapped spec's
+  `spec.md` renders `unverifiable`, not `Retired`.
+- A full object id whose `spec.md` carries an annotated `Shipped (<date>)`
+  renders `Retired`, exercising the leading-token reduction on the pin path too.
+
+**Approach:**
+- Shape validation precedes resolution because the attack is against the
+  argument parser, not the object store: `git cat-file -e --output=x` reports
+  `unknown option`, which means the value was read as an option, and a check
+  that runs after invocation has already lost.
+
+**Done when:** each rejected form is proven not to reach git — by a stub that
+fails the test if called — rather than by observing a benign result.
 
 ### T1: A retired spec passes its brief's lint through the entry point
 
@@ -323,7 +402,10 @@ produces a refusal rather than a missing candidate.
   unchanged-path criterion.
 - `git` absent from `PATH`: every pinned row renders `unverifiable`, exit `0`.
 - An `Executing` brief with one `Retired` and one `Shipped` child exits `0`, and
-  a `Draft` brief with a `Retired` child exits `1`. Verifies the two
+  a `Draft` brief with a `Retired` child exits `1`.
+- A `Draft` brief with an `unverifiable` child exits `0`, and an `Executing`
+  brief whose children are all `unverifiable` exits `1`. Verifies that an
+  unresolvable pin is not execution evidence. Verifies the two
   execution-evidence criteria.
 - The `Shipped` fixture's printed delivery line reports delivered, which is the
   only case that observes the `delivered` predicate.
@@ -370,7 +452,7 @@ commit that precedes this change.
 
 ### T3: Area inference is a pure function of repository shape
 
-**Depends on:** T0b
+**Depends on:** none
 
 **Tests:**
 - Fixture whose only top-level source directory is named something other than
@@ -391,7 +473,7 @@ than asserted.
 
 ### T4: Only `areas-refresh` writes, and it writes under the lock
 
-**Depends on:** T3
+**Depends on:** T0b, T3
 
 **Tests:**
 - `areas-refresh` creates `[areas]` carrying a schema version, a
@@ -420,8 +502,10 @@ without being covered.
 **Depends on:** T0b, T1, T2
 
 **Tests:**
-- One fixture candidate per blocker code, each asserting that its code appears
-  and that the candidate is not eligible. Verifies the coverage criterion.
+- One fixture candidate per blocker code, enumerated from the schema enum rather
+  than from a list in this task, each asserting that its code appears and that
+  the candidate is not eligible. A code added to the enum without a fixture fails
+  the case rather than being silently uncovered.
 - A candidate with two dependents lists both, and each entry carries the `needs`
   edge that clears it. Verifies the two `needed-by` naming criteria.
 - Removing every declaring edge from the fixture clears the blocker, and removing
@@ -431,6 +515,13 @@ without being covered.
   that surface. Verifies the `inbound-cited` criteria.
 - A candidate free of every blocker is eligible with an empty list. Verifies the
   positive-path criterion.
+- A spec whose status reads `Shipped (2026-05-26)` is classified terminal, not
+  refused. Verifies the normalisation criterion against the shape T0b found on
+  276 of 481 specs — the defect that sent this contract back to drafting.
+- The recognised status set equals `lint-spec-status`'s, asserted by comparing
+  the two sets, so a divergence fails rather than drifting silently.
+- A collection name absent from both the terminal and non-terminal lists is
+  refused `collection-unrecognised` rather than defaulted to `inflight`.
 - The emitted `cutoff_date` is a calendar date equal to the run date minus
   `stale_after_days`, and the output records the `stale_after_days` it used.
   Verifies the recording criterion, which a run that computes correctly but
@@ -494,9 +585,9 @@ case red.
 **Tests:**
 - End-to-end invocation against a disposable fixture returns the documented exit
   code and a schema-valid document.
-- A `workspace.toml` entry naming a slug with no directory, a directory holding
-  no `spec.md`, and a `spec.md` that cannot be read each produce their own
-  refusal code. Verifies the three refusal criteria.
+- Every refusal code the schema enum carries has a fixture that produces it,
+  enumerated from the enum rather than listed here, so a code added without a
+  fixture fails the case. Verifies the refusal criteria.
 - Two invocations over an unchanged tree emit byte-identical output.
 - `status` includes the map when present and emits its remaining output
   unchanged when absent.
@@ -556,9 +647,9 @@ ledger.
   two new brief resolutions.
 - **Infrastructure:** none.
 - **External-system integration:** none. `git` is already required by the skill.
-- **Deployment sequencing:** T0 before any spec approval. T1 and T2 before T5's
-  `shipped-brief-member` blocker has correct behaviour to assert. T4 before T8
-  reads the map.
+- **Deployment sequencing:** each task's `Depends on:` is the canonical
+  ordering; this section adds none. T0 precedes spec approval because the
+  erratum is the authority the criteria cite.
 
 ## Risks
 

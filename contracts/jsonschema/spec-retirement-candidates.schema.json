@@ -415,7 +415,8 @@
         "path": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 1024
+          "maxLength": 1024,
+          "description": "Repository-relative. Never an absolute host path and never raw exception text."
         },
         "code": {
           "enum": [
@@ -423,11 +424,22 @@
             "spec-file-absent",
             "spec-unreadable",
             "spec-status-unrecognised",
-            "needs-shape-unrecognised"
+            "needs-shape-unrecognised",
+            "collection-unrecognised",
+            "path-escapes-root",
+            "input-unparseable",
+            "area-value-unrepresentable"
           ]
+        },
+        "suppresses": {
+          "type": "array",
+          "description": "Slugs whose eligibility this refusal suppresses.",
+          "items": {
+            "$ref": "#/$defs/slug"
+          }
         }
       },
-      "description": "A repository input this run would have had to guess about. Every refusal names the input; none is defaulted, because a silent default is a false negative a reader cannot see."
+      "description": "An input this run would have had to guess about, or a path it refused to read. Every refusal names the input; none is defaulted, because a silent default reports a shorter candidate list with no sign anything was dropped."
     }
   }
 }
