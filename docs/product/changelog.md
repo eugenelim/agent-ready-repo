@@ -64,6 +64,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [product-engineering][0.13.18] — 2026-09-24
+
+### Highlights
+
+- **The `align-value-stream` layout page now names every skill that reads its
+  output setting.** It lists all eight `[product]` readers, calls out
+  `lean-canvas`'s scan-only read, and makes clear that `ux-writing` reads
+  `[design]` instead.
+
+### Changed
+
+- `align-value-stream`'s layout page now names all eight skills that read
+  `[product]`, including `lean-canvas`'s scan-only read, and distinguishes
+  `ux-writing`'s `[design]` read.
+
 ## [core][2.26.40] — 2026-09-24
 
 ### Highlights

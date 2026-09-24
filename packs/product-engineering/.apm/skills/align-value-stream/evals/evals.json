@@ -13,6 +13,16 @@
         "Rollup is an AND across rows; an absent-source row reads as unknown/not-catalogued, never silently delivered",
         "Treats currency as the spine — addresses the stale-map failure mode"
       ]
+    },
+    {
+      "id": 2,
+      "prompt": "Which product-engineering skills read the [product] layout section, and does ux-writing read it too?",
+      "expected_output": "The complete list of eight [product] readers: frame-intent, align-value-stream, frame-situation, identify-opportunities, diverge-solutions, place-bet, map-capabilities, and lean-canvas. It distinguishes lean-canvas as scanning the section while writing a pinned path, and says ux-writing reads [design], not [product].",
+      "assertions": [
+        "Names exactly the eight [product] readers: frame-intent, align-value-stream, frame-situation, identify-opportunities, diverge-solutions, place-bet, map-capabilities, and lean-canvas",
+        "Distinguishes lean-canvas reading [product] to scan from writing its pinned path",
+        "Says ux-writing reads [design], not [product]"
+      ]
     }
   ]
 }
