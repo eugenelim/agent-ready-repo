@@ -2167,6 +2167,12 @@ milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires
 ["ini-010".brief_queue]
 executing = [
   { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
+  # Moved from `ready` on 2026-09-24, when slice 1 started. A brief whose mapped
+  # spec is executing cannot sit in `ready`: the canonical reconciliation raises
+  # `impossible_transition` on the contradiction between the artifact's status
+  # and its membership. The brief's own `Status:` line moved to `Executing` in
+  # the same change, because that line owns the lifecycle state.
+  { path = "docs/product/briefs/intent-lifecycle-and-closure.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md" }, summary = "Give an intent and a brief a terminal status set through a workflow on recorded evidence: the state table and legal transitions, a three-way refuse/not-eligible/eligible closure check, the evidence packet and closure record, the brief cut-closed declaration, and migration of the intents that reached Fulfilled without Accepted", needs = [] },
 ]
 # Ready 2026-09-23, confirmed by the lifecycle owner on a `Findings` result
 # rather than a `Clean` one; the brief's `Ready confirmed:` line records that
@@ -2176,7 +2182,6 @@ executing = [
 # no blocking edge on the supersession work handed to
 # `intent-identity-and-registration`; it consumes whichever form has landed.
 ready = [
-  { path = "docs/product/briefs/intent-lifecycle-and-closure.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md" }, summary = "Give an intent and a brief a terminal status set through a workflow on recorded evidence: the state table and legal transitions, a three-way refuse/not-eligible/eligible closure check, the evidence packet and closure record, the brief cut-closed declaration, and migration of the intents that reached Fulfilled without Accepted", needs = [] },
 ]
 draft = []
 
