@@ -1,7 +1,7 @@
 # Plan: repair-round dispatch assertion
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/loop-infrastructure.md` §§ 3, 4, 6 (write authority, the two lock domains, the wave-exit verdict's serialisation residual); `packs/AGENTS.md` (pack export boundary, version bump rule, no internal-governance citations in shipped prose); analogous implementations — `_wave_exit_verdict` and `check_phase` in `_loop_guards.py`, `cmd_wave_advance` and `plan_dispatch_receipt` in `loop-cohort.py`, and `_guard_check_spec_status_on_code_review` in `loop-engine.py` for the source-state discriminator; their tests — `test_loop_guards.py`, `test_loop_cohort.py`, `test_loop_engine.py` under `packs/core/tests/skills/work-loop/`; construction path — `_GUARDS` in `loop-engine.py`, `PHASES` and `_SCHEMA_EXEMPT_PHASES` for the new phase. Named uncertainty: none outstanding. The controller-facing site set was surveyed on 2026-09-23 and is enumerated in T4; the obligation it carries is demoted working material rather than contract, and § Design (LLD) records why.
 
 ## Approach
@@ -358,6 +358,65 @@ the eval entry exists, and the parity check reports three matching copies.
 
 **Done when:** `lint-spec-status.py --root .` is clean and the three version
 surfaces agree.
+
+### T6: the implementation review's findings are closed
+
+**Depends on:** T5
+
+**Tests:** TDD for the two behaviour changes, goal-based for the rest.
+Discharges the § The accounting predicate criteria T1 left unasserted, the two
+§ The repair-round verdict criteria T1 left unasserted, and the amended § Proof
+criteria.
+
+- **The refusals name what they found.** Both `check --phase wave-exit` and
+  `wave advance`'s advancing branch currently say a task has "no dispatch
+  receipt" when it holds a superseded one. Each refusal states which named tasks
+  hold a superseded record and which hold none, and a test fails if the two
+  render identically — the criterion asks for the distinction, so a shared
+  string that cannot express it is the defect.
+- **The predicate's second consumer is driven.** `wave advance --from-index
+  <current>` at the CLI against a wholly superseded wave, asserting its refusal.
+  Nothing in the repository drives that pair today, so the T1 ledger's reds for
+  the superseded clause all come from the wave-exit consumer.
+- **Two `wave-reopen` criteria gain their checks:** an unreadable `state.json`
+  refused by the shared reader with the verdict never reached and the reason
+  equal to `--phase wave-exit`'s for the same file, and `state.json` byte-identical
+  across a `check --phase wave-reopen` invocation.
+- **The inert discriminators are deleted.** In code mode `gates-failed` and
+  `blocker-applied` each have one source state, so reading `engine_state["state"]`
+  in their guards cannot change an outcome and the T3 ledger records it surviving
+  its mutation. Deleting them removes the exception rather than licensing it;
+  `findings-remain`'s discriminator stays, because it is the twin-sourced edge and
+  its mutation reds. `test_only_findings_remain_is_twin_sourced_in_code_mode`
+  stays as the tripwire that says when a new source state makes one live again.
+- **The oracle stops overclaiming.** Its docstring named five "properties that
+  can fail" where three restate the transcribed verdict's own body. It reports
+  those as counts, labelled as restatements, and names the roster parity test as
+  the falsifiable form. Its two references to the parity test are corrected to
+  `tests/roster/`.
+- **The content pin loses its comment asymmetry.** It locates the edge by walking
+  non-comment lines and the reopen over the raw block, so a commented-out
+  `# wave reopen` above a transition satisfies it. Both halves use the
+  non-comment rule.
+- **`evals.json` keeps only the new entry.** T4 re-encoded every literal em dash
+  in that shipped artifact as `\u2014`; the re-encoding is reverted so the diff
+  carries the eval entry alone.
+- **Prose and records agree with the shipped mechanism:** `references/state-schema.md`
+  states the `is True` rule rather than "is set"; `references/full-mode-engine.md`'s
+  sentences above the two changed blocks name the reopen; `wave reopen`'s success
+  line names the wave and how many records it superseded; and the
+  `workspace.toml` register comment describes superseding rather than the
+  clearing design the frozen receipts contract forbids.
+- **The ledger gains an entry per new verdict clause**, and the
+  malformed-container case gets a fixture that keeps the live digest populated —
+  the current one uses a bogus digest, so the records are never found and the
+  clause's removal leaves the state passing anyway.
+
+**Done when:** `make lint-ruff lint-mypy` passes; `test_loop_guards.py`,
+`test_loop_cohort.py`, `test_loop_engine.py` and `packs/core/tests/pack/` are
+green; `tests/roster/test_repair_round_predicate_parity.py` is green; both
+oracles run and report their stated figures; `make build-self` reports three-copy
+parity; and this task's mutation entries are in `notes/verification-ledger.md`.
 
 ## Rollout
 
