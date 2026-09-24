@@ -736,28 +736,52 @@ the other 23 of 50. **18% or 46% of Blockers, depending on the rater.** `[low]`
 `R2`
 
 The disagreement sits on one axis, and it is a defect in the rule's wording
-rather than in either rater. `adversarial-reviewer` defines mechanical as *"one
-correct resolution … with no choice left open"* and then justifies the ceiling
+rather than in either rater. `adversarial-reviewer` defined mechanical as *"one
+correct resolution … with no choice left open"* and then justified the ceiling
 with *"nothing external decides it and the next round will raise another"*. The
 first clause asks how many **repairs** exist; the second asks whether anything
 establishes the **defect**. A count that says three where the tree holds five is
 determinate as a defect and indeterminate as a remedy, so the two readings
 diverge by a factor of two and a half.
 
-This matters in production because **no runtime is named in the reviewer
+This mattered in production because **no runtime is named in the reviewer
 contracts**: the same prose is executed by whichever model the session uses, so
 the divergence is a live per-runtime variance in how strictly a delivery is
 gated, not an artefact of this measurement.
 
-The remedy is two sentences, not a mechanism: say that the repair may take
+The remedy was two sentences, not a mechanism: say that the repair may take
 several defensible forms and that what makes a finding mechanical is that the
-*defect* is decided, not the *remedy*. Whether it closes the gap is testable —
-re-run both raters on the same 50 entries under the corrected wording. The
-instrument for that already exists in
+*defect* is decided, not the *remedy*.
+
+**Shipped 2026-09-24, in `core` 2.26.40.** Both contracts now tag severity by
+whether anything external establishes the defect. `adversarial-reviewer` states
+that the repair may take several defensible forms; `finding-adjudicator`'s
+fifth predicate states that determinacy of the remedy is not the test. The
+vocabulary, the Concern ceiling and who applies the test are unchanged.
+
+**The paired re-label narrowed the spread from six to zero.** Two raters on two
+runtimes labelled the same 50 entries under both wordings, paired so the
+before-and-after sits on one rater rather than on two unknown ones. Old
+wording: 2 and 8. Corrected wording: 1 and 1. Under the old wording, seven of
+the eight entries the higher rater returned were reasoned as remedy
+indeterminacy — "which AC is correct is undetermined", "unresolvable without a
+design decision" — and the lower rater reached that reading once. Under the
+corrected wording neither rater gives a remedy-indeterminacy reason; the two
+single hits are a framing preference and a `notes/` surface tier, both advisory
+under either wording. `[low]` `R2`
+
+This does not replicate the 9-versus-23 measurement: different raters, and
+absolute levels of 2 and 8 rather than 9 and 23. What it establishes is that
+replacing the clause removes the reading that produced the divergence on this
+sample. Count agreement is also not entry agreement — the two raters name
+different single entries — so the residual disagreement is one entry wide
+rather than six.
+
+A standing cross-runtime test is still absent. The instrument is described in
 [`cross-model-steering-survey.md`](cross-model-steering-survey.md) Mechanism 1,
 clause accuracy; what is missing is that `packs/core/.apm/agents/` ships no
 `evals/` directory, so the contracts whose prose decides severity have no
-cross-runtime test.
+repeatable cross-runtime check and the re-label above is a one-off.
 
 ## Known unknowns
 
