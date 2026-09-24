@@ -1,6 +1,6 @@
 # Spec: catalogue sync — the apply path and the scoping flags
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0059 (the catalogue-curation pack, which owns the white-label export boundary)
@@ -359,7 +359,7 @@ the answer.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0030.** `--dry-run`, `--check`, and neither are three mutually
+- [x] **AC-0030.** `--dry-run`, `--check`, and neither are three mutually
   exclusive invocation modes; neither flag means apply. This supersedes two
   criteria of [phase 2's spec](../catalogue-sync-dry-run/spec.md), which is
   frozen: its exit-code criterion's "neither or both" malformed row, and its
@@ -372,15 +372,15 @@ the answer.
   `--format json` and without `--yes` is malformed, because the prompt and the
   document would share stdout and phase 2 makes that document a parse
   contract.
-- [ ] **AC-0031.** An apply run writes nothing until consent is given. Consent
+- [x] **AC-0031.** An apply run writes nothing until consent is given. Consent
   is an affirmative answer at the prompt or `--yes` on the command line; a
   negative answer, an end-of-input, or an absent terminal with no `--yes` all
   leave the target tree identical on the walk tuple AC-0041 compares.
-- [ ] **AC-0032.** The paths AC-0033 clause 5 leaves admitted are written in
+- [x] **AC-0032.** The paths AC-0033 clause 5 leaves admitted are written in
   the order packs, profiles, guides, then the derivation-wide paths — which an
   unscoped run still admits — and AC-0033 clause 6's ownership state after all
   four.
-- [ ] **AC-0033.** **The write set is defined here and nowhere else.** Every
+- [x] **AC-0033.** **The write set is defined here and nowhere else.** Every
   other criterion that constrains what an apply run writes names a clause of
   this definition rather than restating a scope over it. The set of paths an
   apply run writes is constructed in this order, and equals the result exactly:
@@ -413,17 +413,17 @@ the answer.
 
   No other path under the target tree is created, modified, moved, or has its
   mode changed.
-- [ ] **AC-0034.** A `would-companion` path whose computed companion
+- [x] **AC-0034.** A `would-companion` path whose computed companion
   destination AC-0033 clause 3 admits receives that path carrying the replayed
   source bytes, and the adopter's own file at the original path has the same
   sha256 after the run as before it.
-- [ ] **AC-0035.** Stale removal runs only after every planned write has landed,
+- [x] **AC-0035.** Stale removal runs only after every planned write has landed,
   keeps its sha256 guard unchanged, and computes its keep-set from the full
   replayed planned set rather than from the write set.
-- [ ] **AC-0036.** For every path in the recorded path set AC-0059 fixes, the
+- [x] **AC-0036.** For every path in the recorded path set AC-0059 fixes, the
   recorded sha256 equals the digest of the bytes the run wrote to it when the
   run wrote it, and the value recorded before the run when it did not.
-- [ ] **AC-0037.** The pin each source form records is the row for that form.
+- [x] **AC-0037.** The pin each source form records is the row for that form.
   Three rows relocate the values phase 2's source-fidelity criterion already
   fixes. The `git+https://` row does not: phase 2 reports `source_revision`
   absent for that form because the resolver computes the ref and discards it,
@@ -444,7 +444,7 @@ the answer.
   a ref such as `v1.2.3`; the value reaching the pin is free text from an
   operator-supplied URI, and the state file is the one artifact § Never do keeps
   permanently outside the identity leak check.
-- [ ] **AC-0038.** When any planned write fails, the command restores the target
+- [x] **AC-0038.** When any planned write fails, the command restores the target
   tree before returning to the walk tuple AC-0041 compares — relative path,
   entry kind, mode, symlink target and bytes — over every path the run wrote,
   created or removed, so a directory the run created and the pre-run walk lacks
@@ -460,7 +460,7 @@ the answer.
   selects between two rows of AC-0039's table, which is the sole authority on
   the resulting code; AC-0058 governs what a restore that does not succeed must
   report.
-- [ ] **AC-0039.** The command's exit code is the first matching row of this
+- [x] **AC-0039.** The command's exit code is the first matching row of this
   table, read top to bottom, and no input produces a code outside it:
 
   | Invocation | Condition | Code and name |
@@ -509,10 +509,10 @@ the answer.
   after a write had already landed. AC-0076 builds the snapshot before the
   prompt, so the snapshot row stays above the consent rows while the gate row
   sits below them.
-- [ ] **AC-0040.** Every invocation and every failure reaches a named row of
+- [x] **AC-0040.** Every invocation and every failure reaches a named row of
   AC-0039's table at the command boundary. No uncaught exception sets the
   process exit status.
-- [ ] **AC-0041.** The walk this criterion compares is non-dereferencing and
+- [x] **AC-0041.** The walk this criterion compares is non-dereferencing and
   covers relative path, entry kind, mode, symlink target and bytes. It is taken
   immediately before the command runs and immediately after it returns.
 
@@ -550,10 +550,10 @@ the answer.
   | `4` writes landed and stale removal failed | the paths AC-0033 defines less its clause 6 ownership state, and the paths removal had removed before it failed |
   | `4` writes landed and the state write failed | the paths AC-0033 defines less its clause 6 ownership state, and the paths stale removal removed |
 
-- [ ] **AC-0042.** With none of `--pack`, `--profile`, `--guides`, or
+- [x] **AC-0042.** With none of `--pack`, `--profile`, `--guides`, or
   `--package` supplied, AC-0033 clause 1's effective selection is exactly the
   recorded recipe and clause 4 excludes nothing.
-- [ ] **AC-0043.** The scope AC-0033 clause 4 excludes against is the union of
+- [x] **AC-0043.** The scope AC-0033 clause 4 excludes against is the union of
   the subtrees the supplied scoping flags name: `packs/<name>/` for each
   `--pack <name>`, `profiles/<name>.toml` for `--profile <name>`, and
   `guides/_shared/` for `--guides`. With no scoping flag supplied the scope is
@@ -561,38 +561,38 @@ the answer.
   `--dry-run` prints, so a preview and the apply it previews name the same
   paths. *Scoping flag* means `--pack`, `--profile` or `--guides`; `--package`
   is a reserved selector, not a scoping flag, and AC-0047 governs it.
-- [ ] **AC-0044.** A run supplying a scoping flag leaves every recorded
+- [x] **AC-0044.** A run supplying a scoping flag leaves every recorded
   identity field at its pre-run value. The derivation-wide *paths* are AC-0033
   clause 4's scope exclusion, which contains no derivation-wide path; this
   criterion covers the recorded fields, which no clause of that definition
   reaches.
-- [ ] **AC-0045.** A `--pack` or `--profile` name absent from the recorded
+- [x] **AC-0045.** A `--pack` or `--profile` name absent from the recorded
   recipe enters the effective selection at AC-0033 clause 1, so clause 3 admits
   its planned paths, and the ownership state records the name in the recipe's
   matching list with that list's existing entries left in place.
-- [ ] **AC-0046.** A `--pack` or `--profile` name the resolved source does not
+- [x] **AC-0046.** A `--pack` or `--profile` name the resolved source does not
   ship refuses as malformed, naming the field, and writes nothing.
-- [ ] **AC-0047.** `--package` accepts exactly the names `agentbundle` and
+- [x] **AC-0047.** `--package` accepts exactly the names `agentbundle` and
   `credbroker`. Either one refuses the invocation it appears on — apply,
   `--dry-run` or `--check` alike — naming that package sync is not available.
   The code is AC-0039's first matching row, which is the cannot-answer row
   unless the invocation is also malformed. A `--dry-run` or `--check`
   invocation writes no path under either subtree; on an apply run AC-0033
   clause 5 is what excludes them.
-- [ ] **AC-0048.** Two apply runs with identical flags, over target trees whose
+- [x] **AC-0048.** Two apply runs with identical flags, over target trees whose
   recorded `attribution`, `tooling`, and `guides` differ, write the same bytes
   to the same paths.
-- [ ] **AC-0049.** The consent prompt is an output surface for phase 2's terminal-safe scalar criterion:
+- [x] **AC-0049.** The consent prompt is an output surface for phase 2's terminal-safe scalar criterion:
   every value the command renders on it that it did not itself author passes the
   bounded terminal-safe scalar check first, and a value that fails is reported
   by field name and reason, without the value.
-- [ ] **AC-0050.** The consent prompt is an output surface for phase 2's source-disclosure criterion:
+- [x] **AC-0050.** The consent prompt is an output surface for phase 2's source-disclosure criterion:
   outside `--attribution attributed`, the source URI does not appear on it, on
   any row of AC-0039's table.
-- [ ] **AC-0051.** When the identity leak check reports a violation, no path
+- [x] **AC-0051.** When the identity leak check reports a violation, no path
   under the target tree is created, modified, moved, removed, or has its mode
   changed, and the operator is not prompted for consent.
-- [ ] **AC-0052.** Every write the apply path performs under the target tree
+- [x] **AC-0052.** Every write the apply path performs under the target tree
   goes through the jailed write primitive, and a planned path resolving outside
   the target root is refused at that write. This command's companion writes
   pass that primitive's non-replacing mode per AC-0070; there is no second
@@ -605,24 +605,24 @@ the answer.
   suite: the shipped companion test writes to a path that does not yet exist,
   so it passes unchanged if either default flips and cannot carry this. AC-0077
   binds the same writes at act time.
-- [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
+- [x] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
   § Rollout both state that one phase remains.
-- [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
+- [x] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
   carries a section covering the apply run, how consent is given, the scoping
   flags, what an `.upstream.<ext>` companion obliges the adopter to do, and
   that a file upstream added to an already-recorded pack is reported but not
   written, because it is absent from the recorded state —
   present in the authored source and in the projected copy, with both site gates
   passing.
-- [ ] **AC-0055.** Every release surface the plan's § Grounding release-surface
+- [x] **AC-0055.** Every release surface the plan's § Grounding release-surface
   derivation reports states the version `0.49.0`. That derivation supplies the
   closed set this criterion quantifies over.
-- [ ] **AC-0056.** An apply run against a real derived tree, edited at one
+- [x] **AC-0056.** An apply run against a real derived tree, edited at one
   recorded path, exits 0; the companion for that path is present beside it
   carrying the source bytes; the adopter's file's digest is unchanged; and no
   path outside the printed plan is altered. The verification ledger records that
   comparison, not only the observed output.
-- [ ] **AC-0057.** The plan an apply run prints has two parts, and they are
+- [x] **AC-0057.** The plan an apply run prints has two parts, and they are
   distinguished on the page.
 
   Its **acted rows** name every path AC-0033 clauses 1 to 5 admit, each under
@@ -648,23 +648,23 @@ the answer.
   On a run that does reach a printed plan and then refuses before its first
   write, the acted-rows part is empty and the reported entries carry the
   refusal's own paths.
-- [ ] **AC-0058.** When a restore cannot return the tree to its pre-run walk
+- [x] **AC-0058.** When a restore cannot return the tree to its pre-run walk
   tuple, the command names every path it could not restore before returning.
-- [ ] **AC-0059.** The ownership state's recorded path set after an apply run
+- [x] **AC-0059.** The ownership state's recorded path set after an apply run
   equals the pre-run recorded set, less the paths stale removal removed, plus
   the paths the run wrote. A path the run classified Tier-3 is absent from it,
   and a companion path is absent from it.
-- [ ] **AC-0060.** The `sync` subparser resolves no abbreviated option name:
+- [x] **AC-0060.** The `sync` subparser resolves no abbreviated option name:
   `--guides` is the scoping flag, and `--guides-mode` must be supplied in full.
-- [ ] **AC-0061.** Every code citation in each architecture file this delivery
+- [x] **AC-0061.** Every code citation in each architecture file this delivery
   edits resolves to the construct it names.
-- [ ] **AC-0062.** `upstream-sync.md` § Stage 3 states that `sync` classifies
+- [x] **AC-0062.** `upstream-sync.md` § Stage 3 states that `sync` classifies
   where `init` overwrites, does not state that `init`'s overwrite is replaced,
   and records the one exception to its Tier-3 row: a path is written despite
   being absent from the recorded state when it belongs to a pack or profile the
   run introduces, which is what § Granularity's "`--pack <new-name>` both syncs
   that pack and amends the recipe" requires.
-- [ ] **AC-0063.** `upstream-sync.md` § Granularity names
+- [x] **AC-0063.** `upstream-sync.md` § Granularity names
   `.agentbundle/tooling/agentbundle/` and `packages/credbroker/` as the two
   `--package` destinations, and § Rollout item 4 neither describes both as
   `packages/` subtrees nor scopes phase 4 to those two destinations alone: it
@@ -673,22 +673,22 @@ the answer.
   pack are installed as a pair, so they move as a pair; scoping phase 4 to
   `agentbundle/` alone would leave that copy written by no verb while this
   phase reports it as deferred.
-- [ ] **AC-0064.** No invocation removes a recorded path outside the coverage
+- [x] **AC-0064.** No invocation removes a recorded path outside the coverage
   AC-0069 fixes. This holds when the source has stopped shipping that path, so
   the keep-set no longer protects it: coverage, not the keep-set, is what makes
   the protection absolute.
-- [ ] **AC-0065.** Every read or hash of a target path the apply path performs
+- [x] **AC-0065.** Every read or hash of a target path the apply path performs
   goes through the confinement helpers phase 2's path-confinement criterion names, and is refused on
   the same hard-link, non-regular and reparse-point inputs that criterion fixes.
-- [ ] **AC-0066.** An apply run reports the number of paths AC-0033 clause 5
+- [x] **AC-0066.** An apply run reports the number of paths AC-0033 clause 5
   excluded under the name `deferred_package`, in the printed table and in the
   `--format json` document's `summary` object. The seven counts phase 2 fixes stay computed over the
   full replayed selection and keep their meanings, so an excluded path is
   counted there exactly as phase 2 counts it and phase 2's
   `compared + uncompared` identity is unchanged.
-- [ ] **AC-0067.** `docs/architecture/catalogue/upstream-sync.md` records phase
+- [x] **AC-0067.** `docs/architecture/catalogue/upstream-sync.md` records phase
   3 as the delivered phase.
-- [ ] **AC-0068.** AC-0033 clause 1's effective selection never resolves to
+- [x] **AC-0068.** AC-0033 clause 1's effective selection never resolves to
   contents the recorded recipe did not name. The domain this quantifies over is
   the recorded value's **type and validity**, because that is what the
   resolution branches on: a recorded selection is admitted only when it is a
@@ -731,7 +731,7 @@ the answer.
   narrowing requested". § Grounding's widening derivation measures the figure
   over both selection fields, since `profiles` carries the identical widening
   and a packs-only sweep prices it as covered.
-- [ ] **AC-0069.** A recorded path is a removal candidate only when it lies
+- [x] **AC-0069.** A recorded path is a removal candidate only when it lies
   inside the run's **coverage**: the set of path prefixes this run could have
   planned, given its own flags and defaults and the effective selection AC-0033
   clause 1 resolved. Coverage is that positive set, narrowed by the exclusions
@@ -789,7 +789,7 @@ the answer.
   paths. Naming those subtrees as exclusions would repair the measured instance
   and leave the class, which is any mode whose replay plans more paths than the
   running mode's.
-- [ ] **AC-0070.** A companion destination that already exists is never
+- [x] **AC-0070.** A companion destination that already exists is never
   written. The run leaves the occupant byte-identical, is the condition AC-0033
   clause 3 reads when it declines to admit that companion, and names it on the
   plan the operator consents against and in the
@@ -856,7 +856,7 @@ the answer.
      count rather than the other names, an adopter's link may sit outside the
      target root entirely, and a recovery naming a file the command has not
      established it created would tell the adopter to delete their own work.
-- [ ] **AC-0071.** When the replayed source itself plans a path equal to a
+- [x] **AC-0071.** When the replayed source itself plans a path equal to a
   companion destination this run would compute, the run refuses before its
   first write, naming both paths under `companion_collision` on the plan and in
   the `--format json` document's `summary` object. The code is AC-0039's first
@@ -865,7 +865,7 @@ the answer.
   cannot-answer code over a tree AC-0041 requires to be unchanged. Letting the
   set collapse the duplicate instead would leave AC-0032's order deciding which
   content wins.
-- [ ] **AC-0072.** Every apply run names the source fidelity, including whose
+- [x] **AC-0072.** Every apply run names the source fidelity, including whose
   word a digest rests on, on the consent prompt when it prompts and in the
   printed plan and the `--format json` document on every apply run including
   `--yes`. Scoping it to the prompt alone would put it exactly where a human is
@@ -873,19 +873,19 @@ the answer.
   TLS only, no content integrity, a force-pushable ref — from a digest-verified
   one, and on this verb it is the basis on which an operator authorises writes
   rather than reads.
-- [ ] **AC-0073.** Every removal the apply path performs resolves its path
+- [x] **AC-0073.** Every removal the apply path performs resolves its path
   through the same confinement the removal planner applies, at the moment of the
   unlink rather than only when the path was planned. AC-0065 covers reads and
   hashes and AC-0052 covers writes; without this the delete is the one action on
   a target path bound by neither.
 
-- [ ] **AC-0074.** The `sync` subcommand's help text does not state that the
+- [x] **AC-0074.** The `sync` subcommand's help text does not state that the
   command is read-only or writes nothing.
-- [ ] **AC-0075.** `upstream-sync.md` § Rollout no longer states that a source
+- [x] **AC-0075.** `upstream-sync.md` § Rollout no longer states that a source
   form affording a resolved ref or a digest first reaches the pin when `sync`
   resolves it in phase 2. Phase 2 shipped with no write path and wrote no pin;
   AC-0037 assigns that value to this phase.
-- [ ] **AC-0076.** The rollback snapshot is bounded on the adopter tree the run
+- [x] **AC-0076.** The rollback snapshot is bounded on the adopter tree the run
   reads, not on the source it replays. Before the consent prompt and before the
   first write, the run sums `st_size` over every write-set path that exists; if
   that sum exceeds 256 MiB it refuses, naming the bound and the measured sum.
@@ -904,7 +904,7 @@ the answer.
   because the alternative, allocated blocks, makes the bound unreachable for a
   sparse fixture and forces a quarter-gigabyte write into a unit suite.
 
-- [ ] **AC-0077.** A run that will replace existing destinations rechecks them
+- [x] **AC-0077.** A run that will replace existing destinations rechecks them
   twice, and the two rechecks are different acts with different outcomes. A
   destination diverges when what is found no longer matches the state its row
   was classified against: a changed digest, a changed entry kind, or an entry

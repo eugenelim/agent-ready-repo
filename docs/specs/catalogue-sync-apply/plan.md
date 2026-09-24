@@ -1,7 +1,7 @@
 # Plan: catalogue sync — the apply path and the scoping flags
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - Design of record: [`docs/architecture/catalogue/upstream-sync.md`](../../architecture/catalogue/upstream-sync.md) § Stage 3, § Stage 4, § Granularity, § Rollout.
   - Analogous implementation 1 — the write/remove/state sequence this mirrors without changing: `init_self_hosted`'s write block in `packages/agentbundle/agentbundle/catalogue_tooling/initialise_self_hosted.py`, and its tests in `packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py` (432 passing, and the `walk_target_tree` helper plus the `TREE_WALK_CASES` registry this plan extends).
