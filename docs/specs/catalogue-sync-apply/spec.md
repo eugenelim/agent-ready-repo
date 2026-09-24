@@ -955,6 +955,11 @@ the answer.
 
 ## Follow-ons
 
+- **`write_files_no_follow` is POSIX-only** — it calls `os.fchmod`, which
+  Windows does not provide, so seven tests in `test_safety.py` fail there.
+  Pre-existing and untouched by this delivery; found when this phase put
+  that file on a Windows runner for the first time. Owner: unassigned.
+
 - **Package sync** — writing both `--package` subtrees. Owner: phase 4 of
   [`upstream-sync.md`](../../architecture/catalogue/upstream-sync.md) § Rollout.
 - **`--check --compare-tree` resolves a source it does not read** — phase 2

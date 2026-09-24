@@ -745,3 +745,61 @@ The filesystem axis is a separate, still-open residual: § Follow-ons records
 companion delivery on FAT, exFAT and several network and FUSE mounts, where no
 hard link is available on any OS. That entry is unchanged and still
 owner-unassigned.
+
+## First CI run, and the three defects it found
+
+Four checks failed on PR #1429. All three root causes were this change's own;
+`make build-check` was the fourth and is an aggregator reporting the other two.
+
+**1. The Windows leg — and the answer to the hard-link question.** Adding
+`test_safety.py` to the curated Windows subset returned **7 failed, 90
+passed**, and not one failure was in the publish path. Every `NEVER_REPLACE`
+and `REPLACE_IF_UNCHANGED` test passed on `windows-latest`, so `os.link` →
+`CreateHardLinkW` on NTFS, the occupancy refusal, and the staged unlink
+leaving `st_nlink` 1 are all measured working. **Hard links work on all three
+major platforms**: macOS measured locally, Linux by the Ubuntu leg, Windows
+by this run.
+
+The 7 failures were `AttributeError: module 'os' has no attribute 'fchmod'`
+in `TestWriteFilesNoFollow` — `write_files_no_follow` is POSIX-only and this
+branch touches zero `fchmod` lines. That is a pre-existing portability defect
+in unrelated code, and `test_safety.py` had been excluded from the Windows leg
+for a reason nobody had written down. Adding the file surfaced why.
+
+Resolved by scoping the leg with
+`-k "never_replace or replace_if_unchanged"` (13 tests, none from the
+`fchmod` class), keeping the hard-link coverage permanently without importing
+a pre-existing failure into this PR. The `os.fchmod` gap is recorded as a
+follow-on below.
+
+**2. A release tripwire keyed to the previous version.**
+`tests/roster/test_okf_catalogue_discovery.py` hardcoded `expected = "0.48.0"`
+and asserts *position*, not containment — its own comment says it exists to
+catch "the state a half-finished release leaves behind". It is designed to
+fail when a newer heading lands above the pinned one, forcing whoever bumps to
+prove every surface moved together. Each of its nineteen assertions was
+checked against 0.49.0 before moving the pin, including that the RFC-0087
+containment check still holds. This is why `derive-release-surfaces.py`'s
+five-surface set is not the whole story: a roster tripwire is a sixth surface
+that only CI sees.
+
+**3. An impossible lifecycle transition in `workspace.toml`.** The spec was
+`Status: Shipped` while still sitting in `[work].queue`, which
+`test_no_fail_closed_lifecycle_findings` reports as
+`impossible_transition reappeared`. Moved to `shipped`; the queue is now empty
+with a comment saying why, since phase 4 is not yet specified. The canonical
+projection reports zero findings against this spec.
+
+**4. An unregistered skip reason.** `check-artifact-contents.py` holds an
+allowlist of permitted sdist skips, and both `gate-export-boundary` and
+`build-and-smoke` fail on any skip outside it. AC-0069's spelling clause skips
+where the filesystem does not fold case, which was unregistered. Added beside
+its existing mirror — the entry for a filesystem that *does* fold case —
+and `tools/test_check_artifact_contents.py` passes with it (83 tests).
+
+### Follow-on opened
+
+**`write_files_no_follow` is POSIX-only.** It calls `os.fchmod`, absent on
+Windows, so seven tests in `test_safety.py` fail there. Pre-existing and
+untouched by this delivery, discovered only because this PR put that file on
+a Windows runner for the first time. Owner: unassigned.

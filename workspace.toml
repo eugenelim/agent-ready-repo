@@ -2026,15 +2026,13 @@ shipped = [
 
   {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
   {path = "docs/specs/pack-test-compatibility-classes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Keep pack tests isolated by default and permit proven same-pack compatibility classes", needs = []},
+  {path = "docs/specs/catalogue-sync-apply/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "8cf5b8b3561c6790b259cd8eee7a5430ffe7c3e5"}, summary = "agentbundle catalogue sync apply path plus the four scoping flags: consent, jailed writes, guarded stale removal, and a pinned state write", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-sync-dry-run/spec.md"}]},
 ]
 queue   = [
-  # Phase 3 of four. The phase order itself lives in
-  # docs/architecture/catalogue/upstream-sync.md § Rollout, which is the design
-  # of record; this entry queues the one phase, not the rollout. Phase 2 is
-  # Shipped and registered above, so needs names it; phase 1
-  # (docs/specs/self-host-state-schema-3/spec.md) is Shipped and unregistered
-  # and is therefore reached transitively rather than named here.
-  {path = "docs/specs/catalogue-sync-apply/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "8cf5b8b3561c6790b259cd8eee7a5430ffe7c3e5"}, summary = "agentbundle catalogue sync apply path plus the four scoping flags: consent, jailed writes, guarded stale removal, and a pinned state write", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-sync-dry-run/spec.md"}]},
+  # Empty. Phase 3 shipped; phase 4 (package sync for both `--package`
+  # subtrees) is not yet specified, so nothing queues here until it is. The
+  # phase order lives in docs/architecture/catalogue/upstream-sync.md
+  # § Rollout, which is the design of record.
 ]
 
 ["ini-007".brief_queue]

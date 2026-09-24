@@ -74,6 +74,11 @@ _EXPECTED_SKIP_REASONS = tuple(
         r"^hardcoded POSIX /tmp path$",
         r"^no seed primitives in core fixture; skip$",
         r"^case-insensitive filesystem cannot hold both spellings$",
+        # The mirror of the entry above: that one skips where the filesystem
+        # folds case, this one where it does not. AC-0069's spelling clause
+        # needs a case-folding filesystem to exercise its case-insensitive
+        # half, so the test cannot run on a case-sensitive runner.
+        r"^filesystem does not fold case$",
         # The only load-conditional entry, and deliberately the narrowest
         # pattern here: every number is required, so it admits this one
         # message shape and nothing else. Registered because
