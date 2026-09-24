@@ -97,6 +97,28 @@ class DestinationDivergedError(WriteError):
     """
 
 
+class CompanionLinkPublishedError(WriteError):
+    """Raised by :func:`_publish_never_replace` when its hard link at the
+    destination has already landed and only the staged sibling's unlink
+    then failed.
+
+    Distinct from an ordinary publish failure — every other
+    ``Publish.NEVER_REPLACE`` failure means the destination was never
+    touched, but this one means it was actually written even though the
+    call still raises. A caller that folds this into the generic "link
+    failed" case (e.g. by re-deriving ownership from a content read-back)
+    can misattribute the write to whichever writer happens to hold
+    byte-identical content — this type lets the caller carry the fact
+    instead of re-inferring it. Carries ``target`` (the destination that
+    was actually linked) so a caller never has to re-derive which path was
+    written.
+    """
+
+    def __init__(self, target: Path) -> None:
+        super().__init__(f"published {target} but could not remove its staged sibling")
+        self.target = target
+
+
 # ---------------------------------------------------------------------------
 # Content hashing
 # ---------------------------------------------------------------------------
@@ -472,6 +494,13 @@ def write_jailed(
     except DestinationDivergedError:
         tmp.unlink(missing_ok=True)
         raise
+    except CompanionLinkPublishedError:
+        # The link already landed at `target`; only the staged sibling's
+        # own unlink failed. `target` keeps its independent link to the
+        # same inode, so removing the (now-redundant) staged name is safe
+        # and does not touch what was published.
+        tmp.unlink(missing_ok=True)
+        raise
     except OSError as exc:
         tmp.unlink(missing_ok=True)
         raise WriteError(
@@ -509,7 +538,15 @@ def _publish_never_replace(tmp: Path, target: Path) -> None:
     only at the caller's own admission check on a later run, never here.
     """
     os.link(tmp, target)
-    tmp.unlink()
+    try:
+        tmp.unlink()
+    except OSError as exc:
+        # The link already landed at `target` -- the destination was
+        # actually written even though this call is about to raise. Typed
+        # distinctly so the caller carries that fact rather than
+        # re-deriving it from a content read-back (which a competing
+        # writer's byte-identical file would satisfy just as well).
+        raise CompanionLinkPublishedError(target) from exc
 
 
 def _publish_if_unchanged(

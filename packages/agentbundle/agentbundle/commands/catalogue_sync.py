@@ -57,6 +57,7 @@ from agentbundle.commands._common import check_spec_version_gate, confirm_or_ref
 from agentbundle.config import PackState, State
 from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
 from agentbundle.safety import (
+    CompanionLinkPublishedError,
     PathJailError,
     Publish,
     Tier,
@@ -376,10 +377,29 @@ def _lstat_entry(path: Path) -> WalkEntry:
         st = path.lstat()
     except OSError:
         return _ABSENT_ENTRY
+    return _walk_entry_from_lstat(path, st, relpath=None)
+
+
+def _walk_entry_from_lstat(
+    path: Path, st: os.stat_result, *, relpath: str | None
+) -> WalkEntry:
+    """Build a :class:`WalkEntry` from an *already-captured* ``lstat``
+    result — never re-``lstat``\\ s *path*.
+
+    *relpath* set to ``None`` is the best-effort mode :func:`_lstat_entry`
+    uses (a symlink whose target cannot be read gets ``symlink_target=None``
+    rather than raising); *relpath* set to a string is the strict mode
+    :func:`_snapshot_lstat_entry` uses, where a readlink failure on a path
+    the first ``lstat`` proved exists is itself an unreadable-state case and
+    raises :class:`SnapshotUnreadableError` rather than being silently
+    recorded as an absent or targetless entry.
+    """
     if stat.S_ISLNK(st.st_mode):
         try:
             target = str(path.readlink())
-        except OSError:
+        except OSError as exc:
+            if relpath is not None:
+                raise SnapshotUnreadableError(relpath) from exc
             target = None
         return WalkEntry(kind="symlink", mode=stat.S_IMODE(st.st_mode),
                           symlink_target=target, content=None)
@@ -417,14 +437,23 @@ def _snapshot_lstat_entry(path: Path, relpath: str) -> WalkEntry:
     it never actually read AND -- since :func:`restore_from_snapshot` treats
     a snapshot ``kind == "absent"`` entry as "unlink whatever is there" --
     delete an adopter file on a later rollback that this run never touched.
+
+    Builds the returned :class:`WalkEntry` from this single ``lstat`` call's
+    captured ``stat_result`` — it never re-``lstat``\\ s *path* the way a
+    delegation to :func:`_lstat_entry` would, so a path that changes state
+    between two ``lstat`` calls (or whose readlink fails) cannot be silently
+    downgraded to "absent" by the second call's own error handling. Any
+    further inspection failure (currently: a symlink's ``readlink``) is
+    itself an unreadable-state case and raises
+    :class:`SnapshotUnreadableError` rather than being tolerated.
     """
     try:
-        path.lstat()
+        st = path.lstat()
     except (FileNotFoundError, NotADirectoryError):
         return _ABSENT_ENTRY
     except OSError as exc:
         raise SnapshotUnreadableError(relpath) from exc
-    return _lstat_entry(path)
+    return _walk_entry_from_lstat(path, st, relpath=relpath)
 
 
 def snapshot_write_set(
@@ -766,9 +795,10 @@ def select_removal_set(
     profile_names: list[str],
     guides_mode: str,
     scope: tuple[frozenset[str], frozenset[str]] | None,
-) -> tuple[set[str], set[str]]:
-    """AC-0035/AC-0064/AC-0069 — the paths this run actually removes, and the
-    recorded-but-protected paths reported as ``out_of_coverage``.
+) -> tuple[dict[str, str], set[str]]:
+    """AC-0035/AC-0064/AC-0069/AC-0073 — the paths this run actually removes
+    (mapped to the recorded sha256 that earned each its removability), and
+    the recorded-but-protected paths reported as ``out_of_coverage``.
 
     The keep-set passed to the shipped removal guard is *full_replayed_paths*
     unconditionally — never scope-narrowed, per plan.md's Design decisions
@@ -777,11 +807,27 @@ def select_removal_set(
     the § Never do boundary: passing a narrowed keep-set into
     ``_plan_stale_owned_paths`` would mark every out-of-scope recipe path
     stale.
+
+    ``removal_set`` carries each path's recorded digest forward rather than
+    a bare path — this pre-consent set is built once, before the consent
+    prompt, and the digest is what ``_confined_unlink`` re-compares against
+    immediately before the unlink (Blocker 3, round 2): the write phase runs
+    after an arbitrary consent wait, during which an adopter can edit a
+    planned-stale path, and only a digest carried forward from *this* call
+    — the one that actually earned the path its "stale" verdict — can catch
+    that; recomputing a fresh removal set post-consent was round 1's
+    approach and was removed as Blocker 3's own fix, breaking the guard
+    it depended on (AC-0073's recorded-sha256-mismatch decline).
     """
     removable, _reasons = _plan_stale_owned_paths(
         target, old_state, full_replayed_paths
     )
-    removal_set: set[str] = set()
+    recorded_shas: dict[str, str] = {
+        entry["path"]: entry["sha256"]
+        for entry in _migrate_managed_paths(old_state)
+        if entry.get("path") and isinstance(entry.get("sha256"), str)
+    }
+    removal_set: dict[str, str] = {}
     out_of_coverage: set[str] = set()
     for path in removable:
         if _in_coverage(
@@ -789,24 +835,42 @@ def select_removal_set(
             pack_names=pack_names, profile_names=profile_names,
             guides_mode=guides_mode, scope=scope,
         ):
-            removal_set.add(path)
+            # `_plan_stale_owned_paths` only admits a path into `removable`
+            # once it has confirmed a recorded sha256 exists for it (its own
+            # "missing-recorded-sha256" decline covers every other case), so
+            # this lookup always hits.
+            removal_set[path] = recorded_shas[path]
         else:
             out_of_coverage.add(path)
     return removal_set, out_of_coverage
 
 
-def _confined_unlink(target: Path, path: str) -> bool:
+def _confined_unlink(target: Path, path: str, expected_sha256: str) -> bool:
     """AC-0073 — remove *path*, refusing at the unlink (not only at the plan)
-    if it is no longer a confined, non-link-like regular file.
+    if it is no longer a confined, non-link-like regular file, OR if its
+    live content no longer matches *expected_sha256* — the digest that
+    earned it its removability at pre-consent plan time
+    (:func:`select_removal_set`).
 
-    Reuses the exact confinement helper the removal planner itself applies
-    (``_plan_stale_owned_paths``'s own sha guard), so "the same confinement"
-    is one implementation rather than a second copy.
+    This re-comparison, not only the confinement check, is what closes the
+    consent-wait race (Blocker 3, round 2): the confinement helper alone
+    proves *what kind of thing* is at *path* now, never *whether it still
+    holds the content the plan actually inspected* — an adopter edit landed
+    during the consent wait passes confinement just as cleanly as the
+    original stale file did. A mismatch here refuses only this one
+    deletion — it narrows the fixed removal set the printed plan named, and
+    never widens it past what that plan already decided.
+
+    Reuses the exact confinement/hash helper the removal planner itself
+    applies (``_plan_stale_owned_paths``'s own sha guard), so "the same
+    confinement" is one implementation rather than a second copy.
     """
     full = target / path
     try:
-        sha256_confined_regular_file(target, full)
+        live_sha256 = sha256_confined_regular_file(target, full)
     except (UnsafeContentError, OSError):
+        return False
+    if live_sha256 != expected_sha256:
         return False
     try:
         full.unlink()
@@ -848,6 +912,15 @@ class WriteSequenceResult:
 
     ok: bool
     written: dict[str, str] = field(default_factory=dict)
+    # Every destination the write phase actually landed, companions
+    # included — unlike `written`, which is keyed by non-companion
+    # destination only (AC-0059 keeps a companion path itself out of the
+    # recorded state). Concern 7, round 2: the post-write receipt named
+    # only `written`, so a companion that landed before a later removal or
+    # state-write failure stayed on disk unnamed in the receipt. This is
+    # the write loop's own `acted` list, carried through rather than
+    # re-derived from `written` (which structurally cannot carry it).
+    acted: list[str] = field(default_factory=list)
     removed: set[str] = field(default_factory=set)
     out_of_coverage: set[str] = field(default_factory=set)
     companion_occupied: dict[str, str] = field(default_factory=dict)
@@ -1002,7 +1075,7 @@ def execute_write_sequence(
     *,
     old_state: dict[str, Any] | None,
     file_bytes: dict[str, bytes],
-    removal_set: set[str],
+    removal_set: dict[str, str],
     out_of_coverage: set[str],
     pack_names: list[str],
     profile_names: list[str],
@@ -1024,7 +1097,11 @@ def execute_write_sequence(
     recorded path that only became present or readable during the
     consent wait, deleting a path the printed plan never named (spec §
     Never do's phase delta; AC-0057's "the rows the run consents against
-    and acts on").
+    and acts on"). *removal_set* maps each admitted path to the recorded
+    sha256 that earned it its removability — this is the digest
+    ``_confined_unlink`` re-compares against immediately before its own
+    unlink, so a path edited during the consent wait is refused there
+    instead of deleted (Blocker 3, round 2).
 
     Removal after every write, and the state after removal, because a crash
     between the two must leave a recorded state that under-claims rather
@@ -1075,6 +1152,11 @@ def execute_write_sequence(
     written: dict[str, str] = {}
     acted: list[str] = []
     write_failed_path: str | None = None
+    # Set only when the failing write is a companion whose
+    # `CompanionLinkPublishedError` reports the link itself landed — the
+    # publish primitive's own report of ownership, carried here rather than
+    # re-inferred from the destination's bytes below.
+    companion_link_published = False
     for path in ordered:
         is_companion = path in plan.companion_destination_to_original
         try:
@@ -1092,6 +1174,10 @@ def execute_write_sequence(
                     publish=Publish.REPLACE_IF_UNCHANGED,
                     expected_sha256=expected[path],
                 )
+        except CompanionLinkPublishedError:
+            write_failed_path = path
+            companion_link_published = True
+            break
         except Exception:
             write_failed_path = path
             break
@@ -1119,25 +1205,19 @@ def execute_write_sequence(
         # if that unlink is what failed, the link already landed, so the
         # destination itself was actually written, unlike every other
         # publish path where a failure here means the rename/link itself
-        # never happened. Distinguished by reading the destination back:
-        # bytes equal to what this run just tried to publish there means
-        # the link landed (restore it); anything else — including the
-        # admission-time occupant this failure can also mean, per AC-0070's
-        # own admission race — is another writer's content this run never
-        # touched, which AC-0041 requires left exactly as found. A read
-        # failure defaults to "not ours" — never restoring is always safe;
-        # wrongly deleting another writer's file is not.
+        # never happened. `companion_link_published` carries that fact
+        # directly from `CompanionLinkPublishedError` — it is the publish
+        # primitive's own report, not a content read-back. A read-back
+        # would compare equal for a *different* writer's byte-identical
+        # file (an admission-time race, AC-0070) just as readily as for
+        # this run's own write, misattributing ownership either way.
         restore_scope = [*acted, *_ancestor_relpaths(write_failed_path)]
-        if write_failed_path in plan.companion_destination_to_original:
-            try:
-                published_here = (target / write_failed_path).read_bytes() == content
-            except OSError:
-                published_here = False
-            if published_here:
-                restore_scope.append(write_failed_path)
+        if companion_link_published:
+            restore_scope.append(write_failed_path)
         unrestored = restore_from_snapshot(target, snapshot, restore_scope)
         return WriteSequenceResult(
             ok=False,
+            acted=acted,
             write_failed_path=write_failed_path,
             restored=not unrestored,
             unrestored=unrestored,
@@ -1148,7 +1228,7 @@ def execute_write_sequence(
     removed: set[str] = set()
     removal_failed = False
     for path in sorted(removal_set):
-        if _confined_unlink(target, path):
+        if _confined_unlink(target, path, removal_set[path]):
             removed.add(path)
         else:
             removal_failed = True
@@ -1156,7 +1236,8 @@ def execute_write_sequence(
     if removal_failed:
         return WriteSequenceResult(
             ok=False, removal_failed=True,
-            written=written, removed=removed, out_of_coverage=out_of_coverage,
+            written=written, acted=acted, removed=removed,
+            out_of_coverage=out_of_coverage,
             companion_occupied=plan.occupied, companion_residue=plan.residue,
         )
 
@@ -1169,12 +1250,14 @@ def execute_write_sequence(
     except Exception:
         return WriteSequenceResult(
             ok=False, state_write_failed=True,
-            written=written, removed=removed, out_of_coverage=out_of_coverage,
+            written=written, acted=acted, removed=removed,
+            out_of_coverage=out_of_coverage,
             companion_occupied=plan.occupied, companion_residue=plan.residue,
         )
 
     return WriteSequenceResult(
-        ok=True, written=written, removed=removed, out_of_coverage=out_of_coverage,
+        ok=True, written=written, acted=acted, removed=removed,
+        out_of_coverage=out_of_coverage,
         companion_occupied=plan.occupied, companion_residue=plan.residue,
     )
 
@@ -2498,10 +2581,34 @@ def _apply_refusal(
     return code
 
 
+def _terminal_safe_removal_set(
+    removal_set: dict[str, str], rejections: list[str]
+) -> dict[str, str]:
+    """Spec AC-0012 — *removal_set* (:func:`select_removal_set`'s own
+    return value, over ``_plan_stale_owned_paths``'s recorded-path read,
+    which applies no terminal-safe screen of its own) screened exactly
+    once.
+
+    Blocker 4, round 2: the printed plan (:func:`_apply_acted_rows`) and
+    the write phase (:func:`execute_write_sequence`) must act on the
+    identical set — a screen applied only on the way into the printed row,
+    with the unfiltered set still handed to execution separately, changes
+    what is shown without changing what is deleted. Callers depend on this
+    one screen rather than repeating it (see :func:`_apply_acted_rows` and
+    ``_run_apply``, which both take this function's *return value*, never
+    *removal_set* itself, from this point on).
+    """
+    return {
+        path: sha
+        for path, sha in removal_set.items()
+        if _safe_scalar("would_remove", path, rejections) is not None
+    }
+
+
 def _apply_acted_rows(
     verdict_rows: list[tuple[str, str, str | None]],
     plan: WritePlan,
-    removal_set: set[str],
+    removal_set: dict[str, str],
     rejections: list[str],
 ) -> list[tuple[str, str, str | None]]:
     """AC-0057's acted rows — every *verdict_rows* entry AC-0033 clauses 1-5
@@ -2512,11 +2619,10 @@ def _apply_acted_rows(
 
     *verdict_rows* already carries only paths ``_classify_planned_paths``
     routed through the terminal-safe check (spec AC-0012). *removal_set*
-    is a separate computation (:func:`select_removal_set`, over
-    ``_plan_stale_owned_paths``'s own recorded-path read) that applies no
-    such screen of its own, so its entries are checked here, on the way
-    into the row this run renders — the same gate every other unauthored
-    value on this surface passes before it reaches a row.
+    must already be :func:`_terminal_safe_removal_set`'s return value — this
+    function renders it as-is rather than screening it a second time, so
+    the rendered rows and whatever set the caller goes on to execute can
+    never diverge (Blocker 4).
     """
     rows: list[tuple[str, str, str | None]] = []
     for path, verdict, companion in verdict_rows:
@@ -2527,8 +2633,7 @@ def _apply_acted_rows(
         if path in plan.admitted:
             rows.append((path, verdict, companion))
     for path in sorted(removal_set):
-        if _safe_scalar("would_remove", path, rejections) is not None:
-            rows.append((path, "would-remove", None))
+        rows.append((path, "would-remove", None))
     return rows
 
 
@@ -2683,21 +2788,19 @@ def _run_apply(
 ) -> int:
     """AC-0039's apply rows — the write path `_run_dry_run` has none of.
 
-    The caller (`run()`) already resolved the source and refused the
-    `--package`/malformed-invocation rows AC-0039 places above source
-    resolution before this is ever called — this function owns everything
-    from the recorded-selection checks through the write phase's four
+    The caller (`run()`) already refused every malformed-invocation row
+    AC-0039 places above source resolution — including the apply-only
+    `--format json` without `--yes` row (round 2, Concern 5: this used to
+    be checked here instead, which sits below `run()`'s own `--package`
+    refusal; a recognised `--package` name is a `3 — cannot-answer` row
+    that sits *below* every malformed row in the table, so checking this
+    one late let `--package agentbundle --format json` (no `--yes`) exit 3
+    instead of the malformed row's 2) — and resolved the source before
+    this is ever called. This function owns everything from the
+    recorded-selection checks through the write phase's four
     `4 — apply-failed` rows, in the table's own first-match-wins order.
     Composes T2-T5's already-exported seams; it re-implements none of them.
     """
-    # AC-0030's document clause: an apply run with `--format json` and no
-    # `--yes` would share stdout between the prompt and the document.
-    if fmt == "json" and not yes:
-        return _refuse(
-            "an apply run with --format json requires --yes",
-            attributed=attributed, source_raw=source_raw, fmt=fmt, code=_MALFORMED,
-        )
-
     condition = _underivable_condition(target, source_path)
     if condition is not None:
         return _refuse(
@@ -2813,6 +2916,10 @@ def _run_apply(
         pack_names=pack_names, profile_names=profile_names,
         guides_mode=guides, scope=scope,
     )
+    # Screened exactly once (Blocker 4) — the printed plan below and the
+    # write phase's later `execute_write_sequence` call both act on this
+    # same value; neither recomputes nor re-filters it.
+    removal_set = _terminal_safe_removal_set(removal_set, rejections)
 
     acted_rows = _apply_acted_rows(verdict_rows, plan, removal_set, rejections)
     doc = _apply_plan_document(
@@ -2890,14 +2997,33 @@ def _print_post_write_receipt(
     from its pre-run state and the operator needs to know how. Emitted on
     stderr beside the unrestored-path message rather than on the plan's
     stdout surface, which has already been rendered by this point.
+
+    *result.removed* and *result.acted* are rendered as-is, with no
+    terminal-safe screen applied here (Concern 6, round 2) — this depends
+    on each already having passed that screen upstream, once, before ever
+    reaching a ``WriteSequenceResult``: ``acted`` only ever holds
+    ``verdict_rows``/companion destinations, already screened by
+    ``_classify_planned_paths`` (spec AC-0012); ``removed`` only ever holds
+    entries of ``_run_apply``'s ``removal_set`` after
+    :func:`_terminal_safe_removal_set` has run over it (Blocker 4). A path
+    that fails either screen never becomes a write or removal candidate at
+    all, so it can never reach this function — there is no second screen
+    to add here without duplicating one of those two.
+
+    Prints *result.acted*, not *result.written* (Concern 7, round 2):
+    ``written`` is keyed by non-companion destination only (AC-0059 keeps a
+    companion path itself out of the recorded state), so a companion that
+    landed before a later removal or state-write failure was never named
+    here at all. ``acted`` is the write loop's own record of every
+    destination that actually landed, companions included.
     """
     what = result.state_write_failed and "the ownership state could not be written"
     reason = what or "stale removal failed"
     print(f"error: {reason}; the tree was not rolled back.", file=sys.stderr)
-    if result.written:
+    if result.acted:
         print(
-            f"  wrote {len(result.written)} path(s): "
-            f"{', '.join(sorted(result.written))}",
+            f"  wrote {len(result.acted)} path(s): "
+            f"{', '.join(sorted(result.acted))}",
             file=sys.stderr,
         )
     if result.removed:
@@ -2909,7 +3035,7 @@ def _print_post_write_receipt(
     if not state_written:
         print(
             "  the recorded state was NOT updated, so a re-run reclassifies "
-            "every path it just wrote against the pre-run digests.",
+            "every path this run acted on against its pre-run state.",
             file=sys.stderr,
         )
 
@@ -2920,6 +3046,7 @@ def run(args: argparse.Namespace) -> int:
     dry_run = bool(args.dry_run)
     check = bool(args.check)
     compare_tree = bool(args.compare_tree)
+    yes = bool(getattr(args, "yes", False))
     attribution: str = args.attribution or "white-label"
     tooling: str = args.tooling or "external"
     guides: str = args.guides_mode or "selected"
@@ -2991,6 +3118,23 @@ def run(args: argparse.Namespace) -> int:
     if check and (cli_pack_names or cli_profile_names or guides_scope):
         return _refuse(
             "a scoping flag (--pack, --profile, --guides) is malformed with --check",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_MALFORMED,
+        )
+
+    # Spec AC-0039's malformed row names this one explicitly ("an apply run
+    # with `--format json` and no `--yes`") and it sits above every
+    # cannot-answer row, including `--package`'s, directly below — Concern
+    # 5, round 2: this used to be checked only inside `_run_apply`, which
+    # `run()` never reaches for a recognised `--package` name, so
+    # `--package agentbundle --format json` (no `--yes`) exited 3 instead
+    # of this row's 2. An apply run is neither `--dry-run` nor `--check`;
+    # `--format json` carries no such requirement on either of those.
+    if not dry_run and not check and fmt == "json" and not yes:
+        return _refuse(
+            "an apply run with --format json requires --yes",
             attributed=attributed,
             source_raw=source_raw,
             fmt=fmt,
@@ -3090,7 +3234,7 @@ def run(args: argparse.Namespace) -> int:
             attributed=attributed,
             source_raw=source_raw,
             fmt=fmt,
-            yes=bool(getattr(args, "yes", False)),
+            yes=yes,
             cli_pack_names=cli_pack_names,
             cli_profile_names=cli_profile_names,
             guides_scope=guides_scope,

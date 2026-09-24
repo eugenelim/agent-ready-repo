@@ -2522,9 +2522,9 @@ def test_apply_stale_removal_runs_after_writes_with_full_keep_set(tmp_path, monk
 
     real_confined_unlink = catalogue_sync._confined_unlink
 
-    def _spy_confined_unlink(root, relpath):
+    def _spy_confined_unlink(root, relpath, expected_sha256):
         calls.append(("confined_unlink", (relpath,), {}))
-        return real_confined_unlink(root, relpath)
+        return real_confined_unlink(root, relpath, expected_sha256)
 
     monkeypatch.setattr(catalogue_sync, "select_removal_set", _spy_select_removal_set)
     monkeypatch.setattr(catalogue_sync, "write_jailed", _spy_write_jailed)
@@ -2597,6 +2597,47 @@ def test_apply_keep_set_handed_to_the_shipped_guard_is_full_replayed(
     # a fixture whose every path happened to be in scope.
     in_scope_only = {q for q in replay.file_bytes if q.startswith("packs/alpha/")}
     assert in_scope_only < set(replay.file_bytes)
+
+
+def test_apply_removal_recorded_digest_recheck_refuses_a_consent_wait_edit(tmp_path):
+    # Verifies B3 (round 2, our own regression): round 1's Blocker-3 fix
+    # removed `execute_write_sequence`'s post-consent `select_removal_set`
+    # recomputation -- but that recomputation was what re-applied the
+    # removal planner's own recorded-sha guard
+    # (`initialise_self_hosted.py`'s "recorded-sha256-mismatch" decline).
+    # `_confined_unlink` computes a sha256 only to prove confinement and
+    # discarded it, so an adopter edit landing during the consent wait
+    # (simulated here as a write the run makes between the pre-consent
+    # removal-set computation and the later removal step reaching the
+    # edited path) survived confinement and was deleted anyway.
+    target, replay, verdict_rows = _replay_apply_fixture(
+        tmp_path, tag="removal-consent-wait-edit"
+    )
+    gone = target / "packs" / "alpha" / "gone.md"
+    assert gone.read_bytes() == b"stale\n"
+    real_write_jailed = catalogue_sync.write_jailed
+    edited = {"done": False}
+
+    def _edit_during_write_phase(root, relpath, content, **kwargs):
+        if not edited["done"]:
+            edited["done"] = True
+            # An adopter edits the planned-stale removal candidate after
+            # `select_removal_set` already recorded it as removable, but
+            # before the write phase's own later removal step reaches it.
+            gone.write_bytes(b"adopter edited during consent wait\n")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    with patch.object(
+        catalogue_sync, "write_jailed", side_effect=_edit_during_write_phase
+    ):
+        result = _apply(target, replay, verdict_rows)
+
+    assert edited["done"]  # the injected edit actually ran
+    assert "packs/alpha/gone.md" not in result.removed
+    # The recheck narrows the fixed removal set (refuses this one
+    # deletion) rather than deleting the adopter's edit.
+    assert gone.exists()
+    assert gone.read_bytes() == b"adopter edited during consent wait\n"
 
 
 def test_apply_unscoped_run_leaves_vendored_tooling_present_and_out_of_coverage(
@@ -2905,16 +2946,19 @@ def test_apply_companion_write_failure_for_other_reason_is_write_failed_not_occu
 
 
 def test_apply_companion_publish_failure_after_link_landed_is_restored(tmp_path):
-    # Verifies P3: `_publish_never_replace` links `tmp` at the destination
-    # *then* unlinks the staged sibling -- if that unlink is what fails,
-    # the link has already landed, so (unlike every other write-failure
-    # path, where a failure means the write never happened) the
-    # destination now carries this run's own bytes. Before the fix,
-    # `execute_write_sequence`'s restore scope excluded the failed path
-    # unconditionally on the premise "it was never actually written",
-    # which is false here: the run returned `restored=True` with an empty
-    # `unrestored` while its own write sat at that destination, unrestored
-    # and unreported.
+    # Verifies B2 (round 2): `_publish_never_replace` links `tmp` at the
+    # destination *then* unlinks the staged sibling -- if that unlink is
+    # what fails, the link has already landed, so (unlike every other
+    # write-failure path, where a failure means the write never happened)
+    # the destination now carries this run's own bytes. The signal the fix
+    # carries is `safety.CompanionLinkPublishedError` itself -- the publish
+    # primitive's own report -- not a content read-back (see the race test
+    # immediately below, which proves a read-back would get this wrong).
+    # Before the fix, `execute_write_sequence`'s restore scope excluded the
+    # failed path unconditionally on the premise "it was never actually
+    # written", which is false here: the run returned `restored=True` with
+    # an empty `unrestored` while its own write sat at that destination,
+    # unrestored and unreported.
     target, replay, verdict_rows = _replay_apply_fixture(
         tmp_path, tag="companion-unlink-fails"
     )
@@ -2923,9 +2967,10 @@ def test_apply_companion_publish_failure_after_link_landed_is_restored(tmp_path)
 
     def _landed_then_fails(root, relpath, content, **kwargs):
         # Simulate `_publish_never_replace`'s own sequence: the link lands
-        # at the destination, then the staged-name unlink fails.
+        # at the destination, then the staged-name unlink fails, which it
+        # reports through its own typed exception.
         companion.write_bytes(content)
-        raise OSError("cannot unlink staged sibling")
+        raise safety.CompanionLinkPublishedError(companion)
 
     with patch.object(catalogue_sync, "write_companion", side_effect=_landed_then_fails):
         result = _apply(target, replay, verdict_rows)
@@ -2937,6 +2982,75 @@ def test_apply_companion_publish_failure_after_link_landed_is_restored(tmp_path)
     assert result.restored
     assert result.unrestored == []
     assert not companion.exists()
+
+
+def test_apply_companion_admission_race_with_identical_bytes_is_not_restored(
+    tmp_path,
+):
+    # Verifies B2's failure mode directly: a *different* writer creates the
+    # companion destination with bytes identical to what this run is about
+    # to publish, immediately before an ordinary (not-landed) publish
+    # failure -- the admission race AC-0070 names. A content read-back
+    # ("does the destination hold what I tried to write?") compares equal
+    # and would wrongly unlink the other writer's file as this run's own.
+    # The fix instead only restores on `CompanionLinkPublishedError`, which
+    # this failure is not, so the competing file must survive untouched.
+    target, replay, verdict_rows = _replay_apply_fixture(
+        tmp_path, tag="companion-identical-byte-race"
+    )
+    companion = target / "packs" / "alpha" / "unchanged.upstream.md"
+    # Equal to what this run would itself publish there -- read from the
+    # replay rather than hand-copied, so a future derivation-side rendering
+    # change cannot silently desync this fixture from the real content.
+    competing_content = replay.file_bytes["packs/alpha/unchanged.md"]
+
+    def _occupied_by_another_writer(root, relpath, content, **kwargs):
+        # Another writer lands its own, byte-identical file at the
+        # companion destination before this run's own link attempt fails
+        # for an ordinary reason (destination occupied) -- the link never
+        # landed on this run's behalf.
+        companion.write_bytes(content)
+        raise OSError("destination already exists")
+
+    with patch.object(
+        catalogue_sync, "write_companion", side_effect=_occupied_by_another_writer
+    ):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert companion.exists()
+    assert companion.read_bytes() == competing_content
+
+
+def test_apply_acted_result_names_a_landed_companion_after_a_later_removal_failure(
+    tmp_path,
+):
+    # Concern 7, round 2: `result.written` is keyed by non-companion
+    # destination only (AC-0059 keeps a companion path itself out of the
+    # recorded state), so a companion that landed before a LATER removal
+    # or state-write failure was excluded from `written` entirely -- the
+    # post-write receipt, which used to print only `written`, then left
+    # that companion unnamed even though it sat on disk. `result.acted` (a
+    # new field carrying the write loop's own `acted` list through) names
+    # it; `result.written` still must not.
+    target, replay, verdict_rows = _replay_apply_fixture(
+        tmp_path, tag="acted-carries-companion"
+    )
+    companion = "packs/alpha/unchanged.upstream.md"
+
+    def _fail_every_removal(root, path, expected_sha256):
+        return False
+
+    with patch.object(catalogue_sync, "_confined_unlink", side_effect=_fail_every_removal):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.removal_failed
+    assert companion in result.acted
+    assert companion not in result.written
+    # The companion really did land on disk -- proving this is a landed
+    # write the receipt must name, not a candidate that never happened.
+    assert (target / Path(companion)).exists()
 
 
 def test_apply_companion_collision_refuses_whole_run(tmp_path):
@@ -3120,6 +3234,41 @@ def test_apply_snapshot_write_set_raises_unreadable_on_a_permission_error(
         catalogue_sync.snapshot_write_set(target, {"packs/alpha/README.md"})
 
     assert exc_info.value.path == "packs/alpha/README.md"
+
+
+def test_apply_snapshot_lstat_entry_raises_unreadable_on_a_later_readlink_failure(
+    tmp_path, monkeypatch
+):
+    # Verifies B1 (round 2): `_snapshot_lstat_entry` raised
+    # `SnapshotUnreadableError` on its own FIRST `lstat`, then discarded
+    # that result and delegated to `_lstat_entry`, which re-`lstat`s the
+    # same path and maps every further inspection failure -- including one
+    # from its own best-effort `readlink` -- to a *silent* fallback
+    # (`symlink_target=None`) rather than raising. The permission-error
+    # test above fails EVERY `lstat`, so it stops at the strict first call
+    # and never reaches this hole; this one lets the first `lstat` succeed
+    # and fails only the later inspection, which is exactly what the fix
+    # must still raise on.
+    target = tmp_path / "snapshot-unreadable-symlink-target"
+    target.mkdir()
+    link_dir = target / "packs" / "alpha"
+    link_dir.mkdir(parents=True)
+    link = link_dir / "linked.md"
+    link.symlink_to("elsewhere-never-created")
+
+    real_readlink = Path.readlink
+
+    def _fail_readlink(self, *a, **kw):
+        if self == link:
+            raise OSError("simulated readlink failure")
+        return real_readlink(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "readlink", _fail_readlink)
+
+    with pytest.raises(catalogue_sync.SnapshotUnreadableError) as exc_info:
+        catalogue_sync.snapshot_write_set(target, {"packs/alpha/linked.md"})
+
+    assert exc_info.value.path == "packs/alpha/linked.md"
 
 
 def test_apply_restore_matches_pre_run_walk_tuple_on_injected_failure(tmp_path):
@@ -4200,10 +4349,10 @@ def _invoke_sync_apply_removal_failed_row(target: Path) -> None:
     source = _make_source(target.parent / "sync-tree-walk-apply-removal-failed-source")
     real_confined_unlink = catalogue_sync._confined_unlink
 
-    def _fail_second_removal(target_arg, path):
+    def _fail_second_removal(target_arg, path, expected_sha256):
         if path == "packs/alpha/gone-b.md":
             return False
-        return real_confined_unlink(target_arg, path)
+        return real_confined_unlink(target_arg, path, expected_sha256)
 
     with patch.object(catalogue_sync, "_confined_unlink", side_effect=_fail_second_removal):
         args = _build_parser().parse_args(
@@ -4669,18 +4818,6 @@ def test_run_apply_recorded_path_container_not_array_is_cannot_answer(tmp_path):
     assert walk_target_tree(target) == before
 
 
-def test_run_apply_format_json_without_yes_is_malformed(tmp_path):
-    # AC-0030's document clause: an apply run with `--format json` and no
-    # `--yes` would share stdout between the prompt and the document.
-    target, source = _apply_run_target(tmp_path, "json-no-yes")
-    before = walk_target_tree(target)
-
-    code = _call_run_apply(target, source, fmt="json", yes=False)
-
-    assert code == 2
-    assert walk_target_tree(target) == before
-
-
 def test_run_apply_source_resolution_failure_is_cannot_answer_and_writes_nothing(
     tmp_path,
 ):
@@ -4769,7 +4906,19 @@ def test_run_apply_adapter_contract_mismatch_returns_difference(tmp_path):
 
 @pytest.mark.parametrize(
     "mode_flag,package_name",
-    [(("--dry-run",), "agentbundle"), (("--check",), "credbroker")],
+    [
+        (("--dry-run",), "agentbundle"),
+        (("--dry-run",), "credbroker"),
+        (("--check",), "agentbundle"),
+        (("--check",), "credbroker"),
+        ((), "agentbundle"),
+        ((), "credbroker"),
+    ],
+    ids=[
+        "dry-run-agentbundle", "dry-run-credbroker",
+        "check-agentbundle", "check-credbroker",
+        "apply-agentbundle", "apply-credbroker",
+    ],
 )
 def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
     tmp_path, monkeypatch, mode_flag, package_name
@@ -4780,6 +4929,15 @@ def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
     # parser (`_build_parser`), not a hand-built namespace: the defaults
     # `--package` resolves to are the parser's own `choices`/`default`, not
     # this test's (AC-0030's oracle).
+    #
+    # Concern 9, round 2: every earlier version of this test covered one
+    # mode and one recognised name each -- `agentbundle` was only ever
+    # driven through `--dry-run`, `credbroker` only through `--check` and a
+    # bare apply run. A regression scoped to (say) `credbroker`-on-`--dry-run`
+    # or `agentbundle`-on-apply could ship with every one of those green.
+    # This is the full 3-mode x 2-name cross product (a bare invocation with
+    # neither `--dry-run` nor `--check` is apply, per AC-0030's non-required
+    # mode group).
     target = tmp_path / "package-target"
     target.mkdir()
     source = tmp_path / "package-source"
@@ -4800,30 +4958,27 @@ def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
     assert catalogue_sync.run(args) == 3
 
 
-def test_run_apply_package_recognized_name_refuses_before_fetch(tmp_path, monkeypatch):
-    # AC-0047's third invocation — a bare apply run (no `--dry-run`/
-    # `--check`) supplying `--package`. Driven through the real parser: the
-    # mode group is not `required=True` (AC-0030), so a bare invocation
-    # carrying `--package` parses cleanly with no hand-built namespace at
-    # all (AC-0030's oracle).
-    target = tmp_path / "package-apply-target"
-    target.mkdir()
-    source = tmp_path / "package-apply-source"
+def test_run_package_unrecognized_name_exits_2_via_the_real_parser(tmp_path):
+    # Concern 9, round 2: no test anywhere asserted that an UNRECOGNISED
+    # `--package` name exits 2 -- the entire `cli.py` half of AC-0047's own
+    # fix is the `choices=("agentbundle", "credbroker")` tuple on the
+    # parser's `--package` argument; deleting that tuple (accepting any
+    # string) left every other test in this suite green, since they only
+    # ever supply a name already in `choices`. Driven through the real
+    # parser, which is the only thing that owns this refusal: argparse
+    # itself exits 2 before `run()` is ever called.
+    target = tmp_path / "package-unrecognized-target"
+    source = tmp_path / "package-unrecognized-source"
 
-    def _boom(uri):
-        raise AssertionError("source resolution must not run for --package")
+    with pytest.raises(SystemExit) as exc_info:
+        _build_parser().parse_args(
+            [
+                "catalogue", "sync", str(target), "--source", str(source),
+                "--package", "not-a-recognised-package",
+            ]
+        )
 
-    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _boom)
-    monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
-
-    args = _build_parser().parse_args(
-        [
-            "catalogue", "sync", str(target), "--source", str(source),
-            "--package", "credbroker",
-        ]
-    )
-
-    assert catalogue_sync.run(args) == 3
+    assert exc_info.value.code == 2
 
 
 def test_run_apply_two_runs_identical_flags_differing_recorded_modes_write_same_bytes(
@@ -5071,7 +5226,7 @@ def test_run_apply_removal_failure_returns_apply_failed(tmp_path, monkeypatch):
     gone.parent.mkdir(parents=True, exist_ok=True)
     gone.write_bytes(b"stale\n")
 
-    monkeypatch.setattr(catalogue_sync, "_confined_unlink", lambda target_arg, path: False)
+    monkeypatch.setattr(catalogue_sync, "_confined_unlink", lambda target_arg, path, expected_sha256: False)
 
     code = _call_run_apply(target, source)
 
@@ -5106,7 +5261,7 @@ def test_run_apply_post_write_failure_names_what_it_left_behind(
     gone.parent.mkdir(parents=True, exist_ok=True)
     gone.write_bytes(b"stale\n")
 
-    monkeypatch.setattr(catalogue_sync, "_confined_unlink", lambda target_arg, path: False)
+    monkeypatch.setattr(catalogue_sync, "_confined_unlink", lambda target_arg, path, expected_sha256: False)
 
     code = _call_run_apply(target, source)
     err = capsys.readouterr().err
@@ -5117,6 +5272,58 @@ def test_run_apply_post_write_failure_names_what_it_left_behind(
     assert "not rolled back" in err
     # The state not being updated is the half that decides what a re-run does.
     assert "recorded state was NOT updated" in err
+
+
+def test_run_apply_post_write_receipt_removed_list_carries_no_control_character(
+    tmp_path, monkeypatch, capsys
+):
+    # Concern 6, round 2: `_print_post_write_receipt` interpolates
+    # `result.removed` with no terminal-safe screen of its own. This test
+    # depends on Blocker 4's fix rather than adding a second screen here:
+    # `_terminal_safe_removal_set` (the single screen `_run_apply` now
+    # applies once, before the printed plan and the write phase alike)
+    # already keeps a hostile recorded path out of `removal_set` entirely,
+    # so it can never reach `execute_write_sequence`, never be unlinked,
+    # and never land in `result.removed` -- there is no second screen to
+    # add at the receipt because the value it renders is never hostile by
+    # the time it gets there. A legitimate stale path sits alongside the
+    # hostile one so this run still forces a genuine post-removal failure
+    # (the state write) with a non-empty `result.removed` to actually
+    # print, rather than one that happens to vacuously skip the branch.
+    hostile = "packs/alpha/evil\x1b[31m-recorded.md"
+    target, source = _apply_run_target(
+        tmp_path,
+        "receipt-hostile-removed",
+        managed_paths=[
+            {"path": "packs/alpha/gone.md", "sha256": hashlib.sha256(b"stale\n").hexdigest()},
+            {"path": hostile, "sha256": hashlib.sha256(b"stale2\n").hexdigest()},
+        ],
+    )
+    gone = target / "packs" / "alpha" / "gone.md"
+    gone.parent.mkdir(parents=True, exist_ok=True)
+    gone.write_bytes(b"stale\n")
+    hostile_path = target / Path(hostile)
+    hostile_path.parent.mkdir(parents=True, exist_ok=True)
+    hostile_path.write_bytes(b"stale2\n")
+
+    def _boom(target_arg, merged_state):
+        raise OSError("simulated state write failure")
+
+    monkeypatch.setattr(catalogue_sync, "write_merged_state", _boom)
+
+    code = _call_run_apply(target, source)
+    err = capsys.readouterr().err
+
+    assert code == 4
+    assert "\x1b" not in err
+    # The legitimate removal actually happened and is named in the
+    # receipt -- proving this exercised the `result.removed` print branch
+    # rather than skipping it.
+    assert "packs/alpha/gone.md" in err
+    # The hostile path was screened out of the removal set before
+    # execution (Blocker 4), so it was never removed and never printed.
+    assert hostile not in err
+    assert hostile_path.exists()
 
 
 def test_run_apply_state_write_failure_returns_apply_failed(tmp_path, monkeypatch):
@@ -5195,6 +5402,33 @@ def test_run_apply_printed_acted_rows_equal_admitted_write_set(tmp_path, capsys)
     assert "packs/alpha/gone.md" not in written_paths
     assert acted_paths == written_paths
 
+    # Concern 8, round 2: everything above reads the RECORDED STATE, which a
+    # `write_jailed` that reports success without writing, or a
+    # `_confined_unlink` that reports success without unlinking, would never
+    # disturb -- both would leave this test green. Assert the post-run TREE
+    # instead: exact bytes at each ordinary and companion destination
+    # (against the same derivation the run itself replays, not a
+    # hand-copied constant), and the stale path actually absent from disk.
+    cfg = ish.SelfHostedInitConfig(
+        target=target, source=source, tooling="external", attribution="white-label",
+        guides="selected", dry_run=True,
+        packs=["alpha", "beta"], profiles=["default"],
+    )
+    replay = ish.replay_derivation(cfg, interactive=False)
+    companion_row = next(row for row in doc["acted"] if row.get("companion"))
+    companion_path = companion_row["companion"]
+    for row in doc["acted"]:
+        if row["verdict"] == "would-remove":
+            continue
+        if row.get("companion"):
+            # The companion row's OWN path (the adopter-edited original) is
+            # never rewritten -- only its companion destination is.
+            assert (target / row["path"]).read_bytes() == b"adopter edited\n"
+            continue
+        assert (target / row["path"]).read_bytes() == replay.file_bytes[row["path"]]
+    assert (target / companion_path).read_bytes() == replay.file_bytes["packs/alpha/unchanged.md"]
+    assert not (target / "packs" / "alpha" / "gone.md").exists()
+
 
 def test_run_apply_removal_and_out_of_coverage_paths_pass_the_terminal_safe_check(
     tmp_path, capsys
@@ -5208,6 +5442,14 @@ def test_run_apply_removal_and_out_of_coverage_paths_pass_the_terminal_safe_chec
     # screen of its own) reached `_apply_acted_rows`/`_apply_plan_document`
     # unchecked before this fix -- an ANSI escape in a recorded path would
     # reach stdout raw via a would-remove row or the `out_of_coverage` list.
+    #
+    # Blocker 4, round 2: dropping the hostile path from the PRINTED plan is
+    # not enough on its own -- `_run_apply` passed the unfiltered
+    # `removal_set` to `execute_write_sequence` regardless, so a path this
+    # exact fixture builds was deleted from disk despite never appearing in
+    # the consented plan. The assertions below check the TREE and the
+    # recorded state, not only stdout — a fix that screens the print but
+    # not the execution passes every assertion above and fails these.
     hostile_removable = "packs/alpha/evil\x1b[31m-removable.md"
     hostile_out_of_coverage = "packs/beta/evil\x1b[31m-out-of-coverage.md"
     target, source = _apply_run_target(
@@ -5241,6 +5483,17 @@ def test_run_apply_removal_and_out_of_coverage_paths_pass_the_terminal_safe_chec
     assert hostile_removable not in acted_paths
     assert any("rejected would_remove" in line for line in doc["rejections"])
     assert hostile_out_of_coverage not in doc["reported"]["out_of_coverage"]
+
+    # The path the printed plan never named must still be on disk, with its
+    # original bytes, and still recorded as managed -- a run that deletes an
+    # unnamed path but merely hides it from stdout must fail here.
+    assert removable_path.exists()
+    assert removable_path.read_bytes() == b"stale\n"
+    state = json.loads(
+        (target / ".agentbundle" / "self-host-state.json").read_text(encoding="utf-8")
+    )
+    recorded_paths = {entry["path"] for entry in state["managed_paths"]}
+    assert hostile_removable in recorded_paths
     assert any("rejected out_of_coverage" in line for line in doc["rejections"])
 
 
@@ -5417,6 +5670,26 @@ def test_sync_apply_format_json_without_yes_exits_2_via_the_real_parser(tmp_path
     assert catalogue_sync.run(args) == 2
 
 
+def test_sync_apply_recognised_package_with_format_json_and_no_yes_is_malformed(
+    tmp_path,
+):
+    # Concern 5, round 2: AC-0039's malformed row ("an apply run with
+    # `--format json` and no `--yes`") sits ABOVE the `--package` row (`3 —
+    # cannot-answer`) in the table -- first-match-wins means a recognised
+    # `--package` name combined with this malformed shape must still exit
+    # 2, not 3. Before the fix, `run()` refused `--package` before ever
+    # reaching this check (which lived inside `_run_apply`, never called
+    # for a `--package` invocation), so this exact combination exited 3.
+    target, source = _apply_run_target(tmp_path, "package-format-json-no-yes")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--package", "agentbundle", "--format", "json"]
+    )
+
+    assert catalogue_sync.run(args) == 2
+
+
 @pytest.mark.parametrize(
     "scope_args",
     [("--pack", "alpha"), ("--profile", "alpha"), ("--guides",)],
@@ -5516,6 +5789,21 @@ def test_sync_dry_run_gates_and_reports_the_resolved_selection_not_the_replay(
     target = tmp_path / "dry-run-narrowed-selection-target"
     target.mkdir()
     _write_minimal_sync_state(target, packs=[])
+    # Concern 10, round 2: `compatibility_warnings` only ever emits a "pack
+    # version differs" row when the derived tree already carries a BASELINE
+    # `pack.toml` to compare against (`_read_baseline_pack_toml`) — a fresh
+    # target with no such file makes this assertion vacuous regardless of
+    # which pack list drives it, since zero packs or all packs alike then
+    # produce zero warnings. This baseline (a different `[pack] version`
+    # from the source's "1.0.0") gives the buggy, unnarrowed
+    # `replay.pack_names` something it WOULD actually warn about.
+    baseline_pack_dir = target / "packs" / "alpha"
+    baseline_pack_dir.mkdir(parents=True)
+    (baseline_pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "0.9.0"\n\n'
+        '[pack.adapter-contract]\nversion = "1.0"\n',
+        encoding="utf-8",
+    )
 
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(target), "--source", str(source),
@@ -5529,3 +5817,46 @@ def test_sync_dry_run_gates_and_reports_the_resolved_selection_not_the_replay(
     # over "alpha"; the resolved (empty) selection has nothing to check.
     assert code == 0
     assert doc["packs"] == []
+    # `code == 0`/`doc["packs"] == []` alone stays green even if
+    # `compatibility_warnings` alone reverts to reading `replay.pack_names`
+    # (the source's own unnarrowed list) instead of the resolved selection
+    # -- the exit code and `packs` field come from a different call
+    # entirely. Assert the compatibility list directly: it must carry no
+    # entry naming "alpha", the pack this preview selects none of, even
+    # though a baseline mismatch exists for it to warn about.
+    assert doc["compatibility"] == []
+    assert not any("alpha" in line for line in doc["compatibility"])
+
+
+def test_sync_dry_run_narrows_an_empty_recorded_profiles_field_to_nothing(
+    tmp_path, capsys
+):
+    # Concern 10, round 2: AC-0068's narrowing-to-nothing outcome was only
+    # ever exercised on the PACKS axis above (`_write_minimal_sync_state`'s
+    # own "packs": [] fixture) -- the PROFILES axis narrows through the
+    # exact same `_resolve_effective_selection` code path (a present but
+    # empty recorded field, never widened the way an explicit empty
+    # `--profile` list would be) but had no fixture ever proving it: every
+    # other test's source ships no profile at all, so a broken narrowing
+    # guard on the profiles axis alone would have nothing to observably
+    # fail against.
+    source = _make_apply_source(tmp_path / "dry-run-narrowed-profiles-source")
+    target = tmp_path / "dry-run-narrowed-profiles-target"
+    target.mkdir()
+    _write_minimal_sync_state(target, packs=["alpha"])
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--dry-run", "--format", "json"]
+    )
+
+    code = catalogue_sync.run(args)
+    doc = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert doc["packs"] == ["alpha"]
+    # The recorded "profiles": [] field narrows to nothing even though the
+    # source ships "default" -- `_select_profiles(source, [])` would widen
+    # an *explicit* empty list to every shipped profile; the recorded
+    # field must not widen the same way.
+    assert doc["profiles"] == []

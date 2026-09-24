@@ -483,3 +483,68 @@ select it was dead code, because a lambda's `__qualname__` never carries the
 Final gates after all 19: lint exit 0, full unit suite exit 0 over 3,275
 tests — up from 3,261, so the repairs added net new covering tests rather than
 relaxing existing ones.
+
+## Post-GATES review — round 2, and the generator
+
+Three lanes over the round-1 repairs, adjudicated once across all three so
+convergence stayed visible. 14 raw findings, **10 sustained** deduplicated —
+four Blockers, six Concerns. Three of the four Blockers were found by two
+lanes independently.
+
+### The generator, named
+
+Every Blocker was one mistake: **two things that must agree were derived
+separately, instead of one being computed once and carried.**
+
+| Seam | Re-derived | Now carries |
+| --- | --- | --- |
+| `_confined_unlink` | eligibility — computed a SHA and discarded it | the recorded digest, compared at the unlink |
+| companion restore scope | ownership — inferred from byte equality | `CompanionLinkPublishedError`, a typed signal from the publish |
+| `_snapshot_lstat_entry` | the inspection — strict `lstat`, then a permissive second one | `_walk_entry_from_lstat`, built from the captured `stat_result` |
+| the removal action set | what we act on — screened the plan, not the set executed | one `_terminal_safe_removal_set` feeding both |
+
+The tests carried the mirror image: each asserted a **proxy** — the printed
+row, the exit code, the recorded state, the call's existence — where the
+criterion is about the **tree**. That is the whole explanation for how round
+1's repairs passed their own tests while introducing four Blockers.
+
+### B3 was ours, and it falsified a refutation
+
+Round 1's Blocker-3 fix removed `execute_write_sequence`'s post-consent
+`select_removal_set` recomputation. That recomputation was the only thing
+re-applying the removal planner's recorded-SHA guard
+(`initialise_self_hosted.py:1132`, `recorded-sha256-mismatch`), because
+`_confined_unlink` computed a digest and discarded it — proving confinement
+and nothing else. So an adopter edit to a planned-stale path during the
+consent wait survived confinement and was deleted.
+
+Round 1's adversarial adjudicator had **refuted** the equivalent finding, and
+its stated ground was that very recomputation. Our repair made its premise
+false. Nothing but a second review round over the repairs would have caught
+that.
+
+**Standing lesson:** when a repair removes a code path, check what refutations
+and comments rested on it. A refutation is evidence about a tree state, not a
+permanent fact.
+
+### Mutation proof
+
+| Mutation | Result |
+| --- | --- |
+| digest comparison in `_confined_unlink` disabled | red |
+| terminal screen applied to the plan but not the executed set | red |
+| `_snapshot_lstat_entry` delegating to the permissive helper | red (agent-run) |
+| `cli.py`'s `choices=(...)` tuple removed | red on the new test only — every other test stayed green, confirming the round-2 finding |
+
+Gates after: lint exit 0, full unit suite exit 0 over **3,285** tests, up from
+3,275.
+
+### Two findings needed no source change
+
+C8 and C10 were test defects over correct code. The acted-row test read
+`written_paths` from the recorded state, so it could not fail for a
+`write_jailed` that returned success without writing — proven by mutating both
+write helpers to no-ops, under which the old assertions stayed green and the
+new tree assertion failed. C10's compatibility assertion was vacuous until a
+target-side baseline `pack.toml` was added; the implementer caught that in its
+own first draft and fixed it before finalising.
