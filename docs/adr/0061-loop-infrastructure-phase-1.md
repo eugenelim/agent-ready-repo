@@ -134,17 +134,23 @@ shipped still reaches its wave boundary: one passes cohort state whose
 receipts container. Between them they emit at most a line on stdout, and no
 durable record says which row decided the pass.
 
-That is narrower than "the exit leaves no trace", and a reader should not take
-the stronger claim. The `wave-complete` transition this guard gates appends a
-record to `.loop-run/events.jsonl` carrying the run, the sequence, the event and
-the time, so *that* the exit occurred is durable for every row. What is absent
-is the verdict: no record says whether accounting was enforced, exempted, or
-satisfied.
+Whether anything else makes such an exit traceable is unsettled in this
+repository, and this erratum records the disagreement rather than resolving it.
+The `wave-complete` transition this guard gates appends a line to
+`.loop-run/events.jsonl` carrying the run, the sequence, the event and the time;
+`loop-engine.py` calls that file a durable audit record, and nothing deletes,
+rotates or truncates it. `docs/architecture/telemetry.md` calls the same file
+gitignored and not meant to last, and the owned-state tables there and in
+`docs/architecture/loop-infrastructure.md` label it ephemeral. A reader looking
+for evidence that a wave exit passed therefore will or will not find it
+depending on which source holds. Neither source claims the verdict is recorded
+anywhere: nothing says whether accounting was enforced, exempted, or satisfied.
 
 Two neighbouring facts do not follow from the above and are stated so they are
 not inferred from it. A wave whose tasks all carry a `decline` is fully
 accounted for rather than exempted — a decline is a record, and
-`references/state-schema.md` states that both kinds count. And
+`packs/core/.apm/skills/work-loop/references/state-schema.md`
+states that both kinds count. And
 `loop-cohort status`'s `dispatch_receipts_enforced` reports whether the
 container is present when the call is made, so it is the exemption's current
 status rather than a trace of any past exit, and it refuses outright on an

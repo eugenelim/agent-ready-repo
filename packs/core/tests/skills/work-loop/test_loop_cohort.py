@@ -4074,13 +4074,15 @@ def test_wave_advance_does_not_carry_a_long_state_value_whole(tmp: Path) -> None
 #
 # Contract: ADR-0061's 2026-09-24 erratum. Both cases below PASS
 # `check --phase wave-exit`, and both are pinned against `loop-cohort status`
-# rather than against the guard: the guard half of each already belongs to
-# `_WAVE_EXIT_CLI_ROWS` above, and `status` is the surface an after-the-fact
-# reader actually reaches for. The guard's stdout notice is not that surface —
-# it is one line on a run nobody is watching.
+# rather than against the guard: `status` is the surface an after-the-fact
+# reader actually reaches for, and the guard's stdout notice is not — it is one
+# line on a run nobody is watching. `_WAVE_EXIT_CLI_ROWS` above already owns the
+# guard verdicts for the schema-unsupported and container-absent rows, so those
+# are not re-pinned here; it has no decline row, and the guard assertion below
+# is the only one covering that case.
 
 
-def _tolerated_exit_state(**over) -> dict:
+def _wave_exit_state(**over) -> dict:
     state = {
         "schema_version": 1, "run_id": str(uuid.uuid4()),
         "schedule_waves": _WAVES, "current_wave_index": 0,
@@ -4105,16 +4107,18 @@ def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
         "decline": {"kind": _mod.DECLINE_KIND,
                     "reason": _mod.DECLINE_REASONS[0]},
     }
-    # Without this the differential is vacuous: if the two fixtures ever stop
-    # differing, every comparison below compares a thing to itself and the test
-    # reports agreement it never observed.
-    if fixtures["receipt"] == fixtures["decline"]:
-        fail(name, "the two fixtures are identical — nothing is being compared")
+    # Without this the differential is vacuous: if both fixtures ever carry the
+    # same `kind`, every comparison below compares a receipt wave to a receipt
+    # wave and reports an agreement it never observed. Compares `kind` and not
+    # the whole dict, because the decline record also carries `reason`, so two
+    # records that are both receipts still differ as dicts.
+    if fixtures["receipt"]["kind"] == fixtures["decline"]["kind"]:
+        fail(name, "both fixtures carry the same kind — no decline is exercised")
         return
     seen = {}
     for kind, record in fixtures.items():
         spec_dir = make_spec_dir(tmp, f"{name}-{kind}")
-        write_state(spec_dir, _tolerated_exit_state(
+        write_state(spec_dir, _wave_exit_state(
             **{_RECEIPTS_KEY: _receipts_container(
                 _WAVES, 0, ["T1", "T2"], record=record)}))
         rc, out, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
@@ -4145,7 +4149,12 @@ def test_status_refuses_the_oldest_state_the_wave_exit_tolerates(
     """
     name = "status-refuses-the-tolerated-schema"
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, _tolerated_exit_state(schema_version=99))
+    # The container is present and UNACCOUNTED, so the only row that can pass
+    # this state is the schema row. Without it the state would also satisfy the
+    # container-absent row, and the exit's rc=0 would not be attributable.
+    write_state(spec_dir, _wave_exit_state(
+        schema_version=99,
+        **{_RECEIPTS_KEY: _receipts_container(_WAVES, 0, [])}))
 
     rc, _, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
     if rc != 0:
