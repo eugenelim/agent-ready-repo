@@ -2227,25 +2227,26 @@ backlog = [
 # owed here before this item starts.
 queue   = [
 ]
-# Active since 2026-09-24. All four tasks are delivered: T3 the corpus
-# migration in d00f39e34, T1 the refusal registry, T2 the state-coherence rules
-# and the validate_corpus_scoped entry point, T4 the docstring, evals, version
-# bump and changelog. The spec is `Implementing` and the plan `Approved`; the
-# item is active because review and the human merge gate remain, not because
-# work does. The parent brief is `Executing` and sits in `executing`.
-# Two amendments are recorded in that plan's changelog: a task reorder putting
-# T3 first, and a material one restating AC-0010, re-approved 2026-09-24. Both
-# artifacts were briefly parked at `Draft`/`Drafting` during the second, with
-# the brief at `ready`; that is finished and none of it is current state.
-# T3 is delivered but `completed_task_ids` is empty, so a resumed run will
+# Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
+# that set the spec `Shipped` and the plan `Done`. Membership and status must
+# move together -- the canonical reconciliation raises `impossible_transition`
+# on a `Shipped` artifact sitting in `active`, and this entry produced exactly
+# that finding until it was moved.
+# All four tasks landed: T3 the corpus migration in d00f39e34, T1 the refusal
+# registry, T2 the state-coherence rules and the validate_corpus_scoped entry
+# point, T4 the docstring, evals, version bump and changelog. Two plan
+# amendments are recorded in that plan's changelog: a task reorder putting T3
+# first, and a material one restating AC-0010.
+# T3 is delivered but `completed_task_ids` is empty, so a resumed run would
 # schedule it again. Owner accepted that on 2026-09-24 rather than hand-edit
 # state.json. Do not re-execute T3 -- its oracle passes vacuously on the corpus
-# it produced. Read that spec's notes/verification-ledger.md before dispatching
-# any wave.
+# it produced. Read that spec's notes/verification-ledger.md first.
+# The parent brief stays `Executing`: its only materialized child is Shipped,
+# but slices 2 and 3 are not yet cut.
 active  = [
-  { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam, with no rule it adds reachable from the shared validate_live_intent surface", needs = [] },
 ]
 shipped = [
+  { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam, with no rule it adds reachable from the shared validate_live_intent surface", needs = [] },
   # Slice 6 of `intent-identity-and-registration`, cut 2026-09-23 on the second
   # distinct confirmation the post-Ready slice path requires. It delivers the two
   # 2026-09-23 inbound entries in that brief's Post-Ready decisions, both handed

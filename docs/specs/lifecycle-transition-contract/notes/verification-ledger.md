@@ -34,21 +34,32 @@ half, that the docstring names every refusal class this spec adds, is AC-0013
 and a test decides it.
 
 **Verdict: the module docstring is the module's only statement of which
-surface a live-intent rule belongs on.** Read on `ab4dd5a30`, over every
-occurrence in `intent_shape.py` of the rule or its vocabulary:
+surface a live-intent rule belongs on.** Re-read after the review round, over
+every occurrence in `intent_shape.py` of the rule or its vocabulary. The
+enumeration below is the whole list, not a sample — an earlier draft of this
+entry claimed a complete read and then listed six of the eight occurrences,
+which review caught.
 
-- **Lines 14–22, module docstring** — the statement itself. Canonical.
-- **Lines 447, 503, 545, 562** — `validate_supersession`,
-  `_check_state_coherence`, `validate_corpus_scoped` and
-  `_check_supersession_pair` each read "See the module docstring's surface
-  placement rule." Pointers, not restatements.
-- **Line 499** — `_check_state_coherence` says its verdicts depend on
-  `Status`, a different field from the one constrained, "the same reason
-  ``validate_supersession`` stays off the shared surface." Judged an
-  *application* of the rule to this function's own case, not a second
-  statement of it: it states where these rules sit and why, and states no
-  general dichotomy. It is followed immediately by the pointer at line 503.
+- **Lines 15–22, module docstring** — the statement itself, and the only
+  place the general dichotomy is stated. Canonical.
+- **Lines 503, 551, 568** — `_check_state_coherence`, `validate_supersession`
+  and `_check_supersession_pair` each read "See the module docstring's surface
+  placement rule." Pointers.
+- **Lines 445, 497, 499, 567** — four *application* sentences, each saying
+  where one function's own rules sit and why. `validate_supersession`: "the
+  pairing rule depends on a different field's value". `_check_state_coherence`:
+  its verdicts depend on `Status`, "the same reason `validate_supersession`
+  stays off the shared surface". `_check_supersession_pair`: "its verdict
+  depends on a different field's value". Each applies the dichotomy to one
+  case and states no general rule, and each is followed by a pointer at the
+  canonical statement.
+
+The line between an application and a second statement is whether it would
+tell a reader where a *new* rule belongs. None of the four would; all four
+say only where the rule in front of them sits. On that reading the verdict is
+clean. An independent reviewer reached the same reading on the same lines.
 
 Judged by eugenelim. The earlier draft that made this an acceptance criterion
-(`AC-0015`) was withdrawn during spec review as unfalsifiable, which is why
-the obligation is carried here instead.
+(`AC-0015`) was withdrawn during spec review as unfalsifiable — no control can
+tell a pointer from a paraphrase — which is why the obligation is carried here
+as a recorded human judgement instead.

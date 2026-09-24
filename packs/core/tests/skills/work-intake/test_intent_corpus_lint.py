@@ -1121,6 +1121,11 @@ def test_each_refusal_carries_the_class_that_matches_its_kind() -> None:
     labelled `required`. Every other assertion checks membership, which a swap
     satisfies, so this pins which class belongs to which kind of refusal.
 
+    The comparand is the literal string, not the module's own constant.
+    Comparing symbol to symbol pins which *constant* each site uses and not
+    which *string*, so exchanging the two values at their definitions would
+    pass — the swap would simply move one level up.
+
     Addressed at the rule function rather than through the lint: the lint
     converts each `Violation` into a `FileViolation` carrying path, field and
     reason, and drops the class on the way, so no assertion about the class
@@ -1130,14 +1135,37 @@ def test_each_refusal_carries_the_class_that_matches_its_kind() -> None:
 
     missing = shape._check_state_coherence(_broken("a", status="Fulfilled"))
     assert missing, "a Fulfilled intent with neither record must be refused"
-    assert {v.refusal_class for v in missing} == {
-        shape.LIFECYCLE_RECORD_REQUIRED
-    }
+    assert {v.refusal_class for v in missing} == {"lifecycle_record_required"}
+    assert shape.LIFECYCLE_RECORD_REQUIRED == "lifecycle_record_required"
 
     forbidden = shape._check_state_coherence(
         _broken("b", status="Draft", extra="- **Accepted:** 2026-09-20 ratified")
     )
     assert forbidden, "a Draft intent carrying `Accepted:` must be refused"
-    assert {v.refusal_class for v in forbidden} == {
-        shape.LIFECYCLE_RECORD_NOT_ALLOWED
-    }
+    assert {v.refusal_class for v in forbidden} == {"lifecycle_record_not_allowed"}
+    assert shape.LIFECYCLE_RECORD_NOT_ALLOWED == "lifecycle_record_not_allowed"
+
+
+def test_the_two_rule_tables_agree_so_a_forbidden_record_never_crashes() -> None:
+    """Every status with forbidden records has a rationale for refusing them.
+
+    The two tables are separate, so they can disagree. A status listing a
+    forbidden record with no rationale entry used to raise `KeyError` out of
+    the lint, turning a non-conforming corpus into a crash — exit 2 territory,
+    which the contract reserves for a corpus that could not be read.
+    """
+    shape = lint._shape
+
+    for status, (_, forbidden) in shape._STATE_COHERENCE_RULES.items():
+        if forbidden:
+            assert status in shape._FORBIDDEN_RATIONALES, status
+
+    # And the fallback holds if one is ever missed: no status may raise.
+    for status in shape.STATUS_VALUES:
+        shape._check_state_coherence(
+            _broken(
+                "a",
+                status=status,
+                extra="- **Accepted:** 2026-09-20 r\n- **Fulfilled:** 2026-09-21 d",
+            )
+        )

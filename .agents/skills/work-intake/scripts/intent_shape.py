@@ -523,7 +523,13 @@ def _check_state_coherence(text: str) -> list[Violation]:
     for record in forbidden:
         if record in present:
             article = "an" if record[0] in "AEIOU" else "a"
-            rationale = _FORBIDDEN_RATIONALES[status]
+            # Total by construction: a status listing forbidden records
+            # without a rationale would otherwise raise out of the lint,
+            # turning a corpus fault into a crash. The refusal still names
+            # the record, which is what the contract requires of it.
+            rationale = _FORBIDDEN_RATIONALES.get(
+                status, "does not carry that record"
+            )
             violations.append(
                 Violation(
                     record,
