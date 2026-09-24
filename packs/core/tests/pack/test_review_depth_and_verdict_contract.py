@@ -276,13 +276,26 @@ def test_adversarial_severity_is_bounded_by_what_reads_the_surface() -> None:
     text = _flat(ADVERSARIAL)
 
     for clause in (
-        # The primary axis is determinacy, not which surface is cited: a wording
-        # preference about a contract section is still unblockable, and a broken
-        # reference in working material is still actionable.
-        "Severity follows whether the fix is determined",
-        "is the fix fully determined",
+        # The primary axis is whether anything establishes the defect, not
+        # which surface is cited: a wording preference about a contract section
+        # is still unblockable, and a broken reference in working material is
+        # still actionable.
+        "Severity follows whether the defect is established",
+        "does something outside the finding establish the defect",
         "A judgement finding is a Concern at most",
-        "cannot be determinately fixed is judgement",
+        "whose defect nothing external\nestablishes is judgement",
+        # The header, the disclaimer and the tail sentence can all survive a
+        # revert of the two bullets they govern, which would leave the old
+        # remedy-determinacy definition sitting beside the disclaimer that
+        # contradicts it. Pin the operative clause of each bullet too.
+        "**Mechanical** — something external establishes the defect",
+        "**Judgement** — nothing external establishes the defect",
+        # The axis is the defect, not the remedy. Two raters reading the older
+        # "no choice left open" wording split 9-vs-23 on the same 50 entries,
+        # because that clause asks how many repairs exist while the ceiling's
+        # own justification asks whether anything establishes the defect. Drop
+        # this clause and the same prose admits both readings again.
+        "The repair may take several\ndefensible forms",
         # The surface tier is the secondary filter, and the no-tiers default
         # must survive or a target that marks nothing loses its blockers.
         "working material rather than\ncontract",
