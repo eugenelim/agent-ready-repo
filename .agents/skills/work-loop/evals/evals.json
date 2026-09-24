@@ -977,7 +977,7 @@
     {
       "id": "defect-established-not-remedy-determined",
       "prompt": "A reviewer finding says an acceptance criterion names a count of three where the tree holds five, and cites the file. Three repairs are defensible: change the count, add a baseline, or drop the claim. Is the consequence advisory?",
-      "expected_output": "No. The first test of the Consequence predicate asks whether something outside the finding establishes the defect, and the tree disagrees with what the criterion says, so the defect is established and something would red. A defect several defensible repairs could fix is still established; determinacy of the remedy is not the test. The consequence only becomes advisory if the second test applies — every cited surface is working material rather than contract, or nothing gates it. Say which test applied and which surface supplied the tier.",
+      "expected_output": "No. The first test of the Consequence predicate asks whether something outside the finding establishes the defect, and the tree disagrees with what the criterion says, so the defect is established. A defect several defensible repairs could fix is still established; determinacy of the remedy is not the test. The consequence only becomes advisory if the second test applies — every cited surface is working material rather than contract, or nothing gates it. Say which test applied and which surface supplied the tier.",
       "assertions": [
         "Response says the consequence is not advisory on the first test",
         "Response says the defect is established because something external disagrees with the target",

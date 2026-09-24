@@ -312,8 +312,11 @@ severity.
 That ceiling is honoured in practice. Across 2,062 adjudicator entries declaring
 a consequence advisory, 98% sustained at Concern or Nit; per run, 13 of 15 runs
 with at least 20 such entries were perfectly compliant. No entry in that corpus
-records which reading of the test its adjudicator applied, which is why the
-divergence it hid had to be measured by re-labelling rather than read off.
+records which reading of the test its adjudicator applied, so how consistently
+runtimes apply it can only be measured by re-labelling a sample, not read off
+the entries.
+[`review-loop-nonconvergence-survey.md`](../product/research/review-loop-nonconvergence-survey.md)
+holds both re-labelling runs and what each established.
 
 ### TDD stub artifact boundary
 

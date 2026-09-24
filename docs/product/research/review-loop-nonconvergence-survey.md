@@ -782,11 +782,16 @@ The inputs and rater output for this run are not retained in the repository.
 They were session-local, so the numbers above are the record, and re-deriving
 them means running the labelling again rather than re-reading a corpus.
 
-A standing cross-runtime test is still absent. The instrument is described in
+A standing cross-runtime test is still absent. `core` 2.26.40 adds one
+judge-graded case for this rule, `defect-established-not-remedy-determined`,
+to `work-loop`'s eval harness, which `pack-evals` can re-run against a chosen
+judge backend. One case is not a clause-accuracy suite, and
+`packs/core/.apm/agents/` still ships no `evals/` directory of its own, so the
+contracts whose prose decides severity are covered by a single case reached
+through a neighbouring skill rather than by a harness of their own. The
+instrument for the fuller version is described in
 [`cross-model-steering-survey.md`](cross-model-steering-survey.md) Mechanism 1,
-clause accuracy; what is missing is that `packs/core/.apm/agents/` ships no
-`evals/` directory of its own, so the contracts whose prose decides severity
-have no repeatable cross-runtime check and the re-label above is a one-off.
+clause accuracy.
 
 ## Known unknowns
 

@@ -75,8 +75,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so a finding like "this count says three where the tree holds five" could be
   capped at Concern purely because you could change the count, add a baseline,
   or drop the claim. How much that mattered depended on which model read the
-  rule: two raters labelling the same 50 recorded findings returned 2 and 8
-  under the old wording and 1 and 1 under the new one.
+  rule. Two models were asked which of the same 50 recorded blocking findings
+  should have been capped: under the old wording they answered 2 and 8, and
+  under the new one both answered 1.
 
 ### Changed
 
