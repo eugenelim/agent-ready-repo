@@ -12,7 +12,7 @@
 ## Outcome
 
 - **Steerable input:** The effort an organisation spends deciding whether a pack is safe, current and composable with what it already runs — and the effort it spends publishing its own.
-- **Lagging outcome:** An organisation runs its own catalogue of agent capability that it trusts, composes and extends — including packs it never publishes — rather than consuming an external one on faith or building everything itself. Its own packs are first-class alongside anything it adopts, not second-class extensions bolted onto someone else's catalogue. Four things have to hold for that, and § Decomposition owns exactly one each: an outsider can **trust and adopt** the catalogue — find it, judge it, confirm what arrived, publish into it and learn to author one; the result **reaches** every host its people work in; it **installs and upgrades** without losing integrity; and someone can **operate** it day to day.
+- **Lagging outcome:** An organisation runs its own catalogue of agent capability that it trusts, composes and extends — including packs it never publishes — rather than consuming an external one on faith or building everything itself. Its own packs are first-class alongside anything it adopts, not second-class extensions bolted onto someone else's catalogue. Five things have to hold for that, and § Decomposition owns exactly one each: an outsider can **trust and adopt** the catalogue — find it, judge it, confirm what arrived, learn to author one; the organisation can **publish** into it safely; the result **reaches** every host its people work in; it **installs and upgrades** without losing integrity; and someone can **operate** it day to day.
 - **Guardrail:** Trust is established by contract and evidence, never by reputation. Composition never silently changes what an installed capability does, and an organisation's own packs are first-class rather than second-class extensions.
 
 ## Opportunity
@@ -194,13 +194,15 @@ today, not what defines it.
 
 | Outcome clause | Capability | Intents | State |
 | --- | --- | --- | --- |
-| **trust and adopt** | [CAP-0006 catalogue trust and adoption](CAP-0006-catalogue-trust-and-adoption.md) | 11 children | minted |
+| **trust and adopt** | [CAP-0006 catalogue trust and adoption](CAP-0006-catalogue-trust-and-adoption.md) | 5 children | minted |
+| **publish** | [CAP-0007 catalogue publication](CAP-0007-catalogue-publication.md) | 4 children | minted |
 | **reaches** | Multi-host projection and the route set | 12, incl. `catalogue-rules-primitive` and `plugin-root-name-collision-guard` | named cut |
 | **installs and upgrades** | Install, upgrade and integrity lifecycle | 14, incl. the 8 `direct-lifecycle-*` items and `catalogue-trust-store-trust-settings` | named cut |
 | **operates** | Catalogue operation | 2 | named cut |
 
-**Parent edges.** Twelve intents now declare a parent inside this strategy:
-CAP-0006's eleven children, plus CAP-0006 itself. The rest declare none, so the graph cannot roll them up, and this
+**Parent edges.** Eleven intents now declare a parent inside this strategy:
+CAP-0006's five children, CAP-0007's four, and the two capabilities
+themselves. The rest declare none, so the graph cannot roll them up, and this
 strategy cannot compute as fulfilled while any hangs loose.
 
 ### Decomposition decisions
@@ -208,7 +210,8 @@ strategy cannot compute as fulfilled while any hangs loose.
 - **The cut follows the backlog, not RFC-0076's four headings.** The RFC names contracts, composition, semantics and discovery. Two of the three largest real clusters — projection and install lifecycle — have no heading there, so cutting to the RFC would have reproduced the boundary gap this mining found.
 - **One capability intent is minted; the other five are not.** [CAP-0006](CAP-0006-catalogue-contracts-composition-and-discovery.md) was minted on 2026-09-24 by owner decision, replacing the Draft delivery brief that carried the same tranche. It is the first child to declare this strategy as its parent. The remaining five clusters stay a proposed partition; creating their files is a decomposition step with its own review, and this parent is still Draft and un-de-risked.
 - **The cut was re-drawn twice on 2026-09-24, and the second pass is the one that holds.** The first six clusters were a mining result over forty intents: they grouped the territory, and three of them each held an intent CAP-0006 also claimed. The first re-cut mapped six clauses one-to-one but kept **knows** and **publishes** apart, which left release integrity claimed on both sides and evaluation claimed on both sides. The second re-cut merges them: trusting a catalogue and publishing into it are one outcome, because a pack digest is release integrity whichever direction you approach it from.
-- **One member is minted; the members were fixed by reading outcomes, not names.** CAP-0006 absorbed the publication cluster and was renamed from *contracts, composition and discovery* to *trust and adoption*, because the RFC-shaped name no longer described it. Four candidates were then rejected on their actual outcomes, and CAP-0006 § Decomposition records each: `catalogue-trust-store-trust-settings` is TLS certificate trust, `plugin-root-name-collision-guard` and `catalogue-rules-primitive` are projection, and `claude-apps-first-value-entry` is already owned by `nontechnical-pack-first-value-rollout`.
+- **Two members are minted, and publication is its own capability rather than part of CAP-0006.** A merge was attempted on 2026-09-24 and reversed the same day. It was taken because release integrity read as claimed twice — once by CAP-0006 and once by the publication cluster — and the merge did remove the double claim, at the price of a capability with eleven children whose outcome no longer partitioned. [CAP-0007](CAP-0007-catalogue-publication.md) resolves the same seam by drawing it: CAP-0006 owns the **release archive's** integrity, CAP-0007 owns an **individual pack's identity** in the marketplace schema. Both sides state the line, so neither has to hold the other's territory to avoid a gap.
+- **The members were fixed by reading outcomes, not names.** Seven candidates were rejected on their actual outcomes and each is recorded at CAP-0006 § Decomposition: `catalogue-trust-store-trust-settings` is TLS certificate trust, `plugin-root-name-collision-guard` and `catalogue-rules-primitive` are projection, `claude-apps-first-value-entry` is already owned by `nontechnical-pack-first-value-rollout`, and four are CAP-0007's.
 - **First value is not a clause of this strategy.** It was added as a fifth member on 2026-09-24 and removed the same day. `nontechnical-pack-first-value-rollout` is about ratified Level B packs gaining first-value adoption slices under RFC-0064's cross-pack adoption contract — pack content, not catalogue ownership. Nothing in this strategy's lagging outcome asks for it, so a clause covering it was an outcome this strategy does not hold.
 - **The intent counts are evidence, not the definition.** A member is a clause of the outcome; the counts record how much territory sits under it today and will move as intents are shaped. Re-cutting on counts would make the partition churn with the backlog.
 

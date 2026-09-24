@@ -11,36 +11,45 @@
 ## Outcome
 
 - **Steerable input:** The share of questions about a catalogue that only its maintainers can answer, and the share of contributions that only they can make.
-- **Lagging outcome:** An outsider can trust, adopt and contribute to a catalogue without a maintainer in the loop. Seven things make that true, and § Decomposition owns exactly one each: they can **find** what it holds; **judge** whether it is worth adopting; **confirm** that what they received is what was published; **publish** into it safely; **learn** to author one; **start** and reach first value; and the first-party catalogue **runs on** this rather than beside it.
+- **Lagging outcome:** An outsider can trust, adopt and contribute to a catalogue without a maintainer in the loop. Five things make that true, and § Decomposition owns exactly one each: they can **find** what it holds; **judge** whether it is worth adopting; **confirm** that what they received is what was published; **learn** to author one; and the first-party catalogue **runs on** this rather than beside it.
 - **Guardrail:** Every answer comes from a contract, a manifest, a digest, a test or a generated surface — never from prose an author remembered to update. A discovery, evaluation or publication surface never asserts more than its evidence supports.
 
 ## Opportunity
 
-- **Functional job:** Find what a catalogue contains, judge whether it fits, confirm what arrived, publish into it, learn to author one, and get to first value.
+- **Functional job:** Find what a catalogue contains, judge whether it fits, confirm what arrived, and learn to author one.
 - **Emotional job:** Adopt or extend a pack without first reading the maintainer's mind about what it depends on or what publishing it will do.
 - **Social job:** Show a reviewer where a claim about the catalogue is enforced, rather than asserting it.
 - **Struggling moment:** The catalogue's facts live in prose, in code and in the maintainer's head at once, so every question about it — and every contribution to it — routes through the people who built it.
 
 ## Boundary
 
-This capability owns whether a catalogue can be **trusted, adopted and
-contributed to**. It does not own **getting it onto a host** (projection and
-the route set), **installing or upgrading it** (the install lifecycle), or
-**operating it** day to day. It also does not own **reaching first value**, which
-`nontechnical-pack-first-value-rollout` already owns. Those are its four
-sibling members under
+This capability owns whether a catalogue can be **trusted and adopted** by
+someone who did not build it. It does not own **putting a pack in**, which is
+[CAP-0007 catalogue publication](CAP-0007-catalogue-publication.md), nor
+**getting it onto a host**, **installing or upgrading it**, or **operating**
+it. Those are its four sibling members under
 [STRAT-0004](STRAT-0004-trustworthy-org-owned-catalogues.md).
 
-The line against projection is the one that moves work: a rule, hook or
-manifest that exists to reach a host's native surface is *reaches*, however
-much it is authored in the catalogue. `catalogue-rules-primitive` is the live
-instance — it reads as discovery and is projection.
+**It cedes publication and keeps release integrity.** The seam is drawn by
+artifact, not by subject: this capability's
+`catalogue-wave5-release-integrity` owns the **release archive** — digests over
+it, comparison against a prior archive, refusal of same-version mutation —
+because those are what a receiver checks. CAP-0007 owns an **individual pack's
+identity inside the marketplace schema**. Both are digests over different
+artifacts, and claiming the territory once on each side is what the merged cut
+attempted on 2026-09-24 got wrong.
 
-Its design authority for the contracts half is
+The line against projection also moves work: a rule, hook or manifest that
+exists to reach a host's native surface is *reaches*, however much it is
+authored in the catalogue. `catalogue-rules-primitive` is the live instance —
+it reads as discovery and is projection.
+
+It does not own **reaching first value**, which
+`nontechnical-pack-first-value-rollout` already owns.
+
+Its design authority is
 [RFC-0076](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md),
-Accepted 2026-07-29. The publication and adoption halves have no single RFC:
-they accumulated across follow-up sessions, which is why an RFC-shaped cut
-missed them.
+Accepted 2026-07-29.
 
 ## Delivery to date
 
@@ -71,89 +80,68 @@ child intent produced. They are grouped by the question each answered.
 
 ## Decomposition
 
-Eleven children across six clauses of the lagging outcome. Each child serves
-exactly one clause and each clause has at least one child.
+Five children, one per clause of the lagging outcome.
 
-**find** — an outsider finds what the catalogue holds without knowing a name.
-
-- [Catalogue search verb](catalogue-search-verb.md) — query the neutral index for packs, profiles and their discoverable metadata.
-
-**judge** — an outsider decides whether adopting is worth it.
-
-- [Catalogue marketing evaluator surface](catalogue-wave7-marketing-evaluator.md) — the open formats, contracts, ownership model and release evidence, stated for an evaluator.
-- [Adopter catalogue test command](adopter-catalogue-test-command.md) — one canonical command for the tests an adopter receives, so the judgement rests on a run rather than a claim.
-
-**confirm** — what arrived is what was published.
-
-- [Claude marketplace pack identity](claude-marketplace-pack-identity.md) — an independently recoverable content digest per pack, which is what a receiver checks.
-
-**publish** — an organisation puts its own packs in safely, including ones it never releases.
-
-- [Catalogue release integrity](catalogue-wave5-release-integrity.md) — digests, prior-archive comparison, and same-version mutation refusal. Under *publish* rather than *confirm* because its actor is the publisher: it is the act that makes confirmation possible.
-- [Plugin publish trust boundary](plugin-publish-trust-boundary.md) — a reviewable actor boundary and approver preview for marketplace publication.
-- [Marketplace config single authority](marketplace-config-single-authority.md) — branch and description set once in `catalogue.toml`.
-- [Marketplace ingress validation](marketplace-ingress-validation.md) — invalid Git references and empty branches rejected at ingress.
-
-**learn** — someone can author a catalogue of their own.
-
-- [Catalogue technical documentation architecture](catalogue-wave6-technical-docs-ia.md) — an organized Build a Catalogue path with contract references and packaging guidance.
-- [Catalogue archive guide corpus](catalogue-archive-guide-corpus.md) — the adopter guide corpus inside the archive, with its package and install contract proved.
-
-**run on** — the first-party catalogue runs on this capability rather than beside it.
-
-- [Catalogue migration and closeout](catalogue-wave9-migration-closeout.md)
+- **find** — [Catalogue search verb](catalogue-search-verb.md) — query the neutral index for packs, profiles and their discoverable metadata.
+- **judge** — [Catalogue marketing evaluator surface](catalogue-wave7-marketing-evaluator.md) — the open formats, contracts, ownership model and release evidence, stated for an evaluator.
+- **confirm** — [Catalogue release integrity](catalogue-wave5-release-integrity.md) — archive digests, prior-archive comparison, same-version mutation refusal.
+- **learn** — [Catalogue technical documentation architecture](catalogue-wave6-technical-docs-ia.md) — an organized Build a Catalogue path with contract references and packaging guidance.
+- **run on** — [Catalogue migration and closeout](catalogue-wave9-migration-closeout.md) — the first-party migration completed against the release, evaluator and documentation outcomes.
 
 RFC-0076 assigns no new decision to Wave 8, which converges README and
 CONTRIBUTING by applying decisions D1–D4. It is therefore not a child here.
 
-**Four candidates were read and rejected**, recorded because each was nearly
-absorbed on its name rather than its outcome:
+**Two intents sit inside this capability's outcome and are not yet children**,
+recorded rather than absorbed because each would give a clause a second owner:
 
-- `catalogue-trust-store-trust-settings` — the macOS corporate **TLS
-  certificate** trust store, not catalogue publication trust. Same word,
-  different boundary.
-- `plugin-root-name-collision-guard` — the Claude-plugins **build** refusing a
-  colliding projected root. That is projection, so it is *reaches*.
-- `catalogue-rules-primitive` — projecting a portable rule to each adapter's
-  native rule surface. Also *reaches*, and the intent the earlier backlog
-  mining mis-filed under discovery.
-- `claude-apps-first-value-entry` — already declares
+- `adopter-catalogue-test-command` serves *judge* — running the tests you
+  received is how an adopter judges — and *judge* already has an owner.
+- `catalogue-archive-guide-corpus` serves *learn*, which already has one, and
+  part of it proves an install contract that is neither.
+
+Either could take a clause of its own once the outcome is re-read against a
+delivered child. Both stay unparented until then, which is the honest state:
+unclaimed, not owned-by-implication.
+
+**Seven candidates were read and rejected**, each recorded so the next reader
+does not re-absorb them on their names:
+
+- `plugin-publish-trust-boundary`, `claude-marketplace-pack-identity`,
+  `marketplace-config-single-authority` and `marketplace-ingress-validation`
+  are publication — CAP-0007.
+- `catalogue-trust-store-trust-settings` is the macOS corporate **TLS
+  certificate** trust store, not catalogue publication trust.
+- `plugin-root-name-collision-guard` is the Claude-plugins **build** refusing a
+  colliding projected root, which is projection.
+- `catalogue-rules-primitive` projects a portable rule to each adapter's native
+  rule surface. Also projection, and the intent the earlier backlog mining
+  mis-filed under discovery.
+- `claude-apps-first-value-entry` already declares
   `capability:nontechnical-pack-first-value-rollout`. Absorbing it would have
-  moved an owned leaf, so the first-value clause was dropped from this
-  capability's outcome rather than staffed by taking someone else's child.
-
-**Why eleven and not five.** The first cut took RFC-0076's four headings. Three
-duplicate-scope seams then showed up against the strategy's backlog: release
-integrity claimed here and by the publication cluster, evaluation claimed here
-and by adoption surfaces, and discovery holding an intent that was projection.
-All three are one error — cutting on an RFC while the backlog accumulated
-across follow-up sessions the RFC never saw.
+  moved an owned leaf.
 
 ## Riskiest assumption
 
-**That trusting a catalogue and publishing into it are one outcome, not two.**
-The whole re-cut rests on it. If it is wrong, this capability splits along the
-*publish* clause and its five publication children leave for a capability of
-their own — which is what the strategy's earlier mining proposed before the
-seams were found.
+**That the archive/pack seam with CAP-0007 holds under a change that touches
+both.** This capability keeps release integrity and cedes pack identity, on the
+ground that the two are digests over different artifacts. If that is wrong — if
+one change has to move both — the seam is a boundary nobody can maintain, and
+the two capabilities merge after all.
 
-What would have to be true: the same contract, digest or manifest that lets a
-receiver confirm what arrived is the one a publisher produces, so a change to
-either reaches both. The evidence for it is
-`catalogue-wave5-release-integrity`, whose digests serve the publisher who
-writes them and the adopter who checks them, and
-`claude-marketplace-pack-identity`, which is the same digest read from the
-receiving end. The evidence against it is that publication has actors and
-approvals — `plugin-publish-trust-boundary` — that confirmation has no
-counterpart for.
+What would have to be true: a change to the release archive's digest scheme
+leaves the marketplace pack-identity scheme untouched, and the reverse. The
+evidence for it is that the two serve different consumers — an adopter
+verifying what they downloaded, and a marketplace resolving an entry. The
+evidence against it is that a merged cut was attempted on 2026-09-24 precisely
+because the two kept reading as one territory.
 
-Not tested. It is a two-way door: re-splitting costs a capability file and
-eleven parent edges, not a withdrawn interface, so it is cheaper to learn from
-the first publication child reaching spec than to test now.
+Not tested, and testable cheaply: the first change to either digest scheme
+settles it. Two-way door — merging costs a capability file and nine parent
+edges, not a withdrawn interface.
 
 ## Assumptions
 
-- That the six clauses survive contact with the first child to reach a spec.
+- That the five clauses survive contact with the first child to reach a spec.
   They were derived from the outcome rather than from the backlog, which is
   what makes them stable against the backlog moving, and also what leaves them
   unproven against real delivery.
@@ -163,9 +151,7 @@ the first publication child reaching spec than to test now.
 - Whether *judge* and *find* are one outcome. The search verb and the evaluator
   surface were cut as separate RFC waves, which is a delivery-sequencing
   artifact rather than an outcome boundary.
-- Where `adopter-catalogue-test-command` belongs. It is under *judge* because
-  running the tests you received is how an adopter judges, but its outcome is
-  as much about test-command shape as about judgement.
-- Whether `catalogue-archive-guide-corpus` is *learn* or *confirm*. It carries
-  the guide corpus, which is *learn*, and proves the package and install
-  contract, which is neither.
+- Whether the two unparented intents in § Decomposition each need a clause of
+  their own, or whether one clause may hold two children. The second reading
+  has not been established against the reviewing rubric, and the first costs an
+  outcome clause per intent.

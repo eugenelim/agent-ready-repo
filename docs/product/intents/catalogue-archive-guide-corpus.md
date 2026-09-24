@@ -4,7 +4,6 @@
 - **Status:** Draft
 - **Level:** feature
 - **Owner:** eugenelim
-- **Parent intent:** capability:catalogue-trust-and-adoption
 - **Governed by:** [spec/documentation-entry-navigation](../../specs/documentation-entry-navigation/spec.md)
 
 ## Outcome
