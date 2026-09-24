@@ -95,6 +95,19 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
     "direct-light",
 )
 
+# ── Lifecycle refusal registry (AC-0012) ─────────────────────────────────────
+# Every refusal class the lifecycle-state-coherence rules add is declared here.
+# A `Violation` produced by those rules carries one of these strings in its
+# `refusal_class` field. Declared once so a set comparison decides AC-0012
+# rather than a substring search over reason text.
+#
+# `lifecycle_record_required`   — a status requires a record that is absent.
+# `lifecycle_record_not_allowed` — a status forbids a record that is present.
+LIFECYCLE_REFUSAL_CLASSES: tuple[str, ...] = (
+    "lifecycle_record_required",
+    "lifecycle_record_not_allowed",
+)
+
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # `*`/`+` markers and up to three spaces of indentation are ordinary Markdown
 # for a list item. Matching only an unindented hyphen made an indented item
@@ -111,10 +124,18 @@ _HEADING = "## "
 
 @dataclass(frozen=True)
 class Violation:
-    """One refusal, naming the field at fault and why it was refused."""
+    """One refusal, naming the field at fault, why it was refused, and its class.
+
+    ``refusal_class`` defaults to the empty string so the seven existing
+    construction sites keep working unchanged. Lifecycle-state-coherence rules
+    (T2 of the lifecycle-transition-contract spec) set it to a member of
+    ``LIFECYCLE_REFUSAL_CLASSES``, which turns AC-0012's obligation into a set
+    comparison rather than a substring search over reason text.
+    """
 
     field: str
     reason: str
+    refusal_class: str = ""
 
 
 # ── The normalization stage ───────────────────────────────────────────────────

@@ -715,6 +715,50 @@ def test_the_summary_count_covers_every_entry(tmp_path: Path) -> None:
     assert len(result.accounted) == 3
 
 
+# ── AC-0012: declared refusal registry ───────────────────────────────────────
+
+
+def test_ac0012_lifecycle_refusal_classes_registry_exists() -> None:
+    """The module declares its refusal classes in one enumerable place.
+
+    A module-level tuple is the single authoritative enumeration; a rule added
+    without a corresponding class name can be caught by asserting membership
+    against this tuple rather than by substring-matching a reason.
+    """
+    shape = lint._shape
+    assert hasattr(shape, "LIFECYCLE_REFUSAL_CLASSES"), (
+        "intent_shape must expose LIFECYCLE_REFUSAL_CLASSES"
+    )
+    assert isinstance(shape.LIFECYCLE_REFUSAL_CLASSES, tuple)
+    assert len(shape.LIFECYCLE_REFUSAL_CLASSES) > 0, (
+        "LIFECYCLE_REFUSAL_CLASSES must name at least one refusal class"
+    )
+
+
+def test_ac0012_violation_carries_a_refusal_class_field_with_default() -> None:
+    """Violation has a third field defaulting to the empty string.
+
+    All seven existing construction sites pass just field and reason; the
+    default must keep every one of them working unchanged.
+    """
+    shape = lint._shape
+    v = shape.Violation("Status", "some reason")
+    assert hasattr(v, "refusal_class"), "Violation must have a refusal_class field"
+    assert v.refusal_class == "", (
+        "refusal_class must default to '' so existing sites need no change"
+    )
+
+
+def test_ac0012_a_violation_may_carry_a_registry_member_as_its_class() -> None:
+    """A Violation constructed with a class drawn from the registry carries it."""
+    shape = lint._shape
+    registry = shape.LIFECYCLE_REFUSAL_CLASSES
+    cls = registry[0]
+    v = shape.Violation("Status", "some reason", refusal_class=cls)
+    assert v.refusal_class == cls
+    assert v.refusal_class in registry
+
+
 def test_a_four_space_indented_checkbox_is_not_an_item(tmp_path: Path) -> None:
     """CommonMark renders four-space indentation as a code block.
 
