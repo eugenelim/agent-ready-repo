@@ -644,6 +644,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest contract backward-traceability registry (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest repair-round predicate parity (oracle vs shipped guard)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -931,6 +933,7 @@ _GATE_MAIN_CHECKS = (
     "pytest experience-design output-addressing contracts (roster-owned)",
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
+    "pytest repair-round predicate parity (oracle vs shipped guard)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",

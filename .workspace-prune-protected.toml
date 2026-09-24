@@ -12,6 +12,7 @@
 
 protected = [
   "docs/specs/design-handoff-read",
+  "docs/specs/repair-round-dispatch-assertion",
   "docs/specs/a",
   "docs/specs/absent",
   "docs/specs/absolute",

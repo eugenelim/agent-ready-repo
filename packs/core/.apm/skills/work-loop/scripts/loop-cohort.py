@@ -74,7 +74,7 @@ SCHEMA_VERSION = 1
 # `wave-exit` is the phase the `wave-complete` transition consults. Nothing pins
 # this tuple, and the usage block above is a second, hand-maintained enumeration
 # of the same list — keep the two together.
-PHASES = ("implement", "review", "gates-failed", "wave-exit")
+PHASES = ("implement", "review", "gates-failed", "wave-exit", "wave-reopen")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
 
 CLEAN_SUBSTRING = "Clean — ready to commit."
@@ -476,10 +476,12 @@ except GuardsUnavailable as exc:
     RECEIPTS_KEY = ""
     RECEIPT_KEY_PATH = ()
     RECEIPT_KIND = DECLINE_KIND = ""
+    SUPERSEDED_KEY = ""
     DECLINE_REASONS = ()
     partition_digest = is_dispatch_record = _guards_unavailable
     malformed_receipts_position = receipts_for_partition = _guards_unavailable
     wave_is_well_formed = unaccounted_wave_tasks = _guards_unavailable
+    accounts_for_task = _guards_unavailable
     bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
@@ -503,12 +505,14 @@ else:
     RECEIPT_KIND = _g.RECEIPT_KIND
     DECLINE_KIND = _g.DECLINE_KIND
     DECLINE_REASONS = _g.DECLINE_REASONS
+    SUPERSEDED_KEY = _g.SUPERSEDED_KEY
     partition_digest = _g.partition_digest
     is_dispatch_record = _g.is_dispatch_record
     malformed_receipts_position = _g.malformed_receipts_position
     receipts_for_partition = _g.receipts_for_partition
     wave_is_well_formed = _g.wave_is_well_formed
     unaccounted_wave_tasks = _g.unaccounted_wave_tasks
+    accounts_for_task = _g.accounts_for_task
     bounded_id_list = _g.bounded_id_list
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
@@ -1773,12 +1777,13 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
 
 
 # The data model — `RECEIPTS_KEY`, `RECEIPT_KEY_PATH`, the closed kind and reason
-# sets, `partition_digest`, `is_dispatch_record`, `malformed_receipts_position`,
-# `receipts_for_partition`, `wave_is_well_formed`, `unaccounted_wave_tasks` and
-# `bounded_id_list` — is declared once in `_loop_guards.py` and re-bound at the
-# top of this file. `check --phase wave-exit` and this verb have to agree about
-# the container key, the record shape and what "accounted for" means, and the
-# guard layer is the only side of the dependency both can reach.
+# sets, `SUPERSEDED_KEY`, `partition_digest`, `is_dispatch_record`,
+# `accounts_for_task`, `malformed_receipts_position`, `receipts_for_partition`,
+# `wave_is_well_formed`, `unaccounted_wave_tasks` and `bounded_id_list` — is
+# declared once in `_loop_guards.py` and re-bound at the top of this file.
+# `check --phase wave-exit` and this verb have to agree about the container key,
+# the record shape and what "accounted for" means, and the guard layer is the
+# only side of the dependency both can reach.
 
 
 def plan_dispatch_receipt(

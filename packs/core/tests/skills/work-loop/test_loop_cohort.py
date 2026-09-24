@@ -4175,3 +4175,70 @@ def test_status_refuses_the_oldest_state_the_wave_exit_tolerates(
         fail(name, f"status refused for the wrong reason: {err.strip()!r}")
     else:
         ok(name)
+
+# ── check --phase wave-reopen, at the CLI ──────────────────────────────────
+#
+# Spec: docs/specs/repair-round-dispatch-assertion/spec.md.
+#
+# These drive the VERB, not the verdict function, because the phase's membership
+# of `_SCHEMA_EXEMPT_PHASES` is observable nowhere else: `check_phase` refuses any
+# non-exempt phase on a schema mismatch before it reaches the phase dispatch, so
+# a verdict carrying the exemption and a phase outside the set diverge with every
+# direct-call test still green.
+
+_SUPERSEDED = "superseded"
+
+# `over` patches the baseline state; `None` deletes the key.
+_WAVE_REOPEN_CLI_ROWS = {
+    # A live record for the current wave is the one thing that refuses.
+    "live-record": (
+        {_RECEIPTS_KEY: _receipts_container(_WAVES, 0, ["T1", "T2"])}, 1, "wave reopen",
+    ),
+    "one-live-one-superseded": (
+        {_RECEIPTS_KEY: {
+            _mod.partition_digest(_WAVES): {"0": {
+                "T1": {"kind": _mod.RECEIPT_KIND},
+                "T2": {"kind": _mod.RECEIPT_KIND, _SUPERSEDED: True},
+            }}}}, 1, "T1",
+    ),
+    # Everything else passes: the verdict fails open, so no state that re-enters
+    # code implementation today stops doing so.
+    "all-superseded": (
+        {_RECEIPTS_KEY: _receipts_container(
+            _WAVES, 0, ["T1", "T2"],
+            record={"kind": _mod.RECEIPT_KIND, _SUPERSEDED: True})}, 0, None,
+    ),
+    "schema-unsupported": ({"schema_version": 99}, 0, None),
+    "container-absent": ({_RECEIPTS_KEY: None}, 0, None),
+    "malformed-container": ({_RECEIPTS_KEY: {"d": 5}}, 0, None),
+    "malformed-partition": ({"schedule_waves": []}, 0, None),
+    "pointer-invalid": ({"current_wave_index": 9}, 0, None),
+    "wave-malformed": ({"schedule_waves": [[], ["T3"]]}, 0, None),
+}
+
+
+@pytest.mark.parametrize("row", sorted(_WAVE_REOPEN_CLI_ROWS))
+def test_wave_reopen_cli_verdict_per_row(tmp: Path, row: str) -> None:
+    name = f"wave-reopen-cli-{row}"
+    over, expect_rc, on_stderr = _WAVE_REOPEN_CLI_ROWS[row]
+    spec_dir = make_spec_dir(tmp, name)
+    state = {
+        "schema_version": 1, "run_id": str(uuid.uuid4()),
+        "schedule_waves": _WAVES, "current_wave_index": 0, _RECEIPTS_KEY: {},
+    }
+    for key, value in over.items():
+        if value is None:
+            state.pop(key, None)
+        else:
+            state[key] = value
+    write_state(spec_dir, state)
+    rc, out, err = run_cohort("check", str(spec_dir), "--phase", "wave-reopen")
+    if rc != expect_rc:
+        fail(name, f"expected exit {expect_rc}; got {rc}: {(out + err).strip()!r}")
+    if on_stderr is not None and on_stderr not in err:
+        fail(name, f"stderr must name {on_stderr!r}; got {err.strip()!r}")
+
+
+def test_wave_reopen_is_an_accepted_phase_choice(tmp: Path) -> None:
+    """The phase reaches the verdict rather than dying in argparse."""
+    assert "wave-reopen" in _mod.PHASES

@@ -2349,6 +2349,9 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
         "malformed_receipts_position", "receipts_for_partition",
         "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
+        # repair-round scoping: the member marking a record superseded, and the
+        # predicate deciding whether a record still discharges its task
+        "SUPERSEDED_KEY", "accounts_for_task",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
@@ -2997,6 +3000,9 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
         "malformed_receipts_position", "receipts_for_partition",
         "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
+        # repair-round scoping: the member marking a record superseded, and the
+        # predicate deciding whether a record still discharges its task
+        "SUPERSEDED_KEY", "accounts_for_task",
     }
     guards = load_guards()
     missing = sorted(n for n in names if not hasattr(guards, n))
@@ -3057,3 +3063,101 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         "loop-cohort.py re-declares part of the dispatch-receipt data model "
         f"instead of re-binding it from the guard layer: {offenders}"
     )
+
+
+# ── the repair-round verdict, and the superseded clause it rests on ────────
+#
+# Spec: docs/specs/repair-round-dispatch-assertion/spec.md.
+#
+# The clause lives inside `unaccounted_wave_tasks` rather than beside it because
+# that predicate has two shipped consumers — the wave exit and `wave advance`'s
+# advancing branch — and a round-scoping rule reaching one only is the defect
+# this delivery exists to prevent from recurring in a new form.
+
+
+def _receipts(digest: str, index: int, records: dict) -> dict:
+    """A container at the declared key path, built from `RECEIPT_KEY_PATH`'s depth."""
+    return {digest: {str(index): records}}
+
+
+def _cohort(g, *, waves, index=0, records=None, schema=None, container=True):
+    """A cohort state the verdict functions can read, with one knob per axis."""
+    state = {
+        "schema_version": g.SCHEMA_VERSION if schema is None else schema,
+        "schedule_waves": waves,
+        "current_wave_index": index,
+    }
+    if container:
+        digest = g.partition_digest(waves)
+        state[g.RECEIPTS_KEY] = _receipts(digest, index, records or {})
+    return state
+
+
+def test_a_superseded_record_accounts_for_no_task(g) -> None:
+    """The clause itself, at the predicate both consumers share."""
+    waves = [["T1", "T2"]]
+    state = _cohort(g, waves=waves, records={
+        "T1": {"kind": "receipt"},
+        "T2": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+    })
+    assert g.unaccounted_wave_tasks(state, 0) == ["T2"]
+
+
+def test_a_record_without_the_member_is_live(g) -> None:
+    """Backward compatibility: every state.json written before this change is unmoved."""
+    waves = [["T1"]]
+    state = _cohort(g, waves=waves, records={"T1": {"kind": "receipt"}})
+    assert g.unaccounted_wave_tasks(state, 0) == []
+
+
+def test_a_superseded_record_is_still_a_record(g) -> None:
+    """Superseding is not removing: the shape stays valid, so nothing is lost."""
+    assert g.is_dispatch_record({"kind": "receipt", g.SUPERSEDED_KEY: True})
+    assert g.malformed_receipts_position(
+        _receipts("d", 0, {"T1": {"kind": "receipt", g.SUPERSEDED_KEY: True}})
+    ) is None
+
+
+def test_the_repair_round_verdict_refuses_while_a_record_is_live(g) -> None:
+    """All conjuncts true → refuse, naming the verb that clears them and the wave."""
+    waves = [["T1"]]
+    state = _cohort(g, waves=waves, records={"T1": {"kind": "receipt"}})
+    result = g._repair_round_verdict(state)
+    assert result.ok is False
+    assert "wave reopen" in result.reason
+    assert "wave 0" in result.reason
+
+
+def test_the_repair_round_verdict_passes_once_every_record_is_superseded(g) -> None:
+    waves = [["T1", "T2"]]
+    state = _cohort(g, waves=waves, records={
+        "T1": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+        "T2": {"kind": "decline", "reason": "human-directed", g.SUPERSEDED_KEY: True},
+    })
+    assert g._repair_round_verdict(state).ok is True
+
+
+@pytest.mark.parametrize("mutate,label", [
+    (lambda s, g: s.update({"schema_version": 99}), "unsupported schema"),
+    (lambda s, g: s.pop(g.RECEIPTS_KEY), "absent container"),
+    (lambda s, g: s.update({g.RECEIPTS_KEY: {"d": []}}), "malformed container"),
+    (lambda s, g: s.update({"schedule_waves": []}), "empty partition"),
+    (lambda s, g: s.update({"current_wave_index": 7}), "pointer past the end"),
+    (lambda s, g: s.update({"current_wave_index": "0"}), "pointer not an integer"),
+    (lambda s, g: s.update({"schedule_waves": [[]]}), "malformed wave"),
+])
+def test_the_repair_round_verdict_fails_open_on_every_falsified_conjunct(
+    g, mutate, label
+) -> None:
+    """Fail open: refuse only where a live record is positively established.
+
+    Mirroring the wave-exit verdict's refusals here would strand a run that
+    re-enters implementation today — both the edge guard and the reopen verb
+    would refuse a malformed state, leaving only the destructive reset pair.
+    """
+    waves = [["T1"]]
+    state = _cohort(g, waves=waves, records={"T1": {"kind": "receipt"}})
+    assert g._repair_round_verdict(state).ok is False, "fixture must refuse first"
+    mutate(state, g)
+    result = g._repair_round_verdict(state)
+    assert result.ok is True, f"{label} must pass, got: {result.reason}"
