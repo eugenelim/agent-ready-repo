@@ -5,6 +5,8 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Decomposed:** 2026-09-14 spec
+- **Accepted:** 2026-09-14 by eugenelim. The ratification is in this artifact's own history rather than reconstructed: revision `12d09e6db` (#1308) carried `Status: Accepted`. Record written by the 2026-09-24 corpus migration, which recorded the existing ratification without re-taking it.
+- **Fulfilled:** 2026-09-14 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The redaction this intent existed to remove is gone: `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py` contains no redaction sentinel for these fields, and `milestone` is a declared field on the projected record read straight from the initiative section. Record written by the 2026-09-24 corpus migration.
 
 ## Outcome
 

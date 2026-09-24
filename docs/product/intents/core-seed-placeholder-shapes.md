@@ -1,7 +1,7 @@
 # Declared placeholder shapes for every core seed file
 
 - **Slug:** `core-seed-placeholder-shapes`
-- **Status:** Fulfilled
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 

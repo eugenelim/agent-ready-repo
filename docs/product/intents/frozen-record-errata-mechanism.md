@@ -4,6 +4,8 @@
 - **Status:** Fulfilled
 - **Level:** feature
 - **Owner:** eugenelim
+- **Accepted:** 2026-09-24 by eugenelim, on an owner waiver rather than an independent shaping review. This intent reached a delivered state without ever passing `Draft` → `Accepted`, so the ratification is taken now rather than reconstructed from a review that never ran; the owner waived the intent-mode review that gate names, for this one-off migration only. Basis: `docs/specs/lifecycle-transition-contract/notes/migration-record.md`.
+- **Fulfilled:** 2026-09-24 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The ADR errata mechanism is shipped and machine-checked, not merely described: `new-adr/SKILL.md` licenses `## Errata` as the append-only correction section on an accepted ADR, the template's zone table names it, and `new-adr/scripts/lint-adr-shape.py` enforces the heading as rule `ADR-S015`. Record written by the 2026-09-24 corpus migration; the date is the verification's, because the artifact records no delivery date of its own.
 
 ## Outcome
 

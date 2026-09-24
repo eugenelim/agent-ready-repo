@@ -4,6 +4,8 @@
 - **Status:** Fulfilled
 - **Level:** feature
 - **Owner:** eugenelim
+- **Accepted:** 2026-09-24 by eugenelim, on an owner waiver rather than an independent shaping review. This intent reached a delivered state without ever passing `Draft` → `Accepted`, so the ratification is taken now rather than reconstructed from a review that never ran; the owner waived the intent-mode review that gate names, for this one-off migration only. Basis: `docs/specs/lifecycle-transition-contract/notes/migration-record.md`.
+- **Fulfilled:** 2026-09-24 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The registry exists as declared data with a schema and a lookup, which is the extraction this intent asked for: `agentbundle/_data/distribution-routes.toml` beside `distribution-routes.schema.json`, read through `agentbundle/build/route_lookup.py` and its `DistributionRouteDeclaration`. Its spec `docs/specs/distribution-route-registry/spec.md` is `Shipped`. Record written by the 2026-09-24 corpus migration.
 
 ## Outcome
 

@@ -4,6 +4,8 @@
 - **Status:** Fulfilled
 - **Level:** feature
 - **Owner:** eugenelim
+- **Accepted:** 2026-09-24 by eugenelim, on an owner waiver rather than an independent shaping review. This intent reached a delivered state without ever passing `Draft` → `Accepted`, so the ratification is taken now rather than reconstructed from a review that never ran; the owner waived the intent-mode review that gate names, for this one-off migration only. Basis: `docs/specs/lifecycle-transition-contract/notes/migration-record.md`.
+- **Fulfilled:** 2026-09-24 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The tolerance is on disk: `packages/credbroker/tests/unit/test_sso_derivation.py:371` asserts `seen[-1] <= 1.0 + 1e-9` rather than the exact `<= 1.0` this intent named, and the neighbouring bound at `:365` is unchanged. Record written by the 2026-09-24 corpus migration; the date is the verification's, because the artifact records no delivery date of its own.
 
 ## Outcome
 

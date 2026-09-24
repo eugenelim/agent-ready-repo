@@ -2216,9 +2216,15 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam that leaves the shaping reviewer's decided set untouched", needs = [] },
 ]
+# Active since 2026-09-24. T3 (the corpus migration) is complete and the cohort
+# has advanced to wave 2; T1, T2 and T4 -- the refusal registry, the
+# state-coherence rules, and the docstring/version/changelog task -- remain. The
+# spec stays `Implementing` deliberately: this is an intermediate unit under an
+# incomplete accepted intent, not a finished one. T3 ran ahead of T1 and T2 under
+# a plan amendment recorded in that plan's changelog.
 active  = [
+  { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam that leaves the shaping reviewer's decided set untouched", needs = [] },
 ]
 shipped = [
   # Slice 6 of `intent-identity-and-registration`, cut 2026-09-23 on the second

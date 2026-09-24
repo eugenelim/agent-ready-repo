@@ -3,6 +3,7 @@
 - **Slug:** `platform-core` <!-- canonical identity; independent of the filename ordinal -->
 - **Kind:** opportunity <!-- chain rung: the need this strategy addresses on the opportunity-solution tree; orthogonal to Level -->
 - **Status:** Fulfilled
+- **Accepted:** 2026-09-24 by eugenelim, on an owner waiver rather than an independent shaping review. This strategy was delivered before the recursive intent tree existed, so it never passed `Draft` → `Accepted` and no review could have been recorded against a gate that post-dates it. What the gate exists to establish is nonetheless on the artifact: `## Decomposition` states the partition is closed with no child intents expected and gives the reason, and `### Fulfilment evidence` carries an independent per-action verdict. The owner ratified it directly and waived the intent-mode review, for this one-off migration only. Basis: `docs/specs/lifecycle-transition-contract/notes/migration-record.md`.
 - **Fulfilled:** 2026-09-19 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account of its delivery.
 - **Level:** product-strategy
 - **Owner:** eugenelim

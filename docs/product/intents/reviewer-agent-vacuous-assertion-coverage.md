@@ -1,7 +1,7 @@
 # Reviewer agent vacuous-assertion coverage
 
 - **Slug:** `reviewer-agent-vacuous-assertion-coverage`
-- **Status:** Fulfilled
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 

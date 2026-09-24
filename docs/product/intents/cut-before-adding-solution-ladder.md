@@ -7,6 +7,8 @@
 - **Scale:** business-unit
 - **Maturity:** brownfield
 - **Decomposed:** 2026-08-28 spec
+- **Accepted:** 2026-08-28 by eugenelim. The ratification is in this artifact's own history rather than reconstructed: revision `20c0ba50e` carried `Status: Accepted`, and `b54a0b8e5` still did on 2026-09-01. Record written by the 2026-09-24 corpus migration, which recorded the existing ratification without re-taking it.
+- **Fulfilled:** 2026-08-28 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The ladder is live guidance, not a proposal: `AGENTS.md` § Coding conventions carries it at line 106 as a seven-rung ordered list a change walks before adding anything. Record written by the 2026-09-24 corpus migration.
 
 ## Outcome
 

@@ -1,9 +1,30 @@
 # New-spec review acceptance uses its exact clean-result contract
 
 - **Slug:** `new-spec-review-phrase-contract`
-- **Status:** Fulfilled
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+## Disposition — withdrawn 2026-09-24, overtaken in one half and never started in the other
+
+**Do not act on the outcome below as written.** Measured on `6e89061c3`:
+
+- **The phrase half was superseded, not delivered.** `9b9d470ef` (released core
+  2.20.0) replaced the contract this intent was written against.
+  `test_spec_review_accepts_only_exact_clean_before_adjudication` no longer
+  requires the four phrases named below; it pins the current prose instead, says
+  so in its own comment, and passes. The three "absent contracts" this intent
+  asked to restore are not absent — they no longer exist to restore.
+- **The remote-gate half was never started.** It is still true: no workflow under
+  `.github/workflows/` runs `packs/core/tests/skills/new-spec/`. That gap is real
+  and outlives this intent, but it is a CI-coverage concern rather than a phrase
+  contract, so it does not belong to this outcome.
+
+Withdrawn rather than reclassified because no execution evidence exists for this
+intent: no spec was cut, and the change that moved the phrase contract was other
+work. Withdrawal is the state an unratified bet that stopped before execution
+takes, and it requires no `Accepted:` record. The original text is preserved
+below unchanged, because the record of what was believed is the useful part.
 
 ## Outcome
 

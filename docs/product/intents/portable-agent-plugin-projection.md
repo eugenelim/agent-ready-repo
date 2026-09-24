@@ -5,6 +5,8 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Decomposed:** 2026-08-26 spec
+- **Accepted:** 2026-09-24 by eugenelim, on an owner waiver rather than an independent shaping review. This intent reached a delivered state without ever passing `Draft` → `Accepted`, so the ratification is taken now rather than reconstructed from a review that never ran; the owner waived the intent-mode review that gate names, for this one-off migration only. Basis: `docs/specs/lifecycle-transition-contract/notes/migration-record.md`.
+- **Fulfilled:** 2026-09-24 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The projection ships as declared data with a schema: `agentbundle/_data/agent-plugin-extension-namespaces.toml` beside `agent-plugin-extension-namespaces.schema.json`. Its spec `docs/specs/portable-agent-plugin-projection/spec.md` is `Shipped`. Record written by the 2026-09-24 corpus migration.
 
 ## Outcome
 

@@ -6,6 +6,8 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
+- **Accepted:** 2026-09-08 by eugenelim. The ratification is in this artifact's own history rather than reconstructed: revision `f84829a62` carried `Status: Accepted` when the legacy backlog register was migrated into intents. Record written by the 2026-09-24 corpus migration, which recorded the existing ratification without re-taking it.
+- **Fulfilled:** 2026-09-08 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The contract is live in the shipped skill: `packs/core/.apm/skills/work-loop/SKILL.md` step 8 requires the exact stub code in `plan.md`, requires it to earn its red from disposable scratch, forbids creating a repository test file during PLAN, and has goal-based and manual-QA tasks record `no stub (mode)`. Record written by the 2026-09-24 corpus migration.
 
 ## Outcome
 
