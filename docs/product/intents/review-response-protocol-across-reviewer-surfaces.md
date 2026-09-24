@@ -266,10 +266,11 @@ three surfaces are pinned unchanged.
   Whether the authoring side ships before or with the reviewing surfaces is this
   intent's sequencing call, not a dependency on a slice that has closed.
 - Excludes any blocking, scoring or refusal behaviour on any surface, **except
-  the determinacy grading shipped on 2026-09-11** by
+  the judgement grading shipped on 2026-09-11** by
   `acceptance-criteria-set-construction`: `adversarial-reviewer` caps a
   judgement finding at Concern and `finding-adjudicator` sustains one at
-  advisory severity at most, on the test of whether the fix is fully determined.
+  advisory severity at most. The two contracts own the test that decides which
+  findings those are; read it there rather than from here.
   That exception is recorded rather than re-derived — this intent carries it and
   never restates it — and it narrows what may block rather than adding a new
   block, which is the direction this exclusion was written to guard.

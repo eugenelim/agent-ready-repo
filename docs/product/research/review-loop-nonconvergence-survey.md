@@ -773,15 +773,20 @@ under either wording. `[low]` `R2`
 This does not replicate the 9-versus-23 measurement: different raters, and
 absolute levels of 2 and 8 rather than 9 and 23. What it establishes is that
 replacing the clause removes the reading that produced the divergence on this
-sample. Count agreement is also not entry agreement — the two raters name
-different single entries — so the residual disagreement is one entry wide
-rather than six.
+sample. Read on entries rather than counts, the two raters overlap on one
+entry of nine before and on none of two after, so the entry-level symmetric
+difference falls from eight to two. Counts converge further than entries do:
+the raters agree on how many, not on which.
+
+The inputs and rater output for this run are not retained in the repository.
+They were session-local, so the numbers above are the record, and re-deriving
+them means running the labelling again rather than re-reading a corpus.
 
 A standing cross-runtime test is still absent. The instrument is described in
 [`cross-model-steering-survey.md`](cross-model-steering-survey.md) Mechanism 1,
 clause accuracy; what is missing is that `packs/core/.apm/agents/` ships no
-`evals/` directory, so the contracts whose prose decides severity have no
-repeatable cross-runtime check and the re-label above is a one-off.
+`evals/` directory of its own, so the contracts whose prose decides severity
+have no repeatable cross-runtime check and the re-label above is a one-off.
 
 ## Known unknowns
 

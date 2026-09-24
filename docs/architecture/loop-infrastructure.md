@@ -307,16 +307,13 @@ returns `indeterminate` for owner direction.
 
 That first test reads the defect, not the remedy. A finding several defensible
 repairs could fix is still established, and stays eligible for blocking
-severity. Until 2026-09-24 the same clause asked whether the fix was fully
-determined, which two raters read two ways on the same fifty entries;
-[`review-loop-nonconvergence-survey.md`](../product/research/review-loop-nonconvergence-survey.md)
-records both the measurement and the correction.
+severity.
 
 That ceiling is honoured in practice. Across 2,062 adjudicator entries declaring
 a consequence advisory, 98% sustained at Concern or Nit; per run, 13 of 15 runs
-with at least 20 such entries were perfectly compliant. What no artifact records
-is the determinacy judgement itself, so nothing can show which reading an
-adjudicator applied.
+with at least 20 such entries were perfectly compliant. No entry in that corpus
+records which reading of the test its adjudicator applied, which is why the
+divergence it hid had to be measured by re-labelling rather than read off.
 
 ### TDD stub artifact boundary
 

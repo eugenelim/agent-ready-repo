@@ -284,6 +284,12 @@ def test_adversarial_severity_is_bounded_by_what_reads_the_surface() -> None:
         "does something outside the finding establish the defect",
         "A judgement finding is a Concern at most",
         "whose defect nothing external\nestablishes is judgement",
+        # The header, the disclaimer and the tail sentence can all survive a
+        # revert of the two bullets they govern, which would leave the old
+        # remedy-determinacy definition sitting beside the disclaimer that
+        # contradicts it. Pin the operative clause of each bullet too.
+        "**Mechanical** — something external establishes the defect",
+        "**Judgement** — nothing external establishes the defect",
         # The axis is the defect, not the remedy. Two raters reading the older
         # "no choice left open" wording split 9-vs-23 on the same 50 entries,
         # because that clause asks how many repairs exist while the ceiling's

@@ -106,6 +106,12 @@ def test_finding_adjudicator_source_contract() -> None:
     for authority_tier_rule in (
         "does something outside the finding establish the defect",
         "determinacy of the remedy is not the test",
+        # The advisory branch turns on the single condition the verdict bullet
+        # and the reviewer contract state. Written as a conjunction -- nothing
+        # establishes it AND it rests on one of three named grounds -- a
+        # finding resting on nothing at all escapes the predicate while the
+        # verdict bullet still tiers it advisory.
+        "or on nothing at all",
         "the consequence is advisory however the finding is worded",
         "whose defect nothing external establishes",
         "sustains at advisory severity",

@@ -134,9 +134,10 @@ For each source finding, test all six predicates independently:
    the code, a test, a lint, a schema, a resolvable reference or a stated
    constraint disagreeing with what the target says? A defect several
    defensible repairs could fix is still established; determinacy of the remedy
-   is not the test. If nothing external establishes it, and it rests on a
-   tradeoff, a risk acceptance or a wording or framing preference, the
-   consequence is advisory however the finding is worded: it may be true, and it
+   is not the test. If nothing external establishes it — it rests on a
+   tradeoff, a risk acceptance or a wording or framing preference, or on
+   nothing at all — the consequence is advisory however the finding is
+   worded: it may be true, and it
    cannot sustain at blocking severity, because nothing external decides it and
    the next round will raise another. Second, and only for a consequence that
    survives the first test, measure it against what reads the cited surface:
