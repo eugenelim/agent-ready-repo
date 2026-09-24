@@ -1924,22 +1924,30 @@ open = [
   { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Require a repair round to carry its own dispatch assertion: three transition edges re-enter code implementation without moving the wave pointer, so a wave's exit is discharged a second time by the first pass's records", needs = [] },
 
 
-  # A wave exit that passes with no receipts container leaves no record an
-  # after-the-fact reader can find: the read-only guard cannot write, and a
-  # durable side effect on a transition is ADR-0061 Option B, which needs the
-  # absent pending_transition schema. For the oldest state class the guard
-  # tolerates -- an unsupported schema_version -- NEITHER channel survives. That
-  # verdict row returns before the container-absent notice is reached, so it
-  # emits nothing, and `loop-cohort status` refuses the same state. The residual
-  # list in docs/specs/wave-complete-dispatch-receipts/spec.md states this
-  # correctly; an earlier version of this comment said the stdout notice
-  # remained, which is wrong.
+  # A wave exit that passes with no receipts container records nothing about
+  # having passed: the read-only guard cannot write, and a durable side effect
+  # on a transition is ADR-0061 Option B, which needs the absent
+  # pending_transition schema. `loop-cohort status` does report
+  # `dispatch_receipts_enforced: false` for that state, but that is the
+  # container's presence read at call time, not a trace of any exit -- and
+  # `schedule` restores an absent container, so the value flips and the
+  # exemption becomes unreadable after the fact.
+  #
+  # For the oldest state class the guard tolerates -- an unsupported
+  # schema_version -- NEITHER channel survives. That verdict row returns before
+  # the container-absent notice is reached, so it emits nothing, and
+  # `loop-cohort status` refuses the same state. The residual list in
+  # docs/specs/wave-complete-dispatch-receipts/spec.md:657 states THAT sentence
+  # correctly, where an earlier version of this comment wrongly said the stdout
+  # notice remained. Its neighbouring "or with every task declined" clause is
+  # superseded by the correction below; that spec is Shipped and cannot be
+  # edited, so the supersession is recorded here.
   #
   # `.loop-run/events.jsonl` is NOT the missing trace, checked 2026-09-24
   # because a pass on this entry wrongly claimed it was durable and retired the
   # entry on that ground. It does record the wave-complete transition, but
   # ADR-0064 D1 calls it append-only and ephemeral, `loop-engine reset` removes
-  # the directory outright (loop-engine.py:1486), and the owned-state tables in
+  # the directory outright (`cmd_reset`'s `shutil.rmtree(loop_run)`), and the owned-state tables in
   # docs/architecture/telemetry.md and docs/architecture/loop-infrastructure.md
   # label it ephemeral. Three of the eight verdict rows can pass; the other five
   # refuse before the transition, so they append no line at all.
@@ -1961,7 +1969,7 @@ open = [
   # entry at path packs/core/.apm/skills/work-loop/scripts/loop-cohort.py while
   # the entry is keyed to the ADR; that drift predates this pass and is left as
   # found. Unblocks now; no dependency.
-  { path = "docs/adr/0061-loop-infrastructure-phase-1.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced or with every task declined, since both signals today are ephemeral and read by the party the guard constrains", needs = [] },
+  { path = "docs/adr/0061-loop-infrastructure-phase-1.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced, and give a reader a way to tell an exempted wave from an accounted one, since the stdout notice is ephemeral and the status flag reports the container's presence at call time rather than any past exit", needs = [] },
   # The repository work-graph family's eight registered Draft intents: five feature
   # children of docs/product/intents/CAP-0001-repository-work-graph.md, and three
   # sibling capabilities under docs/product/intents/STRAT-0001-graph-powered-sdlc.md.

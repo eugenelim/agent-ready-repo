@@ -4076,10 +4076,11 @@ def test_wave_advance_does_not_carry_a_long_state_value_whole(tmp: Path) -> None
 # `check --phase wave-exit`, and both are pinned against `loop-cohort status`
 # rather than against the guard: `status` is the surface an after-the-fact
 # reader actually reaches for, and the guard's stdout notice is not — it is one
-# line on a run nobody is watching. `_WAVE_EXIT_CLI_ROWS` above already owns the
-# guard verdicts for the schema-unsupported and container-absent rows, so those
-# are not re-pinned here; it has no decline row, and the guard assertion below
-# is the only one covering that case.
+# line on a run nobody is watching. Each `check` call below is the differential's
+# PRECONDITION, not its subject: it establishes that the state reaches `status`
+# by way of a passing exit. `_WAVE_EXIT_CLI_ROWS` above owns those guard verdicts
+# as assertions in their own right, except for the decline case, which it has no
+# row for.
 
 
 def _wave_exit_state(**over) -> dict:
