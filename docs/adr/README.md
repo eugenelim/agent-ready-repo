@@ -125,3 +125,4 @@
 | 0121 | [A repository intent declares its altitude](0121-a-repository-intent-declares-its-altitude.md) | Accepted | 2026-09-21 |
 | 0122 | [A gate-main step may carry a roster-authorized widening condition](0122-a-gate-main-step-may-carry-a-widening-condition.md) | Accepted | 2026-09-21 |
 | 0123 | [Product changelog uses per-update sources and generated views](0123-product-changelog-per-update-sources-and-generated-views.md) | Accepted | 2026-09-22 |
+| 0124 | [The experience contract's frontend section is owned by `frontend-engineering`, not `core`](0124-experience-contract-frontend-section-owned-by-frontend-engineering.md) | Accepted | 2026-09-22 |

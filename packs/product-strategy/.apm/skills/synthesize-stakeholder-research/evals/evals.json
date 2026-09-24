@@ -13,6 +13,18 @@
         "No interview transcripts, discussion guides, raw survey data, or primary research artifacts appear in the output",
         "The artifact is committed to the resolved path with frontmatter type: stakeholder-synthesis; path is surfaced before writing"
       ]
+    },
+    {
+      "id": "synthesis-organises-by-theme-and-names-its-coverage-gaps",
+      "prompt": "We've finished stakeholder interviews for an internal pilot tool. Turn them into a synthesis we can steer from.",
+      "expected_output": "A synthesis organized by strategic theme rather than by stakeholder, naming the groups with material representation and flagging any expected group with no research coverage as a gap. Convergent signals held by two or more groups are named explicitly and carry more weight than single-group themes. Each theme states which groups hold it, with what intensity, and the strategic implication. The artifact path is resolved and surfaced, and the file carries frontmatter `type: stakeholder-synthesis`.",
+      "assertions": [
+        "Organizes by strategic theme, not by stakeholder group",
+        "Names the stakeholder groups represented and flags any expected group with no coverage",
+        "Names cross-stakeholder convergent signals explicitly and weights them above single-group themes",
+        "Each theme states its holders, their intensity, and the strategic implication",
+        "Resolves and surfaces the artifact path and writes frontmatter type: stakeholder-synthesis"
+      ]
     }
   ]
 }

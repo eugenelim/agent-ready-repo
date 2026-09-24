@@ -49,6 +49,18 @@
         "Owns the revision binding and reads completion from the host",
         "Claims no lifecycle effect from the review result"
       ]
+    },
+    {
+      "id": "outcome-stays-at-intent-altitude-for-a-public-surface",
+      "prompt": "We're framing a new checkout redesign that will go straight to public release. Shape this into an intent.",
+      "expected_output": "A level-tagged intent carrying a steerable outcome and a solution-independent opportunity, with Scale resolved at intake and the altitude picked from the recognized set. It stops at the intent: it does not specify the surface's states, its field-level obligations, or any design or frontend detail, and it seeds the assumptions that must hold for the bet to pay off. The artifact path is resolved through the config-driven procedure and surfaced before writing.",
+      "assertions": [
+        "Resolves Scale at intake and picks the altitude from the recognized set",
+        "States a steerable outcome and a solution-independent opportunity",
+        "Stops at the intent \u2014 no states, no field-level obligations, no design or frontend detail",
+        "Seeds the assumptions that must be true for the bet to pay off",
+        "Resolves and surfaces the output path before writing"
+      ]
     }
   ]
 }

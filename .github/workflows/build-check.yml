@@ -588,6 +588,20 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_contract_backward_registry.py
 
+      # Both modules read across two packs and the guides, so lint-pack-test-boundary
+      # forbids a pack home and they live in the roster suite. Each sits ABOVE the
+      # carve-out step below, whose `pytest tests/ -q` also collects them: placement
+      # is what buys failure attribution, not reach. A step below the carve-out
+      # reports the same failure a second time against a broad target instead of the
+      # named one.
+      - name: pytest shared state-coverage map (experience composition)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_experience_state_coverage_map.py
+
+      - name: pytest journey depth ladder and composition (experience composition)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_experience_journey_composition.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

@@ -79,7 +79,7 @@ user-flow [link to docs/design/journeys/onboarding.md]
   screens  docs/design/screens/onboarding-flow.md
 
   /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
-  States per screen: default · loading · error · success · empty
+  States per screen: loading · empty · error · success · content · partial · disabled
 ```
 
 ```text
