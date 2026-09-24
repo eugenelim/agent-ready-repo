@@ -63,8 +63,9 @@ criteria do not say.
 
 ### Design decisions
 
-**One containment predicate, identity-based.** Today `select_write_set` uses
-`path.startswith(_DEFERRED_PACKAGE_PREFIXES)` (`catalogue_sync.py:186`) while
+**One containment predicate, identity-based.** Today `select_write_set` tests
+`path.startswith(_DEFERRED_PACKAGE_PREFIXES)` (`catalogue_sync.py:118`, called
+at `:186`) while
 `_in_coverage` uses `_resolves_within(target, path, _DEFERRED_PACKAGE_PREFIXES)`
 (`:776`, defined at `:718`), which compares device and inode through `os.path.samestat`. The
 disagreement is inert while nothing under those prefixes is written or removed.
@@ -92,11 +93,21 @@ resolved location, which needs neither a PEP 610 record nor a git root. It is
 not a second editable-install detector: it answers a narrower question the
 first cannot reach, and the two are combined in one control.
 
-**`tree_modified` is observed, not inferred.** The three conditions sharing
-exit 1 differ in whether writes landed, and the write sequence already tracks
-that: `WriteSequenceResult.acted` is every destination landed and `removed` is
-every path unlinked. The field reads those, rather than re-deriving intent from
-the exit row, because the row is what the caller already has and cannot use.
+**`tree_modified` is an end state, so it cannot be read from the action
+record.** The obvious mechanism is `WriteSequenceResult.acted` and `.removed`,
+which the write sequence already maintains — and it is wrong. Both are
+append-per-path records populated *before* `restore_from_snapshot` runs, so a
+run whose writes all failed and were fully restored has a non-empty `.acted`
+and would report `true` where AC-0089 requires `false`. That is the one case
+the field exists for: a caller reading exit 1 or exit 4 needs to know whether
+retrying is safe, and a fully restored tree is safe.
+
+The field is therefore computed by the run itself comparing the write-set
+destinations and the removal set against the pre-run snapshot it already
+holds, after the restore path has either run or not. The snapshot is already
+taken for rollback, so this adds a comparison, not a traversal. The test's
+independent pre/post walk stays the oracle and the implementation must not
+reuse it.
 
 ### Interfaces & contracts
 
@@ -151,7 +162,11 @@ the `--format json` row above the `--package` row). Three unpinned literals also
 move: the refusal message, the `deferred-package=` counts token, and the
 `cli.py` help string.
 
-**Done when:** each of the six names the task that rewrites it, below.
+**Done when:** each of the six is either claimed by a task below or recorded
+here as unchanged. Five are claimed: `:4958` and `:5739` by T2, `:1866` and
+`:1907` by T3, `:5601` by T6. **`:4981` is not** — it asserts argparse's own
+exit 2 for an unrecognised `--package` name, and `cli.py` keeps its `choices`
+tuple, so that behaviour is unchanged and the anchor stays as written.
 
 ### T1: one identity-based predicate decides package membership
 
@@ -202,7 +217,7 @@ prefix, and the new tests pass.
   `--tooling vendored` apply that named no `--package`.
 
 **Approach:** both rows go into `run()` above the `_resolve_source` call at
-`:3168`, replacing the block at `:3155-3167`. Ordering is the load-bearing
+`:3168`, replacing the block at `:3155-3163`. Ordering is the load-bearing
 part: absent-extent above self-replacement, because a run with no destination
 has no write set to test.
 
@@ -296,9 +311,11 @@ vendored fixture is zero for package paths a vendored run could have planned.
   rows, driven through the real write sequence rather than a constructed
   result object.
 
-**Approach:** the field is read from `WriteSequenceResult.acted` and `.removed`,
-which the sequence already populates. The pre/post walk in the test is the
-independent oracle; the implementation must not use it.
+**Approach:** compute the field from the rollback snapshot the run already
+holds, compared after the restore path has run or not — see § Design
+decisions for why `.acted` and `.removed` cannot produce it. The test's
+pre/post walk stays an independent oracle and the implementation must not
+reuse it.
 
 **Done when:** the new tests pass and no surface names `deferred_package`.
 
@@ -332,14 +349,19 @@ feature.
 **Depends on:** T2, T3, T4, T5, T6
 
 **Tests:** goal-based.
-- `grep` establishes that § Granularity names `.agentbundle/tooling/`, that no
-  § Rollout phase is unmarked, and that § Known risks states which extent the
-  refusal covers. Verifies AC-0091.
+- `grep` establishes that § Granularity, § Rollout item 4 and § Shipped all
+  name `.agentbundle/tooling/`, that the banner and § Rollout agree the
+  rollout is closed, and that § Known risks names both the extent the refusal
+  covers and the one it does not. Verifies AC-0092, AC-0093 and AC-0094.
+- Every code citation in the architecture file this task edits is resolved
+  against the construct it names — resolution, not a `grep`, because an
+  absence check passes a wrong re-pin. Verifies AC-0095.
 - The guide and its rendered projection both carry the `--package` section;
   the projection is regenerated and re-measured inside this task, per phase 2's
-  § Always do. Verifies AC-0092.
-- The three release surfaces each name the shipped version and the `--package`
-  change. Verifies AC-0093.
+  § Always do. Verifies AC-0096.
+- The release-surface derivation is run: all five surfaces state `0.50.0`, and
+  its three prose surfaces state the `--package` change. Verifies AC-0097 and
+  AC-0098.
 
 **Done when:** all three greps pass and the site build is clean.
 

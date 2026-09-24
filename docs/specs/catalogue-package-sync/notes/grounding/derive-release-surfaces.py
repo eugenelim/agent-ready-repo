@@ -1,14 +1,24 @@
 #!/usr/bin/env python3
 """Derive the release surfaces a version bump must move, and read each one.
 
-The surface set is derived from repository facts rather than enumerated by
-hand, so a surface added upstream appears here instead of being silently
-omitted from the criterion that covers "every derived release surface".
+Two of the three things this reports are derived and one is maintained, and
+the difference matters to the criteria that cite it.
+
+Derived: the readme surface, read from the package metadata, and each
+surface's prose/literal kind, computed from that surface's own version
+pattern. Maintained: the surface *list* itself. `packages/AGENTS.md` names
+only `version.py` and `pyproject.toml`, so the three changelog-shaped surfaces
+have no repository rule to derive them from and are listed below by hand. A
+sixth surface added upstream is NOT picked up automatically - add it here.
+
+So this file is where the release-surface set is *maintained*, not a place it
+is inferred. AC-0097 and AC-0098 cite it so the set has one home rather than
+being re-enumerated in prose; they do not claim it is self-discovering.
 
 Exits 1 when a governing rule this derivation depends on is absent.
 
 Run from the repository root:
-    python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-release-surfaces.py
+    python3 docs/specs/catalogue-package-sync/notes/grounding/derive-release-surfaces.py
 """
 from __future__ import annotations
 
@@ -65,15 +75,17 @@ def main() -> int:
 
     # A surface is `prose` when it carries adopter-facing narrative a criterion
     # can require a sentence of, and `literal` when the version is the whole of
-    # what it states. Phase 4's AC-0098 quantifies over the prose surfaces only:
-    # a criterion asking version.py to describe a flag is unsatisfiable, and an
-    # unsatisfiable criterion is worse than an absent one. Decided by whether
-    # the surface's own version pattern is a prose heading or a bare assignment.
-    PROSE_SURFACES = {
-        "packages/agentbundle/CHANGELOG.md",
-        "docs/product/changelog.md",
-        f"packages/agentbundle/{readme}",
-    }
+    # what it states. Phase 4's AC-0098 quantifies over the prose surfaces
+    # only: a criterion asking version.py to describe a flag is unsatisfiable,
+    # and an unsatisfiable criterion is worse than an absent one.
+    #
+    # Decided from the surface's own pattern above rather than from a second
+    # hand-written list: a Markdown heading is how a narrative surface states
+    # its version, an assignment is how a literal one does. Keeping this a
+    # function of the table means adding a surface cannot leave its kind
+    # unset, which a parallel set would.
+    def surface_kind(pattern: str) -> str:
+        return "prose" if pattern.lstrip("^").startswith("## ") else "literal"
 
     print(f"release surfaces: {len(surfaces)}")
     found: list[str] = []
@@ -83,16 +95,16 @@ def main() -> int:
         if match is None:
             return fail(f"{rel}: no version statement matched {pattern!r}")
         found.append(match.group(1))
-        kind = "prose" if rel in PROSE_SURFACES else "literal"
+        kind = surface_kind(pattern)
         prose_count += kind == "prose"
         print(f"  {rel}: {match.group(1)} [{kind}]")
     print(f"agreement: {'yes' if len(set(found)) == 1 else 'no'} ({sorted(set(found))})")
     print(f"prose surfaces: {prose_count} of {len(surfaces)}")
     print(
         "oracle: every surface above states the same version, each read by the "
-        "form that surface uses. The set is derived from the version-bump rule "
-        "plus the package's declared readme, not from a hand-written list. The "
-        "prose/literal mark is what phase 4's AC-0098 quantifies over."
+        "form that surface uses. The readme surface and every prose/literal "
+        "mark are derived; the surface list is maintained in this file, which "
+        "is the one home AC-0097 and AC-0098 quantify over."
     )
     return 0
 

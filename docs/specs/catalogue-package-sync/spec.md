@@ -23,23 +23,33 @@
 ## What this spec supersedes
 
 Phase 3's [`catalogue-sync-apply`](../catalogue-sync-apply/spec.md) is Shipped
-and frozen. This phase supersedes the criteria of it named at each replacing
-criterion below, and retires one of its § Never do rules. The count is
-deliberately not stated here: a numeral in this paragraph decays the first time
-a criterion is added or split, and the replacing criteria are the only place the
-supersession can be read without decaying. Each supersession is named at the
-criterion that replaces it,
-in the form phase 3 used when it replaced phase 2's no-write-path rule. Nothing
-here edits that spec; a reader who arrives at a superseded criterion finds it
-still stated there, and finds its replacement by this spec's identifier.
+and frozen. This spec supersedes it in two clauses, and in no other way.
 
-The retired § Never do rule is phase 3's *"Never write under
-`packages/credbroker/` or `.agentbundle/tooling/`, whether or not `--package`
-was supplied."* It was the boundary that held this phase open. AC-0078 and
-AC-0079 replace it.
+**One — the package extent.** Every criterion of that spec is superseded
+**insofar as it constrains the two destinations AC-0078 names**. Where it
+constrains anything else it binds unchanged, including over the same criterion:
+AC-0069 keeps its whole coverage contract and loses reach over those two
+subtrees alone, and AC-0033 keeps clauses 1, 2, 3, 4 and 6 while clause 5
+stops excluding them. Phase 3's § Never do rule against writing under
+`packages/credbroker/` or `.agentbundle/tooling/` is retired by this clause.
 
-Every other rule phase 3 states still binds, including the whole of phase 2's
-§ Boundaries that phase 3 carries forward by pointer.
+**Two — the rollout record.** AC-0053, AC-0063 and AC-0067 are superseded
+entire. They fix which phase is delivered, that one phase remains, and that
+§ Granularity names the narrow `.agentbundle/tooling/agentbundle/`. All three
+describe a rollout this delivery closes, and none of them is about the package
+extent, so clause one does not reach them. AC-0092 and AC-0093 replace them.
+
+**Why two clauses rather than ten named supersessions.** A per-criterion
+supersession has to name every dependent of what it replaces, and phase 3's
+criteria cite each other densely — so each named supersession opens a sweep,
+and each repair to a sweep opens another. Three review rounds measured that:
+the second round's repairs produced four of the third round's five blockers,
+all of them supersession bookkeeping. A clause quantified over the extent
+carries no sweep, because a criterion that does not constrain the extent is
+untouched and needs no edit. The cost is real and accepted: a reader arriving
+at a superseded phase-3 criterion is not told there which criterion replaced
+it, and must ask instead whether that criterion is speaking about the package
+extent.
 
 ## Outcome
 
@@ -97,8 +107,7 @@ the running command refuses before it writes anything.
 
 ### Ask first
 
-- Before adding a flag beyond the five phase 3 declares and the one this phase
-  repurposes.
+- Before adding a flag beyond the five phase 3 declares.
 - Before introducing a sixth exit code, or changing a row of AC-0085's table.
 - Before changing what `init` writes, aborts on, or removes.
 - Before widening the self-replacement refusal past the vendored `agentbundle`
@@ -111,6 +120,9 @@ the running command refuses before it writes anything.
   condition of this phase, not a preference. AC-0083 input 2 is a separate
   named input, not a second detector for input 1.
 - Never add a third self-replacement input beyond AC-0083's two.
+- Never let a check write to the running interpreter's own install root,
+  whatever it is asserting. A vendored fixture is the only target for a check
+  over the `agentbundle` extent.
 - Never add a module, package, or top-level directory: the write extent this
   phase adds lives in the one command module the CLI's lazy-dispatch convention
   already allocates.
@@ -122,10 +134,14 @@ the running command refuses before it writes anything.
 
 ## Testing Strategy
 
-Three modes, over twenty-three criteria.
+Three modes. The bands below partition all twenty-three criteria — 14 TDD,
+7 goal-based, 2 manual QA — and that count is a totality check on the
+partition, not a supersession tally of the kind § What this spec supersedes
+declines to keep.
 
-**TDD** covers AC-0078 through AC-0090 — the criteria whose oracle is a set
-comparison, an exit code, or a field's presence and value. Each names the
+**TDD** covers AC-0078 through AC-0091 — the criteria whose oracle is a set
+comparison, an exit code, a printed row set, or a field's presence and
+value. Each names the
 comparison its oracle performs, not the property it hopes to establish.
 
 - **The package write extent (AC-0078)** — TDD. Oracle: the set of paths a
@@ -161,40 +177,67 @@ comparison its oracle performs, not the property it hopes to establish.
 - **Removal coverage (AC-0086)** — TDD. Oracle: the removal set over a recorded
   state carrying a package path the source has stopped shipping, compared
   against that path's membership.
-- **Identity-based containment (AC-0087)** — TDD. Oracle: the admission and
-  coverage decisions for a traversal spelling and, where the filesystem is
-  case-insensitive, a case-variant spelling, each compared against the decision
-  for the canonical spelling. Skipped with a named reason where the platform
-  affords no case-insensitive mount.
+- **The path comparison (AC-0087)** — TDD. Oracle: all four of its uses —
+  admission, coverage, write ordering, and each AC-0083 input — driven for a
+  traversal spelling and, where the filesystem is case-insensitive, a
+  case-variant spelling, each compared against the decision the canonical
+  spelling receives. A fifth case drives a planned path whose ancestor is an
+  existing symlink into a destination, which is the case the two-part
+  comparison exists for and which no spelling variant reaches. The
+  case-variant arm is skipped with a named reason where the platform affords
+  no case-insensitive mount; the others are not skippable.
 - **The retired count (AC-0088)** — TDD. Oracle: the key set of the
   `--format json` document's `summary` object and the tokens of the printed
-  counts line, each compared against a fixed expected set.
-- **`tree_modified` (AC-0089)** — TDD. Oracle: the field's value on every row
-  of AC-0085's table an apply run can take that produces a plan or a JSON
-  document — the five sharing exit 1, the four code-4 rows, and the success
-  row — compared against a pre-run and post-run walk of the target tree. A
-  separate case asserts the field appears nowhere on the rows AC-0091 says
+  counts line, each compared against the expected set **for that invocation
+  mode** — an apply document and a `--dry-run` document differ by exactly
+  `tree_modified` per AC-0089, so one shared expected set would fail one of
+  them. Neither carries `deferred_package`.
+- **`tree_modified` (AC-0089)** — TDD. Oracle: a sweep over AC-0085's rows,
+  filtered to those an apply run can take that emitted a plan or a document,
+  comparing the field's value against a pre-run and post-run walk of the
+  target tree. A sweep rather than a list, because an enumeration drifts from
+  the criterion's quantifier the moment a row is added — and the rows a list
+  most easily misses are the four cannot-answer rows that print a plan first.
+  A separate case asserts the field appears nowhere on the rows AC-0091 says
   print no plan.
+- **The printed plan's accounting (AC-0091)** — TDD. Oracle: the set of paths
+  the plan names, partitioned into acted rows and the four declined kinds, and
+  compared against the classification of the replayed selection; plus the
+  printed output of each run AC-0091 says prints no plan, compared against
+  empty. Goal-based cannot reach this criterion — no grep or site build
+  produces a printed plan, only running the command does.
 - **Rollback over a package write (AC-0090)** — TDD. Oracle: the post-run walk
   tuple of the whole target tree after a forced package-write failure, compared
   for equality against the pre-run walk.
 
-**Goal-based checks** cover AC-0091 through AC-0098 — each is a documented
-surface or a printed-plan accounting whose oracle is a `grep`, a rendered-site
-build, or the release-surface derivation, not a behavior.
+**Goal-based checks** cover AC-0092 through AC-0098. Each names its own
+oracle, because the classes differ and one shared sentence hid that:
 
-**Visual / manual QA** covers AC-0099 and AC-0100, which no automated oracle
-reaches: a real
+- **AC-0092, AC-0093** — `grep` over `upstream-sync.md` for the destination
+  strings and the rollout markers. A string test decides both.
+- **AC-0094** — `grep` for the two literal extents § Known risks must name:
+  the engine subtree the refusal covers, and `packages/credbroker/`, which it
+  does not. Naming both is what makes a string test decide a criterion that
+  would otherwise be a judgement.
+- **AC-0095** — citation **resolution**, not a `grep`. Phase 3's AC-0061 fixed
+  this and its reason travels: an absence check passes a wrong re-pin, so each
+  citation is resolved against the construct it names.
+- **AC-0096** — the rendered-site build, plus a `grep` of both the authored
+  guide and its projection.
+- **AC-0097, AC-0098** — the release-surface derivation's own output, run.
+
+**Visual / manual QA** covers AC-0099 and AC-0100: a real
 `agentbundle catalogue sync --tooling vendored --package agentbundle` against a
 constructed vendored fixture, driven end to end, with the printed plan, the
 consent prompt, the exit code and the post-run tree recorded. This exists
 because the printed plan is a surface a person reads, and no unit assertion
 observes whether a reader can tell what the run is about to do to their engine.
 
-**One environment fact bounds every mode above.** This repository self-hosts in
-*external* tooling mode: `.agentbundle/tooling/` is empty here. Every check over
-the `agentbundle` extent runs against a constructed vendored fixture, and none
-of them runs against this tree.
+**One environment fact bounds every mode above.** This repository self-hosts
+in *external* tooling mode, so `.agentbundle/tooling/` is empty here and every
+check over the `agentbundle` extent runs against a constructed vendored
+fixture. The rule that no check writes to the running interpreter's install
+root is § Agent Rules § Never do's, not restated here.
 
 ## Acceptance Criteria
 
@@ -222,25 +265,21 @@ of them runs against this tree.
   not a mode.
 
 - [ ] **AC-0079.** A path under either AC-0078 destination is admitted to the
-  write set on the same terms as any other replayed path. **This supersedes
-  AC-0033 clause 5**, which excluded them, and with it phase 3's § Never do
-  rule against writing under either subtree. AC-0033 clauses 1, 2, 3, 4 and 6
-  are unchanged and still govern.
+  write set on the same terms as any other replayed path. AC-0033 clause 5
+  excluded them; the extent clause above is what stops it doing so.
 
 - [ ] **AC-0080.** The paths AC-0079 admits are written in the order packs,
   profiles, guides, the derivation-wide paths, then the AC-0078 destinations,
-  and AC-0033 clause 6's ownership state after all five. **This supersedes
-  AC-0032**, which named four groups ending at the derivation-wide paths.
-  Packages are last because a failed package write is the one whose rollback
+  and AC-0033 clause 6's ownership state after all five. AC-0032 named four
+  groups ending at the derivation-wide paths; this is the fifth. Packages are last because a failed package write is the one whose rollback
   may be executing from the code it just replaced, so every other write is
   already durable before one is attempted.
 
 - [ ] **AC-0081.** `--package <name>` restricts the run to that name's AC-0078
   destination, joining `--pack`, `--profile` and `--guides` in the scope union
-  AC-0043 fixes. **This supersedes AC-0047 entirely, supersedes AC-0043's
-  closing sentence** naming `--package` a reserved selector, **and supersedes
-  AC-0030's malformed enumeration** of which flags are malformed with
-  `--check`: that enumeration is now all four scoping flags, `--package`
+  AC-0043 fixes. `--package` stops being the reserved selector AC-0047 and
+  AC-0043's closing sentence made it, and AC-0030's enumeration of which flags
+  are malformed with `--check` becomes all four scoping flags, `--package`
   included. Absent every scoping flag, the scope is every path, so an apply
   run writes each AC-0078 destination its replay produces.
 
@@ -252,7 +291,9 @@ of them runs against this tree.
 
 - [ ] **AC-0082.** A `--package <name>` run whose named AC-0078 destination is
   not present refuses as malformed, naming the flag and the presence condition
-  it failed. This covers `--package agentbundle` on a
+  it failed. The two halves are decided at different points — AC-0084 fixes
+  which — and this criterion fixes only the outcome. This covers
+  `--package agentbundle` on a
   run not replaying `--tooling vendored`, and `--package credbroker` on a run
   whose effective selection does not carry the `credential-brokers` pack. A
   run that reported success would refresh the pin over a subtree it never
@@ -265,9 +306,11 @@ of them runs against this tree.
   is the run's scope, not its write set: a write set requires a resolved
   source. AC-0084 is the single home for when both refusals are decided.
 
-  A `--check` run is not covered, which narrows phase 3's AC-0047. `--check`
-  writes nothing on any row of AC-0085's table, so it cannot replace the
-  running engine and has nothing to refuse.
+  A `--dry-run` is covered although it writes nothing, because a preview is
+  where an adopter should meet this refusal rather than discovering it on the
+  apply. A `--check` run is not covered, because it performs no replay: it
+  compares a pin or a recorded path set and never resolves an extent to
+  write.
 
   It refuses when **either** input holds:
 
@@ -292,13 +335,14 @@ of them runs against this tree.
   This is the single home for that obligation; no other criterion restates it.
 
 - [ ] **AC-0085.** The command's exit code is the first matching row of this
-  table, read top to bottom, and no input produces a code outside it. **This
-  supersedes AC-0039**, and **every phase-3 criterion referring to AC-0039's
-  table refers to this table instead** — AC-0040, AC-0041, AC-0064, AC-0071,
-  AC-0076 and AC-0077 among them. Three rows change and the rest are carried
-  unchanged: the `--package`-refuses row is retired, an absent-extent row joins
-  the malformed group, and a self-replacement row joins the cannot-answer
-  group.
+  table, read top to bottom, and no input produces a code outside it. **The
+  table stays AC-0039's**, amended here rather than replaced, so every phase-3
+  criterion that constrains behaviour by reference to "AC-0039's table" keeps
+  referring to the same table and needs no edit. Four rows change: the
+  `--package`-refuses row is retired, two absent-extent rows join the malformed
+  group at different positions, and a self-replacement row joins the
+  cannot-answer group. Every other row is AC-0039's, carried here unchanged so
+  the total, disjoint, first-match-wins reading is legible in one place.
 
   | Invocation | Condition | Code and name |
   | --- | --- | --- |
@@ -333,12 +377,12 @@ of them runs against this tree.
   | `--check --compare-tree` | every recorded path was compared and none differs | 0 — `success` |
   | `--check --compare-tree` | every recorded path was compared and some differ | 1 — `difference` |
 
-  The two new refusal rows sit above source resolution per AC-0084. The
-  absent-extent
-  rows split by name, and the split is load-bearing. The `agentbundle` half
+  The `agentbundle` absent-extent row and the self-replacement row sit above
+  source resolution per AC-0084. The absent-extent rows split by name, and the
+  split is load-bearing. The `agentbundle` half
   reads only `--tooling`, so it sits above source resolution, and above the
   self-replacement row because a run whose destination is not present has no
-  scope reaching it. The `credbroker` half reads the effective selection, so it
+  scope reaching it. The `credbroker` half reads the resolved selection, so it
   sits **below** the AC-0068 selection-validity row: a run whose recorded
   selection is invalid cannot decide whether the `credential-brokers` pack is
   in it, and a row must not demand an answer from an input the table has not
@@ -355,17 +399,20 @@ of them runs against this tree.
   same terms as any other recorded path, and the sha256 guard still governs
   whether it is removed.
 
-  **This supersedes AC-0069's exclusion 1**, which barred both subtrees
-  absolutely. The replacement is a positive condition rather than a deletion,
+  AC-0069's exclusion 1 barred both subtrees absolutely; the extent clause
+  above is what lifts it. The replacement is a positive condition rather than a
+  bare lifting,
   because AC-0069's coverage decision ends by admitting every path no clause
   excluded: deleting the exclusion alone would put both subtrees inside
   coverage on every run, reinstating the mass removal AC-0069 measures at 240
   paths for a vendored-derived tree met by this command's external default.
   AC-0069's exclusions 2 and 3 are unchanged.
 
-- [ ] **AC-0087.** Whether a path belongs to an AC-0078 destination or to its
-  engine subtree is decided by one comparison used for admission, for coverage,
-  for write ordering, and for AC-0083's two inputs. It is taken in two parts,
+- [ ] **AC-0087.** Two path questions are decided by one comparison: whether
+  two paths name the same directory, and whether a path lies inside a named
+  one. It is used for admission, for coverage, for write ordering, and for
+  both AC-0083 inputs — equality answers input 1's "is this catalogue root the
+  target root", and containment answers input 2 and the other three. It is taken in two parts,
   always in this order: the longest prefix of the path that has an on-disk
   entry is resolved by directory identity, and only the remainder — which has
   no entry — is compared as a normalised relative path with traversal
@@ -388,8 +435,9 @@ of them runs against this tree.
   spelling both reach a protected entry that a string comparison misses.
 
 - [ ] **AC-0088.** No invocation reports a `deferred_package` count, on the
-  printed plan or in the `--format json` document's `summary` object. **This
-  supersedes AC-0066.** The seven counts phase 2 fixes stay computed over the
+  printed plan or in the `--format json` document's `summary` object. AC-0066
+  required that count; it existed only to report the excluded extent, so the
+  extent clause above retires it. The seven counts phase 2 fixes stay computed over the
   full replayed selection and keep their meanings, and phase 2's
   `compared + uncompared` identity is unchanged.
 
@@ -415,8 +463,8 @@ of them runs against this tree.
   restore succeeded.
 
 - [ ] **AC-0091.** The printed plan's accounting covers this phase's paths and
-  refusals. **This supersedes AC-0057's declined-kind list and its no-plan
-  enumeration.** The declined kinds are four: an occupied companion
+  refusals, amending AC-0057's declined-kind list and its no-plan enumeration.
+  The declined kinds are four: an occupied companion
   destination per AC-0070, a colliding companion pair per AC-0071, an
   out-of-coverage recorded path per AC-0069, and a companion destination
   reported under `companion_residue` per AC-0070's third outcome. The deferred
@@ -430,15 +478,16 @@ of them runs against this tree.
   unchanged.
 
 - [ ] **AC-0092.** `docs/architecture/catalogue/upstream-sync.md` § Granularity
-  names the `agentbundle` destination as `.agentbundle/tooling/`. **This
-  supersedes AC-0063's § Granularity clause**, which required that section to
-  name `.agentbundle/tooling/agentbundle/`. AC-0063's § Rollout item 4 clause
-  is unchanged and still binds: that section already records the whole
-  vendored root, and the two sections disagreeing is what this criterion ends.
+  names `.agentbundle/tooling/` and `packages/credbroker/` as the two
+  `--package` destinations. § Rollout item 4's destination sentence and
+  § Shipped's parenthetical name the same extent for `agentbundle`, so no
+  section of that file states the narrow path. AC-0063 required § Granularity
+  to state the narrow path and item 4 to state the wide one; that
+  disagreement is what this criterion ends, and it ends it in every section
+  rather than one.
 
 - [ ] **AC-0093.** That file's status banner and its § Rollout agree that the
-  rollout is closed and no phase remains. **This supersedes AC-0053**, which
-  required both to state that one phase remains.
+  rollout is closed and no phase remains.
 
 - [ ] **AC-0094.** That file's § Known risks records which extent AC-0083's
   refusal covers and which it does not.
@@ -455,7 +504,17 @@ of them runs against this tree.
 
 - [ ] **AC-0097.** Every release surface the plan's § Grounding
   release-surface derivation reports states the version `0.50.0`. That
-  derivation supplies the closed set this criterion quantifies over.
+  derivation is the one home the surface set is maintained in, so this
+  criterion quantifies over whatever it reports rather than over a list
+  restated here. It does not discover surfaces on its own, and its own
+  docstring says which of its outputs are derived and which maintained.
+
+  `0.50.0` rests on precedent, not a rule: `release-coupling.md` decides
+  whether to release and `packages/AGENTS.md` decides which files move, but
+  neither fixes the increment, and the `docs/CONVENTIONS.md` both changelogs
+  cite for the pre-1.0 policy does not exist. Minor, because prior releases
+  took a minor bump for added functionality pre-1.0. The missing conventions
+  file is a repository defect outside this delivery.
 
 - [ ] **AC-0098.** Each **prose** release surface that derivation reports —
   the ones carrying adopter-facing text rather than a version literal alone —
