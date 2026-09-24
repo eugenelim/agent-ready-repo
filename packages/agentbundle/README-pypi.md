@@ -14,6 +14,23 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.49.0
+
+`agentbundle catalogue sync` can now write. Run it with neither `--dry-run`
+nor `--check` and it asks for confirmation, then applies the same plan
+`--dry-run` would have printed — updating unedited files, keeping your edits
+behind a `.upstream.<ext>` companion, and removing paths the source stopped
+shipping. Pass `--yes` to skip the prompt in a script or CI job. Four flags
+scope a run to part of the catalogue: `--pack` (repeatable), `--profile`,
+`--guides`, and `--package` (reserved; refuses for now — package sync is not
+shipped yet). A source affording a resolved ref or a verified digest now has
+that value recorded, so a later `--check` compares against it.
+
+**Breaking:** the `sync` subcommand no longer resolves abbreviated flag
+names. `--guides` is now a real flag — the scoping flag above — so a command
+that relied on `--guides selected` resolving to `--guides-mode` now errors;
+spell `--guides-mode selected` in full.
+
 ## What's new in 0.48.0
 
 `agentbundle catalogue sync` is a new command. It checks a derived catalogue

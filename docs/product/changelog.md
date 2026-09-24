@@ -244,6 +244,37 @@ shaping reviewer's own text is byte-unchanged.
   lock record written by something other than this tool — and both need the
   file removed by hand.
 
+## [agentbundle][0.49.0] — 2026-09-23
+
+### Highlights
+
+- **`agentbundle catalogue sync` can now bring a derived catalogue up to
+  date, not just check it.** Run it with neither `--dry-run` nor `--check`
+  and it asks once for confirmation, then applies the plan: unedited files
+  update, your edits keep their bytes with the source's version saved
+  beside them, and paths the source dropped are removed — guarded so a run
+  never touches anything outside what the catalogue already recorded. Four
+  new flags — `--pack`, `--profile`, `--guides`, `--package` — let you sync
+  just part of the catalogue, and `--yes` skips the prompt for a script or
+  CI job.
+
+### Added
+
+- `catalogue sync`'s write path never leaves the tree half-changed: nothing
+  is written before consent, and a run that fails partway restores the tree
+  to what it was before it started, naming any path it could not restore.
+- A source resolved from a `git+https://` URL or a digest-bearing descriptor
+  now has that ref or digest recorded after a sync, so a later `--check` run
+  compares against the value this run actually synced to.
+
+### Changed
+
+- **Breaking:** `catalogue sync` no longer resolves abbreviated flag names.
+  `--guides` is now a real flag — the new scoping flag above — so a command
+  that relied on `--guides selected` resolving to `--guides-mode` now errors
+  instead of silently changing meaning; spell `--guides-mode selected` in
+  full.
+
 ## [core][2.26.36] — 2026-09-22
 
 ### Highlights

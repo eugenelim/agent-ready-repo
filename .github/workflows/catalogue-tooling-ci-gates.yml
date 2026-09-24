@@ -113,6 +113,14 @@ jobs:
           python -m pytest tests/build_pipeline/test_user_libs_projection.py
           python -m pytest tests/integration/test_credential_brokers_pack_install.py
           python -m pytest tests/unit/test_packstate_source_provenance.py
+          # The Publish tests only, for the hard-link publish AC-0070 rests on.
+          # `os.link` maps to CreateHardLinkW and NTFS supports it; measured
+          # green here 2026-09-24, including the staged unlink that leaves
+          # st_nlink 1. Scoped with -k rather than running the whole file
+          # because TestWriteFilesNoFollow calls `os.fchmod`, which is
+          # POSIX-only — a pre-existing portability defect in unrelated code,
+          # carried as a Follow-on rather than fixed under this spec's budget.
+          python -m pytest tests/unit/test_safety.py -k "never_replace or replace_if_unchanged"
 
   # ── Gate A-packs: repo/pack hook suites ───────────────────────────────────
   # AC8: the ubuntu leg runs py3.12 ONLY. These suites exercise skill scripts under

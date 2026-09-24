@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 from collections.abc import Mapping
 from pathlib import Path
 from unittest import mock
@@ -9,6 +10,10 @@ from unittest import mock
 import pytest
 from agentbundle import safety
 from agentbundle.config import PackState, State
+
+# Reused rather than copied — see test_catalogue_sync.py's own import of the
+# same helper for its precedent.
+from tests.unit.test_catalogue_tooling_self_hosted_init import walk_target_tree
 
 
 def _state_with(relpath: str, sha: str) -> State:
@@ -107,6 +112,246 @@ def test_write_companion_drops_upstream_file(tmp_path):
     assert (tmp_path / "AGENTS.upstream.md").read_bytes() == b"bundle content"
     # Original unchanged.
     assert original.read_bytes() == b"adopter-edited"
+
+
+# ---------------------------------------------------------------------------
+# spec AC-0052 (docs/specs/catalogue-sync-apply/spec.md) — the non-replacing
+# publish selector's DEFAULT must be today's unconditional replace, for both
+# helpers, pinned separately: `write_companion` is a thin forward to
+# `write_jailed`, so a guard written against `write_jailed` alone stays green
+# through a flipped default on the forward. Neither case is phrased "passes
+# no `mode`" — `mode` already carries permission bits (which `render.py`
+# supplies), so the `write_jailed` case below supplies one, to pin the
+# selector's default rather than an untested `mode` default. The shipped
+# `test_write_companion_drops_upstream_file` above writes to a path that does
+# not yet exist, so it cannot observe this: it passes unchanged whichever way
+# either default goes. plan.md T4 § Tests.
+# ---------------------------------------------------------------------------
+
+
+def test_write_jailed_default_replaces_occupied_destination(tmp_path):
+    dest = tmp_path / "occupied.md"
+    dest.write_bytes(b"old occupant")
+    safety.write_jailed(tmp_path, "occupied.md", b"new content", mode=0o644)
+    assert dest.read_bytes() == b"new content"
+
+
+def test_write_companion_default_replaces_occupied_destination(tmp_path):
+    original = tmp_path / "AGENTS.md"
+    original.write_bytes(b"adopter-edited")
+    companion = tmp_path / "AGENTS.upstream.md"
+    companion.write_bytes(b"old companion")
+    safety.write_companion(tmp_path, "AGENTS.md", b"new companion")
+    assert companion.read_bytes() == b"new companion"
+
+
+# ---------------------------------------------------------------------------
+# `Publish.NEVER_REPLACE` — spec AC-0070's non-replacing publish mechanism,
+# tested directly at the primitive rather than through the apply path.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "setup",
+    [
+        lambda p: p.write_bytes(b"adopter work"),
+        lambda p: p.touch(),
+        lambda p: p.symlink_to(p.parent / "elsewhere"),
+        lambda p: p.mkdir(),
+    ],
+    ids=["regular-file", "empty-file", "dangling-symlink", "directory"],
+)
+def test_write_jailed_never_replace_refuses_every_occupant_kind(tmp_path, setup):
+    dest = tmp_path / "x.upstream.md"
+    setup(dest)
+    before = walk_target_tree(tmp_path)
+    with pytest.raises(safety.WriteError):
+        safety.write_jailed(
+            tmp_path, "x.upstream.md", b"new", publish=safety.Publish.NEVER_REPLACE
+        )
+    # Never replaced, whatever the occupant was -- the exact pre-run walk
+    # tuple (kind, mode, symlink target, bytes), not merely "something is
+    # still there": `dest.is_symlink() or dest.exists()` passes any
+    # implementation that overwrote the occupant's bytes and then raised.
+    assert walk_target_tree(tmp_path) == before
+
+
+def test_write_jailed_never_replace_publishes_a_fresh_destination(tmp_path):
+    out = safety.write_jailed(
+        tmp_path, "fresh.upstream.md", b"new", publish=safety.Publish.NEVER_REPLACE
+    )
+    assert out.read_bytes() == b"new"
+    # link count is one and no staged sibling remains.
+    assert out.stat().st_nlink == 1
+    leftovers = [p for p in tmp_path.iterdir() if p.name != "fresh.upstream.md"]
+    assert leftovers == []
+
+
+def test_write_jailed_never_replace_other_failure_is_a_write_error_not_occupancy(
+    tmp_path, monkeypatch
+):
+    def _raise_no_hardlink_support(*_args, **_kwargs):
+        raise OSError(errno.EPERM, "operation not permitted")
+
+    monkeypatch.setattr(safety.os, "link", _raise_no_hardlink_support)
+    with pytest.raises(safety.WriteError) as exc_info:
+        safety.write_jailed(
+            tmp_path, "fresh.upstream.md", b"new", publish=safety.Publish.NEVER_REPLACE
+        )
+    # `not isinstance(exc_info.value, FileExistsError)` can never fail:
+    # `write_jailed` always wraps a publish `OSError` into `WriteError`, and
+    # `issubclass(WriteError, FileExistsError)` is `False` regardless of
+    # what actually went wrong. The non-occupancy classification is instead
+    # in the raised error's own cause — its errno must be the injected
+    # EPERM, not an occupancy-shaped EEXIST.
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, OSError)
+    assert cause.errno == errno.EPERM
+
+
+def test_write_jailed_never_replace_persistent_staged_unlink_failure_stays_typed(
+    tmp_path, monkeypatch
+):
+    """Round 3, F1/F2: a persistent staged-unlink failure (an EACCES/EPERM
+    that recurs on every attempt, unlike a one-shot failure `missing_ok`
+    could paper over) must surface as `CompanionLinkPublishedError`, not a
+    fresh, untyped `OSError` from `write_jailed`'s own cleanup replacing it.
+
+    Exercises the real `_publish_never_replace`/`write_jailed` handler
+    chain end to end -- a stub that raises `CompanionLinkPublishedError`
+    directly (as the apply-level consumer test does) never touches either:
+
+    - `_publish_never_replace`'s own `except OSError` -> typed-raise
+      (safety.py:541-549): reverting it to a bare `tmp.unlink()` would let
+      a raw `OSError` escape here instead, failing this test's
+      `pytest.raises(safety.CompanionLinkPublishedError)`.
+    - `write_jailed`'s `except CompanionLinkPublishedError` cleanup
+      (safety.py:497-503): dropping its `contextlib.suppress` would let
+      the *second* unlink attempt's own persistent failure raise a fresh,
+      untyped `OSError` out of the handler, replacing the typed exception
+      already in flight -- same observable failure here.
+    """
+    real_unlink = safety.os.unlink
+
+    def _persistent_staged_unlink_failure(path, *args, **kwargs):
+        if str(path).endswith(".tmp"):
+            raise OSError(errno.EACCES, "permission denied")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(safety.os, "unlink", _persistent_staged_unlink_failure)
+
+    with pytest.raises(safety.CompanionLinkPublishedError) as exc_info:
+        safety.write_jailed(
+            tmp_path, "fresh.upstream.md", b"new", publish=safety.Publish.NEVER_REPLACE
+        )
+
+    dest = tmp_path / "fresh.upstream.md"
+    assert exc_info.value.target == dest
+    # The link really landed even though the call raised -- the whole
+    # point of carrying a typed exception instead of a generic failure.
+    assert dest.read_bytes() == b"new"
+
+
+# ---------------------------------------------------------------------------
+# `Publish.REPLACE_IF_UNCHANGED` — spec AC-0077's rename recheck.
+# ---------------------------------------------------------------------------
+
+
+def test_write_jailed_replace_if_unchanged_publishes_when_digest_matches(tmp_path):
+    dest = tmp_path / "y.md"
+    dest.write_bytes(b"old")
+    expected = safety.sha256_bytes(b"old")
+    safety.write_jailed(
+        tmp_path, "y.md", b"new",
+        publish=safety.Publish.REPLACE_IF_UNCHANGED,
+        expected_sha256=expected,
+    )
+    assert dest.read_bytes() == b"new"
+
+
+def test_write_jailed_replace_if_unchanged_refuses_a_changed_digest(tmp_path):
+    dest = tmp_path / "y.md"
+    dest.write_bytes(b"changed by another writer")
+    with pytest.raises(safety.DestinationDivergedError):
+        safety.write_jailed(
+            tmp_path, "y.md", b"new",
+            publish=safety.Publish.REPLACE_IF_UNCHANGED,
+            expected_sha256=safety.sha256_bytes(b"old"),
+        )
+    # Refused before the rename: the other writer's bytes are untouched.
+    assert dest.read_bytes() == b"changed by another writer"
+    # No staged residue left behind.
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["y.md"]
+
+
+def test_write_jailed_replace_if_unchanged_refuses_a_changed_entry_kind(tmp_path):
+    dest = tmp_path / "y.md"
+    dest.write_bytes(b"old")
+    expected = safety.sha256_bytes(b"old")
+    dest.unlink()
+    dest.symlink_to(tmp_path / "elsewhere")
+    with pytest.raises(safety.DestinationDivergedError):
+        safety.write_jailed(
+            tmp_path, "y.md", b"new",
+            publish=safety.Publish.REPLACE_IF_UNCHANGED,
+            expected_sha256=expected,
+        )
+    assert dest.is_symlink()  # untouched
+
+
+def test_write_jailed_replace_if_unchanged_refuses_an_entry_found_where_none_expected(
+    tmp_path,
+):
+    # Classification found nothing on disk (expected_sha256=None); by the
+    # rename, another writer created the destination.
+    dest = tmp_path / "y.md"
+    dest.write_bytes(b"raced in")
+    with pytest.raises(safety.DestinationDivergedError):
+        safety.write_jailed(
+            tmp_path, "y.md", b"new",
+            publish=safety.Publish.REPLACE_IF_UNCHANGED,
+            expected_sha256=None,
+        )
+    assert dest.read_bytes() == b"raced in"
+
+
+def test_write_jailed_replace_if_unchanged_publishes_a_fresh_destination(tmp_path):
+    out = safety.write_jailed(
+        tmp_path, "y.md", b"new",
+        publish=safety.Publish.REPLACE_IF_UNCHANGED,
+        expected_sha256=None,
+    )
+    assert out.read_bytes() == b"new"
+
+
+def test_write_jailed_replace_if_unchanged_refuses_an_unreadable_destination(
+    tmp_path, monkeypatch
+):
+    # Verifies AC-0065/AC-0077. Only `FileNotFoundError` reads as absence —
+    # any other `lstat` failure (a permissions error, here) is a divergence,
+    # not "no entry", even when `expected_sha256` is itself `None`. Before
+    # this fix, `_publish_if_unchanged` collapsed every `OSError` into
+    # `exists = False`, so this exact case (unreadable, and nothing was
+    # expected anyway) published straight over a destination the rename
+    # never actually read.
+    dest = tmp_path / "y.md"
+    dest.write_bytes(b"adopter's own file")
+    real_lstat = Path.lstat
+
+    def _fail_dest(self, *a, **kw):
+        if self == dest:
+            raise PermissionError("permission denied")
+        return real_lstat(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "lstat", _fail_dest)
+    with pytest.raises(safety.DestinationDivergedError):
+        safety.write_jailed(
+            tmp_path, "y.md", b"new",
+            publish=safety.Publish.REPLACE_IF_UNCHANGED,
+            expected_sha256=None,
+        )
+    monkeypatch.setattr(Path, "lstat", real_lstat)
+    assert dest.read_bytes() == b"adopter's own file"
 
 
 def test_assert_under_passes_for_path_inside(tmp_path):

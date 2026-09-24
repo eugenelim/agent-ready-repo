@@ -6,6 +6,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.49.0] — 2026-09-23
+
+### Added
+
+- `catalogue sync` gains a write path. Running it with neither `--dry-run`
+  nor `--check` prints the same plan `--dry-run` would, asks for
+  confirmation once, and — on consent — applies it: an unedited file updates
+  to the source's bytes, an edited file keeps its bytes and gets the
+  source's version beside it as `<name>.upstream.<ext>`, and a path the
+  source stopped shipping is removed, guarded so a run never removes a path
+  outside what the catalogue's recorded state already knew about. `--yes`
+  skips the prompt for a script or CI job. Nothing is written until consent
+  is given, and a run that fails partway restores the tree to what it was
+  before the run started.
+- Four flags scope a sync run to part of the catalogue: `--pack` (repeatable),
+  `--profile`, `--guides`, and `--package` (reserved — recognised but refuses
+  for now, since package sync is not shipped yet). Naming a pack or profile
+  not already selected adds it to the catalogue's recorded selection, the same
+  way `--pack` does on `init`.
+- A source resolved from a `git+https://` URL or a digest-bearing descriptor
+  now has that ref or digest recorded after a sync, so a later `--check` run
+  compares against the value this run actually synced to rather than nothing.
+- A fifth exit code, `4`, reports a run whose writes could not be fully undone
+  after a mid-run failure; it names every path it could not restore.
+
+### Changed
+
+- **Breaking:** the `sync` subcommand no longer resolves abbreviated flag
+  names. `--guides` is now a real flag of its own — the scoping flag above —
+  so a command that relied on `--guides selected` resolving to
+  `--guides-mode` now errors instead of silently changing meaning; spell
+  `--guides-mode selected` in full. Every other `sync` flag keeps its meaning
+  when spelled in full.
+- The `sync` subcommand's help text no longer describes the command as
+  read-only.
+
 ## [0.48.0] — 2026-09-22
 
 ### Added
