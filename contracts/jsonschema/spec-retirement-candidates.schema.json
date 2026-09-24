@@ -10,12 +10,15 @@
   "additionalProperties": false,
   "required": [
     "schema",
+    "run_date",
     "cutoff_date",
     "stale_after_days",
     "area_map",
     "candidates",
     "refusals",
-    "inbound_surfaces_not_reached"
+    "inbound_surfaces_not_reached",
+    "inbound_forms_recognised",
+    "inbound_forms_not_reached"
   ],
   "properties": {
     "schema": {
@@ -54,6 +57,28 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 255
+      }
+    },
+    "run_date": {
+      "$ref": "#/$defs/calendarDate",
+      "description": "The date the run was told to treat as today. Supplied, not read from the clock, so byte-identity over an unchanged tree is checkable."
+    },
+    "inbound_forms_recognised": {
+      "type": "array",
+      "description": "Citation forms `inbound-cited` matches.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "inbound_forms_not_reached": {
+      "type": "array",
+      "description": "Citation forms it does not match.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
       }
     }
   },
@@ -314,6 +339,7 @@
       "properties": {
         "code": {
           "enum": [
+            "evidence-unread",
             "needed-by",
             "inbound-cited",
             "shipped-brief-member",
@@ -409,7 +435,8 @@
       "additionalProperties": false,
       "required": [
         "path",
-        "code"
+        "code",
+        "suppresses"
       ],
       "properties": {
         "path": {
@@ -423,23 +450,49 @@
             "spec-directory-absent",
             "spec-file-absent",
             "spec-unreadable",
+            "input-unreadable",
+            "input-unparseable",
             "spec-status-unrecognised",
             "needs-shape-unrecognised",
             "collection-unrecognised",
             "path-escapes-root",
-            "input-unparseable",
-            "area-value-unrepresentable"
+            "area-value-unrepresentable",
+            "input-too-large",
+            "subprocess-timeout",
+            "lock-busy",
+            "evidence-ungathered"
           ]
         },
         "suppresses": {
           "type": "array",
-          "description": "Slugs whose eligibility this refusal suppresses.",
+          "description": "Every candidate whose eligibility this refusal withholds \u2014 the whole population the affected blocker is evaluated over, not only candidates that carried a blocker. May be empty only when no candidate was evaluated.",
           "items": {
             "$ref": "#/$defs/slug"
           }
+        },
+        "declared_at": {
+          "type": "string",
+          "description": "Repository-relative location that declared the offending value.",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "offending_value": {
+          "type": "string",
+          "description": "The refused value as written, bounded and never resolved against the filesystem.",
+          "maxLength": 256
         }
       },
       "description": "An input this run would have had to guess about, or a path it refused to read. Every refusal names the input; none is defaulted, because a silent default reports a shorter candidate list with no sign anything was dropped."
+    },
+    "pinVerdict": {
+      "enum": [
+        "retired",
+        "unverifiable",
+        "pin-malformed",
+        "pin-refuted",
+        "missing"
+      ],
+      "description": "How an absent mapped child resolved. Only `unverifiable` and `retired` are non-failing."
     }
   }
 }

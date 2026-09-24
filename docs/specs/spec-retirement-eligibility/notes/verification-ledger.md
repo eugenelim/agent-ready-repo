@@ -28,14 +28,23 @@ them, all under `backlog.open` — does not.
 
 ### `Status:` values
 
-- 16 specs carry **no** `Status:` field.
-- 68 distinct raw values; **276 of 481 are outside the canonical five**.
-- Reduced to the leading token, the distribution is exactly the canonical set:
-  `Shipped` 442, `Draft` 10, `Archived` 6, `Approved` 4, `Implementing` 3.
+Corrected 2026-09-24 after an independent re-measure contradicted the first
+reading. The first probe reported "16 specs carry no `Status:` field". They all
+carry one; they use a **second line format** the probe's pattern missed.
 
-**Consequence.** A criterion comparing the raw value refuses 276 specs (57%).
-Normalisation to the leading token — the reduction `lint-spec-status` performs —
-is both necessary and sufficient.
+- **Two line formats.** 465 specs write `- **Status:** <value>` as a list item;
+  **16 write a bare `**Status:** <value>`** with no list marker. A pattern
+  anchored on `^- \*\*Status:` sees only the first. **Zero specs lack a status.**
+- **68 distinct raw values; 276 of 481 sit outside the canonical five**, because
+  of annotations such as `Shipped (2026-05-26)` and trailing template comments.
+- Reduced to the leading token, the distribution is exactly the canonical set.
+  Counts drift as the corpus grows and are not reproduced here; the **shapes** are
+  what the criteria are written against.
+
+**Consequence.** Two normalisations are needed, not one: the line must be
+recognised in both formats, and the value reduced to its leading token. A
+criterion missing the first refuses 16 specs that plainly read `Shipped`; one
+missing the second refuses 276.
 
 ### Child-status read sites in `lint-brief-coverage.py`
 

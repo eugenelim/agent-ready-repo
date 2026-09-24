@@ -480,7 +480,7 @@ than asserted.
   `sha256-bytes-v1` fingerprint, the namespace list, and the attributions.
 - Hand-curated content elsewhere in `workspace.toml` is byte-identical across
   the write. Verifies the isolation criterion.
-- `areas-refresh` refuses with `lock_busy` when the lock is already held.
+- `areas-refresh` refuses with `lock-busy` when the lock is already held.
 - A shape change alters the recorded fingerprint; an unchanged shape leaves it
   equal. Verifies the fingerprint criterion.
 - Every non-writing branch of the subcommand dispatch leaves `workspace.toml`
@@ -493,7 +493,7 @@ than asserted.
   second one, so a concurrent intake transaction serialises against it the same
   way every other workspace writer does.
 
-**Done when:** deleting the lock acquisition turns the `lock_busy` case red, and
+**Done when:** deleting the lock acquisition turns the `lock-busy` case red, and
 the byte-identity case fails if a non-writing branch is added to the dispatch
 without being covered.
 

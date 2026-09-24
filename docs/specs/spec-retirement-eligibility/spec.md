@@ -143,17 +143,30 @@ never defaulted.
 
 ### Fail closed, or report nothing
 
-- [ ] An input a blocker depends on that cannot be read is refused as
-      `spec-unreadable` when it is a spec body, and as `input-unparseable`
-      otherwise, naming that input.
+A blocker that fires on an *absence* — nothing cites this spec, nothing protects
+it, nothing depends on it — is only as sound as its evidence corpus being read in
+full. Suppression is therefore a property of the scan, never of the blockers the
+scan happened to yield: an unread input produces no blockers, so keying
+suppression on the blockers it produced suppresses nothing.
+
+- [ ] Each blocker declares the input corpus it must read in full before its
+      absence is meaningful.
+- [ ] A refusal naming any member of a corpus suppresses the eligibility of every
+      candidate the blocker over that corpus is evaluated over, whether or not
+      that candidate carries any blocker.
+- [ ] Every refusal names the candidates it suppresses, and a candidate named by
+      any refusal is never reported eligible.
+- [ ] A suppressed candidate is emitted carrying the blocker `evidence-unread`,
+      so it appears in the report rather than being dropped from it.
+- [ ] An input that cannot be read is refused as `spec-unreadable` when it is a
+      spec body, and as `input-unreadable` otherwise, naming that input.
 - [ ] An input that reads but cannot be parsed is refused as `input-unparseable`,
       naming that input.
-- [ ] A refusal naming an input suppresses the eligibility of every candidate
-      whose blockers depend on that input.
-- [ ] No candidate is reported eligible while a refusal covering any of its
-      evidence is present.
-- [ ] A candidate free of every condition named below, with no refusal covering
-      its evidence, is reported eligible with an empty blocker list.
+- [ ] A failure to gather any evidence that matches no other refusal code is
+      refused as `evidence-ungathered`, naming the input and carrying no
+      exception text.
+- [ ] A candidate free of every condition named below, suppressed by no refusal,
+      is reported eligible with an empty blocker list.
 - [ ] A candidate reported eligible carries an empty blocker list, and a
       candidate reported not eligible carries at least one.
 
@@ -161,26 +174,43 @@ never defaulted.
 
 - [ ] A path derived from repository content that resolves outside the
       repository root is refused as `path-escapes-root` and is not read.
-- [ ] A path reached through a symlink whose target leaves the repository root
-      is refused as `path-escapes-root` and is not read.
-- [ ] Every repository read resolves its path through the confinement helper
-      `workspace-status` already owns, not through a check re-derived here.
+- [ ] A path reached through a symlink, junction, or reparse point is refused as
+      `path-escapes-root` and is not read.
+- [ ] A `path-escapes-root` refusal carries the repository-relative location
+      that declared the value, and the offending value as written, bounded and
+      never resolved against the filesystem.
+- [ ] Every read and the single write resolve their path through
+      `confine_migration_path` and its byte reader, which refuse a link
+      component, confirm a regular file on the opened descriptor, and re-check
+      device and inode identity across the open. A sibling helper offering weaker
+      guarantees does not satisfy this.
+- [ ] A non-regular file where a spec body, manifest, or contract is expected is
+      refused by name rather than read.
+- [ ] Each input read is bounded by a maximum byte count, and exceeding it is
+      refused as `input-too-large`.
+- [ ] Each git invocation is bounded by a maximum wait, and exceeding it is
+      refused as `subprocess-timeout`.
 
 ### Determinism
 
+- [ ] The run date is an explicit input the caller supplies, and the emitted
+      output records it.
 - [ ] Two `retirement-candidates` invocations over an unchanged tree, against
       the same supplied run date, emit byte-identical output.
 
 ### Status vocabulary
 
+- [ ] A `Status:` line is recognised both as a list item and as a bare bold line
+      without a list marker, the two formats the corpus carries.
 - [ ] A `Status:` value is reduced to its leading token before comparison, so an
       annotated value such as `Shipped (2026-05-26)` is classified by `Shipped`.
 - [ ] A spec whose leading status token is `Shipped` or `Archived` is not
       reported `status-not-terminal`.
 - [ ] A spec whose leading status token is a recognised value other than those
       two is reported `status-not-terminal`.
-- [ ] A spec carrying no `Status:` field, or whose leading token is outside the
-      recognised set, is refused as `spec-status-unrecognised`.
+- [ ] A spec carrying no `Status:` line in either recognised format, or whose
+      leading token is outside the recognised set, is refused as
+      `spec-status-unrecognised`.
 - [ ] The recognised set this capability compares against is identical to the
       set `lint-spec-status` enforces, and a test fails when the two diverge.
 
@@ -244,17 +274,30 @@ never defaulted.
 
 ### Commit pins
 
+`unverifiable` exists for exactly one honest case: this clone cannot resolve an
+object that may well be correct. A malformed pin and a pin refuted by the object
+it names are both authoring errors, and neither may resolve more permissively
+than supplying no pin at all — otherwise corrupting the evidence field is the
+cheapest route past a shipped gate.
+
 - [ ] A commit pin is accepted only when it matches a full hexadecimal object
       identifier of the length this repository's git produces.
-- [ ] A pin failing that shape renders its child `unverifiable` and is never
-      passed to git.
-- [ ] An accepted pin is passed to git as a positional argument after `--`, with
-      no shell, so a value beginning with `-` cannot be read as an option.
-- [ ] A pin renders its child `Retired` only when the object it names both
-      resolves and contains the mapped spec's `spec.md` carrying a leading status
-      token of `Shipped`.
-- [ ] A pin naming a resolvable revision that does not contain that path renders
-      its child `unverifiable`.
+- [ ] A pin present but failing that shape is reported `pin-malformed`, is never
+      passed to git, and fails the lint exactly as an absent pin does.
+- [ ] A pin whose object resolves and demonstrably does not contain the mapped
+      spec's `spec.md` is reported `pin-refuted` and fails the lint.
+- [ ] A pin renders its child `unverifiable` only when the object cannot be
+      resolved in this clone at all.
+- [ ] A pin renders its child `Retired` only when the object it names resolves
+      and contains the mapped spec's `spec.md` carrying a leading status token of
+      `Shipped`.
+- [ ] The mapped slug is validated against the published slug shape before it is
+      used to build any path, whether that path is opened on the filesystem or
+      handed to a subprocess.
+- [ ] An accepted pin is passed to git with no shell, in a fixed argument
+      position. The shape check is the control that prevents option and
+      revision-expression interpretation; no invocation form is credited with
+      preventing either.
 
 ### Age reporting
 
@@ -274,6 +317,8 @@ never defaulted.
       pin as `missing` and exits `1`.
 - [ ] `lint-brief-coverage` exits `0` for a `Shipped` brief whose absent child
       renders `unverifiable`.
+- [ ] `lint-brief-coverage` exits `1` for a brief carrying a `pin-malformed` or
+      `pin-refuted` row, so neither is more permissive than an absent pin.
 - [ ] An `unverifiable` child is not execution evidence, so a `Draft` brief
       carrying one exits `0`.
 - [ ] A `Retired` child is execution evidence, so a `Draft` brief carrying one
@@ -288,6 +333,8 @@ never defaulted.
       cell still reads `Shipped` reports a drift violation and exits `1`.
 - [ ] A mapped row whose child renders `unverifiable` reports no drift violation,
       whatever its status cell reads.
+- [ ] A `pin-malformed` or `pin-refuted` row reports its own violation rather
+      than being absorbed by the drift check.
 - [ ] A mapped child that is present and carries `Status: Archived` resolves to
       `Archived`, unchanged by this delivery.
 - [ ] The commit pin is read from the column its header names, so a map carrying
@@ -315,11 +362,16 @@ never defaulted.
 - [ ] An area key or value that cannot be represented in the emitted table form
       is refused as `area-value-unrepresentable` rather than escaped.
 - [ ] An `areas-refresh` that fails or is interrupted leaves `workspace.toml`
-      byte-identical to its pre-run content.
+      byte-identical to its pre-run content, achieved by writing a confined
+      temporary file and replacing the target atomically rather than editing it
+      in place.
+- [ ] The replacement preserves the target's existing file mode.
+- [ ] A `workspace.toml` that is not a regular file is refused rather than
+      written through.
 - [ ] `areas-refresh` locates the `[areas]` byte span and replaces it within one
       continuous hold of the shared workspace lock.
-- [ ] `areas-refresh` refuses with `lock_busy` when the shared lock is already
-      held.
+- [ ] `areas-refresh` refuses as `lock-busy` when the shared lock is already
+      held, and that refusal appears in the emitted document.
 - [ ] Changing the repository's top-level directory shape changes the
       fingerprint `areas-refresh` records, and leaving the shape unchanged
       leaves it equal.
