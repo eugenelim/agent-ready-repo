@@ -1,6 +1,6 @@
 # Spec: An intent's lifecycle state is a closed contract a lint can decide
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Approved:** 2026-09-23 by eugenelim. Taken on a `Findings` result, not a `Clean` one. Three spec-mode shaping rounds ran, returning 3 then 2 then 2 Blockers; every Blocker was verified against source before repair and all were resolved. Round 3's two were one structural problem — this spec was defining an intent preamble field's shape, which the parent's § Boundary assigns to `FEAT-0001` — and the owner resolved it by moving the value shape and the adopter field-table rows to `intent-identity-and-registration` rather than by rewording. Those repairs were not re-reviewed. The adversarial spec-mode review that `new-spec` step 7 calls for did not run.
 - **Re-approved:** 2026-09-24 by eugenelim, after the material amendment restating AC-0010. Taken on a `Clean` result this time: seven adversarial spec-mode rounds ran, returning 6, 4, 3, 3, 5 and 2 findings and then `Clean`. Every Blocker was verified against source before repair, and five were defects in the amendment's own reasoning rather than in the spec it amended. The criterion it replaced was already false on the tree — `shaping-reviewer.md:81` carries `Accepted` inside § intent mode — so this amendment repaired a red criterion rather than tightening a green one.
@@ -67,20 +67,20 @@ Every intent's `Status` names a state the corpus lint can decide from the artifa
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** An intent whose `Status` is `Fulfilled` and which carries no `Accepted:` record is refused.
-- [ ] **AC-0002.** An intent whose `Status` is `Cancelled` and which carries no `Accepted:` record is refused.
-- [ ] **AC-0003.** An intent whose `Status` is `Withdrawn` is accepted with no `Accepted:` record, because abandoning an unratified bet needs no ratification.
-- [ ] **AC-0004.** An intent whose `Status` is `Fulfilled` and which carries no `Fulfilled:` record is refused.
-- [ ] **AC-0005.** An intent whose `Status` is `Fulfilled` and which carries both records is accepted.
-- [ ] **AC-0006.** An intent whose `Status` is `Cancelled` and which carries an `Accepted:` record is accepted.
-- [ ] **AC-0007.** An intent whose `Status` is `Draft` and which carries an `Accepted:` or `Fulfilled:` record is refused, because `Draft` means open.
-- [ ] **AC-0008.** An intent whose `Status` is `Accepted` and which carries a `Fulfilled:` record is refused.
-- [ ] **AC-0009.** An intent whose `Status` is `Cancelled` or `Withdrawn` and which carries a `Fulfilled:` record is refused, because neither state delivered.
-- [ ] **AC-0010.** No rule this spec adds is reachable from `validate_live_intent()`, the surface both enforcement points share. Asserted once per refusing criterion, not once overall. The refusing criteria are exactly AC-0001, AC-0002, AC-0004, AC-0007, AC-0008 and AC-0009 — AC-0003, AC-0005 and AC-0006 accept, so no artifact of theirs belongs in this set. Every artifact those six refuse returns no violation from `validate_live_intent()`, while the corpus-lint surface refuses it. Leaking any single rule onto the shared surface therefore reds. `validate_supersession()`'s rules satisfy the same predicate and are the precedent — reachability from `validate_live_intent()`, not a count of direct callers. Name absence in the shaping reviewer's rubric is **not** asserted and is not a usable test: measured 2026-09-24, `packs/core/.apm/agents/shaping-reviewer.md:81` carries the bare token `Accepted` inside § intent mode as condition 5's `Status` value, so a substring control cannot distinguish the record name from the status token.
-- [ ] **AC-0011.** Every refusal this spec adds names the offending file by the same corpus-relative name the lint reports today, and names the record at fault.
-- [ ] **AC-0012.** The module defining the rules declares its refusal classes in one enumerable place, and every refusal this spec adds is constructed from a member of it.
-- [ ] **AC-0013.** Every refusal class this spec adds is named in the docstring of the module that defines it. Pre-existing classes are out of scope.
-- [ ] **AC-0014.** At delivery, `python3 packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py --dir docs/product/intents --root .` exits 0 against the real tree. The standing gate is [`intent-metadata-shape-contract`](../intent-metadata-shape-contract/spec.md)'s own real-tree exit-zero criterion; this one is the migration's delivery-time condition.
+- [x] **AC-0001.** An intent whose `Status` is `Fulfilled` and which carries no `Accepted:` record is refused.
+- [x] **AC-0002.** An intent whose `Status` is `Cancelled` and which carries no `Accepted:` record is refused.
+- [x] **AC-0003.** An intent whose `Status` is `Withdrawn` is accepted with no `Accepted:` record, because abandoning an unratified bet needs no ratification.
+- [x] **AC-0004.** An intent whose `Status` is `Fulfilled` and which carries no `Fulfilled:` record is refused.
+- [x] **AC-0005.** An intent whose `Status` is `Fulfilled` and which carries both records is accepted.
+- [x] **AC-0006.** An intent whose `Status` is `Cancelled` and which carries an `Accepted:` record is accepted.
+- [x] **AC-0007.** An intent whose `Status` is `Draft` and which carries an `Accepted:` or `Fulfilled:` record is refused, because `Draft` means open.
+- [x] **AC-0008.** An intent whose `Status` is `Accepted` and which carries a `Fulfilled:` record is refused.
+- [x] **AC-0009.** An intent whose `Status` is `Cancelled` or `Withdrawn` and which carries a `Fulfilled:` record is refused, because neither state delivered.
+- [x] **AC-0010.** No rule this spec adds is reachable from `validate_live_intent()`, the surface both enforcement points share. Asserted once per refusing criterion, not once overall. The refusing criteria are exactly AC-0001, AC-0002, AC-0004, AC-0007, AC-0008 and AC-0009 — AC-0003, AC-0005 and AC-0006 accept, so no artifact of theirs belongs in this set. Every artifact those six refuse returns no violation from `validate_live_intent()`, while the corpus-lint surface refuses it. Leaking any single rule onto the shared surface therefore reds. `validate_supersession()`'s rules satisfy the same predicate and are the precedent — reachability from `validate_live_intent()`, not a count of direct callers. Name absence in the shaping reviewer's rubric is **not** asserted and is not a usable test: measured 2026-09-24, `packs/core/.apm/agents/shaping-reviewer.md:81` carries the bare token `Accepted` inside § intent mode as condition 5's `Status` value, so a substring control cannot distinguish the record name from the status token.
+- [x] **AC-0011.** Every refusal this spec adds names the offending file by the same corpus-relative name the lint reports today, and names the record at fault.
+- [x] **AC-0012.** The module defining the rules declares its refusal classes in one enumerable place, and every refusal this spec adds is constructed from a member of it.
+- [x] **AC-0013.** Every refusal class this spec adds is named in the docstring of the module that defines it. Pre-existing classes are out of scope.
+- [x] **AC-0014.** At delivery, `python3 packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py --dir docs/product/intents --root .` exits 0 against the real tree. The standing gate is [`intent-metadata-shape-contract`](../intent-metadata-shape-contract/spec.md)'s own real-tree exit-zero criterion; this one is the migration's delivery-time condition.
 
 ## Follow-ons
 
