@@ -86,7 +86,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - **The accounting predicate's superseded clause: TDD.** One clause with two shipped consumers — the wave exit and `wave advance` — is exactly the shape where a change verified through one consumer passes while the other disagrees, so both are driven.
 - **The reopen verb's effect on cohort state: TDD.** Marking every record in one wave while leaving every sibling record and every other key byte-identical is a compressible invariant over a structure the suite can build directly.
-- **The repair-round verdict: TDD, with a roster-level parity check over an oracle-supplied domain.** Each conjunct is unit-testable. What no example set covers is agreement between the rule as written here and the rule as shipped, across a domain wide enough to exhibit both outcomes; that is the parity check's job. The oracle supplies the domain and reports what a transcription can decide alone — it is working material now, and § Proof says why.
+- **The repair-round verdict: TDD, with a roster-level parity check.** Each conjunct is unit-testable. What no example set covers is agreement between the rules as this contract states them and the rules as shipped, across a domain wide enough to exhibit every outcome at every level; that is the parity check's job, and it owns its own domain. § Proof says why there is no separate oracle artifact.
 - **The three edges refusing and then admitting: TDD at integration surface.** Each edge only proves out across the engine, the guard layer, and cohort state together, so the check drives `loop-engine transition` against a real spec directory rather than calling the guard directly.
 - **The frozen contract's model, unchanged: goal-based check.** The committed oracle prints its own comparison values, so re-running it and diffing the report is the one-liner. It establishes that this delivery did not redefine a record, a wave or a partition — not that the partition is immutable, which it is not: the superseded clause deliberately moves states from R7 to R8.
 - **The documented repair-round procedure: goal-based check, against a content pin rather than a criterion.** The obligation is demoted working material: no acceptance criterion reads it, so what stands between it and silent removal is a prose assertion in the pack suite. § Controller-facing surfaces records the demotion and its authority.
@@ -104,7 +104,6 @@ The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
 - [ ] The read refusal is unchanged: an unreadable cohort state is refused by the shared reader before the verdict runs, exactly as it is for `check --phase wave-exit` today, and the verdict is never reached for one.
 - [ ] Its refusal names the verb that supersedes the records and the wave index the refusal is about.
 - [ ] `check --phase wave-reopen` reaches the verdict for a state whose `schema_version` is not the supported value, instead of being refused by the phase dispatcher's schema check before the verdict runs.
-- [ ] For every state in the parity check's domain that has a `state.json`, the file is byte-identical before and after a `check --phase wave-reopen` invocation.
 
 ### The reopen verb
 
@@ -144,22 +143,18 @@ removal reds a suite even though no criterion reads it.
 
 ### Proof
 
-The oracle's own criteria were demoted out of this contract on 2026-09-24 by the
-owner. Three successive forms each required a property the oracle cannot decide,
-for one reason: the oracle transcribes the verdict from these words, so any
-comparison between the two restates its own body. **Destination:** the plan's
-§ Design (LLD) carries the oracle, its domain and what it decides alone. **Pin:** the parity criterion
-below supplies its domain from the oracle, so the oracle cannot be deleted
-without failing a criterion, and that criterion fails if the transcription and
-the shipped predicate stop agreeing. What the oracle still decides alone — the
-`_wave_exit_verdict` row movement, and that both verdict outcomes occur over its
-domain — is recorded in the verification ledger, not here.
+There is no separate oracle artifact. Three criterion forms tried to contract
+one, and each produced either a tautology or a reference with nothing behind it,
+for a single reason: a transcription of these words cannot be an oracle for these
+words. Every claim worth contracting is a claim about the *shipped* code, so the
+check below makes it directly, and the owner dropped the artifact on 2026-09-24.
 
 - [ ] `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` is unedited, and reports 35,728 states walked, 0 overlapping, 0 uncovered, and per-row reachability R1 17864, R2 13398, R3 3829, R4 49, R5 384, R6 108, R7 4, R8 92. That artifact transcribes the frozen spec's words and imports nothing from the implementation, so an unchanged report establishes that this delivery did not redefine what a record, a wave or a partition is — not that the shipped predicate is unchanged, which it cannot see.
-- [ ] A check under `tests/roster/` drives this spec's transcribed rules against the shipped code over every state in its domain and refuses any state the two decide differently, in both directions, so neither a code change without a transcription change nor the reverse passes. It covers all three levels the rules have: whether one record accounts (`accounts_for_task`), which tasks a wave leaves unaccounted (`unaccounted_wave_tasks`), and whether the repair-round verdict refuses. It lives under `tests/roster/` because it reads `docs/` and `packs/` together and `tools/lint-pack-test-boundary.py` forbids a pack test from reading above its own pack.
+- [ ] A check under `tests/roster/` states this contract's rules independently of the implementation and drives them against the shipped code over every state in its domain, refusing any state the two decide differently in either direction, so neither a code change without a contract change nor the reverse passes. It covers all three levels the rules have: whether one record accounts (`accounts_for_task`), which tasks a wave leaves unaccounted (`unaccounted_wave_tasks`), and whether the repair-round verdict refuses. It lives under `tests/roster/` because it reads `docs/` and `packs/` together and `tools/lint-pack-test-boundary.py` forbids a pack test from reading above its own pack.
 - [ ] That check's domain is built by varying the axes `wave-complete-dispatch-receipts` § Acceptance Criteria declares to be the single canonical enumeration, extended with a superseded axis over each record varied by type and value as well as presence, with container values generated from the declared key path rather than hand-built at a literal depth.
-- [ ] Over that domain the shipped verdict both refuses and passes, and the shipped `unaccounted_wave_tasks` returns both an empty and a non-empty list, so the check cannot pass by walking states that all decide one way.
-- [ ] That check runs on a pull request: a step naming it in `.github/workflows/build-check.yml`, placed above the bulk `pytest tests/ -q` step so a failure is attributed to it, with a `tools/lint-ci-parity.py` disposition on both the local-coverage and the phase-and-dependency axes. `tests/roster/` has no pull-request trigger of its own, so without that step the criterion above is met by a check nothing runs.
+- [ ] Over that domain every level is exercised at both outcomes: the shipped `accounts_for_task` returns true for some record and false for some record, the shipped `unaccounted_wave_tasks` returns both an empty and a non-empty list, and the shipped repair-round verdict both refuses and passes. A domain that decides one way at any level cannot discharge the criterion above.
+- [ ] The same check reports, for every state in that domain, the row the **shipped** `_wave_exit_verdict` reaches, and asserts that superseding every record in a state moves it from the accounted row to the unaccounted row and moves no other row — the movement the superseded clause causes, measured against the shipped verdict rather than against a second statement of it.
+- [ ] `state.json` is byte-identical before and after a `check --phase wave-reopen` invocation, for every state in that domain that has one.
 - [ ] A mutation record in this spec's `notes/verification-ledger.md` names each new guard clause, each new verb clause, and the accounting predicate's superseded clause, together with the edit that removed it, the test that turned red, and the observed failure, with no clause whose removal left the suite green.
 
 ## Follow-ons

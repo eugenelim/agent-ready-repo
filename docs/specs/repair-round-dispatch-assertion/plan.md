@@ -34,10 +34,11 @@ end.
 
 ## Construction tests
 
-T1 → `test_loop_guards.py` plus the oracle in this spec's `notes/`; T2 →
+T1 → `test_loop_guards.py`; T2 →
 `test_loop_cohort.py`; T3 → `test_loop_engine.py`; T4 →
 `packs/core/tests/pack/`; T6 → all four of those plus
-`tests/roster/test_repair_round_predicate_parity.py`. The first three are under
+`tests/roster/test_repair_round_predicate_parity.py`, which after T6 is the only
+artifact comparing this contract's rules to the shipped ones. The first three are under
 `packs/core/tests/skills/work-loop/`.
 
 **The oracle-to-code coupling lives in `tests/roster/`, not in the pack suite.**
@@ -143,28 +144,31 @@ What is given up is stated plainly: no completion gate reads it, so a future
 edit that drops the reopen from one block fails a pack test rather than a
 delivery criterion.
 
-**The oracle, and what it can decide alone.** `notes/walk_reopen_partition.py`
-transcribes the repair-round verdict and the accounting rule from the spec's
-words and imports nothing from the implementation, because the frozen sibling's
-walk states that a notes script under `docs/` does not import `_loop_guards` and
-routes that coupling to a test. Its domain varies the frozen spec's canonical
-axis list plus a superseded axis over each record, by type and value as well as
-presence, with container values generated from `RECEIPT_KEY_PATH` rather than
-hand-built at a literal depth; that domain is what the roster parity check draws
-from, which is why the criterion pinning the domain's construction sits in
-§ Proof while the oracle itself does not.
+**There is no oracle artifact, and T1's instruction to build one is superseded.**
+T1's section is hash-pinned by the 2026-09-24 amendment and still instructs a
+`notes/walk_reopen_partition.py` asserting "refusal ⟺ the conjunction",
+byte-identity, and the wave-exit row each state reaches. **This paragraph is the
+statement of record and T6 carries the correction:** that first assertion
+restates the transcription's own body and cannot fail, and the other two are
+better made against the shipped code than against a second statement of it. The
+artifact is deleted.
 
-A transcription cannot be its own oracle, and three criterion forms were written
-before that was stated plainly. Comparing the transcribed verdict against the
-conjunction it is transcribed from restates its own body; so does asserting that
-a refusal implies a live record, when the verdict *is* that implication. What the
-oracle decides without importing anything is narrower and real: that no state the
-shared reader refuses reaches the verdict, that superseding every record moves a
-state from `_wave_exit_verdict`'s R7 to its R8 and moves no other row — a
-comparison between two independently transcribed functions — and that both
-verdict outcomes occur over the domain. Those go in the verification ledger. Every
-claim about the *shipped* predicate is the parity check's, and § Proof contracts
-it at all three levels the rules have.
+What replaces it is one check, `tests/roster/test_repair_round_predicate_parity.py`,
+which owns its own domain and compares this contract's rules to the shipped ones
+at all three levels — one record accounting, a wave's unaccounted list, and the
+verdict. The domain is the frozen spec's canonical axis list plus a superseded
+axis over each record, varied by type and value as well as presence, with
+container values generated from `RECEIPT_KEY_PATH` rather than hand-built at a
+literal depth.
+
+The reason this shape is right, stated once so it is not rediscovered: a
+transcription of the contract cannot be an oracle for the contract. Comparing the
+transcribed verdict against the conjunction it is transcribed from restates its
+own body; so does asserting that a refusal implies a live record, when the
+verdict *is* that implication. Both were written and both had to be retracted.
+Every claim that can fail is a claim about shipped code, which is why the row
+movement is now measured against the shipped `_wave_exit_verdict` and the
+non-degeneracy criterion is stated over shipped return values.
 
 ### Data & schema
 
@@ -442,6 +446,18 @@ criterion transfers here, and this line is the statement of record.
   non-comment rule, and a test asserts a commented reopen fails the pin. Suite:
   `packs/core/tests/pack/`.
 
+- **The oracle is deleted and the parity check absorbs it.**
+  `notes/walk_reopen_partition.py` goes; `tests/roster/test_repair_round_predicate_parity.py`
+  builds the domain itself and gains the two assertions the oracle was carrying,
+  both now measured against shipped code: the row the shipped
+  `_wave_exit_verdict` reaches for every state, with superseding moving a state
+  from the accounted row to the unaccounted row and no other row moving; and
+  `state.json` byte-identical across a `check --phase wave-reopen` invocation for
+  every state in the domain that has one. Its non-degeneracy assertions extend to
+  all three levels, which forces a genuinely superseded record into the domain —
+  the previous form could have been satisfied with every `superseded` value live
+  under the `is True` rule. Suite: `tests/roster/`, run by name.
+
 **Goal-based — a one-liner or a read-back verifies each:**
 
 - **`evals.json` keeps only the new entry.** T4 re-encoded every literal em dash
@@ -471,6 +487,10 @@ criterion transfers here, and this line is the statement of record.
 - **The refusal wording change stales the failures T1–T3 quote.** Those entries
   are re-observed under the new text rather than left quoting strings the code no
   longer emits.
+- **The oracle's observations are restated as the parity check's.** The ledger
+  records properties of an artifact that no longer exists, including one it calls
+  falsifiable that § Design now shows is not. Those entries name the check that
+  carries each claim now, or say the claim was withdrawn.
 - **One entry per new verdict clause.** T1 recorded six; `_repair_round_verdict`
   adds seven pass-clauses and only the absent-container one has a row. The
   malformed-container case also needs a fixture keeping the live digest
@@ -525,6 +545,12 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-24 — amendment round 3, owner-authorised: the oracle artifact is
+  dropped and its domain folded into the roster parity check, which now measures
+  the row movement against the shipped `_wave_exit_verdict` instead of a second
+  transcription. Three criterion forms for that artifact each produced a
+  tautology or a dangling reference; the class is that a transcription of the
+  contract cannot be an oracle for the contract.
 - 2026-09-24 — controlled contract amendment, owner-authorised: § Proof's
   coupling criterion re-homed to `tests/roster/` with the pack-boundary reason,
   the oracle's own criteria demoted to working material after three forms each
