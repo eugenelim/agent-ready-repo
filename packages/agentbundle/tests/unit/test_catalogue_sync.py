@@ -5915,3 +5915,89 @@ def test_sync_dry_run_narrows_an_empty_recorded_profiles_field_to_nothing(
     # a verdict row (and, downstream, become writable by apply). Assert
     # the narrowed set directly, at the surface it actually feeds.
     assert "profiles/default.toml" not in {row["path"] for row in doc["verdicts"]}
+
+
+# ---------------------------------------------------------------------------
+# T1 / AC-0087 — one path comparison, two parts.
+#
+# The predicate answers two questions: whether a path lies inside a named
+# directory, and whether two paths name the same directory. It resolves the
+# longest existing ancestor by identity and compares only the non-existent
+# remainder lexically, which is what lets it answer for a planned path under a
+# destination the run is about to create.
+# ---------------------------------------------------------------------------
+
+
+def _extent_fixture(tmp_path: Path) -> Path:
+    """A target carrying the vendored tooling root and a credbroker source."""
+    target = tmp_path / "derived"
+    (target / ".agentbundle" / "tooling" / "agentbundle" / "agentbundle").mkdir(parents=True)
+    (target / ".agentbundle" / "tooling" / "packs" / "catalogue-curation").mkdir(parents=True)
+    (target / "packages" / "credbroker" / "credbroker").mkdir(parents=True)
+    (target / "packages" / "credbroker-extras").mkdir(parents=True)
+    (target / "packs" / "core").mkdir(parents=True)
+    return target
+
+
+_PKG_PREFIXES = ("packages/credbroker/", ".agentbundle/tooling/")
+
+
+def test_package_path_admits_an_existing_path_under_each_destination(tmp_path):
+    target = _extent_fixture(tmp_path)
+    for rel in (
+        ".agentbundle/tooling/agentbundle/agentbundle",
+        ".agentbundle/tooling/packs/catalogue-curation",
+        "packages/credbroker/credbroker",
+    ):
+        assert catalogue_sync._is_package_path(target, rel, _PKG_PREFIXES), rel
+
+
+def test_package_path_admits_a_planned_path_that_is_not_yet_on_disk(tmp_path):
+    """The case AC-0087 exists for: every planned path of a destination a run
+    is about to create has no on-disk entry of its own. Answering "not a
+    package path" here would sort it into the derivation-wide write group and
+    silently defeat AC-0080's packages-last ordering."""
+    target = _extent_fixture(tmp_path)
+    assert catalogue_sync._is_package_path(
+        target, ".agentbundle/tooling/agentbundle/agentbundle/brand_new.py", _PKG_PREFIXES
+    )
+    assert catalogue_sync._is_package_path(
+        target, "packages/credbroker/credbroker/brand_new.py", _PKG_PREFIXES
+    )
+
+
+def test_package_path_admits_a_planned_path_below_a_symlinked_ancestor(tmp_path):
+    """The case a path-level existence test misses. `link` resolves into the
+    tooling root; `link/agentbundle/new` has no entry of its own, so a
+    path-level test takes the lexical branch, judges it outside every
+    destination, and admits a write inside the destination anyway — which the
+    jail does not catch, because it lands inside the target root."""
+    target = _extent_fixture(tmp_path)
+    (target / "link").symlink_to(target / ".agentbundle" / "tooling")
+    assert catalogue_sync._is_package_path(target, "link/agentbundle/new", _PKG_PREFIXES)
+
+
+def test_package_path_admits_a_traversal_spelling(tmp_path):
+    target = _extent_fixture(tmp_path)
+    assert catalogue_sync._is_package_path(
+        target, "packs/../.agentbundle/tooling/agentbundle/x", _PKG_PREFIXES
+    )
+
+
+def test_package_path_rejects_a_sibling_sharing_a_string_prefix(tmp_path):
+    """`packages/credbroker-extras/` shares every character of
+    `packages/credbroker` up to the separator."""
+    target = _extent_fixture(tmp_path)
+    assert not catalogue_sync._is_package_path(
+        target, "packages/credbroker-extras/x", _PKG_PREFIXES
+    )
+    assert not catalogue_sync._is_package_path(target, "packs/core/pack.toml", _PKG_PREFIXES)
+
+
+def test_same_directory_answers_equality_for_two_spellings_of_one_root(tmp_path):
+    """AC-0083 input 1 asks whether a resolved catalogue root *is* the target
+    root — an equality question, which the same comparison answers."""
+    target = _extent_fixture(tmp_path)
+    assert catalogue_sync._same_directory(target, target / "packs" / "..")
+    assert not catalogue_sync._same_directory(target, target / "packs")
+    assert not catalogue_sync._same_directory(target, tmp_path / "absent")

@@ -715,6 +715,89 @@ def detect_companion_collisions(
     }
 
 
+def _resolve_longest_existing(target: Path, path: str) -> tuple[Path, int] | None:
+    """Resolve the longest prefix of ``target / path`` that exists on disk.
+
+    Returns ``(resolved, missing_depth)`` where *missing_depth* counts the
+    trailing segments that do not exist, or ``None`` when not even *target*
+    resolves. ``missing_depth == 0`` means the path itself is on disk.
+
+    This split is what AC-0087 requires. ``Path.resolve(strict=True)`` answers
+    only for a path that exists, and every planned path of a destination a run
+    is about to create does not — so a comparison keyed on the path's own
+    existence returns "outside every destination" for exactly the paths this
+    phase must sort into the package write group.
+    """
+    candidate = target / path
+    missing = 0
+    while True:
+        try:
+            return candidate.resolve(strict=True), missing
+        except OSError:
+            if candidate.parent == candidate:
+                return None
+            candidate = candidate.parent
+            missing += 1
+
+
+def _same_directory(left: Path, right: Path) -> bool:
+    """True when *left* and *right* name the same on-disk directory.
+
+    Identity, not string equality: AC-0083 input 1 compares a catalogue root
+    the editable-install detector resolved against the target root, and the two
+    can be different spellings — a symlink, a relative path, a trailing
+    separator, or a differing case on a case-insensitive filesystem.
+    """
+    try:
+        return os.path.samestat(left.stat(), right.stat())
+    except OSError:
+        return False
+
+
+def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool:
+    """AC-0087 — True when *path* lies inside one of *prefixes* under *target*.
+
+    The comparison is taken against the nearest ancestor that exists, by
+    directory identity, and only the non-existent remainder is compared
+    lexically. Deciding the branch on the *path's* own existence instead is
+    what a symlinked ancestor defeats: ``link/agentbundle/new`` where ``link``
+    resolves into the tooling root has no entry of its own, so a path-level
+    test judges it outside every destination and admits a write inside one
+    anyway — which the jail does not catch, because it lands inside the target
+    root.
+    """
+    resolved = _resolve_longest_existing(target, path)
+    if resolved is None:
+        return False
+    node, missing_depth = resolved
+    protected: list[os.stat_result] = []
+    for prefix in prefixes:
+        try:
+            protected.append((target / prefix).stat())
+        except OSError:
+            continue
+    if not protected:
+        return False
+    try:
+        root = target.resolve(strict=True)
+    except OSError:
+        return False
+    # A path that exists is inside a destination when an *ancestor* is that
+    # destination; a path that does not exist is inside when the nearest
+    # existing ancestor already is one, so that node is itself a candidate.
+    current = node if missing_depth else node.parent
+    while True:
+        try:
+            current_stat = current.stat()
+        except OSError:
+            return False
+        if any(os.path.samestat(current_stat, ps) for ps in protected):
+            return True
+        if current == root or current.parent == current:
+            return False
+        current = current.parent
+
+
 def _resolves_within(target: Path, path: str, protected_prefixes: tuple[str, ...]) -> bool:
     """AC-0069's spelling clause — True when *path* resolves, by directory
     identity rather than a string prefix, inside one of *protected_prefixes*.
