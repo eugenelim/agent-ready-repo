@@ -36,9 +36,10 @@ still lack one.
 - One clause in the shared accounting predicate, so a superseded record accounts for no task — `unaccounted_wave_tasks` in `_loop_guards.py`
 - A fifth `check --phase` value, its verdict, and its membership of the schema-exempt phase set — `loop-cohort.py`'s `PHASES`, and `_loop_guards.py`'s `_SCHEMA_EXEMPT_PHASES`
 - Guard entries on the three named edges, discriminated by source state, including the first guard `blocker-applied` has ever carried — `loop-engine.py`'s `_GUARDS`
-- The controller's repair-round protocol, which now runs the reopen before firing the edge — every `work-loop` prose and eval site that directs a reader to fire one of the three edges, found by search rather than by a remembered list
+- The controller's repair-round protocol, which now runs the reopen before firing the edge — the four fenced command blocks that fire one of the three edges, in `references/full-mode-engine.md` and `references/finding-adjudication.md`, plus the `SKILL.md` and `references/session-resumption.md` prose that routes a controller to them
+- A `superseded` member on a dispatch record, whose absence means live — `references/state-schema.md`'s `dispatch_receipts` row, which today tells adopters that a receipt and a decline "both count as accounted for"
 - A committed oracle that walks the repair-round verdict over the frozen spec's declared field axes — this spec's `notes/`
-- A mutation record for every new guard and verb clause — this spec's `notes/verification-ledger.md`
+- A mutation record for every new guard clause, verb clause, and the accounting predicate's superseded clause — this spec's `notes/verification-ledger.md`
 
 ## Durable Outputs
 
@@ -49,7 +50,8 @@ still lack one.
 | Interface compatibility | A new CLI verb and a new `--phase` value are published interfaces of the packaged scripts | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | maintainer | Both carry one patch above the merge-base and agree | The two versions are equal and one patch above the merge-base |
 | Release history | Pack content changed | `docs/product/changelog.md`, one `## [core][x.y.z]` heading | maintainer | The entry names the new refusal a controller will meet | One core heading for the branch, topmost beneath `[Unreleased]` |
 | Reusable learning | The eval harness is the pack's contract record for a non-cosmetic update | `packs/core/.apm/skills/work-loop/evals/evals.json` | maintainer | An entry covering the repair-round obligation | The entry exists; it is never counted as verification |
-| Verification evidence | The mutation record is a criterion, so it needs a home a later reader can find | `docs/specs/repair-round-dispatch-assertion/notes/verification-ledger.md` | maintainer | One entry per new guard and verb clause: the clause, the edit that removed it, the test that turned red, the observed failure | Every new clause has an entry and none left the suite green |
+| Interface documentation | `references/state-schema.md` is packaged and read by adopters, and its `dispatch_receipts` row states a rule the superseded clause makes false | `packs/core/.apm/skills/work-loop/references/state-schema.md` | maintainer | The row describes the `superseded` member, its absence rule, and what now counts as accounted for | The row agrees with `unaccounted_wave_tasks` |
+| Verification evidence | The mutation record is a criterion, so it needs a home a later reader can find | `docs/specs/repair-round-dispatch-assertion/notes/verification-ledger.md` | maintainer | One entry per new guard clause, verb clause, and the accounting predicate's superseded clause: the clause, the edit that removed it, the test that turned red, the observed failure | Every new clause has an entry and none left the suite green |
 | Decision rationale | None — this follows ADR-0061 Option A rather than departing from it, and adds no key to cohort state | not applicable | — | — | — |
 
 ## Agent Rules
@@ -82,7 +84,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **The reopen verb's effect on cohort state: TDD.** Removing one subtree while leaving every sibling byte-identical is a compressible invariant over a structure the suite can build directly.
+- **The accounting predicate's superseded clause: TDD.** One clause with two shipped consumers — the wave exit and `wave advance` — is exactly the shape where a change verified through one consumer passes while the other disagrees, so both are driven.
+- **The reopen verb's effect on cohort state: TDD.** Marking every record in one wave while leaving every sibling record and every other key byte-identical is a compressible invariant over a structure the suite can build directly.
 - **The reopen verdict table: TDD, plus a committed oracle walk.** Each row is unit-testable, but "exactly one row applies to any state" is a property over a state space no example set covers; the oracle is what decides it, the way `walk_verdict_partition.py` decides the wave-exit partition.
 - **The three edges refusing and then admitting: TDD at integration surface.** Each edge only proves out across the engine, the guard layer, and cohort state together, so the check drives `loop-engine transition` against a real spec directory rather than calling the guard directly.
 - **The wave-exit partition's immutability: goal-based check.** The committed oracle already prints the comparison values; re-running it and diffing its report is the one-liner.
@@ -111,6 +114,13 @@ The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
 - [ ] Recording a fresh dispatch record for a superseded task, through the existing `dispatch-receipt` verb and with no new flag, makes that task account again.
 - [ ] `wave reopen` refuses, and leaves `state.json` byte-identical, when `--expect-run-id` does not match `run_id`, when `schedule_waves` is not a non-empty list, when `current_wave_index` is not an index into it, and when `dispatch_receipts` is malformed; each refusal names the mismatch or the field.
 
+### The accounting predicate
+
+- [ ] `unaccounted_wave_tasks` returns a task whose only record is superseded, and both its shipped consumers see that: `check --phase wave-exit` refuses such a wave, and `loop-cohort wave advance`'s advancing branch refuses it too.
+- [ ] Both of those refusals distinguish a superseded record from an absent one, so a controller is not told a record is missing when one is present and superseded.
+- [ ] A record carrying no `superseded` member is live, so every `state.json` written before this change means what it meant before it.
+- [ ] `references/state-schema.md`'s `dispatch_receipts` row describes the `superseded` member and its absence rule, and no longer states that a receipt and a decline both count as accounted for without qualification.
+
 ### The three edges
 
 - [ ] Each of the three named edges is refused while the repair-round verdict refuses, and admitted once it passes, the run re-entering `CODE-IMPLEMENTATION`.
@@ -118,13 +128,24 @@ The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
 - [ ] A state failing any one conjunct of the repair-round verdict is admitted on all three edges with no reopen, except where that edge's existing guard refuses it on that guard's own terms.
 - [ ] `gates-failed` and `findings-remain` evaluate the guard they already carry first, so a state failing both that guard and the repair-round verdict is refused with the existing guard's reason.
 - [ ] `findings-remain --allow-retry-cap-override` waives the review retry cap alone, and is still refused while the repair-round verdict refuses.
-- [ ] `wave-passed` and `gates-clean` carry the guards they carry today, unchanged in reason and in outcome for every state.
+- [ ] `wave-passed` and `gates-clean` are admitted, with their reasons unchanged, from the same `CODE-VERIFICATION` cohort state that the repair-round verdict refuses `gates-failed` from — the state that distinguishes discriminating on source state alone from discriminating on the source state and the event together.
 
 ### Controller-facing surfaces
 
-- [ ] Every fenced command block under `packs/core/.apm/skills/work-loop/` that invokes `loop-engine.py transition` with one of the three named edges also invokes `loop-cohort.py wave reopen` on an earlier line of that same block.
-- [ ] That set is non-empty and includes at least one block in `SKILL.md`, one in `references/full-mode-engine.md`, and one in `references/session-resumption.md`.
-- [ ] `references/session-resumption.md` states the reopen in the row a controller reads *before* firing each of the three edges, which for `blocker-applied` is the `reviewers-clean` row rather than a `blocker-applied` row.
+The tree holds seven fenced command blocks that invoke `loop-engine.py transition`
+with one of the three edge names. Four of them fire an edge this contract guards;
+two fire `findings-remain` from `SPEC-PLAN-REVIEW`, which it must not guard; and
+two are shared between both review phases. They are enumerated rather than
+searched for, because "instructs a reader to fire this edge" is a judgement no
+search expression decides, and the last criterion in this group is what keeps the
+enumeration from going stale.
+
+- [ ] The `gates-failed` block in `references/full-mode-engine.md` § GATES — wave routing, the `blocker-applied` block in its § REVIEW and the human gate, and the `findings-remain` block in that same section, each invoke `loop-cohort.py wave reopen` on a line above the transition.
+- [ ] Both `findings-remain` blocks in `references/finding-adjudication.md` carry the reopen, marked as applying when the edge is fired from `CODE-REVIEW` and not when it is fired from `SPEC-PLAN-REVIEW`.
+- [ ] The pre-EXECUTE `findings-remain` block in `references/full-mode-engine.md` § PLAN and the one in `references/pre-execute-review.md` invoke no reopen, because both fire from `SPEC-PLAN-REVIEW`.
+- [ ] `references/session-resumption.md` states the reopen in the row a controller acts from before each of the three edges: the `reviewers-clean` row for `blocker-applied`, and the `gates-failed` and `findings-remain` rows for the re-fire each of those rows describes.
+- [ ] `SKILL.md`'s GATES wave-routing paragraph and its REVIEW specialist-findings paragraph name the reopen as part of the repair round.
+- [ ] Exactly seven fenced blocks under `packs/core/.apm/skills/work-loop/` invoke `loop-engine.py transition` with one of the three edge names, and the check that counts them names, on failure, the block that is new and unclassified.
 - [ ] `evals/evals.json` carries an entry covering the repair-round obligation.
 
 ### Proof

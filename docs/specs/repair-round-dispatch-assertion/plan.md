@@ -6,13 +6,14 @@
 
 ## Approach
 
-The round is scoped by **emptiness**, not by a counter. A wave whose record
-subtree holds nothing has, by construction, no assertion that could discharge
-its exit, so the existing accounting predicate does all the enforcing and gains
-no new input. Two pieces make that hold: a skill-invoked verb that empties the
-current wave's subtree, and a guard on each re-entry edge that refuses while the
-subtree is non-empty. Neither is useful alone — the verb without the guard is
-optional, and the guard without the verb is a dead end.
+The round is scoped by **supersession**, not by a counter and not by deletion. A
+record marked superseded stays on disk and stays a valid record, and stops
+accounting for its task. Three pieces make that hold: one clause in the shared
+accounting predicate, a skill-invoked verb that marks the current wave's records,
+and a guard on each of the three named edges that refuses while any record there
+is still live. None is useful alone — the clause without the verb marks nothing,
+the verb without the guard is optional, and the guard without the verb is a dead
+end.
 
 ## Constraints
 
@@ -44,6 +45,7 @@ except the last.
 | Spec durable output | Task | Construction detail the spec does not carry |
 | --- | --- | --- |
 | Current architecture | T5 | the edge list goes in § 4 beside the allowed-edges table, not § 6 |
+| Interface documentation | T4 | the `dispatch_receipts` row is edited in the same task as the prose it has to agree with |
 | Maintainer procedure | T4 | the site set is a search result, and the search expression is committed with the test |
 | Verification evidence | T1, T2, T3 | each task appends its own mutation entries as it lands, rather than one task writing all of them afterwards |
 | Interface compatibility | T5 | — |
@@ -54,12 +56,18 @@ except the last.
 
 ### Design decisions
 
-**Emptiness over a counter.** A round counter would need a new cohort key, a
-round stamp inside every record, and a comparison inside `unaccounted_wave_tasks`
-— which moves the wave-exit verdict's accounted and unaccounted rows. Emptiness
-needs none of those, and it leaves that verdict's eight rows deciding exactly
-what they decide today. What it costs is per-round history, accepted by the
-owner on 2026-09-23 and recorded as a follow-on against `loop-parallelism.md` § 1.
+**A boolean over a counter.** Both designs put a comparison inside
+`unaccounted_wave_tasks`, so neither leaves the wave-exit verdict's accounted and
+unaccounted rows deciding what they decide today: a wave whose records are all
+superseded now reaches the unaccounted row, and that movement is a criterion
+rather than a side effect. What separates them is cost. A counter needs a new
+cohort key on a triplicated `SCHEMA_VERSION`, a round stamp written by the
+recording verb, and a comparison against a second field the guard must also
+validate; supersession needs one member with an absence rule and one clause. The
+rows move either way, so the reason to prefer the boolean is that it moves them
+with the smallest reachable surface. What it costs is per-round history, accepted
+by the owner on 2026-09-23 and recorded as a follow-on against
+`loop-parallelism.md` § 1.
 
 **The reopen supersedes; it never removes.** `wave-complete-dispatch-receipts`
 § Never do names the only three paths that may remove a record — a `schedule`
@@ -162,9 +170,8 @@ None added. The verb reuses `_locked`, `read_state`, `write_state_atomic`,
 
 **Depends on:** none
 
-**Tests:** TDD. Discharges the five criteria under § The repair-round verdict,
-all four under § Proof, and the accounting change the § The reopen verb group
-depends on.
+**Tests:** TDD. Discharges § The repair-round verdict, § The accounting
+predicate, and § Proof entire.
 
 - The predicate change lands first and alone: `unaccounted_wave_tasks` returns a
   task whose only record is superseded. Both consumers are asserted, the wave
@@ -211,15 +218,16 @@ def test_repair_round_verdict_refuses_while_a_record_remains():
 green, `wave-reopen` is in `PHASES` and in `_SCHEMA_EXEMPT_PHASES`, and this
 task's mutation entries are in `notes/verification-ledger.md`.
 
-### T2: reopening a wave empties that wave alone and keeps the container
+### T2: reopening a wave supersedes that wave's records and touches nothing else
 
 **Depends on:** T1
 
-**Tests:** TDD. Discharges the five criteria under § The reopen verb.
+**Tests:** TDD. Discharges § The reopen verb entire.
 
-- The multi-wave, multi-digest fixture proves the survivors; the single-wave,
-  single-digest fixture is the one that matters for the container invariant,
-  because only there does the container collapse to empty.
+- The multi-wave, multi-digest fixture proves the survivors: a record under
+  another wave index or another digest is untouched, and so is every other key.
+  It is the only fixture shape that can catch a verb that marks by digest or by
+  task id instead of by the (digest, wave index) pair.
 - The post-reopen wave-exit case drives `check --phase wave-exit` rather than
   inspecting state, so the assertion is on the refusal the controller sees.
 - Each refusal case asserts the file digest before and after, not just the exit
@@ -233,8 +241,7 @@ verb, and this task's mutation entries are in `notes/verification-ledger.md`.
 **Depends on:** T2
 
 **Tests:** TDD, driven through `loop-engine transition` against a real spec
-directory rather than the guard function. Discharges the five criteria under
-§ The three edges.
+directory rather than the guard function. Discharges § The three edges entire.
 
 - Three separate cases drive a real repair round to `CODE-IMPLEMENTATION`, one
   per edge, each asserting the refusal text before the reopen and the
@@ -258,19 +265,32 @@ this task's mutation entries are in `notes/verification-ledger.md`.
 
 **Depends on:** T3
 
-**Tests:** goal-based check. Discharges the four criteria under § Controller-facing
-surfaces.
+**Tests:** goal-based check. Discharges § Controller-facing surfaces entire.
 
-- The site predicate is **fenced command blocks**, not prose: the check parses
-  fenced blocks under the skill tree, selects those invoking `loop-engine.py
-  transition` with one of the three edges, and asserts each contains a
-  `wave reopen` invocation on an earlier line. Prose that names an edge
-  descriptively — `references/capture.md`, `references/state-schema.md`'s
-  `last_event` vocabulary — is not a firing site and is correctly excluded,
-  which is why the predicate is blocks rather than a grep for the literal.
-- A presence assertion pairs with the quantifier, naming `SKILL.md`,
-  `references/full-mode-engine.md` and `references/session-resumption.md`, so the
-  universal cannot pass at zero blocks.
+- The site set is an enumeration, not a search result. The survey that produced
+  it, run 2026-09-23 over the shipped tree, found seven fenced blocks invoking
+  `loop-engine.py transition` with one of the three edge names, in three files:
+
+  | Block | Edge | Fires from | Reopen |
+  | --- | --- | --- | --- |
+  | `full-mode-engine.md` § PLAN pre-EXECUTE | `findings-remain` | `SPEC-PLAN-REVIEW` | no |
+  | `full-mode-engine.md` § GATES wave routing | `gates-failed` | `CODE-VERIFICATION` | yes |
+  | `full-mode-engine.md` § REVIEW, changes requested | `blocker-applied` | `CODE-HUMAN-GATE` | yes |
+  | `full-mode-engine.md` § REVIEW, specialist findings | `findings-remain` | `CODE-REVIEW` | yes |
+  | `finding-adjudication.md`, two blocks | `findings-remain` | either review phase | conditional |
+  | `pre-execute-review.md` | `findings-remain` | `SPEC-PLAN-REVIEW` | no |
+
+- The check asserts each row's expected outcome by locating the block, and
+  separately asserts the total is seven. The count is what makes the enumeration
+  self-maintaining: a block added later fails it, and the failure message names
+  the unclassified block rather than asking the reader to re-derive the table.
+- Prose that names an edge without firing it — `references/capture.md`'s routing
+  sentence, `references/state-schema.md`'s `last_event` vocabulary — is not a
+  firing site and is outside the count, which is why the predicate is fenced
+  blocks and not a grep for the literal.
+- `SKILL.md` and `references/session-resumption.md` hold no fenced transition
+  block, so their obligation is a prose assertion on the named paragraph and the
+  named table rows instead.
 - `make build-self` reports three-copy parity across `.apm/`, `.claude/` and
   `.agents/`.
 
@@ -305,7 +325,8 @@ one verb.
 
 - **A controller that has not read the new prose meets an unexplained refusal.**
   Mitigated by the refusal naming the verb that clears it, which T1 and T3
-  assert, and by T4's count check catching an undocumented route.
+  assert, and by T4's block count, which fails when a firing site is added
+  without being classified.
 - **The shared accounting predicate has two consumers**, and a change tested
   through one only would leave `wave advance` disagreeing with the wave exit.
   Mitigated by T1 asserting both consumers in the same task that changes the
@@ -325,6 +346,11 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-23 — revised from the round-3 adversarial review: the prose left
+  describing the removal mechanism was brought to the superseding one, the
+  controller-facing site set became an enumeration with a count tripwire, and
+  `wave advance` and `references/state-schema.md` gained the criteria the
+  predicate change owes them.
 - 2026-09-23 — revised from the round-2 adversarial review: the reopen supersedes
   rather than removes, because a frozen `Never do` names the only three paths
   that may remove a record; the site predicate became fenced command blocks; and
