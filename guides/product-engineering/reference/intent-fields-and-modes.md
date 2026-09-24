@@ -22,7 +22,9 @@ in the body is neither read nor judged.
 Four tiers:
 
 - **Required** — absent is refused.
-- **Constrained when present** — omitting it is fine; a value outside its set is refused.
+- **Constrained when present** — a value outside its set is refused. Omitting it
+  is usually fine, but a corpus rule may still require the field, and the row
+  says so when one does.
 - **Unconstrained** — no rule judges the value on the artifact alone. A rule
   that needs the rest of the corpus may still apply, and the row says so when
   one does.
@@ -38,8 +40,8 @@ additions keep working.
 | `Level` | required | the altitude — an **open recognized set**, `product-vision › product-strategy › capability › feature`. Present or absent is checked; the value never is, so name an intervening altitude if your org has one |
 | `Status` | required | exactly one of these bare tokens: `Draft`, `Accepted`, `Fulfilled`, `Withdrawn`, `Cancelled`, `Superseded`. No value carries a payload — the supersession pointer is a field of its own, below. `Withdrawn` and `Cancelled` are peers of `Fulfilled`, not flavours of it |
 | `Superseded by` | unconstrained | the `Slug` of the live intent that replaced this bet. The value itself is never judged, exactly as `Slug` is not — whatever a target may be called, a pointer may name. Two rules still apply, and both are checked **over the corpus** rather than on one file, so they are the corpus lint's and not the shaping review's: `Status` and this field are required together and refused apart, and resolution is one hop, so this may not name an intent that is itself `Superseded` |
-| `Accepted` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, a space, then non-empty text. The check asks only that the text is there; make it say who ratified the bet and on what evidence, which is why the field exists. A bare date is refused, and so is the literal `no` that the progress fields accept — an unratified intent omits the field. **Required by `Status`**: the corpus lint requires this field when `Status` is `Fulfilled` or `Cancelled`, and refuses it when `Status` is `Draft` |
-| `Fulfilled` | constrained when present | the same shape as `Accepted`: a `YYYY-MM-DD` date, a space, then non-empty evidence text. The date is the text up to the first space, so punctuation written straight after it lands inside the date token and is refused. **Required by `Status`**: the corpus lint requires this field when `Status` is `Fulfilled`, and refuses it when `Status` is `Draft`, `Accepted`, `Cancelled`, or `Withdrawn` |
+| `Accepted` | constrained when present | **When required:** `Status: Fulfilled` and `Status: Cancelled` must carry it; `Status: Draft` must not. See the status table below. **Value:** an ISO 8601 calendar date written `YYYY-MM-DD`, a space, then non-empty text. The check asks only that the text is there; make it say who ratified the bet and on what evidence, which is why the field exists. A bare date is refused, and so is the literal `no` that the progress fields accept — an unratified intent omits the field |
+| `Fulfilled` | constrained when present | **When required:** only `Status: Fulfilled` carries it; every other status that decides the question refuses it. See the status table below. **Value:** the same shape as `Accepted` — a `YYYY-MM-DD` date, a space, then non-empty evidence text. The date is the text up to the first space, so punctuation written straight after it lands inside the date token and is refused |
 | `Kind` | constrained when present | `outcome` or `opportunity` — the rung this intent occupies on the opportunity-solution tree |
 | `Scale` | constrained when present | `app` or `business-unit` — resolved at intake (see Modes) |
 | `Maturity` | constrained when present | `greenfield` or `brownfield` — gates current-state inputs |
@@ -55,6 +57,34 @@ additions keep working.
 | `Parent` | retired | use `Parent intent` |
 | `Source` | retired | keep provenance in a `## Source` body section |
 | `Authority` | retired | use `Governed by` in the preamble. The name stays valid *below* the first heading, where it is an attribution or a provenance token rather than this field |
+
+**Which status needs which record.** `Accepted:` and `Fulfilled:` are the only
+fields whose presence `Status` decides. Every cell below is what the corpus
+lint does today:
+
+<!-- First cells are deliberately unbackticked. The parity test reads every
+     row in this section whose first cell is a backticked token as a
+     preamble-field row, so a backtick here registers a status as a field. -->
+
+| Status value | `Accepted:` | `Fulfilled:` |
+| --- | --- | --- |
+| Draft | refused | refused |
+| Accepted | optional | refused |
+| Fulfilled | **required** | **required** |
+| Cancelled | **required** | refused |
+| Withdrawn | optional | refused |
+| Superseded | neither required nor refused | neither required nor refused |
+
+`Withdrawn` never needs `Accepted:`, because abandoning a bet nobody ratified
+needs no ratification. `Cancelled` does need it: cancelling says the work was
+ratified and then stopped. `Superseded` is not decided either way — no rule
+reads these two fields for it.
+
+**Write these records in the preamble, not the body.** A `- **Accepted:** …`
+line below the first `## ` heading is read as absent, so the lint reports the
+record as missing while you are looking straight at a line that appears to
+supply it. If a refusal insists a record is absent and you can see it, check
+which side of the first heading it sits on.
 
 **Absent is not `no`.** For the three progress fields, an absent field means
 nobody recorded the answer; the literal `no` means someone decided against it.

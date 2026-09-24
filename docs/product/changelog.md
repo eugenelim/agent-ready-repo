@@ -66,14 +66,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [core][2.26.41] — 2026-09-24
 
+### Highlights
+
+- An intent that says the work is finished now has to say who decided that and
+  on what evidence. `Status: Fulfilled` requires both an `Accepted:` and a
+  `Fulfilled:` record, and `Status: Cancelled` requires `Accepted:`. Intents
+  that passed the corpus lint yesterday can fail today, so this is a gate
+  change to plan for rather than a new option to adopt.
+
 ### Changed
 
-- The corpus lint now refuses a `Fulfilled` intent that carries no `Accepted:`
-  or `Fulfilled:` record, a `Cancelled` intent that carries no `Accepted:`
-  record, and any intent whose records contradict its `Status` — for example, a
-  `Draft` intent carrying either record, or an `Accepted` or non-delivering
-  intent carrying a `Fulfilled:` record. Every refusal names the file and the
-  field at fault.
+- The corpus lint decides `Accepted:` and `Fulfilled:` by `Status`. It refuses
+  a `Fulfilled` intent missing either record, and a `Cancelled` intent missing
+  `Accepted:`. It also refuses a record that contradicts the status: either
+  record beside `Draft`, or a `Fulfilled:` record beside `Accepted`,
+  `Cancelled` or `Withdrawn`. `Withdrawn` never needs `Accepted:` — abandoning
+  a bet nobody ratified needs no ratification — and `Superseded` is not
+  decided either way.
+- A record is an ISO 8601 date, a space, then text saying who decided and on
+  what evidence: `- **Accepted:** 2026-09-20 ratified by the lifecycle owner`.
+  It must sit in the preamble; written below the first `## ` heading it reads
+  as absent, so a "requires a record" refusal can point at a file that visibly
+  contains the line.
+- Every refusal names the file and the field at fault. To check before your
+  pipeline does, run the corpus lint over your intent directory. The field
+  reference and the *fix a refused intent* how-to in the product-engineering
+  guides carry the per-status table and the fix for each message.
 
 ## [core][2.26.40] — 2026-09-24
 

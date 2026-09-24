@@ -2227,22 +2227,21 @@ backlog = [
 # owed here before this item starts.
 queue   = [
 ]
-# Active since 2026-09-24. T3 (the corpus migration) is delivered in commit
-# d00f39e34; T1, T2 and T4 -- the refusal registry, the state-coherence rules,
-# and the docstring/version/changelog task -- remain. T3 ran ahead of T1 and T2
-# under a plan amendment recorded in that plan's changelog.
-# A second, material amendment -- restating AC-0010 and adding no criterion --
-# is in review as of 2026-09-24, so the spec is parked at `Draft` and the plan at
-# `Drafting`. The parent brief moves to `ready` for the duration: it has no
-# `Implementing` or `Shipped` child while its only slice is parked, which is
-# what author-delivery-brief's lifecycle calls `Ready`. Both return when the
-# amendment's gates pass. The item stays active throughout: this is an
-# intermediate unit under an incomplete accepted intent, not a finished one.
-# T3 is delivered (commit d00f39e34) but `completed_task_ids` is empty, so a
-# resumed run will schedule it again. Owner accepted that on 2026-09-24 rather
-# than hand-edit state.json. Do not re-execute T3 -- its oracle passes vacuously
-# on the corpus it produced. Read that spec's notes/verification-ledger.md
-# before dispatching any wave.
+# Active since 2026-09-24. All four tasks are delivered: T3 the corpus
+# migration in d00f39e34, T1 the refusal registry, T2 the state-coherence rules
+# and the validate_corpus_scoped entry point, T4 the docstring, evals, version
+# bump and changelog. The spec is `Implementing` and the plan `Approved`; the
+# item is active because review and the human merge gate remain, not because
+# work does. The parent brief is `Executing` and sits in `executing`.
+# Two amendments are recorded in that plan's changelog: a task reorder putting
+# T3 first, and a material one restating AC-0010, re-approved 2026-09-24. Both
+# artifacts were briefly parked at `Draft`/`Drafting` during the second, with
+# the brief at `ready`; that is finished and none of it is current state.
+# T3 is delivered but `completed_task_ids` is empty, so a resumed run will
+# schedule it again. Owner accepted that on 2026-09-24 rather than hand-edit
+# state.json. Do not re-execute T3 -- its oracle passes vacuously on the corpus
+# it produced. Read that spec's notes/verification-ledger.md before dispatching
+# any wave.
 active  = [
   { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam, with no rule it adds reachable from the shared validate_live_intent surface", needs = [] },
 ]
