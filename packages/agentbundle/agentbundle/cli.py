@@ -1226,6 +1226,20 @@ def _build_parser() -> argparse.ArgumentParser:
             "which sets the replayed guides mode."
         ),
     )
+    # AC-0047 — `--package` is a reserved selector, not a scoping flag: it
+    # names a package this phase does not sync (`agentbundle`,
+    # `credbroker`), so `choices` is the whole validation this parser owns.
+    # Any other name is malformed by argparse itself, before `run()` ever
+    # sees it; a recognised name reaches `run()`'s own cannot-answer refusal
+    # (`commands/catalogue_sync.py`), on apply, `--dry-run`, or `--check`
+    # alike.
+    _sync_p.add_argument(
+        "--package",
+        choices=("agentbundle", "credbroker"),
+        default=None,
+        metavar="NAME",
+        help="Reserved selector: package sync is not available yet.",
+    )
     _sync_p.set_defaults(func=_lazy("catalogue_sync"))
 
     # catalogue index

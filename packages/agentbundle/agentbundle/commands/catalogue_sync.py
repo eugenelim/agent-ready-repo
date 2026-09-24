@@ -963,21 +963,29 @@ def execute_write_sequence(
     *,
     old_state: dict[str, Any] | None,
     file_bytes: dict[str, bytes],
-    planned_paths: set[str],
+    removal_set: set[str],
+    out_of_coverage: set[str],
     pack_names: list[str],
     profile_names: list[str],
-    guides_mode: str,
-    scope: tuple[frozenset[str], frozenset[str]] | None,
     pin: dict[str, Any],
 ) -> WriteSequenceResult:
-    """AC-0032/AC-0034/AC-0035/AC-0038/AC-0058/AC-0059/AC-0073/AC-0077 —
-    AC-0077's gate recheck onward: the actual write phase, given an
+    """AC-0032/AC-0034/AC-0035/AC-0038/AC-0057/AC-0058/AC-0059/AC-0073/
+    AC-0077 — AC-0077's gate recheck onward: the actual write phase, given an
     already-built *plan* (:func:`plan_write_set`) and rollback *snapshot*
     (:func:`snapshot_write_set`), both taken before the consent prompt so the
     gate recheck below is the only re-read of the target tree this sequence
     performs after consent (plan.md's Design decisions, "Rollback holds the
     prior walk tuple in memory"; spec AC-0039's trailing note on the
     snapshot row).
+
+    *removal_set*/*out_of_coverage* are :func:`select_removal_set`'s own
+    return values, computed once by the caller for the printed plan
+    (AC-0057) and handed in here unchanged rather than recomputed — a
+    second post-consent call would re-read the tree and could admit a
+    recorded path that only became present or readable during the
+    consent wait, deleting a path the printed plan never named (spec §
+    Never do's phase delta; AC-0057's "the rows the run consents against
+    and acts on").
 
     Removal after every write, and the state after removal, because a crash
     between the two must leave a recorded state that under-claims rather
@@ -988,14 +996,36 @@ def execute_write_sequence(
     each).
     """
     old_state = old_state or {}
-    expected_would_update: dict[str, str | None] = {
-        path: (
-            hashlib.sha256(snapshot[path].content).hexdigest()
-            if snapshot[path].kind == "file" else None
-        )
-        for path in plan.would_update_admitted
-    }
-    diverged = gate_recheck(target, expected_would_update)
+    # AC-0077's gate recheck covers every classified-row destination the
+    # write phase will replace, not only `would-update` — a `plan_write_set`
+    # `admitted_new` path (AC-0033 clause 3's introduced-pack/profile
+    # admission) is `untouched` on the printed plan but still replaces
+    # whatever the adopter has at that destination, so it takes the same
+    # recheck. A companion destination is excluded: it publishes through
+    # `Publish.NEVER_REPLACE` instead, which refuses an occupied destination
+    # outright rather than rechecking it.
+    #
+    # A `would-update` row's expectation is the pre-prompt snapshot's digest
+    # (or `None` when the snapshot shows no entry) — `classify` guarantees
+    # that digest equals the recorded one whenever the destination exists,
+    # since that equality is what earned the row its verdict. Every other
+    # admitted path here is `admitted_new`: a Tier-3 `untouched` verdict that
+    # never read the destination at classification time at all, so the
+    # state it was classified against is always "no entry" — a destination
+    # occupied there diverges regardless of what the live snapshot shows.
+    expected: dict[str, str | None] = {}
+    for path in plan.admitted:
+        if path in plan.companion_destination_to_original:
+            continue
+        if path in plan.would_update_admitted:
+            entry = snapshot[path]
+            expected[path] = (
+                hashlib.sha256(entry.content).hexdigest()
+                if entry.kind == "file" else None
+            )
+        else:
+            expected[path] = None
+    diverged = gate_recheck(target, expected)
     if diverged:
         return WriteSequenceResult(
             ok=False, gate_diverged=sorted(diverged),
@@ -1016,16 +1046,13 @@ def execute_write_sequence(
                 # itself from *original* — passing the already-suffixed
                 # destination here would suffix it a second time.
                 write_companion(target, original, content, publish=Publish.NEVER_REPLACE)
-            elif path in plan.would_update_admitted:
+            else:
                 content = file_bytes[path]
                 write_jailed(
                     target, path, content,
                     publish=Publish.REPLACE_IF_UNCHANGED,
-                    expected_sha256=expected_would_update[path],
+                    expected_sha256=expected[path],
                 )
-            else:
-                content = file_bytes[path]
-                write_jailed(target, path, content)
         except Exception:
             write_failed_path = path
             break
@@ -1058,11 +1085,6 @@ def execute_write_sequence(
             companion_residue=plan.residue,
         )
 
-    removal_set, out_of_coverage = select_removal_set(
-        target, old_state, planned_paths,
-        pack_names=pack_names, profile_names=profile_names,
-        guides_mode=guides_mode, scope=scope,
-    )
     removed: set[str] = set()
     removal_failed = False
     for path in sorted(removal_set):
@@ -1152,11 +1174,20 @@ def apply_write_sequence(
         )
 
     scope = _scope_subtrees(scope_packs, scope_profiles, guides_scope)
+    # Computed once here — mirroring `_run_apply`'s own printed-plan point —
+    # and handed to `execute_write_sequence` unchanged (spec AC-0057;
+    # plan.md's Design decisions), rather than left for it to recompute
+    # after the write phase.
+    removal_set, out_of_coverage = select_removal_set(
+        target, old_state or {}, planned_paths,
+        pack_names=pack_names, profile_names=profile_names,
+        guides_mode=guides_mode, scope=scope,
+    )
     return execute_write_sequence(
         target, plan, snapshot,
-        old_state=old_state, file_bytes=file_bytes, planned_paths=planned_paths,
-        pack_names=pack_names, profile_names=profile_names,
-        guides_mode=guides_mode, scope=scope, pin=pin,
+        old_state=old_state, file_bytes=file_bytes,
+        removal_set=removal_set, out_of_coverage=out_of_coverage,
+        pack_names=pack_names, profile_names=profile_names, pin=pin,
     )
 
 
@@ -2740,8 +2771,8 @@ def _run_apply(
     result = execute_write_sequence(
         target, plan, snapshot,
         old_state=replay.old_state, file_bytes=replay.file_bytes,
-        planned_paths=planned_paths, pack_names=pack_names,
-        profile_names=profile_names, guides_mode=guides, scope=scope, pin=pin,
+        removal_set=removal_set, out_of_coverage=out_of_coverage,
+        pack_names=pack_names, profile_names=profile_names, pin=pin,
     )
 
     if result.gate_diverged is not None:
@@ -2846,10 +2877,14 @@ def run(args: argparse.Namespace) -> int:
         )
 
     # Spec AC-0039/AC-0047 — `--package` sits above source resolution on
-    # every invocation, so a run that will refuse performs no fetch. Read
-    # defensively: the flag does not exist on the parser namespace until a
-    # later task wires it, so a namespace lacking it behaves exactly as
-    # though `--package` were never supplied.
+    # every invocation, so a run that will refuse performs no fetch.
+    # `cli.py`'s `sync` subparser restricts the flag to `agentbundle` and
+    # `credbroker` via `choices`, refusing any other name as malformed
+    # before `run()` is ever reached — so a value read here is always one
+    # of those two recognised names. `getattr` with a `None` default is
+    # kept anyway so a namespace built without the flag at all (as this
+    # module's own unit tests do for every other invocation) behaves
+    # exactly as though `--package` were never supplied.
     package = getattr(args, "package", None)
     if package is not None:
         return _refuse(

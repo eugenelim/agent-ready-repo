@@ -2520,9 +2520,16 @@ def test_apply_stale_removal_runs_after_writes_with_full_keep_set(tmp_path, monk
         calls.append(("write_companion", (relpath,), {}))
         return real_write_companion(root, relpath, content, **kw)
 
+    real_confined_unlink = catalogue_sync._confined_unlink
+
+    def _spy_confined_unlink(root, relpath):
+        calls.append(("confined_unlink", (relpath,), {}))
+        return real_confined_unlink(root, relpath)
+
     monkeypatch.setattr(catalogue_sync, "select_removal_set", _spy_select_removal_set)
     monkeypatch.setattr(catalogue_sync, "write_jailed", _spy_write_jailed)
     monkeypatch.setattr(catalogue_sync, "write_companion", _spy_write_companion)
+    monkeypatch.setattr(catalogue_sync, "_confined_unlink", _spy_confined_unlink)
 
     result = _apply(target, replay, verdict_rows)
 
@@ -2531,13 +2538,21 @@ def test_apply_stale_removal_runs_after_writes_with_full_keep_set(tmp_path, monk
     write_call_indexes = [
         i for i, c in enumerate(calls) if c[0] in ("write_jailed", "write_companion")
     ]
+    unlink_call_indexes = [i for i, c in enumerate(calls) if c[0] == "confined_unlink"]
+    assert write_call_indexes  # the fixture writes at least one path
+    assert unlink_call_indexes  # the fixture removes at least one path
+    # AC-0035: the destructive removal runs only after every planned write
+    # has landed. `select_removal_set` itself is now computed once, up
+    # front, for the printed plan (AC-0057; Blocker 3's fix — the write
+    # phase reuses that same removal set rather than recomputing it after
+    # consent), so it is the unlink that must be ordered after the writes,
+    # not the selection.
+    assert max(write_call_indexes) < min(unlink_call_indexes)
+
+    # The keep-set argument is the full replayed set, not the write set.
     removal_call_index = next(
         i for i, c in enumerate(calls) if c[0] == "select_removal_set"
     )
-    assert write_call_indexes  # the fixture writes at least one path
-    assert max(write_call_indexes) < removal_call_index
-
-    # The keep-set argument is the full replayed set, not the write set.
     removal_kwargs_call = calls[removal_call_index]
     _name, args, _kwargs = removal_kwargs_call
     full_replayed_arg = args[2]
@@ -2940,6 +2955,32 @@ def test_apply_new_pack_directory_is_removed_on_injected_write_failure(tmp_path)
     assert result.write_failed_path == "packs/beta/NEW.md"
     assert result.restored
     assert not (target / "packs" / "beta").exists()
+
+
+def test_apply_introduced_pack_path_gate_rechecks_and_refuses_when_occupied(
+    tmp_path,
+):
+    # Verifies AC-0077's gate recheck extended to AC-0033 clause 3's
+    # "belongs to a pack this run introduced" admission (`admitted_new`).
+    # `packs/beta/NEW.md` is `untouched` on the printed plan -- Tier-3, never
+    # read at classification time -- because "beta" is not in the recorded
+    # recipe, but this run introduces it via `--pack beta`. Before the fix
+    # this path fell to a bare `write_jailed` (`Publish.REPLACE`), an
+    # unconditional rename with no recheck at all: an adopter file already
+    # sitting at that path is silently clobbered. This asserts the run
+    # refuses instead, at the gate row, leaving the adopter's file untouched.
+    target, replay, verdict_rows = _replay_apply_fixture(
+        tmp_path, tag="new-pack-occupied"
+    )
+    occupied = target / "packs" / "beta" / "NEW.md"
+    occupied.parent.mkdir(parents=True, exist_ok=True)
+    occupied.write_bytes(b"adopter's own pre-existing file\n")
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.gate_diverged == ["packs/beta/NEW.md"]
+    assert occupied.read_bytes() == b"adopter's own pre-existing file\n"
 
 
 def test_apply_snapshot_bound_refuses_before_the_prompt_and_before_any_write(tmp_path):
@@ -4201,6 +4242,50 @@ def test_run_apply_success_row_writes_admitted_paths_and_returns_zero(tmp_path):
     assert "packs/alpha/README.md" in written_paths
 
 
+def test_run_apply_recorded_path_appearing_during_consent_wait_is_not_removed(
+    tmp_path, monkeypatch
+):
+    # Verifies the printed removal set is the removal set the write phase
+    # acts on (spec § Never do's phase delta; AC-0057). "packs/alpha/gone.md"
+    # is recorded but not shipped by the source this run replays, and it is
+    # absent on disk when `_run_apply` computes the removal set for the
+    # printed plan, before the consent prompt -- `_plan_stale_owned_paths`
+    # declines an absent recorded path ("recorded-path-absent"), so it is
+    # invisible to that computation: never printed, never consented against.
+    # `_consent_gate` then creates it as a side effect, standing in for an
+    # adopter edit landing during the unbounded consent wait. Before Blocker
+    # 3's fix, the write phase recomputed the removal set after consent --
+    # that second call would find the path present, confined, and
+    # sha-matching (removable), and delete a path the printed plan never
+    # named. This asserts it survives instead.
+    target, source = _apply_run_target(
+        tmp_path,
+        "removal-race",
+        managed_paths=[
+            {
+                "path": "packs/alpha/gone.md",
+                "sha256": hashlib.sha256(b"raced in during the wait\n").hexdigest(),
+            }
+        ],
+    )
+    gone = target / "packs" / "alpha" / "gone.md"
+    assert not gone.exists()
+
+    real_consent_gate = catalogue_sync._consent_gate
+
+    def _consent_after_race(**kwargs):
+        gone.parent.mkdir(parents=True, exist_ok=True)
+        gone.write_bytes(b"raced in during the wait\n")
+        return real_consent_gate(**kwargs)
+
+    monkeypatch.setattr(catalogue_sync, "_consent_gate", _consent_after_race)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 0
+    assert gone.read_bytes() == b"raced in during the wait\n"
+
+
 def test_run_apply_companion_occupied_returns_difference_not_success(tmp_path):
     # AC-0039's `1 — difference` row: every write lands but an occupied
     # companion destination stops the run short of a clean `0`.
@@ -4462,13 +4547,19 @@ def test_run_apply_adapter_contract_mismatch_returns_difference(tmp_path):
     assert walk_target_tree(target) == before
 
 
-@pytest.mark.parametrize("mode_flag", [("--dry-run",), ("--check",)])
+@pytest.mark.parametrize(
+    "mode_flag,package_name",
+    [(("--dry-run",), "agentbundle"), (("--check",), "credbroker")],
+)
 def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
-    tmp_path, monkeypatch, mode_flag
+    tmp_path, monkeypatch, mode_flag, package_name
 ):
     # AC-0047: `--package` with a recognised name refuses on apply, on
     # `--dry-run`, and on `--check` alike, and the row sits above source
-    # resolution — no fetch is ever performed.
+    # resolution — no fetch is ever performed. Driven through the real
+    # parser (`_build_parser`), not a hand-built namespace: the defaults
+    # `--package` resolves to are the parser's own `choices`/`default`, not
+    # this test's (AC-0030's oracle).
     target = tmp_path / "package-target"
     target.mkdir()
     source = tmp_path / "package-source"
@@ -4480,17 +4571,21 @@ def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
     monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
 
     args = _build_parser().parse_args(
-        ["catalogue", "sync", str(target), "--source", str(source), *mode_flag]
+        [
+            "catalogue", "sync", str(target), "--source", str(source),
+            *mode_flag, "--package", package_name,
+        ]
     )
-    args.package = "agentbundle"
 
     assert catalogue_sync.run(args) == 3
 
 
 def test_run_apply_package_recognized_name_refuses_before_fetch(tmp_path, monkeypatch):
-    # AC-0047's third invocation — a bare apply run supplying `--package`.
-    # Reachable only via a hand-built namespace: the mutually exclusive
-    # `--dry-run`/`--check` group is still `required=True` until T7 lands.
+    # AC-0047's third invocation — a bare apply run (no `--dry-run`/
+    # `--check`) supplying `--package`. Driven through the real parser: the
+    # mode group is not `required=True` (AC-0030), so a bare invocation
+    # carrying `--package` parses cleanly with no hand-built namespace at
+    # all (AC-0030's oracle).
     target = tmp_path / "package-apply-target"
     target.mkdir()
     source = tmp_path / "package-apply-source"
@@ -4502,10 +4597,11 @@ def test_run_apply_package_recognized_name_refuses_before_fetch(tmp_path, monkey
     monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
 
     args = _build_parser().parse_args(
-        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+        [
+            "catalogue", "sync", str(target), "--source", str(source),
+            "--package", "credbroker",
+        ]
     )
-    args.dry_run = False
-    args.package = "credbroker"
 
     assert catalogue_sync.run(args) == 3
 
