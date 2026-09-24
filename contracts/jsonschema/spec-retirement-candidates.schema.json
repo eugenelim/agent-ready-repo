@@ -1,0 +1,433 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/spec-retirement-candidates.schema.json",
+  "title": "Spec retirement candidates",
+  "description": "The read-only projection `workspace-status retirement-candidates` emits: one entry per delivery contract, its held-back blockers, and any migration obligation that must be settled before retirement. Ages are derived from recorded change history and are not RFC-0096 section 6 cooling verdicts.",
+  "type": "object",
+  "x-spec": [
+    "docs/specs/spec-retirement-eligibility/"
+  ],
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "cutoff_date",
+    "stale_after_days",
+    "area_map",
+    "candidates",
+    "refusals",
+    "inbound_surfaces_not_reached"
+  ],
+  "properties": {
+    "schema": {
+      "const": "spec-retirement-candidates.v1"
+    },
+    "cutoff_date": {
+      "$ref": "#/$defs/calendarDate",
+      "description": "The age cutoff this run used, derived from recorded change history. Emitted so a reader can tell a real cutoff from an empty one."
+    },
+    "area_map": {
+      "$ref": "#/$defs/areaMap"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    },
+    "refusals": {
+      "type": "array",
+      "description": "Spec directories that produced no entry, each with the named reason.",
+      "items": {
+        "$ref": "#/$defs/refusal"
+      }
+    },
+    "stale_after_days": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3650,
+      "description": "Days without a recorded change before a candidate stops being held back by `recently-changed`."
+    },
+    "inbound_surfaces_not_reached": {
+      "type": "array",
+      "description": "Citing surfaces `inbound-cited` does not search, stated so absence of the blocker is not read as proof of no citation.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255
+      }
+    }
+  },
+  "$defs": {
+    "calendarDate": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "areaMap": {
+      "type": "object",
+      "description": "The persisted area attribution this run read. Never written by this command.",
+      "additionalProperties": false,
+      "required": [
+        "present",
+        "freshness"
+      ],
+      "properties": {
+        "present": {
+          "type": "boolean"
+        },
+        "freshness": {
+          "enum": [
+            "fresh",
+            "stale",
+            "absent"
+          ],
+          "description": "`stale` means the recorded fingerprint does not match the current repository shape."
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256-bytes-v1:[0-9a-f]{64}$"
+        },
+        "namespaces": {
+          "type": "array",
+          "description": "The tracked top-level directories inference derived areas from.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "refresh_command": {
+          "type": "string",
+          "description": "Present when freshness is `stale` or `absent`: the explicit invocation that rewrites the map.",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "freshness": {
+                "enum": [
+                  "stale",
+                  "absent"
+                ]
+              }
+            },
+            "required": [
+              "freshness"
+            ]
+          },
+          "then": {
+            "required": [
+              "refresh_command"
+            ]
+          }
+        }
+      ]
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "status",
+        "area",
+        "eligible",
+        "held_back_by",
+        "obligations"
+      ],
+      "properties": {
+        "slug": {
+          "$ref": "#/$defs/slug"
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_touched": {
+          "$ref": "#/$defs/calendarDate",
+          "description": "The artifact's last recorded change. Absent exactly when the candidate carries the `history-missing` blocker."
+        },
+        "area": {
+          "type": "string",
+          "description": "The inferred area, or `unscoped` when the candidate matches no inferred namespace. Never empty.",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "eligible": {
+          "type": "boolean"
+        },
+        "held_back_by": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reason"
+          }
+        },
+        "obligations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/obligation"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "eligible": {
+                "const": true
+              }
+            },
+            "required": [
+              "eligible"
+            ]
+          },
+          "then": {
+            "properties": {
+              "held_back_by": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "eligible": {
+                "const": false
+              }
+            },
+            "required": [
+              "eligible"
+            ]
+          },
+          "then": {
+            "properties": {
+              "held_back_by": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "last_touched"
+            ]
+          },
+          "then": {
+            "not": {
+              "properties": {
+                "held_back_by": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "history-missing"
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "held_back_by"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "held_back_by": {
+                "contains": {
+                  "properties": {
+                    "code": {
+                      "const": "history-missing"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "held_back_by"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "last_touched"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "held_back_by": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "history-missing"
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "held_back_by"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "last_touched"
+            ]
+          }
+        }
+      ]
+    },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "needed-by",
+            "inbound-cited",
+            "shipped-brief-member",
+            "lasting-facts-unsettled",
+            "protected",
+            "xspec-pinned",
+            "inflight",
+            "status-not-terminal",
+            "recently-changed",
+            "history-missing",
+            "references-unresolved"
+          ]
+        },
+        "declared_by": {
+          "type": "array",
+          "description": "For `needed-by`: every workspace entry declaring the dependency, each naming the `needs` edge a maintainer removes to clear the blocker. For `inbound-cited`: each citing surface. For `shipped-brief-member`: the brief.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        }
+      },
+      "description": "One blocker holding a candidate back. This enum owns the code vocabulary; RFC-0096's Wave 7e erratum owns the coverage obligation these codes satisfy. Every code has an acceptance criterion naming the condition that emits it.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "needed-by",
+                  "inbound-cited",
+                  "shipped-brief-member"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "declared_by"
+            ],
+            "properties": {
+              "declared_by": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "obligation": {
+      "type": "object",
+      "description": "A lasting fact whose only copy is this delivery container, and the role that must receive it first.",
+      "additionalProperties": false,
+      "required": [
+        "semantic_role",
+        "source_path"
+      ],
+      "properties": {
+        "semantic_role": {
+          "description": "One of the ten roles RFC-0096 section 2's \"Other roles are separate\" sentence names, resolved to a destination through section 4's precedence order. That sentence is authoritative for this enum; an acceptance criterion pins the copy to it.",
+          "enum": [
+            "current-product-truth",
+            "user-documentation",
+            "product-history",
+            "release-history",
+            "current-architecture",
+            "architecture-design",
+            "decision-record",
+            "operations",
+            "interface-contract",
+            "project-knowledge"
+          ]
+        },
+        "source_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "destination": {
+          "type": "string",
+          "description": "Present when section 4's precedence order resolves the role to a location in this repository; absent when the destination is still a required decision.",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "refusal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "code"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "code": {
+          "enum": [
+            "spec-directory-absent",
+            "spec-file-absent",
+            "spec-unreadable",
+            "spec-status-unrecognised",
+            "needs-shape-unrecognised"
+          ]
+        }
+      },
+      "description": "A repository input this run would have had to guess about. Every refusal names the input; none is defaulted, because a silent default is a false negative a reader cannot see."
+    }
+  }
+}
