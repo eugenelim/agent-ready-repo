@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** `docs/architecture/loop-infrastructure.md` §§ 3, 4, 6 (write authority, the two lock domains, the wave-exit verdict's serialisation residual); `packs/AGENTS.md` (pack export boundary, version bump rule, no internal-governance citations in shipped prose); analogous implementations — `_wave_exit_verdict` and `check_phase` in `_loop_guards.py`, `cmd_wave_advance` and `plan_dispatch_receipt` in `loop-cohort.py`, and `_guard_check_spec_status_on_code_review` in `loop-engine.py` for the source-state discriminator; their tests — `test_loop_guards.py`, `test_loop_cohort.py`, `test_loop_engine.py` under `packs/core/tests/skills/work-loop/`; construction path — `_GUARDS` in `loop-engine.py`, `PHASES` and `_SCHEMA_EXEMPT_PHASES` for the new phase. Named uncertainty: the controller-facing site set is discovered by search in T4, not enumerated here, because a list written now would be the failure it exists to prevent.
+- **Repository anchors:** `docs/architecture/loop-infrastructure.md` §§ 3, 4, 6 (write authority, the two lock domains, the wave-exit verdict's serialisation residual); `packs/AGENTS.md` (pack export boundary, version bump rule, no internal-governance citations in shipped prose); analogous implementations — `_wave_exit_verdict` and `check_phase` in `_loop_guards.py`, `cmd_wave_advance` and `plan_dispatch_receipt` in `loop-cohort.py`, and `_guard_check_spec_status_on_code_review` in `loop-engine.py` for the source-state discriminator; their tests — `test_loop_guards.py`, `test_loop_cohort.py`, `test_loop_engine.py` under `packs/core/tests/skills/work-loop/`; construction path — `_GUARDS` in `loop-engine.py`, `PHASES` and `_SCHEMA_EXEMPT_PHASES` for the new phase. Named uncertainty: none outstanding. The controller-facing site set was surveyed on 2026-09-23 and is enumerated in T4; the obligation it carries is demoted working material rather than contract, and § Design (LLD) records why.
 
 ## Approach
 
@@ -45,8 +45,8 @@ except the last.
 | Spec durable output | Task | Construction detail the spec does not carry |
 | --- | --- | --- |
 | Current architecture | T5 | the edge list goes in § 4 beside the allowed-edges table, not § 6 |
-| Interface documentation | T4 | the `dispatch_receipts` row is edited in the same task as the prose it has to agree with |
-| Maintainer procedure | T4 | the site set is a search result, and the search expression is committed with the test |
+| Interface documentation | T4, sole owner | the `dispatch_receipts` row is edited in the same task as the prose it has to agree with; T1 changes the predicate but writes no documentation |
+| Maintainer procedure | T4 | demoted working material: T4 writes the prose and the pack suite pins it, and no criterion reads it |
 | Verification evidence | T1, T2, T3 | each task appends its own mutation entries as it lands, rather than one task writing all of them afterwards |
 | Interface compatibility | T5 | — |
 | Release history | T5 | — |
@@ -126,6 +126,15 @@ that drives the verdict function directly stays green — the divergence the
 criterion exercising the exemption through `check --phase wave-reopen` exists
 to catch.
 
+**The documented procedure is demoted, not dropped.** Three criterion forms
+failed to mechanise "this prose instructs a reader to fire this edge", so on
+2026-09-23 the owner removed the obligation from the contract. It lives here
+instead, and T4 produces it against the survey table below; a content test in
+`packs/core/tests/pack/` pins the resulting prose so its removal reds a suite.
+What is given up is stated plainly: no completion gate reads it, so a future
+edit that drops the reopen from one block fails a pack test rather than a
+delivery criterion.
+
 ### Data & schema
 
 No key is added, renamed, or removed, and no record is deleted. The only write
@@ -170,8 +179,10 @@ None added. The verb reuses `_locked`, `read_state`, `write_state_atomic`,
 
 **Depends on:** none
 
-**Tests:** TDD. Discharges § The repair-round verdict, § The accounting
-predicate, and § Proof entire.
+**Tests:** TDD. Discharges § The repair-round verdict, § Proof, and the
+`wave advance` and refusal-wording criteria of § The accounting predicate. The
+`references/state-schema.md` criterion in that group belongs to T4, which is the
+task that writes documentation.
 
 - The predicate change lands first and alone: `unaccounted_wave_tasks` returns a
   task whose only record is superseded. Both consumers are asserted, the wave
@@ -265,7 +276,9 @@ this task's mutation entries are in `notes/verification-ledger.md`.
 
 **Depends on:** T3
 
-**Tests:** goal-based check. Discharges § Controller-facing surfaces entire.
+**Tests:** goal-based check. Discharges the `references/state-schema.md`
+criterion of § The accounting predicate, and produces the demoted maintainer
+procedure and its content pin.
 
 - The site set is an enumeration, not a search result. The survey that produced
   it, run 2026-09-23 over the shipped tree, found seven fenced blocks invoking
@@ -280,17 +293,22 @@ this task's mutation entries are in `notes/verification-ledger.md`.
   | `finding-adjudication.md`, two blocks | `findings-remain` | either review phase | conditional |
   | `pre-execute-review.md` | `findings-remain` | `SPEC-PLAN-REVIEW` | no |
 
-- The check asserts each row's expected outcome by locating the block, and
-  separately asserts the total is seven. The count is what makes the enumeration
-  self-maintaining: a block added later fails it, and the failure message names
-  the unclassified block rather than asking the reader to re-derive the table.
+- The content pin asserts each row's expected outcome by locating the block, and
+  counts `loop-engine.py transition` *invocations* naming one of the three edges
+  rather than blocks — two blocks already name a second edge in comment lines, so
+  a block count can stay at seven while an unguarded firing line is added.
 - Prose that names an edge without firing it — `references/capture.md`'s routing
   sentence, `references/state-schema.md`'s `last_event` vocabulary — is not a
   firing site and is outside the count, which is why the predicate is fenced
   blocks and not a grep for the literal.
 - `SKILL.md` and `references/session-resumption.md` hold no fenced transition
-  block, so their obligation is a prose assertion on the named paragraph and the
-  named table rows instead.
+  block. `session-resumption.md`'s row that instructs a controller to fire one of
+  the three edges is the `wave-complete` / `CODE-VERIFICATION` row, which says
+  "fire `wave-passed` or `gates-clean` or `gates-failed`"; the `gates-failed` and
+  `findings-remain` rows are keyed on the event already fired and re-issue a
+  cohort record, so they are not firing sites.
+- `references/state-schema.md`'s `dispatch_receipts` row is edited here, because
+  the row and the procedure prose have to agree and a reader meets them together.
 - `make build-self` reports three-copy parity across `.apm/`, `.claude/` and
   `.agents/`.
 
@@ -346,6 +364,9 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-23 — the owner demoted the controller-facing-surfaces obligation from
+  contract to working material after three criterion forms failed to mechanise
+  it; the remaining round-4 findings were repaired.
 - 2026-09-23 — revised from the round-3 adversarial review: the prose left
   describing the removal mechanism was brought to the superseding one, the
   controller-facing site set became an enumeration with a count tripwire, and

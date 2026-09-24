@@ -36,7 +36,7 @@ still lack one.
 - One clause in the shared accounting predicate, so a superseded record accounts for no task — `unaccounted_wave_tasks` in `_loop_guards.py`
 - A fifth `check --phase` value, its verdict, and its membership of the schema-exempt phase set — `loop-cohort.py`'s `PHASES`, and `_loop_guards.py`'s `_SCHEMA_EXEMPT_PHASES`
 - Guard entries on the three named edges, discriminated by source state, including the first guard `blocker-applied` has ever carried — `loop-engine.py`'s `_GUARDS`
-- The controller's repair-round protocol, which now runs the reopen before firing the edge — the four fenced command blocks that fire one of the three edges, in `references/full-mode-engine.md` and `references/finding-adjudication.md`, plus the `SKILL.md` and `references/session-resumption.md` prose that routes a controller to them
+- The controller's repair-round protocol, which now runs the reopen before firing the edge — the five fenced command blocks that fire a guarded edge, across `references/full-mode-engine.md` and `references/finding-adjudication.md`, plus the `SKILL.md` and `references/session-resumption.md` prose that routes a controller to them
 - A `superseded` member on a dispatch record, whose absence means live — `references/state-schema.md`'s `dispatch_receipts` row, which today tells adopters that a receipt and a decline "both count as accounted for"
 - A committed oracle that walks the repair-round verdict over the frozen spec's declared field axes — this spec's `notes/`
 - A mutation record for every new guard clause, verb clause, and the accounting predicate's superseded clause — this spec's `notes/verification-ledger.md`
@@ -70,14 +70,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Adding, renaming, or removing any key in cohort `state.json`.
 - Changing what `is_dispatch_record` accepts.
-- Any further change to the `wave-passed` guard, beyond the review-phase-guard change the owner signed off on 2026-09-23.
+- Any change to the `wave-passed` guard. `wave-complete-dispatch-receipts` § Ask first states it as its own item, and this delivery does not reach it.
 
 ### Never do
 
 - Never move `SCHEMA_VERSION`.
 - Never change what `check --phase implement` returns for any state. `wave-complete-dispatch-receipts` § Never do owns this rule and states why: local `make pre-pr` and the always-run `build-check` pull-request gate run that phase for every spec directory with no state-machine gate.
 - Never widen `DECLINE_REASONS`; `wave-complete-dispatch-receipts` § Ask first owns that decision and this delivery does not reopen it.
-- Never remove a dispatch record. `wave-complete-dispatch-receipts` § Never do owns this rule and names the only three paths that may: a `schedule` run under a different partition, a contract amendment, and `loop-cohort reset`. Superseding a record is not removing it; pruning an emptied container is.
+- Never remove a dispatch record. `wave-complete-dispatch-receipts` § Never do owns this rule and names the only three paths that may: a `schedule` run under a different partition, a contract amendment, and `loop-cohort reset`. Superseding a record is not removing it.
 - Never add a row to, remove a row from, or change the precondition of any row in `_wave_exit_verdict`.
 - Never write cohort state as a side effect of an engine transition; the reopen is a skill-invoked mutation, as ADR-0061 Option A requires.
 - Never add a new top-level directory, module boundary, or dependency.
@@ -89,6 +89,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **The reopen verdict table: TDD, plus a committed oracle walk.** Each row is unit-testable, but "exactly one row applies to any state" is a property over a state space no example set covers; the oracle is what decides it, the way `walk_verdict_partition.py` decides the wave-exit partition.
 - **The three edges refusing and then admitting: TDD at integration surface.** Each edge only proves out across the engine, the guard layer, and cohort state together, so the check drives `loop-engine transition` against a real spec directory rather than calling the guard directly.
 - **The wave-exit partition's immutability: goal-based check.** The committed oracle already prints the comparison values; re-running it and diffing its report is the one-liner.
+- **The documented repair-round procedure: goal-based check, against a content pin rather than a criterion.** The obligation is demoted working material, so what runs is a prose assertion in the pack suite; nothing a completion gate reads observes it, and § Controller-facing surfaces says why.
 - **Projection parity after `make build-self`: goal-based check.** Its three-copy parity check is the observable outcome, not the exit code.
 
 ## Acceptance Criteria
@@ -116,8 +117,8 @@ The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
 
 ### The accounting predicate
 
-- [ ] `unaccounted_wave_tasks` returns a task whose only record is superseded, and both its shipped consumers see that: `check --phase wave-exit` refuses such a wave, and `loop-cohort wave advance`'s advancing branch refuses it too.
-- [ ] Both of those refusals distinguish a superseded record from an absent one, so a controller is not told a record is missing when one is present and superseded.
+- [ ] `loop-cohort wave advance`'s advancing branch refuses a wave whose records are all superseded, so the predicate's second consumer agrees with the wave exit that the first group already pins.
+- [ ] The wave-exit refusal and the `wave advance` refusal each distinguish a superseded record from an absent one, so a controller is not told a record is missing when one is present and superseded.
 - [ ] A record carrying no `superseded` member is live, so every `state.json` written before this change means what it meant before it.
 - [ ] `references/state-schema.md`'s `dispatch_receipts` row describes the `superseded` member and its absence rule, and no longer states that a receipt and a decline both count as accounted for without qualification.
 
@@ -132,27 +133,21 @@ The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
 
 ### Controller-facing surfaces
 
-The tree holds seven fenced command blocks that invoke `loop-engine.py transition`
-with one of the three edge names. Four of them fire an edge this contract guards;
-two fire `findings-remain` from `SPEC-PLAN-REVIEW`, which it must not guard; and
-two are shared between both review phases. They are enumerated rather than
-searched for, because "instructs a reader to fire this edge" is a judgement no
-search expression decides, and the last criterion in this group is what keeps the
-enumeration from going stale.
-
-- [ ] The `gates-failed` block in `references/full-mode-engine.md` § GATES — wave routing, the `blocker-applied` block in its § REVIEW and the human gate, and the `findings-remain` block in that same section, each invoke `loop-cohort.py wave reopen` on a line above the transition.
-- [ ] Both `findings-remain` blocks in `references/finding-adjudication.md` carry the reopen, marked as applying when the edge is fired from `CODE-REVIEW` and not when it is fired from `SPEC-PLAN-REVIEW`.
-- [ ] The pre-EXECUTE `findings-remain` block in `references/full-mode-engine.md` § PLAN and the one in `references/pre-execute-review.md` invoke no reopen, because both fire from `SPEC-PLAN-REVIEW`.
-- [ ] `references/session-resumption.md` states the reopen in the row a controller acts from before each of the three edges: the `reviewers-clean` row for `blocker-applied`, and the `gates-failed` and `findings-remain` rows for the re-fire each of those rows describes.
-- [ ] `SKILL.md`'s GATES wave-routing paragraph and its REVIEW specialist-findings paragraph name the reopen as part of the repair round.
-- [ ] Exactly seven fenced blocks under `packs/core/.apm/skills/work-loop/` invoke `loop-engine.py transition` with one of the three edge names, and the check that counts them names, on failure, the block that is new and unclassified.
-- [ ] `evals/evals.json` carries an entry covering the repair-round obligation.
+Demoted out of this contract on 2026-09-23 by the owner, who holds the authority
+to remove an accepted obligation. Three forms of the criterion — a count
+equality, a fenced-block search, and an enumeration with conditional markers —
+each failed because "this prose instructs a reader to fire this edge" is a
+judgement no check decides. **Destination:** the plan's § Design (LLD) now owns
+the documented procedure, and `plan.md` T4 produces it. **Pin:** a content test
+under `packs/core/tests/pack/` asserts the prose the plan specifies, so its
+removal reds a suite even though no criterion reads it.
 
 ### Proof
 
 - [ ] `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` reports 35,728 states walked, 0 overlapping, 0 uncovered, and per-row reachability R1 17864, R2 13398, R3 3829, R4 49, R5 384, R6 108, R7 4, R8 92.
-- [ ] A committed oracle under this spec's `notes/` checks the repair-round verdict over a domain built by varying the axes that `wave-complete-dispatch-receipts` § Acceptance Criteria declares to be the single canonical enumeration, **extended with a superseded axis over each record**, with container values generated from the declared key path rather than hand-built at a literal depth, and reports that the verdict refuses on exactly the states satisfying the conjunction stated above and passes on every other state in the domain.
-- [ ] That same oracle reports, over that same domain, the row each state reaches in `_wave_exit_verdict`, and every state whose only records are superseded reaches the unaccounted row.
+- [ ] A committed oracle under this spec's `notes/` checks the repair-round verdict over a domain built by varying the axes that `wave-complete-dispatch-receipts` § Acceptance Criteria declares to be the single canonical enumeration, **extended with a superseded axis over each record**, with container values generated from the declared key path rather than hand-built at a literal depth. Over the states the verdict is reached for, it reports that the verdict refuses on exactly those satisfying the conjunction stated above and passes on every other; for the states it is never reached for, it reports that the shared reader refused before the verdict ran.
+- [ ] That same oracle reports the row each state reaches in `_wave_exit_verdict`, and every state that reaches the accounted row with live records reaches the unaccounted row instead once those records are superseded.
+- [ ] Both oracles call the shipped predicates rather than a local copy of them, so a change to `unaccounted_wave_tasks` is visible to the walk.
 - [ ] A mutation record in this spec's `notes/verification-ledger.md` names each new guard clause, each new verb clause, and the accounting predicate's superseded clause, together with the edit that removed it, the test that turned red, and the observed failure, with no clause whose removal left the suite green.
 
 ## Follow-ons
