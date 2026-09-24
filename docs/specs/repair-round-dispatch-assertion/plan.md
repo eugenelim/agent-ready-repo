@@ -1,7 +1,7 @@
 # Plan: repair-round dispatch assertion
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/loop-infrastructure.md` §§ 3, 4, 6 (write authority, the two lock domains, the wave-exit verdict's serialisation residual); `packs/AGENTS.md` (pack export boundary, version bump rule, no internal-governance citations in shipped prose); analogous implementations — `_wave_exit_verdict` and `check_phase` in `_loop_guards.py`, `cmd_wave_advance` and `plan_dispatch_receipt` in `loop-cohort.py`, and `_guard_check_spec_status_on_code_review` in `loop-engine.py` for the source-state discriminator; their tests — `test_loop_guards.py`, `test_loop_cohort.py`, `test_loop_engine.py` under `packs/core/tests/skills/work-loop/`; construction path — `_GUARDS` in `loop-engine.py`, `PHASES` and `_SCHEMA_EXEMPT_PHASES` for the new phase. Named uncertainty: none outstanding. The controller-facing site set was surveyed on 2026-09-23 and is enumerated in T4; the obligation it carries is demoted working material rather than contract, and § Design (LLD) records why.
 
 ## Approach
@@ -387,6 +387,13 @@ one verb.
   the contract does not claim otherwise.
 
 ## Changelog
+
+- 2026-09-23 — plan approved by eugenelim: five serial tasks T1-T5, every new
+  clause carrying a mutation proof restored by editing the source back.
+
+- 2026-09-23 — spec approved by eugenelim after six adversarial rounds
+  (13, 12, 15, 12, 10, 6 findings), one owner-authorised demotion, and two
+  § Ask first sign-offs against the frozen receipts spec.
 
 - 2026-09-23 — drafted.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
