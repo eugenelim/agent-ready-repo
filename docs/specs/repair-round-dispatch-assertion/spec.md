@@ -1,6 +1,6 @@
 # Spec: repair-round dispatch assertion
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md) (Option A: a transition permits a change and never causes one, so no cohort write may become a side effect of firing an edge); `wave-complete-dispatch-receipts` (Shipped and frozen — it owns the receipt data model, the accounting predicate, and the wave-exit verdict table this spec leaves intact. Its § Ask first requires human sign-off for *scoping a record to a repair round* — the substantive permission this delivery uses, granted by the owner on 2026-09-23 — and separately for *any change to the review-phase guards*, also granted, which covers the `findings-remain` entry. The new `gates-failed` and `blocker-applied` guard entries are the mechanism of the first permission, not review-phase guards. Its § Never do forbids removing a record by any path but the three it names, and that rule is not reachable by sign-off, so this delivery removes no record)
