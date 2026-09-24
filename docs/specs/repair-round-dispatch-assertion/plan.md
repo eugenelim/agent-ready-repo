@@ -1,7 +1,7 @@
 # Plan: repair-round dispatch assertion
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/loop-infrastructure.md` §§ 3, 4, 6 (write authority, the two lock domains, the wave-exit verdict's serialisation residual); `packs/AGENTS.md` (pack export boundary, version bump rule, no internal-governance citations in shipped prose); analogous implementations — `_wave_exit_verdict` and `check_phase` in `_loop_guards.py`, `cmd_wave_advance` and `plan_dispatch_receipt` in `loop-cohort.py`, and `_guard_check_spec_status_on_code_review` in `loop-engine.py` for the source-state discriminator; their tests — `test_loop_guards.py`, `test_loop_cohort.py`, `test_loop_engine.py` under `packs/core/tests/skills/work-loop/`; construction path — `_GUARDS` in `loop-engine.py`, `PHASES` and `_SCHEMA_EXEMPT_PHASES` for the new phase. Named uncertainty: none outstanding. The controller-facing site set was surveyed on 2026-09-23 and is enumerated in T4; the obligation it carries is demoted working material rather than contract, and § Design (LLD) records why.
 
 ## Approach
@@ -545,6 +545,8 @@ one verb.
   the contract does not claim otherwise.
 
 ## Changelog
+
+- 2026-09-24 — all six tasks complete; 29 of 29 criteria met, none deferred.
 
 - 2026-09-24 — amended plan re-approved by eugenelim: T1-T5 unchanged and
   hash-pinned where completed, T6 carries the implementation review's findings
