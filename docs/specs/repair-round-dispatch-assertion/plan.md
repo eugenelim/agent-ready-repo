@@ -55,7 +55,7 @@ correction and this paragraph is the statement of record.
 | Current architecture | T5 | the edge list goes in § 4 beside the allowed-edges table, not § 6 |
 | Interface documentation | T4, then T6 | T4 writes the `dispatch_receipts` row; T6 corrects it to the `is True` rule the predicate applies |
 | Maintainer procedure | T4, then T6 | demoted working material: T4 writes the prose and the pack suite pins it, T6 repairs the pin's comment asymmetry and the sentences above two blocks, and no criterion reads any of it |
-| Verification evidence | T1, T2, T3 | each task appends its own mutation entries as it lands, rather than one task writing all of them afterwards |
+| Verification evidence | T6, sole owner | T1, T2, T3 and T6 each append their own entries as they land, but T6 owns the criterion: it is the task that repairs the ledger's survivor record and re-observes the failures the refusal rewording stales |
 | Interface compatibility | T5 | — |
 | Release history | T5 | — |
 | Reusable learning | T4, then T6 | T6 reverts T4's unrelated re-encoding of the whole file |
@@ -142,6 +142,29 @@ instead, and T4 produces it against the survey table below; a content test in
 What is given up is stated plainly: no completion gate reads it, so a future
 edit that drops the reopen from one block fails a pack test rather than a
 delivery criterion.
+
+**The oracle, and what it can decide alone.** `notes/walk_reopen_partition.py`
+transcribes the repair-round verdict and the accounting rule from the spec's
+words and imports nothing from the implementation, because the frozen sibling's
+walk states that a notes script under `docs/` does not import `_loop_guards` and
+routes that coupling to a test. Its domain varies the frozen spec's canonical
+axis list plus a superseded axis over each record, by type and value as well as
+presence, with container values generated from `RECEIPT_KEY_PATH` rather than
+hand-built at a literal depth; that domain is what the roster parity check draws
+from, which is why the criterion pinning the domain's construction sits in
+§ Proof while the oracle itself does not.
+
+A transcription cannot be its own oracle, and three criterion forms were written
+before that was stated plainly. Comparing the transcribed verdict against the
+conjunction it is transcribed from restates its own body; so does asserting that
+a refusal implies a live record, when the verdict *is* that implication. What the
+oracle decides without importing anything is narrower and real: that no state the
+shared reader refuses reaches the verdict, that superseding every record moves a
+state from `_wave_exit_verdict`'s R7 to its R8 and moves no other row — a
+comparison between two independently transcribed functions — and that both
+verdict outcomes occur over the domain. Those go in the verification ledger. Every
+claim about the *shipped* predicate is the parity check's, and § Proof contracts
+it at all three levels the rules have.
 
 ### Data & schema
 
@@ -371,10 +394,12 @@ surfaces agree.
 
 **Depends on:** T5
 
-**Tests:** per remedy, named below. It also **supersedes T1's § Proof claim**:
-T1's section is hash-pinned by the 2026-09-24 amendment and still claims the
-oracle criteria that amendment demoted, so ownership of the surviving § Proof
-criteria transfers here and this line is the statement of record.
+**Tests:** per remedy, named below. It also **supersedes T1's § Proof claim and
+T1–T3's shared claim on the mutation-record criterion**: those sections are
+hash-pinned by the 2026-09-24 amendment, T1 still claims oracle criteria that
+amendment demoted, and the mutation criterion cannot be ticked until this task
+repairs the ledger's survivor record. Ownership of every surviving § Proof
+criterion transfers here, and this line is the statement of record.
 
 **TDD — each of these lands a failing test first:**
 
@@ -394,8 +419,15 @@ criteria transfers here and this line is the statement of record.
   engine and the T3 ledger records it surviving. The guards take `engine_state`
   as a plain mapping, so a unit test hands each one a state it does not gate —
   `CODE-REVIEW` for `blocker-applied`, `CODE-HUMAN-GATE` for `gates-failed` —
-  and asserts the repair-round check is skipped. Removing the read then reds that
-  test. This is why the reads are kept rather than deleted: deletion would make
+  and asserts the repair-round check is skipped. The fixture condition that claim
+  depends on, and which the test must establish: the cohort state holds a live
+  record for the current wave, so `check --phase wave-reopen` would refuse, while
+  the guard's existing check passes — for `gates-failed` that means
+  `implementation_retry_count` below `max_implementation_retries`, since
+  `_guard_gates_failed_repair_round` runs the retry-cap guard first and its
+  refusal would mask the read either way. Only under that condition does removing
+  the read change the outcome, and § Proof's mutation criterion is ticked against
+  this claim. This is why the reads are kept rather than deleted: deletion would make
   those two guards decide from `(mode, event)` alone, contradicting § Always do's
   "never from the run mode", and would give up failing safe if the table grows.
   Suite: `test_loop_engine.py`.

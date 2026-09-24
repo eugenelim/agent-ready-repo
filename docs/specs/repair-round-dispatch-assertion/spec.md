@@ -104,7 +104,7 @@ The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
 - [ ] The read refusal is unchanged: an unreadable cohort state is refused by the shared reader before the verdict runs, exactly as it is for `check --phase wave-exit` today, and the verdict is never reached for one.
 - [ ] Its refusal names the verb that supersedes the records and the wave index the refusal is about.
 - [ ] `check --phase wave-reopen` reaches the verdict for a state whose `schema_version` is not the supported value, instead of being refused by the phase dispatcher's schema check before the verdict runs.
-- [ ] For every state the oracle below walks that has a `state.json`, the file is byte-identical before and after a `check --phase wave-reopen` invocation.
+- [ ] For every state in the parity check's domain that has a `state.json`, the file is byte-identical before and after a `check --phase wave-reopen` invocation.
 
 ### The reopen verb
 
@@ -148,7 +148,7 @@ The oracle's own criteria were demoted out of this contract on 2026-09-24 by the
 owner. Three successive forms each required a property the oracle cannot decide,
 for one reason: the oracle transcribes the verdict from these words, so any
 comparison between the two restates its own body. **Destination:** the plan's
-§ Design (LLD) owns the oracle and what it walks. **Pin:** the parity criterion
+§ Design (LLD) carries the oracle, its domain and what it decides alone. **Pin:** the parity criterion
 below supplies its domain from the oracle, so the oracle cannot be deleted
 without failing a criterion, and that criterion fails if the transcription and
 the shipped predicate stop agreeing. What the oracle still decides alone — the
@@ -156,8 +156,9 @@ the shipped predicate stop agreeing. What the oracle still decides alone — the
 domain — is recorded in the verification ledger, not here.
 
 - [ ] `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` is unedited, and reports 35,728 states walked, 0 overlapping, 0 uncovered, and per-row reachability R1 17864, R2 13398, R3 3829, R4 49, R5 384, R6 108, R7 4, R8 92. That artifact transcribes the frozen spec's words and imports nothing from the implementation, so an unchanged report establishes that this delivery did not redefine what a record, a wave or a partition is — not that the shipped predicate is unchanged, which it cannot see.
-- [ ] A check under `tests/roster/` drives this spec's transcribed accounting rule and the shipped `accounts_for_task` and `unaccounted_wave_tasks` over every state in the oracle's domain, and refuses any state the two decide differently — in both directions, so neither a code change without a transcription change nor the reverse passes. It lives there because it reads `docs/` and `packs/` together and `tools/lint-pack-test-boundary.py` forbids a pack test from reading above its own pack.
-- [ ] Both the agreeing-refusal and the agreeing-pass sets are non-empty in that check's domain, so it cannot pass by walking states that all decide one way.
+- [ ] A check under `tests/roster/` drives this spec's transcribed rules against the shipped code over every state in its domain and refuses any state the two decide differently, in both directions, so neither a code change without a transcription change nor the reverse passes. It covers all three levels the rules have: whether one record accounts (`accounts_for_task`), which tasks a wave leaves unaccounted (`unaccounted_wave_tasks`), and whether the repair-round verdict refuses. It lives under `tests/roster/` because it reads `docs/` and `packs/` together and `tools/lint-pack-test-boundary.py` forbids a pack test from reading above its own pack.
+- [ ] That check's domain is built by varying the axes `wave-complete-dispatch-receipts` § Acceptance Criteria declares to be the single canonical enumeration, extended with a superseded axis over each record varied by type and value as well as presence, with container values generated from the declared key path rather than hand-built at a literal depth.
+- [ ] Over that domain the shipped verdict both refuses and passes, and the shipped `unaccounted_wave_tasks` returns both an empty and a non-empty list, so the check cannot pass by walking states that all decide one way.
 - [ ] That check runs on a pull request: a step naming it in `.github/workflows/build-check.yml`, placed above the bulk `pytest tests/ -q` step so a failure is attributed to it, with a `tools/lint-ci-parity.py` disposition on both the local-coverage and the phase-and-dependency axes. `tests/roster/` has no pull-request trigger of its own, so without that step the criterion above is met by a check nothing runs.
 - [ ] A mutation record in this spec's `notes/verification-ledger.md` names each new guard clause, each new verb clause, and the accounting predicate's superseded clause, together with the edit that removed it, the test that turned red, and the observed failure, with no clause whose removal left the suite green.
 
