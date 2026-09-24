@@ -1,8 +1,9 @@
 # IaC ADR topics (infra mode)
 
 > **Load this when `new-adr` is invoked with `mode: infra` or when the user
-> asks for an infrastructure-specific ADR.** These seven topics correspond to
-> the `generate-iac` governance-index domains. Each topic produces one ADR.
+> asks for an infrastructure-specific ADR.** These seven topics each correspond
+> to a `generate-iac` governance-index domain; `observability` has no dedicated
+> authoring topic. Each topic produces one ADR.
 
 For each topic below:
 1. Invoke `new-adr` normally — the topic description is the framing question.

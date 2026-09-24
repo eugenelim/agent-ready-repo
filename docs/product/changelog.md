@@ -92,6 +92,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The severity vocabulary, the Concern ceiling on a judgement finding, and who
 applies the test are all unchanged. Only which question the test asks changed.
 
+## [governance-extras][0.11.2] — 2026-09-24
+
+### Highlights
+
+- **`new-adr`'s infra mode no longer claims its seven topics cover the whole
+  governance index.** Each of the seven maps to a domain, and `observability`
+  is named as the domain with no authoring topic of its own — so you can see
+  the gap instead of assuming the list is complete.
+
+### Fixed
+
+- `new-adr` `references/infra-decisions.md`: the header said the seven IaC
+  topics "correspond to" the `generate-iac` governance-index domains. The
+  manifest carries eight. The sentence now states that each topic maps to a
+  domain and names `observability` as the one without a dedicated topic.
+
 ## [governance-extras][0.11.1] — 2026-09-24
 
 ### Highlights
@@ -111,6 +127,21 @@ applies the test are all unchanged. Only which question the test asks changed.
   fields covering the mirrored pair, which record's D-IDs each half cites, the
   status a partially superseded record keeps, and how multiple entries are
   spelled. Field names, values, and the shape check are unchanged.
+
+## [product-engineering][0.13.18] — 2026-09-24
+
+### Highlights
+
+- **The `align-value-stream` layout page now names every skill that reads its
+  output setting.** It lists all eight `[product]` readers, calls out
+  `lean-canvas`'s scan-only read, and makes clear that `ux-writing` reads
+  `[design]` instead.
+
+### Changed
+
+- `align-value-stream`'s layout page now names all eight skills that read
+  `[product]`, including `lean-canvas`'s scan-only read, and distinguishes
+  `ux-writing`'s `[design]` read.
 
 ## [core][2.26.39] — 2026-09-23
 

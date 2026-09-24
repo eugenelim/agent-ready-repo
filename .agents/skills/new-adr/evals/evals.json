@@ -175,6 +175,16 @@
         "Setting the old record's Status to Superseded and its Superseded by: field is described as a separate edit to the pre-existing record, not part of authoring the new one",
         "Describes the old record's post-acceptance state as four distinct zones — frozen prose, an append-only Errata section, and a still-writable Status/supersession/Areas set — rather than one rule for the whole record"
       ]
+    },
+    {
+      "id": 16,
+      "prompt": "In infra mode, how do the seven IaC ADR authoring topics relate to the governance-index domains?",
+      "expected_output": "Each of the seven authoring topics maps to a generate-iac governance-index domain. The observability domain has no dedicated authoring topic, so the response does not claim that the seven topics cover the entire domain set.",
+      "assertions": [
+        "States that each of the seven authoring topics maps to a governance-index domain",
+        "Names observability as the domain without a dedicated authoring topic",
+        "Does not claim that the seven topics cover every governance-index domain"
+      ]
     }
   ]
 }

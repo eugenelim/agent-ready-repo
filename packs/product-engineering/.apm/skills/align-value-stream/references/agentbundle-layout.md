@@ -68,5 +68,13 @@ output_dir = "~/Documents/MyVault/product"   # absolute path; ~ is expanded
 
 `decompose-intent`'s `docs/product/briefs/<slug>.md` output is **not** governed
 by this table. That path is the hand-off to core's `author-delivery-brief continue` skill and
-stays pinned (a deliberate non-goal of this layout config). Only `frame-intent`
-(intents) and `align-value-stream` (rollups) read `[product]`.
+stays pinned (a deliberate non-goal of this layout config).
+
+## Who reads `[product]`
+
+Eight skill bodies, not two: `frame-intent` (intents), `align-value-stream`
+(rollups), `frame-situation`, `identify-opportunities`, `diverge-solutions`,
+`place-bet`, `map-capabilities` (all under `shaping/`), and `lean-canvas`, which
+reads the section to scan but writes a pinned path. `ux-writing` additionally
+reads **`[design]`**, not `[product]` — a cross-pack read this pack owns no
+section for.
