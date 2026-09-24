@@ -627,3 +627,82 @@ adjudicator produced the replacement over the unchanged raw reports, with
 explicit envelope rules including "do not use the indeterminate marker to
 signal a severity disagreement". It sustained that finding at Minor, which is
 what the marker had been substituting for.
+
+## Post-GATES review — round 4, and closeout
+
+**Clean.** The adversarial, security and quality lanes each returned the
+byte-exact `Clean — ready to commit.` sentinel from its own dispatch, so no
+adjudication was owed and the result was recorded with `--direct-clean-file`.
+
+A process correction belongs here. The round-4 pass was first run as ONE
+reviewer briefed as all three lenses, and its single report was copied into
+all three role slots. That would have recorded three independent clean
+verdicts where one review ran — fabricated evidence, and the same
+check-that-cannot-fail shape this delivery spent four rounds sustaining
+findings against. The copies were deleted and the security and quality lanes
+re-run as separate dispatches with their own briefs. All three cleared
+independently.
+
+### The arc
+
+| Round | Sustained | Blockers | Production defects |
+| --- | ---: | ---: | ---: |
+| 1 | 19 | 3 | most |
+| 2 | 10 | 4 | 4 |
+| 3 | 6 | 4 | 1 |
+| 4 | 0 | 0 | 0 |
+
+Two generators were named and neither recurred in a seam it had been fixed in:
+*derive twice instead of carrying once* (round 2), and *the test bypasses the
+producer it verifies* (round 3).
+
+`review_round_count: 3`, `review_retry_count: 2` of a cap of 5 — one
+findings-round never needed.
+
+### Re-verification after a 47-commit rebase
+
+`origin/main` advanced 47 commits before the PR. The rebase replayed 32/32
+clean. Two files overlapped — `docs/product/changelog.md` and
+`workspace.toml` — and both resolved without conflict.
+
+Re-checked rather than assumed, because a rebase invalidates prior evidence:
+
+- release surfaces: all five still `0.49.0`, derivation reports agreement.
+  Upstream did not bump agentbundle, so no collision.
+- changelog placement: `[core]` adjacent to `[Unreleased]`, the agentbundle
+  entry below it and above the 09-22 entries.
+- `workspace.toml` parses; the queue entry appears exactly once.
+- no conflict markers anywhere in the touched trees.
+- lint 0; full unit suite exit 0 over **3,287** tests; `lint-spec-status` and
+  `lint-contract-item-alignment` both clean; 48/48 acceptance criteria ticked.
+
+**AC-0056 re-run end to end on the rebased code**, against a freshly derived
+650-file tree edited at one recorded path and synced from a moved source:
+exit 0; the companion carries the source bytes at `st_nlink` 1 with no staged
+residue; the adopter's digest unchanged at `584dfa97c13da1bc`; 650 paths
+changed, plan 651, **0 outside the printed plan**. The CLI was invoked with
+`PYTHONPATH` pinned to this worktree — a bare invocation resolves to the
+primary checkout and would have measured the wrong code.
+
+### Review verdict record
+
+```json review-verdict.v1
+{
+  "state": "READY",
+  "spec": "docs/specs/catalogue-sync-apply/spec.md",
+  "run_id": "34823a23-d407-4b5d-997f-1d306358ea18",
+  "reviewers": {
+    "adversarial-reviewer": "clean",
+    "security-reviewer": "clean",
+    "quality-engineer": "clean"
+  },
+  "findings": [],
+  "rounds": 4,
+  "sustained_total": 35,
+  "residual_risk": [
+    "Companion delivery on a filesystem carrying no hard links fails loudly and takes the write-failed row; recorded in spec.md Follow-ons, owner unassigned.",
+    "Both AC-0077 rechecks narrow the clobber window rather than closing it; no portable compare-and-replace primitive is available. Stated in AC-0077 and plan.md Constraints.",
+    "Per-path removal-failure reasons are not reported; refuted this round as an enhancement no criterion requires."
+  ]
+}
+```
