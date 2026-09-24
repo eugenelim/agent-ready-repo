@@ -6,53 +6,37 @@
 
 ## Approach
 
-Candidate discovery joins `workspace-status` as a read-only subcommand beside
-`status`, `reconcile`, and `explain`, because its refusal vocabulary,
-confinement rails, and JSON envelope are already built there, and RFC-0096 §7
-assigns eligibility reporting to a deterministic helper rather than a workflow.
+Candidate discovery joins `workspace-status` as a read-only subcommand because
+its refusal vocabulary, confinement rails, and JSON envelope already exist
+there, and RFC-0096 §7 assigns eligibility reporting to a deterministic helper.
 
-Two orderings carry the delivery. Brief retirability lands before the
-projector, because the `shipped-brief-member` blocker has no correct behaviour
-to assert until a spec under a brief can legitimately retire. The area writer
-lands before its readers, because three subcommands read a map none of them may
-create.
+Two orderings carry the delivery. Brief retirability lands before the projector,
+because `shipped-brief-member` has no correct behaviour to assert until a spec
+under a brief can legitimately retire. The area writer lands before its readers,
+because three subcommands read a map none of them may create.
 
-The working prototype at `.context/spec-retirement-inventory.py` is the
-behavioural reference for the git-log walk and the citation buckets, not a file
-to move: `.context/` is gitignored, and its `eligible` column is replaced
-outright by the blocker list.
+`.context/spec-retirement-inventory.py` is the behavioural reference for the
+git-log walk and the citation buckets, not a file to move: `.context/` is
+gitignored, and its `eligible` column is replaced by the blocker list.
 
-**A blocker a maintainer cannot clear is a defect, not a safeguard.** Twenty-five
-`needs` edges sit in `work.shipped`, and RFC-0096 §7 says a completion receipt
-"remains only while live downstream work depends on it" — so those edges are
-residue the RFC already expects to be gone. Blocking on them permanently would
-make every spec they name unretirable by any action available to a maintainer.
+**A blocker a maintainer cannot clear is a defect, not a safeguard.** RFC-0096 §7
+says a completion receipt "remains only while live downstream work depends on
+it", so a `needs` edge left in a shipped entry is residue. Blocking on it
+permanently makes the spec it names unretirable by any available action.
+Ignoring it is worse: `workspace_status_prune.py` has no `needs` handling, so
+deletion leaves the edge dangling — the breakage the previous wave hit. So
+retirement removes its inbound edges in the same change that deletes the spec,
+on the pattern the brief already uses, and the projector names each edge so the
+action is visible rather than inferred.
 
-Removing the block is worse: `workspace_status_prune.py` has no `needs` handling
-at all, so deleting a target leaves every inbound edge dangling, whichever
-collection declares it. That is the breakage the previous retirement wave hit.
-
-So the blocker stays and becomes clearable, on the pattern the brief already
-uses. Retiring a spec removes its inbound `needs` edges in the same change that
-deletes it, exactly as it adds the brief's commit pin and flips its status cell.
-The projector names each edge to remove, so the action is visible rather than
-inferred, and the blocker clears when a maintainer takes it.
-
-**An unresolvable input refuses; it is never defaulted.** This is the rule that
-makes the capability portable. An adopter's `workspace.toml` will carry
-collection names, `needs` shapes, and `Status:` values this repository does not
-have, and a projector that silently skips what it cannot parse reports a shorter
-candidate list with no sign that anything was dropped — a false negative in the
-deletion-permissive direction. So every substrate reader classifies its input or
-refuses it by name, and the refusal codes are part of the emitted contract rather
-than a log line.
-
-Measured here, as the shapes the enumeration must already handle: `needs` carries
-both a list of tables and a bare `<room>:<kind>/<slug>` string; `Status:` carries
-five recognised values and is absent on some specs; and a `workspace.toml` entry's
-`path` may name a spec, its `spec.md`, or a file inside its directory, of which
-only the first two hold the spec. An adopter's counts will differ; the shapes are
-what the criteria are written against.
+**An unresolvable input refuses; it is never defaulted.** This is what makes the
+capability portable. An adopter carries collection names, `needs` shapes, and
+`Status:` values this repository does not, and a projector that silently skips
+what it cannot parse reports a shorter candidate list with no sign anything was
+dropped — a false negative in the deletion-permissive direction. Every substrate
+reader classifies its input or refuses it by name, and the refusal codes are part
+of the emitted contract. T0b enumerates the shapes that exist; this rule governs
+the ones it does not find.
 
 ## Constraints
 
@@ -132,91 +116,68 @@ is protected, cited, depended on, or simply young. Emitting the blockers makes
 each guard separately observable, which is what lets a construction test prove a
 guard fired rather than prove a sweep came back clean.
 
-**The blocker vocabulary is derived from RFC-0096, and the derivation is dated.**
-On 2026-09-24 the blockers the RFC names were enumerated as: the inbound-reference
-surfaces the Wave 7d carve-out lists; §6's missing history and unresolved
-references; and the workspace, protection, pinning, status, and cooling
-conditions the lifecycle model already carries. §6's fingerprint drift and
-uncertain authority are **not** in the vocabulary: both are decided from
-lifecycle-record fields, and no artifact in this repository carries a record, so
-a code for either would ship an unreachable branch. The schema enum is the
-vocabulary's single authority; this paragraph is the derivation, falsifiable
-once against the RFC rather than standing as a gate.
+**Authority for the blocker set is split.** RFC-0096's Wave 7e erratum owns the
+coverage obligation — which conditions must be reported, and that fingerprint
+drift and uncertain authority are excluded because they read lifecycle-record
+fields this capability never opens. The schema enum owns the code vocabulary.
+Neither restates the other.
 
-**Age comes from change history, and is never called a cooling verdict.**
-RFC-0096 §6's clock runs from `completed_on` on a lifecycle record, and §6 says
-plainly that "creation, Ready, edits, and session end never start the clock".
-`docs/lifecycle/` holds its `README.md` and nothing else, because cooling is
-opt-in: only delivered work cools, immediate disposal is `close-work`'s default
-recommendation, and enrolment cannot proceed without a human naming the
-completion event. No record exists to read, and generating one per artifact to
-answer "is this old enough" is not a cost this capability imposes.
+**Age comes from change history, and is never called a cooling verdict.** §6's
+clock runs from `completed_on` on a lifecycle record, and §6 says "creation,
+Ready, edits, and session end never start the clock". `docs/lifecycle/` holds
+only its README because cooling is opt-in, so there is no record to read. The
+report therefore carries the last recorded change, labelled as such, and the
+blocker is `recently-changed` rather than §6's vocabulary. An edit-derived age is
+not conservative in a fixed direction, so it is a triage signal, never a
+disposition; §6's clock still governs every deletion, which Wave 7c enforces.
 
-So the report carries the artifact's last recorded change, labelled as such, and
-the blocker is named `recently-changed` rather than borrowing §6's vocabulary.
-An edit-derived age is not conservative in a fixed direction — it reports less
-elapsed time where the last change post-dates the delivery event, and more where
-the selected event is a later release — so the report is a triage signal a human
-reads, never a disposition. §6's clock still governs every deletion, which
-Wave 7c enforces.
-
-Importing `close-work`'s cooling module was considered and is not available:
+Importing `close-work`'s cooling module is not available:
 `guides/_shared/reference/skill-script-conventions.md` § Sharing code across
-skills bans cross-skill relative imports as unportable across adapter
-projections, and `lint-brief-coverage.py` already hand-duplicates a helper for
-exactly that reason. Shared code would have to move to `.apm/shared-libs/`,
-which is a larger change than this capability needs.
+skills bans cross-skill relative imports, and `lint-brief-coverage.py` already
+hand-duplicates a helper for that reason. Shared code would have to move to
+`.apm/shared-libs/`, which is larger than this capability needs.
 
 **Brief resolution touches six read sites, and each carries a different
-consequence.** Rendering an absent spec is only the first, and a `Retired` state
-that reaches the renderer alone is worse than no change at all.
+consequence.** A `Retired` state reaching the renderer alone is worse than no
+change at all.
 
 - `_brief_lifecycle_is_valid`'s `Shipped` branch requires the child set to
   normalise to exactly `{"shipped"}`. A `Retired` child makes the lifecycle
   invalid and **returns exit 1** — the opposite of the criterion.
 - The same function's `execution_evidence` term is computed from
   `{"implementing", "shipped"}` before any branch runs. A `Retired` child is
-  absent from that set, so a `Draft`, `Ready`, or `Withdrawn` brief whose
-  children have all retired **passes** while carrying the strongest possible
-  evidence that execution happened, and an `Executing` or `Cancelled` brief whose
-  children have all retired **fails**. Both directions are wrong, and neither
-  changes the `Shipped` path the first bullet covers.
+  absent from it, so a `Draft`, `Ready`, or `Withdrawn` brief whose children have
+  all retired **passes** while carrying the strongest evidence that execution
+  happened, and an `Executing` or `Cancelled` brief whose children have all
+  retired **fails**. Both directions are wrong, and neither touches the `Shipped`
+  path above.
 - The `delivered` predicate requires every derived state to equal `shipped`. It
-  feeds the printed delivery line only — it does not reach the exit code — so a
-  test asserting exit codes alone cannot observe it.
+  feeds the printed delivery line only and never the exit code, so a test
+  asserting exit codes alone cannot observe it.
 - The recorded-cell drift check compares the map's status cell against the
-  derived status. Once a spec retires, the derived status becomes `Retired`
-  while the cell still reads `Shipped`, so the check fires a hard violation and
-  **exits 1** on its own — independently of every branch above it.
+  derived status, and fires a hard violation **exiting 1** on its own,
+  independently of every branch above.
 - The renderer decides which token a reader sees.
-
-A sixth site resolves an untracked back-linked child's status independently into
-the same child set. It is unreachable for a retired child — the spec index is
-built by globbing `docs/specs/*/spec.md`, so a deleted spec never enters it, and
-a mapped row keeps its slug out of the untracked set either way — and it is
-listed because the argument that retires it is the part worth recording.
+- A sixth site resolves an untracked back-linked child independently. It is
+  unreachable for a retired child — the spec index globs `docs/specs/*/spec.md`,
+  so a deleted spec never enters it — and is listed because the argument that
+  retires it is the part worth recording.
 
 Four of the six learn a permitted child set; the drift check and the renderer
 learn the resolution instead. Each reachable site independently returns the exit
 code the criterion forbids, which is why T1 drives the lint's entry point rather
 than its resolver and asserts the delivery line alongside the exit code.
 
-**Every consumer admits three new derived states, not one.** `Retired` and
-`unverifiable` both join `missing` as outcomes for an absent child. The `Shipped`
-branch admits `{shipped, retired, unverifiable}`; the execution-evidence term
-admits `{implementing, shipped, retired, unverifiable}`; and the drift check
-treats `unverifiable` as non-drift, because a pin that cannot resolve says
-nothing about whether the recorded cell is stale.
+**Every consumer admits three new derived states, not one.** The `Shipped` branch
+admits `{shipped, retired, unverifiable}`; the execution-evidence term admits
+`{implementing, shipped, retired, unverifiable}`; the drift check treats
+`unverifiable` as non-drift, because a pin that cannot resolve says nothing about
+whether the recorded cell is stale.
 
-**Retiring a spec edits two cells, not one.** The pin column takes the commit,
-and the status cell takes `Retired`. A pin added without the cell update leaves
-the row stale and the drift check fires; a cell updated without a pin makes the
-child unresolvable and it renders `missing`. The two travel together, and the
-shipped guide says so.
-
-The change is additive for every map row carrying **no** commit pin, which is
-every row today. It is deliberately not additive for a pinned row: that is the
-behaviour being added.
+**Retiring a spec edits two cells, not one.** The pin column takes the commit and
+the status cell takes `Retired`. A pin without the cell update leaves the row
+stale and the drift check fires; a cell without a pin renders `missing`. They
+travel together, and the shipped guide says so.
 
 ### Data & schema
 

@@ -131,10 +131,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-Every blocker code below is emitted by exactly one named condition, and the
-schema's enum owns the code vocabulary, and RFC-0096's Wave 7e erratum owns the
-coverage obligation those codes must satisfy. The plan records, as a dated
-derivation, how that vocabulary was derived from RFC-0096's named blockers.
+Every blocker code below is emitted by exactly one named condition. The schema's
+enum owns the code vocabulary; RFC-0096's Wave 7e erratum owns the coverage
+obligation those codes must satisfy.
 
 - [ ] A candidate free of every condition named below is reported eligible with
       an empty blocker list.
