@@ -64,26 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [governance-extras][0.11.1] — 2026-09-24
-
-### Highlights
-
-- **Superseding part of a decision record is now explained where you write
-  it.** The four supersession fields shipped with the ability to carve one
-  numbered constraint out of an older ADR, and the shape check has always
-  enforced it — but the template's one-line examples never said whose D-IDs
-  each half names, so the only way to get it right was to find an existing
-  pair and copy it. The template now states the rule beside the fields: both
-  halves name D-IDs defined by the *older* record, and a partially superseded
-  record keeps `Status: Accepted`.
-
-### Changed
-
-- The `new-adr` template gains a comment block beside the four supersession
-  fields covering the mirrored pair, which record's D-IDs each half cites, the
-  status a partially superseded record keeps, and how multiple entries are
-  spelled. Field names, values, and the shape check are unchanged.
-
 ## [core][2.26.40] — 2026-09-24
 
 ### Highlights
@@ -111,6 +91,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The severity vocabulary, the Concern ceiling on a judgement finding, and who
 applies the test are all unchanged. Only which question the test asks changed.
+
+## [governance-extras][0.11.1] — 2026-09-24
+
+### Highlights
+
+- **Superseding part of a decision record is now explained where you write
+  it.** The four supersession fields shipped with the ability to carve one
+  numbered constraint out of an older ADR, and the shape check has always
+  enforced it — but the template's one-line examples never said whose D-IDs
+  each half names, so the only way to get it right was to find an existing
+  pair and copy it. The template now states the rule beside the fields: both
+  halves name D-IDs defined by the *older* record, and a partially superseded
+  record keeps `Status: Accepted`.
+
+### Changed
+
+- The `new-adr` template gains a comment block beside the four supersession
+  fields covering the mirrored pair, which record's D-IDs each half cites, the
+  status a partially superseded record keeps, and how multiple entries are
+  spelled. Field names, values, and the shape check are unchanged.
 
 ## [core][2.26.39] — 2026-09-23
 
