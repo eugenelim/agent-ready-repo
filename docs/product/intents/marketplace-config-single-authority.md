@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** feature
 - **Owner:** eugenelim
+- **Parent intent:** capability:catalogue-trust-and-adoption
 - **Governed by:** [spec/marketplace-generator-single-source](../../specs/marketplace-generator-single-source/spec.md)
 
 ## Outcome

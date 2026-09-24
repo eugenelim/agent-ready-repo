@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** feature
 - **Owner:** eugenelim
+- **Parent intent:** capability:catalogue-trust-and-adoption
 - **Governed by:** [spec/claude-plugin-route-scope](../../specs/claude-plugin-route-scope/spec.md)
 
 ## Outcome
