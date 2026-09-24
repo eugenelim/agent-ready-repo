@@ -597,6 +597,54 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # A pack JOURNEY.md cannot link to a guide page, and the one attempt is a
+  # live 404. Found 2026-09-24 by measuring the knowledge topic
+  # `no-gate-resolves-relative-markdown-links` against the tree.
+  # `packs/core/JOURNEY.md:300` links to
+  # `../../docs/guides/core/how-to/run-headless-session/`; guides moved to
+  # repo-root `guides/`, so nothing resolves. `sync_pack_journeys` in
+  # tools/build-site.py copies the body verbatim, so the same href ships to
+  # `web/src/content/journeys/core.md:301`, and a Markdown body link is NOT
+  # passed through `withBase()` the way the `docsUrl` frontmatter field is
+  # (web/src/components/journey/JourneyHero.astro:50). It is the only guide
+  # link in any of the 20 JOURNEY.md files, so the capability is effectively
+  # unavailable to every pack rather than broken in one.
+  #
+  # There is no correct one-line repair, which is why this is an entry and not
+  # a fix. The repo-relative form resolves in the checkout and 404s on the
+  # site; the form that works on the site is
+  # `/agent-ready-repo/docs/guides/core/how-to/run-headless-session/`, which
+  # hardcodes this repository's site base into a file shipped to adopters --
+  # the class the topic `a-house-style-rule-put-in-the-shipped-package-becomes-an-adopters-build-break`
+  # describes. The two candidate resolutions are a link-rewrite pass in
+  # `sync_pack_journeys` mirroring `_rewrite_contributing`, or a declared
+  # body-link grammar packs author against. Either needs its own criteria.
+  # Also record why no gate caught it: `tools/check-rendered-site-links.py`
+  # audits an emitted HTML tree, and the journeys route was not in the audited
+  # build. Unblocks now; nothing depends on it.
+  { slug = "journey-bodies-cannot-link-to-a-guide-page", source = "knowledge-distill/2026-09-24", summary = "packs/core/JOURNEY.md:300 is a live 404 on the published site because sync_pack_journeys copies journey bodies verbatim and a Markdown body link is not base-qualified the way docsUrl is; it is the only guide link across 20 JOURNEY.md files, so packs have no working way to link a guide page, and the rendered-site link audit did not cover the journeys route" },
+
+  # No gate resolves relative Markdown links repository-wide. The knowledge
+  # topic `no-gate-resolves-relative-markdown-links` recorded this and it is
+  # still true; measured 2026-09-24 the standing debt is 388 broken relative
+  # links across 92 files, excluding the docs-site, web and evals-fixture
+  # trees. By directory: docs/specs 47 files, packs/core 19, docs/rfc 9,
+  # docs/product 6, docs/adr 3, docs/architecture 3, docs/guides 2, and one
+  # each in docs/CHARTER.md, packages/agentbundle and packs/monorepo-extras.
+  # build-check does not resolve relative links, and lint-spec-status.py's
+  # dangling-reference check is warn-only and covers docs/specs alone.
+  #
+  # The adopter-facing subset is already gated and already deferred -- see
+  # `core-seeds-mandate-other-packs-content` below and
+  # `DEFERRED_MISSING_LINKS` in tests/roster/test_install_snapshot.py, which
+  # pins all nine core-seed occurrences by (page, target). So this entry is
+  # about the internal corpus only, and the work is scoping rather than
+  # mechanism: a gate over frozen specs would red on records nobody may edit,
+  # and a gate that exempts them enforces almost nothing. Decide the domain
+  # (which trees, and what happens to a frozen record carrying a stale link)
+  # before writing the check. Unblocks now.
+  { slug = "no-repository-wide-relative-markdown-link-gate", source = "knowledge-distill/2026-09-24", summary = "388 broken relative Markdown links across 92 files with no gate resolving them; the adopter-facing seed subset is separately gated and deferred, so the open work is deciding the domain for the internal corpus, where a gate over frozen specs would red on records nobody may edit" },
+
   # Discovered while shaping docs/specs/conventions-retirement. The core pack's
   # seeds impose obligations and links that only other packs -- or no pack --
   # can satisfy, and core declares no dependency on any of them. Verified
@@ -614,6 +662,19 @@ open = [
   # declined to absorb this into the retirement spec so that change stays scoped
   # to the document it retires; the retirement instead narrows its scaffold-link
   # criteria to the links it touches, which leaves these untouched and visible.
+  #
+  # Re-measured 2026-09-24 against the authored seed tree: exactly nine broken
+  # relative links, and they match `DEFERRED_MISSING_LINKS` in
+  # tests/roster/test_install_snapshot.py pair for pair -- `docs/CHARTER.md`
+  # -> `adr/` and `GOVERNANCE.md`; `docs/architecture/README.md` -> `../adr/`
+  # and `../rfc/`; `docs/product/README.md` -> `personas.md`,
+  # `release-checklist.md`, `../adr/`, `../rfc/` and `../guides/`. Nothing has
+  # been added since the deferral was recorded, and the guard's (page, target)
+  # keying means a new occurrence on any page would fail rather than inherit
+  # the exemption. So the mechanism is built and the deferral is accurate: the
+  # open work here is the uncoupling decision (core states only what it
+  # installs; a pack that owns a process carries its own mandate), not a new
+  # link check.
   {slug = "core-seeds-mandate-other-packs-content", source = "spec/conventions-retirement (round-5 adopter-boundary review)"},
   # The sender cannot explain its own effective configuration. `resolve_telemetry`
   # returns a merged mapping, so once resolution SUCCEEDS nothing records which
@@ -1904,6 +1965,21 @@ open = [
   # (Class A, correctly no action). No pin names a missing file, so Class B
   # stays done. No topic is `needs_review`, so active here means lifecycle
   # `active` exactly.
+  #
+  # Re-measured 2026-09-24 after a full distill run: 41 stale pins across 28
+  # topics, 20 of them active with a stale OWNING pin -- identical to the
+  # 2026-09-23 counts, so nothing drifted and nothing cleared. What DID change
+  # is the fallback route. The "ride the next real distill run" option recorded
+  # above is now SPENT: all three pending captures were dispositioned on
+  # 2026-09-24 (one promoted to a new topic, two routed), each on its own
+  # subject. Riding one to clear an unrelated topic's pin was refused for the
+  # reason this entry already gives -- it writes a producer, a gate and an
+  # evidence digest for an edit that is not that observation. The journal now
+  # holds zero pending captures, so the route has no vehicle until a new
+  # capture arrives, and the topic count is 99 (94 active). Do not plan the
+  # next attempt around riding a distill run; the unblock conditions stated
+  # above (a capture-free maintenance mutation that rebuilds the map, or moving
+  # the freshness contract off byte digests) are the only live ones.
   { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 41 of those pins are stale across 28 topics, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; the recorded drop-the-pin disposition is capable but not affordable, because the skill registers exactly one committed-topic write path and it costs one pending captured observation per topic, of which three remain against 20 active topics with a stale owning pin" },
 
   # Found 2026-09-17 by the pre-EXECUTE review of

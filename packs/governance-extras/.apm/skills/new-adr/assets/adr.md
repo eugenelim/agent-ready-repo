@@ -42,6 +42,14 @@ Parse tiers — fields the shape lint checks:
 - **Supersedes in part:** none <!-- none, or: ADR-NNNN D1; ADR-MMMM D2, D3 -->
 - **Superseded by:** none <!-- none, or: ADR-NNNN -->
 - **Superseded in part:** none <!-- none, or: ADR-NNNN D1 -->
+<!-- The two `in part` fields are one mirrored pair, written on both records.
+  In BOTH halves the D-IDs belong to the SUPERSEDED (older) record, so the
+  older gets `Superseded in part: <newer> D3` and the newer gets
+  `Supersedes in part: <older> D3` — the same D-IDs on both sides. A
+  partially superseded record keeps `Status: Accepted`; `Superseded` is for
+  whole-record replacement only. Several D-IDs against one ordinal join with
+  a comma and no space; separate ordinals join with a semicolon and a space.
+  All four supersession fields stay writable after acceptance. -->
 - **Related:** <!-- suggested (tier T1-unchecked — not validated by the lint):
   RFC-NNNN (the proposal this records); ADR-NNNN (the gate it rests on — the
   motivating evidence, and the split between what a scanner catches and what
