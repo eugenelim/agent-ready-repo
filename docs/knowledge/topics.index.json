@@ -797,6 +797,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "88bfb680e50dec4f740ac1195ec8b6d108adcc94"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-DESIGN"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-17T21:50:38Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-totality-criterion-that-names-its-own-domain-cannot-fail.json",
+      "scopes": [
+        "packs/core/.apm/skills/new-spec",
+        "packs/core/tests/skills/new-spec"
+      ],
+      "title": "A totality criterion that names its own domain cannot fail — pin the key set and make the table total by construction",
+      "topic_key": "a-totality-criterion-that-names-its-own-domain-cannot-fail"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "45363aba8c08b450f4b26a49f48169d07d446e53"
       },
       "competency_facets": [
