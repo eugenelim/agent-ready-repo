@@ -127,6 +127,8 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gate
 
 **Full mode — if gates fail:**
 ```
+python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
+    --expect-run-id <run_id>
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gates-failed
 python '<skill-dir>/scripts/loop-cohort.py' record-attempt docs/specs/<feature> \
     --phase implement --cycle-id <run_id>:<seq> --expect-run-id <run_id>
@@ -195,6 +197,8 @@ response:
   ```
 - **Changes requested:** fire `blocker-applied`, apply the fix, then fire `wave-complete` to reach `CODE-VERIFICATION` before GATES, then re-enter REVIEW (adversarial first).
   ```
+  python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
+      --expect-run-id <run_id>
   python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> blocker-applied
   # Apply the fix, then fire wave-complete (gates-clean/gates-failed are legal
   # only from CODE-VERIFICATION, not CODE-IMPLEMENTATION). Run the wave-exit
@@ -226,6 +230,8 @@ If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `fi
 # The transition prints `(seq=N)`. Record only if it succeeded, and pass that
 # N: a resuming session reads the same value from `loop-engine status`, so the
 # operation id it recomputes matches and the round is not written twice.
+python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
+    --expect-run-id <run_id>
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id> \

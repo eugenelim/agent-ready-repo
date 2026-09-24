@@ -13,7 +13,8 @@ Verb surface
 ------------
     loop-cohort init <spec-dir> --run-id <uuid>
     loop-cohort identity <spec-dir> [--expect-run-id <uuid>] [--json]
-    loop-cohort check <spec-dir> --phase {implement,review,gates-failed,wave-exit}
+    loop-cohort check <spec-dir> --phase {implement,review,gates-failed,wave-exit,
+                                           wave-reopen}
     loop-cohort approve-plan <spec-dir> --expect-run-id <uuid>
     loop-cohort plan check-current <spec-dir> [--require-schedule]
     loop-cohort schedule <spec-dir> --expect-run-id <uuid>
@@ -24,6 +25,7 @@ Verb surface
                                (--receipt | --decline <reason>) --expect-run-id <uuid>
     loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
     loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
+    loop-cohort wave reopen <spec-dir> --expect-run-id <uuid>
     loop-cohort review classify --report <path> [--json]
     loop-cohort review raw-classify --report <path> [--json]
     loop-cohort review inspect <spec-dir> --report <path> [--adjudication] [--json]
@@ -74,7 +76,7 @@ SCHEMA_VERSION = 1
 # `wave-exit` is the phase the `wave-complete` transition consults. Nothing pins
 # this tuple, and the usage block above is a second, hand-maintained enumeration
 # of the same list — keep the two together.
-PHASES = ("implement", "review", "gates-failed", "wave-exit")
+PHASES = ("implement", "review", "gates-failed", "wave-exit", "wave-reopen")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
 
 CLEAN_SUBSTRING = "Clean — ready to commit."
@@ -476,10 +478,12 @@ except GuardsUnavailable as exc:
     RECEIPTS_KEY = ""
     RECEIPT_KEY_PATH = ()
     RECEIPT_KIND = DECLINE_KIND = ""
+    SUPERSEDED_KEY = ""
     DECLINE_REASONS = ()
     partition_digest = is_dispatch_record = _guards_unavailable
     malformed_receipts_position = receipts_for_partition = _guards_unavailable
     wave_is_well_formed = unaccounted_wave_tasks = _guards_unavailable
+    accounts_for_task = _guards_unavailable
     bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
@@ -503,12 +507,14 @@ else:
     RECEIPT_KIND = _g.RECEIPT_KIND
     DECLINE_KIND = _g.DECLINE_KIND
     DECLINE_REASONS = _g.DECLINE_REASONS
+    SUPERSEDED_KEY = _g.SUPERSEDED_KEY
     partition_digest = _g.partition_digest
     is_dispatch_record = _g.is_dispatch_record
     malformed_receipts_position = _g.malformed_receipts_position
     receipts_for_partition = _g.receipts_for_partition
     wave_is_well_formed = _g.wave_is_well_formed
     unaccounted_wave_tasks = _g.unaccounted_wave_tasks
+    accounts_for_task = _g.accounts_for_task
     bounded_id_list = _g.bounded_id_list
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
@@ -1653,7 +1659,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     return 0
 
 
-# ── wave check / advance ──────────────────────────────────────────────────
+# ── wave check / advance / reopen ─────────────────────────────────────────
 
 
 def cmd_wave_check(args: argparse.Namespace) -> int:
@@ -1773,12 +1779,13 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
 
 
 # The data model — `RECEIPTS_KEY`, `RECEIPT_KEY_PATH`, the closed kind and reason
-# sets, `partition_digest`, `is_dispatch_record`, `malformed_receipts_position`,
-# `receipts_for_partition`, `wave_is_well_formed`, `unaccounted_wave_tasks` and
-# `bounded_id_list` — is declared once in `_loop_guards.py` and re-bound at the
-# top of this file. `check --phase wave-exit` and this verb have to agree about
-# the container key, the record shape and what "accounted for" means, and the
-# guard layer is the only side of the dependency both can reach.
+# sets, `SUPERSEDED_KEY`, `partition_digest`, `is_dispatch_record`,
+# `accounts_for_task`, `malformed_receipts_position`, `receipts_for_partition`,
+# `wave_is_well_formed`, `unaccounted_wave_tasks` and `bounded_id_list` — is
+# declared once in `_loop_guards.py` and re-bound at the top of this file.
+# `check --phase wave-exit` and this verb have to agree about the container key,
+# the record shape and what "accounted for" means, and the guard layer is the
+# only side of the dependency both can reach.
 
 
 def plan_dispatch_receipt(
@@ -1922,6 +1929,90 @@ def cmd_dispatch_receipt(args: argparse.Namespace) -> int:
         f"loop-cohort: dispatch-receipt recorded {kind} for {args.task} "
         f"in wave {raw_index} of {spec_dir.name}"
     )
+    return 0
+
+
+# ── wave reopen ───────────────────────────────────────────────────────────
+#
+# Spec: docs/specs/repair-round-dispatch-assertion/spec.md, § The reopen verb.
+# The repair-round mutation: supersedes every record held under the LIVE
+# partition digest at `current_wave_index`, and removes none.
+# `wave-complete-dispatch-receipts` § Never do names the only three paths that
+# may remove a record, and this is not one of them, so a record here only ever
+# gains `SUPERSEDED_KEY: True` — it is never dropped, and neither is a
+# now-empty container or subtree: `unaccounted_wave_tasks` returns no tasks for
+# an absent container, so pruning one would disable the very accounting this
+# verb exists to re-arm.
+
+
+def plan_wave_reopen(state: dict) -> tuple[dict | None, str | None]:
+    """Validate a wave reopen and return the state to persist.
+
+    Returns `(new_state, None)` on acceptance or `(None, reason)` on refusal, in
+    refuse-cheapest-first order matching `plan_dispatch_receipt`: usable
+    partition, well-formed container, valid pointer. Pure — the caller owns the
+    lock and the write — so every refusal leaves `state.json` byte-identical.
+
+    An absent or empty container reads as nothing to reopen, exactly as
+    `plan_dispatch_receipt` reads an absent container as the empty one: no key
+    is added, and the returned state is unchanged.
+    """
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return None, (
+            f"wave reopen: schedule_waves is unusable ({_scalar(waves)}); run "
+            "schedule to persist a partition, or reset to rebuild cohort state"
+        )
+    malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
+    if malformed is not None:
+        return None, (
+            f"wave reopen: {RECEIPTS_KEY} is malformed — expected {malformed} "
+            f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to "
+            "rebuild cohort state"
+        )
+    index = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(index, str):
+        return None, f"wave reopen: {index}"
+    if index >= len(waves):
+        return None, (
+            f"wave reopen: current_wave_index={index} is not an index into "
+            f"schedule_waves (len={len(waves)}); run reset to rebuild cohort "
+            "state"
+        )
+
+    # Every position in `container` already satisfies `is_dispatch_record`,
+    # established by the malformed check above over the WHOLE container —
+    # not only the live digest's current wave — so no further validation is
+    # needed before marking.
+    updated = copy.deepcopy(state)
+    container = updated.get(RECEIPTS_KEY, {})
+    digest = partition_digest(waves)
+    wave_records = container.get(digest, {}).get(str(index))
+    if isinstance(wave_records, dict):
+        for record in wave_records.values():
+            record[SUPERSEDED_KEY] = True
+    return updated, None
+
+
+@_locked("wave reopen")
+def cmd_wave_reopen(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="wave reopen")
+    if err is not None:
+        return err
+
+    updated, reason = plan_wave_reopen(state)
+    if reason is not None:
+        return stop(reason)
+    write_state_atomic(spec_dir, updated)
+    print(f"loop-cohort: wave reopen for {spec_dir.name}")
     return 0
 
 
@@ -2952,6 +3043,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--from-index", required=True, type=int, dest="from_index")
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_wave_advance)
+
+    sp = wave_sub.add_parser(
+        "reopen",
+        help="supersede the current wave's dispatch records for a repair round",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
+    sp.set_defaults(func=cmd_wave_reopen)
 
     # review (namespace with sub-verbs)
     sp_review = sub.add_parser("review", help="review-phase state mutations")
