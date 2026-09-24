@@ -131,7 +131,7 @@ flowchart LR
     EG["guard layer (_loop_guards.py)"]
   end
   subgraph CP["loop-cohort.py"]
-    CV["mutation verbs: wave advance, dispatch-receipt"]
+    CV["mutation verbs: wave advance, dispatch-receipt, wave reopen"]
   end
 
   EL(["engine-state.json.lock"])
@@ -191,6 +191,15 @@ is not read-only with respect to cohort state on every path.
 The rest of the split holds: the other fourteen events invoke no cohort mutation
 from the engine, and every cohort write they need is invoked explicitly by the
 skill.
+
+### Reopen obligation on three backward edges
+
+Three backward edges require a skill-invoked wave reopen before they can fire:
+`gates-failed` from `CODE-VERIFICATION`, `findings-remain` from `CODE-REVIEW`,
+and `blocker-applied` from `CODE-HUMAN-GATE`. The controller runs
+`loop-cohort wave reopen` before firing any of these; the guard refuses while
+the current wave holds a live dispatch record, so the wave exit cannot be
+discharged twice from one set of records.
 
 ## 5. Primary flows
 
