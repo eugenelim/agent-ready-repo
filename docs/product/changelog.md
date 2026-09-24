@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [core][2.26.41] — 2026-09-24
 
-### Added
+### Changed
 
 - The corpus lint now refuses a `Fulfilled` intent that carries no `Accepted:`
   or `Fulfilled:` record, a `Cancelled` intent that carries no `Accepted:`
