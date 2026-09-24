@@ -36,7 +36,7 @@ still lack one.
 - One clause in the shared accounting predicate, so a superseded record accounts for no task — `unaccounted_wave_tasks` in `_loop_guards.py`
 - A fifth `check --phase` value, its verdict, and its membership of the schema-exempt phase set — `loop-cohort.py`'s `PHASES`, and `_loop_guards.py`'s `_SCHEMA_EXEMPT_PHASES`
 - Guard entries on the three named edges, discriminated by source state, including the first guard `blocker-applied` has ever carried — `loop-engine.py`'s `_GUARDS`
-- The controller's repair-round protocol, which now runs the reopen before firing the edge — the five fenced command blocks that fire a guarded edge, across `references/full-mode-engine.md` and `references/finding-adjudication.md`, plus the `SKILL.md` and `references/session-resumption.md` prose that routes a controller to them
+- The controller's repair-round protocol, which now runs the reopen before firing the edge — three fenced blocks in `references/full-mode-engine.md` and two in `references/finding-adjudication.md`, plus `SKILL.md`'s repair-round paragraphs and the `wave-complete` row of `references/session-resumption.md`
 - A `superseded` member on a dispatch record, whose absence means live — `references/state-schema.md`'s `dispatch_receipts` row, which today tells adopters that a receipt and a decline "both count as accounted for"
 - A committed oracle that walks the repair-round verdict over the frozen spec's declared field axes — this spec's `notes/`
 - A mutation record for every new guard clause, verb clause, and the accounting predicate's superseded clause — this spec's `notes/verification-ledger.md`
@@ -46,7 +46,7 @@ still lack one.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Current architecture | The re-entry edges and the two lock domains are described there, and the description becomes wrong without this | `docs/architecture/loop-infrastructure.md` §§ 4, 6 | maintainer | The section names the reopen obligation and which edges carry it | The named sections describe the shipped edges |
-| Maintainer procedure | A controller that does not run the reopen cannot re-enter implementation, so the procedure is not optional | `packs/core/.apm/skills/work-loop/SKILL.md` and `references/full-mode-engine.md`, `references/session-resumption.md` | maintainer | Each of the three edges states the reopen step in its own command sequence | Every documented sequence that fires one of the three edges runs the reopen first |
+| Maintainer procedure | A controller that does not run the reopen cannot re-enter implementation, so the procedure is not optional | `references/full-mode-engine.md` and `references/finding-adjudication.md` for the five guarded blocks; `SKILL.md` and `references/session-resumption.md`'s `wave-complete` row for the prose that routes a controller to them | maintainer | Each guarded block runs the reopen above its transition, and the two `SPEC-PLAN-REVIEW` blocks do not | Demoted working material: the pack suite's content pin holds it, no criterion does |
 | Interface compatibility | A new CLI verb and a new `--phase` value are published interfaces of the packaged scripts | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | maintainer | Both carry one patch above the merge-base and agree | The two versions are equal and one patch above the merge-base |
 | Release history | Pack content changed | `docs/product/changelog.md`, one `## [core][x.y.z]` heading | maintainer | The entry names the new refusal a controller will meet | One core heading for the branch, topmost beneath `[Unreleased]` |
 | Reusable learning | The eval harness is the pack's contract record for a non-cosmetic update | `packs/core/.apm/skills/work-loop/evals/evals.json` | maintainer | An entry covering the repair-round obligation | The entry exists; it is never counted as verification |
@@ -89,7 +89,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **The reopen verdict table: TDD, plus a committed oracle walk.** Each row is unit-testable, but "exactly one row applies to any state" is a property over a state space no example set covers; the oracle is what decides it, the way `walk_verdict_partition.py` decides the wave-exit partition.
 - **The three edges refusing and then admitting: TDD at integration surface.** Each edge only proves out across the engine, the guard layer, and cohort state together, so the check drives `loop-engine transition` against a real spec directory rather than calling the guard directly.
 - **The wave-exit partition's immutability: goal-based check.** The committed oracle already prints the comparison values; re-running it and diffing its report is the one-liner.
-- **The documented repair-round procedure: goal-based check, against a content pin rather than a criterion.** The obligation is demoted working material, so what runs is a prose assertion in the pack suite; nothing a completion gate reads observes it, and § Controller-facing surfaces says why.
+- **The documented repair-round procedure: goal-based check, against a content pin rather than a criterion.** The obligation is demoted working material: no acceptance criterion reads it, so what stands between it and silent removal is a prose assertion in the pack suite. § Controller-facing surfaces records the demotion and its authority.
 - **Projection parity after `make build-self`: goal-based check.** Its three-copy parity check is the observable outcome, not the exit code.
 
 ## Acceptance Criteria
@@ -119,7 +119,7 @@ The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
 
 - [ ] `loop-cohort wave advance`'s advancing branch refuses a wave whose records are all superseded, so the predicate's second consumer agrees with the wave exit that the first group already pins.
 - [ ] The wave-exit refusal and the `wave advance` refusal each distinguish a superseded record from an absent one, so a controller is not told a record is missing when one is present and superseded.
-- [ ] A record carrying no `superseded` member is live, so every `state.json` written before this change means what it meant before it.
+- [ ] `unaccounted_wave_tasks` treats a record carrying no `superseded` member as live, so every `state.json` written before this change means what it meant before it.
 - [ ] `references/state-schema.md`'s `dispatch_receipts` row describes the `superseded` member and its absence rule, and no longer states that a receipt and a decline both count as accounted for without qualification.
 
 ### The three edges
@@ -144,10 +144,10 @@ removal reds a suite even though no criterion reads it.
 
 ### Proof
 
-- [ ] `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` reports 35,728 states walked, 0 overlapping, 0 uncovered, and per-row reachability R1 17864, R2 13398, R3 3829, R4 49, R5 384, R6 108, R7 4, R8 92.
+- [ ] `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` is unedited, and reports 35,728 states walked, 0 overlapping, 0 uncovered, and per-row reachability R1 17864, R2 13398, R3 3829, R4 49, R5 384, R6 108, R7 4, R8 92. That artifact transcribes the frozen spec's words and imports nothing from the implementation, so an unchanged report establishes that this delivery did not redefine what a record, a wave or a partition is — not that the shipped predicate is unchanged, which it cannot see.
 - [ ] A committed oracle under this spec's `notes/` checks the repair-round verdict over a domain built by varying the axes that `wave-complete-dispatch-receipts` § Acceptance Criteria declares to be the single canonical enumeration, **extended with a superseded axis over each record**, with container values generated from the declared key path rather than hand-built at a literal depth. Over the states the verdict is reached for, it reports that the verdict refuses on exactly those satisfying the conjunction stated above and passes on every other; for the states it is never reached for, it reports that the shared reader refused before the verdict ran.
-- [ ] That same oracle reports the row each state reaches in `_wave_exit_verdict`, and every state that reaches the accounted row with live records reaches the unaccounted row instead once those records are superseded.
-- [ ] Both oracles call the shipped predicates rather than a local copy of them, so a change to `unaccounted_wave_tasks` is visible to the walk.
+- [ ] That same oracle reports the row each state reaches in `_wave_exit_verdict`, and every state reaching R7 with live records reaches R8 instead once those records are superseded — the row movement the superseded clause causes, stated in the same scheme the criterion above uses.
+- [ ] This spec's oracle calls the shipped `_loop_guards` predicates rather than a local transcription of them, so a change to `unaccounted_wave_tasks` is visible to it. That is the division of labour the frozen walk's own header sets out, and it is why this spec adds an oracle instead of editing that one.
 - [ ] A mutation record in this spec's `notes/verification-ledger.md` names each new guard clause, each new verb clause, and the accounting predicate's superseded clause, together with the edit that removed it, the test that turned red, and the observed failure, with no clause whose removal left the suite green.
 
 ## Follow-ons

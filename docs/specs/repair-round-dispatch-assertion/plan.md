@@ -179,15 +179,18 @@ None added. The verb reuses `_locked`, `read_state`, `write_state_atomic`,
 
 **Depends on:** none
 
-**Tests:** TDD. Discharges § The repair-round verdict, § Proof, and the
-`wave advance` and refusal-wording criteria of § The accounting predicate. The
-`references/state-schema.md` criterion in that group belongs to T4, which is the
-task that writes documentation.
+**Tests:** TDD. Discharges § The repair-round verdict entire; the `wave advance`,
+refusal-wording and absence-rule criteria of § The accounting predicate; and the
+three oracle criteria of § Proof. The `references/state-schema.md` criterion
+belongs to T4, the task that writes documentation, and § Proof's mutation-record
+criterion is closed jointly by T1, T2 and T3, each appending its own entries.
 
 - The predicate change lands first and alone: `unaccounted_wave_tasks` returns a
-  task whose only record is superseded. Both consumers are asserted, the wave
-  exit and `wave advance`'s advancing branch, because the predicate is shared
-  and a change that reached one consumer only is the defect this repository has
+  task whose only record is superseded, and does not return one whose record
+  carries no `superseded` member — the backward-compatibility half, driven from a
+  fixture written in the pre-change shape. Both consumers are asserted, the wave
+  exit and `wave advance`'s advancing branch, because the predicate is shared and
+  a change that reached one consumer only is the defect this repository has
   already paid for once.
 - One case per conjunct of the verdict's refusal condition, each falsifying that
   conjunct alone and asserting a pass; plus the all-conjuncts-true case
@@ -198,7 +201,11 @@ task that writes documentation.
 - The CLI-level exemption case drives `check --phase wave-reopen` through
   `cmd_check` against an unsupported `schema_version`, not the verdict function,
   because that is the only surface where `_SCHEMA_EXEMPT_PHASES` is observable.
-- `notes/walk_reopen_partition.py`: domain built from the axis list
+- `notes/walk_reopen_partition.py` imports `_loop_guards` and calls the shipped
+  `unaccounted_wave_tasks` and verdict functions, so the walk moves when the code
+  moves. The frozen walk is read, run and compared — never edited; it transcribes
+  another spec's words and this spec has no standing over it.
+- That oracle's domain is built from the axis list
   `wave-complete-dispatch-receipts` § Acceptance Criteria declares canonical
   plus a superseded axis over each record, container values generated from
   `RECEIPT_KEY_PATH` rather than hand-built, asserting refusal ⟺ the conjunction,
@@ -312,8 +319,14 @@ procedure and its content pin.
 - `make build-self` reports three-copy parity across `.apm/`, `.claude/` and
   `.agents/`.
 
-**Done when:** `packs/core/tests/pack/` is green and the parity check reports
-three matching copies.
+- The `evals/evals.json` entry covering the repair-round obligation is written
+  here, because `packs/AGENTS.md` requires a non-cosmetic pack update to update
+  that pack's eval harness. Nothing runs it; it is a contract record and is never
+  counted as verification.
+
+**Done when:** `packs/core/tests/pack/` is green, `references/state-schema.md`'s
+`dispatch_receipts` row describes the `superseded` member and its absence rule,
+the eval entry exists, and the parity check reports three matching copies.
 
 ### T5: the release surface and the architecture record agree with the code
 
@@ -343,7 +356,7 @@ one verb.
 
 - **A controller that has not read the new prose meets an unexplained refusal.**
   Mitigated by the refusal naming the verb that clears it, which T1 and T3
-  assert, and by T4's block count, which fails when a firing site is added
+  assert, and by T4's invocation count, which fails when a firing line is added
   without being classified.
 - **The shared accounting predicate has two consumers**, and a change tested
   through one only would leave `wave advance` disagreeing with the wave exit.
@@ -364,6 +377,8 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-23 — round-5 repairs: the frozen oracle is read and never edited, task
+  ownership was made one-to-one, and the eval entry regained a producing step.
 - 2026-09-23 — the owner demoted the controller-facing-surfaces obligation from
   contract to working material after three criterion forms failed to mechanise
   it; the remaining round-4 findings were repaired.
