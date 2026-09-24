@@ -41,11 +41,13 @@ T1 → `test_loop_guards.py`; T2 →
 artifact comparing this contract's rules to the shipped ones. The first three are under
 `packs/core/tests/skills/work-loop/`.
 
-**The oracle-to-code coupling lives in `tests/roster/`, not in the pack suite.**
+**The contract-to-code coupling lives in `tests/roster/`, not in the pack suite.**
 T1's body and an earlier version of this section both named
-`packs/core/tests/skills/work-loop/`; that home is impossible, because
-`tools/lint-pack-test-boundary.py` forbids a pack test from reading above its own
-pack and the oracle is under `docs/`. T1's section is hash-pinned by the
+`packs/core/tests/skills/work-loop/`. That home is impossible on its own terms:
+the check reads this spec's rules under `docs/` and the shipped scripts under
+`packs/`, and `tools/lint-pack-test-boundary.py` forbids a pack test from reading
+above its own pack. The reason survives the oracle's deletion because it rests on
+the boundary, not on where the oracle sat. T1's section is hash-pinned by the
 2026-09-24 amendment and cannot be corrected in place, so T6 carries the
 correction and this paragraph is the statement of record.
 
@@ -453,10 +455,20 @@ criterion transfers here, and this line is the statement of record.
   `_wave_exit_verdict` reaches for every state, with superseding moving a state
   from the accounted row to the unaccounted row and no other row moving; and
   `state.json` byte-identical across a `check --phase wave-reopen` invocation for
-  every state in the domain that has one. Its non-degeneracy assertions extend to
-  all three levels, which forces a genuinely superseded record into the domain —
-  the previous form could have been satisfied with every `superseded` value live
-  under the `is True` rule. Suite: `tests/roster/`, run by name.
+  every state in the domain that has one — that criterion is this check's, and
+  the unit suites' single-invocation byte checks answer to the reopen verb's
+  criteria instead, so no criterion has two owners. Its non-degeneracy assertions
+  extend to all three levels and name a superseded record specifically, because a
+  domain whose every `superseded` value is live under the `is True` rule would
+  otherwise satisfy them while never superseding anything.
+- **The check's own name stops describing the deleted artifact.** Four surfaces
+  call it an oracle comparison: its step label
+  `pytest repair-round predicate parity (oracle vs shipped guard)` in
+  `.github/workflows/build-check.yml`, the comment above that step, and both
+  `tools/lint-ci-parity.py` entries that pin the label byte for byte. All four
+  change together in one edit, because the parity lint compares the label to the
+  workflow and a partial rename reds it. Suite: `tests/roster/`, run by name,
+  plus `python3 tools/lint-ci-parity.py` and `python3 tools/test-build-check-workflow.py`.
 
 **Goal-based — a one-liner or a read-back verifies each:**
 
@@ -545,12 +557,19 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-24 — amendment round 4: the pull-request-step criterion removed in
+  error by round 3's § Proof rewrite is restored, a criterion is added requiring
+  the check's own names to describe what it compares, the unverifiable
+  "independently of the implementation" clause is replaced by a checkable one,
+  and non-degeneracy now names a superseded record.
 - 2026-09-24 — amendment round 3, owner-authorised: the oracle artifact is
   dropped and its domain folded into the roster parity check, which now measures
   the row movement against the shipped `_wave_exit_verdict` instead of a second
   transcription. Three criterion forms for that artifact each produced a
   tautology or a dangling reference; the class is that a transcription of the
-  contract cannot be an oracle for the contract.
+  contract cannot be an oracle for the contract. Criteria removed by this round:
+  the two oracle criteria, on the owner's authority, and — unintentionally, in
+  the same § Proof rewrite — the pull-request-step criterion, restored in round 4.
 - 2026-09-24 — controlled contract amendment, owner-authorised: § Proof's
   coupling criterion re-homed to `tests/roster/` with the pack-boundary reason,
   the oracle's own criteria demoted to working material after three forms each
