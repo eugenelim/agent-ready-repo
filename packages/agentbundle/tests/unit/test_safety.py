@@ -11,6 +11,10 @@ import pytest
 from agentbundle import safety
 from agentbundle.config import PackState, State
 
+# Reused rather than copied — see test_catalogue_sync.py's own import of the
+# same helper for its precedent.
+from tests.unit.test_catalogue_tooling_self_hosted_init import walk_target_tree
+
 
 def _state_with(relpath: str, sha: str) -> State:
     state = State()
@@ -160,12 +164,16 @@ def test_write_companion_default_replaces_occupied_destination(tmp_path):
 def test_write_jailed_never_replace_refuses_every_occupant_kind(tmp_path, setup):
     dest = tmp_path / "x.upstream.md"
     setup(dest)
+    before = walk_target_tree(tmp_path)
     with pytest.raises(safety.WriteError):
         safety.write_jailed(
             tmp_path, "x.upstream.md", b"new", publish=safety.Publish.NEVER_REPLACE
         )
-    # Never replaced, whatever the occupant was.
-    assert dest.is_symlink() or dest.exists()
+    # Never replaced, whatever the occupant was -- the exact pre-run walk
+    # tuple (kind, mode, symlink target, bytes), not merely "something is
+    # still there": `dest.is_symlink() or dest.exists()` passes any
+    # implementation that overwrote the occupant's bytes and then raised.
+    assert walk_target_tree(tmp_path) == before
 
 
 def test_write_jailed_never_replace_publishes_a_fresh_destination(tmp_path):
@@ -190,7 +198,15 @@ def test_write_jailed_never_replace_other_failure_is_a_write_error_not_occupancy
         safety.write_jailed(
             tmp_path, "fresh.upstream.md", b"new", publish=safety.Publish.NEVER_REPLACE
         )
-    assert not isinstance(exc_info.value, FileExistsError)
+    # `not isinstance(exc_info.value, FileExistsError)` can never fail:
+    # `write_jailed` always wraps a publish `OSError` into `WriteError`, and
+    # `issubclass(WriteError, FileExistsError)` is `False` regardless of
+    # what actually went wrong. The non-occupancy classification is instead
+    # in the raised error's own cause — its errno must be the injected
+    # EPERM, not an occupancy-shaped EEXIST.
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, OSError)
+    assert cause.errno == errno.EPERM
 
 
 # ---------------------------------------------------------------------------
@@ -263,6 +279,36 @@ def test_write_jailed_replace_if_unchanged_publishes_a_fresh_destination(tmp_pat
         expected_sha256=None,
     )
     assert out.read_bytes() == b"new"
+
+
+def test_write_jailed_replace_if_unchanged_refuses_an_unreadable_destination(
+    tmp_path, monkeypatch
+):
+    # Verifies AC-0065/AC-0077. Only `FileNotFoundError` reads as absence —
+    # any other `lstat` failure (a permissions error, here) is a divergence,
+    # not "no entry", even when `expected_sha256` is itself `None`. Before
+    # this fix, `_publish_if_unchanged` collapsed every `OSError` into
+    # `exists = False`, so this exact case (unreadable, and nothing was
+    # expected anyway) published straight over a destination the rename
+    # never actually read.
+    dest = tmp_path / "y.md"
+    dest.write_bytes(b"adopter's own file")
+    real_lstat = Path.lstat
+
+    def _fail_dest(self, *a, **kw):
+        if self == dest:
+            raise PermissionError("permission denied")
+        return real_lstat(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "lstat", _fail_dest)
+    with pytest.raises(safety.DestinationDivergedError):
+        safety.write_jailed(
+            tmp_path, "y.md", b"new",
+            publish=safety.Publish.REPLACE_IF_UNCHANGED,
+            expected_sha256=None,
+        )
+    monkeypatch.setattr(Path, "lstat", real_lstat)
+    assert dest.read_bytes() == b"adopter's own file"
 
 
 def test_assert_under_passes_for_path_inside(tmp_path):

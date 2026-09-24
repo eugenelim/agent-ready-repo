@@ -392,3 +392,94 @@ which is what AC-0056's "unchanged" actually quantifies over. Recorded because
 a mis-timed baseline is the one way this manual check fails against working
 code, and the next person to run it should take the baseline at the same
 moment.
+
+## Post-GATES review — round 1
+
+Three reviewers over the merged diff, each adjudicated by a separate neutral
+adjudicator. 22 raw findings, **19 sustained**, 3 refuted. Three distinct
+Blockers, two of them found by two lanes independently.
+
+The pre-EXECUTE rounds could only audit the contract. All three Blockers were
+implementation gaps no amount of spec review would have reached, and every
+gate was green when they were found: lint 0, 3,261 tests, and a manual
+end-to-end that passed all four AC-0056 conditions on a real tree.
+
+### The three Blockers
+
+**An admitted write path with neither AC-0077 recheck.** `execute_write_sequence`
+built its gate map only from `would_update_admitted`, so a path admitted by
+AC-0033 clause 3's introduced-pack branch fell to a bare `write_jailed` at
+`Publish.REPLACE`. Any `--pack <new-name>` run over a tree where the adopter
+already held that path overwrote it — no recheck, no companion — while the
+printed plan showed the row as `untouched`.
+
+**`--package` was never registered.** Measured: `catalogue sync --package
+credbroker` died in argparse as an unrecognized argument, so AC-0047's
+cannot-answer row was unreachable. Both tests passed only by setting
+`args.package` on a hand-built namespace, which AC-0030's oracle forbids.
+After the fix, measured again: both recognised names exit 3 naming the package
+on apply, `--dry-run` and `--check`; an unrecognised name is malformed at 2.
+
+**A deletion the printed plan never named.** The removal set was computed
+before the prompt for display and recomputed inside the write sequence after
+consent, so a recorded path that appeared during the prompt was deleted having
+never been printed — § Never do's phase delta verbatim. Now computed once and
+passed through.
+
+### Two relayed remedies were wrong, and driving the test caught both
+
+The adjudicators were reliable about every defect and wrong about two fixes.
+Both were caught the same way: by driving the required test first.
+
+**Blocker 1's formula.** The adjudicators proposed taking each expectation
+from the snapshot — digest when `kind == "file"`, else `None` — applied
+uniformly, and the controller relayed it. `classify` never reads an
+introduced-pack destination, so a snapshot-derived expectation is whatever the
+adopter already has there, and it passes its own recheck unchanged. The fix
+is an unconditional `None` for that row class. Confirmed by mutation: the
+relayed formula turns the test red, as does the pre-repair scope.
+
+**P3's restore scope.** The brief said to include a failed companion
+destination in `restore_scope` unconditionally. Applied literally it broke an
+already-green test by deleting another writer's raced-in file when the LINK
+itself failed rather than the unlink. The implementer drove that test, saw the
+regression, and guarded on content instead: restore only when the destination
+holds the exact bytes this run tried to publish.
+
+**Standing lesson, now in every repair brief.** A reviewer's remedy is a
+hypothesis, not a work order. Drive the test first; if the prescribed fix does
+not make it pass, say so with evidence rather than substituting quietly.
+
+### Five more checks that could not fail
+
+The class this delivery has now hit eight times. Two were verified by the
+controller directly rather than taken on the adjudicator's word:
+
+`issubclass(WriteError, FileExistsError)` is `False` — measured. So
+`assert not isinstance(exc_info.value, FileExistsError)` was `True` for every
+error `write_jailed` can raise, and the property it existed to pin — that an
+`EPERM` from a link-less filesystem is not misread as occupancy, the exact
+residual § Grounding's publish probe flagged — was unguarded. Now asserted
+through the raised error's `__cause__.errno`.
+
+Its sibling, `assert dest.is_symlink() or dest.exists()`, passed for any
+implementation leaving anything at the destination, including one that
+overwrote a regular occupant's bytes and then raised. Now a full pre/post walk
+tuple.
+
+The third gate case was worse than reported: the `__qualname__` guard meant to
+select it was dead code, because a lambda's `__qualname__` never carries the
+`ids=` label. All three cases asserted the same changed-digest shape.
+
+### Mutation proof for the repairs
+
+| Mutation | Result |
+| --- | --- |
+| gate expectation reverted to `would_update_admitted` only | red |
+| introduced rows expect the live snapshot (the relayed formula) | red |
+| snapshot lstat errors collapsed back into "absent" | red |
+| post-write receipt call removed | red |
+
+Final gates after all 19: lint exit 0, full unit suite exit 0 over 3,275
+tests — up from 3,261, so the repairs added net new covering tests rather than
+relaxing existing ones.

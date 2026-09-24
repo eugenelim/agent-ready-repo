@@ -524,14 +524,25 @@ def _publish_if_unchanged(
     AC-0065) rather than a raw stat, so a destination that became a hard
     link, a reparse point, or any other non-regular entry is refused here
     exactly like a changed digest — it is a divergence, not a special case.
+
+    Only ``FileNotFoundError`` reads as absence: a destination this rename
+    cannot even ``lstat`` for any other reason is refused as a divergence
+    too, rather than published over unread (spec AC-0065/AC-0077).
     """
     try:
         target.lstat()
         exists = True
+        lstat_failed = False
+    except FileNotFoundError:
+        exists = False
+        lstat_failed = False
     except OSError:
         exists = False
+        lstat_failed = True
 
-    if not exists:
+    if lstat_failed:
+        diverged = True
+    elif not exists:
         diverged = expected_sha256 is not None
     elif expected_sha256 is None:
         diverged = True

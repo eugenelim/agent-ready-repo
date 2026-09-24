@@ -57,6 +57,7 @@ from agentbundle.commands._common import check_spec_version_gate, confirm_or_ref
 from agentbundle.config import PackState, State
 from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
 from agentbundle.safety import (
+    PathJailError,
     Publish,
     Tier,
     classify,
@@ -403,6 +404,29 @@ def _ancestor_relpaths(relpath: str) -> list[str]:
     ]
 
 
+def _snapshot_lstat_entry(path: Path, relpath: str) -> WalkEntry:
+    """:func:`snapshot_write_set`'s own inspection of *path* — unlike
+    :func:`_lstat_entry` (best-effort, used by :func:`restore_from_snapshot`,
+    where any read failure is tolerable because restore already reports an
+    unrestorable path rather than raising), this distinguishes genuine
+    absence (``FileNotFoundError``/``NotADirectoryError`` — an ancestor
+    replaced by a file) from every other read error, raising
+    :class:`SnapshotUnreadableError` for the latter (spec AC-0039's `3 —
+    cannot-answer` row for a snapshot the run cannot read). Collapsing an
+    ``EACCES`` into "absent" here would let the run both proceed past a path
+    it never actually read AND -- since :func:`restore_from_snapshot` treats
+    a snapshot ``kind == "absent"`` entry as "unlink whatever is there" --
+    delete an adopter file on a later rollback that this run never touched.
+    """
+    try:
+        path.lstat()
+    except (FileNotFoundError, NotADirectoryError):
+        return _ABSENT_ENTRY
+    except OSError as exc:
+        raise SnapshotUnreadableError(relpath) from exc
+    return _lstat_entry(path)
+
+
 def snapshot_write_set(
     target: Path,
     paths: Iterable[str],
@@ -428,7 +452,7 @@ def snapshot_write_set(
 
     total = 0
     for relpath in unique_paths:
-        entry = _lstat_entry(target / relpath)
+        entry = _snapshot_lstat_entry(target / relpath, relpath)
         if entry.kind == "file":
             try:
                 total += (target / relpath).stat().st_size
@@ -443,10 +467,10 @@ def snapshot_write_set(
         for ancestor in _ancestor_relpaths(relpath):
             if ancestor in snapshot:
                 continue
-            snapshot[ancestor] = _lstat_entry(target / ancestor)
+            snapshot[ancestor] = _snapshot_lstat_entry(target / ancestor, ancestor)
 
         full = target / relpath
-        entry = _lstat_entry(full)
+        entry = _snapshot_lstat_entry(full, relpath)
         if entry.kind == "file":
             buffer = bytearray()
             try:
@@ -514,7 +538,13 @@ def restore_from_snapshot(
                 # A pre-existing ancestor directory: still a directory is a
                 # no-op restore.
                 pass
-        except OSError:
+        except (OSError, PathJailError):
+            # `write_jailed`'s own `assert_under` raises `PathJailError` (a
+            # `ValueError`, not an `OSError`) when an ancestor became an
+            # escaping symlink between the snapshot and this restore — AC-
+            # 0058 requires naming every path this run could not restore
+            # before returning, not letting that one escape uncaught past
+            # this best-effort loop.
             unrestored.append(relpath)
     return unrestored
 
@@ -552,6 +582,12 @@ def gate_recheck(target: Path, expected: dict[str, str | None]) -> list[str]:
     write-set destination that carries a classified row — never over the
     ownership state, which has none. An ordinary confined read; needs no
     change to the write helpers (plan.md § Constraints).
+
+    Only ``FileNotFoundError`` reads as absence (spec AC-0065/AC-0077): a
+    destination the gate cannot even ``lstat`` — a permissions error, a
+    transient I/O fault, anything else — is a divergence, never "no entry",
+    so a write this run cannot itself verify is refused rather than let
+    through unchecked.
     """
     diverged: list[str] = []
     for path in sorted(expected):
@@ -559,8 +595,11 @@ def gate_recheck(target: Path, expected: dict[str, str | None]) -> list[str]:
         try:
             full.lstat()
             exists = True
-        except OSError:
+        except FileNotFoundError:
             exists = False
+        except OSError:
+            diverged.append(path)
+            continue
 
         expected_sha = expected[path]
         if not exists:
@@ -1074,7 +1113,28 @@ def execute_write_sequence(
         # staged tempfile), so whatever is at that path is either untouched
         # or another writer's edit, and AC-0041 requires either to be left
         # exactly as found rather than restored to the pre-run snapshot.
+        #
+        # A companion publish is the one exception: `_publish_never_replace`
+        # links `tmp` at the destination *then* unlinks the staged sibling —
+        # if that unlink is what failed, the link already landed, so the
+        # destination itself was actually written, unlike every other
+        # publish path where a failure here means the rename/link itself
+        # never happened. Distinguished by reading the destination back:
+        # bytes equal to what this run just tried to publish there means
+        # the link landed (restore it); anything else — including the
+        # admission-time occupant this failure can also mean, per AC-0070's
+        # own admission race — is another writer's content this run never
+        # touched, which AC-0041 requires left exactly as found. A read
+        # failure defaults to "not ours" — never restoring is always safe;
+        # wrongly deleting another writer's file is not.
         restore_scope = [*acted, *_ancestor_relpaths(write_failed_path)]
+        if write_failed_path in plan.companion_destination_to_original:
+            try:
+                published_here = (target / write_failed_path).read_bytes() == content
+            except OSError:
+                published_here = False
+            if published_here:
+                restore_scope.append(write_failed_path)
         unrestored = restore_from_snapshot(target, snapshot, restore_scope)
         return WriteSequenceResult(
             ok=False,
@@ -2213,7 +2273,12 @@ def _run_dry_run(
     # the CLI's own refuses uniformly, via the same gate every other pack-
     # manifest consumer calls. Unlike AC-0018's warnings below, this changes
     # the exit code and prints no plan.
-    gate_code = check_adapter_contract_gate(replay.pack_names, replay.file_bytes)
+    # `pack_names` (AC-0033 clause 1's resolved effective selection), never
+    # `replay.pack_names` — an empty recorded selection field narrows to
+    # nothing (AC-0068), and `replay.pack_names` is the source's own
+    # unnarrowed shipped-pack list, so gating on it would run this check
+    # over packs the resolved selection admits none of.
+    gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)
     if gate_code is not None:
         return gate_code
 
@@ -2246,7 +2311,7 @@ def _run_dry_run(
     scope = _scope_subtrees(list(cli_pack_names), list(cli_profile_names), guides_scope)
     verdict_rows = [row for row in verdict_rows if _in_scope(row[0], scope)]
     compatibility = compatibility_warnings(
-        target, replay.pack_names, replay.file_bytes, rejections
+        target, pack_names, replay.file_bytes, rejections
     )
     doc = _plan_document(
         target=target,
@@ -2260,8 +2325,8 @@ def _run_dry_run(
         guides=resolved_cfg.guides,
         source_raw=source_raw,
         attributed=attributed,
-        pack_names=replay.pack_names,
-        profile_names=replay.profile_names,
+        pack_names=pack_names,
+        profile_names=profile_names,
         summary=summary_counts,
         verdict_rows=verdict_rows,
         compatibility=compatibility,
@@ -2437,12 +2502,21 @@ def _apply_acted_rows(
     verdict_rows: list[tuple[str, str, str | None]],
     plan: WritePlan,
     removal_set: set[str],
+    rejections: list[str],
 ) -> list[tuple[str, str, str | None]]:
     """AC-0057's acted rows — every *verdict_rows* entry AC-0033 clauses 1-5
     admit (``plan.admitted``, keyed by a would-companion row's *companion*
     destination rather than its original path), plus a synthetic
     ``would-remove`` row per *removal_set* entry. Never clause 6's ownership
     state.
+
+    *verdict_rows* already carries only paths ``_classify_planned_paths``
+    routed through the terminal-safe check (spec AC-0012). *removal_set*
+    is a separate computation (:func:`select_removal_set`, over
+    ``_plan_stale_owned_paths``'s own recorded-path read) that applies no
+    such screen of its own, so its entries are checked here, on the way
+    into the row this run renders — the same gate every other unauthored
+    value on this surface passes before it reaches a row.
     """
     rows: list[tuple[str, str, str | None]] = []
     for path, verdict, companion in verdict_rows:
@@ -2453,7 +2527,8 @@ def _apply_acted_rows(
         if path in plan.admitted:
             rows.append((path, verdict, companion))
     for path in sorted(removal_set):
-        rows.append((path, "would-remove", None))
+        if _safe_scalar("would_remove", path, rejections) is not None:
+            rows.append((path, "would-remove", None))
     return rows
 
 
@@ -2495,6 +2570,14 @@ def _apply_plan_document(
         name for name in profile_names
         if _safe_scalar("profiles", name, rejections) is not None
     ]
+    # `out_of_coverage` is `select_removal_set`'s own read of the recorded
+    # paths (spec AC-0069), a second, unscreened source of the same
+    # unauthored-path input `acted_rows`'s `would-remove` entries already
+    # pass through this check for (spec AC-0012).
+    safe_out_of_coverage = [
+        path for path in sorted(out_of_coverage)
+        if _safe_scalar("out_of_coverage", path, rejections) is not None
+    ]
 
     summary_with_deferred = dict(summary)
     summary_with_deferred["deferred_package"] = deferred_package
@@ -2528,7 +2611,7 @@ def _apply_plan_document(
         "reported": {
             "companion_occupied": sorted(occupied.values()),
             "companion_residue": sorted(residue),
-            "out_of_coverage": sorted(out_of_coverage),
+            "out_of_coverage": safe_out_of_coverage,
         },
     }
     if attributed:
@@ -2731,7 +2814,7 @@ def _run_apply(
         guides_mode=guides, scope=scope,
     )
 
-    acted_rows = _apply_acted_rows(verdict_rows, plan, removal_set)
+    acted_rows = _apply_acted_rows(verdict_rows, plan, removal_set, rejections)
     doc = _apply_plan_document(
         target=target,
         fidelity_token=fidelity_token,
@@ -2786,11 +2869,49 @@ def _run_apply(
                 file=sys.stderr,
             )
         return _APPLY_FAILED
-    if result.removal_failed:
-        return _APPLY_FAILED
-    if result.state_write_failed:
+    if result.removal_failed or result.state_write_failed:
+        # AC-0039's two post-write `4` rows leave every landed write in place
+        # — plan.md T4 § Approach fixes that, and neither row rolls back. So
+        # the exit code alone tells an operator nothing about a tree that has
+        # just been rewritten and possibly had paths deleted. Name what the
+        # run left behind, on the same stderr surface the unrestored-path
+        # message above already uses.
+        _print_post_write_receipt(result, state_written=False)
         return _APPLY_FAILED
     return _DIFFERENCE if result.companion_occupied else _SUCCESS
+
+
+def _print_post_write_receipt(
+    result: WriteSequenceResult, *, state_written: bool
+) -> None:
+    """Name what a post-write failure left behind (AC-0039's two `4` rows).
+
+    Writes that landed are not rolled back on these rows, so the tree differs
+    from its pre-run state and the operator needs to know how. Emitted on
+    stderr beside the unrestored-path message rather than on the plan's
+    stdout surface, which has already been rendered by this point.
+    """
+    what = result.state_write_failed and "the ownership state could not be written"
+    reason = what or "stale removal failed"
+    print(f"error: {reason}; the tree was not rolled back.", file=sys.stderr)
+    if result.written:
+        print(
+            f"  wrote {len(result.written)} path(s): "
+            f"{', '.join(sorted(result.written))}",
+            file=sys.stderr,
+        )
+    if result.removed:
+        print(
+            f"  removed {len(result.removed)} path(s): "
+            f"{', '.join(sorted(result.removed))}",
+            file=sys.stderr,
+        )
+    if not state_written:
+        print(
+            "  the recorded state was NOT updated, so a re-run reclassifies "
+            "every path it just wrote against the pre-run digests.",
+            file=sys.stderr,
+        )
 
 
 def run(args: argparse.Namespace) -> int:

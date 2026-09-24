@@ -2904,6 +2904,41 @@ def test_apply_companion_write_failure_for_other_reason_is_write_failed_not_occu
     assert "packs/alpha/unchanged.md" not in result.companion_occupied
 
 
+def test_apply_companion_publish_failure_after_link_landed_is_restored(tmp_path):
+    # Verifies P3: `_publish_never_replace` links `tmp` at the destination
+    # *then* unlinks the staged sibling -- if that unlink is what fails,
+    # the link has already landed, so (unlike every other write-failure
+    # path, where a failure means the write never happened) the
+    # destination now carries this run's own bytes. Before the fix,
+    # `execute_write_sequence`'s restore scope excluded the failed path
+    # unconditionally on the premise "it was never actually written",
+    # which is false here: the run returned `restored=True` with an empty
+    # `unrestored` while its own write sat at that destination, unrestored
+    # and unreported.
+    target, replay, verdict_rows = _replay_apply_fixture(
+        tmp_path, tag="companion-unlink-fails"
+    )
+    companion = target / "packs" / "alpha" / "unchanged.upstream.md"
+    assert not companion.exists()
+
+    def _landed_then_fails(root, relpath, content, **kwargs):
+        # Simulate `_publish_never_replace`'s own sequence: the link lands
+        # at the destination, then the staged-name unlink fails.
+        companion.write_bytes(content)
+        raise OSError("cannot unlink staged sibling")
+
+    with patch.object(catalogue_sync, "write_companion", side_effect=_landed_then_fails):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.write_failed_path == "packs/alpha/unchanged.upstream.md"
+    # The landed write is unlinked as part of restore, not left behind
+    # while the run reports a clean `restored=True`/empty `unrestored`.
+    assert result.restored
+    assert result.unrestored == []
+    assert not companion.exists()
+
+
 def test_apply_companion_collision_refuses_whole_run(tmp_path):
     # Verifies AC-0071.
     source = _make_apply_source(tmp_path / "collision-source")
@@ -3054,6 +3089,39 @@ def test_apply_snapshot_as_built_bound_reads_no_more_than_the_bound(
     assert sum(read_lengths) <= 2048 + 1024  # stopped within one chunk of the bound
 
 
+def test_apply_snapshot_write_set_raises_unreadable_on_a_permission_error(
+    tmp_path, monkeypatch
+):
+    # Verifies AC-0039's snapshot row and the P2 fix directly: injected at
+    # the `lstat` a path's own read makes, not at `snapshot_write_set`
+    # itself (a test that mocks the function out, as
+    # ``test_run_apply_snapshot_unreadable_refuses_cannot_answer`` above
+    # does, can never observe whether the function's own `_lstat_entry`
+    # calls collapse a permissions error into "absent" — this is that
+    # observation). Before the fix, `snapshot_write_set` called the
+    # best-effort `_lstat_entry`, which swallows every `OSError` into
+    # `_ABSENT_ENTRY`; an existing, unreadable path then silently snapshotted
+    # as absent, and a later rollback that "restored" it would delete it.
+    target = tmp_path / "snapshot-unreadable-target"
+    target.mkdir()
+    unreadable = target / "packs" / "alpha" / "README.md"
+    unreadable.parent.mkdir(parents=True)
+    unreadable.write_bytes(b"adopter's own file")
+    real_lstat = Path.lstat
+
+    def _fail_unreadable(self, *a, **kw):
+        if self == unreadable:
+            raise PermissionError("permission denied")
+        return real_lstat(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "lstat", _fail_unreadable)
+
+    with pytest.raises(catalogue_sync.SnapshotUnreadableError) as exc_info:
+        catalogue_sync.snapshot_write_set(target, {"packs/alpha/README.md"})
+
+    assert exc_info.value.path == "packs/alpha/README.md"
+
+
 def test_apply_restore_matches_pre_run_walk_tuple_on_injected_failure(tmp_path):
     # Verifies AC-0038's restore half: comparing paths and digests alone
     # passes a restore that changed a mode.
@@ -3148,6 +3216,33 @@ def test_apply_restore_failure_names_every_unrestored_path(tmp_path):
     assert "packs/beta/NEW.md" in unrestored
 
 
+def test_apply_restore_catches_path_jail_error_and_reports_it_unrestored(tmp_path):
+    # Verifies AC-0058: `write_jailed`'s own `assert_under` raises
+    # `PathJailError` (a `ValueError`, not an `OSError`) when an ancestor
+    # became an escaping symlink between the snapshot and this restore.
+    # Before the fix, `restore_from_snapshot`'s loop caught only `OSError`,
+    # so this exception propagated straight out of the best-effort restore
+    # instead of landing in `unrestored`, breaking AC-0058's "name every
+    # path this run could not restore before returning".
+    target = tmp_path / "restore-jail-target"
+    target.mkdir()
+    snapshot = {
+        "packs/alpha/README.md": catalogue_sync.WalkEntry(
+            kind="file", mode=0o644, symlink_target=None, content=b"old bytes",
+        ),
+    }
+
+    def _raise_jail_error(*_args, **_kwargs):
+        raise safety.PathJailError("escaping symlink")
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_raise_jail_error):
+        unrestored = catalogue_sync.restore_from_snapshot(
+            target, snapshot, ["packs/alpha/README.md"]
+        )
+
+    assert "packs/alpha/README.md" in unrestored
+
+
 def test_apply_planned_path_outside_target_root_is_refused_at_the_write(tmp_path):
     # Verifies AC-0052.
     target = tmp_path / "target"
@@ -3170,16 +3265,30 @@ def test_apply_planned_path_outside_target_root_is_refused_at_the_write(tmp_path
 
 
 @pytest.mark.parametrize(
-    "mutate",
+    "mutate,is_none_expected_case",
     [
-        lambda p: p.write_bytes(b"changed digest"),
-        lambda p: (p.unlink(), p.symlink_to(p.parent / "elsewhere")),
-        lambda p: p.write_bytes(b"appeared"),  # only meaningful for the "found none" case
+        (lambda p: p.write_bytes(b"changed digest"), False),
+        (lambda p: (p.unlink(), p.symlink_to(p.parent / "elsewhere")), False),
+        (lambda p: p.write_bytes(b"appeared"), True),
     ],
     ids=["changed-digest", "changed-entry-kind", "found-present-where-none-expected"],
 )
-def test_apply_gate_recheck_detects_every_divergence_shape(tmp_path, mutate):
-    # Verifies AC-0077's gate recheck (3 of 6 cases).
+def test_apply_gate_recheck_detects_every_divergence_shape(
+    tmp_path, mutate, is_none_expected_case
+):
+    # Verifies AC-0077's gate recheck (3 of 6 cases). The third case needs
+    # its own path that starts ABSENT so its `expected` entry is `None` —
+    # every `would-update` path is present on disk (that is what earns it
+    # the verdict), so reusing README.md for all three cases (as this test
+    # once did) made the third parameter a duplicate of the first: a path
+    # with a non-null `expected` digest, mutated to a *different* non-null
+    # digest, never exercising `gate_recheck`'s `expected_sha is None`
+    # branch at all. Which case is running is carried as its own
+    # parametrize value (`is_none_expected_case`), not inferred from
+    # `mutate.__qualname__` — a lambda's `__qualname__` never carries the
+    # `ids=` label pytest reports it under, so that inference (the
+    # original shape here) was always false and the `if` it drove was
+    # already dead code before this rewrite touched it.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="gate")
     would_update_paths = {p for p, v, _ in verdict_rows if v == "would-update"}
     snapshot = catalogue_sync.snapshot_write_set(target, would_update_paths)
@@ -3190,15 +3299,25 @@ def test_apply_gate_recheck_detects_every_divergence_shape(tmp_path, mutate):
         )
         for p in would_update_paths
     }
-    target_path = target / "packs" / "alpha" / "README.md"
-    if "found-present-where-none-expected" in mutate.__qualname__:
-        pass
-    # Force one path (README.md, would-update, on-disk-present) to diverge.
+
+    if is_none_expected_case:
+        introduced_path = "packs/alpha/NOT-YET-CLASSIFIED.md"
+        target_path = target / Path(introduced_path)
+        assert not target_path.exists()
+        expected[introduced_path] = None
+    else:
+        # Force one path (README.md, would-update, on-disk-present) to
+        # diverge.
+        target_path = target / "packs" / "alpha" / "README.md"
+
     mutate(target_path)
 
     diverged = catalogue_sync.gate_recheck(target, expected)
 
-    assert "packs/alpha/README.md" in diverged
+    if is_none_expected_case:
+        assert "packs/alpha/NOT-YET-CLASSIFIED.md" in diverged
+    else:
+        assert "packs/alpha/README.md" in diverged
 
 
 def test_apply_gate_recheck_no_divergence_over_unchanged_state(tmp_path):
@@ -3216,6 +3335,46 @@ def test_apply_gate_recheck_no_divergence_over_unchanged_state(tmp_path):
     diverged = catalogue_sync.gate_recheck(target, expected)
 
     assert diverged == []
+
+
+def test_apply_gate_recheck_unreadable_destination_with_no_entry_expected_diverges(
+    tmp_path,
+):
+    # Verifies AC-0065/AC-0077. Before this fix, `gate_recheck` collapsed
+    # every `OSError` from `lstat` into `exists = False` -- masking the
+    # failure whenever `expected` already held a non-null digest for the
+    # path (the "not exists, expected non-null" branch also diverges, so a
+    # would-update path's own unreadable-destination case cannot tell the
+    # two apart). The bug only surfaces where `expected_sha is None` (an
+    # admitted-new path — spec AC-0033 clause 3 — that `classify` never
+    # read at classification time): there, "collapsed to absent" and
+    # "genuinely absent" both take the no-op path, silently passing an
+    # occupant this run never actually read.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="gate-unreadable")
+    would_update_paths = {p for p, v, _ in verdict_rows if v == "would-update"}
+    snapshot = catalogue_sync.snapshot_write_set(target, would_update_paths)
+    expected = {
+        p: (
+            hashlib.sha256(snapshot[p].content).hexdigest()
+            if snapshot[p].kind == "file" else None
+        )
+        for p in would_update_paths
+    }
+    introduced = target / "packs" / "beta" / "adopter-occupant.md"
+    introduced.parent.mkdir(parents=True, exist_ok=True)
+    introduced.write_bytes(b"adopter's own file")
+    expected["packs/beta/adopter-occupant.md"] = None
+    real_lstat = Path.lstat
+
+    def _fail_introduced(self, *a, **kw):
+        if self == introduced:
+            raise PermissionError("permission denied")
+        return real_lstat(self, *a, **kw)
+
+    with patch.object(Path, "lstat", _fail_introduced):
+        diverged = catalogue_sync.gate_recheck(target, expected)
+
+    assert "packs/beta/adopter-occupant.md" in diverged
 
 
 def test_apply_gate_recheck_over_full_run_refuses_before_any_write(tmp_path):
@@ -4211,6 +4370,59 @@ def _call_run_apply(target: Path, source: Path, **overrides) -> int:
     return catalogue_sync._run_apply(**kwargs)
 
 
+@pytest.mark.parametrize("fidelity_token", _FIDELITY_TOKENS)
+def test_run_apply_names_fidelity_on_the_table_and_json_apply_surfaces(
+    tmp_path, capsys, fidelity_token
+):
+    # AC-0072's apply-side half. The existing fidelity test
+    # (`test_plan_document_and_render_carry_each_source_forms_fidelity_token`
+    # above) builds with `_plan_document(..., dry_run=True)` and renders
+    # with `_render_plan` — the DRY-RUN document and renderer — never
+    # `_apply_plan_document`/`_render_apply_plan`, the functions a `--yes`
+    # apply run actually calls. Removing `fidelity_token` from either left
+    # the suite green. Driven here through `_run_apply` itself (as
+    # `_call_run_apply`'s own `fmt="json"` callers already do), over both
+    # the table and the JSON apply surfaces and the same four source-form
+    # tokens the dry-run test covers.
+    target_table, source_table = _apply_run_target(
+        tmp_path, f"fidelity-table-{fidelity_token}",
+        managed_paths=[
+            {"path": "packs/alpha/README.md",
+             "sha256": hashlib.sha256(b"old bytes\n").hexdigest()},
+        ],
+    )
+    readme_table = target_table / "packs" / "alpha" / "README.md"
+    readme_table.parent.mkdir(parents=True, exist_ok=True)
+    readme_table.write_bytes(b"old bytes\n")
+
+    code = _call_run_apply(
+        target_table, source_table, fidelity_token=fidelity_token, fmt="table"
+    )
+    assert code == 0
+    assert f"fidelity: {fidelity_token}" in capsys.readouterr().out
+
+    # A separate target -- the first call's own write already advanced this
+    # run's recorded state, so reusing it here would apply against a
+    # different (post-write) old-state shape than the first call saw.
+    target_json, source_json = _apply_run_target(
+        tmp_path, f"fidelity-json-{fidelity_token}",
+        managed_paths=[
+            {"path": "packs/alpha/README.md",
+             "sha256": hashlib.sha256(b"old bytes\n").hexdigest()},
+        ],
+    )
+    readme_json = target_json / "packs" / "alpha" / "README.md"
+    readme_json.parent.mkdir(parents=True, exist_ok=True)
+    readme_json.write_bytes(b"old bytes\n")
+
+    code = _call_run_apply(
+        target_json, source_json, fidelity_token=fidelity_token, fmt="json"
+    )
+    assert code == 0
+    doc = json.loads(capsys.readouterr().out)
+    assert doc["fidelity"] == fidelity_token
+
+
 def test_run_apply_success_row_writes_admitted_paths_and_returns_zero(tmp_path):
     # AC-0039's `0 — success` row: every planned write lands, removal and the
     # state write complete, and `companion_occupied` is zero. A recorded,
@@ -4521,6 +4733,14 @@ def test_run_apply_identity_leak_violation_returns_difference_and_never_prompts(
     def _boom(prompt=""):
         raise AssertionError("input() must not be called on a leak violation")
 
+    # Forced True: under pytest, stdin is not a terminal, so
+    # `confirm_or_refuse` returns `False` without ever calling `input()` —
+    # an implementation that moved the leak check *below* the consent gate
+    # would pass every assertion here without this, since the raising
+    # `input` would simply never be reached either way
+    # (`test_consent_gate_recorded_value_failing_terminal_safe_check_is_not_prompted`
+    # above forces the same seam for the same reason).
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     monkeypatch.setattr("builtins.input", _boom)
 
     code = _call_run_apply(target, source, yes=False)
@@ -4858,6 +5078,47 @@ def test_run_apply_removal_failure_returns_apply_failed(tmp_path, monkeypatch):
     assert code == 4
 
 
+def test_run_apply_post_write_failure_names_what_it_left_behind(
+    tmp_path, monkeypatch, capsys
+):
+    """AC-0039's two post-write `4` rows leave the tree changed — say how.
+
+    Neither row rolls back: plan.md T4 § Approach fixes that a removal or
+    state-write failure after every write landed leaves those writes in
+    place. So the exit code alone leaves an operator with a rewritten tree
+    and no statement of what changed, and on a re-run those paths
+    reclassify Tier-2 against the unchanged pre-run digests and collect
+    companions rather than converging.
+
+    What makes this fail without the fix: the sibling test above asserts
+    only `code == 4`, which passes whether or not anything is printed. This
+    asserts the receipt itself, so deleting the `_print_post_write_receipt`
+    call leaves `err` empty and the test red.
+    """
+    target, source = _apply_run_target(
+        tmp_path,
+        "removal-fails-receipt",
+        managed_paths=[
+            {"path": "packs/alpha/gone.md", "sha256": hashlib.sha256(b"stale\n").hexdigest()}
+        ],
+    )
+    gone = target / "packs" / "alpha" / "gone.md"
+    gone.parent.mkdir(parents=True, exist_ok=True)
+    gone.write_bytes(b"stale\n")
+
+    monkeypatch.setattr(catalogue_sync, "_confined_unlink", lambda target_arg, path: False)
+
+    code = _call_run_apply(target, source)
+    err = capsys.readouterr().err
+
+    assert code == 4
+    # The failure itself, and that nothing was rolled back.
+    assert "stale removal failed" in err
+    assert "not rolled back" in err
+    # The state not being updated is the half that decides what a re-run does.
+    assert "recorded state was NOT updated" in err
+
+
 def test_run_apply_state_write_failure_returns_apply_failed(tmp_path, monkeypatch):
     target, source = _apply_run_target(tmp_path, "state-write-fails")
 
@@ -4890,20 +5151,97 @@ def test_run_apply_replay_boundary_fault_reaches_cannot_answer_not_a_crash(
 
 def test_run_apply_printed_acted_rows_equal_admitted_write_set(tmp_path, capsys):
     # AC-0057: the row set the run prints equals the row set its write phase
-    # acts on (the "consented-plan-is-applied" half).
-    target, source = _apply_run_target(tmp_path, "printed-plan")
+    # acts on (the "consented-plan-is-applied" half), asserted by equality —
+    # AC-0033's own oracle requires both directions precisely because a
+    # subset check passes a run that wrote nothing. The previous fixture
+    # (`_apply_run_target(tmp_path, "printed-plan")`, no `managed_paths`,
+    # "alpha" already in the recorded recipe) admitted nothing and
+    # introduced nothing, so both sides were `set()` and `acted_paths <=
+    # written_paths` passed vacuously. This one is built from
+    # `_make_apply_source`/`_write_apply_old_state` instead, over an
+    # unscoped-selection run that adds "beta"/"default" via `--pack`/
+    # `--profile` flags naming what the recipe already has plus the new
+    # ones, so admission covers alpha's subtree too — the fixture yields a
+    # would-update row (README.md), a would-companion row (unchanged.md),
+    # two introduced rows (beta's paths, profiles/default.toml) and a
+    # removal row (gone.md, stale and in scope).
+    source = _make_apply_source(tmp_path / "printed-plan-source")
+    target = tmp_path / "printed-plan-target"
+    target.mkdir()
+    _write_apply_old_state(target)
 
-    code = _call_run_apply(target, source, fmt="json")
+    code = _call_run_apply(
+        target, source, fmt="json",
+        cli_pack_names=["alpha", "beta"], cli_profile_names=["default"],
+    )
     doc = json.loads(capsys.readouterr().out)
 
     acted_paths = {row["path"] for row in doc["acted"] if row["verdict"] != "would-remove"}
+    removed_paths = {row["path"] for row in doc["acted"] if row["verdict"] == "would-remove"}
     state = json.loads(
         (target / ".agentbundle" / "self-host-state.json").read_text(encoding="utf-8")
     )
     written_paths = {entry["path"] for entry in state["managed_paths"]}
 
     assert code == 0
-    assert acted_paths <= written_paths
+    assert acted_paths == {
+        "packs/alpha/README.md",
+        "packs/alpha/unchanged.md",
+        "packs/beta/pack.toml",
+        "packs/beta/NEW.md",
+        "profiles/default.toml",
+    }
+    assert removed_paths == {"packs/alpha/gone.md"}
+    assert "packs/alpha/gone.md" not in written_paths
+    assert acted_paths == written_paths
+
+
+def test_run_apply_removal_and_out_of_coverage_paths_pass_the_terminal_safe_check(
+    tmp_path, capsys
+):
+    # Spec AC-0012: every unauthored value this command renders passes the
+    # terminal-safe scalar check first -- recorded paths, planned paths, the
+    # companion path, the pin fields, pack/profile names, and the dry-run's
+    # own would-remove rows all already do. `select_removal_set`'s own
+    # `removal_set`/`out_of_coverage` (a second, separate read of the
+    # recorded paths, over `_plan_stale_owned_paths`, which applies no such
+    # screen of its own) reached `_apply_acted_rows`/`_apply_plan_document`
+    # unchecked before this fix -- an ANSI escape in a recorded path would
+    # reach stdout raw via a would-remove row or the `out_of_coverage` list.
+    hostile_removable = "packs/alpha/evil\x1b[31m-removable.md"
+    hostile_out_of_coverage = "packs/beta/evil\x1b[31m-out-of-coverage.md"
+    target, source = _apply_run_target(
+        tmp_path, "hostile-removal",
+        managed_paths=[
+            {"path": hostile_removable, "sha256": hashlib.sha256(b"stale\n").hexdigest()},
+            {
+                "path": hostile_out_of_coverage,
+                "sha256": hashlib.sha256(b"stale2\n").hexdigest(),
+            },
+        ],
+    )
+    removable_path = target / Path(hostile_removable)
+    removable_path.parent.mkdir(parents=True, exist_ok=True)
+    removable_path.write_bytes(b"stale\n")
+    out_of_coverage_path = target / Path(hostile_out_of_coverage)
+    out_of_coverage_path.parent.mkdir(parents=True, exist_ok=True)
+    out_of_coverage_path.write_bytes(b"stale2\n")
+
+    # "--pack alpha" (redundant with the recorded recipe, but explicit):
+    # "packs/beta/..." is not covered by any resolved pack name, so it
+    # reports `out_of_coverage` rather than being removed -- exercising both
+    # surfaces from one fixture.
+    code = _call_run_apply(target, source, fmt="json", cli_pack_names=["alpha"])
+    out = capsys.readouterr().out
+
+    assert "\x1b" not in out
+    doc = json.loads(out)
+    assert code == 0
+    acted_paths = {row["path"] for row in doc["acted"]}
+    assert hostile_removable not in acted_paths
+    assert any("rejected would_remove" in line for line in doc["rejections"])
+    assert hostile_out_of_coverage not in doc["reported"]["out_of_coverage"]
+    assert any("rejected out_of_coverage" in line for line in doc["rejections"])
 
 
 def test_run_apply_deferred_package_count_equals_planned_package_paths(tmp_path, capsys):
@@ -5154,3 +5492,40 @@ def test_sync_dry_run_pack_scope_excludes_the_out_of_scope_pack_from_the_printed
     paths = {row["path"] for row in doc["verdicts"]}
     assert "packs/alpha/README.md" in paths
     assert "packs/beta/README.md" not in paths
+
+
+def test_sync_dry_run_gates_and_reports_the_resolved_selection_not_the_replay(
+    tmp_path, capsys
+):
+    # Verifies AC-0068's narrowing outcome holds all the way through the
+    # preview: an empty recorded `packs` field narrows the effective
+    # selection to nothing (never a refusal), but `select_packs(source,
+    # [])` widens an empty *explicit* list to every pack the source ships —
+    # so `replay.pack_names` (the source's own unnarrowed list) still names
+    # "alpha", whose adapter-contract major mismatches the CLI's own.
+    # Before this fix, the adapter-contract gate, `compatibility_warnings`
+    # and the printed `packs`/`profiles` fields all read `replay.pack_names`
+    # instead of the resolved (narrowed-to-nothing) selection — gating,
+    # warning about, and naming a pack this preview selects none of.
+    pack_toml_text = (
+        FIXTURES / "adapter_contract_major_mismatch" / "pack.toml"
+    ).read_text(encoding="utf-8")
+    source = _make_source_with_pack_toml(
+        tmp_path / "dry-run-narrowed-selection-source", pack_toml_text
+    )
+    target = tmp_path / "dry-run-narrowed-selection-target"
+    target.mkdir()
+    _write_minimal_sync_state(target, packs=[])
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--dry-run", "--format", "json"]
+    )
+
+    code = catalogue_sync.run(args)
+    doc = json.loads(capsys.readouterr().out)
+
+    # The unnarrowed replay would trip the adapter-contract gate (code 1)
+    # over "alpha"; the resolved (empty) selection has nothing to check.
+    assert code == 0
+    assert doc["packs"] == []
