@@ -29,6 +29,18 @@
       "files": [
         "evals/files/cognitive-load/ordinary-prose.md"
       ]
+    },
+    {
+      "id": "depth-aware-state-coverage-findings",
+      "prompt": "Review this prototype screen. The team says they're at explore tier. The screen has no empty state and no disabled state for its submit button, and it animates a progress bar with no reduced-motion alternative.",
+      "expected_output": "The review rates each miss against what the explore tier actually owes, read from the shared state-coverage map rather than from the whole eighteen-state set. The missing empty and disabled states are explore-tier obligations and are findings. The missing reduced-motion alternative is rated at least major, because the map records that state as failing WCAG 2.2 AA when absent and cites the criterion behind it. The review does not excuse the reduced-motion gap on the grounds that the team is at explore tier.",
+      "assertions": [
+        "Rates each miss against the explore tier's obligations rather than the full state set",
+        "Reads the tier's state subset from the shared state-coverage map",
+        "Rates the reduced-motion gap at least major and cites the success criterion the map records",
+        "Refuses to waive an accessibility-bearing state because the tier is cheap",
+        "Maps each finding to the quality-floor commitment it breaches"
+      ]
     }
   ]
 }

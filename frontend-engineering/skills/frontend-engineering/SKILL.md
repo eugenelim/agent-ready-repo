@@ -309,7 +309,7 @@ missing-state branches without explicit enumeration. Name empty and error
 explicitly rather than assuming they are there: a state absent from the
 table is a state the implementation will not have.
 
-The canonical 18-state set for this skill, aligned with the XD quality-floor:
+Which of these states a surface actually owes depends on its risk tier: load [`references/digital-experience-contract.md`](references/digital-experience-contract.md) and read its shared state-coverage map, which bands every state below and marks the ones no tier may drop without failing WCAG 2.2 AA. The canonical 18-state set for this skill, aligned with the XD quality-floor:
 
 | State | Treatment |
 |---|---|

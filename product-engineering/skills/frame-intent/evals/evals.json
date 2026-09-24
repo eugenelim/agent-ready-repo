@@ -49,6 +49,29 @@
         "Owns the revision binding and reads completion from the host",
         "Claims no lifecycle effect from the review result"
       ]
+    },
+    {
+      "id": "outcome-stays-at-intent-altitude-for-a-public-surface",
+      "prompt": "We're framing a new checkout redesign that will go straight to public release. Shape this into an intent.",
+      "expected_output": "A level-tagged intent carrying a steerable outcome and a solution-independent opportunity, with Scale resolved at intake and the altitude picked from the recognized set. It stops at the intent: it does not specify the surface's states, its field-level obligations, or any design or frontend detail, and it seeds the assumptions that must hold for the bet to pay off. The artifact path is resolved through the config-driven procedure and surfaced before writing.",
+      "assertions": [
+        "Resolves Scale at intake and picks the altitude from the recognized set",
+        "States a steerable outcome and a solution-independent opportunity",
+        "Stops at the intent \u2014 no states, no field-level obligations, no design or frontend detail",
+        "Seeds the assumptions that must be true for the bet to pay off",
+        "Resolves and surfaces the output path before writing"
+      ]
+    },
+    {
+      "id": "status-is-one-bare-token-and-supersession-is-a-field",
+      "prompt": "An earlier bet has been replaced by the one just framed. Record that on the earlier intent's preamble, using the template's lifecycle fields.",
+      "expected_output": "On the **replaced** intent: `Status: Superseded` as a bare token, and a separate `Superseded by:` field naming the slug of the live intent that replaced it. The pointer goes on the bet that was retired and names its successor, never the other way round, and the two fields are written together or not at all.",
+      "assertions": [
+        "Writes the pointer on the retired intent, not on the one that replaced it",
+        "Names the successor's slug, not the retired bet's own",
+        "Offers Superseded as a bare Status token, not `Superseded by <slug>`",
+        "Writes `Superseded by:` only alongside `Status: Superseded`, since either alone is refused"
+      ]
     }
   ]
 }

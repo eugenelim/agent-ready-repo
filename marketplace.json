@@ -214,7 +214,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "2.0.8"
+      "version": "2.0.9"
     },
     {
       "author": {
@@ -267,7 +267,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.3.1"
+      "version": "0.3.2"
     },
     {
       "author": {
@@ -373,7 +373,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.13.16"
+      "version": "0.13.17"
     },
     {
       "author": {
@@ -400,7 +400,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.6"
+      "version": "0.2.7"
     }
   ]
 }
