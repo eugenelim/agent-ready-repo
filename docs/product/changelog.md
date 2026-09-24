@@ -64,6 +64,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.40] — 2026-09-24
+
+### Highlights
+
+- A review finding is now blockable when something outside it establishes the
+  defect — a test, a lint, a schema, a resolvable reference or a stated
+  constraint that disagrees with the target — even when several repairs would
+  fix it. The old wording asked instead whether the fix was fully determined,
+  so a finding like "this count says three where the tree holds five" could be
+  capped at Concern purely because you could change the count, add a baseline,
+  or drop the claim. How much that mattered depended on which model read the
+  rule. Two models were asked which of the same 50 recorded blocking findings
+  should have been capped: under the old wording they answered 2 and 8, and
+  under the new one both answered 1.
+
+### Changed
+
+- `adversarial-reviewer` tags severity by whether the defect is established,
+  not by whether the remedy is determined. Mechanical now reads: something
+  external disagrees with what the target says, and something would red. The
+  bullet states outright that the repair may take several defensible forms.
+- `finding-adjudicator`'s fifth predicate asks the same question in the same
+  order, and says in its own words that a defect several defensible repairs
+  could fix is still established.
+
+The severity vocabulary, the Concern ceiling on a judgement finding, and who
+applies the test are all unchanged. Only which question the test asks changed.
+
 ## [governance-extras][0.11.1] — 2026-09-24
 
 ### Highlights
@@ -94,34 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `align-value-stream`'s layout page now names all eight skills that read
   `[product]`, including `lean-canvas`'s scan-only read, and distinguishes
   `ux-writing`'s `[design]` read.
-
-## [core][2.26.40] — 2026-09-24
-
-### Highlights
-
-- A review finding is now blockable when something outside it establishes the
-  defect — a test, a lint, a schema, a resolvable reference or a stated
-  constraint that disagrees with the target — even when several repairs would
-  fix it. The old wording asked instead whether the fix was fully determined,
-  so a finding like "this count says three where the tree holds five" could be
-  capped at Concern purely because you could change the count, add a baseline,
-  or drop the claim. How much that mattered depended on which model read the
-  rule. Two models were asked which of the same 50 recorded blocking findings
-  should have been capped: under the old wording they answered 2 and 8, and
-  under the new one both answered 1.
-
-### Changed
-
-- `adversarial-reviewer` tags severity by whether the defect is established,
-  not by whether the remedy is determined. Mechanical now reads: something
-  external disagrees with what the target says, and something would red. The
-  bullet states outright that the repair may take several defensible forms.
-- `finding-adjudicator`'s fifth predicate asks the same question in the same
-  order, and says in its own words that a defect several defensible repairs
-  could fix is still established.
-
-The severity vocabulary, the Concern ceiling on a judgement finding, and who
-applies the test are all unchanged. Only which question the test asks changed.
 
 ## [core][2.26.39] — 2026-09-23
 
