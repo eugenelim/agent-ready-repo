@@ -58,26 +58,22 @@ def reopen_precedes_edge(block: str, edge: str) -> bool:
     above a transition does not satisfy the pin. The test
     ``test_commented_reopen_does_not_satisfy_the_pin`` verifies this.
     """
-    # Find the edge in a non-comment transition invocation.
-    edge_pos = -1
-    for line in block.splitlines():
+    # Positions are LINE INDICES from the walk, never `block.index(line)`: that
+    # returns the first textually identical line, so a block repeating a command
+    # mis-locates both halves of this comparison and the check silently compares
+    # the wrong pair.
+    edge_at = None
+    reopen_at = None
+    for number, line in enumerate(block.splitlines()):
         if line.lstrip().startswith("#"):
             continue
-        if ENGINE_TRANSITION in line and edge in line:
-            edge_pos = block.index(line)
-            break
-    # Find wave reopen in a non-comment line, before the edge.
-    reopen_pos = -1
-    for line in block.splitlines():
-        if line.lstrip().startswith("#"):
-            continue
-        pos = block.index(line)
-        if REOPEN_CMD in line and (edge_pos == -1 or pos < edge_pos):
-            reopen_pos = pos
-            break
-    if reopen_pos == -1 or edge_pos == -1:
+        if reopen_at is None and REOPEN_CMD in line:
+            reopen_at = number
+        if edge_at is None and ENGINE_TRANSITION in line and edge in line:
+            edge_at = number
+    if edge_at is None or reopen_at is None:
         return False
-    return reopen_pos < edge_pos
+    return reopen_at < edge_at
 
 
 def test_commented_reopen_does_not_satisfy_the_pin() -> None:

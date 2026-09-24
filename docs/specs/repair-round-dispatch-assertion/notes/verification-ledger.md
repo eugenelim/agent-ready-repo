@@ -265,7 +265,7 @@ three reds, none survived.
 
 | # | Clause removed | Mutation applied | Suites that turned red | Observed failure |
 | --- | --- | --- | --- | --- |
-| M1 | `superseded_wave_tasks` categorization in `_wave_exit_verdict` | replaced with flat `"no dispatch receipt: {bounded_id_list(unaccounted)}"` | cli, parity | cli: `test_wave_exit_refusal_distinguishes_superseded_from_absent` — the superseded case rendered identically to the absent case; parity: `test_wave_exit_row_movement_from_superseding` — replayed 2026-09-24, it reports **8 row-movement violations with `moved == 8`**; the `violations` assertion fires before the `moved` one, so an earlier revision of this row recording `moved == 0` did not describe what the suite prints |
+| M1 | the `superseded`/`absent` categorisation in `_wave_exit_verdict` | replaced with a flat `no dispatch receipt: {bounded_id_list(unaccounted)}` | cli only | Replayed clause-by-suite 2026-09-24: `cli` **RED** — `test_wave_exit_refusal_distinguishes_superseded_from_absent`, `1 failed, 232 deselected`; `guards` green, `158 passed`; `parity` green, `5 passed`. **Two earlier revisions of this row were wrong and both are corrected here from that run.** The first recorded a parity red with `moved == 0`; the second kept the parity attribution and changed the number to 8 violations. Neither happens: the mutation changes only `GuardResult.reason`, and the parity check asserts on the shipped verdict's `ok` flag and on `unaccounted_wave_tasks` return values, never on refusal text, so it is structurally blind to this clause. The `8` in the second revision was the accounted-state count, not a violation count |
 | M2 | `_guard_blocker_applied`'s source-state discriminator | `if engine_state.get("state") != "CODE-HUMAN-GATE": return None` deleted | engine | `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong`: `_guard_blocker_applied` with `{"state": "CODE-REVIEW"}` returned the repair-round refusal text instead of `None` |
 | M3 | `_guard_gates_failed_repair_round`'s source-state discriminator | `if engine_state.get("state") != "CODE-VERIFICATION": return None` deleted | engine | run 2026-09-24: `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong` fails — `1 failed, 215 deselected`. Run because a review found this ledger asserting this result without it having been produced |
 
@@ -286,3 +286,60 @@ Run 2026-09-24 against `_loop_guards.py`. The absent-container pass-clause (M5 i
 | M5 | the malformed-wave pass (`if not wave_is_well_formed(wave):`) | replaced with `if False:` | parity | `test_the_verdict_agrees_over_the_whole_domain` — `TypeError: 'int' object is not iterable` from `for task in wave` when `wave = 123` (an int in the parity domain's `[123]` schedule_waves entry); `guards` stayed green because its fixture uses `schedule_waves = [[]]` and `unaccounted_wave_tasks`'s own `wave_is_well_formed` check returns `[]` for an empty wave, leaving `live = []` and the verdict passing. |
 
 Each mutation was reverted immediately after its result was observed and the file diffed against its pre-mutation copy (all relevant suites re-run passing) before the next mutation began. No `git checkout`, `git reset` or `git stash` was used at any point.
+
+
+### T6 addendum 2 — clauses the reviews found unrecorded
+
+Two review passes found three clauses T6 added with no mutation entry. Run
+2026-09-24, method as above. Suites: `guards` = `test_loop_guards.py`;
+`cli` = `test_loop_cohort.py`.
+
+| # | Clause removed | Mutation applied | Result | Observed |
+| --- | --- | --- | --- | --- |
+| M6 | the superseded grouping in `unaccounted_breakdown` | the `if superseded:` branch deleted | **RED** | `guards` `1 failed, 160 passed`; `cli` `3 failed, 69 passed, 161 deselected` |
+| M7 | `superseded_wave_tasks`' subtree-absent clause | `if not isinstance(held, dict): return []` deleted | **RED** | `guards` `4 failed, 157 passed`; `cli` `2 failed, 70 passed, 161 deselected` |
+| M8 | `plan_wave_reopen`'s idempotence clause | `if record.get(SUPERSEDED_KEY) is not True:` → `if True:` | **survived, then RED** | First run: no suite turned red. The clause skips an already-superseded record and counts only what it marks, and the resulting state is identical either way, so the only observable difference is the verb's success line — which eleven call sites discarded into `_`. `test_wave_reopen_reports_the_wave_and_the_count_it_superseded` asserts the wave index and the count, including zero on a second reopen; with it the mutation reports `1 failed, 233 deselected` |
+
+M8 is the second clause in this delivery whose first mutation survived, and the
+pattern is the same as the malformed-container one: **a clause whose only effect
+is on output nothing asserts cannot be killed, however carefully the code is
+reviewed.** Both are recorded with their survival rather than only their closure.
+
+### A correction this ledger had to make twice
+
+The M1 row was wrong in two successive revisions — first recording a parity red
+with `moved == 0`, then keeping the parity attribution and changing the figure to
+8 violations. Neither run produces either. The mutation changes only
+`GuardResult.reason`, and the parity check asserts on the shipped verdict's `ok`
+flag and on `unaccounted_wave_tasks` return values, so it is structurally blind
+to it; the second revision's `8` was the unmutated accounted-state count.
+
+The lesson is about how a wrong claim gets corrected, not about this row: the
+first correction fixed the number the reviewer flagged and inherited the suite
+attribution unchecked. **Re-derive the whole claim from a run, not the part that
+was challenged.**
+
+
+## A finding refuted, and why two reviewers reached it
+
+Both final-pass reviewers reported that `evals.json` carries unrelated encoding
+churn — one counted 35 changed lines, the other 72 — and both asked for it to be
+reverted or declared as a ride-along.
+
+It is already reverted. Measured 2026-09-24 against the merge-base `ba76d833c`:
+
+| Measure | merge-base | HEAD |
+| --- | --- | --- |
+| `git diff --stat` on the file | — | `1 file changed, 12 insertions(+)` |
+| literal `—` characters | 35 | 35 |
+| `\u2014` escapes | 0 | 0 |
+
+The net change is the twelve-line repair-round entry and nothing else. Both
+reviewers were given `27cff5b78..HEAD` as their range, and that window *contains*
+the revert of the re-encoding an earlier task introduced — so the revert itself
+appears in the diff as 35 changed lines and reads as the churn.
+
+Recorded because the mistake is easy to repeat and is not the reviewers': **a
+two-SHA range is a window, not a net change.** A finding about what a delivery
+ships has to be measured against the merge-base, whatever range the review was
+scoped to.

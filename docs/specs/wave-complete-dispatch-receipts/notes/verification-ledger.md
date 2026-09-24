@@ -4,6 +4,16 @@ Execution observations for this spec. This file is the single home for the
 dispatch-rate measurement and for the grounding evidence behind each
 load-bearing claim. The spec and plan cite it; they do not restate its figures.
 
+> **Note (2026-09-24), applying to this file entire.** The wave-exit refusal text
+> quoted throughout was reworded by the `repair-round-dispatch-assertion`
+> delivery. `"wave exit: wave N has tasks with no dispatch receipt: …"` no longer
+> reproduces anywhere; the shipped code emits `"wave exit: wave N has tasks with
+> no live record — …"` followed by a breakdown into superseded and absent
+> sub-lists. Every observed-failure quote in this file using the old text is a
+> frozen observation of the code as it stood when it was recorded, not of the
+> current emitter. This spec is frozen, so the observations are left as they were
+> taken rather than restated — the scope of this note is what makes them readable.
+
 Every entry below states the command that regenerates it. A figure with no
 regenerating command is not evidence, because the underlying corpus grows.
 
@@ -1710,15 +1720,6 @@ clause, not the cases that can see it fail. A green under a narrow filter is a
 statement about the filter.
 
 ### 13.5 The wave-exit verdict table, row by row
-
-> **Note (2026-09-24):** The wave-exit refusal text for the R8-unaccounted row
-> was reworded by the `repair-round-dispatch-assertion` delivery on 2026-09-24.
-> The old text (`"wave exit: wave N has tasks with no dispatch receipt: …"`) no
-> longer reproduces; the shipped code now emits
-> `"wave exit: wave N has tasks with no live record — …"` with a breakdown into
-> superseded and absent sub-lists. Observed-failure quotes below that use the
-> old text are frozen observations of the code as it stood during that delivery,
-> not the current emitter.
 
 `notes/walk_verdict_partition.py` names eight rows. `R1-read-refuses` is decided
 upstream in `_state_or_reason` and is pre-existing T1a code, not a clause T2 or

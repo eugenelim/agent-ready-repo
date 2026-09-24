@@ -2353,6 +2353,7 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         # predicate deciding whether a record still discharges its task, and the
         # helper listing tasks whose records are superseded (not absent)
         "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
+        "unaccounted_breakdown",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
@@ -3005,6 +3006,7 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         # predicate deciding whether a record still discharges its task, and the
         # helper listing tasks whose records are superseded (not absent)
         "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
+        "unaccounted_breakdown",
     }
     guards = load_guards()
     missing = sorted(n for n in names if not hasattr(guards, n))
@@ -3261,3 +3263,64 @@ def test_the_malformed_container_pass_clause_is_reachable_and_killable(g) -> Non
     assert [t for t in waves[0] if t not in set(g.unaccounted_wave_tasks(state, 0))], (
         "the fixture must leave a live task, or removing the clause changes nothing"
     )
+
+
+def test_both_consumers_render_one_state_identically(g) -> None:
+    """The refusal breakdown has one declaration, so the two consumers cannot drift.
+
+    Before `unaccounted_breakdown` existed, the wave-exit verdict and `wave
+    advance` each composed this fragment themselves. Each consumer's own test
+    asserted only that its superseded and absent cases differed from each other,
+    so the two could drift in grouping, label or order and both stay green — the
+    duplicated-predicate seam the receipts design exists to close.
+    """
+    waves = [["T1", "T2", "T3"], ["T4"]]
+    live = g.partition_digest(waves)
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {live: {"0": {
+            "T1": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+            "T2": {"kind": "decline", "reason": "human-directed", g.SUPERSEDED_KEY: True},
+        }}},
+    }
+    fragment = g.unaccounted_breakdown(state, 0)
+    assert "superseded: 'T1, T2'" in fragment, fragment
+    assert "no dispatch receipt: 'T3'" in fragment, fragment
+    # Both consumers embed the SAME fragment, so one state cannot read two ways.
+    assert fragment in (g._wave_exit_verdict(state).reason or ""), (
+        "the wave-exit refusal must embed the shared fragment verbatim"
+    )
+
+
+def test_the_breakdown_is_empty_when_every_task_is_accounted(g) -> None:
+    """A caller renders the fragment only when there is something to report."""
+    waves = [["T1"]]
+    live = g.partition_digest(waves)
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {live: {"0": {"T1": {"kind": "receipt"}}}},
+    }
+    assert g.unaccounted_breakdown(state, 0) == ""
+
+
+def test_superseded_wave_tasks_returns_nothing_when_the_subtree_is_absent(g) -> None:
+    """The subtree-absent clause: every unaccounted task lacks a record entirely.
+
+    Mutation-recorded. Removing the clause raises `AttributeError` on
+    `None.get(task)` for this state, so the clause is load-bearing rather than
+    defensive.
+    """
+    waves = [["T1", "T2"]]
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {"some-other-digest": {"0": {"T1": {"kind": "receipt"}}}},
+    }
+    assert g.unaccounted_wave_tasks(state, 0) == ["T1", "T2"]
+    assert g.superseded_wave_tasks(state, 0) == []
+    assert "no dispatch receipt: 'T1, T2'" in g.unaccounted_breakdown(state, 0)

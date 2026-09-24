@@ -111,12 +111,20 @@ def _container_well_formed(container, depth=_DEPTH) -> bool:
 
 
 def _keyed_container(waves, index, tasks, *, record=None, digest=None):
-    """A container built from the declared key path, never at a literal depth."""
+    """A container built from the DECLARED key path, never at a literal depth.
+
+    The key sequence is derived from `_KEY_PATH`, not written as a literal pair:
+    the declaration names the task identifier last, so every level above it is
+    keyed here in order. A review found this docstring making that claim while
+    the body hardcoded a two-element tuple — the exact defect the frozen spec's
+    criterion names, since a hand-built container makes the walk ratify the shape
+    its author constructed rather than the shape the declaration states.
+    """
     record = record or {"kind": "receipt"}
-    leaves = {task: dict(record) for task in tasks}
-    node = leaves
-    for key in reversed((digest or _digest_of(waves), str(index))):
-        node = {key: node}
+    outer = {"partition digest": digest or _digest_of(waves), "wave index": str(index)}
+    node = {task: dict(record) for task in tasks}
+    for level in reversed(_KEY_PATH[:-1]):
+        node = {outer[level]: node}
     return node
 
 
@@ -344,10 +352,16 @@ def test_the_accounting_predicate_agrees_over_the_whole_domain(guards) -> None:
     only reads whether the live set is empty, so a wrong task identifier in the
     returned list is invisible to it and visible in `wave advance`'s refusal text.
 
-    Compares over every readable state — both `_unaccounted` and the shipped
-    `unaccounted_wave_tasks` are total and need no pre-filter. Earlier versions
-    filtered on `_pointer_ok` and `_wave_well_formed`, skipping ~90 % of
-    readable states and hiding any shipped divergence in exactly those guards.
+    Compares over every readable state, with one stated restriction. An earlier
+    version filtered on `_pointer_ok` and `_wave_well_formed`, skipping ~90 % of
+    readable states and hiding any shipped divergence in exactly those guards;
+    that filter is gone. What remains is the index ARGUMENT: this loop passes an
+    integer, because the shipped `unaccounted_wave_tasks` is not total over its
+    `wave_index` parameter — `unaccounted_wave_tasks(state, "x")` raises
+    `TypeError` on `0 <= wave_index < len(waves)`. So the pointer axis is
+    exercised through the state's own `current_wave_index` by the verdict
+    comparison, not through this function's argument. Saying so rather than
+    claiming totality: the claim was false and a review caught it.
 
     Non-degeneracy: the domain must return a non-empty unaccounted list for at
     least one state, AND return an empty list for at least one.

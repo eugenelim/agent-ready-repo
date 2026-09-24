@@ -4587,28 +4587,28 @@ def test_wave_exit_refusal_distinguishes_superseded_from_absent(tmp: Path) -> No
         _RECEIPTS_KEY: {},
     })
 
-    for phase_verb in (("check", "--phase", "wave-exit"),):
-        rc_sup, _, err_sup = run_cohort(*phase_verb, str(spec_dir_sup))
-        rc_abs, _, err_abs = run_cohort(*phase_verb, str(spec_dir_abs))
-        if rc_sup == 0:
-            fail(name, f"wave-exit must refuse for superseded case; got 0: {err_sup.strip()!r}")
-            return
-        if rc_abs == 0:
-            fail(name, f"wave-exit must refuse for absent case; got 0: {err_abs.strip()!r}")
-            return
-        if err_sup.strip() == err_abs.strip():
-            fail(
-                name,
-                f"the two cases must render differently; "
-                f"superseded={err_sup.strip()!r} absent={err_abs.strip()!r}",
-            )
-            return
-        if "superseded" not in err_sup:
-            fail(
-                name,
-                f"superseded case must name 'superseded'; got {err_sup.strip()!r}",
-            )
-            return
+    phase_verb = ("check", "--phase", "wave-exit")
+    rc_sup, _, err_sup = run_cohort(*phase_verb, str(spec_dir_sup))
+    rc_abs, _, err_abs = run_cohort(*phase_verb, str(spec_dir_abs))
+    if rc_sup == 0:
+        fail(name, f"wave-exit must refuse for superseded case; got 0: {err_sup.strip()!r}")
+        return
+    if rc_abs == 0:
+        fail(name, f"wave-exit must refuse for absent case; got 0: {err_abs.strip()!r}")
+        return
+    if err_sup.strip() == err_abs.strip():
+        fail(
+            name,
+            f"the two cases must render differently; "
+            f"superseded={err_sup.strip()!r} absent={err_abs.strip()!r}",
+        )
+        return
+    if "superseded" not in err_sup:
+        fail(
+            name,
+            f"superseded case must name 'superseded'; got {err_sup.strip()!r}",
+        )
+        return
 
     # wave advance reads the same predicate.
     rc_sup, _, err_sup = run_cohort(
@@ -4728,3 +4728,41 @@ def test_wave_reopen_check_leaves_state_json_byte_identical(tmp: Path) -> None:
         fail(name, "state.json changed after check --phase wave-reopen")
         return
     ok(name)
+
+
+def test_wave_reopen_reports_the_wave_and_the_count_it_superseded(tmp: Path) -> None:
+    """The verb's success line, and the idempotence clause only it can observe.
+
+    `plan_wave_reopen` skips a record already carrying `superseded: True` and
+    counts only the ones it marks. That skip is observable nowhere else: state
+    ends up identical either way, so without an assertion on this line the clause
+    survives its mutation — which it did, until this test existed. A second
+    reopen must report zero.
+    """
+    name = "wave-reopen-reports-its-effect"
+    spec_dir = make_spec_dir(tmp, name)
+    run_id = str(uuid.uuid4())
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id,
+        "schedule_waves": _WAVES, "current_wave_index": 0,
+        _RECEIPTS_KEY: _receipts_container(_WAVES, 0, ["T1", "T2"]),
+    })
+
+    rc, out, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"first reopen must succeed; got {rc}: {(out + err).strip()!r}")
+    if "wave 0" not in out:
+        fail(name, f"the success line must name the wave; got {out.strip()!r}")
+    if "2 record(s) superseded" not in out:
+        fail(name, f"the success line must count what it marked; got {out.strip()!r}")
+
+    # The idempotence clause: nothing left to supersede, so the count is zero.
+    rc, out, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"second reopen must succeed; got {rc}: {(out + err).strip()!r}")
+    if "0 record(s) superseded" not in out:
+        fail(
+            name,
+            "a reopen with nothing left to mark must report zero, or the skip "
+            f"clause is unobservable; got {out.strip()!r}",
+        )

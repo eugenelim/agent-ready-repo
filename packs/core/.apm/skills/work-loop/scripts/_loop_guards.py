@@ -92,6 +92,7 @@ __all__ = [
     "RECEIPT_KIND",
     "SUPERSEDED_KEY",
     "accounts_for_task",
+    "unaccounted_breakdown",
     "DECLINE_KIND",
     "DECLINE_REASONS",
     "partition_digest",
@@ -1287,9 +1288,13 @@ def superseded_wave_tasks(state: dict, wave_index: int) -> list[str]:
 
     Derived from `unaccounted_wave_tasks`: all precondition checks (container
     presence, schedule_waves validity, pointer range, wave shape) are inherited
-    from that call, so the two cannot drift into disagreeing about which tasks
-    need accounting. One container traversal then partitions the result by
-    whether the stored record is a superseded record.
+    from that call, so the two cannot disagree about which tasks need accounting.
+    The container walk below is a SECOND statement of the one in
+    `unaccounted_wave_tasks`, and that is a real seam: if only one of them changes,
+    this function falls through to `[]` and every superseded task is reported as
+    having no record — the original defect, quietly. `unaccounted_breakdown` is
+    the only caller that renders the distinction, and the parity check drives the
+    subset property over its whole domain, which is what would catch the drift.
     """
     unaccounted = unaccounted_wave_tasks(state, wave_index)
     if not unaccounted:
@@ -1304,6 +1309,33 @@ def superseded_wave_tasks(state: dict, wave_index: int) -> list[str]:
         # Subtree absent: all unaccounted tasks lack a record entirely.
         return []
     return [task for task in unaccounted if is_dispatch_record(held.get(task))]
+
+
+def unaccounted_breakdown(state: dict, wave_index: int) -> str:
+    """Render the unaccounted tasks of one wave, split into superseded and absent.
+
+    Declared ONCE and called by both consumers of the accounting predicate — the
+    wave-exit verdict and `wave advance`'s advancing branch. The two used to
+    compose this fragment separately, which is the same duplicated-predicate seam
+    the receipts design exists to close: the two renderings could drift in
+    grouping, label or order while each consumer's own test stayed green.
+
+    Returns the fragment only, never the whole refusal, because each consumer
+    names its own verb and remedy around it.
+    """
+    unaccounted = unaccounted_wave_tasks(state, wave_index)
+    if not unaccounted:
+        return ""
+    superseded = set(superseded_wave_tasks(state, wave_index))
+    absent = [task for task in unaccounted if task not in superseded]
+    parts = []
+    if superseded:
+        parts.append(
+            f"superseded: {bounded_id_list([t for t in unaccounted if t in superseded])}"
+        )
+    if absent:
+        parts.append(f"no dispatch receipt: {bounded_id_list(absent)}")
+    return "; ".join(parts)
 
 
 def malformed_receipts_position(container: object, depth: int | None = None) -> str | None:
@@ -1517,18 +1549,11 @@ def _wave_exit_verdict(state: dict) -> GuardResult:
 
     unaccounted = unaccounted_wave_tasks(state, index)
     if unaccounted:
-        superseded = superseded_wave_tasks(state, index)
-        absent = [t for t in unaccounted if t not in set(superseded)]
-        parts = []
-        if superseded:
-            parts.append(f"superseded: {bounded_id_list(superseded)}")
-        if absent:
-            parts.append(f"no dispatch receipt: {bounded_id_list(absent)}")
         return GuardResult(
             ok=False,
             reason=(
                 f"wave exit: wave {index} has tasks with no live record — "
-                f"{'; '.join(parts)}; "
+                f"{unaccounted_breakdown(state, index)}; "
                 "run `loop-cohort dispatch-receipt` to record each"
             ),
         )

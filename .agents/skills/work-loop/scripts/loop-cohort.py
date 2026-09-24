@@ -483,7 +483,7 @@ except GuardsUnavailable as exc:
     partition_digest = is_dispatch_record = _guards_unavailable
     malformed_receipts_position = receipts_for_partition = _guards_unavailable
     wave_is_well_formed = unaccounted_wave_tasks = superseded_wave_tasks = _guards_unavailable
-    accounts_for_task = _guards_unavailable
+    accounts_for_task = unaccounted_breakdown = _guards_unavailable
     bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
@@ -516,6 +516,7 @@ else:
     unaccounted_wave_tasks = _g.unaccounted_wave_tasks
     superseded_wave_tasks = _g.superseded_wave_tasks
     accounts_for_task = _g.accounts_for_task
+    unaccounted_breakdown = _g.unaccounted_breakdown
     bounded_id_list = _g.bounded_id_list
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
@@ -1753,16 +1754,9 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
         # advances rather than being stranded mid-schedule.
         unaccounted = unaccounted_wave_tasks(state, n_arg)
         if unaccounted:
-            superseded = superseded_wave_tasks(state, n_arg)
-            absent = [t for t in unaccounted if t not in set(superseded)]
-            parts = []
-            if superseded:
-                parts.append(f"superseded: {bounded_id_list(superseded)}")
-            if absent:
-                parts.append(f"no dispatch receipt: {bounded_id_list(absent)}")
             return stop(
                 f"wave advance: wave {n_arg} has tasks with no live record — "
-                f"{'; '.join(parts)}; "
+                f"{unaccounted_breakdown(state, n_arg)}; "
                 "run `loop-cohort dispatch-receipt` to record each"
             )
         state["current_wave_index"] = n_arg + 1
