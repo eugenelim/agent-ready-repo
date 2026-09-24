@@ -1924,14 +1924,33 @@ open = [
   { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Require a repair round to carry its own dispatch assertion: three transition edges re-enter code implementation without moving the wave pointer, so a wave's exit is discharged a second time by the first pass's records", needs = [] },
 
 
-  # A wave exit that passes with no receipts container, or with every task
-  # declined, leaves no record an after-the-fact reader can find: the read-only
-  # guard cannot write, and a durable side effect on a transition is ADR-0061
-  # Option B, which needs the absent pending_transition schema. loop-cohort
-  # status also refuses when schema_version is unsupported, so for the oldest
-  # state class the guard tolerates, only the stdout notice remains.
-  # Unblocks now; no dependency.
-  { path = "docs/adr/0061-loop-infrastructure-phase-1.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced or with every task declined, since both signals today are ephemeral and read by the party the guard constrains", needs = [] },
+  # Replaces the durable-trace defect retired here on 2026-09-24, whose premise
+  # measurement refuted. That entry held that both signals were ephemeral. They
+  # are not. The `wave-complete` transition this guard gates appends a durable
+  # record to `.loop-run/events.jsonl` for every verdict row, including the
+  # unsupported-schema row, and an all-declined wave's decline records persist
+  # in state.json. The entry also mis-grouped the all-declined case as a
+  # tolerance: a decline is accounting, not an exemption, and both kinds count
+  # as accounted for. ADR-0061's 2026-09-24 erratum records the corrected
+  # picture; two tests in
+  # packs/core/tests/skills/work-loop/test_loop_cohort.py pin it.
+  #
+  # What survives is narrower, and is a reader gap rather than a writer one.
+  # Nothing reports the accounting BASIS of a wave exit. The events.jsonl line
+  # names the transition but not which of the eight verdict rows passed it, and
+  # `loop-cohort status` reports `dispatch_receipts_enforced` as
+  # `RECEIPTS_KEY in state` (loop-cohort.py:1328), which reads identically for a
+  # wave in which every task was implemented and one in which every task was
+  # declined.
+  #
+  # Not closed alongside the erratum because both candidate surfaces are
+  # published: changing the `status --json` payload or the events.jsonl line
+  # needs its own spec, the three-file core version bump and a changelog entry.
+  # Deliberately NOT a request to tighten either tolerance -- the unsupported-
+  # schema and absent-container rows exist so a run already in flight when
+  # receipts shipped still reaches its wave boundary, and a change making either
+  # refuse is a regression, not a fix. Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/adr/0061-loop-infrastructure-phase-1.md" }, summary = "Report the accounting basis of a wave exit rather than only that it happened: no surface names which verdict row passed the exit, and status reports receipts enforcement as container presence, so an all-declined wave reads identically to one in which every task was implemented", needs = [] },
   # The repository work-graph family's eight registered Draft intents: five feature
   # children of docs/product/intents/CAP-0001-repository-work-graph.md, and three
   # sibling capabilities under docs/product/intents/STRAT-0001-graph-powered-sdlc.md.
