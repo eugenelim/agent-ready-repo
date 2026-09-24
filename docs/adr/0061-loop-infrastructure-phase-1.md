@@ -154,6 +154,8 @@ status rather than a trace of any past exit, and it refuses outright on an
 unsupported `schema_version`.
 
 Option B remains out of reach on the prerequisite the 2026-08-31 erratum named:
-a `pending_transition` schema is still absent. Current behaviour is described in
-`docs/architecture/loop-infrastructure.md`. The body above is left as written.
+a `pending_transition` schema is still absent. No architecture section records
+this consequence yet: `docs/architecture/loop-infrastructure.md` covers the
+wave-exit verdict only where it is not serialised against the wave pointer,
+which is a different question. The body above is left as written.
 Approver: eugenelim.

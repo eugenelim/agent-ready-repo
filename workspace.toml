@@ -1937,11 +1937,11 @@ open = [
   # schema_version -- NEITHER channel survives. That verdict row returns before
   # the container-absent notice is reached, so it emits nothing, and
   # `loop-cohort status` refuses the same state. The residual list in
-  # docs/specs/wave-complete-dispatch-receipts/spec.md:657 states THAT sentence
-  # correctly, where an earlier version of this comment wrongly said the stdout
-  # notice remained. Its neighbouring "or with every task declined" clause is
-  # superseded by the correction below; that spec is Shipped and cannot be
-  # edited, so the supersession is recorded here.
+  # docs/specs/wave-complete-dispatch-receipts/spec.md:660-662 states THAT
+  # sentence correctly, where an earlier version of this comment wrongly said
+  # the stdout notice remained. The "or with every task declined" clause earlier
+  # in the same bullet, at :657, is superseded by the correction below; that
+  # spec is Shipped and cannot be edited, so the supersession is recorded here.
   #
   # `.loop-run/events.jsonl` is NOT the missing trace, checked 2026-09-24
   # because a pass on this entry wrongly claimed it was durable and retired the
@@ -1954,8 +1954,12 @@ open = [
   #
   # Corrected 2026-09-24: an all-declined wave is NOT one of these cases. A
   # decline is accounting, not an exemption -- both kinds count as accounted for
-  # and the records persist in state.json, so that wave's history is readable.
-  # What is missing there is a reader, not a record: `loop-cohort status`
+  # and the records persist in state.json, so that wave's history is readable
+  # for as long as the partition digest holds. It does not survive a partition
+  # move: `schedule` rewrites the container through `receipts_for_partition`,
+  # which keeps only the live digest's subtree, so an amendment that repartitions
+  # the waves drops a completed wave's declines. Within a run whose partition has
+  # not moved, what is missing is a reader, not a record: `loop-cohort status`
   # reports `dispatch_receipts_enforced` as `RECEIPTS_KEY in state`
   # (loop-cohort.py:1328), so an all-declined wave reads identically to one in
   # which every task was implemented. ADR-0061's 2026-09-24 erratum records the
