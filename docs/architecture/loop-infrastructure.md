@@ -252,6 +252,65 @@ baseline and hands off to implementation in `code` mode, and terminates the run
 in `spec-plan` mode. The three `*-HUMAN-GATE` states are where the run waits on
 a person; every other state is agent work.
 
+### The review and classification sequence
+
+Severity is assigned in three places and validated in none. `loop-cohort.py`
+parses a report's shape and computes fingerprints. Nothing reads the emitted
+`review-verdict.v1` block.
+
+```mermaid
+flowchart TD
+  BRIEF[orchestrator writes reviewer brief]
+  REV[reviewer emits findings under Blockers Concerns Nits]
+  RAW[raw report persisted to .context/reviews/run-id]
+  CLS{review raw-classify}
+  ADJ[finding-adjudicator six predicates]
+  ADJART[adjudication artifact persisted]
+  INSP{review inspect --adjudication}
+  REC[review record --fingerprint]
+  DEC[DECIDE ladder Cut Route Fix Hold]
+  GATES[re-run GATES and REVIEW]
+  VERD[json review-verdict.v1 emitted]
+  NOVAL[no reader validates the record]
+
+  BRIEF --> REV
+  REV -->|1 severity assigned| RAW
+  RAW --> CLS
+  CLS -->|clean| REC
+  CLS -->|invalid| STOP[loud stop]
+  CLS -->|findings| ADJ
+  ADJ -->|2 predicate 5 decides advisory tier| ADJART
+  ADJART --> INSP
+  INSP -->|refuted| AUDIT[paired audit artifact only]
+  INSP -->|invalid| STOP
+  INSP -->|indeterminate| STOP
+  INSP -->|sustained| REC
+  REC --> DEC
+  DEC -->|3 effective severity may be promoted| VERD
+  DEC -->|Blocker| GATES
+  GATES --> REV
+  VERD --> NOVAL
+```
+
+Full mode iterates `adversarial-reviewer` until no unresolved Blocker **or
+Concern** remains, so both return the loop to GATES. The rungs differ in
+disposition rather than in whether they iterate: a Concern may be applied only
+when the accepted contract and the bundled-fixes carve-out authorise it, and
+required work that cannot share the unit moves to the next. Nits are deferred
+with their citation.
+
+The adjudicator may **lower** a reviewer's severity and may not raise it. Its
+fifth predicate is what lowers a consequence to advisory: a fix that is not fully
+determined, or a citation whose every surface the target marks as working
+material rather than contract. A disposition-changing severity conflict returns
+`indeterminate` for owner direction.
+
+That ceiling is honoured in practice. Across 2,062 adjudicator entries declaring
+a consequence advisory, 98% sustained at Concern or Nit; per run, 13 of 15 runs
+with at least 20 such entries were perfectly compliant. What no artifact records
+is the determinacy judgement itself, so nothing can show which reading an
+adjudicator applied.
+
 ### TDD stub artifact boundary
 
 For a full-mode TDD task, `plan.md` owns the exact stub code and its validation
@@ -274,6 +333,37 @@ mutation. A changed plan blocks code transitions until scheduling is current.
 Both state writers use `tempfile.mkstemp` and `os.replace` in the target
 directory. A crash leaves either the previous JSON or the replacement JSON.
 `reset` is the explicit recovery action.
+
+### Re-planning after plan approval
+
+Three situations arise once `approved_plan_hash` is written, and they take three
+different routes.
+
+| Situation | Route | Preserves completed work |
+| --- | --- | --- |
+| An accepted criterion proves genuinely separable | `contract-amendment` from `CODE-IMPLEMENTATION`, with scope-owner authority, a reason reference, and per-task completed evidence | yes, via the evidence payload |
+| Execution produces an observation the plan predicted | the work-loop's verification ledger, which is not hash-pinned and needs no amendment | n/a — the plan does not change |
+| The plan's approach is wrong | `reset`, then a new run | **no** |
+
+**The third row is enforced, not merely advised.**
+`validate_completed_task_sections` returns a refusal "when an amended plan
+rewrites completed work": `completed_task_section_hashes` holds an exact SHA-256
+per completed task section, and both `approve-plan` and `schedule` refuse an
+amended plan that edits, removes, or renames one. So an approach change that
+reaches completed work cannot be amended in place — the pin refuses it — and an
+amendment that leaves those sections untouched has not changed the approach for
+them. In-place re-planning is therefore closed by construction, which is the
+mechanism behind ADR-0061's *Tradeoff accepted*: "any post-approval plan change
+requires a full reset."
+
+**What reset costs** is recorded as an invariant in
+[§ 8](#8-mechanical-invariants): the recovery is correct and the run record does
+not survive it.
+
+**Editing `plan.md` outside these routes strands the run.** The schedule guard
+compares against the pinned `plan_hash` on every `CODE-*` transition, so a direct
+edit leaves every subsequent transition refusing with no forward edge; reset is
+then the only exit, at the cost above.
 
 ### Replay markers close two crash windows, and a protocol closes four more
 
@@ -408,12 +498,26 @@ a backend can do with it are a cross-cutting concern: see
   `findings-remain` transitions in `mode=code` all succeeded with
   `review_retry_count` at `0`. ADR-0061's *Revisit if* clause names a bounded
   round cap for unattended `spec-plan` runs (D5); no such change is designed.
+- **`reset` destroys the run record.** `loop-cohort reset` is `path.unlink()` on
+  `state.json` with no archive, so `completed_task_ids`,
+  `completed_task_section_hashes`, `review_round_count`, `review_retry_count`,
+  `amendment_history` and `dispatch_receipts` are lost rather than set aside.
+  Because in-place re-planning is closed by construction (§ 6), reset is the only
+  recovery from a wrong plan approach, so this loss is on the sole exit from that
+  situation. Known defect.
 - No invariant spans the two lock domains. A guard verdict derived from cohort
   state is not revalidated before the engine commits, so an invariant whose
   terms live in both files — the wave-exit verdict and `current_wave_index`
   above — has no mechanical protection.
 
 ## 9. Relevant ADRs
+
+Measured behaviour of the review loop — round depth, cap firings, repair-origin
+rate, and what does and does not bound a loop — is recorded in
+[the review-loop non-convergence survey](../product/research/review-loop-nonconvergence-survey.md).
+Consult it before proposing a new bound; it records eleven mechanisms tested and
+not shipped.
+
 
 - [ADR-0061 — Loop infrastructure](../adr/0061-loop-infrastructure-phase-1.md)
 - [ADR-0064 — Events JSONL as FSM event source](../adr/0064-events-jsonl-as-fsm-event-source.md)
