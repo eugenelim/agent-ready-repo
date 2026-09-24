@@ -50,7 +50,6 @@ Parse tiers — fields the shape lint checks:
   whole-record replacement only. Several D-IDs against one ordinal join with
   a comma and no space; separate ordinals join with a semicolon and a space.
   All four supersession fields stay writable after acceptance. -->
-
 - **Related:** <!-- suggested (tier T1-unchecked — not validated by the lint):
   RFC-NNNN (the proposal this records); ADR-NNNN (the gate it rests on — the
   motivating evidence, and the split between what a scanner catches and what
