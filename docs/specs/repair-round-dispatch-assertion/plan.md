@@ -34,23 +34,31 @@ end.
 
 ## Construction tests
 
-Every suite already exists; this change extends them rather than adding a
-directory. T1 → `test_loop_guards.py` plus the new oracle in this spec's
-`notes/`; T2 → `test_loop_cohort.py`; T3 → `test_loop_engine.py`; T4 →
-`packs/core/tests/pack/`. Paths under `packs/core/tests/skills/work-loop/`
-except the last.
+T1 → `test_loop_guards.py` plus the oracle in this spec's `notes/`; T2 →
+`test_loop_cohort.py`; T3 → `test_loop_engine.py`; T4 →
+`packs/core/tests/pack/`; T6 → all four of those plus
+`tests/roster/test_repair_round_predicate_parity.py`. The first three are under
+`packs/core/tests/skills/work-loop/`.
+
+**The oracle-to-code coupling lives in `tests/roster/`, not in the pack suite.**
+T1's body and an earlier version of this section both named
+`packs/core/tests/skills/work-loop/`; that home is impossible, because
+`tools/lint-pack-test-boundary.py` forbids a pack test from reading above its own
+pack and the oracle is under `docs/`. T1's section is hash-pinned by the
+2026-09-24 amendment and cannot be corrected in place, so T6 carries the
+correction and this paragraph is the statement of record.
 
 ## Durable-output map
 
 | Spec durable output | Task | Construction detail the spec does not carry |
 | --- | --- | --- |
 | Current architecture | T5 | the edge list goes in § 4 beside the allowed-edges table, not § 6 |
-| Interface documentation | T4, sole owner | the `dispatch_receipts` row is edited in the same task as the prose it has to agree with; T1 changes the predicate but writes no documentation |
-| Maintainer procedure | T4 | demoted working material: T4 writes the prose and the pack suite pins it, and no criterion reads it |
+| Interface documentation | T4, then T6 | T4 writes the `dispatch_receipts` row; T6 corrects it to the `is True` rule the predicate applies |
+| Maintainer procedure | T4, then T6 | demoted working material: T4 writes the prose and the pack suite pins it, T6 repairs the pin's comment asymmetry and the sentences above two blocks, and no criterion reads any of it |
 | Verification evidence | T1, T2, T3 | each task appends its own mutation entries as it lands, rather than one task writing all of them afterwards |
 | Interface compatibility | T5 | — |
 | Release history | T5 | — |
-| Reusable learning | T4 | — |
+| Reusable learning | T4, then T6 | T6 reverts T4's unrelated re-encoding of the whole file |
 
 ## Design (LLD)
 
@@ -363,60 +371,87 @@ surfaces agree.
 
 **Depends on:** T5
 
-**Tests:** TDD for the two behaviour changes, goal-based for the rest.
-Discharges the § The accounting predicate criteria T1 left unasserted, the two
-§ The repair-round verdict criteria T1 left unasserted, and the amended § Proof
-criteria.
+**Tests:** per remedy, named below. It also **supersedes T1's § Proof claim**:
+T1's section is hash-pinned by the 2026-09-24 amendment and still claims the
+oracle criteria that amendment demoted, so ownership of the surviving § Proof
+criteria transfers here and this line is the statement of record.
 
-- **The refusals name what they found.** Both `check --phase wave-exit` and
-  `wave advance`'s advancing branch currently say a task has "no dispatch
-  receipt" when it holds a superseded one. Each refusal states which named tasks
-  hold a superseded record and which hold none, and a test fails if the two
-  render identically — the criterion asks for the distinction, so a shared
-  string that cannot express it is the defect.
+**TDD — each of these lands a failing test first:**
+
+- **The refusals name what they found.** `check --phase wave-exit` and
+  `wave advance`'s advancing branch both say a task has "no dispatch receipt"
+  when it holds a superseded one. Each refusal states which named tasks hold a
+  superseded record and which hold none, and a test fails if the two cases render
+  identically. Suites: `test_loop_cohort.py` for both consumers at the CLI.
 - **The predicate's second consumer is driven.** `wave advance --from-index
   <current>` at the CLI against a wholly superseded wave, asserting its refusal.
-  Nothing in the repository drives that pair today, so the T1 ledger's reds for
-  the superseded clause all come from the wave-exit consumer.
+  Nothing in the repository drives that pair today, so every ledger red for the
+  superseded clause comes from the wave-exit consumer alone. Suite:
+  `test_loop_cohort.py`.
+- **The inert discriminators become falsifiable instead of being deleted.** In
+  code mode `gates-failed` and `blocker-applied` each have one source state, so
+  their guards' `engine_state["state"]` read cannot change an outcome through the
+  engine and the T3 ledger records it surviving. The guards take `engine_state`
+  as a plain mapping, so a unit test hands each one a state it does not gate —
+  `CODE-REVIEW` for `blocker-applied`, `CODE-HUMAN-GATE` for `gates-failed` —
+  and asserts the repair-round check is skipped. Removing the read then reds that
+  test. This is why the reads are kept rather than deleted: deletion would make
+  those two guards decide from `(mode, event)` alone, contradicting § Always do's
+  "never from the run mode", and would give up failing safe if the table grows.
+  Suite: `test_loop_engine.py`.
 - **Two `wave-reopen` criteria gain their checks:** an unreadable `state.json`
   refused by the shared reader with the verdict never reached and the reason
-  equal to `--phase wave-exit`'s for the same file, and `state.json` byte-identical
-  across a `check --phase wave-reopen` invocation.
-- **The inert discriminators are deleted.** In code mode `gates-failed` and
-  `blocker-applied` each have one source state, so reading `engine_state["state"]`
-  in their guards cannot change an outcome and the T3 ledger records it surviving
-  its mutation. Deleting them removes the exception rather than licensing it;
-  `findings-remain`'s discriminator stays, because it is the twin-sourced edge and
-  its mutation reds. `test_only_findings_remain_is_twin_sourced_in_code_mode`
-  stays as the tripwire that says when a new source state makes one live again.
-- **The oracle stops overclaiming.** Its docstring named five "properties that
-  can fail" where three restate the transcribed verdict's own body. It reports
-  those as counts, labelled as restatements, and names the roster parity test as
-  the falsifiable form. Its two references to the parity test are corrected to
-  `tests/roster/`.
+  equal to `--phase wave-exit`'s for the same file; and `state.json`
+  byte-identical across a `check --phase wave-reopen` invocation. Suite:
+  `test_loop_cohort.py`.
 - **The content pin loses its comment asymmetry.** It locates the edge by walking
   non-comment lines and the reopen over the raw block, so a commented-out
   `# wave reopen` above a transition satisfies it. Both halves use the
-  non-comment rule.
+  non-comment rule, and a test asserts a commented reopen fails the pin. Suite:
+  `packs/core/tests/pack/`.
+
+**Goal-based — a one-liner or a read-back verifies each:**
+
 - **`evals.json` keeps only the new entry.** T4 re-encoded every literal em dash
-  in that shipped artifact as `\u2014`; the re-encoding is reverted so the diff
-  carries the eval entry alone.
-- **Prose and records agree with the shipped mechanism:** `references/state-schema.md`
-  states the `is True` rule rather than "is set"; `references/full-mode-engine.md`'s
-  sentences above the two changed blocks name the reopen; `wave reopen`'s success
-  line names the wave and how many records it superseded; and the
-  `workspace.toml` register comment describes superseding rather than the
-  clearing design the frozen receipts contract forbids.
-- **The ledger gains an entry per new verdict clause**, and the
-  malformed-container case gets a fixture that keeps the live digest populated —
-  the current one uses a bogus digest, so the records are never found and the
-  clause's removal leaves the state passing anyway.
+  in that shipped artifact as `\u2014`; reverting leaves the eval entry as the
+  only change. Done when the file's diff against the merge-base contains the new
+  entry and nothing else.
+- **`references/state-schema.md` states the `is True` rule**, not "is set":
+  `superseded: false` and `superseded: "yes"` are set and deliberately live.
+- **`references/full-mode-engine.md`'s sentences above the two changed blocks
+  name the reopen**, so a reader meets it before the fenced commands.
+- **`wave reopen`'s success line names the wave and how many records it
+  superseded.** Uncontracted working material: § The reopen verb says nothing
+  about success output and T2 is hash-pinned, so this is a disclosed improvement
+  rather than a criterion. It was observed from the operator's seat during this
+  delivery's own repair round.
+- **The `workspace.toml` register comment describes superseding**, not the
+  clearing design the frozen receipts contract forbids. A ride-along correction
+  to a durable record this change made false; no durable output covers
+  `workspace.toml`.
+
+**Ledger repairs — the record itself is wrong in two places:**
+
+- **M6's survivor entry and the T3 addendum are revised** to record that the
+  clause is now killed by a test rather than kept unfalsifiable, so the ledger no
+  longer contains a surviving clause and § Proof's mutation criterion can be
+  ticked.
+- **The refusal wording change stales the failures T1–T3 quote.** Those entries
+  are re-observed under the new text rather than left quoting strings the code no
+  longer emits.
+- **One entry per new verdict clause.** T1 recorded six; `_repair_round_verdict`
+  adds seven pass-clauses and only the absent-container one has a row. The
+  malformed-container case also needs a fixture keeping the live digest
+  populated: the current one uses a bogus digest, so the records are never found
+  and the clause's removal leaves the state passing anyway.
 
 **Done when:** `make lint-ruff lint-mypy` passes; `test_loop_guards.py`,
 `test_loop_cohort.py`, `test_loop_engine.py` and `packs/core/tests/pack/` are
-green; `tests/roster/test_repair_round_predicate_parity.py` is green; both
+green; `python3 -m pytest tests/roster/test_repair_round_predicate_parity.py -q`
+is green, run by name because the roster suite is not run whole locally; both
 oracles run and report their stated figures; `make build-self` reports three-copy
-parity; and this task's mutation entries are in `notes/verification-ledger.md`.
+parity by digest; and this task's mutation entries are in
+`notes/verification-ledger.md`.
 
 ## Rollout
 
@@ -458,6 +493,12 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-24 — controlled contract amendment, owner-authorised: § Proof's
+  coupling criterion re-homed to `tests/roster/` with the pack-boundary reason,
+  the oracle's own criteria demoted to working material after three forms each
+  required a property a transcription cannot decide, a criterion added for the
+  pull-request step that makes the roster check run, and T6 added to close the
+  implementation review's findings.
 - 2026-09-23 — round-6 repairs: the oracle transcribes rather than imports, per
   the norm the frozen walk states; `session-resumption.md`'s `reviewers-clean`
   row was restored to the survey after a round-5 repair dropped it; and the
