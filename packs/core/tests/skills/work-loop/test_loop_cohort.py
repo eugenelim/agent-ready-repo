@@ -4242,3 +4242,305 @@ def test_wave_reopen_cli_verdict_per_row(tmp: Path, row: str) -> None:
 def test_wave_reopen_is_an_accepted_phase_choice(tmp: Path) -> None:
     """The phase reaches the verdict rather than dying in argparse."""
     assert "wave-reopen" in _mod.PHASES
+
+
+# ── wave reopen (the verb) ─────────────────────────────────────────────────
+#
+# Contract: § The reopen verb. `loop-cohort wave reopen <spec-dir>
+# --expect-run-id <id>` marks every record held under the live partition
+# digest at `current_wave_index` superseded, removes none, and leaves every
+# other wave index, every other partition digest, and every other top-level
+# key byte-identical.
+
+
+def _leaf_positions(container: object, depth: int | None = None) -> dict:
+    """Every (digest, wave-index, task) path holding a record, plus the record.
+
+    Depth comes from the module's own `RECEIPT_KEY_PATH`, never a literal —
+    matching `_record_at` and `_malformed_container_cases` above.
+    """
+    if depth is None:
+        depth = len(_KEY_PATH)
+    if depth == 0:
+        return {(): container}
+    if not isinstance(container, dict):
+        return {}
+    result: dict = {}
+    for key, value in container.items():
+        for path, record in _leaf_positions(value, depth - 1).items():
+            result[(key, *path)] = record
+    return result
+
+
+def test_wave_reopen_marks_only_the_live_digest_and_current_wave(tmp: Path) -> None:
+    """Multi-wave, multi-digest fixture: only (live digest, current wave) moves.
+
+    The only fixture shape that can catch a verb marking by digest alone, or by
+    task id alone, instead of the (digest, wave index) pair together.
+    """
+    name = "wave-reopen-marks-only-live-digest-current-wave"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = _WAVES
+    live_digest = _mod.partition_digest(waves)
+    stale_digest = _mod.partition_digest([["T1"], ["T2"], ["T3"]])
+    before_state = {
+        "schema_version": 1, "run_id": run_id, "plan_review_status": "approved",
+        "schedule_waves": waves, "current_wave_index": 0,
+        _RECEIPTS_KEY: {
+            live_digest: {
+                "0": {"T1": {"kind": "receipt"}, "T2": {"kind": "receipt"}},
+                "1": {"T3": {"kind": "receipt"}},
+            },
+            stale_digest: {
+                "0": {"T1": {"kind": "receipt"}},
+            },
+        },
+    }
+    write_state(spec_dir, before_state)
+    rc, _, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()!r}")
+        return
+    after = json.loads((spec_dir / "state.json").read_text())
+
+    for task in ("T1", "T2"):
+        record = after[_RECEIPTS_KEY][live_digest]["0"][task]
+        if record.get(_SUPERSEDED) is not True or record.get("kind") != "receipt":
+            fail(
+                name,
+                f"{task} at the live digest's current wave must be superseded "
+                f"and stay a receipt; got {record!r}",
+            )
+            return
+
+    sibling_wave = after[_RECEIPTS_KEY][live_digest]["1"]
+    if sibling_wave != {"T3": {"kind": "receipt"}}:
+        fail(name, f"the sibling wave index must be untouched; got {sibling_wave!r}")
+        return
+
+    stale_partition = after[_RECEIPTS_KEY][stale_digest]
+    if stale_partition != {"0": {"T1": {"kind": "receipt"}}}:
+        fail(
+            name,
+            f"a record under another partition digest must be untouched; "
+            f"got {stale_partition!r}",
+        )
+        return
+
+    for key in (
+        "schema_version", "run_id", "plan_review_status", "schedule_waves",
+        "current_wave_index",
+    ):
+        if after.get(key) != before_state.get(key):
+            fail(
+                name,
+                f"top-level key {key!r} changed; before={before_state.get(key)!r} "
+                f"after={after.get(key)!r}",
+            )
+            return
+    ok(name)
+
+
+def test_wave_reopen_preserves_record_count_and_validity(tmp: Path) -> None:
+    """Supersession adds a member; it removes no record and invalidates none."""
+    name = "wave-reopen-preserves-record-count-and-validity"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    container = _receipts_container(_WAVES, 0, ["T1", "T2"])
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "current_wave_index": 0, _RECEIPTS_KEY: container,
+    })
+    before_leaves = _leaf_positions(container)
+    rc, _, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()!r}")
+        return
+    after_state = json.loads((spec_dir / "state.json").read_text())
+    after_leaves = _leaf_positions(after_state[_RECEIPTS_KEY])
+
+    if len(before_leaves) != len(after_leaves):
+        fail(
+            name,
+            f"record count changed: {len(before_leaves)} -> {len(after_leaves)}",
+        )
+        return
+    for path in before_leaves:
+        record = after_leaves.get(path)
+        if record is None or not _mod.is_dispatch_record(record):
+            fail(name, f"record at {path} is missing or no longer valid: {record!r}")
+            return
+    ok(name)
+
+
+def test_wave_reopen_then_wave_exit_refuses_and_names_tasks(tmp: Path) -> None:
+    """Single-wave, single-digest fixture: the reopened records are the
+    container's only content, so an absent-container false pass cannot
+    masquerade as this refusal.
+    """
+    name = "wave-reopen-then-wave-exit-refuses"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1", "T2"]]
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": waves,
+        "current_wave_index": 0,
+        _RECEIPTS_KEY: _receipts_container(waves, 0, ["T1", "T2"]),
+    })
+    rc, _, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"reopen refused: {err.strip()!r}")
+        return
+    rc, _, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
+    if rc == 0:
+        fail(name, "expected wave-exit to refuse after a reopen")
+    elif "T1" not in err or "T2" not in err:
+        fail(name, f"stderr must name both tasks; got {err.strip()!r}")
+    else:
+        ok(name)
+
+
+def test_wave_reopen_twice_is_idempotent(tmp: Path) -> None:
+    name = "wave-reopen-twice-idempotent"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "current_wave_index": 0,
+        _RECEIPTS_KEY: _receipts_container(_WAVES, 0, ["T1", "T2"]),
+    })
+    rc, _, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"first reopen refused: {err.strip()!r}")
+        return
+    path = spec_dir / "state.json"
+    after_first = path.read_bytes()
+    rc, _, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"second reopen refused: {err.strip()!r}")
+    elif path.read_bytes() != after_first:
+        fail(name, "the second reopen changed state.json")
+    else:
+        ok(name)
+
+
+def test_wave_reopen_then_fresh_receipt_accounts_again(tmp: Path) -> None:
+    name = "wave-reopen-then-fresh-receipt-accounts-again"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": waves,
+        "current_wave_index": 0,
+        _RECEIPTS_KEY: _receipts_container(waves, 0, ["T1"]),
+    })
+    rc, _, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"reopen refused: {err.strip()!r}")
+        return
+    rc, _, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
+    if rc == 0:
+        fail(name, "expected wave-exit to refuse before the fresh record")
+        return
+    # No new flag: the existing dispatch-receipt verb, unaware of supersession.
+    rc, _, err = run_cohort(
+        "dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+        "--receipt", "--expect-run-id", run_id,
+    )
+    if rc != 0:
+        fail(name, f"dispatch-receipt refused: {err.strip()!r}")
+        return
+    rc, out, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
+    if rc != 0:
+        fail(name, f"wave-exit still refuses after a fresh record: {err.strip()!r}")
+    else:
+        ok(name)
+
+
+def test_wave_reopen_refuses_run_id_mismatch(tmp: Path) -> None:
+    name = "wave-reopen-run-id-mismatch"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "current_wave_index": 0, _RECEIPTS_KEY: {},
+    })
+    _refuses_without_writing(
+        name, spec_dir,
+        ("wave", "reopen", str(spec_dir), "--expect-run-id", "wrong"),
+        expect=("expect-run-id mismatch",),
+    )
+
+
+@pytest.mark.parametrize("label,waves", [
+    ("not-a-list", "nope"),
+    ("empty", []),
+])
+def test_wave_reopen_refuses_a_malformed_partition(
+    tmp: Path, label: str, waves: object
+) -> None:
+    name = f"wave-reopen-malformed-partition-{label}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": waves,
+        "current_wave_index": 0, _RECEIPTS_KEY: {},
+    })
+    _refuses_without_writing(
+        name, spec_dir,
+        ("wave", "reopen", str(spec_dir), "--expect-run-id", run_id),
+        expect=("schedule_waves", "unusable"),
+    )
+
+
+@pytest.mark.parametrize("label,stored", [
+    ("past-the-end", 9),
+    ("string", "1"),
+    ("float", 1.9),
+    ("bool", True),
+])
+def test_wave_reopen_refuses_a_pointer_not_an_index(
+    tmp: Path, label: str, stored: object
+) -> None:
+    name = f"wave-reopen-pointer-{label}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "current_wave_index": stored, _RECEIPTS_KEY: {},
+    })
+    _refuses_without_writing(
+        name, spec_dir,
+        ("wave", "reopen", str(spec_dir), "--expect-run-id", run_id),
+        expect=("current_wave_index",),
+    )
+
+
+@pytest.mark.parametrize("label,container", _malformed_container_cases())
+def test_wave_reopen_refuses_a_malformed_container(
+    tmp: Path, label: str, container: object
+) -> None:
+    name = f"wave-reopen-malformed-container-{label}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "current_wave_index": 0, _RECEIPTS_KEY: container,
+    })
+    _refuses_without_writing(
+        name, spec_dir,
+        ("wave", "reopen", str(spec_dir), "--expect-run-id", run_id),
+        expect=(_RECEIPTS_KEY, "malformed"),
+    )
+
+
+def test_wave_reopen_help_lists_the_verb() -> None:
+    """`--help` lists the verb, matching this task's `Done when:`."""
+    rc, out, err = run_cohort("wave", "reopen", "--help")
+    if rc != 0:
+        fail("wave-reopen-help", f"--help must exit 0; got {rc}: {err.strip()!r}")
+    elif "--expect-run-id" not in out:
+        fail("wave-reopen-help", f"--help must list --expect-run-id; got {out.strip()!r}")
+    else:
+        ok("wave-reopen-help")
