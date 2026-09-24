@@ -759,6 +759,199 @@ def test_ac0012_a_violation_may_carry_a_registry_member_as_its_class() -> None:
     assert v.refusal_class in registry
 
 
+# ── State-coherence rules ─────────────────────────────────────────────────────
+# AC-0001, AC-0002, AC-0003, AC-0004: delivered-terminal rules.
+# AC-0005, AC-0006: positive paths — own fixtures so an implementation that
+#   refuses every Fulfilled intent cannot pass them.
+# AC-0007, AC-0008, AC-0009: records beside a state that did not earn them.
+# AC-0011: each refusal names the file and the record.
+# AC-0012: each refusal carries a class from LIFECYCLE_REFUSAL_CLASSES.
+
+_VALID_ACCEPTED = "2026-09-20 by eugenelim"
+_VALID_FULFILLED = "2026-09-22 by eugenelim"
+
+
+def test_state_coherence_refuses_fulfilled_without_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0001: a Fulfilled intent requires an Accepted: record."""
+    text = _broken("a", status="Fulfilled", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Accepted" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Fulfilled without Accepted: must produce an Accepted violation"
+
+
+def test_state_coherence_refuses_cancelled_without_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0002: a Cancelled intent requires an Accepted: record."""
+    result = _run(tmp_path, {"FEAT-0001-a.md": _broken("a", status="Cancelled")})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Accepted" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Cancelled without Accepted: must produce an Accepted violation"
+
+
+def test_state_coherence_accepts_withdrawn_without_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0003: Withdrawn needs no Accepted: record — abandoning an unratified
+    bet needs no ratification."""
+    result = _run(tmp_path, {"FEAT-0001-a.md": _broken("a", status="Withdrawn")})
+    assert result.violations == [], result.violations
+
+
+def test_state_coherence_refuses_fulfilled_without_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0004: a Fulfilled intent requires a Fulfilled: record."""
+    text = _broken("a", status="Fulfilled", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Fulfilled without Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_accepts_fulfilled_with_both_records(tmp_path: Path) -> None:
+    """AC-0005: own fixture — a Fulfilled intent carrying both records is accepted.
+
+    Without its own fixture, an implementation that refuses every Fulfilled
+    intent satisfies every refusal criterion; this case catches it.
+    """
+    extra = f"- **Accepted:** {_VALID_ACCEPTED}\n- **Fulfilled:** {_VALID_FULFILLED}"
+    text = _broken("a", status="Fulfilled", extra=extra)
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.violations == [], result.violations
+
+
+def test_state_coherence_accepts_cancelled_with_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0006: own fixture — a Cancelled intent carrying Accepted: is accepted."""
+    text = _broken("a", status="Cancelled", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.violations == [], result.violations
+
+
+def test_state_coherence_refuses_draft_with_accepted_record(tmp_path: Path) -> None:
+    """AC-0007: Draft means open — an Accepted: record is not allowed."""
+    text = _broken("a", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Accepted" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Draft with Accepted: must produce an Accepted violation"
+
+
+def test_state_coherence_refuses_draft_with_fulfilled_record(tmp_path: Path) -> None:
+    """AC-0007: Draft means open — a Fulfilled: record is not allowed."""
+    text = _broken("a", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Draft with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_refuses_accepted_with_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0008: Accepted has not yet delivered — a Fulfilled: record is not allowed."""
+    text = _broken("a", status="Accepted", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Accepted with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_refuses_cancelled_with_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0009: Cancelled did not deliver — a Fulfilled: record is not allowed."""
+    extra = f"- **Accepted:** {_VALID_ACCEPTED}\n- **Fulfilled:** {_VALID_FULFILLED}"
+    text = _broken("a", status="Cancelled", extra=extra)
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Cancelled with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_refuses_withdrawn_with_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0009: Withdrawn did not deliver — a Fulfilled: record is not allowed."""
+    text = _broken("a", status="Withdrawn", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code != 0
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Withdrawn with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_violation_names_the_path_and_the_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0011: each refusal names the corpus-relative file and the record at fault."""
+    text = _broken("a", status="Fulfilled", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    # Only the Accepted: violation: Fulfilled: is present, so only Accepted: is missing.
+    accepted_violations = [v for v in result.violations if v.field == "Accepted"]
+    assert len(accepted_violations) == 1
+    (violation,) = accepted_violations
+    assert violation.path == "FEAT-0001-a.md"
+    assert violation.field == "Accepted"
+
+
+def test_state_coherence_violation_carries_a_registry_refusal_class() -> None:
+    """AC-0012: every state-coherence refusal sets refusal_class to a registry member."""
+    shape = lint._shape
+    # Fulfilled without either record: two violations, both must carry a class.
+    text = _broken("a", status="Fulfilled")
+    violations = shape.validate_corpus_scoped(text, set())
+    assert violations
+    registry = shape.LIFECYCLE_REFUSAL_CLASSES
+    for v in violations:
+        assert v.refusal_class in registry, (
+            f"violation for {v.field!r} carries refusal_class {v.refusal_class!r} "
+            f"which is not in {registry}"
+        )
+
+
+def test_validate_corpus_scoped_delegates_to_both_rule_sets() -> None:
+    """validate_corpus_scoped reaches both supersession and state-coherence rules.
+
+    One fixture violates only supersession; one violates only state coherence.
+    A delegation dropped from the aggregator reds for the affected side.
+    """
+    shape = lint._shape
+
+    # Supersession only: Status: Superseded with no Superseded by:
+    supersession_only = _broken("a", status="Superseded")
+    assert shape.validate_corpus_scoped(supersession_only, set()), (
+        "supersession violation must reach validate_corpus_scoped"
+    )
+
+    # State coherence only: Status: Fulfilled with no records
+    # (no Superseded status, no Superseded by: — supersession is quiet)
+    state_only = _broken("a", status="Fulfilled")
+    assert shape.validate_corpus_scoped(state_only, set()), (
+        "state-coherence violation must reach validate_corpus_scoped"
+    )
+
+
 def test_a_four_space_indented_checkbox_is_not_an_item(tmp_path: Path) -> None:
     """CommonMark renders four-space indentation as a code block.
 

@@ -114,12 +114,12 @@ def test_the_resolved_template_also_satisfies_the_corpus_scoped_rules() -> None:
     resolved = _resolve(TEMPLATE.read_text(encoding="utf-8"))
 
     slugs = shape.resolvable_slugs([resolved])
-    violations = shape.validate_supersession(resolved, slugs)
+    violations = shape.validate_corpus_scoped(resolved, slugs)
     assert violations == [], [f"{v.field}: {v.reason}" for v in violations]
 
 
 def test_a_template_seeding_a_stranded_pointer_would_be_caught() -> None:
-    """The mutation that makes the control above able to fail.
+    """The mutation that makes the supersession control above able to fail.
 
     Calling an always-clean surface on a conforming template proves nothing: the
     check passes just as well with the rule deleted. This feeds the same surface
@@ -130,7 +130,27 @@ def test_a_template_seeding_a_stranded_pointer_would_be_caught() -> None:
     seeded = _resolve(TEMPLATE.read_text(encoding="utf-8")).replace(
         "- **Superseded by:**", "- **Superseded by:** a-successor <!--", 1
     )
-    assert shape.validate_supersession(seeded, {"a-successor"}) != []
+    assert shape.validate_corpus_scoped(seeded, {"a-successor"}) != []
+
+
+def test_a_template_seeding_an_accepted_record_beside_draft_would_be_caught() -> None:
+    """The mutation that makes the state-coherence control able to fail.
+
+    A template seeding `Accepted:` beside `Status: Draft` would produce a corpus
+    violation at the next admission; `validate_corpus_scoped` must refuse it so
+    the guard discriminates rather than passing on an always-clean surface.
+    """
+    shape = _load_validator()
+    resolved = _resolve(TEMPLATE.read_text(encoding="utf-8"))
+    # Insert Accepted: into the preamble (just before the first heading).
+    seeded = re.sub(
+        r"(\n## )",
+        "\n- **Accepted:** 2026-09-20 by eugenelim\1",
+        resolved,
+        count=1,
+    )
+    slugs = shape.resolvable_slugs([seeded])
+    assert shape.validate_corpus_scoped(seeded, slugs) != []
 
 
 def test_every_required_field_is_seeded_by_the_template() -> None:

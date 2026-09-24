@@ -450,6 +450,125 @@ def validate_supersession(text: str, live: set[str]) -> list[Violation]:
     ]
 
 
+def _check_state_coherence(text: str) -> list[Violation]:
+    """Refuse records that contradict an intent's lifecycle state.
+
+    Corpus-lint-only. Each rule's verdict depends on the value of ``Status``,
+    which is a different field from the one the rule constrains — the same
+    reason ``validate_supersession`` stays off the shared surface.
+
+    An absent, empty, or unrecognised ``Status`` leaves nothing to decide.
+    The rules by state:
+
+    * ``Fulfilled`` — requires both ``Accepted:`` and ``Fulfilled:`` records.
+    * ``Cancelled`` — requires ``Accepted:``, forbids ``Fulfilled:``.
+    * ``Withdrawn`` — does not require ``Accepted:``; forbids ``Fulfilled:``.
+      Abandoning an unratified bet needs no ratification.
+    * ``Draft`` — forbids both records; ``Draft`` means open.
+    * ``Accepted`` — forbids ``Fulfilled:``; the intent has not yet delivered.
+    * ``Superseded`` — not decided here.
+    """
+    present = present_fields(text)
+    status = present.get("Status")
+    has_accepted = "Accepted" in present
+    has_fulfilled = "Fulfilled" in present
+
+    violations: list[Violation] = []
+
+    if status == "Fulfilled":
+        if not has_accepted:
+            violations.append(
+                Violation(
+                    "Accepted",
+                    "status `Fulfilled` requires an `Accepted:` record",
+                    refusal_class="lifecycle_record_required",
+                )
+            )
+        if not has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Fulfilled` requires a `Fulfilled:` record",
+                    refusal_class="lifecycle_record_required",
+                )
+            )
+    elif status == "Cancelled":
+        if not has_accepted:
+            violations.append(
+                Violation(
+                    "Accepted",
+                    "status `Cancelled` requires an `Accepted:` record",
+                    refusal_class="lifecycle_record_required",
+                )
+            )
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Cancelled` carries a `Fulfilled:` record; "
+                    "`Cancelled` did not deliver",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+    elif status == "Withdrawn":
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Withdrawn` carries a `Fulfilled:` record; "
+                    "`Withdrawn` did not deliver",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+    elif status == "Draft":
+        if has_accepted:
+            violations.append(
+                Violation(
+                    "Accepted",
+                    "status `Draft` carries an `Accepted:` record; "
+                    "`Draft` means open",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Draft` carries a `Fulfilled:` record; "
+                    "`Draft` means open",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+    elif status == "Accepted":
+        if has_fulfilled:
+            violations.append(
+                Violation(
+                    "Fulfilled",
+                    "status `Accepted` carries a `Fulfilled:` record; "
+                    "`Accepted` has not yet delivered",
+                    refusal_class="lifecycle_record_not_allowed",
+                )
+            )
+
+    return violations
+
+
+def validate_corpus_scoped(text: str, live: set[str]) -> list[Violation]:
+    """Decide all corpus-scoped rules for one intent.
+
+    The single entry point for corpus-only checks. Delegates to both
+    ``validate_supersession`` and ``_check_state_coherence``, so a rule added
+    to either reaches every consumer without the consumer changing.
+
+    Kept out of ``validate_live_intent`` for the same reason each delegate is:
+    these rules decide one field from another field's value, or need the whole
+    corpus.
+    """
+    violations = list(validate_supersession(text, live))
+    violations.extend(_check_state_coherence(text))
+    return violations
+
+
 def _check_supersession_pair(text: str) -> list[Violation]:
     """Refuse a `Superseded` status and a `Superseded by:` pointer apart.
 
