@@ -175,3 +175,62 @@ event's discrimination load-bearing.
 
 So the inert discriminator is no longer un-checked: the condition that would
 make it live now has its own failing test.
+
+## Manual QA — the guard refused this delivery's own repair round
+
+Observed 2026-09-24 on this spec's live run (`run_id 905c9b25…`), at wave 4 of 5
+with `T5` carrying a live receipt. Firing `findings-remain` out of `CODE-REVIEW`
+to apply the implementation review's findings — a real repair round, not a
+fixture — produced:
+
+```
+loop-engine: stop — check --phase wave-reopen failed: repair round: wave 4 still
+holds live dispatch records for: 'T5'; supersede them with `loop-cohort wave
+reopen` so this round records its own
+```
+
+`loop-cohort wave reopen` then admitted the transition. Container afterwards:
+
+| wave | record |
+| --- | --- |
+| 0 | `{"kind": "decline", "reason": "human-directed"}` |
+| 1 | `{"kind": "receipt"}` |
+| 2 | `{"kind": "receipt"}` |
+| 3 | `{"kind": "receipt"}` |
+| 4 | `{"kind": "receipt", "superseded": true}` |
+
+Three properties observed at once, none of them through a test double: the edge
+refuses and names the wave, the task and the clearing verb; the reopen preserves
+the record rather than removing it; and waves 0 to 3 are untouched, so the
+scoping is by `(digest, wave index)` and not by digest or task alone. Before this
+change the transition was admitted and wave 4's exit would later have been
+discharged a second time by that same first-pass receipt.
+
+It also confirmed a review finding from the operator's seat: the verb printed
+`loop-cohort: wave reopen for repair-round-dispatch-assertion` and nothing about
+what it had changed, so the only way to see that one record had been superseded
+was to read `state.json`.
+
+## Specification errors found by the implementation review
+
+Two acceptance criteria were wrong rather than unmet, and the owner authorised a
+controlled amendment on 2026-09-24 rather than an edit.
+
+1. **The coupling's home was impossible.** § Proof required the parity assertion
+   to live in `packs/core/tests/skills/work-loop/`. A pack test may not read
+   above its own pack — `tools/lint-pack-test-boundary.py` enforces it — and the
+   oracle is under `docs/`, so the assertion cannot live there. It landed in
+   `tests/roster/test_repair_round_predicate_parity.py` with the named
+   `build-check.yml` step above the bulk pytest step, both `lint-ci-parity` axes,
+   and a `.workspace-prune-protected.toml` entry. The implementation is right and
+   the criterion was wrong.
+2. **The oracle criterion required a tautology.** It required the oracle to
+   report that the verdict "refuses on exactly those satisfying the conjunction".
+   The oracle transcribes that conjunction, so comparing the two restates the
+   function's own body and cannot fail. The falsifiable form of that comparison
+   is against the *shipped* predicate, which is what the roster parity test does.
+
+A third criterion, the mutation record's "no clause whose removal left the suite
+green", is met by deleting the inert source-state discriminators rather than by
+amending the criterion — the owner's decision, and the better one: it removes the
+exception instead of licensing it.
