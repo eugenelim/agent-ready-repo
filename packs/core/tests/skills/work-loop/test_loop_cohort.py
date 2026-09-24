@@ -4544,3 +4544,187 @@ def test_wave_reopen_help_lists_the_verb() -> None:
         fail("wave-reopen-help", f"--help must list --expect-run-id; got {out.strip()!r}")
     else:
         ok("wave-reopen-help")
+
+
+# ── T6: refusal wording, second consumer, unreadable state, byte-identical ──
+#
+# Spec: docs/specs/repair-round-dispatch-assertion/spec.md, T6 remedies.
+
+
+def test_wave_exit_refusal_distinguishes_superseded_from_absent(tmp: Path) -> None:
+    """The refusal must render differently for a superseded record vs an absent one.
+
+    A controller told "no dispatch receipt" when the task holds a superseded record
+    would not know to run `wave reopen` first. The two cases must name which group
+    each task belongs to so the controller can act on the right one.
+
+    Also drives `wave advance`, which reads the same predicate: both consumers
+    must distinguish the two cases or the predicate's second consumer renders the
+    same wrong message.
+    """
+    name = "wave-exit-refusal-distinguishes-superseded-from-absent"
+    run_id = str(uuid.uuid4())
+    spec_dir_sup = make_spec_dir(tmp, f"{name}-superseded")
+    spec_dir_abs = make_spec_dir(tmp, f"{name}-absent")
+    waves = [["T1"], ["T2"]]
+
+    # Superseded case: T1 holds a superseded record — present but not live.
+    superseded_container = {
+        _mod.partition_digest(waves): {"0": {
+            "T1": {"kind": _mod.RECEIPT_KIND, _mod.SUPERSEDED_KEY: True},
+        }}
+    }
+    write_state(spec_dir_sup, {
+        "schema_version": 1, "run_id": run_id,
+        "schedule_waves": waves, "current_wave_index": 0,
+        _RECEIPTS_KEY: superseded_container,
+    })
+
+    # Absent case: T1 has no record at all.
+    write_state(spec_dir_abs, {
+        "schema_version": 1, "run_id": run_id,
+        "schedule_waves": waves, "current_wave_index": 0,
+        _RECEIPTS_KEY: {},
+    })
+
+    for phase_verb in (("check", "--phase", "wave-exit"),):
+        rc_sup, _, err_sup = run_cohort(*phase_verb, str(spec_dir_sup))
+        rc_abs, _, err_abs = run_cohort(*phase_verb, str(spec_dir_abs))
+        if rc_sup == 0:
+            fail(name, f"wave-exit must refuse for superseded case; got 0: {err_sup.strip()!r}")
+            return
+        if rc_abs == 0:
+            fail(name, f"wave-exit must refuse for absent case; got 0: {err_abs.strip()!r}")
+            return
+        if err_sup.strip() == err_abs.strip():
+            fail(
+                name,
+                f"the two cases must render differently; "
+                f"superseded={err_sup.strip()!r} absent={err_abs.strip()!r}",
+            )
+            return
+        if "superseded" not in err_sup:
+            fail(
+                name,
+                f"superseded case must name 'superseded'; got {err_sup.strip()!r}",
+            )
+            return
+
+    # wave advance reads the same predicate.
+    rc_sup, _, err_sup = run_cohort(
+        "wave", "advance", str(spec_dir_sup), "--from-index", "0",
+        "--expect-run-id", run_id,
+    )
+    rc_abs, _, err_abs = run_cohort(
+        "wave", "advance", str(spec_dir_abs), "--from-index", "0",
+        "--expect-run-id", run_id,
+    )
+    if rc_sup == 0 or rc_abs == 0:
+        fail(name, "wave advance must refuse for both cases")
+        return
+    if err_sup.strip() == err_abs.strip():
+        fail(
+            name,
+            f"wave advance: two cases must render differently; "
+            f"superseded={err_sup.strip()!r} absent={err_abs.strip()!r}",
+        )
+        return
+    if "superseded" not in err_sup:
+        fail(
+            name,
+            f"wave advance superseded case must name 'superseded'; got {err_sup.strip()!r}",
+        )
+        return
+    ok(name)
+
+
+def test_wave_advance_refuses_a_wholly_superseded_wave(tmp: Path) -> None:
+    """The predicate's second consumer driven against a wholly superseded wave.
+
+    `wave advance`'s advancing branch calls `unaccounted_wave_tasks`, the shared
+    accounting predicate. A superseded wave is one where every record is superseded;
+    the advancing branch must refuse with the superseded categorisation, not pass.
+
+    This test drives that second consumer independently so that a change breaking
+    only it (but not the wave-exit consumer) still turns the suite red.
+    """
+    name = "wave-advance-refuses-wholly-superseded-wave"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1", "T2"], ["T3"]]
+    # All records for wave 0 are superseded.
+    container = _receipts_container(
+        waves, 0, ["T1", "T2"],
+        record={"kind": _mod.RECEIPT_KIND, _SUPERSEDED: True},
+    )
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id,
+        "schedule_waves": waves, "current_wave_index": 0,
+        _RECEIPTS_KEY: container,
+    })
+    _refuses_without_writing(
+        name, spec_dir,
+        ("wave", "advance", str(spec_dir), "--from-index", "0",
+         "--expect-run-id", run_id),
+        expect=("superseded",),
+    )
+
+
+def test_wave_reopen_check_unreadable_state_refused_same_as_wave_exit(
+    tmp: Path,
+) -> None:
+    """An unreadable state.json is refused by the shared reader; the verdict is
+    never reached, and the reason equals the one `--phase wave-exit` gives for the
+    same file.
+    """
+    name = "wave-reopen-check-unreadable-state"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "state.json").write_text("{not json", encoding="utf-8")
+    rc_reopen, _, err_reopen = run_cohort(
+        "check", str(spec_dir), "--phase", "wave-reopen"
+    )
+    rc_exit, _, err_exit = run_cohort(
+        "check", str(spec_dir), "--phase", "wave-exit"
+    )
+    if rc_reopen == 0:
+        fail(name, "wave-reopen check must refuse an unreadable state")
+        return
+    if rc_exit == 0:
+        fail(name, "wave-exit check must refuse an unreadable state")
+        return
+    if err_reopen.strip() != err_exit.strip():
+        fail(
+            name,
+            f"both phases must report the same reason for an unreadable state; "
+            f"wave-reopen={err_reopen.strip()!r} wave-exit={err_exit.strip()!r}",
+        )
+        return
+    ok(name)
+
+
+def test_wave_reopen_check_leaves_state_json_byte_identical(tmp: Path) -> None:
+    """check --phase wave-reopen is a read-only operation: state.json must not change."""
+    name = "wave-reopen-check-byte-identical"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    # Use a passing state (all superseded) so the verdict passes and any write
+    # would be visible as a change.
+    container = _receipts_container(
+        _WAVES, 0, ["T1", "T2"],
+        record={"kind": _mod.RECEIPT_KIND, _SUPERSEDED: True},
+    )
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id,
+        "schedule_waves": _WAVES, "current_wave_index": 0,
+        _RECEIPTS_KEY: container,
+    })
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, _, err = run_cohort("check", str(spec_dir), "--phase", "wave-reopen")
+    if rc != 0:
+        fail(name, f"expected exit 0 for all-superseded state; got {rc}: {err.strip()!r}")
+        return
+    if path.read_bytes() != before:
+        fail(name, "state.json changed after check --phase wave-reopen")
+        return
+    ok(name)

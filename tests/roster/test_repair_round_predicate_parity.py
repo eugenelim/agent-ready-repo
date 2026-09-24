@@ -1,37 +1,41 @@
 #!/usr/bin/env python3
-"""The repair-round oracle's transcription must agree with the shipped predicate.
+"""Contract-to-code coupling for the repair-round predicate.
 
 Spec: docs/specs/repair-round-dispatch-assertion/spec.md.
 
-Why this file exists, and why it lives here. The oracle at
-`docs/specs/repair-round-dispatch-assertion/notes/walk_reopen_partition.py`
-transcribes its predicates from the spec's words and imports nothing from
-`_loop_guards` — the norm `wave-complete-dispatch-receipts`'s own walk states,
-because an oracle that imports the implementation becomes a mirror of the code it
-exists to check. That norm buys independence and costs coupling: nothing then
-makes the transcription and the shipped code agree.
+Why this file exists, and why it lives here. The check compares this
+contract's rules — transcribed from the spec's words — against the shipped
+predicate in ``_loop_guards.py``. It fails in BOTH directions on purpose: a
+predicate change without a contract change, or the reverse, turns it red.
 
-This is the coupling, and it is a repository-level assertion because it reads
-`docs/` and `packs/` together. A pack test may not read above its own pack, so it
-cannot live beside the guard tests.
+This is a repository-level assertion because it reads ``docs/`` and ``packs/``
+together. A pack test may not read above its own pack
+(``tools/lint-pack-test-boundary.py`` enforces this), so this file lives in
+``tests/roster/`` instead.
 
-It fails in BOTH directions on purpose. If the shipped predicate changes and the
-transcription does not, the oracle has been silently certifying a rule the code
-no longer implements. If the transcription changes and the code does not, the
-oracle's conclusions no longer describe anything shipped.
+There is no separate oracle artifact. The oracle that used to live at
+``docs/specs/repair-round-dispatch-assertion/notes/walk_reopen_partition.py``
+transcribed the contract and compared it against itself — a tautology — so it
+was deleted in T6. What replaces it is this check, which builds its own domain
+from the spec's declared axes and compares the contract's rules against the
+shipped code at all three levels: per-record accounting, the unaccounted task
+list, and the repair-round verdict.
 """
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import itertools
+import json
 import sys
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-ORACLE = ROOT / "docs" / "specs" / "repair-round-dispatch-assertion" / "notes" / "walk_reopen_partition.py"
 GUARDS = ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts" / "_loop_guards.py"
+COHORT = ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts" / "loop-cohort.py"
 
 
 def _load(path: Path, name: str):
@@ -48,95 +52,480 @@ def _load(path: Path, name: str):
 
 
 @pytest.fixture(scope="module")
-def oracle():
-    assert ORACLE.is_file(), f"the repair-round oracle is missing at {ORACLE}"
-    return _load(ORACLE, "walk_reopen_partition_under_test")
-
-
-@pytest.fixture(scope="module")
 def guards():
     assert GUARDS.is_file(), f"the guard layer is missing at {GUARDS}"
     return _load(GUARDS, "_loop_guards_under_parity_test")
 
 
-def test_the_accounting_rule_agrees_record_by_record(oracle, guards) -> None:
-    """`accounts` and `accounts_for_task` decide every record value identically."""
+# ---------------------------------------------------------------------------
+# Domain construction — built from the spec's declared axes, never from the
+# oracle.  Container values are generated from RECEIPT_KEY_PATH rather than
+# hand-built at a literal depth (the requirement the frozen spec carries over
+# from wave-complete-dispatch-receipts).
+# ---------------------------------------------------------------------------
+
+SUPPORTED_SCHEMA = 1
+_RECEIPTS_KEY = "dispatch_receipts"
+_SUPERSEDED_KEY = "superseded"
+_DECLINE_REASONS = ("no-implementer-installed", "human-directed")
+_KEY_PATH = ("partition digest", "wave index", "task identifier")
+_DEPTH = len(_KEY_PATH)
+ABSENT = object()  # sentinel for missing keys
+
+
+def _digest_of(waves) -> str:
+    payload = json.dumps(waves, sort_keys=True, separators=(",", ":"), default=repr)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _is_record(value) -> bool:
+    """Transcribed: a mapping whose kind is receipt, or decline with a closed reason."""
+    if not isinstance(value, dict):
+        return False
+    kind = value.get("kind")
+    if kind == "receipt":
+        return True
+    if kind == "decline":
+        reason = value.get("reason")
+        return isinstance(reason, str) and reason in _DECLINE_REASONS
+    return False
+
+
+def _accounts(value) -> bool:
+    """Transcribed from the spec: a record accounts unless `superseded` is True."""
+    return _is_record(value) and value.get(_SUPERSEDED_KEY) is not True
+
+
+def _nest(leaf, depth):
+    for _ in range(depth):
+        leaf = {"k": leaf}
+    return leaf
+
+
+def _container_well_formed(container, depth=_DEPTH) -> bool:
+    if depth == 0:
+        return _is_record(container)
+    if not isinstance(container, dict):
+        return False
+    return all(_container_well_formed(v, depth - 1) for v in container.values())
+
+
+def _keyed_container(waves, index, tasks, *, record=None, digest=None):
+    """A container built from the declared key path, never at a literal depth."""
+    record = record or {"kind": "receipt"}
+    leaves = {task: dict(record) for task in tasks}
+    node = leaves
+    for key in reversed((digest or _digest_of(waves), str(index))):
+        node = {key: node}
+    return node
+
+
+def _wave_well_formed(wave) -> bool:
+    return isinstance(wave, list) and bool(wave) and all(isinstance(t, str) for t in wave)
+
+
+def _pointer_ok(state, waves):
+    idx = state["idx"]
+    if idx is ABSENT:
+        idx = 0
+    if isinstance(idx, bool) or not isinstance(idx, int) or idx < 0:
+        return None
+    return idx if idx < len(waves) else None
+
+
+def materialise(state) -> dict:
+    out = {}
+    if state["schema"] is not ABSENT:
+        out["schema_version"] = state["schema"]
+    if state["sw"] is not ABSENT:
+        out["schedule_waves"] = state["sw"]
+    if state["cont"] is not ABSENT:
+        out[_RECEIPTS_KEY] = state["cont"]
+    if state["idx"] is not ABSENT:
+        out["current_wave_index"] = state["idx"]
+    return out
+
+
+def _unaccounted(state, index):
+    """Transcribed twin of `unaccounted_wave_tasks`.
+
+    The absent-container exemption lives INSIDE this function — the shipped
+    predicate carries it inside too and every consumer inherits it by calling.
+    """
+    doc = materialise(state)
+    if _RECEIPTS_KEY not in doc:
+        return []
+    waves = doc.get("schedule_waves", [])
+    if not isinstance(waves, list) or not 0 <= index < len(waves):
+        return []
+    wave = waves[index]
+    if not _wave_well_formed(wave):
+        return []
+    held = doc.get(_RECEIPTS_KEY)
+    for key in (_digest_of(waves), str(index)):
+        held = held.get(key) if isinstance(held, dict) else None
+    if not isinstance(held, dict):
+        return list(wave)
+    return [task for task in wave if not _accounts(held.get(task))]
+
+
+def _repair_round_refuses(state) -> bool:
+    """Transcribed conjunction from the spec's § The repair-round verdict."""
+    if not state["read"]:
+        return False  # never reached; the reader refused upstream
+    doc = materialise(state)
+    if doc.get("schema_version") != SUPPORTED_SCHEMA:
+        return False
+    if _RECEIPTS_KEY not in doc:
+        return False
+    if not _container_well_formed(doc[_RECEIPTS_KEY]):
+        return False
+    # live_tasks: tasks whose record still accounts for the current wave
+    waves = doc.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return False
+    idx = _pointer_ok(state, waves)
+    if idx is None:
+        return False
+    wave = waves[idx]
+    if not _wave_well_formed(wave):
+        return False
+    held = doc.get(_RECEIPTS_KEY)
+    for key in (_digest_of(waves), str(idx)):
+        held = held.get(key) if isinstance(held, dict) else None
+    if not isinstance(held, dict):
+        return False
+    return any(_accounts(held.get(t)) for t in wave)
+
+
+def _wave_exit_row(state) -> str:
+    """Transcribed from the frozen spec's eight-row table (wave-complete-dispatch-receipts)."""
+    if not state["read"]:
+        return "R1-read-refuses"
+    doc = materialise(state)
+    if doc.get("schema_version") != SUPPORTED_SCHEMA:
+        return "R2-schema-unsupported"
+    waves = doc.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return "R3-malformed"
+    if _RECEIPTS_KEY in doc and not _container_well_formed(doc[_RECEIPTS_KEY]):
+        return "R3-malformed"
+    if _RECEIPTS_KEY not in doc:
+        return "R4-container-absent"
+    idx = _pointer_ok(state, waves)
+    if idx is None:
+        return "R5-pointer-invalid"
+    if not _wave_well_formed(waves[idx]):
+        return "R6-wave-malformed"
+    # live_tasks computed the same way as in _repair_round_refuses
+    held = doc.get(_RECEIPTS_KEY)
+    for key in (_digest_of(waves), str(idx)):
+        held = held.get(key) if isinstance(held, dict) else None
+    if not isinstance(held, dict):
+        return "R8-unaccounted"
+    live = [t for t in waves[idx] if _accounts(held.get(t))]
+    return "R7-accounted" if len(live) == len(waves[idx]) else "R8-unaccounted"
+
+
+def _supersede_everything(state):
+    """Return the same state with every record in the container superseded."""
+    def walk(node, depth):
+        if depth == 0:
+            return {**node, _SUPERSEDED_KEY: True} if _is_record(node) else node
+        if not isinstance(node, dict):
+            return node
+        return {k: walk(v, depth - 1) for k, v in node.items()}
+    if state["cont"] is ABSENT:
+        return state
+    return {**state, "cont": walk(state["cont"], _DEPTH)}
+
+
+_HOSTILE = (
+    42, "receipt", [], None, {}, {"kind": "bogus"},
+    {"kind": "decline"}, {"kind": "decline", "reason": "made-up"},
+    {"kind": 7}, {"kind": ["receipt"]},
+    {"kind": "decline", "reason": 7},
+    {"kind": "decline", "reason": ["no-implementer-installed"]},
+)
+
+
+def build_domain():
+    """Domain built from the spec's canonical axis list plus a superseded axis.
+
+    The superseded axis varies the member by type and value as well as presence,
+    with container values generated from the declared key path (_DEPTH), never
+    hand-built at a literal depth.
+
+    Non-degeneracy requirement: the domain must include at least one state where
+    a record is superseded (not absent), so the ``is True`` strictness is tested.
+    """
+    live_sw = [["T1"], ["T2"]]
+    idx0, tasks = 0, live_sw[0]
+    stale_sw = [["T1"], ["T2"], ["T3"]]
+    gone = {"kind": "receipt", _SUPERSEDED_KEY: True}
+
+    containers = [ABSENT, _nest({"kind": "receipt"}, _DEPTH)]
+    containers += [_nest(v, d) for d in range(_DEPTH + 1) for v in _HOSTILE]
+    containers += [
+        _keyed_container(live_sw, idx0, tasks),
+        _keyed_container(live_sw, idx0, tasks, record=gone),
+        _keyed_container(live_sw, idx0, tasks,
+                         record={"kind": "decline", "reason": "human-directed"}),
+        _keyed_container(live_sw, idx0, tasks,
+                         record={"kind": "decline", "reason": "human-directed",
+                                 _SUPERSEDED_KEY: True}),
+        # The superseded axis, varied by type and value as well as presence.
+        # Only ``True`` supersedes; a truthy non-True must leave the record live.
+        _keyed_container(live_sw, idx0, tasks,
+                         record={"kind": "receipt", _SUPERSEDED_KEY: "yes"}),
+        _keyed_container(live_sw, idx0, tasks,
+                         record={"kind": "receipt", _SUPERSEDED_KEY: False}),
+        _keyed_container(live_sw, idx0, []),
+        _keyed_container(live_sw, idx0, tasks, digest=_digest_of(stale_sw)),
+    ]
+    schedules = [ABSENT, [], [["T1"]], "notalist", [123], [["T1", 2]],
+                 live_sw, {"a": 1}, [[]], [[], ["T2"]], [["T1"], []]]
+    pointers = [ABSENT, 0, 1, -1, True, "x", 1.0]
+    schemas = (SUPPORTED_SCHEMA, 99, None, ABSENT)
+    return [
+        {"read": r, "sw": sw, "cont": c, "idx": i, "schema": s}
+        for r, sw, c, i, s in itertools.product(
+            (True, False), schedules, containers, pointers, schemas
+        )
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+def test_the_accounting_rule_agrees_record_by_record(guards) -> None:
+    """`_accounts` and `accounts_for_task` decide every record value identically.
+
+    The transcribed rule must agree with the shipped function for every value a
+    container position can hold, including every variant of the superseded member
+    the spec declares. A truthy non-True value (e.g., ``"yes"`` or ``False``)
+    must leave the record live under the ``is True`` strictness.
+    """
     values = [
         {"kind": "receipt"},
-        {"kind": "receipt", oracle.SUPERSEDED_KEY: True},
-        {"kind": "receipt", oracle.SUPERSEDED_KEY: False},
-        {"kind": "receipt", oracle.SUPERSEDED_KEY: "yes"},
-        {"kind": "receipt", oracle.SUPERSEDED_KEY: None},
+        {"kind": "receipt", _SUPERSEDED_KEY: True},
+        {"kind": "receipt", _SUPERSEDED_KEY: False},
+        {"kind": "receipt", _SUPERSEDED_KEY: "yes"},
+        {"kind": "receipt", _SUPERSEDED_KEY: None},
         {"kind": "decline", "reason": "human-directed"},
-        {"kind": "decline", "reason": "human-directed", oracle.SUPERSEDED_KEY: True},
+        {"kind": "decline", "reason": "human-directed", _SUPERSEDED_KEY: True},
         {"kind": "decline", "reason": "made-up"},
         {"kind": "bogus"}, {}, None, 42, "receipt", [],
     ]
-    disagreements = [
-        v for v in values
-        if oracle.accounts(v) != guards.accounts_for_task(v)
-    ]
+    disagreements = [v for v in values if _accounts(v) != guards.accounts_for_task(v)]
     assert not disagreements, (
-        "the oracle's transcribed accounting rule and the shipped "
-        f"`accounts_for_task` disagree on: {disagreements}"
+        "the transcribed accounting rule and the shipped `accounts_for_task` "
+        f"disagree on: {disagreements}"
     )
 
 
-def test_the_verdict_agrees_over_the_whole_oracle_domain(oracle, guards) -> None:
-    """Every reachable state in the oracle's domain gets the same verdict from both.
+def test_the_verdict_agrees_over_the_whole_domain(guards) -> None:
+    """Every reachable state in the domain gets the same verdict from both.
 
-    Scoped to the states the verdict is reached for: a read refusal is decided
-    upstream by the shared reader and never reaches either function, so including
-    it would compare an outcome neither produces.
+    Scoped to readable states: a read refusal is decided upstream by the shared
+    reader and never reaches either function.
+
+    Non-degeneracy: the domain must include at least one refusing state AND at
+    least one passing state. A domain that decides only one way proves nothing.
+    A domain with no superseded record never exercises the ``is True`` strictness.
     """
     disagreements = []
-    reached = refused = 0
-    for state in oracle.build_domain():
+    reached = refused = superseded_seen = 0
+    for state in build_domain():
         if not state["read"]:
             continue
         reached += 1
-        doc = oracle.materialise(state)
-        transcribed = oracle.repair_round_refuses(state)
+        doc = materialise(state)
+        transcribed = _repair_round_refuses(state)
         shipped = not guards._repair_round_verdict(doc).ok
         refused += shipped
         if transcribed != shipped:
             disagreements.append((doc, transcribed, shipped))
+        # Track whether any state with a superseded record is in the domain.
+        if state["cont"] is not ABSENT and isinstance(state["cont"], dict):
+            cont_str = json.dumps(state["cont"])
+            if '"superseded": true' in cont_str or f'"{_SUPERSEDED_KEY}": true' in cont_str:
+                superseded_seen += 1
 
     assert not disagreements, (
         f"{len(disagreements)} of {reached} states get different verdicts from the "
         f"transcription and the shipped predicate; first: {disagreements[0]}"
     )
-    # Domain adequacy: a parity check over states that all pass proves nothing
-    # about the refusing half.
-    assert refused, "no state in the oracle's domain refuses; this check cannot fail"
+    assert refused, "no state in the domain refuses; this check cannot fail"
     assert reached - refused, "no state passes; this check cannot fail"
+    assert superseded_seen, (
+        "no state in the domain carries a superseded record; "
+        "the `is True` strictness is never exercised"
+    )
 
 
-def test_the_accounting_predicate_agrees_over_the_whole_oracle_domain(
-    oracle, guards
-) -> None:
+def test_the_accounting_predicate_agrees_over_the_whole_domain(guards) -> None:
     """The shared predicate itself, not only the verdict that consumes it.
 
     The verdict can agree while `unaccounted_wave_tasks` disagrees — the verdict
     only reads whether the live set is empty, so a wrong task identifier in the
     returned list is invisible to it and visible in `wave advance`'s refusal text.
+
+    Non-degeneracy: the domain must return a non-empty unaccounted list for at
+    least one state, AND return an empty list for at least one.
     """
     disagreements = []
-    for state in oracle.build_domain():
+    found_non_empty = found_empty = 0
+    for state in build_domain():
         if not state["read"]:
             continue
-        doc = oracle.materialise(state)
+        doc = materialise(state)
         waves = doc.get("schedule_waves", [])
         if not isinstance(waves, list) or not waves:
             continue
-        idx = oracle.pointer_ok(state, waves)
-        if idx is None or not oracle.wave_well_formed(waves[idx]):
+        idx = _pointer_ok(state, waves)
+        if idx is None or not _wave_well_formed(waves[idx]):
             continue
-        transcribed = oracle.unaccounted(state, idx)
+        transcribed = _unaccounted(state, idx)
         shipped = guards.unaccounted_wave_tasks(doc, idx)
         if transcribed != shipped:
             disagreements.append((doc, transcribed, shipped))
+        if shipped:
+            found_non_empty += 1
+        else:
+            found_empty += 1
     assert not disagreements, (
         f"{len(disagreements)} states disagree on the unaccounted task list; "
         f"first: {disagreements[0]}"
     )
+    assert found_non_empty, "unaccounted_wave_tasks never returns non-empty in domain"
+    assert found_empty, "unaccounted_wave_tasks never returns empty in domain"
+
+
+def test_wave_exit_row_movement_from_superseding(guards) -> None:
+    """Superseding every record in a state moves it from R7 to R8 and nothing else.
+
+    This is the row movement the superseded clause causes at the wave exit,
+    measured against the shipped ``_wave_exit_verdict`` rather than against a
+    second transcription of it.
+
+    Non-degeneracy: at least one R7→R8 move must be observed in the domain.
+    """
+    moved = stayed = 0
+    violations = []
+    for state in build_domain():
+        after_state = _supersede_everything(state)
+
+        if not state["read"]:
+            continue
+
+        # Measure against the SHIPPED verdict, not the transcription.
+        before_doc = materialise(state)
+        after_doc = materialise(after_state)
+        before_shipped = _shipped_row(guards, state, before_doc)
+        after_shipped = _shipped_row(guards, after_state, after_doc)
+
+        if before_shipped == "R7-accounted":
+            if after_shipped != "R8-unaccounted":
+                violations.append(
+                    f"superseding R7 must yield R8 but got {after_shipped}: "
+                    f"state={before_doc!r}"
+                )
+            moved += 1
+        else:
+            if after_shipped != before_shipped:
+                violations.append(
+                    f"superseding {before_shipped} must leave the row unchanged "
+                    f"but got {after_shipped}: state={before_doc!r}"
+                )
+            stayed += 1
+
+    assert not violations, f"{len(violations)} row-movement violations:\n" + "\n".join(violations[:3])
+    assert moved, "no R7→R8 movement observed; the superseded clause is not exercised"
+
+
+def _shipped_row(guards, state, doc: dict) -> str:
+    """Map a state dict to its wave-exit verdict row using the SHIPPED code.
+
+    R2 and R7 both return ``ok=True, message=""``.  They are told apart by
+    checking ``schema_version`` in the document directly, which is the same
+    discriminator ``_wave_exit_verdict`` uses internally.
+    """
+    if not state["read"]:
+        return "R1-read-refuses"
+    result = guards._wave_exit_verdict(doc)
+    if result.ok:
+        msg = result.message or ""
+        if "is absent" in msg:
+            return "R4-container-absent"
+        # R2 passes with an empty message; so does R7.  Distinguish by schema.
+        if doc.get("schema_version") != 1:
+            return "R2-schema-unsupported"
+        return "R7-accounted"
+    # ok=False: classify by the reason text produced by the shipped function.
+    r = result.reason or ""
+    # R6 reason: "wave exit: schedule_waves[{index}] is malformed ..."
+    if "schedule_waves[" in r and "is malformed" in r:
+        return "R6-wave-malformed"
+    # R3 reason: "...schedule_waves is malformed..." or "...is malformed..."
+    # (container malformed and schedule_waves non-list both land here)
+    if "is malformed" in r:
+        return "R3-malformed"
+    # R5: pointer invalid — two shapes from _wave_exit_verdict:
+    #   "wave exit: {non_neg_int_error}; run reset to rebuild cohort state"
+    #   "wave exit: current_wave_index=N is not an index into schedule_waves"
+    if "is not an index into schedule_waves" in r or "must be a non-negative integer" in r:
+        return "R5-pointer-invalid"
+    if "tasks with no live record" in r:
+        return "R8-unaccounted"
+    return "unknown"
+
+
+def test_wave_reopen_check_is_read_only(guards, tmp_path) -> None:
+    """check --phase wave-reopen must not write to state.json.
+
+    The verdict is a guard function (read-only by design), but this test makes the
+    property explicit so a future change that accidentally adds a write is detected.
+
+    Covers three representative states from the domain:
+    - a passing state (all records superseded → verdict passes)
+    - a refusing state (live record → verdict refuses)
+    - a schema-mismatch state (verdict passes due to fail-open)
+    """
+    live_sw = [["T1"], ["T2"]]
+    run_id = "00000000-0000-0000-0000-000000000001"
+    states_to_check = [
+        # All-superseded: verdict passes.
+        {
+            "schema_version": 1, "run_id": run_id,
+            "schedule_waves": live_sw, "current_wave_index": 0,
+            _RECEIPTS_KEY: _keyed_container(
+                live_sw, 0, ["T1"], record={"kind": "receipt", _SUPERSEDED_KEY: True}
+            ),
+        },
+        # Live record: verdict refuses.
+        {
+            "schema_version": 1, "run_id": run_id,
+            "schedule_waves": live_sw, "current_wave_index": 0,
+            _RECEIPTS_KEY: _keyed_container(live_sw, 0, ["T1"]),
+        },
+        # Schema mismatch: verdict passes (fail-open).
+        {
+            "schema_version": 99, "run_id": run_id,
+            "schedule_waves": live_sw, "current_wave_index": 0,
+        },
+    ]
+    for i, state in enumerate(states_to_check):
+        spec_dir = tmp_path / f"spec-{i}"
+        spec_dir.mkdir()
+        path = spec_dir / "state.json"
+        path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        before = path.read_bytes()
+        # Call the guard in-process: read-only means the file must not change.
+        guards.check_phase(spec_dir, phase="wave-reopen")
+        after = path.read_bytes()
+        assert before == after, (
+            f"state-{i}: check_phase(wave-reopen) wrote to state.json"
+        )

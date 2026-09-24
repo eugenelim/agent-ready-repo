@@ -13,8 +13,7 @@ shared across worktrees.
 Suites: `guards` = `packs/core/tests/skills/work-loop/test_loop_guards.py`;
 `cli` = `packs/core/tests/skills/work-loop/test_loop_cohort.py`;
 `engine` = `packs/core/tests/skills/work-loop/test_loop_engine.py`;
-`parity` = `tests/roster/test_repair_round_predicate_parity.py`;
-`oracle` = `notes/walk_reopen_partition.py`.
+`parity` = `tests/roster/test_repair_round_predicate_parity.py`.
 
 ### T1 — the accounting clause and the repair-round verdict
 
@@ -33,8 +32,8 @@ Two of the six are caught by exactly one suite, and each justifies a design
 choice that would otherwise look like surplus:
 
 - **M2 is caught only by `parity`.** It needs a record carrying a *truthy
-  non-`True`* `superseded` value, which exists only because the oracle's domain
-  varies that member by type and value rather than by presence alone. Every
+  non-`True`* `superseded` value, which exists only because the parity check's
+  domain varies that member by type and value rather than by presence alone. Every
   example-based test in `guards` and `cli` uses `True` or omits the member, so
   all of them stay green while accounting silently turns on truthiness — and a
   record is data another process wrote.
@@ -43,14 +42,14 @@ choice that would otherwise look like surplus:
   unsupported-schema row becomes unreachable through the verb while every test
   that calls the verdict function directly still passes.
 
-`oracle` turned red for none of the six, which is correct rather than a gap: it
-imports nothing from the implementation, by the norm
-`wave-complete-dispatch-receipts`'s own walk states. Detecting a change to the
+The `oracle` suite alias is retired as of T6: `notes/walk_reopen_partition.py` was
+deleted and its properties absorbed into `parity`. Detecting a change to the
 shipped predicate is `parity`'s job, and M1, M2, M3, M4 and M5 all turned it red.
 
 ## Observations
 
-- **The frozen oracle cannot see this change, and its criterion says so.**
+- **The frozen wave-complete-dispatch-receipts oracle cannot see this change,
+  and its criterion says so.**
   `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py`
   re-implements the accounting predicate locally rather than importing
   `_loop_guards`. Re-run 2026-09-24, unedited, and its report is unchanged:
@@ -58,17 +57,19 @@ shipped predicate is `parity`'s job, and M1, M2, M3, M4 and M5 all turned it red
   R4 49 / R5 384 / R6 108 / R7 4 / R8 92. That establishes this delivery did not
   redefine a record, a wave or a partition. It establishes nothing about the
   shipped guard.
-- **The repair-round oracle's first form could not fail.** It asserted
-  `refuses == conjunction` where the conjunction was an inline restatement of
-  the function's own body. Replaced before it was committed with properties that
-  can fail: a read refusal never reaches the verdict; every refusal names a live
-  record read from the container; superseding clears every refusal and creates
-  none; only R7 moves at the wave exit, and it moves to R8; and both sides of
-  the predicate are non-empty in the domain.
-- **The oracle's transcription was wrong once, and the parity test found it.**
+- **The repair-round parity check (`tests/roster/test_repair_round_predicate_parity.py`)
+  carries the properties the deleted oracle used to hold.** The oracle compared
+  its own inline restatement against itself — a tautology. The parity check
+  replaces it with properties measured against the shipped code: a read refusal
+  never reaches the verdict; every refusal names a live record read from the
+  container; superseding clears every `_repair_round_verdict` refusal; only R7
+  moves at the wave exit (to R8), and no other row moves; and both sides of
+  the predicate are non-empty in the domain. (`test_wave_exit_row_movement_from_superseding`
+  and `test_wave_reopen_check_is_read_only` carry the last two.)
+- **The parity check's transcription was wrong once, and the check found it.**
   The first version omitted the absent-container exemption that the shipped
   predicate carries inside itself, and 32 states disagreed. Fixed by moving the
-  exemption inside the transcribed `unaccounted`, which is where the frozen
+  exemption inside the transcribed `_unaccounted`, which is where the frozen
   spec's § Always do requires it to live.
 
 ### T2 — the reopen verb
@@ -107,7 +108,7 @@ non-detection (documented below rather than papered over).
 | M3 | `_guard_gates_failed_repair_round`'s composition order (existing guard first) | swapped to run the repair round before the retry-cap check | `engine` — `test_gates_failed_composition_order_retry_cap_reason_wins` | refusal reason became the repair-round text instead of `"implementation retry cap reached (5/5)"` |
 | M4 | `_guard_check_phase_review_repair_round`'s composition order (existing guard first) | same swap, for the review cap | `engine` — `test_findings_remain_composition_order_retry_cap_reason_wins` | refusal reason became the repair-round text instead of `"review retry cap reached (5/5)"` |
 | M5 | `blocker-applied`'s `_GUARDS` entry — its first guard ever | `("code", "blocker-applied"): _guard_blocker_applied` line removed from `_GUARDS` | `engine` — `test_the_three_edges_refuse_then_admit_after_a_reopen[blocker-applied]` | `blocker-applied` admitted a transition with wave 0's record still live — no guard fired at all |
-| M6 | `_guard_blocker_applied`'s source-state discriminator | `if engine_state.get("state") != "CODE-HUMAN-GATE": return None` deleted | none — the full `engine` suite (214 cases) stayed green | **did not turn red.** `blocker-applied` has exactly one entry in `_CODE_TRANSITIONS` — `("CODE-HUMAN-GATE", "blocker-applied")` — so it is never twin-sourced today and the discriminator is unreachable dead code by the current transition table, exactly as its docstring and `_guard_gates_failed_repair_round`'s docstring both say. Recorded rather than hidden: the mutation is real, its non-detection is expected given the shipped FSM, and the same clause would matter the day a second source state is added for this event |
+| M6 | `_guard_blocker_applied`'s source-state discriminator | `if engine_state.get("state") != "CODE-HUMAN-GATE": return None` deleted | none in T3 — the full `engine` suite (214 cases) stayed green; **turned red in T6** — see T6 below | **did not turn red at T3.** `blocker-applied` has exactly one entry in `_CODE_TRANSITIONS` — `("CODE-HUMAN-GATE", "blocker-applied")` — so it is never twin-sourced today and the discriminator is unreachable by any T3 fixture. Recorded rather than hidden: the mutation is real, its non-detection is expected given the shipped FSM. **T6 adds `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong`**, a direct unit test that calls `_guard_blocker_applied` with `{"state": "CODE-REVIEW"}` (wrong source state) and asserts `None` — removing the discriminator makes the guard apply, which refuses given the live-record fixture, turning that test red. M6 is no longer a survivor. |
 
 Each mutation was reverted immediately after its result was observed and the
 file diffed byte-identical (`sha256sum -c`) against its pre-mutation copy
@@ -164,17 +165,25 @@ Verified independently against the parsed tables 2026-09-24:
 
 Disposition: the inert checks stay, because they make the three guards read
 alike and fail safe if the table grows. Keeping unfalsifiable code silently is
-the part that is not acceptable, so
-`test_only_findings_remain_is_twin_sourced_in_code_mode` pins the table's shape
-and names, in its failure message, the fact that a new source state makes that
-event's discrimination load-bearing.
+the part that is not acceptable.
+
+**T3 tripwire:** `test_only_findings_remain_is_twin_sourced_in_code_mode` pins
+the table's shape and names, in its failure message, the fact that a new source
+state makes that event's discrimination load-bearing.
 
 | # | Clause removed | Mutation applied | Result |
 | --- | --- | --- | --- |
 | M8 | the table shape the tripwire pins | added `("CODE-REVIEW", "blocker-applied")` to `_CODE_TRANSITIONS` | **RED** — the tripwire fails and names the changed event |
 
-So the inert discriminator is no longer un-checked: the condition that would
-make it live now has its own failing test.
+**T6 direct test:** `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong`
+calls `_guard_gates_failed_repair_round` and `_guard_blocker_applied` directly with
+a wrong source state and asserts both return `None`. Removing either discriminator
+makes the guard proceed to the repair-round check, which refuses given the live-record
+fixture, turning that test red (confirmed by the T6 mutation run; see § T6 below).
+
+The inert discriminators now have two independent controls: a tripwire on the
+table shape that would make them load-bearing, and a direct unit test that kills
+the discriminators if they are removed.
 
 ## Manual QA — the guard refused this delivery's own repair round
 
@@ -206,10 +215,11 @@ scoping is by `(digest, wave index)` and not by digest or task alone. Before thi
 change the transition was admitted and wave 4's exit would later have been
 discharged a second time by that same first-pass receipt.
 
-It also confirmed a review finding from the operator's seat: the verb printed
-`loop-cohort: wave reopen for repair-round-dispatch-assertion` and nothing about
-what it had changed, so the only way to see that one record had been superseded
-was to read `state.json`.
+It also confirmed a review finding from the operator's seat: the verb at the time
+printed `loop-cohort: wave reopen for repair-round-dispatch-assertion` and nothing
+about what it had changed. That finding was addressed in T6: the verb now prints
+the wave index and record count — e.g. `loop-cohort: wave reopen wave 4: 1 record(s)
+superseded for repair-round-dispatch-assertion`.
 
 ## Specification errors found by the implementation review
 
@@ -231,6 +241,20 @@ controlled amendment on 2026-09-24 rather than an edit.
    is against the *shipped* predicate, which is what the roster parity test does.
 
 A third criterion, the mutation record's "no clause whose removal left the suite
-green", is met by deleting the inert source-state discriminators rather than by
-amending the criterion — the owner's decision, and the better one: it removes the
-exception instead of licensing it.
+green", is met by T6 adding a direct unit test for the inert discriminators rather
+than by amending the criterion — the owner's decision, and the better one: it adds
+coverage instead of licensing the exception.
+
+### T6 — refusal text distinction, inert discriminators, parity row movement
+
+Run 2026-09-24 against `_loop_guards.py` and `loop-engine.py`. Two new clauses,
+two reds, none survived.
+
+| # | Clause removed | Mutation applied | Suites that turned red | Observed failure |
+| --- | --- | --- | --- | --- |
+| M1 | `superseded_wave_tasks` categorization in `_wave_exit_verdict` | replaced with flat `"no dispatch receipt: {bounded_id_list(unaccounted)}"` | cli, parity | cli: `test_wave_exit_refusal_distinguishes_superseded_from_absent` — the superseded case rendered identically to the absent case; parity: `test_wave_exit_row_movement_from_superseding` — `_shipped_row` returned `"unknown"` for superseded states because the reason text no longer contained the expected discriminating strings, so `moved == 0` |
+| M2 | `_guard_blocker_applied`'s source-state discriminator | `if engine_state.get("state") != "CODE-HUMAN-GATE": return None` deleted | engine | `test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong`: `_guard_blocker_applied` with `{"state": "CODE-REVIEW"}` returned the repair-round refusal text instead of `None` |
+
+Each mutation was reverted immediately after its red was observed and the file
+diffed against its pre-mutation copy (`python3 -m pytest` re-run passing) before
+the next mutation began.

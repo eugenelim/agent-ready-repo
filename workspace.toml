@@ -249,10 +249,10 @@ active  = [
   # summary opens "Require a repair round to carry its own dispatch assertion".
   # Registered active at authoring time: the work started in the same session.
   # The design scopes a round by emptiness rather than by a counter -- a new
-  # `wave reopen` verb clears the current wave's dispatch records, and the three
-  # edges that re-enter code implementation refuse until it has run -- so no key
-  # is added to cohort state and the shipped wave-exit verdict keeps its eight
-  # rows. `needs` is empty: the sibling ADR-0061 defect is independent and stays
+  # `wave reopen` verb supersedes the current wave's dispatch records (marks them
+  # `superseded: True`), and the three edges that re-enter code implementation
+  # refuse until it has run -- so no key is added to cohort state and the shipped
+  # wave-exit verdict keeps its eight rows. `needs` is empty: the sibling ADR-0061 defect is independent and stays
   # open.
   {path = "docs/specs/repair-round-dispatch-assertion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md"}, summary = "Require every edge that re-enters code implementation without moving the wave pointer to reopen its wave first, so a repair round's exit is discharged by its own dispatch records", needs = []},
 ]

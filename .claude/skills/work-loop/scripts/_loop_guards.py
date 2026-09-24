@@ -100,6 +100,7 @@ __all__ = [
     "receipts_for_partition",
     "wave_is_well_formed",
     "unaccounted_wave_tasks",
+    "superseded_wave_tasks",
     "bounded_id_list",
     # the six read-only guards
     "check_identity",
@@ -1275,6 +1276,34 @@ def accounts_for_task(value: object) -> bool:
     return is_dispatch_record(value) and value.get(SUPERSEDED_KEY) is not True
 
 
+def superseded_wave_tasks(state: dict, wave_index: int) -> list[str]:
+    """Tasks in wave `wave_index` whose record is superseded (present but not live).
+
+    A superseded task has a record that `is_dispatch_record` accepts but
+    `accounts_for_task` rejects — i.e., its `superseded` member is ``True``.
+    Returns only tasks from `unaccounted_wave_tasks`'s result that carry such a
+    record; tasks with no record at all are not returned. Used to categorise the
+    unaccounted list into two groups so a refusal can distinguish the two cases.
+    """
+    if RECEIPTS_KEY not in state:
+        return []
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not 0 <= wave_index < len(waves):
+        return []
+    wave = waves[wave_index]
+    if not wave_is_well_formed(wave):
+        return []
+    held = state.get(RECEIPTS_KEY)
+    for key in (partition_digest(waves), str(wave_index)):
+        held = held.get(key) if isinstance(held, dict) else None
+    if not isinstance(held, dict):
+        return []
+    return [
+        task for task in wave
+        if is_dispatch_record(held.get(task)) and not accounts_for_task(held.get(task))
+    ]
+
+
 def malformed_receipts_position(container: object, depth: int | None = None) -> str | None:
     """Name the first malformed position in the container, or None if well-formed.
 
@@ -1486,12 +1515,19 @@ def _wave_exit_verdict(state: dict) -> GuardResult:
 
     unaccounted = unaccounted_wave_tasks(state, index)
     if unaccounted:
+        superseded = superseded_wave_tasks(state, index)
+        absent = [t for t in unaccounted if t not in set(superseded)]
+        parts = []
+        if superseded:
+            parts.append(f"superseded: {bounded_id_list(superseded)}")
+        if absent:
+            parts.append(f"no dispatch receipt: {bounded_id_list(absent)}")
         return GuardResult(
             ok=False,
             reason=(
-                f"wave exit: wave {index} has tasks with no dispatch receipt: "
-                f"{bounded_id_list(unaccounted)}; record one per plan task with "
-                "`loop-cohort dispatch-receipt`"
+                f"wave exit: wave {index} has tasks with no live record — "
+                f"{'; '.join(parts)}; "
+                "run `loop-cohort dispatch-receipt` to record each"
             ),
         )
     return GuardResult(ok=True, message="")

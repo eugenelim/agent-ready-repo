@@ -2349,9 +2349,10 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
         "malformed_receipts_position", "receipts_for_partition",
         "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
-        # repair-round scoping: the member marking a record superseded, and the
-        # predicate deciding whether a record still discharges its task
-        "SUPERSEDED_KEY", "accounts_for_task",
+        # repair-round scoping: the member marking a record superseded, the
+        # predicate deciding whether a record still discharges its task, and the
+        # helper listing tasks whose records are superseded (not absent)
+        "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
@@ -3000,9 +3001,10 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
         "malformed_receipts_position", "receipts_for_partition",
         "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
-        # repair-round scoping: the member marking a record superseded, and the
-        # predicate deciding whether a record still discharges its task
-        "SUPERSEDED_KEY", "accounts_for_task",
+        # repair-round scoping: the member marking a record superseded, the
+        # predicate deciding whether a record still discharges its task, and the
+        # helper listing tasks whose records are superseded (not absent)
+        "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
     }
     guards = load_guards()
     missing = sorted(n for n in names if not hasattr(guards, n))

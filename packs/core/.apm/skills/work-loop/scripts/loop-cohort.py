@@ -482,7 +482,7 @@ except GuardsUnavailable as exc:
     DECLINE_REASONS = ()
     partition_digest = is_dispatch_record = _guards_unavailable
     malformed_receipts_position = receipts_for_partition = _guards_unavailable
-    wave_is_well_formed = unaccounted_wave_tasks = _guards_unavailable
+    wave_is_well_formed = unaccounted_wave_tasks = superseded_wave_tasks = _guards_unavailable
     accounts_for_task = _guards_unavailable
     bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
@@ -514,6 +514,7 @@ else:
     receipts_for_partition = _g.receipts_for_partition
     wave_is_well_formed = _g.wave_is_well_formed
     unaccounted_wave_tasks = _g.unaccounted_wave_tasks
+    superseded_wave_tasks = _g.superseded_wave_tasks
     accounts_for_task = _g.accounts_for_task
     bounded_id_list = _g.bounded_id_list
     read_managed_json = _read_managed_json = _g.read_managed_json
@@ -1752,10 +1753,17 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
         # advances rather than being stranded mid-schedule.
         unaccounted = unaccounted_wave_tasks(state, n_arg)
         if unaccounted:
+            superseded = superseded_wave_tasks(state, n_arg)
+            absent = [t for t in unaccounted if t not in set(superseded)]
+            parts = []
+            if superseded:
+                parts.append(f"superseded: {bounded_id_list(superseded)}")
+            if absent:
+                parts.append(f"no dispatch receipt: {bounded_id_list(absent)}")
             return stop(
-                f"wave advance: wave {n_arg} has tasks with no dispatch receipt: "
-                f"{bounded_id_list(unaccounted)}; record one per plan task with "
-                "dispatch-receipt"
+                f"wave advance: wave {n_arg} has tasks with no live record — "
+                f"{'; '.join(parts)}; "
+                "run `loop-cohort dispatch-receipt` to record each"
             )
         state["current_wave_index"] = n_arg + 1
         write_state_atomic(spec_dir, state)
@@ -1945,13 +1953,14 @@ def cmd_dispatch_receipt(args: argparse.Namespace) -> int:
 # verb exists to re-arm.
 
 
-def plan_wave_reopen(state: dict) -> tuple[dict | None, str | None]:
+def plan_wave_reopen(state: dict) -> tuple[dict | None, str | None, int, int]:
     """Validate a wave reopen and return the state to persist.
 
-    Returns `(new_state, None)` on acceptance or `(None, reason)` on refusal, in
-    refuse-cheapest-first order matching `plan_dispatch_receipt`: usable
-    partition, well-formed container, valid pointer. Pure — the caller owns the
-    lock and the write — so every refusal leaves `state.json` byte-identical.
+    Returns ``(new_state, None, wave_index, marked_count)`` on acceptance or
+    ``(None, reason, 0, 0)`` on refusal, in refuse-cheapest-first order
+    matching `plan_dispatch_receipt`: usable partition, well-formed container,
+    valid pointer. Pure — the caller owns the lock and the write — so every
+    refusal leaves `state.json` byte-identical.
 
     An absent or empty container reads as nothing to reopen, exactly as
     `plan_dispatch_receipt` reads an absent container as the empty one: no key
@@ -1962,23 +1971,23 @@ def plan_wave_reopen(state: dict) -> tuple[dict | None, str | None]:
         return None, (
             f"wave reopen: schedule_waves is unusable ({_scalar(waves)}); run "
             "schedule to persist a partition, or reset to rebuild cohort state"
-        )
+        ), 0, 0
     malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
     if malformed is not None:
         return None, (
             f"wave reopen: {RECEIPTS_KEY} is malformed — expected {malformed} "
             f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to "
             "rebuild cohort state"
-        )
+        ), 0, 0
     index = non_negative_int(state, "current_wave_index", 0)
     if isinstance(index, str):
-        return None, f"wave reopen: {index}"
+        return None, f"wave reopen: {index}", 0, 0
     if index >= len(waves):
         return None, (
             f"wave reopen: current_wave_index={index} is not an index into "
             f"schedule_waves (len={len(waves)}); run reset to rebuild cohort "
             "state"
-        )
+        ), 0, 0
 
     # Every position in `container` already satisfies `is_dispatch_record`,
     # established by the malformed check above over the WHOLE container —
@@ -1988,10 +1997,13 @@ def plan_wave_reopen(state: dict) -> tuple[dict | None, str | None]:
     container = updated.get(RECEIPTS_KEY, {})
     digest = partition_digest(waves)
     wave_records = container.get(digest, {}).get(str(index))
+    marked = 0
     if isinstance(wave_records, dict):
         for record in wave_records.values():
-            record[SUPERSEDED_KEY] = True
-    return updated, None
+            if record.get(SUPERSEDED_KEY) is not True:
+                record[SUPERSEDED_KEY] = True
+                marked += 1
+    return updated, None, index, marked
 
 
 @_locked("wave reopen")
@@ -2008,11 +2020,14 @@ def cmd_wave_reopen(args: argparse.Namespace) -> int:
     if err is not None:
         return err
 
-    updated, reason = plan_wave_reopen(state)
+    updated, reason, wave_index, marked = plan_wave_reopen(state)
     if reason is not None:
         return stop(reason)
     write_state_atomic(spec_dir, updated)
-    print(f"loop-cohort: wave reopen for {spec_dir.name}")
+    print(
+        f"loop-cohort: wave reopen wave {wave_index}: "
+        f"{marked} record(s) superseded for {spec_dir.name}"
+    )
     return 0
 
 

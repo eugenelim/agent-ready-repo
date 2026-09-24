@@ -52,8 +52,12 @@ def block_fires_edge(block: str, edge: str) -> bool:
 
 
 def reopen_precedes_edge(block: str, edge: str) -> bool:
-    """Return True when wave reopen appears before the actual edge invocation."""
-    reopen_pos = block.find(REOPEN_CMD)
+    """Return True when a non-comment wave reopen appears before the edge invocation.
+
+    Both halves apply the non-comment rule: a commented-out ``# wave reopen``
+    above a transition does not satisfy the pin. The test
+    ``test_commented_reopen_does_not_satisfy_the_pin`` verifies this.
+    """
     # Find the edge in a non-comment transition invocation.
     edge_pos = -1
     for line in block.splitlines():
@@ -62,9 +66,37 @@ def reopen_precedes_edge(block: str, edge: str) -> bool:
         if ENGINE_TRANSITION in line and edge in line:
             edge_pos = block.index(line)
             break
+    # Find wave reopen in a non-comment line, before the edge.
+    reopen_pos = -1
+    for line in block.splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        pos = block.index(line)
+        if REOPEN_CMD in line and (edge_pos == -1 or pos < edge_pos):
+            reopen_pos = pos
+            break
     if reopen_pos == -1 or edge_pos == -1:
         return False
     return reopen_pos < edge_pos
+
+
+def test_commented_reopen_does_not_satisfy_the_pin() -> None:
+    """A commented-out ``# wave reopen`` must not satisfy the reopen check.
+
+    The content pin walks non-comment lines for the edge invocation; both halves
+    apply the same rule. If the reopen half accepted comment lines, a block could
+    carry ``# wave reopen`` above the transition and pass while the actual reopen
+    command is absent.
+    """
+    block = (
+        "```\n"
+        "# wave reopen docs/specs/<feature> --expect-run-id $run_id\n"
+        f"python '<skill-dir>/scripts/{ENGINE_TRANSITION} docs/specs/<f> gates-failed\n"
+        "```\n"
+    ).strip("` \n")
+    assert not reopen_precedes_edge(block, "gates-failed"), (
+        "a commented-out wave reopen must not satisfy the reopen-precedes-edge check"
+    )
 
 
 def count_invocations(files: list[Path]) -> int:

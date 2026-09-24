@@ -126,6 +126,7 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gate
 ```
 
 **Full mode — if gates fail:**
+`wave reopen` supersedes the current wave's dispatch records so the repair round starts without a stale live record; `gates-failed` refuses if a live record exists.
 ```
 python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
     --expect-run-id <run_id>
@@ -220,7 +221,8 @@ complete the Finish checklist and produce the five-field final handoff.
 
 ### Specialist findings
 
-If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `findings-remain` and record only their fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW:
+If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `findings-remain` and record only their fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW.
+`wave reopen` supersedes the current wave's dispatch records before `findings-remain`; the transition refuses if a live record exists.
 ```
 # Never record when the transition is refused: it carries the retry-cap guard,
 # and `review record --fingerprint` carries its own cap too. The caps are belt

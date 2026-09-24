@@ -5228,3 +5228,75 @@ def test_only_findings_remain_is_twin_sourced_in_code_mode() -> None:
         "check is now load-bearing rather than defensive: decide whether the new "
         "source state owes a reopen, add the case, then update this expectation."
     )
+
+
+def test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong(
+    tmp: Path,
+) -> None:
+    """The inert discriminators in `_guard_gates_failed_repair_round` and
+    `_guard_blocker_applied` are kept to fail safe when the table grows. They must
+    return ``None`` (skip the repair-round check) when handed a source state they
+    do not gate, even when the cohort holds a live record that would otherwise cause
+    a refusal.
+
+    Fixture precondition (per T6):
+    - Cohort holds a live dispatch record for the current wave, so `check --phase
+      wave-reopen` would refuse — confirming that the repair-round guard IS the
+      decision that would have fired.
+    - `gates-failed`'s fixture: `implementation_retry_count` below the cap, so the
+      retry-cap guard (which runs first) passes and cannot mask the discriminator.
+
+    Mutation verification: if either `engine_state.get("state") !=` guard is
+    removed, this test must turn red. Verify by temporarily replacing the guard
+    body with ``return _guard_repair_round(spec_dir, engine_state, event_args)``
+    (skipping the discriminator); the test fails because the repair-round check
+    is reached and refuses.
+    """
+    name = "inert-discriminators-skip-repair-round-on-wrong-state"
+    run_id = str(uuid.uuid4())
+    waves = [["T1"], ["T2"]]
+
+    # A live record for the current wave: `check --phase wave-reopen` would refuse.
+    live_container = _receipts_for(waves, 0, ["T1"])
+
+    # Write a cohort state.json at a temp spec_dir, with the live container and
+    # implementation_retry_count below the cap (so gates-failed's retry-cap guard
+    # passes — it runs before the discriminator and would mask it if it refused).
+    spec_dir = make_spec_dir(tmp, name)
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
+        "plan_review_status": "approved",
+        "approved_spec_hash": None,
+        "approved_plan_hash": None,
+        "plan_hash": None,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        "implementation_retry_count": 0,
+        "max_implementation_retries": 5,
+        "review_retry_count": 0,
+        "max_review_retries": 5,
+        "dispatch_receipts": live_container,
+    }))
+
+    # `_guard_gates_failed_repair_round` with wrong source state CODE-HUMAN-GATE
+    # (correct state is CODE-VERIFICATION). The repair-round check must be skipped.
+    result_gf = _engine._guard_gates_failed_repair_round(
+        spec_dir, {"state": "CODE-HUMAN-GATE"}, {}
+    )
+    assert result_gf is None, (
+        f"_guard_gates_failed_repair_round must return None for CODE-HUMAN-GATE "
+        f"(its discriminator says != CODE-VERIFICATION); got {result_gf!r}. "
+        "If this fails after removing the `engine_state[\"state\"] != "
+        "\"CODE-VERIFICATION\"` guard, the mutation is confirmed."
+    )
+
+    # `_guard_blocker_applied` with wrong source state CODE-REVIEW
+    # (correct state is CODE-HUMAN-GATE). The repair-round check must be skipped.
+    result_ba = _engine._guard_blocker_applied(
+        spec_dir, {"state": "CODE-REVIEW"}, {}
+    )
+    assert result_ba is None, (
+        f"_guard_blocker_applied must return None for CODE-REVIEW "
+        f"(its discriminator says != CODE-HUMAN-GATE); got {result_ba!r}. "
+        "If this fails after removing the `engine_state[\"state\"] != "
+        "\"CODE-HUMAN-GATE\"` guard, the mutation is confirmed."
+    )
