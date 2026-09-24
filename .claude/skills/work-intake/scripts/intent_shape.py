@@ -120,9 +120,12 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
 # matching the first time a message is reworded.
 #
 # Class descriptions are in the module docstring, which is the canonical source.
+LIFECYCLE_RECORD_REQUIRED = "lifecycle_record_required"
+LIFECYCLE_RECORD_NOT_ALLOWED = "lifecycle_record_not_allowed"
+
 LIFECYCLE_REFUSAL_CLASSES: tuple[str, ...] = (
-    "lifecycle_record_required",
-    "lifecycle_record_not_allowed",
+    LIFECYCLE_RECORD_REQUIRED,
+    LIFECYCLE_RECORD_NOT_ALLOWED,
 )
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -514,7 +517,7 @@ def _check_state_coherence(text: str) -> list[Violation]:
                 Violation(
                     record,
                     f"status `{status}` requires {article} `{record}:` record",
-                    refusal_class=LIFECYCLE_REFUSAL_CLASSES[0],
+                    refusal_class=LIFECYCLE_RECORD_REQUIRED,
                 )
             )
     for record in forbidden:
@@ -526,7 +529,7 @@ def _check_state_coherence(text: str) -> list[Violation]:
                     record,
                     f"status `{status}` carries {article} `{record}:` record; "
                     f"`{status}` {rationale}",
-                    refusal_class=LIFECYCLE_REFUSAL_CLASSES[1],
+                    refusal_class=LIFECYCLE_RECORD_NOT_ALLOWED,
                 )
             )
     return violations

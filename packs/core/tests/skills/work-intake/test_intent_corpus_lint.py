@@ -1110,3 +1110,34 @@ def test_a_four_space_indented_checkbox_is_not_an_item(tmp_path: Path) -> None:
     )
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
     assert "Decomposed" in {v.field for v in result.violations}
+
+
+def test_each_refusal_carries_the_class_that_matches_its_kind() -> None:
+    """Membership in the registry is not enough: the two classes must not swap.
+
+    Both construction sites draw their class from the registry, so a value
+    outside it is already unreachable. What that leaves is the two being
+    exchanged — a missing record labelled `not_allowed`, a present one
+    labelled `required`. Every other assertion checks membership, which a swap
+    satisfies, so this pins which class belongs to which kind of refusal.
+
+    Addressed at the rule function rather than through the lint: the lint
+    converts each `Violation` into a `FileViolation` carrying path, field and
+    reason, and drops the class on the way, so no assertion about the class
+    can be made downstream of it.
+    """
+    shape = lint._shape
+
+    missing = shape._check_state_coherence(_broken("a", status="Fulfilled"))
+    assert missing, "a Fulfilled intent with neither record must be refused"
+    assert {v.refusal_class for v in missing} == {
+        shape.LIFECYCLE_RECORD_REQUIRED
+    }
+
+    forbidden = shape._check_state_coherence(
+        _broken("b", status="Draft", extra="- **Accepted:** 2026-09-20 ratified")
+    )
+    assert forbidden, "a Draft intent carrying `Accepted:` must be refused"
+    assert {v.refusal_class for v in forbidden} == {
+        shape.LIFECYCLE_RECORD_NOT_ALLOWED
+    }
