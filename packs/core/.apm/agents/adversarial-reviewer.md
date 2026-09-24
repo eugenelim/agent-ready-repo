@@ -377,13 +377,15 @@ Group by severity. For each, **cite file and line range**, state what's
 wrong in one sentence, and end with `Fix: <required outcome and constraints>`;
 never prescribe a mechanism.
 
-**Severity follows whether the fix is determined.** Tag each finding by one
-decidable test — *is the fix fully determined?*
+**Severity follows whether the defect is established.** Tag each finding by one
+decidable test — *does something outside the finding establish the defect?*
 
-- **Mechanical** — one correct resolution, fixed by the code, a test, a lint, a
-  schema, a resolvable reference or a stated constraint, with no choice left
-  open. Something would red.
-- **Judgement** — resolving it means choosing between defensible options: a
+- **Mechanical** — something external establishes the defect: the code, a test,
+  a lint, a schema, a resolvable reference or a stated constraint disagrees
+  with what the target says. Something would red. The repair may take several
+  defensible forms; what makes a finding mechanical is that the defect is
+  decided, not that the remedy is.
+- **Judgement** — nothing external establishes the defect. It rests on a
   tradeoff, a risk acceptance, or a wording, framing or emphasis preference.
   More than one answer is defensible and nothing external decides between them.
 
@@ -393,9 +395,10 @@ surface it cites is one the target marks as working material rather than
 contract. Keep flagging both — an author wants the judgement call too — but a
 judgement finding may not block: there is nothing to check it against, so
 repairing it only produces the next one, and a loop fed by them runs at a flat
-finding rate instead of converging. A finding that cannot be determinately
-fixed is judgement however mechanically it is worded. Where the target marks no
-tiers, review every surface as contract; the mechanical test still applies.
+finding rate instead of converging. A finding whose defect nothing external
+establishes is judgement however mechanically it is worded. Where the target
+marks no tiers, review every surface as contract; the mechanical test still
+applies.
 
 ### Output format
 

@@ -130,10 +130,12 @@ For each source finding, test all six predicates independently:
    source finding's vocabulary carries no severity, test the consequence alone;
    a mode that cannot state a severity is not thereby exempt from this
    predicate. Two tests,
-   in order. First, is the fix fully determined — one correct resolution, fixed
-   by the code, a test, a lint, a schema, a resolvable reference or a stated
-   constraint, with nothing left to choose? If resolving it means picking among
-   defensible options, including a wording or framing preference, the
+   in order. First, does something outside the finding establish the defect —
+   the code, a test, a lint, a schema, a resolvable reference or a stated
+   constraint disagreeing with what the target says? A defect several
+   defensible repairs could fix is still established; determinacy of the remedy
+   is not the test. If nothing external establishes it, and it rests on a
+   tradeoff, a risk acceptance or a wording or framing preference, the
    consequence is advisory however the finding is worded: it may be true, and it
    cannot sustain at blocking severity, because nothing external decides it and
    the next round will raise another. Second, and only for a consequence that
@@ -166,9 +168,10 @@ Each source finding receives exactly one of:
   `wrong`, `over-broad`, or `absent` proposed mechanism does not refute that
   established defect. Retain the reviewer's severity unless changing it is
   necessary to avoid a false disposition, or unless the fifth predicate found
-  the consequence advisory — a finding whose fix is not fully determined, or
-  whose every cited surface is working material, sustains at advisory severity
-  at most, however the reviewer graded it; a disposition-changing severity
+  the consequence advisory — a finding whose defect nothing external
+  establishes, or whose every cited surface is working material, sustains at
+  advisory severity at most, however the reviewer graded it; a
+  disposition-changing severity
   conflict is `indeterminate` for owner direction. State the proposed-mechanism
   outcome and the smallest adequate fix only when a current seam establishes
   it; otherwise state the required repair outcome and constraints.

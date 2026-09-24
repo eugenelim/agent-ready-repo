@@ -97,10 +97,17 @@ def test_finding_adjudicator_source_contract() -> None:
     # sustained as a blocker and a review round was spent on text no completion
     # gate reads. Both must survive: the predicate decides the tier and the
     # verdict applies the ceiling, and either alone leaves the other undone.
+    # The first test asks whether anything establishes the defect, not whether
+    # the remedy is determined. Read the other way, a finding that a count says
+    # three where the tree holds five becomes advisory because the count, a
+    # baseline and dropping the claim are all defensible repairs -- and two
+    # raters reading the older wording split 9-vs-23 on the same 50 entries.
+    # The remedy-determinacy disclaimer is what closes that reading.
     for authority_tier_rule in (
-        "is the fix fully determined",
+        "does something outside the finding establish the defect",
+        "determinacy of the remedy is not the test",
         "the consequence is advisory however the finding is worded",
-        "whose fix is not fully determined",
+        "whose defect nothing external establishes",
         "sustains at advisory severity",
     ):
         assert authority_tier_rule in flat(body), authority_tier_rule

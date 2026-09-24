@@ -300,10 +300,17 @@ required work that cannot share the unit moves to the next. Nits are deferred
 with their citation.
 
 The adjudicator may **lower** a reviewer's severity and may not raise it. Its
-fifth predicate is what lowers a consequence to advisory: a fix that is not fully
-determined, or a citation whose every surface the target marks as working
-material rather than contract. A disposition-changing severity conflict returns
-`indeterminate` for owner direction.
+fifth predicate is what lowers a consequence to advisory: a defect nothing
+external establishes, or a citation whose every surface the target marks as
+working material rather than contract. A disposition-changing severity conflict
+returns `indeterminate` for owner direction.
+
+That first test reads the defect, not the remedy. A finding several defensible
+repairs could fix is still established, and stays eligible for blocking
+severity. Until 2026-09-24 the same clause asked whether the fix was fully
+determined, which two raters read two ways on the same fifty entries;
+[`review-loop-nonconvergence-survey.md`](../product/research/review-loop-nonconvergence-survey.md)
+records both the measurement and the correction.
 
 That ceiling is honoured in practice. Across 2,062 adjudicator entries declaring
 a consequence advisory, 98% sustained at Concern or Nit; per run, 13 of 15 runs
