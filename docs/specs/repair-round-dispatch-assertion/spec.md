@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md) (Option A: a transition permits a change and never causes one, so no cohort write may become a side effect of firing an edge); `wave-complete-dispatch-receipts` (Shipped and frozen — it owns the receipt data model, the accounting predicate, and the wave-exit verdict table this spec leaves intact — its § Ask first requires human sign-off for *scoping a record to a repair round* and for *any change to the review-phase guards*, and the owner granted both on 2026-09-23)
+- **Constrained by:** [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md) (Option A: a transition permits a change and never causes one, so no cohort write may become a side effect of firing an edge); `wave-complete-dispatch-receipts` (Shipped and frozen — it owns the receipt data model, the accounting predicate, and the wave-exit verdict table this spec leaves intact. Its § Ask first requires human sign-off for *scoping a record to a repair round* — the substantive permission this delivery uses, granted by the owner on 2026-09-23 — and separately for *any change to the review-phase guards*, also granted, which covers the `findings-remain` entry. The new `gates-failed` and `blocker-applied` guard entries are the mechanism of the first permission, not review-phase guards. Its § Never do forbids removing a record by any path but the three it names, and that rule is not reachable by sign-off, so this delivery removes no record)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -22,18 +22,20 @@
 
 ## Outcome
 
-A maintainer running the work loop in full mode cannot discharge the **current**
-wave's exit twice from a single set of dispatch records: every edge that
-re-enters code implementation without moving the wave pointer first requires
-that wave to be reopened, and reopening empties its records. A repair round
-therefore exits only by recording a fresh assertion for every task in that wave,
-and the refusal names the tasks that still lack one.
+A maintainer running the work loop in full mode cannot discharge the current
+wave's exit twice from a single set of dispatch records: `gates-failed`,
+`findings-remain` from code review, and `blocker-applied` each require that wave
+to be reopened first, which marks its records superseded so they account for
+nothing further. A repair round therefore exits only by recording a fresh
+assertion for every task in that wave, and the refusal names the tasks that
+still lack one.
 
 ## What Changes
 
-- A wave-reopen mutation verb — `loop-cohort.py`, beside `wave check` and `wave advance`
+- A wave-reopen mutation verb that marks the current wave's records superseded and removes none — `loop-cohort.py`, beside `wave check` and `wave advance`
+- One clause in the shared accounting predicate, so a superseded record accounts for no task — `unaccounted_wave_tasks` in `_loop_guards.py`
 - A fifth `check --phase` value, its verdict, and its membership of the schema-exempt phase set — `loop-cohort.py`'s `PHASES`, and `_loop_guards.py`'s `_SCHEMA_EXEMPT_PHASES`
-- Guard entries on the three re-entry edges, discriminated by source state, including the first guard `blocker-applied` has ever carried — `loop-engine.py`'s `_GUARDS`
+- Guard entries on the three named edges, discriminated by source state, including the first guard `blocker-applied` has ever carried — `loop-engine.py`'s `_GUARDS`
 - The controller's repair-round protocol, which now runs the reopen before firing the edge — every `work-loop` prose and eval site that directs a reader to fire one of the three edges, found by search rather than by a remembered list
 - A committed oracle that walks the repair-round verdict over the frozen spec's declared field axes — this spec's `notes/`
 - A mutation record for every new guard and verb clause — this spec's `notes/verification-ledger.md`
@@ -73,6 +75,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Never move `SCHEMA_VERSION`.
 - Never change what `check --phase implement` returns for any state. `wave-complete-dispatch-receipts` § Never do owns this rule and states why: local `make pre-pr` and the always-run `build-check` pull-request gate run that phase for every spec directory with no state-machine gate.
 - Never widen `DECLINE_REASONS`; `wave-complete-dispatch-receipts` § Ask first owns that decision and this delivery does not reopen it.
+- Never remove a dispatch record. `wave-complete-dispatch-receipts` § Never do owns this rule and names the only three paths that may: a `schedule` run under a different partition, a contract amendment, and `loop-cohort reset`. Superseding a record is not removing it; pruning an emptied container is.
 - Never add a row to, remove a row from, or change the precondition of any row in `_wave_exit_verdict`.
 - Never write cohort state as a side effect of an engine transition; the reopen is a skill-invoked mutation, as ADR-0061 Option A requires.
 - Never add a new top-level directory, module boundary, or dependency.
@@ -87,49 +90,59 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
+The three edges this contract names are `gates-failed` from `CODE-VERIFICATION`,
+`findings-remain` from `CODE-REVIEW`, and `blocker-applied` from
+`CODE-HUMAN-GATE`. `wave-passed` is not among them; § Follow-ons records why.
+
 ### The repair-round verdict
 
-- [ ] The repair-round check refuses when all of the following hold, and passes otherwise: the cohort state was readable; `schema_version` is the supported value; `dispatch_receipts` is present; the container is well-formed at the declared key path; `schedule_waves` is a non-empty list; `current_wave_index` is a non-negative integer and an index into it; the wave at that index is well-formed; and at least one task in that wave carries a dispatch record.
-- [ ] Its refusal names the verb that clears the records and the wave index the refusal is about.
-- [ ] `check --phase wave-reopen` reaches that verdict for a state whose `schema_version` is not the supported value, instead of being refused by the phase dispatcher's schema check before the verdict runs.
+- [ ] The repair-round check refuses when all of the following hold of a readable cohort state, and passes otherwise: `schema_version` is the supported value; `dispatch_receipts` is present; the container is well-formed at the declared key path; `schedule_waves` is a non-empty list; `current_wave_index` is a non-negative integer and an index into it; the wave at that index is well-formed; and at least one task in that wave carries a record that is not superseded.
+- [ ] The read refusal is unchanged: an unreadable cohort state is refused by the shared reader before the verdict runs, exactly as it is for `check --phase wave-exit` today, and the verdict is never reached for one.
+- [ ] Its refusal names the verb that supersedes the records and the wave index the refusal is about.
+- [ ] `check --phase wave-reopen` reaches the verdict for a state whose `schema_version` is not the supported value, instead of being refused by the phase dispatcher's schema check before the verdict runs.
 - [ ] For every state the oracle below walks that has a `state.json`, the file is byte-identical before and after a `check --phase wave-reopen` invocation.
 
 ### The reopen verb
 
-- [ ] `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` deletes the record subtree held under the live partition digest at `current_wave_index`, and leaves every other wave index, every other partition digest, and every other top-level key in `state.json` byte-identical.
-- [ ] `dispatch_receipts` is present in `state.json` after every successful reopen, including one whose removed subtree was the container's only content.
-- [ ] After a reopen whose removed subtree was the container's only content, `check --phase wave-exit` refuses and names the wave's tasks, rather than printing its not-enforced notice.
-- [ ] A second reopen against a state whose current wave holds no records exits zero and leaves `state.json` byte-identical.
+- [ ] `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` marks every record held under the live partition digest at `current_wave_index` superseded, and leaves every other wave index, every other partition digest, and every other top-level key in `state.json` byte-identical.
+- [ ] The count of records in `state.json` is equal before and after every successful reopen, and every record that was present before is still present and still satisfies `is_dispatch_record`.
+- [ ] After a reopen, `check --phase wave-exit` refuses and names the wave's tasks, including when the reopened wave's records were the container's only content.
+- [ ] A second reopen against a state whose current wave is already wholly superseded exits zero and leaves `state.json` byte-identical.
+- [ ] Recording a fresh dispatch record for a superseded task, through the existing `dispatch-receipt` verb and with no new flag, makes that task account again.
 - [ ] `wave reopen` refuses, and leaves `state.json` byte-identical, when `--expect-run-id` does not match `run_id`, when `schedule_waves` is not a non-empty list, when `current_wave_index` is not an index into it, and when `dispatch_receipts` is malformed; each refusal names the mismatch or the field.
 
 ### The three edges
 
-- [ ] `gates-failed` from `CODE-VERIFICATION`, `findings-remain` from `CODE-REVIEW`, and `blocker-applied` from `CODE-HUMAN-GATE` are each refused while the repair-round verdict refuses, and each admitted once it passes, the run re-entering `CODE-IMPLEMENTATION`.
-- [ ] `findings-remain` fired from `SPEC-PLAN-REVIEW` in a code-mode run is admitted while dispatch records are present for the current wave, both before the run has ever reached `CODE-IMPLEMENTATION` and after a `contract-amendment` has returned it to `SPEC-PLAN-DRAFTING`.
-- [ ] A state failing any one conjunct of the repair-round verdict is admitted on all three edges with no reopen.
+- [ ] Each of the three named edges is refused while the repair-round verdict refuses, and admitted once it passes, the run re-entering `CODE-IMPLEMENTATION`.
+- [ ] `findings-remain` fired from `SPEC-PLAN-REVIEW` in a code-mode run is admitted while live dispatch records are present for the current wave, both before the run has ever reached `CODE-IMPLEMENTATION` and after a `contract-amendment` has returned it to `SPEC-PLAN-DRAFTING`.
+- [ ] A state failing any one conjunct of the repair-round verdict is admitted on all three edges with no reopen, except where that edge's existing guard refuses it on that guard's own terms.
 - [ ] `gates-failed` and `findings-remain` evaluate the guard they already carry first, so a state failing both that guard and the repair-round verdict is refused with the existing guard's reason.
 - [ ] `findings-remain --allow-retry-cap-override` waives the review retry cap alone, and is still refused while the repair-round verdict refuses.
+- [ ] `wave-passed` and `gates-clean` carry the guards they carry today, unchanged in reason and in outcome for every state.
 
 ### Controller-facing surfaces
 
-- [ ] Every site under `packs/core/.apm/skills/work-loop/` that instructs a reader to fire `gates-failed`, `findings-remain` from `CODE-REVIEW`, or `blocker-applied` shows the reopen immediately before that instruction, and the site set is produced by a search over that tree rather than from a list written in advance.
-- [ ] The number of sites instructing one of those three edges equals the number instructing a reopen before it.
-- [ ] `references/session-resumption.md` states, in each of the three events' rows, the reopen step and where it falls relative to the transition.
-- [ ] `evals/evals.json` carries an entry covering the repair-round obligation, and every expected output in it that names one of the three edges agrees with the shipped instruction.
+- [ ] Every fenced command block under `packs/core/.apm/skills/work-loop/` that invokes `loop-engine.py transition` with one of the three named edges also invokes `loop-cohort.py wave reopen` on an earlier line of that same block.
+- [ ] That set is non-empty and includes at least one block in `SKILL.md`, one in `references/full-mode-engine.md`, and one in `references/session-resumption.md`.
+- [ ] `references/session-resumption.md` states the reopen in the row a controller reads *before* firing each of the three edges, which for `blocker-applied` is the `reviewers-clean` row rather than a `blocker-applied` row.
+- [ ] `evals/evals.json` carries an entry covering the repair-round obligation.
 
 ### Proof
 
 - [ ] `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` reports 35,728 states walked, 0 overlapping, 0 uncovered, and per-row reachability R1 17864, R2 13398, R3 3829, R4 49, R5 384, R6 108, R7 4, R8 92.
-- [ ] A committed oracle under this spec's `notes/` checks the repair-round verdict over a domain built by varying the axes that `wave-complete-dispatch-receipts` § Acceptance Criteria declares to be the single canonical enumeration, with container values generated from the declared key path rather than hand-built at a literal depth, and reports that the verdict refuses on exactly the states satisfying the conjunction stated above and passes on every other state in the domain.
-- [ ] A mutation record in this spec's `notes/verification-ledger.md` names each new guard clause and each new verb clause, the edit that removed it, the test that turned red, and the observed failure, with no clause whose removal left the suite green.
+- [ ] A committed oracle under this spec's `notes/` checks the repair-round verdict over a domain built by varying the axes that `wave-complete-dispatch-receipts` § Acceptance Criteria declares to be the single canonical enumeration, **extended with a superseded axis over each record**, with container values generated from the declared key path rather than hand-built at a literal depth, and reports that the verdict refuses on exactly the states satisfying the conjunction stated above and passes on every other state in the domain.
+- [ ] That same oracle reports, over that same domain, the row each state reaches in `_wave_exit_verdict`, and every state whose only records are superseded reaches the unaccounted row.
+- [ ] A mutation record in this spec's `notes/verification-ledger.md` names each new guard clause, each new verb clause, and the accounting predicate's superseded clause, together with the edit that removed it, the test that turned red, and the observed failure, with no clause whose removal left the suite green.
 
 ## Follow-ons
 
 - eugenelim: `workspace.toml` `[backlog].open`, the entry on `docs/adr/0061-loop-infrastructure-phase-1.md` whose summary opens "Leave a durable trace when a wave exit passes" — unchanged by this spec and still open.
-- eugenelim: `docs/architecture/loop-parallelism.md` § 1 — per-round dispatch history. Reopening discards the previous round's records, so no reader can recover who was dispatched in an earlier round, and a reopen that lands before an unfired `blocker-applied` leaves that loss behind when the run is instead discharged through `done`. § 1's unified transition history is where a durable per-round record would live; it is blocked on governance records that do not exist, and this spec does not depend on it.
-- eugenelim: `workspace.toml` `[backlog].open` — repair work that lands in an already-passed wave carries no fresh assertion, because the reopen clears only the wave at `current_wave_index` and the earlier wave's exit is never re-examined. The register entry this spec closes is scoped to the current wave, so this is a separate limit rather than unfinished scope.
+- eugenelim: **`wave-passed` is a fourth edge with this defect's shape, and needs its own register entry.** It fires before its cohort advance, so the run re-enters `CODE-IMPLEMENTATION` with the pointer unmoved and that wave's records live; a controller that does not then run `wave advance` can discharge the same wave's exit again. It is excluded here because the register entry this spec closes names three edges, because its guard is a separate § Ask first item in the frozen spec, and because the advance that follows it is what the fix has to reason about. Discovered by the round-2 spec review, 2026-09-23.
+- eugenelim: `docs/architecture/loop-parallelism.md` § 1 — per-round dispatch history. A superseded record survives, but re-recording the same task replaces it, so an earlier round's assertion is still not recoverable once the task is re-recorded. § 1's unified transition history is where a durable per-round record would live; it is blocked on governance records that do not exist, and this spec does not depend on it.
+- eugenelim: `workspace.toml` `[backlog].open` — repair work that lands in an already-passed wave carries no fresh assertion, because the reopen reaches only the wave at `current_wave_index`.
 
 ## Assumptions
 
-- Technical: the controller runs the reopen before firing the edge — the guard reads cohort state as it stands before the transition, so a reopen run afterwards clears records the guard has already read. This is checked by the guard itself rather than assumed, and it is stated here because the ordering is what the documented procedure has to carry.
+- Technical: the controller runs the reopen before firing the edge — the guard reads cohort state as it stands before the transition, so a reopen run afterwards supersedes records the guard has already read. The guard enforces the ordering; it is recorded here because the documented procedure is what has to carry it.
 - Technical: at each of the three source states, `current_wave_index` still addresses the wave whose tasks the repair round edits. True today because no edge between them moves the pointer; a future edge that did would need this contract revisited.
+- Technical: an unsupported `schema_version` leaves receipts unenforced at the wave exit as well, by the frozen verdict's own second row, so passing that class here re-opens nothing — there is no enforced exit for a stale record to discharge. Recorded because a reader checking only this contract would read the pass as a gap.

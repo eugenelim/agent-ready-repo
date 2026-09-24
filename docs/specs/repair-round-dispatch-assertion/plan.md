@@ -23,8 +23,9 @@ optional, and the guard without the verb is a dead end.
   (owner decision, 2026-09-23).
 - `wave-complete-dispatch-receipts` § Ask first requires sign-off for scoping a
   record to a repair round and for any change to the review-phase guards. The
-  owner granted both on 2026-09-23. That spec's § Never do on
-  `check --phase implement` is not waived and is not approached.
+  owner granted both on 2026-09-23. That spec's § Never do is not reachable by
+  sign-off, and two of its rules bind here: `check --phase implement` is not
+  approached, and no record is removed — the reopen supersedes.
 - `packs/` prose carries no citation of this repository's internal records, so
   the skill text states the obligation directly and never names this spec.
 - The stash stack is shared across worktrees: every mutation proof restores by
@@ -60,16 +61,29 @@ needs none of those, and it leaves that verdict's eight rows deciding exactly
 what they decide today. What it costs is per-round history, accepted by the
 owner on 2026-09-23 and recorded as a follow-on against `loop-parallelism.md` § 1.
 
-**The container key survives the reopen.** Only the subtree at
-`dispatch_receipts[<digest>][<current index>]` is removed. Deleting the
-`dispatch_receipts` key itself would hand the run the absent-container
-exemption, turning a control into its own bypass — the reopen would disable
-enforcement rather than demand it. Probed against the shipped predicates on
-2026-09-23: removing the wave subtree leaves the sibling wave's records intact
-and turns the wave-exit verdict from passing to refusing by name, while removing
-the whole key leaves that verdict passing. An implementer pruning now-empty
-parents is the concrete way this is got wrong, so the invariant is a criterion
-rather than a comment.
+**The reopen supersedes; it never removes.** `wave-complete-dispatch-receipts`
+§ Never do names the only three paths that may remove a record — a `schedule`
+run under a different partition, a contract amendment, and `loop-cohort reset`
+— and that rule is not reachable by sign-off, so a deleting reopen would be a
+fourth. Marking instead keeps every record present and `is_dispatch_record`-valid,
+and moves the round scoping into the shared accounting predicate, which is where
+`wave-complete-dispatch-receipts` § Always do already requires this class of
+exemption to live.
+
+Deletion was also the shape most likely to be built into a bypass. Probed
+against the shipped predicates on 2026-09-23: removing a wave's subtree leaves
+the sibling wave's records intact and turns the wave-exit verdict from passing
+to refusing by name, but removing the `dispatch_receipts` key itself leaves that
+verdict *passing*, because `unaccounted_wave_tasks` returns no tasks for an
+absent container. An implementer pruning now-empty parents would have disabled
+enforcement while appearing to demand it. Superseding cannot reach that state at
+all.
+
+**One clause, inside the shared predicate.** `unaccounted_wave_tasks` is the
+declared accounting predicate for both the wave exit and `wave advance`'s
+advancing branch, so adding the superseded clause there is what keeps the two
+consumers agreeing. It also means a reopen correctly blocks a `wave advance`
+until the round re-records.
 
 **The guard is decided by the engine's source state, never by the run mode.**
 `_GUARDS` is keyed `(mode, event)` and dispatched at `loop-engine.py:1759`, and
@@ -106,9 +120,10 @@ to catch.
 
 ### Data & schema
 
-No key is added, renamed, or removed. The only write is a deletion of one
-subtree from the existing `dispatch_receipts` container, under the cohort lock,
-through the existing atomic write.
+No key is added, renamed, or removed, and no record is deleted. The only write
+adds a `superseded` member to records already present, under the cohort lock,
+through the existing atomic write. A record without that member reads as live,
+so every `state.json` on disk today means exactly what it means now.
 
 ### Interfaces & contracts
 
@@ -119,14 +134,21 @@ or message changes.
 
 ### Failure, edge cases & resilience
 
-The verb only ever removes records, so re-running it closes the window between
-"reopen landed" and "transition fired" for the two edges whose source state has
-one forward exit. `CODE-HUMAN-GATE` has two: if the reopen lands and
-`blocker-applied` does not, a resuming session reads `CODE-HUMAN-GATE`, and an
-approving human is routed to `done`, discharging the run with the wave's records
-already deleted. That is a lost record rather than a re-record, and it is why
-`references/session-resumption.md`'s `reviewers-clean` row has to say the reopen
-is run after the human signals changes, not before.
+The verb is idempotent and destroys nothing, so re-running it always closes the
+window between "reopen landed" and "transition fired". What the window costs
+depends on which forward exit the resuming session takes instead, and all three
+source states have more than one:
+
+| Source state | Other forward exits | Cost of an orphaned reopen |
+| --- | --- | --- |
+| `CODE-VERIFICATION` | `wave-passed`, `gates-clean` | `wave advance` refuses the now-superseded wave until it is re-recorded; `gates-clean` reaches review with the wave superseded, and the next wave exit refuses |
+| `CODE-REVIEW` | `reviewers-clean` | reaches the human gate with the wave superseded; the next exit refuses |
+| `CODE-HUMAN-GATE` | `done` | the run ends; the superseded records survive but no exit re-examines them |
+
+Every cell is a refusal or a re-record, never a silent pass — which is the
+property that matters, and it holds because superseding is monotone: it can only
+make an exit stricter. That is the concrete gain over the deleting design, where
+the `done` row lost the records outright.
 
 ### Dependencies & integration
 
@@ -136,26 +158,39 @@ None added. The verb reuses `_locked`, `read_state`, `write_state_atomic`,
 
 ## Tasks
 
-### T1: the repair-round verdict refuses on exactly the states that carry a live record
+### T1: a superseded record accounts for nothing, and the verdict refuses on exactly the live ones
 
 **Depends on:** none
 
-**Tests:** TDD. Discharges the four criteria under § The repair-round verdict
-and the two oracle criteria under § Proof.
+**Tests:** TDD. Discharges the five criteria under § The repair-round verdict,
+all four under § Proof, and the accounting change the § The reopen verb group
+depends on.
 
+- The predicate change lands first and alone: `unaccounted_wave_tasks` returns a
+  task whose only record is superseded. Both consumers are asserted, the wave
+  exit and `wave advance`'s advancing branch, because the predicate is shared
+  and a change that reached one consumer only is the defect this repository has
+  already paid for once.
 - One case per conjunct of the verdict's refusal condition, each falsifying that
   conjunct alone and asserting a pass; plus the all-conjuncts-true case
   asserting the refusal and its text.
+- The read-refusal case asserts the verdict is never reached, by driving an
+  unreadable `state.json` through `cmd_check` and comparing the reason against
+  the one `--phase wave-exit` gives for the same file.
 - The CLI-level exemption case drives `check --phase wave-reopen` through
   `cmd_check` against an unsupported `schema_version`, not the verdict function,
   because that is the only surface where `_SCHEMA_EXEMPT_PHASES` is observable.
 - `notes/walk_reopen_partition.py`: domain built from the axis list
-  `wave-complete-dispatch-receipts` § Acceptance Criteria declares canonical,
-  container values generated from `RECEIPT_KEY_PATH` rather than hand-built,
-  asserting refusal ⟺ the conjunction and byte-identical `state.json` across
-  every invocation.
+  `wave-complete-dispatch-receipts` § Acceptance Criteria declares canonical
+  plus a superseded axis over each record, container values generated from
+  `RECEIPT_KEY_PATH` rather than hand-built, asserting refusal ⟺ the conjunction,
+  byte-identical `state.json` across every invocation, and the `_wave_exit_verdict`
+  row each state reaches.
 - The frozen wave-exit oracle's report is compared field by field against the
-  baseline in § Proof.
+  baseline in § Proof. Its domain carries no superseded axis, so it cannot see
+  this change — which is why the new oracle reports wave-exit rows too, and why
+  an unchanged frozen report is evidence of no regression rather than evidence
+  of coverage.
 
 Red contract-surface assertion (`stub: true`):
 
@@ -204,6 +239,10 @@ directory rather than the guard function. Discharges the five criteria under
 - Three separate cases drive a real repair round to `CODE-IMPLEMENTATION`, one
   per edge, each asserting the refusal text before the reopen and the
   transition after it.
+- `wave-passed` and `gates-clean` are driven from the same `CODE-VERIFICATION`
+  state that refuses `gates-failed`, asserting both are admitted with their
+  reasons unchanged — the case that pins the source-state-plus-event
+  discrimination rather than source state alone.
 - The code-mode `SPEC-PLAN-REVIEW` case is driven twice: on a fresh run, and
   after a `contract-amendment` has written `schedule_waves: []`.
 - The conjunct-admission case reuses T1's falsifying states, driven through the
@@ -222,12 +261,16 @@ this task's mutation entries are in `notes/verification-ledger.md`.
 **Tests:** goal-based check. Discharges the four criteria under § Controller-facing
 surfaces.
 
-- The check searches `packs/core/.apm/skills/work-loop/` for instructions naming
-  the three edges and compares that count against the count of reopen
-  instructions, so a site added later fails rather than being missed. The search
-  expression is committed beside the test.
-- `references/capture.md` and `evals/evals.json` are known members of that set
-  today; the test finds them rather than listing them.
+- The site predicate is **fenced command blocks**, not prose: the check parses
+  fenced blocks under the skill tree, selects those invoking `loop-engine.py
+  transition` with one of the three edges, and asserts each contains a
+  `wave reopen` invocation on an earlier line. Prose that names an edge
+  descriptively — `references/capture.md`, `references/state-schema.md`'s
+  `last_event` vocabulary — is not a firing site and is correctly excluded,
+  which is why the predicate is blocks rather than a grep for the literal.
+- A presence assertion pairs with the quantifier, naming `SKILL.md`,
+  `references/full-mode-engine.md` and `references/session-resumption.md`, so the
+  universal cannot pass at zero blocks.
 - `make build-self` reports three-copy parity across `.apm/`, `.claude/` and
   `.agents/`.
 
@@ -263,16 +306,18 @@ one verb.
 - **A controller that has not read the new prose meets an unexplained refusal.**
   Mitigated by the refusal naming the verb that clears it, which T1 and T3
   assert, and by T4's count check catching an undocumented route.
-- **The reopen is built as a bypass** by pruning an emptied container.
-  Mitigated by the container-survival criterion and by T2's single-wave fixture,
-  which is the only fixture shape that can catch it.
+- **The shared accounting predicate has two consumers**, and a change tested
+  through one only would leave `wave advance` disagreeing with the wave exit.
+  Mitigated by T1 asserting both consumers in the same task that changes the
+  predicate.
 - **The projections are rebuilt without the source edit**, deleting the change.
   Mitigated by T4's parity check; the skill has no seed under
   `packs/core/seeds/`, so `.apm/` is the only source.
-- **A reopen orphaned at `CODE-HUMAN-GATE` loses the wave's records** when the
-  run is discharged through `done` instead of `blocker-applied`. Not mitigated;
-  described in § Failure and carried as a follow-on, because the durable
-  per-round record that would close it is `loop-parallelism.md` § 1's.
+- **`wave-passed` has this defect's shape and is out of scope.** It fires before
+  its cohort advance, so a controller that skips the advance re-enters at the
+  same wave with live records. Not mitigated here; § Follow-ons carries it for
+  its own register entry, and the criteria are scoped to three named edges so
+  the contract does not claim otherwise.
 
 ## Changelog
 
@@ -280,3 +325,7 @@ one verb.
 - 2026-09-23 — revised from the spec-stage shaping and adversarial reviews: the
   guard is discriminated by source state rather than run mode, the verdict fails
   open, and the oracle's domain is sourced from the frozen spec's declared axes.
+- 2026-09-23 — revised from the round-2 adversarial review: the reopen supersedes
+  rather than removes, because a frozen `Never do` names the only three paths
+  that may remove a record; the site predicate became fenced command blocks; and
+  `wave-passed` moved to a follow-on with the claims narrowed to three edges.
