@@ -11,10 +11,6 @@ The :data:`BLOCKER_CODES` constant mirrors the schema's ``reason.code`` enum.
 T7 pins it to the schema enum so a code added to the schema without a
 corresponding fixture entry in T5 fails T7's divergence test rather than being
 silently uncovered.
-
-Spec: docs/specs/spec-retirement-eligibility/spec.md  §§ Blocker emission,
-      Status vocabulary, Age reporting
-Plan: docs/specs/spec-retirement-eligibility/plan.md  § T5
 """
 from __future__ import annotations
 

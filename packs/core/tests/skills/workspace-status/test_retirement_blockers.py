@@ -1,9 +1,7 @@
 """Tests for blocker detection — T5 (TDD).
 
 Verification mode: TDD.
-Spec:  docs/specs/spec-retirement-eligibility/spec.md  §§ Blocker emission,
-       Status vocabulary, Age reporting
-Plan:  docs/specs/spec-retirement-eligibility/plan.md  § T5
+
 
 T5 requirements verified here
 ------------------------------

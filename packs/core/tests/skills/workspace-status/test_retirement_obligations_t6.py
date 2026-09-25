@@ -1,9 +1,7 @@
 """Tests for obligation payload and age vocabulary — T6 (TDD).
 
 Verification mode: TDD.
-Spec:  docs/specs/spec-retirement-eligibility/spec.md  §§ Blocker emission
-       (lasting-facts-unsettled obligation clauses), Age reporting
-Plan:  docs/specs/spec-retirement-eligibility/plan.md  § T6
+
 
 T6 requirements verified here
 ------------------------------

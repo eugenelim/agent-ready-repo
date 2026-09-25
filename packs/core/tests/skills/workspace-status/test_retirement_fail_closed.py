@@ -1,8 +1,7 @@
 """Tests for fail-closed reading and confinement — T0c (TDD).
 
 Verification mode: TDD (red written first, then green).
-Spec:  docs/specs/spec-retirement-eligibility/spec.md  §§ Fail closed, Confinement
-Plan:  docs/specs/spec-retirement-eligibility/plan.md  § T0c
+
 
 T0c test cases from the plan task body
 ---------------------------------------
@@ -629,3 +628,40 @@ class TestPathSwappedBetweenCheckAndOpen:
             root, "docs/specs/unswapped/spec.md", spec_body=True
         )
         assert b"Shipped" in body
+
+
+class TestSymlinkResolvingInsideTheRoot:
+    """A link whose target stays inside the root is read, not refused.
+
+    Every earlier fixture used a link pointing *outside* the root, so the guard
+    refused in-repo links unnoticed.  The shipped command then returned zero
+    eligible candidates of 483 against the real corpus, suppressed by refusals
+    on this repository's own ``CLAUDE.md`` files — each a link to a sibling
+    ``AGENTS.md`` that escapes nothing.
+    """
+
+    def test_link_inside_the_root_is_read(self, tmp_path: Path) -> None:
+        mod = _load_retirement()
+        root = tmp_path
+        spec_dir = root / "docs" / "specs" / "linked"
+        spec_dir.mkdir(parents=True)
+        real = spec_dir / "AGENTS.md"
+        real.write_text("- **Status:** Shipped\n", encoding="utf-8")
+        link = spec_dir / "spec.md"
+        link.symlink_to("AGENTS.md")  # relative, resolves to a sibling
+
+        body = mod.confined_read_bytes(root, "docs/specs/linked/spec.md", spec_body=True)
+        assert b"Shipped" in body
+
+    def test_link_leaving_the_root_is_still_refused(self, tmp_path: Path) -> None:
+        """The negative half: narrowing the guard must not disarm it."""
+        mod = _load_retirement()
+        root = tmp_path / "repo"
+        (root / "docs" / "specs" / "escaping").mkdir(parents=True)
+        outside = tmp_path / "outside.md"
+        outside.write_text("- **Status:** Shipped\n", encoding="utf-8")
+        (root / "docs" / "specs" / "escaping" / "spec.md").symlink_to(outside)
+
+        with pytest.raises(mod.ConfinementRefusal) as caught:
+            mod.confined_read_bytes(root, "docs/specs/escaping/spec.md", spec_body=True)
+        assert caught.value.code == "path-escapes-root"

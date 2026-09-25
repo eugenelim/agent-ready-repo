@@ -1,7 +1,7 @@
 # Plan: Spec-retirement eligibility projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`AGENTS.md`](../../../AGENTS.md); [`packs/AGENTS.md`](../../../packs/AGENTS.md); [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) § skill dependencies; [`tests/AGENTS.md`](../../../tests/AGENTS.md); [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) §§2, 4, 6, 7 and the Wave 7e Errata
 
 ## Approach
@@ -258,6 +258,12 @@ it is never reconciled by widening the probe.
 - A `needs` slug of `../../../../etc/passwd` and a spec directory symlinked
   outside the root are each refused `path-escapes-root` and never opened,
   asserted by the absence of the read rather than by the refusal alone.
+- A file reached through a symlink whose target stays inside the root IS read.
+  Every earlier fixture used an escaping link, so the guard refused in-repo
+  links unnoticed: the shipped command returned zero eligible candidates of 483,
+  suppressed by 42 refusals on this repository's own `CLAUDE.md` symlinks, none
+  of which escapes anything. A guard that refuses the corpus it runs on is not
+  a stricter guard, it is an inert capability.
 - Every repository read routes through the skill's own confinement helper;
   removing that call turns a case red.
 
@@ -478,6 +484,11 @@ ledger.
 - 2026-09-24 — Cut to a read-only core; brief retirability and the persisted
   area map sliced out as separate deliveries.
 - 2026-09-24 — Spec and plan approved by eugenelim.
+- 2026-09-25 — Contract amendment: the confinement criterion refused any path
+  reached through a symlink, including one resolving inside the root, which
+  suppressed every candidate. Narrowed to links whose target escapes.
+  Authority `conversation:2026-09-25`; reason the real-corpus run recorded in
+  the verification ledger.
 - 2026-09-24 — Contract amendment: T0b's enumeration found four `needs` shapes
   where the approved criterion named two, and the empty list it omitted is the
   majority shape. Authority `conversation:2026-09-24`; reason the verification

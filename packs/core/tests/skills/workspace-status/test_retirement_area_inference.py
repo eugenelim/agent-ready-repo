@@ -1,8 +1,7 @@
 """Tests for area inference — T3 (TDD, red phase written first).
 
 Verification mode: TDD.
-Spec:  docs/specs/spec-retirement-eligibility/spec.md  § Area attribution
-Plan:  docs/specs/spec-retirement-eligibility/plan.md  § T3
+
 
 Four cases from the plan task body:
 1. A non-packs top-level namespace is inferred and a spec naming it is

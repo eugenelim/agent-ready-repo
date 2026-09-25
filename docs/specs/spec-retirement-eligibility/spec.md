@@ -1,6 +1,6 @@
 # Spec: Spec-retirement eligibility projection
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) Wave 7e (Errata 2026-09-24), §7 helper split, §2 semantic roles, and the Wave 7d carve-out surfaces (Errata 2026-09-13). §6 cooling is explicitly out of scope: this capability reads no lifecycle record.
@@ -198,8 +198,12 @@ carry the refusal vocabulary this group requires.
 
 - [ ] A path derived from repository content that resolves outside the
       repository root is refused as `path-escapes-root` and is not read.
-- [ ] A path reached through a symlink, junction, or reparse point is refused as
-      `path-escapes-root` and is not read.
+- [ ] A path whose symlink, junction, or reparse point resolves outside the
+      repository root is refused as `path-escapes-root` and is not read.
+- [ ] A path reached through a symlink whose target stays inside the repository
+      root is read, not refused. This repository's own `CLAUDE.md` files are
+      such links, and refusing them withholds eligibility from every candidate
+      in the report.
 - [ ] A `path-escapes-root` refusal carries the repository-relative location
       that declared the value, and the offending value as written, bounded and
       never resolved against the filesystem.
