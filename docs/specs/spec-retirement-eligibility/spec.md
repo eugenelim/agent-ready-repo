@@ -1,6 +1,6 @@
 # Spec: Spec-retirement eligibility projection
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) Wave 7e (Errata 2026-09-24), §7 helper split, §2 semantic roles, and the Wave 7d carve-out surfaces (Errata 2026-09-13). §6 cooling is explicitly out of scope: this capability reads no lifecycle record.
@@ -251,8 +251,12 @@ carry the refusal vocabulary this group requires.
 - [ ] A spec that any `workspace.toml` entry names in a `needs` field is
       reported `needed-by`, whichever collection holds that entry, and a spec no
       entry names is not.
-- [ ] `needed-by` resolves both shapes the file carries: a list of tables each
-      naming a `path`, and a bare `<room>:<kind>/<slug>` string.
+- [ ] `needed-by` resolves each of the four `needs` shapes the ledger records: a
+      list of tables each naming a `path`; a bare `<room>:<kind>/<slug>` string;
+      an empty list; and the key being absent.
+- [ ] An empty `needs` list and an absent `needs` key are distinct inputs and are
+      both read as declaring no dependency edge, rather than one being inferred
+      from the other.
 - [ ] A `needs` value in a shape the run does not resolve is refused as
       `needs-shape-unrecognised`.
 - [ ] A `needed-by` blocker names every entry declaring the dependency and, for

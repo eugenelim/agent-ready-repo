@@ -1,7 +1,7 @@
 # Plan: Spec-retirement eligibility projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`AGENTS.md`](../../../AGENTS.md); [`packs/AGENTS.md`](../../../packs/AGENTS.md); [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) § skill dependencies; [`tests/AGENTS.md`](../../../tests/AGENTS.md); [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) §§2, 4, 6, 7 and the Wave 7e Errata
 
 ## Approach
@@ -305,6 +305,11 @@ than asserted.
   the case rather than being silently uncovered.
 - A candidate with two dependents lists both, and each entry carries the `needs`
   edge that clears it. Verifies the two `needed-by` naming criteria.
+- One fixture entry per `needs` shape the ledger records — list of tables, bare
+  string, empty list, absent key — asserting the first two produce edges and the
+  last two produce none without a refusal. Verifies the four-shape criteria; the
+  empty list is the majority shape in the corpus, so a reader that refuses it
+  suppresses most of the report.
 - Removing every declaring edge from the fixture clears the blocker, and removing
   only one of two does not. Verifies the clearability criterion, which is the
   half a permanently-blocking implementation would still pass.
@@ -473,3 +478,7 @@ ledger.
 - 2026-09-24 — Cut to a read-only core; brief retirability and the persisted
   area map sliced out as separate deliveries.
 - 2026-09-24 — Spec and plan approved by eugenelim.
+- 2026-09-24 — Contract amendment: T0b's enumeration found four `needs` shapes
+  where the approved criterion named two, and the empty list it omitted is the
+  majority shape. Authority `conversation:2026-09-24`; reason the verification
+  ledger at `2fb3ae543`.
