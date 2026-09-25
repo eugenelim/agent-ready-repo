@@ -623,6 +623,7 @@ $(PYTHON) -c "import httpx"
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
 $(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q

@@ -821,11 +821,29 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # over: the pre-rebase values (`8e084d8d…`/`c79d92dc…`) were computed over a
 # Makefile without the two `lint:css` lines, so keeping either side of the
 # conflict would have pinned a plan no invocation produces.
+# Bumped 2026-09-25 for the jira-epic-outcome-view pack suite, which adds one
+# `run-test-suite` line so the new skill's criteria are enforced on every pull
+# request rather than only under the dispatch-only test-corpus.yml.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added line and zero
+# removed or reordered — `$(PYTHON) -m pytest
+# packs/atlassian/tests/skills/jira-epic-outcome-view/ -q`, placed immediately
+# after the flow-metrics line it sits beside in build-check.yml's carve-out
+# step. It is a new process, so every plan index after it shifts by one and
+# both digests move for one added line. The root/tool process counts hold at
+# 15/14: the line is a pack suite, not a root or tools group, so
+# `_root_tool_pytest_groups` sees no change and EXPECTED_ROOT_TOOL_PATHS is
+# untouched. Every other case in this file passed against the edited Makefile;
+# only the two digests reddened.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` (e8e49c6b7) with `19f809d1…` and `b2a286f2…` still in
+# place returns an empty error list — checked by expanding that Makefile text
+# through the same function in this worktree — so this supersedes live values
+# rather than a pin that had already gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "19f809d1d16c1932ef48f942314756ca53bfe5adadb887161a4809da279fbf18"
+    "c72bca085478a30cd0c7889cf30b8989e969ce1c33460377e61962d59000e2e7"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "b2a286f2776b34313a35b91aefa2ec4668471cfe4c779cd4f661b9a685449078"
+    "8ee87c7f46c191cb23823ef983ffb8016a5000aa308e22c76d1fe8b703648200"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
