@@ -2157,9 +2157,9 @@ shipped = [
   {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
   {path = "docs/specs/pack-test-compatibility-classes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Keep pack tests isolated by default and permit proven same-pack compatibility classes", needs = []},
   {path = "docs/specs/catalogue-sync-apply/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "8cf5b8b3561c6790b259cd8eee7a5430ffe7c3e5"}, summary = "agentbundle catalogue sync apply path plus the four scoping flags: consent, jailed writes, guarded stale removal, and a pinned state write", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-sync-dry-run/spec.md"}]},
+  {path = "docs/specs/catalogue-package-sync/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "52cb5911c5f90cadec3ee161cfbb9eab65663203"}, summary = "agentbundle catalogue sync package sync for both --package destinations: the vendored tooling root and packages/credbroker/, applied last, with a two-input self-replacement refusal", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-sync-apply/spec.md"}]},
 ]
 queue   = [
-  {path = "docs/specs/catalogue-package-sync/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "52cb5911c5f90cadec3ee161cfbb9eab65663203"}, summary = "agentbundle catalogue sync package sync for both --package destinations: the vendored tooling root and packages/credbroker/, applied last, with a two-input self-replacement refusal", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-sync-apply/spec.md"}]},
 ]
 
 ["ini-007".brief_queue]

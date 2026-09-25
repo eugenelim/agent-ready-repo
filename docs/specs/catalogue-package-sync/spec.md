@@ -1,6 +1,6 @@
 # Spec: catalogue sync — package sync for both `--package` destinations
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0059 (the catalogue-curation pack, which owns the white-label export boundary)
@@ -255,7 +255,7 @@ root is § Agent Rules § Never do's, not restated here.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0078.** **The package write extent is defined here and nowhere
+- [x] **AC-0078.** **The package write extent is defined here and nowhere
   else.** The extent is two destinations, and the `agentbundle` destination has
   one named part:
 
@@ -287,18 +287,18 @@ root is § Agent Rules § Never do's, not restated here.
   Reading the recorded recipe to get there is not a violation of phase 2's
   rule against recorded values selecting a mode: a selection is not a mode.
 
-- [ ] **AC-0079.** A path under either AC-0078 destination is admitted to the
+- [x] **AC-0079.** A path under either AC-0078 destination is admitted to the
   write set on the same terms as any other replayed path. AC-0033 clause 5
   excluded them; the extent clause above is what stops it doing so.
 
-- [ ] **AC-0080.** The paths AC-0079 admits are written in the order packs,
+- [x] **AC-0080.** The paths AC-0079 admits are written in the order packs,
   profiles, guides, the derivation-wide paths, then the AC-0078 destinations,
   and AC-0033 clause 6's ownership state after all five. AC-0032 named four
   groups ending at the derivation-wide paths; this is the fifth. Packages are last because a failed package write is the one whose rollback
   may be executing from the code it just replaced, so every other write is
   already durable before one is attempted.
 
-- [ ] **AC-0081.** `--package <name>` restricts the run to that name's AC-0078
+- [x] **AC-0081.** `--package <name>` restricts the run to that name's AC-0078
   destination, joining `--pack`, `--profile` and `--guides` in the scope union
   AC-0043 fixes. `--package` stops being the reserved selector AC-0047 and
   AC-0043's closing sentence made it, and AC-0030's enumeration of which flags
@@ -312,7 +312,7 @@ root is § Agent Rules § Never do's, not restated here.
   `--pack catalogue-curation`, which reaches `packs/catalogue-curation/` at the
   tree root alone.
 
-- [ ] **AC-0082.** A `--package <name>` run whose named AC-0078 destination is
+- [x] **AC-0082.** A `--package <name>` run whose named AC-0078 destination is
   not present refuses as malformed, naming the flag and the presence condition
   it failed. The two halves are decided at different points — AC-0084 fixes
   which — and this criterion fixes only the outcome. This covers
@@ -322,7 +322,7 @@ root is § Agent Rules § Never do's, not restated here.
   run that reported success would refresh the pin over a subtree it never
   wrote, and neither the parser's `choices` check nor any later row catches it.
 
-- [ ] **AC-0083.** An apply or `--dry-run` invocation whose **effective scope
+- [x] **AC-0083.** An apply or `--dry-run` invocation whose **effective scope
   includes** the AC-0078 `agentbundle` destination — a run replaying `--tooling vendored`
   under either no scoping flag or `--package agentbundle` — refuses when the
   target supplies the running `agentbundle`, naming that it does. The trigger
@@ -353,7 +353,7 @@ root is § Agent Rules § Never do's, not restated here.
   the target tree is created, modified, moved, removed, or has its mode
   changed, and the operator is not prompted for consent.
 
-- [ ] **AC-0084.** The AC-0082 `agentbundle` row and the AC-0083 refusal are
+- [x] **AC-0084.** The AC-0082 `agentbundle` row and the AC-0083 refusal are
   decided before the run resolves its source, so a run refusing on either
   performs no fetch. Both read only the target, the run's own flags and
   defaults, and the running distribution.
@@ -364,7 +364,7 @@ root is § Agent Rules § Never do's, not restated here.
   before resolving the source. This is the single home for which refusals
   precede the fetch.
 
-- [ ] **AC-0085.** The command's exit code is the first matching row of this
+- [x] **AC-0085.** The command's exit code is the first matching row of this
   table, read top to bottom, and no input produces a code outside it. **The
   table stays AC-0039's**, amended here rather than replaced, so every phase-3
   criterion that constrains behaviour by reference to "AC-0039's table" keeps
@@ -428,7 +428,7 @@ root is § Agent Rules § Never do's, not restated here.
   yet established is readable. Every other row keeps the position and reason
   AC-0039 gave it.
 
-- [ ] **AC-0086.** A recorded path under an AC-0078 destination is inside the
+- [x] **AC-0086.** A recorded path under an AC-0078 destination is inside the
   run's coverage only under that destination's AC-0078 presence condition: a
   path under the `agentbundle` destination only on a run replaying
   `--tooling vendored`, and a path under the `credbroker` destination only when
@@ -447,7 +447,7 @@ root is § Agent Rules § Never do's, not restated here.
   paths for a vendored-derived tree met by this command's external default.
   AC-0069's exclusions 2 and 3 are unchanged.
 
-- [ ] **AC-0087.** Two path questions are decided by one comparison: whether
+- [x] **AC-0087.** Two path questions are decided by one comparison: whether
   two paths name the same directory, and whether a path lies inside a named
   one. It is used for admission, for coverage, for write ordering, and for
   both AC-0083 inputs — equality answers input 1's "is this catalogue root the
@@ -473,14 +473,14 @@ root is § Agent Rules § Never do's, not restated here.
   traversal spelling and, on a case-insensitive filesystem, a case-variant
   spelling both reach a protected entry that a string comparison misses.
 
-- [ ] **AC-0088.** No invocation reports a `deferred_package` count, on the
+- [x] **AC-0088.** No invocation reports a `deferred_package` count, on the
   printed plan or in the `--format json` document's `summary` object. AC-0066
   required that count; it existed only to report the excluded extent, so the
   extent clause above retires it. The seven counts phase 2 fixes stay computed over the
   full replayed selection and keep their meanings, and phase 2's
   `compared + uncompared` identity is unchanged.
 
-- [ ] **AC-0089.** An apply run reports whether it changed the target tree,
+- [x] **AC-0089.** An apply run reports whether it changed the target tree,
   under the name `tree-modified`, on the run's own post-write surface. It is
   reported on every row of AC-0085's table an apply run can reach **after the
   write sequence has run**. A run that refuses before that point reports it
@@ -515,12 +515,12 @@ root is § Agent Rules § Never do's, not restated here.
   It is an end-state report, not a record of actions taken: a fully restored
   tree is safe to retry however much the run did before it unwound.
 
-- [ ] **AC-0090.** When a write to an AC-0078 destination fails, AC-0038's
+- [x] **AC-0090.** When a write to an AC-0078 destination fails, AC-0038's
   restore covers it on the same terms as any other planned write, and
   AC-0085's two code-4 restore rows select between themselves by whether that
   restore succeeded.
 
-- [ ] **AC-0091.** The printed plan's accounting covers this phase's paths and
+- [x] **AC-0091.** The printed plan's accounting covers this phase's paths and
   refusals, amending AC-0057's declined-kind list and its no-plan enumeration.
   The declined kinds are four: an occupied companion
   destination per AC-0070, a colliding companion pair per AC-0071, an
@@ -535,7 +535,7 @@ root is § Agent Rules § Never do's, not restated here.
   structure and its rule that a criterion adding a kind amends it are
   unchanged.
 
-- [ ] **AC-0092.** `docs/architecture/catalogue/upstream-sync.md` § Granularity
+- [x] **AC-0092.** `docs/architecture/catalogue/upstream-sync.md` § Granularity
   names `.agentbundle/tooling/` and `packages/credbroker/` as the two
   `--package` destinations, and § Rollout item 4's destination sentence names
   the same extent. Those two sections are where AC-0063's disagreement lived
@@ -548,10 +548,10 @@ root is § Agent Rules § Never do's, not restated here.
   AC-0094 requires § Known risks to state. A criterion banning the string
   would order § Shipped's parenthetical made false.
 
-- [ ] **AC-0093.** That file's status banner and its § Rollout agree that the
+- [x] **AC-0093.** That file's status banner and its § Rollout agree that the
   rollout is closed and no phase remains.
 
-- [ ] **AC-0094.** That file's § Known risks records which extent AC-0083's
+- [x] **AC-0094.** That file's § Known risks records which extent AC-0083's
   refusal covers and which it does not, and records that the refusal takes two
   inputs. § Known risks today attributes the mitigation to the editable-install
   check alone; AC-0083 establishes that check fails open for a derived
@@ -559,17 +559,17 @@ root is § Agent Rules § Never do's, not restated here.
   stands would leave the file asserting a control stronger than the one
   shipped.
 
-- [ ] **AC-0095.** Every code citation in each architecture file this delivery
+- [x] **AC-0095.** Every code citation in each architecture file this delivery
   edits resolves to the construct it names. This carries phase 3's AC-0061
   forward, which was scoped to phase 3's delivery and does not travel on its
   own.
 
-- [ ] **AC-0096.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
+- [x] **AC-0096.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
   covers `--package`, both AC-0078 destinations with their presence conditions,
   and what the AC-0083 refusal obliges a vendored adopter to do instead. The
   projected copy on the rendered site carries the same section.
 
-- [ ] **AC-0097.** Every release surface the plan's § Grounding
+- [x] **AC-0097.** Every release surface the plan's § Grounding
   release-surface derivation reports states the version `0.50.0`. That
   derivation is the one home the surface set is maintained in, so this
   criterion quantifies over whatever it reports rather than over a list
@@ -588,17 +588,17 @@ root is § Agent Rules § Never do's, not restated here.
   under AC-0098, so the changelog edit drops the dangling reference rather
   than leaving it as someone else's defect.
 
-- [ ] **AC-0098.** Each **prose** release surface that derivation reports —
+- [x] **AC-0098.** Each **prose** release surface that derivation reports —
   the ones carrying adopter-facing text rather than a version literal alone —
   states that `--package` writes its destination rather than refusing. The
   derivation marks which of its surfaces are prose; a surface that carries only
   a version literal cannot state it and is not quantified over here.
 
-- [ ] **AC-0099.** An apply run against a real vendored derived tree, scoped
+- [x] **AC-0099.** An apply run against a real vendored derived tree, scoped
   `--package agentbundle`, writes exactly the paths its printed plan named and
   no others, compared by a walk of the target tree before and after.
 
-- [ ] **AC-0100.** That same run against a target that supplies the running
+- [x] **AC-0100.** That same run against a target that supplies the running
   `agentbundle` returns AC-0085's self-replacement row and leaves the
   before-and-after walk identical.
 

@@ -1,6 +1,6 @@
 # Plan: catalogue sync — package sync for both `--package` destinations
 
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 - **Owner:** eugenelim
 
