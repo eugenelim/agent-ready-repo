@@ -24,6 +24,104 @@
   disposition, not the architecture. The frozen body below is unchanged;
   this annotation is the correction of record.
 
+- **2026-09-25 — a measurement on nested worktrees (Proposal decision 4).**
+  Decision 4 names the worktree hazards as `.git/config.lock` races and
+  destructive `git worktree prune` under a shared `.git`. This entry records a
+  third, measured after acceptance. **This entry records the measurement and
+  nothing else.** It corrects no clause of the body, binds no layout
+  constraint, and narrows neither decision 4 nor ADR-0005 **D7**, the decision
+  of record for worktree isolation.
+
+  That restraint is deliberate, and it applies one standard rather than two.
+  The measurement bears on decision 4's clause "standalone, the loop's own
+  worktrees are safe", which is the premise blessing substrate option (a),
+  loop-managed worktrees. Narrowing that clause to the main checkout alone would
+  change which configurations decision 4 admits — the same kind of change as
+  binding the layout constraint, and equally outside what RFC-0102 permits an
+  erratum to do. Both therefore route to a superseding record, each to the one
+  that owns it: the premise narrowing to a record superseding **RFC-0015** in
+  part, and the layout constraint to a record superseding **ADR-0005** in part,
+  since it is D7 that constraint would narrow. This entry takes neither.
+
+  Measured on git 2.50.1 (Apple Git-155), 2026-09-25, with no multi-session
+  driver present. Git models every worktree as a peer on one common `.git` and
+  has no parent/child relation: a worktree created from inside another is its
+  sibling, and `git worktree list` prints them flat. Removing the *containing*
+  worktree behaves in two steps. Plain `git worktree remove` **refuses** —
+  exit 128, "contains modified or untracked files, use --force to delete it" —
+  and it refuses even when the nested worktree is completely clean, because the
+  nested worktree itself registers as untracked content.
+  `git worktree remove --force` then **succeeds silently**: exit 0, no warning,
+  the nested worktree's entire working directory deleted including uncommitted
+  work, and its entry left registered as `prunable`. Git emits no
+  nesting-specific diagnostic, because it does not model the nesting the
+  directory layout implies. A main working tree cannot be removed at all —
+  exit 128, "is a main working tree".
+
+  Two scoping facts, because each is easy to get wrong:
+
+  - **The destructive call is not `worktree cleanup`.**
+    `references/supervisor-mode.md` runs `git worktree remove` for each entry in
+    `state.json.worktrees` — the task worktrees, which are the *nested* side.
+    Removing a nested worktree is unaffected by nesting. The refuse-then-`--force`
+    sequence is reachable only from whatever removes the **container**: a
+    multi-session driver, or a person.
+  - **"Standalone" is not the same as "in the main checkout".** Only the main
+    working tree is unremovable. A loop running inside any non-main worktree has
+    a removable container and is exposed, driver or no driver. This is the
+    measurement that bears on decision 4's standalone-safety premise; what
+    follows for that premise is left to the superseding record named above.
+
+  Two questions follow, and **this erratum answers neither.** Whether task
+  worktrees may sit inside the tree the loop runs in, as
+  `references/supervisor-mode.md` specifies at `.worktrees/<task-id>/`, is a
+  layout constraint that would narrow ADR-0005 D7 and contradict shipped pack
+  content. Whether decision 4's standalone-safety premise should be narrowed is
+  the second. RFC-0102 permits an erratum to clarify what a decision means and
+  not to alter it, and both cross that line. They need records superseding
+  ADR-0005 and RFC-0015 in part respectively, and both remain open questions for
+  this RFC's approver. The frozen body below is unchanged; this annotation
+  records the measurement only. Approver-signed (@eugenelim, 2026-09-25) as an
+  erratum rather than a superseding RFC because it records a measurement and
+  takes no decision.
+
+- **2026-09-25 — "decision N" is ambiguous; this RFC numbers two lists.**
+  A citation of the form "decision N" does not say which list it indexes, because
+  this RFC numbers two. Both lists are internally consistent; neither citation
+  form names its list. This erratum is navigational and changes no decision.
+
+  | Item | § The ask → *Decisions requested* (4 items) | § Proposal (5 items) |
+  | --- | --- | --- |
+  | 1 | Sequential topological default | Same subject — build the DAG, run it sequentially |
+  | 2 | **Flip the auto-parallel default off** | **The write problem** — the loud/silent detection ladder |
+  | 3 | Gate parallel writes on safe category + disjointness | Same subject — the dispatch gate |
+  | 4 | **`Depends on:` grammar** | **Substrates + isolation** |
+  | 5 | *(none)* | **`Depends on:` grammar** |
+
+  Items 2, 4 and 5 diverge; 1 and 3 name the same subject in both lists, which is
+  why a citation of "decision 3" has never misread. So "decision 4" resolves to
+  the grammar or to substrates depending on which list a reader reaches first,
+  and "decision 2" to the default flip or to the detection ladder.
+
+  **The body contains one such citation, and this entry resolves it.** § Options
+  considered labels the grammar sub-axis "*(decision 4; MECE by parser
+  strictness)*". That is item 4 of *Decisions requested* — the grammar — and it
+  is correct as written. It is not a mislabel, and it is not a reference to
+  Proposal item 4, Substrates + isolation.
+
+  No general rule is stated here, because none resolves correctly: a rule
+  pointing every bare citation at one list would misresolve that label. **Every
+  future citation must name its list** — `Proposal decision 4` or
+  `Decisions-requested decision 4` — and a bare "decision N" should be read as
+  ambiguous rather than resolved by default.
+
+  This ambiguity has already produced one published misreading, corrected in
+  `docs/architecture/loop-parallelism.md`. The frozen body below is unchanged;
+  this annotation is the correction of record.
+  Approver-signed (@eugenelim, 2026-09-25) as an erratum rather than a
+  superseding RFC because it resolves a citation ambiguity and changes no
+  decision.
+
 ## The ask
 
 - **Recommendation (BLUF):** Make **sequential topological ordering the

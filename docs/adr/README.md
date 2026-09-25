@@ -126,3 +126,4 @@
 | 0122 | [A gate-main step may carry a roster-authorized widening condition](0122-a-gate-main-step-may-carry-a-widening-condition.md) | Accepted | 2026-09-21 |
 | 0123 | [Product changelog uses per-update sources and generated views](0123-product-changelog-per-update-sources-and-generated-views.md) | Accepted | 2026-09-22 |
 | 0124 | [The experience contract's frontend section is owned by `frontend-engineering`, not `core`](0124-experience-contract-frontend-section-owned-by-frontend-engineering.md) | Accepted | 2026-09-22 |
+| 0125 | [Durable transitions make four cohort mutations engine-invoked](0125-engine-invoked-cohort-mutations.md) | Accepted | 2026-09-25 |
