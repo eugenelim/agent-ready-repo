@@ -34,15 +34,7 @@ actually raises; update it in the same change that adds or removes one.
 from __future__ import annotations
 
 import re
-import sys
 from datetime import date
-
-# Reconfigure stdout/stderr to UTF-8 so any diagnostic output is safe on
-# platforms where the default encoding is not UTF-8.
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
 # ── Regexes ───────────────────────────────────────────────────────────────────
 

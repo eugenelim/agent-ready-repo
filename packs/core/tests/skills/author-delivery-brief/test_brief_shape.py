@@ -316,12 +316,13 @@ def test_ac0012_draft_shipped_child_refused() -> None:
     assert not _m.is_lifecycle_valid("Draft", {"Shipped"})
 
 
-def test_ac0012_draft_back_linked_only_child_refused() -> None:
-    """A back-linked-only child at Implementing makes Draft invalid (AC-0012).
+def test_ac0012_draft_child_state_from_either_arm_refused() -> None:
+    """A Draft brief with an Implementing child state is refused (AC-0012).
 
-    A spec that back-links the brief but is absent from the Spec-map still
-    contributes its state to the child set.  This fixture pins that the predicate
-    treats back-linked-only children the same way as mapped ones.
+    The predicate takes a set of child states and cannot see which arm a state
+    arrived by, so this pins the verdict only -- not the mapped-versus-
+    back-linked join, which lives in the lint and is covered through the CLI
+    in test_lint_brief_coverage.py.
     """
     back_linked_only: set[str] = {"Implementing"}
     assert not _m.is_lifecycle_valid("Draft", back_linked_only)
@@ -600,23 +601,38 @@ def test_t6_refusal_registry_equals_actual_refusals() -> None:
     # are delimiter examples, not refusal class names.
     registry = {name for name in registry if name.startswith("cut_closed_")}
 
-    # Canonical set: one entry per condition under which the module's public
-    # validators return a non-None error string.
-    # validate_cut_closed:        malformed value → cut_closed_malformed
-    # validate_declaration Shipped: → cut_closed_required_on_shipped
-    # validate_declaration Draft:   → cut_closed_refused_on_draft
-    expected: frozenset[str] = frozenset(
-        {
-            "cut_closed_malformed",
-            "cut_closed_required_on_shipped",
-            "cut_closed_refused_on_draft",
-        }
-    )
+    # Derive the actual side from behaviour rather than restating it: sweep
+    # every input shape the module's public validators accept and collect the
+    # distinct conditions under which each returns a refusal.  A hand-written
+    # expected-set would stay green when a fourth refusal is added to the code
+    # with neither the docstring nor this test updated, which is exactly the
+    # drift this test exists to catch.
+    observed: set[str] = set()
 
-    assert registry == expected, (
-        f"Refusal registry mismatch.\n"
+    # validate_cut_closed: every distinct malformed shape is one condition.
+    for bad in ("not-a-date evidence", "2026-08-25", "2026-13-99 bad month"):
+        if _m.validate_cut_closed(bad) is not None:
+            observed.add("cut_closed_malformed")
+
+    # validate_declaration: sweep all six states against present and absent.
+    for status in ("Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"):
+        for present in (False, True):
+            if _m.validate_declaration(status, present) is None:
+                continue
+            if status == "Shipped" and not present:
+                observed.add("cut_closed_required_on_shipped")
+            elif status == "Draft" and present:
+                observed.add("cut_closed_refused_on_draft")
+            else:
+                observed.add(f"UNREGISTERED_{status.lower()}_{'present' if present else 'absent'}")
+
+    assert registry == observed, (
+        "Refusal registry does not match the refusals the module actually "
+        "raises.\n"
         f"Docstring registry: {sorted(registry)!r}\n"
-        f"Expected (actual refusals): {sorted(expected)!r}"
+        f"Observed by driving the validators: {sorted(observed)!r}\n"
+        "An UNREGISTERED_ entry means the code refuses a case the docstring "
+        "does not name."
     )
 
 
@@ -639,9 +655,10 @@ def test_t6_skill_md_cites_brief_shape_not_child_rule() -> None:
     assert "brief_shape.py" in section, (
         "§ Brief lifecycle does not name brief_shape.py"
     )
-    # The child-evidence rule is the specific pairing of status tokens with
-    # "Implementing or Shipped child" logic.  After T6 this lives in
-    # brief_shape.py, not in prose here.
+    # Spelling-level guard against the one phrase that was removed, not a
+    # check that the rule is absent: any rewording that still restates the
+    # child-execution-evidence rule would pass this. The closeout read the
+    # Durable Outputs row assigns is what covers the general case.
     assert "Implementing` or `Shipped` child" not in section, (
         "§ Brief lifecycle still states the child-execution-evidence rule in prose"
     )

@@ -365,7 +365,21 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def _reconfigure_streams() -> None:
+    """Force UTF-8 on the streams this script prints diagnostics to.
+
+    Owned by the entry point rather than by an imported predicate module: a
+    module that returns strings and prints nothing must not mutate
+    process-global stream state as a side effect of being imported, or a lazy
+    or conditional load silently withdraws the guarantee.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+
+
 def main(argv: list[str] | None = None) -> int:
+    _reconfigure_streams()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=None)
     args = parser.parse_args(argv)
