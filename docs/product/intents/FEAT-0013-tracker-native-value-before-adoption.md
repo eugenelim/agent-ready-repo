@@ -84,10 +84,15 @@ Does not own how a pack declares a bridge skill or what may appear in one.
 settles that, and this feature is the first thing obliged by it rather than the
 place it is decided.
 
-**Explicit non-goals.** No write of any kind, so no projection, no create, no
-comment and no transition. No repository artifact — no intent tree, no
-`docs/product/`, no `workspace.toml`, no mapping file keyed by a tracker
-object, because a mapping is machinery by another name. No outcome authored by
+**Explicit non-goals.** No write to the tracker of any kind, so no projection,
+no create, no comment and no transition. No repository artifact — no intent
+tree, no `docs/product/`, no `workspace.toml`, no mapping file keyed by a
+tracker object, because a mapping is machinery by another name. One bounded
+exception, discovered at spec stage and recorded here rather than left to
+contradict the spec: composing `flow-metrics` in its per-issue mode requires
+an `--output FILE`, so the feature writes one transient file outside the
+adopter's working tree and the installed pack tree and removes it before
+returning. Nothing of ours persists, which is what this non-goal protects. No outcome authored by
 this feature. No cross-system claim: a second delivery system is a later cut,
 not a condition of this one working.
 
@@ -134,14 +139,15 @@ What must be true for this bet to pay off. Not tested here.
   reverse is a coherent outcome.
 - The delivery half needs little new work on Jira. `jira-team-status` already
   reports readiness, blocked, in-progress, unassigned, stale and dependency
-  risk; `flow-metrics` already computes nine metrics at p50, p75 and p90 from
-  changelogs. Whether the same holds for a second delivery system is unknown:
+  risk; `flow-metrics` already computes its metric set from changelogs; the
+  delivery contract below states that set exactly and is the one place this
+  intent describes it. Whether the same holds for a second delivery system is unknown:
   `linear` and `github` ship no standalone skill at all today.
 
 ## De-risk — SURVIVES, 2026-09-24
 
 **Reversibility triage: two-way door.** A read-only skill in one pack, no
-migration, no public contract, nothing written anywhere. If nobody uses it,
+migration, no public contract, and nothing of ours persisting anywhere. If nobody uses it,
 delete it. That default would be `prototype-led`; it is overridden to
 `validate-first`, because a corpus probe is cheaper than a prototype here and
 can genuinely kill the bet.
@@ -277,14 +283,24 @@ standalone skill or given an explicit waiver route.
   than by the team. Any second delivery system. Any dependency on the intent
   tree, `docs/product/`, `workspace.toml` or the `work-intake` route.
 - **Dependencies.** None of this repository's machinery, by contract. It
-  composes `packs/atlassian/.apm/skills/jira-team-status` and
-  `packs/atlassian/.apm/skills/flow-metrics`, both of which carry zero coupling
-  references today, and reads Jira through the shipped `jira` client.
+  composes `packs/atlassian/.apm/skills/flow-metrics`, which carries zero
+  coupling references, and reads Jira through the shipped `jira` client.
+  `packs/atlassian/.apm/skills/jira-team-status` is **not** composed: its
+  manifest declares `new-spec` — this repository's spec machinery — as a
+  pick-up hand-off, and its first lifecycle stage reads the working
+  directory's git remote. Both are disqualifying for a feature whose premise
+  is a team that has adopted nothing. An earlier revision of this contract
+  named it as a dependency and described both skills as carrying zero coupling
+  references; that was wrong on the second skill, and the spec derives the
+  state half from the `jira` client instead.
 - **Design context.** Jira Software carries three levels — Epic at L1, Story at
   L0, Subtask at L-1 — so the Epic is the coarsest rung a team already manages
-  and the natural place to hang an outcome. `flow-metrics` emits nine metrics
-  at p50, p75 and p90; a percentile rendered below its sample threshold is the
-  known failure mode, and the thresholds are 5, 11 and 29 at 95% confidence.
+  and the natural place to hang an outcome. `flow-metrics` emits ten requested metrics,
+  of which four are percentile statistics; the rest are scalars. It applies no
+  sample-size threshold at all — percentiles are nulled only when fewer than
+  two values exist, because `statistics.quantiles` needs two points. A ladder
+  of 5, 11 and 29 at 95% confidence is what such a threshold would look like,
+  and the absence of one is why the first slice renders no percentile.
 - **Delivery questions for the spec stage.** Where an elicited outcome lives
   between one invocation and the next, given no repository artifact is
   permitted and no write to Jira is either — the honest answers are "nowhere,
