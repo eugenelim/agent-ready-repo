@@ -50,7 +50,7 @@ re-typings were wrong in the same direction:
 ```bash
 python3 tools/lint-experience-agnostic.py
 python3 -m pytest tests/roster -q -k "experience or handoff or census"
-sweep                                   # want no output
+sweep                                   # decides: exits 0 only when clean
 ```
 
 The completeness grep runs here, not only at closeout: without it a half-swept
@@ -92,9 +92,23 @@ on each side. Equal totals here are a coincidence, not corroboration.
 **Assertion blocks versus reported measurements.** A block that ends in
 `sys.exit(...)` on failure **decides** — a `Done when` may say "exits 0" of it.
 A block that prints a figure against a `# want` comment **reports**: it exits 0
-on any value, and a human reads it. The reporting blocks are the authored-body
-byte count, the description length, the version readout, and the `sweep_raw`
-count; everything else in this map asserts. A `Done when` naming a reporting
+on any value, and a human reads it. Which is which is a **property of the
+block**, not a list to maintain: **a block decides when its exit status is 0 on
+exactly the states its criterion calls passing, and non-zero otherwise** — for
+a Python block that means a `sys.exit` or an uncaught raise on failure; for a
+shell block it means checking the exit status explicitly, because a pipeline
+ending in `grep -v` returns 0 when it prints and 1 when it does not, which is
+the inverse of a completeness check. `sweep` is a deciding block for that
+reason and `sweep_hits` is its reporting twin. A block that prints on every
+path and returns 0 regardless reports. Read the block — and read its last
+stage, not just its shape. An
+earlier version enumerated four reporting blocks and claimed "everything else
+asserts", which was wrong by more than a factor of two — ten blocks exit 0 on
+any value, among them the numeral grep, the `docs/` classification grep, the
+table-parser readout, the pinned-copy counts and the method-carry floor.
+Reporting blocks are legitimate; what is not legitimate is a reporting block
+standing as the **sole** control for a criterion, or a `Done when` saying
+"exits 0" of one. A `Done when` naming a reporting
 block must say "reads N", never "exits 0", or it claims a gate that is not
 there. This distinction is stated because three blocks were gated as assertions
 while only printing, and one was gated as "exit 0" while returning 1 in its own
@@ -119,7 +133,6 @@ Set the roots once:
 
 ```bash
 IA=packs/experience-design/.apm/skills/information-architecture
-FE=packs/frontend-engineering/.apm/skills/frontend-engineering
 GENRES='(analytical|conversion|documentation|informational|marketplace|workspace)-design'
 
 # The canonical sweep. Every call site uses this function; none re-types it.
@@ -136,7 +149,18 @@ sweep_raw() {
   grep -rlE "$GENRES" packs/ guides/ web/ tools/ tests/ \
     | grep -vE "\.apm/skills/($GENRES|information-architecture)/"
 }
-sweep() { sweep_raw | grep -vE "$EXEMPT"; }
+# `sweep_hits` prints the files; `sweep` DECIDES — 0 when clean, 1 when a hit
+# remains. A bare `sweep_raw | grep -v` is inverted: `grep -v` exits 0 when it
+# prints and 1 when it prints nothing, so it returned 0 on the pre-fold tree's
+# 21 hits and 1 on a correctly folded one. Measured both ways. Every other
+# block in this map defers to this expression, and it is the sole control for
+# the sweep acceptance criterion, so the inversion was load-bearing.
+sweep_hits() { sweep_raw | grep -vE "$EXEMPT"; }
+sweep() {
+  local out; out="$(sweep_hits)"
+  if [ -n "$out" ]; then printf '%s\n' "$out"; return 1; fi
+  return 0
+}
 ```
 
 **Routing — all seven genres reach exactly one destination.** Counts *distinct*
@@ -154,15 +178,37 @@ seen = {}
 for m in re.finditer(r"^ *\| *`([a-z-]+)` *\| *([^|]*?) *\|", text, re.M):
     if m.group(1) in GENRES:
         seen.setdefault(m.group(1), m.group(2))
+REMOVED = ("analytical-design", "conversion-design", "documentation-design",
+           "informational-design", "marketplace-design", "workspace-design")
+SURVIVING = ("interaction-design", "content-design", "design-system",
+             "design-review", "creative-direction", "user-flow")
 missing = [g for g in GENRES if g not in seen]
-empty = [g for g, d in seen.items() if not d.strip()]
 if missing: sys.exit(f"UNROUTED surface-genre values: {missing}")
-if empty: sys.exit(f"EMPTY destination cell for: {empty}")
+bad = []
+for g, dest in sorted(seen.items()):
+    if not dest.strip():
+        bad.append(f"{g}: empty destination"); continue
+    # The three permitted outcomes, decided rather than assumed.
+    ref = re.search(r"references/([a-z-]+)\.md", dest)
+    names_removed = [r for r in REMOVED if r in dest]
+    names_surviving = [k for k in SURVIVING if k in dest]
+    if names_removed and not ref:
+        bad.append(f"{g}: routes to deleted skill(s) {names_removed}")
+    elif not (ref or names_surviving or "general" in dest.lower()):
+        bad.append(f"{g}: {dest!r} is none of the three outcomes "
+                   "(a reference in this skill, a named surviving skill, "
+                   "or the general IA path)")
+if bad:
+    sys.exit("ROUTING RUBRIC:\n  " + "\n  ".join(bad))
 for g, d in sorted(seen.items()): print(f"  {g} -> {d}")
 QQ
-# asserts all seven are routed with a non-empty destination; a bare
-# `sort -u | wc -l` exits 0 whatever it counts, and this is the only control
-# for "No `surface-genre:` value is unrouted"
+# This is the ONLY control on the rubric's destination cell. `sweep` excludes
+# `.apm/skills/information-architecture/` by carve-out (a), the genre-reference
+# scan globs `references/*.md` and never opens `SKILL.md`, and no roster or
+# frontend suite reads this table — so a post-fold SKILL.md that collapsed
+# nothing would otherwise pass every gate. An earlier version asserted only
+# that each destination was non-empty, which is true today of a table whose
+# every destination names a skill this fold deletes.
 grep -qE '^ *\| *`transactional-journey` *\| *`interaction-design`' "$IA/SKILL.md"  # D5(d) row survives
 ```
 
@@ -170,9 +216,20 @@ grep -qE '^ *\| *`transactional-journey` *\| *`interaction-design`' "$IA/SKILL.m
 on the first non-match, so five-of-six reports the same `0` as none-of-six:
 
 ```bash
-for r in analytical conversion documentation informational marketplace workspace; do
-  test -f "$IA/references/$r-design.md" || echo "MISSING $r-design.md"
-done                                                        # want no output
+python3 - <<'QQ'
+import pathlib, sys
+refs = pathlib.Path("packs/experience-design/.apm/skills/information-architecture/references")
+want = [f"{g}-design.md" for g in ("analytical", "conversion", "documentation",
+                                   "informational", "marketplace", "workspace")]
+missing = [w for w in want if not (refs / w).exists()]
+if missing: sys.exit(f"MISSING genre references: {missing}")
+print("all six genre references present")
+QQ
+# Decided by filename, and it exits non-zero. The earlier shell loop printed
+# MISSING lines and returned 0 — reporting five-of-six exactly as the brace
+# glob it replaced did, which is the failure its own preamble describes. The
+# `len(refs) < 11` guard elsewhere counts files, so five correct genre files
+# plus one stray reaches 11 and reads clean; only this check names names.
 ```
 
 **The relocated shared file.** Pinned to the merge-base, not `HEAD`: once T4's
@@ -226,13 +283,44 @@ python3 - "$IA/SKILL.md" <<'EOF'
 import re, sys
 fm = re.match(r'---\n(.*?)\n---\n', open(sys.argv[1]).read(), re.S).group(1)
 d = re.search(r'^description:\s*"?(.*?)"?\s*$', fm, re.M | re.S).group(1)
-for b in ("interaction-design", "design-system", "design-review", "creative-direction"):
-    if b not in d:
-        print("BOUNDARY MISSING FROM DESCRIPTION:", b)
+absent = [b for b in ("interaction-design", "design-system", "design-review",
+                      "creative-direction") if b not in d]
+if absent:
+    sys.exit(f"BOUNDARY MISSING FROM DESCRIPTION: {absent}")
+print("all four boundaries present in the description")
 EOF
+# Exits 1 today — `design-system` is the one absent, and the plan flags it as
+# the boundary most likely to be missed. An earlier version printed that fact
+# and exited 0, so the sole control for the criterion could not fail.
 ```
 
 **The removals.**
+
+No-stub is a directory-contents claim, which the Testing-Strategy rule routes
+to this map. Counting the six original names cannot see a stub shipped under a
+different one, which is exactly the case ADR-0038 forbids:
+
+```bash
+python3 - <<'QQ'
+import pathlib, sys, tomllib
+skills = {p.name for p in pathlib.Path("packs/experience-design/.apm/skills").iterdir() if p.is_dir()}
+declared = set(tomllib.load(open("packs/experience-design/pack.toml","rb"))["pack"]["evals"]["skills"])
+extra = skills - declared
+if extra: sys.exit(f"UNDECLARED skill directories (alias or stub?): {sorted(extra)}")
+if len(skills) != 14: sys.exit(f"{len(skills)} skill directories, want 14")
+# The surviving skill must ship both harness files, because it absorbed seven
+# skills' worth of each. Scoped to `information-architecture` deliberately:
+# asserting it of every skill fails on `experience-status`, which ships no
+# `evals.json` today for reasons unrelated to this fold.
+ia = pathlib.Path("packs/experience-design/.apm/skills/information-architecture/evals")
+for f in ("eval_queries.json", "evals.json"):
+    if not (ia / f).exists():
+        sys.exit(f"information-architecture is missing evals/{f}")
+print(f"{len(skills)} skills, all declared, surviving skill ships both harness files")
+QQ
+# exits 1 today (20 directories) — and catches a stub under any name, which a
+# fixed-list `ls` of the six removed names cannot.
+```
 
 ```bash
 ls -d packs/experience-design/.apm/skills/{analytical,conversion,documentation,informational,marketplace,workspace}-design 2>/dev/null | wc -l   # want 0
@@ -243,8 +331,9 @@ python3 -c "import tomllib;print(len(tomllib.load(open('packs/experience-design/
 the skills' own directories so it measures references rather than definitions:
 
 ```bash
-sweep                                       # want no output post-fold; 21 pre-fold
-sweep_raw | wc -l                           # 23 pre-fold (sweep + the 2 exemptions)
+sweep                                       # exits 0 only when clean; 1 + 21 lines pre-fold
+sweep_hits | wc -l                          # 21 pre-fold (reports; does not decide)
+sweep_raw | wc -l                           # 23 pre-fold (sweep_hits + the 2 exemptions)
 
 # Carve-out (a) excludes the surviving skill, so the new references are not
 # swept. Read them directly. This must be done in Python, not as a grep pipe:
@@ -255,14 +344,17 @@ sweep_raw | wc -l                           # 23 pre-fold (sweep + the 2 exempti
 python3 - <<'QQ'
 import pathlib, re, sys
 GENRES = r"(analytical|conversion|documentation|informational|marketplace|workspace)-design"
-refs = sorted(pathlib.Path("packs/experience-design/.apm/skills/information-architecture/references").glob("*.md"))
+IA = pathlib.Path("packs/experience-design/.apm/skills/information-architecture")
+refs = sorted(IA.glob("references/*.md"))
+# SKILL.md is inside the carve-out too and no other control reads its prose.
+scanned = refs + [IA / "SKILL.md"]
 # 4 files today (agentbundle-layout, containment, reading-patterns,
 # wayfinding-concepts) + 6 genre references + editorial-quality-gates = 11.
 # A `< 7` threshold passed a fold that shipped only two of the six.
 if len(refs) < 11:
     sys.exit(f"REFERENCE SET INCOMPLETE: {len(refs)} files, want 11 — absence must fail, not read clean")
 bad = []
-for f in refs:
+for f in scanned:
     for n, line in enumerate(f.read_text().splitlines(), 1):
         # Strip the legitimate forms first: this file's own slug in its own
         # name, and a citation path to a sibling reference.
@@ -567,7 +659,11 @@ docs site and never reads `web/src/content/`, so it cannot catch a malformed
 `skills:` frontmatter list:
 
 ```bash
-cd web && npm ci && npm run build      # `npm ci` is not optional — see below
+(cd web && npm ci && npm run build)    # subshell: every other block in this
+                                       # map uses repository-relative paths, so
+                                       # a bare `cd web` breaks each one after
+                                       # it for a reviewer running top-to-bottom
+# `npm ci` is not optional — see below
 ```
 
 `web/node_modules` is absent on a fresh checkout. Without the install step the
@@ -670,7 +766,7 @@ column closeout actually reads.
 | Activation baseline | `notes/activation-baseline.md` | T1, T2, T9 | Both runs recorded, three each, positive and negative figures clearing; the grading rule recorded in the spec's words and reproduced unchanged by T9; the pre-fold description control recorded with its method |
 | Pooled trigger queries | `IA/evals/eval_queries.json` | T1, T3 | 71 positives / 67 negatives asserted, no opposite-trigger collision, both named negatives present by exact text, and the set identical to the one T1 graded |
 | Six genre references + relocated shared file | `IA/references/` | T3 | Six files present; `cmp` clean on the relocated file; judgement 1 recorded |
-| Rewritten rubric | `IA/SKILL.md` | T3 | Seven genres each reaching one destination; authored body ≤ 8,000 B; judgement 2 recorded |
+| Rewritten rubric | `IA/SKILL.md` | T3, T11 | Seven genres each reaching one of the three permitted destinations — asserted, not merely non-empty; authored body ≤ 8,000 B; all four description boundaries present; judgement 2 recorded with reviewer and date (**T11** — T3 records judgement 1 only) |
 | Six directories removed | `packs/experience-design/.apm/skills/` | T4 | Directory count 0; `pack.evals.skills` reads 14 |
 | Pack internals swept | `pack.toml`, `DESIGN.md`, `JOURNEY.md`, `README.md`, `docs/index.md` | T5 | `sweep` empty under `packs/experience-design/`; six `DESIGN.md` locations restated; § 10 entry signed and dated, with the sibling's non-edit criterion cited; `docs/index.md`'s two numerals reading 14 |
 | Cross-pack (fold branch) | `packs/frontend-engineering/**` | T6, T10a | Four-row table enumerating the six `surface-genre:` tokens, exactly one Surface-type cell containing `interaction`; `AGENTS.md:11` repointed; README offering the post-fold routable set including `information-architecture`; `recommended` declared with `catalogue = "agent-ready-repo"` and `>=3.0.0` — absent and correct are indistinguishable to every other gate; `design-system-foundations` gone from both live sites; `packs/frontend-engineering/tests` green; `0.3.3` in both manifests and the projection |
@@ -780,10 +876,19 @@ displace, crediting this fold with the sibling slice's description rewrite.
 **Tests:**
 - `notes/activation-baseline.md` names both triggers — failing gate, or the
   window from `Approved` elapsing.
-- It names the residue: six directories stay, cross-pack repair ships alone.
+- It names the residue in full — **five** items, not a summary: the six
+  directories stay; the `frontend-engineering` table repair; its
+  `design-system-foundations` slug correction; that pack's version bump; **and**
+  its regenerated marketplace entry and changelog entry. The last two are the
+  point: a `pack.toml` reading `0.3.3` against a projection reading `0.3.2`
+  reds `agentbundle catalogue verify`, so a residue that ships the bump without
+  them is not shippable at all.
 - It names `eugenelim` as deciding owner.
 
-**Done when:** all three are present.
+**Done when:** both triggers, all five residue items, and the named owner are
+present. "Cross-pack repair ships alone" as a summary line does not discharge
+the enumeration — the two items most easily dropped are the two that make the
+residue shippable.
 
 **Touches:** docs/specs/xd-genre-router/notes/activation-baseline.md
 
@@ -808,7 +913,11 @@ displace, crediting this fold with the sibling slice's description rewrite.
   `interaction-design/references/pattern-families.md:219`'s "`analytical-design`
   covers the full widget hierarchy" is invisible to every wave gate.
 - `evals/eval_queries.json` pools the seven skills' positives and carries the two
-  named negatives. `packs/AGENTS.md` obliges an eval-harness update on any
+  named negatives.
+- `evals/evals.json` carries the six genre quality-eval sets, or the ledger
+  records which were knowingly dropped and why. `skill_spec_lint` cross-checks
+  `pack.evals.skills` against `eval_queries.json` alone, so six vanished
+  quality-eval sets leave `catalogue lint --deep` green. `packs/AGENTS.md` obliges an eval-harness update on any
   non-cosmetic pack change.
 
 **Approach:** references land before the directories are removed, so no method is
@@ -834,11 +943,19 @@ with reviewer and date.
 **Depends on:** T3
 
 **Tests:**
-- Six directories absent.
+- Six directories absent — and their `evals/evals.json` quality-eval sets have
+  already been carried into the surviving skill by T3, or the drop is recorded.
+  Each removed skill ships two harness files and only `eval_queries.json` was
+  ever named; deleting the directory takes the other with it.
 - `pack.evals.skills` lists fourteen.
 - No alias, shim or stub exists.
 
-**Done when:** the directory count is zero and the evals list is fourteen.
+**Done when:** the directory count is zero, the evals list is fourteen, and
+`.apm/skills/` holds no alias, shim or deprecation stub for a removed name —
+checked by listing the directory and comparing against the fourteen the evals
+list names, since a stub under a *different* name satisfies both other clauses
+(directory absence covers only the six original names, and the evals list
+counts entries).
 
 **Touches:** packs/experience-design/.apm/skills/, packs/experience-design/pack.toml
 
@@ -885,8 +1002,11 @@ see a numeral, so this is the only thing standing between the pack and shipping
 `packs/experience-design/`, the four
 stated-post-state files above read as stated, all **six** `DESIGN.md` locations
 — including the line-185 section heading — describe the new shape, and § 10
-carries its amended rationale entry with approver and date plus the sibling's
-non-edit criterion cited. Nothing else can see a missing § 10 entry: no slug
+carries its amended rationale entry with approver and date, and the sibling's
+non-edit criterion is **read** — recorded in the ledger by T11, not written
+into `DESIGN.md`, which would put a delivery-time citation into shipped pack
+content. T5's `Touches` reaches only `packs/experience-design/**`, so the
+reading is its obligation and the recording is T11's. Nothing else can see a missing § 10 entry: no slug
 check, no location check and no `sweep` hit reaches it.
 
 **Touches:** packs/experience-design/**
@@ -960,14 +1080,20 @@ than a note.
 no `experience-design` gate, so it is named here as a task test rather than left
 to the cross-cutting sweep.
 
-**Done when:** the frontend suite passes, all six genres are reachable, and the
-three map blocks this task owns each exit 0 — the README offered-route set
+**Done when:** the frontend suite passes, all six genres are reachable, the
+sentinel probes for `information-architecture` and the named-skip text beside
+it names the same skill, `AGENTS.md:11` names the surviving skill and the genre
+set, and the three map blocks this task owns each exit 0 — the README offered-route set
 (which must include `information-architecture`, not merely exclude the removed
 names), the `recommended` floor (whose `catalogue` field fails silently), and
 the two-site `design-system-foundations` correction. The frontend suite reaches
-none of the three: it checks offered ⊆ routable in one direction only, opens no
+none of these: it checks offered ⊆ routable in one direction only, opens no
 `pack.toml`, and passes with either slug in the table because the README offers
-neither.
+neither. The three **positive** post-states are named in this condition because
+`sweep` reads deletion and repointing identically — the only genre-name
+occurrences in those two files are the sentinel at `SKILL.md:175`, the table at
+`183-186`, and `AGENTS.md:11`, so deleting each clears the sweep exactly as
+repointing does, and nothing else opens them.
 
 **Touches:** packs/frontend-engineering/**
 
@@ -1083,7 +1209,13 @@ evidence, so they belong in its completion condition), and the
 last one appeared only in T11's *abort*-branch condition, so on the fold branch
 the one criterion whose whole obligation is a ledger line was gated by nothing.
 
-**Touches:** tools/add-rendering-directives.py, guides/experience-design/**, guides/frontend-engineering/**
+**Touches:** tools/add-rendering-directives.py, guides/experience-design/**, guides/frontend-engineering/**, docs/specs/xd-genre-router/notes/verification-ledger.md
+
+The ledger is in this list because T7a's `Done when` reads it: the
+`lint-guidebook-steps.py` exemption reason and the `read-the-design-handoff.md`
+zero-occurrence confirmation are both T7a's to write. This is the same
+`Touches`-cannot-reach defect already fixed for the `web/` page, which moved
+from T6 to T7.
 
 ### T8: RFC-0066 records what no longer holds
 
@@ -1102,22 +1234,33 @@ the one criterion whose whole obligation is a ledger line was gated by nothing.
 - The Errata section is in RFC-0055 D2's two-layer form, headed
   `### Current state` and `### History / audit trail`.
 
-**Done when:** the section is in two-layer form, the new entry cites no delivery
-artifact, and the 2026-07-27 entry is byte-identical to its pre-change form —
-verifiable with `git diff` on that hunk.
+**Done when:** the new entry **names D4** and states all three of its content
+obligations — the six registrations are retired, the genre method is preserved
+as references under `information-architecture`, and D2's taxonomy and D5(d)'s
+route are unchanged — the section is in two-layer form, the new entry cites no
+delivery artifact, and the 2026-07-27 entry is byte-identical to its pre-change
+form, verifiable with `git diff` on that hunk. The three shape obligations were
+gated and the content one was not, so an erratum saying nothing about D4 closed
+this task green.
 
 **Touches:** docs/rfc/0066-experience-pack-surface-genre-and-skill-uplift.md
 
 ### T9: The post-fold activation figure clears the gate
 
-**Depends on:** T2, T3, T4, **T6** — T2 explicitly, so the abort path exists
+**Depends on:** T2, T3, T4, **T6**, **T7a** — T2 explicitly, so the abort path exists
 before the trigger that invokes it can fire; and T6 explicitly, so the
 cross-pack wave has landed before the gate fires. T6 was previously unordered
 against T9, which made T9b's completion figures indeterminate: run
 T1→T2→T3→T4→T9 and a failed gate leaves `sweep_raw`/`sweep` at 23/21 rather
 than the 20/18 T9b demands, telling the operator the revert is incomplete —
 the round-5 misreading, inverted. T6 does not depend on the fold, so ordering
-it first costs nothing and makes one figure determinate.
+it first costs nothing and makes one figure determinate. T7a is named for a
+different reason: it is the **only** producer of the
+`read-the-design-handoff.md` zero-occurrence confirmation, which T11's abort
+`Done when` lists as one of exactly three obligations. Without this edge, an
+order of T1→T2→T3→T4→T6→T9 reaches a failed gate before T7a has run, and the
+abort branch ends at a completion condition no task can satisfy — the stranded
+-work shape T9a and T10a were created to close.
 
 **Tests:**
 - The shipped `$IA/evals/eval_queries.json` is **the same query set T1 graded**,
@@ -1198,7 +1341,12 @@ send them to re-add the three names T6 correctly deleted.
 
 **Touches:** packs/experience-design/**, docs/** *except* `docs/specs/xd-genre-router/notes/`, web/src/content/**, tools/add-rendering-directives.py, guides/**, packs/agent-skill-engineering/tests/fixtures/skill-census.json, docs/rfc/0066-experience-pack-surface-genre-and-skill-uplift.md
 
-**Explicitly out of scope:** `docs/specs/xd-genre-router/notes/`. The revert set
+**Explicitly out of scope:** `docs/specs/xd-genre-router/notes/` **and
+`docs/product/changelog.md`**. T10a depends on T6 alone, so it may legitimately
+land the `frontend-engineering` `0.3.3` bump and its changelog entry before the
+gate fires; that entry is a condition of the residue being shippable at all.
+T9b reverts only the `experience-design` `3.0.0` entry if T10 had already
+written one. The rest of the carve-out reasoning: The revert set
 is defined task-wise, but the path scope is `docs/**`, and this spec's own
 `activation-baseline.md` (the abort decision and its deciding owner) and
 `verification-ledger.md` (judgement 1, the `read-the-design-handoff.md`
@@ -1294,8 +1442,14 @@ guide suites could close having never run against the swept tree.
 - `docs/product/changelog.md` carries a free-standing `experience-design`
   `3.0.0` entry naming the six removed skills.
 - Both catalogue commands exit 0.
+- `make lint-ruff lint-mypy` exits 0. It is an acceptance criterion under Gates
+  and appeared in this plan only inside a map block, named by no task — the
+  cross-cutting Construction tests run `lint-experience-agnostic.py`, the roster
+  selector and `sweep`, not the repository lint. T10 owns it as the last task
+  before closeout on the fold branch.
 
-**Done when:** every `experience-design` version surface agrees and catalogue passes.
+**Done when:** every `experience-design` version surface agrees, catalogue
+passes, and `make lint-ruff lint-mypy` exits 0.
 
 **Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md
 
@@ -1317,7 +1471,13 @@ not reach its completion condition either.
 
 **Done when (fold branch):** the ledger carries the install observation, the
 `docs/` classification, both sweep-exemption reasons, the
-`xd-state-reviewer-doctrine` hand-off confirmation, and all three verdicts.
+`xd-state-reviewer-doctrine` hand-off confirmation, and all three verdicts —
+**and**, if the install observation showed `agentbundle` does **not** prune a
+directory the pack no longer declares, the changelog states the manual step.
+That branch is the whole reason the observation is taken: an unpruned stale
+`SKILL.md` stays in an adopter's skill index and keeps activating against a
+method the pack no longer ships. T10's changelog test requires only that the
+entry name the six removed skills, so nothing else reaches it.
 
 **Done when (abort branch):** the ledger carries the three obligations named
 above — the abort decision and its deciding owner, the

@@ -256,6 +256,18 @@ downstream caller can reach today — and each genre's method is unchanged.
       one to `design-system` — passes at a figure greater than or equal to its
       baseline. Recall alone is not the gate: over-triggering is the expected
       failure mode of one broad description. *(measured experiment)*
+- [ ] The six removed skills' **`evals/evals.json`** quality-eval sets — the
+      prompt-and-expected-output cases, distinct from the activation queries —
+      are carried into `information-architecture/evals/evals.json`, one case set
+      per genre, or a named subset is knowingly dropped with the reason recorded
+      in the ledger. Each removed skill ships **both** files; an earlier draft
+      pooled only `eval_queries.json` and said nothing about the other, which
+      would delete six quality-eval sets silently. Nothing reds:
+      `skill_spec_lint` cross-checks `pack.evals.skills` against
+      `eval_queries.json` only, so `catalogue lint --deep` stays green after
+      they vanish. This is what `packs/AGENTS.md`'s eval-harness obligation asks
+      for on a non-cosmetic pack change, and what this spec's own "the fold
+      removes registrations, not content" requires. *(goal-based)*
 - [ ] `information-architecture/evals/eval_queries.json` carries the positive
       queries pooled from all seven skills and that negative set, with a
       **stated expected count**, derived by the two rules above rather than by
@@ -324,8 +336,13 @@ downstream caller can reach today — and each genre's method is unchanged.
       the measured figures and the enumerated hidden filenames; this criterion
       does not restate them, because a duplicated measurement moves in one copy
       and not the other. `information-architecture/SKILL.md` is not left
-      unchecked by carve-out (a) — the routing criteria above read both of its
-      cells directly, which is the stronger check. Failing state: a sweep that
+      unchecked by carve-out (a), but only because two controls were added to
+      cover it: the routing criteria decide the **destination cell against the
+      three permitted outcomes**, failing when a row still names a deleted
+      skill, and the genre-reference scan opens `SKILL.md` alongside the six
+      references. Reading both cells is not by itself the stronger check — an
+      earlier version asserted only that each destination was non-empty, which a
+      table routing all six genres at deleted skills satisfies. Failing state: a sweep that
       reports zero because its own exclusion swallowed the hits. *(goal-based)*
 - [ ] **Two sweep hits are documented exemptions rather than edits, and the
       reason for each is recorded in the ledger.** First,
