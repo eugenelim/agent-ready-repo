@@ -94,3 +94,41 @@ status at all.
 - Writers (3): `prune`, `repair-apply`, `repair-rollback`.
 - Non-writing (5): `explain`, `reconcile`, `repair-plan`, `selected-membership`,
   `status`.
+
+## T3 — area attribution sweep (2026-09-24)
+
+Sweep run against the real corpus (481 specs, 17 inferred namespaces from
+`git ls-files`) using `infer_namespaces` + `attribute_spec` from
+`workspace_status_retirement.py`. The unattributed count is recorded here, not
+asserted in a test, as the plan specifies.
+
+**Inferred namespaces (17):** `.agentbundle`, `.agents`, `.claude`,
+`.claude-plugin`, `.codex`, `.github`, `contracts`, `docs`, `docs-site`,
+`governance`, `guides`, `packages`, `packs`, `profiles`, `tests`, `tools`, `web`.
+
+**Attribution results:**
+
+| Namespace | Spec count |
+| --- | --- |
+| `docs` | 155 |
+| `packs` | 121 |
+| `tools` | 44 |
+| `packages` | 36 |
+| `guides` | 24 |
+| `contracts` | 20 |
+| `.claude-plugin` | 11 |
+| `web` | 11 |
+| `.github` | 9 |
+| `.claude` | 9 |
+| `.agentbundle` | 8 |
+| `tests` | 8 |
+| `.agents` | 5 |
+| `docs-site` | 4 |
+| `.codex` | 2 |
+| `profiles` | 2 |
+| **unscoped** | **12** |
+| **Total** | **481** |
+
+**Unattributed count: 12 of 481 specs (2.5%).** This snapshot is a property of
+the corpus on 2026-09-24; it is not asserted in any test. T8's roster module
+owns the repository-wide assertion.
