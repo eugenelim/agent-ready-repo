@@ -26,9 +26,11 @@ form. A reader that treats absence as empty list silently passes entries that ma
 not be canonical.
 
 **Path inside a needs table is not always a spec.** Of the table-shaped entries,
-the majority point to `docs/specs/<slug>/spec.md`, but a minority point to briefs,
-intents, and other artifact paths outside `docs/specs/`. Both are valid edges and
-must be followed.
+most point to `docs/specs/<slug>/spec.md`; a minority point to briefs, intents,
+and other artifacts outside `docs/specs/`. Both are valid dependency edges in
+`workspace.toml`, but only the first names a spec, so only the first can make a
+spec `needed-by`. An edge to a non-spec artifact blocks nothing here — it is not
+followed, and its existence is not evidence about any candidate.
 
 ### `workspace.toml` collections and the `path` shapes each holds
 

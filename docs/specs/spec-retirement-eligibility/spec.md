@@ -68,6 +68,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   test that fails when the copies diverge.
 - Resolve every repository path through this skill's own confinement helper
   before reading it.
+- Read an absent `needs` key as absent, never by defaulting it to an empty list.
+  Both declare no edge, so no output distinguishes them — which is exactly why
+  the rule binds here rather than in a criterion no test could fail.
 - Report age from recorded change history and label it as such. RFC-0096 §6's
   cooling clock runs from a lifecycle record this capability does not read.
 - Treat every emitted verdict as advisory. This capability reports; a human
@@ -251,12 +254,11 @@ carry the refusal vocabulary this group requires.
 - [ ] A spec that any `workspace.toml` entry names in a `needs` field is
       reported `needed-by`, whichever collection holds that entry, and a spec no
       entry names is not.
-- [ ] `needed-by` resolves each of the four `needs` shapes the ledger records: a
-      list of tables each naming a `path`; a bare `<room>:<kind>/<slug>` string;
-      an empty list; and the key being absent.
-- [ ] An empty `needs` list and an absent `needs` key are distinct inputs and are
-      both read as declaring no dependency edge, rather than one being inferred
-      from the other.
+- [ ] No `needs` value in any of these four shapes is refused as
+      `needs-shape-unrecognised`: a list of tables each naming a `path`; a bare
+      `<room>:<kind>/<slug>` string; an empty list; and the key being absent.
+- [ ] A list of tables and a bare string each yield the dependency edges they
+      name; an empty list and an absent key each yield none.
 - [ ] A `needs` value in a shape the run does not resolve is refused as
       `needs-shape-unrecognised`.
 - [ ] A `needed-by` blocker names every entry declaring the dependency and, for

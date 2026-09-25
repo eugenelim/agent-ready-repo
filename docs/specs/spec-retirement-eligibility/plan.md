@@ -305,11 +305,11 @@ than asserted.
   the case rather than being silently uncovered.
 - A candidate with two dependents lists both, and each entry carries the `needs`
   edge that clears it. Verifies the two `needed-by` naming criteria.
-- One fixture entry per `needs` shape the ledger records — list of tables, bare
-  string, empty list, absent key — asserting the first two produce edges and the
-  last two produce none without a refusal. Verifies the four-shape criteria; the
-  empty list is the majority shape in the corpus, so a reader that refuses it
-  suppresses most of the report.
+- One fixture entry per shape the recognition criterion enumerates, asserting
+  none is refused, plus one per shape the semantics criterion names, asserting
+  which yield edges. Verifies both `needs`-shape criteria. A fixture entry whose
+  `needs` table points outside `docs/specs/` yields no `needed-by` edge, since it
+  names no spec.
 - Removing every declaring edge from the fixture clears the blocker, and removing
   only one of two does not. Verifies the clearability criterion, which is the
   half a permanently-blocking implementation would still pass.
