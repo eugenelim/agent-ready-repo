@@ -130,6 +130,7 @@ Resolved trade-offs:
      rejected candidate handled better than the selected direction did. -->
 
 **Donor candidate:** <which rejected candidate this discipline came from, or "none">
+
 **Discipline taken:** <the mechanism or structural approach borrowed from the donor, or "none">
 
 ## Compositional commitments

@@ -23,7 +23,7 @@
       "prompt": "We already have a direction for the dashboard surface. We are adding a notification-center panel inside that same surface. Set up the direction for the panel.",
       "expected_output": "The agent looks up the direction folder, finds the existing direction for the dashboard, applies the inherit route, and runs frame without opening a divergence round. It produces no second direction doc; the panel inherits the existing direction.",
       "assertions": [
-        "No divergence round runs; the inherit route proceeds from frame directly to selection without generating candidates.",
+        "No divergence round runs; the inherit route runs frame alone, scoped to the new element against the existing goals, and generates no candidates.",
         "No second direction doc is written; the existing direction doc for the surface remains the only file produced."
       ]
     },
