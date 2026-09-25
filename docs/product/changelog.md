@@ -68,8 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- **A `Shipped` brief now requires a `Cut-closed:` declaration.** When you close a brief as `Shipped`, add a `Cut-closed:` preamble field with an ISO 8601 date and evidence text. The coverage lint (`lint-brief-coverage.py`) refuses a `Shipped` brief without this field, and also refuses a `Draft` brief that carries one. Briefs in all other states may carry the field or omit it freely.
-- **The brief status vocabulary, coherence rules, and legal transitions are now defined once in `brief_shape.py`.** The lint loads all logic from that module; no second definition can drift.
+- **A `Shipped` brief now requires a `Cut-closed:` declaration.** When you close a brief as `Shipped`, add a `Cut-closed:` preamble field recording that no further slices are coming: an ISO 8601 date then evidence, `- **Cut-closed:** 2026-08-25 All nine slices are Shipped.` It must sit above the brief's first `## ` heading; written below one it reads as absent. The coverage lint also refuses a `Draft` brief that carries the field, and every other state may carry it or omit it.
+- **A brief that passed the coverage lint yesterday can fail today**, so this is a gate change to plan for rather than a new option to adopt. Any repository holding a `Status: Shipped` brief without the new field fails until it is backfilled — run `lint-brief-coverage.py` over `docs/product/briefs/` before your pipeline does.
+- **A brief's states and legal moves are now documented once**, so the reference guide and the lint cannot disagree about which transitions are legal or what each status requires of its children.
 
 ### Changed
 

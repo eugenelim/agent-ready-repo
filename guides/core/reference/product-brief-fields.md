@@ -21,7 +21,7 @@ The brief template is a **guide, not a schema**. Create mode records a Draft and
 | `Received` | recommended | The date the brief was handed over (`YYYY-MM-DD`). |
 | `Owner` | recommended | Who owns delivering this repo's slice. |
 | `Epic` | optional | Id or link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. This is the only pointer to the wider effort — the repo owns its slice, not a coordination hub. |
-| `Cut-closed:` | required only when `Status: Shipped`; refused when `Status: Draft` | ISO 8601 date followed by non-empty evidence text (e.g. `2026-08-25 All nine slices are Shipped.`). Records that the delivery map is finalised and no further slices are coming. A template row whose value is a comment or empty counts as absent, not malformed. |
+| `Cut-closed` | required only when `Status: Shipped`; refused when `Status: Draft` | Records that the **cut** — the set of delivery slices this brief will ever have — is finalised and no further slices are coming. ISO 8601 date followed by non-empty evidence text (e.g. `2026-08-25 All nine slices are Shipped.`); a value in any other shape is refused. Like every field in this table it must sit **above the brief's first `## ` heading**: written below one, or inside an HTML comment, it reads as absent, so a refusal can name a file that visibly contains the line. A template row whose value is only a comment or is empty counts as absent rather than malformed, which is why the shipped template does not trip the gate. |
 
 ## Brief body sections
 
@@ -36,7 +36,7 @@ The brief template is a **guide, not a schema**. Create mode records a Draft and
 | `Spec map` | section required for Ready; rows optional | The coverage table. One row per materialized spec; the Status column is **auto-derived** by the coverage lint (never hand-edited). Shape B adds a `Story` column. A Ready brief may have zero rows. |
 | `Rabbit holes` | optional | Named design traps, constraints, or out-of-bounds explorations to avoid. |
 | `Source` | optional until Ready | Durable source provenance. Tracker-origin work also records the reviewed source revision. |
-| `Status` | set by the owning workflow | One of `Draft`, `Ready`, `Executing`, `Shipped`, `Withdrawn`, or `Cancelled`. `create` sets Draft; `continue` may set Ready; terminal transitions go through `close-work`. |
+| `Status` | set by the owning workflow | One of `Draft`, `Ready`, `Executing`, `Shipped`, `Withdrawn`, or `Cancelled`. `create` sets Draft; `continue` may set Ready; terminal transitions go through `close-work`. Setting `Shipped` also requires a `Cut-closed` record — see § Lifecycle states. |
 
 ## Keeping Success metrics at brief altitude
 
@@ -87,11 +87,11 @@ materialized specs and remains non-executable until the user confirms a slice.
 
 ## Lifecycle states
 
-The tables below are derived from `brief_shape.py` (`scripts/brief_shape.py` in the `author-delivery-brief` skill), which is the single source of truth for the vocabulary, coherence rules, and transition set.
+The tables below and the lint cannot disagree: both are derived from one module, `scripts/brief_shape.py` in the `author-delivery-brief` skill, which is the single source of the vocabulary, the coherence rules and the transition set.
 
 | Status | Child-scope rule | `Cut-closed:` |
 | --- | --- | --- |
-| `Draft` | No child is `Implementing` or `Shipped`. | Refused — `Draft` means the cut is still open. |
+| `Draft` | No child is `Implementing` or `Shipped`. | Refused — `Draft` means the cut is still open, and a material edit returns a brief here. |
 | `Ready` | No child is `Implementing` or `Shipped`. | Permitted. |
 | `Executing` | At least one child is `Implementing` or `Shipped`. | Permitted — a cut may be declared while a slice is running. |
 | `Shipped` | Non-empty child set; every child is `Shipped`. | **Required.** |
@@ -148,8 +148,11 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 `scripts/lint-brief-coverage.py` (bundled with `author-delivery-brief`) reads every spec's `Status:` field, follows the `Brief:` back-links, and rolls each brief's Spec map up from its children. Behavior:
 
 - Reports each brief as **delivered** only for explicit `Shipped` closeout with a non-empty all-shipped map; every other state reports **not delivered**.
-- Fails when the brief status is absent, unknown, or contradicts child execution evidence. `Draft`, `Ready`, and `Withdrawn` permit no `Implementing` or `Shipped` child; `Executing` and `Cancelled` require at least one; `Shipped` requires only Shipped children and a non-empty map.
+- Fails when the brief status is absent, unknown, or contradicts child execution evidence — the § Lifecycle states table states the rule per status.
 - A spec that back-links a brief but isn't in that brief's map is reported **untracked** (informational) — add the row; it's not an error.
+- A `Shipped` brief carrying no `Cut-closed` record is a **failure** (exit 1). Add the field to the preamble — an ISO 8601 date then evidence text, for example `2026-08-25 All nine slices are Shipped.`
+- A `Draft` brief carrying a `Cut-closed` record is a **failure** (exit 1); a material edit reopens the cut, so the declaration is no longer true. Remove it, or move the brief out of `Draft`.
+- A `Cut-closed` value that is not an ISO 8601 date followed by evidence text is a **failure** (exit 1).
 - A brief's Spec-map Status cell that *contradicts* the spec's real status (a hand-edited, stale cell) is a **failure** (exit 1) — the column is auto-derived and must not be hand-maintained.
 - It **no-ops** (exit 0, silent) when no brief exists.
 - The shipped `_template.md` is skipped — it's the template, not a brief.
