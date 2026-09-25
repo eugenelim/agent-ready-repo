@@ -169,10 +169,16 @@ downstream caller can reach today — and each genre's method is unchanged.
       rule loss `xd-copy-router` forbids. *(goal-based)*
 - [ ] `information-architecture/SKILL.md` cites
       `references/editorial-quality-gates.md`. The `containment.md` precedent the
-      sibling fold invokes derives its copy set from citation — its roster suite
-      asserts that the set of skills citing the module equals the set shipping
-      it — so a shipped copy nothing cites fails that suite rather than
-      satisfying it. *(goal-based)*
+      sibling fold invokes derives its copy set from citation: the roster suite
+      for **`containment.md`** asserts that the set of skills citing that module
+      equals the set shipping it. That is the **argument** for this criterion,
+      not a suite that would red here —
+      `test_experience_design_write_declaration_and_containment.py` hard-codes
+      `MODULE_REFERENCE = "references/containment.md"`, and no suite anywhere
+      reads `editorial-quality-gates.md`. The criterion is gated by the
+      `grep -q` in `plan.md`, which decides it. Stating the precedent as
+      existing coverage would be exactly the false-coverage claim this spec
+      elsewhere refuses. *(goal-based)*
 - [ ] `SKILL.md`'s authored body — file bytes minus frontmatter and minus the
       **every managed directive** — the `agentbundle:output-rendering` markers
       and their contents, plus the per-skill directive lines
