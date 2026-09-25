@@ -90,6 +90,9 @@ __all__ = [
     "RECEIPTS_KEY",
     "RECEIPT_KEY_PATH",
     "RECEIPT_KIND",
+    "SUPERSEDED_KEY",
+    "accounts_for_task",
+    "unaccounted_breakdown",
     "DECLINE_KIND",
     "DECLINE_REASONS",
     "partition_digest",
@@ -98,6 +101,7 @@ __all__ = [
     "receipts_for_partition",
     "wave_is_well_formed",
     "unaccounted_wave_tasks",
+    "superseded_wave_tasks",
     "bounded_id_list",
     # the six read-only guards
     "check_identity",
@@ -1221,6 +1225,12 @@ RECEIPT_KEY_PATH = ("partition digest", "wave index", "task identifier")
 # Closed sets. Adding a decline reason changes what a wave exit will excuse and
 # needs sign-off, so this is deliberately not configurable.
 RECEIPT_KIND = "receipt"
+# A record carrying `superseded: True` stays a record and stops accounting for its
+# task. The member is absent on every record written before repair-round scoping
+# shipped, and absence means live — so no state on disk changes meaning. The test
+# is `is True` rather than truthiness: a record is data another process wrote, and
+# a stray non-empty string must not silently disable accounting for a task.
+SUPERSEDED_KEY = "superseded"
 DECLINE_KIND = "decline"
 DECLINE_REASONS = ("no-implementer-installed", "human-directed")
 
@@ -1254,6 +1264,83 @@ def is_dispatch_record(value: object) -> bool:
         reason = value.get("reason")
         return isinstance(reason, str) and reason in DECLINE_REASONS
     return False
+
+
+def accounts_for_task(value: object) -> bool:
+    """Does this value discharge its task's dispatch assertion? Total over any value.
+
+    A record accounts for its task unless it has been superseded by a wave reopen.
+    Declared here, beside `is_dispatch_record`, because the two answer different
+    questions about the same value and a caller that conflates them either treats a
+    superseded record as live or treats it as malformed.
+    """
+    return is_dispatch_record(value) and value.get(SUPERSEDED_KEY) is not True
+
+
+def superseded_wave_tasks(state: dict, wave_index: int) -> list[str]:
+    """Tasks in wave `wave_index` whose record is superseded (present but not live).
+
+    A superseded task has a record that `is_dispatch_record` accepts but
+    `accounts_for_task` rejects — i.e., its `superseded` member is ``True``.
+    Returns only tasks from `unaccounted_wave_tasks`'s result that carry such a
+    record; tasks with no record at all are not returned. Used to categorise the
+    unaccounted list into two groups so a refusal can distinguish the two cases.
+
+    Derived from `unaccounted_wave_tasks`: all precondition checks (container
+    presence, schedule_waves validity, pointer range, wave shape) are inherited
+    from that call, so the two cannot disagree about which tasks need accounting.
+    The container walk below is a SECOND statement of the one in
+    `unaccounted_wave_tasks`, and that is a real seam: if only one of them changes,
+    this function falls through to `[]` and every superseded task is reported as
+    having no record — the original defect, quietly. What covers it:
+    `test_superseded_wave_tasks_is_a_subset_of_unaccounted` in the roster parity
+    check drives `set(superseded) <= set(unaccounted)` over that check's whole
+    domain, so a walk that changes in one place only shows up as a state where
+    the subset fails or the superseded list empties while records remain.
+    """
+    unaccounted = unaccounted_wave_tasks(state, wave_index)
+    if not unaccounted:
+        return []
+    # Unaccounted is non-empty → RECEIPTS_KEY is in state and waves/wave are valid.
+    # One traversal to distinguish tasks with a superseded record from absent ones.
+    waves = state.get("schedule_waves", [])
+    held = state.get(RECEIPTS_KEY)
+    for key in (partition_digest(waves), str(wave_index)):
+        held = held.get(key) if isinstance(held, dict) else None
+    if not isinstance(held, dict):
+        # Subtree absent: all unaccounted tasks lack a record entirely.
+        return []
+    return [task for task in unaccounted if is_dispatch_record(held.get(task))]
+
+
+def unaccounted_breakdown(state: dict, wave_index: int) -> str:
+    """Render the unaccounted tasks of one wave, split into superseded and absent.
+
+    Declared ONCE and called by both consumers of the accounting predicate — the
+    wave-exit verdict and `wave advance`'s advancing branch. The two used to
+    compose this fragment separately, which is the same duplicated-predicate seam
+    the receipts design exists to close: the two renderings could drift in
+    grouping, label or order while each consumer's own test stayed green.
+
+    Returns the fragment only, never the whole refusal, because each consumer
+    names its own verb and remedy around it.
+    """
+    # No early return for an empty `unaccounted`: it would change no output for
+    # any state — an empty list forces `superseded` and `absent` empty too, and
+    # `"; ".join([])` is already `""` — so the clause could be deleted with every
+    # test still green. A clause that cannot fail does not belong in a guard this
+    # delivery ships under a no-survivors mutation criterion.
+    unaccounted = unaccounted_wave_tasks(state, wave_index)
+    superseded = set(superseded_wave_tasks(state, wave_index))
+    absent = [task for task in unaccounted if task not in superseded]
+    parts = []
+    if superseded:
+        parts.append(
+            f"superseded: {bounded_id_list([t for t in unaccounted if t in superseded])}"
+        )
+    if absent:
+        parts.append(f"no dispatch receipt: {bounded_id_list(absent)}")
+    return "; ".join(parts)
 
 
 def malformed_receipts_position(container: object, depth: int | None = None) -> str | None:
@@ -1342,7 +1429,7 @@ def unaccounted_wave_tasks(state: dict, wave_index: int) -> list[str]:
         held = held.get(key) if isinstance(held, dict) else None
     if not isinstance(held, dict):
         return list(wave)
-    return [task for task in wave if not is_dispatch_record(held.get(task))]
+    return [task for task in wave if not accounts_for_task(held.get(task))]
 
 
 def bounded_id_list(ids: list) -> str:
@@ -1370,7 +1457,7 @@ def bounded_id_list(ids: list) -> str:
 # `wave-exit` joins it because it guards the `wave-complete` transition that
 # `implement` used to guard, and a run in flight from before receipts existed must
 # reach the verdict table rather than being refused on its schema version.
-_SCHEMA_EXEMPT_PHASES = frozenset({"implement", "wave-exit"})
+_SCHEMA_EXEMPT_PHASES = frozenset({"implement", "wave-exit", "wave-reopen"})
 
 
 def _wave_exit_verdict(state: dict) -> GuardResult:
@@ -1470,9 +1557,57 @@ def _wave_exit_verdict(state: dict) -> GuardResult:
         return GuardResult(
             ok=False,
             reason=(
-                f"wave exit: wave {index} has tasks with no dispatch receipt: "
-                f"{bounded_id_list(unaccounted)}; record one per plan task with "
-                "`loop-cohort dispatch-receipt`"
+                f"wave exit: wave {index} has tasks with no live record — "
+                f"{unaccounted_breakdown(state, index)}; "
+                "run `loop-cohort dispatch-receipt` to record each"
+            ),
+        )
+    return GuardResult(ok=True, message="")
+
+
+def _repair_round_verdict(state: dict) -> GuardResult:
+    """Does a repair round still owe this wave a fresh dispatch assertion?
+
+    Refuses ONLY where a live record for the current wave is positively
+    established; every state it cannot read that far passes. That direction is
+    deliberate and is the opposite of `_wave_exit_verdict`'s. Mirroring that
+    table's refusals would make a malformed partition refuse at both this guard
+    and the reopen verb, stranding a run that re-enters code implementation today
+    and leaving only the destructive reset pair. The wave exit stays the
+    fail-closed gate; this one demands a reopen only where a stale record could
+    actually discharge something.
+
+    Called only for a READABLE state — the read refusal is decided upstream by
+    `_state_or_reason`, exactly as it is for the wave-exit verdict.
+    """
+    if state.get("schema_version") != SCHEMA_VERSION:
+        return GuardResult(ok=True, message="")
+    if RECEIPTS_KEY not in state:
+        return GuardResult(ok=True, message="")
+    if malformed_receipts_position(state.get(RECEIPTS_KEY)) is not None:
+        return GuardResult(ok=True, message="")
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return GuardResult(ok=True, message="")
+    index = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(index, str) or index >= len(waves):
+        return GuardResult(ok=True, message="")
+    wave = waves[index]
+    if not wave_is_well_formed(wave):
+        return GuardResult(ok=True, message="")
+
+    # Through the declared accounting predicate, not a second reading of the
+    # container: a task is live here exactly when it is accounted for at the wave
+    # exit, so the two cannot disagree about what a repair round still owes.
+    unaccounted = set(unaccounted_wave_tasks(state, index))
+    live = [task for task in wave if task not in unaccounted]
+    if live:
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"repair round: wave {index} still holds live dispatch records "
+                f"for: {bounded_id_list(live)}; supersede them with `loop-cohort "
+                "wave reopen` so this round records its own"
             ),
         )
     return GuardResult(ok=True, message="")
@@ -1529,6 +1664,13 @@ def check_phase(spec_dir: Path, *, phase: str,
         # The whole verdict table lives in one function, including its
         # unsupported-schema row, so no row is decided in two places.
         return _wave_exit_verdict(state)
+
+    if phase == "wave-reopen":
+        # Whole verdict in one function, its unsupported-schema row included, so
+        # no row is decided in two places. The phase is in `_SCHEMA_EXEMPT_PHASES`
+        # for that reason: without membership the dispatcher's schema refusal above
+        # would pre-empt the row and the exemption would be unreachable from the CLI.
+        return _repair_round_verdict(state)
 
     if phase == "gates-failed":
         count = non_negative_int(state, "implementation_retry_count", 0)

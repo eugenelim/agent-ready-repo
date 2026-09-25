@@ -66,9 +66,10 @@ def test_schedule_refuses_unknown_dependency_eval_contract() -> None:
 def test_step0_evals_do_not_retain_superseded_messages() -> None:
     """The eval corpus must not contradict the live canonical preflight.
 
-    Search the decoded strings, not the file bytes: this corpus mixes `\\u2014`
-    escapes and literal em dashes, so a raw-text search for either form leaves
-    the other as a blind spot.
+    Search the decoded strings, not the file bytes: a JSON corpus may carry either `\\u2014`
+    escapes or literal em dashes, and which a writer emits is not this test's
+    business, so a raw-text search for either form leaves the other as a blind
+    spot.
     """
     payload = json.loads(EVALS_PATH.read_text(encoding="utf-8"))
     decoded = json.dumps(payload, ensure_ascii=False)

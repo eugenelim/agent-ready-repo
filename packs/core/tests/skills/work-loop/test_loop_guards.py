@@ -2349,6 +2349,11 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
         "malformed_receipts_position", "receipts_for_partition",
         "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
+        # repair-round scoping: the member marking a record superseded, the
+        # predicate deciding whether a record still discharges its task, and the
+        # helper listing tasks whose records are superseded (not absent)
+        "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
+        "unaccounted_breakdown",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
@@ -2997,6 +3002,11 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
         "malformed_receipts_position", "receipts_for_partition",
         "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
+        # repair-round scoping: the member marking a record superseded, the
+        # predicate deciding whether a record still discharges its task, and the
+        # helper listing tasks whose records are superseded (not absent)
+        "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
+        "unaccounted_breakdown",
     }
     guards = load_guards()
     missing = sorted(n for n in names if not hasattr(guards, n))
@@ -3057,3 +3067,262 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         "loop-cohort.py re-declares part of the dispatch-receipt data model "
         f"instead of re-binding it from the guard layer: {offenders}"
     )
+
+
+# ── the repair-round verdict, and the superseded clause it rests on ────────
+#
+# Spec: docs/specs/repair-round-dispatch-assertion/spec.md.
+#
+# The clause lives inside `unaccounted_wave_tasks` rather than beside it because
+# that predicate has two shipped consumers — the wave exit and `wave advance`'s
+# advancing branch — and a round-scoping rule reaching one only is the defect
+# this delivery exists to prevent from recurring in a new form.
+
+
+def _receipts(digest: str, index: int, records: dict) -> dict:
+    """A container at the declared key path, built from `RECEIPT_KEY_PATH`'s depth."""
+    return {digest: {str(index): records}}
+
+
+def _cohort(g, *, waves, index=0, records=None, schema=None, container=True):
+    """A cohort state the verdict functions can read, with one knob per axis."""
+    state = {
+        "schema_version": g.SCHEMA_VERSION if schema is None else schema,
+        "schedule_waves": waves,
+        "current_wave_index": index,
+    }
+    if container:
+        digest = g.partition_digest(waves)
+        state[g.RECEIPTS_KEY] = _receipts(digest, index, records or {})
+    return state
+
+
+def test_a_superseded_record_accounts_for_no_task(g) -> None:
+    """The clause itself, at the predicate both consumers share."""
+    waves = [["T1", "T2"]]
+    state = _cohort(g, waves=waves, records={
+        "T1": {"kind": "receipt"},
+        "T2": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+    })
+    assert g.unaccounted_wave_tasks(state, 0) == ["T2"]
+
+
+def test_a_record_without_the_member_is_live(g) -> None:
+    """Backward compatibility: every state.json written before this change is unmoved."""
+    waves = [["T1"]]
+    state = _cohort(g, waves=waves, records={"T1": {"kind": "receipt"}})
+    assert g.unaccounted_wave_tasks(state, 0) == []
+
+
+def test_a_superseded_record_is_still_a_record(g) -> None:
+    """Superseding is not removing: the shape stays valid, so nothing is lost."""
+    assert g.is_dispatch_record({"kind": "receipt", g.SUPERSEDED_KEY: True})
+    assert g.malformed_receipts_position(
+        _receipts("d", 0, {"T1": {"kind": "receipt", g.SUPERSEDED_KEY: True}})
+    ) is None
+
+
+def test_the_repair_round_verdict_refuses_while_a_record_is_live(g) -> None:
+    """All conjuncts true → refuse, naming the verb that clears them and the wave."""
+    waves = [["T1"]]
+    state = _cohort(g, waves=waves, records={"T1": {"kind": "receipt"}})
+    result = g._repair_round_verdict(state)
+    assert result.ok is False
+    assert "wave reopen" in result.reason
+    assert "wave 0" in result.reason
+
+
+def test_the_repair_round_verdict_passes_once_every_record_is_superseded(g) -> None:
+    waves = [["T1", "T2"]]
+    state = _cohort(g, waves=waves, records={
+        "T1": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+        "T2": {"kind": "decline", "reason": "human-directed", g.SUPERSEDED_KEY: True},
+    })
+    assert g._repair_round_verdict(state).ok is True
+
+
+@pytest.mark.parametrize("mutate,label", [
+    (lambda s, g: s.update({"schema_version": 99}), "unsupported schema"),
+    (lambda s, g: s.pop(g.RECEIPTS_KEY), "absent container"),
+    (lambda s, g: s.update({g.RECEIPTS_KEY: {"d": []}}), "malformed container"),
+    (lambda s, g: s.update({"schedule_waves": []}), "empty partition"),
+    (lambda s, g: s.update({"current_wave_index": 7}), "pointer past the end"),
+    (lambda s, g: s.update({"current_wave_index": "0"}), "pointer not an integer"),
+    (lambda s, g: s.update({"schedule_waves": [[]]}), "malformed wave"),
+])
+def test_the_repair_round_verdict_fails_open_on_every_falsified_conjunct(
+    g, mutate, label
+) -> None:
+    """Fail open: refuse only where a live record is positively established.
+
+    Mirroring the wave-exit verdict's refusals here would strand a run that
+    re-enters implementation today — both the edge guard and the reopen verb
+    would refuse a malformed state, leaving only the destructive reset pair.
+    """
+    waves = [["T1"]]
+    state = _cohort(g, waves=waves, records={"T1": {"kind": "receipt"}})
+    assert g._repair_round_verdict(state).ok is False, "fixture must refuse first"
+    mutate(state, g)
+    result = g._repair_round_verdict(state)
+    assert result.ok is True, f"{label} must pass, got: {result.reason}"
+
+
+def test_superseded_wave_tasks_derives_from_unaccounted(g) -> None:
+    """superseded_wave_tasks is a subset of unaccounted_wave_tasks and excludes absent tasks.
+
+    Three properties per spec:
+    - Returns a subset of unaccounted_wave_tasks for any state.
+    - Excludes tasks with no record at all (absent ≠ superseded).
+    - Returns [] for any state where unaccounted_wave_tasks returns [] (all precondition
+      checks are inherited, so callers need not repeat them).
+    """
+    waves = [["T1", "T2", "T3"]]
+    digest = g.partition_digest(waves)
+    # T1 superseded, T2 live (accounted), T3 absent (no record).
+    state_mixed = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {digest: {"0": {
+            "T1": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+            "T2": {"kind": "receipt"},
+        }}},
+    }
+    unaccounted = g.unaccounted_wave_tasks(state_mixed, 0)
+    superseded = g.superseded_wave_tasks(state_mixed, 0)
+    # Subset: every superseded task is also unaccounted.
+    assert set(superseded) <= set(unaccounted), (
+        f"superseded_wave_tasks must be a subset of unaccounted_wave_tasks; "
+        f"superseded={superseded!r}, unaccounted={unaccounted!r}"
+    )
+    # T1 has a superseded record and must appear.
+    assert "T1" in superseded, "T1 carries a superseded record and must appear"
+    # T3 has no record at all and must not appear.
+    assert "T3" not in superseded, "T3 has no record and must not appear in superseded"
+    # T2 is accounted and must appear in neither.
+    assert "T2" not in superseded and "T2" not in unaccounted, (
+        "T2 is live-accounted and must appear in neither list"
+    )
+
+    # Returns [] when unaccounted_wave_tasks returns [] (all tasks accounted).
+    all_accounted = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {digest: {"0": {
+            "T1": {"kind": "receipt"},
+            "T2": {"kind": "receipt"},
+            "T3": {"kind": "receipt"},
+        }}},
+    }
+    assert g.unaccounted_wave_tasks(all_accounted, 0) == [], "fixture must have no unaccounted"
+    assert g.superseded_wave_tasks(all_accounted, 0) == [], (
+        "returns [] when unaccounted_wave_tasks returns [] (all accounted)"
+    )
+
+    # Returns [] for precondition-violating states (no container, bad waves, etc.).
+    assert g.superseded_wave_tasks({}, 0) == [], "returns [] for empty state"
+    assert g.superseded_wave_tasks({"schedule_waves": []}, 0) == [], (
+        "returns [] for empty schedule_waves"
+    )
+
+
+def test_the_malformed_container_pass_clause_is_reachable_and_killable(g) -> None:
+    """The fail-open malformed-container clause, with a fixture that can kill it.
+
+    The parametrised fail-open case above uses a container holding no live
+    digest, so removing this clause changes nothing: the accounting walk finds no
+    record either way and the verdict passes regardless. That made the clause
+    unfalsifiable — a mutation of it left the suite green.
+
+    This fixture keeps the LIVE digest populated with one accounted task while a
+    sibling digest carries a non-record leaf. The container is malformed, so the
+    clause fires and the verdict passes; delete the clause and the accounting
+    walk finds `T1` still live and refuses. That difference is what makes the
+    clause's removal observable.
+    """
+    waves = [["T1", "T2"]]
+    live = g.partition_digest(waves)
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {
+            live: {"0": {"T1": {"kind": "receipt"}}},
+            "0" * 64: {"0": {"T2": 42}},
+        },
+    }
+    assert g.malformed_receipts_position(state[g.RECEIPTS_KEY]) is not None, (
+        "the fixture must present a malformed container, or the clause never fires"
+    )
+    assert g._repair_round_verdict(state).ok is True, (
+        "a malformed container must pass the repair-round verdict: it fails open"
+    )
+    # The positive control that makes the assertion above mean something: without
+    # the clause, the accounting walk has a live task to refuse on.
+    assert [t for t in waves[0] if t not in set(g.unaccounted_wave_tasks(state, 0))], (
+        "the fixture must leave a live task, or removing the clause changes nothing"
+    )
+
+
+def test_the_wave_exit_refusal_embeds_the_shared_fragment(g) -> None:
+    """The wave-exit refusal renders from the shared declaration, verbatim.
+
+    Before `unaccounted_breakdown` existed, the wave-exit verdict and `wave
+    advance` each composed this fragment themselves. Each consumer's own test
+    asserted only that its superseded and absent cases differed from each other,
+    so the two could drift in grouping, label or order and both stay green — the
+    duplicated-predicate seam the receipts design exists to close.
+    """
+    waves = [["T1", "T2", "T3"], ["T4"]]
+    live = g.partition_digest(waves)
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {live: {"0": {
+            "T1": {"kind": "receipt", g.SUPERSEDED_KEY: True},
+            "T2": {"kind": "decline", "reason": "human-directed", g.SUPERSEDED_KEY: True},
+        }}},
+    }
+    fragment = g.unaccounted_breakdown(state, 0)
+    assert "superseded: 'T1, T2'" in fragment, fragment
+    assert "no dispatch receipt: 'T3'" in fragment, fragment
+    # This asserts ONE consumer. `wave advance`'s half is pinned at the CLI, in
+    # test_loop_cohort.py's wholly-superseded case, because that refusal is only
+    # observable through the verb.
+    assert fragment in (g._wave_exit_verdict(state).reason or ""), (
+        "the wave-exit refusal must embed the shared fragment verbatim"
+    )
+
+
+def test_the_breakdown_is_empty_when_every_task_is_accounted(g) -> None:
+    """A caller renders the fragment only when there is something to report."""
+    waves = [["T1"]]
+    live = g.partition_digest(waves)
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {live: {"0": {"T1": {"kind": "receipt"}}}},
+    }
+    assert g.unaccounted_breakdown(state, 0) == ""
+
+
+def test_superseded_wave_tasks_returns_nothing_when_the_subtree_is_absent(g) -> None:
+    """The subtree-absent clause: every unaccounted task lacks a record entirely.
+
+    Mutation-recorded. Removing the clause raises `AttributeError` on
+    `None.get(task)` for this state, so the clause is load-bearing rather than
+    defensive.
+    """
+    waves = [["T1", "T2"]]
+    state = {
+        "schema_version": g.SCHEMA_VERSION,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        g.RECEIPTS_KEY: {"some-other-digest": {"0": {"T1": {"kind": "receipt"}}}},
+    }
+    assert g.unaccounted_wave_tasks(state, 0) == ["T1", "T2"]
+    assert g.superseded_wave_tasks(state, 0) == []
+    assert "no dispatch receipt: 'T1, T2'" in g.unaccounted_breakdown(state, 0)

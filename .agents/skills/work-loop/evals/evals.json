@@ -1047,6 +1047,18 @@
         "Response does not claim the check covers a selected subset of cohort fields",
         "Response does not claim `gates-clean` reads dispatch receipts"
       ]
+    },
+    {
+      "id": "repair-round-reopen-before-edge",
+      "prompt": "You are running the work-loop in full mode. Gates failed on a repair round and you need to fire `gates-failed` to return to implementation. What command must you run before the transition, and why?",
+      "expected_output": "Run `loop-cohort wave reopen <spec-dir> --expect-run-id <run_id>` before firing `gates-failed`. The reopen marks every dispatch record in the current wave superseded, so they account for nothing. Without it, the `gates-failed` transition is refused because live records remain for the current wave. The same obligation applies to `findings-remain` from `CODE-REVIEW` and `blocker-applied` from `CODE-HUMAN-GATE`: each of those three edges requires a reopen before the transition. The reopen is idempotent, so running it when the wave is already wholly superseded is safe and exits zero.",
+      "assertions": [
+        "Response names `loop-cohort wave reopen` as the required command",
+        "Response says the reopen must run before the transition, not after",
+        "Response explains that live dispatch records cause the refusal",
+        "Response names all three guarded edges: gates-failed, findings-remain, and blocker-applied",
+        "Response does not claim wave reopen is required before wave-passed or gates-clean"
+      ]
     }
   ]
 }

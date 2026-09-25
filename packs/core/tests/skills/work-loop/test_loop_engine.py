@@ -2624,6 +2624,10 @@ def test_no_chat_history_route_wave_passed_via_cli(tmp: Path) -> None:
 def test_no_chat_history_route_gates_failed_via_cli(tmp: Path) -> None:
     """reads last_event=gates-failed via CLI and routes record-attempt correctly."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-gf")
+    # The fixture's wave carries a live dispatch record; a repair round now
+    # supersedes it before gates-failed is admitted. Spec:
+    # docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
+    run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
     # Crash: fire real gates-failed; stop before record-attempt
     run_engine("transition", str(spec_dir), "gates-failed")
     rc_s, out_s, _ = run_engine("status", str(spec_dir), "--json")
@@ -2794,6 +2798,10 @@ def test_wave_passed_run_ids_remain_paired_after_advance(tmp: Path) -> None:
 def test_gates_failed_window_a_record_before_crash(tmp: Path) -> None:
     """window A — crash before record-attempt; count increments exactly once."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-a")
+    # The fixture's wave carries a live dispatch record; a repair round now
+    # supersedes it before gates-failed is admitted. Spec:
+    # docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
+    run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
     if rc_t != 0:
         fail("gates-failed-window-a",
@@ -2818,6 +2826,10 @@ def test_gates_failed_window_a_record_before_crash(tmp: Path) -> None:
 def test_gates_failed_window_b_record_after_crash(tmp: Path) -> None:
     """window B — cycle_id already recorded; replay is no-op."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-b")
+    # The fixture's wave carries a live dispatch record; a repair round now
+    # supersedes it before gates-failed is admitted. Spec:
+    # docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
+    run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
     if rc_t != 0:
         fail("gates-failed-window-b",
@@ -2868,6 +2880,10 @@ def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:
     st = _read_cohort_state(spec_dir)
     st["implementation_retry_count"] = 4
     _write_cohort_state(spec_dir, st)
+    # The fixture's wave carries a live dispatch record; a repair round now
+    # supersedes it before gates-failed is admitted. Spec:
+    # docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
+    run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
     eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
     cycle_id = f"{run_id}:{eng['transition_sequence']}"
@@ -2913,6 +2929,10 @@ def test_gates_failed_sixth_retry_refused(tmp: Path) -> None:
 def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:
     """last_event=findings-remain readable from engine status --json."""
     spec_dir, run_id = make_code_review_run(tmp, "fr-phase")
+    # The fixture's wave carries a live dispatch record; a repair round now
+    # supersedes it before findings-remain is admitted from CODE-REVIEW. Spec:
+    # docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
+    run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
     run_engine("transition", str(spec_dir), "findings-remain")
     rc, out, _ = run_engine("status", str(spec_dir), "--json")
     try:
@@ -4781,4 +4801,525 @@ def test_a_reclaim_after_a_refusal_does_not_claim_a_commit(tmp: Path, capsys, mo
     # handler emitting no remedy at all.
     assert "nothing was committed" in err, (
         f"the reclaim handler must state that nothing landed: {err}"
+    )
+
+
+# ══ T3: the three edges refuse until the wave is reopened ══════════════════
+#
+# Spec: docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
+# Driven through `loop-engine transition` against a real spec directory, never
+# through the guard function directly — the source-state discrimination this
+# delivery adds only exists at that surface (`_GUARDS` is keyed by
+# `(mode, event)`, and `cmd_transition` is what reads `engine_state["state"]`
+# before dispatching).
+
+
+def _superseded_receipts_for(waves: list, index: int, tasks: list) -> dict:
+    """A container keyed by the guard layer's DECLARED key path, all superseded."""
+    guards = _load_guards_module()
+    keys = [guards.partition_digest(waves), str(index)]
+    return {keys[0]: {keys[1]: {
+        t: {"kind": guards.RECEIPT_KIND, guards.SUPERSEDED_KEY: True} for t in tasks
+    }}}
+
+
+def _repair_round_cohort_state(
+    spec_dir: Path, run_id: str, feature: str, state_name: str,
+    waves: list, index: int, container: object, *, extra: dict | None = None,
+) -> None:
+    """Engine + cohort state at `state_name`, with a wave partition and a
+    receipts container, satisfying every pre-existing guard on the three
+    repair-round edges: schedule check-current (plan_hash match), the
+    implementation and review retry caps, and reviewers-clean's spec-status
+    check (Shipped, though that guard is not one of the three this task adds).
+    """
+    write_spec(spec_dir, status="Shipped")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, feature, "code", state_name))
+    base_extra = {
+        "plan_review_status": "approved",
+        "approved_spec_hash": sha256_canonical_contract(spec_dir / "spec.md"),
+        "approved_plan_hash": sha256_canonical_contract(spec_dir / "plan.md"),
+        "plan_hash": sha256_canonical_contract(spec_dir / "plan.md"),
+        "schedule_waves": waves,
+        "current_wave_index": index,
+        "implementation_retry_count": 0,
+        "max_implementation_retries": 5,
+        "review_retry_count": 0,
+        "max_review_retries": 5,
+        "dispatch_receipts": container,
+    }
+    if extra:
+        base_extra.update(extra)
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, feature, extra=base_extra))
+
+
+_REPAIR_ROUND_EDGES = {
+    "gates-failed": "CODE-VERIFICATION",
+    "findings-remain": "CODE-REVIEW",
+    "blocker-applied": "CODE-HUMAN-GATE",
+}
+
+
+@pytest.mark.parametrize("event", sorted(_REPAIR_ROUND_EDGES))
+def test_the_three_edges_refuse_then_admit_after_a_reopen(tmp: Path, event: str) -> None:
+    """Each named edge refuses with a live record, and admits once reopened.
+
+    All three, not just the easiest: `gates-failed`, `findings-remain` and
+    `blocker-applied` share the same shape here even though only the first two
+    carried a guard before this task.
+    """
+    state_name = _REPAIR_ROUND_EDGES[event]
+    name = f"repair-round-{event}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(spec_dir, run_id, name, state_name, waves, 0,
+                                _receipts_for(waves, 0, ["T1"]))
+    before = (spec_dir / "engine-state.json").read_bytes()
+
+    rc, _, err = run_engine("transition", str(spec_dir), event)
+    if rc == 0:
+        fail(name, f"{event} was admitted while wave 0 still held a live record")
+        return
+    if "wave reopen" not in err:
+        fail(name, f"the refusal must name the reopen verb; got {err.strip()!r}")
+        return
+    if (spec_dir / "engine-state.json").read_bytes() != before:
+        fail(name, "engine-state.json moved despite the refusal")
+        return
+
+    rc, _, err = run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"wave reopen failed: {err.strip()!r}")
+        return
+
+    rc, _, err = run_engine("transition", str(spec_dir), event)
+    if rc != 0:
+        fail(name, f"{event} still refused after the reopen: {err.strip()!r}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "CODE-IMPLEMENTATION":
+        fail(name, f"expected CODE-IMPLEMENTATION; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_wave_passed_admitted_with_live_records_at_code_verification(tmp: Path) -> None:
+    """wave-passed is not one of the three edges: it is admitted from the same
+    CODE-VERIFICATION shape (a live record for the current wave) that refuses
+    `gates-failed`, with its ordinary success and `last_event_context` intact —
+    the case that distinguishes discriminating on source state alone from
+    discriminating on the source state AND the event together.
+    """
+    name = "wave-passed-admitted-with-live-records"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"], ["T2"]]
+    _repair_round_cohort_state(spec_dir, run_id, name, "CODE-VERIFICATION", waves, 0,
+                                _receipts_for(waves, 0, ["T1"]))
+    rc, _, err = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "CODE-IMPLEMENTATION":
+        fail(name, f"expected CODE-IMPLEMENTATION; got {state.get('state')!r}")
+    elif state.get("last_event_context") != {"completed_wave_index": 0}:
+        fail(name, f"last_event_context changed: {state.get('last_event_context')!r}")
+    else:
+        ok(name)
+
+
+def test_gates_clean_admitted_with_live_records_at_code_verification(tmp: Path) -> None:
+    """gates-clean is not one of the three edges: it is admitted from the same
+    CODE-VERIFICATION shape (a live record for the current, last wave) that
+    refuses `gates-failed` — the other half of the source-state-and-event pin.
+    """
+    name = "gates-clean-admitted-with-live-records"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(spec_dir, run_id, name, "CODE-VERIFICATION", waves, 0,
+                                _receipts_for(waves, 0, ["T1"]))
+    rc, _, err = run_engine("transition", str(spec_dir), "gates-clean")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "CODE-REVIEW":
+        fail(name, f"expected CODE-REVIEW; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_findings_remain_from_fresh_spec_plan_review_is_admitted_with_live_records(
+    tmp: Path,
+) -> None:
+    """`findings-remain` from `SPEC-PLAN-REVIEW`, before the run has ever
+    reached `CODE-IMPLEMENTATION`, is admitted through `("code",
+    "findings-remain")` — the same entry `CODE-REVIEW` uses — regardless of
+    what `dispatch_receipts` holds, because the guard reads the source state
+    and this one is not among the three named edges. A cohort state that WOULD
+    refuse `_repair_round_verdict` directly (a live record for a non-empty
+    current wave) proves the check was skipped by state, not merely absent.
+    """
+    name = "findings-remain-fresh-spec-plan-review"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(spec_dir, run_id, name, "SPEC-PLAN-REVIEW", waves, 0,
+                                _receipts_for(waves, 0, ["T1"]))
+    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "SPEC-PLAN-DRAFTING":
+        fail(name, f"expected SPEC-PLAN-DRAFTING; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_findings_remain_from_spec_plan_review_after_amendment_is_admitted(
+    tmp: Path,
+) -> None:
+    """The same edge, reached the OTHER way `SPEC-PLAN-REVIEW` is reached in a
+    code-mode run: after a real `contract-amendment` from `CODE-IMPLEMENTATION`.
+
+    `begin_contract_amendment` resets `schedule_waves` and `dispatch_receipts`,
+    so proving "admitted while live records are present" here means restoring a
+    partition and a live record onto that reset state before firing
+    `spec-ready` and then `findings-remain` — otherwise the empty partition
+    alone (a falsified conjunct) would explain the pass, not the source-state
+    discriminator this test exists to pin.
+    """
+    name = "findings-remain-spec-plan-review-after-amendment"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(spec_dir, run_id, name, "CODE-IMPLEMENTATION", waves, 0,
+                                _receipts_for(waves, 0, ["T1"]))
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "contract-amendment",
+        "--owner-authority-ref", "approval:owner", "--reason-ref", "reason:repair-round-t3",
+    )
+    if rc != 0:
+        fail(name, f"contract-amendment failed: {err.strip()!r}")
+        return
+    eng = json.loads((spec_dir / "engine-state.json").read_text())
+    if eng.get("state") != "SPEC-PLAN-DRAFTING":
+        fail(name, f"expected SPEC-PLAN-DRAFTING after amendment; got {eng.get('state')!r}")
+        return
+
+    # Restore a live partition onto the amendment's reset cohort state, so the
+    # upcoming findings-remain is proven admitted BY SOURCE STATE, not by the
+    # empty partition the amendment itself leaves behind.
+    coh = json.loads((spec_dir / "state.json").read_text())
+    coh["schedule_waves"] = waves
+    coh["current_wave_index"] = 0
+    coh["dispatch_receipts"] = _receipts_for(waves, 0, ["T1"])
+    write_cohort_state(spec_dir, coh)
+
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-ready")
+    if rc != 0:
+        fail(name, f"spec-ready failed: {err.strip()!r}")
+        return
+
+    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain")
+    if rc != 0:
+        fail(name, f"findings-remain was refused after amendment: {err.strip()!r}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "SPEC-PLAN-DRAFTING":
+        fail(name, f"expected SPEC-PLAN-DRAFTING; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+# One falsifying mutation per conjunct of `_repair_round_verdict`, matching
+# `test_loop_guards.py`'s `test_the_repair_round_verdict_fails_open_on_every_falsified_conjunct`.
+# `over` patches the baseline cohort state; `None` deletes the key.
+_REPAIR_ROUND_FALSIFYING_MUTATIONS = {
+    "unsupported-schema": ({"schema_version": 99}, "identity"),
+    "absent-container": ({"dispatch_receipts": None}, None),
+    "malformed-container": ({"dispatch_receipts": {"d": []}}, None),
+    "empty-partition": ({"schedule_waves": []}, None),
+    "pointer-past-end": ({"current_wave_index": 7}, None),
+    "pointer-not-int": ({"current_wave_index": "0"}, None),
+    "malformed-wave": ({"schedule_waves": [[]]}, None),
+}
+
+
+@pytest.mark.parametrize("event", sorted(_REPAIR_ROUND_EDGES))
+@pytest.mark.parametrize("label", sorted(_REPAIR_ROUND_FALSIFYING_MUTATIONS))
+def test_a_falsified_conjunct_is_admitted_with_no_reopen(
+    tmp: Path, event: str, label: str
+) -> None:
+    """A state failing any one conjunct is admitted with no reopen — except
+    where some OTHER pre-existing mechanism refuses it on its own terms.
+
+    `unsupported-schema` is that exception, and it is not the repair-round
+    guard's own exception: `check_identity`'s schema check runs at
+    `cmd_transition`'s Step 0, before the FSM table or any `_GUARDS` entry,
+    for every event and every one of the three edges alike (`blocker-applied`
+    carries no cap of its own and still meets this). So the assertion for that
+    one case is narrower and honest about what it proves: the transition is
+    refused, but not by the repair-round guard — the refusal must not name the
+    reopen verb, unlike the live-record case this suite drives elsewhere.
+    """
+    state_name = _REPAIR_ROUND_EDGES[event]
+    over, on_stderr = _REPAIR_ROUND_FALSIFYING_MUTATIONS[label]
+    name = f"repair-round-falsified-{event}-{label}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(spec_dir, run_id, name, state_name, waves, 0,
+                                _receipts_for(waves, 0, ["T1"]))
+    coh = json.loads((spec_dir / "state.json").read_text())
+    for key, value in over.items():
+        if value is None:
+            coh.pop(key, None)
+        else:
+            coh[key] = value
+    write_cohort_state(spec_dir, coh)
+
+    rc, _, err = run_engine("transition", str(spec_dir), event)
+    if on_stderr is None:
+        if rc != 0:
+            fail(name, f"expected exit 0 (no reopen needed); got {rc}: {err.strip()!r}")
+        else:
+            ok(name)
+        return
+    # unsupported-schema: some pre-existing mechanism refuses, but never the
+    # repair-round guard — assert the refusal is not the reopen's.
+    if rc == 0:
+        fail(name, "expected a refusal for an unsupported schema_version")
+    elif "wave reopen" in err or "repair round" in err:
+        fail(name, f"the repair-round guard must not be what refused this: {err.strip()!r}")
+    else:
+        ok(name)
+
+
+def test_gates_failed_composition_order_retry_cap_reason_wins(tmp: Path) -> None:
+    """A state failing both the retry cap and the repair-round verdict is
+    refused with the retry-cap reason, unchanged from before this task.
+    """
+    name = "gates-failed-composition-retry-cap-wins"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(
+        spec_dir, run_id, name, "CODE-VERIFICATION", waves, 0,
+        _receipts_for(waves, 0, ["T1"]),
+        extra={"implementation_retry_count": 5, "max_implementation_retries": 5},
+    )
+    rc, _, err = run_engine("transition", str(spec_dir), "gates-failed")
+    if rc == 0:
+        fail(name, "expected a refusal at the retry cap")
+    elif "implementation retry cap reached" not in err:
+        fail(name, f"expected the retry-cap reason; got {err.strip()!r}")
+    elif "wave reopen" in err:
+        fail(name, f"the repair-round reason must not also appear: {err.strip()!r}")
+    else:
+        ok(name)
+
+
+def test_findings_remain_composition_order_retry_cap_reason_wins(tmp: Path) -> None:
+    """Same composition order, for findings-remain's review retry cap."""
+    name = "findings-remain-composition-retry-cap-wins"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(
+        spec_dir, run_id, name, "CODE-REVIEW", waves, 0,
+        _receipts_for(waves, 0, ["T1"]),
+        extra={"review_retry_count": 5, "max_review_retries": 5},
+    )
+    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain")
+    if rc == 0:
+        fail(name, "expected a refusal at the review retry cap")
+    elif "review retry cap reached" not in err:
+        fail(name, f"expected the retry-cap reason; got {err.strip()!r}")
+    elif "wave reopen" in err:
+        fail(name, f"the repair-round reason must not also appear: {err.strip()!r}")
+    else:
+        ok(name)
+
+
+def test_findings_remain_override_waives_the_cap_but_not_the_repair_round(
+    tmp: Path,
+) -> None:
+    """`--allow-retry-cap-override` waives the review retry cap alone, and the
+    transition is still refused while the repair-round verdict refuses.
+    """
+    name = "findings-remain-override-repair-round-still-refuses"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"]]
+    _repair_round_cohort_state(
+        spec_dir, run_id, name, "CODE-REVIEW", waves, 0,
+        _receipts_for(waves, 0, ["T1"]),
+        extra={"review_retry_count": 5, "max_review_retries": 5},
+    )
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "findings-remain", "--allow-retry-cap-override"
+    )
+    if rc == 0:
+        fail(name, "expected a refusal — the override does not reach the repair round")
+    elif "review retry cap reached" in err:
+        fail(name, f"the cap reason must be waived by the override; got {err.strip()!r}")
+    elif "wave reopen" not in err:
+        fail(name, f"expected the repair-round refusal; got {err.strip()!r}")
+    else:
+        ok(name)
+
+
+# ── the source-state discriminator's reach, pinned to the FSM table ────────
+#
+# Spec: docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
+
+
+def test_only_findings_remain_is_twin_sourced_in_code_mode() -> None:
+    """Why the repair-round guards read `engine_state["state"]`, and where it is inert.
+
+    `_GUARDS` is keyed `(mode, event)`, so one entry serves every source state an
+    event can be fired from in that mode. Today exactly one of the three guarded
+    events has more than one: `findings-remain`, reachable from `CODE-REVIEW` and
+    from `SPEC-PLAN-REVIEW` — the latter at the start of every code run and again
+    after `contract-amendment`. That is the case the discriminator exists for.
+
+    On `gates-failed` and `blocker-applied` the discriminator is inert: the event
+    already determines the source state, so removing the check cannot fail a test.
+    It stays, because it makes the three guards read alike and because it fails
+    safe if the table grows — and this test is what stops that from being silent.
+    A new source state for any of the three lands here first, with the reason its
+    guard's discrimination has just become load-bearing.
+    """
+    import re as _re
+
+    source = ENGINE.read_text(encoding="utf-8")
+
+    def _pairs(table_name: str) -> list[tuple[str, str]]:
+        body = source[source.index(f"{table_name} = {{"):]
+        body = body[: body.index("\n}")]
+        return _re.findall(r'\("([A-Z-]+)",\s*"([a-z-]+)"\)', body)
+
+    # `_CODE_TRANSITIONS` splats in `**_BOTH_TRANSITIONS`, which is exactly why
+    # a spec-plan state is reachable in code mode; the union is the real table.
+    code_mode = _pairs("_CODE_TRANSITIONS") + _pairs("_BOTH_TRANSITIONS")
+    assert code_mode, "the transition tables did not parse; this test is vacuous"
+
+    sources: dict[str, set[str]] = {}
+    for src, event in code_mode:
+        sources.setdefault(event, set()).add(src)
+
+    expected = {
+        "gates-failed": {"CODE-VERIFICATION"},
+        "findings-remain": {"CODE-REVIEW", "SPEC-PLAN-REVIEW"},
+        "blocker-applied": {"CODE-HUMAN-GATE"},
+    }
+    actual = {event: sources.get(event, set()) for event in expected}
+    assert actual == expected, (
+        "the code-mode source states of a repair-round-guarded event changed.\n"
+        f"  expected: { {k: sorted(v) for k, v in expected.items()} }\n"
+        f"  actual:   { {k: sorted(v) for k, v in actual.items()} }\n"
+        "If an event gained a source state, its guard's `engine_state['state']` "
+        "check is now load-bearing rather than defensive: decide whether the new "
+        "source state owes a reopen, add the case, then update this expectation."
+    )
+
+
+def test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong(
+    tmp: Path,
+) -> None:
+    """The inert discriminators in `_guard_gates_failed_repair_round` and
+    `_guard_blocker_applied` are kept to fail safe when the table grows. They must
+    return ``None`` (skip the repair-round check) when handed a source state they
+    do not gate, even when the cohort holds a live record that would otherwise cause
+    a refusal.
+
+    Fixture precondition (per T6):
+    - Cohort holds a live dispatch record for the current wave, so `check --phase
+      wave-reopen` would refuse — confirming that the repair-round guard IS the
+      decision that would have fired.
+    - `gates-failed`'s fixture: `implementation_retry_count` below the cap, so the
+      retry-cap guard (which runs first) passes and cannot mask the discriminator.
+
+    Mutation verification: if either `engine_state.get("state") !=` guard is
+    removed, this test must turn red. Verify by temporarily replacing the guard
+    body with ``return _guard_repair_round(spec_dir, engine_state, event_args)``
+    (skipping the discriminator); the test fails because the repair-round check
+    is reached and refuses.
+    """
+    name = "inert-discriminators-skip-repair-round-on-wrong-state"
+    run_id = str(uuid.uuid4())
+    waves = [["T1"], ["T2"]]
+
+    # A live record for the current wave: `check --phase wave-reopen` would refuse.
+    live_container = _receipts_for(waves, 0, ["T1"])
+
+    # Write a cohort state.json at a temp spec_dir, with the live container and
+    # implementation_retry_count below the cap (so gates-failed's retry-cap guard
+    # passes — it runs before the discriminator and would mask it if it refused).
+    spec_dir = make_spec_dir(tmp, name)
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
+        "plan_review_status": "approved",
+        "approved_spec_hash": None,
+        "approved_plan_hash": None,
+        "plan_hash": None,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        "implementation_retry_count": 0,
+        "max_implementation_retries": 5,
+        "review_retry_count": 0,
+        "max_review_retries": 5,
+        "dispatch_receipts": live_container,
+    }))
+
+    # `_guard_gates_failed_repair_round` with wrong source state CODE-HUMAN-GATE
+    # (correct state is CODE-VERIFICATION). The repair-round check must be skipped.
+    result_gf = _engine._guard_gates_failed_repair_round(
+        spec_dir, {"state": "CODE-HUMAN-GATE"}, {}
+    )
+    assert result_gf is None, (
+        f"_guard_gates_failed_repair_round must return None for CODE-HUMAN-GATE "
+        f"(its discriminator says != CODE-VERIFICATION); got {result_gf!r}. "
+        "If this fails after removing the `engine_state[\"state\"] != "
+        "\"CODE-VERIFICATION\"` guard, the mutation is confirmed."
+    )
+
+    # `_guard_blocker_applied` with wrong source state CODE-REVIEW
+    # (correct state is CODE-HUMAN-GATE). The repair-round check must be skipped.
+    result_ba = _engine._guard_blocker_applied(
+        spec_dir, {"state": "CODE-REVIEW"}, {}
+    )
+    assert result_ba is None, (
+        f"_guard_blocker_applied must return None for CODE-REVIEW "
+        f"(its discriminator says != CODE-HUMAN-GATE); got {result_ba!r}. "
+        "If this fails after removing the `engine_state[\"state\"] != "
+        "\"CODE-HUMAN-GATE\"` guard, the mutation is confirmed."
+    )
+
+    # Positive control: with the CORRECT source state and a live record present,
+    # both guards must REFUSE (not return None). Without this, fixture drift —
+    # a digest change, a schema bump, a retry-count default — would make both
+    # None-assertions pass vacuously while the guards stopped working.
+    result_gf_correct = _engine._guard_gates_failed_repair_round(
+        spec_dir, {"state": "CODE-VERIFICATION"}, {}
+    )
+    assert result_gf_correct is not None, (
+        "_guard_gates_failed_repair_round must refuse (not None) for CODE-VERIFICATION "
+        "with a live dispatch record in the fixture; fixture has implementation_retry_count=0 "
+        "< max_implementation_retries=5, so the retry-cap guard passes and the repair-round "
+        "check is the decision. If this assertion fails the fixture needs a live record."
+    )
+
+    result_ba_correct = _engine._guard_blocker_applied(
+        spec_dir, {"state": "CODE-HUMAN-GATE"}, {}
+    )
+    assert result_ba_correct is not None, (
+        "_guard_blocker_applied must refuse (not None) for CODE-HUMAN-GATE "
+        "with a live dispatch record in the fixture. If this assertion fails "
+        "the fixture needs a live record."
     )

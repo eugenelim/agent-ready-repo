@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.42] — 2026-09-24
+
+### Highlights
+
+- **Three re-entry edges now require a wave reopen before you re-enter implementation.** When gates fail, a code review finds remaining issues, or a blocker is applied, the loop now refuses the edge and names the tasks that still hold a live dispatch record. Run `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` to mark the current wave's records superseded and unblock the edge.
+
+### Added
+
+- `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` marks every dispatch record for the current wave superseded. The records stay on disk; recording a fresh assertion for any task makes that task account again. The three edges that require a reopen before re-entering implementation are `gates-failed` from code verification, `findings-remain` from code review, and `blocker-applied` from the code human gate.
+
 ## [core][2.26.41] — 2026-09-24
 
 ### Highlights

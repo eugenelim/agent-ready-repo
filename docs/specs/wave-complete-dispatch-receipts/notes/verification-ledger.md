@@ -4,6 +4,16 @@ Execution observations for this spec. This file is the single home for the
 dispatch-rate measurement and for the grounding evidence behind each
 load-bearing claim. The spec and plan cite it; they do not restate its figures.
 
+> **Note (2026-09-24), applying to this file entire.** The wave-exit refusal text
+> quoted throughout was reworded by the `repair-round-dispatch-assertion`
+> delivery. `"wave exit: wave N has tasks with no dispatch receipt: …"` no longer
+> reproduces anywhere; the shipped code emits `"wave exit: wave N has tasks with
+> no live record — …"` followed by a breakdown into superseded and absent
+> sub-lists. Every observed-failure quote in this file using the old text is a
+> frozen observation of the code as it stood when it was recorded, not of the
+> current emitter. This spec is frozen, so the observations are left as they were
+> taken rather than restated — the scope of this note is what makes them readable.
+
 Every entry below states the command that regenerates it. A figure with no
 regenerating command is not evidence, because the underlying corpus grows.
 

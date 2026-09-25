@@ -589,6 +589,16 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_contract_backward_registry.py
 
+      # The repair-round parity check compares the spec's contract rules against the
+      # shipped predicate, building its domain inline with no separate oracle.
+      # It reads docs/ and packs/ together, so lint-pack-test-boundary forbids a
+      # pack home. It sits ABOVE the carve-out step below, whose `pytest tests/ -q`
+      # also collects it, so that a failure is attributed to this named step rather
+      # than to the broad one.
+      - name: pytest repair-round predicate parity (spec contract vs shipped guard)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_repair_round_predicate_parity.py
+
       # Both modules read across two packs and the guides, so lint-pack-test-boundary
       # forbids a pack home and they live in the roster suite. Each sits ABOVE the
       # carve-out step below, whose `pytest tests/ -q` also collects them: placement
