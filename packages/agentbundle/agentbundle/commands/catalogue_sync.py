@@ -2646,6 +2646,13 @@ def _run_dry_run(
     # nothing (AC-0068), and `replay.pack_names` is the source's own
     # unnarrowed shipped-pack list, so gating on it would run this check
     # over packs the resolved selection admits none of.
+    absent_extent = _absent_credbroker_extent(package, pack_names)
+    if absent_extent is not None:
+        return _refuse(
+            absent_extent, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_MALFORMED,
+        )
+
     gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)
     if gate_code is not None:
         return gate_code
@@ -2793,6 +2800,36 @@ def _resolve_effective_selection(
     pack_names = sorted(set(recorded_packs) | set(cli_pack_names))
     profile_names = sorted(set(recorded_profiles) | set(cli_profile_names))
     return pack_names, profile_names, None, None
+
+
+def _absent_credbroker_extent(
+    package: str | None, pack_names: list[str]
+) -> str | None:
+    """AC-0082's `credbroker` half — the refusal message, or ``None``.
+
+    Decided from the **resolved** selection rather than AC-0033 clause 1's
+    union: AC-0068 records that the pack selector drops names, and a run whose
+    recipe names `credential-brokers` but whose replay dropped it would
+    otherwise write nothing under the destination and refresh the pin over a
+    subtree it never touched.
+
+    It cannot be decided in `run()` because the resolved selection does not
+    exist until the source resolves and the replay runs. AC-0084 records that
+    a run refusing on this row has already fetched, and AC-0085 places the row
+    below the AC-0068 selection-validity row.
+
+    **One home, called from both the preview and the apply.** AC-0085's row
+    invocation column reads `any`, and a refusal the apply takes but the
+    preview does not is the defect shape this phase already shipped once: the
+    plan an operator consents against must be the plan the apply acts on.
+    """
+    if package == "credbroker" and _USER_LIBS_PACK not in pack_names:
+        return (
+            "--package credbroker: this catalogue's resolved selection does "
+            f"not carry the {_USER_LIBS_PACK!r} pack, so "
+            "packages/credbroker/ is not present"
+        )
+    return None
 
 
 def _narrow_replayed_paths(
@@ -3146,23 +3183,11 @@ def _run_apply(
     if replay.violations:
         return _DIFFERENCE
 
-    # AC-0082, `credbroker` half. Decided here and not in `run()` because its
-    # input is the **resolved** selection, which does not exist until the
-    # source resolves and the replay runs — so AC-0084 records that a run
-    # refusing on this row has already fetched, and AC-0085 places the row
-    # below the AC-0068 selection-validity row this function has now passed.
-    #
-    # Resolved, not AC-0033 clause 1's union: AC-0068 records that the pack
-    # selector drops names, and a run whose recipe names `credential-brokers`
-    # but whose replay dropped it would otherwise write nothing under the
-    # destination and refresh the pin over a subtree it never touched.
-    if package == "credbroker" and _USER_LIBS_PACK not in pack_names:
+    absent_extent = _absent_credbroker_extent(package, pack_names)
+    if absent_extent is not None:
         return _refuse(
-            "--package credbroker: this catalogue's resolved selection does "
-            f"not carry the {_USER_LIBS_PACK!r} pack, so "
-            "packages/credbroker/ is not present",
-            attributed=attributed, source_raw=source_raw, fmt=fmt,
-            code=_MALFORMED,
+            absent_extent, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_MALFORMED,
         )
 
     gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)

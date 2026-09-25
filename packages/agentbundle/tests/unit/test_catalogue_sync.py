@@ -6518,3 +6518,16 @@ def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
         _sync_args(target, tmp_path / "src", "--tooling", "vendored",
                    "--package", "agentbundle")
     ) == 3
+
+
+# NOTE: reconstructed by adversarial review after an accidental
+# `git checkout --` discarded the uncommitted original. Verify against intent.
+@pytest.mark.parametrize("mode", [[], ["--dry-run"]], ids=["apply", "dry-run"])
+def test_absent_credbroker_extent_refuses_on_preview_and_apply_alike(tmp_path, mode):
+    source = _make_apply_source(tmp_path / "both-source")
+    target = tmp_path / "both-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+    consent = [] if mode else ["--yes"]
+    args = _sync_args(target, source, *mode, "--package", "credbroker", *consent)
+    assert catalogue_sync.run(args) == 2
