@@ -134,7 +134,7 @@ Resolved trade-offs:
 
 ## Compositional commitments
 
-<!-- Recorded by `visualize` when an approved visual target exists. These
+<!-- Recorded by `converge` when an approved visual target exists. These
      commitments bind composition only. They do not bind colour, type,
      spacing, or motion values — those remain for `design-system` to derive. -->
 

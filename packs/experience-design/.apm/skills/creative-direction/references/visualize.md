@@ -1,13 +1,12 @@
 # visualize — the three representations and their binding force
 
-> **Loaded when:** `visualize` is the active operation.
 > **Question:** how is the direction made concrete enough for a compositional commitment without binding tokens the design system must derive?
 
 ## The three representations
 
 `visualize` produces one of three representations. Each carries a distinct binding force.
 
-**Semantic direction** — the filled direction sheet produced by `converge`, carrying a token on every axis. This representation is binding: it is the agreement the work carries forward.
+**Semantic direction** — the filled direction sheet this operation is working from: a candidate's on `originate`, the selected direction's afterwards; carrying a token on every axis. This representation is binding: it is the agreement the work carries forward.
 
 **Visualised candidate** — an illustrative depiction of a single direction, produced to support the human's comparison before selection. This representation is illustrative and non-binding. It informs a choice but does not supersede the direction sheet.
 
@@ -23,7 +22,7 @@ An approved visual target's compositional commitments are written into `<output_
 
 A text schematic is the default representation. It describes spatial arrangement, region proportions, and the relationships between content zones in plain prose and lightweight structural notation. No image-capable harness is required.
 
-A simple wireframe outperforms a detailed screenshot as structured visual input. A wireframe surfaces composition and proportion without introducing colour, type, or surface-treatment decisions the direction sheet has not yet authorised. A screenshot imports all of those and forecloses decisions the direction step is designed to leave open.
+Prefer a wireframe over a screenshot: a simple wireframe outperforms a detailed screenshot as structured visual input. A wireframe surfaces composition and proportion without introducing colour, type, or surface-treatment decisions the direction sheet has not yet authorised.
 
 ## Capability gate
 
