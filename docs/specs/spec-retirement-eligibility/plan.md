@@ -1,7 +1,7 @@
 # Plan: Spec-retirement eligibility projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`AGENTS.md`](../../../AGENTS.md); [`packs/AGENTS.md`](../../../packs/AGENTS.md); [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) § skill dependencies; [`tests/AGENTS.md`](../../../tests/AGENTS.md); [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) §§2, 4, 6, 7 and the Wave 7e Errata
 
 ## Approach
@@ -482,3 +482,6 @@ ledger.
   where the approved criterion named two, and the empty list it omitted is the
   majority shape. Authority `conversation:2026-09-24`; reason the verification
   ledger at `2fb3ae543`.
+- 2026-09-24 — Amended spec and plan re-approved by eugenelim after a narrow
+  review of the amendment; security review recorded as a named skip, the
+  amendment adding no input, subprocess, or write.
