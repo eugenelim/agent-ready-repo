@@ -88,7 +88,7 @@ states the same rule and owns its wording. `S` is
 | The agent does not choose alone, and a delegated choice is recorded as delegated | `grep -q 'does not choose' "$S/SKILL.md" && grep -q 'recorded as delegated' "$S/SKILL.md"` | exit 0 each |
 | Step-to-operation mapping complete | one `grep -q` per assignment: the ten steps make twelve assignments, because the sheet fill splits across `explore` and `converge` and the floor hold across `converge` and `refine`; each owning operation's section in `SKILL.md` or its reference names that act's subject | twelve hits, no act unassigned. Ten would pass while one half of each split went unwritten. |
 | Every shipped reference reachable **from its owning operation** | per reference, `grep -q` scoped to the owning operation's section in `SKILL.md` or to that operation's own reference file, per the step-to-operation mapping | one hit each. A repo-wide grep would pass on a link between two references, which is not reachability from an operation. |
-| `**Writes:**` / `**Confinement:**` exactly once and unchanged | a `grep -c` per line, then `git diff --exit-code` scoped to `SKILL.md` and inspected for those two lines | `1` each; the two lines absent from the diff. A count alone does not establish byte-identity, which is what the roster suite compares. |
+| `**Writes:**` / `**Confinement:**` exactly once and unchanged | a `grep -c` per line, then `git diff --exit-code` scoped to `SKILL.md` and inspected for those two lines | `1` each, and both byte-identical to the pinned revision. They move within the file when the body is rewritten, so they appear in the diff as a `-`/`+` pair; byte-identity is the test, not absence from the diff. |
 | Authored-body ceiling ≤ 6,500 B | the **authored-body measurement** (below) | ≤ 6500 |
 | Directory ≤ 97,000 B | `find "$S" -type f -exec cat {} + \| wc -c` | ≤ 97000 — amended from 95,000 on 2026-09-25; the spec criterion owns the arithmetic |
 | Description ≤ 1024 chars | the **description measurement** (below) | ≤ 1024; reads **784** today |
@@ -136,7 +136,7 @@ it; this plan does not restate the figures.
 **The description measurement** — the frontmatter description only. A greedy
 `description: "(.*)"` with `re.S` swallows the whole file and reports ~12,500;
 the match must be scoped to the frontmatter block first, then to the
-`description:` line within it. Reads **784** today.
+`description:` line within it. Reads **1,009** as shipped; it read 784 before T7 widened it to admit the refinement route.
 
 ## Durable-output map
 
