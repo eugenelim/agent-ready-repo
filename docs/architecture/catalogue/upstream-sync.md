@@ -1,11 +1,11 @@
 # Upstream sync for a derived catalogue
 
-> **STATUS: PHASE 3 DELIVERED.** `agentbundle catalogue sync` gains a write
-> path, `--pack`, `--profile`, `--guides`, `--package`, and `--yes`. The one
-> earlier prerequisite that changed `init` instead has also shipped — see
-> § Shipped: credbroker source follows its pack. One phase remains: package
-> sync. Everything else here records the designed architecture for that phase
-> so the spec and plan that build it have one place to disagree with.
+> **STATUS: ROLLOUT CLOSED.** `agentbundle catalogue sync` resolves, replays,
+> classifies, plans, takes consent, writes, removes stale paths under a guard,
+> pins, and rolls back — across packs, profiles, guides and both `--package`
+> destinations. The one earlier prerequisite that changed `init` instead also
+> shipped — see § Shipped: credbroker source follows its pack. No phase
+> remains. What follows records the architecture as built.
 >
 > Current-state context: [`derived-catalogue.md`](derived-catalogue.md) and
 > [`state.md`](state.md).
@@ -130,11 +130,20 @@ Phase 2 deliberately does not claim `--guides` for its own guides replay mode:
 by an unrelated meaning.
 
 `--package` has two valid names, not one: `agentbundle`, whose destination is
-`.agentbundle/tooling/agentbundle/` (present in vendored mode), and
-`credbroker`, whose destination is `packages/credbroker/` (present whenever
-the `credential-brokers` pack is selected, in either tooling mode). Both are
-real subtrees of a derived tree today — see § Shipped: credbroker source
-follows its pack.
+`.agentbundle/tooling/` — the whole vendored tooling root, present in vendored
+mode — and `credbroker`, whose destination is `packages/credbroker/` (present
+whenever the `credential-brokers` pack is selected, in either tooling mode).
+Both are real subtrees of a derived tree today — see § Shipped: credbroker
+source follows its pack.
+
+The `agentbundle` destination is the whole root rather than the
+`agentbundle/` subdirectory inside it because `init` writes both that
+subdirectory and the vendored `packs/catalogue-curation/` copy from one mode
+decision. Scoping the destination narrower would leave that copy written by no
+verb. Its **engine subtree**, `.agentbundle/tooling/agentbundle/`, is still
+named where it matters: it is the install source an adopter `pip install -e`s,
+and the only part that can supply a running interpreter, so it is what
+§ Known risks' self-replacement refusal tests.
 
 ## Compatibility is warn-only
 
@@ -188,11 +197,28 @@ Four, which makes this security-boundary work:
   shows the count before consent, and `--pack` lets an adopter take one pack at
   a time. Not eliminated.
 - **A real break ships silently.** Accepted, per the warn-only decision above.
-- **Self-replacement mid-run.** Packages apply last, after every other write has
-  landed; a failed package write triggers `rollback`; and sync refuses a
-  vendored package sync when the target supplies the running `agentbundle`,
-  detectable through the editable-install check `source_defaults` already
-  performs.
+- **Self-replacement mid-run.** Packages apply last, after every other write
+  has landed; a failed package write triggers `rollback`; and sync refuses a
+  vendored package sync when the target supplies the running `agentbundle`.
+
+  **The refusal takes two inputs, not one.** The editable-install check
+  `source_defaults` already performs is bounded by an enclosing git
+  repository: `_detect_editable_source` returns nothing for a derived
+  catalogue that is not one, before it reads the catalogue markers at all. A
+  derived catalogue need not be a git repository, so on that input alone the
+  refusal fails open for the adopter who `pip install -e`'d the vendored
+  engine in a plain directory — the sharpest case it exists for. The second
+  input reads the running package's own resolved location, which needs
+  neither a PEP 610 record nor a git root.
+
+  **What it covers and what it does not.** It covers the `agentbundle`
+  destination's engine subtree, `.agentbundle/tooling/agentbundle/`, which is
+  the only part of a derived tree that can supply a running interpreter. It
+  does **not** cover `packages/credbroker/`: that is a build input resolved by
+  relative path rather than an install source, so writing it cannot replace
+  executing code. An adopter who installed credbroker editable from the target
+  falls outside the refusal, and the existing detector would not see that case
+  either.
 - **`git+https://` carries no content integrity.** Record whatever pin the
   source form affords and print which fidelity was obtained.
 - **Schema-1 states cannot self-heal.** Their `sha256: None` entries support
@@ -209,7 +235,7 @@ contracts unchanged; removing the new verb restores the status quo exactly.
    restored the drift gate in derived catalogues whether or not `sync` ever
    ships. See § Shipped: credbroker source follows its pack.
 
-Phase 3 is complete. One phase remains:
+Every phase is complete:
 
 1. ~~**State schema 3**~~ — **done**. `init` writes the recipe and pin fields.
    `init --source` takes a local path only: it resolves the argument as a
@@ -222,15 +248,14 @@ Phase 3 is complete. One phase remains:
    replay, classify, and plan, with no write path.
 3. ~~**The apply path**, plus the scoping flags.~~ — **done**. `sync` writes,
    guarded by consent, the five scoping flags, and rollback on a partial write.
-4. **Package sync** — the two `--package` destinations,
-   `.agentbundle/tooling/agentbundle/` (vendored mode only) and
-   `packages/credbroker/`. Phase 4 owns the whole `.agentbundle/tooling/` root,
-   not only the `agentbundle` subtree inside it — including the vendored
-   `packs/catalogue-curation/` copy. The engine and the curation pack are
-   installed as a pair, so they move as a pair; scoping phase 4 to
-   `agentbundle/` alone would leave that copy written by no verb while this
-   phase reports it as deferred. Last, because the agentbundle half carries the
-   self-replacement risk.
+4. ~~**Package sync** — the two `--package` destinations,
+   `.agentbundle/tooling/` (vendored mode only) and `packages/credbroker/`.~~ —
+   **done**. `--package` became a fourth scoping flag, the extent joined the
+   write set, and packages apply last. The `agentbundle` destination is the
+   whole vendored tooling root, including the `packs/catalogue-curation/` copy:
+   the engine and the curation pack are installed as a pair, so they move as a
+   pair. Last, because the agentbundle half carries the self-replacement
+   risk.
 
 ## Shipped: credbroker source follows its pack
 

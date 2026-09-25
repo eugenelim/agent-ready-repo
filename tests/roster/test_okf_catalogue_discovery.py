@@ -49,8 +49,8 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
     # tripwire, not a record of when OKF catalogue discovery shipped: its
     # position assertions fail the moment a newer heading sits above the
     # pinned one, which is exactly the half-finished release it exists to
-    # catch. 0.49.0 verified to satisfy every assertion here before the bump.
-    expected = "0.49.0"
+    # catch. 0.50.0 verified to satisfy every assertion here before the bump.
+    expected = "0.50.0"
     pyproject = tomllib.loads(
         (PACKAGE_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )

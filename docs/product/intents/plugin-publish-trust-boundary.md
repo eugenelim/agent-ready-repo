@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** feature
 - **Owner:** eugenelim
+- **Parent intent:** capability:catalogue-publication
 - **Governed by:** [spec/claude-plugin-route-scope](../../specs/claude-plugin-route-scope/spec.md); [spec/claude-plugin-hook-parity AC35](../../specs/claude-plugin-hook-parity/spec.md); [spec/marketplace-generator-single-source review concern 4](../../specs/marketplace-generator-single-source/spec.md)
 
 ## Outcome

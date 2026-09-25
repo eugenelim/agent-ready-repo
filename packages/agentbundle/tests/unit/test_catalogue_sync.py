@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import pytest
 from agentbundle import safety
+from agentbundle.catalogue import CatalogueError
 from agentbundle.catalogue_tooling import initialise_self_hosted as ish
 from agentbundle.cli import _build_parser
 from agentbundle.commands import catalogue_sync
@@ -1845,112 +1846,71 @@ def _replay_scope_predicate_source(
     return set(replay.file_bytes)
 
 
+def _scope_select(tmp_path, planned, **kw):
+    kw.setdefault("pack_names", [])
+    kw.setdefault("profile_names", [])
+    kw.setdefault("guides", False)
+    kw.setdefault("package", None)
+    return catalogue_sync.select_write_set(tmp_path, planned, **kw)
+
+
 def test_scope_predicate_admits_named_subtrees_and_unions_repeated_pack(tmp_path):
     planned = _replay_scope_predicate_source(tmp_path)
-
-    admitted, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core"], profile_names=["default"], guides=True
-    )
-
-    assert "packs/core/pack.toml" in admitted
-    assert "profiles/default.toml" in admitted
-    assert "guides/_shared/example.md" in admitted
-
-    admitted_union, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core", "core-extras"], profile_names=[], guides=False
-    )
-    assert "packs/core/pack.toml" in admitted_union
-    assert "packs/core-extras/pack.toml" in admitted_union
+    admitted = _scope_select(tmp_path, planned, pack_names=["core", "core-extras"])
+    assert any(p.startswith("packs/core/") for p in admitted)
+    assert any(p.startswith("packs/core-extras/") for p in admitted)
+    assert not any(p.startswith("guides/") for p in admitted)
 
 
 def test_scope_predicate_excludes_nothing_with_no_scoping_flag(tmp_path):
-    # tooling=external and no credential-brokers pack selected: this fixture's
-    # planned set carries no deferred-package path, so "excludes nothing" is
-    # observable as an exact-equality, not merely a superset check.
-    planned = _replay_scope_predicate_source(
-        tmp_path, tooling="external", packs=["core", "core-extras"]
-    )
-
-    admitted, deferred = catalogue_sync.select_write_set(
-        planned, pack_names=[], profile_names=[], guides=False
-    )
-
-    assert admitted == planned
-    assert deferred == 0
+    # AC-0042. Rewritten from phase 3's anchor, which also asserted
+    # `deferred == 0`: AC-0088 retires that count, and AC-0079 means an
+    # unscoped run admits the package extent rather than deferring it.
+    planned = _replay_scope_predicate_source(tmp_path)
+    assert _scope_select(tmp_path, planned) == set(planned)
 
 
 def test_scope_predicate_excludes_catalogue_toml_and_conformance_under_any_scope(
     tmp_path,
 ):
     planned = _replay_scope_predicate_source(tmp_path)
+    for scope in (
+        {"pack_names": ["core"]},
+        {"profile_names": ["default"]},
+        {"guides": True},
+        {"package": "credbroker"},
+    ):
+        admitted = _scope_select(tmp_path, planned, **scope)
+        assert "catalogue.toml" not in admitted
+        assert not any(p.startswith("tests/conformance/") for p in admitted)
 
-    admitted, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core"], profile_names=[], guides=False
-    )
 
-    assert "catalogue.toml" in planned
-    assert "catalogue.toml" not in admitted
-    conformance_paths = {p for p in planned if p.startswith("tests/conformance/")}
-    assert conformance_paths  # the fixture actually ships one
-    assert not (conformance_paths & admitted)
-
-
-@pytest.mark.parametrize(
-    "pack_names,profile_names,guides",
-    [
-        ([], [], False),
-        (["core"], [], False),
-        ([], ["default"], False),
-        ([], [], True),
-    ],
-)
-def test_scope_predicate_defers_vendored_and_credbroker_paths_under_every_scope(
-    tmp_path, pack_names, profile_names, guides
-):
+def test_scope_predicate_admits_the_package_extent_rather_than_deferring_it(tmp_path):
+    # Rewritten from phase 3's anchor, which duplicated
+    # `_DEFERRED_PACKAGE_PREFIXES` literally and asserted every path under it
+    # was excluded from the write set under every scope. AC-0079 inverts that:
+    # the extent is admitted on the same terms as any other replayed path.
+    #
+    # Driven over a real replay's planned-path set, not a hand-written list.
     planned = _replay_scope_predicate_source(tmp_path)
-    deferred_paths = {
+    package_paths = {
         p for p in planned
-        if p.startswith(("packages/credbroker/", ".agentbundle/tooling/"))
+        if p.startswith((".agentbundle/tooling/", "packages/credbroker/"))
     }
-    # The whole vendored tooling root is the extent, not only its
-    # `agentbundle/` subdirectory — the fixture's `packs/catalogue-curation/`
-    # copy is exactly the subtree a narrower reading would wrongly admit.
-    assert any(
-        p.startswith(".agentbundle/tooling/packs/catalogue-curation/")
-        for p in deferred_paths
-    )
-    assert any(
-        p.startswith(".agentbundle/tooling/agentbundle/") for p in deferred_paths
-    )
-    assert deferred_paths  # the fixture actually ships every deferred subtree
+    assert package_paths, "fixture must ship package paths for this to discriminate"
 
-    admitted, deferred_count = catalogue_sync.select_write_set(
-        planned,
-        pack_names=pack_names,
-        profile_names=profile_names,
-        guides=guides,
-    )
+    # Unscoped: admitted, where phase 3 excluded every one of them.
+    assert package_paths <= _scope_select(tmp_path, planned)
 
-    assert not (deferred_paths & admitted)
-    assert deferred_count == len(deferred_paths)
+    # Under a non-package scope: excluded, because `--pack` never reaches
+    # inside a destination (AC-0081).
+    assert not (package_paths & _scope_select(tmp_path, planned, pack_names=["core"]))
 
 
 def test_scope_predicate_pack_core_does_not_admit_core_extras_sibling(tmp_path):
     planned = _replay_scope_predicate_source(tmp_path)
-    assert "packs/core-extras/pack.toml" in planned  # the fixture ships the sibling
-
-    admitted, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core"], profile_names=[], guides=False
-    )
-
-    assert "packs/core-extras/pack.toml" not in admitted
-
-
-# ---------------------------------------------------------------------------
-# T3: the state merge and the pin (spec AC-0033 clause 1, AC-0036, AC-0037,
-# AC-0044, AC-0045, AC-0059). Both functions are pure over their arguments —
-# no test in this section touches a filesystem.
-# ---------------------------------------------------------------------------
+    admitted = _scope_select(tmp_path, planned, pack_names=["core"])
+    assert not any(p.startswith("packs/core-extras/") for p in admitted)
 
 
 def _base_old_state(
@@ -2357,6 +2317,10 @@ def _apply(target: Path, replay, verdict_rows, **overrides) -> catalogue_sync.Wr
         "pack_names": replay.pack_names,
         "profile_names": replay.profile_names,
         "guides_scope": False,
+        # Required rather than defaulted (review round 2, concern 7): round
+        # 1's blocker was a caller that silently omitted it, and a default of
+        # None means "every path".
+        "package": None,
         "guides_mode": replay.config.guides,
         "pin": {"synced_at": "2026-09-23T00:00:00Z", "source_revision": None,
                 "archive_sha256": None},
@@ -2412,6 +2376,7 @@ def test_apply_write_order_is_packs_profiles_guides_derivation_then_state(
         pack_names=[], profile_names=[],
         guides_scope=False, guides_mode="selected",
         pin={},
+        package=None,
     )
 
     assert result.ok
@@ -2823,6 +2788,11 @@ def test_apply_removal_spelling_traversal_resolves_inside_protected_subtree(tmp_
     in_coverage = catalogue_sync._in_coverage(
         target, traversal_path,
         pack_names=["alpha"], profile_names=[], guides_mode="selected", scope=None,
+        # AC-0086: external tooling, so the vendored destination is not
+        # present and the path is outside coverage. Phase 3 got the same
+        # answer from an absolute bar; the answer now rests on the presence
+        # condition, and a vendored run would reach it.
+        tooling="external",
     )
 
     assert not in_coverage
@@ -3164,6 +3134,7 @@ def test_apply_snapshot_bound_refuses_before_the_prompt_and_before_any_write(tmp
         guides_scope=False, guides_mode="selected",
         pin={},
         snapshot_bound_bytes=1024,
+        package=None,
     )
 
     assert not result.ok
@@ -3407,6 +3378,7 @@ def test_apply_planned_path_outside_target_root_is_refused_at_the_write(tmp_path
         pack_names=[], profile_names=[],
         guides_scope=False, guides_mode="selected",
         pin={},
+        package=None,
     )
     assert not result.ok
     assert result.write_failed_path == "../escape.md"
@@ -3601,6 +3573,7 @@ def test_apply_rename_recheck_refuses_after_earlier_write_landed_and_restores_it
             file_bytes=file_bytes, planned_paths=set(file_bytes),
             pack_names=["alpha"], profile_names=[],
             guides_scope=False, guides_mode="selected", pin={},
+            package=None,
         )
 
     assert not result.ok
@@ -4514,6 +4487,10 @@ def _call_run_apply(target: Path, source: Path, **overrides) -> int:
         "cli_pack_names": [],
         "cli_profile_names": [],
         "guides_scope": False,
+        # Required rather than defaulted (review round 3, concern 3): these
+        # two dispatch functions are what a new caller or test constructs, so
+        # the seam that made round 1's blocker a type error has to reach them.
+        "package": None,
     }
     kwargs.update(overrides)
     return catalogue_sync._run_apply(**kwargs)
@@ -4904,58 +4881,39 @@ def test_run_apply_adapter_contract_mismatch_returns_difference(tmp_path):
     assert walk_target_tree(target) == before
 
 
-@pytest.mark.parametrize(
-    "mode_flag,package_name",
-    [
-        (("--dry-run",), "agentbundle"),
-        (("--dry-run",), "credbroker"),
-        (("--check",), "agentbundle"),
-        (("--check",), "credbroker"),
-        ((), "agentbundle"),
-        ((), "credbroker"),
-    ],
-    ids=[
-        "dry-run-agentbundle", "dry-run-credbroker",
-        "check-agentbundle", "check-credbroker",
-        "apply-agentbundle", "apply-credbroker",
-    ],
-)
-def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
-    tmp_path, monkeypatch, mode_flag, package_name
+def test_package_credbroker_no_longer_refuses_and_does_reach_the_source(
+    tmp_path, monkeypatch
 ):
-    # AC-0047: `--package` with a recognised name refuses on apply, on
-    # `--dry-run`, and on `--check` alike, and the row sits above source
-    # resolution — no fetch is ever performed. Driven through the real
-    # parser (`_build_parser`), not a hand-built namespace: the defaults
-    # `--package` resolves to are the parser's own `choices`/`default`, not
-    # this test's (AC-0030's oracle).
-    #
-    # Concern 9, round 2: every earlier version of this test covered one
-    # mode and one recognised name each -- `agentbundle` was only ever
-    # driven through `--dry-run`, `credbroker` only through `--check` and a
-    # bare apply run. A regression scoped to (say) `credbroker`-on-`--dry-run`
-    # or `agentbundle`-on-apply could ship with every one of those green.
-    # This is the full 3-mode x 2-name cross product (a bare invocation with
-    # neither `--dry-run` nor `--check` is apply, per AC-0030's non-required
-    # mode group).
-    target = tmp_path / "package-target"
+    # Rewrites phase 3's anchor, which asserted `--package <name>` exits 3 as
+    # "not available yet" across the 3-mode x 2-name cross product. Phase 4
+    # retires that row. The `credbroker` half of AC-0082 cannot be decided
+    # here at all: its input is the resolved selection, so AC-0084 records
+    # that a run refusing on it has already fetched. What this pins is that
+    # the retired row is gone and the run proceeds to resolution.
+    target = tmp_path / "t"
     target.mkdir()
-    source = tmp_path / "package-source"
+    reached = []
 
-    def _boom(uri):
-        raise AssertionError("source resolution must not run for --package")
+    def _record(uri):
+        reached.append(uri)
+        raise CatalogueError("stop here")
 
-    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _boom)
-    monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
-
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _record)
     args = _build_parser().parse_args(
         [
-            "catalogue", "sync", str(target), "--source", str(source),
-            *mode_flag, "--package", package_name,
+            "catalogue", "sync", str(target),
+            "--source", "git+https://example.invalid/o/r",
+            "--package", "credbroker",
         ]
     )
+    assert catalogue_sync.run(args) == 3  # source could not be resolved
+    assert reached, "the credbroker half must reach source resolution, per AC-0084"
 
-    assert catalogue_sync.run(args) == 3
+
+def test_no_invocation_reports_package_sync_as_unavailable(tmp_path, monkeypatch):
+    # The retired message must not survive anywhere: phase 3's refusal text
+    # was never pinned by a test, so nothing else would catch it lingering.
+    assert "not available yet" not in Path(catalogue_sync.__file__).read_text(encoding="utf-8")
 
 
 def test_run_package_unrecognized_name_exits_2_via_the_real_parser(tmp_path):
@@ -5546,72 +5504,17 @@ def test_run_apply_removal_and_out_of_coverage_paths_pass_the_terminal_safe_chec
     assert any("rejected out_of_coverage" in line for line in doc["rejections"])
 
 
-def test_run_apply_deferred_package_count_equals_planned_package_paths(tmp_path, capsys):
-    # AC-0066: the reported `deferred_package` count equals the number of
-    # planned paths clause 5 excludes. Clause 5 only ever excludes a path
-    # clause 3 would otherwise admit (a `would-update`/`would-companion`
-    # verdict, or a path belonging to a newly introduced pack/profile) — a
-    # `packages/credbroker/**` path nobody has recorded yet is plain
-    # `untouched` and was never a write candidate in the first place, so
-    # this fixture records two such paths with a stale digest, and the
-    # source now ships different bytes for both (`would-update`), which is
-    # what makes clause 5's exclusion — and this count — observable.
-    source = tmp_path / "deferred-source"
-    source.mkdir()
-    (source / "catalogue.toml").write_text(
-        '[catalogue]\nname = "upstream"\ndisplay_name = "Upstream"\n'
-        'description = "d"\n',
-        encoding="utf-8",
-    )
-    creds_pack = source / "packs" / "credential-brokers"
-    creds_pack.mkdir(parents=True)
-    (creds_pack / "pack.toml").write_text(
-        '[pack]\nname = "credential-brokers"\nversion = "1.0.0"\n', encoding="utf-8"
-    )
-    pkg = source / "packages" / "credbroker"
-    pkg.mkdir(parents=True)
-    (pkg / "one.txt").write_text("vendored v2\n", encoding="utf-8")
-    (pkg / "two.txt").write_text("vendored v2\n", encoding="utf-8")
-
-    target = tmp_path / "deferred-target"
-    target_pkg = target / "packages" / "credbroker"
-    target_pkg.mkdir(parents=True)
-    (target_pkg / "one.txt").write_bytes(b"vendored v1\n")
-    (target_pkg / "two.txt").write_bytes(b"vendored v1\n")
-    _write_apply_run_state(
-        target,
-        recipe={"packs": ["credential-brokers"], "profiles": []},
-        managed_paths=[
-            {
-                "path": "packages/credbroker/one.txt",
-                "sha256": hashlib.sha256(b"vendored v1\n").hexdigest(),
-            },
-            {
-                "path": "packages/credbroker/two.txt",
-                "sha256": hashlib.sha256(b"vendored v1\n").hexdigest(),
-            },
-        ],
-    )
-    before_one = (target_pkg / "one.txt").read_bytes()
-
-    code = _call_run_apply(target, source, fmt="json")
-    doc = json.loads(capsys.readouterr().out)
-
-    assert code == 0
-    assert doc["summary"]["deferred_package"] == 2
-    # Never written: clause 5 excludes it from the write set entirely.
-    assert (target_pkg / "one.txt").read_bytes() == before_one
-
-
-# T7: the parser admits an apply run (spec AC-0030, AC-0060, AC-0074).
-#
-# Every test below drives `_build_parser()` itself — never a hand-built
-# `argparse.Namespace` — because the parser's own defaults (and its own
-# refusals) are what these criteria constrain. AC-0043's `--dry-run`-side
-# scoping restriction and its `--check`-side malformed row are T6/T7's own
-# recorded gap (plan.md's live cross-task note): neither `run()` nor
-# `_run_dry_run` reads `--pack`/`--profile`/`--guides` yet, and that wiring
-# sits in `commands/catalogue_sync.py`, outside this task's `Touches:`.
+def test_run_apply_reports_no_deferred_package_count(tmp_path, monkeypatch):
+    # AC-0088. Rewritten from phase 3's anchor, which asserted
+    # `doc["summary"]["deferred_package"] == 2`. The count existed only to
+    # report the extent this phase writes, so it is retired rather than
+    # recalculated -- on the JSON summary and on the printed counts line.
+    assert "deferred_package" not in Path(
+        catalogue_sync.__file__
+    ).read_text(encoding="utf-8")
+    assert "deferred-package" not in Path(
+        catalogue_sync.__file__
+    ).read_text(encoding="utf-8")
 
 
 def _find_subparsers_action(parser: argparse.ArgumentParser) -> argparse._SubParsersAction:
@@ -5915,3 +5818,902 @@ def test_sync_dry_run_narrows_an_empty_recorded_profiles_field_to_nothing(
     # a verdict row (and, downstream, become writable by apply). Assert
     # the narrowed set directly, at the surface it actually feeds.
     assert "profiles/default.toml" not in {row["path"] for row in doc["verdicts"]}
+
+
+# ---------------------------------------------------------------------------
+# T1 / AC-0087 — one path comparison, two parts.
+#
+# The predicate answers two questions: whether a path lies inside a named
+# directory, and whether two paths name the same directory. It resolves the
+# longest existing ancestor by identity and compares only the non-existent
+# remainder lexically, which is what lets it answer for a planned path under a
+# destination the run is about to create.
+# ---------------------------------------------------------------------------
+
+
+def _extent_fixture(tmp_path: Path) -> Path:
+    """A target carrying the vendored tooling root and a credbroker source."""
+    target = tmp_path / "derived"
+    (target / ".agentbundle" / "tooling" / "agentbundle" / "agentbundle").mkdir(parents=True)
+    (target / ".agentbundle" / "tooling" / "packs" / "catalogue-curation").mkdir(parents=True)
+    (target / "packages" / "credbroker" / "credbroker").mkdir(parents=True)
+    (target / "packages" / "credbroker-extras").mkdir(parents=True)
+    (target / "packs" / "core").mkdir(parents=True)
+    return target
+
+
+_PKG_PREFIXES = ("packages/credbroker/", ".agentbundle/tooling/")
+
+
+def test_package_path_admits_an_existing_path_under_each_destination(tmp_path):
+    target = _extent_fixture(tmp_path)
+    for rel in (
+        ".agentbundle/tooling/agentbundle/agentbundle",
+        ".agentbundle/tooling/packs/catalogue-curation",
+        "packages/credbroker/credbroker",
+    ):
+        assert catalogue_sync._is_package_path(target, rel, _PKG_PREFIXES), rel
+
+
+def test_package_path_admits_a_planned_path_that_is_not_yet_on_disk(tmp_path):
+    """The case AC-0087 exists for: every planned path of a destination a run
+    is about to create has no on-disk entry of its own. Answering "not a
+    package path" here would sort it into the derivation-wide write group and
+    silently defeat AC-0080's packages-last ordering."""
+    target = _extent_fixture(tmp_path)
+    assert catalogue_sync._is_package_path(
+        target, ".agentbundle/tooling/agentbundle/agentbundle/brand_new.py", _PKG_PREFIXES
+    )
+    assert catalogue_sync._is_package_path(
+        target, "packages/credbroker/credbroker/brand_new.py", _PKG_PREFIXES
+    )
+
+
+def test_package_path_admits_a_planned_path_below_a_symlinked_ancestor(tmp_path):
+    """The case a path-level existence test misses. `link` resolves into the
+    tooling root; `link/agentbundle/new` has no entry of its own, so a
+    path-level test takes the lexical branch, judges it outside every
+    destination, and admits a write inside the destination anyway — which the
+    jail does not catch, because it lands inside the target root."""
+    target = _extent_fixture(tmp_path)
+    (target / "link").symlink_to(target / ".agentbundle" / "tooling")
+    assert catalogue_sync._is_package_path(target, "link/agentbundle/new", _PKG_PREFIXES)
+
+
+def test_package_path_admits_a_traversal_spelling(tmp_path):
+    target = _extent_fixture(tmp_path)
+    assert catalogue_sync._is_package_path(
+        target, "packs/../.agentbundle/tooling/agentbundle/x", _PKG_PREFIXES
+    )
+
+
+def test_package_path_rejects_a_sibling_sharing_a_string_prefix(tmp_path):
+    """`packages/credbroker-extras/` shares every character of
+    `packages/credbroker` up to the separator."""
+    target = _extent_fixture(tmp_path)
+    assert not catalogue_sync._is_package_path(
+        target, "packages/credbroker-extras/x", _PKG_PREFIXES
+    )
+    assert not catalogue_sync._is_package_path(target, "packs/core/pack.toml", _PKG_PREFIXES)
+
+
+def test_same_directory_answers_equality_for_two_spellings_of_one_root(tmp_path):
+    """AC-0083 input 1 asks whether a resolved catalogue root *is* the target
+    root — an equality question, which the same comparison answers."""
+    target = _extent_fixture(tmp_path)
+    assert catalogue_sync._same_directory(target, target / "packs" / "..")
+    assert not catalogue_sync._same_directory(target, target / "packs")
+    assert not catalogue_sync._same_directory(target, tmp_path / "absent")
+
+
+# ---------------------------------------------------------------------------
+# T2 / AC-0082, AC-0083, AC-0084 — the two refusals that sit above source
+# resolution. They land before the write extent exists, so at no commit does
+# the tree hold a route to overwriting the running engine without the control
+# that refuses it.
+# ---------------------------------------------------------------------------
+
+
+def _no_fetch(monkeypatch):
+    def _boom(*_a, **_k):
+        raise AssertionError("source resolution must not run for this refusal")
+
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _boom)
+    monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
+
+
+def _sync_args(target, source, *extra):
+    return _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), *extra]
+    )
+
+
+@pytest.mark.parametrize("mode_flag", [[], ["--dry-run"]], ids=["apply", "dry-run"])
+def test_package_agentbundle_without_vendored_tooling_is_malformed(
+    tmp_path, monkeypatch, mode_flag
+):
+    # AC-0082 agentbundle half: the destination does not exist in external
+    # tooling, and a run reporting success would refresh the pin over a
+    # subtree it never wrote. AC-0084: no fetch.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    args = _sync_args(target, tmp_path / "src", *mode_flag, "--package", "agentbundle")
+    assert catalogue_sync.run(args) == 2
+
+
+def test_package_agentbundle_with_vendored_tooling_passes_the_absent_extent_row(
+    tmp_path, monkeypatch
+):
+    # The same invocation with `--tooling vendored` is past AC-0082 and
+    # reaches source resolution, which is where it now fails instead.
+    target = tmp_path / "t"
+    target.mkdir()
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    args = _sync_args(
+        target, tmp_path / "src", "--tooling", "vendored", "--package", "agentbundle"
+    )
+    assert catalogue_sync.run(args) == 3  # source could not be resolved, not AC-0082
+
+
+def test_self_replacement_refuses_when_the_detector_resolves_the_target_root(
+    tmp_path, monkeypatch
+):
+    # AC-0083 input 1, and AC-0084's no-fetch obligation.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(
+        catalogue_sync, "_detect_editable_source", lambda *_a, **_k: str(target)
+    )
+    before = walk_target_tree(target)
+    args = _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    assert catalogue_sync.run(args) == 3
+    assert walk_target_tree(target) == before
+
+
+def test_self_replacement_refuses_when_the_running_package_is_inside_the_target(
+    tmp_path, monkeypatch
+):
+    # AC-0083 input 2 — the case input 1 cannot see. `_detect_editable_source`
+    # is bounded by an enclosing git repository and returns nothing for a
+    # derived catalogue that is not one, so this target carries no `.git`.
+    target = tmp_path / "t"
+    engine = target / ".agentbundle" / "tooling" / "agentbundle" / "agentbundle"
+    engine.mkdir(parents=True)
+    assert not (target / ".git").exists()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    monkeypatch.setattr(catalogue_sync, "_running_package_root", lambda: engine)
+    args = _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    assert catalogue_sync.run(args) == 3
+
+
+def test_self_replacement_does_not_fire_when_neither_input_holds(tmp_path, monkeypatch):
+    target = tmp_path / "t"
+    target.mkdir()
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    monkeypatch.setattr(catalogue_sync, "_running_package_root", lambda: tmp_path / "elsewhere")
+    args = _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    assert catalogue_sync.run(args) == 3  # falls through to source resolution
+
+
+def test_self_replacement_is_not_reached_under_external_tooling(tmp_path, monkeypatch):
+    # AC-0083 triggers on the run's effective scope. External tooling replays
+    # no `.agentbundle/tooling/` paths, so the scope never reaches the
+    # destination and the refusal has nothing to refuse.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(
+        catalogue_sync,
+        "_detect_editable_source",
+        lambda *_a, **_k: (_ for _ in ()).throw(
+            AssertionError("self-replacement must not be tested under external tooling")
+        ),
+    )
+    args = _sync_args(target, tmp_path / "src")
+    # Reaches source resolution, so it is past both new rows.
+    assert catalogue_sync.run(args) == 3
+
+
+def test_malformed_json_without_yes_still_outranks_both_new_rows(tmp_path, monkeypatch):
+    # AC-0085 ordering: the `--format json` malformed row sits above the
+    # absent-extent and self-replacement rows. Rewrites the phase-3 anchor.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(
+        catalogue_sync, "_detect_editable_source", lambda *_a, **_k: str(target)
+    )
+    args = _sync_args(
+        target, tmp_path / "src", "--format", "json",
+        "--tooling", "vendored", "--package", "agentbundle",
+    )
+    assert catalogue_sync.run(args) == 2
+
+
+# ---------------------------------------------------------------------------
+# T3 / AC-0079, AC-0081 — the write set admits the package extent, and
+# `--package` scopes to it.
+# ---------------------------------------------------------------------------
+
+_PLANNED_WITH_PACKAGES = [
+    "packs/core/pack.toml",
+    "packs/core-extras/pack.toml",
+    "profiles/default.toml",
+    "guides/_shared/how-to/x.md",
+    "catalogue.toml",
+    "tests/conformance/test_x.py",
+    "packages/credbroker/credbroker/__init__.py",
+    ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+    ".agentbundle/tooling/packs/catalogue-curation/pack.toml",
+]
+
+
+def _select(target, **kw):
+    kw.setdefault("pack_names", [])
+    kw.setdefault("profile_names", [])
+    kw.setdefault("guides", False)
+    kw.setdefault("package", None)
+    return catalogue_sync.select_write_set(target, _PLANNED_WITH_PACKAGES, **kw)
+
+
+def test_unscoped_write_set_admits_the_package_extent(tmp_path):
+    # AC-0079: a package path is admitted on the same terms as any other
+    # replayed path. AC-0033 clause 4 still excludes the derivation-wide ones.
+    target = _extent_fixture(tmp_path)
+    admitted = _select(target)
+    assert "packages/credbroker/credbroker/__init__.py" in admitted
+    assert ".agentbundle/tooling/agentbundle/agentbundle/cli.py" in admitted
+    assert ".agentbundle/tooling/packs/catalogue-curation/pack.toml" in admitted
+
+
+def test_package_scope_admits_only_its_own_destination(tmp_path):
+    # AC-0081: `--package <name>` restricts the run to that destination.
+    target = _extent_fixture(tmp_path)
+    assert _select(target, package="credbroker") == {
+        "packages/credbroker/credbroker/__init__.py"
+    }
+    assert _select(target, package="agentbundle") == {
+        ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+        ".agentbundle/tooling/packs/catalogue-curation/pack.toml",
+    }
+
+
+def test_package_scope_unions_with_a_pack_scope(tmp_path):
+    target = _extent_fixture(tmp_path)
+    assert _select(target, pack_names=["core"], package="credbroker") == {
+        "packs/core/pack.toml",
+        "packages/credbroker/credbroker/__init__.py",
+    }
+
+
+def test_pack_scope_never_reaches_inside_a_package_destination(tmp_path):
+    # AC-0081's closing paragraph: the vendored catalogue-curation copy moves
+    # only under `--package agentbundle`, never under `--pack`.
+    target = _extent_fixture(tmp_path)
+    assert _select(target, pack_names=["catalogue-curation"]) == set()
+
+
+def test_scoped_run_still_excludes_derivation_wide_paths(tmp_path):
+    target = _extent_fixture(tmp_path)
+    for scope in ({"package": "agentbundle"}, {"pack_names": ["core"]}):
+        admitted = _select(target, **scope)
+        assert "catalogue.toml" not in admitted
+        assert "tests/conformance/test_x.py" not in admitted
+
+
+def test_select_write_set_returns_a_set_alone(tmp_path):
+    # AC-0088: the deferred count is retired, so the selector has nothing to
+    # return beside the admitted set.
+    target = _extent_fixture(tmp_path)
+    assert isinstance(_select(target), set)
+
+
+# ---------------------------------------------------------------------------
+# T4 / AC-0080 — packages write last.
+# ---------------------------------------------------------------------------
+
+
+def test_write_order_puts_every_package_path_after_every_other(tmp_path):
+    target = _extent_fixture(tmp_path)
+    paths = [
+        "catalogue.toml",
+        "packs/core/pack.toml",
+        "profiles/default.toml",
+        "guides/_shared/how-to/x.md",
+        "packages/credbroker/credbroker/__init__.py",
+        ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+    ]
+    ordered = catalogue_sync.write_order(target, paths)
+    package_ix = [
+        i for i, p in enumerate(ordered)
+        if p.startswith((".agentbundle/tooling/", "packages/credbroker/"))
+    ]
+    other_ix = [i for i, _ in enumerate(ordered) if i not in package_ix]
+    assert package_ix and other_ix
+    assert min(package_ix) > max(other_ix)
+
+
+def test_write_order_keeps_the_first_four_groups_unchanged(tmp_path):
+    target = _extent_fixture(tmp_path)
+    ordered = catalogue_sync.write_order(
+        target,
+        [
+            "catalogue.toml",
+            "guides/_shared/x.md",
+            "profiles/default.toml",
+            "packs/core/pack.toml",
+        ],
+    )
+    assert ordered == [
+        "packs/core/pack.toml",
+        "profiles/default.toml",
+        "guides/_shared/x.md",
+        "catalogue.toml",
+    ]
+
+
+def test_write_order_sorts_a_planned_package_path_not_yet_on_disk(tmp_path):
+    # The ordering must hold for the paths a vendored run is about to create,
+    # which is the whole case AC-0087's two-part comparison exists for.
+    target = _extent_fixture(tmp_path)
+    ordered = catalogue_sync.write_order(
+        target,
+        ["packs/core/pack.toml", ".agentbundle/tooling/agentbundle/agentbundle/new.py"],
+    )
+    assert ordered[-1] == ".agentbundle/tooling/agentbundle/agentbundle/new.py"
+
+
+# ---------------------------------------------------------------------------
+# T5 / AC-0086 — coverage reaches the package extent, under a presence
+# condition rather than by deleting the exclusion.
+# ---------------------------------------------------------------------------
+
+
+def _cov(tmp_path, path, *, tooling, packs=("core",), guides_mode="selected", scope=None):
+    return catalogue_sync._in_coverage(
+        _extent_fixture(tmp_path) if not (tmp_path / "derived").exists() else tmp_path / "derived",
+        path,
+        pack_names=list(packs),
+        profile_names=[],
+        guides_mode=guides_mode,
+        scope=scope,
+        tooling=tooling,
+    )
+
+
+def test_vendored_tooling_path_is_inside_coverage_only_under_a_vendored_replay(tmp_path):
+    # AC-0086's presence condition. The negative half is the important one:
+    # `_in_coverage` ends `return True`, so deleting AC-0069's exclusion
+    # without adding this condition would put every recorded
+    # `.agentbundle/tooling/` path inside coverage on an external-mode run --
+    # reinstating the mass removal AC-0069 measures at 240 paths for a
+    # vendored-derived tree met by this command's external default.
+    p = ".agentbundle/tooling/agentbundle/agentbundle/cli.py"
+    assert _cov(tmp_path, p, tooling="vendored")
+    assert not _cov(tmp_path, p, tooling="external")
+
+
+def test_credbroker_path_is_inside_coverage_only_when_its_pack_resolved(tmp_path):
+    p = "packages/credbroker/credbroker/__init__.py"
+    assert _cov(tmp_path, p, tooling="external", packs=("core", "credential-brokers"))
+    assert not _cov(tmp_path, p, tooling="external", packs=("core",))
+
+
+def test_credbroker_coverage_does_not_depend_on_tooling_mode(tmp_path):
+    p = "packages/credbroker/credbroker/__init__.py"
+    for tooling in ("external", "vendored"):
+        assert _cov(tmp_path, p, tooling=tooling, packs=("credential-brokers",))
+
+
+def test_package_coverage_still_respects_the_scope(tmp_path):
+    target = _extent_fixture(tmp_path)
+    scope = catalogue_sync._scope_subtrees([], [], False, "credbroker")
+    assert not catalogue_sync._in_coverage(
+        target,
+        ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+        pack_names=["core"],
+        profile_names=[],
+        guides_mode="selected",
+        scope=scope,
+        tooling="vendored",
+    )
+
+
+# ---------------------------------------------------------------------------
+# T6 / AC-0089 — `tree_modified`, an end state rather than an action record.
+# ---------------------------------------------------------------------------
+
+
+def test_tree_modified_is_false_when_every_touched_path_was_restored(tmp_path):
+    # The case the field exists for. `.acted` is appended before the restore
+    # runs, so reading it would report true here -- and a caller reading exit
+    # 4 needs false to know retrying is safe.
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    (target / "packs" / "a.txt").write_bytes(b"before\n")
+    before = catalogue_sync.snapshot_write_set(target, {"packs/a.txt"})
+    (target / "packs" / "a.txt").write_bytes(b"after\n")
+    (target / "packs" / "a.txt").write_bytes(b"before\n")  # restored
+    assert not catalogue_sync.tree_modified(target, before, {"packs/a.txt"})
+
+
+def test_tree_modified_is_true_when_a_touched_path_still_differs(tmp_path):
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    (target / "packs" / "a.txt").write_bytes(b"before\n")
+    before = catalogue_sync.snapshot_write_set(target, {"packs/a.txt"})
+    (target / "packs" / "a.txt").write_bytes(b"after\n")
+    assert catalogue_sync.tree_modified(target, before, {"packs/a.txt"})
+
+
+def test_tree_modified_is_true_for_a_path_the_run_created(tmp_path):
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    before = catalogue_sync.snapshot_write_set(target, {"packs/new.txt"})
+    (target / "packs" / "new.txt").write_bytes(b"x\n")
+    assert catalogue_sync.tree_modified(target, before, {"packs/new.txt"})
+
+
+def test_tree_modified_ignores_a_path_the_run_never_touched(tmp_path):
+    # AC-0041 permits a path another writer changed during the run, at which
+    # the command neither wrote, created nor removed. Scoping the field to the
+    # run's own paths is what keeps a concurrent writer from reporting true
+    # for a run that changed nothing.
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    (target / "packs" / "a.txt").write_bytes(b"before\n")
+    (target / "packs" / "other.txt").write_bytes(b"before\n")
+    before = catalogue_sync.snapshot_write_set(target, {"packs/a.txt"})
+    (target / "packs" / "other.txt").write_bytes(b"CONCURRENT\n")
+    assert not catalogue_sync.tree_modified(target, before, {"packs/a.txt"})
+
+
+# ---------------------------------------------------------------------------
+# T7 / AC-0090 — rollback covers a failed package write.
+# ---------------------------------------------------------------------------
+
+
+def _replay_with_package_paths(tmp_path, tag):
+    """An apply fixture whose planned set carries a package path.
+
+    The fixture replays external tooling, so the vendored root is absent; the
+    credbroker destination is what this reaches, and it is present in either
+    tooling mode whenever its pack is selected.
+    """
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag=tag)
+    pkg = "packages/credbroker/credbroker/__init__.py"
+    replay.file_bytes[pkg] = b"vendored source\n"
+    verdict_rows.append((pkg, "would-update", None))
+    return target, replay, verdict_rows, pkg
+
+
+def test_rollback_restores_the_tree_when_a_package_write_fails(tmp_path):
+    # AC-0090. The package extent is inside the snapshot and inside the
+    # restore, on the same terms as any other planned write.
+    target, replay, verdict_rows, pkg = _replay_with_package_paths(tmp_path, "pkg-roll")
+    before = walk_target_tree(target)
+
+    real = catalogue_sync.write_jailed
+
+    def _fail_on_package(root, relpath, content, **kwargs):
+        if relpath == pkg:
+            raise OSError("disk gremlin in the package extent")
+        return real(root, relpath, content, **kwargs)
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_fail_on_package):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.write_failed_path == pkg
+    assert result.restored
+    assert walk_target_tree(target) == before
+
+
+def test_the_snapshot_spans_the_package_extent(tmp_path):
+    # AC-0090's third clause: a vendored fixture's snapshot accounting
+    # includes those bytes, which is what AC-0076's bound now measures over.
+    target, replay, _rows, pkg = _replay_with_package_paths(tmp_path, "pkg-snap")
+    snapshot = catalogue_sync.snapshot_write_set(target, {pkg, "packs/alpha/one.md"})
+    assert pkg in snapshot
+
+
+# ---------------------------------------------------------------------------
+# Review blocker 4 — containment must be decidable for a destination the run
+# is about to create. The fixture here creates NEITHER destination, which is
+# what every earlier test failed to do.
+# ---------------------------------------------------------------------------
+
+
+def _bare_target(tmp_path):
+    t = tmp_path / "bare"
+    (t / "packs" / "core").mkdir(parents=True)
+    return t
+
+
+def test_package_path_decided_when_the_destination_root_is_absent(tmp_path):
+    t = _bare_target(tmp_path)
+    assert not (t / "packages" / "credbroker").exists()
+    assert not (t / ".agentbundle" / "tooling").exists()
+    assert catalogue_sync._is_package_path(
+        t, "packages/credbroker/credbroker/__init__.py", catalogue_sync._PACKAGE_PREFIXES
+    )
+    assert catalogue_sync._is_package_path(
+        t, ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+        catalogue_sync._PACKAGE_PREFIXES,
+    )
+    assert not catalogue_sync._is_package_path(
+        t, "packs/core/pack.toml", catalogue_sync._PACKAGE_PREFIXES
+    )
+
+
+def test_write_group_is_last_on_a_first_time_vendoring_run(tmp_path):
+    # AC-0080's justification fails on exactly this run if containment needs
+    # the destination to pre-exist: the engine lands interleaved with the
+    # derivation-wide paths instead of after them.
+    t = _bare_target(tmp_path)
+    assert catalogue_sync._write_group(
+        t, ".agentbundle/tooling/agentbundle/agentbundle/cli.py"
+    ) == 4
+    assert catalogue_sync.write_order(
+        t, ["catalogue.toml", ".agentbundle/tooling/agentbundle/x.py"]
+    )[-1] == ".agentbundle/tooling/agentbundle/x.py"
+
+
+def test_package_scope_admits_an_absent_destination(tmp_path):
+    t = _bare_target(tmp_path)
+    assert catalogue_sync.select_write_set(
+        t, ["packages/credbroker/x.py", "packs/core/pack.toml"],
+        pack_names=[], profile_names=[], guides=False, package="credbroker",
+    ) == {"packages/credbroker/x.py"}
+
+
+def test_package_path_refuses_a_remainder_that_escapes_the_target(tmp_path):
+    t = _bare_target(tmp_path)
+    assert not catalogue_sync._is_package_path(
+        t, "../packages/credbroker/x.py", catalogue_sync._PACKAGE_PREFIXES
+    )
+
+
+# ---------------------------------------------------------------------------
+# Review blockers 1, 2, 3 — driven at the COMMAND BOUNDARY on an apply run.
+# Every earlier --package test called select_write_set directly, which is why
+# none of them could see that _run_apply ignored the flag.
+# ---------------------------------------------------------------------------
+
+
+def test_apply_package_scope_reaches_the_write_set_at_the_command_boundary(
+    tmp_path, monkeypatch
+):
+    # Blocker 1, driven through `run()` on an apply rather than through
+    # `select_write_set`. Before the fix `_run_apply` declared `package` and
+    # never read it, so scope resolved to None and the run rewrote every path
+    # the replay produced -- while `--dry-run` scoped correctly, so the
+    # preview the operator consents against disagreed with the apply.
+    source = _make_apply_source(tmp_path / "boundary-source")
+    target = tmp_path / "boundary-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+
+    seen: dict = {}
+    real = catalogue_sync.plan_write_set
+
+    def _capture(tgt, *a, **kw):
+        seen["package"] = kw.get("package")
+        plan = real(tgt, *a, **kw)
+        seen["admitted"] = set(plan.admitted)
+        return plan
+
+    monkeypatch.setattr(catalogue_sync, "plan_write_set", _capture)
+    # AC-0082's credbroker row is decided from the resolved selection and
+    # would refuse this fixture, whose source ships no `credential-brokers`.
+    # Point the pack constant at one this fixture does ship, so the run gets
+    # past that row: this test is about what the write-set selector receives,
+    # not about the refusal, and the two must be able to fail independently.
+    monkeypatch.setattr(catalogue_sync, "_USER_LIBS_PACK", "alpha")
+    # No `--pack` flag: the fixture's recorded recipe already resolves
+    # `alpha`, so the selection carries it without widening the scope. Adding
+    # the flag would union `packs/alpha/` into the write set, which AC-0081
+    # requires and which would mask the very escape this test looks for.
+    args = _sync_args(target, source, "--package", "credbroker", "--yes")
+    catalogue_sync.run(args)
+
+    assert seen.get("package") == "credbroker", (
+        "the resolved --package value must reach the write-set selector on "
+        "the apply path, not only on --dry-run"
+    )
+    # Review round 2, concern 5: `assert not outside` was vacuously true here
+    # -- `_make_apply_source` plans nothing under `packages/credbroker/`, so
+    # the admitted set is empty and the escape assertion could never bite. It
+    # is kept, because an unscoped run WOULD make it non-empty and fail, which
+    # is exactly the regression it guards. What it cannot do is prove the
+    # scope admits the right paths; that is the T3 unit coverage's job.
+    # One assertion, not two: `admitted == set()` strictly implies "nothing
+    # outside the destination", and it also reds if the selector was never
+    # called at all, since `None != set()`.
+    assert seen.get("admitted") == set(), (
+        "this fixture ships no credbroker extent; if that changes, tighten the "
+        "assertion above into a positive one rather than leaving it vacuous"
+    )
+
+
+@pytest.mark.parametrize("name", ["agentbundle", "credbroker"])
+@pytest.mark.parametrize("tooling", [[], ["--tooling", "vendored"]])
+def test_package_with_check_is_malformed(tmp_path, monkeypatch, name, tooling):
+    # Blocker 3. AC-0085 row 1 covers all four scoping flags; AC-0081 makes
+    # `--package` one. Before the fix this returned 3.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    args = _sync_args(target, tmp_path / "src", "--check", *tooling, "--package", name)
+    assert catalogue_sync.run(args) == 2
+
+
+def test_check_refusal_names_all_four_scoping_flags(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    args = _sync_args(target, tmp_path / "src", "--check", "--pack", "core")
+    catalogue_sync.run(args)
+    assert "--package" in capsys.readouterr().err
+
+
+def test_package_credbroker_refuses_when_the_resolved_selection_lacks_its_pack(
+    tmp_path, monkeypatch
+):
+    # Blocker 2 / AC-0082's credbroker half, with the oracle the Testing
+    # Strategy names: exit 2, and a fetch DID run -- which is what
+    # distinguishes this half from the agentbundle one, per AC-0084.
+    source = _make_apply_source(tmp_path / "cb-source")
+    target = tmp_path / "cb-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+
+    reached = []
+    real = catalogue_sync._resolve_source
+    monkeypatch.setattr(
+        catalogue_sync, "_resolve_source",
+        lambda uri: (reached.append(uri), real(uri))[1],
+    )
+    args = _sync_args(target, source, "--package", "credbroker", "--yes")
+    assert catalogue_sync.run(args) == 2
+    assert reached, "AC-0084: the credbroker row is decided after source resolution"
+
+
+def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path, monkeypatch):
+    # Review round 2, blocker 3. This is the only negative control for
+    # AC-0082's credbroker row, and it never reached that row: it passed
+    # `--pack credential-brokers`, which `_make_apply_source` does not ship,
+    # so AC-0046's unshipped-name row refused first and the assertion held
+    # vacuously. Point the pack constant at one the fixture does ship, so the
+    # run actually reaches the row with the pack present.
+    monkeypatch.setattr(catalogue_sync, "_USER_LIBS_PACK", "alpha")
+    source = _make_apply_source(tmp_path / "cb-ok-source")
+    target = tmp_path / "cb-ok-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+
+    fired: list[str] = []
+    consulted: list[tuple] = []
+    real = catalogue_sync._absent_credbroker_extent
+
+    def _watch(package, pack_names):
+        consulted.append((package, tuple(pack_names)))
+        reason = real(package, pack_names)
+        if reason is not None:
+            fired.append(reason)
+        return reason
+
+    monkeypatch.setattr(catalogue_sync, "_absent_credbroker_extent", _watch)
+    catalogue_sync.run(
+        _sync_args(target, source, "--package", "credbroker", "--dry-run")
+    )
+    assert consulted, (
+        "the row must actually be reached; `not fired` also holds when an "
+        "earlier row refuses first, which is how this control was vacuous "
+        "before round 2"
+    )
+    assert not fired, (
+        "AC-0082's credbroker row must not fire when the resolved selection "
+        "carries the pack; a refusal that always fires would pass the "
+        "positive test alone"
+    )
+
+
+def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
+    tmp_path, monkeypatch
+):
+    # Review round 2, blocker 2. AC-0083's refusal returns 3, and so do three
+    # other rows -- source resolution among them -- so `== 3` cannot tell
+    # "proceeded past the refusal" from "was refused by it". The oracle is
+    # whether `_self_replacement_reason` was consulted at all.
+    #
+    # The behaviour under test: AC-0083's trigger is the run's effective
+    # scope. A `--tooling vendored --pack <name>` run is scoped to
+    # `packs/<name>/`, which AC-0081 fixes can never reach inside a package
+    # destination, so it has nothing to refuse. Testing `package is None`
+    # instead refused every pack-, profile- and guides-scoped sync a vendored
+    # adopter with an editable engine could run.
+    target = tmp_path / "t"
+    engine = target / ".agentbundle" / "tooling" / "agentbundle" / "agentbundle"
+    engine.mkdir(parents=True)
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    monkeypatch.setattr(catalogue_sync, "_running_package_root", lambda: engine)
+
+    consulted: list[str] = []
+    real = catalogue_sync._self_replacement_reason
+
+    def _watch(tgt):
+        consulted.append(str(tgt))
+        return real(tgt)
+
+    monkeypatch.setattr(catalogue_sync, "_self_replacement_reason", _watch)
+
+    # Unscoped vendored: the trigger fires and the refusal is consulted.
+    consulted.clear()
+    assert catalogue_sync.run(
+        _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    ) == 3
+    assert consulted, "an unscoped vendored run must be tested for self-replacement"
+
+    # Scoped by any non-package flag: the trigger must not fire at all.
+    for extra in (["--pack", "core"], ["--profile", "default"], ["--guides"]):
+        consulted.clear()
+        catalogue_sync.run(
+            _sync_args(target, tmp_path / "src", "--tooling", "vendored", *extra)
+        )
+        assert not consulted, (
+            f"{extra} scopes away from the engine, so AC-0083 must not fire; "
+            "consulting it refuses a sync a vendored adopter may legitimately run"
+        )
+
+    # --package agentbundle names the engine, so it must fire.
+    consulted.clear()
+    assert catalogue_sync.run(
+        _sync_args(target, tmp_path / "src", "--tooling", "vendored",
+                   "--package", "agentbundle")
+    ) == 3
+    assert consulted
+
+
+@pytest.mark.parametrize("mode", [[], ["--dry-run"]], ids=["apply", "dry-run"])
+def test_absent_credbroker_extent_refuses_on_preview_and_apply_alike(tmp_path, mode):
+    # AC-0085's row invocation column reads `any`. A refusal the apply takes
+    # and the preview does not is the defect shape this phase already shipped
+    # twice -- `_run_apply` ignoring `--package` while `_run_dry_run` honoured
+    # it, then the reverse. One predicate, two call sites, so they cannot
+    # diverge a third time.
+    tag = "-".join(mode) or "apply"
+    source = _make_apply_source(tmp_path / f"both-source-{tag}")
+    target = tmp_path / f"both-target-{tag}"
+    target.mkdir()
+    _write_apply_old_state(target)
+    consent = [] if mode else ["--yes"]
+    args = _sync_args(target, source, *mode, "--package", "credbroker", *consent)
+    assert catalogue_sync.run(args) == 2
+
+
+def test_package_path_admits_a_reentrant_spelling_via_the_identity_half(tmp_path):
+    # Review round 2, concern 6. `../<target>/packages/credbroker/x.py`
+    # resolves inside the destination, and `os.path.normpath` leaves it
+    # untouched. The lexical half cannot see it; the identity half must, and
+    # the escape guard must not short-circuit before it runs.
+    #
+    # This is a removal-safety case, not a cosmetic one: `_in_coverage` uses
+    # this predicate as an EXCLUSION, so a False makes the path a removal
+    # candidate on a run whose destination is not present -- the mass-removal
+    # class AC-0069 exists to prevent.
+    t = tmp_path / "derived"
+    (t / "packages" / "credbroker").mkdir(parents=True)
+    (t / "packages" / "credbroker" / "x.py").write_text("real", encoding="utf-8")
+    spell = "../derived/packages/credbroker/x.py"
+    assert catalogue_sync._is_package_path(t, spell, catalogue_sync._PACKAGE_PREFIXES)
+    # ...and therefore it is excluded from coverage on an external-mode run.
+    assert not catalogue_sync._in_coverage(
+        t, spell, pack_names=[], profile_names=[], guides_mode="selected",
+        scope=None, tooling="external",
+    )
+
+
+def test_package_path_still_refuses_a_spelling_that_truly_escapes(tmp_path):
+    t = tmp_path / "derived"
+    (t / "packages" / "credbroker").mkdir(parents=True)
+    (tmp_path / "outside").mkdir()
+    assert not catalogue_sync._is_package_path(
+        t, "../outside/x.py", catalogue_sync._PACKAGE_PREFIXES
+    )
+
+
+@pytest.mark.parametrize("mode", [[], ["--dry-run"]], ids=["apply", "dry-run"])
+def test_credbroker_row_outranks_the_container_row(tmp_path, mode):
+    # Review round 2, blocker 1. AC-0085 is total and first-match-wins, and
+    # places AC-0082's credbroker row ABOVE "the recorded-path container is
+    # not an array". Implemented below it, this returned 3 where the table
+    # requires 2 -- on both paths.
+    tag = "-".join(mode) or "apply"
+    source = _make_apply_source(tmp_path / f"order-source-{tag}")
+    target = tmp_path / f"order-target-{tag}"
+    target.mkdir()
+    _write_apply_old_state(target)
+    # Break the container so its row would fire if it were reached first.
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"] = {"not": "an array"}
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    consent = [] if mode else ["--yes"]
+    args = _sync_args(target, source, *mode, "--package", "credbroker", *consent)
+    assert catalogue_sync.run(args) == 2, (
+        "AC-0085 places the credbroker row above the container row; a 3 here "
+        "means the implemented order disagrees with the table"
+    )
+    # ...and with no --package, the container row is still reached.
+    args2 = _sync_args(target, source, *mode, *consent)
+    assert catalogue_sync.run(args2) == 3
+
+
+@pytest.mark.parametrize("mode", [["--dry-run"], []], ids=["dry-run", "apply"])
+def test_credbroker_row_sits_above_the_integrity_row(derived_tree, tmp_path, mode):
+    # Review round 3, blocker 1. AC-0085 splits AC-0039's conflated
+    # resolve/verify row: resolution is decided in `run()` above everything,
+    # verification inside the replay, which cannot run until the effective
+    # selection exists. The credbroker row needs that selection too, and sits
+    # above the replay. This pins the relative order the earlier
+    # container-row test could not see.
+    src = tmp_path / f"unverifiable-{'-'.join(mode) or 'apply'}"
+    pack = src / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    consent = [] if mode else ["--yes"]
+
+    def run(*extra):
+        return catalogue_sync.run(
+            _build_parser().parse_args(
+                ["catalogue", "sync", str(derived_tree), "--source", str(src),
+                 *mode, *consent, *extra]
+            )
+        )
+
+    assert run() == 3, "control: the integrity row is reached and returns 3"
+    assert run("--package", "credbroker") == 2, (
+        "the credbroker row is above the integrity row in AC-0085's split table"
+    )
+
+
+def test_package_path_admits_a_destination_root_itself(tmp_path):
+    # Review round 3, concern 2. The identity walk started at the node's
+    # PARENT, so a spelling resolving exactly to a destination root never
+    # compared that directory against itself. The lexical half cannot answer
+    # for these either -- they normalise to something still leaving the target
+    # -- so nothing answered, and `_in_coverage` read the False as "not
+    # excluded". The earlier 14-input sweep probed file depth, not
+    # destination-root depth, which is why it passed.
+    t = tmp_path / "derived"
+    (t / "packages" / "credbroker").mkdir(parents=True)
+    (t / "packs" / "core").mkdir(parents=True)
+    n = t.name
+    for spelling in (
+        f"../{n}/packages/credbroker",
+        f"../{n}/packages/credbroker/",
+        f"../{n}/./packages/credbroker",
+        f"../{n}/packages/../packages/credbroker",
+        str(t / "packages" / "credbroker"),
+    ):
+        assert catalogue_sync._is_package_path(
+            t, spelling, catalogue_sync._PACKAGE_PREFIXES
+        ), spelling
+        assert not catalogue_sync._in_coverage(
+            t, spelling, pack_names=[], profile_names=[], guides_mode="selected",
+            scope=None, tooling="external",
+        ), f"{spelling} must stay out of removal coverage"
+
+    # Non-package roots reached the same way must still answer False.
+    for spelling in ("packs/core", f"../{n}/packs/core"):
+        assert not catalogue_sync._is_package_path(
+            t, spelling, catalogue_sync._PACKAGE_PREFIXES
+        ), spelling
