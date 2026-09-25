@@ -282,8 +282,17 @@ def retirement_candidates_document(
             unavailable_specs.add(slug)
             continue
         if stat.S_ISLNK(spec_info.st_mode):
-            refuse("path-escapes-root", f"docs/specs/{slug}/spec.md", [slug])
-            unavailable_specs.add(slug)
+            # A link is refused only when its target leaves the root.  The
+            # confined reader applies the same rule; this site exists earlier in
+            # the walk, so refusing every link here would reinstate the defect
+            # the reader was fixed for — one in-root link making the whole
+            # report inert — while the reader's own tests still passed.
+            try:
+                target = (spec_dir / "spec.md").resolve()
+                target.relative_to(root.resolve())
+            except (OSError, RuntimeError, ValueError):
+                refuse("path-escapes-root", f"docs/specs/{slug}/spec.md", [slug])
+                unavailable_specs.add(slug)
 
     tracked_raw, git_refusal = _git_query(root, ["ls-files", "-z"])
     tracked_files: list[str] = []
