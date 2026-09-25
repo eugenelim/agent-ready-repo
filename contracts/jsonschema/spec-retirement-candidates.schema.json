@@ -39,7 +39,7 @@
     },
     "refusals": {
       "type": "array",
-      "description": "Spec directories that produced no entry, each with the named reason.",
+      "description": "Inputs the run could not use. A refusal names the candidates whose eligibility it withholds; those candidates are still emitted, carrying `evidence-unread`.",
       "items": {
         "$ref": "#/$defs/refusal"
       }
@@ -89,7 +89,8 @@
     },
     "slug": {
       "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$",
+      "description": "A spec directory name. Matches the engine's own single-segment predicate, which admits uppercase; four directories in the corpus need it."
     },
     "areaMap": {
       "type": "object",
@@ -123,7 +124,6 @@
       "additionalProperties": false,
       "required": [
         "slug",
-        "status",
         "area",
         "eligible",
         "held_back_by",
@@ -136,7 +136,8 @@
         "status": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 64
+          "maxLength": 64,
+          "description": "The spec's leading status token. Omitted when the body could not be read, rather than invented."
         },
         "last_touched": {
           "$ref": "#/$defs/calendarDate",
@@ -393,7 +394,6 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "path",
         "code",
         "suppresses"
       ],
@@ -402,7 +402,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 1024,
-          "description": "Repository-relative. Never an absolute host path and never raw exception text."
+          "description": "Repository-relative location the refusal is about. Omitted when the refusal names no path."
         },
         "code": {
           "enum": [

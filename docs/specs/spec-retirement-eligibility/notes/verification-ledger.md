@@ -14,17 +14,21 @@ what the criteria must be written against. Probe was throwaway and not committed
 
 ### `workspace.toml` collections and the `path` shapes each holds
 
-| Collection | spec.md | file-inside-dir | other |
-| --- | ---: | ---: | ---: |
-| `backlog.open` | 7 | 41 | — |
-| `work.shipped` | 139 | — | — |
-| `work.queue` | 8 | — | — |
-| `work.active` | 2 | — | — |
-| `brief_queue.*` | — | — | brief paths |
-| `shaping_queue.backlog` | — | — | intent paths |
+Counts are omitted deliberately: they moved between two measurements taken hours
+apart in this same session, because a queue entry was added and a rebase brought
+in new specs. The **shapes** are what the criteria are written against.
 
-Only `spec.md` and a bare directory hold a spec. A `file-inside-dir` path — 41 of
-them, all under `backlog.open` — does not.
+| `path` shape | Where it occurs | Holds a spec? |
+| --- | --- | --- |
+| `docs/specs/<slug>/spec.md` | `work.*`, `backlog.open` | yes |
+| `docs/specs/<slug>/<file>` inside the directory | `backlog.open` | no |
+| a path outside `docs/specs/` | several | no |
+| **no `path` key at all** | `backlog.open`, `shaping_queue.backlog` | no — skipped, not refused |
+| `docs/specs/<slug>` as a bare directory | **occurs zero times** | n/a |
+
+The bare-directory shape is recorded precisely because it does not occur: an
+earlier criterion named it, and a shape with no instance cannot be verified by a
+fixture drawn from this corpus.
 
 ### `Status:` values
 

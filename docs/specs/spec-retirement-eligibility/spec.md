@@ -34,7 +34,7 @@ passing silently, so a shorter list never means a cleaner one.
   `packs/core/.apm/skills/workspace-status/scripts/`, discharging Wave 7e.
 - Blocker vocabulary — twelve codes saying why each candidate is held back,
   including `evidence-unread` for a candidate whose evidence was never read.
-- Fail-closed reading — fourteen refusal codes, each naming the input it could
+- Fail-closed reading — twelve refusal codes, each naming the input it could
   not use and the candidates whose eligibility it withholds.
 - Migration obligations — computed per candidate and reported with a named
   RFC-0096 §2 semantic role.
@@ -47,8 +47,7 @@ passing silently, so a shorter list never means a cleaner one.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Interface contract | Applicable — a new adopter-facing JSON surface | `contracts/jsonschema/spec-retirement-candidates.schema.json` | core pack maintainer | Emitter output validated against it | Schema carries `x-spec`; emitted output validates |
-| User and maintainer promise | Applicable — two new subcommands, one of them a writer | `packs/core/.apm/skills/workspace-status/SKILL.md` | workspace-status maintainers | Roster test plus end-to-end invocation against a disposable fixture | Documented invocations, blocker vocabulary, and refusal codes match shipped behaviour |
-| Interface compatibility | Applicable — a second skill's lint changes its resolution rule | `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py` and its owning guide | author-delivery-brief maintainers | Cases for all three absent-spec resolutions, exercised through the lint's entry point | The documented `Spec map` shape names the commit-pin column and its meaning |
+| User and maintainer promise | Applicable — one new read-only subcommand | `packs/core/.apm/skills/workspace-status/SKILL.md` | workspace-status maintainers | Roster test plus end-to-end invocation against a disposable fixture | Documented invocations, blocker vocabulary, and refusal codes match shipped behaviour |
 | Decision rationale | Applicable — Wave 7e did not exist before this delivery | [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) Errata 2026-09-24 | RFC approver | The accepted erratum, in tree | The wave's objective and non-goals match what shipped |
 | Current architecture | Applicable — candidate discovery is a new stage in the lifecycle | [`docs/architecture/work-intake-and-artifact-routing.md`](../../architecture/work-intake-and-artifact-routing.md) | spec owner | Whole-surface read against shipped behaviour | The file states who reports eligibility and who may act on it |
 | Release history | Applicable — a consumer-visible core capability | [`docs/product/changelog.md`](../../product/changelog.md) | core pack maintainer | A core-led entry | The topmost dated `[core]` heading equals `packs/core/pack.toml` |
@@ -81,11 +80,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Adding or removing a blocker code. The blocker vocabulary is what a maintainer
   reads to know why a candidate was held back, and the schema pins it.
-- Widening the `[areas]` table beyond area attribution. It is a derived cache in
-  a hand-curated, seeded file, and every additional field raises the cost of the
-  drift it can carry.
-- Any change to `lint-brief-coverage`'s exit codes. It is a shipped gate, and an
-  adopter's CI depends on what each code means.
+- Adding or removing a refusal code. A refusal withholds eligibility, so its
+  vocabulary is as maintainer-facing as the blocker set and the schema pins it
+  the same way.
+- Reading any surface beyond those a blocker's declared corpus names. Widening
+  what is read widens what an unreadable input can suppress.
 
 ### Never do
 
@@ -93,9 +92,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Never present an age signal as a §6 cooling verdict, and never import another
   skill's module to obtain one. Cross-skill imports are not portable across
   adapter projections.
-- Never write from a reading command. Only `areas-refresh` writes; a write from
-  an orientation command dirties a tracked seeded file at session start and
-  halts the next `adapt-to-project` run on its dirty-tree escalation.
+- Never write. This delivery has no writer: a write from a reporting command
+  dirties a tracked seeded file at session start and halts the next
+  `adapt-to-project` run on its dirty-tree escalation.
 - Never add a repository-root file or directory. The layout finding is recorded
   in [`notes/repo-root-layout-survey.md`](notes/repo-root-layout-survey.md) and
   belongs to a separate decision.
@@ -151,8 +150,13 @@ full. Suppression is therefore a property of the scan, never of the blockers the
 scan happened to yield: an unread input produces no blockers, so keying
 suppression on the blockers it produced suppresses nothing.
 
-- [ ] Each blocker declares the input corpus it must read in full before its
-      absence is meaningful.
+- [ ] Every blocker code the schema enum carries declares the input corpus it
+      must read in full before its absence is meaningful, enumerated from the
+      enum so a code without one fails rather than defaulting to unsuppressible.
+- [ ] The enumeration of a corpus is itself a member of that corpus, so a
+      listing that cannot complete produces a named refusal and suppresses the
+      whole population — a directory walk that silently returns short is the same
+      fail-open one level up.
 - [ ] A refusal naming any member of a corpus suppresses the eligibility of every
       candidate the blocker over that corpus is evaluated over, whether or not
       that candidate carries any blocker.
@@ -160,6 +164,16 @@ suppression on the blockers it produced suppresses nothing.
       any refusal is never reported eligible.
 - [ ] A suppressed candidate is emitted carrying the blocker `evidence-unread`,
       so it appears in the report rather than being dropped from it.
+- [ ] A candidate whose change-history corpus was not read also carries
+      `history-missing` and omits `last_touched`, rather than emitting a date it
+      could not determine.
+- [ ] No slug named by any refusal's `suppresses` appears as an eligible
+      candidate, checked over the whole emitted document.
+- [ ] Every untrusted string the output echoes is bounded and stripped of
+      control and escape sequences before emission.
+- [ ] A supplied `run_date` that is not a calendar date, or a negative
+      `stale_after_days`, is refused at entry rather than corrected or
+      defaulted.
 - [ ] An input that cannot be read is refused as `spec-unreadable` when it is a
       spec body, and as `input-unreadable` otherwise, naming that input.
 - [ ] An input that reads but cannot be parsed is refused as `input-unparseable`,
@@ -174,6 +188,11 @@ suppression on the blockers it produced suppresses nothing.
 
 ### Confinement
 
+The contract states the guarantees each access must exhibit. Which helper
+provides them is the plan's to name — an earlier version pinned a specific
+private helper that collapses every failure into one `None`, and so could not
+carry the refusal vocabulary this group requires.
+
 - [ ] A path derived from repository content that resolves outside the
       repository root is refused as `path-escapes-root` and is not read.
 - [ ] A path reached through a symlink, junction, or reparse point is refused as
@@ -181,18 +200,28 @@ suppression on the blockers it produced suppresses nothing.
 - [ ] A `path-escapes-root` refusal carries the repository-relative location
       that declared the value, and the offending value as written, bounded and
       never resolved against the filesystem.
-- [ ] Every read and the single write resolve their path through
-      `confine_migration_path` and its byte reader, which refuse a link
-      component, confirm a regular file on the opened descriptor, and re-check
-      device and inode identity across the open. A sibling helper offering weaker
-      guarantees does not satisfy this.
+- [ ] Every access confirms a regular file on the opened descriptor and
+      re-checks device and inode identity across the open, so a path swapped
+      between check and read is refused rather than read.
 - [ ] A non-regular file where a spec body, manifest, or contract is expected is
-      refused by name rather than read.
-- [ ] Each input read is bounded at 8 MiB, and exceeding it is refused as
-      `input-too-large`. The largest file the corpus carries is 144 KB, so the
-      bound fires on a pathological input rather than on a large real one.
+      refused as `input-unreadable`.
+- [ ] Each refusal reason is produced from inside the guarded open. A refusal
+      code is never derived from a second filesystem call on a path already
+      refused, because that call re-walks an attacker-controlled path outside
+      the guard.
+- [ ] Each input read stops at 8 MiB rather than measuring the result
+      afterwards, and stopping is refused as `input-too-large`. The largest file
+      the corpus carries is 144 KB, so the bound fires on a pathological input
+      rather than a large real one.
 - [ ] Each git invocation is bounded at 30 seconds, and exceeding it is refused
       as `subprocess-timeout`.
+- [ ] Git receives every repository-derived value as a validated
+      repository-relative path in an argument vector, never through a shell, and
+      never in a position where it can be read as an option or a revision
+      expression.
+- [ ] A value that fails that validation produces a named refusal instead of an
+      invocation.
+- [ ] Every git invocation runs against the resolved repository root.
 
 ### Determinism
 
@@ -242,7 +271,7 @@ suppression on the blockers it produced suppresses nothing.
 - [ ] The emitted output states which citing surfaces and which citation forms
       `inbound-cited` does not reach.
 - [ ] A spec named in the `Spec map` of a brief whose own status is `Shipped` is
-      reported `shipped-brief-member` while that row carries no commit pin.
+      reported `shipped-brief-member`.
 - [ ] The `shipped-brief-member` blocker names what a maintainer must do to
       clear it, and reports it as unclearable by this capability alone.
 - [ ] A `shipped-brief-member` blocker names the brief whose map holds the spec.
@@ -347,10 +376,9 @@ shippable, each behind this one, and each owns the blockers that attached to it.
 ## Assumptions
 
 - Product: whether a brief's `Spec map` entry should outlive its spec's
-  retirement permanently or be reconciled away once the brief's programme closes
-  — the answer changes whether `Retired` is a terminal rendering or a
-  transitional one (settled by: the `author-delivery-brief` owner).
-- Technical: no adopter corpus was reachable, so the frequency of repositories
-  that cannot resolve any commit pin — a shallow clone, or a spec predating its
-  current history — is unmeasured, and the `unverifiable` resolution's value is
-  therefore ungrounded.
+  retirement is unresolved, and it shapes the brief-retirability follow-on
+  rather than this delivery (settled by: the `author-delivery-brief` owner).
+- Technical: no adopter corpus was reachable, so the substrate shapes recorded
+  in the verification ledger are this repository's. An adopter carrying a shape
+  the ledger does not list is refused rather than guessed, which is the design's
+  answer to that gap but not a measurement of how often it fires.

@@ -10,10 +10,10 @@ Candidate discovery joins `workspace-status` as a read-only subcommand because
 its refusal vocabulary, confinement rails, and JSON envelope already exist
 there, and RFC-0096 §7 assigns eligibility reporting to a deterministic helper.
 
-Two orderings carry the delivery. Brief retirability lands before the projector,
-because `shipped-brief-member` has no correct behaviour to assert until a spec
-under a brief can legitimately retire. The area writer lands before its readers,
-because three subcommands read a map none of them may create.
+This delivery ships first of three. It reports `shipped-brief-member` and names
+what would clear it; the brief-retirability follow-on clears it. It infers area
+per run; the persisted-area-map follow-on stores it. Neither ordering constrains
+this one, because it reads what exists and writes nothing.
 
 `.context/spec-retirement-inventory.py` is the behavioural reference for the
 git-log walk and the citation buckets, not a file to move: `.context/` is
@@ -53,13 +53,12 @@ the ones it does not find.
   **above** the bulk pytest step, a matching `STEP_DISPOSITION` entry in
   `tools/lint-ci-parity.py`, and a `.workspace-prune-protected.toml` entry where
   the test names a `docs/specs/<slug>` path as a literal (`tests/AGENTS.md`).
-- `lint-brief-coverage.py` is a shipped fail-closed CI gate. Exit `0` means
-  clean, exit `1` means drift; both meanings are load-bearing for adopter CI.
 - `workspace.toml` is a seed, and install must not overwrite an adopter-edited
   seed — asserted in the agentbundle integration suite's seed-delivery test.
   That guarantee is what makes it a safe home for the area map.
-- Any write to `workspace.toml` goes through the skill's existing lock and
-  atomic-write rails, which `references/mutate.md` owns.
+- This delivery writes nothing. `workspace.toml` is read only, so the skill's
+  lock and atomic-write rails are out of scope here and belong to the persisted
+  area-map follow-on.
 - Under `packs/`, write portable guidance only: no citation of this catalogue's
   internal records, acceptance criteria, or repository-only paths
   (`packs/AGENTS.md`). The shipped `SKILL.md` therefore states each blocker's
@@ -101,7 +100,7 @@ property of the corpus on one day, so it is not recorded here.
 | Decision rationale — RFC-0096 Errata 2026-09-24 | T0 | The accepted erratum in tree | Wave 7e's objective and non-goals match what shipped |
 | Current architecture — `work-intake-and-artifact-routing.md` | T8 | Whole-surface read | The file states who reports eligibility and who may act on it |
 | Release history — `docs/product/changelog.md` | T9 | Core-led entry | Topmost dated `[core]` heading equals `packs/core/pack.toml` |
-| Pack release surface — `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | T9 | Matching patch bump, plus a clean `self-host --check` | Both manifests agree, and every `.claude/` and `.agents/` projection of the two edited skills matches its `.apm/` source |
+| Pack release surface — `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | T9 | Matching patch bump, plus a clean `self-host --check` | Both manifests agree, and the `.claude/` and `.agents/` projections of `workspace-status` match their `.apm/` source |
 | Eval harness — `workspace-status/evals/evals.json` | T9 | A case per added behaviour, or a recorded deviation | `packs/AGENTS.md`'s non-cosmetic-update rule is satisfied, or its deviation is stated and reviewed as a deviation rather than as compliance |
 | Reusable learning — `notes/repo-root-layout-survey.md` | T9 | The survey, already written | Accepted capture receipt or explicit not-applicable finding |
 
@@ -138,19 +137,9 @@ hand-duplicates a helper for that reason. Shared code would have to move to
 
 ### Data & schema
 
-The `[areas]` table carries a schema version, a `sha256-bytes-v1` fingerprint of
-the repository shape it was derived from, the inferred namespace list, and the
-per-spec attribution. Both a version and a fingerprint are present because a
-derived cache sharing a file with hand-curated content goes stale silently
-otherwise; fingerprint-only designs have documented silent-staleness gaps, and
-the repository already uses `sha256-bytes-v1` as a digest kind.
-
-The brief `Spec map` gains one column carrying the commit where the spec was
-`Shipped`. `parse_spec_map` reads the first column as the slug and the **last** column as
-the status, and returns nothing in between, so position alone cannot tell a pin
-cell from the Shape-B `Story` cell its docstring already anticipates in that
-slot. The pin is therefore identified by its column header, not its index, and
-existing two-column and three-column maps continue to parse unchanged.
+This delivery persists nothing. Its only durable shape is the emitted document,
+which the schema owns, and the substrate shapes it reads, which the verification
+ledger records. Area attribution lives for the duration of one run.
 
 ### Interfaces & contracts
 
@@ -162,9 +151,9 @@ nothing.
 
 ### Component / module decomposition
 
-Both subcommands land in a new module beside `workspace_status_prune.py` rather
+The subcommand lands in a new module beside `workspace_status_prune.py` rather
 than inside `workspace_status.py`, which is already 3,234 lines. The dispatch in
-`main()` gains two branches; blocker detection, obligation classification, and
+`main()` gains one branch; blocker detection, obligation classification, and
 area inference are separately testable functions.
 
 Area inference derives its namespace set from tracked top-level directories. It
@@ -399,8 +388,6 @@ case red.
   belonging to another surface is out of the domain rather than an unsatisfiable
   member of it.
 - Two invocations over an unchanged tree emit byte-identical output.
-- `status` includes the map when present and emits its remaining output
-  unchanged when absent.
 - The repository-wide sweep T3 could not host: no spec naming an inferred
   namespace is unattributed across the real corpus.
 
@@ -465,7 +452,8 @@ ledger.
 
 - **A spec held by a `Shipped` brief stays unretirable until the
   brief-retirability follow-on ships.** This capability reports the hold and
-  names what would clear it; it cannot clear it.
+  names what would clear it; it cannot clear it. Exposure grows with each brief
+  that ships.
 - **The reported age is not RFC-0096 §6's cooling clock, and a reader may treat
   it as one.** §6 runs from a selected delivery-completion event; this runs from
   the last recorded change, which §6 says never starts the clock. A squash or
@@ -473,16 +461,9 @@ ledger.
   limit, but neither prevents a human from acting on it as though it were a
   disposition. The mitigation is that eligibility authorizes nothing and Wave 7c
   re-checks every §6 condition at the mutation.
-- **The `[areas]` table is a derived cache in a hand-curated seeded file.** The
-  fingerprint makes staleness detectable rather than impossible; a hand edit
-  between refreshes is reported, not prevented.
 - **The whole-tree walk grows with the corpus.** At roughly three times the
   measured corpus it leaves an interactive budget, and the report would then
   need incremental input.
-- **A spec mapped by a `Shipped` brief cannot be retired at all until the
-  brief-retirability follow-on ships.** This capability reports
-  `shipped-brief-member` and names the hold; it cannot clear it. Exposure grows
-  with each brief that ships.
 
 ## Changelog
 
@@ -491,5 +472,4 @@ ledger.
   the blocker vocabulary derived from the RFC's named set.
 - 2026-09-24 — Cut to a read-only core; brief retirability and the persisted
   area map sliced out as separate deliveries.
-- 2026-09-24 — Spec and plan approved by eugenelim.
 - 2026-09-24 — Spec and plan approved by eugenelim.
