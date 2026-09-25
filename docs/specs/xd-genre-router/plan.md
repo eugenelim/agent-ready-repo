@@ -57,8 +57,9 @@ The completeness grep runs here, not only at closeout: without it a half-swept
 tree passes every wave gate. **It binds on the fold branch only.** On the abort
 branch the removed-name sweep is not owed and the hits are all correct — but
 there are **two** measurement points and they differ: after T9b, `sweep_raw`
-reads 20 and `sweep` 18 (T6 survives and has cleared three frontend files);
-after T9a restores those three, both return to the pre-fold 23 and 21. An
+reads 20 and `sweep_hits` 18 (T6 survives and has cleared three frontend
+files); after T9a restores those three, they return to the pre-fold 23 and 21.
+Counts name `sweep_hits`; `sweep` decides. An
 operator seeing either figure after a failed gate is looking at a correct
 residue, not a miss. The selector covers the handoff and census suites,
 which a bare `-k experience` deselects.
@@ -198,7 +199,11 @@ for g, dest in sorted(seen.items()):
     if not dest.strip():
         bad.append(f"{g}: empty destination"); continue
     # The three permitted outcomes, decided rather than assumed.
-    ref = re.search(r"references/([a-z-]+)\.md", dest)
+    # Both citation forms, matching the genre-reference scan, which declares
+    # the `references/`-prefixed path and the bare filename equally legitimate.
+    # Requiring the prefix here made a cell citing `conversion-design.md` red
+    # as "none of the three outcomes" — a true failure naming the wrong defect.
+    ref = re.search(r"(?:references/)?([a-z-]+-design)\.md", dest)
     # Strip the contracted citation forms before scanning for removed names:
     # `references/<genre>-design.md` contains a removed slug by construction,
     # so leaving it in makes a cell that carries BOTH a citation and a bare
@@ -702,6 +707,14 @@ else:
                           "informational-design", "marketplace-design", "workspace-design")
               if n not in body]
     if absent: fail.append(f"entry does not name removed skills: {absent}")
+    # The changelog's own header rules require a Highlights subsection when the
+    # release changes what a consumer can do, and say a none-verdict must be
+    # recorded with its reason rather than skipped. Nothing downstream enforces
+    # it: the /now/ projection is a pure parser and no model runs in the build.
+    if "### Highlights" not in body and "Highlights: none" not in body:
+        fail.append("entry carries no `### Highlights` subsection and no "
+                    "recorded none-verdict — retiring six skills at a major "
+                    "bump changes what a consumer can do")
 if not entry("frontend-engineering", "0.3.3"):
     fail.append("no free-standing `## [frontend-engineering][0.3.3] — <date>` entry")
 if fail: sys.exit("CHANGELOG:\n  " + "\n  ".join(fail))
@@ -790,12 +803,19 @@ import json, pathlib, sys
 BASE_CASES = 1   # information-architecture's own pre-fold case count
 ia = json.load(open("packs/experience-design/.apm/skills/information-architecture/evals/evals.json"))
 cases = ia.get("evals", [])
-dropped = pathlib.Path("docs/specs/xd-genre-router/notes/verification-ledger.md")
-recorded = dropped.exists() and "evals.json" in dropped.read_text()
+# The escape branch keys on an explicit marker line, not on the string
+# "evals.json" appearing anywhere. A substring test is switched off by any
+# sentence mentioning the file — including one saying the sets WERE carried,
+# and including T11's own required clause — which is the keyword-proxy defect
+# the pooled-query block refuses by name.
+MARKER = "GENRE-EVALS-DROPPED:"   # followed by the genre names and the reason
+ledger = pathlib.Path("docs/specs/xd-genre-router/notes/verification-ledger.md")
+recorded = ledger.exists() and MARKER in ledger.read_text()
 if len(cases) <= BASE_CASES and not recorded:
     sys.exit(f"evals.json carries {len(cases)} case(s) — the pre-fold count. "
              "Either the six genre quality-eval sets were not carried across, "
-             "or the ledger must record which were knowingly dropped and why.")
+             f"or the ledger must carry a `{MARKER}` line naming which were "
+             "knowingly dropped and why.")
 print(f"evals.json carries {len(cases)} cases"
       + ("; ledger records a drop decision" if recorded else ""))
 QQ
@@ -878,16 +898,16 @@ column closeout actually reads.
 | Rewritten rubric | `IA/SKILL.md` | T3, T11 | Seven genres each reaching one of the three permitted destinations — asserted, not merely non-empty; authored body ≤ 8,000 B; all four description boundaries present; judgement 2 recorded with reviewer and date (**T11** — T3 records judgement 1 only) |
 | Six directories removed | `packs/experience-design/.apm/skills/` | T4 | Directory count 0; `pack.evals.skills` reads 14 |
 | Pack internals swept | `pack.toml`, `DESIGN.md`, `JOURNEY.md`, `README.md`, `docs/index.md` | T5, T11 | `sweep` empty under `packs/experience-design/`; six `DESIGN.md` locations restated; § 10 entry signed and dated (T5); the sibling's non-edit criterion cited in the ledger (**T11** — T5 cannot write it); `docs/index.md`'s two numerals reading 14 |
-| Cross-pack (fold branch) | `packs/frontend-engineering/**`, `notes/verification-ledger.md` | T6, T10a | The `read-the-design-handoff.md` zero-occurrence confirmation in the ledger — T6's, not T7a's, because T6 is outside the abort revert set; | Four-row table enumerating the six `surface-genre:` tokens, exactly one Surface-type cell containing `interaction`; `AGENTS.md:11` repointed; README offering the post-fold routable set including `information-architecture`; `recommended` declared with `catalogue = "agent-ready-repo"` and `>=3.0.0` — absent and correct are indistinguishable to every other gate; `design-system-foundations` gone from both live sites; `packs/frontend-engineering/tests` green; `0.3.3` in both manifests and the projection |
+| Cross-pack (fold branch) | `packs/frontend-engineering/**`, `notes/verification-ledger.md` | T6, T10a | Four-row table enumerating the six `surface-genre:` tokens, exactly one Surface-type cell containing `interaction`; `AGENTS.md:11` repointed; README offering the post-fold routable set including `information-architecture`; `recommended` declared with `catalogue = "agent-ready-repo"` and `>=3.0.0` — absent and correct are indistinguishable to every other gate; `design-system-foundations` gone from both live sites; the `read-the-design-handoff.md` zero-occurrence confirmation in the ledger (T6's, not T7a's — T6 is outside the abort revert set); `packs/frontend-engineering/tests` green; `0.3.3` in both manifests and the projection |
 | Cross-pack (abort branch) | `packs/frontend-engineering/**` | T9a, T10a | **Nine**-row table with `marketplace-design` and `workspace-design` added; sentinel still probing `conversion-design`; `AGENTS.md:11` naming the six again; `recommended` reading `>=2.0.10`; same suite green; same `0.3.3` release surface |
-| Fold work reverted (abort branch only) | `packs/experience-design/**`, `docs/**`, `web/src/content/**`, `tools/`, `guides/**`, census fixture | T9b | `sweep_raw` back to **20** and `sweep` to **18** — not the pre-fold 23/21, because T6 survives the abort; `pack.evals.skills` back to 20; every T3 output reverted including `evals/eval_queries.json` and the frontmatter `description`; roster suites green |
+| Fold work reverted (abort branch only) | `packs/experience-design/**`, `docs/**`, `web/src/content/**`, `tools/`, `guides/**`, census fixture | T9b | `sweep_raw` back to **20** and `sweep_hits` to **18** — not the pre-fold 23/21, because T6 survives the abort; `pack.evals.skills` back to 20; every T3 output reverted including `evals/eval_queries.json` and the frontmatter `description`; roster suites green |
 | Docs, site, census | `docs/`, `web/src/content/`, census fixture | T7 | Class record for every `docs/` hit in the ledger, against the spec's three-directory dated-output class; the count-shaped numeral grep clean across all four files; `web/src/content/packs/frontend-engineering.md` naming the table's target; `npm ci && npm run build` exit 0; census suite green |
 | Guide tree and `tools/` | `guides/**`, `tools/add-rendering-directives.py` | T7a | `sweep` empty under `guides/` and `tools/`; five guide commands exit 0; `information-architecture`'s rendering-directive entry asserts `["table", "narrative"]` — no gate reads this map, so nothing else can catch it; the two guide numerals read 14; the `lint-guidebook-steps.py` exemption reason in the ledger |
 | User promise — the guide a reader follows | `guides/experience-design/` | T7a, T11 | Guide-agreement suite green and the five guide commands exit 0 (T7a); judgement 3 recorded with reviewer and date (**T11** — T7a does not record verdicts) |
 | RFC-0066 erratum | `docs/rfc/0066-…md` § Errata | T8 | Two-layer section; new entry names D4 and no delivery artifact; prior entry verbatim |
 | Versions + changelog (fold branch) | three manifests, changelog | T10, T10a | All three surfaces agree at `3.0.0`/`0.3.3`; both changelog entries free-standing; catalogue lint and verify exit 0 |
 | Versions + changelog (abort branch) | `frontend-engineering` manifests, projection, changelog | T10a | `0.3.3` on all three `frontend-engineering` surfaces and its changelog entry; `experience-design` untouched at its pre-fold version, which is correct here rather than a miss |
-| Closeout (fold branch) | `notes/verification-ledger.md` | T11 | All five `Done when` items: install/update prune behaviour observed; the `docs/` classification; **both** sweep-exemption reasons, the `tone-of-voice` one included; the `xd-state-reviewer-doctrine` hand-off confirmation; three verdicts with reviewer and date |
+| Closeout (fold branch) | `notes/verification-ledger.md` | T11 | All **seven** `Done when` items: install/update prune behaviour observed; the `docs/` classification; **both** sweep-exemption reasons, the `tone-of-voice` one included; the stale-note record for that same copy (a distinct fact from its exemption reason); the `xd-state-reviewer-doctrine` hand-off confirmation; the **§ 10 sole-editor citation** naming the sibling spec's non-edit criterion — T5 relies on this column for it, and nothing else can see a missing § 10 entry; three verdicts with reviewer and date |
 | Closeout (abort branch) | `notes/verification-ledger.md` | T11 | Exactly three: the abort decision naming `eugenelim` as deciding owner; the `read-the-design-handoff.md` zero-occurrence confirmation; judgement 1 if T3 was authored before the gate failed. The prune observation and judgements 2 and 3 are **not** owed — a closeout reviewer reading this column must not go looking for them |
 
 ## Design (LLD)
@@ -1195,9 +1215,13 @@ no `experience-design` gate, so it is named here as a task test rather than left
 to the cross-cutting sweep.
 
 **Done when:** the frontend suite passes, all six genres are reachable, the
-sentinel probes for `information-architecture` and the named-skip text beside
-it names the same skill, `AGENTS.md:11` names the surviving skill and the genre
-set, the `guides/frontend-engineering/how-to/read-the-design-handoff.md`
+sentinel probes for `information-architecture`, the named-skip literal beside it
+is **unchanged** — it names the pack, not a skill, and the pack's name does not
+change here, so there is nothing to reconcile; editing it would also
+desynchronise its verbatim copy at
+`guides/frontend-engineering/tutorials/scaffold-a-component.md:82`, which this
+task cannot reach and no suite compares — `AGENTS.md:11` names the surviving
+skill and the genre set, the `guides/frontend-engineering/how-to/read-the-design-handoff.md`
 zero-occurrence confirmation is recorded in the ledger — moved here from T7a
 because T6 is outside the abort revert set and that confirmation is one of the
 abort branch's three closeout obligations — and the three map blocks this task
@@ -1424,7 +1448,7 @@ restated against the still-present genre skills.
 **Depends on:** T9 failing
 
 **Tests:**
-- **All four T3 outputs** are reverted, enumerated rather than gestured at:
+- **All five T3 outputs** are reverted, enumerated rather than gestured at:
   (1) the six genre references and the relocated `editorial-quality-gates.md`
   are gone from `$IA/references/`; (2) the pre-fold rubric is restored in
   `$IA/SKILL.md`; (3) `$IA/evals/eval_queries.json` is back to its 11/11
@@ -1445,7 +1469,10 @@ restated against the still-present genre skills.
 - `packs/experience-design/` carries no edit from T5; `docs/`, `web/src/content/`
   and the census fixture carry none from T7; `tools/add-rendering-directives.py`
   and the guide tree carry none from T7a; RFC-0066 § Errata carries none from T8.
-- `sweep_raw` reads **20** and `sweep` reads **18** — *not* the pre-fold 23/21.
+- `sweep_raw` reads **20** and `sweep_hits` reads **18** — *not* the pre-fold
+  23/21. Named as `sweep_hits`, the reporting twin, because this is a count:
+  `sweep` is the deciding function and exits 1 in exactly this state, so an
+  operator under `set -e` would read a correct residue as a stop.
   T6 is deliberately outside the revert set, and its fold-branch post-state
   clears every removed-skill name from the three `packs/frontend-engineering/`
   files the sweep counts (`README.md`, `AGENTS.md`,
@@ -1459,7 +1486,8 @@ restated against the still-present genre skills.
   sentinel still probing `conversion-design` (both in `SKILL.md`), the README
   route list keeping its three genre names, and `AGENTS.md` naming the six
   again. So the abort **end** state is `sweep_raw` 20 + 3 = **23** and `sweep`
-  18 + 3 = **21** — the pre-fold figures, reached at T9a rather than at T9b.
+  18 + 3 = **21** (as `sweep_hits`; `sweep` decides and exits 0 only when clean)
+  — the pre-fold figures, reached at T9a rather than at T9b.
   There are two distinct measurement points and they differ; stating one figure
   for both is what produced this error.
 - `python3 -m pytest tests/roster -q -k "experience or handoff or census"` passes.
@@ -1609,15 +1637,23 @@ not reach its completion condition either.
 - If stale directories are not pruned, the changelog states the manual step.
 - Judgements 2 and 3 recorded with reviewer and date. Judgement 1 was recorded
   at T3, where its failure costs T3 alone.
+- The ledger records that the `tone-of-voice` copy's duplication note now
+  **points at a directory this fold deleted**, and stays stale until
+  `xd-copy-router` reconciles the three copies. Distinct from that file's
+  sweep-exemption reason: the exemption says why the file is filtered, this says
+  what is now wrong inside it. The spec routes it to the ledger because an
+  earlier version routed it to the changelog, where no task condition and no
+  command reached it.
 
 **Done when (fold branch):** the ledger carries the install observation, the
-`docs/` classification, both sweep-exemption reasons, the
+`docs/` classification, both sweep-exemption reasons, the stale-note record for
+the `tone-of-voice` copy, the
 `xd-state-reviewer-doctrine` hand-off confirmation, the **§ 10 sole-editor
 citation** naming the sibling spec's non-edit criterion, and all three
 verdicts — **and**, if any of the six genre quality-eval sets was knowingly dropped rather
 than carried into `evals.json`, the ledger names which and why. The enumeration
-is stated as closed ("all five"), so a criterion discharged by a ledger entry
-needs a slot in it or the entry has nowhere to land — **and**, if the install
+is stated as closed — **seven** items — so a criterion discharged by a ledger
+entry needs a slot in it or the entry has nowhere to land — **and**, if the install
 observation showed `agentbundle` does **not** prune a
 directory the pack no longer declares, the changelog states the manual step.
 That branch is the whole reason the observation is taken: an unpruned stale

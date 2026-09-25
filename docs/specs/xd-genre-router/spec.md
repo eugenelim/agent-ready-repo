@@ -362,8 +362,11 @@ downstream caller can reach today — and each genre's method is unchanged.
       directory T4 deletes. It is **not** corrected here: that file is one of
       the three distinct-hash copies whose reconciliation this spec routes to
       `xd-copy-router`, and editing its bytes moves a hash that sibling slice is
-      measured against. The changelog records that the note is stale until the
-      copy fold lands. Without these two exemptions the sweep can never return
+      measured against. **The ledger** records that the note is stale until the
+      copy fold lands — the same place both sweep-exemption reasons go, and a
+      place T11's `Done when` already reads. An earlier version routed this to
+      the changelog, where no task's condition and no command reached it, so
+      the clause would have shipped missing with nothing red. Without these two exemptions the sweep can never return
       empty, and a reviewer facing a non-empty result must adjudicate it by eye.
       *(goal-based)*
 - [ ] **The six new genre references are read for removed-skill names that are
@@ -413,7 +416,9 @@ downstream caller can reach today — and each genre's method is unchanged.
       owed an edit. *(goal-based)*
 - [ ] Every **open** lifecycle record under `docs/` naming a removed skill is
       updated, starting with `docs/product/intents/skill-sequence-wayfinding.md`
-      (Status: Draft, naming five of the six). The enumeration comes from
+      (Status: Draft, naming **all six** — measured per-name on 2026-09-25, one
+      occurrence each at lines 138–140; an earlier "five of the six" would have
+      let an implementer stop one short). The enumeration comes from
       grepping `docs/` for the six names and classifying each hit as frozen,
       dated output, or open. *(goal-based)*
 - [ ] No alias, shim, or deprecation stub is shipped. *(goal-based)*
@@ -564,8 +569,18 @@ branch's wording would contradict itself.
       never released is a constraint no adopter can satisfy, and `catalogue
       verify` reads `recommended` structurally and would not catch it.
       *(goal-based)*
-- [ ] The named-skip text recorded when `experience-design` is absent matches the
-      skill actually looked for. *(goal-based)*
+- [ ] The named-skip text recorded when `experience-design` is absent is
+      **unchanged**. Today it reads
+      `XD genre routing: skipped (experience-design pack absent)` — it names the
+      **pack**, not a skill, and the pack's name does not change in this
+      delivery, so there is nothing to reconcile. An earlier wording ("matches
+      the skill actually looked for") implied an edit that was unsatisfiable as
+      written and would have put this literal out of step with its verbatim
+      copy at `guides/frontend-engineering/tutorials/scaffold-a-component.md:82`
+      — a file T6 cannot reach, T7a never names, and no suite compares against
+      the skill. Leaving the literal alone keeps the two in agreement with no
+      cross-tree edit. The sentinel beside it *does* change, and that is the
+      criterion above. *(goal-based)*
 - [ ] `packs/frontend-engineering/README.md`'s genre-route list names exactly
       the surviving routing targets. It offers **three** removed skills today —
       `conversion-design`, `documentation-design`, `analytical-design` — and a
@@ -760,6 +775,18 @@ branch's wording would contradict itself.
       `## [experience-design][3.0.0] — <YYYY-MM-DD>` entry directly beneath
       `[Unreleased]`, naming the six removed skills explicitly so an adopter
       reading only the changelog learns which names disappeared. *(goal-based)*
+- [ ] That entry carries a `### Highlights` subsection. The changelog's own
+      header rules — which this spec's Durable Outputs name as the owner —
+      require one "when the release changes what a consumer can do", and say
+      that a release changing nothing consumer-facing carries none but that
+      "*none* is a verdict to record with its reason, not a step to skip".
+      Retiring six skills at a major bump plainly qualifies, and the sibling's
+      `[experience-design][2.0.10]` entry carries one. Nothing downstream
+      enforces it — the `/now/` projection is a pure parser and no model runs in
+      the build — so without this criterion the release is absent from the
+      public page permanently and invisibly. Blank-line and heading-level
+      conformance is separately covered by `tools/test_build_site_routing.py`;
+      `Highlights` is the one header rule with no instrument. *(goal-based)*
 - [ ] `packs/frontend-engineering/pack.toml` and its
       `.claude-plugin/plugin.json` carry a **patch** bump from `0.3.2` to `0.3.3`, and its marketplace entry is
       regenerated. Patch, not major: this edits that pack's content and removes
