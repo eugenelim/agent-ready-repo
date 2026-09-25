@@ -328,7 +328,7 @@ each linked spec; do not hand-edit it.
 | Spec | Slice | Version effect | Status |
 | --- | --- | --- | --- |
 | `xd-genre-router` | S1 — genre fold | major, `→ 3.0.0` | Approved |
-| `xd-copy-router` | S2 — copy fold | major, `→ 4.0.0` | Draft |
+| `xd-copy-router` | S2 — copy fold | major, `→ 4.0.0` | Approved |
 
 Both also oblige bumps in `frontend-engineering` and, for S2,
 `product-engineering`. Why the order cannot change is in

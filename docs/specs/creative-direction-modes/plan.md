@@ -1,7 +1,7 @@
 # Plan: Creative direction — five operations, divergence generation, and a capability-gated visual step
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (§ Authoring or editing a skill, § Version bump rule, § Shipped pack content carries no internal-governance citations); `guides/_shared/how-to/author-a-skill.md` (four-subdirectory layout, progressive-disclosure rule); two analogous mode-carrying skills — `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md` (§ Mode selection, four modes with required outputs) and `packs/core/.apm/skills/workspace-status/SKILL.md` (§ Mode selection, subcommand table); neither analogue has a construction path: no suite tests either skill's mode table, which is itself the precedent gap. The suite this delivery must not break, `tests/roster/test_experience_design_write_declaration_and_containment.py`, tests declaration lines and containment copies rather than modes. Named uncertainty: no repository precedent exists for a capability-gated operation that degrades to a text representation, so `visualize`'s contract is authored rather than copied.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -91,7 +91,7 @@ states the same rule and owns its wording. `S` is
 | `**Writes:**` / `**Confinement:**` exactly once and unchanged | a `grep -c` per line, then `git diff --exit-code` scoped to `SKILL.md` and inspected for those two lines | `1` each, and both byte-identical to the pinned revision. They move within the file when the body is rewritten, so they appear in the diff as a `-`/`+` pair; byte-identity is the test, not absence from the diff. |
 | Authored-body ceiling ≤ 6,500 B | the **authored-body measurement** (below) | ≤ 6500 |
 | Directory ≤ 97,000 B | `find "$S" -type f -exec cat {} + \| wc -c` | ≤ 97000 — amended from 95,000 on 2026-09-25; the spec criterion owns the arithmetic |
-| Description ≤ 1024 chars | the **description measurement** (below) | ≤ 1024; reads **784** today |
+| Description ≤ 1024 chars | the **description measurement** (below) | ≤ 1024; the measurement block below states the shipped reading |
 | Fifteen axis rows intact | count pipe rows in the Direction sheet section | `17` — header + separator + fifteen axes |
 | Template frontmatter `status` placeholder | `grep -qF 'status: "<proposed \| selected>"' "$S/assets/creative-direction-template.md"` | exit 0 (absent today; T6 adds it). `-F` because the value carries regex metacharacters. |
 | Evals carry cases A–D | assert the four case ids exist **and** every distinguishing assertion string the criterion names: no-divergence-round and no-second-doc for A; default-and-opposite and six-axis distinctness for B; audience-domain-majority for C; only-named-axes, goals-unchanged and amended-not-replaced for D | four ids and all eight strings — two for A, two for B, one for C, three for D. A count of four passes while half the assertions are absent, including two of Case D's three. |
@@ -617,6 +617,15 @@ and a partial install is not a state the installer produces.
   sections, are judgement 7 rather than commands, because a pattern written
   against a file no one has authored cannot bound a count — four such patterns
   were written and each failed for a reason unrelated to its criterion.
+- 2026-09-25 — Baseline re-pinned after the post-gates review rounds amended the
+  Verification command map. Approved by eugenelim. Three changes since the
+  2026-09-24 approval, none touching a task's Approach, Depends on or Touches:
+  the directory ceiling moved 95,000 → 97,000 by the owner-approved amendment
+  recorded in `spec.md`'s Changelog; the gate-survival criterion gained a
+  command, having had none, which is how a deleted sentence in gate 3 reached
+  the ledger unobserved; and the description row stopped restating a figure the
+  measurement block owns, after it went stale at 784 against a shipped 1,009.
+  The build strategy is unchanged.
 - 2026-09-24 — Baseline re-pinned after a non-substantive
   correction: `loop-cohort schedule` refused with a dependency cycle across T2
   and T9, because `Depends on:` is parsed for task IDs and both fields carried

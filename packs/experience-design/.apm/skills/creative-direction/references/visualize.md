@@ -8,7 +8,7 @@
 
 **Semantic direction** — the filled direction sheet this operation is working from: a candidate's on `originate`, where `visualize` runs before selection, and the selected direction's on a later standalone call; carrying a token on every axis. This representation is binding: it is the agreement the work carries forward.
 
-**Visualised candidate** — an illustrative depiction of a single direction, produced to support the human's comparison before selection. Visualise every surviving candidate or none: visualising one and not the others weights the choice, which `converge`'s equal-salience rule forbids. This representation is illustrative and non-binding. It informs a choice but does not supersede the direction sheet.
+**Visualised candidate** — an illustrative depiction of a single direction, produced to support the human's comparison before selection. Visualise every surviving candidate or none: visualising one and not the others weights the choice. This representation is illustrative and non-binding. It informs a choice but does not supersede the direction sheet.
 
 **Approved visual target** — a composition the human has confirmed as a structural reference for the direction it was produced from: a candidate's on `originate`, the selected direction's on a later standalone call. This representation is binding on composition only: it fixes arrangement, proportion, and spatial relationships.
 
@@ -16,7 +16,7 @@
 
 An approved visual target never binds colour, type, spacing, or motion values — those remain `design-system`'s to derive.
 
-Only the selected direction's approved visual target reaches the doc. A target approved on a candidate the human does not choose is discarded with that candidate. An approved visual target's compositional commitments are written into `<output_dir>/direction/<slug>.md` itself, because a file beside the direction doc sits off every path a downstream consumer reads.
+A standalone call after selection produces no recordable target: `converge`'s capture has already run, and `refine` records axis amendments only. Only the selected direction's approved visual target reaches the doc. A target approved on a candidate the human does not choose is discarded with that candidate. An approved visual target's compositional commitments are written into `<output_dir>/direction/<slug>.md` itself, because a file beside the direction doc sits off every path a downstream consumer reads.
 
 ## Default representation
 
