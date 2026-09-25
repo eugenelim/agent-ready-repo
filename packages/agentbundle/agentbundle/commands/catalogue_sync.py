@@ -931,7 +931,14 @@ def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool
         root = target.resolve(strict=True)
     except OSError:
         return False
-    current = node if missing_depth else node.parent
+    # Start at the node itself, not its parent, even when the path exists.
+    # A spelling that resolves *exactly to* a destination root — `../<target
+    # name>/packages/credbroker`, or its absolute form — is that destination,
+    # and starting at the parent never compares the protected directory
+    # against itself. The lexical half cannot answer for those, because they
+    # normalise to something still leaving the target, so nothing answered at
+    # all and `_in_coverage` read the False as "not excluded".
+    current = node
     while True:
         try:
             current_stat = current.stat()
@@ -2578,7 +2585,7 @@ def _run_dry_run(
     cli_pack_names: list[str],
     cli_profile_names: list[str],
     guides_scope: bool,
-    package: str | None = None,
+    package: str | None,
 ) -> int:
     """Spec AC-0013's `--dry-run` rows: no recorded selection derivable, an
     unshipped `--pack`/`--profile` name or an invalid recorded selection
@@ -3128,7 +3135,7 @@ def _run_apply(
     cli_pack_names: list[str],
     cli_profile_names: list[str],
     guides_scope: bool,
-    package: str | None = None,
+    package: str | None,
 ) -> int:
     """AC-0039's apply rows — the write path `_run_dry_run` has none of.
 

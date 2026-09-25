@@ -4487,6 +4487,10 @@ def _call_run_apply(target: Path, source: Path, **overrides) -> int:
         "cli_pack_names": [],
         "cli_profile_names": [],
         "guides_scope": False,
+        # Required rather than defaulted (review round 3, concern 3): these
+        # two dispatch functions are what a new caller or test constructs, so
+        # the seam that made round 1's blocker a type error has to reach them.
+        "package": None,
     }
     kwargs.update(overrides)
     return catalogue_sync._run_apply(**kwargs)
@@ -6426,11 +6430,9 @@ def test_apply_package_scope_reaches_the_write_set_at_the_command_boundary(
     # is kept, because an unscoped run WOULD make it non-empty and fail, which
     # is exactly the regression it guards. What it cannot do is prove the
     # scope admits the right paths; that is the T3 unit coverage's job.
-    outside = {
-        p for p in seen.get("admitted", set())
-        if not p.startswith("packages/credbroker/")
-    }
-    assert not outside, f"apply write set escaped the package scope: {sorted(outside)[:5]}"
+    # One assertion, not two: `admitted == set()` strictly implies "nothing
+    # outside the destination", and it also reds if the selector was never
+    # called at all, since `None != set()`.
     assert seen.get("admitted") == set(), (
         "this fixture ships no credbroker extent; if that changes, tighten the "
         "assertion above into a positive one rather than leaving it vacuous"
@@ -6494,9 +6496,11 @@ def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path, monkeyp
     _write_apply_old_state(target)
 
     fired: list[str] = []
+    consulted: list[tuple] = []
     real = catalogue_sync._absent_credbroker_extent
 
     def _watch(package, pack_names):
+        consulted.append((package, tuple(pack_names)))
         reason = real(package, pack_names)
         if reason is not None:
             fired.append(reason)
@@ -6505,6 +6509,11 @@ def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path, monkeyp
     monkeypatch.setattr(catalogue_sync, "_absent_credbroker_extent", _watch)
     catalogue_sync.run(
         _sync_args(target, source, "--package", "credbroker", "--dry-run")
+    )
+    assert consulted, (
+        "the row must actually be reached; `not fired` also holds when an "
+        "earlier row refuses first, which is how this control was vacuous "
+        "before round 2"
     )
     assert not fired, (
         "AC-0082's credbroker row must not fire when the resolved selection "
@@ -6644,3 +6653,67 @@ def test_credbroker_row_outranks_the_container_row(tmp_path, mode):
     # ...and with no --package, the container row is still reached.
     args2 = _sync_args(target, source, *mode, *consent)
     assert catalogue_sync.run(args2) == 3
+
+
+@pytest.mark.parametrize("mode", [["--dry-run"], []], ids=["dry-run", "apply"])
+def test_credbroker_row_sits_above_the_integrity_row(derived_tree, tmp_path, mode):
+    # Review round 3, blocker 1. AC-0085 splits AC-0039's conflated
+    # resolve/verify row: resolution is decided in `run()` above everything,
+    # verification inside the replay, which cannot run until the effective
+    # selection exists. The credbroker row needs that selection too, and sits
+    # above the replay. This pins the relative order the earlier
+    # container-row test could not see.
+    src = tmp_path / f"unverifiable-{'-'.join(mode) or 'apply'}"
+    pack = src / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    consent = [] if mode else ["--yes"]
+
+    def run(*extra):
+        return catalogue_sync.run(
+            _build_parser().parse_args(
+                ["catalogue", "sync", str(derived_tree), "--source", str(src),
+                 *mode, *consent, *extra]
+            )
+        )
+
+    assert run() == 3, "control: the integrity row is reached and returns 3"
+    assert run("--package", "credbroker") == 2, (
+        "the credbroker row is above the integrity row in AC-0085's split table"
+    )
+
+
+def test_package_path_admits_a_destination_root_itself(tmp_path):
+    # Review round 3, concern 2. The identity walk started at the node's
+    # PARENT, so a spelling resolving exactly to a destination root never
+    # compared that directory against itself. The lexical half cannot answer
+    # for these either -- they normalise to something still leaving the target
+    # -- so nothing answered, and `_in_coverage` read the False as "not
+    # excluded". The earlier 14-input sweep probed file depth, not
+    # destination-root depth, which is why it passed.
+    t = tmp_path / "derived"
+    (t / "packages" / "credbroker").mkdir(parents=True)
+    (t / "packs" / "core").mkdir(parents=True)
+    n = t.name
+    for spelling in (
+        f"../{n}/packages/credbroker",
+        f"../{n}/packages/credbroker/",
+        f"../{n}/./packages/credbroker",
+        f"../{n}/packages/../packages/credbroker",
+        str(t / "packages" / "credbroker"),
+    ):
+        assert catalogue_sync._is_package_path(
+            t, spelling, catalogue_sync._PACKAGE_PREFIXES
+        ), spelling
+        assert not catalogue_sync._in_coverage(
+            t, spelling, pack_names=[], profile_names=[], guides_mode="selected",
+            scope=None, tooling="external",
+        ), f"{spelling} must stay out of removal coverage"
+
+    # Non-package roots reached the same way must still answer False.
+    for spelling in ("packs/core", f"../{n}/packs/core"):
+        assert not catalogue_sync._is_package_path(
+            t, spelling, catalogue_sync._PACKAGE_PREFIXES
+        ), spelling

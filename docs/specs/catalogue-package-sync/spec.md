@@ -318,8 +318,9 @@ root is § Agent Rules § Never do's, not restated here.
   it failed. The two halves are decided at different points — AC-0084 fixes
   which — and this criterion fixes only the outcome. The `agentbundle` half is
   decided from the run's flags above source resolution; the `credbroker` half
-  from the resolved selection, after the replay, below the AC-0068
-  selection-validity row. This covers
+  from the resolved selection — so after that selection resolves and below the
+  AC-0068 selection-validity row, but **before** the replay, which consumes the
+  selection and is where the integrity row sits. This covers
   `--package agentbundle` on a
   run not replaying `--tooling vendored`, and `--package credbroker` on a run
   whose resolved selection does not carry the `credential-brokers` pack. A
@@ -392,11 +393,12 @@ root is § Agent Rules § Never do's, not restated here.
   | any | the invocation is malformed, including an omitted `--source`, both of `--dry-run` and `--check`, `--compare-tree` without `--check`, `--yes` outside an apply run, a scoping flag with `--check`, an apply run with `--format json` and no `--yes`, or a `--package` name outside `agentbundle` and `credbroker` | 2 — `malformed` |
   | any | `--package agentbundle` on a run not replaying `--tooling vendored`, per AC-0082 | 2 — `malformed` |
   | apply or `--dry-run` | the run's effective scope includes the `agentbundle` destination and the target supplies the running `agentbundle`, per AC-0083 | 3 — `cannot-answer` |
-  | any | the source could not be resolved or its integrity could not be verified | 3 — `cannot-answer` |
+  | any | the source could not be resolved | 3 — `cannot-answer` |
   | apply or `--dry-run` | a `--pack` or `--profile` name the resolved source does not ship | 2 — `malformed` |
   | apply or `--dry-run` | a recorded selection field is present and invalid per AC-0068, or the recipe carries no derivable selection at all, read before any name a scoping flag introduces is unioned in | 3 — `cannot-answer` |
   | any | `--package credbroker` on a run whose resolved selection does not carry the `credential-brokers` pack, per AC-0082 | 2 — `malformed` |
   | apply, `--dry-run`, or `--check --compare-tree` | the recorded-path container is not an array | 3 — `cannot-answer` |
+  | apply or `--dry-run` | the resolved source's integrity could not be verified | 3 — `cannot-answer` |
   | apply or `--dry-run` | the identity leak check reported a violation | 1 — `difference` |
   | apply or `--dry-run` | a selected pack's adapter-contract major differs from the CLI's | 1 — `difference` |
   | apply | the write set's paths hold more on disk than AC-0076's bound | 3 — `cannot-answer` |
@@ -419,6 +421,15 @@ root is § Agent Rules § Never do's, not restated here.
   | `--check --compare-tree` | the recorded path set is empty, or any recorded path could not be compared | 3 — `cannot-answer` |
   | `--check --compare-tree` | every recorded path was compared and none differs | 0 — `success` |
   | `--check --compare-tree` | every recorded path was compared and some differ | 1 — `difference` |
+
+  **AC-0039 conflated two conditions in one row, and this table splits them.**
+  Its "the source could not be resolved **or** its integrity could not be
+  verified" names two events that happen at different points: resolution in
+  `run()`, above everything, and verification inside the replay, which cannot
+  run until the effective selection exists. So no implementation could satisfy
+  that row's single position — the selection rows below it were always decided
+  first. The split states the order the command can actually produce, and puts
+  the integrity row where the replay is.
 
   The `agentbundle` absent-extent row and the self-replacement row sit above
   source resolution per AC-0084. The absent-extent rows split by name, and the
