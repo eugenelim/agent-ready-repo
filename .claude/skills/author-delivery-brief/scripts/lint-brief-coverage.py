@@ -161,11 +161,15 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
         if re.match(r"^##\s+Spec map\b", live, re.IGNORECASE):
             continue
 
-        # A '## ' heading inside a comment does not end the section.
-        # live.startswith checks the live prefix before any leading whitespace
-        # is removed, so '--> ## Other' (whose live text starts with ' ##')
-        # is not a terminator.
-        if live.startswith("## "):
+        # A '## ' heading ends the section, and the comment state carried
+        # into the line is what tells two shapes apart.  '  ## Other' did not
+        # begin inside a comment, so its whole text is live and it terminates
+        # -- CommonMark allows up to three leading spaces on a heading, so
+        # indentation alone must not keep rows parsing past the section.
+        # '--> ## Other' began inside a comment and closed it, so the heading
+        # is a live suffix rather than a prefix and does not terminate.  The
+        # preamble reader draws the same line for the same reason.
+        if not in_comment_before and live.lstrip().startswith("## "):
             break
 
         # Skip lines that are inside a comment or on which comment state

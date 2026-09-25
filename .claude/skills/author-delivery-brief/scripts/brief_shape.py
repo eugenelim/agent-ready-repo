@@ -105,15 +105,27 @@ def read_preamble(text: str) -> list[tuple[str, str]]:
         in_comment_before = in_comment
         live, in_comment = process_line(line, in_comment)
 
-        # An uncommented ## heading ends the preamble.  The check reads the
-        # live prefix before leading whitespace is removed, so a line that
-        # closes a comment and then carries a heading -- '--> ## Outcome',
-        # whose live text starts with a space -- is not a terminator.  The
-        # Spec-map scanner makes the same choice for the same reason: stripping
-        # first would end the bound early and silently drop a live field below
-        # it, which is the miss this reader exists to prevent.
-        if live.startswith(_HEADING_PREFIX):
-            break
+        # An uncommented ## heading ends the preamble.  Two shapes must be
+        # told apart, and the comment state carried into the line is what
+        # distinguishes them:
+        #
+        #   '  ## Outcome'   -- the line did not begin inside a comment, so
+        #                       its whole text is live and the heading bounds
+        #                       the read.  CommonMark allows up to three
+        #                       leading spaces on a heading, so indentation
+        #                       alone must not smuggle a field into the body.
+        #   '-->  ## Outcome' -- the line began inside a comment and closed
+        #                       it, so the heading is a live *suffix* rather
+        #                       than a prefix and does not bound.  Treating it
+        #                       as a bound would silently drop a live field
+        #                       below it.
+        #
+        # The Spec-map scanner draws the same line for the same reason.
+        if not in_comment_before and live.lstrip().startswith(_HEADING_PREFIX):
+            # The bound is found, so comment state opened on or after this
+            # line belongs to the body and must not invalidate the preamble
+            # that was already read.
+            return pairs
 
         live_stripped = live.strip()
 
