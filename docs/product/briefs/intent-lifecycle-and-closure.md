@@ -128,8 +128,9 @@ The cut is confirmed as a **set of four**, which is what makes the count readabl
 
 ## Spec map
 
-One of four slices materialized. The Status column is auto-derived from each spec; it is not hand-edited.
+Two of four slices materialized. The Status column is auto-derived from each spec; it is not hand-edited.
 
 | Spec | Status |
 | --- | --- |
 | `lifecycle-transition-contract` | <auto> |
+| `brief-lifecycle-contract` | <auto> |

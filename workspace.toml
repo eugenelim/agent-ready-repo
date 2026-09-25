@@ -2309,6 +2309,14 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
+  # Slice 3 of `intent-lifecycle-and-closure`, materialized 2026-09-25 under its
+  # own confirmation -- ADR-0098 D6 makes selecting and materializing a slice a
+  # separate human act from confirming the four-slice set. `needs` is empty:
+  # slice 3 takes no blocking edge on slice 2, and the dependency runs the other
+  # way -- slice 2's brief path consumes the brief state table this slice
+  # delivers. Slice 2 is blocked on `intent-identity-and-registration` recording
+  # the carve-out mark and the closed-empty marker, and is not queued here.
+  { path = "docs/specs/brief-lifecycle-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "Give a brief a state table, a legal transition set and a Cut-closed declaration a bounded comment-aware preamble reader decides, with the vocabulary and coherence predicate moved to one defining home and every brief read in the coverage lint routed through that reader", needs = [] },
 ]
 active  = [
 ]
