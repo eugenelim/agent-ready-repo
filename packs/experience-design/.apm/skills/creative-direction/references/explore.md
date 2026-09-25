@@ -1,8 +1,5 @@
 # explore — generating candidates for the audit
 
-> **Loaded when:** `explore` is the active operation.
-> **Question:** what materially different directions are available for this brief?
-
 ## Before you derive
 
 Name two arrangements before drawing any referents:
@@ -81,10 +78,7 @@ genuinely owns that decision.
 ## Candidate sheets stay in the session
 
 Candidate sheets are held in the session and are not written to disk. The
-`converge` operation is the only operation that writes a file. This skill
-declares exactly one write target, and candidate sheets committed to disk would
-create a second. A tool that scans the direction folder on `type:` alone would
-then count rejected candidates as standing directions.
+`converge` operation is the only operation that writes a file.
 
 ## Handing off to the audit
 
@@ -94,5 +88,4 @@ collection of near-duplicates. The author returns here, varies the material
 family or the source class, and derives more candidates until the set clears
 the threshold.
 
-The audit certifies that the set is worth presenting. Selecting among
-candidates belongs to `converge`.
+Selecting among candidates belongs to `converge`.

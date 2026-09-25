@@ -177,7 +177,7 @@ Each request maps to one of five named operations before any reference is loaded
 
 - **frame** — establishes the brief from the felt vibe. Sets audience and ranked jobs-to-be-done, target surface, incumbent constraints, intended effect, what must stay recognisable, what would read as generic, and the named goals the interrogation produces. Does not recreate product discovery or journey design.
 - **explore** — generates materially different candidate directions, each as a filled direction sheet held in the session, then scores them for distinctness. Nothing is written to disk at this stage.
-- **visualize** — makes a candidate concrete enough to support a compositional commitment. Runs only when the route is `originate` and the harness can produce the output; its absence is a named skip, not a blocker. Writes nothing of its own.
+- **visualize** — makes a candidate concrete enough to support a compositional commitment. It runs on any harness: a text schematic is the default representation. A rendered comp is produced only when the route is `originate` and the harness can produce one, and its absence is a named skip, not a blocker. Writes nothing of its own.
 - **converge** — selects a direction, grounds and ranks the goals, fills the direction sheet across all fifteen axes, runs the counterfactual check, holds the quality floor, and captures the direction document. This is the only operation that writes a file.
 - **refine** — takes a requested change in plain words, maps it to the axes that may move, and records the amendment in the existing direction document without writing a second direction doc.
 

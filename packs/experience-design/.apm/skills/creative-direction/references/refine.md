@@ -1,13 +1,12 @@
 # refine — mapping a requested change to the axes that may move
 
-> **Loaded when:** `refine` is the active operation.
 > **Question:** which axes does this change request put in play, and which must stay fixed?
 
 ## One operation
 
 `refine` is a single operation. It takes a requested change stated in plain words and returns the set of axes that may move, with all other axes locked.
 
-The wordings below are request wordings, not separate operations. A reader who treats `bolder` or `typeset` as an operation alongside the five mistakes the map for a menu and will route requests that belong in one turn into many.
+The wordings below are request wordings, not separate operations.
 
 ## Request-wording to axis map
 

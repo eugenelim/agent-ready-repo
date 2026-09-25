@@ -1,8 +1,5 @@
 # converge — selection, commitment, and the doc
 
-> **Loaded when:** `converge` is the active operation.
-> **Question:** which direction does this work take, and what does it commit to?
-
 `converge` is the only operation that writes a file. `explore` holds candidate sheets in the session; `visualize` writes nothing. Every act below consumes the selected direction and cannot run before selection.
 
 ## Presenting candidates
@@ -12,8 +9,6 @@ Present surviving candidates at equal salience. The comparison is limited to the
 ## The standing exit
 
 In every divergence round, offer the standing exit alongside the derived candidates: the category standard played straight — the arrangement the audience expects from any product in this space, executed without modification.
-
-Four obligations govern it:
 
 - The standing exit is offered in every divergence round, not once and then assumed.
 - It is never recommended by the agent; the agent presents it at equal salience and does not weight the choice.
@@ -40,7 +35,7 @@ For each likely conflict between goals, name which goal wins and why. The build 
 
 Fill the direction sheet across all fifteen axes for the selected direction. Each cell opens with its tokens from that axis's vocabulary, then the prose saying what it means here; the audit compares the tokens, not the prose. Grid grammar, alignment and equilibrium, and section and scroll rhythm take exactly two ordered tokens; every other axis takes exactly one. Undecided is `[platform-default]`, never blank.
 
-The first seven axes are structural, and structure carries at least as much of a first impression as colour does. Do not leave them at `[platform-default]` by default — decide them.
+The first seven axes are structural. Do not leave them at `[platform-default]` by default — decide them.
 
 ## Run the counterfactual check
 
@@ -60,7 +55,7 @@ Resolve `output_dir` by reading `references/agentbundle-layout.md`, then apply e
 4. **Intermediate-directory confinement** — re-establish confinement at each intermediate directory as it is created.
 5. **Existing-artifact checks** — check type, surface a matching type to the user, and confirm product belonging when `output_dir` came from user-profile configuration.
 
-The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
+The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. Write any approved visual target's compositional commitments into the doc here; `visualize` forms them and writes nothing itself. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
 
 ## Borrowed-discipline record
 
