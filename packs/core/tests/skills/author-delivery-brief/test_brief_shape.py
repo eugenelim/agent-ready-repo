@@ -499,3 +499,52 @@ def test_ac0018_legal_transitions_and_self_pairs_not_refused() -> None:
         assert _m.is_transition_valid(from_s, to_s), (
             f"Legal transition ({from_s!r}, {to_s!r}) should not be refused"
         )
+
+
+# ── AC-0023: a brief copied from the seed template is not refused ─────────────
+
+_TEMPLATE_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "seeds"
+    / "docs"
+    / "product"
+    / "briefs"
+    / "_template.md"
+)
+
+
+def test_ac0023_template_cut_closed_is_absent_to_parser() -> None:
+    """The seed template's Cut-closed: row parses as absent (None).
+
+    AC-0009 lets a comment-only value count as absent.  This drives the real
+    template bytes so a malformed row would be caught before it seeds a bad
+    preamble into every brief copied from it.  AC-0023.
+    """
+    template_text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+    assert _m.get_cut_closed(template_text) is None
+
+
+def test_ac0023_template_as_draft_brief_refused_by_no_spec_rule() -> None:
+    """A Draft brief copied verbatim from the seed template is refused by no rule.
+
+    Exercises the declaration matrix (AC-0013 through AC-0016) and the
+    lifecycle predicate (AC-0012) against the template's actual preamble.
+    A new brief has no mapped specs yet, so child_states is empty.  AC-0023.
+    """
+    template_text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    status = _m.get_status(template_text)
+    cut_closed = _m.get_cut_closed(template_text)
+
+    assert status == "Draft", (
+        f"template Status: expected 'Draft', got {status!r}"
+    )
+    assert cut_closed is None, (
+        f"template Cut-closed: expected absent (None), got {cut_closed!r}"
+    )
+    assert _m.validate_declaration(status, cut_closed is not None) is None, (
+        "declaration matrix refused the template preamble"
+    )
+    assert _m.is_lifecycle_valid(status, set()), (
+        "lifecycle predicate refused the template preamble with no children"
+    )
