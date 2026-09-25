@@ -383,6 +383,20 @@ shippable, each behind this one, and each owns the blockers that attached to it.
   — the 2026-09-13 Errata cites `docs/CONVENTIONS.md`, retired in `813f533f1`.
   The rule survives; its evidence links dangle.
 
+- eugenelim: the contract's `x-spec` pointer is an inbound citation at the spec
+  it names, so `xspec-pinned` holds that spec back permanently. The authoring
+  convention requires the pointer and a roster test asserts it resolves, so
+  every spec defining a contract is unretirable by a rule this repository wrote
+  for itself — 17 specs in the current corpus. Left as-is by owner decision;
+  the real fix belongs with the citation-direction rule above.
+- eugenelim: the shipped command emits spurious `path-escapes-root` refusals for
+  `needs` edges naming a file inside a spec directory. The files exist, resolve
+  inside the root, and read correctly through the confined reader in isolation,
+  so the defect is in the edge-resolution path rather than the guard. Measured:
+  41 such refusals, all with an empty `suppresses` list, so no candidate's
+  eligibility is affected — the output carries misleading noise, not a wrong
+  verdict.
+
 ## Assumptions
 
 - Product: whether a brief's `Spec map` entry should outlive its spec's
