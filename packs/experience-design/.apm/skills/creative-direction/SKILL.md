@@ -47,7 +47,7 @@ Look up `<output_dir>/direction/` to find whether a direction already owns the t
 Confirm all three before drafting; if any fails, push back and resolve it first.
 
 1. **There is a real vibe to name** — the user can describe a feeling, an audience, or examples to react to. A blank "make it nice" is not yet a brief; draw out a first felt word before proceeding.
-2. **You're naming direction, not deriving values** — the moment the ask is spacing, type, or color *values*, hand off to `design-system`.
+2. **You're naming direction, not deriving values** — the moment the ask is spacing, type, or color *values*, hand off to `design-system`. This skill stops at named goals.
 3. **You know the target surface** — `responsive-web`, `iOS`, `Android`, or `cross-platform`. If absent, elicit it before grounding the goals; platform conventions are a referent for every goal.
 
 ## Operations
@@ -58,7 +58,7 @@ Establishes the brief from the felt vibe. What it sets: audience and ranked JTBD
 
 `frame` does not recreate product discovery or journey design. Product discovery belongs to product strategy; journey design belongs to `information-architecture`.
 
-Map each distinct reader type, write one JTBD sentence per type, and rank them (primary, secondary). Feed the ranked map into the interrogation. Record the map in the doc as the Persona referent for each named goal.
+Map each distinct reader type, write one JTBD sentence per type, and rank them (primary, secondary). Feed the ranked map into the interrogation. Carry the map into `converge`'s capture as the Persona referent for each named goal; on `inherit`, which reaches no writer, hold it in the session.
 
 Run the interrogation: open from the felt vibe, probe the emotions, associations, and brand attributes behind it, and converge on a short set of named goals. Sharpen each against its opposite.
 
