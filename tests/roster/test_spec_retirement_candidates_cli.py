@@ -305,3 +305,34 @@ def test_real_corpus_namespaced_specs_are_attributed() -> None:
             unattributed.append(path.relative_to(ROOT).as_posix())
 
     assert unattributed == []
+
+
+def test_in_root_symlinked_spec_is_read_by_the_command(tmp_path: Path) -> None:
+    """A spec.md that is an in-root link is read, at the CAPABILITY level.
+
+    The confined reader was fixed for this and its own unit test passed, while
+    the command kept a second, earlier guard that refused every link whatever
+    its target.  A helper-level test cannot see that: this one drives the
+    shipped command so both guards must agree.
+    """
+    root = tmp_path / "repo"
+    root.mkdir()
+    _write_clean_fixture(root)
+    linked = _spec_dir(root, "linked-spec")
+    linked.mkdir(parents=True)
+    (linked / "AGENTS.md").write_text(
+        "# Spec: Linked\n\n- **Status:** Shipped\n", encoding="utf-8"
+    )
+    (linked / "spec.md").symlink_to("AGENTS.md")
+
+    result = _invoke(root)
+    assert result.returncode == 0, result.stderr.decode("utf-8", errors="replace")
+    doc = json.loads(result.stdout)
+
+    slugs = {c["slug"] for c in doc["candidates"]}
+    assert "linked-spec" in slugs, (
+        "an in-root symlinked spec.md must be read, not refused: "
+        f"candidates={sorted(slugs)} refusals={doc['refusals']}"
+    )
+    escaping = [r for r in doc["refusals"] if r["code"] == "path-escapes-root"]
+    assert not escaping, f"no path escaped the root, yet: {escaping}"
