@@ -1,6 +1,6 @@
 # Spec: jira epic outcome view
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0126; ADR-0077
@@ -62,7 +62,7 @@ would add.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Maintainer procedure | Applicable — the view is a skill an adopter runs, and the outcome convention is what a team has to follow | the new skill's `SKILL.md` | this spec | the skill, stating where it reads an outcome from and what it renders when there is none | the convention is stated in one place a team can follow without reading code |
-| User promise | Applicable — this is the pack's first-value surface for a team that has adopted nothing | `guides/atlassian/` | this spec | what the view answers, and what it does not | drafted before implementation approval |
+| User promise | Applicable — this is the pack's first-value surface for a team that has adopted nothing | `guides/atlassian/` | this spec | what the view answers, and what it does not | the guide exists and states what the view answers and what it does not before the slice completes |
 | Interface compatibility | Applicable — ADR-0126 D4 requires the pack to declare its bridge skills | `packs/atlassian/pack.toml` | this spec | the declaration, with this skill absent from it | the pack declares bridges and this skill is not one |
 | Maintainer procedure | Applicable — this slice changes a skill other callers share | `flow-metrics`' `SKILL.md` | this spec | the inert cache mode, stated as default-off and named as the only mode this view composes through | the mode is documented where an existing `flow-metrics` caller would find it |
 | Release history | Applicable — `atlassian` changes | `docs/product/changelog.md` — a `## [atlassian][<version>] — <date>` entry. A pack keeps no `CHANGELOG.md` of its own; that convention is for published packages | this spec | one entry at the version both manifests carry | the entry sits at the bumped version and names the new view |
