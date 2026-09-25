@@ -1,7 +1,7 @@
 # Plan: Spec-retirement eligibility projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`AGENTS.md`](../../../AGENTS.md); [`packs/AGENTS.md`](../../../packs/AGENTS.md); [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) § skill dependencies; [`tests/AGENTS.md`](../../../tests/AGENTS.md); [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) §§2, 4, 6, 7 and the Wave 7e Errata
 
 ## Approach
@@ -393,9 +393,11 @@ case red.
 **Tests:**
 - End-to-end invocation against a disposable fixture returns the documented exit
   code and a schema-valid document.
-- Every refusal code the schema enum carries has a fixture that produces it,
-  enumerated from the enum rather than listed here, so a code added without a
-  fixture fails the case. Verifies the refusal criteria.
+- Every refusal code `retirement-candidates` can emit has a fixture that produces
+  it, enumerated from the schema enum filtered to this command's surface rather
+  than listed here, so a code added without a fixture fails the case. A code
+  belonging to another surface is out of the domain rather than an unsatisfiable
+  member of it.
 - Two invocations over an unchanged tree emit byte-identical output.
 - `status` includes the map when present and emits its remaining output
   unchanged when absent.
@@ -487,4 +489,7 @@ ledger.
 - 2026-09-23 — Drafted.
 - 2026-09-24 — Approved shape: Wave 7e, age reported from change history, and
   the blocker vocabulary derived from the RFC's named set.
+- 2026-09-24 — Cut to a read-only core; brief retirability and the persisted
+  area map sliced out as separate deliveries.
+- 2026-09-24 — Spec and plan approved by eugenelim.
 - 2026-09-24 — Spec and plan approved by eugenelim.

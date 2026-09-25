@@ -1,6 +1,6 @@
 # Spec: Spec-retirement eligibility projection
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) Wave 7e (Errata 2026-09-24), §7 helper split, §2 semantic roles, and the Wave 7d carve-out surfaces (Errata 2026-09-13). §6 cooling is explicitly out of scope: this capability reads no lifecycle record.
@@ -188,10 +188,11 @@ suppression on the blockers it produced suppresses nothing.
       guarantees does not satisfy this.
 - [ ] A non-regular file where a spec body, manifest, or contract is expected is
       refused by name rather than read.
-- [ ] Each input read is bounded by a maximum byte count, and exceeding it is
-      refused as `input-too-large`.
-- [ ] Each git invocation is bounded by a maximum wait, and exceeding it is
-      refused as `subprocess-timeout`.
+- [ ] Each input read is bounded at 8 MiB, and exceeding it is refused as
+      `input-too-large`. The largest file the corpus carries is 144 KB, so the
+      bound fires on a pathological input rather than on a large real one.
+- [ ] Each git invocation is bounded at 30 seconds, and exceeding it is refused
+      as `subprocess-timeout`.
 
 ### Determinism
 
@@ -257,9 +258,10 @@ suppression on the blockers it produced suppresses nothing.
 - [ ] A spec named by an `x-spec` key in any contract is reported
       `xspec-pinned`, and a spec no `x-spec` key names is not.
 - [ ] A spec is reported `inflight` when a `workspace.toml` entry whose own
-      `path` is that spec's directory or its `spec.md` sits in a collection the
-      run classifies as non-terminal, and is not when every such entry sits in a
-      collection it classifies as terminal.
+      `path` is that spec's `spec.md` sits in a collection the run classifies as
+      non-terminal, and is not when every such entry sits in a terminal one.
+- [ ] An entry carrying no `path` key holds no spec and is skipped without a
+      refusal, because it names nothing this capability reads.
 - [ ] An entry whose `path` names a file inside a spec directory rather than the
       spec itself does not make that spec `inflight`.
 - [ ] A collection name the run cannot classify as terminal or non-terminal is
