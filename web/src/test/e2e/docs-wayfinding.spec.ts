@@ -48,13 +48,13 @@ test.describe('docs wayfinding desktop hierarchy', () => {
 
       const title = page.getByRole('heading', {
         level: 1,
-        name: 'Agent-ready catalogue documentation',
+        name: 'Start with the work in front of you',
       });
       const deck = page.getByText(
-        'Choose, install, operate, and build catalogues of supervised agent workflows.',
+        'Get checked results from real work, with the final decision kept human.',
         { exact: true }
       );
-      const startAction = page.getByRole('link', { name: 'Choose a starting point' });
+      const startAction = page.getByRole('link', { name: 'Choose a task' });
       await expectFullyInsideViewport(title);
       await expectFullyInsideViewport(deck);
       await expectFullyInsideViewport(startAction);
@@ -71,7 +71,7 @@ test.describe('docs wayfinding desktop hierarchy', () => {
       const lead = page.locator('.docs-hub__lead .sl-link-card');
       const supporting = page.locator('.docs-hub__supporting .sl-link-card');
       await expect(lead).toHaveCount(1);
-      await expect(supporting).toHaveCount(6);
+      await expect(supporting).toHaveCount(7);
       const leadBox = await lead.boundingBox();
       const firstSupportingBox = await supporting.first().boundingBox();
       expect(leadBox).not.toBeNull();
