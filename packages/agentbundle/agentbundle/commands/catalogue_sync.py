@@ -608,9 +608,24 @@ def restore_from_snapshot(
     return unrestored
 
 
-def _write_group(path: str) -> int:
-    """AC-0032 — the order group *path*'s destination sorts into: packs,
-    profiles, guides, then everything else (the derivation-wide paths)."""
+def _write_group(target: Path, path: str) -> int:
+    """AC-0080 — the order group *path*'s destination sorts into: packs,
+    profiles, guides, the derivation-wide paths, then the AC-0078 package
+    destinations.
+
+    Packages are the fifth and last group because a failed package write is
+    the one whose rollback may be executing from the code it just replaced,
+    so every other write is already durable before one is attempted. This
+    supersedes AC-0032's four groups, which ended at the derivation-wide
+    paths.
+
+    Package membership is AC-0087's identity comparison, not a string
+    prefix, so a planned path under a destination the run is about to create
+    still sorts into group 4 rather than falling through to the
+    derivation-wide group.
+    """
+    if _is_package_path(target, path, _PACKAGE_PREFIXES):
+        return 4
     if path.startswith("packs/"):
         return 0
     if path.startswith("profiles/"):
@@ -620,14 +635,15 @@ def _write_group(path: str) -> int:
     return 3
 
 
-def write_order(paths: Iterable[str]) -> list[str]:
-    """AC-0032 — *paths* ordered packs, profiles, guides, derivation-wide.
+def write_order(target: Path, paths: Iterable[str]) -> list[str]:
+    """AC-0080 — *paths* ordered packs, profiles, guides, derivation-wide,
+    packages.
 
     The ownership state (AC-0033 clause 6) is never passed here — it is
     always written after every path this returns, by construction of the
     caller.
     """
-    return sorted(set(paths), key=lambda p: (_write_group(p), p))
+    return sorted(set(paths), key=lambda p: (_write_group(target, p), p))
 
 
 def gate_recheck(target: Path, expected: dict[str, str | None]) -> list[str]:
@@ -1313,7 +1329,7 @@ def execute_write_sequence(
             companion_occupied=plan.occupied, companion_residue=plan.residue,
         )
 
-    ordered = write_order(plan.admitted)
+    ordered = write_order(target, plan.admitted)
     written: dict[str, str] = {}
     acted: list[str] = []
     write_failed_path: str | None = None

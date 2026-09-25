@@ -6092,3 +6092,58 @@ def test_select_write_set_returns_a_set_alone(tmp_path):
     # return beside the admitted set.
     target = _extent_fixture(tmp_path)
     assert isinstance(_select(target), set)
+
+
+# ---------------------------------------------------------------------------
+# T4 / AC-0080 — packages write last.
+# ---------------------------------------------------------------------------
+
+
+def test_write_order_puts_every_package_path_after_every_other(tmp_path):
+    target = _extent_fixture(tmp_path)
+    paths = [
+        "catalogue.toml",
+        "packs/core/pack.toml",
+        "profiles/default.toml",
+        "guides/_shared/how-to/x.md",
+        "packages/credbroker/credbroker/__init__.py",
+        ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+    ]
+    ordered = catalogue_sync.write_order(target, paths)
+    package_ix = [
+        i for i, p in enumerate(ordered)
+        if p.startswith((".agentbundle/tooling/", "packages/credbroker/"))
+    ]
+    other_ix = [i for i, _ in enumerate(ordered) if i not in package_ix]
+    assert package_ix and other_ix
+    assert min(package_ix) > max(other_ix)
+
+
+def test_write_order_keeps_the_first_four_groups_unchanged(tmp_path):
+    target = _extent_fixture(tmp_path)
+    ordered = catalogue_sync.write_order(
+        target,
+        [
+            "catalogue.toml",
+            "guides/_shared/x.md",
+            "profiles/default.toml",
+            "packs/core/pack.toml",
+        ],
+    )
+    assert ordered == [
+        "packs/core/pack.toml",
+        "profiles/default.toml",
+        "guides/_shared/x.md",
+        "catalogue.toml",
+    ]
+
+
+def test_write_order_sorts_a_planned_package_path_not_yet_on_disk(tmp_path):
+    # The ordering must hold for the paths a vendored run is about to create,
+    # which is the whole case AC-0087's two-part comparison exists for.
+    target = _extent_fixture(tmp_path)
+    ordered = catalogue_sync.write_order(
+        target,
+        ["packs/core/pack.toml", ".agentbundle/tooling/agentbundle/agentbundle/new.py"],
+    )
+    assert ordered[-1] == ".agentbundle/tooling/agentbundle/agentbundle/new.py"
