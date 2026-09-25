@@ -6257,3 +6257,52 @@ def test_tree_modified_ignores_a_path_the_run_never_touched(tmp_path):
     before = catalogue_sync.snapshot_write_set(target, {"packs/a.txt"})
     (target / "packs" / "other.txt").write_bytes(b"CONCURRENT\n")
     assert not catalogue_sync.tree_modified(target, before, {"packs/a.txt"})
+
+
+# ---------------------------------------------------------------------------
+# T7 / AC-0090 — rollback covers a failed package write.
+# ---------------------------------------------------------------------------
+
+
+def _replay_with_package_paths(tmp_path, tag):
+    """An apply fixture whose planned set carries a package path.
+
+    The fixture replays external tooling, so the vendored root is absent; the
+    credbroker destination is what this reaches, and it is present in either
+    tooling mode whenever its pack is selected.
+    """
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag=tag)
+    pkg = "packages/credbroker/credbroker/__init__.py"
+    replay.file_bytes[pkg] = b"vendored source\n"
+    verdict_rows.append((pkg, "would-update", None))
+    return target, replay, verdict_rows, pkg
+
+
+def test_rollback_restores_the_tree_when_a_package_write_fails(tmp_path):
+    # AC-0090. The package extent is inside the snapshot and inside the
+    # restore, on the same terms as any other planned write.
+    target, replay, verdict_rows, pkg = _replay_with_package_paths(tmp_path, "pkg-roll")
+    before = walk_target_tree(target)
+
+    real = catalogue_sync.write_jailed
+
+    def _fail_on_package(root, relpath, content, **kwargs):
+        if relpath == pkg:
+            raise OSError("disk gremlin in the package extent")
+        return real(root, relpath, content, **kwargs)
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_fail_on_package):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.write_failed_path == pkg
+    assert result.restored
+    assert walk_target_tree(target) == before
+
+
+def test_the_snapshot_spans_the_package_extent(tmp_path):
+    # AC-0090's third clause: a vendored fixture's snapshot accounting
+    # includes those bytes, which is what AC-0076's bound now measures over.
+    target, replay, _rows, pkg = _replay_with_package_paths(tmp_path, "pkg-snap")
+    snapshot = catalogue_sync.snapshot_write_set(target, {pkg, "packs/alpha/one.md"})
+    assert pkg in snapshot
