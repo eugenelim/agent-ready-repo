@@ -46,7 +46,7 @@ artifact, at its own path, and the rules they share exist once.
 | Current product truth | Applicable — the reviewer cites a path this change deletes | `packs/experience-design/.apm/agents/experience-reviewer.md` | This spec | Its sync citation resolves; its exclusion clause names surviving artifact types | The agent and the skill agree |
 | Shared-reference integrity | Applicable — one reference is held by two skills | `content-design/` and `information-architecture/` | This spec | One canonical copy plus a byte-equality assertion | The roster suite covers it |
 | Interface compatibility | Applicable — a removal | `packs/experience-design/pack.toml`, `.claude-plugin/plugin.json`, regenerated `.claude-plugin/marketplace.json` | `packs/AGENTS.md` § Version bump rule | Matching **major** bump in both source manifests | All three read `4.0.0` |
-| Interface compatibility | Applicable — a second pack's content changes | `packs/product-engineering/pack.toml`, `.claude-plugin/plugin.json`, regenerated marketplace entry | `packs/AGENTS.md` § Version bump rule | Patch bump `0.13.17 → 0.13.18` in both source manifests | Both read `0.13.18` |
+| Interface compatibility | Applicable — a second pack's content changes | `packs/product-engineering/pack.toml`, `.claude-plugin/plugin.json`, regenerated marketplace entry | `packs/AGENTS.md` § Version bump rule | One **patch** above the merge-base value in both source manifests | Both read one patch above the merge-base. Reading on 2026-09-25: `0.13.18`, so the target is `0.13.19` |
 | Decision rationale | Applicable — two Accepted RFCs carry decisions that no longer hold | `docs/rfc/0062-…md` § Errata, `docs/rfc/0071-…md` § Errata, and `DESIGN.md` § 4 | RFC-0055 D2 | Approver-signed errata in the two-layer form | Each erratum stands alone without naming a spec |
 | User promise | Applicable — the skills a reader invokes change | `guides/experience-design/` | `author-product-docs` | Updated copy-boundary guidance | Guide-agreement test passes and a named reviewer judges the guide sufficient |
 | Public site truth | Applicable — the pack's published pages name each skill | `web/src/content/` | This spec | Frontmatter, `whatChanges`, and stage prose updated | The site build succeeds |
@@ -110,7 +110,15 @@ artifact, at its own path, and the rules they share exist once.
 
 - **Goal-based check** — a directory is absent, a reference exists exactly once,
   a named string is present or absent in a named file, a numeral matches a
-  count, a version reads, a gate exits 0. `plan.md` names the command for each.
+  count, a version reads, a gate exits 0. `plan.md`'s verification command map
+  covers every goal-based criterion here, in one of two forms. Most reduce to a
+  command and appear in a fenced block. The rest are claims about the content of
+  a `SKILL.md` or a note — a rubric that must be decidable, an enumeration that
+  must be complete, an erratum that must say three specific things — and those
+  appear in the map's table of **bounded reads**, each stating what the read must
+  show so a reviewer can execute it and record a verdict. A goal-based criterion
+  with no entry in either form is a defect in this spec, not a criterion exempt
+  from checking.
 - **Measured experiment** — the Tier-A activation comparison, recorded in
   `notes/activation-baseline.md`. Its statistic, run count, tolerance and abort
   path are acceptance criteria in this spec rather than a citation of the
@@ -168,14 +176,29 @@ artifact, at its own path, and the rules they share exist once.
       3/3; interrogation 3/3; four other pairs 2/2", and its Adjacent-work row
       reads "S8a's **eight** duplicate-basename families". The amendment states
       the **full** post-fold row — every sub-count, the new file and hash
-      totals, and the new family count — not a subset. Three of the "four other
-      pairs" (`copy-arbitration.md`, `copy-grounding.md`,
-      `plain-language-floor.md`) exist only in the two folded skills and drop to
-      one copy each, leaving the family entirely; editorial gates goes to 2/1;
-      the copy-layer interrogation instances go to 1; and deleting two
-      directories takes layout from 12 copies to 10. Eight families become five.
-      Restating three sub-counts and leaving the 31/24 headline and the family
-      count stale discharges the obligation in form only. *(goal-based)*
+      totals, and the new family count — not a subset. **All four** of the "four
+      other pairs" leave the family: `copy-arbitration.md`, `copy-grounding.md`
+      and `plain-language-floor.md` exist only in the two folded skills and drop
+      to one copy each, and `audience-jtbd.md` — whose two copies are
+      `copy-direction`'s and `creative-direction`'s — drops to one because
+      `copy-direction`'s instance merges into `copy-jtbd.md` and only
+      `creative-direction`'s survives under that basename. Editorial gates goes
+      to 2/1; the copy-layer interrogation instances reconcile to one, leaving
+      that family at 2/2 alongside `creative-direction`'s; and deleting two
+      directories takes layout from 12/9 to 10/7. Containment is untouched at
+      5/1. **Eight families become four, and 31 files / 24 hashes becomes 19
+      files / 11 hashes.** These figures are **derived, not pinned**: `plan.md`
+      carries a regenerator that rebuilds the inventory from the tree, and the
+      check compares the brief's row against that run's output. The numbers
+      appear here so the criterion reads on its own; the regenerator is what
+      decides a disagreement. Restating three sub-counts and leaving the 31/24
+      headline and the family count stale discharges the obligation in form
+      only. *(goal-based)*
+- [ ] The brief's **second** stale occurrence is amended too. The 31/24 figure
+      appears twice: in the re-check row and again in the Adjacent-work row as
+      "the 31/24 measurement rules out a mechanical dedup sweep". Amending the
+      first alone leaves a contradicting stale count one screen below.
+      *(goal-based)*
 - [ ] Where a mode genuinely needs a different rule, and the divergence is
       **localized**, the difference is a named per-mode clause inside the one
       file, not a second file. *(manual QA — paired with the classification
@@ -218,9 +241,6 @@ artifact, at its own path, and the rules they share exist once.
       that upstream condition, which is exactly the rule loss this spec forbids.
       The reconciliation note records which gating condition survives and why.
       *(goal-based)*
-- [ ] Removing the "Skill autonomy beats DRY at this scale" note from **all**
-      surviving copies, including `information-architecture`'s, has an owning
-      task whose `Touches:` names that skill. *(goal-based)*
 - [ ] `editorial-quality-gates.md` exists in `content-design` as the canonical
       copy and in `information-architecture`. **This is a dependency on the genre
       fold, not an assumption about it**: that spec carries matching criteria
@@ -237,26 +257,53 @@ artifact, at its own path, and the rules they share exist once.
       step in `build-check.yml`, a `STEP_DISPOSITION` entry in
       `tools/lint-ci-parity.py`, and a `.workspace-prune-protected.toml` entry.
       A new suite instead of an extension owes all three. *(goal-based)*
-- [ ] `content-design/SKILL.md` cites `references/editorial-quality-gates.md`.
-      That suite derives its copy set from `SKILL.md` text only, so a canonical
-      copy cited from a reference body — where `communication-modes.md` cites it
-      today — is invisible to it and lands as an orphan. This mirrors the
-      obligation the genre fold carries on `information-architecture`.
-      *(goal-based)*
+- [ ] `content-design/SKILL.md` cites `references/editorial-quality-gates.md`
+      directly, not from a reference body — `communication-modes.md` is where the
+      citation lives today. This mirrors the obligation the genre fold carries on
+      `information-architecture`. **The citation rests on the grep in `plan.md`,
+      not on the suite.** The containment precedent has two distinct tests:
+      `test_every_containment_copy_is_byte_identical` globs the filesystem and
+      never reads a citation, and
+      `test_every_skill_citing_the_module_ships_its_own_copy` runs citation →
+      copy, which cannot fail on a copy that nothing cites. The extension this
+      spec mandates is of the first, so nothing in the suite would catch an
+      uncited copy. An earlier draft claimed the suite derives its copy set from
+      `SKILL.md` text and therefore enforced this; it does not. *(goal-based)*
 - [ ] The recorded note in each copy reading *"Skill autonomy beats DRY at this
       scale"* is removed, and `DESIGN.md` records that the byte-equality test
       supersedes it. The fold reverses that decision, so it is addressed rather
       than left dangling. *(goal-based)*
 - [ ] No surviving reference cites a deleted sibling skill's path.
       *(goal-based)*
+- [ ] Inside the surviving skill, no removed name survives **as a registration
+      or a path**. This is scoped deliberately: `type: tone-of-voice` contains
+      the string `tone-of-voice`, so a bare `\b(copy-direction|tone-of-voice)\b`
+      grep over `content-design/SKILL.md` is **mutually exclusive** with the
+      carve-out criterion above, which requires seven such discriminator
+      occurrences in that same file. The check is therefore for the removed names
+      in registration or path position — `skills/copy-direction`, "the
+      `tone-of-voice` skill", a routing target — never the `type:` literal.
+      *(goal-based)*
 
 ### Output contracts unchanged
 
+- [ ] **All three assets survive the directory deletions**, under
+      `content-design/assets/`: `content-brief-template.md` (already there),
+      `copy-direction-template.md` (today under `copy-direction/assets/`), and
+      `tone-of-voice-template.md` (today under `tone-of-voice/assets/`). Each
+      mode writes through its template, so a template deleted with its directory
+      breaks the output contract the next two criteria assert while leaving every
+      name-based check green. This criterion exists because an earlier draft
+      named neither moved file anywhere — the plan's own commands already read
+      `content-design/assets/tone-of-voice-template.md` as though the move had
+      been specified. *(goal-based)*
 - [ ] The per-surface copy direction still writes
-      `<output_dir>/copy/<surface-slug>.md` with `type: copy-direction`.
+      `<output_dir>/copy/<surface-slug>.md` with `type: copy-direction`, through
+      the relocated `content-design/assets/copy-direction-template.md`.
       *(goal-based)*
 - [ ] The brand register still writes the reserved
-      `<output_dir>/copy/brand-register.md`, and its template emits **both**
+      `<output_dir>/copy/brand-register.md`, and its relocated template at
+      `content-design/assets/tone-of-voice-template.md` emits **both**
       `type: tone-of-voice` **and** `scope: brand-level`. Both skills gate on the
       pair together, so a fold that keeps only `type:` breaks the upstream
       referent read and the legacy discriminator while passing a `type:`-only
@@ -276,10 +323,47 @@ artifact, at its own path, and the rules they share exist once.
 
 - [ ] The `copy-direction` and `tone-of-voice` directories are absent and
       `content-design` survives. *(goal-based)*
-- [ ] `pack.toml` `[pack.evals].skills` lists twelve skills and neither removed
-      name. *(goal-based)*
+- [ ] `pack.toml` `[pack.evals].skills` and the set of directories under
+      `.apm/skills/` are **equal**, at twelve. Membership, not cardinality: a
+      length-only check passes a list that dropped an unrelated skill and kept
+      `tone-of-voice`, and set equality is also what makes ADR-0038's alias-free
+      rule checkable — an undeclared directory is a stub, including one shipped
+      under a third name like `copy-direction-legacy`, which counting the two
+      removed names could never see. Neither removed name is declared;
+      `content-design` is. *(goal-based)*
+- [ ] The two removed skills' quality-eval sets — each ships `evals/evals.json`
+      **and** an `evals/files/` fixture tree that `content-design/evals/` does
+      not have — are either carried into the surviving harness or dropped with a
+      recorded reason. `packs/AGENTS.md` § Security and authoring rules obliges a
+      non-cosmetic pack update to update that pack's eval harness, and
+      `skill_spec_lint` cross-checks `pack.evals.skills` against
+      `eval_queries.json` only, so a vanished `evals.json` leaves
+      `catalogue lint --deep` green. The sibling genre spec carries the matching
+      criterion for the same reason; an earlier draft here covered
+      `eval_queries.json` alone and left `evals.json` and the fixtures to die
+      with the directory. *(goal-based)*
 - [ ] No file names a removed skill **as a registration** — in a skill roster, a
-      routing target, an availability probe, or an install list. *(goal-based)*
+      routing target, an availability probe, or an install list. **Scope:**
+      `packs/`, `guides/`, `web/`, `tools/`, `tests/`, the repo-root
+      `workspace.toml`, and the five `docs/` files this delivery edits
+      (`docs/rfc/0062-…md`, `docs/rfc/0071-…md`,
+      `docs/product/briefs/digital-experience-doctrine-completion.md`,
+      `docs/product/intents/xd-state-reviewer-doctrine.md`,
+      `docs/product/changelog.md`). **Out of scope and deliberately so:** the
+      rest of `docs/`. **The reason is what a registration sweep owns, not the
+      frozen-record rule.** A registration is a place the catalogue is told a
+      skill exists — a roster, a routing target, an availability probe, an
+      install list. `docs/` outside the five files holds delivery and decision
+      records that *mention* the skills: shipped specs, closed ADRs, the
+      `docs/design/` corpus, and — the case that rules the frozen-record
+      justification out — the two sibling specs `xd-genre-router` (Approved) and
+      `creative-direction-modes` (Implementing), which are **live** records under
+      this spec's own test and would be updated, not refused, if they held a
+      registration. They do not; they name the skills as delivery context. An
+      earlier draft claimed `docs/` was in scope while the command excluded it
+      entirely, then justified the exclusion on a rule that does not apply to two
+      of the excluded files. The bound is now stated on both sides and rests on
+      the right reason. *(goal-based)*
 - [ ] The string `tone-of-voice` survives wherever it is the **artifact
       discriminator** rather than a skill name, because the output contract above
       requires the template to keep emitting `type: tone-of-voice`. The sweep
@@ -288,9 +372,9 @@ artifact, at its own path, and the rules they share exist once.
       inherited from `tone-of-voice/SKILL.md`,
       `packs/experience-design/.apm/skills/experience-status/SKILL.md` (whose
       artifact-scan table reads `type: tone-of-voice` **and**
-      `scope: brand-level` together), and
-      and the files below. The list is a **measured occurrence count**, not
-      prose, so a sweep that removes one fails a number rather than a reading:
+      `scope: brand-level` together), and the files below. The list is a
+      **measured occurrence count**, not prose, so a sweep that removes one fails
+      a number rather than a reading. Every count was re-measured on 2026-09-25:
 
       | File | `type: tone-of-voice` uses that must survive |
       | --- | ---: |
@@ -298,29 +382,57 @@ artifact, at its own path, and the rules they share exist once.
       | `tone-of-voice/SKILL.md` (inherited) | 3 |
       | `tone-of-voice/assets/tone-of-voice-template.md` (inherited) | 1 |
       | `tone-of-voice/evals/evals.json` (inherited) | 2 |
-      | `tone-of-voice/references/agentbundle-layout.md` (inherited) | 5 |
       | `experience-status/SKILL.md` | 1 |
       | `product-engineering/.apm/skills/ux-writing/SKILL.md` | 3 |
       | `product-engineering/.apm/skills/ux-writing/evals/evals.json` | 2 |
 
-      The template is the file the output-contract criterion above requires to
-      keep emitting both markers; an earlier draft of this list omitted it. A sweep that removes these breaks the discriminator while passing a
-      name-based check. *(goal-based)*
+      A sweep that removes these breaks the discriminator while passing a
+      name-based check.
+
+      **Not on the list, deliberately:**
+      `tone-of-voice/references/agentbundle-layout.md` holds five further uses
+      (five occurrences across four lines) and is **deleted with its directory**
+      — it is a pack-wide duplicated reference, not a copy-layer one, and the
+      surviving skill already carries its own copy. Listing it as must-survive
+      would oblige the delivery to preserve occurrences inside a file it
+      removes, which is unsatisfiable. The Follow-on records that this shrinks
+      the `agentbundle-layout` family rather than closing it. *(goal-based)*
 - [ ] `ux-writing/SKILL.md`'s cross-skill pointer "surface the same migration
       prompt as `tone-of-voice` step 6" is retargeted to the surviving mode's
-      step, while its four `type: tone-of-voice` discriminator literals stay.
-      *(goal-based)*
+      step, while its **three** `type: tone-of-voice` discriminator literals
+      stay — the count the carve-out table below records and the tree measures
+      (all three sit on one line). An earlier draft said four here and three in
+      the table. *(goal-based)*
 - [ ] `packs/product-engineering`'s `ux-writing` `SKILL.md` and its
       `DESIGN.md` name the surviving skill as a registration. `DESIGN.md` names
       `tone-of-voice` at two points that the registration sweep reaches and the
       discriminator carve-out does not. *(goal-based)*
 - [ ] `workspace.toml` entries naming a removed skill are reconciled.
       *(goal-based)*
-- [ ] No alias, shim, or deprecation stub is shipped. *(goal-based)*
-- [ ] Every skill-count numeral for this pack reads **12** across
-      `packs/experience-design/docs/index.md`, `README.md`, `JOURNEY.md`,
-      `guides/experience-design/reference/experience-design.md`, and
-      `web/src/content/packs/experience-design.md`. *(goal-based)*
+- [ ] Every skill-count numeral for this pack reads **12** post-fold. The count
+      is expressed three different ways across these files, so the criterion is
+      stated per file and per numeral rather than as one value asserted across
+      all of them. Readings are from 2026-09-25, pre-genre-fold; the genre fold
+      lands first and takes each to its 14-skill form, which is what this
+      delivery actually edits:
+
+      | File | Numeral | Today | Post-fold |
+      | --- | --- | --- | --- |
+      | `packs/experience-design/docs/index.md` | prose, line 3 | `pack of 20 skills` | `pack of 12 skills` |
+      | `packs/experience-design/docs/index.md` | heading, line 11 | `**Skills (20) in two families:**` | `**Skills (12) in two families:**` |
+      | `guides/experience-design/reference/experience-design.md` | prose, line 17 | `20 pure-Markdown skills` | `12 pure-Markdown skills` |
+      | `web/src/content/packs/experience-design.md` | **ordinal**, line 69 | `twenty-first skill` | `thirteenth skill` |
+      | `packs/experience-design/README.md` | none | — | still none |
+      | `packs/experience-design/JOURNEY.md` | none | — | still none |
+
+      `docs/index.md` carries **two** numerals, not one: checking only the prose
+      line leaves the heading stale. `README.md` and `JOURNEY.md` carry no
+      skill-count numeral, so asserting "reads 12" of them cannot fail; their
+      obligation is the registry criterion above — they name the surviving skill
+      set — plus the negative check that neither acquires a stale count. The
+      `web/` construct is ordinal and counts the reviewer agent as the last
+      entry, so `12` never appears in it and a cardinal check would fail a
+      correct page. *(goal-based)*
 
 ### Activation evidence
 
@@ -355,7 +467,12 @@ artifact, at its own path, and the rules they share exist once.
       reservation survives. *(goal-based)*
 - [ ] `docs/rfc/0071-…md` § Errata carries its own entry. RFC-0071 carries the
       skill inventory in operative text, an ordering dependency that references
-      `copy-direction` by name, and a boundary statement this fold reverses.
+      `copy-direction` by name, and a boundary statement this fold reverses. The
+      entry names the post-fold count — **12** — and states that it **supersedes**
+      the 2026-08-02 erratum, which already corrected that same count from 19 to
+      20. A new entry that silently restates a number an earlier erratum set is
+      the case RFC-0055 D2's two-layer form exists for: the supersession is what
+      makes the `### Current state` layer authoritative over the log.
       *(goal-based)*
 - [ ] Neither **new** erratum entry names a spec or a delivery brief, and each
       reads completely for someone holding only that RFC. RFC-0062's existing
@@ -416,14 +533,17 @@ artifact, at its own path, and the rules they share exist once.
       `## [experience-design][4.0.0] — <YYYY-MM-DD>` entry directly beneath
       `[Unreleased]`, naming both removed skills explicitly. *(goal-based)*
 - [ ] `packs/product-engineering/pack.toml` and its
-      `.claude-plugin/plugin.json` carry a **patch** bump from `0.13.17` to
-      `0.13.18`, its marketplace entry is regenerated, and the changelog carries
-      its entry. Patch, not major: this delivery changes that pack's content and
-      removes no primitive. This delivery edits
-      that pack's `ux-writing` skill and its `DESIGN.md`, which
-      `packs/AGENTS.md` § Version bump rule obliges a bump for. *(goal-based)*
-- [ ] `frontend-engineering` takes **no** bump from this slice. It names neither
-      removed skill, so this delivery does not touch it. *(goal-based)*
+      `.claude-plugin/plugin.json` read exactly **one patch above the value at
+      this delivery's merge-base**, its marketplace entry is regenerated, and the
+      changelog carries its entry. Patch, not major: this delivery changes that
+      pack's content and removes no primitive. This delivery edits that pack's
+      `ux-writing` skill and its `DESIGN.md`, which `packs/AGENTS.md` § Version
+      bump rule obliges a bump for. **The target is derived, not literal.** An
+      earlier draft wrote `0.13.17 → 0.13.18`; the pack reached `0.13.18` on its
+      own before this spec was approved, which made the criterion pass against an
+      untouched tree and would have let the obliged bump be skipped in silence.
+      The reading on 2026-09-25 is `0.13.18`, so the target is `0.13.19` unless
+      the merge-base has moved again. *(goal-based)*
 
 ### Gates
 
@@ -468,9 +588,10 @@ artifact, at its own path, and the rules they share exist once.
   sides, not a one-directional edit distance. Line counts come from `wc -l`,
   which agrees with `splitlines()` here because every file ends in a newline:
   `copy-arbitration.md` is 33 and 42 lines, `audience-jtbd.md` 42,
-  `copy-jtbd.md` 40. Both commands, 2026-09-24.
+  `copy-jtbd.md` 40. Both commands, 2026-09-24, re-run unchanged on 2026-09-25.
 - Technical: a sixth pair, `audience-jtbd.md` and `copy-jtbd.md`, is the same
-  role under two names — 42 and 40 lines, 22 differing (same command, same date).
+  role under two names — 42 and 40 lines, 22 differing (same commands, same
+  dates).
 - Technical: `editorial-quality-gates.md` exists in three skills today, one of
   which (`conversion-design`) the genre fold absorbs into
   `information-architecture` before this spec runs.
@@ -481,6 +602,15 @@ artifact, at its own path, and the rules they share exist once.
   hard-codes the `content-design` directory and three of its files, which fixes
   the surviving skill's name.
 - Technical: automated Tier-B eval grading is deferred repository-wide.
+- Process — **where a number lives.** Load-bearing values were stated twice, once
+  here and once in `plan.md`, and drifted: the `ux-writing` literal count read
+  four here and three in the same document's own table, and the
+  `product-engineering` version went stale in both. The split is now: this spec
+  owns **contract values** — what must be true when the delivery is done — and
+  `plan.md` owns **measured readings** of the pre-delivery tree, each dated. A
+  number that is both carries its reading date so a reviewer can tell a stale
+  record from a failing check. Every count in this spec was re-measured on
+  2026-09-25.
 - Process: removals are a major bump; this is the second of two, so `4.0.0`.
 - Process — **recorded dissent.** The same objection recorded in the sibling
   genre spec applies here: an independent review held that retiring registrations
