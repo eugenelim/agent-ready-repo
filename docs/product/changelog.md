@@ -64,6 +64,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.44] — 2026-09-26
+
+### Highlights
+
+- **A `Shipped` brief now requires a `Cut-closed:` declaration.** When you close a brief as `Shipped`, add a `Cut-closed:` preamble field with an ISO 8601 date and evidence text. The coverage lint (`lint-brief-coverage.py`) refuses a `Shipped` brief without this field, and also refuses a `Draft` brief that carries one. Briefs in all other states may carry the field or omit it freely.
+- **The brief status vocabulary, coherence rules, and legal transitions are now defined once in `brief_shape.py`.** The lint loads all logic from that module; no second definition can drift.
+
+### Changed
+
+- `lint-brief-coverage.py` now reads `Status:`, `Slug:`, and `Cut-closed:` through a bounded preamble reader that stops at the first uncommented `## ` heading and ignores fields inside HTML comments. A field placed below a section heading or inside a comment is no longer read.
+- A `Shipped` brief without a `Cut-closed:` record is refused with exit 1. The field must be an ISO 8601 date (`YYYY-MM-DD`) followed by non-empty evidence text.
+- A `Draft` brief with a `Cut-closed:` record is refused with exit 1 (a material edit reopens the cut).
+- The brief status vocabulary, child-execution-evidence predicate, and transition table are now the sole property of `brief_shape.py`. `lint-brief-coverage.py` defines none of them.
 ## [core][2.26.43] — 2026-09-25
 
 ### Highlights

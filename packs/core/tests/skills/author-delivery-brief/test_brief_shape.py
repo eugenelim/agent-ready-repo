@@ -548,3 +548,76 @@ def test_ac0023_template_as_draft_brief_refused_by_no_spec_rule() -> None:
     assert _m.is_lifecycle_valid(status, set()), (
         "lifecycle predicate refused the template preamble with no children"
     )
+
+
+# ── T6: durable-output checks ─────────────────────────────────────────────────
+
+
+import re as _re  # noqa: E402
+
+
+def test_t6_refusal_registry_equals_actual_refusals() -> None:
+    """Module docstring refusal registry equals the set of refusals the module raises.
+
+    T6: set comparison.  Parses the ``**Refusal registry**`` lines from the
+    docstring and checks them against the canonical set of refusal classes the
+    module's public validators can return.  A sentence-exists check would pass
+    even if the registry were empty; a set comparison requires exact equality.
+    """
+    doc = _m.__doc__ or ""
+    # Extract all backtick-delimited identifiers on registry list lines.
+    # Registry lines have the form: "- ``class_name`` — description"
+    registry = {
+        m.group(1)
+        for m in _re.finditer(r"^- ``([^`]+)``", doc, _re.MULTILINE)
+        if not m.group(1).startswith(" ")
+    }
+    # Filter to the cut_closed_ namespace; other ``...`` spans in the docstring
+    # are delimiter examples, not refusal class names.
+    registry = {name for name in registry if name.startswith("cut_closed_")}
+
+    # Canonical set: one entry per condition under which the module's public
+    # validators return a non-None error string.
+    # validate_cut_closed:        malformed value → cut_closed_malformed
+    # validate_declaration Shipped: → cut_closed_required_on_shipped
+    # validate_declaration Draft:   → cut_closed_refused_on_draft
+    expected: frozenset[str] = frozenset(
+        {
+            "cut_closed_malformed",
+            "cut_closed_required_on_shipped",
+            "cut_closed_refused_on_draft",
+        }
+    )
+
+    assert registry == expected, (
+        f"Refusal registry mismatch.\n"
+        f"Docstring registry: {sorted(registry)!r}\n"
+        f"Expected (actual refusals): {sorted(expected)!r}"
+    )
+
+
+def test_t6_skill_md_cites_brief_shape_not_child_rule() -> None:
+    """author-delivery-brief/SKILL.md § Brief lifecycle cites brief_shape.py.
+
+    T6: checks (a) the section names brief_shape.py, and (b) does not state
+    the child-execution-evidence rule in prose (the rule is delegated to the
+    module).
+    """
+    skill_md = (_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+
+    start = skill_md.find("## Brief lifecycle")
+    assert start != -1, "§ Brief lifecycle section not found in SKILL.md"
+    next_section = skill_md.find("\n## ", start + 1)
+    section = (
+        skill_md[start:next_section] if next_section != -1 else skill_md[start:]
+    )
+
+    assert "brief_shape.py" in section, (
+        "§ Brief lifecycle does not name brief_shape.py"
+    )
+    # The child-evidence rule is the specific pairing of status tokens with
+    # "Implementing or Shipped child" logic.  After T6 this lives in
+    # brief_shape.py, not in prose here.
+    assert "Implementing` or `Shipped` child" not in section, (
+        "§ Brief lifecycle still states the child-execution-evidence rule in prose"
+    )

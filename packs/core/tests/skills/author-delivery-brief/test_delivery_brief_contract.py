@@ -105,6 +105,13 @@ def test_brief_lifecycle_distinguishes_progress_and_termination() -> None:
         / "_template.md"
     ).read_text(encoding="utf-8")
 
+    # The skill body mentions the three tokens that authoring modes directly
+    # set (Draft, Ready) or guard on (Shipped).  The remaining three
+    # (Executing, Withdrawn, Cancelled) are defined in brief_shape.py and
+    # their prose descriptions are no longer restated here.
+    for status in ("Draft", "Ready", "Shipped"):
+        assert status in body
+    # All six tokens appear in the template preamble (Status: Draft row).
     for status in (
         "Draft",
         "Ready",
@@ -113,12 +120,12 @@ def test_brief_lifecycle_distinguishes_progress_and_termination() -> None:
         "Withdrawn",
         "Cancelled",
     ):
-        assert status in body
         assert status in template
     normalized = body.lower()
     assert "all-shipped map is eligible for closeout but does not close the brief" in normalized
-    assert "before any child reaches" in normalized
-    assert "after at least one child reaches" in normalized
+    # The child-execution-evidence rule is now delegated to brief_shape.py;
+    # the § Brief lifecycle section cites it rather than restating the rule.
+    assert "brief_shape.py" in body
 
 
 def test_processor_boundary_metadata() -> None:

@@ -21,6 +21,7 @@ The brief template is a **guide, not a schema**. Create mode records a Draft and
 | `Received` | recommended | The date the brief was handed over (`YYYY-MM-DD`). |
 | `Owner` | recommended | Who owns delivering this repo's slice. |
 | `Epic` | optional | Id or link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. This is the only pointer to the wider effort — the repo owns its slice, not a coordination hub. |
+| `Cut-closed:` | required only when `Status: Shipped`; refused when `Status: Draft` | ISO 8601 date followed by non-empty evidence text (e.g. `2026-08-25 All nine slices are Shipped.`). Records that the delivery map is finalised and no further slices are coming. A template row whose value is a comment or empty counts as absent, not malformed. |
 
 ## Brief body sections
 
@@ -86,19 +87,34 @@ materialized specs and remains non-executable until the user confirms a slice.
 
 ## Lifecycle states
 
-| Status | Child-scope rule |
-| --- | --- |
-| `Draft` | The Ready gate has not passed; no child is `Implementing` or `Shipped`. |
-| `Ready` | The Ready gate passed; no child is `Implementing` or `Shipped`. |
-| `Executing` | The outcome remains open and at least one child is `Implementing` or `Shipped`. |
-| `Shipped` | Explicit successful closeout; the map is non-empty and every mapped child is `Shipped`. |
-| `Withdrawn` | Explicit closeout before any child reaches `Implementing` or `Shipped`. |
-| `Cancelled` | Explicit closeout after at least one child reaches `Implementing` or `Shipped`. |
+The tables below are derived from `brief_shape.py` (`scripts/brief_shape.py` in the `author-delivery-brief` skill), which is the single source of truth for the vocabulary, coherence rules, and transition set.
+
+| Status | Child-scope rule | `Cut-closed:` |
+| --- | --- | --- |
+| `Draft` | No child is `Implementing` or `Shipped`. | Refused — `Draft` means the cut is still open. |
+| `Ready` | No child is `Implementing` or `Shipped`. | Permitted. |
+| `Executing` | At least one child is `Implementing` or `Shipped`. | Permitted — a cut may be declared while a slice is running. |
+| `Shipped` | Non-empty child set; every child is `Shipped`. | **Required.** |
+| `Withdrawn` | No child is `Implementing` or `Shipped`. | Permitted, not required. |
+| `Cancelled` | At least one child is `Implementing` or `Shipped`. | Permitted, not required. |
 
 All currently mapped children being Shipped does not close the brief. Keep it
 `Executing` when a later slice is still expected or has not been materialized.
 Closeout changes the brief and its matching workspace collection together; it
 does not rewrite child specs.
+
+### Legal status transitions
+
+| From | To |
+| --- | --- |
+| `Draft` | `Ready`, `Withdrawn` |
+| `Ready` | `Draft`, `Executing`, `Withdrawn` |
+| `Executing` | `Ready`, `Shipped`, `Cancelled` |
+| `Shipped` | — terminal |
+| `Withdrawn` | — terminal |
+| `Cancelled` | — terminal |
+
+A pair of two different states absent from this table is an illegal move. A state paired with itself is not a move. Two edges carry a record obligation: `Executing` → `Shipped` must add the `Cut-closed:` record (required on `Shipped`, and the state is terminal), and `Ready` → `Draft` must clear it (a material edit reopens the cut).
 
 ## The Spec map
 

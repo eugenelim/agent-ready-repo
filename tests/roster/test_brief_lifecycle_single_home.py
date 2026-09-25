@@ -99,3 +99,22 @@ def test_brief_lifecycle_single_home() -> None:
         f"Got: {sorted(actual)!r}\n"
         f"Line numbers: {dict(hits)!r}"
     )
+
+
+def test_guide_carries_brief_shape_derivation_line() -> None:
+    """The product-brief-fields guide names brief_shape.py as the tables' source.
+
+    T6: the reader-facing guide derives its lifecycle tables from brief_shape.py
+    and must carry a line saying so.  A reader who edits the guide without
+    updating the module, or vice versa, sees this as the discoverability anchor.
+    This is a repository-level assertion because it reads from both guides/ and
+    packs/.
+    """
+    guide_path = (
+        _REPO / "guides" / "core" / "reference" / "product-brief-fields.md"
+    )
+    text = guide_path.read_text(encoding="utf-8")
+    assert "brief_shape.py" in text, (
+        "guides/core/reference/product-brief-fields.md does not mention brief_shape.py "
+        "(expected a derivation line naming the source module)"
+    )
