@@ -172,6 +172,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The Epic outcome view reads its outcome from one fixed, documented location — the block under a top-level `Outcome` heading in the Epic's description — in both description shapes Jira returns: the structured document from Cloud and plain or wiki text from Server and Data Center. The location is not configurable per invocation.
 - Every reading the view renders states the moment it was taken, and the delivery reading and the Jira read state their two moments separately rather than implying one snapshot. Every run also discloses that it covers only the work the calling credential can browse.
+## [core][2.26.42] — 2026-09-24
+
+### Highlights
+
+- **Three re-entry edges now require a wave reopen before you re-enter implementation.** When gates fail, a code review finds remaining issues, or a blocker is applied, the loop now refuses the edge and names the tasks that still hold a live dispatch record. Run `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` to mark the current wave's records superseded and unblock the edge.
+
+### Added
+
+- `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` marks every dispatch record for the current wave superseded. The records stay on disk; recording a fresh assertion for any task makes that task account again. The three edges that require a reopen before re-entering implementation are `gates-failed` from code verification, `findings-remain` from code review, and `blocker-applied` from the code human gate.
 
 ## [experience-design][2.0.10] — 2026-09-25
 
@@ -182,16 +191,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Divergence generation in `explore` draws referents from the audience's own world — publications, instruments, maps, architecture, packaging, signage — rather than from other software products, so candidate directions stop converging on the category default.
 - The visual step in `visualize` is capability-gated: it defaults to a text schematic in any harness that cannot produce images, with a named skip rather than a blocker, and produces a rendered comp only on the `originate` route when the harness supports it.
 - Asking to refine an existing direction now reaches the skill and amends the document in place, instead of starting a second direction for the same surface.
-
-## [core][2.26.42] — 2026-09-24
-
-### Highlights
-
-- **Three re-entry edges now require a wave reopen before you re-enter implementation.** When gates fail, a code review finds remaining issues, or a blocker is applied, the loop now refuses the edge and names the tasks that still hold a live dispatch record. Run `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` to mark the current wave's records superseded and unblock the edge.
-
-### Added
-
-- `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` marks every dispatch record for the current wave superseded. The records stay on disk; recording a fresh assertion for any task makes that task account again. The three edges that require a reopen before re-entering implementation are `gates-failed` from code verification, `findings-remain` from code review, and `blocker-applied` from the code human gate.
 
 ## [core][2.26.41] — 2026-09-24
 

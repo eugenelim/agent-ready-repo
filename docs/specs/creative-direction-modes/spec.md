@@ -6,7 +6,7 @@
 - **Constrained by:** RFC-0033 (the pack this skill ships in); ADR-0024
   (framework agnosticism — what `tools/lint-experience-agnostic.py` enforces);
   ADR-0116 (`direction/` folder)
-- **Brief:** none — this spec stands alone; the consolidation work it surfaced is coordinated separately
+- **Brief:** none <!-- this spec stands alone; the consolidation work it surfaced is coordinated separately -->
 - **Discovery:** [`docs/product/research/aesthetic-style-blueprint.md`](../../product/research/aesthetic-style-blueprint.md)
 - **Contract:** none
 - **Shape:** ui
