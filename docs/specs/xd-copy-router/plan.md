@@ -1,7 +1,7 @@
 # Plan: One copy-layer skill with three modes
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule; § Authoring or editing a skill); `tests/AGENTS.md` (the three guarded edits a **new** `tests/roster/test_*.py` owes, which this plan avoids by extending an existing suite); `tests/roster/test_experience_design_write_declaration_and_containment.py` — specifically `test_every_containment_copy_is_byte_identical`, which globs `*/references/containment.md` off the filesystem and is the pattern this delivery reuses, and separately `test_every_skill_citing_the_module_ships_its_own_copy`, which is the citation-derived one and runs citation → copy, so neither can fail on a copy that nothing cites; two analogous multi-mode skills — `packs/core/.apm/skills/project-knowledge/` (capture / distill / enquire behind one description) and `packs/core/.apm/skills/author-delivery-brief/` (create / continue). Named uncertainty: the pervasive-versus-localized divergence classification has no repository precedent and is authored here as a judgement with a recorded verdict.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -1121,3 +1121,37 @@ keeps its path and `type:`, so no adopter content migrates. Rollback is
 ## Changelog
 
 <!-- Approvals only. Drafting history does not belong here. -->
+
+- 2026-09-25 — Scope approved by eugenelim. Three registrations become one
+  skill with three modes; all three output contracts, their paths and their
+  `type:` values are unchanged, and the `brand-register` slug reservation
+  survives. The boundary against `product-engineering`'s `ux-writing` stays.
+  What is explicitly out: `creative-direction`'s `interrogation-sequence.md`
+  variant, which the brief settles flat and this delivery refuses rather than
+  asks about, and any merge of the three output artifacts, which the brief
+  settles twice and which would change `frontend-engineering`'s handoff read.
+
+- 2026-09-25 — Build strategy approved by eugenelim. Twelve tasks. The
+  activation baseline runs before any deletion; the six reference
+  reconciliations run before the merge, because a merged skill built on an
+  unreconciled pair bakes in whichever variant was pasted first; and the slice
+  is blocked behind the genre fold landing `editorial-quality-gates.md` under
+  `information-architecture`, checked as a precondition in T2 rather than
+  assumed. Scope-borne divergence is rewritten with one named scope parameter
+  rather than resolved by letting one variant win — `copy-arbitration.md` is
+  the case that forces it. The duplicate-basename measurement is owned by a
+  regenerator in this plan, not by a pinned table, because an inventory of what
+  a change invalidates cannot be a snapshot.
+
+- 2026-09-25 — Residual accepted by eugenelim. Six review rounds ran before
+  this gate, raising 75 findings and 7 proposed deletions; every one was checked
+  against the tree before being applied, and rounds one to four ran on Claude
+  subagents before the loop moved to Codex for rounds five and six. Blockers
+  fell 10 → 9 → 5 → 2 across rounds one to four. Round six's ten findings were
+  applied but **not re-reviewed**, so no reviewer has confirmed the pair clean
+  against `d0edb5ca1`. The residual is bounded: round six's own verdict line
+  read `Remaining findings are drift from recent repairs: YES`, and six of its
+  ten findings were explicitly attributed to round five's repairs rather than to
+  the artifact — which is the documented stop signal for an iterative review,
+  not a convergence failure. A confirmatory review runs before T3, the first
+  task that authors pack content.
