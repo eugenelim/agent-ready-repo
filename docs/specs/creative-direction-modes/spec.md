@@ -1,9 +1,11 @@
 # Spec: Creative direction — five operations, divergence generation, and a capability-gated visual step
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0033 (experience-design framework agnosticism); ADR-0116 (`direction/` folder)
+- **Constrained by:** RFC-0033 (the pack this skill ships in); ADR-0024
+  (framework agnosticism — what `tools/lint-experience-agnostic.py` enforces);
+  ADR-0116 (`direction/` folder)
 - **Brief:** none — this spec stands alone; the consolidation work it surfaced is coordinated separately
 - **Discovery:** [`docs/product/research/aesthetic-style-blueprint.md`](../../product/research/aesthetic-style-blueprint.md)
 - **Contract:** none
@@ -44,8 +46,9 @@ it.
   `references/referents.md`, recast as craft calibration.
 - The existing `## Anti-patterns to refuse` entries move into
   `references/refusals.md`.
-- The direction template gains a `status` frontmatter field, a
-  borrowed-discipline record, and a refinement-amendment record.
+- The direction template gains a `status` frontmatter field and three sections:
+  a borrowed-discipline record, a refinement-amendment record, and an approved
+  visual target's compositional commitments.
 - `evals/` gains four behavioural cases and new trigger queries.
 
 ## Durable Outputs
@@ -88,9 +91,13 @@ it.
 
 ### Ask first
 
-- Adding any new `<output_dir>/<folder>/` declaration. **This delivery declares
-  none**: a visual artifact lands beside its direction doc under the existing
-  `direction/` folder, or is not persisted at all.
+- Adding any new `<output_dir>/<folder>/` declaration, or a second write target
+  inside the existing one. **This delivery declares neither**, and the open
+  question this rule used to carry is now settled in the criteria: `explore`
+  holds candidate sheets in the session, `visualize` writes no file, and
+  `converge` is the only operation that writes — to the one target
+  `SKILL.md` already declares. The roster suite pins that target as a
+  single-element set, so a second one is a contract change, not an addition.
 - Changing the managed `agentbundle:output-rendering` block in `SKILL.md`.
 - Removing or renaming any skill, or editing `frontend-engineering`'s
   genre-routing table. The sibling specs own that work.
@@ -101,11 +108,14 @@ it.
 
 ### Never do
 
-- Cite a repository-internal record from any file under `.apm/`. `packs/AGENTS.md`
-  § *Shipped pack content carries no internal-governance citations* forbids it,
-  and no file under `packs/experience-design/.apm/` cites `docs/` today. A rule
-  that research supports is stated directly in the reference; the provenance
-  lives in this spec's `Assumptions`.
+- Cite a repository-internal record — an RFC, ADR, spec, contract, or
+  acceptance-criterion number — from any file under `.apm/`. `packs/AGENTS.md`
+  § *Shipped pack content carries no internal-governance citations* forbids it.
+  The check is the pattern `packs/AGENTS.local.md` already commits, not the
+  literal string `docs/`: the pack legitimately carries `docs/` in other senses,
+  including `output_dir = "docs/design"` in this skill's own
+  `references/agentbundle-layout.md`. A rule that research supports is stated
+  directly in the reference; the provenance lives in this spec's `Assumptions`.
 - Write a colour literal, a **unit-bearing** dimension or duration literal
   (`px`, `ms`, `rem`, `em`, `pt`, `vh`, `vw`, decimal seconds), a contrast or
   scale ratio, a named easing curve, an ARIA role, CSS syntax, a UI-framework
@@ -122,6 +132,11 @@ it.
   only and write them in this pack's own voice. Reused text can carry an
   attribution obligation this pack does not otherwise have, so the rule holds
   however permissive the source licence is.
+- Name a specific design tool as the prescribed tool. `DESIGN.md` § 10 carries
+  this invariant and this delivery does not edit that file, so it keeps
+  governing; tool *categories* are allowed. `tools/lint-experience-agnostic.py`
+  has no rule for tool names, and `references/visualize.md` is the pack's first
+  content about producing images, which makes it the likeliest place one lands.
 - Add a second quality floor. The pack's floor is
   `../design-review/references/quality-floor.md` and stays the single floor.
 - Weaken or remove any existing anti-pattern, grounding requirement, accessibility
@@ -141,11 +156,32 @@ criterion, and a criterion tagged manual QA appears here.
 - **Goal-based check** — settleable by a command: a file exists, a named string
   is present or absent in a named file, a token set matches, a byte count falls
   below a stated ceiling, a version reads, a gate exits 0. `plan.md` carries the
-  commands, split across two surfaces that partition this set rather than
-  duplicating it: its **Verification command map** holds the cross-task
-  criteria, the gate invocations, and the measurements more than one task reads;
-  every criterion local to a single task is settled by that task's `Tests:`.
-- **Manual QA** — the six judgements no command reaches:
+  commands across two surfaces. Its **Verification command map** is the
+  canonical home for the cross-task criteria, the gate invocations, and every
+  measurement more than one task reads; a task's `Tests:` settles the criteria
+  local to that task, and where it needs a measurement the map already owns, it
+  names the map row rather than restating the figure. Each goal-based criterion
+  has a command that fails if the criterion is unmet in the respect it exists to
+  protect. Where a criterion contracts several things and one command cannot
+  reach them all, the remaining obligations get their own commands — Case D's
+  eval assertions and the standing exit's four obligations are the worked
+  examples, because in both a passing check would otherwise hide the very
+  failure the criterion was written against. A conjunct no command can bound is
+  named in a manual-QA judgement and recorded in the ledger; judgement 7b is
+  that route for the three enumerations whose exactness a pattern cannot count.
+
+  A criterion may draw a shared measurement from the map while its owning task
+  covers the rest — one criterion settled across two surfaces, not a
+  duplication, and the shape most criteria here take. What is forbidden is
+  restating a figure or a literal the map owns. A command that is also a gate
+  invocation counts as a command like any other.
+
+  This rule replaced a stricter one that required a command per conjunct. That
+  version was unachievable across a criteria list this size and, being
+  unachievable, could not be used to tell a real gap from bookkeeping. This one is true of
+  these documents as they stand, so a criterion failing it is a finding rather
+  than a backlog item.
+- **Manual QA** — the seven judgements no command reaches:
   1. whether the four behavioural eval cases distinguish old behaviour from new;
   2. whether each operation's stability contract is complete and non-overlapping;
   3. whether the operation-selection rubric is decidable without loading a
@@ -153,7 +189,29 @@ criterion, and a criterion tagged manual QA appears here.
   4. whether the anti-pattern reference's era labelling is honest;
   5. whether the guide is sufficient;
   6. whether any sentence in `SKILL.md` or `references/` makes a visual artifact
-     a precondition for writing the direction doc.
+     a precondition for writing the direction doc;
+  7. whether the rewritten `SKILL.md` has the shape this spec requires, in two
+     parts: **(a)** each of the four departing sections — the ten-step procedure
+     body, the genre canonical reference tier, the style presets, and the
+     anti-patterns — has actually left, with its method intact in the operation
+     reference that now owns it and nothing of it paraphrased back into the
+     body; and **(b)** the delivery's three enumerations are exact and
+     complete — the route table carries exactly three routes, each stating its
+     trigger condition and which operations run; `SKILL.md` names exactly five
+     operations, each with a one-line purpose; and `references/visualize.md`
+     defines exactly three representations. Both are counts-and-shape
+     claims over prose a grep cannot bound: a name-presence pattern reports the
+     same hits whether or not a sixth entry exists.
+
+     A pre-committed pattern cannot settle either part, because both assert a
+     shape for a file no one has written: the pattern is guessed against
+     imagined prose rather than measured against an artifact. Four were written
+     across three review rounds and each failed for a reason unrelated to its
+     criterion — matching lines the change never touched, matching the wrong
+     letter case, reading a table inside a fenced example as the real one, and
+     checking two of a row's four cells. The reviewer reads the post-change
+     `SKILL.md` against the revision T1 pinned for 7a and for 7b's first two
+     enumerations, and `references/visualize.md` for 7b's third.
 
   A named reviewer's recorded verdict **is** the result. The artifact is
   `docs/specs/creative-direction-modes/notes/verification-ledger.md`, carrying the reviewer's name and the date.
@@ -167,13 +225,29 @@ and graded by the judge mode, not asserted by pytest.
 
 ### The route rule
 
-- [ ] `SKILL.md` carries a routing table with exactly three routes, named
-      `inherit`, `extend`, and `originate`, each stating its trigger condition
-      and which operations run. *(goal-based)*
+- [ ] `SKILL.md` carries a routing table naming `inherit`, `extend`, and
+      `originate`. *(goal-based)* That it carries exactly three routes, each
+      stating its trigger condition and which operations run, is
+      *(manual QA — judgement 7b)*.
 - [ ] The table states that `inherit` runs no divergence and no visual step.
       *(goal-based)*
 - [ ] The table states that a section, component, state, or feature added inside
       a surface that already has a direction takes `inherit`. *(goal-based)*
+- [ ] `SKILL.md`'s `## When to invoke` gate 2 is gone, and its preamble asks for
+      three gates, not four. Gate 2 today reads "If one exists, you're amending
+      it, not starting fresh" and the preamble says to push back until all four
+      pass — the opposite of what the route rule contracts for that same lookup,
+      where an existing direction routes to `inherit` or `refine` rather than to
+      a refusal. Leaving both puts two mechanisms over one lookup, and the older
+      one refuses the two cases this delivery exists to add. Gates 1, 3 and 4
+      survive unchanged; the route rule takes over gate 2's question.
+      *(goal-based)*
+- [ ] The always-loaded route rule states that a surface which already has a
+      direction gets no second direction doc, on every route that finds one.
+      Gate 2 carried this until this delivery removed it, and its contracted
+      replacement lives in `references/refine.md`, which the `inherit` route
+      never loads — yet Case A asserts exactly this behaviour for an
+      inherit-routed run, and `converge` owns doc capture. *(goal-based)*
 - [ ] The route rule directs a lookup of `<output_dir>/direction/` to decide
       whether a direction already owns the surface, and states that the lookup
       is evidence-gathering, not a reference load. *(goal-based)*
@@ -187,7 +261,9 @@ and graded by the judge mode, not asserted by pytest.
       `converge`; fill the direction sheet → **`explore` for each candidate's
       sheet, `converge` for the selected direction's sheet** (two distinct acts,
       named separately so each has one owner); run the counterfactual check →
-      `converge`; hold the floor → `converge` **and** `refine`; capture the doc
+      `converge`; hold the floor → **`converge` for the selected direction's floor check and
+      `refine` for an amendment's** (two distinct acts, named separately so each
+      has one owner, exactly as the sheet fill above); capture the doc
       (`output_dir` resolution, the containment controls, the template copy) →
       `converge`; hand off to `design-system` → `converge`. *(goal-based)*
 - [ ] Every reference the skill ships today is still reachable from the
@@ -203,9 +279,9 @@ and graded by the judge mode, not asserted by pytest.
 
 ### The five operations
 
-- [ ] `SKILL.md` names exactly five operations — `frame`, `explore`,
-      `visualize`, `converge`, `refine` — each with a one-line purpose.
-      *(goal-based)*
+- [ ] `SKILL.md` names `frame`, `explore`, `visualize`, `converge` and
+      `refine`. *(goal-based)* That it names exactly those five and no sixth,
+      each with a one-line purpose, is *(manual QA — judgement 7b)*.
 - [ ] Each of `explore`, `visualize`, `converge`, and `refine` links to the
       reference carrying its method. *(goal-based)*
 - [ ] `frame` carries its method inline in `SKILL.md`, links at least the
@@ -243,6 +319,12 @@ and graded by the judge mode, not asserted by pytest.
 - [ ] It requires each surviving candidate to carry its own filled direction
       sheet, so candidates differ by axis tokens rather than by adjective.
       *(goal-based)*
+- [ ] It states that candidate sheets are held in the session, not written to
+      disk. `converge` is the only operation that writes a file, so the skill
+      keeps exactly one declared write target — the single-element set
+      `test_experience_design_write_declaration_and_containment.py` pins — and
+      `experience-status`, which scans `direction/*.md` on `type:` alone, never
+      counts a rejected candidate as a direction. *(goal-based)*
 - [ ] It hands off to `references/divergence-audit.md` and states that a set
       failing the six-of-fifteen minimum pairwise distance is not a candidate set
       and sends the author back to derive more. *(goal-based)*
@@ -272,9 +354,14 @@ and graded by the judge mode, not asserted by pytest.
 
 ### The template
 
-- [ ] The template's frontmatter carries a `status` field whose value is one of
-      `proposed`, `selected`, `inherited`, and the template documents which
-      operation sets each. *(goal-based)*
+- [ ] The template's frontmatter carries a `status` field written as the
+      angle-bracket placeholder `status: "<proposed | selected>"`, matching the
+      convention the template's own `surface` field already uses for an enum,
+      and the template documents which operation sets each value: `converge`
+      writes `proposed` when it captures a direction the human has not yet
+      confirmed — including a choice recorded as delegated — and `selected` once
+      a human confirms. `inherited` is not a value: `inherit` writes no doc, so
+      nothing could ever carry it. *(goal-based)*
 - [ ] The template carries a section holding the borrowed-discipline record,
       naming the donor candidate and the discipline taken. *(goal-based)*
 - [ ] The template carries a section holding a refinement amendment: which axes
@@ -290,12 +377,17 @@ and graded by the judge mode, not asserted by pytest.
 
 ### The visual step
 
-- [ ] `references/visualize.md` defines exactly three representations and their
-      binding force: a **semantic direction** (the filled sheet, binding), a
-      **visualised candidate** (illustrative, non-binding), and an **approved
-      visual target** (binding on composition only). *(goal-based)*
+- [ ] `references/visualize.md` names three representations and states the
+      binding force of each: a **semantic direction** (the filled sheet,
+      binding), a **visualised candidate** (illustrative, non-binding), and an
+      **approved visual target** (binding on composition only). *(goal-based)*
+      That it defines exactly three and no fourth is
+      *(manual QA — judgement 7b)*.
 - [ ] It states that an approved visual target never binds colour, type, spacing,
       or motion values, which remain `design-system`'s to derive. *(goal-based)*
+- [ ] It states that `visualize` writes no file of its own. Its output reaches a
+      consumer only as the compositional commitments recorded in the direction
+      doc, which is what the next criterion requires. *(goal-based)*
 - [ ] It requires an approved visual target's compositional commitments to be
       written into `<output_dir>/direction/<slug>.md` itself. A file beside the
       direction doc sits off every path
@@ -345,15 +437,29 @@ and graded by the judge mode, not asserted by pytest.
       *(goal-based)*
 - [ ] No anti-pattern is reworded to a weaker obligation in the move.
       *(goal-based)*
+- [ ] The `## Anti-patterns to refuse` section has left `SKILL.md`, the fourth
+      of the four departures. *(manual QA — judgement 7a)*
 
 ### Referents demoted to craft calibration
 
 - [ ] The genre canonical reference tier moves out of `SKILL.md` into
-      `references/referents.md`. *(goal-based)*
+      `references/referents.md`. The arrival half is goal-based; the departure
+      half is *(manual QA — judgement 7)*.
+- [ ] `SKILL.md` links `references/referents.md`. T7 deletes
+      `## Genre canonical reference tier` and `## Style presets`, which between
+      them hold the only live link to `assets/presets`, so without this the
+      craft-calibration tier and the three presets it inherits are reachable
+      from nothing while every other command still passes. *(goal-based)*
 - [ ] That reference states the tier calibrates craft level and is not a source
       of candidates during `explore`. *(goal-based)*
 - [ ] It carries the existing requirement to name which qualities of a reference
       are taken and which are left. *(goal-based)*
+- [ ] No file under `references/` and no line of `SKILL.md` refers to a numbered
+      procedure step. Two of the sentences moving into `referents.md` say "step
+      3" today, and one of them is the requirement above, so a faithful carry-
+      over ships a pointer to a procedure this delivery deletes. Each such
+      reference is re-anchored to the operation that now owns the act.
+      *(goal-based)*
 
 ### Model-era anti-patterns, separated from invariants
 
@@ -373,19 +479,38 @@ and graded by the judge mode, not asserted by pytest.
       delimiter comments — is at most **6,500 bytes**. Measured: the pre-fold
       body is 9,699 bytes and the four departing sections total 8,126
       (procedure 4,062, genre tier 2,557, presets 342, anti-patterns 1,165),
-      leaving 1,573; the route table, five operations and rubric arriving are
-      budgeted at roughly 4,000, for about 5,573 against the ceiling. The real
-      margin is roughly 900 bytes, not the 1.5 KB a rounded departure figure
-      would imply. *(goal-based)*
+      leaving 1,573. Each subtotal runs from the section's `##` heading through
+      its body's last newline and excludes the blank line separating it from the
+      next heading; including that blank line the four total 8,129 and leave
+      1,570. Gate 2 and its preamble's count word leave with the criterion
+      above, taking a further 152 bytes net — the line is 153 with its newline,
+      and the preamble's `four` to `three` adds one back — so 1,421 survives
+      rather than 1,573. The route table, five operations and rubric arriving
+      are budgeted at roughly 4,000, for about 5,420 against the ceiling,
+      leaving a margin of roughly 1,080 bytes. That margin is real but not
+      generous: it is what one departing gate bought, and a rounded departure
+      figure would imply about 1.5 KB that is not there. This criterion is the
+      canonical statement of the convention and of every total in it.
+      *(goal-based)*
 - [ ] `SKILL.md` carries no enumeration of the fifteen axis names and no preset
-      descriptions; both are reachable by link. *(goal-based)*
+      descriptions. *(manual QA — judgement 7)* Both stay reachable by link: the
+      axis names from `references/divergence-audit.md`, and the three presets
+      from `references/referents.md`, which is the operation reference that owns
+      precedent material — that reachability half is *(goal-based)*.
 - [ ] The ten-step procedure body does not survive in `SKILL.md`; its method
-      lives in the operation references. *(goal-based)*
+      lives in the operation references. *(manual QA — judgement 7)*
 - [ ] The sum of file bytes under
       `packs/experience-design/.apm/skills/creative-direction/` is at most
       **95,000 bytes**. Failing state: the directory grew by more than the six
       new reference files and the template's three new sections account for.
       *(goal-based)*
+- [ ] The frontmatter `description` names refining or amending an existing
+      direction among its trigger phrasings. It carries none of "refine",
+      "amend", "inherit", "existing direction" or "already" today, and it is the
+      one field that drives activation, so `refine` ships unreachable without
+      this and the `should_trigger: true` entries below have no contracted cause
+      to pass. There are 240 characters of headroom, and frontmatter is outside
+      the authored-body ceiling. *(goal-based)*
 - [ ] The frontmatter `description` stays within 1024 characters and continues to
       name the skill's boundaries against `design-system`,
       `information-architecture`, and `design-review`. *(goal-based)*
@@ -409,9 +534,11 @@ and graded by the judge mode, not asserted by pytest.
 - [ ] Run against the pre-change skill, A and D pass and B and C fail.
       *(manual QA — judgement 1)*
 - [ ] `evals/eval_queries.json` gains `should_trigger: true` entries for
-      refinement-shaped requests against an existing direction, and
-      `should_trigger: false` entries for requests that belong to `design-system`
-      or `design-review`. *(goal-based)*
+      refinement-shaped requests against an existing direction. The
+      `should_trigger: false` side needs nothing added: the file already carries
+      four `design-system` and `design-review` negatives, so a check written
+      against that half passes on the unmodified file and cannot fail.
+      *(goal-based)*
 
 ### Compatibility
 
@@ -437,7 +564,10 @@ and graded by the judge mode, not asserted by pytest.
       bump, because reorganising an existing skill and adding references inside it
       is changed content, not a new primitive. *(goal-based)*
 - [ ] `.claude-plugin/marketplace.json` reads `2.0.10` for `experience-design`,
-      regenerated by self-host rather than hand-edited. *(goal-based)*
+      regenerated by self-host rather than hand-edited. The unforced
+      `make build-self` runs `agentbundle catalogue self-host --root . --write`,
+      which regenerates the projection, so this criterion does not depend on the
+      `FORCE=1` route the Ask-first rule refuses. *(goal-based)*
 - [ ] `docs/product/changelog.md` carries a free-standing
       `## [experience-design][2.0.10] — <YYYY-MM-DD>` entry at the top level,
       directly beneath `[Unreleased]`, with one `Highlights` subsection and
@@ -455,10 +585,12 @@ and graded by the judge mode, not asserted by pytest.
 - [ ] `agentbundle catalogue lint --root . --deep` and
       `agentbundle catalogue verify --root .` each exit 0, run after the
       projection is regenerated. *(goal-based)*
-- [ ] The five commands in `guides/AGENTS.md` § Essential commands each exit 0.
-      *(goal-based)*
+- [ ] The five commands in `guides/AGENTS.md` § Essential commands each exit 0,
+      with the guidebook-steps command run as
+      `python3 tools/lint-guidebook-steps.py guides/experience-design` — the
+      entry there carries a literal `guides/<pack>` placeholder. *(goal-based)*
 - [ ] `make lint-ruff lint-mypy` exits 0. *(goal-based)*
-- [ ] `docs/specs/creative-direction-modes/notes/verification-ledger.md` records all six manual-QA verdicts with the
+- [ ] `docs/specs/creative-direction-modes/notes/verification-ledger.md` records all seven manual-QA verdicts with the
       reviewer's name and date, and is committed in the same change.
       *(goal-based)*
 

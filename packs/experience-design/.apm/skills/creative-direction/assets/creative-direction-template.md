@@ -5,6 +5,11 @@ slug: "<kebab-case-slug — the surface or product this direction serves>"
 # platform standards ground each goal below.
 surface: "<responsive-web | iOS | Android | cross-platform>"
 date: "<YYYY-MM-DD>"
+# status: `converge` writes `proposed` when it captures a direction the human
+# has not yet confirmed — including a choice recorded as delegated — and
+# `selected` once a human confirms. The `inherit` route writes no doc, so
+# there is no `inherited` value.
+status: "<proposed | selected>"
 ---
 
 # Aesthetic direction: <surface or product name>
@@ -116,3 +121,29 @@ Resolved trade-offs:
 - <open question — e.g. "How do we read as premium while clearing the
   contrast floor?">
 - <missing grounding — e.g. "Persona not yet fully defined; sketch recorded inline; full persona work deferred.">
+
+## Borrowed discipline
+
+<!-- Recorded by `converge`. Name one discipline taken from a rejected
+     candidate, or state explicitly that none was taken. A discipline is
+     a mechanism or structural approach — not a visual value — that the
+     rejected candidate handled better than the selected direction did. -->
+
+**Donor candidate:** <which rejected candidate this discipline came from, or "none">
+**Discipline taken:** <the mechanism or structural approach borrowed from the donor, or "none">
+
+## Compositional commitments
+
+<!-- Recorded by `visualize` when an approved visual target exists. These
+     commitments bind composition only. They do not bind colour, type,
+     spacing, or motion values — those remain for `design-system` to derive. -->
+
+<describe the compositional commitments the approved visual target establishes>
+
+## Refinement amendment
+
+<!-- Recorded by `refine` each time an axis moves. Add one row per axis that
+     changed. Axes not listed here are unchanged from the direction sheet. -->
+
+| Axis | From | To | Why |
+| --- | --- | --- | --- |

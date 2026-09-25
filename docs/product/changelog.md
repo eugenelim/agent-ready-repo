@@ -172,6 +172,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The Epic outcome view reads its outcome from one fixed, documented location — the block under a top-level `Outcome` heading in the Epic's description — in both description shapes Jira returns: the structured document from Cloud and plain or wiki text from Server and Data Center. The location is not configurable per invocation.
 - Every reading the view renders states the moment it was taken, and the delivery reading and the Jira read state their two moments separately rather than implying one snapshot. Every run also discloses that it covers only the work the calling credential can browse.
+## [experience-design][2.0.10] — 2026-09-24
+
+### Highlights
+
+- The `creative-direction` skill now exposes five named operations — `frame`, `explore`, `visualize`, `converge`, and `refine` — each with a dedicated reference, so craft detail loads only when the operation needs it.
+- A route rule (`inherit`, `extend`, `originate`) selects how much invention the work warrants; `inherit` runs no divergence and no visual step when a direction already exists for the surface.
+- Divergence generation in `explore` draws referents from the audience's world — domain, era, and material family — rather than from other software products.
+- The visual step in `visualize` is capability-gated: it defaults to a text schematic in any harness that cannot produce images, with a named skip rather than a blocker, and produces a rendered comp only on the `originate` route when the harness supports it.
+- The always-loaded `SKILL.md` body is smaller; craft that belongs to individual operations now lives in the operation's own reference file.
 
 ## [core][2.26.42] — 2026-09-24
 
@@ -211,6 +220,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pipeline does, run the corpus lint over your intent directory. The field
   reference and the *fix a refused intent* how-to in the product-engineering
   guides carry the per-status table and the fix for each message.
+
 
 ## [core][2.26.40] — 2026-09-24
 
