@@ -1,6 +1,6 @@
 # Spec: One copy-layer skill with three modes
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0062 and its 2026-08-02 erratum (amended by erratum in this change); RFC-0071 (digital-experience doctrine, amended by erratum); RFC-0055 D2 (errata structure); RFC-0033 / ADR-0024 (framework agnosticism); ADR-0038 (alias-free precedent)
