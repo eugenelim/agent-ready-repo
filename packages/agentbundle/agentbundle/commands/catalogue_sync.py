@@ -109,7 +109,14 @@ _GUIDES_SCOPE_PREFIX = "guides/_shared/"
 # `catalogue-curation` copy are installed as a pair, so phase 4 owns both
 # under one extent. Compared as a prefix, like the pack scope below, so
 # every path under either root is caught regardless of depth.
-_DEFERRED_PACKAGE_PREFIXES = ("packages/credbroker/", ".agentbundle/tooling/")
+# AC-0078 — the two `--package` destinations. `agentbundle` is the whole
+# vendored tooling root, not only its `agentbundle/` subdirectory: `init`
+# writes both subtrees under it from one mode decision, so a phase that moved
+# only the engine would leave the vendored `catalogue-curation` copy written
+# by no verb.
+_CREDBROKER_PREFIX = "packages/credbroker/"
+_VENDORED_TOOLING_PREFIX = ".agentbundle/tooling/"
+_PACKAGE_PREFIXES = (_CREDBROKER_PREFIX, _VENDORED_TOOLING_PREFIX)
 
 # AC-0078 — the `agentbundle` destination's engine subtree, which is the only
 # part of the vendored tooling root that can supply a running interpreter.
@@ -118,16 +125,48 @@ _DEFERRED_PACKAGE_PREFIXES = ("packages/credbroker/", ".agentbundle/tooling/")
 _VENDORED_ENGINE_PREFIX = ".agentbundle/tooling/agentbundle/"
 
 
-def _is_deferred_package_path(path: str) -> bool:
-    """AC-0033 clause 5 — ``True`` when *path* belongs to a `--package`
-    subtree phase 4, not this phase, owns.
+def _package_prefixes(package: str | None) -> tuple[str, ...]:
+    """AC-0078 — the destinations a `--package` value names, or every
+    destination when it names none."""
+    if package == "agentbundle":
+        return (_VENDORED_TOOLING_PREFIX,)
+    if package == "credbroker":
+        return (_CREDBROKER_PREFIX,)
+    return _PACKAGE_PREFIXES
+
+
+def _in_scope(
+    target: Path,
+    path: str,
+    scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
+) -> bool:
+    """AC-0043 as AC-0081 extends it — is *path* inside this run's scope?
+
+    A package path is tested by AC-0087's identity comparison and never by the
+    string prefixes: those two disagreed before this phase, harmlessly while
+    nothing under them was written, and the disagreement is what AC-0087
+    collapses.
     """
-    return path.startswith(_DEFERRED_PACKAGE_PREFIXES)
+    if scope is None:
+        return True
+    dir_prefixes, exact_paths, package_prefixes = scope
+    if package_prefixes is not None and _is_package_path(target, path, package_prefixes):
+        return True
+    if _is_package_path(target, path, _PACKAGE_PREFIXES):
+        # A package path outside the package scope this run named. `--pack`
+        # never reaches inside a destination, so no other axis can admit it.
+        return False
+    if path in exact_paths:
+        return True
+    return any(path.startswith(prefix) for prefix in dir_prefixes)
 
 
 def _scope_subtrees(
-    pack_names: list[str], profile_names: list[str], guides: bool
-) -> tuple[frozenset[str], frozenset[str]] | None:
+    pack_names: list[str],
+    profile_names: list[str],
+    guides: bool,
+    package: str | None = None,
+) -> tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None:
     """Return AC-0043's scope as ``(dir_prefixes, exact_paths)``.
 
     ``dir_prefixes`` each carry their trailing separator — comparing without
@@ -140,62 +179,46 @@ def _scope_subtrees(
     "the scope is every path", which AC-0042 uses to assert clause 4 excludes
     nothing.
     """
-    if not pack_names and not profile_names and not guides:
+    if not pack_names and not profile_names and not guides and package is None:
         return None
     dir_prefixes = {f"packs/{name}/" for name in pack_names}
     if guides:
         dir_prefixes.add(_GUIDES_SCOPE_PREFIX)
     exact_paths = {f"profiles/{name}.toml" for name in profile_names}
-    return frozenset(dir_prefixes), frozenset(exact_paths)
-
-
-def _in_scope(
-    path: str, scope: tuple[frozenset[str], frozenset[str]] | None
-) -> bool:
-    """AC-0033 clause 4 — ``True`` when *path* is inside the scope AC-0043
-    fixes. ``scope is None`` means no scoping flag was supplied, which admits
-    every path.
-    """
-    if scope is None:
-        return True
-    dir_prefixes, exact_paths = scope
-    if path in exact_paths:
-        return True
-    return any(path.startswith(prefix) for prefix in dir_prefixes)
+    package_prefixes = _package_prefixes(package) if package is not None else None
+    return frozenset(dir_prefixes), frozenset(exact_paths), package_prefixes
 
 
 def select_write_set(
+    target: Path,
     planned_paths: Iterable[str],
     *,
     pack_names: list[str],
     profile_names: list[str],
     guides: bool,
-) -> tuple[set[str], int]:
-    """AC-0033 clauses 4 and 5 — narrow *planned_paths* to the write set.
+    package: str | None,
+) -> set[str]:
+    """AC-0033 clause 4 and AC-0081 — narrow *planned_paths* to the write set.
 
-    *planned_paths* is the full replayed set (e.g. ``set(replay.file_bytes)``)
-    — AC-0033 clause 3's admission, never narrowed by this function. See
-    plan.md § Design decisions "The scope filter selects what is written,
-    never what is replayed": narrowing the replay itself would mark the rest
-    of the adopter's tree stale.
+    *planned_paths* is AC-0033 clause 3's admission, never narrowed by this
+    function. See plan.md § Design decisions "The scope filter selects what is
+    written, never what is replayed": narrowing the replay itself would mark
+    the rest of the adopter's tree stale.
 
-    Returns ``(admitted, deferred_package)``. ``deferred_package`` is AC-0066's
-    count, computed over *planned_paths* exactly as given rather than over
-    the scope-narrowed subset — AC-0066 fixes that this count "stay[s]
-    computed over the full replayed selection" regardless of which scoping
-    flags this run supplies, so a `--pack` run still reports how many
-    deferred paths the *full* replay carries.
+    Clause 5's package exclusion is gone — AC-0079 admits a package path on
+    the same terms as any other replayed path — so this returns the admitted
+    set alone. AC-0088 retires the count that used to ride beside it.
+
+    *target* is needed because a package destination is decided by AC-0087's
+    identity comparison rather than a string prefix, and that comparison
+    resolves against the tree.
     """
-    scope = _scope_subtrees(pack_names, profile_names, guides)
-    deferred = 0
+    scope = _scope_subtrees(pack_names, profile_names, guides, package)
     admitted: set[str] = set()
     for path in planned_paths:
-        if _is_deferred_package_path(path):
-            deferred += 1
-            continue
-        if _in_scope(path, scope):
+        if _in_scope(target, path, scope):
             admitted.add(path)
-    return admitted, deferred
+    return admitted
 
 
 def build_pin(
@@ -307,7 +330,7 @@ def merge_ownership_state(
 # ---------------------------------------------------------------------------
 # T4: the write sequence applies a plan or restores the tree.
 #
-# Composes T2's `select_write_set` (scope + deferred-package exclusion) and
+# Composes `select_write_set` (scope, including the package axis) and
 # T3's `merge_ownership_state`/`build_pin` rather than duplicating either.
 # `apply_write_sequence` is the one entry point T6's `_run_apply` calls after
 # consent; every other function here is one of its independently testable
@@ -905,7 +928,7 @@ def _in_coverage(
     pack_names: list[str],
     profile_names: list[str],
     guides_mode: str,
-    scope: tuple[frozenset[str], frozenset[str]] | None,
+    scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
 ) -> bool:
     """AC-0069 — True when *path* lies inside this run's coverage.
 
@@ -914,11 +937,11 @@ def _in_coverage(
     narrowed by the exclusions AC-0069 names — never the exclusions alone,
     which would re-admit every axis nobody enumerated.
     """
-    if _resolves_within(target, path, _DEFERRED_PACKAGE_PREFIXES):
+    if _resolves_within(target, path, _PACKAGE_PREFIXES):
         return False
     if guides_mode == "none" and path.startswith(_GUIDES_SCOPE_PREFIX):
         return False
-    if not _in_scope(path, scope):
+    if not _in_scope(target, path, scope):
         return False
     if path.startswith("packs/"):
         return any(path.startswith(f"packs/{name}/") for name in pack_names)
@@ -935,7 +958,7 @@ def select_removal_set(
     pack_names: list[str],
     profile_names: list[str],
     guides_mode: str,
-    scope: tuple[frozenset[str], frozenset[str]] | None,
+    scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
 ) -> tuple[dict[str, str], set[str]]:
     """AC-0035/AC-0064/AC-0069/AC-0073 — the paths this run actually removes
     (mapped to the recorded sha256 that earned each its removability), and
@@ -1107,7 +1130,6 @@ class WritePlan:
     companion_destination_to_original: dict[str, str]
     occupied: dict[str, str]
     residue: dict[str, str | None]
-    deferred_package: int
     introduced_packs: set[str]
     introduced_profiles: set[str]
     recorded: dict[str, str | None]
@@ -1124,6 +1146,7 @@ def plan_write_set(
     scope_packs: Iterable[str] = (),
     scope_profiles: Iterable[str] = (),
     guides_scope: bool = False,
+    package: str | None = None,
 ) -> WritePlan:
     """AC-0033 clauses 3-5 / AC-0066 / AC-0070 / AC-0071 — classify
     *verdict_rows* into the admitted write set, read-only.
@@ -1186,9 +1209,9 @@ def plan_write_set(
     scope_packs = list(scope_packs)
     scope_profiles = list(scope_profiles)
     raw_admitted = would_update | set(admitted_companions.values()) | admitted_new
-    admitted, deferred = select_write_set(
-        raw_admitted, pack_names=scope_packs, profile_names=scope_profiles,
-        guides=guides_scope,
+    admitted = select_write_set(
+        target, raw_admitted, pack_names=scope_packs, profile_names=scope_profiles,
+        guides=guides_scope, package=package,
     )
     would_update_admitted = would_update & admitted
     companion_destination_to_original = {
@@ -1202,7 +1225,6 @@ def plan_write_set(
         companion_destination_to_original=companion_destination_to_original,
         occupied=occupied,
         residue=residue,
-        deferred_package=deferred,
         introduced_packs=introduced_packs,
         introduced_profiles=introduced_profiles,
         recorded=recorded,
@@ -1417,6 +1439,7 @@ def apply_write_sequence(
     scope_packs: Iterable[str] = (),
     scope_profiles: Iterable[str] = (),
     guides_scope: bool = False,
+    package: str | None = None,
     guides_mode: str,
     pin: dict[str, Any],
     snapshot_bound_bytes: int = _SNAPSHOT_BOUND_BYTES,
@@ -2417,6 +2440,7 @@ def _run_dry_run(
     cli_pack_names: list[str],
     cli_profile_names: list[str],
     guides_scope: bool,
+    package: str | None = None,
 ) -> int:
     """Spec AC-0013's `--dry-run` rows: no recorded selection derivable, an
     unshipped `--pack`/`--profile` name or an invalid recorded selection
@@ -2534,8 +2558,10 @@ def _run_dry_run(
     # None` (no scoping flag supplied) admits every path, matching AC-0042.
     # `summary_counts` is left over the full selection, matching AC-0066's
     # apply-side counts convention.
-    scope = _scope_subtrees(list(cli_pack_names), list(cli_profile_names), guides_scope)
-    verdict_rows = [row for row in verdict_rows if _in_scope(row[0], scope)]
+    scope = _scope_subtrees(
+        list(cli_pack_names), list(cli_profile_names), guides_scope, package
+    )
+    verdict_rows = [row for row in verdict_rows if _in_scope(target, row[0], scope)]
     compatibility = compatibility_warnings(
         target, pack_names, replay.file_bytes, rejections
     )
@@ -2794,7 +2820,6 @@ def _apply_plan_document(
     pack_names: list[str],
     profile_names: list[str],
     summary: dict[str, int],
-    deferred_package: int,
     acted_rows: list[tuple[str, str, str | None]],
     occupied: dict[str, str],
     residue: dict[str, str | None],
@@ -2827,9 +2852,6 @@ def _apply_plan_document(
         if _safe_scalar("out_of_coverage", path, rejections) is not None
     ]
 
-    summary_with_deferred = dict(summary)
-    summary_with_deferred["deferred_package"] = deferred_package
-
     doc: dict[str, Any] = {
         "command": "catalogue sync",
         "target": safe_target,
@@ -2847,7 +2869,7 @@ def _apply_plan_document(
         },
         "packs": safe_pack_names,
         "profiles": safe_profile_names,
-        "summary": summary_with_deferred,
+        "summary": summary,
         "acted": [
             {
                 "path": path,
@@ -2906,7 +2928,7 @@ def _render_apply_plan(doc: dict[str, Any], *, fmt: str) -> None:
         "counts: would-update={would_update} would-companion={would_companion} "
         "untouched={untouched} would-remove={would_remove} "
         "schema-1-inert={schema_1_inert} compared={compared} "
-        "uncompared={uncompared} deferred-package={deferred_package}".format(**counts)
+        "uncompared={uncompared}".format(**counts)
     )
     print("\n".join(lines))
 
@@ -2928,6 +2950,7 @@ def _run_apply(
     cli_pack_names: list[str],
     cli_profile_names: list[str],
     guides_scope: bool,
+    package: str | None = None,
 ) -> int:
     """AC-0039's apply rows — the write path `_run_dry_run` has none of.
 
@@ -3078,7 +3101,6 @@ def _run_apply(
         pack_names=pack_names,
         profile_names=profile_names,
         summary=summary_counts,
-        deferred_package=plan.deferred_package,
         acted_rows=acted_rows,
         occupied=plan.occupied,
         residue=plan.residue,
@@ -3390,6 +3412,7 @@ def run(args: argparse.Namespace) -> int:
                 cli_pack_names=cli_pack_names,
                 cli_profile_names=cli_profile_names,
                 guides_scope=guides_scope,
+                package=package,
             )
         # Apply run.
         return _run_apply(
@@ -3408,6 +3431,7 @@ def run(args: argparse.Namespace) -> int:
             cli_pack_names=cli_pack_names,
             cli_profile_names=cli_profile_names,
             guides_scope=guides_scope,
+            package=package,
         )
     finally:
         if cleanup is not None:

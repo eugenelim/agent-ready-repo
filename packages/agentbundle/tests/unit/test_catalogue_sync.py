@@ -1846,112 +1846,71 @@ def _replay_scope_predicate_source(
     return set(replay.file_bytes)
 
 
+def _scope_select(tmp_path, planned, **kw):
+    kw.setdefault("pack_names", [])
+    kw.setdefault("profile_names", [])
+    kw.setdefault("guides", False)
+    kw.setdefault("package", None)
+    return catalogue_sync.select_write_set(tmp_path, planned, **kw)
+
+
 def test_scope_predicate_admits_named_subtrees_and_unions_repeated_pack(tmp_path):
     planned = _replay_scope_predicate_source(tmp_path)
-
-    admitted, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core"], profile_names=["default"], guides=True
-    )
-
-    assert "packs/core/pack.toml" in admitted
-    assert "profiles/default.toml" in admitted
-    assert "guides/_shared/example.md" in admitted
-
-    admitted_union, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core", "core-extras"], profile_names=[], guides=False
-    )
-    assert "packs/core/pack.toml" in admitted_union
-    assert "packs/core-extras/pack.toml" in admitted_union
+    admitted = _scope_select(tmp_path, planned, pack_names=["core", "core-extras"])
+    assert any(p.startswith("packs/core/") for p in admitted)
+    assert any(p.startswith("packs/core-extras/") for p in admitted)
+    assert not any(p.startswith("guides/") for p in admitted)
 
 
 def test_scope_predicate_excludes_nothing_with_no_scoping_flag(tmp_path):
-    # tooling=external and no credential-brokers pack selected: this fixture's
-    # planned set carries no deferred-package path, so "excludes nothing" is
-    # observable as an exact-equality, not merely a superset check.
-    planned = _replay_scope_predicate_source(
-        tmp_path, tooling="external", packs=["core", "core-extras"]
-    )
-
-    admitted, deferred = catalogue_sync.select_write_set(
-        planned, pack_names=[], profile_names=[], guides=False
-    )
-
-    assert admitted == planned
-    assert deferred == 0
+    # AC-0042. Rewritten from phase 3's anchor, which also asserted
+    # `deferred == 0`: AC-0088 retires that count, and AC-0079 means an
+    # unscoped run admits the package extent rather than deferring it.
+    planned = _replay_scope_predicate_source(tmp_path)
+    assert _scope_select(tmp_path, planned) == set(planned)
 
 
 def test_scope_predicate_excludes_catalogue_toml_and_conformance_under_any_scope(
     tmp_path,
 ):
     planned = _replay_scope_predicate_source(tmp_path)
+    for scope in (
+        {"pack_names": ["core"]},
+        {"profile_names": ["default"]},
+        {"guides": True},
+        {"package": "credbroker"},
+    ):
+        admitted = _scope_select(tmp_path, planned, **scope)
+        assert "catalogue.toml" not in admitted
+        assert not any(p.startswith("tests/conformance/") for p in admitted)
 
-    admitted, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core"], profile_names=[], guides=False
-    )
 
-    assert "catalogue.toml" in planned
-    assert "catalogue.toml" not in admitted
-    conformance_paths = {p for p in planned if p.startswith("tests/conformance/")}
-    assert conformance_paths  # the fixture actually ships one
-    assert not (conformance_paths & admitted)
-
-
-@pytest.mark.parametrize(
-    "pack_names,profile_names,guides",
-    [
-        ([], [], False),
-        (["core"], [], False),
-        ([], ["default"], False),
-        ([], [], True),
-    ],
-)
-def test_scope_predicate_defers_vendored_and_credbroker_paths_under_every_scope(
-    tmp_path, pack_names, profile_names, guides
-):
+def test_scope_predicate_admits_the_package_extent_rather_than_deferring_it(tmp_path):
+    # Rewritten from phase 3's anchor, which duplicated
+    # `_DEFERRED_PACKAGE_PREFIXES` literally and asserted every path under it
+    # was excluded from the write set under every scope. AC-0079 inverts that:
+    # the extent is admitted on the same terms as any other replayed path.
+    #
+    # Driven over a real replay's planned-path set, not a hand-written list.
     planned = _replay_scope_predicate_source(tmp_path)
-    deferred_paths = {
+    package_paths = {
         p for p in planned
-        if p.startswith(("packages/credbroker/", ".agentbundle/tooling/"))
+        if p.startswith((".agentbundle/tooling/", "packages/credbroker/"))
     }
-    # The whole vendored tooling root is the extent, not only its
-    # `agentbundle/` subdirectory — the fixture's `packs/catalogue-curation/`
-    # copy is exactly the subtree a narrower reading would wrongly admit.
-    assert any(
-        p.startswith(".agentbundle/tooling/packs/catalogue-curation/")
-        for p in deferred_paths
-    )
-    assert any(
-        p.startswith(".agentbundle/tooling/agentbundle/") for p in deferred_paths
-    )
-    assert deferred_paths  # the fixture actually ships every deferred subtree
+    assert package_paths, "fixture must ship package paths for this to discriminate"
 
-    admitted, deferred_count = catalogue_sync.select_write_set(
-        planned,
-        pack_names=pack_names,
-        profile_names=profile_names,
-        guides=guides,
-    )
+    # Unscoped: admitted, where phase 3 excluded every one of them.
+    assert package_paths <= _scope_select(tmp_path, planned)
 
-    assert not (deferred_paths & admitted)
-    assert deferred_count == len(deferred_paths)
+    # Under a non-package scope: excluded, because `--pack` never reaches
+    # inside a destination (AC-0081).
+    assert not (package_paths & _scope_select(tmp_path, planned, pack_names=["core"]))
 
 
 def test_scope_predicate_pack_core_does_not_admit_core_extras_sibling(tmp_path):
     planned = _replay_scope_predicate_source(tmp_path)
-    assert "packs/core-extras/pack.toml" in planned  # the fixture ships the sibling
-
-    admitted, _ = catalogue_sync.select_write_set(
-        planned, pack_names=["core"], profile_names=[], guides=False
-    )
-
-    assert "packs/core-extras/pack.toml" not in admitted
-
-
-# ---------------------------------------------------------------------------
-# T3: the state merge and the pin (spec AC-0033 clause 1, AC-0036, AC-0037,
-# AC-0044, AC-0045, AC-0059). Both functions are pure over their arguments —
-# no test in this section touches a filesystem.
-# ---------------------------------------------------------------------------
+    admitted = _scope_select(tmp_path, planned, pack_names=["core"])
+    assert not any(p.startswith("packs/core-extras/") for p in admitted)
 
 
 def _base_old_state(
@@ -5528,72 +5487,17 @@ def test_run_apply_removal_and_out_of_coverage_paths_pass_the_terminal_safe_chec
     assert any("rejected out_of_coverage" in line for line in doc["rejections"])
 
 
-def test_run_apply_deferred_package_count_equals_planned_package_paths(tmp_path, capsys):
-    # AC-0066: the reported `deferred_package` count equals the number of
-    # planned paths clause 5 excludes. Clause 5 only ever excludes a path
-    # clause 3 would otherwise admit (a `would-update`/`would-companion`
-    # verdict, or a path belonging to a newly introduced pack/profile) — a
-    # `packages/credbroker/**` path nobody has recorded yet is plain
-    # `untouched` and was never a write candidate in the first place, so
-    # this fixture records two such paths with a stale digest, and the
-    # source now ships different bytes for both (`would-update`), which is
-    # what makes clause 5's exclusion — and this count — observable.
-    source = tmp_path / "deferred-source"
-    source.mkdir()
-    (source / "catalogue.toml").write_text(
-        '[catalogue]\nname = "upstream"\ndisplay_name = "Upstream"\n'
-        'description = "d"\n',
-        encoding="utf-8",
-    )
-    creds_pack = source / "packs" / "credential-brokers"
-    creds_pack.mkdir(parents=True)
-    (creds_pack / "pack.toml").write_text(
-        '[pack]\nname = "credential-brokers"\nversion = "1.0.0"\n', encoding="utf-8"
-    )
-    pkg = source / "packages" / "credbroker"
-    pkg.mkdir(parents=True)
-    (pkg / "one.txt").write_text("vendored v2\n", encoding="utf-8")
-    (pkg / "two.txt").write_text("vendored v2\n", encoding="utf-8")
-
-    target = tmp_path / "deferred-target"
-    target_pkg = target / "packages" / "credbroker"
-    target_pkg.mkdir(parents=True)
-    (target_pkg / "one.txt").write_bytes(b"vendored v1\n")
-    (target_pkg / "two.txt").write_bytes(b"vendored v1\n")
-    _write_apply_run_state(
-        target,
-        recipe={"packs": ["credential-brokers"], "profiles": []},
-        managed_paths=[
-            {
-                "path": "packages/credbroker/one.txt",
-                "sha256": hashlib.sha256(b"vendored v1\n").hexdigest(),
-            },
-            {
-                "path": "packages/credbroker/two.txt",
-                "sha256": hashlib.sha256(b"vendored v1\n").hexdigest(),
-            },
-        ],
-    )
-    before_one = (target_pkg / "one.txt").read_bytes()
-
-    code = _call_run_apply(target, source, fmt="json")
-    doc = json.loads(capsys.readouterr().out)
-
-    assert code == 0
-    assert doc["summary"]["deferred_package"] == 2
-    # Never written: clause 5 excludes it from the write set entirely.
-    assert (target_pkg / "one.txt").read_bytes() == before_one
-
-
-# T7: the parser admits an apply run (spec AC-0030, AC-0060, AC-0074).
-#
-# Every test below drives `_build_parser()` itself — never a hand-built
-# `argparse.Namespace` — because the parser's own defaults (and its own
-# refusals) are what these criteria constrain. AC-0043's `--dry-run`-side
-# scoping restriction and its `--check`-side malformed row are T6/T7's own
-# recorded gap (plan.md's live cross-task note): neither `run()` nor
-# `_run_dry_run` reads `--pack`/`--profile`/`--guides` yet, and that wiring
-# sits in `commands/catalogue_sync.py`, outside this task's `Touches:`.
+def test_run_apply_reports_no_deferred_package_count(tmp_path, monkeypatch):
+    # AC-0088. Rewritten from phase 3's anchor, which asserted
+    # `doc["summary"]["deferred_package"] == 2`. The count existed only to
+    # report the extent this phase writes, so it is retired rather than
+    # recalculated -- on the JSON summary and on the printed counts line.
+    assert "deferred_package" not in Path(
+        catalogue_sync.__file__
+    ).read_text(encoding="utf-8")
+    assert "deferred-package" not in Path(
+        catalogue_sync.__file__
+    ).read_text(encoding="utf-8")
 
 
 def _find_subparsers_action(parser: argparse.ArgumentParser) -> argparse._SubParsersAction:
@@ -6110,3 +6014,81 @@ def test_malformed_json_without_yes_still_outranks_both_new_rows(tmp_path, monke
         "--tooling", "vendored", "--package", "agentbundle",
     )
     assert catalogue_sync.run(args) == 2
+
+
+# ---------------------------------------------------------------------------
+# T3 / AC-0079, AC-0081 — the write set admits the package extent, and
+# `--package` scopes to it.
+# ---------------------------------------------------------------------------
+
+_PLANNED_WITH_PACKAGES = [
+    "packs/core/pack.toml",
+    "packs/core-extras/pack.toml",
+    "profiles/default.toml",
+    "guides/_shared/how-to/x.md",
+    "catalogue.toml",
+    "tests/conformance/test_x.py",
+    "packages/credbroker/credbroker/__init__.py",
+    ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+    ".agentbundle/tooling/packs/catalogue-curation/pack.toml",
+]
+
+
+def _select(target, **kw):
+    kw.setdefault("pack_names", [])
+    kw.setdefault("profile_names", [])
+    kw.setdefault("guides", False)
+    kw.setdefault("package", None)
+    return catalogue_sync.select_write_set(target, _PLANNED_WITH_PACKAGES, **kw)
+
+
+def test_unscoped_write_set_admits_the_package_extent(tmp_path):
+    # AC-0079: a package path is admitted on the same terms as any other
+    # replayed path. AC-0033 clause 4 still excludes the derivation-wide ones.
+    target = _extent_fixture(tmp_path)
+    admitted = _select(target)
+    assert "packages/credbroker/credbroker/__init__.py" in admitted
+    assert ".agentbundle/tooling/agentbundle/agentbundle/cli.py" in admitted
+    assert ".agentbundle/tooling/packs/catalogue-curation/pack.toml" in admitted
+
+
+def test_package_scope_admits_only_its_own_destination(tmp_path):
+    # AC-0081: `--package <name>` restricts the run to that destination.
+    target = _extent_fixture(tmp_path)
+    assert _select(target, package="credbroker") == {
+        "packages/credbroker/credbroker/__init__.py"
+    }
+    assert _select(target, package="agentbundle") == {
+        ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+        ".agentbundle/tooling/packs/catalogue-curation/pack.toml",
+    }
+
+
+def test_package_scope_unions_with_a_pack_scope(tmp_path):
+    target = _extent_fixture(tmp_path)
+    assert _select(target, pack_names=["core"], package="credbroker") == {
+        "packs/core/pack.toml",
+        "packages/credbroker/credbroker/__init__.py",
+    }
+
+
+def test_pack_scope_never_reaches_inside_a_package_destination(tmp_path):
+    # AC-0081's closing paragraph: the vendored catalogue-curation copy moves
+    # only under `--package agentbundle`, never under `--pack`.
+    target = _extent_fixture(tmp_path)
+    assert _select(target, pack_names=["catalogue-curation"]) == set()
+
+
+def test_scoped_run_still_excludes_derivation_wide_paths(tmp_path):
+    target = _extent_fixture(tmp_path)
+    for scope in ({"package": "agentbundle"}, {"pack_names": ["core"]}):
+        admitted = _select(target, **scope)
+        assert "catalogue.toml" not in admitted
+        assert "tests/conformance/test_x.py" not in admitted
+
+
+def test_select_write_set_returns_a_set_alone(tmp_path):
+    # AC-0088: the deferred count is retired, so the selector has nothing to
+    # return beside the admitted set.
+    target = _extent_fixture(tmp_path)
+    assert isinstance(_select(target), set)
