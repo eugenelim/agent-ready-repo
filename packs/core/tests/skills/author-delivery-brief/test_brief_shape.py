@@ -264,3 +264,238 @@ def test_ac0009_well_formed_value_is_present() -> None:
     result = _m.get_cut_closed(text)
     assert result is not None
     assert "2026-01-01" in result
+
+
+# ── AC-0010: the vocabulary is exactly the six-token frozenset ────────────────
+
+# The tokens the spec names.  Spelled once here so the set comparison below
+# does not repeat them.
+_EXPECTED_STATUSES = frozenset(
+    {"Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"}
+)
+
+
+def test_ac0010_vocabulary_is_exact_frozenset() -> None:
+    """BRIEF_STATUSES equals the six-token vocabulary exactly (AC-0010)."""
+    assert _m.BRIEF_STATUSES == _EXPECTED_STATUSES
+
+
+# ── AC-0011: absent or unknown status is not lifecycle-valid ──────────────────
+
+
+def test_ac0011_none_status_is_not_lifecycle_valid() -> None:
+    """is_lifecycle_valid returns False when status is None (AC-0011)."""
+    assert not _m.is_lifecycle_valid(None, set())
+
+
+def test_ac0011_unknown_status_is_not_lifecycle_valid() -> None:
+    """is_lifecycle_valid returns False for an out-of-vocabulary status (AC-0011)."""
+    assert not _m.is_lifecycle_valid("UnknownStatus", set())
+
+
+# ── AC-0012: child-execution-evidence matrix over all six states ──────────────
+
+
+def test_ac0012_draft_no_children_valid() -> None:
+    """Draft with no children is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Draft", set())
+
+
+def test_ac0012_draft_non_execution_child_valid() -> None:
+    """Draft with a child at Planning is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Draft", {"Planning"})
+
+
+def test_ac0012_draft_implementing_child_refused() -> None:
+    """Draft with a child at Implementing is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Draft", {"Implementing"})
+
+
+def test_ac0012_draft_shipped_child_refused() -> None:
+    """Draft with a child at Shipped is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Draft", {"Shipped"})
+
+
+def test_ac0012_draft_back_linked_only_child_refused() -> None:
+    """A back-linked-only child at Implementing makes Draft invalid (AC-0012).
+
+    A spec that back-links the brief but is absent from the Spec-map still
+    contributes its state to the child set.  This fixture pins that the predicate
+    treats back-linked-only children the same way as mapped ones.
+    """
+    back_linked_only: set[str] = {"Implementing"}
+    assert not _m.is_lifecycle_valid("Draft", back_linked_only)
+
+
+def test_ac0012_ready_no_children_valid() -> None:
+    """Ready with no children is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Ready", set())
+
+
+def test_ac0012_ready_implementing_child_refused() -> None:
+    """Ready with a child at Implementing is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Ready", {"Implementing"})
+
+
+def test_ac0012_ready_shipped_child_refused() -> None:
+    """Ready with a child at Shipped is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Ready", {"Shipped"})
+
+
+def test_ac0012_executing_implementing_child_valid() -> None:
+    """Executing with a child at Implementing is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Executing", {"Implementing"})
+
+
+def test_ac0012_executing_shipped_child_valid() -> None:
+    """Executing with a child at Shipped is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Executing", {"Shipped"})
+
+
+def test_ac0012_executing_no_children_refused() -> None:
+    """Executing with no children is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Executing", set())
+
+
+def test_ac0012_executing_only_non_execution_child_refused() -> None:
+    """Executing with only a Planning child is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Executing", {"Planning"})
+
+
+def test_ac0012_shipped_all_shipped_children_valid() -> None:
+    """Shipped with a non-empty all-Shipped child set is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Shipped", {"Shipped"})
+
+
+def test_ac0012_shipped_empty_child_set_refused() -> None:
+    """Shipped with an empty child set is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Shipped", set())
+
+
+def test_ac0012_shipped_mixed_children_refused() -> None:
+    """Shipped with a Shipped+Implementing child set is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Shipped", {"Shipped", "Implementing"})
+
+
+def test_ac0012_withdrawn_no_children_valid() -> None:
+    """Withdrawn with no children is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Withdrawn", set())
+
+
+def test_ac0012_withdrawn_implementing_child_refused() -> None:
+    """Withdrawn with a child at Implementing is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Withdrawn", {"Implementing"})
+
+
+def test_ac0012_cancelled_implementing_child_valid() -> None:
+    """Cancelled with a child at Implementing is lifecycle-valid (AC-0012)."""
+    assert _m.is_lifecycle_valid("Cancelled", {"Implementing"})
+
+
+def test_ac0012_cancelled_no_children_refused() -> None:
+    """Cancelled with no children is refused (AC-0012)."""
+    assert not _m.is_lifecycle_valid("Cancelled", set())
+
+
+# ── AC-0013 through AC-0016: the twelve-cell declaration matrix ───────────────
+
+
+def test_ac0013_shipped_without_cut_closed_refused() -> None:
+    """Shipped + absent Cut-closed: is refused (AC-0013)."""
+    err = _m.validate_declaration("Shipped", False)
+    assert err is not None
+
+
+def test_ac0014_draft_without_cut_closed_not_refused() -> None:
+    """Draft + absent Cut-closed: is not refused (AC-0014)."""
+    assert _m.validate_declaration("Draft", False) is None
+
+
+def test_ac0014_ready_without_cut_closed_not_refused() -> None:
+    """Ready + absent Cut-closed: is not refused (AC-0014)."""
+    assert _m.validate_declaration("Ready", False) is None
+
+
+def test_ac0014_executing_without_cut_closed_not_refused() -> None:
+    """Executing + absent Cut-closed: is not refused (AC-0014)."""
+    assert _m.validate_declaration("Executing", False) is None
+
+
+def test_ac0015_withdrawn_without_cut_closed_not_refused() -> None:
+    """Withdrawn + absent Cut-closed: is not refused (AC-0015)."""
+    assert _m.validate_declaration("Withdrawn", False) is None
+
+
+def test_ac0015_cancelled_without_cut_closed_not_refused() -> None:
+    """Cancelled + absent Cut-closed: is not refused (AC-0015)."""
+    assert _m.validate_declaration("Cancelled", False) is None
+
+
+def test_ac0016_draft_with_cut_closed_refused() -> None:
+    """Draft + present Cut-closed: is refused (AC-0016)."""
+    err = _m.validate_declaration("Draft", True)
+    assert err is not None
+
+
+def test_ac0016_ready_with_cut_closed_not_refused() -> None:
+    """Ready + present Cut-closed: is not refused (AC-0016)."""
+    assert _m.validate_declaration("Ready", True) is None
+
+
+def test_ac0016_executing_with_cut_closed_not_refused() -> None:
+    """Executing + present Cut-closed: is not refused (AC-0016)."""
+    assert _m.validate_declaration("Executing", True) is None
+
+
+def test_ac0016_shipped_with_cut_closed_not_refused() -> None:
+    """Shipped + present Cut-closed: is not refused (AC-0016)."""
+    assert _m.validate_declaration("Shipped", True) is None
+
+
+def test_ac0016_withdrawn_with_cut_closed_not_refused() -> None:
+    """Withdrawn + present Cut-closed: is not refused (AC-0016)."""
+    assert _m.validate_declaration("Withdrawn", True) is None
+
+
+def test_ac0016_cancelled_with_cut_closed_not_refused() -> None:
+    """Cancelled + present Cut-closed: is not refused (AC-0016)."""
+    assert _m.validate_declaration("Cancelled", True) is None
+
+
+# ── AC-0017 and AC-0018: all 36 ordered pairs have a verdict ─────────────────
+#
+# 6 states × 6 states = 36 pairs.  A pair of two different states absent from
+# BRIEF_TRANSITIONS is refused (AC-0017).  A listed pair and any self-pair are
+# not refused (AC-0018).
+
+
+def test_ac0017_illegal_transitions_refused() -> None:
+    """Every (from, to) pair of two different states absent from the table is refused.
+
+    Iterates all 30 two-different-state pairs; the 22 that are absent from
+    BRIEF_TRANSITIONS must return False.  AC-0017.
+    """
+    for from_s in _m.BRIEF_STATUSES:
+        for to_s in _m.BRIEF_STATUSES:
+            if from_s == to_s:
+                continue
+            if (from_s, to_s) not in _m.BRIEF_TRANSITIONS:
+                assert not _m.is_transition_valid(from_s, to_s), (
+                    f"Expected ({from_s!r}, {to_s!r}) to be refused as illegal"
+                )
+
+
+def test_ac0018_legal_transitions_and_self_pairs_not_refused() -> None:
+    """All 8 table entries and 6 self-pairs are not refused.
+
+    Iterates the 8 pairs in BRIEF_TRANSITIONS and the 6 self-pairs (one per
+    state); all 14 must return True.  AC-0018.
+    """
+    for state in _m.BRIEF_STATUSES:
+        assert _m.is_transition_valid(state, state), (
+            f"Self-pair ({state!r}, {state!r}) should not be refused"
+        )
+    for from_s, to_s in _m.BRIEF_TRANSITIONS:
+        assert _m.is_transition_valid(from_s, to_s), (
+            f"Legal transition ({from_s!r}, {to_s!r}) should not be refused"
+        )

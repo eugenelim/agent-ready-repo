@@ -25,6 +25,10 @@ actually raises; update it in the same change that adds or removes one.
 
 - ``cut_closed_malformed`` — a ``Cut-closed:`` value that is not absent-
   equivalent and does not follow the ISO 8601 date + evidence grammar.
+- ``cut_closed_required_on_shipped`` — a ``Shipped`` brief carries no
+  ``Cut-closed:`` record.
+- ``cut_closed_refused_on_draft`` — a ``Draft`` brief carries a
+  ``Cut-closed:`` record.
 """
 
 from __future__ import annotations
@@ -270,3 +274,96 @@ def get_cut_closed(text: str) -> str | None:
                 return None
             return value
     return None
+
+
+# ── Status vocabulary ─────────────────────────────────────────────────────────
+
+BRIEF_STATUSES: frozenset[str] = frozenset(
+    {"Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"}
+)
+"""The six tokens that are valid values for a brief's ``Status:`` field.
+
+This is the single home for the vocabulary.  A check that carries its own
+copy is a second home that can drift from this one.
+"""
+
+
+# ── Child-execution-evidence predicate ───────────────────────────────────────
+
+
+def is_lifecycle_valid(status: str | None, child_states: set[str]) -> bool:
+    """Return whether child execution evidence is coherent with the brief's status.
+
+    A brief's children are its Spec-map rows together with any spec that
+    back-links the brief and is absent from that map.  The predicate normalises
+    child states to lower-case before comparing.
+
+    Rules (from the brief state table):
+
+    - ``Draft``, ``Ready``, ``Withdrawn``: no child at ``Implementing`` or
+      ``Shipped``.
+    - ``Executing``, ``Cancelled``: at least one child at ``Implementing`` or
+      ``Shipped``.
+    - ``Shipped``: non-empty child set whose every member is ``Shipped``.
+    - Any other status (including ``None``): returns ``False``.
+    """
+    normalized = {state.lower() for state in child_states}
+    execution_evidence = bool(normalized & {"implementing", "shipped"})
+    if status in {"Draft", "Ready", "Withdrawn"}:
+        return not execution_evidence
+    if status in {"Executing", "Cancelled"}:
+        return execution_evidence
+    if status == "Shipped":
+        return bool(normalized) and normalized == {"shipped"}
+    return False
+
+
+# ── Declaration matrix ────────────────────────────────────────────────────────
+
+
+def validate_declaration(status: str | None, has_cut_closed: bool) -> str | None:
+    """Return an error message when the ``Cut-closed:`` record conflicts with status.
+
+    ``Shipped`` requires the record; ``Draft`` refuses it.  All other states
+    accept either.  Returns ``None`` when there is no conflict.
+    """
+    if status == "Shipped" and not has_cut_closed:
+        return "status is Shipped but no Cut-closed: record is present"
+    if status == "Draft" and has_cut_closed:
+        return "status is Draft but a Cut-closed: record is present"
+    return None
+
+
+# ── Transition table ──────────────────────────────────────────────────────────
+
+BRIEF_TRANSITIONS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("Draft", "Ready"),
+        ("Draft", "Withdrawn"),
+        ("Ready", "Draft"),
+        ("Ready", "Executing"),
+        ("Ready", "Withdrawn"),
+        ("Executing", "Ready"),
+        ("Executing", "Shipped"),
+        ("Executing", "Cancelled"),
+    }
+)
+"""Legal (from, to) state pairs for a delivery brief.
+
+Terminal states (``Shipped``, ``Withdrawn``, ``Cancelled``) have no outgoing
+edges and are absent from this set.  A pair of two different states absent
+from this table is an illegal move.  A state paired with itself is not a
+move and is not refused.
+"""
+
+
+def is_transition_valid(from_state: str, to_state: str) -> bool:
+    """Return ``True`` when moving from ``from_state`` to ``to_state`` is legal.
+
+    A self-pair (same state to same state) is not a move and is not refused.
+    A pair of two different states absent from ``BRIEF_TRANSITIONS`` is an
+    illegal move and returns ``False``.
+    """
+    if from_state == to_state:
+        return True
+    return (from_state, to_state) in BRIEF_TRANSITIONS
