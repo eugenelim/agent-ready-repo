@@ -584,30 +584,20 @@ import re as _re  # noqa: E402
 
 
 def test_t6_refusal_registry_equals_actual_refusals() -> None:
-    """Module docstring refusal registry equals the set of refusals the module raises.
+    """Module docstring refusal registry equals the refusals the module raises.
 
-    T6: set comparison.  Extracts registry class names from the
-    ``**Refusal registry**`` section of the module docstring and checks them
-    against the canonical set of refusal classes the module's public validators
-    can return.
+    Both sides are derived rather than restated.  ``validate_declaration`` is
+    swept exhaustively -- all six states x present/absent -- so any refusing
+    cell the registry does not name surfaces as ``UNREGISTERED_``.
 
-    Two defects the fix addresses:
-
-    1. ``validate_cut_closed`` was swept with three inputs that all fail before
-       the ISO check; a fourth refusal added *after* the ISO check would not
-       fire on any of them and the test would pass silently.  The sweep now
-       includes a valid input (``2026-01-01 evidence``) that passes the ISO
-       check, so any new refusal added after it fires and surfaces as
-       ``UNREGISTERED_cut_closed``.  Each returned message is mapped to a
-       registered class name by content pattern; an unrecognised message is
-       ``UNREGISTERED_cut_closed``, not silently folded into a known class.
-
-    2. The registry side was filtered to names starting with ``cut_closed_``,
-       so a class outside that namespace added to the docstring would be dropped
-       before the comparison.  The extraction is now scoped to the
-       ``**Refusal registry**`` section of the docstring so that other
-       ``...`` spans (mirror documentation, etc.) do not participate, and the
-       namespace filter is removed.
+    ``validate_cut_closed`` cannot be swept exhaustively, because its input is
+    an arbitrary string.  It is probed with a fixed table that deliberately
+    includes a *valid* value, so a rule added after the ISO check -- the most
+    likely shape a new refusal takes -- fires during the sweep and surfaces as
+    ``UNREGISTERED_``.  Measured 2026-09-25: a fourth refusal triggered by a
+    probed input reds this test; one triggered only by an input outside the
+    table does not.  That residue is inherent to probing a string domain, and
+    is stated here rather than left for a reader to discover.
     """
     doc = _m.__doc__ or ""
 
