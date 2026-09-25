@@ -3,8 +3,43 @@
 All notable changes to the `agentbundle` Python package.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
-the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
-— a minor bump on a 0.x release MAY be breaking.
+the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
+breaking.
+
+## [0.50.0] — 2026-09-24
+
+### Added
+
+- `agentbundle catalogue sync --package <name>` now writes its destination
+  rather than refusing. `credbroker` syncs `packages/credbroker/` whenever
+  your catalogue selects the `credential-brokers` pack; `agentbundle` syncs
+  `.agentbundle/tooling/` — the whole vendored tooling root, including the
+  vendored `packs/catalogue-curation/` copy — under `--tooling vendored`.
+  `--package` is a scoping flag now, so it composes with `--pack`,
+  `--profile` and `--guides`, and an unscoped sync covers both destinations
+  its replay produces.
+- Package paths are written **last**, after every other path has landed, and
+  a failed package write rolls the whole run back.
+- An apply run reports `tree-modified: yes|no` after the write sequence, so a
+  caller that has to retry can tell whether the tree was changed.
+
+### Changed
+
+- `--package agentbundle` without `--tooling vendored` is now refused rather
+  than reported as a successful sync of nothing — the destination does not
+  exist in that mode, and a success would refresh your pin over a subtree the
+  run never wrote.
+- The `deferred_package` count is gone from the plan table and the
+  `--format json` summary. It reported the extent this release writes.
+
+### Security
+
+- A vendored package sync refuses when the target supplies the running
+  `agentbundle`, so a run cannot replace its own executing code mid-write.
+  The check takes two inputs: the editable-install record, and the running
+  package's own location. The second exists because the first is bounded by
+  an enclosing git repository and cannot see a derived catalogue that is not
+  one — which is the adopter most at risk.
 
 ## [0.49.0] — 2026-09-23
 

@@ -217,12 +217,51 @@ agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --pro
 
 # Only guides/_shared/
 agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --guides
+
+# Only one package destination
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --package credbroker
 ```
 
 Naming a pack or profile you have not selected before adds it to this
 catalogue's recorded selection for good — a later, unscoped sync keeps
 syncing it too. `catalogue.toml`, `tests/conformance/`, and identity fields
 move only on a full, unscoped sync.
+
+### Syncing the package destinations
+
+`--package` takes two names, and each is present only under its own
+condition:
+
+| Name | What it syncs | Present when |
+| --- | --- | --- |
+| `credbroker` | `packages/credbroker/` | your catalogue selects the `credential-brokers` pack — in either tooling mode |
+| `agentbundle` | `.agentbundle/tooling/`, the whole vendored tooling root | you sync with `--tooling vendored` |
+
+The `agentbundle` destination is the whole root, not just the `agentbundle/`
+directory inside it. Your vendored engine and the vendored
+`packs/catalogue-curation/` copy beside it were installed as a pair, so they
+move as a pair.
+
+Asking for a destination that is not present is refused rather than reported
+as a successful sync of nothing — `--package agentbundle` without
+`--tooling vendored` stops and tells you which flag is missing. A run that
+claimed success would also refresh your recorded pin, leaving it describing a
+subtree the run never wrote.
+
+Packages are written **last**, after every pack, profile, guide and
+derivation-wide path has landed. If a package write fails, the whole run is
+rolled back.
+
+**If you `pip install -e` your vendored engine, sync will refuse to overwrite
+it.** A vendored sync whose target supplies the `agentbundle` you are running
+stops before it writes anything, because replacing that code mid-run means
+what executes afterwards is not what you reviewed. To take upstream changes
+into that tree, run the sync from an `agentbundle` installed somewhere else —
+a virtualenv or a plain `pip install agentbundle` — and it will proceed.
+
+This refusal covers the vendored engine only. `packages/credbroker/` is a
+build input your catalogue resolves by relative path, not an install source,
+so syncing it cannot replace running code.
 
 ---
 

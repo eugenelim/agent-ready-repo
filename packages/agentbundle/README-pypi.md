@@ -14,6 +14,17 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.50.0
+
+`agentbundle catalogue sync --package <name>` writes now instead of refusing.
+`credbroker` syncs `packages/credbroker/`; `agentbundle` syncs the whole
+vendored tooling root under `--tooling vendored`. Packages are written last,
+and a failed package write rolls the run back.
+
+A vendored sync refuses when the target supplies the `agentbundle` you are
+running — replacing your own engine mid-run means what executes afterwards is
+not what you reviewed.
+
 ## What's new in 0.49.0
 
 `agentbundle catalogue sync` can now write. Run it with neither `--dry-run`

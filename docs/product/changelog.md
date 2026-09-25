@@ -362,6 +362,26 @@ shaping reviewer's own text is byte-unchanged.
   lock record written by something other than this tool — and both need the
   file removed by hand.
 
+## [agentbundle][0.50.0] — 2026-09-24
+
+### Highlights
+
+`catalogue sync --package` writes both package destinations instead of
+refusing them. If your catalogue vendors its tooling, `--tooling vendored`
+now keeps the engine and its paired `catalogue-curation` copy current; if it
+selects `credential-brokers`, `packages/credbroker/` moves with everything
+else. Packages go last, so a failure there rolls back a run whose other
+writes had already landed.
+
+Sync will not overwrite the `agentbundle` it is running from. That refusal
+reads two things — the editable-install record, and where the running package
+actually lives — because the first alone cannot see a derived catalogue that
+is not a git repository, and that is exactly the adopter whose run would
+replace executing code.
+
+An apply run now ends with `tree-modified: yes|no`, so a caller deciding
+whether to retry does not have to infer it from the exit code.
+
 ## [agentbundle][0.49.0] — 2026-09-23
 
 ### Highlights
