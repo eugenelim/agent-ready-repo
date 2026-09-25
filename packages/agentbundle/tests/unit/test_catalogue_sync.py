@@ -2783,6 +2783,11 @@ def test_apply_removal_spelling_traversal_resolves_inside_protected_subtree(tmp_
     in_coverage = catalogue_sync._in_coverage(
         target, traversal_path,
         pack_names=["alpha"], profile_names=[], guides_mode="selected", scope=None,
+        # AC-0086: external tooling, so the vendored destination is not
+        # present and the path is outside coverage. Phase 3 got the same
+        # answer from an absolute bar; the answer now rests on the presence
+        # condition, and a vendored run would reach it.
+        tooling="external",
     )
 
     assert not in_coverage
@@ -6147,3 +6152,59 @@ def test_write_order_sorts_a_planned_package_path_not_yet_on_disk(tmp_path):
         ["packs/core/pack.toml", ".agentbundle/tooling/agentbundle/agentbundle/new.py"],
     )
     assert ordered[-1] == ".agentbundle/tooling/agentbundle/agentbundle/new.py"
+
+
+# ---------------------------------------------------------------------------
+# T5 / AC-0086 — coverage reaches the package extent, under a presence
+# condition rather than by deleting the exclusion.
+# ---------------------------------------------------------------------------
+
+
+def _cov(tmp_path, path, *, tooling, packs=("core",), guides_mode="selected", scope=None):
+    return catalogue_sync._in_coverage(
+        _extent_fixture(tmp_path) if not (tmp_path / "derived").exists() else tmp_path / "derived",
+        path,
+        pack_names=list(packs),
+        profile_names=[],
+        guides_mode=guides_mode,
+        scope=scope,
+        tooling=tooling,
+    )
+
+
+def test_vendored_tooling_path_is_inside_coverage_only_under_a_vendored_replay(tmp_path):
+    # AC-0086's presence condition. The negative half is the important one:
+    # `_in_coverage` ends `return True`, so deleting AC-0069's exclusion
+    # without adding this condition would put every recorded
+    # `.agentbundle/tooling/` path inside coverage on an external-mode run --
+    # reinstating the mass removal AC-0069 measures at 240 paths for a
+    # vendored-derived tree met by this command's external default.
+    p = ".agentbundle/tooling/agentbundle/agentbundle/cli.py"
+    assert _cov(tmp_path, p, tooling="vendored")
+    assert not _cov(tmp_path, p, tooling="external")
+
+
+def test_credbroker_path_is_inside_coverage_only_when_its_pack_resolved(tmp_path):
+    p = "packages/credbroker/credbroker/__init__.py"
+    assert _cov(tmp_path, p, tooling="external", packs=("core", "credential-brokers"))
+    assert not _cov(tmp_path, p, tooling="external", packs=("core",))
+
+
+def test_credbroker_coverage_does_not_depend_on_tooling_mode(tmp_path):
+    p = "packages/credbroker/credbroker/__init__.py"
+    for tooling in ("external", "vendored"):
+        assert _cov(tmp_path, p, tooling=tooling, packs=("credential-brokers",))
+
+
+def test_package_coverage_still_respects_the_scope(tmp_path):
+    target = _extent_fixture(tmp_path)
+    scope = catalogue_sync._scope_subtrees([], [], False, "credbroker")
+    assert not catalogue_sync._in_coverage(
+        target,
+        ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+        pack_names=["core"],
+        profile_names=[],
+        guides_mode="selected",
+        scope=scope,
+        tooling="vendored",
+    )

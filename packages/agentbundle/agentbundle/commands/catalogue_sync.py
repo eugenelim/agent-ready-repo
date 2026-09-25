@@ -29,6 +29,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
+from agentbundle.build.user_libs import PACK_NAME as _USER_LIBS_PACK
 from agentbundle.catalogue import CatalogueError, resolve_catalogue, resolve_git_ref
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
@@ -945,15 +946,39 @@ def _in_coverage(
     profile_names: list[str],
     guides_mode: str,
     scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
+    tooling: str,
 ) -> bool:
-    """AC-0069 — True when *path* lies inside this run's coverage.
+    """AC-0069 as AC-0086 amends it — True when *path* lies inside this run's
+    coverage.
 
     Coverage is a positive set (this run's resolved packs/profiles, guides
     under a selecting mode, and every path the scope AC-0043 fixes admits),
     narrowed by the exclusions AC-0069 names — never the exclusions alone,
     which would re-admit every axis nobody enumerated.
+
+    AC-0069's exclusion 1 barred both package destinations absolutely.
+    AC-0086 replaces it with each destination's AC-0078 presence condition,
+    and the replacement is a **positive condition rather than a deletion**
+    because this function ends ``return True``: deleting the exclusion alone
+    would put every recorded package path inside coverage on every run,
+    including the external-mode run this command defaults to, reinstating the
+    mass removal AC-0069 measures at 240 paths for a vendored-derived tree.
     """
-    if _resolves_within(target, path, _PACKAGE_PREFIXES):
+    # Present only under a vendored replay. The mode-asymmetry class AC-0069
+    # exists for: the recorded set is mode-independent while the replayed set
+    # is not.
+    if tooling != "vendored" and _is_package_path(
+        target, path, (_VENDORED_TOOLING_PREFIX,)
+    ):
+        return False
+    # Present whenever the resolved selection carries its pack, in either
+    # tooling mode. The resolved selection, not AC-0033 clause 1's
+    # pre-resolution union: AC-0068 records that the selector drops names, and
+    # the wider reading would put a prefix inside coverage with nothing
+    # planned under it.
+    if _USER_LIBS_PACK not in pack_names and _is_package_path(
+        target, path, (_CREDBROKER_PREFIX,)
+    ):
         return False
     if guides_mode == "none" and path.startswith(_GUIDES_SCOPE_PREFIX):
         return False
@@ -975,6 +1000,7 @@ def select_removal_set(
     profile_names: list[str],
     guides_mode: str,
     scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
+    tooling: str,
 ) -> tuple[dict[str, str], set[str]]:
     """AC-0035/AC-0064/AC-0069/AC-0073 — the paths this run actually removes
     (mapped to the recorded sha256 that earned each its removability), and
@@ -1013,7 +1039,7 @@ def select_removal_set(
         if _in_coverage(
             target, path,
             pack_names=pack_names, profile_names=profile_names,
-            guides_mode=guides_mode, scope=scope,
+            guides_mode=guides_mode, scope=scope, tooling=tooling,
         ):
             # `_plan_stale_owned_paths` only admits a path into `removable`
             # once it has confirmed a recorded sha256 exists for it (its own
@@ -1459,6 +1485,7 @@ def apply_write_sequence(
     guides_mode: str,
     pin: dict[str, Any],
     snapshot_bound_bytes: int = _SNAPSHOT_BOUND_BYTES,
+    tooling: str = "external",
 ) -> WriteSequenceResult:
     """AC-0032/AC-0033/AC-0034/AC-0035/AC-0038/AC-0058/AC-0059/AC-0070/
     AC-0071/AC-0073/AC-0076/AC-0077 — apply the plan *verdict_rows* classified
@@ -1506,7 +1533,7 @@ def apply_write_sequence(
     removal_set, out_of_coverage = select_removal_set(
         target, old_state or {}, planned_paths,
         pack_names=pack_names, profile_names=profile_names,
-        guides_mode=guides_mode, scope=scope,
+        guides_mode=guides_mode, scope=scope, tooling=tooling,
     )
     return execute_write_sequence(
         target, plan, snapshot,
@@ -3096,7 +3123,7 @@ def _run_apply(
     removal_set, out_of_coverage = select_removal_set(
         target, replay.old_state or {}, planned_paths,
         pack_names=pack_names, profile_names=profile_names,
-        guides_mode=guides, scope=scope,
+        guides_mode=guides, scope=scope, tooling=tooling,
     )
     # Screened exactly once (Blocker 4) — the printed plan below and the
     # write phase's later `execute_write_sequence` call both act on this
