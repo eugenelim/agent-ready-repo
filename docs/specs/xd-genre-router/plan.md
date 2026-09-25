@@ -1,7 +1,7 @@
 # Plan: One genre-aware information-architecture skill
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule — removals are major; § Authoring or editing a skill); `packs/experience-design/DESIGN.md` §§ 5 and 10 (what the genre skills are and why they were separate); the existing genre routing table at `packs/experience-design/.apm/skills/information-architecture/SKILL.md:61-79`, which is the mechanism this delivery migrates rather than introduces; two analogous reference-bearing skills — `packs/frontend-engineering/.apm/skills/frontend-engineering/` (references loaded per mode) and `packs/experience-design/.apm/skills/design-review/` (five references, one shared cross-skill); their construction path is `tests/roster/test_experience_design_artifact_folder_registry.py`. Named uncertainty: no prior fold has been measured in this catalogue, so the activation comparison is the first of its kind and its statistic is authored here.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -1701,3 +1701,36 @@ holds state, and the removed directories return with their content.
 ## Changelog
 
 <!-- Approvals only. Drafting history does not belong here. -->
+
+- 2026-09-25 — Scope approved by eugenelim. Nine review rounds ran before this
+  gate, two reviewers per round (adversarial + quality), raising roughly 200
+  findings with heavy overlap between the paired reports. Every finding was
+  checked against the tree before being applied, and several reviewer claims
+  were themselves wrong and were corrected rather than adopted: the pooled
+  negative count, where the spec's 69 and the two reviewers' 67 and 68 were all
+  derived differently and only 67 survived measurement; a claim that two sweep
+  sets shared no files when they share 18; and a staleness claim about
+  `2.0.9` that the sibling slice had already overtaken. Two coverage rules were
+  replaced mid-sequence because both were false in the same direction — "a
+  command for each criterion", then "four criteria settled by a task check" —
+  and coverage is now stated as a rule keyed on the criterion's subject.
+- 2026-09-25 — Build strategy approved by eugenelim. Fifteen tasks
+  (T1–T8, T9, T9b, T9a, T10a, T10, T11) with fold and abort post-states stated
+  separately wherever they differ. The activation gate runs before any deletion
+  and T9b owns executing the revert; T6 and T10a sit outside the revert set so
+  the cross-pack repair ships on either branch. Verification is goal-based plus
+  three manual-QA judgements. The Verification command map distinguishes blocks
+  that **decide** from blocks that **report**: that distinction was added after
+  three deciding blocks were found inverted — the `design-system-foundations`
+  check, the description-boundary check, and `sweep` itself, which exited 0 on
+  21 hits and 1 when clean.
+- 2026-09-25 — **Residual accepted at this gate.** Round 9's fifteen findings
+  were applied but not re-reviewed; no reviewer has confirmed the pair clean
+  against `c08ec8e30`. The owner directed approval at this point. The residual
+  is bounded: round 9's only blocker was bookkeeping drift introduced by round
+  9's own fix (a five-cell row in a four-column table), both reviewers
+  independently re-derived every figure in the command map and both branch
+  graphs, and blockers fell 7 → 3 → 0 → 1 across rounds 7–9. A confirmatory
+  review runs before T3, which is the first task that authors pack content.
+  The two earlier rounds' unreviewed-fix residuals are closed — each was
+  re-reviewed by the following round.
