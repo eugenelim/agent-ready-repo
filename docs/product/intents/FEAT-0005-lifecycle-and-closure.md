@@ -1,7 +1,7 @@
 # Lifecycle and closure
 
 - **Slug:** `lifecycle-and-closure` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
