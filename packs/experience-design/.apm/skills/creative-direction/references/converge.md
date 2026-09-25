@@ -56,7 +56,7 @@ Resolve `output_dir` by reading `references/agentbundle-layout.md`, then apply e
 4. **Intermediate-directory confinement** — re-establish confinement at each intermediate directory as it is created.
 5. **Existing-artifact checks** — check type, surface a matching type to the user, and confirm product belonging when `output_dir` came from user-profile configuration.
 
-The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. Write the selected direction's approved visual target's compositional commitments into the doc here. `visualize` forms them and writes nothing itself, and on `originate` it may have produced one per candidate: only the selected direction's reaches the doc, the rest are discarded with their candidates. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
+The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. When an approved visual target exists, write the selected direction's compositional commitments into the doc here. `visualize` forms them and writes nothing itself, and on `originate` it may have produced one per candidate: only the selected direction's reaches the doc, the rest are discarded with their candidates. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
 
 ## Signature device
 

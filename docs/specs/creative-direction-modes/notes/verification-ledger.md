@@ -69,6 +69,8 @@ rows.
 ## Execution observations
 
 **The directory ceiling is breached transiently, by the plan's own ordering.**
+(Taken 2026-09-24, before the ceiling was amended to 97,000; the figures below
+are against the original 95,000 and the shipped directory now measures 96,474.)
 References land in wave 2 and `SKILL.md` shrinks in wave 3, so the directory
 peaks after T6 — projected about 95,600 against a 95,000 ceiling — and falls to
 about 91,300 once T7 lands. The criterion is a completion gate on the finished
@@ -121,7 +123,7 @@ otherwise read them as one change.
 
 | Reviewer | Disposition | Basis |
 | --- | --- | --- |
-| `adversarial-reviewer` | Ran, three post-gates rounds | 8, 6 and 1 findings sustained; all closed |
+| `adversarial-reviewer` | Ran, six post-gates rounds | 8, 6, 1, 5, 4 and 7 findings sustained, 5, 6, 0, 0, 0 and 3 refuted; all sustained findings closed |
 | `experience-reviewer` | Ran, one round | SHIP WITH CHANGES, 23 findings; in-scope correctness closed, the rest routed to Follow-ons at the owner's direction |
 | `security-reviewer` | Not warranted | No security boundary, data flow or guarding control changes. The one candidate finding — `refine` amending without `containment.md`'s controls — was refuted: the spec states the `**Writes:**` / `**Confinement:**` contract has no other operative procedure, so a second containment procedure is what it forbids; `containment.md` is declared at skill level in the always-loaded body and covers amendment explicitly. The write declaration is byte-unchanged. |
 | `quality-engineer` | Not warranted | No new module boundary, dependency, abstraction layer or top-level directory; no `operational-safety` module is reached; no human asked for the pass. |
