@@ -116,7 +116,10 @@ for r in interrogation-sequence editorial-quality-gates; do
   [ "$n" = 2 ] || echo "EXPECTED 2 $r.md pack-wide, found $n"
 done
 # and the named second holder in each case:
-test -f packs/experience-design/.apm/skills/creative-direction/references/interrogation-sequence.md || echo "creative-direction's variant was touched"
+# "Untouched" is a content claim, not an existence one: an arbitrary rewrite
+# passes a `test -f`. Compare against the guarded merge-base.
+git diff --quiet "$BASE" -- packs/experience-design/.apm/skills/creative-direction/references/interrogation-sequence.md \
+  || echo "creative-direction's interrogation-sequence.md was MODIFIED — the spec refuses to touch it"
 test -f packs/experience-design/.apm/skills/information-architecture/references/editorial-quality-gates.md || echo "the genre fold's relocated copy is missing"
 test ! -f "$CD/references/audience-jtbd.md" || echo "merged file must be copy-jtbd.md, not audience-jtbd.md"
 ```
@@ -256,56 +259,71 @@ BASE = subprocess.run(["git", "merge-base", "origin/main", "HEAD"],
                       capture_output=True, text=True, check=True).stdout.strip()
 if not BASE:
     sys.exit("merge-base empty — refusing to judge the harness disposition")
-# Each source harness file gets its own disposition. `evals.json` and
-# `evals/files/` may be carried OR dropped with a recorded reason; the reason is
-# recorded per source, because one surviving `files/` directory does not prove
-# both source trees were handled.
+# Each of the FOUR source items gets its own evidenced disposition. Destination
+# existence cannot supply it: both sources merge into one `content-design/evals/`,
+# so `(cd / "evals.json").exists()` is the same boolean for both and one survivor
+# would mark both carried. An earlier repair introduced exactly that.
 import re as _re
 import subprocess as _sp
+
+if not BASE:
+    sys.exit("BASE empty — refusing to judge the harness disposition against an unknown base")
 
 ledger = pathlib.Path("docs/specs/xd-copy-router/notes/verification-ledger.md")
 ledger_text = ledger.read_text() if ledger.exists() else ""
 
-def dropped_with_reason(token):
-    """A recorded drop: the token, a dash, and >= 20 characters of reason ON ITS OWN LINE.
+def disposition(token):
+    """Return ('carried'|'dropped', detail) for a source item, or None.
 
-    Bounding to the line matters: a match that ran to end-of-file would let any
-    later section supply the character count while the reason itself is empty.
-    The separator may be an em-dash, `--` or `-`; none is load-bearing.
+    Both branches are recorded per source and both need >= 20 characters after
+    the dash: `carried` says where that source's content landed, `dropped` says
+    why. The match is bounded to the token's OWN LINE — a pattern running to
+    end-of-file would let a later section supply the character count while the
+    detail itself is empty. The separator may be an em-dash, `--` or `-`.
     """
     pattern = _re.compile(
-        r"^.*" + _re.escape(token) + r":\s*dropped\s*(?:\u2014|--|-)\s*(?P<reason>.+)$", _re.M
+        r"^.*" + _re.escape(token) + r":\s*(?P<verb>carried|dropped)\s*(?:\u2014|--|-)\s*(?P<detail>.+)$",
+        _re.M,
     )
     hit = pattern.search(ledger_text)
-    return hit is not None and len(hit.group("reason").strip()) >= 20
+    if hit is None or len(hit.group("detail").strip()) < 20:
+        return None
+    return hit.group("verb"), hit.group("detail").strip()
 
-def existed_at_base(path):
-    return _sp.run(["git", "cat-file", "-e", f"{BASE}:{path}"],
+def existed_at_base(src, leaf):
+    """Was this source item present at the merge-base? T6 deletes it, so HEAD cannot say."""
+    if leaf == "files":
+        r = _sp.run(["git", "ls-tree", "--name-only", f"{BASE}:{src}"],
+                    capture_output=True, text=True)
+        return "files" in r.stdout.split()
+    return _sp.run(["git", "cat-file", "-e", f"{BASE}:{src}/{leaf}"],
                    capture_output=True).returncode == 0
 
 problems = []
 for gone in ("copy-direction", "tone-of-voice"):
     src = f"packs/experience-design/.apm/skills/{gone}/evals"
-    for leaf, carried in (("evals.json", (cd / "evals.json").exists()),
-                          ("files", (cd / "files").is_dir())):
-        if not existed_at_base(f"{src}/{leaf}" if leaf != "files" else f"{src}/files/.gitkeep") \
-           and leaf == "files":
-            # `git cat-file` cannot test a directory; fall back to a tree probe.
-            r = _sp.run(["git", "ls-tree", "--name-only", f"{BASE}:{src}"],
-                        capture_output=True, text=True)
-            if "files" not in r.stdout.split():
-                continue
-        if carried:
-            continue
+    for leaf in ("evals.json", "files"):
+        if not existed_at_base(src, leaf):
+            continue  # nothing to dispose of
         token = f"{gone}/evals/{leaf}"
-        if not dropped_with_reason(token):
+        d = disposition(token)
+        if d is None:
             problems.append(
-                f"{token} neither carried into content-design/evals/ nor dropped with a reason; "
-                f"verification-ledger.md needs a line '{token}: dropped - <reason, 20+ chars>'"
+                f"{token} has no recorded disposition; verification-ledger.md needs "
+                f"'{token}: carried - <where it landed>' or '{token}: dropped - <why>', "
+                f"20+ characters either way"
             )
+            continue
+        verb, _detail = d
+        if verb == "carried":
+            # A carried claim is checkable at the destination: the file or tree
+            # must actually be there. A dropped claim rests on its reason.
+            dest = cd / ("evals.json" if leaf == "evals.json" else "files")
+            if not (dest.exists() if leaf == "evals.json" else dest.is_dir()):
+                problems.append(f"{token} recorded as carried, but {dest} does not exist")
 if problems:
     sys.exit("EVAL HARNESS DISPOSITION\n  " + "\n  ".join(problems))
-print("eval harness: every source file carried or dropped with a recorded reason")
+print("eval harness: all four source items carried or dropped, each recorded per source")
 QQ
 ```
 
@@ -331,10 +349,11 @@ hold. Match registration and path position only:
 ```bash
 grep -nE '(skills/(copy-direction|tone-of-voice))|(`(copy-direction|tone-of-voice)`[^:])|((copy-direction|tone-of-voice) skill)' \
   "$CD/SKILL.md" "$CD/references/communication-modes.md"   # want no output
-# Then read the remaining bare-name hits and classify them; the count of
-# `type: tone-of-voice` occurrences is asserted separately above.
-grep -nE "$REMOVED" "$CD/SKILL.md" "$CD/references/communication-modes.md" \
-  | grep -v 'type: tone-of-voice'   # want no output
+# Then remove the discriminator OCCURRENCES and search what is left. `grep -v`
+# would drop the whole line, so `route to tone-of-voice when type: tone-of-voice`
+# would pass while still naming a routing target.
+sed 's/type: tone-of-voice//g' "$CD/SKILL.md" | grep -nE "$REMOVED"   # want no output
+sed 's/type: tone-of-voice//g' "$CD/references/communication-modes.md" | grep -nE "$REMOVED"   # want no output
 ```
 
 **Skill counts — negative and positive, cardinal and ordinal:**
@@ -345,7 +364,9 @@ leaves the heading stale. `README.md` and `JOURNEY.md` carry no skill-count
 numeral at all, so the positive check is replaced there by a negative one:
 
 ```bash
-grep -rnoE '\b(14|fourteen|fifteenth)\b' \
+# Reject EVERY stale form, not only the genre fold's intermediate 14: the
+# pre-genre-fold 20/twenty-first text can survive beside a correct new string.
+grep -rnoE '\b(14|fourteen|fifteenth|20|twenty|twentieth|twenty-first)\b' \
   packs/experience-design/docs/index.md \
   guides/experience-design/reference/experience-design.md \
   web/src/content/packs/experience-design.md          # want no output after the fold
@@ -356,7 +377,9 @@ grep -qF '**Skills (12) in two families:**' packs/experience-design/docs/index.m
 grep -q '12 pure-Markdown skills' guides/experience-design/reference/experience-design.md
 grep -q 'thirteenth skill' web/src/content/packs/experience-design.md   # ordinal: counts the reviewer agent last
 # README and JOURNEY hold no count today and must not acquire a stale one:
-! grep -rnoE '\b(1[0-9]|20|twelve|fourteen|twenty)\b.{0,12}skills?\b' \
+# Both word orders and both forms — `12 skills`, `twelve skills`, `Skills (13)`,
+# `thirteen skills`. An earlier draft matched only number-then-noun.
+! grep -rnoiE '(\b(1[0-9]|2[0-9]|ten|eleven|twelve|thirteen|fourteen|twenty)\b[^.]{0,12}\bskills?\b)|(\bskills?\b[^.]{0,4}\(?\b(1[0-9]|2[0-9]|ten|eleven|twelve|thirteen|fourteen|twenty)\b)' \
   packs/experience-design/README.md packs/experience-design/JOURNEY.md
 # Readings, 2026-09-25 (pre-genre-fold): "pack of 20 skills" (index.md:3),
 # "**Skills (20) in two families:**" (index.md:11), "20 pure-Markdown skills"
@@ -375,28 +398,16 @@ line 81's "the 31/24 measurement" — so both are checked:
 
 ```bash
 B=docs/product/briefs/digital-experience-doctrine-completion.md
-! grep -q '31 files' "$B"                       # line 68's headline
-! grep -q '31/24' "$B"                          # line 81's second occurrence
-! grep -q 'eight duplicate-basename families' "$B"
-# The positive half reads the regenerator, not a literal. Every figure the brief
-# now states must appear in the post-fold run's output, and the headline count
-# must match it exactly:
+# ONE regenerator, one consumer. An earlier draft had two independent
+# implementations of the same measurement — a validator that rebuilt the
+# inventory and a separate "single home" block that rebuilt it again — which is
+# the drift this block exists to prevent, reintroduced by the repair that
+# claimed to remove it. The block below emits the inventory as JSON and
+# validates the brief against that same object.
 python3 - "$B" <<'QQ'
-import collections, hashlib, pathlib, re, sys
+import collections, hashlib, json, pathlib, re, sys
+
 SKILLS = pathlib.Path("packs/experience-design/.apm/skills")
-fam = collections.defaultdict(list)
-for path in sorted(SKILLS.glob("*/references/*.md")):
-    fam[path.name].append(path)
-fam = {n: ps for n, ps in fam.items() if len(ps) > 1}
-files = sum(len(ps) for ps in fam.values())
-hashes = sum(len({hashlib.sha256(p.read_bytes()).hexdigest() for p in ps}) for ps in fam.values())
-brief = pathlib.Path(sys.argv[1]).read_text()
-# The brief writes short labels, not basenames. One canonical mapping, here, so a
-# semantically correct restatement in the brief's own vocabulary passes.
-# Run POST-fold. Pre-fold it reports the four pairs as missing, because the brief
-# summarises them as "four other pairs 2/2" rather than naming each; post-fold
-# those four families have left the inventory, so `want` holds only the surviving
-# rows — layout, containment, editorial gates, interrogation — plus the totals.
 LABEL = {
     "containment.md": "containment",
     "agentbundle-layout.md": "layout",
@@ -410,58 +421,95 @@ LABEL = {
 }
 WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
          6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}
-flat = re.sub(r"\s+", " ", brief)
-want = [f"{files} files", f"{hashes} hashes"]
-for name, ps in sorted(fam.items()):
-    h = len({hashlib.sha256(q.read_bytes()).hexdigest() for q in ps})
-    label = LABEL.get(name, name[:-3])
-    want.append(f"{label} {len(ps)}/{h}")
-missing = [w for w in want if w not in flat]
-# The family count itself, in either cardinal or word form — the brief writes
-# "eight duplicate-basename families" today, so the word form is the likely one.
-n = len(fam)
-if f"{n} duplicate-basename families" not in flat and f"{WORDS.get(n, n)} duplicate-basename families" not in flat:
-    missing.append(f"the family count ({n} / {WORDS.get(n, n)})")
-if missing:
-    sys.exit("brief does not restate the regenerated figures: " + "; ".join(missing))
-print(f"brief agrees with the regenerator: {n} families, {files} files, {hashes} hashes")
+
+
+def inventory():
+    """The single measurement. Everything below reads this."""
+    fam = collections.defaultdict(list)
+    for path in sorted(SKILLS.glob("*/references/*.md")):
+        fam[path.name].append(path)
+    fam = {n: ps for n, ps in fam.items() if len(ps) > 1}
+    rows = {}
+    for name, paths in sorted(fam.items()):
+        digests = {hashlib.sha256(q.read_bytes()).hexdigest() for q in paths}
+        rows[name] = {
+            "label": LABEL.get(name, name[:-3]),
+            "files": len(paths),
+            "hashes": len(digests),
+            "skills": [q.relative_to(SKILLS).parts[0] for q in paths],
+        }
+    return {
+        "families": len(rows),
+        "files": sum(r["files"] for r in rows.values()),
+        "hashes": sum(r["hashes"] for r in rows.values()),
+        "rows": rows,
+    }
+
+
+def row_text(brief, needle):
+    """The single table row containing `needle`, flattened. Bounded deliberately:
+    flattening the WHOLE brief lets figures anywhere satisfy the check while the
+    required row is deleted or left incomplete."""
+    for line in brief.splitlines():
+        if needle in line and line.lstrip().startswith("|"):
+            return re.sub(r"\s+", " ", line)
+    return None
+
+
+inv = inventory()
+print(json.dumps({k: v for k, v in inv.items() if k != "rows"}))
+for name, r in inv["rows"].items():
+    print(f"  {r['label']:<22} {r['files']:>2} files / {r['hashes']} hashes  " + ", ".join(r["skills"]))
+
+if len(sys.argv) < 2:
+    sys.exit(0)  # inventory-only mode: no brief argument, nothing to validate
+
+brief = pathlib.Path(sys.argv[1]).read_text()
+recheck = row_text(brief, "S8a reference deduplication")
+adjacent = row_text(brief, "experience-design-reference-reconciliation")
+fail = []
+if recheck is None:
+    fail.append("the S8a re-check row is missing entirely")
+if adjacent is None:
+    fail.append("the Adjacent-work row is missing entirely")
+
+if recheck:
+    # The re-check row carries the full regenerated summary: both totals and
+    # every surviving sub-count.
+    for want in [f"{inv['files']} files", f"{inv['hashes']} hashes"]:
+        if want not in recheck:
+            fail.append(f"re-check row does not state '{want}'")
+    for r in inv["rows"].values():
+        if f"{r['label']} {r['files']}/{r['hashes']}" not in recheck:
+            fail.append(f"re-check row does not state '{r['label']} {r['files']}/{r['hashes']}'")
+if adjacent:
+    n = inv["families"]
+    if (f"{n} duplicate-basename families" not in adjacent
+            and f"{WORDS.get(n, n)} duplicate-basename families" not in adjacent):
+        fail.append(f"Adjacent-work row does not state the family count ({n} / {WORDS.get(n, n)})")
+    if f"{inv['files']}/{inv['hashes']}" not in adjacent:
+        fail.append(f"Adjacent-work row does not state the {inv['files']}/{inv['hashes']} measurement")
+# Stale figures must be GONE, not merely accompanied by the new ones: a row that
+# states both passes every positive check above while still contradicting itself.
+# Scoped to the two rows, because the brief legitimately discusses other numbers.
+for label, row in (("re-check", recheck), ("Adjacent-work", adjacent)):
+    if not row:
+        continue
+    for stale in ("31 files", "24 hashes", "31/24", "eight duplicate-basename families"):
+        if stale in row:
+            fail.append(f"{label} row still carries the stale figure '{stale}'")
+if fail:
+    sys.exit("BRIEF ROWS\n  " + "\n  ".join(fail))
+print("brief rows agree with the regenerator, and carry no stale figure")
 QQ
 ```
 
-**The family figures come from a regenerator, not a pinned table.** An inventory
-of what a change invalidates cannot be a snapshot: deleting the two skill
-directories is exactly what makes such a table stale, and this one was wrong once
-already — an earlier draft counted three of the four pairs as leaving and
-reported five surviving families instead of four. The block below is the single
-home for the *measurement*. Run it before the fold and after; the brief's rows
-are checked against its output. The spec's criterion does restate the figures so
-it reads on its own — that is a contract value, not a second measurement — and
-the regenerator is what decides a disagreement between them. Saying the spec
-"carries no literal" would be the overclaim this block exists to prevent.
-
-```bash
-python3 - <<'QQ'
-import collections, hashlib, pathlib
-SKILLS = pathlib.Path("packs/experience-design/.apm/skills")
-fam = collections.defaultdict(list)
-for path in sorted(SKILLS.glob("*/references/*.md")):
-    fam[path.name].append(path)
-fam = {n: ps for n, ps in fam.items() if len(ps) > 1}
-files = hashes = 0
-for name, paths in sorted(fam.items()):
-    h = {hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
-    files += len(paths); hashes += len(h)
-    print(f"{name[:-3]:<28} {len(paths):>2} files / {len(h)} hashes  "
-          + ", ".join(p.relative_to(SKILLS).parts[0] for p in paths))
-print(f"\n{len(fam)} duplicate-basename families, {files} files, {hashes} hashes")
-QQ
-```
-
-Run against the pre-fold tree on 2026-09-25 it prints **8 duplicate-basename
-families, 31 files, 24 hashes**, reproducing the figure the sibling brief records
-— which is what establishes the block measures the thing the brief measured. The
-post-fold run is what the brief's amended rows must restate, sub-count by
-sub-count. The expected post-fold shape, derived from what this delivery does
+Run with no argument it prints the inventory alone; run with the brief it also
+validates the two rows. Against the pre-fold tree on 2026-09-25 the inventory
+reads **8 duplicate-basename families, 31 files, 24 hashes**, reproducing the
+figure the sibling brief records — which is what establishes it measures the
+thing the brief measured. The post-fold run is what the amended rows must
+restate. The expected post-fold shape, derived from what this delivery does
 rather than pinned as a target: `containment` untouched; `agentbundle-layout`
 loses the two deleted directories; `editorial-quality-gates` and
 `interrogation-sequence` each reconcile two copies into one; and all four pairs
@@ -549,7 +597,6 @@ python3 -m pytest tests/roster/test_skill_census.py -q
 # `[Unreleased]` section rather than nested inside it, naming both removed skills.
 # `tools/build-site.py` fails closed on a nested entry — it withholds it as
 # unreleased and still exits 0 — so the site build cannot serve as this check.
-grep -n '^## \[experience-design\]\[4\.0\.0\]' docs/product/changelog.md
 # A `/start/,/^## /` range is WRONG here: awk tests the end pattern against the
 # record that opened the range, the heading matches `^## ` itself, and the range
 # collapses to that one line — so a correct entry scores 0. Skip the opener, then
@@ -560,6 +607,11 @@ grep -n '^## \[experience-design\]\[4\.0\.0\]' docs/product/changelog.md
 python3 - "$BASE" <<'QQ'
 import json, pathlib, re, subprocess, sys, tomllib
 base = sys.argv[1]
+# Refuse an empty base: `git show ":<path>"` resolves to the INDEX, so the
+# derived product-engineering target would come from staged content and the
+# block would report agreement against a base it never read.
+if not base:
+    sys.exit("BASE empty — refusing to derive a version from an unknown base")
 lines = pathlib.Path("docs/product/changelog.md").read_text().splitlines()
 heads = [(i, l) for i, l in enumerate(lines) if l.startswith("## ")]
 want_pe = None
@@ -599,7 +651,11 @@ QQ
 # `### History / audit trail` the DATED ENTRIES — so the entry this delivery
 # writes and RFC-0062's inherited 2026-08-02 entry both live in History. The
 # separator is the diff: scan only the lines this delivery ADDS.
-# BASE comes from the guarded derivation at the top of this map.
+# BASE comes from the guarded derivation at the top of this map. Refuse here too:
+# an empty BASE makes `git diff` write to stderr and produce EMPTY STDOUT, which
+# the pipeline below reads as "no violations" — a clean pass on the delivery's
+# only control over the rule that an erratum names no spec or brief.
+[ -n "$BASE" ] || { echo "BASE empty — refusing to run the errata scan"; return 1 2>/dev/null || exit 1; }
 for R in docs/rfc/0062-content-design-and-copy-direction-skills.md \
          docs/rfc/0071-digital-experience-doctrine.md; do
   # Two-layer presence, bounded to the `## Errata` section — RFC-0071 carries
@@ -639,9 +695,15 @@ done
 # cross-pack boundary; the doctrine intent must either carry an edit in this
 # delivery's diff or a ledger line recording it confirmed unaffected.
 ! grep -nE "$REMOVED" packs/experience-design/DESIGN.md packs/product-engineering/DESIGN.md
-git diff --name-only "$BASE" -- docs/product/intents/xd-state-reviewer-doctrine.md
-grep -n 'xd-state-reviewer-doctrine' docs/specs/xd-copy-router/notes/verification-ledger.md
-# want: a hit from one of the two, not neither.
+# A real OR. Running both sequentially means the edited-but-no-ledger-entry
+# branch — which the criterion allows — still exits 1 on the trailing grep.
+if [ -n "$(git diff --name-only "$BASE" -- docs/product/intents/xd-state-reviewer-doctrine.md)" ]; then
+  echo "doctrine intent was updated in this delivery — criterion satisfied"
+elif grep -q 'xd-state-reviewer-doctrine.*confirmed unaffected' docs/specs/xd-copy-router/notes/verification-ledger.md 2>/dev/null; then
+  echo "doctrine intent recorded confirmed unaffected — criterion satisfied"
+else
+  echo "FAIL: doctrine intent neither updated nor recorded confirmed unaffected"
+fi
 ```
 
 **The criteria whose check is a bounded read, not a grep.** Each is goal-based
@@ -660,6 +722,7 @@ show, so a reviewer can execute it and record a verdict:
 | Per-file reconciliation record | `notes/reference-reconciliation.md`: six named files, each with winner, differences, reason |
 | Brand-naming verdict | the same note: which convention wins, `[example service]` or real company names |
 | Three-way editorial verdict | the same note: which gating condition survives, `conversion-design`'s or `copy-direction`'s upstream-`communication_mode` form |
+| `DESIGN.md` records the supersession | `packs/experience-design/DESIGN.md`: an explicit statement that the byte-equality test supersedes the "Skill autonomy beats DRY at this scale" note. Owned by T7, whose `Touches:` reaches that file. The reference-side check only sees the note disappear from the two copies; nothing else requires the positive statement |
 | Autonomy-note removal has an owning `Touches:` | T3's `Touches:` names `information-architecture/references/editorial-quality-gates.md`; grep that the note is absent from both surviving copies |
 | Pooled `eval_queries.json` negatives | `$CD/evals/eval_queries.json`: every folded positive present, plus ≥ 1 `ux-writing` and ≥ 1 `creative-direction` negative. Compare against `git show "$BASE:…/copy-direction/evals/eval_queries.json"` and the `tone-of-voice` equivalent — **at the merge-base**, as T2 does: T6 deletes both files, so a `HEAD` comparison has nothing to read and passes vacuously |
 | Install/update observation and adopter action | `notes/verification-ledger.md` carries the observed behaviour; the changelog carries the manual step if stale directories persist |
@@ -875,9 +938,12 @@ recorded drop with its reason.
 - The three legacy-1.x migration prompts and the three `type:`-collision branches
   survive.
 - `content-design/SKILL.md` cites `references/editorial-quality-gates.md`.
-- Neither removed name survives inside the surviving skill: five lines of
+- Neither removed name survives inside the surviving skill **in registration,
+  routing-target or path position**. The `type: tone-of-voice` discriminator
+  literals are required to survive — seven of them in `SKILL.md` — so an
+  unqualified "neither name survives" contradicts the carve-out. Five lines of
   `content-design/SKILL.md` and one of `references/communication-modes.md` name
-  them today, and this is the task that edits both.
+  them in the forbidden positions today, and this is the task that edits both.
 
 **Done when:** every mechanical test passes and `lint-experience-agnostic` exits 0.
 
@@ -929,7 +995,12 @@ stated here rather than inferred from a passing gate.
   eight families becoming **four**: 19 files / 11 hashes, containment 5/1, layout
   10/7, editorial gates 2/1, interrogation 2/2. Both stale occurrences of the
   31/24 figure are amended, line 68's and line 81's.
-- `DESIGN.md` §4 rewritten as mode selection; no removed slug pack-wide.
+- `DESIGN.md` §4 rewritten as mode selection; no removed slug pack-wide **in
+  registration position**. The discriminator carve-out list survives untouched —
+  an unqualified "no removed slug" would forbid the `type: tone-of-voice`
+  literals the output contract requires.
+- `DESIGN.md` records that the byte-equality test supersedes the "Skill autonomy
+  beats DRY at this scale" note, which the fold reverses.
 - Astro build exits 0; census fixture matches.
 
 **Done when:** the sibling row reads post-fold and the site builds.
