@@ -40,7 +40,7 @@ Look up `<output_dir>/direction/` to find whether a direction already owns the t
 | --- | --- | --- |
 | inherit | A section, component, state, or feature added inside a surface that already has a direction. | frame, scoped to the new element against the existing goals — no fresh interrogation, no divergence, no visual step. Delivers a session-only scoping answer: which existing goals and axis tokens govern the new element. Writes nothing; the run ends there |
 | extend | A new surface added to a product that already has a visual system. | frame → explore → converge |
-| originate | A surface in a product with no visual system yet; the highest-invention route. | frame → explore → converge (select) → visualize → converge (capture) |
+| originate | A surface in a product with no visual system yet; the highest-invention route. | frame → explore → visualize → converge |
 
 ## When to invoke
 

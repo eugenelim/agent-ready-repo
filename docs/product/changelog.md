@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [experience-design][2.0.10] — 2026-09-24
+## [experience-design][2.0.10] — 2026-09-25
 
 ### Highlights
 

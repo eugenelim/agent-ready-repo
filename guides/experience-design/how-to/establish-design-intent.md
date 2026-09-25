@@ -167,7 +167,7 @@ status: "<proposed | selected>"
 
 When you invoke `creative-direction`, it first checks whether the target surface already has a direction document. That lookup determines which route applies:
 
-- **inherit** — a section, component, state, or feature added inside a surface that already has a direction. The skill frames the brief and proceeds without a divergence round or visual step. A surface with a direction gets no second direction doc.
+- **inherit** — a section, component, state, or feature added inside a surface that already has a direction. The skill frames the brief against the direction that already governs the surface, with no divergence round and no visual step, and hands back a scoping answer: which existing goals and axis tokens govern the new element. It writes nothing. A surface with a direction gets no second direction doc.
 - **extend** — a new surface added to a product that already has a visual system. The skill frames the brief, explores candidate directions, and converges on one.
 - **originate** — a surface in a product with no visual system yet, the highest-invention route. The skill frames, explores, makes a candidate concrete enough to support a compositional commitment, then converges.
 
