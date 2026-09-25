@@ -53,6 +53,7 @@ Pick one mode, then load only that mode's reference.
 | status | `status` (default) | Session start, queue check — fast bounded scan | No | — |
 | reconcile | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
 | explain | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
+| retire | `retirement-candidates --run-date <YYYY-MM-DD>` | Report which delivery contracts are retirement candidates and every blocker holding each one back | Yes | — |
 | mutate | `selected-membership --spec-dir docs/specs/<slug>` | Report membership for each explicitly selected spec directory; repeat the flag to preserve selection order | No | — |
 | mutate | `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
 | mutate | `repair-apply` | Apply a previously generated repair plan atomically | No | `workspace.toml` |
@@ -61,6 +62,23 @@ Pick one mode, then load only that mode's reference.
 | mutate | `repair-rollback --operation-id <id> --confirmation-file <path>` | Restore one exact legacy representation without deleting its artifact | No | `.workspace-migrations.json`, `workspace.toml` |
 | mutate | `prune --select docs/specs/<slug> [--select ...] --preview` | Emit an unsigned challenge for an explicit selection | No | — |
 | mutate | `prune --select docs/specs/<slug> [--select ...] --confirmation-file <path>` | Remove the confirmed artifact directories and all memberships resolving to them | No | Selected directories, `workspace.toml` |
+
+`retirement-candidates` reports; it never selects or deletes. A candidate
+listed with no blockers is not cleared for deletion — a human chooses what to
+remove, and the separately confirmed prune carries that out.
+
+Its blockers mostly prove an absence: nothing cites this contract, nothing
+depends on it, nothing pins it. An absence is only as sound as the evidence
+behind it being read in full, so an input the run cannot read or parse produces
+a named refusal, and that refusal withholds eligibility from every candidate the
+affected blocker covers. Those candidates still appear in the report, carrying a
+blocker that says their evidence was not read. A shorter list never means a
+cleaner one.
+
+Ages come from recorded change history, which is what the report says they are.
+They are not a completion-date clock: an artifact edited long after it shipped
+reads as recently changed, and one whose delivery event came later than its last
+edit reads as older than it is. Treat the age as triage, not as a verdict.
 
 Cooling context is excluded from ordinary orientation. `status` and `reconcile`
 carry a `cooling` block — `due_count`, the named due list, every loaded record,

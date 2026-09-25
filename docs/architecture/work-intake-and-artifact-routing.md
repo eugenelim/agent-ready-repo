@@ -114,6 +114,7 @@ nowhere else to put and rolls up delivery across the per-component slices.
 | Pause overlay | Existing resolved writable shaping or build coordination surface | `close-work`, after exact write authority | Resume path and status projection |
 | Dependency-scoped completion receipt | Existing compatible coordination surface while a live dependency cites it | `close-work`, after exact write authority | Dependent work and closeout |
 | Cooling lifecycle record | `docs/lifecycle/<delivery_id>.json` | `close-work` | Day-30 review and status projection |
+| Retirement-candidate projection | Active invocation only | none; the projection is read-only and writes no file | Maintainer selecting a prune |
 | Semantic-surface resolution result | Active invocation only | none; resolver is read-only | Requesting workflow and reviewer |
 | Optional shaping handoff | Validated `normalized-intake.v1` envelope in the active invocation | Upstream producer owns offered content; Core owns validation and admission | `work-intake`, then the selected existing processor |
 
@@ -306,6 +307,24 @@ work-intake admission
         +-- delivery brief ----> author-delivery-brief continue
         +-- ambiguity/refusal --> stable zero-effect stop
 ```
+
+### Who reports retirement eligibility, and who may act on it
+
+`workspace-status retirement-candidates` reports which delivery contracts are
+retirement candidates and every blocker holding each one back. It reads; it
+writes nothing and succeeds against a read-only checkout. Being reported
+eligible authorizes no deletion: a human selects, and the separately confirmed
+prune executes that selection under its own two-sided closure invariant.
+
+Its absence-proving blockers rest on reading an input corpus in full, so a
+refusal naming any member of a corpus withholds eligibility from every candidate
+that blocker covers — including candidates carrying no blocker of their own,
+which are still reported rather than dropped. A shorter candidate list therefore
+never means a cleaner one.
+
+Ages come from recorded change history and are labelled as such. They are not
+the thirty-day cooling clock, which runs from a delivery-completion event on a
+lifecycle record this projection does not read.
 
 ## 6. Failure and recovery behavior
 
