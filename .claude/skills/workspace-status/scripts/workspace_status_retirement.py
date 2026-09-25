@@ -16,10 +16,6 @@ Every repository read must route through :func:`confined_read_bytes`.  The
 higher-level wrappers (:func:`read_confined_substrate`, :func:`read_toml_substrate`,
 :func:`read_json_substrate`, :func:`read_text_substrate`) apply corpus-level
 suppression on any read or parse failure.
-
-Spec: docs/specs/spec-retirement-eligibility/spec.md  §§ Area attribution,
-      Fail closed, Confinement
-Plan: docs/specs/spec-retirement-eligibility/plan.md  §§ T3, T0c
 """
 from __future__ import annotations
 
@@ -188,12 +184,25 @@ def confined_read_bytes(
         except OSError:
             # Component does not exist yet; the open in step 4 will refuse it.
             break
-        if stat.S_ISLNK(info.st_mode):
-            # Refusal reason derived from lstat result here; no second call.
-            raise ConfinementRefusal(code="path-escapes-root", path=rel_path)
         reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-        if reparse_flag and getattr(info, "st_file_attributes", 0) & reparse_flag:
-            raise ConfinementRefusal(code="path-escapes-root", path=rel_path)
+        is_link = stat.S_ISLNK(info.st_mode) or bool(
+            reparse_flag and getattr(info, "st_file_attributes", 0) & reparse_flag
+        )
+        if is_link:
+            # A link is refused only when its target leaves the root.  Refusing
+            # every link refuses this repository's own CLAUDE.md files, which
+            # point at a sibling AGENTS.md and escape nothing — and one such
+            # file in a scanned corpus withholds eligibility from the whole
+            # report.  The refusal reason is still derived here, from this
+            # lstat plus one resolve of the same component; no second walk of
+            # an already-refused path.
+            try:
+                target = cursor.resolve()
+                target.relative_to(root_resolved)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise ConfinementRefusal(
+                    code="path-escapes-root", path=rel_path
+                ) from exc
 
     # Step 3 — resolution confinement: resolved path must not escape root.
     try:

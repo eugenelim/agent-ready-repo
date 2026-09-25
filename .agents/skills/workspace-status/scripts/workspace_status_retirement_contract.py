@@ -5,9 +5,6 @@ The schema document is the source of truth.  This module implements the JSON
 Schema keywords used by ``spec-retirement-candidates.schema.json`` and resolves
 local ``$ref`` pointers against the supplied schema.  It deliberately carries
 no copied blocker or refusal vocabulary.
-
-Spec: docs/specs/spec-retirement-eligibility/spec.md  § Contract and refusals
-Plan: docs/specs/spec-retirement-eligibility/plan.md  § T7
 """
 from __future__ import annotations
 
