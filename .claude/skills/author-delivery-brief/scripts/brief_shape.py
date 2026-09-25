@@ -62,12 +62,14 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # ── Comment-aware line processor ──────────────────────────────────────────────
 
 
-def _process_line(line: str, in_comment: bool) -> tuple[str, bool]:
+def process_line(line: str, in_comment: bool) -> tuple[str, bool]:
     """Return ``(live_text, comment_state_after)`` for one line.
 
-    Processes the line left-to-right, switching between comment and non-comment
-    regions.  ``live_text`` contains only the characters outside HTML comments;
-    ``comment_state_after`` is the state to carry into the next line.
+    Public scanning primitive used by the preamble reader and the Spec-map
+    parser.  Processes the line left-to-right, switching between comment and
+    non-comment regions.  ``live_text`` contains only the characters outside
+    HTML comments; ``comment_state_after`` is the state to carry into the next
+    line.
     """
     live_parts: list[str] = []
     pos = 0
@@ -109,7 +111,7 @@ def read_preamble(text: str) -> list[tuple[str, str]]:
 
     for line in text.splitlines():
         in_comment_before = in_comment
-        live, in_comment = _process_line(line, in_comment)
+        live, in_comment = process_line(line, in_comment)
 
         # An uncommented ## heading ends the preamble.
         live_stripped = live.strip()
@@ -215,7 +217,7 @@ def validate_cut_closed(value: str) -> str | None:
             f"value {value!r} is not an ISO 8601 date followed by evidence text"
         )
     if not _is_iso_date(stamp):
-        return f"{stamp!r} is not an ISO 8601 date"
+        return f"value {value!r}: {stamp!r} is not an ISO 8601 date"
     return None
 
 
@@ -235,7 +237,7 @@ def get_status(text: str) -> str | None:
     return None
 
 
-def _is_placeholder(value: str) -> bool:
+def is_placeholder(value: str) -> bool:
     """True for unset/template values: empty, ``none``, HTML comment, or ``<...>``."""
     v = value.strip()
     return (
@@ -256,7 +258,7 @@ def get_slug(text: str, fallback: str) -> str:
     for name, value in read_preamble(text):
         if name == "Slug":
             stripped = value.strip().strip("`").strip()
-            if stripped and not _is_placeholder(stripped):
+            if stripped and not is_placeholder(stripped):
                 return extract_token(stripped).strip("`")
     return fallback
 

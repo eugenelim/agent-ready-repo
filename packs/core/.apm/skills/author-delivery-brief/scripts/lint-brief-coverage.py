@@ -81,18 +81,6 @@ def _load_sibling(name: str, module_name: str):
 _bs = _load_sibling("brief_shape", "core_author_delivery_brief_brief_shape")
 
 
-def _is_placeholder(value: str) -> bool:
-    """True for an unset/template value: empty, `none`, an HTML comment, or a
-    bare angle-bracket placeholder (`<slug>`)."""
-    v = value.strip()
-    return (
-        not v
-        or v.lower() == "none"
-        or v.startswith("<!--")
-        or (v.startswith("<") and v.endswith(">"))
-    )
-
-
 def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
     """Return (status-token, brief-back-link) from a spec's header.
 
@@ -115,7 +103,7 @@ def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
             m = _BRIEF_RE.search(line)
             if m:
                 value = m.group(1).strip()
-                if not _is_placeholder(value):
+                if not _bs.is_placeholder(value):
                     brief = _bs.extract_token(value).strip("`")
                     if brief.startswith("./"):
                         brief = brief[2:]
@@ -126,54 +114,63 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
     """Return (lineno, spec-slug, recorded-status) for each Spec map row.
 
     Parses the markdown table under the ``## Spec map`` heading, with HTML
-    comment awareness (AC-0025 through AC-0030).  The first table column is
-    the spec slug; the LAST column is the recorded status (so a Shape-B map
-    with a middle ``Story`` column parses the same way).  The header row and
-    the ``| --- |`` separator row are skipped.
+    comment awareness.  The first table column is the spec slug; the LAST
+    column is the recorded status (so a Shape-B map with a middle ``Story``
+    column parses the same way).  The header row and the ``| --- |`` separator
+    row are skipped.
 
     Comment handling rules:
 
-    - A ``## Spec map`` heading inside a comment does not open the section
-      (AC-0025): the live text of such a line is empty or does not start with
+    - A ``## Spec map`` heading inside a comment does not open the section:
+      the live text of such a line is empty or does not start with
       ``## Spec map``.
-    - A ``## `` heading inside a comment does not close the section (AC-0027):
+    - A ``## `` heading inside a comment does not close the section:
       the live-prefix check uses ``live.startswith("## ")``, not stripped text,
       so a heading whose ``## `` is preceded by a ``-->`` closer is not a
       terminator.
-    - A row inside a comment is not parsed (AC-0026, AC-0028, AC-0029): the
-      line is skipped when ``in_comment_before`` or ``in_comment`` (after
-      processing) is True.
+    - A repeated ``## Spec map`` heading re-opens the section rather than
+      closing it, preserving the prior handling where the opener matched
+      unconditionally.
+    - A row inside a comment is not parsed: the line is skipped when
+      ``in_comment_before`` or ``in_comment`` (after processing) is True.
     - A comment that opens and closes within one line leaves the row parsed
-      and the recorded status unchanged (AC-0030): the raw ``line`` is parsed
-      so that ``extract_token`` can truncate the inline comment as it does
-      everywhere else.
+      and the recorded status unchanged: the raw ``line`` is parsed so that
+      ``extract_token`` can truncate the inline comment as it does everywhere
+      else.
     """
     rows: list[tuple[int, str, str]] = []
     in_section = False
     in_comment = False
     for lineno, line in enumerate(brief_text.splitlines(), start=1):
         in_comment_before = in_comment
-        live, in_comment = _bs._process_line(line, in_comment)
+        live, in_comment = _bs.process_line(line, in_comment)
 
         if not in_section:
-            # AC-0025: a '## Spec map' heading inside a comment does not open
-            # the section.  live is the non-comment portion of the line; it
-            # will be empty or lack the '## Spec map' prefix when the heading
-            # is inside a comment.
+            # A '## Spec map' heading inside a comment does not open the
+            # section.  live is the non-comment portion of the line; it will
+            # be empty or lack the '## Spec map' prefix when the heading is
+            # inside a comment.
             if re.match(r"^##\s+Spec map\b", live, re.IGNORECASE):
                 in_section = True
             continue
 
-        # AC-0027: a '## ' heading inside a comment does not end the section.
+        # A repeated '## Spec map' heading re-opens the section rather than
+        # closing it — same behaviour as the unconditional opener in the
+        # old parser.  Check this before the generic terminator so that a
+        # second '## Spec map' does not break the section.
+        if re.match(r"^##\s+Spec map\b", live, re.IGNORECASE):
+            continue
+
+        # A '## ' heading inside a comment does not end the section.
         # live.startswith checks the live prefix before any leading whitespace
         # is removed, so '--> ## Other' (whose live text starts with ' ##')
         # is not a terminator.
         if live.startswith("## "):
             break
 
-        # AC-0026, AC-0028, AC-0029: skip lines that are inside a comment or
-        # on which comment state changes (opened without being closed on the
-        # same line, or closed after being opened on a previous line).
+        # Skip lines that are inside a comment or on which comment state
+        # changes (opened without being closed on the same line, or closed
+        # after being opened on a previous line).
         if in_comment_before or in_comment:
             continue
 
@@ -185,7 +182,7 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
 
         # Parse from the original line so that inline annotations such as
         # '| Shipped <!-- re-derived 2026-06-01 --> |' are preserved for
-        # extract_token to truncate at '<!--' (AC-0030).
+        # extract_token to truncate at '<!--' (inline comment preserved).
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) < 2:
             continue
@@ -292,9 +289,9 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             for status in (specs[slug][0],)
         )
 
-        # AC-0011: absent status.
-        # AC-0010: status not in the vocabulary.
-        # AC-0012: child execution evidence contradicts the state table.
+        # Absent status: refused with a missing-status message.
+        # Status not in the vocabulary: refused with a vocabulary message.
+        # Child execution evidence contradicts the state table: refused.
         lifecycle_valid = False
         if brief_status is None:
             hard.append(f"{rel}: brief status is absent")
@@ -309,13 +306,13 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         else:
             lifecycle_valid = True
 
-        # AC-0008: Cut-closed: value that is present but malformed.
+        # Cut-closed: value that is present but malformed: refused and named.
         if cut_closed is not None:
             cut_err = _bs.validate_cut_closed(cut_closed)
             if cut_err:
-                hard.append(f"{rel}: {cut_err}")
+                hard.append(f"{rel}: Cut-closed: {cut_err}")
 
-        # AC-0013 / AC-0016: declaration matrix (Shipped requires; Draft refuses).
+        # Declaration matrix: Shipped requires Cut-closed:; Draft refuses it.
         decl_err = _bs.validate_declaration(brief_status, cut_closed is not None)
         if decl_err:
             hard.append(f"{rel}: {decl_err}")

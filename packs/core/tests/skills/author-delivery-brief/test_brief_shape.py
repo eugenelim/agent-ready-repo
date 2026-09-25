@@ -465,37 +465,61 @@ def test_ac0016_cancelled_with_cut_closed_not_refused() -> None:
 # ── AC-0017 and AC-0018: all 36 ordered pairs have a verdict ─────────────────
 #
 # 6 states × 6 states = 36 pairs.  A pair of two different states absent from
-# BRIEF_TRANSITIONS is refused (AC-0017).  A listed pair and any self-pair are
-# not refused (AC-0018).
+# the spec's legal-moves table is refused (AC-0017).  A listed pair and any
+# self-pair are not refused (AC-0018).
+#
+# The oracle is the spec's table (§ The brief state table), spelled here as a
+# literal constant.  Deriving the oracle from the implementation's
+# BRIEF_TRANSITIONS would make the tests trivially true regardless of what the
+# table contains — any edit to the table (adding or removing an edge) would
+# silently pass.
+
+_SPEC_LEGAL_PAIRS: frozenset[tuple[str, str]] = frozenset({
+    ("Draft", "Ready"),
+    ("Draft", "Withdrawn"),
+    ("Ready", "Draft"),
+    ("Ready", "Executing"),
+    ("Ready", "Withdrawn"),
+    ("Executing", "Ready"),
+    ("Executing", "Shipped"),
+    ("Executing", "Cancelled"),
+})
+
+_ALL_STATUS_TOKENS: frozenset[str] = frozenset({
+    "Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled",
+})
 
 
 def test_ac0017_illegal_transitions_refused() -> None:
-    """Every (from, to) pair of two different states absent from the table is refused.
+    """Every (from, to) pair of two different states absent from the spec table is refused.
 
     Iterates all 30 two-different-state pairs; the 22 that are absent from
-    BRIEF_TRANSITIONS must return False.  AC-0017.
+    _SPEC_LEGAL_PAIRS (the literal spec oracle) must each return False.  AC-0017.
+    Any edit to BRIEF_TRANSITIONS that removes a legal edge or adds an illegal
+    one makes at least one assertion fail, because the oracle does not update
+    with the implementation.
     """
-    for from_s in _m.BRIEF_STATUSES:
-        for to_s in _m.BRIEF_STATUSES:
+    for from_s in _ALL_STATUS_TOKENS:
+        for to_s in _ALL_STATUS_TOKENS:
             if from_s == to_s:
                 continue
-            if (from_s, to_s) not in _m.BRIEF_TRANSITIONS:
+            if (from_s, to_s) not in _SPEC_LEGAL_PAIRS:
                 assert not _m.is_transition_valid(from_s, to_s), (
                     f"Expected ({from_s!r}, {to_s!r}) to be refused as illegal"
                 )
 
 
 def test_ac0018_legal_transitions_and_self_pairs_not_refused() -> None:
-    """All 8 table entries and 6 self-pairs are not refused.
+    """All 8 spec-table entries and 6 self-pairs are not refused.
 
-    Iterates the 8 pairs in BRIEF_TRANSITIONS and the 6 self-pairs (one per
-    state); all 14 must return True.  AC-0018.
+    Iterates the 8 pairs in _SPEC_LEGAL_PAIRS (the literal spec oracle) and
+    the 6 self-pairs; all 14 must return True.  AC-0018.
     """
-    for state in _m.BRIEF_STATUSES:
+    for state in _ALL_STATUS_TOKENS:
         assert _m.is_transition_valid(state, state), (
             f"Self-pair ({state!r}, {state!r}) should not be refused"
         )
-    for from_s, to_s in _m.BRIEF_TRANSITIONS:
+    for from_s, to_s in _SPEC_LEGAL_PAIRS:
         assert _m.is_transition_valid(from_s, to_s), (
             f"Legal transition ({from_s!r}, {to_s!r}) should not be refused"
         )

@@ -220,7 +220,7 @@ The brief status vocabulary, child-execution-evidence rules, and legal transitio
 set are defined in `scripts/brief_shape.py`. The coverage lint
 (`scripts/lint-brief-coverage.py`) enforces them; a brief whose status token,
 child evidence, or `Cut-closed:` record contradicts those rules is refused with
-exit 1.
+exit 1. Child statuses are never rewritten to make a brief transition fit.
 
 Move an entry between the matching `brief_queue` collections in the same reviewed
 change that updates the brief. Route a request to ship, withdraw, or cancel a

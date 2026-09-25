@@ -978,3 +978,159 @@ def test_ac0030_inline_comment_row_is_parsed_and_status_preserved() -> None:
         expect("alpha" in err, f"drift message must name alpha: {err}")
         # The drift message names the recorded value — 'Shipped' must appear.
         expect("Shipped" in err or "shipped" in err.lower(), f"recorded 'Shipped' in message: {err}")
+
+
+# ── AC-0021: refusal names the offending brief by its full relative path ──────
+
+
+def test_refusal_names_brief_relative_path() -> None:
+    """AC-0021: every refusal names the offending brief by its path relative to --root.
+
+    The brief is at docs/product/briefs/myb.md relative to the root.  The full
+    relative path 'docs/product/briefs/myb.md' must appear in the diagnostic,
+    not merely the stem 'myb' — the directory component makes it distinguishable.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # No Status: field → fires the absent-status refusal.
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Slug:** `myb`\n\n## Spec map\n\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"absent status must exit 1, got {rc}: {err}")
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"refusal must name full relative path 'docs/product/briefs/myb.md': {err}",
+        )
+
+
+# ── AC-0010 / AC-0022: out-of-vocabulary token exits 1 with vocabulary diagnostic
+
+
+def test_out_of_vocabulary_status_exits_1_with_vocabulary_diagnostic() -> None:
+    """AC-0010/AC-0022: an out-of-vocabulary token exits 1 and names the offending token.
+
+    The vocabulary-refusal branch must be driven through the entry point so
+    its exit code is verified independently of the lifecycle check.  A deleted
+    branch would silently fall through to the lifecycle check which also exits 1,
+    but with a different diagnostic — this test asserts the vocabulary message.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** FLIBBERTIGIBBET\n- **Slug:** `myb`\n\n"
+            "## Spec map\n\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"OOV status must exit 1, got {rc}: {err}")
+        expect(
+            "vocabulary" in err.lower(),
+            f"refusal must say 'vocabulary': {err}",
+        )
+        expect(
+            "FLIBBERTIGIBBET" in err,
+            f"refusal must name the offending token 'FLIBBERTIGIBBET': {err}",
+        )
+
+
+# ── AC-0008 / AC-0021 / AC-0022: malformed Cut-closed: exits 1 and names value
+
+
+def test_malformed_cut_closed_exits_1_and_names_value() -> None:
+    """AC-0008/AC-0021/AC-0022: malformed Cut-closed: exits 1, names the field, names the value.
+
+    The malformed-value branch must be driven through the entry point.  The
+    diagnostic must name the offending value and identify the Cut-closed: field,
+    so a maintainer can act without reading the code.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # '20260101 some evidence' has a non-ISO date part (no dashes).
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Ready\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 20260101 some evidence\n\n"
+            "## Spec map\n\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"malformed Cut-closed: must exit 1, got {rc}: {err}")
+        expect(
+            "cut-closed" in err.lower(),
+            f"refusal must name the Cut-closed: field: {err}",
+        )
+        expect(
+            "20260101 some evidence" in err,
+            f"refusal must name the offending value '20260101 some evidence': {err}",
+        )
+
+
+# ── AC-0029 (second direction): a row on which a comment closes is excluded ───
+
+
+def test_ac0029_row_where_comment_closes_is_excluded() -> None:
+    """AC-0029 (closed-on-line direction): a row on which a comment closes is not a row.
+
+    A comment opened on a previous line and closed embedded inside a row line
+    means in_comment_before=True, so the line is excluded even though the raw
+    line starts with '|'.  The fixture '| alpha | Shipped --> |' has
+    in_comment_before=True (comment from the previous '<!--' line) and
+    in_comment=False (the '-->' closes it); without the in_comment_before guard
+    the raw '| alpha | ...' line would be parsed as a valid row.
+
+    Bounded: only gamma (a real Shipped child) counts → Shipped brief all-Shipped
+    → delivered → rc=0.  Without the in_comment_before guard, alpha (no spec file
+    → missing) would be counted → lifecycle invalid → rc=1.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "gamma", "Shipped")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 gamma shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "<!--\n"
+            "| alpha | Shipped --> |\n"
+            "| gamma | Shipped |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 0,
+            f"closed-comment row must be excluded: rc={rc} err={err}",
+        )
+        expect("': delivered" in out, f"brief must be delivered: {out}")
+
+
+# ── C regression: repeated ## Spec map heading keeps section open ─────────────
+
+
+def test_repeated_spec_map_heading_rows_all_parsed() -> None:
+    """C regression: a second '## Spec map' heading re-opens the section;
+    rows below it are still parsed.
+
+    Without the fix the second heading terminates the section, so only the
+    row above it is parsed: alpha (Shipped) makes the Shipped brief look
+    delivered.  With the fix, no-such-slug (missing) is also counted, the
+    child set is {shipped, missing}, and the lifecycle check fails.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no spec for no-such-slug
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 alpha shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Shipped |\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| no-such-slug | <auto> |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 1,
+            f"C: rows under both headings must be parsed; no-such-slug is missing "
+            f"→ lifecycle invalid: rc={rc} err={err}",
+        )
+        expect("brief lifecycle" in err.lower(), err)
