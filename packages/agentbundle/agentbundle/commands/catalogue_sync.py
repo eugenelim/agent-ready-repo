@@ -991,6 +991,52 @@ def _in_coverage(
     return True
 
 
+def tree_modified(
+    target: Path,
+    snapshot: dict[str, WalkEntry],
+    acted_paths: Iterable[str],
+) -> bool:
+    """AC-0089 — did this run leave the target tree changed?
+
+    An **end state**, not a record of actions taken. The write sequence's own
+    ``acted``/``removed`` lists are appended *before* ``restore_from_snapshot``
+    runs, so a run whose writes all failed and were fully restored has a
+    non-empty ``acted`` and would report true — which is the opposite of what
+    a caller reading exit 4 needs, since a fully restored tree is safe to
+    retry.
+
+    Scoped to the paths the run wrote, created or removed — AC-0038's restore
+    scope — rather than to AC-0041's whole-tree walk. AC-0041 permits, on
+    every row, a path another writer changed during the run at which the
+    command itself neither wrote, created nor removed; a whole-tree reading
+    would report true for a run that changed nothing. A change by another
+    writer never sets this field.
+    """
+    for relpath in acted_paths:
+        before = snapshot.get(relpath)
+        if before is None:
+            # The run acted on a path outside its own snapshot. It cannot be
+            # shown unchanged, so it counts as changed.
+            return True
+        now = _lstat_entry(target / relpath)
+        if (now.kind, now.mode, now.symlink_target) != (
+            before.kind,
+            before.mode,
+            before.symlink_target,
+        ):
+            return True
+        # `_lstat_entry` never reads content; the snapshot does. Compare bytes
+        # only where the snapshot holds them, so a restored file that matches
+        # its pre-run bytes reports unchanged.
+        if before.content is not None:
+            try:
+                if (target / relpath).read_bytes() != before.content:
+                    return True
+            except OSError:
+                return True
+    return False
+
+
 def select_removal_set(
     target: Path,
     old_state: dict[str, Any],
@@ -3173,6 +3219,15 @@ def _run_apply(
         pack_names=pack_names, profile_names=profile_names, pin=pin,
     )
 
+    # AC-0089 — reported on the run's own post-write surface, not on the
+    # printed plan. The plan renders before the consent gate and before any
+    # write, so at that point the value does not exist: it is a post-run fact
+    # and the plan is a pre-consent artifact. The criterion is amended to say
+    # so rather than to require an impossible surface.
+    _print_tree_modified(
+        tree_modified(target, snapshot, set(result.acted) | result.removed)
+    )
+
     if result.gate_diverged is not None:
         return _CANNOT_ANSWER
     if result.write_failed_path is not None:
@@ -3194,6 +3249,15 @@ def _run_apply(
         _print_post_write_receipt(result, state_written=False)
         return _APPLY_FAILED
     return _DIFFERENCE if result.companion_occupied else _SUCCESS
+
+
+def _print_tree_modified(modified: bool) -> None:
+    """AC-0089's surface. stderr, beside the other post-write receipts: the
+    plan's stdout surface has already been rendered by this point, and on a
+    `--format json` run stdout carries a parse contract a second document
+    would break.
+    """
+    print(f"tree-modified: {'yes' if modified else 'no'}", file=sys.stderr)
 
 
 def _print_post_write_receipt(

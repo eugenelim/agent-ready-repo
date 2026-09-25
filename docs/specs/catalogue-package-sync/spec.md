@@ -481,13 +481,21 @@ root is § Agent Rules § Never do's, not restated here.
   `compared + uncompared` identity is unchanged.
 
 - [ ] **AC-0089.** An apply run reports whether it changed the target tree,
-  under the name `tree_modified`, in the `--format json` document's `summary`
-  object and on the printed plan. It is reported on every row of AC-0085's
-  table an apply run can take **that produces one of those two surfaces**. The
-  runs AC-0091 names as printing no plan report it nowhere, and neither does a
-  malformed row that emits no document: a refusal that never classified
-  anything has no tree state to report on, and its exit code already says the
-  tree is untouched.
+  under the name `tree-modified`, on the run's own post-write surface. It is
+  reported on every row of AC-0085's table an apply run can reach **after the
+  write sequence has run**. A run that refuses before that point reports it
+  nowhere: it never classified anything, has no tree state to report, and its
+  exit code already says the tree is untouched.
+
+  **Not on the printed plan, and not in the `--format json` document.**
+  Implementation established that both render *before* the consent gate and
+  before any write, so at that point the value does not exist — it is a
+  post-run fact and the plan is a pre-consent artifact. A second JSON document
+  after the run would break the parse contract phase 2 fixes on stdout, so the
+  field shares the stderr surface AC-0058's post-write receipts already use.
+  An earlier draft of this criterion required the plan and the document; that
+  requirement was unsatisfiable and is withdrawn here rather than worked
+  around.
 
   Its value is scoped to **the paths the run wrote, created or removed** —
   AC-0038's restore scope — and is their state when the command returns

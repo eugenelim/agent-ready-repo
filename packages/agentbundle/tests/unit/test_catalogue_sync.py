@@ -6208,3 +6208,52 @@ def test_package_coverage_still_respects_the_scope(tmp_path):
         scope=scope,
         tooling="vendored",
     )
+
+
+# ---------------------------------------------------------------------------
+# T6 / AC-0089 — `tree_modified`, an end state rather than an action record.
+# ---------------------------------------------------------------------------
+
+
+def test_tree_modified_is_false_when_every_touched_path_was_restored(tmp_path):
+    # The case the field exists for. `.acted` is appended before the restore
+    # runs, so reading it would report true here -- and a caller reading exit
+    # 4 needs false to know retrying is safe.
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    (target / "packs" / "a.txt").write_bytes(b"before\n")
+    before = catalogue_sync.snapshot_write_set(target, {"packs/a.txt"})
+    (target / "packs" / "a.txt").write_bytes(b"after\n")
+    (target / "packs" / "a.txt").write_bytes(b"before\n")  # restored
+    assert not catalogue_sync.tree_modified(target, before, {"packs/a.txt"})
+
+
+def test_tree_modified_is_true_when_a_touched_path_still_differs(tmp_path):
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    (target / "packs" / "a.txt").write_bytes(b"before\n")
+    before = catalogue_sync.snapshot_write_set(target, {"packs/a.txt"})
+    (target / "packs" / "a.txt").write_bytes(b"after\n")
+    assert catalogue_sync.tree_modified(target, before, {"packs/a.txt"})
+
+
+def test_tree_modified_is_true_for_a_path_the_run_created(tmp_path):
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    before = catalogue_sync.snapshot_write_set(target, {"packs/new.txt"})
+    (target / "packs" / "new.txt").write_bytes(b"x\n")
+    assert catalogue_sync.tree_modified(target, before, {"packs/new.txt"})
+
+
+def test_tree_modified_ignores_a_path_the_run_never_touched(tmp_path):
+    # AC-0041 permits a path another writer changed during the run, at which
+    # the command neither wrote, created nor removed. Scoping the field to the
+    # run's own paths is what keeps a concurrent writer from reporting true
+    # for a run that changed nothing.
+    target = tmp_path / "t"
+    (target / "packs").mkdir(parents=True)
+    (target / "packs" / "a.txt").write_bytes(b"before\n")
+    (target / "packs" / "other.txt").write_bytes(b"before\n")
+    before = catalogue_sync.snapshot_write_set(target, {"packs/a.txt"})
+    (target / "packs" / "other.txt").write_bytes(b"CONCURRENT\n")
+    assert not catalogue_sync.tree_modified(target, before, {"packs/a.txt"})
