@@ -6306,3 +6306,215 @@ def test_the_snapshot_spans_the_package_extent(tmp_path):
     target, replay, _rows, pkg = _replay_with_package_paths(tmp_path, "pkg-snap")
     snapshot = catalogue_sync.snapshot_write_set(target, {pkg, "packs/alpha/one.md"})
     assert pkg in snapshot
+
+
+# ---------------------------------------------------------------------------
+# Review blocker 4 — containment must be decidable for a destination the run
+# is about to create. The fixture here creates NEITHER destination, which is
+# what every earlier test failed to do.
+# ---------------------------------------------------------------------------
+
+
+def _bare_target(tmp_path):
+    t = tmp_path / "bare"
+    (t / "packs" / "core").mkdir(parents=True)
+    return t
+
+
+def test_package_path_decided_when_the_destination_root_is_absent(tmp_path):
+    t = _bare_target(tmp_path)
+    assert not (t / "packages" / "credbroker").exists()
+    assert not (t / ".agentbundle" / "tooling").exists()
+    assert catalogue_sync._is_package_path(
+        t, "packages/credbroker/credbroker/__init__.py", catalogue_sync._PACKAGE_PREFIXES
+    )
+    assert catalogue_sync._is_package_path(
+        t, ".agentbundle/tooling/agentbundle/agentbundle/cli.py",
+        catalogue_sync._PACKAGE_PREFIXES,
+    )
+    assert not catalogue_sync._is_package_path(
+        t, "packs/core/pack.toml", catalogue_sync._PACKAGE_PREFIXES
+    )
+
+
+def test_write_group_is_last_on_a_first_time_vendoring_run(tmp_path):
+    # AC-0080's justification fails on exactly this run if containment needs
+    # the destination to pre-exist: the engine lands interleaved with the
+    # derivation-wide paths instead of after them.
+    t = _bare_target(tmp_path)
+    assert catalogue_sync._write_group(
+        t, ".agentbundle/tooling/agentbundle/agentbundle/cli.py"
+    ) == 4
+    assert catalogue_sync.write_order(
+        t, ["catalogue.toml", ".agentbundle/tooling/agentbundle/x.py"]
+    )[-1] == ".agentbundle/tooling/agentbundle/x.py"
+
+
+def test_package_scope_admits_an_absent_destination(tmp_path):
+    t = _bare_target(tmp_path)
+    assert catalogue_sync.select_write_set(
+        t, ["packages/credbroker/x.py", "packs/core/pack.toml"],
+        pack_names=[], profile_names=[], guides=False, package="credbroker",
+    ) == {"packages/credbroker/x.py"}
+
+
+def test_package_path_refuses_a_remainder_that_escapes_the_target(tmp_path):
+    t = _bare_target(tmp_path)
+    assert not catalogue_sync._is_package_path(
+        t, "../packages/credbroker/x.py", catalogue_sync._PACKAGE_PREFIXES
+    )
+
+
+# ---------------------------------------------------------------------------
+# Review blockers 1, 2, 3 — driven at the COMMAND BOUNDARY on an apply run.
+# Every earlier --package test called select_write_set directly, which is why
+# none of them could see that _run_apply ignored the flag.
+# ---------------------------------------------------------------------------
+
+
+def test_apply_package_scope_reaches_the_write_set_at_the_command_boundary(
+    tmp_path, monkeypatch
+):
+    # Blocker 1, driven through `run()` on an apply rather than through
+    # `select_write_set`. Before the fix `_run_apply` declared `package` and
+    # never read it, so scope resolved to None and the run rewrote every path
+    # the replay produced -- while `--dry-run` scoped correctly, so the
+    # preview the operator consents against disagreed with the apply.
+    source = _make_apply_source(tmp_path / "boundary-source")
+    target = tmp_path / "boundary-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+
+    seen: dict = {}
+    real = catalogue_sync.plan_write_set
+
+    def _capture(tgt, *a, **kw):
+        seen["package"] = kw.get("package")
+        plan = real(tgt, *a, **kw)
+        seen["admitted"] = set(plan.admitted)
+        return plan
+
+    monkeypatch.setattr(catalogue_sync, "plan_write_set", _capture)
+    # AC-0082's credbroker row is decided from the resolved selection and
+    # would refuse this fixture, whose source ships no `credential-brokers`.
+    # Point the pack constant at one this fixture does ship, so the run gets
+    # past that row: this test is about what the write-set selector receives,
+    # not about the refusal, and the two must be able to fail independently.
+    monkeypatch.setattr(catalogue_sync, "_USER_LIBS_PACK", "alpha")
+    # No `--pack` flag: the fixture's recorded recipe already resolves
+    # `alpha`, so the selection carries it without widening the scope. Adding
+    # the flag would union `packs/alpha/` into the write set, which AC-0081
+    # requires and which would mask the very escape this test looks for.
+    args = _sync_args(target, source, "--package", "credbroker", "--yes")
+    catalogue_sync.run(args)
+
+    assert seen.get("package") == "credbroker", (
+        "the resolved --package value must reach the write-set selector on "
+        "the apply path, not only on --dry-run"
+    )
+    # And the scope must actually bite: nothing outside that destination.
+    outside = {
+        p for p in seen.get("admitted", set())
+        if not p.startswith("packages/credbroker/")
+    }
+    assert not outside, f"apply write set escaped the package scope: {sorted(outside)[:5]}"
+
+
+@pytest.mark.parametrize("name", ["agentbundle", "credbroker"])
+@pytest.mark.parametrize("tooling", [[], ["--tooling", "vendored"]])
+def test_package_with_check_is_malformed(tmp_path, monkeypatch, name, tooling):
+    # Blocker 3. AC-0085 row 1 covers all four scoping flags; AC-0081 makes
+    # `--package` one. Before the fix this returned 3.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    args = _sync_args(target, tmp_path / "src", "--check", *tooling, "--package", name)
+    assert catalogue_sync.run(args) == 2
+
+
+def test_check_refusal_names_all_four_scoping_flags(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    args = _sync_args(target, tmp_path / "src", "--check", "--pack", "core")
+    catalogue_sync.run(args)
+    assert "--package" in capsys.readouterr().err
+
+
+def test_package_credbroker_refuses_when_the_resolved_selection_lacks_its_pack(
+    tmp_path, monkeypatch
+):
+    # Blocker 2 / AC-0082's credbroker half, with the oracle the Testing
+    # Strategy names: exit 2, and a fetch DID run -- which is what
+    # distinguishes this half from the agentbundle one, per AC-0084.
+    source = _make_apply_source(tmp_path / "cb-source")
+    target = tmp_path / "cb-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+
+    reached = []
+    real = catalogue_sync._resolve_source
+    monkeypatch.setattr(
+        catalogue_sync, "_resolve_source",
+        lambda uri: (reached.append(uri), real(uri))[1],
+    )
+    args = _sync_args(target, source, "--package", "credbroker", "--yes")
+    assert catalogue_sync.run(args) == 2
+    assert reached, "AC-0084: the credbroker row is decided after source resolution"
+
+
+def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path):
+    # The other direction, so the refusal cannot pass by always firing.
+    source = _make_apply_source(tmp_path / "cb-ok-source")
+    target = tmp_path / "cb-ok-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+    args = _sync_args(
+        target, source, "--package", "credbroker",
+        "--pack", catalogue_sync._USER_LIBS_PACK, "--yes",
+    )
+    fired = []
+    real = catalogue_sync._refuse
+
+    def _watch(message, **kw):
+        fired.append(message)
+        return real(message, **kw)
+
+    with patch.object(catalogue_sync, "_refuse", side_effect=_watch):
+        catalogue_sync.run(args)
+    assert not any("--package credbroker" in m for m in fired), (
+        "AC-0082's credbroker row must not fire when the selection carries "
+        f"{catalogue_sync._USER_LIBS_PACK!r}"
+    )
+
+
+def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
+    tmp_path, monkeypatch
+):
+    # Review concern 5. AC-0083's trigger is the run's effective scope. A
+    # `--tooling vendored --pack <name>` run is scoped to `packs/<name>/`, and
+    # AC-0081 fixes that `--pack` never reaches inside a package destination,
+    # so its scope provably excludes the engine. Testing `package is None`
+    # instead refused every pack-, profile- and guides-scoped sync a vendored
+    # adopter with an editable engine could run.
+    target = tmp_path / "t"
+    engine = target / ".agentbundle" / "tooling" / "agentbundle" / "agentbundle"
+    engine.mkdir(parents=True)
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    # Input 2 holds: the running engine is inside this target.
+    monkeypatch.setattr(catalogue_sync, "_running_package_root", lambda: engine)
+
+    # Unscoped vendored: refused.
+    assert catalogue_sync.run(
+        _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    ) == 3
+    # Pack-scoped vendored: proceeds past the refusal to source resolution.
+    for extra in (["--pack", "core"], ["--profile", "default"], ["--guides"]):
+        args = _sync_args(target, tmp_path / "src", "--tooling", "vendored", *extra)
+        assert catalogue_sync.run(args) == 3  # source could not be resolved
+    # ...and --package agentbundle is still refused, since it names the engine.
+    assert catalogue_sync.run(
+        _sync_args(target, tmp_path / "src", "--tooling", "vendored",
+                   "--package", "agentbundle")
+    ) == 3

@@ -788,11 +788,17 @@ def _self_replacement_reason(target: Path) -> str | None:
             "refusing to sync the agentbundle package: the target supplies the "
             "running agentbundle as an editable install"
         )
-    if _is_package_path(
-        target,
-        os.path.relpath(_running_package_root(), target),
-        (_VENDORED_ENGINE_PREFIX,),
-    ):
+    # `os.path.relpath` raises `ValueError` on Windows when the two paths sit
+    # on different drives — a routine configuration, since the running
+    # interpreter and the target need not share a volume. An unrelatable
+    # running root means "not inside the target", which is the safe answer and
+    # the true one; it must not escape `run()` as a traceback instead of an
+    # exit code.
+    try:
+        running_relpath = os.path.relpath(_running_package_root(), target)
+    except (ValueError, OSError):
+        return None
+    if _is_package_path(target, running_relpath, (_VENDORED_ENGINE_PREFIX,)):
         return (
             "refusing to sync the agentbundle package: the running agentbundle "
             "executes from this target's vendored tooling root"
@@ -855,15 +861,40 @@ def _same_directory(left: Path, right: Path) -> bool:
 def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool:
     """AC-0087 — True when *path* lies inside one of *prefixes* under *target*.
 
-    The comparison is taken against the nearest ancestor that exists, by
-    directory identity, and only the non-existent remainder is compared
-    lexically. Deciding the branch on the *path's* own existence instead is
-    what a symlinked ancestor defeats: ``link/agentbundle/new`` where ``link``
-    resolves into the tooling root has no entry of its own, so a path-level
-    test judges it outside every destination and admits a write inside one
-    anyway — which the jail does not catch, because it lands inside the target
-    root.
+    Two comparisons, and the second is not a fallback for convenience: it is
+    the one that answers for a destination the run is **about to create**. A
+    first-time vendoring run plans every path under `.agentbundle/tooling/`
+    before that root exists, and an identity comparison has nothing to compare
+    against — so an identity-only predicate answers "not a package path" for
+    the whole extent, sorting it into the derivation-wide write group and
+    losing the property AC-0080 justifies itself by.
+
+    1. **Lexical**, over the path normalised relative to *target*. Decides
+       every input, including one whose destination is absent. `..` segments
+       are resolved before the comparison, so a traversal cannot spell its way
+       out of a prefix, and a normalised path that escapes *target* is refused.
+    2. **Identity**, over the nearest existing ancestor, for the spellings
+       normalisation cannot see: a symlinked ancestor pointing into a
+       destination, and — on a case-insensitive filesystem — a case variant of
+       a directory that exists. Only reachable where the destination is on
+       disk, which is exactly where those spellings can exist.
+
+    Either one admitting is enough. They disagree only where one of them
+    cannot see the answer at all.
     """
+    normalised = os.path.normpath(path).replace(os.sep, "/")
+    if (
+        normalised == ".."
+        or normalised.startswith("../")
+        or Path(normalised).is_absolute()
+    ):
+        return False
+    if any(
+        normalised == prefix.rstrip("/") or normalised.startswith(prefix)
+        for prefix in prefixes
+    ):
+        return True
+
     resolved = _resolve_longest_existing(target, path)
     if resolved is None:
         return False
@@ -880,9 +911,6 @@ def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool
         root = target.resolve(strict=True)
     except OSError:
         return False
-    # A path that exists is inside a destination when an *ancestor* is that
-    # destination; a path that does not exist is inside when the nearest
-    # existing ancestor already is one, so that node is itself a candidate.
     current = node if missing_depth else node.parent
     while True:
         try:
@@ -1554,6 +1582,7 @@ def apply_write_sequence(
             planned_paths=planned_paths, pack_names=pack_names,
             profile_names=profile_names, scope_packs=scope_packs,
             scope_profiles=scope_profiles, guides_scope=guides_scope,
+            package=package,
         )
     except CompanionCollisionError as exc:
         return WriteSequenceResult(ok=False, companion_collision=exc.collisions)
@@ -1571,7 +1600,7 @@ def apply_write_sequence(
             companion_occupied=plan.occupied, companion_residue=plan.residue,
         )
 
-    scope = _scope_subtrees(scope_packs, scope_profiles, guides_scope)
+    scope = _scope_subtrees(scope_packs, scope_profiles, guides_scope, package)
     # Computed once here — mirroring `_run_apply`'s own printed-plan point —
     # and handed to `execute_write_sequence` unchanged (spec AC-0057;
     # plan.md's Design decisions), rather than left for it to recompute
@@ -3117,6 +3146,25 @@ def _run_apply(
     if replay.violations:
         return _DIFFERENCE
 
+    # AC-0082, `credbroker` half. Decided here and not in `run()` because its
+    # input is the **resolved** selection, which does not exist until the
+    # source resolves and the replay runs — so AC-0084 records that a run
+    # refusing on this row has already fetched, and AC-0085 places the row
+    # below the AC-0068 selection-validity row this function has now passed.
+    #
+    # Resolved, not AC-0033 clause 1's union: AC-0068 records that the pack
+    # selector drops names, and a run whose recipe names `credential-brokers`
+    # but whose replay dropped it would otherwise write nothing under the
+    # destination and refresh the pin over a subtree it never touched.
+    if package == "credbroker" and _USER_LIBS_PACK not in pack_names:
+        return _refuse(
+            "--package credbroker: this catalogue's resolved selection does "
+            f"not carry the {_USER_LIBS_PACK!r} pack, so "
+            "packages/credbroker/ is not present",
+            attributed=attributed, source_raw=source_raw, fmt=fmt,
+            code=_MALFORMED,
+        )
+
     gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)
     if gate_code is not None:
         return gate_code
@@ -3133,6 +3181,7 @@ def _run_apply(
             planned_paths=planned_paths, pack_names=pack_names,
             profile_names=profile_names, scope_packs=cli_pack_names,
             scope_profiles=cli_profile_names, guides_scope=guides_scope,
+            package=package,
         )
     except CompanionCollisionError as exc:
         return _apply_refusal(
@@ -3165,7 +3214,9 @@ def _run_apply(
             details={"path": exc.path},
         )
 
-    scope = _scope_subtrees(list(cli_pack_names), list(cli_profile_names), guides_scope)
+    scope = _scope_subtrees(
+        list(cli_pack_names), list(cli_profile_names), guides_scope, package
+    )
     removal_set, out_of_coverage = select_removal_set(
         target, replay.old_state or {}, planned_paths,
         pack_names=pack_names, profile_names=profile_names,
@@ -3387,9 +3438,11 @@ def run(args: argparse.Namespace) -> int:
     # supplied with `--check` is malformed — `--check` answers whether the
     # tree is current against the recorded recipe as a whole, and has no
     # scoped variant.
-    if check and (cli_pack_names or cli_profile_names or guides_scope):
+    package = getattr(args, "package", None)
+    if check and (cli_pack_names or cli_profile_names or guides_scope or package):
         return _refuse(
-            "a scoping flag (--pack, --profile, --guides) is malformed with --check",
+            "a scoping flag (--pack, --profile, --guides, --package) is "
+            "malformed with --check",
             attributed=attributed,
             source_raw=source_raw,
             fmt=fmt,
@@ -3412,13 +3465,6 @@ def run(args: argparse.Namespace) -> int:
             fmt=fmt,
             code=_MALFORMED,
         )
-
-    # `cli.py`'s `sync` subparser restricts `--package` to `agentbundle` and
-    # `credbroker` via `choices`, refusing any other name as malformed before
-    # `run()` is reached — so a value read here is always one of those two.
-    # `getattr` with a `None` default is kept so a namespace built without the
-    # flag behaves exactly as though `--package` were never supplied.
-    package = getattr(args, "package", None)
 
     # AC-0082, `agentbundle` half — the destination exists only under a
     # vendored replay, and a run reporting success would refresh the pin over
@@ -3443,13 +3489,21 @@ def run(args: argparse.Namespace) -> int:
     # AC-0083 — the self-replacement refusal, on an apply or `--dry-run` whose
     # effective scope includes the `agentbundle` destination. `--check` is not
     # covered: it performs no replay, so it resolves no extent to write.
+    # AC-0083's trigger is the run's **effective scope**, not the absence of
+    # a `--package` value. A `--tooling vendored --pack core` run is scoped to
+    # `packs/core/`, and AC-0081's closing paragraph fixes that `--pack` never
+    # reaches inside a package destination — so its scope provably excludes
+    # the engine and it has nothing to refuse. Testing `package is None`
+    # instead refused every pack-, profile- and guides-scoped sync a vendored
+    # adopter could run, which fails safe but is not this criterion.
+    other_scope_flag = bool(cli_pack_names or cli_profile_names or guides_scope)
     scope_reaches_engine = (
         not check
         and tooling == "vendored"
-        and package in (None, "agentbundle")
+        and (package == "agentbundle" or (package is None and not other_scope_flag))
     )
     if scope_reaches_engine:
-        reason = _self_replacement_reason(target_path)
+        reason = _self_replacement_reason(target)
         if reason is not None:
             return _refuse(
                 reason,

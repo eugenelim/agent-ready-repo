@@ -23,7 +23,8 @@
 ## What this spec supersedes
 
 Phase 3's [`catalogue-sync-apply`](../catalogue-sync-apply/spec.md) is Shipped
-and frozen. This spec supersedes it in two clauses, and in no other way.
+and frozen. This spec supersedes it in the three clauses below, and in no
+other way.
 
 **One — the package extent.** Every criterion of that spec is superseded
 **insofar as it constrains the two destinations AC-0078 names**. Where it
@@ -40,7 +41,7 @@ and that every release surface states `0.49.0`. Each pins a value this delivery
 changes, and none of them is about the package extent, so clause one does not
 reach them. AC-0092, AC-0093 and AC-0097 replace them.
 
-**Three — five criteria neither clause reaches.** AC-0030, AC-0039's
+**Three — five criteria neither extent clause reaches.** AC-0030, AC-0039's
 `--package`-refuses row, AC-0043's closing sentence, AC-0047 and AC-0066 each
 name `--package` or its count without constraining the two destinations, so
 clause one provably cannot touch them. They are retired or amended by AC-0081,
@@ -315,7 +316,10 @@ root is § Agent Rules § Never do's, not restated here.
 - [x] **AC-0082.** A `--package <name>` run whose named AC-0078 destination is
   not present refuses as malformed, naming the flag and the presence condition
   it failed. The two halves are decided at different points — AC-0084 fixes
-  which — and this criterion fixes only the outcome. This covers
+  which — and this criterion fixes only the outcome. The `agentbundle` half is
+  decided from the run's flags above source resolution; the `credbroker` half
+  from the resolved selection, after the replay, below the AC-0068
+  selection-validity row. This covers
   `--package agentbundle` on a
   run not replaying `--tooling vendored`, and `--package credbroker` on a run
   whose resolved selection does not carry the `credential-brokers` pack. A

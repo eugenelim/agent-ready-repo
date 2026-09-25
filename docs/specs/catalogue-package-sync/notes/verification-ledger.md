@@ -64,6 +64,24 @@ This is input 2 alone. The fixture carries no `.git`, so input 1 returned
 nothing — which is precisely the fail-open this phase added input 2 to close,
 now demonstrated on a real tree rather than argued from the detector's source.
 
+## What the plan-versus-walk comparison cannot discriminate
+
+Recorded because this ledger's AC-0099 evidence looked conclusive and was not.
+Comparing the printed plan against a before/after walk agrees **for the wrong
+reason** when the run's scope is wider than the flag asked for: an unscoped run
+prints an unscoped plan and then faithfully writes it, so plan and walk match
+while `--package` has been ignored entirely.
+
+That is exactly the defect adversarial review found after this ledger was
+first written — `_run_apply` declared `package` and never read it, so an apply
+scoped `--package credbroker` rewrote the whole tree while `--dry-run` scoped
+correctly. Nothing in this ledger could see it.
+
+The discriminating artifact is at the command boundary, not here:
+`test_apply_package_scope_reaches_the_write_set_at_the_command_boundary` drives
+`--package` through `run()` on an apply and asserts the resulting write set
+holds nothing outside that destination.
+
 ## What this ledger does not establish
 
 - The `credbroker` destination was not exercised end to end. The fixture
