@@ -113,7 +113,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reference and the *fix a refused intent* how-to in the product-engineering
   guides carry the per-status table and the fix for each message.
 
-
 ## [core][2.26.40] — 2026-09-24
 
 ### Highlights
