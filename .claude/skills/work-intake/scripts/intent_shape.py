@@ -528,7 +528,7 @@ def _check_state_coherence(text: str) -> list[Violation]:
             # turning a corpus fault into a crash. The refusal still names
             # the record, which is what the contract requires of it.
             rationale = _FORBIDDEN_RATIONALES.get(
-                status, "does not carry that record"
+                status, "does not admit it"
             )
             violations.append(
                 Violation(

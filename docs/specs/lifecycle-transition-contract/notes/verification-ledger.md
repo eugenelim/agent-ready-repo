@@ -40,11 +40,15 @@ enumeration below is the whole list, not a sample — an earlier draft of this
 entry claimed a complete read and then listed six of the eight occurrences,
 which review caught.
 
-- **Lines 15–22, module docstring** — the statement itself, and the only
-  place the general dichotomy is stated. Canonical.
-- **Lines 503, 551, 568** — `_check_state_coherence`, `validate_supersession`
-  and `_check_supersession_pair` each read "See the module docstring's surface
-  placement rule." Pointers.
+- **Lines 14–20, module docstring** — the statement itself, and the only
+  place the general dichotomy is stated. Canonical. (Counted twice: an earlier
+  draft cited 15–22, which starts mid-sentence and runs into the next
+  paragraph, and a reviewer's correction to 14–19 stopped one line short of
+  `location in the same artifact.`)
+- **Lines 446–447, 503, 551, 568** — `validate_supersession`,
+  `_check_state_coherence` and `_check_supersession_pair` each read "See the
+  module docstring's surface placement rule." Pointers. Every application
+  below is followed by one of these.
 - **Lines 445, 497, 499, 567** — four *application* sentences, each saying
   where one function's own rules sit and why. `validate_supersession`: "the
   pairing rule depends on a different field's value". `_check_state_coherence`:
@@ -58,6 +62,13 @@ The line between an application and a second statement is whether it would
 tell a reader where a *new* rule belongs. None of the four would; all four
 say only where the rule in front of them sits. On that reading the verdict is
 clean. An independent reviewer reached the same reading on the same lines.
+
+**Where the class-pairing swap stops.** Three levels were closed during
+review: exchanging the classes at the use sites, exchanging the two literal
+values at their definitions, and exchanging the two descriptions in this
+docstring. All three now red on `test_each_refusal_carries_the_class_that_
+matches_its_kind`. Recorded so a later reviewer does not re-find the third as
+open.
 
 Judged by eugenelim. The earlier draft that made this an acceptance criterion
 (`AC-0015`) was withdrawn during spec review as unfalsifiable — no control can

@@ -541,6 +541,7 @@ jobs:
         run: >-
           python -m pytest
           tests/roster/test_intent_field_reference_parity.py
+          tests/roster/test_intent_status_table_parity.py
           tests/roster/test_intent_template_shape_conformance.py
 
       # design-output-addressing (T10): the first three experience-design

@@ -88,26 +88,49 @@ def _documented_row(text: str, status: str) -> tuple[str, str]:
     return rows[status]
 
 
-def _says_required(cell: str) -> bool:
-    return "required" in cell and "neither" not in cell
+def _documented_verdict(cell: str) -> str:
+    """The cell's verdict as one of `required`, `refused` or `optional`.
+
+    All three are distinguished. An earlier version asked only whether the
+    cell said "required", which made `refused` and `optional` the same answer
+    — so a page could tell a refused reader a record was optional where the
+    lint refuses it, and this control would pass.
+    """
+    if "neither" in cell:
+        return "undecided"
+    if "required" in cell:
+        return "required"
+    if "refused" in cell:
+        return "refused"
+    if "optional" in cell:
+        return "optional"
+    raise AssertionError(f"unrecognised verdict in documented cell: {cell!r}")
+
+
+def _expected_verdict(record: str, required: tuple, forbidden: tuple) -> str:
+    if record in required:
+        return "required"
+    if record in forbidden:
+        return "refused"
+    return "optional"
 
 
 def test_both_adopter_pages_state_the_rules_the_validator_applies() -> None:
     shape = _load_validator()
     for page in (REFERENCE, HOW_TO):
         text = page.read_text(encoding="utf-8")
-        for status, (required, _) in shape._STATE_COHERENCE_RULES.items():
-            accepted_cell, fulfilled_cell = _documented_row(text, status)
-            assert _says_required(accepted_cell) == ("Accepted" in required), (
-                page.name,
-                status,
-                "Accepted:",
+        for status, (required, forbidden) in shape._STATE_COHERENCE_RULES.items():
+            cells = dict(
+                zip(
+                    ("Accepted", "Fulfilled"),
+                    _documented_row(text, status),
+                    strict=True,
+                )
             )
-            assert _says_required(fulfilled_cell) == ("Fulfilled" in required), (
-                page.name,
-                status,
-                "Fulfilled:",
-            )
+            for record, cell in cells.items():
+                assert _documented_verdict(cell) == _expected_verdict(
+                    record, required, forbidden
+                ), (page.name, status, f"{record}:", cell)
 
 
 def test_every_status_the_validator_decides_has_a_documented_row() -> None:

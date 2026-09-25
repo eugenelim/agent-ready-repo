@@ -1145,6 +1145,22 @@ def test_each_refusal_carries_the_class_that_matches_its_kind() -> None:
     assert {v.refusal_class for v in forbidden} == {"lifecycle_record_not_allowed"}
     assert shape.LIFECYCLE_RECORD_NOT_ALLOWED == "lifecycle_record_not_allowed"
 
+    # Third level: the docstring line for each class must describe that class's
+    # own kind. AC-0013 asserts each name appears there, not what it is said to
+    # mean, so exchanging the two descriptions would otherwise leave the module
+    # documenting each class as its opposite with every test green.
+    doc = shape.__doc__ or ""
+    required_line = next(
+        line for line in doc.splitlines()
+        if shape.LIFECYCLE_RECORD_REQUIRED in line
+    )
+    not_allowed_line = next(
+        line for line in doc.splitlines()
+        if shape.LIFECYCLE_RECORD_NOT_ALLOWED in line
+    )
+    assert "requires a record" in required_line, required_line
+    assert "forbids a record" in not_allowed_line, not_allowed_line
+
 
 def test_the_two_rule_tables_agree_so_a_forbidden_record_never_crashes() -> None:
     """Every status with forbidden records has a rationale for refusing them.
