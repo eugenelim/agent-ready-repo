@@ -1,103 +1,85 @@
 ---
-title: Agent-ready catalogue documentation
-description: Choose, install, operate, and build catalogues of supervised agent workflows.
+title: Start with the work in front of you
+description: Choose the task you have, then follow the existing workflow that fits it.
 hero:
-  tagline: Choose, install, operate, and build catalogues of supervised agent workflows.
+  tagline: Get checked results from real work, with the final decision kept human.
   actions:
-    - text: Choose a starting point
-      link: /agent-ready-repo/docs/getting-started/
+    - text: Choose a task
+      link: '#what-are-you-trying-to-do'
       icon: right-arrow
       variant: primary
-    - text: Browse every pack
-      link: /agent-ready-repo/docs/packs/
+    - text: Set up first
+      link: /agent-ready-repo/docs/getting-started/
       icon: right-arrow
       variant: minimal
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-## Choose what you want to achieve
+## What are you trying to do?
 
-New here? Follow the [install-to-ship walkthrough](/agent-ready-repo/docs/guides/#the-install-to-ship-walkthrough) — one ordered route from installing the catalogue through a governed, reported release, with an explicit next step at every stage.
+You do not need to know a pack or skill name. Choose the closest task; each route shows what to ask and what you should get back.
 
-Or start with the supervised build loop, or choose the outcome closest to the work in front of you.
-
-<div class="docs-hub__lead" aria-label="Featured starting point">
+<div class="docs-hub__lead" aria-label="Recommended starting point">
   <LinkCard
-    title="Build and review software"
-    href="/agent-ready-repo/docs/guides/core/"
-    description="Take a brief or spec through implementation, mechanical gates, independent review, and a human merge decision."
+    title="Start a software change"
+    href="/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/"
+    description="Describe the outcome in plain language. Your agent chooses the right path and tells you what happens next. Try: “Start work on adding export retention controls.”"
   />
 </div>
 
 <div class="docs-hub__supporting">
   <CardGrid>
     <LinkCard
-      title="Decide what to build"
-      href="/agent-ready-repo/docs/guides/product-strategy/"
-      description="Move from strategy and evidence to a bounded decision brief a delivery team can act on."
+      title="Shape an idea into build-ready work"
+      href="/agent-ready-repo/docs/guides/product-engineering/how-to/shape-a-feature-intent/"
+      description="Turn an uncertain feature idea into a tested, build-ready plan."
     />
     <LinkCard
-      title="Design the product and system"
-      href="/agent-ready-repo/docs/guides/experience-design/"
-      description="Connect customer intent to journeys, architecture, interfaces, and an implementable surface."
+      title="Fix or investigate a bug"
+      href="/agent-ready-repo/docs/guides/core/how-to/bug-fix/"
+      description="Reproduce the problem, find the root cause, and land a minimum fix with a regression test."
     />
     <LinkCard
-      title="Provision and release safely"
-      href="/agent-ready-repo/docs/guides/architect/"
-      description="Make system decisions explicit, produce a reviewable infrastructure plan, validate the deployed whole, and stop before irreversible action."
+      title="Understand a repository"
+      href="/agent-ready-repo/docs/guides/architect/how-to/assess-a-repository/"
+      description="Map how the repository works from code and docs, then turn the important findings into an action plan."
     />
     <LinkCard
-      title="Work with team systems and evidence"
-      href="/agent-ready-repo/docs/guides/atlassian/"
-      description="Bring trackers, source material, design files, and credentials into agent work without hiding provenance or mutation."
+      title="Make an architecture decision"
+      href="/agent-ready-repo/docs/guides/architect/how-to/shape-an-architecture-concept/"
+      description="Compare the real choices and agree on the architecture before committing to a full design."
     />
     <LinkCard
-      title="Document what ships"
-      href="/agent-ready-repo/docs/guides/product-documentation/"
-      description="Create, restructure, audit, and verify documentation against the behavior your product actually ships."
+      title="Research a question"
+      href="/agent-ready-repo/docs/guides/desk-research/how-to/run-the-research/"
+      description="Get an answer that shows its evidence, confidence, and unknowns. Try: “Research this at applied depth.”"
     />
     <LinkCard
-      title="Build and govern a catalogue"
-      href="/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/"
-      description="Create an organization-owned catalogue, curate packs and profiles, validate contracts, and distribute one governed system."
+      title="Prepare and run a release"
+      href="/agent-ready-repo/docs/guides/release-engineering/how-to/run-a-release/"
+      description="Check a change in a production-like environment, review the evidence, and keep the production decision human."
+    />
+    <LinkCard
+      title="Adapt the agent setup to your project"
+      href="/agent-ready-repo/docs/guides/core/how-to/adapt-to-project/"
+      description="Learn the repository's real conventions, then tailor the agent setup without overwriting them."
     />
   </CardGrid>
 </div>
 
-## Choose by role
+Not sure which route fits? [Start a software change](/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/). That intake path chooses the workflow from your plain-language request.
 
-- **Product manager or strategist:** [decide](/agent-ready-repo/docs/guides/product-strategy/), [research](/agent-ready-repo/docs/guides/desk-research/), and [shape](/agent-ready-repo/docs/guides/product-engineering/) before work reaches a delivery team.
-- **Platform, infrastructure, or SRE team:** [design the system](/agent-ready-repo/docs/guides/architect/), [author contracts](/agent-ready-repo/docs/guides/contracts/), [produce a reviewable infrastructure plan](/agent-ready-repo/docs/guides/iac-terraform/), and [stop at the production gate](/agent-ready-repo/docs/guides/release-engineering/).
-- **Engineer:** [start with `core`](/agent-ready-repo/docs/guides/core/), then add the domain pack the change needs.
-- **Designer or architect:** [design the experience](/agent-ready-repo/docs/guides/experience-design/) or [system](/agent-ready-repo/docs/guides/architect/); **researcher or analyst:** [start with evidence](/agent-ready-repo/docs/guides/desk-research/).
-- **AI enablement or catalogue owner:** [initialize an organization-owned catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/) and govern what it distributes.
+## New to Agent Ready Repo?
 
-## Use a catalogue
+[Install and configure your first workflow](/agent-ready-repo/docs/getting-started/). Start with a real task whose result you can check, then return here when you are ready to choose another route.
 
-- [Get started](/agent-ready-repo/docs/getting-started/) with a path matched to your work.
-- [Compare install routes](/agent-ready-repo/docs/guides/_shared/explanation/install-routes/) and [adapter support](/agent-ready-repo/docs/guides/_shared/reference/adapter-support/).
-- [Browse every pack](/agent-ready-repo/docs/packs/) or [install a curated profile](/agent-ready-repo/docs/guides/_shared/how-to/install-a-profile/).
-- [Preview an install or upgrade](/agent-ready-repo/docs/guides/_shared/how-to/preview-install-or-upgrade/) before writing, then [upgrade safely](/agent-ready-repo/docs/guides/_shared/how-to/upgrade-packs/).
-- Using Claude? [Add this catalogue as a plugin marketplace](/agent-ready-repo/docs/getting-started/install/#route-2-claude-plugins) for user-scope packs. Repo-scoped packs such as `core` install with `agentbundle`.
+## Go deeper
 
-## Build and operate a catalogue
-
-An organization can initialize a clean catalogue without forking this repository:
-
-```bash
-agentbundle catalogue init my-catalogue --name my-catalogue
-agentbundle catalogue verify --root my-catalogue
-```
-
-- [Create the first valid catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/).
-- [Understand packs, profiles, adapters, composition, and self-hosting](/agent-ready-repo/docs/guides/_shared/explanation/pack-catalogue/).
-- [Author against the portable standards](/agent-ready-repo/docs/guides/_shared/reference/catalogue-authoring-standards/).
-- [Implement the provider-neutral verify → package → publish contract](/agent-ready-repo/docs/guides/_shared/reference/catalogue-ci-contract/).
-
-## Understand and reference
-
-- [The three supervised loops](/agent-ready-repo/docs/getting-started/three-loops/) — discovery, build, release, and their human gates.
-- [The file-safety contract](/agent-ready-repo/docs/guides/_shared/explanation/file-safety-contract/) — how local edits survive installs and upgrades.
-- [`agentbundle` CLI reference](/agent-ready-repo/docs/guides/_shared/reference/agentbundle/) — exact commands and flags.
-- [Complete pack reference](/agent-ready-repo/docs/packs/) — generated from the current catalogue rather than maintained on this page.
+- [Follow the install-to-ship walkthrough](/agent-ready-repo/docs/guides/#the-install-to-ship-walkthrough) for one ordered route from setup to a human-approved release.
+- [Browse guides and learning paths](/agent-ready-repo/docs/guides/) when you want tutorials, how-to guides, explanations, or reference material.
+- [Browse the pack and skill reference](/agent-ready-repo/docs/packs/) when you already know which capability you need.
+- [Understand the three supervised loops](/agent-ready-repo/docs/getting-started/three-loops/) and where their human gates sit.
+- [Use the `agentbundle` CLI reference](/agent-ready-repo/docs/guides/_shared/reference/agentbundle/) for exact commands and flags.
+- [Understand how packs, profiles, adapters, and catalogues fit together](/agent-ready-repo/docs/guides/_shared/explanation/pack-catalogue/).
+- [Build or govern your own catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/) when you need to extend the system for an organization.

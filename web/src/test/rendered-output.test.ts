@@ -23,7 +23,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { JSDOM } from 'jsdom';
-import { catalogueOutcomes } from '../lib/catalogue-navigation';
 
 const REPO_ROOT = join(__dirname, '../../..');
 const BUILD_ROOT = join(REPO_ROOT, 'build');
@@ -379,31 +378,120 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     ).toBeGreaterThan(0);
   }, SCAN_TIMEOUT_MS);
 
-  it('wayfinding AC2–AC3: the landing has one flagship lead, six supporting outcomes, and one primary action', () => {
+  it('docs home routes by task before setup and reference material', () => {
     const d = doc(DOCS_HOME);
     const leadCards = d.querySelectorAll('.docs-hub__lead .sl-link-card');
     const supportingCards = d.querySelectorAll('.docs-hub__supporting .sl-link-card');
     expect(leadCards).toHaveLength(1);
-    expect(supportingCards).toHaveLength(6);
+    expect(supportingCards).toHaveLength(7);
 
     const cards = [...leadCards, ...supportingCards];
-    const expectedTitles = new Set(catalogueOutcomes.map((outcome) => outcome.title));
-    const actualTitles = new Set(
-      cards.map((card) => card.querySelector('.title')?.textContent?.trim() ?? '')
+    const expectedTaskRoutes = new Map([
+      [
+        'Start a software change',
+        `${DOCS_BASE_PATH}guides/core/how-to/start-or-remember-work/`,
+      ],
+      [
+        'Shape an idea into build-ready work',
+        `${DOCS_BASE_PATH}guides/product-engineering/how-to/shape-a-feature-intent/`,
+      ],
+      ['Fix or investigate a bug', `${DOCS_BASE_PATH}guides/core/how-to/bug-fix/`],
+      [
+        'Understand a repository',
+        `${DOCS_BASE_PATH}guides/architect/how-to/assess-a-repository/`,
+      ],
+      [
+        'Make an architecture decision',
+        `${DOCS_BASE_PATH}guides/architect/how-to/shape-an-architecture-concept/`,
+      ],
+      [
+        'Research a question',
+        `${DOCS_BASE_PATH}guides/desk-research/how-to/run-the-research/`,
+      ],
+      [
+        'Prepare and run a release',
+        `${DOCS_BASE_PATH}guides/release-engineering/how-to/run-a-release/`,
+      ],
+      [
+        'Adapt the agent setup to your project',
+        `${DOCS_BASE_PATH}guides/core/how-to/adapt-to-project/`,
+      ],
+    ]);
+    const actualTaskRoutes = new Map(
+      cards.map((card) => [
+        card.querySelector('.title')?.textContent?.trim() ?? '',
+        card.querySelector('a')?.getAttribute('href') ?? '',
+      ])
     );
-    expect(actualTitles).toEqual(expectedTitles);
+    expect(actualTaskRoutes).toEqual(expectedTaskRoutes);
 
-    const flagship = catalogueOutcomes.find((outcome) => outcome.flagship);
-    expect(leadCards[0]?.querySelector('.title')?.textContent?.trim()).toBe(flagship?.title);
+    expect(leadCards[0]?.querySelector('.title')?.textContent?.trim()).toBe(
+      'Start a software change'
+    );
     for (const card of cards) {
       expect(card.querySelector('.description')?.textContent?.trim()).toBeTruthy();
       const href = card.querySelector('a')?.getAttribute('href');
-      expect(href).toBeTruthy();
       expect(existsSync(builtDocsPage(href!)!)).toBe(true);
     }
+    const cardDescription = (title: string) =>
+      cards
+        .find((card) => card.querySelector('.title')?.textContent?.trim() === title)
+        ?.querySelector('.description')
+        ?.textContent?.trim();
+    expect(cardDescription('Start a software change')).toContain('Try:');
+    expect(cardDescription('Research a question')).toContain('Try:');
 
     expect(d.querySelectorAll('.hero a.primary')).toHaveLength(1);
     expect(d.querySelectorAll('.hero a.minimal')).toHaveLength(1);
+    expect(d.querySelector('.hero a.primary')?.textContent?.trim()).toBe('Choose a task');
+    expect(d.querySelector('.hero a.minimal')?.textContent?.trim()).toBe('Set up first');
+    expect(d.querySelector('.hero a.primary')?.getAttribute('href')).toBe(
+      '#what-are-you-trying-to-do'
+    );
+    expect(d.querySelector('.hero a.minimal')?.getAttribute('href')).toBe(
+      `${DOCS_BASE_PATH}getting-started/`
+    );
+
+    const expectedSupportingRoutes = new Map([
+      ['Install and configure your first workflow', `${DOCS_BASE_PATH}getting-started/`],
+      [
+        'Follow the install-to-ship walkthrough',
+        `${DOCS_BASE_PATH}guides/#the-install-to-ship-walkthrough`,
+      ],
+      ['Browse guides and learning paths', `${DOCS_BASE_PATH}guides/`],
+      ['Browse the pack and skill reference', `${DOCS_BASE_PATH}packs/`],
+      [
+        'Understand the three supervised loops',
+        `${DOCS_BASE_PATH}getting-started/three-loops/`,
+      ],
+      [
+        'Use the agentbundle CLI reference',
+        `${DOCS_BASE_PATH}guides/_shared/reference/agentbundle/`,
+      ],
+      [
+        'Understand how packs, profiles, adapters, and catalogues fit together',
+        `${DOCS_BASE_PATH}guides/_shared/explanation/pack-catalogue/`,
+      ],
+      [
+        'Build or govern your own catalogue',
+        `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-catalogue/`,
+      ],
+    ]);
+    const mainLinks = [...d.querySelectorAll<HTMLAnchorElement>('main a[href]')];
+    for (const [label, expectedHref] of expectedSupportingRoutes) {
+      const link = mainLinks.find((candidate) => candidate.textContent?.trim() === label);
+      expect(link?.getAttribute('href'), label).toBe(expectedHref);
+      expect(existsSync(builtDocsPage(expectedHref)!)).toBe(true);
+    }
+
+    const sectionHeadings = [...d.querySelectorAll('main h2')].map((heading) =>
+      heading.textContent?.trim()
+    );
+    expect(sectionHeadings.slice(0, 3)).toEqual([
+      'What are you trying to do?',
+      'New to Agent Ready Repo?',
+      'Go deeper',
+    ]);
   });
 
   it('wayfinding AC4: guide pagination follows the complete generated sidebar order', () => {
