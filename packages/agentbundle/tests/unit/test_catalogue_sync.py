@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import pytest
 from agentbundle import safety
+from agentbundle.catalogue import CatalogueError
 from agentbundle.catalogue_tooling import initialise_self_hosted as ish
 from agentbundle.cli import _build_parser
 from agentbundle.commands import catalogue_sync
@@ -4904,58 +4905,39 @@ def test_run_apply_adapter_contract_mismatch_returns_difference(tmp_path):
     assert walk_target_tree(target) == before
 
 
-@pytest.mark.parametrize(
-    "mode_flag,package_name",
-    [
-        (("--dry-run",), "agentbundle"),
-        (("--dry-run",), "credbroker"),
-        (("--check",), "agentbundle"),
-        (("--check",), "credbroker"),
-        ((), "agentbundle"),
-        ((), "credbroker"),
-    ],
-    ids=[
-        "dry-run-agentbundle", "dry-run-credbroker",
-        "check-agentbundle", "check-credbroker",
-        "apply-agentbundle", "apply-credbroker",
-    ],
-)
-def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
-    tmp_path, monkeypatch, mode_flag, package_name
+def test_package_credbroker_no_longer_refuses_and_does_reach_the_source(
+    tmp_path, monkeypatch
 ):
-    # AC-0047: `--package` with a recognised name refuses on apply, on
-    # `--dry-run`, and on `--check` alike, and the row sits above source
-    # resolution — no fetch is ever performed. Driven through the real
-    # parser (`_build_parser`), not a hand-built namespace: the defaults
-    # `--package` resolves to are the parser's own `choices`/`default`, not
-    # this test's (AC-0030's oracle).
-    #
-    # Concern 9, round 2: every earlier version of this test covered one
-    # mode and one recognised name each -- `agentbundle` was only ever
-    # driven through `--dry-run`, `credbroker` only through `--check` and a
-    # bare apply run. A regression scoped to (say) `credbroker`-on-`--dry-run`
-    # or `agentbundle`-on-apply could ship with every one of those green.
-    # This is the full 3-mode x 2-name cross product (a bare invocation with
-    # neither `--dry-run` nor `--check` is apply, per AC-0030's non-required
-    # mode group).
-    target = tmp_path / "package-target"
+    # Rewrites phase 3's anchor, which asserted `--package <name>` exits 3 as
+    # "not available yet" across the 3-mode x 2-name cross product. Phase 4
+    # retires that row. The `credbroker` half of AC-0082 cannot be decided
+    # here at all: its input is the resolved selection, so AC-0084 records
+    # that a run refusing on it has already fetched. What this pins is that
+    # the retired row is gone and the run proceeds to resolution.
+    target = tmp_path / "t"
     target.mkdir()
-    source = tmp_path / "package-source"
+    reached = []
 
-    def _boom(uri):
-        raise AssertionError("source resolution must not run for --package")
+    def _record(uri):
+        reached.append(uri)
+        raise CatalogueError("stop here")
 
-    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _boom)
-    monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
-
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _record)
     args = _build_parser().parse_args(
         [
-            "catalogue", "sync", str(target), "--source", str(source),
-            *mode_flag, "--package", package_name,
+            "catalogue", "sync", str(target),
+            "--source", "git+https://example.invalid/o/r",
+            "--package", "credbroker",
         ]
     )
+    assert catalogue_sync.run(args) == 3  # source could not be resolved
+    assert reached, "the credbroker half must reach source resolution, per AC-0084"
 
-    assert catalogue_sync.run(args) == 3
+
+def test_no_invocation_reports_package_sync_as_unavailable(tmp_path, monkeypatch):
+    # The retired message must not survive anywhere: phase 3's refusal text
+    # was never pinned by a test, so nothing else would catch it lingering.
+    assert "not available yet" not in Path(catalogue_sync.__file__).read_text(encoding="utf-8")
 
 
 def test_run_package_unrecognized_name_exits_2_via_the_real_parser(tmp_path):
@@ -6001,3 +5983,130 @@ def test_same_directory_answers_equality_for_two_spellings_of_one_root(tmp_path)
     assert catalogue_sync._same_directory(target, target / "packs" / "..")
     assert not catalogue_sync._same_directory(target, target / "packs")
     assert not catalogue_sync._same_directory(target, tmp_path / "absent")
+
+
+# ---------------------------------------------------------------------------
+# T2 / AC-0082, AC-0083, AC-0084 — the two refusals that sit above source
+# resolution. They land before the write extent exists, so at no commit does
+# the tree hold a route to overwriting the running engine without the control
+# that refuses it.
+# ---------------------------------------------------------------------------
+
+
+def _no_fetch(monkeypatch):
+    def _boom(*_a, **_k):
+        raise AssertionError("source resolution must not run for this refusal")
+
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _boom)
+    monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
+
+
+def _sync_args(target, source, *extra):
+    return _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), *extra]
+    )
+
+
+@pytest.mark.parametrize("mode_flag", [[], ["--dry-run"]], ids=["apply", "dry-run"])
+def test_package_agentbundle_without_vendored_tooling_is_malformed(
+    tmp_path, monkeypatch, mode_flag
+):
+    # AC-0082 agentbundle half: the destination does not exist in external
+    # tooling, and a run reporting success would refresh the pin over a
+    # subtree it never wrote. AC-0084: no fetch.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    args = _sync_args(target, tmp_path / "src", *mode_flag, "--package", "agentbundle")
+    assert catalogue_sync.run(args) == 2
+
+
+def test_package_agentbundle_with_vendored_tooling_passes_the_absent_extent_row(
+    tmp_path, monkeypatch
+):
+    # The same invocation with `--tooling vendored` is past AC-0082 and
+    # reaches source resolution, which is where it now fails instead.
+    target = tmp_path / "t"
+    target.mkdir()
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    args = _sync_args(
+        target, tmp_path / "src", "--tooling", "vendored", "--package", "agentbundle"
+    )
+    assert catalogue_sync.run(args) == 3  # source could not be resolved, not AC-0082
+
+
+def test_self_replacement_refuses_when_the_detector_resolves_the_target_root(
+    tmp_path, monkeypatch
+):
+    # AC-0083 input 1, and AC-0084's no-fetch obligation.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(
+        catalogue_sync, "_detect_editable_source", lambda *_a, **_k: str(target)
+    )
+    before = walk_target_tree(target)
+    args = _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    assert catalogue_sync.run(args) == 3
+    assert walk_target_tree(target) == before
+
+
+def test_self_replacement_refuses_when_the_running_package_is_inside_the_target(
+    tmp_path, monkeypatch
+):
+    # AC-0083 input 2 — the case input 1 cannot see. `_detect_editable_source`
+    # is bounded by an enclosing git repository and returns nothing for a
+    # derived catalogue that is not one, so this target carries no `.git`.
+    target = tmp_path / "t"
+    engine = target / ".agentbundle" / "tooling" / "agentbundle" / "agentbundle"
+    engine.mkdir(parents=True)
+    assert not (target / ".git").exists()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    monkeypatch.setattr(catalogue_sync, "_running_package_root", lambda: engine)
+    args = _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    assert catalogue_sync.run(args) == 3
+
+
+def test_self_replacement_does_not_fire_when_neither_input_holds(tmp_path, monkeypatch):
+    target = tmp_path / "t"
+    target.mkdir()
+    monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
+    monkeypatch.setattr(catalogue_sync, "_running_package_root", lambda: tmp_path / "elsewhere")
+    args = _sync_args(target, tmp_path / "src", "--tooling", "vendored")
+    assert catalogue_sync.run(args) == 3  # falls through to source resolution
+
+
+def test_self_replacement_is_not_reached_under_external_tooling(tmp_path, monkeypatch):
+    # AC-0083 triggers on the run's effective scope. External tooling replays
+    # no `.agentbundle/tooling/` paths, so the scope never reaches the
+    # destination and the refusal has nothing to refuse.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(
+        catalogue_sync,
+        "_detect_editable_source",
+        lambda *_a, **_k: (_ for _ in ()).throw(
+            AssertionError("self-replacement must not be tested under external tooling")
+        ),
+    )
+    args = _sync_args(target, tmp_path / "src")
+    # Reaches source resolution, so it is past both new rows.
+    assert catalogue_sync.run(args) == 3
+
+
+def test_malformed_json_without_yes_still_outranks_both_new_rows(tmp_path, monkeypatch):
+    # AC-0085 ordering: the `--format json` malformed row sits above the
+    # absent-extent and self-replacement rows. Rewrites the phase-3 anchor.
+    target = tmp_path / "t"
+    target.mkdir()
+    _no_fetch(monkeypatch)
+    monkeypatch.setattr(
+        catalogue_sync, "_detect_editable_source", lambda *_a, **_k: str(target)
+    )
+    args = _sync_args(
+        target, tmp_path / "src", "--format", "json",
+        "--tooling", "vendored", "--package", "agentbundle",
+    )
+    assert catalogue_sync.run(args) == 2

@@ -66,6 +66,7 @@ from agentbundle.safety import (
     write_companion,
     write_jailed,
 )
+from agentbundle.source_defaults import _detect_editable_source, _load_distribution
 
 if TYPE_CHECKING:
     import argparse
@@ -109,6 +110,12 @@ _GUIDES_SCOPE_PREFIX = "guides/_shared/"
 # under one extent. Compared as a prefix, like the pack scope below, so
 # every path under either root is caught regardless of depth.
 _DEFERRED_PACKAGE_PREFIXES = ("packages/credbroker/", ".agentbundle/tooling/")
+
+# AC-0078 — the `agentbundle` destination's engine subtree, which is the only
+# part of the vendored tooling root that can supply a running interpreter.
+# AC-0083 input 2 tests this and not the whole root: the vendored
+# `packs/catalogue-curation/` copy beside it is content, not an install source.
+_VENDORED_ENGINE_PREFIX = ".agentbundle/tooling/agentbundle/"
 
 
 def _is_deferred_package_path(path: str) -> bool:
@@ -713,6 +720,57 @@ def detect_companion_collisions(
         for original, companion in companions.items()
         if companion in planned_paths
     }
+
+
+def _self_replacement_reason(target: Path) -> str | None:
+    """AC-0083 — why this run may not write the `agentbundle` destination, or
+    ``None`` when it may.
+
+    Two inputs, because input 1 alone fails open on the sharper case.
+    `_detect_editable_source` is bounded by an enclosing git repository and
+    returns ``None`` for a derived catalogue that is not one
+    (`source_defaults.py:394-401`), before it reads the catalogue markers at
+    all — and a derived catalogue need not be a git repository. The adopter
+    who `pip install -e`'d the vendored engine in a plain directory is exactly
+    the one input 1 cannot see, and exactly the one whose run would replace
+    executing code.
+
+    Both operands are the target, the run's flags, and the running
+    distribution. None comes from the source, which is what lets AC-0084 place
+    this above source resolution.
+    """
+    try:
+        editable_root = _detect_editable_source(_load_distribution())
+    except Exception:  # noqa: BLE001 - detection never decides by raising
+        editable_root = None
+    if editable_root is not None and _same_directory(Path(editable_root), target):
+        return (
+            "refusing to sync the agentbundle package: the target supplies the "
+            "running agentbundle as an editable install"
+        )
+    if _is_package_path(
+        target,
+        os.path.relpath(_running_package_root(), target),
+        (_VENDORED_ENGINE_PREFIX,),
+    ):
+        return (
+            "refusing to sync the agentbundle package: the running agentbundle "
+            "executes from this target's vendored tooling root"
+        )
+    return None
+
+
+def _running_package_root() -> Path:
+    """The directory the running ``agentbundle`` package is executing from.
+
+    AC-0083 input 2's operand. Deliberately not a second editable-install
+    detector: it answers "where is this code running from", which is the
+    self-replacement question as asked, and needs neither a PEP 610 record nor
+    an enclosing git repository to answer it.
+    """
+    import agentbundle
+
+    return Path(agentbundle.__file__).resolve().parent
 
 
 def _resolve_longest_existing(target: Path, path: str) -> tuple[Path, int] | None:
@@ -3226,24 +3284,51 @@ def run(args: argparse.Namespace) -> int:
             code=_MALFORMED,
         )
 
-    # Spec AC-0039/AC-0047 — `--package` sits above source resolution on
-    # every invocation, so a run that will refuse performs no fetch.
-    # `cli.py`'s `sync` subparser restricts the flag to `agentbundle` and
-    # `credbroker` via `choices`, refusing any other name as malformed
-    # before `run()` is ever reached — so a value read here is always one
-    # of those two recognised names. `getattr` with a `None` default is
-    # kept anyway so a namespace built without the flag at all (as this
-    # module's own unit tests do for every other invocation) behaves
-    # exactly as though `--package` were never supplied.
+    # `cli.py`'s `sync` subparser restricts `--package` to `agentbundle` and
+    # `credbroker` via `choices`, refusing any other name as malformed before
+    # `run()` is reached — so a value read here is always one of those two.
+    # `getattr` with a `None` default is kept so a namespace built without the
+    # flag behaves exactly as though `--package` were never supplied.
     package = getattr(args, "package", None)
-    if package is not None:
+
+    # AC-0082, `agentbundle` half — the destination exists only under a
+    # vendored replay, and a run reporting success would refresh the pin over
+    # a subtree it never wrote. Reads only `--package` and `--tooling`, so
+    # AC-0084 places it above source resolution.
+    #
+    # AC-0082's `credbroker` half is NOT here: its input is the resolved
+    # selection, which does not exist until the source resolves and the replay
+    # runs. AC-0085 places that row below the AC-0068 selection-validity row
+    # for the same reason, and AC-0084 records that it does fetch.
+    if package == "agentbundle" and tooling != "vendored":
         return _refuse(
-            f"--package {package!r} sync is not available yet",
+            "--package agentbundle requires --tooling vendored: the "
+            ".agentbundle/tooling/ destination is not present in external "
+            "tooling mode",
             attributed=attributed,
             source_raw=source_raw,
             fmt=fmt,
-            code=_CANNOT_ANSWER,
+            code=_MALFORMED,
         )
+
+    # AC-0083 — the self-replacement refusal, on an apply or `--dry-run` whose
+    # effective scope includes the `agentbundle` destination. `--check` is not
+    # covered: it performs no replay, so it resolves no extent to write.
+    scope_reaches_engine = (
+        not check
+        and tooling == "vendored"
+        and package in (None, "agentbundle")
+    )
+    if scope_reaches_engine:
+        reason = _self_replacement_reason(target_path)
+        if reason is not None:
+            return _refuse(
+                reason,
+                attributed=attributed,
+                source_raw=source_raw,
+                fmt=fmt,
+                code=_CANNOT_ANSWER,
+            )
 
     cleanup: Callable[[], None] | None = None
     try:
