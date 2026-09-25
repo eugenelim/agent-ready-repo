@@ -154,3 +154,27 @@ def test_the_how_to_quotes_the_refusal_messages_the_module_emits() -> None:
 
     for violation in (*required, *forbidden):
         assert violation.reason in how_to, violation.reason
+
+
+def test_a_status_the_rules_leave_undecided_is_documented_as_undecided() -> None:
+    """`Superseded` is encoded as absence, so iterating the rules misses it.
+
+    Both controls above walk `_STATE_COHERENCE_RULES`, and the statuses this
+    spec deliberately does not decide are exactly the ones that are not keys.
+    That left the single row describing them unasserted on both pages: it
+    could have read `required` for either record and nothing would have
+    noticed.
+    """
+    shape = _load_validator()
+    undecided = set(shape.STATUS_VALUES) - set(shape._STATE_COHERENCE_RULES)
+    assert undecided, "expected at least one status the rules leave undecided"
+
+    for page in (REFERENCE, HOW_TO):
+        text = page.read_text(encoding="utf-8")
+        for status in undecided:
+            for cell in _documented_row(text, status):
+                assert _documented_verdict(cell) == "undecided", (
+                    page.name,
+                    status,
+                    cell,
+                )

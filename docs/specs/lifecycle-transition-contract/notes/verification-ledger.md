@@ -46,8 +46,9 @@ which review caught.
   paragraph, and a reviewer's correction to 14–19 stopped one line short of
   `location in the same artifact.`)
 - **Lines 446–447, 503, 551, 568** — `validate_supersession`,
-  `_check_state_coherence` and `_check_supersession_pair` each read "See the
-  module docstring's surface placement rule." Pointers. Every application
+  `_check_state_coherence`, `validate_corpus_scoped` and
+  `_check_supersession_pair` each read "See the module docstring's surface
+  placement rule." Pointers, one per line number. Every application
   below is followed by one of these.
 - **Lines 445, 497, 499, 567** — four *application* sentences, each saying
   where one function's own rules sit and why. `validate_supersession`: "the

@@ -1185,3 +1185,46 @@ def test_the_two_rule_tables_agree_so_a_forbidden_record_never_crashes() -> None
                 extra="- **Accepted:** 2026-09-20 r\n- **Fulfilled:** 2026-09-21 d",
             )
         )
+
+
+def test_every_forbidden_refusal_states_a_rationale_for_its_own_status() -> None:
+    """Each status that forbids a record explains itself in its own terms.
+
+    Only `Draft`'s message is quoted on the how-to page, so only `Draft`'s
+    rationale was pinned. The other three could be exchanged silently — a
+    `Withdrawn` refusal reading "has not yet delivered", a `Cancelled` one
+    reading "means open" — each shipping a reason that contradicts the status
+    it names, with the suite green.
+    """
+    shape = lint._shape
+    expected = {
+        "Draft": "`Draft` means open",
+        "Accepted": "`Accepted` has not yet delivered",
+        "Cancelled": "`Cancelled` did not deliver",
+        "Withdrawn": "`Withdrawn` did not deliver",
+    }
+    assert set(expected) == set(shape._FORBIDDEN_RATIONALES), (
+        "a status gained or lost a rationale; update this pin deliberately"
+    )
+
+    for status, tail in expected.items():
+        violations = shape._check_state_coherence(
+            _broken(
+                "a",
+                status=status,
+                extra="- **Fulfilled:** 2026-09-21 delivered in commit abc",
+            )
+        )
+        # `Cancelled` yields two refusals for this fixture — the `Accepted:`
+        # it requires and the `Fulfilled:` it forbids. Only the forbidding
+        # ones carry a rationale.
+        forbidding = [
+            v
+            for v in violations
+            if v.refusal_class == shape.LIFECYCLE_RECORD_NOT_ALLOWED
+        ]
+        assert forbidding, status
+        assert all(v.reason.endswith(tail) for v in forbidding), (
+            status,
+            [v.reason for v in forbidding],
+        )
