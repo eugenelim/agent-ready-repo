@@ -645,3 +645,23 @@ def test_t6_skill_md_cites_brief_shape_not_child_rule() -> None:
     assert "Implementing` or `Shipped` child" not in section, (
         "§ Brief lifecycle still states the child-execution-evidence rule in prose"
     )
+
+
+def test_comment_closer_then_heading_does_not_end_the_preamble() -> None:
+    """A line that closes a comment and then carries a heading is not a heading.
+
+    `-->  ## Outcome` has live text starting with a space, so the preamble
+    bound does not fall there and a field below it is still read.  The
+    Spec-map scanner answers the same shape the same way; the two readers
+    must not diverge, because stripping first ends the bound early and
+    silently drops a live field, which is the miss the bounded reader exists
+    to prevent.
+    """
+    text = "# B\n\n- **Status:** Draft\n<!--\n-->  ## Outcome\n- **Slug:** `x`\n"
+    fields = dict(_m.read_preamble(text))
+    assert fields.get("Slug") == "`x`", (
+        "a live field below a comment-closer-then-heading line was dropped"
+    )
+    # An ordinary heading still terminates.
+    ordinary = "# B\n\n- **Status:** Draft\n\n## Outcome\n- **Slug:** `x`\n"
+    assert "Slug" not in dict(_m.read_preamble(ordinary))

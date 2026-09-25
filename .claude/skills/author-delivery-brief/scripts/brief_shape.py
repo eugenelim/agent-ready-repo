@@ -113,10 +113,17 @@ def read_preamble(text: str) -> list[tuple[str, str]]:
         in_comment_before = in_comment
         live, in_comment = process_line(line, in_comment)
 
-        # An uncommented ## heading ends the preamble.
-        live_stripped = live.strip()
-        if live_stripped.startswith(_HEADING_PREFIX):
+        # An uncommented ## heading ends the preamble.  The check reads the
+        # live prefix before leading whitespace is removed, so a line that
+        # closes a comment and then carries a heading -- '--> ## Outcome',
+        # whose live text starts with a space -- is not a terminator.  The
+        # Spec-map scanner makes the same choice for the same reason: stripping
+        # first would end the bound early and silently drop a live field below
+        # it, which is the miss this reader exists to prevent.
+        if live.startswith(_HEADING_PREFIX):
             break
+
+        live_stripped = live.strip()
 
         # Lines entered inside a comment carry no live content at their start
         # and must be skipped entirely so in_comment propagates correctly.
