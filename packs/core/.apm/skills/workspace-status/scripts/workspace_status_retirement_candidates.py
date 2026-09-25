@@ -120,6 +120,50 @@ def compute_cutoff_date(run_date: str, stale_after_days: int) -> str:
     return (dt - datetime.timedelta(days=stale_after_days)).isoformat()
 
 
+def build_retirement_document(
+    *,
+    run_date: str,
+    stale_after_days: int,
+    area_map: dict,
+    candidates: list[dict],
+    refusals: list[dict],
+    inbound_surfaces_not_reached: list[str],
+    inbound_forms_recognised: list[str],
+    inbound_forms_not_reached: list[str],
+) -> dict:
+    """Build the deterministic JSON document for ``retirement-candidates``.
+
+    The function owns the emitted envelope so contract validation exercises the
+    same shape the CLI will serialize.  Callers supply already-normalized,
+    repository-relative payloads; schema validation remains the final boundary.
+
+    Args:
+        run_date: Explicit ISO calendar date for the run.
+        stale_after_days: Non-negative age threshold in days.
+        area_map: In-memory area-attribution metadata.
+        candidates: Candidate objects in deterministic order.
+        refusals: Refusal objects in deterministic order.
+        inbound_surfaces_not_reached: Citation surfaces outside the scan.
+        inbound_forms_recognised: Citation forms included in the scan.
+        inbound_forms_not_reached: Citation forms outside the scan.
+
+    Returns:
+        A complete document ready for schema validation and JSON serialization.
+    """
+    return {
+        "schema": "spec-retirement-candidates.v1",
+        "run_date": run_date,
+        "cutoff_date": compute_cutoff_date(run_date, stale_after_days),
+        "stale_after_days": stale_after_days,
+        "area_map": area_map,
+        "candidates": candidates,
+        "refusals": refusals,
+        "inbound_surfaces_not_reached": inbound_surfaces_not_reached,
+        "inbound_forms_recognised": inbound_forms_recognised,
+        "inbound_forms_not_reached": inbound_forms_not_reached,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Collection classification
 # ---------------------------------------------------------------------------
