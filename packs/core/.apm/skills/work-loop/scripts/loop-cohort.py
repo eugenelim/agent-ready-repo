@@ -482,7 +482,7 @@ except GuardsUnavailable as exc:
     DECLINE_REASONS = ()
     partition_digest = is_dispatch_record = _guards_unavailable
     malformed_receipts_position = receipts_for_partition = _guards_unavailable
-    wave_is_well_formed = unaccounted_wave_tasks = superseded_wave_tasks = _guards_unavailable
+    wave_is_well_formed = unaccounted_wave_tasks = _guards_unavailable
     accounts_for_task = unaccounted_breakdown = _guards_unavailable
     bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
@@ -514,7 +514,6 @@ else:
     receipts_for_partition = _g.receipts_for_partition
     wave_is_well_formed = _g.wave_is_well_formed
     unaccounted_wave_tasks = _g.unaccounted_wave_tasks
-    superseded_wave_tasks = _g.superseded_wave_tasks
     accounts_for_task = _g.accounts_for_task
     unaccounted_breakdown = _g.unaccounted_breakdown
     bounded_id_list = _g.bounded_id_list
@@ -1782,7 +1781,8 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
 
 # The data model — `RECEIPTS_KEY`, `RECEIPT_KEY_PATH`, the closed kind and reason
 # sets, `SUPERSEDED_KEY`, `partition_digest`, `is_dispatch_record`,
-# `accounts_for_task`, `malformed_receipts_position`, `receipts_for_partition`,
+# `accounts_for_task`, `unaccounted_breakdown`, `malformed_receipts_position`,
+# `receipts_for_partition`,
 # `wave_is_well_formed`, `unaccounted_wave_tasks` and `bounded_id_list` — is
 # declared once in `_loop_guards.py` and re-bound at the top of this file.
 # `check --phase wave-exit` and this verb have to agree about the container key,

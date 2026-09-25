@@ -517,3 +517,46 @@ def test_wave_reopen_check_is_read_only(guards, tmp_path) -> None:
         )
         checked += 1
     assert checked, "no readable state was checked; domain is empty or all unreadable"
+
+
+def test_superseded_wave_tasks_is_a_subset_of_unaccounted(guards) -> None:
+    """The seam `superseded_wave_tasks`' own docstring names, driven over the domain.
+
+    That function calls `unaccounted_wave_tasks` and then walks the container a
+    second time to partition the result. The walk is an independent statement of
+    the one inside the shared predicate, so if only one of them changes this
+    returns `[]` and every superseded task is reported as having no record at all
+    — the defect this delivery closes, re-entering quietly through a helper.
+
+    Two properties, both over every readable state rather than one fixture: the
+    superseded list is always a subset of the unaccounted list, and it is
+    non-empty somewhere, so the subset claim is not satisfied by a function that
+    always returns nothing.
+    """
+    violations = []
+    superseded_seen = 0
+    for state in build_domain():
+        if not state["read"]:
+            continue
+        doc = materialise(state)
+        waves = doc.get("schedule_waves", [])
+        if not isinstance(waves, list) or not waves:
+            continue
+        index = _pointer_ok(state, waves)
+        if index is None:
+            continue
+        unaccounted = set(guards.unaccounted_wave_tasks(doc, index))
+        superseded = guards.superseded_wave_tasks(doc, index)
+        if superseded:
+            superseded_seen += 1
+        if not set(superseded) <= unaccounted:
+            violations.append((doc, sorted(superseded), sorted(unaccounted)))
+
+    assert not violations, (
+        f"{len(violations)} states where the superseded list is not a subset of "
+        f"the unaccounted list; first: {violations[0]}"
+    )
+    assert superseded_seen, (
+        "no state in the domain produced a superseded task, so the subset "
+        "property above is satisfied by an empty list everywhere and proves nothing"
+    )

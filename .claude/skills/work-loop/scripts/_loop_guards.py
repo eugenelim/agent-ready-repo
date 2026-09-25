@@ -1292,9 +1292,11 @@ def superseded_wave_tasks(state: dict, wave_index: int) -> list[str]:
     The container walk below is a SECOND statement of the one in
     `unaccounted_wave_tasks`, and that is a real seam: if only one of them changes,
     this function falls through to `[]` and every superseded task is reported as
-    having no record — the original defect, quietly. `unaccounted_breakdown` is
-    the only caller that renders the distinction, and the parity check drives the
-    subset property over its whole domain, which is what would catch the drift.
+    having no record — the original defect, quietly. What covers it:
+    `test_superseded_wave_tasks_is_a_subset_of_unaccounted` in the roster parity
+    check drives `set(superseded) <= set(unaccounted)` over that check's whole
+    domain, so a walk that changes in one place only shows up as a state where
+    the subset fails or the superseded list empties while records remain.
     """
     unaccounted = unaccounted_wave_tasks(state, wave_index)
     if not unaccounted:
@@ -1323,9 +1325,12 @@ def unaccounted_breakdown(state: dict, wave_index: int) -> str:
     Returns the fragment only, never the whole refusal, because each consumer
     names its own verb and remedy around it.
     """
+    # No early return for an empty `unaccounted`: it would change no output for
+    # any state — an empty list forces `superseded` and `absent` empty too, and
+    # `"; ".join([])` is already `""` — so the clause could be deleted with every
+    # test still green. A clause that cannot fail does not belong in a guard this
+    # delivery ships under a no-survivors mutation criterion.
     unaccounted = unaccounted_wave_tasks(state, wave_index)
-    if not unaccounted:
-        return ""
     superseded = set(superseded_wave_tasks(state, wave_index))
     absent = [task for task in unaccounted if task not in superseded]
     parts = []

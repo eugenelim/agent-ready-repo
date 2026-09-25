@@ -4176,6 +4176,7 @@ def test_status_refuses_the_oldest_state_the_wave_exit_tolerates(
     else:
         ok(name)
 
+
 # ── check --phase wave-reopen, at the CLI ──────────────────────────────────
 #
 # Spec: docs/specs/repair-round-dispatch-assertion/spec.md.
@@ -4663,11 +4664,22 @@ def test_wave_advance_refuses_a_wholly_superseded_wave(tmp: Path) -> None:
         "schedule_waves": waves, "current_wave_index": 0,
         _RECEIPTS_KEY: container,
     })
+    state = {
+        "schema_version": 1, "run_id": run_id,
+        "schedule_waves": waves, "current_wave_index": 0,
+        _RECEIPTS_KEY: container,
+    }
+    # The cross-consumer pin. `unaccounted_breakdown` is the single declaration
+    # both refusals render from; asserting `wave advance`'s output embeds that
+    # exact fragment is what stops the two consumers drifting in grouping, label
+    # or order while each one's own test stays green.
+    fragment = _mod.unaccounted_breakdown(state, 0)
+    assert fragment, "the fixture must produce a non-empty breakdown"
     _refuses_without_writing(
         name, spec_dir,
         ("wave", "advance", str(spec_dir), "--from-index", "0",
          "--expect-run-id", run_id),
-        expect=("superseded",),
+        expect=("superseded", fragment),
     )
 
 

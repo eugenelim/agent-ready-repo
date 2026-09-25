@@ -3265,8 +3265,8 @@ def test_the_malformed_container_pass_clause_is_reachable_and_killable(g) -> Non
     )
 
 
-def test_both_consumers_render_one_state_identically(g) -> None:
-    """The refusal breakdown has one declaration, so the two consumers cannot drift.
+def test_the_wave_exit_refusal_embeds_the_shared_fragment(g) -> None:
+    """The wave-exit refusal renders from the shared declaration, verbatim.
 
     Before `unaccounted_breakdown` existed, the wave-exit verdict and `wave
     advance` each composed this fragment themselves. Each consumer's own test
@@ -3288,7 +3288,9 @@ def test_both_consumers_render_one_state_identically(g) -> None:
     fragment = g.unaccounted_breakdown(state, 0)
     assert "superseded: 'T1, T2'" in fragment, fragment
     assert "no dispatch receipt: 'T3'" in fragment, fragment
-    # Both consumers embed the SAME fragment, so one state cannot read two ways.
+    # This asserts ONE consumer. `wave advance`'s half is pinned at the CLI, in
+    # test_loop_cohort.py's wholly-superseded case, because that refusal is only
+    # observable through the verb.
     assert fragment in (g._wave_exit_verdict(state).reason or ""), (
         "the wave-exit refusal must embed the shared fragment verbatim"
     )

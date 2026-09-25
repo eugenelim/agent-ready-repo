@@ -1996,13 +1996,13 @@ open = [
   # spec discloses and deliberately does not close, recorded there under
   # Follow-ons with the reasoning. It is registered here so the spec's
   # references resolve to a real entry rather than to an intention. A fourth
-  # limit -- the uncoupled `wave advance` -- was folded into the spec instead
-  # and sits in `closed`. The repair-round limit that sat here was closed by
+  # limit -- the uncoupled `wave advance` -- was folded into that spec instead
+  # and never had an entry here. A second, the repair-round limit, was closed by
   # docs/specs/repair-round-dispatch-assertion (Shipped 2026-09-24), which
   # supersedes the wave's records on reopen rather than scoping them with a
-  # counter; its entry is retired.
-  #
-
+  # counter; its entry is retired, and that spec's Follow-ons carry the
+  # `wave-passed` edge it found and did not fix. The frozen receipts spec still
+  # points at the retired entry; this comment is where that pointer resolves.
 
   # A wave exit that passes with no receipts container records nothing about
   # having passed: the read-only guard cannot write, and a durable side effect

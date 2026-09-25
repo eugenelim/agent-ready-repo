@@ -298,7 +298,7 @@ Two review passes found three clauses T6 added with no mutation entry. Run
 | --- | --- | --- | --- | --- |
 | M6 | the superseded grouping in `unaccounted_breakdown` | the `if superseded:` branch deleted | **RED** | `guards` `1 failed, 160 passed`; `cli` `3 failed, 69 passed, 161 deselected` |
 | M7 | `superseded_wave_tasks`' subtree-absent clause | `if not isinstance(held, dict): return []` deleted | **RED** | `guards` `4 failed, 157 passed`; `cli` `2 failed, 70 passed, 161 deselected` |
-| M8 | `plan_wave_reopen`'s idempotence clause | `if record.get(SUPERSEDED_KEY) is not True:` → `if True:` | **survived, then RED** | First run: no suite turned red. The clause skips an already-superseded record and counts only what it marks, and the resulting state is identical either way, so the only observable difference is the verb's success line — which eleven call sites discarded into `_`. `test_wave_reopen_reports_the_wave_and_the_count_it_superseded` asserts the wave index and the count, including zero on a second reopen; with it the mutation reports `1 failed, 233 deselected` |
+| M8 | `plan_wave_reopen`'s idempotence clause | `if record.get(SUPERSEDED_KEY) is not True:` → `if True:` | **survived, then RED** | First run: no suite turned red. The clause skips an already-superseded record and counts only what it marks, and the resulting state is identical either way, so the only observable difference is the verb's success line — which every call site discarded into `_` — 9 of them, counted by `grep -c 'run_cohort("wave", "reopen"' packs/core/tests/skills/work-loop/test_loop_cohort.py` at the time. `test_wave_reopen_reports_the_wave_and_the_count_it_superseded` asserts the wave index and the count, including zero on a second reopen; with it the mutation reports `1 failed, 233 deselected` |
 
 M8 is the second clause in this delivery whose first mutation survived, and the
 pattern is the same as the malformed-container one: **a clause whose only effect
@@ -326,20 +326,41 @@ Both final-pass reviewers reported that `evals.json` carries unrelated encoding
 churn — one counted 35 changed lines, the other 72 — and both asked for it to be
 reverted or declared as a ride-along.
 
-It is already reverted. Measured 2026-09-24 against the merge-base `ba76d833c`:
+It is already reverted. Re-measured after the 2026-09-24 rebase, against the
+current merge-base `b59becf264` — the earlier version of this table named the
+pre-rebase base `ba76d833c` and labelled a line count as a character count, so
+neither side reproduced:
 
-| Measure | merge-base | HEAD |
-| --- | --- | --- |
-| `git diff --stat` on the file | — | `1 file changed, 12 insertions(+)` |
-| literal `—` characters | 35 | 35 |
-| `\u2014` escapes | 0 | 0 |
+| Measure | command | merge-base | HEAD |
+| --- | --- | --- | --- |
+| lines changed, all three copies | `git diff --stat $(git merge-base HEAD origin/main)..HEAD -- '*evals/evals.json'` | — | `3 files changed, 36 insertions(+)` |
+| literal `—` characters, `.apm/` copy | `grep -o '—' <file> \| wc -l` | 45 | 45 |
+| `\u2014` escapes, `.apm/` copy | `grep -o 'u2014' <file> \| wc -l` | 0 | 0 |
 
-The net change is the twelve-line repair-round entry and nothing else. Both
-reviewers were given `27cff5b78..HEAD` as their range, and that window *contains*
-the revert of the re-encoding an earlier task introduced — so the revert itself
-appears in the diff as 35 changed lines and reads as the churn.
+Thirty-six insertions is the twelve-line repair-round entry in each of the three
+copies, and nothing else. Both reviewers were given `27cff5b78..HEAD` as their
+range, and that window *contains* the revert of the re-encoding an earlier task
+introduced — so the revert itself appears in the diff as changed lines and reads
+as the churn.
 
 Recorded because the mistake is easy to repeat and is not the reviewers': **a
 two-SHA range is a window, not a net change.** A finding about what a delivery
 ships has to be measured against the merge-base, whatever range the review was
 scoped to.
+
+### T6 addendum 3 — the last un-reviewed range
+
+A final pass over the commits no reviewer had seen found three clauses or claims
+that could not hold. Run 2026-09-24.
+
+| # | Subject | Disposition |
+| --- | --- | --- |
+| A | `unaccounted_breakdown`'s `if not unaccounted: return ""` | **Deleted.** It changed no output for any state — an empty list forces `superseded` and `absent` empty and `"; ".join([])` is already `""` — so the clause was unkillable and its test stayed green without it. Removing it is what keeps § Proof's no-survivors criterion true |
+| B | `superseded_wave_tasks`' docstring naming the parity check as what catches its walk drifting | **The control now exists.** It did not: the parity file had no reference to that function. `test_superseded_wave_tasks_is_a_subset_of_unaccounted` drives `set(superseded) <= set(unaccounted)` over the whole domain and asserts the superseded list is non-empty somewhere, so the subset claim is not satisfied by a function that always returns nothing |
+| C | `test_both_consumers_render_one_state_identically` | **Renamed and split.** It asserted one consumer while its name and comment claimed two. The wave-exit half keeps the guards-level assertion under an honest name; `wave advance`'s half is pinned at the CLI, where that refusal is observable, by comparing its output against `unaccounted_breakdown`'s fragment for the same state |
+
+All three are the delivery's own recurring class — a clause that cannot fail, and
+a comment asserting a property its artifact does not have. That class appeared in
+the oracle, twice in this ledger, in a guard docstring, and in three test
+docstrings. What caught it every time was a reviewer reading the claim against
+the artifact, never a green suite.
