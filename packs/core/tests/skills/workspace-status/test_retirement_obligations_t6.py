@@ -27,8 +27,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Module loading
 # ---------------------------------------------------------------------------
@@ -341,7 +339,7 @@ class TestAgeReportingVocabulary:
         obligations = mod.build_lasting_facts_obligations(notes_files, [], "target-spec")
         assert len(obligations) == 1
         obl = obligations[0]
-        for key in obl.keys():
+        for key in obl:
             for banned in _BANNED_VOCABULARY:
                 assert banned != key, (
                     f"Obligation key {key!r} reuses §6 clock vocabulary {banned!r}; "

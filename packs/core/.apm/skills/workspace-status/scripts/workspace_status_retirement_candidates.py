@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime
 import re
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Canonical sets
@@ -598,8 +599,129 @@ def detect_shipped_brief_member(
 
 
 # ---------------------------------------------------------------------------
-# lasting-facts-unsettled detection
+# lasting-facts-unsettled detection and obligation payload
 # ---------------------------------------------------------------------------
+
+#: The ten semantic roles RFC-0096 §2's "Other roles are separate" sentence
+#: names.  Enumerated from the schema's ``$defs/obligation.semantic_role``
+#: enum.  T6 pins this constant to the schema enum so they cannot drift.
+SEMANTIC_ROLE_ENUM: frozenset[str] = frozenset({
+    "current-product-truth",
+    "user-documentation",
+    "product-history",
+    "release-history",
+    "current-architecture",
+    "architecture-design",
+    "decision-record",
+    "operations",
+    "interface-contract",
+    "project-knowledge",
+})
+
+# Pattern-based role classification for notes files.
+#
+# Where RFC-0096 §4's precedence order resolves the role to a known
+# destination in this repository, the destination is returned; where it does
+# not, ``None`` is returned so the caller omits the field — emitting a
+# guessed path would present an unmade decision as a made one.
+#
+# §4 resolves ``project-knowledge`` to ``docs/knowledge/`` in this repository
+# per ADR-0081's per-topic model (RFC-0096 §4 and the 2026-09-13 Errata).
+# §4 resolves ``current-architecture`` to ``docs/architecture/`` per the
+# established in-repository convention for architecture documents.
+# Other roles have no single resolved destination in this repository: a
+# destination for them requires a human decision.
+#
+# Patterns are checked in order; the first match wins.
+_NOTES_ROLE_PATTERNS: list[tuple[re.Pattern[str], str, str | None]] = [
+    (re.compile(r"survey|knowledge|learning|ledger", re.IGNORECASE),
+     "project-knowledge", "docs/knowledge/"),
+    (re.compile(r"arch", re.IGNORECASE),
+     "current-architecture", "docs/architecture/"),
+    (re.compile(r"policy|invariant|truth|product", re.IGNORECASE),
+     "current-product-truth", None),
+    (re.compile(r"decision|rationale|findings|adr", re.IGNORECASE),
+     "decision-record", None),
+    (re.compile(r"operations|runbook|ops", re.IGNORECASE),
+     "operations", None),
+    (re.compile(r"user.doc|user.manual|guide", re.IGNORECASE),
+     "user-documentation", None),
+    (re.compile(r"release|changelog", re.IGNORECASE),
+     "release-history", None),
+    (re.compile(r"history", re.IGNORECASE),
+     "product-history", None),
+    (re.compile(r"interface|contract|schema", re.IGNORECASE),
+     "interface-contract", None),
+]
+
+#: Default role for notes files matching no named pattern.
+#: ``project-knowledge`` is the most common role for delivery notes; its
+#: destination resolves per ADR-0081.
+_NOTES_DEFAULT_ROLE: str = "project-knowledge"
+_NOTES_DEFAULT_DESTINATION: str | None = "docs/knowledge/"
+
+
+def classify_notes_obligation(notes_path: str) -> tuple[str, str | None]:
+    """Classify a notes file into a semantic role and optional destination.
+
+    The classification is **advisory**: the mechanical trigger for
+    ``lasting-facts-unsettled`` is the uncited notes file, not this judgement.
+    The role names the RFC-0096 §2 surface that should receive the content.
+
+    Where §4's precedence order resolves the role to a location in this
+    repository, the destination is returned.  Where it does not, ``None`` is
+    returned and the caller omits the ``destination`` field from the emitted
+    obligation — emitting a guessed path would present an unmade decision as
+    a made one.
+
+    Args:
+        notes_path: Repository-relative path to the notes file
+                    (e.g. ``"docs/specs/foo/notes/bar.md"``).
+
+    Returns:
+        ``(semantic_role, destination | None)`` pair where ``semantic_role``
+        is one of the ten roles in :data:`SEMANTIC_ROLE_ENUM`.
+    """
+    filename = Path(notes_path).name
+    for pattern, role, destination in _NOTES_ROLE_PATTERNS:
+        if pattern.search(filename):
+            return role, destination
+    return _NOTES_DEFAULT_ROLE, _NOTES_DEFAULT_DESTINATION
+
+
+def _uncited_notes_files(
+    notes_files: list[str],
+    scanned_files: list[tuple[str, str]],
+    spec_slug: str,
+) -> list[str]:
+    """Return the notes files not cited from outside the spec directory.
+
+    A notes file is considered cited when at least one file outside the
+    spec's own directory (``docs/specs/<spec_slug>/``) contains the notes
+    file's repository-relative path as a literal string.
+
+    Args:
+        notes_files:   Relative paths of files under the spec's ``notes/``
+                       directory.
+        scanned_files: Corpus of ``(rel_path, content)`` pairs to scan.
+        spec_slug:     The spec slug (used to exclude self-references).
+
+    Returns:
+        List of notes file paths with no external citation.
+    """
+    self_prefix = f"docs/specs/{spec_slug}/"
+    uncited: list[str] = []
+    for notes_path in notes_files:
+        cited = False
+        for rel_path, content in scanned_files:
+            if rel_path.startswith(self_prefix):
+                continue  # self-reference excluded
+            if notes_path in content:
+                cited = True
+                break
+        if not cited:
+            uncited.append(notes_path)
+    return uncited
 
 
 def detect_lasting_facts_unsettled(
@@ -622,20 +744,49 @@ def detect_lasting_facts_unsettled(
         ``True`` when at least one notes file is uncited from outside the
         spec's own directory.
     """
-    self_prefix = f"docs/specs/{spec_slug}/"
-    for notes_path in notes_files:
-        # Build a cite pattern for this notes file: its path as written
-        # In practice, a citation would look like the notes_path or a link to it
-        cited = False
-        for rel_path, content in scanned_files:
-            if rel_path.startswith(self_prefix):
-                continue  # self-reference
-            if notes_path in content:
-                cited = True
-                break
-        if not cited:
-            return True
-    return False
+    return bool(_uncited_notes_files(notes_files, scanned_files, spec_slug))
+
+
+def build_lasting_facts_obligations(
+    notes_files: list[str],
+    scanned_files: list[tuple[str, str]],
+    spec_slug: str,
+) -> list[dict]:
+    """Build obligation objects for notes files not cited from outside the spec.
+
+    For each uncited notes file, creates an obligation dict naming the
+    RFC-0096 §2 semantic role and, where §4's precedence order resolves one
+    in this repository, the destination.
+
+    The obligation payload is the **advisory** part of
+    ``lasting-facts-unsettled``: the mechanical proxy that fires the blocker
+    is the uncited notes file; the role is advisory classification, not the
+    trigger.
+
+    Args:
+        notes_files:   Relative paths of files under the spec's ``notes/``
+                       directory.
+        scanned_files: Corpus of ``(rel_path, content)`` pairs to scan.
+        spec_slug:     The spec slug (used to exclude self-references).
+
+    Returns:
+        List of obligation dicts, one per uncited notes file.  Each dict
+        carries ``semantic_role`` (one of the ten RFC-0096 §2 roles) and
+        ``source_path`` (the notes file path), plus ``destination`` when §4
+        resolves one.
+    """
+    uncited = _uncited_notes_files(notes_files, scanned_files, spec_slug)
+    obligations: list[dict] = []
+    for notes_path in uncited:
+        role, destination = classify_notes_obligation(notes_path)
+        obligation: dict[str, str] = {
+            "semantic_role": role,
+            "source_path": notes_path,
+        }
+        if destination is not None:
+            obligation["destination"] = destination
+        obligations.append(obligation)
+    return obligations
 
 
 # ---------------------------------------------------------------------------
