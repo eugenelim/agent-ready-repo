@@ -64,6 +64,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.43] — 2026-09-25
+
+### Highlights
+
+- `workspace-status` can now tell you which delivery contracts are retirement
+  candidates. It reads the repository, reports every blocker holding each
+  candidate back, and names the migration obligations a candidate must discharge
+  before its container can go. Being listed authorizes nothing: a human selects,
+  and the separately confirmed prune executes.
+- Evidence the run could not read withholds eligibility rather than passing
+  silently. Each blocker declares the input corpus its absence rests on, and a
+  refusal naming any member of that corpus suppresses every candidate that
+  blocker is evaluated over — including candidates carrying no blocker of their
+  own, which are reported rather than dropped. A shorter list never means a
+  cleaner one.
+- Ages come from recorded change history and are labelled as such. They are not
+  the thirty-day cooling clock, which runs from a delivery-completion event this
+  capability does not read, so the report is a triage signal rather than a
+  disposition.
+
+### Added
+
+- `retirement-candidates`, a read-only subcommand that writes nothing and
+  succeeds against a read-only checkout.
+- `contracts/jsonschema/spec-retirement-candidates.schema.json`, which owns the
+  emitted document's field set, its twelve blocker codes and its twelve refusal
+  codes.
+
 ## [core][2.26.42] — 2026-09-24
 
 ### Highlights
