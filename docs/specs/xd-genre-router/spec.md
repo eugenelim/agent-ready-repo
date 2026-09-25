@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0066 D4 and D5(d) (amended by erratum in this change); RFC-0055 D2 (errata structure); RFC-0050; RFC-0033 / ADR-0024 (framework agnosticism); ADR-0038 (alias-free precedent)
-- **Brief:** `brief:experience-design-skill-consolidation`
+- **Brief:** brief:experience-design-skill-consolidation
 - **Discovery:** [`experience-design-consolidation-analysis.md`](../../product/research/experience-design-consolidation-analysis.md)
 - **Contract:** none
 - **Shape:** ui
