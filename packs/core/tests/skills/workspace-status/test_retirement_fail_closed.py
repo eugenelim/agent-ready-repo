@@ -572,3 +572,60 @@ class TestRefusalFromInsideGuardedOpen:
             f"Expected input-too-large, got {exc_info.value.code!r}. "
             "A file exceeding 8 MiB must be refused, not silently truncated."
         )
+
+
+class TestPathSwappedBetweenCheckAndOpen:
+    """The device/inode re-check across the open.
+
+    The criterion requires a path swapped between the pre-open ``stat()`` and
+    the opened descriptor to be refused rather than read.  A real race is not
+    needed to drive it: ``_OPEN_FUNC`` is injectable, so an open that returns a
+    descriptor to a *different* file reproduces the swap deterministically.
+
+    Without this case the guard is unverified — disabling the comparison leaves
+    the whole suite green, which is how a control that cannot fail survives.
+    """
+
+    def test_descriptor_for_a_different_file_is_refused(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        mod = _load_retirement()
+        root = tmp_path
+        spec_dir = root / "docs" / "specs" / "swapped"
+        spec_dir.mkdir(parents=True)
+        target = spec_dir / "spec.md"
+        target.write_text("- **Status:** Shipped\n", encoding="utf-8")
+
+        decoy = root / "docs" / "specs" / "swapped" / "decoy.md"
+        decoy.write_text("attacker content\n", encoding="utf-8")
+
+        real_open = os.open
+
+        def open_the_decoy(path: object, flags: int, *args: object) -> int:
+            # Same call shape, different inode: the swap the guard exists for.
+            return real_open(decoy, flags)
+
+        monkeypatch.setattr(mod, "_OPEN_FUNC", open_the_decoy)
+
+        with pytest.raises(mod.ConfinementRefusal) as caught:
+            mod.confined_read_bytes(
+                root, "docs/specs/swapped/spec.md", spec_body=True
+            )
+        assert caught.value.path == "docs/specs/swapped/spec.md"
+
+    def test_descriptor_for_the_same_file_is_read(self, tmp_path: Path) -> None:
+        """The negative half: an unswapped read still succeeds.
+
+        Without it the case above would pass against an implementation that
+        refuses everything.
+        """
+        mod = _load_retirement()
+        root = tmp_path
+        spec_dir = root / "docs" / "specs" / "unswapped"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
+
+        body = mod.confined_read_bytes(
+            root, "docs/specs/unswapped/spec.md", spec_body=True
+        )
+        assert b"Shipped" in body
