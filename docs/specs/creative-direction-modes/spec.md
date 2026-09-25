@@ -510,8 +510,8 @@ and graded by the judge mode, not asserted by pytest.
       "amend", "inherit", "existing direction" or "already" today, and it is the
       one field that drives activation, so `refine` ships unreachable without
       this and the `should_trigger: true` entries below have no contracted cause
-      to pass. There are 240 characters of headroom, and frontmatter is outside
-      the authored-body ceiling. *(goal-based)*
+      to pass. Frontmatter is outside the authored-body ceiling; the
+      shipped description reads 1,009 of the 1,024 available. *(goal-based)*
 - [ ] The frontmatter `description` stays within 1024 characters and continues to
       name the skill's boundaries against `design-system`,
       `information-architecture`, and `design-review`. *(goal-based)*

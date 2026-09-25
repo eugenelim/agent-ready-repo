@@ -10,7 +10,7 @@
 
 **Visualised candidate** — an illustrative depiction of a single direction, produced to support the human's comparison before selection. Visualise every surviving candidate or none: visualising one and not the others weights the choice, which `converge`'s equal-salience rule forbids. This representation is illustrative and non-binding. It informs a choice but does not supersede the direction sheet.
 
-**Approved visual target** — a composition the human has confirmed as a structural reference for the selected direction. This representation is binding on composition only: it fixes arrangement, proportion, and spatial relationships.
+**Approved visual target** — a composition the human has confirmed as a structural reference for the direction it was produced from: a candidate's on `originate`, the selected direction's on a later standalone call. This representation is binding on composition only: it fixes arrangement, proportion, and spatial relationships.
 
 ## Value boundary of the approved visual target
 

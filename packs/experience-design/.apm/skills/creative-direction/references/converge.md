@@ -1,6 +1,6 @@
 # converge — selection, commitment, and the doc
 
-`converge` is the only operation that writes a file. `explore` holds candidate sheets in the session; `visualize` writes nothing. Every act below consumes the selected direction and cannot run before selection.
+`converge` is the only operation that writes a file. `explore` holds candidate sheets in the session; `visualize` writes nothing. Presenting candidates, the standing exit and selection produce the selection. Every act from grounding onward consumes it and cannot run before it.
 
 ## Presenting candidates
 
@@ -14,6 +14,7 @@ In every divergence round, offer the standing exit alongside the derived candida
 - It is never recommended by the agent; the agent presents it at equal salience and does not weight the choice.
 - It is executed at full commitment when chosen: the direction sheet is filled as seriously as any derived candidate, the counterfactual check runs, and the floor applies.
 - Presenting it does not require comment or qualification. The name is enough.
+- On a route where `visualize` ran, the standing exit is visualised on the same terms as the derived candidates, or none of them are. An unvisualised option beside visualised ones weights the choice.
 
 ## Selection
 
@@ -55,7 +56,7 @@ Resolve `output_dir` by reading `references/agentbundle-layout.md`, then apply e
 4. **Intermediate-directory confinement** — re-establish confinement at each intermediate directory as it is created.
 5. **Existing-artifact checks** — check type, surface a matching type to the user, and confirm product belonging when `output_dir` came from user-profile configuration.
 
-The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. Write any approved visual target's compositional commitments into the doc here; `visualize` forms them and writes nothing itself. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
+The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. Write the selected direction's approved visual target's compositional commitments into the doc here. `visualize` forms them and writes nothing itself, and on `originate` it may have produced one per candidate: only the selected direction's reaches the doc, the rest are discarded with their candidates. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
 
 ## Signature device
 
@@ -71,4 +72,4 @@ Once the direction doc is captured, hand to `design-system` to derive the tokens
 
 ---
 
-**References:** `references/grounding.md`, `references/referents.md`, `references/coherence-arbitration.md`, `references/containment.md`, `references/agentbundle-layout.md`, `references/refusals.md`
+**References:** `references/visualize.md`, `references/grounding.md`, `references/referents.md`, `references/coherence-arbitration.md`, `references/containment.md`, `references/agentbundle-layout.md`, `references/refusals.md`
