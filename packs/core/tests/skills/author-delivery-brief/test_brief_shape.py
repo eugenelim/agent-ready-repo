@@ -268,16 +268,19 @@ def test_ac0009_well_formed_value_is_present() -> None:
 
 # ── AC-0010: the vocabulary is exactly the six-token frozenset ────────────────
 
-# The tokens the spec names.  Spelled once here so the set comparison below
-# does not repeat them.
-_EXPECTED_STATUSES = frozenset(
+# The six tokens from the spec's brief-state table (§ The brief state table in
+# docs/specs/brief-lifecycle-contract/spec.md).  This is the spec oracle; it
+# must NOT be derived from BRIEF_STATUSES or any other implementation constant.
+# Both the vocabulary test (AC-0010) and the transition sweep (AC-0017/AC-0018)
+# use this constant so they range over the same set.
+_SPEC_STATUS_TOKENS: frozenset[str] = frozenset(
     {"Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"}
 )
 
 
 def test_ac0010_vocabulary_is_exact_frozenset() -> None:
     """BRIEF_STATUSES equals the six-token vocabulary exactly (AC-0010)."""
-    assert _m.BRIEF_STATUSES == _EXPECTED_STATUSES
+    assert _m.BRIEF_STATUSES == _SPEC_STATUS_TOKENS
 
 
 # ── AC-0011: absent or unknown status is not lifecycle-valid ──────────────────
@@ -486,9 +489,8 @@ _SPEC_LEGAL_PAIRS: frozenset[tuple[str, str]] = frozenset({
     ("Executing", "Cancelled"),
 })
 
-_ALL_STATUS_TOKENS: frozenset[str] = frozenset({
-    "Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled",
-})
+# _SPEC_STATUS_TOKENS (defined near AC-0010 above) is also used here for the
+# transition sweep; it is the same spec oracle, not a second copy.
 
 
 def test_ac0017_illegal_transitions_refused() -> None:
@@ -500,8 +502,8 @@ def test_ac0017_illegal_transitions_refused() -> None:
     one makes at least one assertion fail, because the oracle does not update
     with the implementation.
     """
-    for from_s in _ALL_STATUS_TOKENS:
-        for to_s in _ALL_STATUS_TOKENS:
+    for from_s in _SPEC_STATUS_TOKENS:
+        for to_s in _SPEC_STATUS_TOKENS:
             if from_s == to_s:
                 continue
             if (from_s, to_s) not in _SPEC_LEGAL_PAIRS:
@@ -516,7 +518,7 @@ def test_ac0018_legal_transitions_and_self_pairs_not_refused() -> None:
     Iterates the 8 pairs in _SPEC_LEGAL_PAIRS (the literal spec oracle) and
     the 6 self-pairs; all 14 must return True.  AC-0018.
     """
-    for state in _ALL_STATUS_TOKENS:
+    for state in _SPEC_STATUS_TOKENS:
         assert _m.is_transition_valid(state, state), (
             f"Self-pair ({state!r}, {state!r}) should not be refused"
         )
@@ -584,22 +586,42 @@ import re as _re  # noqa: E402
 def test_t6_refusal_registry_equals_actual_refusals() -> None:
     """Module docstring refusal registry equals the set of refusals the module raises.
 
-    T6: set comparison.  Parses the ``**Refusal registry**`` lines from the
-    docstring and checks them against the canonical set of refusal classes the
-    module's public validators can return.  A sentence-exists check would pass
-    even if the registry were empty; a set comparison requires exact equality.
+    T6: set comparison.  Extracts registry class names from the
+    ``**Refusal registry**`` section of the module docstring and checks them
+    against the canonical set of refusal classes the module's public validators
+    can return.
+
+    Two defects the fix addresses:
+
+    1. ``validate_cut_closed`` was swept with three inputs that all fail before
+       the ISO check; a fourth refusal added *after* the ISO check would not
+       fire on any of them and the test would pass silently.  The sweep now
+       includes a valid input (``2026-01-01 evidence``) that passes the ISO
+       check, so any new refusal added after it fires and surfaces as
+       ``UNREGISTERED_cut_closed``.  Each returned message is mapped to a
+       registered class name by content pattern; an unrecognised message is
+       ``UNREGISTERED_cut_closed``, not silently folded into a known class.
+
+    2. The registry side was filtered to names starting with ``cut_closed_``,
+       so a class outside that namespace added to the docstring would be dropped
+       before the comparison.  The extraction is now scoped to the
+       ``**Refusal registry**`` section of the docstring so that other
+       ``...`` spans (mirror documentation, etc.) do not participate, and the
+       namespace filter is removed.
     """
     doc = _m.__doc__ or ""
-    # Extract all backtick-delimited identifiers on registry list lines.
-    # Registry lines have the form: "- ``class_name`` — description"
+
+    # Scope extraction to the **Refusal registry** section so that ``...``
+    # spans that document mirrors (e.g. ``extract_token``) do not participate
+    # as registry entries.
+    reg_start = doc.find("**Refusal registry**")
+    registry_section = doc[reg_start:] if reg_start != -1 else ""
     registry = {
         m.group(1)
-        for m in _re.finditer(r"^- ``([^`]+)``", doc, _re.MULTILINE)
-        if not m.group(1).startswith(" ")
+        for m in _re.finditer(r"^- ``([^`]+)``", registry_section, _re.MULTILINE)
     }
-    # Filter to the cut_closed_ namespace; other ``...`` spans in the docstring
-    # are delimiter examples, not refusal class names.
-    registry = {name for name in registry if name.startswith("cut_closed_")}
+    # No namespace filter — all entries in the registry section participate so
+    # a class outside cut_closed_ is not silently dropped from the comparison.
 
     # Derive the actual side from behaviour rather than restating it: sweep
     # every input shape the module's public validators accept and collect the
@@ -609,10 +631,30 @@ def test_t6_refusal_registry_equals_actual_refusals() -> None:
     # drift this test exists to catch.
     observed: set[str] = set()
 
-    # validate_cut_closed: every distinct malformed shape is one condition.
-    for bad in ("not-a-date evidence", "2026-08-25", "2026-13-99 bad month"):
-        if _m.validate_cut_closed(bad) is not None:
-            observed.add("cut_closed_malformed")
+    # validate_cut_closed: map each returned message to a class by content
+    # pattern.  Known patterns → registered class name.  Unrecognised message →
+    # UNREGISTERED_cut_closed, which surfaces immediately as a set mismatch.
+    # The sweep includes "2026-01-01 evidence" (a valid input that currently
+    # returns None) so that any refusal added after the ISO check fires on it.
+    _CUT_CLOSED_CLASS_SIGNS: list[tuple[str, str]] = [
+        ("is not an ISO 8601 date followed by evidence text", "cut_closed_malformed"),
+        ("is not an ISO 8601 date", "cut_closed_malformed"),
+    ]
+    for bad in (
+        "not-a-date evidence",
+        "2026-08-25",
+        "2026-13-99 bad month",
+        "2026-01-01 evidence",  # valid under current rules; detects new post-ISO refusals
+    ):
+        msg = _m.validate_cut_closed(bad)
+        if msg is None:
+            continue
+        cls = "UNREGISTERED_cut_closed"
+        for sign, name in _CUT_CLOSED_CLASS_SIGNS:
+            if sign in msg:
+                cls = name
+                break
+        observed.add(cls)
 
     # validate_declaration: sweep all six states against present and absent.
     for status in ("Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"):
@@ -682,3 +724,50 @@ def test_comment_closer_then_heading_does_not_end_the_preamble() -> None:
     # An ordinary heading still terminates.
     ordinary = "# B\n\n- **Status:** Draft\n\n## Outcome\n- **Slug:** `x`\n"
     assert "Slug" not in dict(_m.read_preamble(ordinary))
+
+
+def test_indented_heading_bounds_preamble() -> None:
+    """An indented ## heading (up to three spaces) ends the preamble.
+
+    CommonMark allows up to three leading spaces on a heading.  The preamble
+    reader must not silently admit a field that appears below an indented
+    heading on the grounds that the heading is not flush-left.
+
+    Mutation: remove the ``.lstrip()`` call in the heading check so that
+    ``  ## Section`` is not recognised as a heading.  The Cut-closed field
+    below it would then be read, and this test reds.
+    """
+    text = (
+        "- **Status:** Draft\n"
+        "\n"
+        "  ## Section\n"  # two leading spaces — still a heading in CommonMark
+        "\n"
+        "- **Cut-closed:** 2026-01-01 evidence text\n"
+    )
+    assert _m.get_cut_closed(text) is None, (
+        "field below indented ## heading must not be read"
+    )
+
+
+def test_bounding_heading_opening_comment_keeps_prior_fields() -> None:
+    """A heading that itself opens a comment does not erase fields already read.
+
+    The preamble reader returns early on finding the heading line.  Comment
+    state opened on that same line belongs to the body, not to the preamble
+    already collected; the early return must preserve the fields already in
+    ``pairs``.
+
+    Mutation: move the unclosed-comment check before the early return so that
+    the open comment on the heading line invalidates the preamble.  The
+    Status field would then be dropped and this test reds.
+    """
+    text = (
+        "- **Status:** Draft\n"
+        "## Section <!--\n"  # heading that opens (but never closes) a comment
+        "- **Cut-closed:** 2026-01-01 evidence\n"  # inside comment, body
+        "-->\n"
+    )
+    assert _m.get_status(text) == "Draft", (
+        "fields read before the bounding heading must be returned even when "
+        "the heading line itself opens a comment"
+    )

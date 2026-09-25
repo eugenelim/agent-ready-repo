@@ -158,6 +158,11 @@ def test_shipped_requires_nonempty_all_shipped_map() -> None:
         expect(rc == 1, f"empty Shipped map must fail: {out}")
         expect("': not delivered" in out, out)
         expect("brief lifecycle" in err.lower(), err)
+        # AC-0021: the full relative path must appear, not just the stem.
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"AC-0021: lifecycle refusal must name 'docs/product/briefs/myb.md': {err}",
+        )
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -167,6 +172,10 @@ def test_shipped_requires_nonempty_all_shipped_map() -> None:
         expect(rc == 1, f"non-shipped child must block Shipped brief: {out}")
         expect("': not delivered" in out, out)
         expect("brief lifecycle" in err.lower(), err)
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"AC-0021: lifecycle refusal must name 'docs/product/briefs/myb.md': {err}",
+        )
 
 
 @pytest.mark.parametrize(
@@ -230,6 +239,11 @@ def test_governance_reference_is_rejected_from_spec_map() -> None:
         expect("governance reference" in err.lower(), err)
         expect("Governance references" in err, err)
         expect("ADR-0098" in err, err)
+        # AC-0021: the full relative path must appear, not just the stem.
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"AC-0021: governance refusal must name 'docs/product/briefs/myb.md': {err}",
+        )
 
 
 def test_no_brief_noop() -> None:
@@ -306,6 +320,11 @@ def test_stale_cell_drifts_fail_closed() -> None:
         expect(rc == 1, f"stale recorded cell should exit 1, got {rc}: {out}")
         expect("stale" in err.lower(), f"drift message should name staleness: {err}")
         expect("beta" in err, f"drift message should name the spec: {err}")
+        # AC-0021: the full relative path must appear, not just the stem.
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"AC-0021: drift refusal must name 'docs/product/briefs/myb.md': {err}",
+        )
 
 
 def test_unset_cell_is_not_drift() -> None:
@@ -478,6 +497,11 @@ def test_shipped_brief_without_cut_closed_refused() -> None:
         expect(rc == 1, f"Shipped without Cut-closed: must fail, got {rc}: {err}")
         expect("cut-closed" in err.lower(), f"refusal must name Cut-closed: {err}")
         expect("shipped" in err.lower(), f"refusal must name Shipped status: {err}")
+        # AC-0021: the full relative path must appear, not just the stem.
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"AC-0021: declaration-matrix refusal must name 'docs/product/briefs/myb.md': {err}",
+        )
 
 
 # ── AC-0024: no second scan of any brief preamble field ─────────────────────
@@ -1033,6 +1057,11 @@ def test_out_of_vocabulary_status_exits_1_with_vocabulary_diagnostic() -> None:
             "FLIBBERTIGIBBET" in err,
             f"refusal must name the offending token 'FLIBBERTIGIBBET': {err}",
         )
+        # AC-0021: the full relative path must appear, not just the stem.
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"AC-0021: vocabulary refusal must name 'docs/product/briefs/myb.md': {err}",
+        )
 
 
 # ── AC-0008 / AC-0021 / AC-0022: malformed Cut-closed: exits 1 and names value
@@ -1063,6 +1092,11 @@ def test_malformed_cut_closed_exits_1_and_names_value() -> None:
         expect(
             "20260101 some evidence" in err,
             f"refusal must name the offending value '20260101 some evidence': {err}",
+        )
+        # AC-0021: the full relative path must appear, not just the stem.
+        expect(
+            "docs/product/briefs/myb.md" in err,
+            f"AC-0021: malformed Cut-closed refusal must name 'docs/product/briefs/myb.md': {err}",
         )
 
 
@@ -1103,12 +1137,11 @@ def test_ac0029_row_where_comment_closes_is_excluded() -> None:
         expect("': delivered" in out, f"brief must be delivered: {out}")
 
 
-# ── C regression: repeated ## Spec map heading keeps section open ─────────────
+# ── Section-reopen: a second ## Spec map heading keeps the section open ───────
 
 
 def test_repeated_spec_map_heading_rows_all_parsed() -> None:
-    """C regression: a second '## Spec map' heading re-opens the section;
-    rows below it are still parsed.
+    """A second '## Spec map' heading re-opens the section; rows below it are parsed.
 
     Without the fix the second heading terminates the section, so only the
     row above it is parsed: alpha (Shipped) makes the Shipped brief look
@@ -1130,7 +1163,88 @@ def test_repeated_spec_map_heading_rows_all_parsed() -> None:
         rc, out, err = run_lint(root)
         expect(
             rc == 1,
-            f"C: rows under both headings must be parsed; no-such-slug is missing "
+            f"rows under both headings must be parsed; no-such-slug is missing "
             f"→ lifecycle invalid: rc={rc} err={err}",
+        )
+        expect("brief lifecycle" in err.lower(), err)
+
+
+# ── Indented ## heading terminates Spec-map section ───────────────────────────
+
+
+def test_indented_heading_terminates_spec_map() -> None:
+    """An indented ## heading (up to three leading spaces) ends the Spec-map section.
+
+    CommonMark allows up to three leading spaces on a heading.  The Spec-map
+    parser must not parse rows that appear below an indented heading as though
+    the section were still open.
+
+    Without termination: no-such-slug is also counted → missing child →
+    lifecycle invalid → rc=1.  With correct termination: only alpha counts →
+    Shipped brief all-Shipped → delivered → rc=0.
+
+    Mutation: remove the ``.lstrip()`` call in the section-terminator check so
+    that ``  ## Other`` is not recognised as a heading.  no-such-slug would then
+    be parsed, the lifecycle check would fail, and rc becomes 1 — this test reds.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no spec for no-such-slug
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 alpha shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Shipped |\n"
+            "  ## Other\n"  # indented heading — must end the section
+            "| no-such-slug | <auto> |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 0,
+            f"indented ## heading must end the Spec-map section: rc={rc} err={err}",
+        )
+        expect("': delivered" in out, f"brief must be delivered: {out}")
+
+
+# ── Comment-closer-then-heading does NOT terminate Spec-map section ────────────
+
+
+def test_comment_closer_heading_does_not_terminate_spec_map() -> None:
+    """A line that closes a comment and then carries a heading does not end the section.
+
+    ``-->  ## Other`` began inside a comment and closed it; the heading text is
+    a live *suffix* rather than a prefix, so it must not terminate the
+    Spec-map section.  The preamble reader draws the same line for the same
+    reason — both readers must agree.
+
+    Without the ``in_comment_before`` guard: the section terminates at
+    ``-->  ## Other`` → only alpha is counted → Shipped brief with one
+    Shipped child → delivered → rc=0.
+    With the guard (correct): the section does not terminate → no-such-slug is
+    also counted (no spec file → missing child) → lifecycle invalid → rc=1.
+
+    Mutation: remove the ``not in_comment_before`` part of the terminator check
+    so that any live ``## `` suffix terminates.  The section would then close at
+    ``-->  ## Other`` and no-such-slug would not be counted → rc becomes 0 —
+    this test reds.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no spec for no-such-slug
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 alpha shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Shipped |\n"
+            "<!--\n"
+            "-->  ## Other\n"  # comment-closer-then-heading — must NOT end the section
+            "| no-such-slug | <auto> |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 1,
+            f"comment-closer-then-heading must not end the Spec-map section: rc={rc} err={err}",
         )
         expect("brief lifecycle" in err.lower(), err)
