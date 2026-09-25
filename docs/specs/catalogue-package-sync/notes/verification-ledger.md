@@ -79,8 +79,15 @@ correctly. Nothing in this ledger could see it.
 
 The discriminating artifact is at the command boundary, not here:
 `test_apply_package_scope_reaches_the_write_set_at_the_command_boundary` drives
-`--package` through `run()` on an apply and asserts the resulting write set
-holds nothing outside that destination.
+`--package` through `run()` on an apply and asserts the resolved value reaches
+the write-set selector. That is what would have failed before the repair.
+
+Its escape assertion — nothing admitted outside the destination — is currently
+**vacuous**, because that fixture's source plans no path under
+`packages/credbroker/`, so the admitted set is empty. It still guards the
+regression, since an unscoped run would make the set non-empty and fail it, but
+it does not establish that the scope admits the right paths. The test asserts
+its own emptiness so the vacuity is visible rather than assumed.
 
 ## What this ledger does not establish
 

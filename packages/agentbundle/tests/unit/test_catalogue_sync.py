@@ -2317,6 +2317,10 @@ def _apply(target: Path, replay, verdict_rows, **overrides) -> catalogue_sync.Wr
         "pack_names": replay.pack_names,
         "profile_names": replay.profile_names,
         "guides_scope": False,
+        # Required rather than defaulted (review round 2, concern 7): round
+        # 1's blocker was a caller that silently omitted it, and a default of
+        # None means "every path".
+        "package": None,
         "guides_mode": replay.config.guides,
         "pin": {"synced_at": "2026-09-23T00:00:00Z", "source_revision": None,
                 "archive_sha256": None},
@@ -2372,6 +2376,7 @@ def test_apply_write_order_is_packs_profiles_guides_derivation_then_state(
         pack_names=[], profile_names=[],
         guides_scope=False, guides_mode="selected",
         pin={},
+        package=None,
     )
 
     assert result.ok
@@ -3129,6 +3134,7 @@ def test_apply_snapshot_bound_refuses_before_the_prompt_and_before_any_write(tmp
         guides_scope=False, guides_mode="selected",
         pin={},
         snapshot_bound_bytes=1024,
+        package=None,
     )
 
     assert not result.ok
@@ -3372,6 +3378,7 @@ def test_apply_planned_path_outside_target_root_is_refused_at_the_write(tmp_path
         pack_names=[], profile_names=[],
         guides_scope=False, guides_mode="selected",
         pin={},
+        package=None,
     )
     assert not result.ok
     assert result.write_failed_path == "../escape.md"
@@ -3566,6 +3573,7 @@ def test_apply_rename_recheck_refuses_after_earlier_write_landed_and_restores_it
             file_bytes=file_bytes, planned_paths=set(file_bytes),
             pack_names=["alpha"], profile_names=[],
             guides_scope=False, guides_mode="selected", pin={},
+            package=None,
         )
 
     assert not result.ok
@@ -6412,12 +6420,21 @@ def test_apply_package_scope_reaches_the_write_set_at_the_command_boundary(
         "the resolved --package value must reach the write-set selector on "
         "the apply path, not only on --dry-run"
     )
-    # And the scope must actually bite: nothing outside that destination.
+    # Review round 2, concern 5: `assert not outside` was vacuously true here
+    # -- `_make_apply_source` plans nothing under `packages/credbroker/`, so
+    # the admitted set is empty and the escape assertion could never bite. It
+    # is kept, because an unscoped run WOULD make it non-empty and fail, which
+    # is exactly the regression it guards. What it cannot do is prove the
+    # scope admits the right paths; that is the T3 unit coverage's job.
     outside = {
         p for p in seen.get("admitted", set())
         if not p.startswith("packages/credbroker/")
     }
     assert not outside, f"apply write set escaped the package scope: {sorted(outside)[:5]}"
+    assert seen.get("admitted") == set(), (
+        "this fixture ships no credbroker extent; if that changes, tighten the "
+        "assertion above into a positive one rather than leaving it vacuous"
+    )
 
 
 @pytest.mark.parametrize("name", ["agentbundle", "credbroker"])
@@ -6463,38 +6480,51 @@ def test_package_credbroker_refuses_when_the_resolved_selection_lacks_its_pack(
     assert reached, "AC-0084: the credbroker row is decided after source resolution"
 
 
-def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path):
-    # The other direction, so the refusal cannot pass by always firing.
+def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path, monkeypatch):
+    # Review round 2, blocker 3. This is the only negative control for
+    # AC-0082's credbroker row, and it never reached that row: it passed
+    # `--pack credential-brokers`, which `_make_apply_source` does not ship,
+    # so AC-0046's unshipped-name row refused first and the assertion held
+    # vacuously. Point the pack constant at one the fixture does ship, so the
+    # run actually reaches the row with the pack present.
+    monkeypatch.setattr(catalogue_sync, "_USER_LIBS_PACK", "alpha")
     source = _make_apply_source(tmp_path / "cb-ok-source")
     target = tmp_path / "cb-ok-target"
     target.mkdir()
     _write_apply_old_state(target)
-    args = _sync_args(
-        target, source, "--package", "credbroker",
-        "--pack", catalogue_sync._USER_LIBS_PACK, "--yes",
+
+    fired: list[str] = []
+    real = catalogue_sync._absent_credbroker_extent
+
+    def _watch(package, pack_names):
+        reason = real(package, pack_names)
+        if reason is not None:
+            fired.append(reason)
+        return reason
+
+    monkeypatch.setattr(catalogue_sync, "_absent_credbroker_extent", _watch)
+    catalogue_sync.run(
+        _sync_args(target, source, "--package", "credbroker", "--dry-run")
     )
-    fired = []
-    real = catalogue_sync._refuse
-
-    def _watch(message, **kw):
-        fired.append(message)
-        return real(message, **kw)
-
-    with patch.object(catalogue_sync, "_refuse", side_effect=_watch):
-        catalogue_sync.run(args)
-    assert not any("--package credbroker" in m for m in fired), (
-        "AC-0082's credbroker row must not fire when the selection carries "
-        f"{catalogue_sync._USER_LIBS_PACK!r}"
+    assert not fired, (
+        "AC-0082's credbroker row must not fire when the resolved selection "
+        "carries the pack; a refusal that always fires would pass the "
+        "positive test alone"
     )
 
 
 def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
     tmp_path, monkeypatch
 ):
-    # Review concern 5. AC-0083's trigger is the run's effective scope. A
-    # `--tooling vendored --pack <name>` run is scoped to `packs/<name>/`, and
-    # AC-0081 fixes that `--pack` never reaches inside a package destination,
-    # so its scope provably excludes the engine. Testing `package is None`
+    # Review round 2, blocker 2. AC-0083's refusal returns 3, and so do three
+    # other rows -- source resolution among them -- so `== 3` cannot tell
+    # "proceeded past the refusal" from "was refused by it". The oracle is
+    # whether `_self_replacement_reason` was consulted at all.
+    #
+    # The behaviour under test: AC-0083's trigger is the run's effective
+    # scope. A `--tooling vendored --pack <name>` run is scoped to
+    # `packs/<name>/`, which AC-0081 fixes can never reach inside a package
+    # destination, so it has nothing to refuse. Testing `package is None`
     # instead refused every pack-, profile- and guides-scoped sync a vendored
     # adopter with an editable engine could run.
     target = tmp_path / "t"
@@ -6502,32 +6532,115 @@ def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
     engine.mkdir(parents=True)
     _no_fetch(monkeypatch)
     monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
-    # Input 2 holds: the running engine is inside this target.
     monkeypatch.setattr(catalogue_sync, "_running_package_root", lambda: engine)
 
-    # Unscoped vendored: refused.
+    consulted: list[str] = []
+    real = catalogue_sync._self_replacement_reason
+
+    def _watch(tgt):
+        consulted.append(str(tgt))
+        return real(tgt)
+
+    monkeypatch.setattr(catalogue_sync, "_self_replacement_reason", _watch)
+
+    # Unscoped vendored: the trigger fires and the refusal is consulted.
+    consulted.clear()
     assert catalogue_sync.run(
         _sync_args(target, tmp_path / "src", "--tooling", "vendored")
     ) == 3
-    # Pack-scoped vendored: proceeds past the refusal to source resolution.
+    assert consulted, "an unscoped vendored run must be tested for self-replacement"
+
+    # Scoped by any non-package flag: the trigger must not fire at all.
     for extra in (["--pack", "core"], ["--profile", "default"], ["--guides"]):
-        args = _sync_args(target, tmp_path / "src", "--tooling", "vendored", *extra)
-        assert catalogue_sync.run(args) == 3  # source could not be resolved
-    # ...and --package agentbundle is still refused, since it names the engine.
+        consulted.clear()
+        catalogue_sync.run(
+            _sync_args(target, tmp_path / "src", "--tooling", "vendored", *extra)
+        )
+        assert not consulted, (
+            f"{extra} scopes away from the engine, so AC-0083 must not fire; "
+            "consulting it refuses a sync a vendored adopter may legitimately run"
+        )
+
+    # --package agentbundle names the engine, so it must fire.
+    consulted.clear()
     assert catalogue_sync.run(
         _sync_args(target, tmp_path / "src", "--tooling", "vendored",
                    "--package", "agentbundle")
     ) == 3
+    assert consulted
 
 
-# NOTE: reconstructed by adversarial review after an accidental
-# `git checkout --` discarded the uncommitted original. Verify against intent.
 @pytest.mark.parametrize("mode", [[], ["--dry-run"]], ids=["apply", "dry-run"])
 def test_absent_credbroker_extent_refuses_on_preview_and_apply_alike(tmp_path, mode):
-    source = _make_apply_source(tmp_path / "both-source")
-    target = tmp_path / "both-target"
+    # AC-0085's row invocation column reads `any`. A refusal the apply takes
+    # and the preview does not is the defect shape this phase already shipped
+    # twice -- `_run_apply` ignoring `--package` while `_run_dry_run` honoured
+    # it, then the reverse. One predicate, two call sites, so they cannot
+    # diverge a third time.
+    tag = "-".join(mode) or "apply"
+    source = _make_apply_source(tmp_path / f"both-source-{tag}")
+    target = tmp_path / f"both-target-{tag}"
     target.mkdir()
     _write_apply_old_state(target)
     consent = [] if mode else ["--yes"]
     args = _sync_args(target, source, *mode, "--package", "credbroker", *consent)
     assert catalogue_sync.run(args) == 2
+
+
+def test_package_path_admits_a_reentrant_spelling_via_the_identity_half(tmp_path):
+    # Review round 2, concern 6. `../<target>/packages/credbroker/x.py`
+    # resolves inside the destination, and `os.path.normpath` leaves it
+    # untouched. The lexical half cannot see it; the identity half must, and
+    # the escape guard must not short-circuit before it runs.
+    #
+    # This is a removal-safety case, not a cosmetic one: `_in_coverage` uses
+    # this predicate as an EXCLUSION, so a False makes the path a removal
+    # candidate on a run whose destination is not present -- the mass-removal
+    # class AC-0069 exists to prevent.
+    t = tmp_path / "derived"
+    (t / "packages" / "credbroker").mkdir(parents=True)
+    (t / "packages" / "credbroker" / "x.py").write_text("real", encoding="utf-8")
+    spell = "../derived/packages/credbroker/x.py"
+    assert catalogue_sync._is_package_path(t, spell, catalogue_sync._PACKAGE_PREFIXES)
+    # ...and therefore it is excluded from coverage on an external-mode run.
+    assert not catalogue_sync._in_coverage(
+        t, spell, pack_names=[], profile_names=[], guides_mode="selected",
+        scope=None, tooling="external",
+    )
+
+
+def test_package_path_still_refuses_a_spelling_that_truly_escapes(tmp_path):
+    t = tmp_path / "derived"
+    (t / "packages" / "credbroker").mkdir(parents=True)
+    (tmp_path / "outside").mkdir()
+    assert not catalogue_sync._is_package_path(
+        t, "../outside/x.py", catalogue_sync._PACKAGE_PREFIXES
+    )
+
+
+@pytest.mark.parametrize("mode", [[], ["--dry-run"]], ids=["apply", "dry-run"])
+def test_credbroker_row_outranks_the_container_row(tmp_path, mode):
+    # Review round 2, blocker 1. AC-0085 is total and first-match-wins, and
+    # places AC-0082's credbroker row ABOVE "the recorded-path container is
+    # not an array". Implemented below it, this returned 3 where the table
+    # requires 2 -- on both paths.
+    tag = "-".join(mode) or "apply"
+    source = _make_apply_source(tmp_path / f"order-source-{tag}")
+    target = tmp_path / f"order-target-{tag}"
+    target.mkdir()
+    _write_apply_old_state(target)
+    # Break the container so its row would fire if it were reached first.
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"] = {"not": "an array"}
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    consent = [] if mode else ["--yes"]
+    args = _sync_args(target, source, *mode, "--package", "credbroker", *consent)
+    assert catalogue_sync.run(args) == 2, (
+        "AC-0085 places the credbroker row above the container row; a 3 here "
+        "means the implemented order disagrees with the table"
+    )
+    # ...and with no --package, the container row is still reached.
+    args2 = _sync_args(target, source, *mode, *consent)
+    assert catalogue_sync.run(args2) == 3

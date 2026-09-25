@@ -795,8 +795,22 @@ def _self_replacement_reason(target: Path) -> str | None:
     # the true one; it must not escape `run()` as a traceback instead of an
     # exit code.
     try:
-        running_relpath = os.path.relpath(_running_package_root(), target)
-    except (ValueError, OSError):
+        running_root = _running_package_root()
+    except Exception:  # noqa: BLE001 - see below; never decide by raising
+        # The operand itself could not be read — `agentbundle.__file__` is
+        # `None` under a frozen or zipped install, which raises `TypeError`,
+        # not `OSError`. AC-0083 is fail-closed in posture, but this input
+        # cannot fail closed on its own: refusing every run whose engine
+        # location is unreadable would refuse every frozen install, including
+        # every one whose target is unrelated. Input 1 still answers, and it
+        # is wrapped the same way directly above.
+        return None
+    try:
+        running_relpath = os.path.relpath(running_root, target)
+    except ValueError:
+        # Windows, different drives. "Unrelatable" here is conclusive: a path
+        # on another volume is not inside the target, so this is the true
+        # answer rather than an unanswered question.
         return None
     if _is_package_path(target, running_relpath, (_VENDORED_ENGINE_PREFIX,)):
         return (
@@ -883,13 +897,19 @@ def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool
     cannot see the answer at all.
     """
     normalised = os.path.normpath(path).replace(os.sep, "/")
-    if (
+    # A spelling that still leaves *target* after normalisation cannot be
+    # decided lexically — but it must NOT short-circuit to False, because it
+    # may re-enter: `../<target-name>/packages/credbroker/x.py` normalises
+    # unchanged and resolves inside the destination. `_in_coverage` reads this
+    # predicate as an exclusion, so a False there makes such a path a removal
+    # candidate, which is the mass-removal class AC-0069 exists to prevent.
+    # Fall through to the identity half, which resolves it and answers.
+    escapes = (
         normalised == ".."
         or normalised.startswith("../")
         or Path(normalised).is_absolute()
-    ):
-        return False
-    if any(
+    )
+    if not escapes and any(
         normalised == prefix.rstrip("/") or normalised.startswith(prefix)
         for prefix in prefixes
     ):
@@ -1262,7 +1282,7 @@ def plan_write_set(
     scope_packs: Iterable[str] = (),
     scope_profiles: Iterable[str] = (),
     guides_scope: bool = False,
-    package: str | None = None,
+    package: str | None,
 ) -> WritePlan:
     """AC-0033 clauses 3-5 / AC-0066 / AC-0070 / AC-0071 — classify
     *verdict_rows* into the admitted write set, read-only.
@@ -1555,7 +1575,7 @@ def apply_write_sequence(
     scope_packs: Iterable[str] = (),
     scope_profiles: Iterable[str] = (),
     guides_scope: bool = False,
-    package: str | None = None,
+    package: str | None,
     guides_mode: str,
     pin: dict[str, Any],
     snapshot_bound_bytes: int = _SNAPSHOT_BOUND_BYTES,
@@ -2602,6 +2622,16 @@ def _run_dry_run(
             fmt=fmt, code=_CANNOT_ANSWER,
         )
 
+    # AC-0082's `credbroker` row — see the matching block in `_run_apply`.
+    # AC-0085's invocation column reads `any`, and the preview must take the
+    # same row at the same position as the apply it previews.
+    absent_extent = _absent_credbroker_extent(package, pack_names)
+    if absent_extent is not None:
+        return _refuse(
+            absent_extent, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_MALFORMED,
+        )
+
     # Spec AC-0013/AC-0014: a recorded `managed_paths` that is not an array
     # cannot be interpreted at all. Checked here, before any plan can be
     # printed, rather than left to `_classify_planned_paths`'s own
@@ -2646,13 +2676,6 @@ def _run_dry_run(
     # nothing (AC-0068), and `replay.pack_names` is the source's own
     # unnarrowed shipped-pack list, so gating on it would run this check
     # over packs the resolved selection admits none of.
-    absent_extent = _absent_credbroker_extent(package, pack_names)
-    if absent_extent is not None:
-        return _refuse(
-            absent_extent, attributed=attributed, source_raw=source_raw,
-            fmt=fmt, code=_MALFORMED,
-        )
-
     gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)
     if gate_code is not None:
         return gate_code
@@ -3146,6 +3169,19 @@ def _run_apply(
             fmt=fmt, code=_CANNOT_ANSWER,
         )
 
+    # AC-0082's `credbroker` row. AC-0085 places it directly below the
+    # selection-validity row and ABOVE the recorded-container and identity-leak
+    # rows, so it is decided here — the moment the resolved selection exists
+    # and before either of those. Placing it lower returned 3 where the table
+    # requires 2, and on the apply path returned 1 on a leak, which put the
+    # preview and the apply on different codes for one invocation.
+    absent_extent = _absent_credbroker_extent(package, pack_names)
+    if absent_extent is not None:
+        return _refuse(
+            absent_extent, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_MALFORMED,
+        )
+
     if not _managed_paths_container_is_array(target):
         return _refuse(
             "the recorded-path container is not an array",
@@ -3182,13 +3218,6 @@ def _run_apply(
     # classified anything").
     if replay.violations:
         return _DIFFERENCE
-
-    absent_extent = _absent_credbroker_extent(package, pack_names)
-    if absent_extent is not None:
-        return _refuse(
-            absent_extent, attributed=attributed, source_raw=source_raw,
-            fmt=fmt, code=_MALFORMED,
-        )
 
     gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)
     if gate_code is not None:
@@ -3463,6 +3492,11 @@ def run(args: argparse.Namespace) -> int:
     # supplied with `--check` is malformed — `--check` answers whether the
     # tree is current against the recorded recipe as a whole, and has no
     # scoped variant.
+    # `cli.py`'s `sync` subparser restricts `--package` to `agentbundle` and
+    # `credbroker` via `choices`, so argparse refuses any other name before
+    # `run()` is reached and a value read here is always one of those two.
+    # `getattr` with a `None` default is kept so a namespace built without the
+    # flag behaves exactly as though `--package` were never supplied.
     package = getattr(args, "package", None)
     if check and (cli_pack_names or cli_profile_names or guides_scope or package):
         return _refuse(
