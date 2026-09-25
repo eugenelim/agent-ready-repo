@@ -50,18 +50,34 @@ def write_brief(
     stem: str | None = None,
     status: str = "Ready",
 ) -> None:
-    """Write a brief with a two-column Spec map. `rows` is (spec-slug, recorded-status)."""
+    """Write a brief with a two-column Spec map. `rows` is (spec-slug, recorded-status).
+
+    A ``Shipped`` brief automatically includes a ``Cut-closed:`` record so that
+    existing tests are not refused by AC-0013; pass raw brief text to
+    ``write_brief_raw`` when precise preamble control is needed.
+    """
     name = stem if stem is not None else slug
     p = root / "docs" / "product" / "briefs" / f"{name}.md"
     p.parent.mkdir(parents=True, exist_ok=True)
     body = (
         f"# Brief: {slug}\n\n- **Status:** {status}\n"
-        f"- **Slug:** `{slug}`\n\n## Spec map\n\n"
+        f"- **Slug:** `{slug}`\n"
     )
+    if status == "Shipped":
+        body += "- **Cut-closed:** 2026-01-01 all mapped specs shipped.\n"
+    body += "\n## Spec map\n\n"
     body += "| Spec | Status |\n| --- | --- |\n"
     for spec_slug, recorded in rows:
         body += f"| `{spec_slug}` | {recorded} |\n"
     p.write_text(body, encoding="utf-8")
+
+
+def write_brief_raw(root: Path, stem: str, body: str) -> Path:
+    """Write a brief with exact content. Returns the path written."""
+    p = root / "docs" / "product" / "briefs" / f"{stem}.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(body, encoding="utf-8")
+    return p
 
 
 def run_lint(root: Path) -> tuple[int, str, str]:
@@ -129,7 +145,8 @@ def test_statusless_all_shipped_map_fails_closed() -> None:
         )
         rc, out, err = run_lint(root)
         expect(rc == 1, f"missing lifecycle must fail closed: {out}")
-        expect("brief lifecycle" in err.lower(), err)
+        # AC-0011: absent status reports "brief status is absent", not "contradicts".
+        expect("brief status" in err.lower() and "absent" in err.lower(), err)
         expect("': not delivered" in out, out)
 
 
@@ -390,7 +407,8 @@ def test_prose_pipe_after_table_is_not_a_row() -> None:
         p = root / "docs" / "product" / "briefs" / "myb.md"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(
-            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n\n## Spec map\n\n"
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 alpha shipped.\n\n## Spec map\n\n"
             "| Spec | Status |\n| --- | --- |\n| `alpha` | Shipped |\n\n"
             "Note: rows are added as slices ship | one per spec.\n",
             encoding="utf-8",
@@ -440,3 +458,523 @@ def test_annotated_recorded_cell_not_drift() -> None:
         expect(rc == 0, f"annotated recorded cell must not drift, got {rc}: {err}")
         expect("stale" not in err.lower(), f"no false drift on annotated cell: {err}")
         expect("': delivered" in out, f"annotated-cell brief still delivered: {out}")
+
+
+# ── AC-0013: Shipped brief without Cut-closed: is refused ────────────────────
+
+
+def test_shipped_brief_without_cut_closed_refused() -> None:
+    """AC-0013: a Shipped brief with no Cut-closed: record is refused."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped", brief="myb")
+        # Write Shipped brief manually WITHOUT Cut-closed:.
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n| `alpha` | Shipped |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"Shipped without Cut-closed: must fail, got {rc}: {err}")
+        expect("cut-closed" in err.lower(), f"refusal must name Cut-closed: {err}")
+        expect("shipped" in err.lower(), f"refusal must name Shipped status: {err}")
+
+
+# ── AC-0024: no second scan of any brief preamble field ─────────────────────
+
+
+def test_no_second_brief_field_scan_ac0024() -> None:
+    """AC-0024: no second scan of any brief preamble field survives in the lint."""
+    source = LINTER.read_text(encoding="utf-8")
+    # No surviving second readers for brief preamble fields.
+    assert "def parse_brief_status" not in source, (
+        "parse_brief_status still defined — use brief_shape.get_status"
+    )
+    assert "def parse_brief_slug" not in source, (
+        "parse_brief_slug still defined — use brief_shape.get_slug"
+    )
+    # No surviving second vocabulary copy.
+    assert "_BRIEF_STATUSES" not in source, (
+        "_BRIEF_STATUSES still defined — use brief_shape.BRIEF_STATUSES"
+    )
+    # No surviving second predicate copy.
+    assert "def _brief_lifecycle_is_valid" not in source, (
+        "_brief_lifecycle_is_valid still defined — use brief_shape.is_lifecycle_valid"
+    )
+    # No surviving second tokenizer definition (it is loaded from brief_shape).
+    assert "def extract_token" not in source, (
+        "extract_token still defined locally — load it from brief_shape"
+    )
+
+
+# ── AC-0007: bounded reader at the consumer ──────────────────────────────────
+# Each fixture is a differential: the lint's output differs between a bounded
+# and an unbounded read.  Five suppressing rules hide the field; AC-0003 puts
+# a decoy in the comment and a live value after -->.
+
+# ── Status: under suppressing rules ─────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    ("rule_id", "body"),
+    [
+        # AC-0001: Status: only below the first ## heading.
+        (
+            "ac0001",
+            "# Brief: myb\n\n- **Slug:** `myb`\n\n## Section\n\n- **Status:** Draft\n",
+        ),
+        # AC-0002: Status: only inside a spanning HTML comment.
+        (
+            "ac0002",
+            "# Brief: myb\n\n- **Slug:** `myb`\n<!--\n- **Status:** Draft\n-->\n",
+        ),
+        # AC-0004: Status: as an ATX heading line.
+        (
+            "ac0004",
+            "# Brief: myb\n\n- **Slug:** `myb`\n# - **Status:** Draft\n",
+        ),
+        # AC-0005: Status: inside a blockquote.
+        (
+            "ac0005",
+            "# Brief: myb\n\n- **Slug:** `myb`\n> - **Status:** Draft\n",
+        ),
+        # AC-0006: Status: inside an unclosed HTML comment.
+        (
+            "ac0006",
+            "# Brief: myb\n\n- **Slug:** `myb`\n<!--\n- **Status:** Draft\n",
+        ),
+    ],
+    ids=["ac0001", "ac0002", "ac0004", "ac0005", "ac0006"],
+)
+def test_ac0007_status_hidden_by_suppressing_rule(rule_id: str, body: str) -> None:
+    """AC-0007: bounded reader hides Status: placed in a forbidden location.
+
+    Each fixture is differential: an unbounded scan would read the Status:
+    and not fire AC-0011.  The bounded reader does not, so AC-0011 fires.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief_raw(root, "myb", body)
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"{rule_id}: hidden Status: must cause AC-0011: rc={rc} err={err}")
+        expect(
+            "brief status" in err.lower() and "absent" in err.lower(),
+            f"{rule_id}: AC-0011 message must say 'brief status ... absent': {err}",
+        )
+
+
+# ── Cut-closed: under suppressing rules ─────────────────────────────────────
+
+@pytest.mark.parametrize(
+    ("rule_id", "body"),
+    [
+        # AC-0001: Cut-closed: only below the first ## heading.
+        (
+            "ac0001",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n\n"
+            "## Section\n\n- **Cut-closed:** 2026-01-01 some evidence\n",
+        ),
+        # AC-0002: Cut-closed: only inside a spanning HTML comment.
+        (
+            "ac0002",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n"
+            "<!--\n- **Cut-closed:** 2026-01-01 some evidence\n-->\n",
+        ),
+        # AC-0004: Cut-closed: as an ATX heading line.
+        (
+            "ac0004",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n"
+            "# - **Cut-closed:** 2026-01-01 some evidence\n",
+        ),
+        # AC-0005: Cut-closed: inside a blockquote.
+        (
+            "ac0005",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n"
+            "> - **Cut-closed:** 2026-01-01 some evidence\n",
+        ),
+    ],
+    ids=["ac0001", "ac0002", "ac0004", "ac0005"],
+)
+def test_ac0007_cut_closed_hidden_by_suppressing_rule(rule_id: str, body: str) -> None:
+    """AC-0007: bounded reader hides Cut-closed: placed in a forbidden location.
+
+    Fixture is a Draft brief.  Bounded: Cut-closed: absent → no AC-0016
+    refusal → rc=0.  Unbounded would read Cut-closed: → AC-0016 fires → rc=1.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief_raw(root, "myb", body)
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 0,
+            f"{rule_id}: bounded hides Cut-closed: → no AC-0016 refusal: rc={rc} err={err}",
+        )
+        expect(
+            "cut-closed" not in err.lower(),
+            f"{rule_id}: no Cut-closed: refusal expected: {err}",
+        )
+
+
+def test_ac0007_cut_closed_hidden_by_ac0006() -> None:
+    """AC-0007/AC-0006: unclosed comment invalidates all fields including Cut-closed:.
+
+    Bounded: preamble = [] (unclosed comment) → status absent (AC-0011) and
+    Cut-closed: absent (no AC-0016).  Unbounded would read Draft status and
+    Cut-closed: → AC-0016 fires with a different message.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n"
+            "<!--\n- **Cut-closed:** 2026-01-01 some evidence\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"unclosed comment causes AC-0011, got rc={rc}: {err}")
+        # Bounded fires AC-0011 ("brief status is absent"), NOT AC-0016.
+        expect(
+            "absent" in err.lower(),
+            f"AC-0006: bounded must report status absent, not Cut-closed: error: {err}",
+        )
+        expect(
+            "cut-closed" not in err.lower(),
+            f"AC-0006: no Cut-closed: refusal when preamble is invalidated: {err}",
+        )
+
+
+# ── Slug: under suppressing rules ────────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    ("rule_id", "body"),
+    [
+        # AC-0001: Slug: only below the first ## heading.
+        (
+            "ac0001",
+            "# Brief: myb\n\n- **Status:** Ready\n\n"
+            "## Section\n\n- **Slug:** `different-slug`\n",
+        ),
+        # AC-0002: Slug: only inside a spanning HTML comment.
+        (
+            "ac0002",
+            "# Brief: myb\n\n- **Status:** Ready\n"
+            "<!--\n- **Slug:** `different-slug`\n-->\n",
+        ),
+        # AC-0004: Slug: as an ATX heading line.
+        (
+            "ac0004",
+            "# Brief: myb\n\n- **Status:** Ready\n# - **Slug:** `different-slug`\n",
+        ),
+        # AC-0005: Slug: inside a blockquote.
+        (
+            "ac0005",
+            "# Brief: myb\n\n- **Status:** Ready\n> - **Slug:** `different-slug`\n",
+        ),
+        # AC-0006: Slug: inside an unclosed HTML comment.
+        (
+            "ac0006",
+            "# Brief: myb\n\n<!--\n- **Status:** Ready\n- **Slug:** `different-slug`\n",
+        ),
+    ],
+    ids=["ac0001", "ac0002", "ac0004", "ac0005", "ac0006"],
+)
+def test_ac0007_slug_hidden_by_suppressing_rule(rule_id: str, body: str) -> None:
+    """AC-0007: bounded reader hides Slug: placed in a forbidden location.
+
+    Slug: value differs from the filename stem ('myb') so the stem fallback
+    cannot mask the fix.  Bounded: Slug absent → fallback slug = 'myb'.
+    Unbounded would read 'different-slug'.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief_raw(root, "myb", body)
+        rc, out, err = run_lint(root)
+        # Regardless of rc (ac0006 fires AC-0011), the slug in the output
+        # line must be the fallback stem, not the hidden value.
+        expect(
+            "brief 'myb'" in out,
+            f"{rule_id}: bounded slug must fall back to stem 'myb': {out}",
+        )
+        expect(
+            "brief 'different-slug'" not in out,
+            f"{rule_id}: hidden Slug: 'different-slug' must not appear: {out}",
+        )
+
+
+# ── AC-0003: accepting rule — decoy in comment, live value after --> ─────────
+
+
+def test_ac0007_ac0003_status_live_wins_over_commented_decoy() -> None:
+    """AC-0007/AC-0003: live Status: after --> wins over commented-out decoy.
+
+    Decoy token is out-of-vocabulary so unbounded read fires AC-0010.
+    Bounded reads the live valid token → no refusal from this check.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # BADTOKEN is out-of-vocabulary; unbounded would read it and fire AC-0010.
+        # The live value 'Ready' is after the closing -->.
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Slug:** `myb`\n"
+            "<!--\n- **Status:** BADTOKEN\n-->\n"
+            "- **Status:** Ready\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"bounded reads live 'Ready' → no refusal: rc={rc} err={err}")
+        expect("vocabulary" not in err.lower(), f"no AC-0010 error expected: {err}")
+
+
+def test_ac0007_ac0003_cut_closed_live_wins_over_commented_decoy() -> None:
+    """AC-0007/AC-0003: live Cut-closed: after --> wins over commented-out malformed decoy.
+
+    Bounded: reads valid live value → no AC-0008 refusal.
+    Unbounded: reads malformed decoy → AC-0008 fires.
+    Ready brief is child-coherent with no children.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Ready\n- **Slug:** `myb`\n"
+            "<!--\n- **Cut-closed:** not-a-date malformed\n-->\n"
+            "- **Cut-closed:** 2026-01-01 valid evidence text\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"bounded reads valid Cut-closed: → no AC-0008: rc={rc} err={err}")
+        expect("cut-closed" not in err.lower(), f"no Cut-closed: error expected: {err}")
+
+
+def test_ac0007_ac0003_slug_live_wins_over_commented_decoy() -> None:
+    """AC-0007/AC-0003: live Slug: after --> wins over commented-out decoy.
+
+    Bounded: reads live slug → output line shows 'live-slug'.
+    Unbounded: reads decoy slug → output line shows 'decoy-slug'.
+    Both slugs differ from the stem 'myb' so the stem fallback cannot mask it.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Ready\n"
+            "<!--\n- **Slug:** `decoy-slug`\n-->\n"
+            "- **Slug:** `live-slug`\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"Ready with no children is valid: rc={rc} err={err}")
+        expect("brief 'live-slug'" in out, f"bounded slug is live-slug: {out}")
+        expect("brief 'decoy-slug'" not in out, f"decoy slug must not appear: {out}")
+
+
+# ── AC-0025: ## Spec map inside comment does not open the section ─────────────
+
+
+def test_ac0025_specmap_heading_in_comment_does_not_open() -> None:
+    """AC-0025: a ## Spec map heading inside a comment does not open the section.
+
+    Without the fix: rows below the commented heading are parsed and alpha
+    (Shipped) is a child of a Ready brief → lifecycle invalid → rc=1.
+    With the fix: section never opens → no rows → Ready with no children → rc=0.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no back-link
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Ready\n- **Slug:** `myb`\n\n"
+            "<!--\n## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| `alpha` | Shipped |\n-->\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"commented ## Spec map must not open section: rc={rc} err={err}")
+        expect("brief lifecycle" not in err.lower(), err)
+
+
+# ── AC-0026: row inside comment is not a Spec-map row (two arms) ─────────────
+
+
+def test_ac0026_commented_row_no_backlink_leaves_child_set() -> None:
+    """AC-0026 (no-back-link arm): spec in commented row leaves child set entirely.
+
+    A Shipped brief with one real Shipped mapped spec and one ghost spec in a
+    comment.  Bounded: ghost excluded → child_states = {shipped} → delivered.
+    Unbounded: ghost counted → child_states = {shipped, missing} → refused.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no back-link
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 alpha shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| `alpha` | Shipped |\n"
+            "<!--\n| `no-such-slug` | <auto> |\n-->\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"ghost row in comment must be excluded: rc={rc} err={err}")
+        expect("': delivered" in out, f"brief must be delivered: {out}")
+
+
+def test_ac0026_commented_row_with_backlink_moves_to_untracked() -> None:
+    """AC-0026 (back-link arm): spec in commented row moves to untracked arm.
+
+    The spec back-links the brief, so its status still reaches child_states
+    through the untracked path — it is additionally reported as untracked.
+    Bounded: alpha in untracked (row not in mapped) → 'untracked' in output.
+    Unbounded: alpha in mapped (row counted) → not untracked, 'Shipped' row.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped", brief="brief:myb")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Ready\n- **Slug:** `myb`\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "<!--\n| `alpha` | Shipped |\n-->\n",
+        )
+        rc, out, err = run_lint(root)
+        # Bounded: alpha's Shipped status reaches child_states via untracked arm.
+        # Ready + Shipped child = lifecycle invalid → rc=1.
+        expect(rc == 1, f"Shipped child (via untracked) invalidates Ready brief: rc={rc}")
+        expect("untracked" in out.lower(), f"alpha must be reported untracked: {out}")
+
+
+# ── AC-0027: ## heading inside comment does not end the Spec-map section ─────
+
+
+def test_ac0027_commented_heading_does_not_end_section_measured_fixture() -> None:
+    """AC-0027: ## heading inside comment does not end the Spec-map section.
+
+    This is the measured fixture from the plan (2026-09-25).  Three conditions
+    each defeated an earlier attempt; all three are load-bearing:
+
+    1. The ghost row names a slug with no spec file — the untracked arm cannot
+       restore it.
+    2. A live Shipped row survives above the comment — so the child set is not
+       empty when the ghost row is excluded.
+    3. The comment is multi-line with ## on its own line — a single-line
+       <!-- ## Governance references --> begins with <!--, never matches the
+       terminator check, and tests nothing.
+
+    Unrepaired: terminator fires on ## Governance references → only alpha
+    parses → child_states = {shipped} → Shipped brief validates and delivers.
+    Repaired: both rows parse → child_states = {shipped, missing} → refused.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no back-link; no spec for no-such-slug
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 The Spec map was closed when alpha shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Shipped |\n"
+            "<!--\n## Governance references\n-->\n"
+            "| no-such-slug | <auto> |\n",
+        )
+        rc, out, err = run_lint(root)
+        # Repaired: both rows parsed; no-such-slug is missing → Shipped brief
+        # with a missing child → lifecycle invalid → rc=1.
+        expect(
+            rc == 1,
+            f"AC-0027: ghost row after commented heading must be parsed: rc={rc} err={err}",
+        )
+        expect("brief lifecycle" in err.lower(), err)
+
+
+# ── AC-0028: unterminated comment yields rows above, none after ───────────────
+
+
+def test_ac0028_unterminated_comment_rows_above_only() -> None:
+    """AC-0028: a comment opened inside the Spec-map section and never closed
+    yields the rows above it and none after it.
+
+    Alpha row is above the opening <!--; beta row (Status: Draft) is inside
+    the unclosed comment.  Bounded: only alpha counted → child_states = {shipped}
+    → Shipped brief valid → delivered.  Unbounded: beta also counted →
+    child_states = {shipped, draft} → refused.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")
+        write_spec(root, "beta", "Draft")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 alpha shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Shipped |\n"
+            "<!--\n| beta | Draft |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"beta in unclosed comment must be excluded: rc={rc} err={err}")
+        expect("': delivered" in out, f"brief must be delivered: {out}")
+
+
+# ── AC-0029: line where comment state changes is not a row ───────────────────
+
+
+def test_ac0029_row_where_comment_opens_is_excluded() -> None:
+    """AC-0029: a line on which a comment opens (but does not close) is not a row.
+
+    The alpha row opens a comment that is not closed on the same line; it is
+    excluded.  The --> that closes the comment is also excluded (in_comment_before).
+    The gamma row, in clean comment state, is parsed normally.
+
+    Bounded: only gamma counts → Shipped brief with all Shipped children →
+    delivered → rc=0.  Unbounded: alpha (no spec file) also counted → missing
+    child → refused → rc=1.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "gamma", "Shipped")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 gamma shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | <auto> <!--\n"
+            "-->\n"
+            "| gamma | Shipped |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 0,
+            f"partial-comment row must be excluded: rc={rc} err={err}",
+        )
+        expect("': delivered" in out, f"brief must be delivered: {out}")
+
+
+# ── AC-0030: inline comment preserves the row and its recorded status ─────────
+
+
+def test_ac0030_inline_comment_row_is_parsed_and_status_preserved() -> None:
+    """AC-0030: a comment that opens and closes within one line leaves the row
+    parsed and extract_token returns the status before the inline comment.
+
+    The mapped spec's Status is Draft; the recorded cell is
+    'Shipped <!-- re-derived 2026-06-01 -->'.  A correct implementation:
+    - admits the row (comment state unchanged on this line),
+    - extracts 'Shipped' via extract_token (truncates at <!--),
+    - compares to actual 'draft' → drift fires.
+
+    A cell-destroying implementation would return '' for the cell; extract_token('')
+    returns '' which _UNSET_CELLS exempts → drift silent.  The test asserts
+    drift fires, proving the annotation was preserved.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # Spec is Draft; cell records Shipped → drift unless cell is destroyed.
+        write_spec(root, "alpha", "Draft")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 test.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Shipped <!-- re-derived 2026-06-01 --> |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"drift must be detected (inline comment preserved): rc={rc}")
+        expect("stale" in err.lower(), f"drift message expected: {err}")
+        expect("alpha" in err, f"drift message must name alpha: {err}")
+        # The drift message names the recorded value — 'Shipped' must appear.
+        expect("Shipped" in err or "shipped" in err.lower(), f"recorded 'Shipped' in message: {err}")
