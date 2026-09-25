@@ -1,6 +1,6 @@
 ---
 name: creative-direction
-description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\"."
+description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Also use when refining or amending an existing direction, or when inheriting it into a new section, component, or feature. Produces ranked aesthetic goals and a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\", \"refine the existing direction to be bolder\", \"amend the direction doc to be quieter\"."
 ---
 
 # Skill: creative-direction
@@ -32,64 +32,74 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
 
+## Route rule
+
+Look up `<output_dir>/direction/` to find whether a direction already owns the target surface. This lookup is evidence-gathering, not a reference load. A surface that already has a direction gets no second direction doc.
+
+| Route | Trigger | Operations |
+| --- | --- | --- |
+| inherit | A section, component, state, or feature added inside a surface that already has a direction. | frame (no divergence, no visual step) |
+| extend | A new surface added to a product that already has a visual system. | frame → explore → converge |
+| originate | A surface in a product with no visual system yet; the highest-invention route. | frame → explore → visualize → converge |
+
 ## When to invoke
 
-Confirm all four before drafting; if any fails, push back and resolve it first.
+Confirm all three before drafting; if any fails, push back and resolve it first.
 
 1. **There is a real vibe to name** — the user can describe a feeling, an audience, or examples to react to. A blank "make it nice" is not yet a brief; draw out a first felt word before proceeding.
-2. **The direction isn't already named** — no current creative-direction doc owns this surface. If one exists, you're amending it, not starting fresh.
-3. **You're naming direction, not deriving values** — the moment the ask is spacing, type, or color *values*, hand off to `design-system`. This skill stops at named goals.
-4. **You know the target surface** — `responsive-web`, `iOS`, `Android`, or `cross-platform`. If absent, elicit it before grounding the goals; platform conventions are a referent for every goal.
+2. **You're naming direction, not deriving values** — the moment the ask is spacing, type, or color *values*, hand off to `design-system`. This skill stops at named goals.
+3. **You know the target surface** — `responsive-web`, `iOS`, `Android`, or `cross-platform`. If absent, elicit it before grounding the goals; platform conventions are a referent for every goal.
 
-## Procedure
+## Operations
 
-1. **Map the audience.** Name each distinct reader type for this surface, write one JTBD sentence per type ("When {situation}, I want to {action}, so that {goal}"), and rank them (primary, secondary). Load `references/audience-jtbd.md`. Feed the ranked map into Step 2 — the vibe that emerges should serve the primary reader's cognitive mode. Record the map in the doc; it becomes the Persona referent for each named goal in Step 3.
-2. **Run the interrogation.** Open from the felt vibe, probe the emotions, associations, and brand attributes behind it, and converge on a short set of named goals — each a noun phrase a non-designer can recall. Sharpen each against its opposite. Load `references/interrogation-sequence.md`.
-3. **Ground each goal in stable referents.** For each named goal, name *what grounds it*: the persona it serves, any precedent that carries the quality, the standards it respects, and the platform conventions for the target surface. A goal without a referent is still a fresh opinion — ground it or push it back to Step 2. Load `references/grounding.md`.
-4. **Rank the goals.** Order them so a tie can break. The top goal is the dominant one that wins when goals conflict.
-5. **Record arbitration.** For each likely conflict, name which goal wins and why, so the build doesn't re-litigate it. Load `references/coherence-arbitration.md`.
-6. **Fill the direction sheet.** Name what the direction commits to on each of the fifteen axes in the template's `## Direction sheet` — grid grammar, alignment and equilibrium, spatial density, whitespace distribution, hierarchy and scale contrast, containment and boundary strength, section and scroll rhythm, type voice, type hierarchy, chromatic intensity, form, material and depth, ornament and texture, image treatment, motion character. The first seven are structural, and structure carries at least as much of a first impression as colour does, so do not leave them to `[platform-default]` by default. Each cell opens with its tokens from that row's vocabulary. Grid grammar, alignment and equilibrium, and section and scroll rhythm take exactly two ordered tokens; every other axis takes exactly one. Undecided is `[platform-default]`, never blank.
-7. **Run the counterfactual check.** Name the comparator — a similar brief you could plausibly have been given — and work it through. Any part of this direction that matches what you would produce for any similar brief is a default, not a choice — revise it, and record the comparator, what it produced, and what changed and why in the doc's `## Counterfactual check` table. That record is a required field of the direction doc: an empty table means the check has not run, not that nothing needed revision.
-8. **Hold the floor.** The direction must not fight the shared `quality-floor` checklist (`../design-review/references/quality-floor.md`) — accessibility is not negotiable against aesthetics. If a goal pulls against the floor, the floor wins; record it as an open question, not a trade-off.
-9. **Capture the doc.** Resolve `output_dir` via `references/agentbundle-layout.md` (the `[design]` section) and apply every control in `references/containment.md`, in the order that module states — approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-directory confinement, and the existing-artifact checks. The target is `<output_dir>/direction/<slug>.md`, where `<slug>` names the surface or product this direction serves. When the target does not exist, copy `assets/creative-direction-template.md` to it. Fill it with: the surface, the ranked goals with their referents, what each means and what would violate it, the dominant goal, and open questions — including any the floor check in step 8 raised. When more than one candidate direction exists, use `references/divergence-audit.md`.
-10. **Hand off.** Once the goals are named, ranked, and grounded, hand to `design-system` to derive the tokens and scales that express them.
+### frame
+
+Establishes the brief from the felt vibe. What it sets: audience and ranked JTBD, target surface, incumbent constraints, intended effect, what must stay recognisable, what would read as generic, and the named goals the interrogation produces — short noun phrases, each sharpened against its opposite. May change: the brief components. Must remain stable: nothing is locked before `frame` runs.
+
+`frame` does not recreate product discovery or journey design. Product discovery belongs to product strategy; journey design belongs to `information-architecture`.
+
+Map each distinct reader type, write one JTBD sentence per type, and rank them (primary, secondary). Feed the ranked map into the interrogation — the direction should serve the primary reader's cognitive mode. Record the map in the doc as the Persona referent for each named goal.
+
+Run the interrogation: open from the felt vibe, probe the emotions, associations, and brand attributes behind it, and converge on a short set of named goals. Sharpen each against its opposite.
+
+**References:** `references/audience-jtbd.md`, `references/interrogation-sequence.md`, `references/refusals.md`
+
+### explore
+
+Generates materially different candidate directions — each a filled direction sheet, held in the session — and hands the set to `references/divergence-audit.md` for scoring. May change: candidate directions in the session. Must remain stable: the brief from `frame`. Method: `references/explore.md`. Also load `references/refusals.md`.
+
+### visualize
+
+Makes a candidate concrete enough to support a compositional commitment; writes nothing of its own. May change: compositional commitments recorded in the direction doc. Must remain stable: axis tokens from the direction sheet. Method: `references/visualize.md`. Also load `references/refusals.md`.
+
+### converge
+
+Selects a direction, grounds and ranks the goals, fills the direction sheet across all fifteen axes, runs the counterfactual check, holds the quality floor, and captures the direction doc. May change: the direction doc. Must remain stable: the selection — the agent does not choose. Method: `references/converge.md`. Also load `references/refusals.md`.
+
+### refine
+
+Takes a requested change in plain words, maps it to the axes that may move, and records the amendment in the existing direction doc; never writes a second direction doc. May change: named axes in the existing direction doc. Must remain stable: ranked goals, dominant goal, grounding referents, signature device, and every unnamed axis. Method: `references/refine.md`. Also load `references/refusals.md`.
+
+## Selection rubric
+
+Match the request to one operation before loading any reference:
+
+- Request names a change in plain words against an existing direction (`bolder`, `quieter`, `distill`, `typeset`, `layout`, `colorize`, `delight`): **refine**.
+- Request asks what the direction looks like or asks to see a candidate: **visualize**.
+- Request asks to choose between candidates or commit to one: **converge**.
+- Request names a new surface, section, component, or feature: apply the route rule above, then begin with the first operation the chosen route calls for.
+- Request probes the audience, names goals, or establishes the brief: **frame**.
+
+## Craft calibration
+
+`references/referents.md` carries the genre-calibration tier — study subjects that calibrate craft level for a declared genre. It is not a source of candidates during `explore`.
+
+## Agent choice
+
+The agent does not choose among materially different directions on its own. A delegated choice is recorded as delegated.
 
 ## Output
 
 **Writes:** `<output_dir>/direction/<slug>.md`
 
 **Confinement:** `references/containment.md`
-
-## Genre canonical reference tier
-
-When grounding creative direction for a surface with a declared genre (from the per-screen brief's `surface-genre:` field), use the genre canonical reference tier below as the starting set for the **precedent** referent in step 3 (Grounding). These are **study subjects, not prescriptive tools** — internalize the structural philosophy, the spatial grammar, the aesthetic philosophy each site embodies. Do not copy the surface treatment; do not name any of these as required implementation tools; do not reproduce their values.
-
-**marketing** — Stripe marketing (conviction-led copywriting, full-bleed typographic design), Linear homepage (developer-aesthetic minimalism, restraint as persuasion), Vercel marketing (clean technical tone, performance as aesthetic).
-
-**documentation** — Stripe Docs (reference density and navigation at scale), Vercel Docs (tutorial clarity and search-first architecture), MDN Web Docs (type-consistency and machine-readability at reference depth).
-
-**informational** — The Elements of Typographic Style (Bringhurst) for line length, leading, and scale principles; Stripe's blog for code-adjacent editorial clarity; The Pudding for narrative and data-visualization integration.
-
-**analytical** — Linear (high-density status layout and task-state clarity), Retool (flexible widget hierarchy, data-dense spatial grammar), Metabase (progressive disclosure in data exploration, approachable analytical aesthetic).
-
-**marketplace** — Airbnb (browse-first spatial warmth, social-proof hierarchy, map-integrated discovery), GitHub Marketplace (developer-tool catalogue aesthetic, badge-first trust signals), npm (search-first, high-density reference information).
-
-**workspace** — Linear (keyboard-first productivity, task-state clarity, spatial minimalism), Notion (context-persistence, collaborative editing state, content-as-structure), Cursor (agentic UI legibility, HITL confirmation surfaces, code-adjacent aesthetic).
-
-**transactional-journey** — Stripe Checkout (trust signals, error recovery, form clarity), Calendly (clean multi-step booking, friction-free time selection), Apple Pay / Google Pay one-step flows (minimal-friction commitment surfaces, confirmation as design priority).
-
-For each goal you ground in step 3, name which qualities of the reference you are drawing on — and which you are leaving. "Make it like Stripe" is not a ground; "borrow Stripe's typographic restraint and section-break discipline, leave the dark-mode palette and full-bleed hero" is.
-
-## Style presets
-
-The `assets/presets` folder holds three pre-filled starting directions — Swiss / International Typographic, editorial broadsheet, and Bauhaus. Each supplies the **precedent** referent only. A preset is never a finished direction: it still needs its persona, standards and platform grounding plus the counterfactual check.
-
-## Anti-patterns to refuse
-
-- **Printing the answer.** No palette, font name, or spacing/timing value here. This skill produces *direction*, not the values that express it — those are `design-system`' job.
-- **Goals nobody can recall.** If a goal isn't a short noun phrase a non-designer remembers, it can't arbitrate a choice later. Rewrite it until it sticks.
-- **Unranked goals.** A flat list of equals can't break a tie. Refuse to close without a dominant goal.
-- **Ungrounded goals.** A goal with no persona, precedent, standard, or platform referent is still a fresh opinion. Refuse to record it until it has at least one stable referent.
-- **Copying an example whole.** "Make it like X" is a starting probe, not a direction. Name *which qualities* of X you're after and which you're leaving — see the interrogation reference.
-- **Re-deriving taste mid-build.** Once the doc exists, conflicts resolve against it, not against fresh opinion. Amend the doc deliberately; don't quietly drift.
-- **Reprinting platform values.** Name the standard that grounds the goal (Apple HIG, Material 3, MDN responsive); never reprint its spacing, type, or motion values.

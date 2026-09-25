@@ -134,6 +134,11 @@ slug: "<kebab-case-slug — the surface or product this direction serves>"
 # platform standards ground each goal below.
 surface: "<responsive-web | iOS | Android | cross-platform>"
 date: "<YYYY-MM-DD>"
+# status: `converge` writes `proposed` when it captures a direction the human
+# has not yet confirmed — including a choice recorded as delegated — and
+# `selected` once a human confirms. The `inherit` route writes no doc, so
+# there is no `inherited` value.
+status: "<proposed | selected>"
 ---
 
 # Aesthetic direction: <surface or product name>
@@ -157,6 +162,24 @@ date: "<YYYY-MM-DD>"
 ```
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
+
+### How the skill routes a request
+
+When you invoke `creative-direction`, it first checks whether the target surface already has a direction document. That lookup determines which route applies:
+
+- **inherit** — a section, component, state, or feature added inside a surface that already has a direction. The skill frames the brief and proceeds without a divergence round or visual step. A surface with a direction gets no second direction doc.
+- **extend** — a new surface added to a product that already has a visual system. The skill frames the brief, explores candidate directions, and converges on one.
+- **originate** — a surface in a product with no visual system yet, the highest-invention route. The skill frames, explores, makes a candidate concrete enough to support a compositional commitment, then converges.
+
+### What the five operations do
+
+Each request maps to one of five named operations before any reference is loaded:
+
+- **frame** — establishes the brief from the felt vibe. Sets audience and ranked jobs-to-be-done, target surface, incumbent constraints, intended effect, what must stay recognisable, what would read as generic, and the named goals the interrogation produces. Does not recreate product discovery or journey design.
+- **explore** — generates materially different candidate directions, each as a filled direction sheet held in the session, then scores them for distinctness. Nothing is written to disk at this stage.
+- **visualize** — makes a candidate concrete enough to support a compositional commitment. Runs only when the route is `originate` and the harness can produce the output; its absence is a named skip, not a blocker. Writes nothing of its own.
+- **converge** — selects a direction, grounds and ranks the goals, fills the direction sheet across all fifteen axes, runs the counterfactual check, holds the quality floor, and captures the direction document. This is the only operation that writes a file.
+- **refine** — takes a requested change in plain words, maps it to the axes that may move, and records the amendment in the existing direction document without writing a second direction doc.
 
 ### Make the direction discriminating
 
