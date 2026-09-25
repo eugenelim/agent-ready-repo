@@ -166,7 +166,7 @@ def _scope_subtrees(
     pack_names: list[str],
     profile_names: list[str],
     guides: bool,
-    package: str | None = None,
+    package: str | None,
 ) -> tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None:
     """Return AC-0043's scope as ``(dir_prefixes, exact_paths)``.
 
