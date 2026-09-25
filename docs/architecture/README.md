@@ -38,7 +38,7 @@ rules live with that split.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
-- **STATUS: § 2 IMPLEMENTED; §§ 1 AND 3 PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
+- **STATUS: § 2 IMPLEMENTED; §§ 1, 3 AND 4 PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
   ships the cohort-state identity check that serialises a transition commit
   against a concurrent cohort mutation (§ 2), and
   proposes a `pending_transition` replay marker generalising the shipped
@@ -46,10 +46,12 @@ rules live with that split.
   and treats serialising the wave-exit verdict and raising plan width as the two
   dependent changes behind concurrent execution. It introduces one unified
   transition history and a `schema_version` bump that refuses in-flight state.
-  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D8 defers the schema and
-  D5 defers parallel-wave orchestration.
-  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D5 defers the bounded
-  round cap and its *Revisit if* clause names this condition.
+  § 4 specifies the read-only wave decision contract: a JSON verdict naming,
+  per wave, which tasks are candidates for concurrent dispatch, with a coded
+  reason for every refusal and the colliding peer and glob where one exists.
+  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D8 defers the schema,
+  and D5 defers parallel-wave orchestration — it is D5's *Revisit if* clause,
+  not D5 itself, that names the bounded round cap.
 - **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by

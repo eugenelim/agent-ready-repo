@@ -1,13 +1,13 @@
 # Durable transitions and within-wave parallelism
 
-**STATUS: § 2 implemented; §§ 1 and 3 planned.**
+**STATUS: § 2 implemented; §§ 1, 3 and 4 planned.**
 
 This document states decisions and their costs. Shipped behaviour the baseline
 records is cited from [`loop-infrastructure.md`](loop-infrastructure.md);
 shipped behaviour it does not record is stated here with its source.
 
-Three changes are scoped here. None switches concurrent execution on: lifting
-ADR-0061 **D5** is a fourth change this document does not scope.
+Four changes are scoped here. None switches concurrent execution on: lifting
+ADR-0061 **D5** is a fifth change this document does not scope.
 
 ## 1. Durable transitions
 
@@ -283,11 +283,12 @@ over the surviving text, so a reason naming any `T<n>` invents an edge or trips
 the unknown-dependency refusal. `Depends on: none` is not required to carry one,
 though the parser accepts it.
 
-This does not reverse RFC-0015 decision 5, the `Depends on:` grammar. That
+This does not reverse RFC-0015's `Depends on:` grammar decision — Proposal
+decision 5, which that RFC numbers 4 in its *Decisions requested* list. The
 decision's axis is parser strictness, and a lint reading prose the parser
-discards does not move along it. RFC-0015's Options section labels the grammar
-sub-axis "decision 4" while its numbered decision 4 is substrates and isolation;
-that mislabel needs an erratum on RFC-0015.
+discards does not move along it. RFC-0015's 2026-09-25 erratum *"decision N is
+ambiguous"* records that this RFC numbers two lists and that a citation must
+name its own.
 The obligation's home is the plan template plus a lint, not the grammar.
 
 ### Usable width
@@ -323,7 +324,7 @@ false "independent" ships a break.
 ### What this does not buy
 
 A wider wave changes nothing until D5 is lifted: execution is sequential on every
-adapter by RFC-0015 decision 1, and every dispatch verb is inert.
+adapter by RFC-0015 Proposal decision 1, and every dispatch verb is inert.
 
 Inert at the *verb*, though, not deleted at the decision.
 `dispatch_decision` survives in `loop-cohort.py` as a pure predicate: given a
@@ -338,6 +339,342 @@ No CLI verb reaches it: `cmd_dispatch_decision` returns the disabled stub.
 Read it as a decision written down and held in place by its unit tests, not as
 something the loop does.
 
+## 4. The wave decision contract
+
+**Decision.** A new read-only verb, `loop-cohort wave-decision`, answers for one
+wave which tasks are candidates for concurrent dispatch and why, in JSON. The
+script decides; the agent reads the answer. Nothing it returns dispatches
+anything.
+
+**The verb is not called `dispatch-decision`.** That name is taken:
+`references/supervisor-mode.md` binds it to the post-write gate's `--branch`
+preview, and this section's entire safety argument is that the screen and the
+gate must never share a word. `cmd_dispatch_decision`'s stub and its existing
+parser stay exactly as they are.
+
+Moving the decision out of the agent is not tidiness. Deciding it in the agent
+means re-deriving a graph property from prose on every run, and graph reasoning
+degrades as the graph grows — on a weaker model first. A property the layering
+already computed should be read, not re-inferred.
+
+### Two gates, two moments, two vocabularies
+
+The one mistake this contract exists to prevent is reading a pre-dispatch
+screen as permission to write in parallel. ADR-0005 admits a parallel write only
+past **D3**, membership in a safe category, *and* **D4**, a `git merge-tree`
+file-disjointness check.
+
+**D4 alone settles it.** D4 reads a populated branch, which does not exist
+before dispatch, so no pre-dispatch verdict can satisfy ADR-0005 however its
+category is obtained.
+
+D3 is a separate matter, and is not branch-bound in ADR-0005's words — it is
+category membership. `supervisor-auto-classify` removed the *requirement* to
+classify by hand while deliberately keeping `--category` as a human override,
+so a human can still assert a category. The screen does not ask for one, and
+that is a choice rather than a limit: a category asserted before any code is
+written is a claim about work that does not exist yet.
+
+| Gate | When | Reads | Says | Status |
+| --- | --- | --- | --- | --- |
+| `wave-decision` (§ 4) | before dispatch | `plan.md` `Touches:`, cohort state | `parallel-capable` / `sequential` | planned; screen only |
+| `dispatch_decision()` | after the writes | category names and a merge-tree verdict, both passed in | `parallel` / `serial` | ADR-0005 D3 + D4; inert |
+
+The second row is inert in both directions, which § 3 states for the predicate
+and which holds equally for its inputs: `classify_task` is pure over
+already-parsed `name-status` rows and has no non-test caller, and no shipped
+script produces a merge-tree verdict. Read the row as a decision written down,
+not as something the loop runs.
+
+The vocabularies never share a word. A pre-dispatch verdict says
+**`parallel-capable`**, never `parallel`. `supervisor-predict-disjointness`
+binds today's screen as **serialize-only**: its roll-up prints `yes`, `no` and
+`unknown`, and only `no` does anything — it is a reason to serialize early.
+`yes` and `unknown` change nothing about the authoritative gate. The spec
+reserves any change to that, including this one, to its Owner under the
+*Ask first* row in § 4's contract table below. A contract that reused
+`parallel` would put the greenlight one careless read away. Every payload
+carries `"admission_pending": true` for the same reason — every *verdict*
+payload, that is; a refusal envelope has no such field, because it asserts no
+verdict to be pending against. Unlike
+`dependency_relation` below, that constant earns its place: it is read by a
+person rather than a program, and being present is its whole job.
+
+### The payload
+
+```json
+{
+  "schema_version": 1,
+  "payload_version": 1,
+  "run_id": "9f1c…",
+  "plan_hash": "3a7e…",
+  "wave_index": 1,
+  "wave": ["T7", "T8", "T9"],
+  "wave_disposition": "partially-parallel-capable",
+  "cohort": ["T7", "T8"],
+  "serialized": ["T9"],
+  "admission_pending": true,
+  "tasks": [
+    {"task_id": "T7", "touches": ["src/api/*.py"], "disposition": "parallel-capable", "reasons": []},
+    {"task_id": "T8", "touches": ["docs/api.md"], "disposition": "parallel-capable", "reasons": []},
+    {"task_id": "T9", "touches": [], "disposition": "sequential",
+     "reasons": [{"code": "touches-undeclared"}]}
+  ],
+  "pairs": [
+    {"tasks": ["T7", "T8"], "touches_relation": "disjoint"},
+    {"tasks": ["T7", "T9"], "touches_relation": "unknown"},
+    {"tasks": ["T8", "T9"], "touches_relation": "unknown"}
+  ]
+}
+```
+
+Flat, one `json.dumps` to stdout, a human rendering otherwise — the shape
+`loop-cohort status --json` already uses. `schema_version` is echoed from cohort
+state exactly as `cmd_status` echoes it, and moves when § 1 moves that constant.
+`payload_version` describes this envelope alone, so a reader can tell an
+envelope change from a state-schema change; without it the two are one number
+answering two questions.
+
+`--wave <n>` selects the wave and defaults to `current_wave_index`. The wave is
+`schedule_waves[wave_index]` **minus** `completed_task_ids`, so a retry decides
+over what is left rather than over what the wave originally held.
+
+`reasons` accumulates rather than stopping at the first match: the unary tests
+all run, so a task can be both `touches-undeclared` and
+`override-forced-sequential`. Only `touches-overlap` short-circuits, because
+one proven collision is enough and the peer it names is the useful one.
+
+`pairs` reports the pairwise relation, one of `disjoint`, `overlapping` or
+`unknown`; `tasks` reports the admission outcome. The two intentionally
+disagree whenever a task is refused for a unary reason while still being
+pairwise disjoint: a task declaring `db/migrations/*.sql` is `disjoint` from
+every peer that touches `src/`, and every one of its pair rows says so, while
+the task itself is `sequential` under `danger-path-declared`. A pair row
+describes the pair and never either member's admission.
+
+**A pair row carries no disposition of its own**, for the reason
+`dependency_relation` is absent below and one more. It would restate
+`touches_relation` in different words; and on the migration example above it
+would have to read `parallel-capable` for a pair whose member is refused,
+which is the screen-as-greenlight misread this section exists to prevent.
+Admission is a property of a task, and only `tasks` reports it.
+
+A wave of *n* tasks emits *n(n−1)/2* pair rows. The corpus reports a median max
+wave width of 2 but no measured maximum, so the bound is the width the plan
+actually declares rather than anything the corpus fixes.
+
+Explanation lives on the pair because no task overlaps on its own: it overlaps a
+named peer. A `touches-overlap` reason therefore names both, as
+`{"code": "touches-overlap", "with": "T7", "globs": ["src/api/*.py", "src/api/auth.py"]}`.
+
+**There is no `dependency_relation` field.** Two tasks in one wave have no
+dependency edge by construction — that is what the layering means — so a field
+recording it would be a constant. What is *not* constant is whether the edge
+was ever parsed, and that belongs with the parser limits in § 3, not in a
+per-pair row that would report `none` for a dropped edge and a real one alike.
+
+### Selecting the cohort
+
+Walk the wave in plan order. A task is **refused** admission when any of these
+holds, and admitted when none does:
+
+1. it declares no `Touches:` — `touches-undeclared`;
+2. one of its declared globs matches the danger-path set —
+   `danger-path-declared`;
+3. the override names it — `override-forced-sequential`;
+4. `globs_overlap` holds between one of its globs and one belonging to a task
+   already admitted — `touches-overlap`.
+
+The first three are unary and the fourth is pairwise, and the order is
+load-bearing rather than cosmetic. An empty glob set is *vacuously* disjoint
+from everything, because `globs_overlap` is never consulted for it, so a purely
+pairwise rule would admit an undeclared task. Rule 1 has to fire first. This is
+the shipped roll-up's posture too: `wave_touches_disjoint` treats a missing
+declaration as `unknown`, never as disjoint.
+
+Greedy in plan order, not a maximum independent set. It can admit fewer tasks
+than another selection would, and under-parallelising is the fail-safe
+direction this design already takes everywhere else.
+
+More importantly, the same plan must always yield the same cohort or nobody can
+audit the decision, and plan order is the only ordering the plan itself fixes.
+
+Admission takes two tasks. A task that passes every test above but has no
+admitted peer is reported `sequential` with reason `no-admitted-peer`, and
+lands in `serialized`; `cohort` never holds fewer than two task IDs, because a
+cohort of one is a sequential dispatch under another name.
+
+`wave_disposition` is `single-task` for a wave of width 1, where there is
+nothing to decide. For width 2 or more it is `all-parallel-capable` when every
+task is admitted, `all-sequential` when `cohort` is empty, and
+`partially-parallel-capable` otherwise. The width-1 value exists so the ranges
+never overlap: without it a one-task wave would satisfy "every task admitted"
+and "no cohort" at once.
+
+**One predicate, two presentations.** The verb and the `predicted-disjoint:`
+line `loop-cohort schedule` already prints both read `globs_overlap`; the verb
+adds the greedy walk, and `wave_touches_disjoint` stays the whole-wave roll-up.
+That gives an invariant worth testing rather than assuming — but only where the
+two sides read the same tasks, which is narrower than it first looks. It holds
+for a wave of width **2 or more** that has **no completed tasks**: there, where
+`wave_touches_disjoint` returns `yes` and no unary refusal fired, the verb
+returns `all-parallel-capable`, and where the roll-up returns `no` or
+`unknown`, the verb never does.
+
+Two exclusions, both real rather than defensive. Below width 2 the roll-up is
+not a comparable answer: it returns `yes` for a single declared task and for an
+empty list alike, while the verb reports `single-task` and refuses `empty-wave`.
+And once any task in the wave has completed, the two read different sets — the
+verb subtracts `completed_task_ids` and the roll-up does not — so a wave whose
+only undeclared or overlapping task has since completed rolls up `unknown` or
+`no` while the verb correctly decides `all-parallel-capable` over what is left.
+
+### The reason vocabulary is closed
+
+The shipped predicate refuses without distinguishing its reasons (§ 3,
+*What this does not buy*). Every refusal here carries a code from a fixed set,
+and a code that needs a culprit carries one.
+
+| Code | Fires when | Carries |
+| --- | --- | --- |
+| `touches-undeclared` | the task declares no `Touches:` | — |
+| `danger-path-declared` | a declared glob matches `_DANGER_PATH_RE` | `glob` |
+| `override-forced-sequential` | the override names the task | `source` |
+| `touches-overlap` | `globs_overlap` holds against an admitted task | `with`, `globs` |
+| `no-admitted-peer` | the task passed every test but nothing else was admitted | — |
+
+The override is `--force-sequential <task-id>`, which refuses that task alone,
+or bare `--force-sequential`, which refuses every task in the wave. `source` is
+`cli`, the only value this phase defines.
+
+`danger-path-declared` reuses the auto-classifier's existing path set —
+lockfiles, `pyproject.toml`, `package.json`, `requirements.txt`, migrations,
+`__init__.py`, barrels and registries, `mod.rs`, `Makefile`, `marketplace.json`,
+CI workflows — as the one risk signal available before a branch exists. The
+regex searches the declared glob as text, so it catches
+`packages/api/pyproject.toml` and misses `src/**`, which expands onto danger
+paths without naming one. That miss is acceptable only because the verdict is a
+screen: missing a signal leaves a task parallel-*capable*, and the post-write
+gate still has to admit it.
+
+### Refusing to decide, versus deciding no
+
+A `sequential` verdict is a decision and exits 0. Exiting non-zero means the
+verb declined to decide at all. **Under `--json`** a refusal uses the same
+channel as a verdict: `{"payload_version": 1, "refusal": "<code>", "detail":
+"<guard reason>"}` to stdout, exit 1. Without `--json` it is a `stop()` line on
+stderr, exit 1. The code is the contract; the prose is not. Emitting the codes
+only as stderr text would reproduce the indistinguishable-refusal defect this
+vocabulary exists to fix.
+
+**That stdout refusal is a new convention, not the shipped one.** No current
+verb emits a refusal on stdout — `cmd_status` refuses through `stop()` to
+stderr even under `--json` — so a caller parsing stdout uniformly will meet two
+envelope shapes from one CLI. The contract table below records it as a change
+rather than leaving it to be discovered.
+
+Every code names what decides it, because a vocabulary whose codes outrun their
+deciders is the defect this section is repairing rather than repeating.
+
+| Code | Decided by |
+| --- | --- |
+| `unsupported-state-schema-version` | `check_identity`, which the verb calls first — `check_schedule_current` does not inspect `schema_version` |
+| `state-unreadable` | `_state_or_reason`, reached through that same first `check_identity` call. It also covers a missing or non-directory spec path, which `_require_spec_dir` refuses on the same edge — folded into one code by choice, not necessity |
+| `no-schedule` | the verb, before calling the guard: `schedule_waves` absent or empty |
+| `state-malformed` | the verb, before indexing: `schedule_waves` present but not a list of task-ID lists, `completed_task_ids` not a list, or `current_wave_index` not a non-negative integer. The guard layer already refuses the first shape on its own paths with `schedule_waves is malformed` and `schedule_waves[i] is malformed`; this verb must refuse all three, because it defaults `--wave` from the pointer, indexes the wave, and subtracts the completed set before any guard it calls would reach them |
+| `plan-missing` | `check_schedule_current` — no `plan.md` at the spec directory |
+| `plan-status-illegal` | every `assert_status_legal` refusal reached through that guard — which includes a `plan.md` that cannot be read at all, folded in by the same choice |
+| `plan-hash-stale` | `check_schedule_current`'s hash comparison |
+| `wave-index-out-of-range` | the verb, against `schedule_waves` |
+| `empty-wave` | the verb, after subtracting `completed_task_ids` |
+
+`no-schedule` and `state-malformed` are checked by the verb *before* the guard,
+on purpose and for different reasons. A never-scheduled state carries no
+`plan_hash`, so the guard's comparison would refuse it as `plan-hash-stale` and
+report a stale plan where the real condition is that nothing was ever scheduled.
+A malformed `schedule_waves` would not be reached by the staleness guard at all
+before the verb had already tried to index it. The verb reads three state fields
+the guard chain never validates for shape on this path — `schedule_waves`,
+`current_wave_index` and `completed_task_ids` — and `current_wave_index` is the
+easiest to miss, because `--wave` defaults from it and a malformed pointer
+therefore fails before any explicit argument exists to blame. Closing the
+vocabulary over all three is the verb's own obligation, not something it
+inherits.
+
+Two codes are deliberately coarser than the conditions beneath them, and both
+are named above rather than left to be discovered: `state-unreadable` folds in
+the spec-path failure, and `plan-status-illegal` folds in an unreadable
+`plan.md`. The guard prose does differ between the folded cases, so splitting
+them is possible — it is simply not *sound*, because it means parsing a
+diagnostic string that no contract fixes. The fold is a choice with a reason,
+and a code claiming a distinction that rests on prose would be the defect this
+vocabulary exists to repair.
+
+The verb passes no `expect_run_id` to `check_identity`, so that guard's
+run-ID-mismatch exit is unreachable here and the closed set needs no code for
+it. The `run_id` in the payload is echoed from state, never checked against an
+argument.
+
+`empty-wave` is the shipped predicate's empty-list defect, which answers
+`parallel` for an empty category list: a wave with nothing left in it is
+malformed input, not a parallel opportunity. It also covers a fully completed
+wave, which is a refusal rather than a verdict.
+
+The staleness guard is `check_schedule_current`, which compares the scheduled
+`plan_hash` held in state against `plan.md` on disk — the condition
+`plan-hash-stale` names. The sibling `check_plan_current(require_schedule=True)`
+is not used: it decides the *approved* baseline and a wider set of conditions
+this verb has no reason to re-decide. The verb parses `Touches:` from `plan.md`
+on disk, and the `plan_hash` it echoes is the scheduled baseline read from
+state, not a hash it recomputes. It reads the scheduled plan, never the approved
+one.
+
+Both reads go through the guard layer's exported `read_state` and the bundled
+bounded reader, as every other verb's do. Holding no lock lowers the cost of a
+bad read; it does not lower the requirement.
+
+The verb takes no cohort lock, because it writes nothing. Its answer is a
+snapshot and is advisory the moment it is printed; § 2 serialises a transition
+commit against a concurrent cohort mutation, and nothing extends that to a
+read-only report.
+
+### What this does not decide
+
+D3 is not asserted. The payload carries no category field and claims no
+safe-category membership. `--category` remains available to a human on the
+post-write gate, as `supervisor-auto-classify` kept it; the screen simply does
+not ask, for the reason given above.
+
+ADR-0061 **D3** is unaffected, despite the name collision, and the conclusion
+survives either reading of it. As written, D3 fixes the channel through which
+*`loop-engine`* reads cohort state; its 2026-09-22 erratum records that the
+guard layer now reads `state.json` directly through `_loop_guards.read_state`
+and that the five named verbs "are no longer the engine's read path". Either
+way the subject is the engine. `wave-decision` is a skill-facing verb the agent
+invokes, and its own reads go through that same `read_state`, so it joins no
+engine read-channel under the original wording and adds no new channel under
+the erratum's.
+
+D5 is untouched. `all-parallel-capable` dispatches nothing, and execution stays
+sequential on every adapter under RFC-0015 Proposal decision 1. What the
+contract changes is that the loop can state, mechanically and with reasons,
+what it is declining to do.
+
+### Contracts this changes
+
+| Contract | Owner | Change |
+| --- | --- | --- |
+| The documented verb set | `packs/core/.apm/skills/work-loop/references/supervisor-mode.md` | gains `wave-decision`; the existing `dispatch-decision` description is unchanged |
+| The verb and its parser | `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` | one new read-only verb; `cmd_dispatch_decision` untouched |
+| Refusal channel under `--json` | same file | first verb to emit a refusal on stdout; every shipped verb refuses to stderr through `stop()`, including under `--json` |
+| `_DANGER_PATH_RE` | same file | gains a second consumer — a change to it now moves the post-write classifier *and* the pre-dispatch screen |
+| AC5, screen-only | `docs/specs/supervisor-predict-disjointness/spec.md` | holds unamended, and for a narrower reason than it first appears: AC5 pins that the **`schedule`** prediction path "shares **no function call** with the gate path", so it constrains `cmd_schedule` and does not reach a new verb at all. That the verb also calls neither named function is true but is not what preserves AC5 |
+| *Ask first* — "letting the prediction influence the parallel greenlight in any way … needs Owner sign-off" | same spec | § 4 **is** that request, and the sign-off is owed before implementation |
+
+The last row is the one that gates the work. The shipped spec anticipated
+exactly this move and reserved it to the Owner, so § 4 is a proposal to that
+Owner rather than a decision already taken.
+
 ## Verification and risk
 
 | Scenario | Measure |
@@ -346,12 +683,17 @@ something the loop does.
 | A concurrent `wave advance` during `wave-complete` | the transition refuses rather than commits |
 | A mandated `Touches:` over the corpus | the `yes` / `no` / `unknown` split, before and after |
 | The added acquisition against the transition it sits in | under 5% of `wave-complete` wall time at the median |
+| The § 4 verb against `wave_touches_disjoint`, over waves of width 2 or more **with no completed tasks** | both directions: no wave where the roll-up says `yes`, no unary refusal fired, and the verb withholds `all-parallel-capable`; and none where it says `no` or `unknown` and the verb grants it. The completed-task exclusion is the invariant's own, not a convenience — without it the measure reports a failure the design calls correct |
+| The § 4 verb over the 359 plans carrying a complete dependency declaration | the `all-parallel-capable` / `partially-parallel-capable` / `all-sequential` split, and the cohort width it would admit |
+| Each of the nine § 4 **refusal-to-decide** codes, driven from a constructed cohort state | every code in that set is reachable, and each is distinguishable in `--json` output. `state-malformed` is driven three times — once per field it covers, including a malformed `current_wave_index` with no `--wave` supplied |
+| Each of the five § 4 **admission-reason** codes, driven from a constructed plan | every code is reachable, and a task refused for two unary reasons carries both |
 
 | Risk | Disposition |
 | --- | --- |
 | The reset pair fires on a live run at rollout, discarding retry and review progress | operational; needs a rollout gate refusing while any run is in flight |
 | Truncating the unified history drops an entry a replay still needs | mitigated only if `applied` reads the last entry alone; that invariant is tested, not assumed |
 | Normalising four id conventions changes the key every in-flight marker was written under | accepted: the reset pair deletes those markers |
+| `parallel-capable` is read as permission to dispatch concurrently | disjoint vocabularies and `admission_pending` make the misreading visible, but nothing mechanical stops a caller who ignores both; D5 is what actually holds dispatch sequential |
 
 ## Records impact
 
@@ -360,7 +702,7 @@ append-only for meaning-preserving clarifications.
 
 - **D3, the drift that already exists** — "the engine never writes cohort state,
   and reads it only through the designated read-only verbs". Both halves are
-  already untrue ([§ 4](loop-infrastructure.md#4-dependencies-and-allowed-edges)).
+  already untrue ([`loop-infrastructure.md` § 4](loop-infrastructure.md#4-dependencies-and-allowed-edges)).
   Recording that reverses nothing, so it routes to an erratum on ADR-0061, like
   the 2026-08-31 erratum already there.
 - **D3 and D4, the extension** — the effect registry widens the breach from one
@@ -372,6 +714,19 @@ append-only for meaning-preserving clarifications.
   [§ 3](loop-infrastructure.md#3-owned-state-and-write-authority).
 - **D8** and **D5** are deferrals a new decision would lift. Each needs a record
   that supersedes ADR-0061 in part.
+- **D5 and § 4** — writing § 4 needs no record, as a design that ships nothing.
+  Implementing it turns on the row in § Open questions. D5 itself defers "parallel-wave
+  orchestration" without naming verbs; it is ADR-0061's *Modes in scope* field
+  that lists `worktree`, `dispatch-decision` and `auto-parallel` as the deferred
+  set. § 4's verb is not in that list and is not orchestration, which is the
+  reading that would put it outside the deferral entirely. If instead the field
+  is read as enumerating a category the new verb joins, implementing it needs a
+  record superseding ADR-0061 in part on D5. This document takes neither
+  reading; the Open questions row is where it is decided.
+- **ADR-0005 D7 and the worktree layout** — RFC-0015's 2026-09-25 measurement
+  erratum records the nested-worktree destruction path and deliberately binds no
+  layout constraint, because doing so would narrow D7. A constraint requiring
+  task worktrees to be peers needs a record superseding ADR-0005 in part.
 
 ## Open questions
 
@@ -384,6 +739,8 @@ append-only for meaning-preserving clarifications.
 | Whether the `SCHEMA_VERSION` bump moves one constant or all three | loop-infrastructure owner |
 | Where the read-only width report lives — `schedule --dry-run` or a `new-spec` lint | `new-spec` owner |
 | Whether `reviewers-clean` keeps its human-authorization gate once the marker supplies idempotency | loop-infrastructure owner |
+| Whether enabling a read-only § 4 verb falls inside D5's deferral of parallel-wave *orchestration*, given that the verb list naming `dispatch-decision` sits in ADR-0061's *Modes in scope* field rather than in D5 | loop-infrastructure owner |
+| Whether the § 4 screen may influence the parallel greenlight at all — the *Ask first* clause `supervisor-predict-disjointness` reserved | that spec's Owner |
 
 ## Evidence
 
@@ -398,12 +755,15 @@ re-runnable harness:
 **Lock nesting, corroboration.** Holding `state.json.lock` externally,
 `apply_contract_amendment` raised `StateLockTimeout` after 10.1s.
 
-**Worktree topology.** All worktrees are peers on one common `.git`. Removing a
-parent containing a nested worktree succeeds silently, deletes the nested working
-directory including uncommitted work, and leaves it `prunable`. One worktree
-measured 89 MB over 6,521 files. Task worktrees must therefore be peers, never
-nested inside a session worktree — a constraint RFC-0015 does not state,
-alongside the shared-`.git` stacking hazard it does.
+**Worktree topology.** All worktrees are peers on one common `.git`. One
+worktree measured 89 MB over 6,521 files.
+
+The nested-worktree destruction path was re-measured on 2026-09-25 and is
+recorded once, in RFC-0015's 2026-09-25 erratum *"a measurement on nested
+worktrees"* — which carries the two-step removal behaviour, the main-working-tree
+refusal, and the scoping. It is not restated here, so the two cannot drift.
+Whether task worktrees must therefore be peers is a layout constraint no record
+yet binds; that erratum states that binding it would narrow ADR-0005 D7.
 
 **Dependency shape**, over 392 plans and 2,543 tasks: 1,083 tasks declare exactly
 one dependency; 681 of those (62.9%) name the immediately preceding task in
