@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0062 and its 2026-08-02 erratum (amended by erratum in this change); RFC-0071 (digital-experience doctrine, amended by erratum); RFC-0055 D2 (errata structure); RFC-0033 / ADR-0024 (framework agnosticism); ADR-0038 (alias-free precedent)
-- **Brief:** `brief:experience-design-skill-consolidation`
+- **Brief:** brief:experience-design-skill-consolidation
 - **Discovery:** [`experience-design-consolidation-analysis.md`](../../product/research/experience-design-consolidation-analysis.md)
 - **Contract:** none
 - **Shape:** ui
