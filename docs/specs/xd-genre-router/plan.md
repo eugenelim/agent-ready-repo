@@ -53,6 +53,29 @@ python3 -m pytest tests/roster -q -k "experience or handoff or census"
 sweep                                   # decides: exits 0 only when clean
 ```
 
+**The filtered selector is the per-wave check, not the gate.** Run the
+unfiltered roster once before pushing:
+
+```bash
+python3 -m pytest tests/roster -q      # ~7 min; 1835 passed on 2026-09-25
+```
+
+The selector collects 88 of 1842 tests and reaches neither
+`test_workspace_status_projection.py` nor `test_verification_ledger_contract.py`
+— the two suites that took `build-check` red on this branch, one of them for a
+`Brief:` pointer in this spec's own frontmatter. The sibling delivery used a
+filtered selector as its local gate for fourteen rounds while both were broken.
+Three surfaces this delivery touches are only reachable unfiltered: `docs/`
+lifecycle records (T5, T7), spec frontmatter that `workspace-status` reads as
+provenance, and the changelog (T10, T11).
+
+**One known-environmental failure, so nobody chases it.**
+`test_typed_ordinal_collision_equivalence.py::test_the_baseline_agrees_with_the_hand_authored_corpus`
+fails in this worktree and passes on CI and on a clean `main` archive:
+`next_typed_ordinal` unions local intent names with a remote view of `origin`,
+so it picks up `CAP-006`/`007` from other branches' refs and reads 8 where the
+corpus has 6. Not this delivery's, and not a reason to hold a push.
+
 The completeness grep runs here, not only at closeout: without it a half-swept
 tree passes every wave gate. **It binds on the fold branch only.** On the abort
 branch the removed-name sweep is not owed and the hits are all correct — but
@@ -1724,6 +1747,17 @@ holds state, and the removed directories return with their content.
   three deciding blocks were found inverted — the `design-system-foundations`
   check, the description-boundary check, and `sweep` itself, which exited 0 on
   21 hits and 1 when clean.
+- 2026-09-25 — **Amendment: the roster gate is the unfiltered run.** Adds one
+  acceptance criterion under Gates and one construction-test block. Recorded as
+  an amendment rather than an edit because Acceptance Criteria are contract and
+  the plan is Approved. Cause: `build-check` went red on this branch for a
+  backticked `Brief:` pointer in this spec's frontmatter, and the suite that
+  caught it — `test_workspace_status_projection` — is not reachable by the
+  `-k "experience or handoff or census"` selector this plan carried as its
+  cross-cutting check. Measured: the selector collects 88 of 1842 tests. The
+  sibling delivery ran the same shape of filtered gate for fourteen review
+  rounds while two suites were broken, and reported it (creative-direction-02,
+  2026-09-25). Scope is unchanged; this adds a gate, removes none.
 - 2026-09-25 — **Residual accepted at this gate.** Round 9's fifteen findings
   were applied but not re-reviewed; no reviewer has confirmed the pair clean
   against `c08ec8e30`. The owner directed approval at this point. The residual

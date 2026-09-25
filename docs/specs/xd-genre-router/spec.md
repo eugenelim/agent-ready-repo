@@ -751,6 +751,18 @@ branch's wording would contradict itself.
 - [ ] `python3 tools/lint-experience-agnostic.py` exits 0. *(goal-based)*
 - [ ] All five `tests/roster/test_experience_*` suites and
       `test_design_handoff_contract_matches_corpus.py` pass. *(goal-based)*
+- [ ] **The unfiltered `python3 -m pytest tests/roster -q` passes**, once,
+      before the PR is pushed. A `-k` selector scoped to this delivery's named
+      suites is **not** sufficient and is not the gate. Measured on 2026-09-25:
+      `-k "experience or handoff or census"` collects 88 of 1842 tests and
+      reaches neither `test_workspace_status_projection.py` nor
+      `test_verification_ledger_contract.py` — the two suites that took
+      `build-check` red on this branch. The sibling delivery ran a filtered
+      selector as its local gate for fourteen review rounds while both were
+      broken. This delivery edits `docs/` lifecycle records, `workspace.toml`
+      provenance is read from spec frontmatter, and the changelog is release
+      surface, so all three of those suites are reachable by T5, T7, T10 and
+      T11 and none is named by the filtered selector. *(goal-based)*
 - [ ] `agentbundle catalogue lint --root . --deep` and
       `agentbundle catalogue verify --root .` each exit 0 after the projection is
       regenerated. *(goal-based)*
