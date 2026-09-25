@@ -90,7 +90,7 @@ states the same rule and owns its wording. `S` is
 | Every shipped reference reachable **from its owning operation** | per reference, `grep -q` scoped to the owning operation's section in `SKILL.md` or to that operation's own reference file, per the step-to-operation mapping | one hit each. A repo-wide grep would pass on a link between two references, which is not reachability from an operation. |
 | `**Writes:**` / `**Confinement:**` exactly once and unchanged | a `grep -c` per line, then `git diff --exit-code` scoped to `SKILL.md` and inspected for those two lines | `1` each; the two lines absent from the diff. A count alone does not establish byte-identity, which is what the roster suite compares. |
 | Authored-body ceiling ≤ 6,500 B | the **authored-body measurement** (below) | ≤ 6500 |
-| Directory ≤ 95,000 B | `find "$S" -type f -exec cat {} + \| wc -c` | ≤ 95000 |
+| Directory ≤ 97,000 B | `find "$S" -type f -exec cat {} + \| wc -c` | ≤ 97000 — amended from 95,000 on 2026-09-25; the spec criterion owns the arithmetic |
 | Description ≤ 1024 chars | the **description measurement** (below) | ≤ 1024; reads **784** today |
 | Fifteen axis rows intact | count pipe rows in the Direction sheet section | `17` — header + separator + fifteen axes |
 | Template frontmatter `status` placeholder | `grep -qF 'status: "<proposed \| selected>"' "$S/assets/creative-direction-template.md"` | exit 0 (absent today; T6 adds it). `-F` because the value carries regex metacharacters. |

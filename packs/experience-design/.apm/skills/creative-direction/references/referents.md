@@ -2,9 +2,9 @@
 
 > This tier calibrates craft level for a surface with a declared genre (from the per-screen brief's `surface-genre:` field) — not a source of candidates during `explore`; accessibility floor not among these entries: `../design-review/references/quality-floor.md`.
 
-`assets/presets` holds three pre-filled starting directions (precedent referent only).
+The genre entries below are **study subjects, not prescriptive tools** — internalise the structural philosophy, the spatial grammar, the aesthetic philosophy each embodies. Do not copy the surface treatment; do not name any of these as required implementation tools; do not reproduce their values.
 
-These are **study subjects, not prescriptive tools** — internalise the structural philosophy, the spatial grammar, the aesthetic philosophy each embodies. Do not copy the surface treatment; do not name any of these as required implementation tools; do not reproduce their values.
+`assets/presets` holds three pre-filled starting directions (precedent referent only).
 
 When `converge` grounds goals, use the entries below as the starting set for the **precedent** referent. For each goal, name which qualities of the reference you are drawing on — and which you are leaving. "Make it like Stripe" is not a ground; "borrow Stripe's typographic restraint and section-break discipline, leave the dark-mode palette and full-bleed hero" is.
 

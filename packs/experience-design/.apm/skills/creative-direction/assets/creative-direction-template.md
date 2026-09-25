@@ -83,6 +83,13 @@ status: "<proposed | selected>"
 | Image treatment | `[photographic]` `[illustrative]` `[abstract]` `[none]` `[platform-default]` | `[platform-default]` <how images are cropped; how they are toned> |
 | Motion character | `[still]` `[productive]` `[expressive]` `[platform-default]` | `[platform-default]` <how far things move; relative duration; continuous or discrete> |
 
+## Signature device
+
+<!-- The single visual decision that makes this direction recognisable.
+     Recorded by `converge`; `refine` may not move it. -->
+
+**Signature device:** <the one decision a viewer would name if asked what makes this look like itself>
+
 ## Counterfactual check
 
 <!-- Name a comparator brief, work it through, and compare. Any part of this

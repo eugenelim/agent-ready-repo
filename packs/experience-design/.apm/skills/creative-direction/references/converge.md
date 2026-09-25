@@ -21,7 +21,7 @@ The agent does not choose among materially different directions. A delegated cho
 
 ## Ground each goal in stable referents
 
-For each named goal in the selected direction, name what grounds it: the persona it serves, any precedent that carries the quality, the standards it respects, and the platform conventions for the target surface. A goal with no stable referent is still a fresh opinion — ground it, or push it back to `frame` to be renamed. Load `references/grounding.md`.
+On a surface with a declared genre, start the precedent referent from the genre tier in `references/referents.md`. For each named goal in the selected direction, name what grounds it: the persona it serves, any precedent that carries the quality, the standards it respects, and the platform conventions for the target surface. A goal with no stable referent is still a fresh opinion — ground it, or push it back to `frame` to be renamed. Load `references/grounding.md`.
 
 ## Rank the goals
 
@@ -57,6 +57,10 @@ Resolve `output_dir` by reading `references/agentbundle-layout.md`, then apply e
 
 The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. Write any approved visual target's compositional commitments into the doc here; `visualize` forms them and writes nothing itself. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
 
+## Signature device
+
+Record the signature device: the single visual decision that makes the direction recognisable. `refine` holds it fixed, so a direction without one has nothing to hold.
+
 ## Borrowed-discipline record
 
 After selection, record the borrowed-discipline field in the direction doc. Write one named discipline taken from a rejected candidate — the technique, structural principle, or visual logic carried forward — or the explicit statement that none was. This field is required; it cannot be left empty.
@@ -67,4 +71,4 @@ Once the direction doc is captured, hand to `design-system` to derive the tokens
 
 ---
 
-**References:** `references/grounding.md`, `references/coherence-arbitration.md`, `references/containment.md`, `references/agentbundle-layout.md`, `references/refusals.md`
+**References:** `references/grounding.md`, `references/referents.md`, `references/coherence-arbitration.md`, `references/containment.md`, `references/agentbundle-layout.md`, `references/refusals.md`
