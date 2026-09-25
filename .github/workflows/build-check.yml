@@ -606,6 +606,12 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_spec_retirement_candidates_contract.py
 
+      # The CLI proof spans the core pack, the live schema, and the real spec
+      # corpus. Keep it above the bulk tests/ step for named failure attribution.
+      - name: pytest spec-retirement candidate CLI (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_spec_retirement_candidates_cli.py
+
       # Both modules read across two packs and the guides, so lint-pack-test-boundary
       # forbids a pack home and they live in the roster suite. Each sits ABOVE the
       # carve-out step below, whose `pytest tests/ -q` also collects them: placement
