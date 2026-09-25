@@ -89,6 +89,24 @@ regression, since an unscoped run would make the set non-empty and fail it, but
 it does not establish that the scope admits the right paths. The test asserts
 its own emptiness so the vacuity is visible rather than assumed.
 
+## A sixth release surface, found by CI and not by this ledger
+
+The release-surface derivation reported five surfaces and AC-0097 quantified
+over them. It missed a sixth: `tests/roster/test_okf_catalogue_discovery.py`
+pins the release version and asserts **position** — that the topmost changelog
+and readme headings name it — so the 0.50.0 bump left it asserting 0.49.0 and
+the roster suite failed.
+
+Nothing run locally could have caught it. The unit suite is scoped to
+`packages/agentbundle/tests/`, and the roster suite is outside that path; the
+five surfaces the derivation did report are all inert text, so no test
+exercised them. It took a dispatch-only CI workflow.
+
+The surface is now in the derivation, which is the fix that generalises: the
+next bump reads six, not five. The residue is that the derivation's list is
+maintained by hand, so a seventh surface added upstream is still silent — the
+script's own docstring says so.
+
 ## What this ledger does not establish
 
 - The `credbroker` destination was not exercised end to end. The fixture

@@ -71,6 +71,16 @@ def main() -> int:
          r"^## \[agentbundle\]\[(\d+\.\d+\.\d+)\]"),
         (f"packages/agentbundle/{readme}",
          r"^## What's new in (\d+\.\d+\.\d+)"),
+        # A sixth surface, added 2026-09-25 after CI caught it and this
+        # derivation did not. `tests/roster/test_okf_catalogue_discovery.py`
+        # pins the release version and asserts POSITION -- that the topmost
+        # changelog and readme headings name it -- so a bump that leaves it
+        # behind fails the roster suite while every surface above passes.
+        # It is executable, unlike the five above, which is why the unit
+        # suite could not see it: the roster suite is outside
+        # `packages/agentbundle/tests/`.
+        ("tests/roster/test_okf_catalogue_discovery.py",
+         r'^    expected = "(\d+\.\d+\.\d+)"'),
     ]
 
     # A surface is `prose` when it carries adopter-facing narrative a criterion
