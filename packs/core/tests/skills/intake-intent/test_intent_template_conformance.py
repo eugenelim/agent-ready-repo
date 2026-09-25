@@ -176,19 +176,22 @@ def test_adr0121_admit_repository_intent_renders_a_conforming_intent() -> None:
 
 
 def test_the_rendered_intent_also_satisfies_the_corpus_scoped_rules() -> None:
-    """Both surfaces, because passing one is not passing the contract.
+    """The corpus-scoped surface, because passing the live-intent surface alone
+    is not passing the contract.
 
-    `validate_live_intent` accepts a stranded `Superseded by:` by design — that
-    pairing rule is corpus-scoped — so a renderer seeding one would pass every
-    check above and still emit an intent the corpus lint refuses.
+    ``validate_live_intent`` accepts a stranded ``Superseded by:`` by design —
+    that pairing rule is corpus-scoped — so a renderer seeding one would pass
+    every check above and still emit an intent the corpus lint refuses.
+    ``validate_corpus_scoped`` is the single entry point for all corpus-only
+    checks, covering both supersession and state-coherence rules.
     """
     rendered = _render()
     slugs = shape.resolvable_slugs([rendered])
-    assert shape.validate_supersession(rendered, slugs) == []
+    assert shape.validate_corpus_scoped(rendered, slugs) == []
 
 
 def test_a_rendered_intent_seeding_a_stranded_pointer_would_be_caught() -> None:
-    """The mutation that makes the control above able to fail.
+    """Supersession mutation: the control above can fail on the supersession half.
 
     Calling an always-clean surface on a conforming render proves nothing: it
     passes just as well with the rule deleted. This feeds the same surface the
@@ -197,7 +200,25 @@ def test_a_rendered_intent_seeding_a_stranded_pointer_would_be_caught() -> None:
     seeded = _render().replace(
         "- **Status:**", "- **Superseded by:** a-successor\n- **Status:**", 1
     )
-    assert shape.validate_supersession(seeded, {"a-successor"}) != []
+    assert shape.validate_corpus_scoped(seeded, {"a-successor"}) != []
+
+
+def test_a_rendered_intent_seeding_an_accepted_record_would_be_caught() -> None:
+    """State-coherence mutation: the corpus-scoped control can fail on the
+    state-coherence half.
+
+    A rendered Draft intent carries no ``Accepted:`` record. Seeding one
+    beside ``Status: Draft`` must be refused, so ``validate_corpus_scoped``
+    discriminates rather than passing on a surface that is always clean for
+    conforming renders.
+    """
+    rendered = _render()
+    # Insert Accepted: just before the first heading — inside the preamble.
+    seeded = rendered.replace(
+        "\n## Outcome", "\n- **Accepted:** 2026-09-20 by eugenelim\n## Outcome", 1
+    )
+    slugs = shape.resolvable_slugs([seeded])
+    assert shape.validate_corpus_scoped(seeded, slugs) != []
 
 
 def test_the_slug_reaches_the_rendered_preamble_and_the_target() -> None:

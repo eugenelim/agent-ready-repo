@@ -715,6 +715,373 @@ def test_the_summary_count_covers_every_entry(tmp_path: Path) -> None:
     assert len(result.accounted) == 3
 
 
+# ── AC-0012: declared refusal registry ───────────────────────────────────────
+
+
+def test_ac0012_lifecycle_refusal_classes_registry_exists() -> None:
+    """The module declares its refusal classes in one enumerable place.
+
+    A module-level tuple is the single authoritative enumeration; a rule added
+    without a corresponding class name can be caught by asserting membership
+    against this tuple rather than by substring-matching a reason.
+    """
+    shape = lint._shape
+    assert hasattr(shape, "LIFECYCLE_REFUSAL_CLASSES"), (
+        "intent_shape must expose LIFECYCLE_REFUSAL_CLASSES"
+    )
+    assert isinstance(shape.LIFECYCLE_REFUSAL_CLASSES, tuple)
+    assert len(shape.LIFECYCLE_REFUSAL_CLASSES) > 0, (
+        "LIFECYCLE_REFUSAL_CLASSES must name at least one refusal class"
+    )
+
+
+def test_ac0012_violation_carries_a_refusal_class_field_with_default() -> None:
+    """Violation has a third field defaulting to the empty string.
+
+    All seven existing construction sites pass just field and reason; the
+    default must keep every one of them working unchanged.
+    """
+    shape = lint._shape
+    v = shape.Violation("Status", "some reason")
+    assert hasattr(v, "refusal_class"), "Violation must have a refusal_class field"
+    assert v.refusal_class == "", (
+        "refusal_class must default to '' so existing sites need no change"
+    )
+
+
+def test_ac0012_a_violation_may_carry_a_registry_member_as_its_class() -> None:
+    """A Violation constructed with a class drawn from the registry carries it."""
+    shape = lint._shape
+    registry = shape.LIFECYCLE_REFUSAL_CLASSES
+    cls = registry[0]
+    v = shape.Violation("Status", "some reason", refusal_class=cls)
+    assert v.refusal_class == cls
+    assert v.refusal_class in registry
+
+
+def test_ac0013_every_lifecycle_refusal_class_is_named_in_the_module_docstring() -> None:
+    """AC-0013: every refusal class the lifecycle rules add is named in the docstring.
+
+    Compared registry-against-docstring so a class added to the registry without
+    a corresponding line in the docstring fails here rather than drifting silently.
+    The registry is the enumerable set; the docstring is what the module's reader
+    sees first.
+    """
+    shape = lint._shape
+    docstring = shape.__doc__ or ""
+    for cls in shape.LIFECYCLE_REFUSAL_CLASSES:
+        assert cls in docstring, (
+            f"refusal class {cls!r} is declared in LIFECYCLE_REFUSAL_CLASSES "
+            f"but is not named in intent_shape's module docstring"
+        )
+
+
+# ── State-coherence rules ─────────────────────────────────────────────────────
+# AC-0001, AC-0002, AC-0003, AC-0004: delivered-terminal rules.
+# AC-0005, AC-0006: positive paths — own fixtures so an implementation that
+#   refuses every Fulfilled intent cannot pass them.
+# AC-0007, AC-0008, AC-0009: records beside a state that did not earn them.
+# AC-0011: each refusal names the file and the record.
+# AC-0012: each refusal carries a class from LIFECYCLE_REFUSAL_CLASSES.
+
+_VALID_ACCEPTED = "2026-09-20 by eugenelim"
+_VALID_FULFILLED = "2026-09-22 by eugenelim"
+
+
+def test_state_coherence_refuses_fulfilled_without_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0001: a Fulfilled intent requires an Accepted: record."""
+    text = _broken("a", status="Fulfilled", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Accepted" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Fulfilled without Accepted: must produce an Accepted violation"
+
+
+def test_state_coherence_refuses_cancelled_without_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0002: a Cancelled intent requires an Accepted: record."""
+    result = _run(tmp_path, {"FEAT-0001-a.md": _broken("a", status="Cancelled")})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Accepted" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Cancelled without Accepted: must produce an Accepted violation"
+
+
+def test_state_coherence_accepts_withdrawn_without_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0003: Withdrawn needs no Accepted: record — abandoning an unratified
+    bet needs no ratification."""
+    result = _run(tmp_path, {"FEAT-0001-a.md": _broken("a", status="Withdrawn")})
+    assert result.violations == [], result.violations
+
+
+def test_state_coherence_refuses_fulfilled_without_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0004: a Fulfilled intent requires a Fulfilled: record."""
+    text = _broken("a", status="Fulfilled", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Fulfilled without Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_accepts_fulfilled_with_both_records(tmp_path: Path) -> None:
+    """AC-0005: own fixture — a Fulfilled intent carrying both records is accepted.
+
+    Without its own fixture, an implementation that refuses every Fulfilled
+    intent satisfies every refusal criterion; this case catches it.
+    """
+    extra = f"- **Accepted:** {_VALID_ACCEPTED}\n- **Fulfilled:** {_VALID_FULFILLED}"
+    text = _broken("a", status="Fulfilled", extra=extra)
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.violations == [], result.violations
+
+
+def test_state_coherence_accepts_cancelled_with_accepted_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0006: own fixture — a Cancelled intent carrying Accepted: is accepted."""
+    text = _broken("a", status="Cancelled", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.violations == [], result.violations
+
+
+def test_state_coherence_refuses_draft_with_accepted_record(tmp_path: Path) -> None:
+    """AC-0007: Draft means open — an Accepted: record is not allowed."""
+    text = _broken("a", extra=f"- **Accepted:** {_VALID_ACCEPTED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Accepted" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Draft with Accepted: must produce an Accepted violation"
+
+
+def test_state_coherence_refuses_draft_with_fulfilled_record(tmp_path: Path) -> None:
+    """AC-0007: Draft means open — a Fulfilled: record is not allowed."""
+    text = _broken("a", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Draft with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_refuses_accepted_with_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0008: Accepted has not yet delivered — a Fulfilled: record is not allowed."""
+    text = _broken("a", status="Accepted", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Accepted with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_refuses_cancelled_with_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0009: Cancelled did not deliver — a Fulfilled: record is not allowed."""
+    extra = f"- **Accepted:** {_VALID_ACCEPTED}\n- **Fulfilled:** {_VALID_FULFILLED}"
+    text = _broken("a", status="Cancelled", extra=extra)
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Cancelled with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_refuses_withdrawn_with_fulfilled_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0009: Withdrawn did not deliver — a Fulfilled: record is not allowed."""
+    text = _broken("a", status="Withdrawn", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.exit_code == 1
+    assert any(
+        v.field == "Fulfilled" and v.path == "FEAT-0001-a.md"
+        for v in result.violations
+    ), "Withdrawn with Fulfilled: must produce a Fulfilled violation"
+
+
+def test_state_coherence_violation_names_the_path_and_the_record(
+    tmp_path: Path,
+) -> None:
+    """AC-0011: each refusal names the corpus-relative file and the record at fault."""
+    text = _broken("a", status="Fulfilled", extra=f"- **Fulfilled:** {_VALID_FULFILLED}")
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    # Only the Accepted: violation: Fulfilled: is present, so only Accepted: is missing.
+    accepted_violations = [v for v in result.violations if v.field == "Accepted"]
+    assert len(accepted_violations) == 1
+    (violation,) = accepted_violations
+    assert violation.path == "FEAT-0001-a.md"
+    assert violation.field == "Accepted"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # AC-0001: Fulfilled without Accepted: (lifecycle_record_required)
+        _broken("a", status="Fulfilled", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # AC-0004: Fulfilled without Fulfilled: (lifecycle_record_required)
+        _broken("a", status="Fulfilled", extra=f"- **Accepted:** {_VALID_ACCEPTED}"),
+        # AC-0002: Cancelled without Accepted: (lifecycle_record_required)
+        _broken("a", status="Cancelled"),
+        # AC-0009: Cancelled with Fulfilled: (lifecycle_record_not_allowed)
+        _broken(
+            "a",
+            status="Cancelled",
+            extra=f"- **Accepted:** {_VALID_ACCEPTED}\n- **Fulfilled:** {_VALID_FULFILLED}",
+        ),
+        # AC-0009: Withdrawn with Fulfilled: (lifecycle_record_not_allowed)
+        _broken("a", status="Withdrawn", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # AC-0007: Draft with Accepted: (lifecycle_record_not_allowed)
+        _broken("a", extra=f"- **Accepted:** {_VALID_ACCEPTED}"),
+        # AC-0007: Draft with Fulfilled: (lifecycle_record_not_allowed)
+        _broken("a", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # AC-0008: Accepted with Fulfilled: (lifecycle_record_not_allowed)
+        _broken("a", status="Accepted", extra=f"- **Fulfilled:** {_VALID_FULFILLED}"),
+        # Fulfilled without either record: both sites (lifecycle_record_required x2)
+        _broken("a", status="Fulfilled"),
+    ],
+    ids=[
+        "fulfilled-no-accepted",
+        "fulfilled-no-fulfilled-record",
+        "cancelled-no-accepted",
+        "cancelled-with-fulfilled",
+        "withdrawn-with-fulfilled",
+        "draft-with-accepted",
+        "draft-with-fulfilled",
+        "accepted-with-fulfilled",
+        "fulfilled-no-records-both",
+    ],
+)
+def test_state_coherence_violation_carries_a_registry_refusal_class(
+    text: str,
+) -> None:
+    """AC-0012: every state-coherence refusal at every site carries a registry class.
+
+    Parametrized over all nine refusal sites so a mistyped, bare, or missing
+    class on any single site reds for that fixture while every other stays green.
+    Scoped to ``_check_state_coherence`` directly so supersession violations
+    (which carry ``refusal_class=""``) do not interfere with the assertion.
+    """
+    shape = lint._shape
+    violations = shape._check_state_coherence(text)
+    assert violations, f"expected at least one state-coherence violation from: {text!r}"
+    registry = shape.LIFECYCLE_REFUSAL_CLASSES
+    for v in violations:
+        assert v.refusal_class in registry, (
+            f"violation for {v.field!r} carries refusal_class {v.refusal_class!r} "
+            f"which is not in {registry}"
+        )
+
+
+def test_validate_corpus_scoped_delegates_to_both_rule_sets() -> None:
+    """validate_corpus_scoped reaches both supersession and state-coherence rules.
+
+    One fixture violates only supersession; one violates only state coherence.
+    A delegation dropped from the aggregator reds for the affected side.
+    """
+    shape = lint._shape
+
+    # Supersession only: Status: Superseded with no Superseded by:
+    supersession_only = _broken("a", status="Superseded")
+    assert shape.validate_corpus_scoped(supersession_only, set()), (
+        "supersession violation must reach validate_corpus_scoped"
+    )
+
+    # State coherence only: Status: Fulfilled with no records
+    # (no Superseded status, no Superseded by: — supersession is quiet)
+    state_only = _broken("a", status="Fulfilled")
+    assert shape.validate_corpus_scoped(state_only, set()), (
+        "state-coherence violation must reach validate_corpus_scoped"
+    )
+
+
+# ── F3: permissive-state accepting fixtures ───────────────────────────────────
+# Accepted does not require its own Accepted: record (not decided here, per the
+# spec's Not-changed paragraph). Superseded is entirely undecided by the
+# state-coherence rules. Both need accepting fixtures so a rule added to either
+# reds in the unit suite rather than surviving silently until a corpus scan.
+
+
+def test_state_coherence_accepts_accepted_with_no_lifecycle_records(
+    tmp_path: Path,
+) -> None:
+    """Accepted status requires no Accepted: record.
+
+    A rule added to require it would produce a violation that this fixture
+    catches here rather than at the next real-tree corpus scan.
+    """
+    result = _run(tmp_path, {"FEAT-0001-a.md": _broken("a", status="Accepted")})
+    assert result.violations == [], result.violations
+
+
+@pytest.mark.parametrize(
+    ("has_accepted", "has_fulfilled"),
+    [(False, False), (True, False), (False, True), (True, True)],
+    ids=["neither", "accepted-only", "fulfilled-only", "both"],
+)
+def test_state_coherence_leaves_superseded_entirely_undecided(
+    has_accepted: bool,
+    has_fulfilled: bool,
+) -> None:
+    """Superseded is not decided by state-coherence rules.
+
+    All four record combinations return no violations. A rule added to the
+    Superseded arm reds for the combination it constrains while the others stay
+    green, so a single-fixture version would miss a rule that only fires on one
+    combination.
+
+    Asserts against ``_check_state_coherence`` directly so the supersession
+    pairing failure (Status: Superseded with no Superseded by:) does not
+    interfere with the state-coherence assertion.
+    """
+    shape = lint._shape
+    extra_parts = []
+    if has_accepted:
+        extra_parts.append(f"- **Accepted:** {_VALID_ACCEPTED}")
+    if has_fulfilled:
+        extra_parts.append(f"- **Fulfilled:** {_VALID_FULFILLED}")
+    text = _broken("a", status="Superseded", extra="\n".join(extra_parts))
+    violations = shape._check_state_coherence(text)
+    assert violations == [], (
+        f"_check_state_coherence must not decide Superseded; got: {violations}"
+    )
+
+
+def test_state_coherence_rules_cover_all_decided_statuses() -> None:
+    """F2 exhaustiveness: _STATE_COHERENCE_RULES keys cover STATUS_VALUES
+    minus Superseded, which is the only deliberately undecided status.
+
+    A new status added to STATUS_VALUES without a corresponding rule entry
+    (or a deliberate exclusion here) reds, so coverage gaps are caught at test
+    time rather than at the next corpus scan.
+    """
+    shape = lint._shape
+    decided = set(shape._STATE_COHERENCE_RULES.keys())
+    undecided = set(shape.STATUS_VALUES) - decided
+    assert undecided == {"Superseded"}, (
+        f"Unexpected undecided statuses: {undecided - {'Superseded'}}. "
+        "Add a rule entry to _STATE_COHERENCE_RULES or document why none is needed."
+    )
+
+
 def test_a_four_space_indented_checkbox_is_not_an_item(tmp_path: Path) -> None:
     """CommonMark renders four-space indentation as a code block.
 
@@ -743,3 +1110,121 @@ def test_a_four_space_indented_checkbox_is_not_an_item(tmp_path: Path) -> None:
     )
     result = _run(tmp_path, {"FEAT-0001-a.md": text})
     assert "Decomposed" in {v.field for v in result.violations}
+
+
+def test_each_refusal_carries_the_class_that_matches_its_kind() -> None:
+    """Membership in the registry is not enough: the two classes must not swap.
+
+    Both construction sites draw their class from the registry, so a value
+    outside it is already unreachable. What that leaves is the two being
+    exchanged — a missing record labelled `not_allowed`, a present one
+    labelled `required`. Every other assertion checks membership, which a swap
+    satisfies, so this pins which class belongs to which kind of refusal.
+
+    The comparand is the literal string, not the module's own constant.
+    Comparing symbol to symbol pins which *constant* each site uses and not
+    which *string*, so exchanging the two values at their definitions would
+    pass — the swap would simply move one level up.
+
+    Addressed at the rule function rather than through the lint: the lint
+    converts each `Violation` into a `FileViolation` carrying path, field and
+    reason, and drops the class on the way, so no assertion about the class
+    can be made downstream of it.
+    """
+    shape = lint._shape
+
+    missing = shape._check_state_coherence(_broken("a", status="Fulfilled"))
+    assert missing, "a Fulfilled intent with neither record must be refused"
+    assert {v.refusal_class for v in missing} == {"lifecycle_record_required"}
+    assert shape.LIFECYCLE_RECORD_REQUIRED == "lifecycle_record_required"
+
+    forbidden = shape._check_state_coherence(
+        _broken("b", status="Draft", extra="- **Accepted:** 2026-09-20 ratified")
+    )
+    assert forbidden, "a Draft intent carrying `Accepted:` must be refused"
+    assert {v.refusal_class for v in forbidden} == {"lifecycle_record_not_allowed"}
+    assert shape.LIFECYCLE_RECORD_NOT_ALLOWED == "lifecycle_record_not_allowed"
+
+    # Third level: the docstring line for each class must describe that class's
+    # own kind. AC-0013 asserts each name appears there, not what it is said to
+    # mean, so exchanging the two descriptions would otherwise leave the module
+    # documenting each class as its opposite with every test green.
+    doc = shape.__doc__ or ""
+    required_line = next(
+        line for line in doc.splitlines()
+        if shape.LIFECYCLE_RECORD_REQUIRED in line
+    )
+    not_allowed_line = next(
+        line for line in doc.splitlines()
+        if shape.LIFECYCLE_RECORD_NOT_ALLOWED in line
+    )
+    assert "requires a record" in required_line, required_line
+    assert "forbids a record" in not_allowed_line, not_allowed_line
+
+
+def test_the_two_rule_tables_agree_so_a_forbidden_record_never_crashes() -> None:
+    """Every status with forbidden records has a rationale for refusing them.
+
+    The two tables are separate, so they can disagree. A status listing a
+    forbidden record with no rationale entry used to raise `KeyError` out of
+    the lint, turning a non-conforming corpus into a crash — exit 2 territory,
+    which the contract reserves for a corpus that could not be read.
+    """
+    shape = lint._shape
+
+    for status, (_, forbidden) in shape._STATE_COHERENCE_RULES.items():
+        if forbidden:
+            assert status in shape._FORBIDDEN_RATIONALES, status
+
+    # And the fallback holds if one is ever missed: no status may raise.
+    for status in shape.STATUS_VALUES:
+        shape._check_state_coherence(
+            _broken(
+                "a",
+                status=status,
+                extra="- **Accepted:** 2026-09-20 r\n- **Fulfilled:** 2026-09-21 d",
+            )
+        )
+
+
+def test_every_forbidden_refusal_states_a_rationale_for_its_own_status() -> None:
+    """Each status that forbids a record explains itself in its own terms.
+
+    Only `Draft`'s message is quoted on the how-to page, so only `Draft`'s
+    rationale was pinned. The other three could be exchanged silently — a
+    `Withdrawn` refusal reading "has not yet delivered", a `Cancelled` one
+    reading "means open" — each shipping a reason that contradicts the status
+    it names, with the suite green.
+    """
+    shape = lint._shape
+    expected = {
+        "Draft": "`Draft` means open",
+        "Accepted": "`Accepted` has not yet delivered",
+        "Cancelled": "`Cancelled` did not deliver",
+        "Withdrawn": "`Withdrawn` did not deliver",
+    }
+    assert set(expected) == set(shape._FORBIDDEN_RATIONALES), (
+        "a status gained or lost a rationale; update this pin deliberately"
+    )
+
+    for status, tail in expected.items():
+        violations = shape._check_state_coherence(
+            _broken(
+                "a",
+                status=status,
+                extra="- **Fulfilled:** 2026-09-21 delivered in commit abc",
+            )
+        )
+        # `Cancelled` yields two refusals for this fixture — the `Accepted:`
+        # it requires and the `Fulfilled:` it forbids. Only the forbidding
+        # ones carry a rationale.
+        forbidding = [
+            v
+            for v in violations
+            if v.refusal_class == shape.LIFECYCLE_RECORD_NOT_ALLOWED
+        ]
+        assert forbidding, status
+        assert all(v.reason.endswith(tail) for v in forbidding), (
+            status,
+            [v.reason for v in forbidding],
+        )

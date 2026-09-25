@@ -1051,3 +1051,68 @@ def test_ac0016_the_reviewer_emits_its_own_token_for_shape() -> None:
     mode = _reviewer_intent_mode()
     assert "MALFORMED(shape)" in mode
     assert "MALFORMED(owner)" in mode
+
+
+# ══ T2 (FEAT-0005): state-coherence rules do not reach validate_live_intent ════
+#
+# AC-0010: parametrized over every fixture the refusing criteria pin.
+# Excluding AC-0003, AC-0005, AC-0006 — those are accepting criteria, and their
+# fixtures pass both surfaces, so including one reds the differential's refusal
+# half against a conforming artifact.
+#
+# Asserted against the loaded module, not by searching the source tree: three
+# projected copies of this file exist and a source search would not distinguish
+# which one a call resolves against.
+
+_VALID_ACCEPTED = "2026-09-20 by eugenelim"
+_VALID_FULFILLED = "2026-09-22 by eugenelim"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # AC-0001: Fulfilled without Accepted: (has Fulfilled: so only Accepted: is missing)
+        _preamble({**BASE, "Status": "Fulfilled", "Fulfilled": _VALID_FULFILLED}),
+        # AC-0002: Cancelled without Accepted:
+        _preamble({**BASE, "Status": "Cancelled"}),
+        # AC-0004: Fulfilled without Fulfilled: (has Accepted: so only Fulfilled: is missing)
+        _preamble({**BASE, "Status": "Fulfilled", "Accepted": _VALID_ACCEPTED}),
+        # AC-0007a: Draft with Accepted:
+        _preamble({**BASE, "Accepted": _VALID_ACCEPTED}),
+        # AC-0007b: Draft with Fulfilled:
+        _preamble({**BASE, "Fulfilled": _VALID_FULFILLED}),
+        # AC-0008: Accepted with Fulfilled:
+        _preamble({**BASE, "Status": "Accepted", "Fulfilled": _VALID_FULFILLED}),
+        # AC-0009a: Cancelled with Fulfilled: (has Accepted: so AC-0002 does not also fire)
+        _preamble(
+            {**BASE, "Status": "Cancelled", "Accepted": _VALID_ACCEPTED, "Fulfilled": _VALID_FULFILLED}
+        ),
+        # AC-0009b: Withdrawn with Fulfilled:
+        _preamble({**BASE, "Status": "Withdrawn", "Fulfilled": _VALID_FULFILLED}),
+    ],
+    ids=[
+        "ac0001-fulfilled-no-accepted",
+        "ac0002-cancelled-no-accepted",
+        "ac0004-fulfilled-no-fulfilled-record",
+        "ac0007a-draft-with-accepted",
+        "ac0007b-draft-with-fulfilled",
+        "ac0008-accepted-status-with-fulfilled-record",
+        "ac0009a-cancelled-with-fulfilled",
+        "ac0009b-withdrawn-with-fulfilled",
+    ],
+)
+def test_ac0010_state_coherence_is_unreachable_from_validate_live_intent(
+    text: str,
+) -> None:
+    """Each corpus-scoped refusal returns [] from validate_live_intent.
+
+    Parametrized over the refusing criteria so leaking any single rule onto the
+    shared surface reds for that criterion while every other fixture stays green.
+    A single-fixture version would miss a rule leaked in isolation.
+    """
+    assert intent_shape.validate_live_intent(text) == [], (
+        "fixture must be accepted by the shared surface"
+    )
+    assert intent_shape.validate_corpus_scoped(text, set()) != [], (
+        "fixture must be refused by the corpus-scoped surface"
+    )

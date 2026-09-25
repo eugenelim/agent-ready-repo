@@ -57,9 +57,11 @@ Every line is `<file>: <field>: <reason>`. The field is the fix's address.
 FEAT-0001-missing-owner.md: Owner: required preamble field is absent
 ```
 
-Four fields are required: `Owner`, `Slug`, `Level`, `Status`. Add the named one
-to the preamble — the run of `- **Field:** value` lines above the first `## `
-heading.
+Four fields are always required: `Owner`, `Slug`, `Level`, `Status`. Two more,
+`Accepted:` and `Fulfilled:`, are required only for certain `Status` values —
+*A status requires a record, or forbids one* below covers those. Add the named
+field to the preamble — the run of `- **Field:** value` lines above the first
+`## ` heading.
 
 Declare the value; do not derive it. `Owner` in particular is not read from
 commit history, because the person who last edited a file is often not the
@@ -221,6 +223,41 @@ token. Move the punctuation, or drop it:
 
 Unlike `De-risked:` and `Shaping-reviewed:`, the literal `no` is not accepted
 here. An intent that was never ratified omits the field rather than denying it.
+
+### A status requires a record, or forbids one
+
+```text
+FEAT-0014-closed.md: Accepted: status `Fulfilled` requires an `Accepted:` record
+FEAT-0014-closed.md: Fulfilled: status `Fulfilled` requires a `Fulfilled:` record
+FEAT-0015-open.md: Accepted: status `Draft` carries an `Accepted:` record; `Draft` means open
+```
+
+A status that claims the work was delivered has to carry the records that
+authorise it, and a status that claims nothing yet must not. Which applies is
+decided by `Status` alone:
+
+| `Status` | `Accepted:` | `Fulfilled:` |
+| --- | --- | --- |
+| `Draft` | refused | refused |
+| `Accepted` | optional | refused |
+| `Fulfilled` | **required** | **required** |
+| `Cancelled` | **required** | refused |
+| `Withdrawn` | optional | refused |
+| `Superseded` | neither required nor refused | neither required nor refused |
+
+To clear a *requires* refusal, add the named record. To clear a *carries*
+refusal, either delete the record or move `Status` to the state that earned it —
+the message names which state you are in and why it disagrees.
+
+`Withdrawn` is the exception worth knowing: it never needs `Accepted:`, because
+abandoning a bet nobody ratified needs no ratification. `Cancelled` does need
+it — cancelling says the work was ratified and then stopped.
+
+**Write the record in the preamble, not the body.** A `- **Accepted:** …` line
+below the first `## ` heading is read as absent, so you get a *requires* refusal
+while looking straight at a line that appears to supply it. If the message
+insists a record is missing and you can see it, check which side of the first
+heading it sits on.
 
 ### A tombstone is malformed
 
