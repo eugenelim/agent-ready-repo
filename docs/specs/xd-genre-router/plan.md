@@ -101,12 +101,16 @@ ending in `grep -v` returns 0 when it prints and 1 when it does not, which is
 the inverse of a completeness check. `sweep` is a deciding block for that
 reason and `sweep_hits` is its reporting twin. A block that prints on every
 path and returns 0 regardless reports. Read the block — and read its last
-stage, not just its shape. One caveat for the grep-shaped reporting blocks (the
-numeral grep, the `docs/` classification): `grep` returns **1** when it matches
-nothing, so they exit 1 in their passing state. They are still reporting blocks
-— a `Done when` naming one says "returns no output", never "exits 0" — but a
-reviewer running the map top-to-bottom under `set -e` will stop on their
-success. An
+stage, not just its shape. Two grep-shaped reporting blocks need their passing
+exit status stated individually, because it differs. The **numeral grep**
+passes when it matches nothing, and `grep` returns 1 on no match — so it exits
+**1** when clean and 0 today with five hits; a reviewer running the map under
+`set -e` stops on its success. The **`docs/` classification grep** passes with
+a *non-empty* list in which every hit is exempt, frozen or a dated output, so
+it exits **0** both today (48 files) and after T7. An earlier caveat assigned
+one status to both. Neither is mis-gated — T7's condition says "the open class
+empty" and the numeral condition says "returns no output", both correct — but
+a single rule for the pair inverts one of them for a reader. An
 earlier version enumerated four reporting blocks and claimed "everything else
 asserts", which was wrong by more than a factor of two — ten blocks exit 0 on
 any value, among them the numeral grep, the `docs/` classification grep, the
@@ -202,7 +206,13 @@ for g, dest in sorted(seen.items()):
     scannable = re.sub(r"(references/)?([a-z-]+)-design\.md", "", dest)
     names_removed = [r for r in REMOVED if r in scannable]
     names_surviving = [k for k in SURVIVING if k in dest]
-    if names_removed and not ref:
+    # `names_removed` alone, not `names_removed and not ref`: the strip above
+    # has already removed the contracted citation form, so anything left is a
+    # bare deleted-skill name. Keeping the `and not ref` guard let a cell
+    # reading `` `references/conversion-design.md` — see also
+    # `analytical-design` `` pass, because `ref` is truthy and the `elif` is
+    # then satisfied by it — the exact both-forms case the strip was added for.
+    if names_removed:
         bad.append(f"{g}: routes to deleted skill(s) {names_removed}")
     elif not (ref or names_surviving or "general" in dest.lower()):
         bad.append(f"{g}: {dest!r} is none of the three outcomes "
@@ -667,6 +677,41 @@ grep -q '\"version\": \"3.0.0\"' packs/experience-design/.claude-plugin/plugin.j
 grep -q '\"version\": \"0.3.3\"' packs/frontend-engineering/.claude-plugin/plugin.json
 ```
 
+**The changelog entries.** `catalogue verify` enforces
+`pack.toml` ↔ `plugin.json` ↔ `marketplace.json` parity and never opens the
+changelog, so without this nothing reads it and a major removal ships with no
+adopter notice:
+
+```bash
+python3 - <<'QQ'
+import pathlib, re, sys
+text = pathlib.Path("docs/product/changelog.md").read_text()
+unreleased = text.index("## [Unreleased]")
+def entry(pack, version):
+    m = re.search(rf"^## \[{re.escape(pack)}\]\[{re.escape(version)}\] — \d{{4}}-\d{{2}}-\d{{2}}$",
+                  text[unreleased:], re.M)
+    return m
+fail = []
+xd = entry("experience-design", "3.0.0")
+if not xd:
+    fail.append("no free-standing `## [experience-design][3.0.0] — <date>` entry below [Unreleased]")
+else:
+    body = text[unreleased + xd.end():]
+    body = body[:body.index("\n## ")] if "\n## " in body else body
+    absent = [n for n in ("analytical-design", "conversion-design", "documentation-design",
+                          "informational-design", "marketplace-design", "workspace-design")
+              if n not in body]
+    if absent: fail.append(f"entry does not name removed skills: {absent}")
+if not entry("frontend-engineering", "0.3.3"):
+    fail.append("no free-standing `## [frontend-engineering][0.3.3] — <date>` entry")
+if fail: sys.exit("CHANGELOG:\n  " + "\n  ".join(fail))
+print("both changelog entries present, six removed skills named")
+QQ
+# exits 1 today (neither entry exists). On the abort branch only the
+# frontend-engineering half is owed — run it with the experience-design check
+# removed, per T10a.
+```
+
 **Suites and gates.**
 
 ```bash
@@ -833,11 +878,11 @@ column closeout actually reads.
 | Rewritten rubric | `IA/SKILL.md` | T3, T11 | Seven genres each reaching one of the three permitted destinations — asserted, not merely non-empty; authored body ≤ 8,000 B; all four description boundaries present; judgement 2 recorded with reviewer and date (**T11** — T3 records judgement 1 only) |
 | Six directories removed | `packs/experience-design/.apm/skills/` | T4 | Directory count 0; `pack.evals.skills` reads 14 |
 | Pack internals swept | `pack.toml`, `DESIGN.md`, `JOURNEY.md`, `README.md`, `docs/index.md` | T5, T11 | `sweep` empty under `packs/experience-design/`; six `DESIGN.md` locations restated; § 10 entry signed and dated (T5); the sibling's non-edit criterion cited in the ledger (**T11** — T5 cannot write it); `docs/index.md`'s two numerals reading 14 |
-| Cross-pack (fold branch) | `packs/frontend-engineering/**` | T6, T10a | Four-row table enumerating the six `surface-genre:` tokens, exactly one Surface-type cell containing `interaction`; `AGENTS.md:11` repointed; README offering the post-fold routable set including `information-architecture`; `recommended` declared with `catalogue = "agent-ready-repo"` and `>=3.0.0` — absent and correct are indistinguishable to every other gate; `design-system-foundations` gone from both live sites; `packs/frontend-engineering/tests` green; `0.3.3` in both manifests and the projection |
+| Cross-pack (fold branch) | `packs/frontend-engineering/**`, `notes/verification-ledger.md` | T6, T10a | The `read-the-design-handoff.md` zero-occurrence confirmation in the ledger — T6's, not T7a's, because T6 is outside the abort revert set; | Four-row table enumerating the six `surface-genre:` tokens, exactly one Surface-type cell containing `interaction`; `AGENTS.md:11` repointed; README offering the post-fold routable set including `information-architecture`; `recommended` declared with `catalogue = "agent-ready-repo"` and `>=3.0.0` — absent and correct are indistinguishable to every other gate; `design-system-foundations` gone from both live sites; `packs/frontend-engineering/tests` green; `0.3.3` in both manifests and the projection |
 | Cross-pack (abort branch) | `packs/frontend-engineering/**` | T9a, T10a | **Nine**-row table with `marketplace-design` and `workspace-design` added; sentinel still probing `conversion-design`; `AGENTS.md:11` naming the six again; `recommended` reading `>=2.0.10`; same suite green; same `0.3.3` release surface |
 | Fold work reverted (abort branch only) | `packs/experience-design/**`, `docs/**`, `web/src/content/**`, `tools/`, `guides/**`, census fixture | T9b | `sweep_raw` back to **20** and `sweep` to **18** — not the pre-fold 23/21, because T6 survives the abort; `pack.evals.skills` back to 20; every T3 output reverted including `evals/eval_queries.json` and the frontmatter `description`; roster suites green |
 | Docs, site, census | `docs/`, `web/src/content/`, census fixture | T7 | Class record for every `docs/` hit in the ledger, against the spec's three-directory dated-output class; the count-shaped numeral grep clean across all four files; `web/src/content/packs/frontend-engineering.md` naming the table's target; `npm ci && npm run build` exit 0; census suite green |
-| Guide tree and `tools/` | `guides/**`, `tools/add-rendering-directives.py` | T7a | `sweep` empty under `guides/` and `tools/`; five guide commands exit 0; `information-architecture`'s rendering-directive entry asserts `["table", "narrative"]` — no gate reads this map, so nothing else can catch it; the two guide numerals read 14; the `lint-guidebook-steps.py` exemption reason in the ledger; the `read-the-design-handoff.md` zero-occurrence confirmation in the ledger |
+| Guide tree and `tools/` | `guides/**`, `tools/add-rendering-directives.py` | T7a | `sweep` empty under `guides/` and `tools/`; five guide commands exit 0; `information-architecture`'s rendering-directive entry asserts `["table", "narrative"]` — no gate reads this map, so nothing else can catch it; the two guide numerals read 14; the `lint-guidebook-steps.py` exemption reason in the ledger |
 | User promise — the guide a reader follows | `guides/experience-design/` | T7a, T11 | Guide-agreement suite green and the five guide commands exit 0 (T7a); judgement 3 recorded with reviewer and date (**T11** — T7a does not record verdicts) |
 | RFC-0066 erratum | `docs/rfc/0066-…md` § Errata | T8 | Two-layer section; new entry names D4 and no delivery artifact; prior entry verbatim |
 | Versions + changelog (fold branch) | three manifests, changelog | T10, T10a | All three surfaces agree at `3.0.0`/`0.3.3`; both changelog entries free-standing; catalogue lint and verify exit 0 |
@@ -1289,15 +1334,14 @@ still reading `["table"]` passes every other check, and the spec itself
 certifies no gate reads this file — the two guide-tree numerals read 14, the
 five guide commands each exit 0 (the map row claims them as T7a's closeout
 evidence, so they belong in its completion condition), and the
-`read-the-design-handoff.md` zero-occurrence confirmation is in the ledger. That
-last one appeared only in T11's *abort*-branch condition, so on the fold branch
-the one criterion whose whole obligation is a ledger line was gated by nothing.
+two guide-tree numerals read 14. The
+`read-the-design-handoff.md` confirmation is **not** here — T6 owns it, and a
+record with two writers is what this plan forbids at T9a.
 
 **Touches:** tools/add-rendering-directives.py, guides/experience-design/**, guides/frontend-engineering/**, docs/specs/xd-genre-router/notes/verification-ledger.md
 
 The ledger is in this list because T7a's `Done when` reads it: the
-`lint-guidebook-steps.py` exemption reason and the `read-the-design-handoff.md`
-zero-occurrence confirmation are both T7a's to write. This is the same
+`lint-guidebook-steps.py` exemption reason is T7a's to write. This is the same
 `Touches`-cannot-reach defect already fixed for the `web/` page, which moved
 from T6 to T7.
 
@@ -1384,9 +1428,14 @@ restated against the still-present genre skills.
   (1) the six genre references and the relocated `editorial-quality-gates.md`
   are gone from `$IA/references/`; (2) the pre-fold rubric is restored in
   `$IA/SKILL.md`; (3) `$IA/evals/eval_queries.json` is back to its 11/11
-  pre-fold form; and (4) the frontmatter `description` is back to its pre-fold
-  762 characters. Outputs 3 and 4 were previously unnamed, and no roster suite
-  reads either — so a revert that stopped at the references would ship six
+  pre-fold form; (4) the frontmatter `description` is back to its pre-fold
+  762 characters; and (5) `$IA/evals/evals.json` is back to its pre-fold case
+  set — T3 carries the six genre quality-eval sets into it, so leaving them
+  resident returns six genres' cases to `information-architecture` while the
+  six source skills come back shipping their own. Nothing reds:
+  `skill_spec_lint` never reads `evals.json`, and none of T9b's other tests
+  opens it. Outputs 3, 4 and 5 were each added after being missed, and no roster suite
+  reads any of them — so a revert that stopped at the references would ship six
   restored genre skills beside an `information-architecture` whose description
   is tuned to out-trigger all of them and whose negative set has dropped the two
   contradiction queries that existed precisely to separate registrations now
@@ -1538,8 +1587,10 @@ guide suites could close having never run against the swept tree.
   selector and `sweep`, not the repository lint. T10 owns it as the last task
   before closeout on the fold branch.
 
-**Done when:** every `experience-design` version surface agrees, catalogue
-passes, and `make lint-ruff lint-mypy` exits 0.
+**Done when:** every `experience-design` version surface agrees, the changelog
+block exits 0 — a free-standing `3.0.0` entry naming all six removed skills,
+which `catalogue verify` cannot see because it never opens the changelog —
+catalogue passes, and `make lint-ruff lint-mypy` exits 0.
 
 **Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md
 
