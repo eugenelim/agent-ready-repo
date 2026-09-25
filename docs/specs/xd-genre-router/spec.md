@@ -359,8 +359,23 @@ downstream caller can reach today — and each genre's method is unchanged.
       filenames, because a name list silently omits a file added after it was
       written. The classes are: the RFC-0066 erratum; `docs/product/changelog.md`
       (whose own AC below requires the names); the delivery brief; **any
-      `docs/specs/` spec or plan still in flight**, which covers
-      `xd-copy-router`'s pair and this spec's own pair; and **dated outputs** —
+      file under `docs/specs/<delivery>/`, which takes **its owning delivery's
+      lifecycle class — never its own file type**.** That is the whole rule, and
+      it replaces two wrong attempts. The first said "spec or plan", which left
+      another live delivery's execution notes in the "open, owed an edit"
+      default. The second widened to "any directory still in flight" and listed
+      four files, which failed twice over: a list is the enumeration this rule
+      forbids, and two of the four
+      (`docs/specs/communication-modes-editorial/test-results.md`,
+      `docs/specs/xd-skill-boundaries/benchmark.md`) belong to deliveries whose
+      specs read **Shipped** — so they were neither in flight nor, being neither
+      a spec nor a plan, frozen under a rule that named only "a shipped spec".
+      They fell straight back to the default. Under the rule as now stated: a
+      **closed** delivery's notes, benchmarks and test results are **frozen**,
+      whatever their filename; an **in-flight** delivery's are that delivery's
+      to sweep, not this one's. Either way they are not open here. Rewriting a
+      shipped benchmark to remove the names of the skills it benchmarked is the
+      same failure as the `findings/` omission, two directories over; and **dated outputs** —
       anything under `docs/design/`, anything under `docs/product/research/`,
       and anything under `docs/product/findings/` — each records what was
       measured or observed on a date. `findings/` was missed by an earlier
@@ -511,9 +526,12 @@ branch's wording would contradict itself.
       mistyped catalogue silently skips resolution and exits 0, leaving a
       documented floor that resolves to nothing while this criterion reads
       satisfied. No `pack.toml` declares `dependencies.**recommended**` today,
-      but four declare `dependencies.required` in the byte-identical three-field
-      shape and all four read `catalogue = "agent-ready-repo"` —
-      `packs/atlassian/pack.toml:20-23` is the shortest. Copy that shape. **The value is branch-dependent:** on the
+      but several packs declare `dependencies.required` in the byte-identical
+      three-field shape, every one of them reading
+      `catalogue = "agent-ready-repo"` — `packs/atlassian/pack.toml:20-23` is
+      the shortest. Copy that shape. No count is given here: an earlier draft
+      said "four", the tree holds eight such `pack.toml` files carrying nine
+      entries, and the figure is not load-bearing for the criterion. **The value is branch-dependent:** on the
       fold branch `>=3.0.0`; on the abort branch the highest **released**
       `experience-design` version at the time T6 runs — `>=2.0.10` if and only
       if `creative-direction-modes` has landed its bump, which it had in the
