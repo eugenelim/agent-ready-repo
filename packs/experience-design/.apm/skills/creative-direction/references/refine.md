@@ -47,7 +47,7 @@ The result of `refine` is recorded as an amendment to the existing direction doc
 
 ## Axis vocabulary
 
-The fifteen axes are the complete vocabulary for refinement. A request that names an axis outside the fifteen is refused; the axis vocabulary is the answer.
+The fifteen axes are the complete vocabulary for refinement. A request that names an axis outside the fifteen is refused; the axis vocabulary is the answer. A request whose wording is not in the map names no axis yet: translate it into the axes it puts in play, state that mapping, and get it confirmed before moving a token.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: creative-direction
-description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Also use when refining or amending an existing direction, or when inheriting it into a new section, component, or feature. Produces ranked aesthetic goals and a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\", \"refine the existing direction to be bolder\", \"amend the direction doc to be quieter\"."
+description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Also use when refining or amending an existing direction, or when inheriting it into a new section, component, or feature. Produces ranked aesthetic goals and, when due, a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\", \"refine the existing direction to be bolder\", \"amend the direction doc to be quieter\"."
 ---
 
 # Skill: creative-direction
@@ -38,9 +38,9 @@ Look up `<output_dir>/direction/` to find whether a direction already owns the t
 
 | Route | Trigger | Operations |
 | --- | --- | --- |
-| inherit | A section, component, state, or feature added inside a surface that already has a direction. | frame, scoped to the new element against the existing goals — no fresh interrogation, no divergence, no visual step |
+| inherit | A section, component, state, or feature added inside a surface that already has a direction. | frame, scoped to the new element against the existing goals — no fresh interrogation, no divergence, no visual step. Delivers a session-only scoping answer: which existing goals and axis tokens govern the new element. Writes nothing; the run ends there |
 | extend | A new surface added to a product that already has a visual system. | frame → explore → converge |
-| originate | A surface in a product with no visual system yet; the highest-invention route. | frame → explore → visualize → converge |
+| originate | A surface in a product with no visual system yet; the highest-invention route. | frame → explore → converge (select) → visualize → converge (capture) |
 
 ## When to invoke
 
@@ -70,11 +70,11 @@ Generates materially different candidate directions — each a filled direction 
 
 ### visualize
 
-Makes a candidate concrete enough to support a compositional commitment; writes nothing of its own. May change: compositional commitments recorded in the direction doc. Must remain stable: axis tokens from the direction sheet. Method: `references/visualize.md`. Also load `references/refusals.md`.
+Makes a candidate concrete enough to commit to composition. A text schematic is the default, so it runs on any harness; writes nothing of its own. May change: compositional commitments recorded in the direction doc. Must remain stable: axis tokens from the direction sheet. Method: `references/visualize.md`. Also load `references/refusals.md`.
 
 ### converge
 
-Selects a direction, grounds and ranks the goals, fills the direction sheet across all fifteen axes, runs the counterfactual check, holds the quality floor, and captures the direction doc. May change: the direction doc. Must remain stable: the selection — the agent does not choose. Method: `references/converge.md`. Also load `references/refusals.md`.
+Selects a direction, grounds and ranks the goals, fills the direction sheet across all fifteen axes, runs the counterfactual check, holds the quality floor, and captures the direction doc. May change: the direction doc. Must remain stable: the selection, per § Agent choice. Method: `references/converge.md`. Also load `references/refusals.md`.
 
 ### refine
 
@@ -85,7 +85,7 @@ Takes a requested change in plain words, maps it to the axes that may move, and 
 Match the request to one operation before loading any reference:
 
 - Request names a change in plain words against an existing direction (`bolder`, `quieter`, `distill`, `typeset`, `layout`, `colorize`, `delight`): **refine**.
-- Request asks what the direction looks like or asks to see a candidate: **visualize**.
+- Request asks what the direction looks like or asks to see a candidate: **visualize** — but if no candidate sheet exists yet, this is **frame**.
 - Request asks to choose between candidates or commit to one: **converge**.
 - Request names a new surface, section, component, or feature: apply the route rule above, then begin with the first operation the chosen route calls for.
 - Request probes the audience, names goals, or establishes the brief: **frame**.

@@ -178,7 +178,7 @@ Each request maps to one of five named operations before any reference is loaded
 - **frame** — establishes the brief from the felt vibe. Sets audience and ranked jobs-to-be-done, target surface, incumbent constraints, intended effect, what must stay recognisable, what would read as generic, and the named goals the interrogation produces. Does not recreate product discovery or journey design.
 - **explore** — generates materially different candidate directions, each as a filled direction sheet held in the session, then scores them for distinctness. Nothing is written to disk at this stage.
 - **visualize** — makes a candidate concrete enough to support a compositional commitment. It runs on any harness: a text schematic is the default representation. A rendered comp is produced only when the route is `originate` and the harness can produce one, and its absence is a named skip, not a blocker. Writes nothing of its own.
-- **converge** — selects a direction, grounds and ranks the goals, fills the direction sheet across all fifteen axes, runs the counterfactual check, holds the quality floor, and captures the direction document. This is the only operation that writes a file.
+- **converge** — selects a direction, grounds and ranks the goals, fills the direction sheet across all fifteen axes, runs the counterfactual check, holds the quality floor, and captures the direction document. This is the only operation that writes a file. It will not choose between materially different directions for you: it presents the survivors at equal salience and waits. Picking one sets the document's `status` to `selected`; asking the agent to decide is recorded as a delegated choice and leaves it `proposed`.
 - **refine** — takes a requested change in plain words, maps it to the axes that may move, and records the amendment in the existing direction document without writing a second direction doc.
 
 ### Make the direction discriminating
@@ -201,11 +201,15 @@ section and scroll rhythm take two ordered tokens; every other axis takes one.
 convention remains in force because you have not made a direction-specific
 choice. It is a recorded undecided state, never an empty cell.
 
+The first three rows below are filled as a worked example for a long-form
+reading surface. The remaining twelve show the vocabulary with the commitment
+column as the template ships it — fill each the same way.
+
 | Axis | Token vocabulary | This direction commits to |
 | --- | --- | --- |
-| Grid grammar | `[manuscript]` `[column]` `[modular]` `[hierarchical]` `[compound]` `[broken]` `[platform-default]`, then `[rigid]` `[relaxed]` `[platform-default]` | `[platform-default]` `[platform-default]` <track count; which transformations are permitted> |
-| Alignment and equilibrium | `[edge]` `[centred]` `[baseline]` `[platform-default]`, then `[symmetric]` `[asymmetric]` `[platform-default]` | `[platform-default]` `[platform-default]` <how many distinct axes> |
-| Spatial density | `[sparse]` `[comfortable]` `[dense]` `[platform-default]` | `[platform-default]` <information and group count per screenful> |
+| Grid grammar | `[manuscript]` `[column]` `[modular]` `[hierarchical]` `[compound]` `[broken]` `[platform-default]`, then `[rigid]` `[relaxed]` `[platform-default]` | `[column]` `[rigid]` — a three-track grid that never reflows into an asymmetric split, so a long reading column stays predictable between sections |
+| Alignment and equilibrium | `[edge]` `[centred]` `[baseline]` `[platform-default]`, then `[symmetric]` `[asymmetric]` `[platform-default]` | `[baseline]` `[asymmetric]` — one baseline grid governs every text block; weight sits left of centre so the eye starts in the same place on each screen |
+| Spatial density | `[sparse]` `[comfortable]` `[dense]` `[platform-default]` | `[sparse]` — at most two content groups per screenful, because the reader is deciding rather than scanning |
 | Whitespace distribution | `[compact]` `[even]` `[expansive]` `[platform-default]` | `[platform-default]` <macro margins, gutters, section gaps; micro spacing> |
 | Hierarchy and scale contrast | `[flat]` `[moderate]` `[steep]` `[platform-default]` | `[platform-default]` <hero dominance; span and size jumps> |
 | Containment and boundary strength | `[open-field]` `[ruled]` `[panelled]` `[carded]` `[platform-default]` | `[platform-default]` <whether overlap is permitted> |

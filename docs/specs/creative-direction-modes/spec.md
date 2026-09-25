@@ -501,9 +501,10 @@ and graded by the judge mode, not asserted by pytest.
       lives in the operation references. *(manual QA — judgement 7)*
 - [ ] The sum of file bytes under
       `packs/experience-design/.apm/skills/creative-direction/` is at most
-      **95,000 bytes**. Failing state: the directory grew by more than the six
-      new reference files and the template's three new sections account for.
-      *(goal-based)*
+      **97,000 bytes**. Failing state: the directory grew by more than the six
+      new reference files, the template's four new sections, and the review
+      repairs account for. Amended from 95,000 on 2026-09-25 — see this spec's
+      Changelog for the arithmetic. *(goal-based)*
 - [ ] The frontmatter `description` names refining or amending an existing
       direction among its trigger phrasings. It carries none of "refine",
       "amend", "inherit", "existing direction" or "already" today, and it is the
@@ -600,6 +601,25 @@ and graded by the judge mode, not asserted by pytest.
       five operations. *(manual QA — judgement 5)*
 - [ ] That guide's `**Where it lands:**` path agrees with `SKILL.md`, which the
       guide-agreement suite already checks. *(goal-based)*
+
+## Changelog
+
+- 2026-09-25 — **Directory ceiling amended, 95,000 → 97,000 bytes.** Approved by
+  eugenelim. The original figure was derived before the references existed and
+  left 100 bytes of margin at first measurement. Post-gates review sustained
+  fourteen findings whose repairs add bytes: a writer for the compositional
+  commitments, the `surface-genre:` provenance, the genre-tier directive made
+  reachable from `converge`, an `inherit` terminus, the `originate` selection
+  point, an unmatched-wording path in `refine`, and a Signature device field
+  with a producer — that last one because `refine`'s stability contract, which
+  the spec pins, protected a field no operation created.
+
+  A prose-tightening pass ran first and freed 1,256 bytes; the repairs consumed
+  all of it and 421 more. The ceiling moved rather than the rules because that
+  is what this spec's own Risks section prescribes, and because the 100-byte
+  margin is implicated in the loss pattern: three contracted obligations were
+  cut by passes working against a budget. 97,000 leaves roughly 1,500 bytes of
+  real headroom.
 
 ## Follow-ons
 
