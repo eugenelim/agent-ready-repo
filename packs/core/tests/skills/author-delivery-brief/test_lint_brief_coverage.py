@@ -794,22 +794,48 @@ def test_ac0007_ac0003_slug_live_wins_over_commented_decoy() -> None:
 def test_ac0025_specmap_heading_in_comment_does_not_open() -> None:
     """AC-0025: a ## Spec map heading inside a comment does not open the section.
 
-    Without the fix: rows below the commented heading are parsed and alpha
-    (Shipped) is a child of a Ready brief → lifecycle invalid → rc=1.
-    With the fix: section never opens → no rows → Ready with no children → rc=0.
+    The rows are LIVE, below the closing `-->`. That matters: with the rows
+    inside the comment, the row-level comment skip reaches the same verdict
+    whether or not the heading opened the section, so the fixture could not
+    fail for the criterion it is named after. Here the section-opening
+    decision is the only thing that can produce the verdict.
+
+    Guard present: the section never opens, so a Draft brief has no children
+    and passes. Guard removed: the commented heading opens the section, alpha
+    (Shipped) becomes a child of a Draft brief, and the lifecycle rule refuses.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no back-link: the map is the only route
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n\n"
+            "<!--\n## Spec map\n-->\n\n"
+            "| Spec | Status |\n| --- | --- |\n| alpha | Shipped |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"a commented ## Spec map must not open the section: rc={rc} err={err}")
+        expect("child scope" not in err, f"no child should have been collected: {err}")
+
+
+def test_ac0025_opener_holds_the_three_space_ceiling() -> None:
+    """A four-space-indented Spec-map heading is a code block, not a heading.
+
+    The opener's ceiling is the clause its terminator twin already pins.
+    Without it, an indented code block would open the section and collect a
+    child the brief does not have.
     """
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "Shipped")  # no back-link
         write_brief_raw(
             root, "myb",
-            "# Brief: myb\n\n- **Status:** Ready\n- **Slug:** `myb`\n\n"
-            "<!--\n## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
-            "| `alpha` | Shipped |\n-->\n",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n\n"
+            "    ## Spec map\n\n| Spec | Status |\n| --- | --- |\n| alpha | Shipped |\n",
         )
         rc, out, err = run_lint(root)
-        expect(rc == 0, f"commented ## Spec map must not open section: rc={rc} err={err}")
-        expect("brief lifecycle" not in err.lower(), err)
+        expect(rc == 0, f"a four-space-indented heading must not open the section: rc={rc} err={err}")
+        expect("child scope" not in err, f"no child should have been collected: {err}")
 
 
 # ── AC-0026: row inside comment is not a Spec-map row (two arms) ─────────────

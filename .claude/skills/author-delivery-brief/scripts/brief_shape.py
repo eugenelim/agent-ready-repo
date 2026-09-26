@@ -220,7 +220,18 @@ class Refusal(str):
     Subclasses ``str`` so every caller that prints, formats or searches the
     message keeps working unchanged, while a check can compare ``.rule``
     instead of matching wording.  Classifying a refusal by its text is what
-    made an extended phrasing get filed under an existing rule.
+    let an extended phrasing get filed under an existing rule.
+
+    A ``str`` subclass has to survive what a ``str`` survives.  Two places
+    where the obvious implementation does not:
+
+    - ``copy`` and ``pickle`` rebuild a ``str`` subclass by calling
+      ``cls.__new__(cls, <the string>)``, which a two-argument ``__new__``
+      rejects.  ``__getnewargs__`` supplies both arguments so a round trip
+      keeps the rule.
+    - A refusal carrying an empty message would be falsy, so a caller
+      guarding on truthiness would drop it.  A refusal is always a refusal,
+      so ``__bool__`` says so regardless of the message.
     """
 
     rule: str
@@ -230,15 +241,11 @@ class Refusal(str):
         obj.rule = rule
         return obj
 
+    def __getnewargs__(self) -> tuple[str, str]:  # type: ignore[override]
+        return (self.rule, str(self))
 
-REFUSAL_RULES: frozenset[str] = frozenset(
-    {
-        "cut_closed_malformed",
-        "cut_closed_required_on_shipped",
-        "cut_closed_refused_on_draft",
-    }
-)
-"""Every rule name a refusal from this module can carry."""
+    def __bool__(self) -> bool:
+        return True
 
 
 def validate_cut_closed(value: str) -> Refusal | None:

@@ -305,12 +305,12 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         # Cut-closed: value that is present but malformed: refused and named.
         if cut_closed is not None:
             cut_err = _bs.validate_cut_closed(cut_closed)
-            if cut_err:
+            if cut_err is not None:
                 hard.append(f"{rel}: Cut-closed: {cut_err}")
 
         # Declaration matrix: Shipped requires Cut-closed:; Draft refuses it.
         decl_err = _bs.validate_declaration(brief_status, cut_closed is not None)
-        if decl_err:
+        if decl_err is not None:
             hard.append(f"{rel}: {decl_err}")
 
         # Case-insensitive so lowercase spec status tokens agree with drift.

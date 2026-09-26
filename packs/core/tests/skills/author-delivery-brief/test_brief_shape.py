@@ -625,10 +625,6 @@ def test_t6_refusal_registry_equals_actual_refusals() -> None:
         f"Docstring registry: {sorted(registry)!r}\n"
         f"Raised when driven:  {sorted(observed)!r}"
     )
-    assert observed <= _m.REFUSAL_RULES, (
-        f"a refusal carried a rule absent from REFUSAL_RULES: "
-        f"{sorted(observed - _m.REFUSAL_RULES)!r}"
-    )
 
 
 def test_t6_skill_md_cites_brief_shape_not_child_rule() -> None:
