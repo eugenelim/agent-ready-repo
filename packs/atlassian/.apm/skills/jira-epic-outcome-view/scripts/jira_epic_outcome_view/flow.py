@@ -121,6 +121,12 @@ def run_flow_metrics(
     existing = env.get("PYTHONPATH")
     parts = [str(scripts_dir), existing] if existing else [str(scripts_dir)]
     env["PYTHONPATH"] = os.pathsep.join(parts)
+    # A child interpreter caches bytecode beside the source it imports, which
+    # would write `__pycache__` into the installed pack tree -- a tree this
+    # view promises to leave byte-identical. The cache is the interpreter's
+    # own convenience, not anything this view needs, so it is switched off
+    # rather than excused in the guarantee.
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     with scratch_per_issue_path(cwd_root=cwd_root, pack_root=pack_root) as output:
         argv = build_flow_argv(
             output=output,

@@ -65,7 +65,11 @@ def run_jira(
         raise WriteVerbRefused(f"verb {verb!r} is not a read verb this view may issue")
 
     argv = [sys.executable, str(script), verb, *args]
-    completed = runner(argv, env=dict(os.environ), capture_output=True)
+    # Bytecode caching would write `__pycache__` beside the client's own
+    # sources, inside the installed pack tree this view leaves unchanged.
+    env = dict(os.environ)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    completed = runner(argv, env=env, capture_output=True)
     returncode = getattr(completed, "returncode", 0)
     stdout = getattr(completed, "stdout", b"") or b""
     if isinstance(stdout, bytes):
