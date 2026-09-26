@@ -6,6 +6,7 @@ Run with pytest.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -54,6 +55,25 @@ def git(cwd: Path, *args: str) -> None:
         capture_output=True,
         cwd=str(cwd),
     )
+
+
+def load_freshness_module():
+    spec = importlib.util.spec_from_file_location(
+        "core_work_loop_check_base_freshness", FRESHNESS
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"could not load {FRESHNESS}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def assert_skipped_notice(data: dict[str, object]) -> None:
+    assert data.get("status") == "skipped"
+    message = str(data.get("message", ""))
+    assert "not verified" in message
+    assert "may continue" in message
+    assert "separately" in message
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +128,251 @@ def test_target_flag_bad_form(tmp: Path) -> None:
         fail("target_flag_bad_form", f"expected status=surface, got {data!r}")
         return
     ok("target_flag_bad_form")
+
+
+def test_unavailable_remote_head_skips(tmp: Path) -> None:
+    repo = tmp / "unavailable-remote-head"
+    repo.mkdir()
+    git(tmp, "init", str(repo))
+    (repo / "f.txt").write_text("init")
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "init")
+    git(repo, "remote", "add", "origin", str(tmp / "missing.git"))
+
+    rc, out, _err = run_freshness(repo)
+    data = json.loads(out)
+
+    assert rc == 0
+    assert_skipped_notice(data)
+
+
+def test_fetch_denied_remote_tracking_ref_skips(tmp: Path) -> None:
+    origin = tmp / "denied-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "denied-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    (origin / "b.txt").write_text("b")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "B")
+
+    refs_dir = clone / ".git" / "refs" / "remotes" / "origin"
+    original_mode = refs_dir.stat().st_mode
+    refs_dir.chmod(0o500)
+    try:
+        rc, out, _err = run_freshness(clone, "--target=origin/main")
+    finally:
+        refs_dir.chmod(original_mode)
+    data = json.loads(out)
+
+    assert rc == 0
+    assert data.get("target") == "origin/main"
+    assert_skipped_notice(data)
+
+
+def test_ls_remote_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = tmp / "ls-remote-timeout"
+    repo.mkdir()
+    git(tmp, "init", str(repo))
+    (repo / "f.txt").write_text("init")
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "init")
+    git(repo, "remote", "add", "origin", str(tmp / "origin.git"))
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+
+    def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "ls-remote":
+            return 124, "", ""
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    assert_skipped_notice(data)
+
+
+def test_fetch_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    origin = tmp / "fetch-timeout-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "fetch-timeout-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+
+    def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 124, "", ""
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    assert data.get("target") == "origin/main"
+    assert_skipped_notice(data)
+
+
+@pytest.mark.parametrize(
+    ("stderr", "category"),
+    [
+        (
+            "fatal: unable to access 'https://example.invalid/repo.git/': "
+            "Could not resolve host: example.invalid",
+            "remote host could not be resolved",
+        ),
+        ("git@example.invalid: Permission denied (publickey).", "remote authentication failed"),
+        (
+            "fatal: 'missing.git' does not appear to be a git repository",
+            "remote repository is unavailable",
+        ),
+    ],
+)
+def test_remote_unavailable_classifier_closed_categories(stderr: str, category: str) -> None:
+    module = load_freshness_module()
+
+    assert module._classify_remote_unavailable(stderr) == category
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "fatal: bad revision syntax",
+        (
+            "fatal: unable to access 'bad::url': URL using bad/illegal "
+            "format or missing URL"
+        ),
+        "fatal: protocol 'bad' is not supported",
+        (
+            "fatal: unable to access 'https://example.invalid/repo.git/': "
+            "URL rejected: malformed input to a URL function"
+        ),
+    ],
+)
+def test_remote_unavailable_classifier_rejects_unmatched_diagnostics(stderr: str) -> None:
+    module = load_freshness_module()
+
+    assert module._classify_remote_unavailable(stderr) is None
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "error: cannot lock ref 'refs/remotes/origin/main': Unable to create '.git/refs/remotes/origin/main.lock': Operation not permitted",
+        "error: unable to update local ref refs/remotes/origin/main: Permission denied",
+        "fatal: remote-tracking ref update failed: read-only file system",
+    ],
+)
+def test_fetch_metadata_denied_classifier_closed_categories(stderr: str) -> None:
+    module = load_freshness_module()
+
+    assert (
+        module._classify_fetch_metadata_denied(stderr)
+        == "git metadata write was denied by local policy"
+    )
+
+
+def test_fetch_unclassified_failure_surfaces_without_raw_stderr(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    origin = tmp / "fetch-unclassified-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "fetch-unclassified-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    raw_stderr = (
+        "fatal: unable to access 'bad::url': URL using bad/illegal format "
+        "or missing URL"
+    )
+
+    def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 128, "", raw_stderr
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert data.get("status") == "surface"
+    assert "unclassified diagnostics" in data.get("message", "")
+    assert raw_stderr not in data.get("message", "")
+
+
+def test_ls_remote_unclassified_failure_surfaces_without_raw_stderr(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = tmp / "ls-remote-unclassified"
+    repo.mkdir()
+    git(tmp, "init", str(repo))
+    (repo / "f.txt").write_text("init")
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "init")
+    git(repo, "remote", "add", "origin", "bad::url")
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    raw_stderr = "fatal: protocol 'bad' is not supported"
+
+    def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "ls-remote":
+            return 128, "", raw_stderr
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert data.get("status") == "surface"
+    assert "unclassified diagnostics" in data.get("message", "")
+    assert raw_stderr not in data.get("message", "")
 
 
 def test_no_remote_rebase_in_progress(tmp: Path) -> None:
@@ -533,10 +798,10 @@ def test_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
     git(clone, "remote", "set-url", "origin", str(unreachable))
 
     rc, out, _err = run_freshness(clone, "--target=origin/main")
-    if rc != 1:
+    if rc != 0:
         fail(
             "fetch_transport_error_mentioning_remote_ref",
-            f"expected exit 1, got {rc}; out={out!r}",
+            f"expected exit 0, got {rc}; out={out!r}",
         )
         return
     try:
@@ -548,16 +813,22 @@ def test_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
         )
         return
     msg = data.get("message", "")
+    if data.get("status") != "skipped":
+        fail(
+            "fetch_transport_error_mentioning_remote_ref",
+            f"expected status=skipped, got {data!r}",
+        )
+        return
     if "not found on remote" in msg:
         fail(
             "fetch_transport_error_mentioning_remote_ref",
             f"transport failure misreported as a missing branch: {msg!r}",
         )
         return
-    if "network/auth" not in msg:
+    if "not verified" not in msg:
         fail(
             "fetch_transport_error_mentioning_remote_ref",
-            f"expected the generic network/auth message, got {msg!r}",
+            f"expected the skipped freshness notice, got {msg!r}",
         )
         return
     ok("fetch_transport_error_mentioning_remote_ref")

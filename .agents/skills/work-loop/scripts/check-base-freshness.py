@@ -13,10 +13,11 @@ Usage:
                             equals form: --target=-mirror/main.
 
 Exit codes:
-  0  head is current (or no remote / not on a branch)
+  0  head is current, not applicable, or freshness could not be verified
+     because the environment blocked the remote check
   1  Surface required — JSON on stdout has the details
 
-JSON (stdout): {"status": "ok"|"surface", "message": str, "target": str}
+JSON (stdout): {"status": "ok"|"skipped"|"surface", "message": str, "target": str}
 """
 
 from __future__ import annotations
@@ -149,9 +150,80 @@ def _surface(message: str, target: str = "") -> int:
     return 1
 
 
+def _skipped(reason: str, target: str = "") -> int:
+    _emit(
+        {
+            "status": "skipped",
+            "message": (
+                f"base freshness was not verified ({reason}); work may continue, "
+                "but the user may want to update the branch separately"
+            ),
+            "target": target,
+        }
+    )
+    return 0
+
+
 def _ok(message: str, target: str = "") -> int:
     _emit({"status": "ok", "message": message, "target": target})
     return 0
+
+
+def _classify_remote_unavailable(stderr: str) -> str | None:
+    """Return a closed remote-unavailable category for sanitized git stderr."""
+    msg = stderr.lower()
+    categories = (
+        ("could not resolve host", "remote host could not be resolved"),
+        ("failed to connect", "remote connection failed"),
+        ("connection timed out", "remote connection timed out"),
+        ("operation timed out", "remote connection timed out"),
+        ("network is unreachable", "network is unreachable"),
+        ("connection refused", "remote connection was refused"),
+        ("does not appear to be a git repository", "remote repository is unavailable"),
+        ("could not read from remote repository", "remote repository is unavailable"),
+        ("repository not found", "remote repository is unavailable"),
+        ("authentication failed", "remote authentication failed"),
+        ("permission denied (publickey)", "remote authentication failed"),
+        ("could not read username", "remote authentication failed"),
+        ("terminal prompts disabled", "remote authentication failed"),
+        ("gnutls recv error", "remote transport failed"),
+        ("the remote end hung up unexpectedly", "remote transport failed"),
+        ("early eof", "remote transport failed"),
+    )
+    for needle, category in categories:
+        if needle in msg:
+            return category
+    if msg.startswith("ssh: connect to host "):
+        return "remote connection failed"
+    return None
+
+
+def _classify_fetch_metadata_denied(stderr: str) -> str | None:
+    """Return a category when policy denies writing fetch metadata."""
+    msg = stderr.lower()
+    denied = (
+        "permission denied",
+        "operation not permitted",
+        "read-only file system",
+        "access denied",
+        "protected from writes",
+        "not permitted",
+    )
+    metadata = (
+        "cannot lock ref",
+        "could not lock ref",
+        "unable to update local ref",
+        "cannot update ref",
+        "could not update ref",
+        "failed to write",
+        "unable to write",
+        "refs/remotes/",
+        ".git/",
+        "remote-tracking",
+    )
+    if any(d in msg for d in denied) and any(m in msg for m in metadata):
+        return "git metadata write was denied by local policy"
+    return None
 
 
 # ── Target resolution ────────────────────────────────────────────────────────
@@ -160,23 +232,27 @@ def _ok(message: str, target: str = "") -> int:
 def _live_remote_head_branch(remote: str) -> tuple[str | None, str | None]:
     """Query the remote's current HEAD branch via ls-remote --symref.
 
-    Returns (branch_name, error_message). Exactly one is non-None on each path:
+    Returns (branch_name, category). Exactly one is non-None on each path:
     - (branch, None) — success; branch is the current HEAD branch name
-    - (None, message) — timeout or transport/auth failure with a Surface message
+    - (None, category) — timeout, categorized unavailable check, or the
+                         sentinel "unclassified failure"
     - (None, None) — ls-remote succeeded but HEAD is detached or unborn;
                      caller should ask the user to pass --target explicitly
 
     Uses the live remote query — not the cached refs/remotes/<remote>/HEAD,
     which git fetch does not update when the ref already exists.
     """
-    rc, out, _err = _run_with_stderr(
+    rc, out, err = _run_with_stderr(
         ["git", "ls-remote", "--symref", "--", remote, "HEAD"],
         timeout=_NETWORK_TIMEOUT,
     )
     if rc == 124:
-        return None, f"ls-remote to {remote!r} timed out — check network/auth"
+        return None, "timeout"
     if rc != 0:
-        return None, f"ls-remote to {remote!r} failed — check network/auth"
+        category = _classify_remote_unavailable(err)
+        if category:
+            return None, category
+        return None, "unclassified failure"
     for line in out.splitlines():
         if line.startswith("ref:") and "\t" in line:
             ref = line.split("\t", 1)[0].replace("ref:", "").strip()
@@ -333,7 +409,12 @@ def main() -> int:
         # correctly regardless of the local refspec configuration.
         branch, live_err = _live_remote_head_branch(fetch_remote)
         if live_err is not None:
-            return _surface(live_err)
+            if live_err == "unclassified failure":
+                return _surface(
+                    f"ls-remote to {fetch_remote!r} failed with unclassified "
+                    "diagnostics — freshness could not be established"
+                )
+            return _skipped(f"ls-remote to {fetch_remote!r} could not complete: {live_err}")
         if not branch:
             return _surface(
                 f"could not determine {fetch_remote!r} HEAD — "
@@ -354,7 +435,7 @@ def main() -> int:
         timeout=_NETWORK_TIMEOUT,
     )
     if rc == 124:
-        return _surface(f"git fetch {fetch_remote!r} timed out — check network/auth", target)
+        return _skipped(f"git fetch {fetch_remote!r} timed out", target)
     if rc != 0:
         # Match git's own not-found wording only. A broader test (any stderr
         # mentioning 'remote ref') also catches transport failures that echo a
@@ -366,7 +447,16 @@ def main() -> int:
                 "verify the branch name in --target",
                 target,
             )
-        return _surface(f"git fetch {fetch_remote!r} failed — check network/auth", target)
+        category = _classify_fetch_metadata_denied(fetch_err)
+        if category is None:
+            category = _classify_remote_unavailable(fetch_err)
+        if category is not None:
+            return _skipped(f"git fetch {fetch_remote!r} could not complete: {category}", target)
+        return _surface(
+            f"git fetch {fetch_remote!r} failed with unclassified diagnostics — "
+            "freshness could not be established",
+            target,
+        )
 
     # Use the full remote-tracking ref for comparison to avoid DWIM resolving
     # a local branch or tag that shadows the shorthand 'REMOTE/BRANCH'.

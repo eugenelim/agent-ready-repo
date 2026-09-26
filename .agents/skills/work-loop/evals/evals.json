@@ -1026,6 +1026,19 @@
       ]
     },
     {
+      "id": "base-freshness-skipped-continues-with-notice",
+      "prompt": "Before reading workspace.toml, `check-base-freshness.py` exits 0 and prints JSON: {\"status\":\"skipped\",\"message\":\"Base freshness was not verified; work may continue, and you may want to update the branch separately.\",\"target\":\"origin/main\"}. What do you do next?",
+      "expected_output": "Tell the user that base freshness was not verified and that they may want to update the branch separately, then continue the work-loop. Do not retry the remote operation, do not Surface or pause on the skipped result, and do not claim `HEAD` or the base is current.",
+      "assertions": [
+        "Response tells the user freshness was not verified",
+        "Response says the user may want to update the branch separately",
+        "Response continues the work-loop after the notice",
+        "Response does NOT retry the base-freshness check or remote Git operation",
+        "Response does NOT Surface, stop, or pause on `status: \"skipped\"`",
+        "Response does NOT claim `HEAD` or the base is current"
+      ]
+    },
+    {
       "id": "repo-root-resolved-once-per-invocation",
       "prompt": "Do `loop-engine.py` and `loop-cohort.py` run `git rev-parse --show-toplevel` every time they need the repository root?",
       "expected_output": "No. Both tools' `_get_repo_root()` functions cache the resolved root per process working directory, so one invocation runs `git rev-parse` once however many times the root is needed. Only successful resolutions are cached: a failure re-runs `git` on the next call, and the working directory is part of the key so a process that changes directory gets the new directory's root rather than a stale one.",
