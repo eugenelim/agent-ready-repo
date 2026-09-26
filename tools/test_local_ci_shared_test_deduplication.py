@@ -131,9 +131,20 @@ CORE_COLLECTIONS = {
     # test_terminated_brief_child_scope (6 arms, one per Withdrawn/Cancelled
     # crossing with a child's Approved/Implementing/Shipped state). Nothing else
     # was removed, and the surviving 15 keep their original relative order.
+    # Re-pinned 2026-09-26 for the brief-lifecycle contract: 28 -> 70.
+    # Dispositioned against `origin/main` before re-pinning, as the note above
+    # requires: 42 additions, 0 removals, no rename, and the original 28 keep
+    # their relative order. The additions are the lint-side half of that
+    # contract -- the `Cut-closed:` declaration and its refusals, the bounded
+    # preamble reader asserted through the lint's own entry point for all three
+    # fields it reads (the three parametrized `ac0007` families, 17 arms), the
+    # Spec-map comment-awareness rules, and the heading-whitespace cases. A
+    # count-only comparison would have missed that nothing was removed, which
+    # is the half that matters here: this change routes existing reads through
+    # a new module, so a silently dropped assertion is the failure to look for.
     SHARED_TESTS[1]: (
-        28,
-        "f2e8743d576e63b9a7cf0ce39167f8742ec0f272237bf898e79701041a421d40",
+        70,
+        "0e0161b9415c15412fcb85d69fc42c0f62920e9215e297c76ed9152a3ce193e5",
     ),
     # Re-pinned 2026-09-10: 45 -> 48, same change as SHARED_TESTS[0]. A passing
     # traceability run now withholds its per-item detail lines, and three

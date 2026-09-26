@@ -74,6 +74,16 @@
         "Treats Design artifacts as material",
         "Invalidates the bound review and returns the brief to Draft"
       ]
+    },
+    {
+      "id": "cut-closed-declaration-on-shipped",
+      "prompt": "A brief is being closed as Shipped. What field must be present, and what happens if it is absent?",
+      "expected_output": "A Shipped brief must carry a Cut-closed: field with an ISO 8601 date and non-empty evidence text. If the field is absent, the coverage lint refuses the brief with exit 1. The field is not required on any other status, and a Draft brief carrying it is also refused.",
+      "assertions": [
+        "Names Cut-closed: as required on Shipped",
+        "States the lint refuses a Shipped brief without the field",
+        "Names that a Draft brief with the field is also refused"
+      ]
     }
   ]
 }

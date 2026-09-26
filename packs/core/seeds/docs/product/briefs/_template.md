@@ -12,6 +12,7 @@
 - **Received:** YYYY-MM-DD
 - **Owner:** <who owns delivering this repo's slice>
 - **Status:** Draft <!-- Draft | Ready | Executing | Shipped | Withdrawn | Cancelled -->
+- **Cut-closed:** <!-- The cut is the set of delivery slices this brief will ever have; this field records that it is finalised. Required before Status: Shipped, refused while Status: Draft, optional in every other state. Replace this comment with an ISO 8601 date then evidence, e.g. 2026-08-25 All nine slices are Shipped. Leave the comment in place until then — a comment-only value counts as absent. Keep the line above the first ## heading or it is not read. -->
 - **Source / provenance:** <!-- LOAD-BEARING. A safe, durable reference to the source and, for tracker-origin work, its reviewed revision. Retain a normalized summary; never copy raw external payload. -->
 - **Epic:** <!-- optional: id/link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. -->
 - **Parent intent:** `<kind>:<slug>` <!-- optional: when this brief is one per-component slice of a larger product intent, the upstream `intent` it was projected from, typically `intent:<slug>`. Distinct from `Epic:` — `Epic:` names an external *coordinator*; this names the *product intent* upstream. Carried as provenance; never interpreted. Omit when there is none. -->

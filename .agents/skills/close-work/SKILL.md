@@ -72,7 +72,10 @@ passing test, ownership, writability, or a prior approval.
    or Shipped, and `Cancelled` when work stops after that execution evidence
    exists. Preserve every child status. Updating the brief and moving its exact
    workspace entry to the matching terminal collection is one separately
-   confirmed effect.
+   confirmed effect. A brief that contradicts its state's rules — including a
+   `Shipped` brief without a `Cut-closed:` record — is refused by
+   `scripts/lint-brief-coverage.py`; the refusal is the lint's, not this
+   workflow's.
 2. Resolve every applicable durable-output destination with the installed sibling
    semantic-surface resolver. Use its explicit → policy/configuration → established
    repository convention → established external destination → confirmation-required
