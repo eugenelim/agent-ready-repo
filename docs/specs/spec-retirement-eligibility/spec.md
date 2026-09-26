@@ -201,15 +201,21 @@ carry the refusal vocabulary this group requires.
 - [ ] A path whose symlink, junction, or reparse point resolves outside the
       repository root is refused as `path-escapes-root` and is not read.
 - [ ] A path reached through a symlink whose target stays inside the repository
-      root is read, not refused. This repository's own `CLAUDE.md` files are
+      root is read, not refused. Which in-root file a link may reach is not
+      further restricted: the corpus is committed and reviewable, and the
+      report authorizes no action on what it read. This repository's own `CLAUDE.md` files are
       such links, and refusing them withholds eligibility from every candidate
       in the report.
 - [ ] A `path-escapes-root` refusal carries the repository-relative location
       that declared the value, and the offending value as written, bounded and
       never resolved against the filesystem.
 - [ ] Every access confirms a regular file on the opened descriptor and
-      re-checks device and inode identity across the open, so a path swapped
-      between check and read is refused rather than read.
+      re-checks device and inode identity across the open, so the **final
+      component** swapped between check and read is refused rather than read.
+      An ancestor directory swapped in the same window is not detected: closing
+      that needs a descriptor-relative walk, and the residual is accepted
+      because it requires concurrent write access to the tree being scanned,
+      which already exceeds anything this read-only report grants.
 - [ ] A non-regular file where a spec body, manifest, or contract is expected is
       refused as `input-unreadable`.
 - [ ] Each refusal reason is produced from inside the guarded open. A refusal

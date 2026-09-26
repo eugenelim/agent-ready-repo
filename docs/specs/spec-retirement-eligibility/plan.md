@@ -484,6 +484,12 @@ ledger.
 - 2026-09-24 — Cut to a read-only core; brief retirability and the persisted
   area map sliced out as separate deliveries.
 - 2026-09-24 — Spec and plan approved by eugenelim.
+- 2026-09-26 — Criteria narrowed to what the code does: the device/inode
+  re-check detects a swapped final component, not a swapped ancestor directory,
+  and an in-root link target is not further restricted. Both residuals need
+  concurrent write access to the tree being scanned, which exceeds what this
+  read-only report grants; a committed symlink escaping the root — the case a
+  pull request can actually deliver — is still refused.
 - 2026-09-25 — Contract amendment: the confinement criterion refused any path
   reached through a symlink, including one resolving inside the root, which
   suppressed every candidate. Narrowed to links whose target escapes.
