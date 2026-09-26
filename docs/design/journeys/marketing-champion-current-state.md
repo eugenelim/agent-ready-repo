@@ -170,7 +170,7 @@ collapses into the canvas. `paste-a-link-into-work-chat` and
 `summarise-the-model-from-memory` are the two actions that impose the canvas's
 static-portability constraint.
 
-**For `conversion-design`:** the above-the-fold decision is decided by Stage 1
+**For `information-architecture` with the marketing reference:** the above-the-fold decision is decided by Stage 1
 and Stage 5 together, not by Stage 4. The page currently optimises for Stage 4.
 
 **For the cross-surface seam:** Stage 2's descent past the pack menu into

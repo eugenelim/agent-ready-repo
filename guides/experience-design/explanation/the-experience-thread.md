@@ -62,10 +62,10 @@ seam (every skill declares its inputs and what consumes it):
   structure and wayfinding (with genre routing), and **how the screen behaves**
   (with 5 additional pattern families: wizard-and-stepper, data-table,
   destructive-action escalation, save-state, analytical-dashboard-widgets).
-- **`conversion-design` · `documentation-design` · `analytical-design` ·
-  `marketplace-design` · `informational-design` · `workspace-design`** —
-  the six genre-specific skills, each specializing the IA and structure layer for
-  one surface genre. Declare the genre once; the right skill applies.
+- **Surface-genre methods inside `information-architecture`** — marketing,
+  documentation, analytical, informational, marketplace, and workspace surfaces
+  each specialize the IA and structure layer without changing the skill you run.
+  Declare the genre once; the right method applies.
 - **`content-design` · `copy-direction` · `tone-of-voice`** — the copy layer:
   `tone-of-voice` names the brand-level register; `copy-direction` names per-surface
   acquisition copy goals grounded in that register; `content-design` structures what

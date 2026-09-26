@@ -75,12 +75,12 @@ critique. Copy has four distinct layers: `tone-of-voice` owns the brand register
 copy goals for one acquisition surface; `ux-writing` in product engineering
 owns product UI strings.
 
-**Match the surface genre.** Use `conversion-design` for marketing,
-`documentation-design` for docs and help, `analytical-design` for dashboards,
-`informational-design` for editorial reading, `marketplace-design` for
-multi-party exchange, and `workspace-design` for sustained professional work.
+**Match the surface genre.** Use `information-architecture` for marketing,
+docs and help, dashboards, editorial reading, multi-party exchange, sustained
+professional work, and general hierarchy. Declare the surface genre in the
+brief so the skill applies the right structure method.
 
-That is the complete 20-skill inventory. Every skill ships a portable method,
+That is the complete 14-skill inventory. Every skill ships a portable method,
 not framework code, styling syntax, values tables, or pixel comps.
 
 ## Leave the pack at the discipline boundary

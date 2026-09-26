@@ -4,16 +4,108 @@
     {
       "id": 1,
       "prompt": "Produce the information architecture and layout reasoning for the surface(s) the user described.",
-      "expected_output": "An information-architecture and layout-reasoning doc. It frames each surface's one job and its audience, then ranks the content primary / secondary / tertiary — forcing a single primary rather than a flat 'everything important'. It picks a reading pattern (F for dense, scannable surfaces; Z for sparse, hero-style ones) FROM the surface's job, not habit, and lays the ranked content along that scan path. It stages complexity with progressive disclosure, shapes a navigation tree trading depth against breadth and grouped by how users look for things (not by the data schema or org chart), and designs wayfinding as the user's mental model — where am I, where can I go, how do I get back — never as platform roles or attributes. It walks the empty / loading / error / partial states and how each changes the IA. The whole output is reasoning and concepts only — no layout, markup, or styling code. The artifact is written to the layout-resolved target <output_dir>/screens/<slug>-ia.md with type: information-architecture frontmatter, and the approved output_dir, the file that value was read from, and the composed target are stated to the operator before the write.",
+      "expected_output": "An information-architecture and layout-reasoning doc. It frames each surface's one job and its audience, then ranks the content primary / secondary / tertiary \u2014 forcing a single primary rather than a flat 'everything important'. It picks a reading pattern (F for dense, scannable surfaces; Z for sparse, hero-style ones) FROM the surface's job, not habit, and lays the ranked content along that scan path. It stages complexity with progressive disclosure, shapes a navigation tree trading depth against breadth and grouped by how users look for things (not by the data schema or org chart), and designs wayfinding as the user's mental model \u2014 where am I, where can I go, how do I get back \u2014 never as platform roles or attributes. It walks the empty / loading / error / partial states and how each changes the IA. The whole output is reasoning and concepts only \u2014 no layout, markup, or styling code. The artifact is written to the layout-resolved target <output_dir>/screens/<slug>-ia.md with type: information-architecture frontmatter, and the approved output_dir, the file that value was read from, and the composed target are stated to the operator before the write.",
       "assertions": [
         "Frames each surface's one job and its audience",
         "Ranks content primary/secondary/tertiary and forces a single primary (no flat 'everything important')",
         "Chooses a reading pattern (F or Z) justified by the surface's job, not by habit",
         "Covers progressive disclosure and a depth-vs-breadth navigation tree grouped by how users look for things, not the schema/org chart",
         "Describes wayfinding as the user's mental model, never as platform roles or attributes",
-        "Designs the empty/loading/error/partial states, and outputs concepts/reasoning only — no layout or styling code",
+        "Designs the empty/loading/error/partial states, and outputs concepts/reasoning only \u2014 no layout or styling code",
         "Writes the artifact to the layout-resolved target <output_dir>/screens/<slug>-ia.md with type: information-architecture frontmatter, having surfaced the approved output_dir, the file it was read from, and the composed target before writing"
       ]
+    },
+    {
+      "id": 2,
+      "prompt": "Produce the structural specification for an analytical surface. The surface is a sales performance dashboard for regional managers. Business questions: Which regions are off-track this quarter? What are the top three deals likely to close this week? Where is the pipeline blocked?",
+      "expected_output": "A structural specification for an analytical surface that starts by naming the domain model (objects: deal, region, stage; attributes: value, probability, owner; relationships: deal-to-region, deal-to-stage; actions: drill down, filter by region). It then names the 3\u20135 business questions the surface must answer and builds a widget hierarchy ordered by decision weight \u2014 high-level signal widgets first (status/health at a glance), diagnostic widgets second (why the signal is what it is), action widgets third (what the manager can do). It designs a role-based view architecture so regional managers see their region's data without needing to filter globally. It designs the signal \u2192 diagnostic \u2192 action flow as a spatial grammar so the eye moves from status to cause to next step without backtracking. The output is IA reasoning and concepts only \u2014 no color values, chart type implementation, or code.",
+      "assertions": [
+        "Names the domain model first \u2014 objects, attributes, relationships, and actions \u2014 before placing any widget",
+        "Names the specific business questions (3\u20135) the surface must answer; 'give me insights' is not accepted as a question",
+        "Builds a widget hierarchy ordered by decision weight: signal \u2192 diagnostic \u2192 action",
+        "Designs a role-based view architecture that scopes each role's default view without requiring global filtering",
+        "Designs the spatial grammar so the eye follows the signal \u2192 diagnostic \u2192 action flow without backtracking",
+        "Does NOT design individual chart encodings (that is interaction-design's domain)",
+        "Does NOT produce color values, chart type implementations, or layout/styling code"
+      ],
+      "source_skill": "analytical-design"
+    },
+    {
+      "id": 3,
+      "prompt": "Produce the structural specification for a conversion surface. The surface is the product homepage for a B2B SaaS project-management tool. The target action is starting a free trial. A content brief exists naming the primary audience (engineering team leads at 50\u2013500 person companies) and their dominant pain (too much context-switching between tools).",
+      "expected_output": "A structural specification for a conversion surface that starts by naming the dominant buyer behavior (this is a low-awareness, high-skepticism audience \u2014 browse-first) and selecting a hero approach from the five canonical types, justified by the product's awareness stage. It defines the above-fold contract \u2014 the primary claim, the proof context, and a single CTA visible before scroll. It structures the scroll story as a sequence of proof tiers ordered by credibility weight (claim \u2192 social proof \u2192 feature evidence \u2192 objection handling \u2192 final CTA), with each tier earning the next. It names the social-proof architecture (which type of proof is most credible to this audience and why). The output is structural specification and section order only \u2014 no copy, no color values, no implementation code.",
+      "assertions": [
+        "Names the dominant buyer behavior (browse-first or search-first) and justifies the choice against the audience's awareness stage",
+        "Selects one of the five hero types and justifies the choice against the audience and their pain",
+        "Defines the above-fold contract: primary claim + proof context + single CTA, all visible before scroll",
+        "Sequences the scroll story as proof tiers, each tier earning the next",
+        "Names the social-proof architecture and explains why that proof type is most credible to this specific audience",
+        "Does NOT write copy (not a content-design, copy-direction, or tone-of-voice output)",
+        "Does NOT produce color values, font names, or implementation code"
+      ],
+      "source_skill": "conversion-design"
+    },
+    {
+      "id": 4,
+      "prompt": "Produce the structural specification for a documentation surface. The surface is the docs site for a developer API. The content set includes a getting-started tutorial, conceptual guides, a full API reference, and a set of how-to recipes. The target audience is backend engineers integrating the API for the first time.",
+      "expected_output": "A structural specification for a documentation surface that starts by typing the content set using the Di\u00e1taxis framework (tutorial \u2192 how-to \u2192 reference \u2192 explanation), mapping each piece of content to exactly one primary type. It names a TTFV target \u2014 what the engineer accomplishes in the first successful session. It then designs the navigation trading depth against breadth, grouped by how engineers look for things (task-goal first, not by the API's internal schema), with landing page IA that routes each content type to its fastest TTFV path. It designs the machine-readability decisions (what the reference format must support for tooling and LLM consumption). The output is structural specification only \u2014 no content writing, no markup, no styling code.",
+      "assertions": [
+        "Types the content set using Di\u00e1taxis \u2014 each piece gets exactly one primary type (tutorial/how-to/reference/explanation)",
+        "Names a TTFV target \u2014 what the reader accomplishes in the first successful session, specific enough to measure",
+        "Designs navigation grouped by how readers look for things, not by the API's internal schema or org structure",
+        "Designs the landing page as a TTFV accelerant \u2014 routes each content type to its fastest path, not as a table of contents",
+        "Addresses machine-readability decisions for the reference format",
+        "Does NOT write documentation content (not a new-guide output)",
+        "Does NOT produce markup, color values, or styling code"
+      ],
+      "source_skill": "documentation-design"
+    },
+    {
+      "id": 5,
+      "prompt": "Produce the structural specification for an informational surface. The surface is an article page for a B2B publication covering enterprise software and technology. Articles range from 800\u20133,000 words. The target audience is technical leaders who scan before committing to read. Reading goal: understand a trend and its practical implications for their team.",
+      "expected_output": "A structural specification for an informational surface that establishes typography as the primary design tool \u2014 every layout decision is justified by reading legibility, not decoration. It names the reading goal explicitly (the reader leaves knowing something or able to do something they couldn't before) and selects a reading pattern (F-pattern for this scan-before-commit audience) justified by the audience's behavior. It designs the typographic hierarchy (headline \u2192 standfirst \u2192 subhead \u2192 body \u2192 callout) so the scanner extracts the article's argument without reading every word. It designs the 'what's next' chain that sustains engagement after the primary content is consumed. The output is structural specification and typography reasoning only \u2014 no copy, no CSS, no color values.",
+      "assertions": [
+        "Names the reading goal explicitly \u2014 what the reader knows or can do after reading that they didn't before",
+        "Establishes typography as the primary design tool; every layout decision is grounded in reading legibility",
+        "Selects a reading pattern (F-pattern or Z-pattern) justified by the audience's scanning behavior, not by habit",
+        "Designs a typographic hierarchy that lets a scanner extract the article's argument without reading every word",
+        "Designs the 'what's next' chain that sustains engagement after the primary content ends",
+        "Does NOT write content (not a content-design or tone-of-voice output)",
+        "Does NOT produce CSS, color values, font name decisions, or spacing values"
+      ],
+      "source_skill": "informational-design"
+    },
+    {
+      "id": 6,
+      "prompt": "Produce the structural specification for a marketplace surface. The surface is a B2B software tools catalogue. Buyers are engineering leads comparing tools before a purchase decision. The listing object model includes: tool name, category, pricing model, integration count, and user rating. Dominant buyer behavior: comparison-first (buyers know what category they want; they're evaluating options within it).",
+      "expected_output": "A structural specification for a marketplace surface that names the listing object model explicitly (objects, attributes, which attributes drive filtering, which drive comparison). It designs the listing card with attributes ordered by decision weight for this audience \u2014 the comparison-driving attributes are primary, not the most visually prominent. It designs the filter and facet architecture grouped by how buyers narrow their choice (not by the listing schema), with the most-used facets visible without scroll. It designs comparison affordances for the comparison-driving attributes. It names the transaction bridge \u2014 the moment of commitment and what the buyer needs to know to cross it. The output is structural specification only \u2014 no component markup, no color values, no implementation code.",
+      "assertions": [
+        "Names the listing object model \u2014 objects, attributes, which attributes drive filtering, which drive comparison",
+        "Designs the listing card with attributes ordered by decision weight, comparison-driving attributes primary",
+        "Designs filter and facet architecture grouped by how buyers narrow choice, not by the listing schema",
+        "Places the most-used facets visible without scroll",
+        "Designs comparison affordances for the comparison-driving attributes",
+        "Names the transaction bridge \u2014 what the buyer needs to know to commit, and how the surface provides it",
+        "Does NOT design individual card components (not interaction-design's component state machine)",
+        "Does NOT produce component markup, color values, or implementation code"
+      ],
+      "source_skill": "marketplace-design"
+    },
+    {
+      "id": 7,
+      "prompt": "Produce the structural specification for a workspace surface. The surface is an AI-assisted code review tool. Users (individual engineers) return to it across sessions to manage an ongoing queue of code review requests. Collaboration model: asynchronous \u2014 reviewers and authors don't work at the same time. The session arc: engineer arrives, resumes the review where they left off, completes several review cycles, leaves with their queue updated.",
+      "expected_output": "A structural specification for a workspace surface that starts by naming the session arc (arrive \u2192 resume \u2192 work \u2192 persist \u2192 leave) and the collaboration model (asynchronous, no live presence needed). It designs context-persistence using a named pattern (session resume \u2014 the engineer lands where they left off without hunting). It designs the attention zone layout: a primary work area for the active review, a peripheral zone for the queue state (what's waiting, what's done), and a notification zone for async events (new requests, resolved threads). It designs the interrupt architecture \u2014 how incoming review requests surface without disrupting the current focus. It covers how agentic output (AI suggestions, summaries) surfaces without displacing the engineer's workflow. The output is structural specification only \u2014 no component markup, no color values, no implementation code.",
+      "assertions": [
+        "Names the session arc (arrive \u2192 work \u2192 persist \u2192 leave) before designing any surface element",
+        "Names the collaboration model and explains how it drives presence, live-editing, and sharing IA decisions",
+        "Designs context-persistence using a named pattern appropriate to the session arc",
+        "Designs the attention zone layout \u2014 primary work area, peripheral status zone, notification zone \u2014 with spatial relationships named",
+        "Designs the interrupt architecture \u2014 how async events surface without disrupting the current focus",
+        "Covers how agentic output surfaces without displacing the user's primary workflow",
+        "Does NOT design individual component interactions (not interaction-design's domain)",
+        "Does NOT produce component markup, color values, or implementation code"
+      ],
+      "source_skill": "workspace-design"
     }
   ]
 }

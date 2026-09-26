@@ -52,12 +52,12 @@ What to run next: user-flow
 | `user-flow` | Build the screen inventory — transitions and per-screen state briefs |
 | `creative-direction` | Anchor the aesthetic — grounded in persona and precedent |
 | `design-system` | Derive the token taxonomy from the aesthetic direction |
-| `information-architecture` | Structure a screen — hierarchy, reading flow, wayfinding |
+| `information-architecture` | Structure a screen — hierarchy, reading flow, wayfinding, with genre routing when known |
 | `interaction-design` | Design the behavioral layer — states, feedback, animation |
 | `design-review` | Authoring-time critique — quality floor + coherence |
 | `experience-reviewer` | Independent cold review — forked context, read-only |
 
-Genre-direct alternatives to `information-architecture` for known surface types: `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`.
+For known surface types, `information-architecture` selects the matching genre method before designing hierarchy.
 
 ---
 
@@ -100,7 +100,7 @@ The reviewer runs forked — no authoring context. You act on its findings, then
 `journey-mapping` → `content-design` → `tone-of-voice` (optional, brand register) → `copy-direction` (acquisition surfaces) → `user-flow` → `service-blueprint` / `process-mapping`
 
 **Craft sequence** — from structure to behavior:
-`design-principles` → `creative-direction` → `design-system` → `information-architecture` / genre-direct skill → `interaction-design`
+`design-principles` → `creative-direction` → `design-system` → `information-architecture` (route by genre when known) → `interaction-design`
 
 **Review** — quality floor, aesthetic fit, cross-brief coherence:
 `design-review` (authoring-time) → `experience-reviewer` (independent cold review)

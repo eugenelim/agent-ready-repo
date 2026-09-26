@@ -1,8 +1,8 @@
 # Plan: One genre-aware information-architecture skill
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule — removals are major; § Authoring or editing a skill); `packs/experience-design/DESIGN.md` §§ 5 and 10 (what the genre skills are and why they were separate); the existing genre routing table at `packs/experience-design/.apm/skills/information-architecture/SKILL.md:61-79`, which is the mechanism this delivery migrates rather than introduces; two analogous reference-bearing skills — `packs/frontend-engineering/.apm/skills/frontend-engineering/` (references loaded per mode) and `packs/experience-design/.apm/skills/design-review/` (five references, one shared cross-skill); their construction path is `tests/roster/test_experience_design_artifact_folder_registry.py`. Named uncertainty: no prior fold has been measured in this catalogue, so the activation comparison is the first of its kind and its statistic is authored here.
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule — removals are major; § Authoring or editing a skill); `packs/experience-design/DESIGN.md` §§ 5 and 10 (what the genre skills are and why they were separate); the existing genre routing table at `packs/experience-design/.apm/skills/information-architecture/SKILL.md:61-79`, which is the mechanism this delivery migrates rather than introduces; two analogous reference-bearing skills — `packs/frontend-engineering/.apm/skills/frontend-engineering/` (references loaded per mode) and `packs/experience-design/.apm/skills/design-review/` (five references, one shared cross-skill); their construction path is `tests/roster/test_experience_design_artifact_folder_registry.py`. Named uncertainty: the accepted external routing-classification probe is a description-level decision input; production activation remains unmeasured.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`. After approval, `spec.md`
@@ -13,12 +13,13 @@
 
 Seven registrations become one. The method does not change — six genre bodies
 become six references under the skill that already routes to them — so the risk
-is not authoring, it is sweep completeness and one measurement.
+is sweep completeness and preserving the accepted routing semantics.
 
-Order is forced twice. First, the **activation baseline runs before anything is
-deleted** (T1): it is the gate, and a baseline taken after the fold measures
-nothing. Second, the **references land before the directories go** (T3 before
-T4), because a deleted directory takes its method with it.
+The external 18-call classification probe completed before implementation. T1
+imports its fixed input, result, limits, and owner authorization into durable
+tracked evidence. The implementation order remains forced: the **references
+land before the directories go** (T3 before T4), because a deleted directory
+takes its method with it.
 
 The sweep is the bulk of the work and spans two packs plus the site content. It
 is split by surface — pack internals (T5), cross-pack (T6), docs and site (T7) —
@@ -83,7 +84,7 @@ there are **two** measurement points and they differ: after T9b, `sweep_raw`
 reads 20 and `sweep_hits` 18 (T6 survives and has cleared three frontend
 files); after T9a restores those three, they return to the pre-fold 23 and 21.
 Counts name `sweep_hits`; `sweep` decides. An
-operator seeing either figure after a failed gate is looking at a correct
+operator seeing either figure after an abort decision is looking at a correct
 residue, not a miss. The selector covers the handoff and census suites,
 which a bare `-k experience` deselects.
 
@@ -349,6 +350,59 @@ EOF
 # Exits 1 today — `design-system` is the one absent, and the plan flags it as
 # the boundary most likely to be missed. An earlier version printed that fact
 # and exited 0, so the sole control for the criterion could not fail.
+
+python3 - "$IA/SKILL.md" <<'PY'
+import re, sys
+fm = re.match(r'---\n(.*?)\n---\n', open(sys.argv[1]).read(), re.S).group(1)
+d = re.search(r'^description:\s*"?(.*?)"?\s*$', fm, re.M | re.S).group(1).lower()
+genres = {
+    "general IA": ("hierarchy", "wayfinding", "screen", "flow"),
+    "analytical": ("dashboard", "report", "monitoring"),
+    "conversion": ("landing", "pricing", "conversion"),
+    "documentation": ("documentation", "help center", "api reference"),
+    "informational": ("article", "news", "editorial"),
+    "marketplace": ("marketplace", "catalogue", "listing"),
+    "workspace": ("workspace", "collaboration", "agentic"),
+}
+missing = [genre for genre, words in genres.items() if not any(w in d for w in words)]
+if missing:
+    sys.exit(f"GENRE VOCABULARY MISSING FROM DESCRIPTION: {missing}")
+print("all seven genre vocabularies present in the description")
+PY
+```
+
+**Tracked routing-classification evidence.** This block checks the accepted
+external evidence record without claiming it is a runtime activation test:
+
+```bash
+python3 - <<'PY'
+import pathlib, re, sys
+p = pathlib.Path("docs/specs/xd-genre-router/notes/routing-classification-evidence.md")
+text = p.read_text()
+rows = re.findall(r"^\| C[1-9] .*\|$", text, re.M)
+fail = []
+if len(rows) != 9: fail.append(f"classification rows {len(rows)}, want 9")
+if sum(row.count("(high)") for row in rows) != 18:
+    fail.append("the nine result rows do not contain 18 high-confidence selections")
+for phrase in (
+    "Pre-fold accuracy: 9/9", "Post-fold accuracy: 9/9",
+    "Post-fold genre coverage: 7/7", "Post-fold neighbor-boundary retention: 2/2",
+    "Total classifier runs: 18", "Retries: 0", "15,069 UTF-8 bytes",
+    "classification proxy, not a Claude `Skill` activation event",
+    "One sample per case/world", "1,039 characters", "1,024-character cap",
+):
+    if phrase not in text: fail.append(f"evidence phrase absent: {phrase!r}")
+for slug in (
+    "analytical-design", "conversion-design", "documentation-design",
+    "informational-design", "marketplace-design", "workspace-design",
+    "information-architecture", "interaction-design", "design-system",
+    "design-review", "creative-direction",
+):
+    if f"`{slug}`:" not in text: fail.append(f"candidate description absent: {slug}")
+if fail:
+    sys.exit("ROUTING EVIDENCE FAILED:\n  " + "\n  ".join(fail))
+print("9 pre + 9 post classifications recorded at high confidence with limits")
+PY
 ```
 
 **The removals.**
@@ -579,6 +633,24 @@ QQ
 #   no README edit.
 ```
 
+**The frontend skill's activation harness covers the changed genre-routing
+path.** The pack rule requires an eval-harness update for this non-cosmetic
+change. A generic extra positive would prove only that the file changed, so the
+new case is pinned to a build request that crosses the affected handoff:
+
+```bash
+python3 - <<'QQ'
+import json, sys
+path = "packs/frontend-engineering/.apm/skills/frontend-engineering/evals/eval_queries.json"
+rows = json.load(open(path))
+query = "Build a marketplace listing surface from this experience-design handoff and implement its HTML and CSS"
+matches = [row for row in rows if row.get("query") == query]
+if matches != [{"query": query, "should_trigger": True}]:
+    sys.exit(f"frontend eval case missing or malformed: {matches!r}")
+print("frontend genre-routing activation case present")
+QQ
+```
+
 **The `recommended` floor, including the field that fails silently.** Nothing
 else reads it: the versions block reads only `pack['version']`, no test in
 `packs/frontend-engineering/tests` opens `pack.toml`, and `catalogue verify`
@@ -799,7 +871,9 @@ than the method it replaced — is arithmetic, and a human should not be spendin
 the judgement on detecting truncation:
 
 ```bash
-git fetch origin main --quiet     # BASE is only as current as the local ref
+# This managed workspace is current-refs-only: do not fetch or update Git
+# metadata here. The comparison is bound to the existing origin/main ref; its
+# freshness is CI/supported-profile evidence, not a local gate.
 BASE=$(git merge-base HEAD origin/main)
 for r in analytical conversion documentation informational marketplace workspace; do
   if [ ! -f "$IA/references/$r-design.md" ]; then printf '%-16s MISSING\n' "$r"; continue; fi
@@ -846,7 +920,7 @@ QQ
 # genre case sets or by recording the drop — the criterion's two branches.
 ```
 
-**Pooled activation queries.**
+**Pooled routing-query corpus.**
 
 A bare tally cannot fail: the **unpooled** file reads `11 positive, 11 negative`
 today and would satisfy any check that only prints a number. The expected counts
@@ -914,14 +988,14 @@ column closeout actually reads.
 
 | Durable output | Destination | Tasks | Closeout evidence |
 | --- | --- | --- | --- |
-| Activation baseline | `notes/activation-baseline.md` | T1, T2, T9 | Both runs recorded, three each, positive and negative figures clearing; the grading rule recorded in the spec's words and reproduced unchanged by T9; the pre-fold description control recorded with its method |
+| Routing-classification evidence | `notes/routing-classification-evidence.md` | T1, T2, T9 | Owner authorization; fixed nine pre-fold and nine post-fold cases; 18/18 expected selections at high confidence; zero retries; exact candidate descriptions; proxy limits; the 15,069-byte pre-fold resident-description control and method; proceed/abort decision |
 | Genre quality-eval sets | `IA/evals/evals.json` | T3, T11 | Case count above the pre-fold baseline with the six genre sets carried, **or** the ledger naming which were dropped and why — existence alone passes on an untouched file, and `skill_spec_lint` never reads this file |
-| Pooled trigger queries | `IA/evals/eval_queries.json` | T1, T3 | 71 positives / 67 negatives asserted, no opposite-trigger collision, both named negatives present by exact text, and the set identical to the one T1 graded |
+| Pooled routing-query corpus | `IA/evals/eval_queries.json` | T3, T9 | 71 positives / 67 negatives asserted, no opposite-trigger collision, and both named negatives present by exact text; this is a static shipped-corpus contract, not activation-rate evidence |
 | Six genre references + relocated shared file | `IA/references/` | T3 | Six files present; `cmp` clean on the relocated file; judgement 1 recorded |
 | Rewritten rubric | `IA/SKILL.md` | T3, T11 | Seven genres each reaching one of the three permitted destinations — asserted, not merely non-empty; authored body ≤ 8,000 B; all four description boundaries present; judgement 2 recorded with reviewer and date (**T11** — T3 records judgement 1 only) |
 | Six directories removed | `packs/experience-design/.apm/skills/` | T4 | Directory count 0; `pack.evals.skills` reads 14 |
 | Pack internals swept | `pack.toml`, `DESIGN.md`, `JOURNEY.md`, `README.md`, `docs/index.md` | T5, T11 | `sweep` empty under `packs/experience-design/`; six `DESIGN.md` locations restated; § 10 entry signed and dated (T5); the sibling's non-edit criterion cited in the ledger (**T11** — T5 cannot write it); `docs/index.md`'s two numerals reading 14 |
-| Cross-pack (fold branch) | `packs/frontend-engineering/**`, `notes/verification-ledger.md` | T6, T10a | Four-row table enumerating the six `surface-genre:` tokens, exactly one Surface-type cell containing `interaction`; `AGENTS.md:11` repointed; README offering the post-fold routable set including `information-architecture`; `recommended` declared with `catalogue = "agent-ready-repo"` and `>=3.0.0` — absent and correct are indistinguishable to every other gate; `design-system-foundations` gone from both live sites; the `read-the-design-handoff.md` zero-occurrence confirmation in the ledger (T6's, not T7a's — T6 is outside the abort revert set); `packs/frontend-engineering/tests` green; `0.3.3` in both manifests and the projection |
+| Cross-pack (fold branch) | `packs/frontend-engineering/**`, `notes/verification-ledger.md` | T6, T10a | Four-row table enumerating the six `surface-genre:` tokens, exactly one Surface-type cell containing `interaction`; `AGENTS.md:11` repointed; README offering the post-fold routable set including `information-architecture`; the exact marketplace-handoff activation case present in `frontend-engineering/evals/eval_queries.json`; `recommended` declared with `catalogue = "agent-ready-repo"` and `>=3.0.0` — absent and correct are indistinguishable to every other gate; `design-system-foundations` gone from both live sites; the `read-the-design-handoff.md` zero-occurrence confirmation in the ledger (T6's, not T7a's — T6 is outside the abort revert set); `packs/frontend-engineering/tests` green; `0.3.3` in both manifests and the projection |
 | Cross-pack (abort branch) | `packs/frontend-engineering/**` | T9a, T10a | **Nine**-row table with `marketplace-design` and `workspace-design` added; sentinel still probing `conversion-design`; `AGENTS.md:11` naming the six again; `recommended` reading `>=2.0.10`; same suite green; same `0.3.3` release surface |
 | Fold work reverted (abort branch only) | `packs/experience-design/**`, `docs/**`, `web/src/content/**`, `tools/`, `guides/**`, census fixture | T9b | `sweep_raw` back to **20** and `sweep_hits` to **18** — not the pre-fold 23/21, because T6 survives the abort; `pack.evals.skills` back to 20; every T3 output reverted including `evals/eval_queries.json` and the frontmatter `description`; roster suites green |
 | Docs, site, census | `docs/`, `web/src/content/`, census fixture | T7 | Class record for every `docs/` hit in the ledger, against the spec's three-directory dated-output class; the count-shaped numeral grep clean across all four files; `web/src/content/packs/frontend-engineering.md` naming the table's target; `npm ci && npm run build` exit 0; census suite green |
@@ -960,74 +1034,54 @@ drift started.
 
 ### Failure, edge cases & resilience
 
-- Activation gate fails → abort path (T2 records it), six directories stay, the
-  cross-pack repair ships alone at `0.3.3`.
-- `claude` CLI unavailable → T1 cannot run and the fold stalls at its gate rather
-  than proceeding unmeasured.
+- The external evidence is a classification proxy only, so this delivery makes
+  no production-activation claim. Appetite expiry or an explicit owner stop
+  takes the abort branch; the six directories stay and the cross-pack repair
+  ships alone at `0.3.3`.
+- A shipped description that cannot retain the contracted genre vocabulary and
+  boundaries within 1024 characters reopens T3 rather than being described as
+  a failed activation experiment.
 - A genre reference is shorter than its source skill's method section → manual-QA
   judgement 1 fails and T3 reopens.
 
 ## Tasks
 
-### T1: The pre-fold activation baseline exists and is reproducible
+### T1: The accepted external routing-classification evidence is durable
 
 **Depends on:** none
 
 **Tests:**
-- `notes/activation-baseline.md` records the command, date, CLI version and model
-  identifier.
-- Three runs recorded per side; the reported figure is the lowest.
-- The statistic is total passing queries over total queries, over the pooled
-  set, with "passing" defined for the pre-fold world in the terms the spec
-  states, so T9 reproduces it unchanged.
-- Both a positive and a negative pooled set are recorded, and the two
-  contradictory queries are resolved and the resolution written down.
-- The pooled query set T1 grades is **written to the baseline note verbatim**,
-  so T3's shipped `eval_queries.json` can be compared against it rather than
-  merely resembling it. The gate's whole validity is "computed identically on
-  both sides over the **same** pooled set", and T3 — which authors the shipped
-  file — runs after T1. Without a comparison the two figures can be computed
-  over different denominators and the ≥-baseline gate clears on an artefact.
-  The command map's pooled-query block is run against both, and T9 does not
-  report a figure until they match.
-- The **pre-fold resident description cost is measured here** and recorded with
-  its method, so T9's delta has a control. T1's Approach promised this and its
-  test list omitted it; the 14,966-byte figure in the discovery note was taken
-  at `2.0.9` — two bumps ago now that the sibling landed `2.0.10` — and carries
-  no stated computation, so it cannot be inherited. The
-  method is: sum the `description` field bytes across the pack's shipped
-  `SKILL.md` frontmatter, using the description reader in the command map.
+- `notes/routing-classification-evidence.md` records the owner authorization and
+  date; 18 cold `fork_turns: "none"` Codex classifications; the fixed nine cases
+  in both worlds; 9/9 pre-fold and 9/9 post-fold results, all high confidence;
+  zero retries; and the exact candidate descriptions.
+- The note states the limits: this is not a Claude `Skill` activation event,
+  Codex retained platform context, one sample per case/world does not establish
+  broad recall, false-positive rates, stability, or production behavior, and the
+  1039-character candidate must be compressed to the 1024-character cap.
+- The **pre-fold resident description cost is measured here** as 15,069 UTF-8
+  bytes across 20 shipped frontmatter `description` fields, with the method
+  recorded so T9 can report the post-fold delta. This is a size control, not
+  activation evidence.
 
-**Approach:** first, and before any edit. A baseline taken after the fold
-measures the thing it is supposed to be the control for. It also fixes the
-pre-fold resident-description figure at this branch point rather than inheriting
-the `2.0.9` number, which predates the sibling slice (the tree reads `2.0.10`
-as of 2026-09-24).
+**Approach:** preserve the completed external probe as a self-contained tracked
+record before the fold edits begin. The ignored raw session artifact is useful
+provenance but is not the durable owner of the decision.
 
-**Done when:** the file records both pooled sets with three runs each and the
-environment named, the graded query set verbatim, **the grading rule in the
-spec's own words** — a pre-fold positive passes when the query activates any one
-of the seven, a negative when it activates none — **and** the pre-fold resident
-description measurement with its method. The grading rule is what makes the two
-runs comparable at all, and a note recording both sets, three runs and the
-environment satisfies every other clause while grading pre-fold positives
-against a single expected skill. That would depress the baseline by a rule no
-criterion checked, let the post-fold figure clear it trivially, and leave the
-one objection that can defeat this fold never actually tested. That last one is easy to drop — it
-reads as unrelated to the activation runs — but T9's own `Done when` requires a
-recorded *delta*, which is not computable without the control T1 owns. Omitting
-it leaves the implementer inheriting the `2.0.9` figure this task exists to
-displace, crediting this fold with the sibling slice's description rewrite.
+**Done when:** the tracked note contains the authorization, fixed inputs,
+18/18 result, limits, and pre-fold resident-description control named above.
 
-**Touches:** docs/specs/xd-genre-router/notes/activation-baseline.md
+**Touches:** docs/specs/xd-genre-router/notes/routing-classification-evidence.md
 
-### T2: The abort path is written down before it can be needed
+### T2: The owner decision and implementation fallback are recorded
 
 **Depends on:** T1
 
 **Tests:**
-- `notes/activation-baseline.md` names both triggers — failing gate, or the
-  window from `Approved` elapsing.
+- `notes/routing-classification-evidence.md` states that the external proxy is
+  accepted as sufficient to proceed and makes no production-activation claim.
+- It names the remaining abort triggers — the window from `Approved` elapsing,
+  or an explicit owner stop.
 - It names the residue in full — **five** items, not a summary: the six
   directories stay; the `frontend-engineering` table repair; its
   `design-system-foundations` slug correction; that pack's version bump; **and**
@@ -1037,16 +1091,16 @@ displace, crediting this fold with the sibling slice's description rewrite.
   them is not shippable at all.
 - It names `eugenelim` as deciding owner.
 
-**Done when:** both triggers, all five residue items, and the named owner are
-present. "Cross-pack repair ships alone" as a summary line does not discharge
-the enumeration — the two items most easily dropped are the two that make the
-residue shippable.
+**Done when:** the proceed decision, evidence limits, both remaining triggers,
+all five residue items, and the named owner are present. "Cross-pack repair
+ships alone" as a summary line does not discharge the enumeration — the two
+items most easily dropped are the two that make the residue shippable.
 
-**Touches:** docs/specs/xd-genre-router/notes/activation-baseline.md
+**Touches:** docs/specs/xd-genre-router/notes/routing-classification-evidence.md
 
 ### T3: One skill routes seven genres, with every method preserved
 
-**Depends on:** T1
+**Depends on:** T2
 
 **Tests:**
 - Rubric maps all seven genres; `transactional-journey → interaction-design`
@@ -1058,7 +1112,8 @@ residue shippable.
 - Authored body ≤ 8,000 B.
 - Description ≤ 1024 chars, naming seven genres' trigger vocabulary and the four
   boundary skills — including the `design-system` boundary, which is absent from
-  the description today.
+  the description today. The 1039-character probe candidate is design input,
+  not exact tested shipped copy; compression preserves its routing semantics.
 - The **narrower genre-reference name scan** exits 0. This is T3's to run, and
   nothing else can: `sweep` excludes `.apm/skills/information-architecture/` by
   construction, so a reference carrying across a sentence like
@@ -1169,8 +1224,10 @@ check, no location check and no `sweep` hit reaches it.
 
 ### T6: The frontend pre-flight routes every genre, and its own suite is green
 
-**Depends on:** T2 — the **decision**, not the deletion. Nothing T6 edits reads
-the six directories, so declaring `T4` put the one repair that is promised to
+**Depends on:** T2 (the **decision**, not the deletion)
+
+Nothing T6 edits reads the six directories, so declaring `T4` put the one repair
+that is promised to
 survive an abort downstream of the abort trigger. T6 authors the fold-branch
 post-state; if T9 fails, T6 re-runs against the abort-branch post-state the
 spec now states in full, which is why that post-state is a criterion rather
@@ -1228,7 +1285,8 @@ than a note.
   two atoms and reds `catalogue verify` with `CAT-V-007`; measured both ways
   against the repository's own parser.
 - `python3 -m pytest packs/frontend-engineering/tests -q` passes.
-- That pack's `evals/eval_queries.json` is updated, per the eval-harness
+- That pack's `evals/eval_queries.json` adds the exact positive
+  marketplace-handoff build case in the command map, per the eval-harness
   obligation on any non-cosmetic pack change.
 - The `0.3.3` bump is **T10a's** to assert and to gate; T6 does not restate it.
   Stating it in both left it in neither `Done when`.
@@ -1251,7 +1309,9 @@ abort branch's three closeout obligations — and the three map blocks this task
 owns each exit 0 — the README offered-route set
 (which must include `information-architecture`, not merely exclude the removed
 names), the `recommended` floor (whose `catalogue` field fails silently), and
-the two-site `design-system-foundations` correction. The frontend suite reaches
+the two-site `design-system-foundations` correction — and the exact
+marketplace-handoff activation case is present in the frontend eval harness.
+The frontend suite reaches
 none of these: it checks offered ⊆ routable in one direction only, opens no
 `pack.toml`, and passes with either slug in the table because the README offers
 neither. The three **positive** post-states are named in this condition because
@@ -1385,7 +1445,7 @@ two guide-tree numerals read 14. The
 `read-the-design-handoff.md` confirmation is **not** here — T6 owns it, and a
 record with two writers is what this plan forbids at T9a.
 
-**Touches:** tools/add-rendering-directives.py, guides/experience-design/**, guides/frontend-engineering/**, docs/specs/xd-genre-router/notes/verification-ledger.md
+**Touches:** tools/add-rendering-directives.py, guides/experience-design/**, docs/specs/xd-genre-router/notes/verification-ledger.md
 
 The ledger is in this list because T7a's `Done when` reads it: the
 `lint-guidebook-steps.py` exemption reason is T7a's to write. This is the same
@@ -1420,13 +1480,13 @@ this task green.
 
 **Touches:** docs/rfc/0066-experience-pack-surface-genre-and-skill-uplift.md
 
-### T9: The post-fold activation figure clears the gate
+### T9: The implemented fold stays within the accepted routing decision
 
-**Depends on:** T2, T3, T4, **T6** — T2 explicitly, so the abort path exists
-before the trigger that invokes it can fire; and T6 explicitly, so the
-cross-pack wave has landed before the gate fires. T6 was previously unordered
+**Depends on:** T2, T3, T4, **T6** — T2 explicitly, so the fallback exists
+before the decision point; and T6 explicitly, so the cross-pack wave has landed
+before the decision. T6 was previously unordered
 against T9, which made T9b's completion figures indeterminate: run
-T1→T2→T3→T4→T9 and a failed gate leaves `sweep_raw`/`sweep` at 23/21 rather
+T1→T2→T3→T4→T9 and an abort decision leaves `sweep_raw`/`sweep` at 23/21 rather
 than the 20/18 T9b demands, telling the operator the revert is incomplete —
 the round-5 misreading, inverted. T6 does not depend on the fold, so ordering
 it first costs nothing and makes one figure determinate.
@@ -1442,18 +1502,23 @@ sits outside the revert set: the file it concerns carries no genre skill, no
 so the confirmation does not depend on the fold at all.
 
 **Tests:**
-- The shipped `$IA/evals/eval_queries.json` is **the same query set T1 graded**,
-  compared against the verbatim copy T1 wrote into the baseline note. This is
-  T9's test, not only T1's prose: a T9 implementer reading T9 alone would
-  otherwise compute post-fold over T3's file and pre-fold over T1's, and the
-  ≥-baseline gate would clear on two different denominators.
-- Post-fold runs recorded under the same command, CLI version and model.
-- Positive figure ≥ baseline; negative figure ≥ baseline.
-- Post-fold resident description bytes recorded with the delta.
+- `notes/routing-classification-evidence.md` still records the accepted 18/18
+  result and all proxy limits without claiming production activation.
+- The shipped description passes the ≤1024-character, seven-genre-vocabulary,
+  and four-boundary static checks. The compressed shipped text was not rerun;
+  the external probe remains design-direction evidence.
+- The pooled routing-query corpus block asserts 71 positives, 67 negatives, no
+  contradictions, and both exact boundary negatives.
+- Post-fold resident description bytes and the delta from T1's 15,069-byte
+  control are recorded.
+- T9 records `proceed` unless the appetite window elapsed or the owner explicitly
+  chose `abort`.
 
-**Done when:** both figures clear and the delta is recorded.
+**Done when:** the static routing checks pass, the resident-description delta
+is recorded, and the proceed/abort decision is recorded without a production-
+activation claim.
 
-On failure the abort path from T2 executes. Its revert set is **T3, T4, T5, T7,
+On `abort` the fallback from T2 executes. Its revert set is **T3, T4, T5, T7,
 T7a and T8** — note T3 is *in*, and T6 and T10a are *out* — and **T9b owns
 executing it**, with its own tests and completion condition. Stating the set
 here without an owning task left the largest piece of abort-branch work
@@ -1464,13 +1529,19 @@ under `information-architecture` and a rewritten rubric pointing at them while
 the six source skills still exist. T6 survives the abort with its post-state
 restated against the still-present genre skills.
 
-**Touches:** docs/specs/xd-genre-router/notes/activation-baseline.md
+**Touches:** docs/specs/xd-genre-router/notes/routing-classification-evidence.md
 
-### T9b: The fold-branch work is reverted (runs only if T9 fails)
+### T9b: Revert the fold work on abort; otherwise close as a verified no-op
 
-**Depends on:** T9 failing
+**Depends on:** T9
+
+Phase-1 scheduling dispatches every task and has no branch-skipped receipt. T9b
+therefore runs on both branches: it performs the revert when T9 records `abort`,
+and on `proceed` verifies that decision and returns ready without editing a file.
 
 **Tests:**
+- On the fold branch, T9's recorded decision is `proceed` and the task's diff is
+  empty; none of the abort assertions below is run as if it were owed.
 - **All five T3 outputs** are reverted, enumerated rather than gestured at:
   (1) the six genre references and the relocated `editorial-quality-gates.md`
   are gone from `$IA/references/`; (2) the pre-fold rubric is restored in
@@ -1521,33 +1592,46 @@ piece of abort-branch work. Without it T9a and T10a can both close green while
 six new genre references sit under `information-architecture` alongside the six
 skills they were meant to replace.
 
-**Done when:** `sweep_raw` reads **20** and `sweep` reads **18** — the
+**Done when (fold branch):** T9's `proceed` decision is present and T9b reports a
+no-op with an empty task diff.
+
+**Done when (abort branch):** `sweep_raw` reads **20** and `sweep_hits` reads **18** — the
 post-T9b figures its tests state, *not* the pre-fold 23/21, which are only
 reached after T9a — and the roster suites pass. A completion condition demanding
 the pre-fold figures here would tell the operator the revert was incomplete and
 send them to re-add the three names T6 correctly deleted.
 
-**Touches:** packs/experience-design/**, docs/** *except* `docs/specs/xd-genre-router/notes/`, web/src/content/**, tools/add-rendering-directives.py, guides/**, packs/agent-skill-engineering/tests/fixtures/skill-census.json, docs/rfc/0066-experience-pack-surface-genre-and-skill-uplift.md
+**Touches (abort branch; none on fold):** packs/experience-design/**, docs/**
+*except* `docs/specs/xd-genre-router/notes/`, web/src/content/**,
+tools/add-rendering-directives.py, guides/**,
+packs/agent-skill-engineering/tests/fixtures/skill-census.json,
+docs/rfc/0066-experience-pack-surface-genre-and-skill-uplift.md
 
 **Explicitly out of scope:** `docs/specs/xd-genre-router/notes/` **and
 `docs/product/changelog.md`**. T10a depends on T6 alone, so it may legitimately
 land the `frontend-engineering` `0.3.3` bump and its changelog entry before the
-gate fires; that entry is a condition of the residue being shippable at all.
+decision; that entry is a condition of the residue being shippable at all.
 T9b reverts only the `experience-design` `3.0.0` entry if T10 had already
 written one. The rest of the carve-out reasoning: The revert set
 is defined task-wise, but the path scope is `docs/**`, and this spec's own
-`activation-baseline.md` (the abort decision and its deciding owner) and
+`routing-classification-evidence.md` (the abort decision and its deciding owner) and
 `verification-ledger.md` (judgement 1, the `read-the-design-handoff.md`
 confirmation) live inside it — T7's `Touches` reaches the ledger, so "carry no
 edit from T7" would otherwise sweep it away. Reverting them would delete the
 three records T11's abort `Done when` then requires.
 
-### T9a: The abort-branch cross-pack post-state (runs only if T9 fails)
+### T9a: Restate the abort cross-pack state; otherwise close as a verified no-op
 
 **Depends on:** T9b — the restatement targets a tree where the six skills exist
 again, so the revert lands first
 
+Like T9b, this task always dispatches. On fold success it verifies the recorded
+branch and returns ready without editing; on abort it authors the post-state
+below.
+
 **Tests:**
+- On the fold branch, T9's recorded decision is `proceed` and the task's diff is
+  empty; the four-row T6 post-state remains intact.
 - The genre table reads **nine** rows — asserted with the same parser block T6
   uses, with `WANT_ROWS = 9`, because the row count is contract on this branch
   too and the frontend suite asserts nothing about it: today's seven, plus
@@ -1582,8 +1666,11 @@ sentinel no longer probes a skill that still ships. That restatement is real
 work and had no owner — the same shape as the stranded-release finding T10a
 fixes, on the content half rather than the release half.
 
-**Done when:** all nine rows route, `packs/frontend-engineering/tests` passes,
-`sweep_raw` is back to 23 and `sweep` to 21, and the same three map blocks T6
+**Done when (fold branch):** T9's `proceed` decision is present, T6's four-row
+post-state remains intact, and T9a reports a no-op with an empty task diff.
+
+**Done when (abort branch):** all nine rows route, `packs/frontend-engineering/tests` passes,
+`sweep_raw` is back to 23 and `sweep_hits` to 21, and the same three map blocks T6
 owns each exit 0 against this branch's post-state — the README offered-route
 set run as `BRANCH=abort`, where the three genre names plus
 `interaction-design` is the correct answer and no README edit is owed — the
@@ -1593,11 +1680,11 @@ never depended on the fold. T9a does **not** write the abort-decision record —
 deciding owner named. Two tasks writing it let T9a's bare "abort taken" line
 satisfy T11's read, dropping the owner the spec requires.
 
-**Touches:** packs/frontend-engineering/**
+**Touches (abort branch; none on fold):** packs/frontend-engineering/**
 
 ### T10a: The cross-pack release is registered, on either branch
 
-**Depends on:** T6, or T9a when the gate fails
+**Depends on:** T9a
 
 **Tests:**
 - `frontend-engineering` reads `0.3.3` in `pack.toml`, in
@@ -1607,7 +1694,7 @@ satisfy T11's read, dropping the owner the spec requires.
   `0.3.3` entry.
 - `agentbundle catalogue verify --root .` exits 0.
 
-**Approach:** split out of T10 because T10 sits behind the activation gate and
+**Approach:** split out of T10 because T10 sits behind the fold decision and
 asserts `experience-design` reads `3.0.0` — which the abort branch forbids. The
 abort residue promises the cross-pack repair ships alone, but a `pack.toml`
 reading `0.3.3` against a projection reading `0.3.2` reds `catalogue verify`,
@@ -1618,7 +1705,7 @@ changelog entry exists, whichever branch the fold takes.
 
 **Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md
 
-### T10: The `experience-design` release is registered
+### T10: Register the `experience-design` release on fold; certify no release on abort
 
 **Depends on:** T5, T7, T7a, T8, T9, T10a — **T7a explicitly**, because it
 rewrites `tools/add-rendering-directives.py`'s per-skill map and `make build-self`
@@ -1627,6 +1714,9 @@ regenerated against a map still registering all six removed skills, and the
 guide suites could close having never run against the swept tree.
 
 **Tests:**
+- On the abort branch, `experience-design` stays at its released version in
+  both manifests and the marketplace projection, no free-standing `3.0.0`
+  changelog entry exists, and the task's diff is empty.
 - `experience-design` reads `3.0.0` in both manifests and the marketplace
   projection, regenerated by the unforced `make build-self`.
 - `docs/product/changelog.md` carries a free-standing `experience-design`
@@ -1638,21 +1728,27 @@ guide suites could close having never run against the swept tree.
   selector and `sweep`, not the repository lint. T10 owns it as the last task
   before closeout on the fold branch.
 
-**Done when:** every `experience-design` version surface agrees, the changelog
+**Done when (fold branch):** every `experience-design` version surface agrees, the changelog
 block exits 0 — a free-standing `3.0.0` entry naming all six removed skills,
 which `catalogue verify` cannot see because it never opens the changelog —
 catalogue passes, and `make lint-ruff lint-mypy` exits 0.
 
-**Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md
+**Done when (abort branch):** the released `experience-design` version remains
+unchanged across its version surfaces, no `3.0.0` changelog entry exists,
+catalogue and lint pass, and T10 reports a no-op with an empty task diff.
+
+**Touches (fold branch; none on abort):** packs/experience-design/pack.toml,
+packs/experience-design/.claude-plugin/plugin.json,
+.claude-plugin/marketplace.json, docs/product/changelog.md
 
 ### T11: Adopter hygiene and the three judgements are recorded
 
-**Depends on:** T10 **and** T10a on the fold branch; **T10a alone** on the abort
-branch, where T10 is forbidden because it asserts `experience-design` reads
-`3.0.0`. T10a already encodes its own branch and T11 did not, which left the
-abort branch ending at a closeout task whose dependency could never be
-satisfied. Splitting only `Done when` was not enough: an unreachable task does
-not reach its completion condition either.
+**Depends on:** T10, T10a
+
+Both dependencies always produce receipts. On the abort branch T10 is a
+verified no-op that certifies the forbidden `experience-design` release did not
+land; this keeps Phase-1 accounting unconditional without changing either
+branch's repository outcome.
 
 **Tests:**
 - The ledger records observed `agentbundle` install/update behaviour against a
@@ -1687,13 +1783,13 @@ entry name the six removed skills, so nothing else reaches it.
 **Done when (abort branch):** the ledger carries the three obligations named
 above — the abort decision and its deciding owner, the
 `read-the-design-handoff.md` zero-occurrence confirmation, and judgement 1 if
-T3 was authored before the gate failed.
+T3 was authored before the abort decision.
 
 **Touches:** docs/specs/xd-genre-router/notes/verification-ledger.md, docs/product/changelog.md
 
 All three abort-branch obligations land in the **ledger**, which is the one
 file T11 is scoped to edit. An earlier map row also named
-`notes/activation-baseline.md` as a closeout destination; T11 cannot reach it,
+`notes/routing-classification-evidence.md` as a closeout destination; T11 cannot reach it,
 and an implementer reading the map rather than the task would have written the
 abort decision into a file outside this task's scope — the same
 `Touches`-cannot-reach shape already repaired for the `web/` page and for
@@ -1710,9 +1806,11 @@ holds state, and the removed directories return with their content.
 
 ## Risks
 
-- **The activation gate fails.** Most likely risk and the one the whole T1/T2/T9
-  structure exists for. Cost is the fold, not the slice: the cross-pack repair
-  still ships.
+- **The external classification may not predict production activation.** The
+  accepted evidence is deliberately bounded to description-level routing, and
+  this delivery makes no production-rate claim. Static corpus and boundary
+  checks protect the shipped structure; appetite expiry or an explicit owner
+  stop still preserves the cross-pack-only residue through the abort branch.
 - **The sweep misses an open `docs/` record.** No alias means a miss is a broken
   reference. T7's classification step is the control; the risk is that a record
   is misclassified frozen when it is open.
@@ -1768,3 +1866,46 @@ holds state, and the removed directories return with their content.
   review runs before T3, which is the first task that authors pack content.
   The two earlier rounds' unreviewed-fix residuals are closed — each was
   re-reviewed by the following round.
+- 2026-09-25 — **Amendment: confirmatory pre-execution findings applied.** The
+  method-carry verifier now uses the existing `origin/main` ref without writing
+  Git metadata; current-ref freshness is left to CI or a supported profile. T6
+  now has a deciding activation-harness case for its required eval update, T7a's
+  touch scope no longer includes the frontend guide it must not edit, and both
+  abort completion clauses use the reporting helper `sweep_hits` for non-zero
+  counts. Scope and branch outcomes are unchanged; the build strategy returns
+  to review and approval before execution.
+- 2026-09-25 — Amended build strategy approved by the repository owner after
+  both mandatory pre-execution reviewers returned clean.
+- 2026-09-25 — **Amendment: remove the scheduler-only T6 self-edge.** The T6
+  dependency declaration now ends after `T2`; its explanatory sentence starts
+  on the next paragraph. The intended graph and implementation order are
+  unchanged. The prior run was reset before implementation because the
+  scheduler correctly refused the parser-visible cycle.
+- 2026-09-25 — **Amendment: make branch accounting scheduler-safe.** Phase 1
+  has no branch-skipped receipt, so T9b, T9a and T10 now dispatch on both
+  branches. Each performs its existing branch work where owed and otherwise
+  verifies the recorded decision, produces an empty task diff, and returns a
+  valid ready receipt. T10a depends unconditionally on T9a, and T11 depends
+  unconditionally on T10 and T10a. Fold and abort repository outcomes are
+  unchanged.
+- 2026-09-25 — Scheduler-safe build strategy approved by the repository owner
+  after the mandatory confirmatory reviewer returned clean.
+- 2026-09-25 — **Amendment: replace the live Claude activation experiment with
+  bounded external routing evidence.** The owner stopped the costly,
+  error-prone experiment and authorized an 18-call cold Codex classification
+  probe as the delivery's decision input. All nine pre-fold and nine post-fold
+  cases selected the expected route at high confidence, with zero retries. The
+  tracked evidence records the exact prompts, candidate descriptions, result,
+  owner authorization, and limits: it is a description-level proxy with one
+  sample per case/world, not production activation evidence. T1 and T9 now own
+  durable evidence and static routing checks; the 71/67 corpus remains a
+  shipped-content contract; abort narrows to appetite expiry or an explicit
+  owner stop. The fold and abort repository outcomes are unchanged.
+- 2026-09-25 — Amended scope approved by the repository owner: the bounded
+  routing-classification evidence replaces the live Claude activation-rate
+  gate, with its proxy limits and the 1024-character shipping constraint made
+  explicit.
+- 2026-09-26 — Amended build strategy approved by the repository owner. T1
+  validates the durable external evidence, T3 implements the compressed routing
+  description and folded methods, and T9 applies static routing controls without
+  another classifier run.

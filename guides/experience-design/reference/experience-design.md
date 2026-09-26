@@ -14,7 +14,7 @@ away. When frontmatter changes, update this page in the same change. For a
 task-oriented walkthrough, see [Thread a feature from journey to screens](../how-to/author-design-intent.md).
 :::
 
-The pack contains 20 pure-Markdown skills and one independent reviewer agent.
+The pack contains 14 pure-Markdown skills and one independent reviewer agent.
 It installs at user scope across every adapter declared by the pack manifest.
 
 ## Operating contract
@@ -59,12 +59,7 @@ syntax or fixed visual values.
 | Decide a surface's message and structure | `content-design` | Content brief | Not brand register, copy goals, or UI strings |
 | Set copy goals for one acquisition surface | `copy-direction` | Copy-direction record | Not brand register, content structure, or UI strings |
 | Define the cross-surface brand register | `tone-of-voice` | Brand-register document | Not one surface's copy direction or UI strings |
-| Structure a marketing or acquisition surface | `conversion-design` | Conversion-surface specification | Not go-to-market strategy, final copy, or page code |
-| Structure docs, help, or API reference | `documentation-design` | Docs IA and navigation specification | Not docs strategy, technical authoring, or site code |
-| Structure a dashboard or reporting view | `analytical-design` | Analytical IA and widget hierarchy | Not metric strategy or chart implementation |
-| Structure an editorial reading surface | `informational-design` | Typography and reading-flow specification | Not editorial strategy, article writing, or template code |
-| Structure marketplace discovery and choice | `marketplace-design` | Catalogue and transaction-bridge IA | Not marketplace strategy or implementation |
-| Structure sustained professional work | `workspace-design` | Workspace-surface specification | Not feature scope, implementation, or UI strings |
+| Structure a surface by genre | `information-architecture` | Genre-fit IA and layout reasoning | Not product strategy, final copy, or implementation |
 
 ## Connective and operational skills
 
@@ -260,83 +255,19 @@ shaping, and copy implementation. It anchors but does not replace
 ## Surface genres
 
 Declare the chosen genre once in the per-screen brief's `surface-genre:` field.
-The matching skill applies that genre's method without replacing the connective
-or craft skills.
+`information-architecture` applies the matching method for marketing,
+documentation, analytical, informational, marketplace, workspace, or general IA
+surfaces without replacing the connective or behavior skills.
 
-### `conversion-design`
+Use it when a screen needs genre-fit structure: an acquisition page's offer
+story, a help center's navigation, a monitoring view's business questions, an
+editorial page's reading flow, a catalogue's choice architecture, or a
+professional workspace's context model.
 
-**Use when:** “Structure a pricing page so a qualified visitor understands the
-offer and can act.”
-
-**Returns:** information architecture and structural specifications for a
-marketing or acquisition surface, including its above-fold and scroll story.
-
-**Routes away:** go-to-market strategy, acquisition-initiative shaping, final
-copy, and page implementation. Use `content-design` for message hierarchy,
-`copy-direction` for copy goals, and the flow/interaction skills for product UI.
-
-### `documentation-design`
-
-**Use when:** “Design the help center so new users reach the right task guide
-quickly.”
-
-**Returns:** content-type, information-architecture, navigation-at-scale, and
-first-value specifications for docs, help, or API-reference surfaces.
-
-**Routes away:** organization-level documentation strategy, docs-platform
-shaping, technical content authoring, and site/theme implementation. Use
-`conversion-design` for marketing and `informational-design` for editorial
-reading.
-
-### `analytical-design`
-
-**Use when:** “Design a monitoring view that helps operators spot a problem and
-decide what to do.”
-
-**Returns:** domain-model-first analytical information architecture, business
-questions, role-aware views, and widget hierarchy. Individual chart code is not
-the output.
-
-**Routes away:** metric/outcome strategy, analytics-product shaping, and chart
-or data-binding implementation. Use `interaction-design` for component behavior
-and `workspace-design` for sustained-work tools.
-
-### `informational-design`
-
-**Use when:** “Design a long-form article template that stays readable through
-dense material.”
-
-**Returns:** typography, hierarchy, editorial grid, reading flow, and the next-
-content path for an informational surface.
-
-**Routes away:** editorial/product strategy, publishing-product shaping,
-article writing, and template implementation. Use `documentation-design` for
-task/reference systems and `conversion-design` for acquisition pages.
-
-### `marketplace-design`
-
-**Use when:** “Design catalogue filters and comparison views that help buyers
-choose between listings.”
-
-**Returns:** search, filter, listing, comparison, detail, and transaction-bridge
-information architecture for a multi-party exchange.
-
-**Routes away:** marketplace strategy, bet framing/sizing, implementation of
-search/transactions, and listing copy. Use `conversion-design` for a
-single-product marketing page and `workspace-design` for an internal tool.
-
-### `workspace-design`
-
-**Use when:** “Design a collaborative workspace that preserves context across
-sessions and interruptions.”
-
-**Returns:** a workspace-surface specification covering context persistence,
-collaboration state, ambient attention, interruption handling, agentic patterns,
-and session arcs.
-
-**Routes away:** product strategy, feature appetite/scope, workspace
-implementation, and UI-string authoring. Use `analytical-design` for dashboards,
-`marketplace-design` for exchange surfaces, and `ux-writing` for UI strings.
+It returns hierarchy, reading flow, navigation, wayfinding, and the
+genre-specific structure needed before behavior design. It routes away from
+product strategy, content strategy, copywriting, feature appetite, component
+implementation, and UI-string authoring.
 
 ## Independent reviewer
 

@@ -1,25 +1,554 @@
 [
-  {"query": "Organize this settings area so people know what is primary and where to go next", "should_trigger": true},
-  {"query": "Build this approved page hierarchy in markup and styles", "should_trigger": false},
-  {"query": "Structure this screen — what goes where and in what order?", "should_trigger": true},
-  {"query": "Work out the information architecture for the dashboard", "should_trigger": true},
-  {"query": "Lay out this signup flow so users stay oriented", "should_trigger": true},
-  {"query": "What should the visual hierarchy be on this page?", "should_trigger": true},
-  {"query": "How should this app's navigation be organized?", "should_trigger": true},
-  {"query": "Why does this page feel cluttered? Reorganize what's on it", "should_trigger": true},
-  {"query": "Plan the reading flow for this landing page", "should_trigger": true},
-  {"query": "Order the content on this settings screen by priority", "should_trigger": true},
-  {"query": "Design the wayfinding for this multi-step flow", "should_trigger": true},
-  {"query": "What should be primary versus secondary on this screen?", "should_trigger": true},
-
-  {"query": "Name the aesthetic direction for this product", "should_trigger": false},
-  {"query": "Make this feel more playful and energetic", "should_trigger": false},
-  {"query": "Critique this mockup's usability and rate the issues", "should_trigger": false},
-  {"query": "Review this screen against the usability heuristics", "should_trigger": false},
-  {"query": "Derive our token taxonomy from the direction", "should_trigger": false},
-  {"query": "Set up the spacing and type scale for the system", "should_trigger": false},
-  {"query": "Write the actual HTML and CSS layout for this page", "should_trigger": false},
-  {"query": "Design the system architecture for the backend services", "should_trigger": false},
-  {"query": "Write the empty-state and error copy for this view", "should_trigger": false},
-  {"query": "Pick the final color palette for the navigation bar", "should_trigger": false}
+  {
+    "query": "Organize this settings area so people know what is primary and where to go next",
+    "should_trigger": true
+  },
+  {
+    "query": "Build this approved page hierarchy in markup and styles",
+    "should_trigger": false
+  },
+  {
+    "query": "Structure this screen \u2014 what goes where and in what order?",
+    "should_trigger": true
+  },
+  {
+    "query": "Work out the information architecture for the dashboard",
+    "should_trigger": true
+  },
+  {
+    "query": "Lay out this signup flow so users stay oriented",
+    "should_trigger": true
+  },
+  {
+    "query": "What should the visual hierarchy be on this page?",
+    "should_trigger": true
+  },
+  {
+    "query": "How should this app's navigation be organized?",
+    "should_trigger": true
+  },
+  {
+    "query": "Why does this page feel cluttered? Reorganize what's on it",
+    "should_trigger": true
+  },
+  {
+    "query": "Plan the reading flow for this landing page",
+    "should_trigger": true
+  },
+  {
+    "query": "Order the content on this settings screen by priority",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the wayfinding for this multi-step flow",
+    "should_trigger": true
+  },
+  {
+    "query": "What should be primary versus secondary on this screen?",
+    "should_trigger": true
+  },
+  {
+    "query": "Name the aesthetic direction for this product",
+    "should_trigger": false
+  },
+  {
+    "query": "Make this feel more playful and energetic",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique this mockup's usability and rate the issues",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this screen against the usability heuristics",
+    "should_trigger": false
+  },
+  {
+    "query": "Derive our token taxonomy from the direction",
+    "should_trigger": false
+  },
+  {
+    "query": "Set up the spacing and type scale for the system",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the actual HTML and CSS layout for this page",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the system architecture for the backend services",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the empty-state and error copy for this view",
+    "should_trigger": false
+  },
+  {
+    "query": "Pick the final color palette for the navigation bar",
+    "should_trigger": false
+  },
+  {
+    "query": "Design a monitoring view that helps operators spot a problem and decide what to do",
+    "should_trigger": true
+  },
+  {
+    "query": "Define the company's KPI strategy and decide which outcomes matter",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the dashboard for our analytics team",
+    "should_trigger": true
+  },
+  {
+    "query": "How should we structure the reporting view for sales managers?",
+    "should_trigger": true
+  },
+  {
+    "query": "What goes on the KPI monitoring screen?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design a monitoring view that lets engineers see system health at a glance",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the data visualization layout for our metrics dashboard",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we organize our reporting screen so analysts can drill down?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the analytics surface for our product team",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure this reporting view \u2014 from status signal to diagnostic to action",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the right layout grammar for a business intelligence dashboard?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the individual chart encodings for the bar chart component",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the landing page to convert trial visitors",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the workspace for collaborative editing sessions",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the product catalogue and search filter UI",
+    "should_trigger": false
+  },
+  {
+    "query": "Structure the docs site navigation and content hierarchy",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the visual direction for the dashboard before we design it",
+    "should_trigger": false
+  },
+  {
+    "query": "Derive the token taxonomy from the aesthetic direction",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique the usability of this analytics screen",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the customer journey for new users",
+    "should_trigger": false
+  },
+  {
+    "query": "Structure a pricing page so a qualified visitor understands the offer and can act",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the final hero headline, proof copy, and call-to-action text",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the landing page to convert visitors to sign-ups",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the homepage so visitors understand what we do and take action",
+    "should_trigger": true
+  },
+  {
+    "query": "What goes above the fold on our product marketing page?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the pricing page to reduce drop-off at the conversion point",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we structure the scroll story on our acquisition landing page?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design a marketing surface that converts visitors into trial users",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the right structure for our SaaS product homepage?",
+    "should_trigger": true
+  },
+  {
+    "query": "How should we order the sections on our campaign landing page?",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the above-fold section of our product page for maximum clarity",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the article page layout for our editorial blog",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the docs site navigation and help center hierarchy",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the marketplace catalogue and listing filter UI",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the dashboard for monitoring system health",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the hero headline and above-fold copy",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the aesthetic direction for the marketing page",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique this landing page and rank the usability issues",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the workspace UI for our collaborative editing tool",
+    "should_trigger": true
+  },
+  {
+    "query": "Map the customer journey from first visit to purchase",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the help center so new users reach the right task guide quickly",
+    "should_trigger": true
+  },
+  {
+    "query": "Build the approved docs navigation and theme in the site code",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the docs site structure for our developer API",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the help centre so users find answers quickly",
+    "should_trigger": true
+  },
+  {
+    "query": "How should we organize our technical documentation?",
+    "should_trigger": true
+  },
+  {
+    "query": "What goes on the docs landing page to get developers to their first value moment?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the navigation for our API reference documentation",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we structure a docs site that serves both tutorials and reference docs?",
+    "should_trigger": true
+  },
+  {
+    "query": "Plan the information architecture for our SDK documentation",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the docs landing page to route engineers to what they need fast",
+    "should_trigger": true
+  },
+  {
+    "query": "How should we organize a documentation site that's grown too large to navigate?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the actual tutorial content for the getting-started guide",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the marketing landing page for our developer tool",
+    "should_trigger": false
+  },
+  {
+    "query": "Structure the layout for an in-product help panel",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the aesthetic direction for the documentation site",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique the usability of the existing docs site navigation",
+    "should_trigger": false
+  },
+  {
+    "query": "Derive the token system for the docs site brand",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the dashboard for engineering metrics",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the customer journey for new developer sign-ups",
+    "should_trigger": false
+  },
+  {
+    "query": "Design a long-form article template that stays readable through dense material",
+    "should_trigger": true
+  },
+  {
+    "query": "Write and edit the final article content for publication",
+    "should_trigger": false
+  },
+  {
+    "query": "How should the long-form content page be structured for readability?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the reading experience for our news and editorial pages",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure an article template that works for our in-depth features",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we design a reading experience that keeps people engaged through long content?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the typographic hierarchy for our editorial content pages",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the right layout structure for a thought-leadership article page?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the layout for our research report pages \u2014 long, text-heavy content",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we structure an article page so readers stay until the end?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the docs site for our technical documentation",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the dashboard layout for our analytics team",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the marketplace listing page for product discovery",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the article content for our product launch post",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the aesthetic direction for our editorial brand",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique the usability of our blog page",
+    "should_trigger": false
+  },
+  {
+    "query": "Derive the font scale and spacing tokens for the article page",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the workspace UI for our collaborative writing tool",
+    "should_trigger": false
+  },
+  {
+    "query": "Design catalogue filters and comparison views that help buyers choose between listings",
+    "should_trigger": true
+  },
+  {
+    "query": "Frame the marketplace opportunity, appetite, risks, and solution options",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the marketplace catalogue and listing page",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the search and filter UI for our product marketplace",
+    "should_trigger": true
+  },
+  {
+    "query": "How should the listing card be structured to drive buyer decisions?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the buyer journey from search to transaction on our marketplace",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the right filter and facet architecture for a B2B software catalogue?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the comparison view for our marketplace listings",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the product detail page for a two-sided marketplace",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we organize the discovery experience on our service marketplace?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the search results page and listing cards for our app store",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the marketing landing page for a single product",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the workspace for managing marketplace listings internally",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the analytics dashboard for marketplace performance",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the product docs for marketplace sellers",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the aesthetic direction for the marketplace brand",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique the usability of the current listing page",
+    "should_trigger": false
+  },
+  {
+    "query": "Derive the token taxonomy for the marketplace design system",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the seller journey for onboarding a new product",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the listing card copy for our marketplace",
+    "should_trigger": false
+  },
+  {
+    "query": "Design a collaborative workspace that preserves context across sessions and interruptions",
+    "should_trigger": true
+  },
+  {
+    "query": "Choose the appetite and scope for the collaboration feature before design begins",
+    "should_trigger": false
+  },
+  {
+    "query": "Structure the tool interface for a multi-agent coordination surface",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the agentic UI for our AI-assisted development environment",
+    "should_trigger": true
+  },
+  {
+    "query": "How should we structure the layout for a long-running task management surface?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the workspace for a team that works in sessions across multiple days",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we handle context-persistence in our productivity tool UI?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the session arc for our collaborative code review tool",
+    "should_trigger": true
+  },
+  {
+    "query": "Structure the attention zones and notification design for our IDE-like workspace",
+    "should_trigger": true
+  },
+  {
+    "query": "How should we design the real-time collaboration state in our document editor?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the analytics dashboard for the workspace metrics",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the marketplace for users to discover workspace integrations",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the article page for our workspace product blog",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the landing page to convert workspace tool visitors",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the aesthetic direction for the workspace product",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique the usability of the existing workspace screen",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the individual component interactions for the workspace toolbar",
+    "should_trigger": false
+  },
+  {
+    "query": "Derive the token system for the workspace design",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the customer journey for new workspace users",
+    "should_trigger": false
+  }
 ]

@@ -2,8 +2,8 @@
 
 Three modes govern how a surface should be written. The mode is set by the surface's
 communication job, not its content type. Declare it in the artifact's `communication_mode:`
-frontmatter field so downstream skills (copy-direction, conversion-design) apply the
-correct editorial register.
+frontmatter field so downstream skills (`copy-direction` and the marketing route in
+`information-architecture`) apply the correct editorial register.
 
 ## MODE 1 — product-copy
 
@@ -24,7 +24,8 @@ product announcement, launch copy, calls to action, pack cards.
 The product should be understood before it is fully explained.
 
 **Editorial discipline:** Apply anti-AI-smell criteria and the deletion pass before
-closing (load `references/editorial-quality-gates.md`).
+closing. When the surface also needs structural IA, use the marketing genre route
+inside `information-architecture`; that route loads the editorial quality gate.
 
 ---
 

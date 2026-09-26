@@ -267,8 +267,8 @@ D were named in the engagement; E, F, and G were found during discovery.
 | Design | Art direction, amended | `creative-direction` |
 | Design | Token extension, against the real 97-token baseline | `design-system` |
 | **Gate** | **`approve-aesthetic-direction`** — a named direction with precedents and anti-patterns; an adjective is a rejection | Owner |
-| Design | Marketing structure and the above-the-fold decision | `conversion-design` |
-| Design | Documentation IA and first-value moment per content type | `documentation-design` |
+| Design | Marketing structure and the above-the-fold decision | `information-architecture` with the marketing reference |
+| Design | Documentation IA and first-value moment per content type | `information-architecture` with the documentation reference |
 | Design | The operating-model canvas | Hand-authored, per Gap C |
 | Design | Interaction spec; accessibility spec | `interaction-design` |
 | Design | Copy deck and decision labels | `ux-writing` |

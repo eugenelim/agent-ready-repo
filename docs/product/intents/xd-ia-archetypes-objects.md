@@ -29,7 +29,7 @@ Information architecture guidance needs a shared way to connect page purpose and
 - Add product-object mapping guidance, an attention contract, and a read/write permission contract to relevant skills (RFC-0071 Area D).
 - Deliver M3c after M3a and before M3d in the accepted implementation sequence (RFC-0071 § Implementation sequence).
 
-### Observed state — 2026-09-20
+### Observed state — 2026-09-26
 
 Each row is a check against the live tree (`packs/`, `guides/`, `web/`,
 `docs-site/`, `tools/`, `packages/`), re-runnable rather than trusted. Frozen
@@ -38,8 +38,8 @@ evidence. This is an observation on a date, not a status field.
 
 | Requirement | Observed | Check |
 | --- | --- | --- |
-| `references/page-archetypes.md` with ≥12 surface types | not started | no file of that name anywhere. The nearest live structure is the genre table at `information-architecture/SKILL.md:69-77` with **7** genres, not archetype-shaped. The file is referenced by 4 shipped `digital-experience-contract.md` copies and resolves to nothing |
-| per-archetype field set | partial, wrong pack and wrong axis | the field set ships as a **per-screen** contract in `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md:357-374` (12 fields). No archetype axis, no navigation-behavior field, nothing equivalent in `packs/experience-design` |
+| `references/page-archetypes.md` with ≥12 surface types | not started, but the starting structure changed | no file of that name anywhere. The nearest live structure is now the genre-reference set under `information-architecture/references/`: **6** genre method files plus shared IA references, reached by the routing table at `information-architecture/SKILL.md:69-74`. That is still surface-genre method, not page-archetype guidance. The file is referenced by 4 shipped `digital-experience-contract.md` copies and resolves to nothing |
+| per-archetype field set | partial, wrong pack and wrong axis | the field set ships as a **per-screen** contract in `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md:368-386` (12 fields). No archetype axis, no navigation-behavior field, nothing equivalent in `packs/experience-design` |
 | product-object mapping, attention contract, permission contract in the relevant skills | partial, template only | the three headings exist in the contract template copies. In XD skill bodies: `product object` → 0 hits, `attention contract` → 0, `permission contract` → 0 |
 | deliver M3c after M3a, before M3d | not started | M3a is Shipped (`docs/specs/xd-skill-boundaries/`); no spec exists for this intent |
 

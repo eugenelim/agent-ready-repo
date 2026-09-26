@@ -75,7 +75,7 @@ Design decisions to record in the brief:
 - Is the back action destructive (clears the current step's state) or restorative (returns the user to their previous answers)? Back must be restorative by default.
 - Does the final step show a review of all prior answers before submission? For consequential transactions, yes — the review step is not optional.
 
-**Reference:** [NN/g: Wizard Design](https://www.nngroup.com/articles/wizards/) covers step-indicator design, back-button behavior, and when to use a wizard vs. a single long form. The `marketplace-design` skill's transaction bridge section names the handoff from marketplace to wizard.
+**Reference:** [NN/g: Wizard Design](https://www.nngroup.com/articles/wizards/) covers step-indicator design, back-button behavior, and when to use a wizard vs. a single long form. The marketplace genre reference in `information-architecture` names the handoff from marketplace to wizard.
 
 ### Save-and-resume
 
@@ -216,4 +216,4 @@ Every Tier 1 KPI that a user might want to investigate further needs a consisten
 - **Drill-down destination:** names where the user goes (Tier 2 diagnostic widget, detail page, filtered data table). The destination is part of the drill-down design — "show more" without a destination is incomplete.
 - **Back path:** the user returns to the Tier 1 overview without losing their filter context. Breadcrumb or back affordance is required; relying on the browser back button is not sufficient when filter state is involved.
 
-**Reference:** `analytical-design` covers the full widget hierarchy and spatial layout grammar for dashboard IA. The patterns in this section complement that IA by specifying the behavioral layer of individual widgets.
+**Reference:** The analytical genre reference in `information-architecture` covers the full widget hierarchy and spatial layout grammar for dashboard IA. The patterns in this section complement that IA by specifying the behavioral layer of individual widgets.

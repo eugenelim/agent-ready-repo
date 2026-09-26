@@ -51,7 +51,7 @@ artifact, at its own path, and the rules they share exist once.
 | User promise | Applicable — the skills a reader invokes change | `guides/experience-design/` | `author-product-docs` | Updated copy-boundary guidance | Guide-agreement test passes and a named reviewer judges the guide sufficient |
 | Public site truth | Applicable — the pack's published pages name each skill | `web/src/content/` | This spec | Frontmatter, `whatChanges`, and stage prose updated | The site build succeeds |
 | Release history | Applicable — a released artifact's version is bumped | `docs/product/changelog.md` | That file's own header rules | A free-standing `## [experience-design][4.0.0] — <date>` entry directly beneath `[Unreleased]`, naming the removed skills | The entry sits at the right heading level with single blank lines around every heading |
-| Reusable learning | Applicable — activation behaviour is the thing at risk | `content-design/evals/` | `packs/AGENTS.md` § Security and authoring rules | Pooled trigger queries plus a recorded before/after Tier-A result | `notes/activation-baseline.md` carries both runs |
+| Reusable routing evidence | Applicable — description-level route selection is the accepted risk proxy | `content-design/evals/` and `notes/routing-classification-evidence.md` | This spec | Pooled eval corpus plus one bounded 18-call cold Codex classification probe and its limits | The note stands alone; all 18 selections match at high confidence; the shipped description is the tested post-fold candidate |
 
 ## Agent Rules
 
@@ -63,7 +63,8 @@ artifact, at its own path, and the rules they share exist once.
   `references/communication-modes.md`, `assets/content-brief-template.md`, and
   `evals/evals.json`. Any other name makes the Gates criteria unsatisfiable
   without a test edit this spec does not scope.
-- Run the Tier-A activation baseline **before** deleting any skill directory.
+- Run the bounded routing-classification probe **before** deleting any skill
+  directory, and preserve its fixed inputs, result, owner decision, and limits.
 - Reconcile each drifted reference deliberately, one file at a time, recording
   which variant won and why. A silent pick is a rule change disguised as a merge.
 - Preserve all three output contracts exactly, including `type:` **and** every
@@ -72,8 +73,9 @@ artifact, at its own path, and the rules they share exist once.
   RFC-0062's 2026-08-02 erratum established.
 - Preserve the cross-pack boundary against `product-engineering`'s `ux-writing`,
   and retarget that pack's references to the folded names in the same PR.
-- Pool every folded skill's `eval_queries.json` positive cases into the surviving
-  file.
+- Pool every folded skill's distinct positive and negative
+  `eval_queries.json` cases into the surviving file without introducing an
+  opposite-`should_trigger` collision.
 - Bump `pack.toml` and `.claude-plugin/plugin.json` together, in the same edit.
 
 ### Ask first
@@ -119,10 +121,12 @@ artifact, at its own path, and the rules they share exist once.
   show so a reviewer can execute it and record a verdict. A goal-based criterion
   with no entry in either form is a defect in this spec, not a criterion exempt
   from checking.
-- **Measured experiment** — the Tier-A activation comparison, recorded in
-  `notes/activation-baseline.md`. Its statistic, run count, tolerance and abort
-  path are acceptance criteria in this spec rather than a citation of the
-  sibling genre spec, which is Draft and whose abort residue is genre-specific.
+- **Bounded routing-classification evidence** — one cold Codex classification
+  per fixed case and world, run in separate `fork_turns: "none"` contexts from
+  descriptions alone. The nine pre-fold and nine post-fold calls have no
+  retries. This is a directional proxy, not a Claude `Skill` activation-rate
+  measurement; its required result, limits, and abort path are acceptance
+  criteria below.
 - **Manual QA** — four judgements: whether each reconciliation preserved the
   right rule; whether no rule was silently dropped; whether the three modes
   remain distinguishable to a reader; whether the guide is sufficient. Recorded
@@ -434,26 +438,47 @@ artifact, at its own path, and the rules they share exist once.
       entry, so `12` never appears in it and a cardinal check would fail a
       correct page. *(goal-based)*
 
-### Activation evidence
+### Routing-classification evidence
 
-- [ ] `notes/activation-baseline.md` records Tier-A runs before and after,
-      naming the command, date, CLI version, and model identifier for each.
-      *(measured experiment)*
-- [ ] The pass statistic is **total passing queries over total queries**,
-      computed identically on both sides over the same pooled set; each run is
-      repeated **three times** and the reported figure is the lowest.
-      *(measured experiment)*
-- [ ] `notes/activation-baseline.md` names this fold's own **abort path** and its
-      two triggers — a failing gate, or the brief's ~3-week window elapsing. On
-      either, the two directories are not deleted and **nothing else in this
-      slice ships**: unlike the genre fold, this slice has no separable repair to
-      land on its own, and saying so prevents a partial fold. The deciding owner
-      is **eugenelim**. *(measured experiment)*
-- [ ] The surviving `eval_queries.json` carries the pooled positives plus
-      negatives that must not trigger, including at least one belonging to
-      `ux-writing` and one to `creative-direction`. *(goal-based)*
-- [ ] The fold ships only when both the positive and the negative figures are
-      greater than or equal to their baselines. *(measured experiment)*
+- [ ] `notes/routing-classification-evidence.md` records 18 independent cold
+      Codex classifications: nine pre-fold and nine post-fold cases, one sample
+      per case and world, `fork_turns: "none"`, descriptions only, and no
+      retries. *(bounded routing-classification evidence)*
+- [ ] The note records the exact nine prompts, every candidate description,
+      expected selections, actual selections, and confidence.
+      *(bounded routing-classification evidence)*
+- [ ] Six copy-layer cases cover the three modes twice each. Before the fold,
+      two select `content-design`, two select `copy-direction`, and two select
+      `tone-of-voice`; after the fold, all six select `content-design`.
+      *(bounded routing-classification evidence)*
+- [ ] Three boundary cases select `ux-writing`, `creative-direction`, and
+      `information-architecture` in both worlds. *(bounded routing-classification evidence)*
+- [ ] All 18 selections match their expected route at high confidence. Any
+      mismatch or lower-confidence result stops the slice before a skill
+      directory is deleted and returns the evidence decision to `eugenelim`.
+      *(bounded routing-classification evidence)*
+- [ ] The note states that this is a classification proxy, not a Claude `Skill`
+      activation event; Codex retained platform system context; and one sample
+      per case and world does not establish broad recall, false-positive rates,
+      repeated-sampling stability, or production behavior.
+      *(bounded routing-classification evidence)*
+- [ ] The tested post-fold description is at most 1024 characters and the
+      shipped `content-design` description is byte-identical to it. A material
+      routing or boundary change requires a new owner-approved bounded probe or
+      stops the slice. *(bounded routing-classification evidence)*
+- [ ] The note names this fold's abort path and its three triggers: a
+      classification mismatch or low-confidence result, an explicit owner stop,
+      or the brief's approximately three-week window elapsing. On any trigger,
+      the two directories are not deleted and nothing in this slice ships. The
+      deciding owner is `eugenelim`. *(goal-based)*
+
+### Eval preservation
+
+- [ ] The surviving `eval_queries.json` carries the three source files' 29
+      distinct positive queries and 32 distinct negative queries. No query has
+      both `should_trigger: true` and `should_trigger: false`; the negative set
+      includes cases owned by `ux-writing` and `creative-direction`.
+      *(goal-based)*
 - [ ] `notes/verification-ledger.md` records the observed `agentbundle`
       install-and-update behaviour for a removed skill directory, and the
       changelog states the adopter action if stale directories are not pruned.

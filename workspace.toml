@@ -527,7 +527,7 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 active  = [
 ]
 queue   = [
-    {path = "docs/specs/xd-genre-router/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Fold six genre skills and information-architecture into one genre-aware skill and repair frontend-engineering's genre routing", needs = [{type = "local", kind = "spec", path = "docs/specs/creative-direction-modes/spec.md"}]},
+    {path = "docs/specs/xd-genre-router/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/experience-design-skill-consolidation.md"}, summary = "Fold six genre skills and information-architecture into one genre-aware skill and repair frontend-engineering's genre routing", needs = [{type = "local", kind = "spec", path = "docs/specs/creative-direction-modes/spec.md"}]},
     {path = "docs/specs/xd-copy-router/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Fold content-design, copy-direction and tone-of-voice into one copy-layer skill with three modes, reconciling six drifted shared references", needs = [{type = "local", kind = "spec", path = "docs/specs/xd-genre-router/spec.md"}]}
 ]
 shipped = [

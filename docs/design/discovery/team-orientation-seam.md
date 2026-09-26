@@ -136,11 +136,11 @@ which is why it is stated as a refusal rather than a preference.
 **For `information-architecture`:** the seam is a navigation problem in both
 directions, and Crossing B needs a destination that does not exist today.
 
-**For `conversion-design`:** the marketing surface owes the documentation surface
+**For `information-architecture` with the marketing reference:** the marketing surface owes the documentation surface
 one route into the ordered paths, placed where marketing Stage 3 currently
 strands the reader, not in the footer.
 
-**For `documentation-design`:** the documentation surface owes the marketing
+**For `information-architecture` with the documentation reference:** the documentation surface owes the marketing
 surface Crossing B — a route from "I understand this" to "help me sell this" —
 and it must be built without the documentation surface acquiring a persuasion
 register.

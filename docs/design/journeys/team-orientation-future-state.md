@@ -177,7 +177,7 @@ decisive question and no current surface answers it.
 | **Actions** | Follows the route from marketing into the ordered paths — which exists now, where today there is nothing. Lands on an index that leads with one "Start here" and one promise. Picks a path for someone else: the platform team gets the adopt-the-catalogue path, an engineer gets the build path. Hands over a named, time-costed sequence rather than a folder. |
 | **Emotions** | Capable, and slightly surprised at how ready it was. Positive. |
 | **Pains addressed** | "I know there are guides and I can't get to them from the page that told me about them." "The nav wants me to pick a pack — I don't know which pack my problem is in." "Every engineer asks the same setup questions I already answered." "The platform team wants a rollout plan and I don't have one." |
-| **Residual pain** | The first path costs about an hour, which is three times the twenty-minute budget a first-value tutorial should carry. Splitting a short on-ramp out of it is a documentation-design decision, not a journey one. |
+| **Residual pain** | The first path costs about an hour, which is three times the twenty-minute budget a first-value tutorial should carry. Splitting a short on-ramp out of it is an `information-architecture` documentation-reference decision, not a journey one. |
 
 **What is new.** A route from marketing into the paths. The paths promoted above
 the pack-choosing copy. Search raised to a first-class element, because 207 guide
@@ -303,11 +303,11 @@ different jobs for the same artifact.
 **For `user-flow`:** the canvas is one screen with two levels and six states.
 Stage 3's actions impose the static constraint; Stage 2's impose the nesting.
 
-**For `conversion-design`:** the commitment this page should earn is the Stage 3
+**For `information-architecture` with the marketing reference:** the commitment this page should earn is the Stage 3
 cohort decision, not the Stage 2 individual install. The current primary action
 optimises for the latter.
 
-**For `documentation-design`:** Stages 4 and 5. The content exists; the wayfinding
+**For `information-architecture` with the documentation reference:** Stages 4 and 5. The content exists; the wayfinding
 does not.
 
 **For the measurement plan:** every validation hook above is a candidate measure,

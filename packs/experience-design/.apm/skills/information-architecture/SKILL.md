@@ -1,6 +1,6 @@
 ---
 name: information-architecture
-description: "Use when someone asks what goes where on a screen or flow, in what order, and how users stay oriented. Produces an information-architecture and layout-reasoning document covering hierarchy, reading flow, progressive disclosure, navigation, and wayfinding. Use `creative-direction` for visual mood, `interaction-design` for within-screen behavior, `user-flow` for screen sequence, and `design-review` for critique. Product direction belongs to product strategy; scoping the feature belongs to `frame-intent`; writing markup and styles belongs to `frontend-engineering`. Triggers on \"decide what goes where on this settings screen\", \"design the hierarchy and wayfinding for this flow\", \"organize this account settings content around the user's primary task\"."
+description: "Use when someone asks what goes where on a screen or flow, in what order, or how a genre-specific surface helps people understand, navigate, decide, or act. Produces IA and layout specs for general screens and flows plus analytical dashboards/reports/monitoring; conversion landing, home, pricing, and acquisition pages; documentation sites, help centers, API references, and guide sets; informational articles/news/editorial pages; marketplace catalogues/listings/comparison/transaction paths; and sustained-work collaboration or agentic workspaces. Selects the genre from the brief and applies its method for hierarchy, reading flow, navigation, wayfinding, filters, comparison, context persistence, or action-oriented reporting. Use `interaction-design` for within-screen behavior and transactional journeys, `design-system` for tokens and components, `design-review` for critique, and `creative-direction` for visual mood. Strategy/scope stay upstream; final copy and implementation belong elsewhere."
 ---
 
 # Skill: information-architecture
@@ -49,9 +49,9 @@ Confirm before drafting:
   findability score, session re-engagement after return.) The hierarchy design
   serves this metric; choices that cannot be traced to it are decoration.
 
-If the ask is mood/type/color, hand to `creative-direction`; if it's
-reusable tokens or component rules, `design-system`; if it's
-judging an existing screen, `design-review`.
+If the ask is mood, hand to `creative-direction`; if it's reusable tokens
+or component rules, `design-system`; if it's judging an existing screen,
+`design-review`.
 
 ## Procedure
 
@@ -59,21 +59,19 @@ judging an existing screen, `design-review`.
 
 1. **Frame the surface(s) and route by genre.** For each, write its one job and
    its audience. This anchors every later call. Then **route by surface genre**:
-   if the per-screen brief declares a `surface-genre:`, read the corresponding
-   genre skill's output before designing hierarchy — the genre skill has already
-   made the primary structural decisions for that surface type. If no brief exists,
-   elicit the genre inline ("What kind of surface is this?").
+   if the per-screen brief declares a `surface-genre:`, select exactly one
+   route from the table below before designing hierarchy. If no brief exists,
+   elicit the genre inline ("What kind of surface is this?"). The selected
+   genre method supplies the structural vocabulary for that surface type.
 
-   Use the genre routing table below to find the upstream skill output to read first:
-
-   | Surface genre | Read before designing hierarchy |
+   | `surface-genre:` | Route before designing hierarchy |
    |--------------|--------------------------------|
-   | `marketing` | `conversion-design` output — hero approach, scroll-story zones, above-fold spec |
-   | `documentation` | `documentation-design` output — Diátaxis type map, navigation strategy, TTFV target |
-   | `informational` | `informational-design` output — reading pattern, typographic hierarchy, editorial grid |
-   | `analytical` | `analytical-design` output — widget tier hierarchy, spatial layout grammar, role-based views |
-   | `marketplace` | `marketplace-design` output — card IA, filter architecture, browse-first vs. search-first |
-   | `workspace` | `workspace-design` output — session arc, context-persistence patterns, attention zones |
+   | `marketing` | `references/conversion-design.md` — hero approach, scroll-story zones, above-fold spec, and `references/editorial-quality-gates.md` |
+   | `documentation` | `references/documentation-design.md` — content typing, navigation strategy, and first-value target |
+   | `informational` | `references/informational-design.md` — reading pattern, typographic hierarchy, editorial grid, and next-step chain |
+   | `analytical` | `references/analytical-design.md` — widget hierarchy, spatial layout grammar, and role-based views |
+   | `marketplace` | `references/marketplace-design.md` — card IA, filter architecture, comparison, and transaction bridge |
+   | `workspace` | `references/workspace-design.md` — session arc, context-persistence patterns, attention zones, and collaboration state |
    | `transactional-journey` | `interaction-design` wizard-and-stepper pattern families |
 
    If the genre is unknown, determine it before framing hierarchy — the genre determines the structural vocabulary.

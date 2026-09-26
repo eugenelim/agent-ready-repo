@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule; § Authoring or editing a skill); `tests/AGENTS.md` (the three guarded edits a **new** `tests/roster/test_*.py` owes, which this plan avoids by extending an existing suite); `tests/roster/test_experience_design_write_declaration_and_containment.py` — specifically `test_every_containment_copy_is_byte_identical`, which globs `*/references/containment.md` off the filesystem and is the pattern this delivery reuses, and separately `test_every_skill_citing_the_module_ships_its_own_copy`, which is the citation-derived one and runs citation → copy, so neither can fail on a copy that nothing cites; two analogous multi-mode skills — `packs/core/.apm/skills/project-knowledge/` (capture / distill / enquire behind one description) and `packs/core/.apm/skills/author-delivery-brief/` (create / continue). Named uncertainty: the pervasive-versus-localized divergence classification has no repository precedent and is authored here as a judgement with a recorded verdict.
+- **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule; § Authoring or editing a skill); `tests/AGENTS.md` (the three guarded edits a **new** `tests/roster/test_*.py` owes, which this plan avoids by extending an existing suite); `tests/roster/test_experience_design_write_declaration_and_containment.py` — specifically `test_every_containment_copy_is_byte_identical`, which globs `*/references/containment.md` off the filesystem and is the pattern this delivery reuses, and separately `test_every_skill_citing_the_module_ships_its_own_copy`, which is the citation-derived one and runs citation → copy, so neither can fail on a copy that nothing cites; two analogous multi-mode skills — `packs/core/.apm/skills/project-knowledge/` (capture / distill / enquire behind one description) and `packs/core/.apm/skills/author-delivery-brief/` (create / continue); the accepted `xd-genre-router` routing-classification evidence and static-corpus approach. Named uncertainties: the pervasive-versus-localized divergence classification has no repository precedent and is authored here as a judgement with a recorded verdict; the bounded Codex probe is a description-level decision input, so production activation remains unmeasured.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`. After approval, `spec.md`
@@ -15,10 +15,11 @@ Three registrations become one skill with three modes. Unlike the genre fold,
 almost none of the work is moving method — it is **reconciling six pairs of files
 that share a name and disagree**, and doing it without silently picking a winner.
 
-Order is forced three ways. The activation baseline runs first, before any
-deletion (T1). The reconciliations happen before the merge (T3–T4), because a
-merged skill built on an unreconciled pair bakes in whichever variant was pasted
-first. And the whole slice is blocked behind the genre fold landing
+Order is forced three ways. The bounded 18-call routing-classification probe
+runs first, before any deletion (T1), over the current descriptions and one
+exact post-fold candidate. The reconciliations happen before the merge (T3–T4),
+because a merged skill built on an unreconciled pair bakes in whichever variant
+was pasted first. And the whole slice is blocked behind the genre fold landing
 `editorial-quality-gates.md` under `information-architecture` — checked as a
 precondition in T2, not assumed.
 
@@ -724,7 +725,8 @@ show, so a reviewer can execute it and record a verdict:
 | Three-way editorial verdict | the same note: which gating condition survives, `conversion-design`'s or `copy-direction`'s upstream-`communication_mode` form |
 | `DESIGN.md` records the supersession | `packs/experience-design/DESIGN.md`: an explicit statement that the byte-equality test supersedes the "Skill autonomy beats DRY at this scale" note. Owned by T7, whose `Touches:` reaches that file. The reference-side check only sees the note disappear from the two copies; nothing else requires the positive statement |
 | Autonomy-note removal has an owning `Touches:` | T3's `Touches:` names `information-architecture/references/editorial-quality-gates.md`; grep that the note is absent from both surviving copies |
-| Pooled `eval_queries.json` negatives | `$CD/evals/eval_queries.json`: every folded positive present, plus ≥ 1 `ux-writing` and ≥ 1 `creative-direction` negative. Compare against `git show "$BASE:…/copy-direction/evals/eval_queries.json"` and the `tone-of-voice` equivalent — **at the merge-base**, as T2 does: T6 deletes both files, so a `HEAD` comparison has nothing to read and passes vacuously |
+| Routing-classification evidence | `notes/routing-classification-evidence.md`: nine fixed pre-fold and nine fixed post-fold rows; all 18 expected selections at high confidence; exact prompts and descriptions; zero retries; the proxy limits, abort path, and owner decision |
+| Pooled `eval_queries.json` corpus | `$CD/evals/eval_queries.json`: 29 distinct positives and 32 distinct negatives; no query appears with both `should_trigger` values; every source positive is present; the negative set retains cases owned by `ux-writing` and `creative-direction`. Compare source membership against the guarded merge-base because T6 deletes two source files |
 | Install/update observation and adopter action | `notes/verification-ledger.md` carries the observed behaviour; the changelog carries the manual step if stale directories persist |
 | Two errata's content requirements | RFC-0062: three registrations → one, three output contracts unchanged, the 2026-08-02 reservation survives. RFC-0071: its own entry, the post-fold skill count stated as **12**, and an explicit clause recording that it **supersedes** the 2026-08-02 erratum that set the same count to 20. An entry that restates the number without the supersession fails this read |
 | The three `experience-reviewer.md` criteria | that file: the sync citation resolves to a path that exists; the exclusion clause names an artifact `type:`; `Does NOT fire on` names only surviving skills or types |
@@ -769,7 +771,7 @@ and named neither T2 nor T7a.
 
 | Durable output | Destination | Tasks | Closeout evidence |
 | --- | --- | --- | --- |
-| Activation baseline + abort path | `notes/activation-baseline.md` | T1, T9 | Both figures ≥ baseline; the abort path names both triggers and `eugenelim` |
+| Routing-classification evidence + abort path | `notes/routing-classification-evidence.md` | T1, T9 | Nine pre-fold and nine post-fold classifications; 18/18 expected selections at high confidence; exact tested post-fold description; proxy limits; all three abort triggers and `eugenelim` |
 | Genre-fold precondition | `notes/verification-ledger.md` | T2 | The relocated file exists, is byte-identical at the merge-base, and is cited |
 | Reconciliation record | `notes/reference-reconciliation.md` | T3, T4 | Six files, each with a winner, a clause, or a recorded drop and its reason |
 | Shared-reference integrity | `content-design/` + `information-architecture/` | T3, T5 | The byte-equality extension is GREEN and both `SKILL.md` files cite the file |
@@ -810,35 +812,94 @@ a grep, not as something the suite would catch.
 variants restate the same rule for different scopes, letting one win deletes the
 other mode's scope. The rewrite names the scope once and parameterises it.
 
+**The routing proxy uses fixed inputs.** T1 classifies these prompts once in
+each world. The expected post-fold route for C1–C6 is `content-design`; the
+expected pre-fold route is the source named in the third column. C7–C9 keep the
+same neighboring route in both worlds.
+
+| Case | Prompt | Expected pre-fold |
+| --- | --- | --- |
+| C1 | Before wireframes, decide what our onboarding page must say and how the story should unfold | `content-design` |
+| C2 | What does our API quickstart page need to communicate to developers? | `content-design` |
+| C3 | Name the copy goals for this pricing-page hero before anyone writes the lines | `copy-direction` |
+| C4 | Before we write the tagline for this surface, we need to name what it should feel like | `copy-direction` |
+| C5 | Our teams sound inconsistent; define the brand voice every channel should share | `tone-of-voice` |
+| C6 | What's the copy arbitration rule when urgency and warmth conflict across our communications? | `tone-of-voice` |
+| C7 | Write the error message for when login fails | `ux-writing` |
+| C8 | What's the visual aesthetic direction for the landing page? | `creative-direction` |
+| C9 | Order the content on this settings screen by priority | `information-architecture` |
+
+The exact post-fold candidate is:
+
+> Use when someone asks what a surface should communicate or how its copy
+> should feel before final words are written, or when a team needs a
+> cross-surface brand register. Runs in three modes: message and narrative
+> structure for a content brief; per-surface acquisition copy goals for a
+> copy-direction record; brand-level register for named, ranked voice goals and
+> arbitration rules. Use `ux-writing` for final product UI strings and state
+> microcopy, `creative-direction` for visual mood, and
+> `information-architecture` for page hierarchy. Organization-level content
+> strategy belongs to `define-content-strategy`; product positioning and growth
+> strategy stay upstream; implementation belongs to `frontend-engineering`.
+> Triggers on "shape the message hierarchy before we wireframe", "set ranked
+> copy goals for this landing page", and "define how our brand should sound
+> across product and marketing".
+
+The candidate is 895 UTF-8 bytes when joined as one frontmatter scalar. T1
+recomputes the byte count from the exact joined text rather than trusting this
+illustrative reading; the 1024-byte cap and byte identity are the gates.
+
 ### Failure, edge cases & resilience
 
 - Genre fold aborted or landed without the relocation → T2 fails and the slice
   stops; it does not create the shared file itself.
-- Activation gate fails → nothing in this slice ships; there is no separable
-  repair, unlike the genre fold.
+- The bounded classifier returns a mismatch or less than high confidence → T1
+  stops before any skill edit, and nothing in this slice ships. The evidence is
+  directional only, so this delivery makes no production-activation claim.
 - A reconciliation cannot be classified → the verdict is recorded as unresolved
   and the pair escalates rather than being merged on a guess.
 
 ## Tasks
 
-### T1: The pre-fold activation baseline exists
+### T1: The bounded routing-classification evidence is durable
 
 **Depends on:** none
 
 **Tests:**
-- Command, date, CLI version and model recorded; three runs per side, lowest
-  reported; the statistic is total passing over total, pooled.
-- Positive and negative pooled sets both recorded, the negatives including one
-  `ux-writing` and one `creative-direction` query.
-- The abort path is stated as a **revert, not a prevention**: T6 deletes the
-  directories and T9 measures afterwards, so the fold must happen before it can
-  be measured. The revert set is T3–T8 **including T7a**, plus T10's manifest
-  and changelog edits when the window-elapsed trigger fires after T10 has run.
-- It names both triggers, the no-partial-fold residue, and `eugenelim`.
+- `notes/routing-classification-evidence.md` records 18 cold
+  `fork_turns: "none"` Codex classifications: nine fixed prompts, once against
+  the pre-fold descriptions and once against one exact post-fold candidate,
+  with descriptions only and no retries.
+- The six copy-layer prompts cover message and narrative structure,
+  per-surface acquisition copy goals, and brand-level register twice each. The
+  three boundary prompts belong to `ux-writing`, `creative-direction`, and
+  `information-architecture`.
+- The pre-fold results select `content-design`, `copy-direction`, and
+  `tone-of-voice` twice each; the post-fold results select `content-design` for
+  all six copy-layer prompts; the three boundaries retain their route in both
+  worlds. Every result matches at high confidence.
+- The note carries the exact prompts, every candidate description, expected and
+  actual selections, confidence, owner authorization, date, zero-retry count,
+  and the exact tested post-fold description. That candidate is at most 1024
+  characters.
+- The note states the limits: this is a classification proxy, not a Claude
+  `Skill` activation event; Codex retains platform system context; one sample
+  per case and world does not establish broad recall, false-positive rates,
+  repeated-sampling stability, or production behavior.
+- The abort path is prevention, not reversion: a mismatch or less than high
+  confidence stops before T3. The other triggers are an explicit owner stop and
+  the brief's approximately three-week window elapsing. On any trigger nothing
+  in this slice ships, and `eugenelim` decides.
 
-**Done when:** the file carries both sets and the abort path.
+**Approach:** run the same bounded external description-classification protocol
+accepted for `xd-genre-router`, with this fold's fixed copy-layer cases and
+neighbor set. Persist the evidence before any pack edit.
 
-**Touches:** docs/specs/xd-copy-router/notes/activation-baseline.md
+**Done when:** the tracked note contains the fixed input, 18/18 expected
+high-confidence result, exact shippable candidate, limits, owner decision, and
+abort path. Any other result stops the slice.
+
+**Touches:** docs/specs/xd-copy-router/notes/routing-classification-evidence.md
 
 ### T2: The genre fold's post-condition is verified, not assumed
 
@@ -1055,18 +1116,27 @@ three acceptance criteria name them.
 
 **Touches:** docs/rfc/0062-content-design-and-copy-direction-skills.md, docs/rfc/0071-digital-experience-doctrine.md, packs/experience-design/DESIGN.md
 
-### T9: The post-fold activation figure clears the gate
+### T9: The shipped routing controls match the accepted evidence
 
 **Depends on:** T5, T6
 
 **Tests:**
-- Same command, CLI version and model as T1; positive and negative figures both
-  ≥ baseline.
+- The shipped `content-design` frontmatter description is byte-identical to
+  T1's tested post-fold candidate and is at most 1024 characters.
+- The evidence note still records all nine pre-fold and nine post-fold rows,
+  18/18 expected high-confidence selections, zero retries, and every stated
+  proxy limit.
+- `content-design/evals/eval_queries.json` contains 29 distinct positive and 32
+  distinct negative queries, with no query carrying both `should_trigger`
+  values. Its negative set retains cases owned by `ux-writing` and
+  `creative-direction`.
+- No live Claude activation run or repeated classifier sampling occurs.
 
-**Done when:** both clear. If either fails, nothing in this slice ships and
-T3–T8 revert.
+**Done when:** the shipped description is the accepted candidate and the static
+evidence and corpus checks pass. A material description change reopens T1 or
+stops the slice.
 
-**Touches:** docs/specs/xd-copy-router/notes/activation-baseline.md
+**Touches:** docs/specs/xd-copy-router/notes/routing-classification-evidence.md
 
 ### T10: The release is registered
 
@@ -1116,7 +1186,10 @@ keeps its path and `type:`, so no adopter content migrates. Rollback is
 - **The sweep removes a discriminator.** `type: tone-of-voice` is both a skill
   name and an artifact marker; the carve-out list is the control, and it is
   enumerated rather than described.
-- **The activation gate fails.** Nothing ships — no separable repair exists here.
+- **The bounded classification proxy may not predict production activation.**
+  The contract makes no production-rate claim. Static corpus checks protect the
+  shipped routing surface, and any mismatch or low-confidence proxy result
+  stops the slice before pack edits begin.
 
 ## Changelog
 
@@ -1155,3 +1228,25 @@ keeps its path and `type:`, so no adopter content migrates. Rollback is
   the artifact — which is the documented stop signal for an iterative review,
   not a convergence failure. A confirmatory review runs before T3, the first
   task that authors pack content.
+
+- 2026-09-26 — **Amendment: replace the live Claude activation experiment with
+  bounded routing-classification evidence.** The owner directed this delivery
+  to use the approach accepted for `xd-genre-router`: nine fixed cold Codex
+  cases classified once in each world from descriptions alone, with no retries,
+  plus static corpus and description checks. T1 now runs and records the probe
+  before any pack edit; T9 verifies that the shipped description is the exact
+  tested candidate and that the pooled corpus remains 29 positive / 32 negative
+  with no opposite-trigger collision. The proxy's limits are explicit, and the
+  delivery makes no production-activation claim. Scope and repository outcomes
+  are unchanged.
+
+- 2026-09-26 — Amended scope approved by eugenelim. The live Claude
+  activation-rate gate is replaced by bounded description-classification
+  evidence and static corpus checks. The fold's outcome, boundaries, durable
+  outputs, and no-partial-shipment rule are unchanged.
+
+- 2026-09-26 — Amended build strategy approved by eugenelim after independent
+  shaping review and adversarial spec-mode review returned clean. T1 records
+  the fixed 18-call proxy before any pack edit; T9 verifies the exact tested
+  description and the 29-positive / 32-negative corpus without another live
+  activation run.

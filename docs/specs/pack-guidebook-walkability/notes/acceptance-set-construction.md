@@ -95,7 +95,7 @@ the five guidebooks. `WEB` = `web/src/test/FourDisciplineSequence.test.ts` over
 | AC-0005 | Delete the failure path from one real step in one shipped guidebook | LINT |
 | AC-0006 | Two mutations. Corrupt a non-utterance rung: replace one step's **artifact path** with an invented one and record no fallback, so a check reading only row 3's ladder passes. Then replace a stage's existing utterance with invented text and **record it as authored** — the fallback is recorded, so only the rung-order rule reds | GB |
 | AC-0007 | Merge one step's input and agent response into a single unlabelled block, as a journey stage does today | GB |
-| AC-0008 | Remove `marketplace-design` from the `experience-design` guidebook, leaving the other nineteen skills named | GB |
+| AC-0008 | Remove `information-architecture` from the `experience-design` guidebook, leaving the other thirteen skills named | GB |
 | AC-0009 | Delete the handoff-chain sentence from P2b without stating the corrected relationship — the lexical prohibition passes and the positive half reds | GB |
 | AC-0010 | Restore "a change you approved before it merged" to P2b's fourth step | GB |
 | AC-0011 | Two mutations, one per half. Correct the group body but leave the first three cards' handoff claims and the assertion requiring them in place. Then replace all four taglines with unrelated prose containing no prohibited handoff wording — the prohibitive half passes and only the positive half reds | WEB |

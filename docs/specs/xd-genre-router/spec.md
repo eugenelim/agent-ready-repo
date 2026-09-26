@@ -1,6 +1,6 @@
 # Spec: One genre-aware information-architecture skill
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0066 D4 and D5(d) (amended by erratum in this change); RFC-0055 D2 (errata structure); RFC-0050; RFC-0033 / ADR-0024 (framework agnosticism); ADR-0038 (alias-free precedent)
@@ -49,22 +49,24 @@ downstream caller can reach today — and each genre's method is unchanged.
 | User promise | Applicable — the skill a reader invokes changes | `guides/experience-design/` | `author-product-docs` | Guide text routing by genre through one skill | Guide-agreement test passes and a named reviewer judges the guide sufficient |
 | Public site truth | Applicable — the pack's published journey and pack pages name each skill | `web/src/content/` | This spec | Frontmatter `skills:` list, `whatChanges`, and stage prose updated | The site build succeeds |
 | Release history | Applicable — a released artifact's version is bumped | `docs/product/changelog.md` | That file's own header rules | A free-standing `## [experience-design][3.0.0] — <date>` entry directly beneath `[Unreleased]`, naming the removed skills and the adopter action | The entry sits at the right heading level with single blank lines around every heading |
-| Reusable learning | Applicable — activation behaviour is the thing at risk | `information-architecture/evals/` | `packs/AGENTS.md` § Security and authoring rules | Pooled trigger queries plus a recorded before/after Tier-A result | `notes/activation-baseline.md` carries both runs |
+| Reusable routing evidence | Applicable — description-level route selection is the accepted risk proxy | `information-architecture/evals/` and `notes/routing-classification-evidence.md` | This spec | Pooled eval corpus plus the recorded 2026-09-25 bounded pre/post classification probe and its limits | The note stands alone, records 18/18 expected high-confidence classifications, and the shipped description preserves its tested routing semantics within the 1024-character cap |
 
 ## Agent Rules
 
 ### Always do
 
-- Run the Tier-A activation baseline **before** deleting any skill directory,
-  and record it. The single objection that can defeat this fold is that one
-  description activates less reliably than seven.
+- Preserve the accepted 2026-09-25 external routing evidence before deleting
+  any skill directory, including its limits. The fold proceeds only when the
+  shipped description retains all seven tested genre routes and the tested
+  `interaction-design` and `design-system` boundaries.
 - Carry every genre's method across in substance. A genre reference may be
   reformatted and de-duplicated against the shared body, but no genre-specific
   rule, grounding citation, or scope boundary is dropped.
 - Preserve the `transactional-journey → interaction-design` route. It is
   RFC-0066 D5(d) and this delivery does not touch it.
-- Pool every folded skill's `eval_queries.json` positive cases into the
-  surviving skill's file.
+- Pool every folded skill's distinct positive queries and its
+  contradiction-resolved negative queries into the surviving skill's
+  `eval_queries.json`.
 - Update `frontend-engineering`'s genre table, its pack-availability sentinel,
   its named-skip text, and `guides/frontend-engineering/` in the same PR.
 - Update `packs/agent-skill-engineering/tests/fixtures/skill-census.json`.
@@ -128,10 +130,14 @@ downstream caller can reach today — and each genre's method is unchanged.
   and both were false in the same direction, the second also contradicting
   itself within two clauses. A false claim of coverage is worse than a stated
   split: a closeout reviewer who finds no command substitutes a judgement,
-  which is what the measured framing exists to prevent.
-- **Measured experiment** — the Tier-A activation comparison. Its statistic,
-  run count, tolerance, and abort path are acceptance criteria below, not
-  conventions. Both runs are recorded in `notes/activation-baseline.md`.
+  which is what the explicit evidence split exists to prevent.
+- **Bounded routing-classification evidence** — the owner accepts the completed
+  external 18-call cold Codex classification probe as the decision input for
+  this fold. It used nine fixed cases in separate `fork_turns: "none"`
+  subagents, once against current descriptions and once against the candidate
+  consolidated description, with no retries. Its required result and limits
+  are acceptance criteria below. No Claude activation run or repeated sampling
+  is required.
 - **Manual QA** — three judgements: whether each genre reference preserves its
   source method; whether the genre-selection rubric is decidable from the brief's
   `surface-genre:` field alone; whether the guide is sufficient. Recorded in
@@ -142,17 +148,17 @@ downstream caller can reach today — and each genre's method is unchanged.
 
 ### The surviving skill
 
-- [ ] `information-architecture/SKILL.md` carries a genre-selection rubric
+- [x] `information-architecture/SKILL.md` carries a genre-selection rubric
       mapping each of the seven `surface-genre:` values to exactly one of three
       outcomes: a genre reference in this skill, another skill named explicitly,
       or the general IA path. *(goal-based)*
-- [ ] The row `transactional-journey → interaction-design` survives as a
+- [x] The row `transactional-journey → interaction-design` survives as a
       route-to-another-skill outcome. *(goal-based)*
-- [ ] No `surface-genre:` value is unrouted. Failing state: a value in RFC-0066
+- [x] No `surface-genre:` value is unrouted. Failing state: a value in RFC-0066
       D2's taxonomy with no row in the rubric. *(goal-based)*
-- [ ] Six genre references exist under `references/`, one per folded skill.
+- [x] Six genre references exist under `references/`, one per folded skill.
       *(goal-based)*
-- [ ] `conversion-design/references/editorial-quality-gates.md` lands
+- [x] `conversion-design/references/editorial-quality-gates.md` lands
       byte-identical at `information-architecture/references/editorial-quality-gates.md`.
       It is a shared editorial file rather than genre method, so the
       method-preservation criteria do not reach it, and the sibling copy fold
@@ -167,7 +173,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       therefore relocates bytes and asserts nothing about which variant
       survives; reading the relocated copy as the presumptive survivor is the
       rule loss `xd-copy-router` forbids. *(goal-based)*
-- [ ] `information-architecture/SKILL.md` cites
+- [x] `information-architecture/SKILL.md` cites
       `references/editorial-quality-gates.md`. The `containment.md` precedent the
       sibling fold invokes derives its copy set from citation: the roster suite
       for **`containment.md`** asserts that the set of skills citing that module
@@ -179,7 +185,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       `grep -q` in `plan.md`, which decides it. Stating the precedent as
       existing coverage would be exactly the false-coverage claim this spec
       elsewhere refuses. *(goal-based)*
-- [ ] `SKILL.md`'s authored body — file bytes minus frontmatter and minus the
+- [x] `SKILL.md`'s authored body — file bytes minus frontmatter and minus the
       **every managed directive** — the `agentbundle:output-rendering` markers
       and their contents, plus the per-skill directive lines
       `tools/add-rendering-directives.py` emits outside them — is at most
@@ -190,44 +196,48 @@ downstream caller can reach today — and each genre's method is unchanged.
       replaces a table of comparable size, so the allowance is ~8%.
       Failing state: a genre's method was pasted in rather than referenced.
       *(goal-based)*
-- [ ] Each genre reference carries its source skill's method, grounding
+- [x] Each genre reference carries its source skill's method, grounding
       citations, and scope boundaries. *(manual QA)*
-- [ ] The rubric is decidable from the brief's `surface-genre:` field alone.
+- [x] The rubric is decidable from the brief's `surface-genre:` field alone.
       *(manual QA)*
 
 ### The surviving description
 
-- [ ] The `description` is at most 1024 characters. *(goal-based)*
-- [ ] It names trigger vocabulary for all seven genres, so a request phrased in
+- [x] The `description` is at most 1024 characters. *(goal-based)*
+- [x] It names trigger vocabulary for all seven genres, so a request phrased in
       any genre's own words can match. *(goal-based)*
-- [ ] It retains boundary statements against `interaction-design`,
+- [x] It retains boundary statements against `interaction-design`,
       `design-system`, `design-review`, and `creative-direction`. *(goal-based)*
 
-### Activation evidence
+### Routing-classification evidence
 
-- [ ] `notes/activation-baseline.md` records a Tier-A run over the seven skills
-      **before** the fold, naming the command, the date, the CLI version, and the
-      model identifier. *(measured experiment)*
-- [ ] It records a Tier-A run over the surviving skill **after** the fold,
-      against the pooled query set, under the same command, CLI version, and
-      model identifier. *(measured experiment)*
-- [ ] The pass statistic is **total passing queries over total queries**,
-      computed identically on both sides over the same pooled query set. A
-      mean-of-per-skill-rates figure is not the gate, because it diverges from
-      the pooled figure whenever per-skill query counts differ. *(measured experiment)*
-- [ ] **"Passing" is defined for both worlds, in terms T9 can reproduce
-      unchanged.** Post-fold every pooled positive has one expected skill and
-      every negative must not reach it — but pre-fold the same positives belong
-      to seven different skills, and a negative must miss all seven. The
-      baseline is therefore graded as: a **positive** passes when the query
-      activates **any one** of the seven in-scope skills; a **negative** passes
-      when it activates **none** of the seven. Post-fold the same sentences read
-      with "the seven" replaced by "the surviving skill", which is what makes
-      the two figures comparable — both ask whether the query reached this
-      pack's IA surface, and neither grades which registration answered.
-      Without this the two runs measure different things and the gate clears on
-      an artefact. *(measured experiment)*
-- [ ] **The pooled file is keyed on the distinct query string, not on the
+- [x] `notes/routing-classification-evidence.md` records the 2026-09-25
+      external probe: 18 independent cold Codex classifications, comprising
+      nine pre-fold and nine post-fold cases, one sample per case/world,
+      `fork_turns: "none"`, descriptions only, and no retries. *(bounded routing-classification evidence)*
+- [x] The note records the exact nine prompts, candidate descriptions,
+      expected selections, actual selections, and confidence. *(bounded routing-classification evidence)*
+- [x] The accepted result is pre-fold 9/9, post-fold 9/9, post-fold genre
+      coverage 7/7, and post-fold neighbor-boundary retention 2/2, with every
+      classification at high confidence. *(bounded routing-classification evidence)*
+- [x] The seven genre cases select `information-architecture` post-fold. The
+      two boundary cases continue selecting `interaction-design` and
+      `design-system`. *(bounded routing-classification evidence)*
+- [x] The note states that this is a classification proxy, not a Claude `Skill`
+      activation event; Codex retained platform system context; and one sample
+      per case does not establish broad recall, false-positive rates, repeated-
+      sampling stability, or production behavior. *(bounded routing-classification evidence)*
+- [x] The tested candidate is 1039 characters and therefore is not the exact
+      shippable description. The shipped description remains at most 1024
+      characters and preserves the tested genre ownership and neighbor-boundary
+      semantics. Compression solely to meet that cap requires no new probe.
+      *(bounded routing-classification evidence)*
+- [x] A material routing or boundary change beyond that compression requires a
+      new owner-approved bounded probe or takes the abort branch. *(bounded routing-classification evidence)*
+
+### Eval preservation
+
+- [x] **The pooled file is keyed on the distinct query string, not on the
       source entry.** The seven files hold 71 positive and 71 negative entries,
       but the negatives include two strings that appear in two files each:
       `Design the landing page to convert trial visitors`
@@ -235,8 +245,8 @@ downstream caller can reach today — and each genre's method is unchanged.
       page layout for our editorial blog` (`conversion-design` +
       `documentation-design`). Pooling by entry would ship benign duplicates;
       pooling by distinct string gives 71 positives and 69 negatives before the
-      contradiction rule. *(measured experiment)*
-- [ ] **A query that is positive for one folded skill and negative for another
+      contradiction rule. *(goal-based)*
+- [x] **A query that is positive for one folded skill and negative for another
       is resolved before pooling, and the resolution is recorded.** Two exist
       today, quoted verbatim because the string is the key the dedup decision
       turns on: `Design the article page layout for our editorial blog` is
@@ -251,18 +261,8 @@ downstream caller can reach today — and each genre's method is unchanged.
       contradiction, which is why entry-arithmetic and string-arithmetic give
       different answers; the criterion above fixes which one governs. Failing
       state: a contradictory duplicate, which makes one copy fail by
-      construction and decides the gate by arithmetic. *(measured experiment)*
-- [ ] Each run is repeated **three times** and the reported figure is the lowest
-      of the three, because Tier-A grades on a sampled trigger rate.
-      *(measured experiment)*
-- [ ] The fold ships only when the post-fold positive-set figure is **greater
-      than or equal to** the baseline figure. *(measured experiment)*
-- [ ] The fold ships only when the post-fold **negative** set — queries that must
-      not trigger, including at least one belonging to `interaction-design` and
-      one to `design-system` — passes at a figure greater than or equal to its
-      baseline. Recall alone is not the gate: over-triggering is the expected
-      failure mode of one broad description. *(measured experiment)*
-- [ ] The six removed skills' **`evals/evals.json`** quality-eval sets — the
+      construction and decides the gate by arithmetic. *(goal-based)*
+- [x] The six removed skills' **`evals/evals.json`** quality-eval sets — the
       prompt-and-expected-output cases, distinct from the activation queries —
       are carried into `information-architecture/evals/evals.json`, one case set
       per genre, or a named subset is knowingly dropped with the reason recorded
@@ -274,7 +274,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       they vanish. This is what `packs/AGENTS.md`'s eval-harness obligation asks
       for on a non-cosmetic pack change, and what this spec's own "the fold
       removes registrations, not content" requires. *(goal-based)*
-- [ ] `information-architecture/evals/eval_queries.json` carries the positive
+- [x] `information-architecture/evals/eval_queries.json` carries the positive
       queries pooled from all seven skills and that negative set, with a
       **stated expected count**, derived by the two rules above rather than by
       subtracting from an entry tally. Measured on the seven source files: 71
@@ -295,9 +295,11 @@ downstream caller can reach today — and each genre's method is unchanged.
       state: a file that pooled nothing satisfies a check that only prints a
       number.
       *(goal-based — a document-content check, tagged as the sibling tags its twin.)*
-- [ ] `notes/activation-baseline.md` names the **abort path** and its two
-      triggers: a failing activation gate, **or** the ~3-week window in the
-      brief's appetite elapsing without the fold landing. Either trigger leaves
+- [x] `notes/routing-classification-evidence.md` names the **abort path** and
+      its two remaining triggers: an explicit owner stop, **or** the ~3-week
+      window in the brief's appetite elapsing without the fold landing. A static
+      routing failure reopens T3; if it cannot be corrected within the accepted
+      scope, the owner decides whether to stop. Either trigger leaves
       the same residue — the six directories are not deleted, and the non-fold
       half of the change ships on its own: the `frontend-engineering` table
       repair, its `design-system-foundations` slug correction, that pack's
@@ -307,21 +309,21 @@ downstream caller can reach today — and each genre's method is unchanged.
       consistent: a `pack.toml` reading `0.3.3` against a projection reading
       `0.3.2` reds `agentbundle catalogue verify`, so a residue that ships the
       bump without the projection is not a shippable residue. `plan.md` gives
-      them an owning task that does not sit behind the activation gate.
-      *(measured experiment)*
-- [ ] The abort decision names **eugenelim** as the deciding owner. Deferring to
+      them an owning task that does not sit behind the routing-classification
+      gate. *(goal-based)*
+- [x] The abort decision names **eugenelim** as the deciding owner. Deferring to
       "the owner named in the brief" resolves to nobody while the brief's own
       Ready gaps record that `ini-003` is owner by initiative fit rather than by
-      assignment. *(measured experiment)*
+      assignment. *(goal-based)*
 
 ### The removals
 
-- [ ] These six directories are absent: `analytical-design`,
+- [x] These six directories are absent: `analytical-design`,
       `conversion-design`, `documentation-design`, `informational-design`,
       `marketplace-design`, `workspace-design`. *(goal-based)*
-- [ ] `pack.toml` `[pack.evals].skills` lists fourteen skills and none of the six
+- [x] `pack.toml` `[pack.evals].skills` lists fourteen skills and none of the six
       removed names. *(goal-based)*
-- [ ] No file under `packs/`, `guides/`, `web/`, `tools/`, or `tests/` names a
+- [x] No file under `packs/`, `guides/`, `web/`, `tools/`, or `tests/` names a
       removed skill **as a skill**, and no **live product-truth** record under
       `docs/` does. Two carve-outs are structural, not discretionary, and
       `plan.md`'s canonical sweep expression encodes both, alongside a third
@@ -350,7 +352,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       earlier version asserted only that each destination was non-empty, which a
       table routing all six genres at deleted skills satisfies. Failing state: a sweep that
       reports zero because its own exclusion swallowed the hits. *(goal-based)*
-- [ ] **Two sweep hits are documented exemptions rather than edits, and the
+- [x] **Two sweep hits are documented exemptions rather than edits, and the
       reason for each is recorded in the ledger.** First,
       `tools/lint-guidebook-steps.py:406` carries `analytical-design` inside an
       explanatory comment that names a file without referencing the skill;
@@ -369,7 +371,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       the clause would have shipped missing with nothing red. Without these two exemptions the sweep can never return
       empty, and a reviewer facing a non-empty result must adjudicate it by eye.
       *(goal-based)*
-- [ ] **The six new genre references are read for removed-skill names that are
+- [x] **The six new genre references are read for removed-skill names that are
       not their own filenames or the citations to them.** Carve-out (a) puts
       `references/<genre>-design.md` inside the excluded directory, and T3
       authors those files by carrying method across from six skills that
@@ -381,7 +383,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       because the whole directory is excluded, and the alias-free guarantee is
       broken inside the surviving skill. `plan.md` names the narrower command.
       *(goal-based)*
-- [ ] Under `docs/`, the exempt set is stated as **classes**, not as a list of
+- [x] Under `docs/`, the exempt set is stated as **classes**, not as a list of
       filenames, because a name list silently omits a file added after it was
       written. The classes are: the RFC-0066 erratum; `docs/product/changelog.md`
       (whose own AC below requires the names); the delivery brief; **any
@@ -414,15 +416,15 @@ downstream caller can reach today — and each genre's method is unchanged.
       measured. Frozen records are out
       of scope by the lifecycle rule above. Every remaining hit is **open** and
       owed an edit. *(goal-based)*
-- [ ] Every **open** lifecycle record under `docs/` naming a removed skill is
+- [x] Every **open** lifecycle record under `docs/` naming a removed skill is
       updated, starting with `docs/product/intents/skill-sequence-wayfinding.md`
       (Status: Draft, naming **all six** — measured per-name on 2026-09-25, one
       occurrence each at lines 138–140; an earlier "five of the six" would have
       let an implementer stop one short). The enumeration comes from
       grepping `docs/` for the six names and classifying each hit as frozen,
       dated output, or open. *(goal-based)*
-- [ ] No alias, shim, or deprecation stub is shipped. *(goal-based)*
-- [ ] `tools/add-rendering-directives.py`'s per-skill map carries none of the
+- [x] No alias, shim, or deprecation stub is shipped. *(goal-based)*
+- [x] `tools/add-rendering-directives.py`'s per-skill map carries none of the
       six removed keys, and `information-architecture`'s own entry states what
       it becomes. It is registered `["table"]` today while `informational-design`
       is registered `["table", "narrative"]`, so a fold that only deletes keys
@@ -431,7 +433,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       spec sets the surviving entry to `["table", "narrative"]` — the union of
       the seven folded entries, which is exactly those two values. No gate reads
       this map, so without the criterion the loss is silent. *(goal-based)*
-- [ ] Every skill-count numeral for this pack reads **14**. The set is
+- [x] Every skill-count numeral for this pack reads **14**. The set is
       **re-derived by measurement, not enumerated** — an earlier three-file list
       missed `guides/experience-design/README.md:83` ("That is the complete
       20-skill inventory"), whose numeral carries no removed skill name and so
@@ -446,7 +448,7 @@ downstream caller can reach today — and each genre's method is unchanged.
       enumerated lists name no removed skill, which the sweep covers. `web/src/content/packs/experience-design.md:69` reads
       "is an agent, not a twenty-first skill" and becomes "a fifteenth skill".
       *(goal-based)*
-- [ ] The pre-fold resident description cost is **re-measured at this spec's
+- [x] The pre-fold resident description cost is **re-measured at this spec's
       branch point** and recorded alongside the post-fold figure and their delta,
       using the computation the discovery note names. The 14,966-byte figure was
       taken at `2.0.9`, before `creative-direction-modes` rewrote a description,
@@ -455,11 +457,11 @@ downstream caller can reach today — and each genre's method is unchanged.
 
 ### Adopter removal hygiene
 
-- [ ] `notes/verification-ledger.md` records the observed behaviour of
+- [x] `notes/verification-ledger.md` records the observed behaviour of
       `agentbundle` install and update against a fixture install that already
       carries the six skills: whether a directory the pack no longer declares is
       pruned or left resident. *(goal-based)*
-- [ ] If it is not pruned, the changelog entry states the manual step an adopter
+- [x] If it is not pruned, the changelog entry states the manual step an adopter
       must take, because a stale `SKILL.md` stays in their skill index and keeps
       activating against a method the pack no longer ships. *(goal-based)*
 
@@ -473,7 +475,7 @@ all-six-genres row, and the retired `conversion-design` sentinel below are all
 unreachable while the six skills still exist, so a residue governed by the fold
 branch's wording would contradict itself.
 
-- [ ] `frontend-engineering`'s genre-routing table reaches a stated post-state
+- [x] `frontend-engineering`'s genre-routing table reaches a stated post-state
       for every one of its seven current rows. Four of those rows name folded
       genre skills and collapse into a single row whose **Load cell holds the
       bare slug** `` `information-architecture` `` and whose Surface-type cell
@@ -506,10 +508,10 @@ branch's wording would contradict itself.
       rows are not folded and survive, the last under its corrected name. The
       resulting table is four rows, and the spec states that shape rather than
       leaving it to be inferred. *(goal-based)*
-- [ ] All six genres route through that single row, closing the
+- [x] All six genres route through that single row, closing the
       `marketplace-design` and `workspace-design` gap; `transactional-journey`
       continues to reach `interaction-design`. *(goal-based)*
-- [ ] The stale slug `design-system-foundations` is corrected to
+- [x] The stale slug `design-system-foundations` is corrected to
       `design-system` — the real skill directory, and the name RFC-0066 D7 gave
       it — in the **two** places that carry the string, verified by grep over
       `packs/frontend-engineering/` on 2026-09-24:
@@ -523,17 +525,17 @@ branch's wording would contradict itself.
       README's own obligation is the separate criterion below. The four
       byte-pinned contract copies are excluded by the criterion after next.
       *(goal-based)*
-- [ ] The four byte-identical copies of `digital-experience-contract.md`, which
+- [x] The four byte-identical copies of `digital-experience-contract.md`, which
       carry the same stale slug at line 167, are **not** touched. They are pinned
       to one hash across `experience-design`, `product-strategy`,
       `product-engineering` and `frontend-engineering`, so correcting them means
       editing four packs and bumping all four. That is a separate change with its
       own owner, and silently absorbing it here would quadruple this slice's
       blast radius. *(goal-based)*
-- [ ] The pack-availability sentinel no longer probes for `conversion-design`. A
+- [x] The pack-availability sentinel no longer probes for `conversion-design`. A
       probe naming a deleted skill inverts: a stale install passes it and a fresh
       install fails it. *(goal-based)*
-- [ ] `frontend-engineering` declares a minimum `experience-design` version via
+- [x] `frontend-engineering` declares a minimum `experience-design` version via
       `[[pack.dependencies.recommended]]`, as **documentation of the floor**.
       `required` is not used: it is a hard install gate that would convert the
       documented optional co-install into a mandatory one and kill the
@@ -569,7 +571,7 @@ branch's wording would contradict itself.
       never released is a constraint no adopter can satisfy, and `catalogue
       verify` reads `recommended` structurally and would not catch it.
       *(goal-based)*
-- [ ] The named-skip text recorded when `experience-design` is absent is
+- [x] The named-skip text recorded when `experience-design` is absent is
       **unchanged**. Today it reads
       `XD genre routing: skipped (experience-design pack absent)` — it names the
       **pack**, not a skill, and the pack's name does not change in this
@@ -581,7 +583,7 @@ branch's wording would contradict itself.
       the skill. Leaving the literal alone keeps the two in agreement with no
       cross-tree edit. The sentinel beside it *does* change, and that is the
       criterion above. *(goal-based)*
-- [ ] `packs/frontend-engineering/README.md`'s genre-route list names exactly
+- [x] `packs/frontend-engineering/README.md`'s genre-route list names exactly
       the surviving routing targets. It offers **three** removed skills today —
       `conversion-design`, `documentation-design`, `analytical-design` — and a
       fourth name, `interaction-design`, which **survives this fold and must
@@ -597,19 +599,19 @@ branch's wording would contradict itself.
       route, and `test_every_route_the_readme_offers_is_one_the_skill_routes_to`
       checks offered ⊆ routable in one direction only, so that narrower list
       would stay green. *(goal-based)*
-- [ ] That route list stays inside a `(pick …)` parenthetical that splits into
+- [x] That route list stays inside a `(pick …)` parenthetical that splits into
       **exactly three** em-dash-delimited parts, with the backticked names in the
       middle part. `readme_offered_genre_skills()` asserts the part count and
       reads names only from `parts[1]`, so a rewrite that drops the trailing
       `— if \`experience-design\` is co-installed` clause reds the suite with a
       message about prose structure rather than about routing. The criterion
       pins the sentence shape, not only the name set. *(goal-based)*
-- [ ] `web/src/content/packs/frontend-engineering.md` contains no removed skill
+- [x] `web/src/content/packs/frontend-engineering.md` contains no removed skill
       name — which `sweep` settles — **and** names the same routing target as
       the table, which `sweep` cannot settle because it is a positive claim.
       **T7** owns it — it holds `web/src/content/**`; T6's `Touches` cannot
       reach the file. *(goal-based)*
-- [ ] `guides/frontend-engineering/how-to/read-the-design-handoff.md` is
+- [x] `guides/frontend-engineering/how-to/read-the-design-handoff.md` is
       confirmed to carry **no** routing target and no genre-skill name — grep
       on 2026-09-24 returns zero occurrences of any genre skill,
       `information-architecture`, `experience-design`, or the word "genre". It
@@ -618,7 +620,8 @@ branch's wording would contradict itself.
       obligation here is a **recorded confirmation** in the ledger, not an
       edit; if the grep ever returns a hit, the file joins the sweep's open
       class. *(goal-based)*
-- [ ] **Abort-branch post-state.** If the activation gate fails, the six skills
+- [x] **Abort-branch post-state.** If the routing-classification gate is not met,
+      the six skills
       still exist, and the cross-pack repair ships against them: the table
       **grows from seven rows to nine** rather than collapsing to four. The four
       genre rows keep naming their own skills, `interaction-design`,
@@ -635,7 +638,7 @@ branch's wording would contradict itself.
       `experience-design` version. The removed-name sweep, the erratum, the
       `experience-design` major, and every skill-count numeral are **not** owed
       on this branch. *(goal-based)*
-- [ ] **The abort branch has a stated closeout.** T11 depends on T10, which the
+- [x] **The abort branch has a stated closeout.** T11 depends on T10, which the
       abort branch forbids, so without this the slice has no task whose
       `Done when` can be reached: nobody records the `docs/` classification, the
       documented sweep exemptions, or any manual-QA verdict. On the abort branch
@@ -648,20 +651,20 @@ branch's wording would contradict itself.
 
 ### Governance records
 
-- [ ] `docs/rfc/0066-…md` § Errata carries a dated, approver-signed entry naming
+- [x] `docs/rfc/0066-…md` § Errata carries a dated, approver-signed entry naming
       **D4**, stating that the six separate registrations are retired, that the
       genre method is preserved as references under `information-architecture`,
       and that D2's seven-type taxonomy and D5(d)'s `transactional-journey` route
       are unchanged. *(goal-based)*
-- [ ] That entry names no spec and no delivery brief, and reads completely for
+- [x] That entry names no spec and no delivery brief, and reads completely for
       someone holding only the RFC. *(goal-based)*
-- [ ] The Errata section conforms to RFC-0055 D2's two-layer structure, whose
+- [x] The Errata section conforms to RFC-0055 D2's two-layer structure, whose
       headings are `### Current state` and `### History / audit trail` — quoted
       as RFC-0055 writes them, not paraphrased. D2's trigger is "more than one
       entry, **or** any entry supersedes **another**"; only the first limb fires
       here — the section holds one entry today and gains a second — which is
       sufficient, and the second limb is not claimed. *(goal-based)*
-- [ ] The existing 2026-07-27 entry travels into the history layer
+- [x] The existing 2026-07-27 entry travels into the history layer
       **verbatim**, including its reference to `docs/specs/ux-writing-rename/`.
       The never-do rule against naming a spec inside an erratum binds only
       entries **this delivery authors**; RFC-0055 D3 makes correction sections
@@ -669,9 +672,9 @@ branch's wording would contradict itself.
       the larger violation. Without this statement T8's implementer must pick
       between two rules with no guidance, which is a review round, not a
       judgement. *(goal-based)*
-- [ ] `packs/experience-design/DESIGN.md` names no removed skill slug anywhere in
+- [x] `packs/experience-design/DESIGN.md` names no removed skill slug anywhere in
       the file. *(goal-based)*
-- [ ] `DESIGN.md` describes one genre-aware IA skill at every point it describes
+- [x] `DESIGN.md` describes one genre-aware IA skill at every point it describes
       the genre step. A slug check cannot settle this: line 41 ("or genre-direct
       skill"), line 61 ("and the genre-direct skills"), line 179
       ("**Information-architecture / genre-direct skills**"), line 185 (the
@@ -684,13 +687,13 @@ branch's wording would contradict itself.
       and the five-location check while its body described one genre-aware
       skill. Line 75 is **not** among them: it names only
       `information-architecture` and `interaction-design`. *(goal-based)*
-- [ ] `DESIGN.md` § 10's entry *"Why six genre-direct skills instead of one
+- [x] `DESIGN.md` § 10's entry *"Why six genre-direct skills instead of one
       general IA skill with genre flags (from v1)"* records both what was
       rejected — a `genre:`-parameterised skill, on the grounds that it would bury
       the genre logic in a conditional tree — and what now ships, with the
       approver named and dated. It does not assert that the earlier rejection
       fails to apply. *(goal-based)*
-- [ ] This delivery is § 10's **only** editor. The evidence is the sibling's
+- [x] This delivery is § 10's **only** editor. The evidence is the sibling's
       own criterion — `docs/specs/creative-direction-modes/spec.md` requires
       that `DESIGN.md` § 10 is not edited by that delivery — so there is no
       interim wording to supersede and a supersession clause here would
@@ -700,21 +703,21 @@ branch's wording would contradict itself.
 
 ### Queued shaping records this fold invalidates
 
-- [ ] `docs/product/intents/xd-ia-archetypes-objects.md`'s `### Observed state`
+- [x] `docs/product/intents/xd-ia-archetypes-objects.md`'s `### Observed state`
       table is re-measured and re-dated. Its row citing
       `information-architecture/SKILL.md:69-77` names the genre table this fold
       rewrites, and its row citing
       `frontend-engineering/.apm/skills/frontend-engineering/SKILL.md:357-374`
       names a range below the table this fold edits, so both line ranges move.
       *(goal-based)*
-- [ ] That table's verdict is corrected for what the fold leaves behind. It
+- [x] That table's verdict is corrected for what the fold leaves behind. It
       currently reads "no file of that name anywhere" for
       `references/page-archetypes.md` and calls the nearest structure "not
       archetype-shaped"; after the fold, `information-architecture/references/`
       holds six genre files, which moves M3c's starting position rather than
       leaving it unchanged. A stale baseline here risks duplicating the reference
       structure this fold just built. *(goal-based)*
-- [ ] `docs/product/intents/xd-state-reviewer-doctrine.md` is **not** updated
+- [x] `docs/product/intents/xd-state-reviewer-doctrine.md` is **not** updated
       here — the `experience-reviewer` edits it must be checked against belong to
       the sibling copy fold. What this delivery owes is the **hand-off itself**:
       T7 confirms that `docs/specs/xd-copy-router/spec.md` carries a criterion
@@ -725,14 +728,14 @@ branch's wording would contradict itself.
 
 ### Live records and the public site
 
-- [ ] `docs/product/journeys/designer-designs-surface.md` describes the surviving
+- [x] `docs/product/journeys/designer-designs-surface.md` describes the surviving
       skill set. It carries `status: shipped` and is designated the single source
       of truth for the design chain, so leaving it naming six deleted skills is a
       defect, not history. *(goal-based)*
-- [ ] `web/src/content/journeys/experience-design.md`'s `skills:` frontmatter
+- [x] `web/src/content/journeys/experience-design.md`'s `skills:` frontmatter
       list, its `whatChanges` value, and its per-stage prose name the surviving
       skill. *(goal-based)*
-- [ ] The `web/` Astro build succeeds, which is what validates the `skills:`
+- [x] The `web/` Astro build succeeds, which is what validates the `skills:`
       frontmatter list against its collection schema. The five
       `guides/AGENTS.md` commands end at `tools/build-site.py`, which builds the
       docs site and does not read `web/src/content/`. **The build has a
@@ -748,10 +751,10 @@ branch's wording would contradict itself.
 
 ### Gates
 
-- [ ] `python3 tools/lint-experience-agnostic.py` exits 0. *(goal-based)*
-- [ ] All five `tests/roster/test_experience_*` suites and
+- [x] `python3 tools/lint-experience-agnostic.py` exits 0. *(goal-based)*
+- [x] All five `tests/roster/test_experience_*` suites and
       `test_design_handoff_contract_matches_corpus.py` pass. *(goal-based)*
-- [ ] **The unfiltered `python3 -m pytest tests/roster -q` passes**, once,
+- [x] **The unfiltered `python3 -m pytest tests/roster -q` passes**, once,
       before the PR is pushed. A `-k` selector scoped to this delivery's named
       suites is **not** sufficient and is not the gate. Measured on 2026-09-25:
       `-k "experience or handoff or census"` collects 88 of 1842 tests and
@@ -763,31 +766,36 @@ branch's wording would contradict itself.
       provenance is read from spec frontmatter, and the changelog is release
       surface, so all three of those suites are reachable by T5, T7, T10 and
       T11 and none is named by the filtered selector. *(goal-based)*
-- [ ] `agentbundle catalogue lint --root . --deep` and
+- [x] `agentbundle catalogue lint --root . --deep` and
       `agentbundle catalogue verify --root .` each exit 0 after the projection is
       regenerated. *(goal-based)*
-- [ ] The five commands in `guides/AGENTS.md` § Essential commands each exit 0.
+- [x] The five commands in `guides/AGENTS.md` § Essential commands each exit 0.
       *(goal-based)*
-- [ ] `make lint-ruff lint-mypy` exits 0. *(goal-based)*
-- [ ] `python3 -m pytest packs/frontend-engineering/tests -q` passes. That pack's
+- [x] `make lint-ruff lint-mypy` exits 0. *(goal-based)*
+- [x] `python3 -m pytest packs/frontend-engineering/tests -q` passes. That pack's
       own suite reads both the routing table and the README route list, so this
       delivery can red it without any `experience-design` gate noticing.
       *(goal-based)*
-- [ ] `notes/verification-ledger.md` records all three manual-QA verdicts with
+- [x] The tracked routing-evidence note contains nine pre-fold and nine
+      post-fold rows, records 18/18 expected high-confidence results, includes
+      all stated limits, and the shipped description satisfies the seven-genre
+      and four-boundary vocabulary criteria within 1024 characters. No live
+      activation rerun is required. *(goal-based)*
+- [x] `notes/verification-ledger.md` records all three manual-QA verdicts with
       the reviewer's name and date. *(goal-based)*
 
 ### Release
 
-- [ ] `pack.toml` and `.claude-plugin/plugin.json` both read `3.0.0` — a
+- [x] `pack.toml` and `.claude-plugin/plugin.json` both read `3.0.0` — a
       **major** bump, because removals are major under `packs/AGENTS.md`.
       *(goal-based)*
-- [ ] `.claude-plugin/marketplace.json` reads `3.0.0` for `experience-design`,
+- [x] `.claude-plugin/marketplace.json` reads `3.0.0` for `experience-design`,
       regenerated by self-host rather than hand-edited. *(goal-based)*
-- [ ] `docs/product/changelog.md` carries a free-standing
+- [x] `docs/product/changelog.md` carries a free-standing
       `## [experience-design][3.0.0] — <YYYY-MM-DD>` entry directly beneath
       `[Unreleased]`, naming the six removed skills explicitly so an adopter
       reading only the changelog learns which names disappeared. *(goal-based)*
-- [ ] That entry carries a `### Highlights` subsection. The changelog's own
+- [x] That entry carries a `### Highlights` subsection. The changelog's own
       header rules — which this spec's Durable Outputs name as the owner —
       require one "when the release changes what a consumer can do", and say
       that a release changing nothing consumer-facing carries none but that
@@ -799,18 +807,18 @@ branch's wording would contradict itself.
       public page permanently and invisibly. Blank-line and heading-level
       conformance is separately covered by `tools/test_build_site_routing.py`;
       `Highlights` is the one header rule with no instrument. *(goal-based)*
-- [ ] `packs/frontend-engineering/pack.toml` and its
+- [x] `packs/frontend-engineering/pack.toml` and its
       `.claude-plugin/plugin.json` carry a **patch** bump from `0.3.2` to `0.3.3`, and its marketplace entry is
       regenerated. Patch, not major: this edits that pack's content and removes
       no primitive. This delivery edits that pack's
       `SKILL.md`, `AGENTS.md`, and `README.md` — non-cosmetic pack content, which
       `packs/AGENTS.md` § Version bump rule obliges a bump for. *(goal-based)*
-- [ ] `docs/product/changelog.md` carries a matching free-standing entry for
+- [x] `docs/product/changelog.md` carries a matching free-standing entry for
       `frontend-engineering` at its new version. *(goal-based)*
 
 ### Documentation
 
-- [ ] `guides/experience-design/` routes the reader by genre through one skill,
+- [x] `guides/experience-design/` routes the reader by genre through one skill,
       and its `**Where it lands:**` paths agree with the surviving `SKILL.md`.
       *(manual QA)*
 
@@ -849,9 +857,12 @@ branch's wording would contradict itself.
 - Technical: `frontend-engineering`'s table names four of six genre skills; the
   omission of `marketplace-design` and `workspace-design` is verified by grep and
   covered by no test.
-- Technical: Tier-A activation grading runs via the headless detector and needs
-  the `claude` CLI on PATH, so CI cannot re-check the figure and the abort path
-  above is the only backstop.
+- Technical: the owner accepts the 2026-09-25 external Codex classification
+  probe in place of live Claude activation evidence. It is description-level
+  directional evidence, retains platform system context, uses one sample per
+  case/world, and does not establish production activation rates. The tested
+  1039-character candidate must be compressed for the 1024-character shipping
+  cap without removing required genre or boundary semantics.
 - Process: removals are a major bump.
 - Technical — **the slug correction targets shipped truth, not the newest
   decision.** RFC-0071 D3b (Accepted) authorises `design-system-foundations` as

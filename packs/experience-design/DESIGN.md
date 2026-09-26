@@ -38,7 +38,7 @@ user-flow
 design-principles  ←──── creative-direction
     ↓                          ↓
 information-architecture   design-system
-  (or genre-direct skill)
+  (route by genre when known)
     ↓
 interaction-design
     ↓
@@ -58,7 +58,7 @@ Each skill consumes a specific upstream artifact and cannot produce reliable out
 - `user-flow` needs the content brief to sequence screens in a way that delivers on the stated content intent, not just the functional path.
 - `creative-direction` needs the journey's emotional arc (the pains, the moments of relief) to ground the aesthetic direction in real user feeling rather than preference.
 - `design-system` needs the named aesthetic direction to derive a token taxonomy that isn't arbitrary.
-- `information-architecture` (and the genre-direct skills) needs both the content brief and the aesthetic direction as constraints.
+- `information-architecture` needs both the content brief and the aesthetic direction as constraints. When a screen declares a surface genre, it loads the matching genre method before arranging hierarchy.
 - `interaction-design` needs the per-screen brief produced by `user-flow` — which includes the state matrix — to design behavior for the right set of states.
 - `design-review` and `experience-reviewer` need the completed artifacts to review against something concrete.
 
@@ -176,26 +176,26 @@ The aesthetic direction names the emotional and brand goals that visual decision
 **Design-system** ← aesthetic direction  
 The token taxonomy derives from the aesthetic direction. Every token decision must trace back to a named goal in the direction. A token that can't be explained by the direction is a gap in the direction, not a token decision.
 
-**Information-architecture / genre-direct skills** ← content brief + aesthetic direction  
-Hierarchy, reading flow, and wayfinding are set before behavioral design begins. The IA is the skeleton; interaction design is the muscle. Designing interaction without a settled IA produces behaviors that fight the structure.
+**Information-architecture with genre routing** ← content brief + aesthetic direction
+Hierarchy, reading flow, and wayfinding are set before behavioral design begins. The IA is the skeleton; interaction design is the muscle. When a screen has a known surface genre, the genre route supplies the specialized structural vocabulary inside `information-architecture`. Designing interaction without a settled IA produces behaviors that fight the structure.
 
 **Interaction-design** ← per-screen brief + IA  
 The behavioral layer is designed last in the craft sequence because it depends on knowing what states exist (from the per-screen brief's state matrix) and what the structural hierarchy is (from IA).
 
-### The genre-direct skills
+### The genre routes
 
-Six surface-typed IA skills run in place of the general `information-architecture` skill when the screen has a known surface genre:
+`information-architecture` is the single IA skill. For known surface genres, it selects the matching genre reference before designing hierarchy:
 
-| Skill | Surface genre | What's specific |
-|-------|--------------|-----------------|
-| `analytical-design` | Dashboards, reporting surfaces | Widget hierarchy, role-based view architecture, business-question-to-layout map |
-| `conversion-design` | Marketing, acquisition, landing pages | Above-fold contract, scroll story, social-proof architecture |
-| `documentation-design` | Docs, help, reference | Diátaxis content typing, navigation strategy, TTFV architecture |
-| `informational-design` | Editorial, content-first pages | Typographic hierarchy, reading-pattern calibration, editorial grid |
-| `marketplace-design` | Listings, search, transactional surfaces | Listing card IA, filter and facet architecture, transaction bridge |
-| `workspace-design` | Productivity tools, workspace surfaces | Context-persistence architecture, attention zone layout, interrupt design |
+| Surface genre | What's specific |
+|--------------|-----------------|
+| Analytical surfaces | Widget hierarchy, role-based view architecture, business-question-to-layout map |
+| Marketing surfaces | Above-fold contract, scroll story, social-proof architecture |
+| Documentation surfaces | Diátaxis content typing, navigation strategy, TTFV architecture |
+| Informational surfaces | Typographic hierarchy, reading-pattern calibration, editorial grid |
+| Marketplace surfaces | Listing card IA, filter architecture, comparison, transaction bridge |
+| Workspace surfaces | Context-persistence architecture, attention zone layout, interrupt design |
 
-The genre-direct skills are not a replacement for `creative-direction` or `design-system` — they are a replacement for `information-architecture` only. The full craft sequence runs; only the IA step changes.
+The genre routes are not a replacement for `creative-direction` or `design-system` — they specialize `information-architecture` only. The full craft sequence runs; only the IA method changes.
 
 ---
 
@@ -246,7 +246,7 @@ Each skill writes under a subdirectory of `output_dir`:
 | `journeys/` | journey-mapping |
 | `content/` | content-design |
 | `copy/` | tone-of-voice (the brand-level register), copy-direction (per surface) |
-| `screens/` | user-flow (the screen flow and the per-screen briefs), information-architecture (the IA doc). `interaction-design` and the craft/genre skills enrich a brief `user-flow` owns; they write no file of their own |
+| `screens/` | user-flow (the screen flow and the per-screen briefs), information-architecture (the IA doc). `interaction-design` and the craft skills enrich a brief `user-flow` owns; they write no file of their own |
 | `blueprints/` | service-blueprint |
 | `processes/` | process-mapping |
 | `principles/` | design-principles |
@@ -320,11 +320,17 @@ Structurally identical to core's adversarial-reviewer rationale. An authoring-se
 
 **Alternative considered:** stateful review that has access to the authoring session's reasoning, so it can review the design *and* the decision trail. Rejected for the same reason as in core: a reviewer that knows what was intended will systematically read gaps charitably.
 
-### Why six genre-direct skills instead of one general IA skill with genre flags (from v1)
+### Why genre methods now live inside information-architecture (approved by eugenelim, 2026-09-26)
 
-Each genre has a distinct structural logic that a general IA skill with a flag would produce via branching. A conversion surface's above-fold contract is not a weaker version of a dashboard's widget hierarchy — they are different structural problems. Separate skills make the genre's structural logic explicit and reviewable without reading a flag-driven conditional tree.
+Surface genres still have distinct structural logic, but they no longer need separate skill registrations to preserve it. The genre method is clearer as a selected reference inside `information-architecture`: the user chooses one IA skill, the brief's `surface-genre:` value selects the specialized method, and the method remains reviewable without making the skill roster carry six extra entries.
 
-**Alternative considered:** one `information-architecture` skill with a `genre:` parameter. Rejected because the genre-specific reasoning (above-fold contract, scroll story, social-proof architecture for conversion; TTFV architecture, Diátaxis typing for documentation) is substantive enough to earn a separate skill definition. A flag-parameterized skill would bury the genre logic; separate skills make it first-class.
+**Earlier rationale amended:** the v1 rejection below treated a single skill with a genre flag as the only alternative to separate registrations. The accepted shape is narrower: one IA skill with explicit genre routes and reference-loaded methods, not a hidden conditional tree.
+
+### Why the original genre-direct split changed (from v1, amended)
+
+At v1, each genre's distinct structural logic was recorded as the reason for separate registrations. A conversion surface's above-fold contract is not a weaker version of a dashboard's widget hierarchy — they are different structural problems. That method-preservation claim still stands, but registration is no longer the mechanism that preserves it.
+
+**Alternative considered:** one `information-architecture` skill with a `genre:` parameter. Rejected in v1 because the genre-specific reasoning (above-fold contract, scroll story, social-proof architecture for conversion; TTFV architecture, Diátaxis typing for documentation) is substantive enough to need its own method body. Amended on 2026-09-26: the method body can stay first-class as a loaded reference while `information-architecture` owns the routing decision.
 
 ### Why correctness is the floor, not the ceiling (from v1)
 

@@ -152,6 +152,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `contracts/jsonschema/spec-retirement-candidates.schema.json`, which owns the
   emitted document's field set, its twelve blocker codes and its twelve refusal
   codes.
+## [experience-design][3.0.0] — 2026-09-26
+
+### Highlights
+
+- `information-architecture` now owns the surface-genre routing that previously required six separate registrations: `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, and `workspace-design`.
+- The removed registrations' methods now live as genre references under `information-architecture`, so adopters should update direct skill references and invocations to call `information-architecture` with the relevant `surface-genre:` value.
+
+### Changed
+
+- Folded the six genre-specific design registrations into `information-architecture` while preserving their methods as routed references.
+- Kept `interaction-design` as the destination for transactional journeys.
+- After upgrading an existing installation, remove the retired `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, and `workspace-design` skill directories from that installation's skills directory. Whole-pack `agentbundle upgrade` does not prune paths that the new pack no longer declares, so leaving them in place would keep their stale `SKILL.md` registrations active.
+
+## [frontend-engineering][0.3.3] — 2026-09-26
+
+### Highlights
+
+- Frontend pre-flight now routes every `surface-genre:` value through the consolidated `information-architecture` handoff when `experience-design` is co-installed, with `interaction-design` still owning transactional journeys.
+- The design-system handoff now names the shipped `design-system` skill slug, and `experience-design` `>=3.0.0` is the recommended floor for the genre-aware route.
+
+### Fixed
+
+- Repaired the frontend genre-routing table for the experience-design fold.
+- Corrected the design-system slug in the handoff path.
+- Raised the recommended `experience-design` co-install floor to `>=3.0.0`.
 
 ## [atlassian][0.10.1] — 2026-09-26
 

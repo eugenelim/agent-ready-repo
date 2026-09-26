@@ -18,12 +18,6 @@ skills:
   - interaction-design
   - experience-status
   - design-principles
-  - analytical-design
-  - conversion-design
-  - documentation-design
-  - informational-design
-  - marketplace-design
-  - workspace-design
 installCommand: "agentbundle install --pack experience-design --scope user"
 docsUrl: /docs/guides/experience-design/
 journeyUrl: /journeys/experience-design/
@@ -52,9 +46,9 @@ strings.
 
 ## Design for the surface you actually have
 
-Choose the matching method for a marketing page, documentation system,
-dashboard, editorial page, marketplace, or sustained-work workspace instead of
-applying one generic page recipe.
+Use `information-architecture` to choose the matching method for a marketing
+page, documentation system, dashboard, editorial page, marketplace, or
+sustained-work workspace instead of applying one generic page recipe.
 
 ## Know when to leave this pack
 
@@ -66,4 +60,4 @@ applying one generic page recipe.
   components, data bindings, or build evidence.
 
 A forked-context `experience-reviewer` supplies the independent design pass; it
-is an agent, not a twenty-first skill.
+is an agent, not a fifteenth skill.

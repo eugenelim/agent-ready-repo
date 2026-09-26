@@ -27,10 +27,11 @@ That is an unusual combination and it is the whole diagnosis: the champion canno
 make the decision, so the conversion happens off-surface, made by somebody who
 never visits.
 
-`informational-design` is still the wrong route — this surface does have a
+The informational reference is still the wrong route — this surface does have a
 conversion objective, does need an above-fold contract, and does need a CTA. So
-this skill is the right one, used with its default success measure replaced. That
-replacement is recorded rather than silent.
+`information-architecture` with the marketing reference is the right route, used
+with its default success measure replaced. That replacement is recorded rather
+than silent.
 
 **Gap I, recorded:** no skill in the roster covers an acquisition surface whose
 conversion is made off-surface by a third party the page never meets. Both

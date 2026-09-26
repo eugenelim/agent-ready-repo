@@ -118,7 +118,7 @@ crosses from marketing is vocabulary and destinations, never register.
 - **TTFV target:** the reader can name a path to hand over within one screen of
   arriving. Note the tension recorded and unresolved: the first path is stated at
   about an hour, and a first-value on-ramp should be closer to twenty minutes of
-  active work. `documentation-design` owns the split.
+  active work. `information-architecture` with the documentation reference owns the split.
 - **Navigation strategy:** search-first, with hub-and-spoke browsing behind it.
   Roughly 229 published pages puts this surface two tiers above the flat
   navigation it ships today, and a header search widget does not meet the

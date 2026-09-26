@@ -133,13 +133,14 @@ Every stage states an `Output`; almost none says where it lands. So the
 affordance that exists sits in `SKILL.md`, and the surface a practitioner
 reaches for does not carry it.
 
-**The silent skills are the same skills.** In `experience-design`, the eleven
-with neither a template nor a stated shape overlap almost exactly with the ten
-its journey never names — `analytical-design`, `conversion-design`,
-`documentation-design`, `informational-design`, `marketplace-design`,
-`design-review` and `workspace-design` appear in both sets. A skill invisible in
-its pack's sequence is also silent about its output, which is the compound
-reason that pack could not teach its own use.
+**The silent methods were also absent from the journey.** In the measured
+pre-fold `experience-design` pack, the methods with neither a template nor a
+stated shape overlapped almost exactly with the craft work its journey never
+named. The six genre methods now live as references under
+`information-architecture`, and the current journey routes the structure pass
+through that surviving skill before `interaction-design` and `design-review`.
+The original overlap remains the evidence for this intent: work invisible in a
+pack's sequence is also hard for the pack to teach.
 
 **The triggering evidence is first-hand and self-referential.** While building
 the four-discipline sequence itself — slice S6 of
