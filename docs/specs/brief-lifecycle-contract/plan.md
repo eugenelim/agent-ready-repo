@@ -1,7 +1,7 @@
 # Plan: a brief's lifecycle is a closed contract, and a closed cut is declared
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `guides/_shared/reference/skill-script-conventions.md`
   (skills are self-contained; no cross-skill import), `packs/AGENTS.md` (version
   bump, self-host projection, no internal-governance citation in shipped pack
@@ -35,8 +35,11 @@ and the refusal it describes is the lint's.
   `tools/lint-ci-parity.py`'s `_LOCAL_STEP_DISPOSITION`, and an entry in
   `.workspace-prune-protected.toml` only when the test names a
   `docs/specs/<slug>` path as a literal. This plan's roster test names no such
-  literal, so the third does not apply. The parity entry is what decides T3's
-  `lint-ci-parity` gate; the workflow step decides attribution only.
+  literal, so the third does not apply. Both edits landed. Measured 2026-09-26:
+  `lint-ci-parity` exits 0 with or without the parity entry, at identical step
+  counts, so the entry is a convention every sibling roster-owned step follows
+  rather than a gate-enforced obligation. The earlier claim that it decides the
+  gate was not measured.
 
 ## Construction tests
 

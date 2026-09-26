@@ -2311,18 +2311,6 @@ backlog = [
 queue   = [
 ]
 active  = [
-  # Moved from `queue` on 2026-09-26 when the spec went `Status: Implementing`.
-  # The two move together: the canonical reconciliation raises
-  # `impossible_transition` on an `Implementing` spec sitting in `work.queue`,
-  # and that finding was live on this branch until the entry followed the status.
-  # Slice 3 of `intent-lifecycle-and-closure`, materialized 2026-09-25 under its
-  # own confirmation -- ADR-0098 D6 makes selecting and materializing a slice a
-  # separate human act from confirming the four-slice set. `needs` is empty:
-  # slice 3 takes no blocking edge on slice 2, and the dependency runs the other
-  # way -- slice 2's brief path consumes the brief state table this slice
-  # delivers. Slice 2 is blocked on `intent-identity-and-registration` recording
-  # the carve-out mark and the closed-empty marker, and is not queued here.
-  { path = "docs/specs/brief-lifecycle-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "Give a brief a state table, a legal transition set and a Cut-closed declaration a bounded comment-aware preamble reader decides, with the vocabulary and coherence predicate moved to one defining home and every brief read in the coverage lint routed through that reader", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
@@ -2341,6 +2329,13 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 3 of `intent-lifecycle-and-closure`, delivered 2026-09-26 and moved
+  # from `active` in the same change that set the spec `Shipped` and the plan
+  # `Done`, for the membership-and-status reason recorded just above. Slice 2
+  # stays blocked on `intent-identity-and-registration` recording the carve-out
+  # mark and the closed-empty marker, so the parent brief stays `Executing`:
+  # two of its four slices are materialized and both are Shipped.
+  { path = "docs/specs/brief-lifecycle-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "Give a brief a state table, a legal transition set and a Cut-closed declaration a bounded comment-aware preamble reader decides, with the vocabulary and coherence predicate moved to one defining home and every brief read in the coverage lint routed through that reader", needs = [] },
   { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam, with no rule it adds reachable from the shared validate_live_intent surface", needs = [] },
   # Slice 6 of `intent-identity-and-registration`, cut 2026-09-23 on the second
   # distinct confirmation the post-Ready slice path requires. It delivers the two
