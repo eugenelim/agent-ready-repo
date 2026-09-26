@@ -11,11 +11,28 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from . import outcome as outcome_reader
 from . import state
 
 #: The group that carries work whose parent chain never reached an
 #: in-scope Epic. Dropping that work would silently shrink the reading.
 UNATTRIBUTED = "unattributed"
+
+#: The outcome position's three fixed strings. Each is the same for every
+#: Epic, which is what keeps the view from authoring: an absence renders
+#: a scaffold nobody could mistake for a team's words, and the only
+#: Epic-specific text in the position is text the team itself supplied.
+OUTCOME_RECORDED = "Recorded by the team in {location}."
+OUTCOME_ABSENT = "No outcome is recorded for this Epic."
+OUTCOME_PROMPT = (
+    "Ask the team what this Epic is meant to change, in one sentence, "
+    "and write that into {location}."
+)
+
+#: Only ever formatted with words the team supplied in this session. A
+#: fixed scaffold with no team input stays a prompt: labelling it
+#: paste-ready would hand a team its own boilerplate back as an outcome.
+OUTCOME_PASTE_READY = "Paste this into {location}, for {epic}:\n\n{text}"
 
 # The flow skill's own distribution buckets. A bucket outside this set
 # normalises to "other" before the subtask rule is applied, which is what
@@ -65,6 +82,7 @@ def build_epic_rows(
     flow_taken_at: str,
     jira_taken_at: str,
     include_subtasks: bool = False,
+    supplied_outcomes: Mapping[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """One row per in-scope Epic, plus an unattributed group when needed.
 
@@ -73,6 +91,9 @@ def build_epic_rows(
     parent-link read resolved to the Epic rung, which is where the join
     comes from. ``outcomes`` keys define the in-scope Epic set, so an Epic
     with no delivered work still renders -- absent work is an answer.
+    ``supplied_outcomes`` carries what the team stated this session in
+    response to the prompt; it comes back as paste-ready text and is
+    never written to Jira by this view.
 
     The two moments are carried separately on every row. They are two
     passes over Jira and the view never claims one atomic snapshot.
@@ -91,12 +112,14 @@ def build_epic_rows(
         else:
             unattributed[str(key)] = {"reason": _reason_for(key, parents, parent)}
 
+    supplied = dict(supplied_outcomes or {})
     flagged_supported = state.flagged_field_available(jira_state)
     rows: list[dict[str, Any]] = [
         _epic_row(
             epic=epic,
             epic_rows=grouped[epic],
             outcome_text=outcomes[epic],
+            supplied_text=supplied.get(epic),
             jira_state=jira_state,
             window=window,
             flow_taken_at=flow_taken_at,
@@ -137,6 +160,7 @@ def _epic_row(
     epic: str,
     epic_rows: Sequence[Mapping[str, Any]],
     outcome_text: str | None,
+    supplied_text: str | None,
     jira_state: Mapping[str, Mapping[str, Any]],
     window: Mapping[str, str],
     flow_taken_at: str,
@@ -168,7 +192,50 @@ def _epic_row(
         "epic": epic,
         "issues": issue_keys,
         "delivery": delivery,
-        "outcome": {"recorded": outcome_text is not None, "text": outcome_text},
+        "outcome": outcome_position(
+            epic=epic, recorded_text=outcome_text, supplied_text=supplied_text
+        ),
         "flow_taken_at": flow_taken_at,
         "jira_taken_at": jira_taken_at,
+    }
+
+
+def outcome_position(
+    *, epic: str, recorded_text: str | None, supplied_text: str | None
+) -> dict[str, Any]:
+    """What one Epic's outcome position renders, in all three states.
+
+    Recorded: the team's own text, verbatim, with no assessment of it --
+    this view reports an outcome, it never assesses one, because a view
+    that marks what a team wrote is a view the team stops writing in.
+
+    Not recorded and unanswered: an explicit statement that none is
+    recorded, plus a prompt naming where to write one. Not a blank, and
+    not an omitted row: an Epic with no outcome contributes nothing to a
+    view trying to look complete, which is exactly why it must appear.
+
+    Not recorded but answered this session: the team's exact words come
+    back as text to paste into that same location. The view never writes
+    them to Jira and never supplies words of its own.
+    """
+    location = outcome_reader.OUTCOME_LOCATION
+    paste_ready = (
+        OUTCOME_PASTE_READY.format(location=location, epic=epic, text=supplied_text)
+        if supplied_text
+        else None
+    )
+    recorded = recorded_text is not None
+    return {
+        "recorded": recorded,
+        "text": recorded_text,
+        "location": location,
+        "statement": (
+            OUTCOME_RECORDED.format(location=location) if recorded else OUTCOME_ABSENT
+        ),
+        "prompt": (
+            None
+            if recorded or paste_ready
+            else OUTCOME_PROMPT.format(location=location)
+        ),
+        "paste_ready": paste_ready,
     }

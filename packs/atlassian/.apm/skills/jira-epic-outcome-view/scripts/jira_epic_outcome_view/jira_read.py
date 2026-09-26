@@ -31,7 +31,10 @@ FIELD_CATALOGUE_PATH = "field"
 #: Jira's own name for the flagged field on instances that have it.
 FLAGGED_FIELD_NAME = "flagged"
 
-_SEARCH_FIELDS = "parent,status,statuscategorychangedate"
+# ``description`` is asked for on the same pass because it is where an
+# Epic's outcome lives; a second search for it would state a second
+# moment for a reading the view presents as one Jira pass.
+_SEARCH_FIELDS = "parent,status,statuscategorychangedate,description,issuetype"
 _EPIC_ISSUETYPE = "Epic"
 
 
@@ -128,7 +131,7 @@ def read_scope(
     project: str,
     runner: Callable[..., Any] = subprocess.run,
 ) -> dict[str, Any]:
-    """One Jira pass: the Epic set, every issue's parent link, and state.
+    """One Jira pass: the Epic set and descriptions, parent links, state.
 
     Returns the moment the pass was taken alongside its data, because the
     view states that moment separately from the flow reading's own.
@@ -141,6 +144,7 @@ def read_scope(
     taken_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
     epic_keys: list[str] = []
+    descriptions: dict[str, Any] = {}
     parent_links: dict[str, str | None] = {}
     jira_state: dict[str, dict[str, Any]] = {}
     for issue in issues:
@@ -150,6 +154,11 @@ def read_scope(
         issue_fields = issue.get("fields") or {}
         if _issuetype_name(issue_fields) == _EPIC_ISSUETYPE:
             epic_keys.append(key)
+            # Kept raw, in whichever shape this deployment returned: a
+            # structured document on Cloud, plain or wiki text on
+            # Server. The outcome reader takes both; parsing here would
+            # decide the shape question in the wrong module.
+            descriptions[key] = issue_fields.get("description")
         parent = issue_fields.get("parent") or {}
         parent_links[key] = str(parent.get("key")) if parent.get("key") else None
         jira_state[key] = _state_record(issue_fields, flagged_field)
@@ -167,6 +176,7 @@ def read_scope(
     epic_keys.sort()
     return {
         "epic_keys": epic_keys,
+        "descriptions": descriptions,
         "parent_links": parent_links,
         "jira_state": jira_state,
         "flagged_field": flagged_field,

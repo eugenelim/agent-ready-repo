@@ -23,7 +23,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from . import flow, jira_read, parents, view
+from . import flow, jira_read, outcome, parents, view
 
 EXIT_OK = 0
 EXIT_VALIDATION = 2
@@ -87,6 +87,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--jql", default=None,
         help="Extra JQL narrowing the flow reading's scope.",
     )
+    parser.add_argument(
+        "--outcome", dest="outcome_answers", action="append", metavar="EPIC-KEY=TEXT",
+        default=None,
+        help="What the team says this Epic is meant to change. Repeatable, one "
+             "per Epic. The words come back as text to paste into Jira; nothing "
+             "is written there. Omit it, or pass empty text, to decline.",
+    )
     return parser
 
 
@@ -146,6 +153,7 @@ def render(
     jql: str | None,
     jira_script: Path,
     flow_scripts_dir: Path,
+    outcome_answers: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """The whole view as one JSON-serialisable document."""
     scope = jira_read.read_scope(script=jira_script, project=project)
@@ -164,15 +172,24 @@ def render(
     )
     flow_taken_at = _now()
 
-    # The outcome reader supplies the text; until an Epic has one recorded,
-    # its position is an explicit absence rather than an omitted row.
-    outcomes: dict[str, str | None] = dict.fromkeys(scope["epic_keys"])
+    # The Epic set is whatever the fully paginated Jira read returned for
+    # this credential, never a narrower list: an Epic dropped here would
+    # never reach the rendered view and no error anywhere would say so.
+    # An Epic whose description Jira did not return reads as no outcome
+    # recorded, which is the same answer as an empty block.
+    descriptions = scope.get("descriptions") or {}
+    outcomes: dict[str, str | None] = {
+        epic: outcome.extract_outcome(descriptions.get(epic))
+        for epic in scope["epic_keys"]
+    }
+    supplied = outcome.parse_answers(outcome_answers, epic_keys=set(outcomes))
 
     epics = view.build_epic_rows(
         per_issue_rows=per_issue_rows,
         parents=resolved_parents,
         jira_state=scope["jira_state"],
         outcomes=outcomes,
+        supplied_outcomes=supplied,
         include_subtasks=include_subtasks,
         window=window,
         flow_taken_at=flow_taken_at,
@@ -200,8 +217,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             jql=args.jql,
             jira_script=resolve_jira_script(),
             flow_scripts_dir=resolve_flow_scripts_dir(),
+            outcome_answers=args.outcome_answers,
         )
-    except (ValidationError, jira_read.WriteVerbRefused, flow.ScratchLocationError) as exc:
+    except (
+        ValidationError,
+        outcome.OutcomeAnswerError,
+        jira_read.WriteVerbRefused,
+        flow.ScratchLocationError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_VALIDATION
     except (jira_read.JiraReadError, flow.FlowMetricsError) as exc:

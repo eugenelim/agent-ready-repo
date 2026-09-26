@@ -61,13 +61,55 @@ locations is the drift this convention exists to prevent.
 
 The heading is found in both Jira description shapes -- the structured
 document Cloud returns, and the plain or wiki text Server and Data Center
-return. The block runs from the heading to the next heading of any level,
-or to the end of the description.
+return. In a structured document it is a heading node at any level. In
+text it is a Markdown heading (one to six `#` then a space) or a
+Confluence wiki heading (`h1.` to `h6.` then a space); underlining a line
+with `=` or `-` is not read as a heading. Either way the heading's
+trimmed text has to read `Outcome`, in any capitalisation. "Top-level"
+describes where the block sits in the description, not which heading
+level it uses.
+
+The block runs from that heading to the next heading of any level, or to
+the end of the description. A heading nested inside the block closes it
+like any other. Where a description carries two `Outcome` headings, the
+first one opens the block and the rest are left alone -- merging them
+would silently join two people's answers into one.
+
+Outcome text is reproduced exactly as written: blank lines above and
+below the block are dropped and nothing else is changed. No re-wrapping,
+and no Markdown rendering.
 
 Where an Epic has no such block, the view says so explicitly and asks the
-team to write one. It never writes the outcome itself: what the team
-states comes back as text they paste into Jira, so the outcome stays
-something the team said.
+team to write one. A description with no `Outcome` heading and one whose
+heading sits above an empty block are the same answer -- nothing is
+recorded -- and both render that way. The view never writes the outcome
+itself: what the team states comes back as text they paste into Jira, so
+the outcome stays something the team said.
+
+## Answering the prompt
+
+Pass the team's answer back with `--outcome`, once per Epic:
+
+```bash
+python3 -m jira_epic_outcome_view --project PROJ \
+  --outcome PROJ-100="Customers resolve a return without contacting support."
+```
+
+Those exact words come back as text to paste into the Epic's description,
+under that same `Outcome` heading. Nothing is written to Jira.
+
+Three cases are decided, so nothing depends on guesswork:
+
+- A key that is not an Epic in the queried scope is refused with exit 2
+  naming that key. Ignoring it would lose words the team just typed.
+- The same key passed twice is refused the same way. Keeping either
+  answer would throw away the other.
+- `--outcome PROJ-100=` with no text is a decline. That Epic renders the
+  prompt, exactly as it does when the flag is left off.
+
+Text is called paste-ready only when it carries what the team supplied in
+this session. The prompt itself is a fixed scaffold, and a scaffold
+nobody has filled in is never offered as something to paste.
 
 ## Cross-skill invocation -- name, not path
 
@@ -109,6 +151,8 @@ directory on `PYTHONPATH`.
   as `flow-metrics` does under the same flag. The number gets larger, not
   smaller.
 - `--jql "<expr>"` -- extra JQL narrowing the delivery reading's scope.
+- `--outcome EPIC-KEY=<text>` -- repeatable. What the team says that Epic
+  is meant to change. See [Answering the prompt](#answering-the-prompt).
 
 Exit codes: `0` success, `2` a usage or validation refusal, `3` an
 upstream skill failed. An upstream failure is surfaced rather than
