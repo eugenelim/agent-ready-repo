@@ -1333,3 +1333,128 @@ def test_indented_spec_map_heading_still_opens_the_section() -> None:
             "child scope" in err,
             f"the concealed child should surface as a lifecycle refusal: {err}",
         )
+
+
+def test_inline_comment_before_spec_map_heading_does_not_open() -> None:
+    """`<!-- n --> ## Spec map` is a live suffix, not a heading, so it does not open.
+
+    The comment opens AND closes on this line, so the comment state carried
+    into it is clean and cannot decide the case -- only matching the raw line
+    rather than the comment-stripped text can. Existing fixtures use
+    `--> ## ...`, whose comment state alone settles it, so the raw-line clause
+    was never the reason for any verdict.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")  # no back-link: the map is the only route
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n\n"
+            "<!-- n --> ## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Shipped |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"an inline-commented heading must not open the section: rc={rc} err={err}")
+        expect("child scope" not in err, f"no child should have been collected: {err}")
+
+
+def test_inline_comment_before_heading_does_not_terminate_spec_map() -> None:
+    """`<!-- n --> ## Other` does not end the section, so the row below survives.
+
+    This is the direction that removes children: terminating here would drop
+    `beta` and hide a Shipped child from a Ready brief. Every other row is
+    `Draft`, so no second mechanism can reach the refusal -- drop `beta` and
+    the brief is valid. As with the opener case, the comment opens and closes
+    on the heading line, so only matching the raw line decides it.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Draft")
+        write_spec(root, "beta", "Shipped")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Ready\n- **Slug:** `myb`\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n| alpha | Draft |\n"
+            "<!-- n --> ## Other\n| beta | Shipped |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 1,
+            f"beta must still be a Shipped child, making the Ready brief invalid: rc={rc} {out}",
+        )
+        expect("child scope" in err, f"the surviving Shipped child should refuse Ready: {err}")
+
+
+def test_inline_comment_before_spec_map_reopen_is_behaviourally_inert() -> None:
+    """Inside an open section, the raw-line clause on the re-opener changes nothing.
+
+    Recorded so the absence of a fixture is a measured fact rather than a gap.
+    Matching the raw line means the branch is skipped and the line falls
+    through to the row check, which rejects it because it does not start with
+    `|`. Matching the stripped text means the branch re-opens the section and
+    skips the rest of the iteration. Both paths leave the section open and
+    consume no row, so no input can separate them; the clause is kept there
+    only so all three heading decisions read alike.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Draft")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Ready\n- **Slug:** `myb`\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "<!-- n --> ## Spec map\n| alpha | Draft |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"the row below must still be collected: rc={rc} err={err}")
+
+
+def test_empty_map_with_backlinked_child_is_not_delivered() -> None:
+    """An empty Spec map blocks delivery even when every other rule is met.
+
+    The brief is `Shipped`, its `Cut-closed:` is well formed, and a back-linked
+    `Shipped` spec makes the child set non-empty, so the lifecycle check is
+    satisfied. `all(...)` over zero rows is vacuously true, so the non-empty-map
+    clause is the only thing left standing between this brief and a delivery
+    claim covering nothing. The other empty-map fixtures use briefs with no
+    specs at all, where the lifecycle refusal reaches the same verdict on its own.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped", brief="myb")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 all mapped specs shipped.\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            "brief 'myb': not delivered" in out,
+            f"an empty map must not be reported delivered: {out} {err}",
+        )
+
+
+def test_three_column_spec_map_reads_the_last_column() -> None:
+    """A Shape-B map with a middle column takes its status from the last column.
+
+    The middle `Story` cell holds a value that is neither the slug nor a
+    lifecycle token, so reading any column but the last produces an
+    out-of-vocabulary refusal instead of this clean rollup.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped")
+        write_brief_raw(
+            root, "myb",
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n"
+            "- **Cut-closed:** 2026-01-01 all mapped specs shipped.\n\n"
+            "## Spec map\n\n| Spec | Story | Status |\n| --- | --- | --- |\n"
+            "| `alpha` | reader can close a brief | Shipped |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"the last column is the status: rc={rc} err={err}")
+        expect(
+            "brief 'myb': delivered" in out,
+            f"a clean three-column map delivers: {out}",
+        )

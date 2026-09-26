@@ -57,9 +57,12 @@ SPEC_MAP_HEADING_RE = re.compile(r"^ {0,3}##[ \t]+Spec map\b", re.IGNORECASE)
 
 # ── Regexes ───────────────────────────────────────────────────────────────────
 
-# Anchored at line start: a field line must begin with `- **Name:**`.
-# This ensures ATX headings (starting with `#`) and blockquote lines
-# (starting with `>`) cannot match without an explicit skip check.
+# Anchored at line start: a field line must begin with `- **Name:**`, and the
+# match runs against the raw line. That anchor is load-bearing, not merely
+# tidy -- it is the whole reason an ATX heading (`# ...`), a blockquote
+# (`> - **Status:** ...`), and a comment-closing prefix (`--> - **Status:**
+# ...`) are not read as fields. Loosening it to tolerate a leading prefix
+# re-admits all three at once, so it is not a local change.
 _FIELD_RE = re.compile(r"^- \*\*([^*:]+):\*\*\s*(.*)$")
 
 
@@ -131,21 +134,12 @@ def read_preamble(text: str) -> list[tuple[str, str]]:
 
         live_stripped = live.strip()
 
-        # Lines entered inside a comment carry no live content at their start
-        # and must be skipped entirely so in_comment propagates correctly.
-        if in_comment_before:
-            continue
-
-        # Skip lines whose entire live content is empty (e.g. `<!--` alone).
+        # Skip lines whose entire live content is empty, which covers both a
+        # lone `<!--` and every line wholly inside a comment. Blockquote, ATX
+        # heading, and comment-closing lines need no guard of their own: the
+        # anchor on _FIELD_RE already excludes them, and a guard that no input
+        # can reach hides which mechanism is doing the work.
         if not live_stripped:
-            continue
-
-        # Blockquote lines are not preamble fields.
-        if line.startswith(">"):
-            continue
-
-        # ATX heading lines (any level) are not preamble fields.
-        if line.lstrip().startswith("#"):
             continue
 
         m = _FIELD_RE.match(line)

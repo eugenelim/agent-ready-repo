@@ -766,3 +766,21 @@ def test_tab_separated_heading_bounds_preamble() -> None:
         assert _m.get_cut_closed(text) is None, (
             f"a Cut-closed: record below {heading!r} was read as a preamble field"
         )
+
+
+def test_placeholder_slug_falls_back_to_the_filename_stem() -> None:
+    """An unedited template `Slug:` is ignored in favour of the fallback.
+
+    A brief copied from the seed template and not yet edited would otherwise be
+    keyed by the literal `<slug>`, which matches no spec back-link and silently
+    detaches every child from it.
+    """
+    text = (
+        "# Brief: my brief\n"
+        "\n"
+        "- **Status:** Draft\n"
+        "- **Slug:** `<slug>`\n"
+        "\n"
+        "## Spec map\n"
+    )
+    assert _m.get_slug(text, "my-brief") == "my-brief"
