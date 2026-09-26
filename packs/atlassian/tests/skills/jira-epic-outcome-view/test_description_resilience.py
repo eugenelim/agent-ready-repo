@@ -11,6 +11,7 @@ recorded for that Epic, and the rest of the view rendered.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -45,8 +46,21 @@ def _nested_description(depth: int) -> dict:
 
 def test_the_payload_that_crashes_an_unbounded_reader_is_a_legal_description(outcome):
     """Named so the bound cannot be dismissed as defending against input
-    Jira would reject: this document is inside Jira's own size limit."""
-    payload = json.dumps(_nested_description(800))
+    Jira would reject: this document is inside Jira's own size limit.
+
+    The limit is raised around `json.dumps` only. Serialising 800 nested
+    nodes is itself a recursive walk, and on a runner with less stack than
+    a developer machine the *measurement* dies before the assertion runs --
+    which is what happened in CI while the reader under test was fine. The
+    raise buys the encoder room to measure; it says nothing about the
+    reader, whose whole point is that it needs no such room.
+    """
+    previous = sys.getrecursionlimit()
+    sys.setrecursionlimit(max(previous, 10_000))
+    try:
+        payload = json.dumps(_nested_description(800))
+    finally:
+        sys.setrecursionlimit(previous)
 
     assert len(payload) < 32767, "the reproduction must stay a description Jira accepts"
 
