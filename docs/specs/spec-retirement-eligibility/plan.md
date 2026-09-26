@@ -1,7 +1,7 @@
 # Plan: Spec-retirement eligibility projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`AGENTS.md`](../../../AGENTS.md); [`packs/AGENTS.md`](../../../packs/AGENTS.md); [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) § skill dependencies; [`tests/AGENTS.md`](../../../tests/AGENTS.md); [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) §§2, 4, 6, 7 and the Wave 7e Errata
 
 ## Approach
@@ -258,12 +258,6 @@ it is never reconciled by widening the probe.
 - A `needs` slug of `../../../../etc/passwd` and a spec directory symlinked
   outside the root are each refused `path-escapes-root` and never opened,
   asserted by the absence of the read rather than by the refusal alone.
-- A file reached through a symlink whose target stays inside the root IS read.
-  Every earlier fixture used an escaping link, so the guard refused in-repo
-  links unnoticed: the shipped command returned zero eligible candidates of 483,
-  suppressed by 42 refusals on this repository's own `CLAUDE.md` symlinks, none
-  of which escapes anything. A guard that refuses the corpus it runs on is not
-  a stricter guard, it is an inert capability.
 - Every repository read routes through the skill's own confinement helper;
   removing that call turns a case red.
 
@@ -413,6 +407,28 @@ case red.
 `docs/specs/<slug>` path as a literal — `.workspace-prune-protected.toml` carries
 its entry, which a prune preview against that slug proves by refusing it.
 
+### T10: An in-root symlink is read at both guards
+
+**Depends on:** T0c, T8
+
+**Tests:**
+- A file reached through a symlink whose target stays inside the root is read by
+  the confined reader; one whose target leaves it is still refused.
+- The shipped command reads an in-root symlinked `spec.md` rather than refusing
+  it, asserted through the command so both guards must agree.
+
+**Approach:**
+- A correction to completed work is a new task, not an edit to a sealed task
+  section. T0c and T8 each shipped a guard that refused every link whatever its
+  target; the reader was fixed first and its own test passed while the command
+  still refused, so the capability-level case is what pins them together.
+- The defect reached production behaviour rather than a gate: the command
+  returned zero eligible candidates of 483, every one suppressed by refusals on
+  this repository's own `CLAUDE.md` links, which escape nothing.
+
+**Done when:** restoring either blanket rejection fails a case, and the shipped
+command reports a non-zero eligible count against the real corpus.
+
 ### T9: The delivery's durable surfaces match shipped behaviour
 
 **Depends on:** T8
@@ -484,6 +500,7 @@ ledger.
 - 2026-09-24 — Cut to a read-only core; brief retirability and the persisted
   area map sliced out as separate deliveries.
 - 2026-09-24 — Spec and plan approved by eugenelim.
+- 2026-09-26 — Re-approved by eugenelim after narrowing.
 - 2026-09-26 — Criteria narrowed to what the code does: the device/inode
   re-check detects a swapped final component, not a swapped ancestor directory,
   and an in-root link target is not further restricted. Both residuals need
