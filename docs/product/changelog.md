@@ -102,6 +102,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` marks every dispatch record for the current wave superseded. The records stay on disk; recording a fresh assertion for any task makes that task account again. The three edges that require a reopen before re-entering implementation are `gates-failed` from code verification, `findings-remain` from code review, and `blocker-applied` from the code human gate.
 
+## [experience-design][2.0.10] — 2026-09-25
+
+### Highlights
+
+- The `creative-direction` skill now exposes five named operations — `frame`, `explore`, `visualize`, `converge`, and `refine` — each with a dedicated reference, so craft detail loads only when the operation needs it.
+- A route rule (`inherit`, `extend`, `originate`) selects how much invention the work warrants; `inherit` runs no divergence and no visual step when a direction already exists for the surface.
+- Divergence generation in `explore` draws referents from the audience's own world — publications, instruments, maps, architecture, packaging, signage — rather than from other software products, so candidate directions stop converging on the category default.
+- The visual step in `visualize` is capability-gated: it defaults to a text schematic in any harness that cannot produce images, with a named skip rather than a blocker, and produces a rendered comp only on the `originate` route when the harness supports it.
+- Asking to refine an existing direction now reaches the skill and amends the document in place, instead of starting a second direction for the same surface.
+
 ## [core][2.26.41] — 2026-09-24
 
 ### Highlights

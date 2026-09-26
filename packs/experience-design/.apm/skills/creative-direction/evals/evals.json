@@ -17,6 +17,42 @@
         "Stops at direction — does not derive tokens/scales or critique an existing screen",
         "Writes the artifact to the layout-resolved target <output_dir>/direction/<slug>.md with type: creative-direction frontmatter, having surfaced the approved output_dir, the file it was read from, and the composed target before writing"
       ]
+    },
+    {
+      "id": 2,
+      "prompt": "We already have a direction for the dashboard surface. We are adding a notification-center panel inside that same surface. Set up the direction for the panel.",
+      "expected_output": "The agent looks up the direction folder, finds the existing direction for the dashboard, applies the inherit route, and runs frame without opening a divergence round. It produces no second direction doc; the panel inherits the existing direction.",
+      "assertions": [
+        "No divergence round runs; the inherit route runs frame alone, scoped to the new element against the existing goals, and generates no candidates.",
+        "No second direction doc is written; the existing direction doc for the surface remains the only file produced."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We are launching a new project-management tool with no existing visual system. Help establish its aesthetic direction.",
+      "expected_output": "The agent names the category default arrangement for a generic project-management surface and its predictable opposite, excludes both from the candidate set, then derives surviving candidates that differ from one another on at least six of the fifteen direction-sheet axes.",
+      "assertions": [
+        "The category default arrangement and its predictable opposite are both named and both excluded from the candidate set.",
+        "Surviving candidates differ on at least six of the fifteen direction-sheet axes from one another."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "We are designing a tool used exclusively by professional orchestral musicians. Establish a visual direction grounded in their world.",
+      "expected_output": "The agent derives candidate referents primarily from the orchestral and classical music domain — instruments, scores, notation, programme booklets, concert hall materials, historical graphic systems belonging to that world — rather than from other software products.",
+      "assertions": [
+        "A majority of candidate referents come from the audience's own domain rather than from software products."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "We have an existing direction doc for our product. The team wants the direction to feel bolder. Refine the direction.",
+      "expected_output": "The agent maps the request to the axes that govern boldness, moves only those axes, leaves the ranked goals and dominant goal unchanged, and records the result as an amendment to the existing direction doc rather than writing a replacement.",
+      "assertions": [
+        "Only the named axes moved; every other axis in the direction sheet is unchanged.",
+        "The ranked goals and dominant goal are unchanged from the pre-refinement direction.",
+        "The result is recorded as an amendment to the existing direction doc rather than a replacement."
+      ]
     }
   ]
 }
