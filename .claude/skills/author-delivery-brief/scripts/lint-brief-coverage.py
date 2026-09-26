@@ -42,15 +42,15 @@ that ships no brief). Usage: lint-brief-coverage.py [--root DIR]
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-# Header status / brief / slug lines, e.g. `- **Status:** Shipped (2026-05-26)`.
+# Header status / brief lines for spec files, e.g. `- **Status:** Shipped (2026-05-26)`.
 _STATUS_RE = re.compile(r"\*\*Status:\*\*\s*(.+?)\s*$")
 _BRIEF_RE = re.compile(r"\*\*Brief:\*\*\s*(.+?)\s*$")
-_SLUG_RE = re.compile(r"\*\*Slug:\*\*\s*(.+?)\s*$")
 # Recorded-status cells that mean "not yet derived" — reported, never drift.
 _UNSET_CELLS = frozenset({"", "<auto>", "—", "-", "tbd", "todo"})
 _GOVERNANCE_REFERENCE_RE = re.compile(
@@ -58,39 +58,27 @@ _GOVERNANCE_REFERENCE_RE = re.compile(
 )
 _GOVERNANCE_PATH_RE = re.compile(r"(?i)(?:^|/)(?:rfc|adr)/")
 _MARKDOWN_LINK_RE = re.compile(r"^\[([^\]]+)\]\(([^)]+)\)$")
-_BRIEF_STATUSES = frozenset(
-    {"Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"}
-)
 
 
-def _is_placeholder(value: str) -> bool:
-    """True for an unset/template value: empty, `none`, an HTML comment, or a
-    bare angle-bracket placeholder (`<slug>`)."""
-    v = value.strip()
-    return (
-        not v
-        or v.lower() == "none"
-        or v.startswith("<!--")
-        or (v.startswith("<") and v.endswith(">"))
-    )
+def _load_sibling(name: str, module_name: str):
+    """Load a sibling script by its path under a pack-and-skill-qualified name.
 
-
-def extract_token(raw: str) -> str:
-    """Leading token from a header value, truncating at ` (`, ` →`, or `<!--`.
-
-    Intentionally mirrors lint-spec-status.py's `extract_status_token` (same
-    delimiters) — cross-skill import is banned by this spec's Boundaries, so
-    the two must be kept in lockstep by hand. Reduces annotated statuses
-    (`Shipped (2026-05-26)`, `Approved → Shipped (…)`, `Draft <!-- ... -->`) to
-    their leading word.
+    Skills are independent and several may ship a same-named script.  A bare
+    ``import`` would bind whichever directory reached the path first and cache
+    it for every later importer.  Loading by path avoids that collision and
+    works whether the lint is run as a script or loaded in-process.
     """
-    text = raw
-    for delim in (" (", " →", "<!--"):
-        idx = text.find(delim)
-        if idx != -1:
-            text = text[:idx]
-    parts = text.strip().split()
-    return parts[0] if parts else ""
+    path = Path(__file__).resolve().parent / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load sibling module {name!r} from {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_bs = _load_sibling("brief_shape", "core_author_delivery_brief_brief_shape")
 
 
 def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
@@ -110,84 +98,87 @@ def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
         if status is None:
             m = _STATUS_RE.search(line)
             if m:
-                status = extract_token(m.group(1))
+                status = _bs.extract_token(m.group(1))
         if brief is None:
             m = _BRIEF_RE.search(line)
             if m:
                 value = m.group(1).strip()
-                if not _is_placeholder(value):
-                    brief = extract_token(value).strip("`")
+                if not _bs.is_placeholder(value):
+                    brief = _bs.extract_token(value).strip("`")
                     if brief.startswith("./"):
                         brief = brief[2:]
     return status, brief
 
 
-def parse_brief_slug(brief_text: str, fallback: str) -> str:
-    """Return the brief's canonical slug from its `- **Slug:**` field.
-
-    A derived spec's `Brief:` back-link canonically names `brief:<slug>`
-    ; the repository-relative path and the bare slug are both
-    accepted fallbacks — the join keys off this field (and, for the path
-    spelling, off the file itself), so a hand-edited brief that breaks the
-    slug == filename-stem invariant still maps correctly. Falls back to
-    `fallback` (the filename stem) only when no usable `Slug:` field is
-    present.
-    """
-    for line in brief_text.splitlines():
-        m = _SLUG_RE.search(line)
-        if m:
-            value = m.group(1).strip().strip("`")
-            if not _is_placeholder(value):
-                return extract_token(value).strip("`")
-    return fallback
-
-
-def parse_brief_status(brief_text: str) -> str | None:
-    """Return the brief lifecycle token, or None when it is absent."""
-
-    for line in brief_text.splitlines():
-        match = _STATUS_RE.search(line)
-        if match:
-            status = extract_token(match.group(1))
-            return status if status else None
-    return None
-
-
-def _brief_lifecycle_is_valid(status: str, child_states: set[str]) -> bool:
-    """Return whether mapped child progress is compatible with the brief."""
-
-    normalized = {state.lower() for state in child_states}
-    execution_evidence = bool(normalized & {"implementing", "shipped"})
-    if status in {"Draft", "Ready", "Withdrawn"}:
-        return not execution_evidence
-    if status in {"Executing", "Cancelled"}:
-        return execution_evidence
-    if status == "Shipped":
-        return bool(normalized) and normalized == {"shipped"}
-    return False
-
-
 def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
     """Return (lineno, spec-slug, recorded-status) for each Spec map row.
 
-    Parses the markdown table under the `## Spec map` heading. The first
-    table column is the spec slug; the LAST column is the recorded status
-    (so a Shape-B map with a middle `Story` column parses the same way).
-    The header row and the `| --- |` separator row are skipped.
+    Parses the markdown table under the ``## Spec map`` heading, with HTML
+    comment awareness.  The first table column is the spec slug; the LAST
+    column is the recorded status (so a Shape-B map with a middle ``Story``
+    column parses the same way).  The header row and the ``| --- |`` separator
+    row are skipped.
+
+    Comment handling rules:
+
+    - All three heading decisions -- opening the section, re-opening it on a
+      repeated ``## Spec map``, and closing it -- ask one question, spelled
+      once in ``brief_shape``: ``SPEC_MAP_HEADING_RE`` or
+      ``BOUNDING_HEADING_RE`` against the raw line, guarded by the comment
+      state carried into that line.  Those constants document the rule and
+      why it reads the raw line; it is not restated here, so the two cannot
+      disagree.
+    - A repeated ``## Spec map`` heading therefore re-opens the section
+      rather than closing it.  Its check must run before the terminator, or a
+      second ``## Spec map`` would close the section instead.
+    - A row inside a comment is not parsed: the line is skipped when
+      ``in_comment_before`` or ``in_comment`` (after processing) is True.
+    - A comment that opens and closes within one line leaves the row parsed
+      and the recorded status unchanged: the raw ``line`` is parsed so that
+      ``extract_token`` can truncate the inline comment as it does everywhere
+      else.
     """
     rows: list[tuple[int, str, str]] = []
     in_section = False
+    in_comment = False
     for lineno, line in enumerate(brief_text.splitlines(), start=1):
-        if re.match(r"^##\s+Spec map\b", line, re.IGNORECASE):
-            in_section = True
+        in_comment_before = in_comment
+        live, in_comment = _bs.process_line(line, in_comment)
+
+        if not in_section:
+            # Same question the re-opener and the terminator ask, asked the
+            # same way: SPEC_MAP_HEADING_RE against the raw line, guarded by
+            # the comment state so a heading inside a comment never opens.
+            if not in_comment_before and _bs.SPEC_MAP_HEADING_RE.match(line):
+                in_section = True
             continue
-        if in_section and re.match(r"^##\s+", line):
+
+        # A repeated '## Spec map' heading re-opens the section rather than
+        # closing it — same behaviour as the unconditional opener in the
+        # old parser.  Check this before the generic terminator so that a
+        # second '## Spec map' does not break the section.
+        if not in_comment_before and _bs.SPEC_MAP_HEADING_RE.match(line):
+            continue
+
+        # BOUNDING_HEADING_RE states the rule and why it reads the raw line.
+        if not in_comment_before and _bs.BOUNDING_HEADING_RE.match(line):
             break
+
+        # Skip lines that are inside a comment or on which comment state
+        # changes (opened without being closed on the same line, or closed
+        # after being opened on a previous line).
+        if in_comment_before or in_comment:
+            continue
+
         # Only a markdown table row counts — it must start with `|`. This
         # ignores explanatory prose under the heading that happens to contain a
         # pipe (which would otherwise parse as a phantom row and trip drift).
-        if not in_section or not line.lstrip().startswith("|"):
+        if not line.lstrip().startswith("|"):
             continue
+
+        # Parse from the original line so that inline annotations such as
+        # '| Shipped <!-- re-derived 2026-06-01 --> |' are preserved for
+        # extract_token to truncate at '<!--' (inline comment preserved).
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) < 2:
             continue
@@ -242,9 +233,12 @@ def check(root: Path) -> tuple[list[str], list[str]]:
     for brief_path in brief_files:
         text = brief_path.read_text(encoding="utf-8", errors="replace")
         # The slug (from the `Slug:` field), not the filename stem, is the
-        # identity a spec's `Brief:` back-link names — see parse_brief_slug.
-        brief_slug = parse_brief_slug(text, brief_path.stem)
-        brief_status = parse_brief_status(text)
+        # identity a spec's `Brief:` back-link names.  The bounded accessor
+        # falls back to the filename stem when no usable `Slug:` field is
+        # present.
+        brief_slug = _bs.get_slug(text, brief_path.stem)
+        brief_status = _bs.get_status(text)
+        cut_closed = _bs.get_cut_closed(text)
         rel = brief_path.relative_to(root).as_posix()
         rows = parse_spec_map(text)
 
@@ -266,7 +260,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             # Normalise the recorded cell the same way as the actual status
             # (leading token) so an annotated cell like `Shipped (2026-06-01)`
             # isn't misreported as drift against a derived `Shipped`.
-            recorded_norm = extract_token(recorded).strip("`").lower()
+            recorded_norm = _bs.extract_token(recorded).strip("`").lower()
             if recorded_norm not in _UNSET_CELLS and recorded_norm != actual.lower():
                 hard.append(
                     f"{rel}:{lineno}: spec '{spec_slug}' recorded '{recorded}' "
@@ -290,16 +284,34 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             for slug in untracked
             for status in (specs[slug][0],)
         )
-        lifecycle_valid = (
-            brief_status in _BRIEF_STATUSES
-            and _brief_lifecycle_is_valid(brief_status, child_states)
-        )
-        if not lifecycle_valid:
-            rendered_status = brief_status if brief_status is not None else "missing"
+
+        # Absent status: refused with a missing-status message.
+        # Status not in the vocabulary: refused with a vocabulary message.
+        # Child execution evidence contradicts the state table: refused.
+        lifecycle_valid = False
+        if brief_status is None:
+            hard.append(f"{rel}: brief status is absent")
+        elif brief_status not in _bs.BRIEF_STATUSES:
             hard.append(
-                f"{rel}: brief lifecycle '{rendered_status}' contradicts its "
-                "child scope"
+                f"{rel}: brief status '{brief_status}' is not in the vocabulary"
             )
+        elif not _bs.is_lifecycle_valid(brief_status, child_states):
+            hard.append(
+                f"{rel}: brief lifecycle '{brief_status}' contradicts its child scope"
+            )
+        else:
+            lifecycle_valid = True
+
+        # Cut-closed: value that is present but malformed: refused and named.
+        if cut_closed is not None:
+            cut_err = _bs.validate_cut_closed(cut_closed)
+            if cut_err is not None:
+                hard.append(f"{rel}: Cut-closed: {cut_err}")
+
+        # Declaration matrix: Shipped requires Cut-closed:; Draft refuses it.
+        decl_err = _bs.validate_declaration(brief_status, cut_closed is not None)
+        if decl_err is not None:
+            hard.append(f"{rel}: {decl_err}")
 
         # Case-insensitive so lowercase spec status tokens agree with drift.
         delivered = (
@@ -349,7 +361,21 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def _reconfigure_streams() -> None:
+    """Force UTF-8 on the streams this script prints diagnostics to.
+
+    Owned by the entry point rather than by an imported predicate module: a
+    module that returns strings and prints nothing must not mutate
+    process-global stream state as a side effect of being imported, or a lazy
+    or conditional load silently withdraws the guarantee.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+
+
 def main(argv: list[str] | None = None) -> int:
+    _reconfigure_streams()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=None)
     args = parser.parse_args(argv)

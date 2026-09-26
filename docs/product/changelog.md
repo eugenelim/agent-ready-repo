@@ -64,6 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.44] — 2026-09-26
+
+### Highlights
+
+- **A `Shipped` brief now requires a `Cut-closed:` declaration.** When you close a brief as `Shipped`, add a `Cut-closed:` preamble field recording that no further slices are coming: an ISO 8601 date then evidence, `- **Cut-closed:** 2026-08-25 All nine slices are Shipped.` It must sit above the brief's first `## ` heading; written below one it reads as absent. The coverage lint also refuses a `Draft` brief that carries the field, and every other state may carry it or omit it.
+- **A brief that passed the coverage lint yesterday can fail today**, so this is a gate change to plan for rather than a new option to adopt. Any repository holding a `Status: Shipped` brief without the new field fails until it is backfilled — run it from your repository root as `python3 <skill>/scripts/lint-brief-coverage.py --root .` before your pipeline does — it resolves `docs/product/briefs` beneath the root you pass, so pointing it at the briefs directory itself finds nothing and exits 0.
+- **A brief's states and legal moves are now documented once**, so the reference guide and the lint cannot disagree about which transitions are legal or what each status requires of its children.
+
+### Changed
+
+- `lint-brief-coverage.py` now reads `Status:`, `Slug:`, and `Cut-closed:` through a bounded preamble reader that stops at the first uncommented `## ` heading and ignores fields inside HTML comments. A field placed below a section heading or inside a comment is no longer read.
+- A `Shipped` brief without a `Cut-closed:` record is refused with exit 1. The field must be an ISO 8601 date (`YYYY-MM-DD`) followed by non-empty evidence text.
+- A `Draft` brief with a `Cut-closed:` record is refused with exit 1 (a material edit reopens the cut).
+- The brief status vocabulary, child-execution-evidence predicate, and transition table are now the sole property of `brief_shape.py`. `lint-brief-coverage.py` defines none of them.
 ## [core][2.26.43] — 2026-09-25
 
 ### Highlights

@@ -626,6 +626,17 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_experience_journey_composition.py
 
+      # AC-0019 of brief-lifecycle-contract: exactly one *.py under
+      # packs/*/.apm/ carries a collection literal with all six status tokens.
+      # This step sits ABOVE the carve-out step below, whose `pytest tests/ -q`
+      # also collects it.  Placement above it still matters, because the
+      # carve-out stops at the first failure, so a step after the carve-out
+      # runs — and reports the same failure a second time against a broad
+      # target instead of the named one.
+      - name: pytest brief lifecycle single home (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_brief_lifecycle_single_home.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

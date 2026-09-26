@@ -216,22 +216,13 @@ fails closed.
 
 ## Brief lifecycle
 
-The brief status and its `workspace.toml` collection use the same token:
+The brief status vocabulary, child-execution-evidence rules, and legal transition
+set are defined in `scripts/brief_shape.py`. The coverage lint
+(`scripts/lint-brief-coverage.py`) enforces them; a brief whose status token,
+child evidence, or `Cut-closed:` record contradicts those rules is refused with
+exit 1. Child statuses are never rewritten to make a brief transition fit.
 
-- `Draft` has not passed the Ready gate.
-- `Ready` has passed that gate and has no `Implementing` or `Shipped` child.
-- `Executing` is an open brief with at least one `Implementing` or `Shipped`
-  child. It remains Executing when every currently materialized child is
-  Shipped but another slice has not yet been materialized.
-- `Shipped` is an explicit successful closeout with a non-empty Spec map whose
-  children are all `Shipped`.
-- `Withdrawn` is an explicit terminal closeout before any child reaches
-  `Implementing` or `Shipped`.
-- `Cancelled` is an explicit terminal closeout after at least one child reaches
-  `Implementing` or `Shipped`.
-
-Child statuses are never rewritten to make a brief transition fit. Move an
-entry between the matching `brief_queue` collections in the same reviewed
+Move an entry between the matching `brief_queue` collections in the same reviewed
 change that updates the brief. Route a request to ship, withdraw, or cancel a
 brief through `close-work`; create and continue modes do not self-certify a
 terminal outcome.
