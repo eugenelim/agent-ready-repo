@@ -1,6 +1,6 @@
 # Spec: Spec-retirement eligibility projection
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) Wave 7e (Errata 2026-09-24), §7 helper split, §2 semantic roles, and the Wave 7d carve-out surfaces (Errata 2026-09-13). §6 cooling is explicitly out of scope: this capability reads no lifecycle record.
@@ -153,40 +153,40 @@ full. Suppression is therefore a property of the scan, never of the blockers the
 scan happened to yield: an unread input produces no blockers, so keying
 suppression on the blockers it produced suppresses nothing.
 
-- [ ] Every blocker code the schema enum carries declares the input corpus it
+- [x] Every blocker code the schema enum carries declares the input corpus it
       must read in full before its absence is meaningful, enumerated from the
       enum so a code without one fails rather than defaulting to unsuppressible.
-- [ ] The enumeration of a corpus is itself a member of that corpus, so a
+- [x] The enumeration of a corpus is itself a member of that corpus, so a
       listing that cannot complete produces a named refusal and suppresses the
       whole population — a directory walk that silently returns short is the same
       fail-open one level up.
-- [ ] A refusal naming any member of a corpus suppresses the eligibility of every
+- [x] A refusal naming any member of a corpus suppresses the eligibility of every
       candidate the blocker over that corpus is evaluated over, whether or not
       that candidate carries any blocker.
-- [ ] Every refusal names the candidates it suppresses, and a candidate named by
+- [x] Every refusal names the candidates it suppresses, and a candidate named by
       any refusal is never reported eligible.
-- [ ] A suppressed candidate is emitted carrying the blocker `evidence-unread`,
+- [x] A suppressed candidate is emitted carrying the blocker `evidence-unread`,
       so it appears in the report rather than being dropped from it.
-- [ ] A candidate whose change-history corpus was not read also carries
+- [x] A candidate whose change-history corpus was not read also carries
       `history-missing` and omits `last_touched`, rather than emitting a date it
       could not determine.
-- [ ] No slug named by any refusal's `suppresses` appears as an eligible
+- [x] No slug named by any refusal's `suppresses` appears as an eligible
       candidate, checked over the whole emitted document.
-- [ ] Every untrusted string the output echoes is bounded and stripped of
+- [x] Every untrusted string the output echoes is bounded and stripped of
       control and escape sequences before emission.
-- [ ] A supplied `run_date` that is not a calendar date, or a negative
+- [x] A supplied `run_date` that is not a calendar date, or a negative
       `stale_after_days`, is refused at entry rather than corrected or
       defaulted.
-- [ ] An input that cannot be read is refused as `spec-unreadable` when it is a
+- [x] An input that cannot be read is refused as `spec-unreadable` when it is a
       spec body, and as `input-unreadable` otherwise, naming that input.
-- [ ] An input that reads but cannot be parsed is refused as `input-unparseable`,
+- [x] An input that reads but cannot be parsed is refused as `input-unparseable`,
       naming that input.
-- [ ] A failure to gather any evidence that matches no other refusal code is
+- [x] A failure to gather any evidence that matches no other refusal code is
       refused as `evidence-ungathered`, naming the input and carrying no
       exception text.
-- [ ] A candidate free of every condition named below, suppressed by no refusal,
+- [x] A candidate free of every condition named below, suppressed by no refusal,
       is reported eligible with an empty blocker list.
-- [ ] A candidate reported eligible carries an empty blocker list, and a
+- [x] A candidate reported eligible carries an empty blocker list, and a
       candidate reported not eligible carries at least one.
 
 ### Confinement
@@ -196,138 +196,138 @@ provides them is the plan's to name — an earlier version pinned a specific
 private helper that collapses every failure into one `None`, and so could not
 carry the refusal vocabulary this group requires.
 
-- [ ] A path derived from repository content that resolves outside the
+- [x] A path derived from repository content that resolves outside the
       repository root is refused as `path-escapes-root` and is not read.
-- [ ] A path whose symlink, junction, or reparse point resolves outside the
+- [x] A path whose symlink, junction, or reparse point resolves outside the
       repository root is refused as `path-escapes-root` and is not read.
-- [ ] A path reached through a symlink whose target stays inside the repository
+- [x] A path reached through a symlink whose target stays inside the repository
       root is read, not refused. Which in-root file a link may reach is not
       further restricted: the corpus is committed and reviewable, and the
       report authorizes no action on what it read. This repository's own `CLAUDE.md` files are
       such links, and refusing them withholds eligibility from every candidate
       in the report.
-- [ ] A `path-escapes-root` refusal carries the repository-relative location
+- [x] A `path-escapes-root` refusal carries the repository-relative location
       that declared the value, and the offending value as written, bounded and
       never resolved against the filesystem.
-- [ ] Every access confirms a regular file on the opened descriptor and
+- [x] Every access confirms a regular file on the opened descriptor and
       re-checks device and inode identity across the open, so the **final
       component** swapped between check and read is refused rather than read.
       An ancestor directory swapped in the same window is not detected: closing
       that needs a descriptor-relative walk, and the residual is accepted
       because it requires concurrent write access to the tree being scanned,
       which already exceeds anything this read-only report grants.
-- [ ] A non-regular file where a spec body, manifest, or contract is expected is
+- [x] A non-regular file where a spec body, manifest, or contract is expected is
       refused as `input-unreadable`.
-- [ ] Each refusal reason is produced from inside the guarded open. A refusal
+- [x] Each refusal reason is produced from inside the guarded open. A refusal
       code is never derived from a second filesystem call on a path already
       refused, because that call re-walks an attacker-controlled path outside
       the guard.
-- [ ] Each input read stops at 8 MiB rather than measuring the result
+- [x] Each input read stops at 8 MiB rather than measuring the result
       afterwards, and stopping is refused as `input-too-large`. The largest file
       the corpus carries is 144 KB, so the bound fires on a pathological input
       rather than a large real one.
-- [ ] Each git invocation is bounded at 30 seconds, and exceeding it is refused
+- [x] Each git invocation is bounded at 30 seconds, and exceeding it is refused
       as `subprocess-timeout`.
-- [ ] Git receives every repository-derived value as a validated
+- [x] Git receives every repository-derived value as a validated
       repository-relative path in an argument vector, never through a shell, and
       never in a position where it can be read as an option or a revision
       expression.
-- [ ] A value that fails that validation produces a named refusal instead of an
+- [x] A value that fails that validation produces a named refusal instead of an
       invocation.
-- [ ] Every git invocation runs against the resolved repository root.
+- [x] Every git invocation runs against the resolved repository root.
 
 ### Determinism
 
-- [ ] The run date is an explicit input the caller supplies, and the emitted
+- [x] The run date is an explicit input the caller supplies, and the emitted
       output records it.
-- [ ] Two `retirement-candidates` invocations over an unchanged tree, against
+- [x] Two `retirement-candidates` invocations over an unchanged tree, against
       the same supplied run date, emit byte-identical output.
 
 ### Status vocabulary
 
-- [ ] A `Status:` line is recognised both as a list item and as a bare bold line
+- [x] A `Status:` line is recognised both as a list item and as a bare bold line
       without a list marker, the two formats the corpus carries.
-- [ ] A `Status:` value is reduced to its leading token before comparison, so an
+- [x] A `Status:` value is reduced to its leading token before comparison, so an
       annotated value such as `Shipped (2026-05-26)` is classified by `Shipped`.
-- [ ] A spec whose leading status token is `Shipped` or `Archived` is not
+- [x] A spec whose leading status token is `Shipped` or `Archived` is not
       reported `status-not-terminal`.
-- [ ] A spec whose leading status token is a recognised value other than those
+- [x] A spec whose leading status token is a recognised value other than those
       two is reported `status-not-terminal`.
-- [ ] A spec carrying no `Status:` line in either recognised format, or whose
+- [x] A spec carrying no `Status:` line in either recognised format, or whose
       leading token is outside the recognised set, is refused as
       `spec-status-unrecognised`.
-- [ ] The recognised set this capability compares against is identical to the
+- [x] The recognised set this capability compares against is identical to the
       set `lint-spec-status` enforces, and a test fails when the two diverge.
 
 ### Blocker emission
 
-- [ ] A spec that any `workspace.toml` entry names in a `needs` field is
+- [x] A spec that any `workspace.toml` entry names in a `needs` field is
       reported `needed-by`, whichever collection holds that entry, and a spec no
       entry names is not.
-- [ ] No `needs` value in any of these four shapes is refused as
+- [x] No `needs` value in any of these four shapes is refused as
       `needs-shape-unrecognised`: a list of tables each naming a `path`; a bare
       `<room>:<kind>/<slug>` string; an empty list; and the key being absent.
-- [ ] A list of tables and a bare string each yield the dependency edges they
+- [x] A list of tables and a bare string each yield the dependency edges they
       name; an empty list and an absent key each yield none.
-- [ ] A `needs` value in a shape the run does not resolve is refused as
+- [x] A `needs` value in a shape the run does not resolve is refused as
       `needs-shape-unrecognised`.
-- [ ] A `needed-by` blocker names every entry declaring the dependency and, for
+- [x] A `needed-by` blocker names every entry declaring the dependency and, for
       each, the `needs` edge a maintainer removes to clear it.
-- [ ] A spec whose declaring edges have all been removed is no longer reported
+- [x] A spec whose declaring edges have all been removed is no longer reported
       `needed-by`, and one with a single edge remaining still is.
-- [ ] A spec carrying an inbound literal reference from any surface RFC-0096's
+- [x] A spec carrying an inbound literal reference from any surface RFC-0096's
       Wave 7d carve-out enumerates is reported `inbound-cited`, and a spec
       carrying none is not.
-- [ ] `inbound-cited` fires on each citation form the emitted output enumerates
+- [x] `inbound-cited` fires on each citation form the emitted output enumerates
       as recognised, including a repository-relative path and a link carrying a
       fragment or trailing slash.
-- [ ] A spec whose slug is a strict prefix of another spec's slug is not
+- [x] A spec whose slug is a strict prefix of another spec's slug is not
       reported `inbound-cited` on the longer slug's citations alone.
-- [ ] An `inbound-cited` blocker names each citing surface.
-- [ ] The emitted output states which citing surfaces and which citation forms
+- [x] An `inbound-cited` blocker names each citing surface.
+- [x] The emitted output states which citing surfaces and which citation forms
       `inbound-cited` does not reach.
-- [ ] A spec named in the `Spec map` of a brief whose own status is `Shipped` is
+- [x] A spec named in the `Spec map` of a brief whose own status is `Shipped` is
       reported `shipped-brief-member`.
-- [ ] The `shipped-brief-member` blocker names what a maintainer must do to
+- [x] The `shipped-brief-member` blocker names what a maintainer must do to
       clear it, and reports it as unclearable by this capability alone.
-- [ ] A `shipped-brief-member` blocker names the brief whose map holds the spec.
-- [ ] A spec whose directory holds a `notes/` file that no surface outside that
+- [x] A `shipped-brief-member` blocker names the brief whose map holds the spec.
+- [x] A spec whose directory holds a `notes/` file that no surface outside that
       directory cites is reported `lasting-facts-unsettled`, and a spec whose
       `notes/` files are all cited from outside is not.
-- [ ] A candidate reported `lasting-facts-unsettled` carries an obligation
+- [x] A candidate reported `lasting-facts-unsettled` carries an obligation
       naming the RFC-0096 §2 semantic role that fact must reach.
-- [ ] That obligation names a destination where §4's precedence order resolves
+- [x] That obligation names a destination where §4's precedence order resolves
       one, and omits the destination where it does not.
-- [ ] A spec named in the protected-directory manifest is reported `protected`,
+- [x] A spec named in the protected-directory manifest is reported `protected`,
       and a spec absent from it is not.
-- [ ] A spec named by an `x-spec` key in any contract is reported
+- [x] A spec named by an `x-spec` key in any contract is reported
       `xspec-pinned`, and a spec no `x-spec` key names is not.
-- [ ] A spec is reported `inflight` when a `workspace.toml` entry whose own
+- [x] A spec is reported `inflight` when a `workspace.toml` entry whose own
       `path` is that spec's `spec.md` sits in a collection the run classifies as
       non-terminal, and is not when every such entry sits in a terminal one.
-- [ ] An entry carrying no `path` key holds no spec and is skipped without a
+- [x] An entry carrying no `path` key holds no spec and is skipped without a
       refusal, because it names nothing this capability reads.
-- [ ] An entry whose `path` names a file inside a spec directory rather than the
+- [x] An entry whose `path` names a file inside a spec directory rather than the
       spec itself does not make that spec `inflight`.
-- [ ] A collection name the run cannot classify as terminal or non-terminal is
+- [x] A collection name the run cannot classify as terminal or non-terminal is
       refused as `collection-unrecognised` rather than defaulted to either.
-- [ ] A spec whose last recorded change is newer than the emitted cutoff is
+- [x] A spec whose last recorded change is newer than the emitted cutoff is
       reported `recently-changed`, and one whose change is older is not.
-- [ ] A spec whose last recorded change cannot be determined is reported
+- [x] A spec whose last recorded change cannot be determined is reported
       `history-missing` and carries no `last_touched` value.
-- [ ] A spec whose change history resolves is not reported `history-missing` and
+- [x] A spec whose change history resolves is not reported `history-missing` and
       carries a `last_touched` value.
-- [ ] A spec naming a path that does not resolve is reported
+- [x] A spec naming a path that does not resolve is reported
       `references-unresolved`, and a spec whose named paths all resolve is not.
 
 ### Age reporting
 
-- [ ] The emitted `cutoff_date` is a calendar date on every run.
-- [ ] The emitted `cutoff_date` equals the run date minus `stale_after_days`.
-- [ ] `stale_after_days` is 30 when the caller supplies no value.
-- [ ] `stale_after_days` equals the caller's value when one is supplied.
-- [ ] The emitted output records the `stale_after_days` the run used.
-- [ ] No field name or enum value in the schema reuses RFC-0096 §6's clock
+- [x] The emitted `cutoff_date` is a calendar date on every run.
+- [x] The emitted `cutoff_date` equals the run date minus `stale_after_days`.
+- [x] `stale_after_days` is 30 when the caller supplies no value.
+- [x] `stale_after_days` equals the caller's value when one is supplied.
+- [x] The emitted output records the `stale_after_days` the run used.
+- [x] No field name or enum value in the schema reuses RFC-0096 §6's clock
       vocabulary — `completed_on`, `review_on`, `cooling`, or `due`.
 
 ### Area attribution
@@ -335,29 +335,29 @@ carry the refusal vocabulary this group requires.
 Attribution is computed per run and held in memory. Persisting it, and the
 subcommand that would write it, are a separate delivery.
 
-- [ ] In a fixture whose only top-level source directory is named something
+- [x] In a fixture whose only top-level source directory is named something
       other than `packs`, a spec whose body names that directory is attributed
       to it.
-- [ ] A candidate matching no inferred namespace is attributed `unscoped`.
-- [ ] `retirement-candidates` writes no file, and a run against a read-only
+- [x] A candidate matching no inferred namespace is attributed `unscoped`.
+- [x] `retirement-candidates` writes no file, and a run against a read-only
       checkout emits its report and exits `0`.
 
 ### Output hygiene
 
-- [ ] Every path the output emits is repository-relative.
-- [ ] No emitted string carries an absolute host path or raw exception text.
+- [x] Every path the output emits is repository-relative.
+- [x] No emitted string carries an absolute host path or raw exception text.
 
 ### Contract and refusals
 
-- [ ] The emitted JSON validates against
+- [x] The emitted JSON validates against
       `contracts/jsonschema/spec-retirement-candidates.schema.json`.
-- [ ] That schema carries an `x-spec` pointer resolving to this spec.
-- [ ] The schema's semantic-role enum equals the ten roles RFC-0096 §2's
+- [x] That schema carries an `x-spec` pointer resolving to this spec.
+- [x] The schema's semantic-role enum equals the ten roles RFC-0096 §2's
       "Other roles are separate" sentence names.
-- [ ] A `workspace.toml` entry naming a `docs/specs/<slug>` path with no
+- [x] A `workspace.toml` entry naming a `docs/specs/<slug>` path with no
       directory behind it is refused as `spec-directory-absent`.
-- [ ] A spec directory holding no `spec.md` is refused as `spec-file-absent`.
-- [ ] A spec directory whose `spec.md` cannot be read is refused as
+- [x] A spec directory holding no `spec.md` is refused as `spec-file-absent`.
+- [x] A spec directory whose `spec.md` cannot be read is refused as
       `spec-unreadable`.
 
 ## Follow-ons

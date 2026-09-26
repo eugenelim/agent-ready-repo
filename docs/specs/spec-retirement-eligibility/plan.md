@@ -1,7 +1,7 @@
 # Plan: Spec-retirement eligibility projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`AGENTS.md`](../../../AGENTS.md); [`packs/AGENTS.md`](../../../packs/AGENTS.md); [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) § skill dependencies; [`tests/AGENTS.md`](../../../tests/AGENTS.md); [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) §§2, 4, 6, 7 and the Wave 7e Errata
 
 ## Approach
