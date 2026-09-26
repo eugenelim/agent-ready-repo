@@ -43,8 +43,8 @@ Run `workspace-status`. The new artifact should appear in the lifecycle state
 chosen by `work-intake`; remembered work remains Draft and non-dispatchable.
 The artifact must exist before its schema-valid workspace entry is registered.
 
-See [Start or remember work without choosing a skill](start-or-remember-work.md)
-for the main workflow and [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
+See [Use work intake](../../_shared/how-to/use-work-intake.md)
+for the current workflow and [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
 for exact routes and boundaries.
 
 If the repository already contains legacy queue, shaping, brief, or backlog

@@ -1,8 +1,8 @@
 ---
 title: Start with the work in front of you
-description: Choose the task you have, then follow the existing workflow that fits it.
+description: Choose whether to shape an idea or build a known change, then follow the route that fits.
 hero:
-  tagline: Get checked results from real work, with the final decision kept human.
+  tagline: Shape an idea or build a known change. The final decision stays human.
   actions:
     - text: Choose a task
       link: '#what-are-you-trying-to-do'
@@ -18,57 +18,79 @@ import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 ## What are you trying to do?
 
-You do not need to know a pack or skill name. Choose the closest task; each route shows what to ask and what you should get back.
+Choose by what you know now—not by a pack or skill name.
 
-<div class="docs-hub__lead" aria-label="Recommended starting point">
-  <LinkCard
-    title="Start a software change"
-    href="/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/"
-    description="Describe the outcome in plain language. Your agent chooses the right path and tells you what happens next. Try: “Start work on adding export retention controls.”"
-  />
-</div>
-
-<div class="docs-hub__supporting">
-  <CardGrid>
+<div class="docs-hub__primary" aria-label="Primary work routes">
+  <div class="docs-hub__route docs-hub__route--shape">
+    <p class="docs-hub__category">Shape</p>
     <LinkCard
-      title="Shape an idea into build-ready work"
+      title="Shape an idea"
       href="/agent-ready-repo/docs/guides/product-engineering/how-to/shape-a-feature-intent/"
-      description="Turn an uncertain feature idea into a tested, build-ready plan."
+      description="Turn an open product question into a buildable slice."
     />
+  </div>
+  <div class="docs-hub__route docs-hub__route--build">
+    <p class="docs-hub__category">Build</p>
     <LinkCard
-      title="Fix or investigate a bug"
-      href="/agent-ready-repo/docs/guides/core/how-to/bug-fix/"
-      description="Reproduce the problem, find the root cause, and land a minimum fix with a regression test."
+      title="Build a known change"
+      href="/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/"
+      description="Start the shortest safe delivery route for a known change."
     />
-    <LinkCard
-      title="Understand a repository"
-      href="/agent-ready-repo/docs/guides/architect/how-to/assess-a-repository/"
-      description="Map how the repository works from code and docs, then turn the important findings into an action plan."
-    />
-    <LinkCard
-      title="Make an architecture decision"
-      href="/agent-ready-repo/docs/guides/architect/how-to/shape-an-architecture-concept/"
-      description="Compare the real choices and agree on the architecture before committing to a full design."
-    />
-    <LinkCard
-      title="Research a question"
-      href="/agent-ready-repo/docs/guides/desk-research/how-to/run-the-research/"
-      description="Get an answer that shows its evidence, confidence, and unknowns. Try: “Research this at applied depth.”"
-    />
-    <LinkCard
-      title="Prepare and run a release"
-      href="/agent-ready-repo/docs/guides/release-engineering/how-to/run-a-release/"
-      description="Check a change in a production-like environment, review the evidence, and keep the production decision human."
-    />
-    <LinkCard
-      title="Adapt the agent setup to your project"
-      href="/agent-ready-repo/docs/guides/core/how-to/adapt-to-project/"
-      description="Learn the repository's real conventions, then tailor the agent setup without overwriting them."
-    />
-  </CardGrid>
+  </div>
 </div>
 
-Not sure which route fits? [Start a software change](/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/). That intake path chooses the workflow from your plain-language request.
+<div class="docs-hub__supporting" aria-label="Supporting task routes">
+  <section class="docs-hub__group docs-hub__route--shape">
+    <h3>Shape</h3>
+    <p>Use these when the decision is still being made.</p>
+    <CardGrid>
+      <LinkCard
+        title="Make an architecture decision"
+        href="/agent-ready-repo/docs/guides/architect/how-to/shape-an-architecture-concept/"
+        description="Compare the real choices and agree on the architecture before committing to a full design."
+      />
+    </CardGrid>
+  </section>
+  <section class="docs-hub__group docs-hub__route--investigate">
+    <h3>Investigate</h3>
+    <p>Use these when you need evidence before you act.</p>
+    <CardGrid>
+      <LinkCard
+        title="Fix or investigate a bug"
+        href="/agent-ready-repo/docs/guides/core/how-to/bug-fix/"
+        description="Reproduce the problem, find the root cause, and land a minimum fix with a regression test."
+      />
+      <LinkCard
+        title="Understand a repository"
+        href="/agent-ready-repo/docs/guides/architect/how-to/assess-a-repository/"
+        description="Map how the repository works from code and docs, then turn the important findings into an action plan."
+      />
+      <LinkCard
+        title="Research a question"
+        href="/agent-ready-repo/docs/guides/desk-research/how-to/run-the-research/"
+        description="Get an answer that shows its evidence, confidence, and unknowns. Try: “Research this at applied depth.”"
+      />
+    </CardGrid>
+  </section>
+  <section class="docs-hub__group docs-hub__route--operate">
+    <h3>Operate</h3>
+    <p>Use these when the work needs to fit a repository or release process.</p>
+    <CardGrid>
+      <LinkCard
+        title="Prepare and run a release"
+        href="/agent-ready-repo/docs/guides/release-engineering/how-to/run-a-release/"
+        description="Check a change in a production-like environment, review the evidence, and keep the production decision human."
+      />
+      <LinkCard
+        title="Adapt the agent setup to your project"
+        href="/agent-ready-repo/docs/guides/core/how-to/adapt-to-project/"
+        description="Learn the repository's real conventions, then tailor the agent setup without overwriting them."
+      />
+    </CardGrid>
+  </section>
+</div>
+
+Not sure which route fits? If you can name the change, [build a known change](/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/). If the product direction is still open, [shape an idea](/agent-ready-repo/docs/guides/product-engineering/how-to/shape-a-feature-intent/).
 
 ## New to Agent Ready Repo?
 

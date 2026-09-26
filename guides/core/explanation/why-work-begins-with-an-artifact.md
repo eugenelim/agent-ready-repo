@@ -56,5 +56,5 @@ The system can classify clear evidence, but it cannot decide that ambiguous work
 is ready, choose a brief slice, approve a spec, or change an artifact's authority
 on the user's behalf. Those decisions are gates because they change what can run.
 
-For the procedure, see [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
+For the procedure, see [Start a software change](../how-to/start-or-remember-work.md).
 For exact routes and limits, see [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md).

@@ -9,7 +9,7 @@ kind: explanation
 
 Most knowledge work has two distinct modes that don't mix well. In the first, you *discover* what to build — you research, frame, and structure an idea until it is sharp enough to become a spec. In the second, you *build* — you implement, verify, and ship. This repo separates those two modes into two rooms: the **shape room** and the **build room**.
 
-This page explains the distinction, what goes in each room, and how items move between them. For how to orient to both rooms at session start, see [How to orient at the start of a session](../how-to/orient-at-session-start.md). For the current intake route, see [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
+This page explains the distinction, what goes in each room, and how items move between them. For how to orient to both rooms at session start, see [How to orient at the start of a session](../how-to/orient-at-session-start.md). For the current intake route, see [Start a software change](../how-to/start-or-remember-work.md).
 
 ## The shape room
 
@@ -79,5 +79,5 @@ Read the orientation output to understand the full state of both rooms before pi
 ## See also
 
 - [How to orient at the start of a session](../how-to/orient-at-session-start.md) — read both rooms at session start
-- [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md) — route a new item into durable artifact and lifecycle state
+- [Start a software change](../how-to/start-or-remember-work.md) — route a new item into durable artifact and lifecycle state
 - [workspace.toml schema reference](../reference/workspace-toml-schema.md) — authoritative field and section descriptions

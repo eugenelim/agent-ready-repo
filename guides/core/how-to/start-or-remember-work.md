@@ -1,125 +1,92 @@
 ---
-title: Start or remember work without choosing a skill
-summary: Route a request into the right artifact and workspace lifecycle state with the Core pack.
+title: Start a software change
+summary: Give Core a known change and let it choose the shortest safe route into delivery.
 pack: core
 kind: how-to
 order: 9
 journey: core
 ---
 
-# Start or remember work without choosing a skill
+# Start a software change
 
-Use one request to get a durable artifact and a visible workspace entry. You do
-not need to decide whether the work belongs in an intent, brief, spec, or defect
-record first.
+Use this when you know the change you want to make in a repository. Core turns
+that request into the right delivery route, without making you choose a skill or
+artifact first.
+
+Start with the outcome:
 
 ```text
 Start work on adding export retention controls for workspace owners.
 ```
 
-The agent uses `work-intake` to classify the request from its content, writes
-the canonical artifact, registers it in `workspace.toml`, and reports the route.
-It dispatches a processor only after both writes succeed.
+## What Core does
 
-## Start work now
+1. Reads your request and the repository's current work state.
+2. Chooses the shortest safe route: direct build, spec, delivery brief, or
+   defect diagnosis.
+3. Starts the next workflow only after any required artifact and workspace entry
+   are safely written.
 
-Describe the outcome, constraints, and evidence you already have. The common
-routes are:
+For a bounded, low-risk change, Core can enter the build loop directly. That
+immediate route creates no intake artifact and no workspace entry.
 
-- One independently shippable change becomes a spec and continues through
-  `new-spec` for your approval.
-- A coherent outcome that needs several specs becomes a Draft brief.
-- A cited regression becomes defect context for `bug-fix`.
-- A bounded outcome that should be preserved before a solution artifact is
-  chosen goes to `intake-intent` and becomes a Draft repository intent.
+For durable work, Core writes the artifact first, then adds the `workspace.toml`
+entry:
 
-If two routes are plausible, the agent asks for the smallest missing choice or
-records the gap. It does not infer that incomplete work is ready.
+- one independently shippable change becomes a spec and plan;
+- work that spans several changes or repositories becomes a delivery brief;
+- cited regression evidence starts diagnosis before implementation.
 
-### Start from confirmed upstream shaping
+You decide only at real gates: clarify an ambiguous route, approve a brief,
+approve a spec or plan, or make the final merge decision.
 
-When an installed shaping workflow offers a validated handoff, ask:
+## Shape first when the product question is open
+
+If the user, problem, outcome, or solution direction is still open, start in
+[Product Engineering](../../product-engineering/how-to/shape-a-feature-intent.md)
+before Core.
+
+That path frames the intent, explores options when the direction is open,
+de-risks the chosen bet, and decomposes it into a buildable slice. A human then
+commits the shaped result to build.
+
+For the Core handoff, say:
 
 ```text
 Start this confirmed delivery handoff through Core intake.
 ```
 
-One independently shippable feature enters as a delivery contract for
-`new-spec`. Multi-spec or cross-repository work enters as a delivery brief for
-`author-delivery-brief continue` or `create`. The handoff supplies bounded context and
-provenance; it does not approve an artifact or skip a gate.
+Core preserves the confirmed outcome, boundaries, non-goals, dependencies, and
+delivery questions. It still uses the normal spec or delivery-brief route, and
+it does not skip approval gates. See
+[Hand an intent to build](../../product-engineering/how-to/hand-an-intent-to-build.md)
+for the full handoff.
 
-If the destination is ambiguous, intake stops for your choice without writing.
-If no handoff is present, Core follows the ordinary routes above. External
-locators remain opaque unless another trusted workflow has already acquired and
-supplied matching bounded content.
+## Result and next move
 
-## Remember work for later
-
-Say that you want to remember the work and stop:
+A typical durable result looks like this:
 
 ```text
-Remember that workspace owners need export retention controls. Do not start implementation.
+route        durable spec
+created      docs/specs/export-retention/spec.md and a workspace entry
+waiting for  your spec and plan approval
+next         approve the spec and plan before implementation
 ```
 
-The agent creates a Draft artifact, registers non-dispatchable membership, and
-stops. A future `workspace-status` call can surface it, but `work-loop` cannot
-execute it until the required artifact and approvals exist.
+This step is done when Core has either started the build loop or shown the
+created artifact and the next approval it needs.
 
-For intent-only capture, `intake-intent` records the status, outcome, boundary,
-owner, unresolved questions, projection, and source. Product altitude, opportunity,
-assumptions, scale, and JTBD context are optional. Before it can become
-`Accepted`, the owner sends the intent and one attributed evidence packet to an
-independent cold shaping review. That review checks well-formedness, not
-quality: it returns one `MALFORMED(<field>)` token per failed condition, or
-nothing at all. Tokens return to the owner for revision; a completed,
-revision-bound dispatch that returned no token still needs explicit human
-confirmation. If no isolated
-subagent, fresh context, or independent human is available, the owner emits
-`BLOCKED` and leaves the intent Draft. If an intent already exists,
-the skill updates that repository path instead of creating a renamed copy.
-Chat-only or personal/vault input also needs a confirmed repository destination
-and explicit authority transfer; its minimized source locator remains
-provenance, never executable work.
-
-## Check status or request refresh
-
-For a read-only view, say:
+Next, follow the reported action. If a later session resumes the work, ask:
 
 ```text
 workspace-status
 ```
 
-`work-intake` passes this directly to `workspace-status`; it does not reclassify
-or edit the result. For an existing registered tracker-origin artifact, request
-`work-intake` refresh and review the field-level delta. Refresh changes local
-requirements only after the lifecycle permits it and an authorized approver
-records every decision. Any supported remote coordination write is separate
-and requires its own fresh, exact confirmation. See
-[Use work intake](../../_shared/how-to/use-work-intake.md) for the full flow and
-tracker capability limits.
+Use the status result to see what is ready, blocked, active, or recently done.
 
-## Read and write boundary
+## State and skill reference
 
-The route reads your normalized request, existing target paths, and
-`workspace.toml`. It may create one canonical artifact and register one
-schema-valid entry. Source text is treated as untrusted data, and target paths
-must remain inside the repository and configured artifact directory.
-
-The agent asks before overwriting an artifact, changing its location or
-authority, or accepting input whose confidentiality does not fit the target.
-
-## What you have now
-
-You have a canonical work artifact and a visible lifecycle entry, or a
-read-only status view of existing work. Use the reported route to continue
-through approval and `work-loop`, or leave remembered work safely deferred.
-
-## Next step
-
-Run `workspace-status` to confirm lifecycle state. When it shows an approved
-spec with a sibling plan as ready, say `work-loop` to implement it.
-
-See [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
-for the complete route table and [Why work begins with an artifact](../explanation/why-work-begins-with-an-artifact.md)
-for the model behind it.
+The routing skill is `work-intake` when you need to invoke or debug it. See
+[Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
+for every route and [Why work begins with an artifact](../explanation/why-work-begins-with-an-artifact.md)
+for the model behind durable work.

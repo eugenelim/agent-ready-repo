@@ -606,6 +606,13 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The product-documentation authoring workflow assumes ARR pack surfaces,
+  # while teams also need to document applications, libraries, CLIs, and
+  # services. Shape a surface-discovery contract and non-pack evaluation set
+  # before changing `author-product-docs`. The current workflow-page slice is
+  # independent and does not wait on this item.
+  {path = "docs/product/intents/FEAT-0010-product-documentation-page-design.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Make author-product-docs discover and improve documentation for any code-backed product surface, with pack documentation as one supported case", needs = []},
+
   # A pack JOURNEY.md cannot link to a guide page, and the one attempt is a
   # live 404. Found 2026-09-24 by measuring the knowledge topic
   # `no-gate-resolves-relative-markdown-links` against the tree.
