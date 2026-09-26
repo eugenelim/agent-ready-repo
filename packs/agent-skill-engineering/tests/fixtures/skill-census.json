@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 137,
+  "population_size": 138,
   "entries": [
     {"pack": "_example", "skill": "example-skill", "families": ["inline-procedure"], "exception": null},
     {"pack": "_okf-pilot-cost-engineering", "skill": "cost-engineering", "families": ["procedure-plus-generated-reference-handoff"], "exception": null},
@@ -23,6 +23,7 @@
     {"pack": "atlassian", "skill": "jira-align-refresh", "families": ["integration-credential-boundary", "state-status-lifecycle"], "exception": null},
     {"pack": "atlassian", "skill": "jira-brief-intake", "families": ["integration-credential-boundary", "router-or-intake-classifier"], "exception": null},
     {"pack": "atlassian", "skill": "jira-defect-flow", "families": ["integration-credential-boundary", "state-status-lifecycle"], "exception": null},
+    {"pack": "atlassian", "skill": "jira-epic-outcome-view", "families": ["integration-credential-boundary", "orientation-read-model", "deterministic-script-backed"], "exception": null},
     {"pack": "atlassian", "skill": "jira-refresh", "families": ["integration-credential-boundary", "state-status-lifecycle"], "exception": null},
     {"pack": "atlassian", "skill": "jira-story-triage", "families": ["integration-credential-boundary", "router-or-intake-classifier"], "exception": null},
     {"pack": "atlassian", "skill": "jira-team-status", "families": ["integration-credential-boundary", "orientation-read-model"], "exception": null},
