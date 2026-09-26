@@ -1,0 +1,24 @@
+[
+  {"query": "Show me our Epics and their outcomes for PROJ", "should_trigger": true},
+  {"query": "Which Epics are moving, and what were they meant to change?", "should_trigger": true},
+  {"query": "What did we ship this quarter, and why did we ship it?", "should_trigger": true},
+  {"query": "Group the PROJ work by Epic and put each Epic's outcome next to it", "should_trigger": true},
+  {"query": "Which of our Epics have no outcome written down?", "should_trigger": true},
+  {"query": "Give me an Epic-by-Epic delivery and outcome view for the ATLAS project", "should_trigger": true},
+  {"query": "For each Epic in PROJ, how much shipped and what is still in flight?", "should_trigger": true},
+  {"query": "Show the Epic roll-up with the stated goal beside the delivery", "should_trigger": true},
+  {"query": "Help me see whether our Epics delivered what they promised", "should_trigger": true},
+  {"query": "Read the Outcome section on each Epic in PROJ and show it with the work", "should_trigger": true},
+
+  {"query": "What's our cycle time this quarter for PROJ?", "should_trigger": false},
+  {"query": "Give me lead time, flow efficiency and the p90 for the Atlas team", "should_trigger": false},
+  {"query": "What can the team pick up next?", "should_trigger": false},
+  {"query": "Which stories are ready for a coding agent to start?", "should_trigger": false},
+  {"query": "Write the outcome statement onto PROJ-100 for me", "should_trigger": false},
+  {"query": "Update the description on PROJ-100", "should_trigger": false},
+  {"query": "Create a Jira Epic for the returns work", "should_trigger": false},
+  {"query": "Score how good our Epic outcomes are and rank them", "should_trigger": false},
+  {"query": "Show me the Epics in our Linear workspace and their outcomes", "should_trigger": false},
+  {"query": "Fetch this Jira Align epic", "should_trigger": false},
+  {"query": "Publish the Epic outcome summary to Confluence", "should_trigger": false}
+]

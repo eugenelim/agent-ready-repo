@@ -131,6 +131,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   emitted document's field set, its twelve blocker codes and its twelve refusal
   codes.
 
+## [atlassian][0.10.1] — 2026-09-26
+
+### Highlights
+
+- **You can now see what each Jira Epic delivered beside what that work was meant to change, in one read-only view.** Ask for a project's Epics and their outcomes: the view groups the project's work by Epic, counts delivery from the `flow-metrics` skill's own per-issue rows, and renders each Epic's recorded outcome next to it. It writes nothing to Jira and leaves no file behind.
+- **An Epic with no recorded outcome says so, and asks you for one.** Instead of a blank row, the view states plainly that nothing is recorded and names the one place to write it — the block under an `Outcome` heading in the Epic's description. Hand your answer back with `--outcome EPIC-KEY=<text>` and your exact words come back as text you paste into Jira yourself, so the outcome stays something your team said.
+- **A `flow-metrics` run can now touch the on-disk cache not at all.** The new `--inert-cache` mode performs no cache read, write, directory creation or stale-temporary-file cleanup, which `--no-cache` still did. It is off by default, so every existing `flow-metrics` run behaves exactly as before.
+
+### Added
+
+- `jira-epic-outcome-view`: a read-only Jira skill that groups a project's work by Epic and renders each Epic's delivery reading beside its recorded outcome. Throughput and work in flight are counts over `flow-metrics`' own per-issue rows, never a recomputation, so no duration or percentile is reported. Work whose parent chain never reaches an in-scope Epic is rendered in a named unattributed group with the reason, rather than dropped.
+- A repeatable `--outcome EPIC-KEY=<text>` argument on that skill turns a team's stated outcome into paste-ready text naming the fixed location to paste it into. A key outside the queried scope, or the same key passed twice, is refused with exit 2 naming the key; `EPIC-KEY=` with no text is a decline and renders the prompt.
+- `--inert-cache` on `flow-metrics`, a default-off mode under which no cache operation of any kind occurs.
+- `[pack.metadata].bridge-skills` in the pack manifest declares which of this pack's skills may reach a host repository's delivery machinery. Every skill outside that list returns value to a team that has installed nothing but this pack.
+
+### Changed
+
+- The Epic outcome view reads its outcome from one fixed, documented location — the block under a top-level `Outcome` heading in the Epic's description — in both description shapes Jira returns: the structured document from Cloud and plain or wiki text from Server and Data Center. The location is not configurable per invocation.
+- Every reading the view renders states the moment it was taken, and the delivery reading and the Jira read state their two moments separately rather than implying one snapshot. Every run also discloses that it covers only the work the calling credential can browse.
+
 ## [core][2.26.42] — 2026-09-24
 
 ### Highlights

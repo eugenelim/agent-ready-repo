@@ -97,7 +97,7 @@ Four capability children, each an independent architectural bet with its own de-
 - [Repository work graph](CAP-0001-repository-work-graph.md) — the work artifacts as a graph; carries a surviving de-risk verdict and three feature children.
 - [Decision graph](CAP-0002-decision-graph.md) — accepted ADRs and RFCs as navigable constraints.
 - [Workspace coordination reorganization](CAP-0003-workspace-coordination-reorganization.md) — operational state off the contended file.
-- [External tracker projection](CAP-0004-external-tracker-projection.md) — canonical graph rendered outward.
+- [Delivery-system coexistence](CAP-0004-external-tracker-projection.md) — repository-canonical intent alongside the team's own delivery system; widened 2026-09-23 from outbound projection alone, and the only one of the four with feature children.
 
 ### Decomposition decisions
 

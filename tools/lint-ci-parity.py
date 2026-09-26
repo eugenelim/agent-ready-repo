@@ -1228,6 +1228,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'packs/atlassian/tests/pack/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
     'packs/atlassian/tests/skills/jira/test_intake_policy.py':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
@@ -1239,6 +1244,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "so it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/flow-metrics/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira-epic-outcome-view/':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
