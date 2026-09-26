@@ -761,3 +761,33 @@ def test_bounding_heading_opening_comment_keeps_prior_fields() -> None:
         "fields read before the bounding heading must be returned even when "
         "the heading line itself opens a comment"
     )
+
+
+def test_inline_comment_before_heading_does_not_bound_preamble() -> None:
+    """A heading preceded on its line only by comment text is not a heading.
+
+    `<!-- n --> ## Outcome` has the same live suffix as `--> ## Outcome`;
+    only the line the comment opened on differs, and that is not what decides
+    it.  Both leave the heading as a live suffix rather than a prefix, so
+    neither bounds, and a live field below is still read.  Keying on whether
+    the line began inside a comment got this wrong, because a comment that
+    opens and closes on one line never sets that flag.
+    """
+    text = "- **Status:** Draft\n<!-- n --> ## Outcome\n- **Slug:** `live`\n"
+    assert dict(_m.read_preamble(text)).get("Slug") == "`live`", (
+        "a live field below an inline-commented heading was dropped"
+    )
+
+
+def test_four_space_indent_is_a_code_block_not_a_heading() -> None:
+    """Four spaces or a tab makes an indented code block, not a heading.
+
+    CommonMark allows a heading at most three leading spaces, which is the
+    ceiling BOUNDING_HEADING_RE encodes, so a deeper indent does not bound
+    and fields below it are still preamble.
+    """
+    for indent in ("    ", "\t"):
+        text = f"- **Status:** Draft\n{indent}## Outcome\n- **Slug:** `x`\n"
+        assert "Slug" in dict(_m.read_preamble(text)), (
+            f"indent {indent!r} bounded the preamble as if it were a heading"
+        )

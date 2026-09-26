@@ -169,7 +169,12 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
         # '--> ## Other' began inside a comment and closed it, so the heading
         # is a live suffix rather than a prefix and does not terminate.  The
         # preamble reader draws the same line for the same reason.
-        if not in_comment_before and live.lstrip().startswith("## "):
+        # Matched against the raw line, so a heading preceded on its line only
+        # by comment text -- '<!-- n --> ## Other' or '--> ## Other' -- is a
+        # live suffix rather than a heading and does not terminate, while a
+        # genuinely indented '  ## Other' does.  Shared spelling with the
+        # preamble reader so the two cannot drift.
+        if not in_comment_before and _bs.BOUNDING_HEADING_RE.match(line):
             break
 
         # Skip lines that are inside a comment or on which comment state

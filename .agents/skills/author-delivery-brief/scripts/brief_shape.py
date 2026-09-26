@@ -36,6 +36,14 @@ from __future__ import annotations
 import re
 from datetime import date
 
+# A section heading that actually bounds a read: ``##`` at the start of the
+# raw line, under CommonMark's three-space ceiling.  Matching the raw line
+# rather than the comment-stripped text is what tells ``  ## Outcome`` (a real
+# indented heading) from ``<!-- n --> ## Outcome`` and ``--> ## Outcome``,
+# whose ``##`` is a live *suffix* after comment text and is not a heading.
+# Four spaces or a tab is an indented code block, not a heading.
+BOUNDING_HEADING_RE = re.compile(r"^ {0,3}## ")
+
 # ── Regexes ───────────────────────────────────────────────────────────────────
 
 # Anchored at line start: a field line must begin with `- **Name:**`.
@@ -121,7 +129,7 @@ def read_preamble(text: str) -> list[tuple[str, str]]:
         #                       below it.
         #
         # The Spec-map scanner draws the same line for the same reason.
-        if not in_comment_before and live.lstrip().startswith(_HEADING_PREFIX):
+        if not in_comment_before and BOUNDING_HEADING_RE.match(line):
             # The bound is found, so comment state opened on or after this
             # line belongs to the body and must not invalidate the preamble
             # that was already read.
