@@ -114,9 +114,18 @@ def resolve_window(from_date: str | None, to_date: str | None) -> dict[str, str]
 
 
 def resolve_jira_script() -> Path:
-    """Locate the Jira client this view reads through."""
+    """Locate the Jira client this view reads through.
+
+    The environment override is deliberately not confined to this pack. It
+    names a sibling skill's install location and that script is run as a child
+    either way -- an actor able to set this process's environment already has
+    arbitrary execution here -- so confining it crosses no privilege boundary
+    while breaking the relocation `manifest.json` documents. The suppression
+    below records that; the taint rule cannot see the reasoning.
+    """
     override = os.environ.get(_ENV_JIRA_SCRIPT)
     candidate = (
+        # nosemgrep: tools.semgrep.env-var-into-pathlib-path  # operator-set path; see docstring
         Path(override) if override else _SKILL_ROOT.parent / "jira" / "scripts" / "jira.py"
     )
     if not candidate.is_file():
@@ -128,9 +137,15 @@ def resolve_jira_script() -> Path:
 
 
 def resolve_flow_scripts_dir() -> Path:
-    """Locate the flow skill's package directory."""
+    """Locate the flow skill's package directory.
+
+    The override is unconfined for the same reason `resolve_jira_script`
+    records: it names an install location whose contents this view runs as a
+    child regardless.
+    """
     override = os.environ.get(_ENV_FLOW_SCRIPTS)
     candidate = (
+        # nosemgrep: tools.semgrep.env-var-into-pathlib-path  # operator-set path; see docstring
         Path(override) if override else _SKILL_ROOT.parent / "flow-metrics" / "scripts"
     )
     if not (candidate / "flow_metrics").is_dir():
