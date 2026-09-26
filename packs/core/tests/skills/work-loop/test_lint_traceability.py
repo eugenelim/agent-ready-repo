@@ -1378,6 +1378,10 @@ def test_ac0002_unresolved_outcome_co_owner_refuses() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         base = root / "docs" / "product" / "intents"
+        # An `intent:` node is not a CHAIN layer, so intent files alone leave
+        # the corpus unanchored and `check()` no-ops clean before it can reach
+        # any co-owner finding. The brief is the anchor this AC is read through.
+        write_brief(root, "anchor")
         write(
             base / "source.md",
             "# Intent\n\n"
@@ -1397,6 +1401,7 @@ def test_ac0003_self_co_owner_refuses() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         base = root / "docs" / "product" / "intents"
+        write_brief(root, "anchor")  # see AC-0002 above: intents alone no-op
         write(
             base / "source.md",
             "# Intent\n\n"
@@ -1452,6 +1457,9 @@ def test_ac0019_commented_outcome_co_owner_is_absent() -> None:
     for label, hidden in fixtures.items():
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            # Without the anchor the run no-ops clean and this `rc == 0` holds
+            # for a corpus the lint never read — see AC-0002 above.
+            write_brief(root, "anchor")
             write(
                 root / "docs" / "product" / "intents" / f"{label}.md",
                 "# Intent\n\n"

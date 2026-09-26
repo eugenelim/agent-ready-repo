@@ -361,3 +361,27 @@ test_ac0019_commented_outcome_co_owner_is_absent
   `.agents/` writes, which the owner performed through the supported build;
   Git index and ref writes were prohibited; no deletion was requested or
   performed.
+
+## 2026-09-26 — Post-rebase fixture repair (AC-0002, AC-0003, AC-0019)
+
+- Rebasing this branch onto main surfaced two failing command-level tests:
+  `test_ac0002_unresolved_outcome_co_owner_refuses` and
+  `test_ac0003_self_co_owner_refuses` both expected exit 1 and observed exit 0
+  with empty output. The same pair fails at the pre-rebase commit, so the
+  conflict resolution did not introduce them.
+- **Cause:** an `intent:` node is not a CHAIN layer, so a temporary corpus
+  holding only intent files populates no discovery layer. `check()` reaches its
+  documented no-chain-anchor return and exits 0 before any co-owner finding is
+  reported. The linter is behaving as designed; the fixtures were unanchored.
+- `test_ac0019_commented_outcome_co_owner_is_absent` shared the defect in its
+  passing direction: its `rc == 0` assertion held over a corpus the lint never
+  read, so it could not have failed.
+- **Repair:** each of the three fixtures now writes a brief through
+  `write_brief()`, the discovery anchor the ACs are read through. No linter
+  behavior changed.
+- **Verification:** the traceability, intent-shape, and field-reference parity
+  suites pass — 347 tests, 17.6 seconds, 0 failures. `make lint-ruff lint-mypy`
+  passes. Anchored fixtures were confirmed to discriminate: with the anchor,
+  the unresolved peer and the self-reference both exit 1 with a report naming
+  source, field, and target, and both comment-hidden corpora exit 0 with no
+  co-owner mention.
