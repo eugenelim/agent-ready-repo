@@ -212,6 +212,7 @@ def test_sidecar_converged() -> None:
         ("intent:missing", "unresolved target"),
         ("intent:source", "self-reference"),
     ],
+    ids=["unresolved-peer", "self-reference"],
 )
 def test_sidecar_outcome_co_owner_refuses_invalid_peer(
     target: str, expected: str

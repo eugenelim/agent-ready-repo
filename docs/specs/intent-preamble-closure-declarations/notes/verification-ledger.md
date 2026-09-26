@@ -385,3 +385,21 @@ test_ac0019_commented_outcome_co_owner_is_absent
   the unresolved peer and the self-reference both exit 1 with a report naming
   source, field, and target, and both comment-hidden corpora exit 0 with no
   co-owner mention.
+
+## 2026-09-26 — CI repair: the shared-test node contract
+
+- `gate-main` failed on `tools/test_local_ci_shared_test_deduplication.py`
+  with `test_sidecar_outcome_co_owner_refuses_invalid_peer must declare
+  explicit parameter IDs`. `make build-check` reported the same failure as a
+  rollup of that gate, so the two red checks were one defect.
+- **Cause:** the parametrized sidecar test shipped without `ids=`. The guard
+  raises on a missing `ids=` before it compares counts, so the node-contract
+  pin for `test_lint_traceability.py` never got to fire and the check was red
+  for the whole branch.
+- **Repair:** the arms are now named `unresolved-peer` and `self-reference`,
+  and the `SHARED_TESTS[2]` pin moves from 63 to 72 with its digest. The
+  re-pin is dispositioned against `origin/main` in the comment above it: 9
+  additions, 0 removals, no rename, surviving 63 in their original order.
+- **Verification:** the guard passes — 51 tests, 117.8 seconds. The
+  traceability suite passes at 72 tests, which independently matches the
+  re-pinned static node count. `make lint-ruff lint-mypy` passes.
