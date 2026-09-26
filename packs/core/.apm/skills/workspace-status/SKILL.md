@@ -53,7 +53,7 @@ Pick one mode, then load only that mode's reference.
 | status | `status` (default) | Session start, queue check — fast bounded scan | No | — |
 | reconcile | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
 | explain | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
-| retire | `retirement-candidates --run-date <YYYY-MM-DD>` | Report which delivery contracts are retirement candidates and every blocker holding each one back | Yes | — |
+| reconcile | `retirement-candidates --run-date <YYYY-MM-DD>` | Report which delivery contracts are retirement candidates and every blocker holding each one back | Yes | — |
 | mutate | `selected-membership --spec-dir docs/specs/<slug>` | Report membership for each explicitly selected spec directory; repeat the flag to preserve selection order | No | — |
 | mutate | `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
 | mutate | `repair-apply` | Apply a previously generated repair plan atomically | No | `workspace.toml` |
