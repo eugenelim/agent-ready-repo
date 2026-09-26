@@ -1275,3 +1275,35 @@ def test_tab_separated_heading_terminates_spec_map() -> None:
             f"a row below a tab-separated heading parsed as a spec row: {err}",
         )
         expect(rc == 0, f"expected a clean run, got rc={rc}: {err}")
+
+
+def test_indented_spec_map_heading_still_opens_the_section() -> None:
+    """An indented Spec-map heading opens the section, so a child is not hidden.
+
+    The silent direction: if the heading does not open, the map yields an
+    empty child set, so a Draft brief listing an Implementing child conceals
+    that execution evidence and validates. All three heading decisions --
+    open, re-open, close -- ask one question so this cannot differ.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # No Brief: back-link. The Spec map must be the spec's ONLY route
+        # into the child set, or the untracked back-link arm restores it and
+        # the fixture passes whether the heading opened the section or not.
+        write_spec(root, "alpha", "Implementing")
+        write_brief_raw(
+            root,
+            "myb",
+            "# Brief: myb\n\n- **Status:** Draft\n- **Slug:** `myb`\n\n"
+            "  ## Spec map\n\n| Spec | Status |\n| --- | --- |\n"
+            "| alpha | Implementing |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            rc == 1,
+            f"a Draft brief with an Implementing child must be refused, got rc={rc}: {out}",
+        )
+        expect(
+            "child scope" in err,
+            f"the concealed child should surface as a lifecycle refusal: {err}",
+        )

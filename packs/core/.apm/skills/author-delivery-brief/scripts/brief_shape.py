@@ -62,7 +62,6 @@ SPEC_MAP_HEADING_RE = re.compile(r"^ {0,3}##[ \t]+Spec map\b", re.IGNORECASE)
 # (starting with `>`) cannot match without an explicit skip check.
 _FIELD_RE = re.compile(r"^- \*\*([^*:]+):\*\*\s*(.*)$")
 
-# A level-2 ATX heading in live (non-comment) content ends the preamble.
 
 # ISO 8601 calendar date (YYYY-MM-DD only — compact and extended-time forms
 # are not accepted).
@@ -215,7 +214,34 @@ def _is_absent_cut_closed(raw: str) -> bool:
     return not stripped
 
 
-def validate_cut_closed(value: str) -> str | None:
+class Refusal(str):
+    """A refusal message that also names the rule that produced it.
+
+    Subclasses ``str`` so every caller that prints, formats or searches the
+    message keeps working unchanged, while a check can compare ``.rule``
+    instead of matching wording.  Classifying a refusal by its text is what
+    made an extended phrasing get filed under an existing rule.
+    """
+
+    rule: str
+
+    def __new__(cls, rule: str, message: str) -> Refusal:
+        obj = super().__new__(cls, message)
+        obj.rule = rule
+        return obj
+
+
+REFUSAL_RULES: frozenset[str] = frozenset(
+    {
+        "cut_closed_malformed",
+        "cut_closed_required_on_shipped",
+        "cut_closed_refused_on_draft",
+    }
+)
+"""Every rule name a refusal from this module can carry."""
+
+
+def validate_cut_closed(value: str) -> Refusal | None:
     """Return an error message if ``value`` is not a valid ``Cut-closed:`` value.
 
     A valid value is an ISO 8601 calendar date (``YYYY-MM-DD``) followed by a
@@ -227,11 +253,15 @@ def validate_cut_closed(value: str) -> str | None:
     """
     stamp, separator, evidence = value.partition(" ")
     if not separator or not evidence.strip():
-        return (
-            f"value {value!r} is not an ISO 8601 date followed by evidence text"
+        return Refusal(
+            "cut_closed_malformed",
+            f"value {value!r} is not an ISO 8601 date followed by evidence text",
         )
     if not _is_iso_date(stamp):
-        return f"value {value!r}: {stamp!r} is not an ISO 8601 date"
+        return Refusal(
+            "cut_closed_malformed",
+            f"value {value!r}: {stamp!r} is not an ISO 8601 date",
+        )
     return None
 
 
@@ -337,16 +367,22 @@ def is_lifecycle_valid(status: str | None, child_states: set[str]) -> bool:
 # ── Declaration matrix ────────────────────────────────────────────────────────
 
 
-def validate_declaration(status: str | None, has_cut_closed: bool) -> str | None:
+def validate_declaration(status: str | None, has_cut_closed: bool) -> Refusal | None:
     """Return an error message when the ``Cut-closed:`` record conflicts with status.
 
     ``Shipped`` requires the record; ``Draft`` refuses it.  All other states
     accept either.  Returns ``None`` when there is no conflict.
     """
     if status == "Shipped" and not has_cut_closed:
-        return "status is Shipped but no Cut-closed: record is present"
+        return Refusal(
+            "cut_closed_required_on_shipped",
+            "status is Shipped but no Cut-closed: record is present",
+        )
     if status == "Draft" and has_cut_closed:
-        return "status is Draft but a Cut-closed: record is present"
+        return Refusal(
+            "cut_closed_refused_on_draft",
+            "status is Draft but a Cut-closed: record is present",
+        )
     return None
 
 

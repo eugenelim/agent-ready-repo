@@ -121,16 +121,16 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
 
     Comment handling rules:
 
-    - A ``## Spec map`` heading inside a comment does not open the section:
-      the live text of such a line is empty or does not start with
-      ``## Spec map``.
-    - A ``## `` heading inside a comment does not close the section:
-      the live-prefix check uses ``live.startswith("## ")``, not stripped text,
-      so a heading whose ``## `` is preceded by a ``-->`` closer is not a
-      terminator.
-    - A repeated ``## Spec map`` heading re-opens the section rather than
-      closing it, preserving the prior handling where the opener matched
-      unconditionally.
+    - All three heading decisions -- opening the section, re-opening it on a
+      repeated ``## Spec map``, and closing it -- ask one question, spelled
+      once in ``brief_shape``: ``SPEC_MAP_HEADING_RE`` or
+      ``BOUNDING_HEADING_RE`` against the raw line, guarded by the comment
+      state carried into that line.  Those constants document the rule and
+      why it reads the raw line; it is not restated here, so the two cannot
+      disagree.
+    - A repeated ``## Spec map`` heading therefore re-opens the section
+      rather than closing it.  Its check must run before the terminator, or a
+      second ``## Spec map`` would close the section instead.
     - A row inside a comment is not parsed: the line is skipped when
       ``in_comment_before`` or ``in_comment`` (after processing) is True.
     - A comment that opens and closes within one line leaves the row parsed
@@ -146,11 +146,10 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
         live, in_comment = _bs.process_line(line, in_comment)
 
         if not in_section:
-            # A '## Spec map' heading inside a comment does not open the
-            # section.  live is the non-comment portion of the line; it will
-            # be empty or lack the '## Spec map' prefix when the heading is
-            # inside a comment.
-            if re.match(r"^##\s+Spec map\b", live, re.IGNORECASE):
+            # Same question the re-opener and the terminator ask, asked the
+            # same way: SPEC_MAP_HEADING_RE against the raw line, guarded by
+            # the comment state so a heading inside a comment never opens.
+            if not in_comment_before and _bs.SPEC_MAP_HEADING_RE.match(line):
                 in_section = True
             continue
 
@@ -161,19 +160,7 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
         if not in_comment_before and _bs.SPEC_MAP_HEADING_RE.match(line):
             continue
 
-        # A '## ' heading ends the section, and the comment state carried
-        # into the line is what tells two shapes apart.  '  ## Other' did not
-        # begin inside a comment, so its whole text is live and it terminates
-        # -- CommonMark allows up to three leading spaces on a heading, so
-        # indentation alone must not keep rows parsing past the section.
-        # '--> ## Other' began inside a comment and closed it, so the heading
-        # is a live suffix rather than a prefix and does not terminate.  The
-        # preamble reader draws the same line for the same reason.
-        # Matched against the raw line, so a heading preceded on its line only
-        # by comment text -- '<!-- n --> ## Other' or '--> ## Other' -- is a
-        # live suffix rather than a heading and does not terminate, while a
-        # genuinely indented '  ## Other' does.  Shared spelling with the
-        # preamble reader so the two cannot drift.
+        # BOUNDING_HEADING_RE states the rule and why it reads the raw line.
         if not in_comment_before and _bs.BOUNDING_HEADING_RE.match(line):
             break
 

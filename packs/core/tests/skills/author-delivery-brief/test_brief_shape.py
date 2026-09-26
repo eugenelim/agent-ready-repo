@@ -586,96 +586,48 @@ import re as _re  # noqa: E402
 def test_t6_refusal_registry_equals_actual_refusals() -> None:
     """Module docstring refusal registry equals the refusals the module raises.
 
-    Both sides are derived rather than restated.  ``validate_declaration`` is
-    swept exhaustively -- all six states x present/absent -- so any refusing
-    cell the registry does not name surfaces as ``UNREGISTERED_``.
+    Both sides are derived; neither is restated.  Each refusal names its own
+    rule, so nothing here reads a message's wording -- an earlier version
+    classified by text and filed a new rule under an existing one whenever the
+    wording happened to share a phrase.
 
-    ``validate_cut_closed`` cannot be swept exhaustively, because its input is
-    an arbitrary string.  It is probed with a fixed table that deliberately
-    includes a *valid* value, so a rule added after the ISO check -- the most
-    likely shape a new refusal takes -- fires during the sweep and surfaces as
-    ``UNREGISTERED_``.  The classifier anchors each sign to the end of the
-    message, so a longer wording that merely contains an existing phrase is
-    not absorbed into that class.
-
-    One residue remains and is inherent to probing a string domain: a refusal
-    that fires only on an input outside the probe table is invisible here.
-    Measured 2026-09-25 -- a fourth refusal triggered by a probed input reds
-    this test whether its wording extends an existing phrase or not; one
-    triggered only by an unprobed input does not.
+    ``validate_declaration`` is swept exhaustively: all six states x
+    present/absent.  ``validate_cut_closed`` cannot be, because its input is an
+    arbitrary string; it is probed with a table that includes a *valid* value so
+    a rule added after the ISO check fires during the sweep.  That leaves one
+    residue, inherent to probing a string domain and stated rather than implied:
+    a refusal that fires only on an input outside the probe table is invisible
+    here.  Its wording, however, no longer matters.
     """
     doc = _m.__doc__ or ""
+    section = doc[doc.find("**Refusal registry**"):]
+    registry = {m.group(1) for m in _re.finditer(r"^- ``([^`]+)``", section, _re.MULTILINE)}
 
-    # Scope extraction to the **Refusal registry** section so that ``...``
-    # spans that document mirrors (e.g. ``extract_token``) do not participate
-    # as registry entries.
-    reg_start = doc.find("**Refusal registry**")
-    registry_section = doc[reg_start:] if reg_start != -1 else ""
-    registry = {
-        m.group(1)
-        for m in _re.finditer(r"^- ``([^`]+)``", registry_section, _re.MULTILINE)
-    }
-    # No namespace filter — all entries in the registry section participate so
-    # a class outside cut_closed_ is not silently dropped from the comparison.
-
-    # Derive the actual side from behaviour rather than restating it: sweep
-    # every input shape the module's public validators accept and collect the
-    # distinct conditions under which each returns a refusal.  A hand-written
-    # expected-set would stay green when a fourth refusal is added to the code
-    # with neither the docstring nor this test updated, which is exactly the
-    # drift this test exists to catch.
     observed: set[str] = set()
-
-    # validate_cut_closed: map each returned message to a class by content
-    # pattern.  Known patterns → registered class name.  Unrecognised message →
-    # UNREGISTERED_cut_closed, which surfaces immediately as a set mismatch.
-    # The sweep includes "2026-01-01 evidence" (a valid input that currently
-    # returns None) so that any refusal added after the ISO check fires on it.
-    # Anchored to the end of the message, not a substring search.  A
-    # substring sign absorbs any longer wording that merely contains it --
-    # a new rule phrased "... is not an ISO 8601 date inside the open cut
-    # window" would be filed as cut_closed_malformed instead of surfacing as
-    # UNREGISTERED_, which is the likely wording for a new date rule rather
-    # than a contrived one.
-    _CUT_CLOSED_CLASS_SIGNS: list[tuple[str, str]] = [
-        ("is not an ISO 8601 date followed by evidence text", "cut_closed_malformed"),
-        ("is not an ISO 8601 date", "cut_closed_malformed"),
-    ]
     for bad in (
         "not-a-date evidence",
         "2026-08-25",
         "2026-13-99 bad month",
-        "2026-01-01 evidence",  # valid under current rules; detects new post-ISO refusals
+        "2026-01-01 evidence",  # valid today; catches a rule added after the ISO check
     ):
-        msg = _m.validate_cut_closed(bad)
-        if msg is None:
-            continue
-        cls = "UNREGISTERED_cut_closed"
-        for sign, name in _CUT_CLOSED_CLASS_SIGNS:
-            if msg.endswith(sign):
-                cls = name
-                break
-        observed.add(cls)
-
-    # validate_declaration: sweep all six states against present and absent.
-    for status in ("Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"):
+        refusal = _m.validate_cut_closed(bad)
+        if refusal is not None:
+            observed.add(refusal.rule)
+    for status in _SPEC_STATUS_TOKENS:
         for present in (False, True):
-            if _m.validate_declaration(status, present) is None:
-                continue
-            if status == "Shipped" and not present:
-                observed.add("cut_closed_required_on_shipped")
-            elif status == "Draft" and present:
-                observed.add("cut_closed_refused_on_draft")
-            else:
-                observed.add(f"UNREGISTERED_{status.lower()}_{'present' if present else 'absent'}")
+            refusal = _m.validate_declaration(status, present)
+            if refusal is not None:
+                observed.add(refusal.rule)
 
     assert registry == observed, (
-        "Refusal registry does not match the refusals the module actually "
-        "raises.\n"
+        "The docstring's refusal registry does not match the rules the module "
+        "actually raises.\n"
         f"Docstring registry: {sorted(registry)!r}\n"
-        f"Observed by driving the validators: {sorted(observed)!r}\n"
-        "An UNREGISTERED_ entry means the code refuses a case the docstring "
-        "does not name."
+        f"Raised when driven:  {sorted(observed)!r}"
+    )
+    assert observed <= _m.REFUSAL_RULES, (
+        f"a refusal carried a rule absent from REFUSAL_RULES: "
+        f"{sorted(observed - _m.REFUSAL_RULES)!r}"
     )
 
 
