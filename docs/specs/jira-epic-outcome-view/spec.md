@@ -1,6 +1,6 @@
 # Spec: jira epic outcome view
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0126; ADR-0077
@@ -171,11 +171,6 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   including a stale `*.tmp`, and asserted byte-identical. "Creates no new
   file" would pass a run that rewrites a cache entry or deletes a stale temp,
   and `flow-metrics` as shipped does the second even under `--no-cache`.
-- **Installed-CLI happy path: visual / manual QA.** The built skill is invoked
-  as an adopter would invoke it, against a real Jira scope, and the session
-  records the command, stdout, exit code and what was rendered for one Epic
-  with an outcome and one without. A passing unit gate never stands in for
-  real invocation, and this view's whole claim is that a team opens it twice.
 - **No resident process: goal-based check.** The process table is compared
   before and after a run, and the view's exit is asserted to leave nothing
   behind. A run that returns output while leaking a watcher satisfies every
@@ -198,11 +193,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   asserted to sit outside both hashed roots and to be absent after the run,
   including when the run raises.
 
-**Stub coverage.** Of 57 criteria, 26 are TDD-mode: 15 carry a
+**Stub coverage.** Of 56 criteria, 26 are TDD-mode: 15 carry a
 validated red stub in the plan (AC1, AC2, AC3, AC5, AC6, AC9, AC12, AC15, AC16, AC21, AC22, AC26, AC39, AC54, AC55)
 and 11 carry `no stub (implementation-discovered)` with a discovery predicate
 and a proof obligation (AC8, AC11, AC17, AC18, AC19, AC20, AC24, AC25, AC27, AC28, AC29). 30 are
-goal-based checks, and AC57 is the installed-CLI visual / manual-QA pass.
+goal-based checks. The installed-CLI manual-QA pass was moved to
+`## Follow-ons` by owner decision on 2026-09-26 and is no longer a
+criterion, so no criterion carries a manual-QA disposition.
 
 The plan's `## Criterion disposition` table is the binding record — one row per
 criterion, total and disjoint by construction. This paragraph is derived from
@@ -449,17 +446,17 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       non-distributional observations — work in flight, age, blocked and since
       when, what moved — which need no sample at all.
 - [x] The view runs only when invoked and leaves no resident process.
-- [ ] The installed CLI is exercised end-to-end through its documented happy
-      path, and the recorded observation is **asserted against** that path,
-      not merely logged: the command, its stdout, its exit code, and the
-      rendering for one Epic with a recorded outcome and one without. A
-      passing unit gate does not stand in for the real invocation.
-      The record states where the session ended and names what was documented
-      but not exercised — repeat use across two sittings, which is the
-      parent's success signal and not settled by one run.
 
 ## Follow-ons
 
+- eugenelim: the installed-CLI manual-QA pass. Moved out of the acceptance
+  criteria by owner decision on 2026-09-26 so the slice could ship on the
+  criteria a gate can read. It needs a credentialed run against a real Jira
+  scope with one Epic carrying a recorded outcome and one carrying none, and
+  its prepared record — the command, the preconditions to fix before running,
+  and a twelve-row assertion table drawn from the skill's own documented
+  promises — is [`notes/manual-qa.md`](notes/manual-qa.md), every observation
+  still empty. Nothing about the pass was simulated or inferred to ship this.
 - eugenelim: a second delivery system for this view. The parent intent records
   it as a later cut rather than a condition of this one working, and neither
   `linear` nor `github` ships a standalone skill to compose from today.

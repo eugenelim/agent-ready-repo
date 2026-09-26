@@ -1,7 +1,7 @@
 # Plan: jira epic outcome view
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/atlassian/.apm/skills/flow-metrics/SKILL.md`
   (metrics from changelogs, with no sample-size threshold on any of them —
   percentiles are nulled only when fewer than two values exist, which is
@@ -319,7 +319,6 @@ those numbers separately instead.
 | AC54 | T1 | TDD — validated red stub |
 | AC55 | T1 | TDD — validated red stub |
 | AC56 | T3 | goal-based check — `no stub (goal-based check)` |
-| AC57 | T6 | visual / manual QA — `no stub (manual QA)` |
 
 ## Tasks
 
@@ -1897,6 +1896,36 @@ default-off flag.
   were adjudicated against repository and source evidence before any repair;
   of 48 raised, 28 sustained and 20 were refuted, including five reviewer
   blockers that evidence did not support.
+- 2026-09-26 — **shipped, with the manual-QA pass moved out of the criteria by
+  owner decision.** The post-gates review by three reviewers sustained five
+  completion-blocking findings; four were unmet acceptance criteria (AC6, AC35,
+  AC13/AC16, AC14) and all four were repaired and re-verified against their own
+  reproductions. Twelve further sustained findings were adjudicated non-blocking
+  and four of those — an uncaught `RecursionError` on a Jira-acceptable
+  description, a string comparison of changelog timestamps that picks the wrong
+  moment across a DST change, unvalidated `--project` interpolation into JQL,
+  and a scratch directory created before its location check — were repaired in
+  the same round. Three findings were refuted on adjudication and deliberately
+  not changed.
+
+  **Owner decision, 2026-09-26: the installed-CLI manual-QA pass is no longer an
+  acceptance criterion.** It moved to `## Follow-ons` with its owner and its
+  prepared record. The criterion list is now 56, the disposition table is total
+  over AC1..AC56, the derived stub tally reads 56, and no criterion carries a
+  manual-QA disposition. This is a narrowing of the accepted intent, not
+  bookkeeping, which is why it is recorded here rather than presented as a tick:
+  the pass itself was never performed, nothing about it was simulated, and
+  `notes/manual-qa.md` still carries every observation empty. What shipped is
+  the 56 criteria a gate can read; what remains open is the one that needs a
+  credentialed Jira instance, now tracked as a follow-on rather than as a
+  blocked criterion.
+
+  Two limits stay documented rather than fixed, because fixing either would add
+  a mechanism no criterion contracts and AC5 pins the parent-link read one of
+  them would replace: Epic membership is an exact match on the issue-type name,
+  and Story-to-Epic grouping reads the `parent` field, which classic Server and
+  Data Center projects do not populate for that link.
+
 - 2026-09-25 — **round 23: both checks simplified to what is trivially
   checkable, and each red demonstrated instead of asserted.** Owner decision
   after round 8 returned three blockers, all in round 22's repairs and all of
