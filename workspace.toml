@@ -2087,12 +2087,14 @@ open = [
   # above: backlog.open admits only a Draft artifact, so an Accepted intent is no
   # longer open backlog work. Its delivery unit is registered as a brief in
   # ini-010's brief_queue, and that membership is where its work is now tracked.
-  # The five confirmed delivery slices of docs/product/briefs/intent-identity-and-registration.md,
-  # materialised 2026-09-19 after the brief reached Ready and the slice cut was confirmed. Six since
+  # The first five confirmed delivery slices of docs/product/briefs/intent-identity-and-registration.md
+  # were materialised 2026-09-19 after the brief reached Ready and the slice cut was confirmed. Six since
   # 2026-09-20: `intent-placement-and-admission` was re-cut into two slices and then one of
   # them, `intake-intent-configured-destination`, was retired the same day when its founding
   # defect proved not to be one. Only `frame-intent-escape-verdicts` survives from that
-  # re-cut. The brief's `## Post-Ready amendment` records why, and its Spec map owns the set. Registered
+  # re-cut. A seventh slice, `intent-preamble-closure-declarations`, was confirmed on
+  # 2026-09-25 and moved to ini-010's work queue when its spec was approved. The brief's
+  # post-Ready decisions record why, and its Spec map owns the set. Registered
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
@@ -2343,6 +2345,11 @@ shipped = [
   # mark and the closed-empty marker, so the parent brief stays `Executing`:
   # two of its four slices are materialized and both are Shipped.
   { path = "docs/specs/brief-lifecycle-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "Give a brief a state table, a legal transition set and a Cut-closed declaration a bounded comment-aware preamble reader decides, with the vocabulary and coherence predicate moved to one defining home and every brief read in the coverage lint routed through that reader", needs = [] },
+  # Slice 7 of `intent-identity-and-registration`, shipped 2026-09-26 after a
+  # controlled plan amendment repaired ownership of the field-reference parity
+  # input. It owns two declarations needed by `intent-lifecycle-and-closure`
+  # slice 2, while closure refusal behavior stays with that consuming slice.
+  { path = "docs/specs/intent-preamble-closure-declarations/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Declare Outcome co-owner as a validated typed peer pointer and add a closed-empty Decomposed terminus while keeping closure refusal behavior out of this slice", needs = [] },
   { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam, with no rule it adds reachable from the shared validate_live_intent surface", needs = [] },
   # Slice 6 of `intent-identity-and-registration`, cut 2026-09-23 on the second
   # distinct confirmation the post-Ready slice path requires. It delivers the two

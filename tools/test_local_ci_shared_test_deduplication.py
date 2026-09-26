@@ -154,9 +154,21 @@ CORE_COLLECTIONS = {
     # which fails if a new `out.append` uses a different indent and so would
     # otherwise be unsuppressible. Dispositioned by the same AST diff: three
     # additions, no removal, no rename.
+    # Re-pinned 2026-09-26 for the intent closure declarations: 63 -> 72.
+    # Dispositioned against `origin/main` before re-pinning, as the note above
+    # requires: 9 additions, 0 removals, no rename, and the surviving 63 keep
+    # their relative order. Seven are the `Outcome co-owner:` criteria read
+    # through the lint's own entry point and through its helper — unresolved
+    # and self-referential peers, the no-new-edges control, and the
+    # comment-visibility cases — and two are the arms of
+    # `test_sidecar_outcome_co_owner_refuses_invalid_peer`, which carried no
+    # `ids=` when it was written, so the ID requirement fired before the count
+    # could and this check was red for the whole branch. The arms are named
+    # `unresolved-peer` and `self-reference` rather than left to pytest's
+    # generated indices, which renumber silently when an arm is inserted.
     SHARED_TESTS[2]: (
-        63,
-        "1a9d10be9aaaff85df11c343fb4925d54d59bd94b69868cec31e8a5c4fa6f34e",
+        72,
+        "1a21a5123506da2ea40f146556477a9148e06f08753f0e7b1bc43d1f0cbf0624",
     ),
 }
 

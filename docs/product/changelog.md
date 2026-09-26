@@ -64,6 +64,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.45] — 2026-09-26
+
+### Highlights
+
+- Intent preambles can now say an outcome is shared with another intent by adding `Outcome co-owner:` as a typed peer pointer. The corpus and traceability checks reject malformed, missing-target, and self-referential peers without turning the peer into a parent or delivery edge.
+- `Decomposed:` can now record a finished childless decomposition with `YYYY-MM-DD closed-empty`. It stays distinct from the literal `no`, so an author can tell "we deliberately closed this with no child work" from "we decided not to decompose."
+
+### Changed
+
+- `work-intake` ignores preamble-shaped lines inside HTML comments before it recognizes fields or the first visible body heading. A hidden `Outcome co-owner:` line is absent, not malformed or unresolved.
+- `Outcome co-owner:` is constrained when present to `outcome:<target>`, `opportunity:<target>`, `capability:<target>`, or `intent:<target>`, and traceability resolves the value against another live intent identity without adding graph edges.
+- `Decomposed:` accepts `closed-empty` as a dated terminus. The `direct-light` checkbox-item rule remains exclusive to `direct-light`.
+
+## [product-engineering][0.13.19] — 2026-09-26
+
+### Highlights
+
+- The intent template and product-engineering how-tos now show both closure declarations authors can copy: optional `Outcome co-owner:` for a shared outcome, and `closed-empty` for a decomposition that is complete with no child work.
+
+### Changed
+
+- `frame-intent`'s template seeds `Outcome co-owner:` as an optional comment-only field, so it is absent until an author writes a typed peer pointer.
+- The frame and handoff how-tos list `closed-empty` beside the existing `Decomposed:` termini, and the refused-intent guide shows how to repair malformed, unresolved, self-referential, and comment-hidden co-owner declarations.
+
 ## [core][2.26.44] — 2026-09-26
 
 ### Highlights

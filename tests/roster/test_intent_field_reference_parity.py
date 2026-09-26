@@ -204,6 +204,23 @@ def test_the_status_row_names_exactly_the_validators_vocabulary() -> None:
     assert "Superseded by <slug>" not in cells[0]
 
 
+def test_the_outcome_co_owner_row_carries_its_runtime_tier() -> None:
+    documented = _documented()
+
+    assert documented.get("Outcome co-owner") == CONSTRAINED
+
+
+def test_the_decomposed_row_names_exactly_the_runtime_termini_plus_no() -> None:
+    shape = _load_validator()
+    cells = _value_cells(_field_section(PAGE.read_text(encoding="utf-8")), "Decomposed")
+    assert len(cells) == 1, cells
+
+    documented = set(re.findall(r"`([^`]+)`", cells[0]))
+    documented.discard("YYYY-MM-DD")
+    expected = set(shape.DECOMPOSITION_TERMINI) | {"no"}
+    assert documented == expected, documented ^ expected
+
+
 # ── What this file deliberately does not check ────────────────────────────────
 #
 # Whether each row's prose *describes its rule correctly* is not asserted here,

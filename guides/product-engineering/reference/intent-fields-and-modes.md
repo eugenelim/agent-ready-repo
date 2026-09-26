@@ -45,9 +45,10 @@ additions keep working.
 | `Kind` | constrained when present | `outcome` or `opportunity` — the rung this intent occupies on the opportunity-solution tree |
 | `Scale` | constrained when present | `app` or `business-unit` — resolved at intake (see Modes) |
 | `Maturity` | constrained when present | `greenfield` or `brownfield` — gates current-state inputs |
+| `Outcome co-owner` | constrained when present | a peer declaration in typed pointer form: one of `outcome`, `opportunity`, `capability`, or `intent`, followed by `:` and a non-empty target identity. The corpus lint resolves the target; this row only checks the one-artifact shape |
 | `De-risked` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no`. The basic form `20260922`, a week date, and an ordinal date are refused |
 | `Shaping-reviewed` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no` |
-| `Decomposed` | constrained when present | the literal `no`, or an ISO 8601 calendar date written `YYYY-MM-DD` followed by exactly one of `children`, `brief`, `spec`, `direct-light` |
+| `Decomposed` | constrained when present | the literal `no`, or an ISO 8601 calendar date written `YYYY-MM-DD` followed by exactly one of `children`, `brief`, `spec`, `direct-light`, `closed-empty` |
 | `Governed by` | unconstrained | the governing decision this intent answers to |
 | `Parent intent` | unconstrained | back-link to the intent this was decomposed from; omit at the top of the tree |
 | `Milestone` | unconstrained | where this sits in an implementation sequence |
