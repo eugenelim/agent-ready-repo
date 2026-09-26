@@ -61,6 +61,36 @@ The skill infers the mode (create, revise, retrofit, audit, or verify), reads ca
 
 ---
 
+## Opening pattern for workflow pages
+
+Use this for adopter-facing pages that help a reader run an operational
+workflow. The pattern applies to pack guides and to other code-backed product
+surfaces with a concrete user action.
+
+The opening should answer these questions, in this order:
+
+1. What outcome does this workflow start?
+2. What can the reader type in natural language?
+3. What does the agent do next, in a few concrete steps?
+4. What artifact, state, or observable result exists afterward?
+5. What must the human decide or approve, if anything?
+6. How does the reader know this step is finished?
+7. What is the normal next move?
+
+Do not treat those questions as required visible headings. Use a sentence, a
+short list, a compact table, or selective labels, whichever is easiest to scan.
+
+Keep the opening terse. Put implementation names, exhaustive route tables, field
+definitions, and deeper explanation below it or link them out. Lead with the
+reader's goal and a natural-language prompt; name a skill only for explicit
+invocation, reference, debugging, or an unavoidable runtime fact.
+
+Include read/write state only when it matters to whether the workflow is safe to
+run or resumable later. Omit any field that has no meaningful answer. Remove
+nearby prose that repeats the opening.
+
+---
+
 ## Avoiding common mistakes
 
 **Writing adopter-facing docs to `docs/guides/`** — `docs/guides/` is never projected or shipped. A guide about how to *use* a pack belongs in `guides/<pack>/`, not here. The pages in `docs/guides/` are for maintainers of this repo.

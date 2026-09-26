@@ -109,6 +109,11 @@ Resolved trade-offs:
   conflict on an accent value (a cooler hue that misses AA contrast on the
   ground), **polish** wins — shift the value until it clears AA; the floor
   is not negotiable.
+- Route-category hues are allowed only on orientation surfaces where they help
+  readers choose between kinds of work. They are redundant cues paired with
+  visible labels such as Shape, Build, Investigate, and Operate; normal links,
+  primary actions, active navigation, and focus treatment stay on the single
+  cobalt accent.
 - When **editorial gravitas** and **quiet enterprise polish** conflict on
   density (larger display margins vs. reference-page scannability),
   **polish** wins on reference/how-to pages, **gravitas** wins on landing
