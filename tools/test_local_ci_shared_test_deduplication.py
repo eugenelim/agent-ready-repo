@@ -839,11 +839,32 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # place returns an empty error list — checked by expanding that Makefile text
 # through the same function in this worktree — so this supersedes live values
 # rather than a pin that had already gone stale.
+# Bumped 2026-09-26 for the atlassian pack-level suite, which adds one
+# `run-test-suite` line so the pack's bridge-skill declaration is asserted on
+# every pull request rather than only under the dispatch-only test-corpus.yml.
+# (1) Sole cause: the Makefile change in this commit is one added line and zero
+# removed or reordered — `$(PYTHON) -m pytest packs/atlassian/tests/pack/ -q`,
+# placed at the head of the atlassian batch, immediately after the `import
+# httpx` precondition. It is a new process, so every plan index after it shifts
+# by one and both digests move for one added line. The root/tool process counts
+# hold at 15/14: the line is a pack suite, not a root or tools group, so
+# `_root_tool_pytest_groups` sees no change and EXPECTED_ROOT_TOOL_PATHS is
+# untouched. `_effective_composition_errors` over the edited Makefile returned
+# exactly two errors — the two plan-digest drifts — and nothing else.
+# (2) Prior pins were current: `_effective_composition_errors` over this
+# branch's pre-edit Makefile, with `c72bca08…` and `8ee87c7f…` still in place,
+# returns an empty error list — checked by expanding that saved Makefile text
+# through the same function — so this supersedes live values rather than a pin
+# that had already gone stale. The baseline is `origin/main` (e8e49c6b7) plus
+# the jira-epic-outcome-view line the entry above added on this branch, which
+# is the state this change builds on; against bare `origin/main:Makefile` the
+# superseded pins drift on both plans, and that drift is that unmerged line,
+# not staleness.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "c72bca085478a30cd0c7889cf30b8989e969ce1c33460377e61962d59000e2e7"
+    "b0da72f5af44a562affba69f9391a8504d57605ee024d91be0fd1e28f982e470"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "8ee87c7f46c191cb23823ef983ffb8016a5000aa308e22c76d1fe8b703648200"
+    "8f9294bb05daf2c8ecf368db63004c9554f8cbf97a30ea86e00f5ffac05687af"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

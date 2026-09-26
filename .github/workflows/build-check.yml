@@ -649,6 +649,7 @@ jobs:
           python -m pytest packs/core/tests/pack/ -q
           python -m pytest packs/core/tests/skills/workspace-status/ -q
           python -m pytest packs/credential-brokers/tests/pack/ -q
+          python -m pytest packs/atlassian/tests/pack/ -q
           python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
           python -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
           python -m pytest packs/product-engineering/tests/pack/ -q

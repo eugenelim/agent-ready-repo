@@ -620,6 +620,7 @@ $(PYTHON) -m pytest \
 	packs/architect/tests/skills/architect-review/ -q
 $(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 $(PYTHON) -c "import httpx"
+$(PYTHON) -m pytest packs/atlassian/tests/pack/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q

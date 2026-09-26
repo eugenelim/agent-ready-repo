@@ -11,6 +11,22 @@ keywords = ["jira", "confluence", "flow-metrics", "jira-align"]
 [pack.adapter-contract]
 version = "0.8"
 
+# Bridge skills — the skills in this pack that may reach the delivery machinery
+# of a host repository: its intent tree, its delivery briefs, its workspace
+# configuration file, or its work-intake route. Every other skill here returns
+# value to a team that has installed nothing but this pack.
+#
+# This list is the contract. The `-brief-intake` and `-refresh` naming is only
+# a convention, so read the list rather than inferring membership from a name.
+# An omitted list means the pack ships no bridge skills.
+[pack.metadata]
+bridge-skills = [
+  "jira-align-brief-intake",
+  "jira-align-refresh",
+  "jira-brief-intake",
+  "jira-refresh",
+]
+
 # Every credentialed skill in this pack resolves its credential through the
 # broker layer: the `credbroker` library for the token path, and
 # `~/.agentbundle/bin/sso-broker.py` for `auth: sso-cookie`. Neither ships here.
