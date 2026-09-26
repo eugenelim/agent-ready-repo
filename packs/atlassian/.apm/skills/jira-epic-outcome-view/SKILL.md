@@ -91,7 +91,7 @@ the outcome stays something the team said.
 Pass the team's answer back with `--outcome`, once per Epic:
 
 ```bash
-python3 -m jira_epic_outcome_view --project PROJ \
+python3 -B -m jira_epic_outcome_view --project PROJ \
   --outcome PROJ-100="Customers resolve a return without contacting support."
 ```
 
@@ -136,13 +136,19 @@ path.
 ## Invocation
 
 ```bash
-python3 -m jira_epic_outcome_view --project PROJ
-python3 -m jira_epic_outcome_view --project PROJ --from 2026-07-01 --to 2026-09-30
-python3 -m jira_epic_outcome_view --project PROJ --include-subtasks
+python3 -B -m jira_epic_outcome_view --project PROJ
+python3 -B -m jira_epic_outcome_view --project PROJ --from 2026-07-01 --to 2026-09-30
+python3 -B -m jira_epic_outcome_view --project PROJ --include-subtasks
 ```
 
 Run it from the `scripts/` directory of this skill, or with that
 directory on `PYTHONPATH`.
+
+`-B` is part of the command, not an optional extra. Without it the
+interpreter compiles this skill's own package into a `__pycache__`
+directory beside its sources -- inside the installed tree the view
+promises to leave byte-identical -- and it does that while importing, so
+no statement inside the program can prevent it.
 
 - `--project KEY` -- required. The Jira project to read.
 - `--from` / `--to` -- inclusive `YYYY-MM-DD` window bounds. Default: the

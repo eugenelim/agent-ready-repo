@@ -39,7 +39,7 @@ Run it from the installed skill's `scripts/` directory, or with that directory
 on `PYTHONPATH`:
 
 ```bash
-python3 -m jira_epic_outcome_view --project <PROJECT-KEY>
+python3 -B -m jira_epic_outcome_view --project <PROJECT-KEY>
 ```
 
 Capture stdout and the exit code from the same invocation. Do not re-run to

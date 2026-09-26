@@ -67,7 +67,17 @@ def test_the_installed_pack_tree_is_byte_identical_across_a_run(
 ):
     """The second named root. The run imports and executes the pack's own
     shipped code, which is the path that would otherwise leave bytecode
-    caches behind inside the tree the view promises not to change."""
+    caches behind inside the tree the view promises not to change.
+
+    The package is imported before the fingerprint is taken, so the
+    comparison is about what the run does and not about which test
+    happened to import first. Taking it afterwards makes this pass on a
+    warm tree and fail on a cold one for the same code, and the run's own
+    writes are then invisible either way. The compilation this harness
+    itself causes is asserted separately, against the documented command,
+    in `test_documented_invocation_writes_no_bytecode.py`.
+    """
+    load_module("")
     before = guarantees.hash_tree(pack_root)
 
     _run(monkeypatch, load_module, transport, working_dir, capsys)

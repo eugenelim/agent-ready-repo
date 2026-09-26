@@ -30,11 +30,13 @@ _PER_ISSUE_FILENAME = "per-issue.jsonl"
 
 
 class ScratchLocationError(Exception):
-    """The scratch directory resolved inside a root that must not change.
+    """The temporary directory resolved inside a root that must not change.
 
-    Raised before anything is written. A temporary directory configured
-    to sit under the working directory would otherwise turn the one
-    disclosed write into a breach of the read-only guarantee.
+    Raised before anything is created: the location is checked, then the
+    directory is made under the location that passed. A temporary
+    directory configured to sit under the working directory would
+    otherwise turn the one disclosed write into a breach of the
+    read-only guarantee.
     """
 
 
@@ -46,21 +48,27 @@ class FlowMetricsError(Exception):
 def scratch_per_issue_path(*, cwd_root: Path, pack_root: Path) -> Iterator[Path]:
     """Yield a per-issue JSONL path outside both protected roots.
 
-    The directory is removed on the way out whether the body returned or
-    raised: a failed run that leaves the file behind fails the same
-    guarantee a successful one would.
+    The configured temporary location is checked first and the directory
+    is created only under a location that passed, so a location inside a
+    protected root is refused with nothing created there. The directory
+    is removed on the way out whether the body returned or raised: a
+    failed run that leaves the file behind fails the same guarantee a
+    successful one would, and a removal that fails is surfaced rather
+    than swallowed, because a swallowed one is indistinguishable from a
+    removal that worked.
     """
-    scratch = Path(tempfile.mkdtemp(prefix=_SCRATCH_PREFIX)).resolve()
+    base = Path(tempfile.gettempdir()).resolve()
+    for root in (cwd_root, pack_root):
+        if _is_within(base, root):
+            raise ScratchLocationError(
+                f"the temporary directory {base} sits under {root}, which this "
+                "view must leave unchanged; set TMPDIR outside it"
+            )
+    scratch = Path(tempfile.mkdtemp(prefix=_SCRATCH_PREFIX, dir=base)).resolve()
     try:
-        for root in (cwd_root, pack_root):
-            if _is_within(scratch, root):
-                raise ScratchLocationError(
-                    f"temporary directory {scratch} sits under {root}, which this "
-                    "view must leave unchanged; set TMPDIR outside it"
-                )
         yield scratch / _PER_ISSUE_FILENAME
     finally:
-        shutil.rmtree(scratch, ignore_errors=True)
+        shutil.rmtree(scratch)
 
 
 def _is_within(candidate: Path, root: Path) -> bool:

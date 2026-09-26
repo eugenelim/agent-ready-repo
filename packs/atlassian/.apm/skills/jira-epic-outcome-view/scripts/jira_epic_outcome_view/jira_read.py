@@ -10,12 +10,15 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess  # noqa: S404 -- list-form only, never shell=True
 import sys
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
+
+from . import state
 
 #: Read verbs this view is allowed to ask the Jira client for. The list is
 #: an allowlist rather than a denylist of write verbs: a verb added to the
@@ -37,9 +40,25 @@ FLAGGED_FIELD_NAME = "flagged"
 _SEARCH_FIELDS = "parent,status,statuscategorychangedate,description,issuetype"
 _EPIC_ISSUETYPE = "Epic"
 
+# A Jira project key: a letter, then letters, digits or underscores. The
+# scope's whole JQL is built around this value, so it is matched against
+# the shape rather than escaped -- a value carrying a double quote would
+# otherwise close the literal and change which issues the Epic set, the
+# parent links and every description are read from, while the view went
+# on rendering the caller's own string as the project.
+_PROJECT_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,254}$")
+
 
 class JiraReadError(Exception):
     """The Jira client refused, failed, or returned an unreadable payload."""
+
+
+class ProjectKeyRefused(Exception):
+    """A ``--project`` value that is not a Jira project key. Exit 2.
+
+    Raised before the JQL is built, so the refusal is structural rather
+    than a promise about what the caller passes.
+    """
 
 
 class WriteVerbRefused(Exception):
@@ -48,6 +67,16 @@ class WriteVerbRefused(Exception):
     Raised before any subprocess starts, so the refusal is structural
     rather than a promise about what the caller passes.
     """
+
+
+def validate_project_key(project: str) -> str:
+    """The project key, or a refusal. Nothing is escaped or rewritten."""
+    if not _PROJECT_KEY.match(project or ""):
+        raise ProjectKeyRefused(
+            f"--project expects a Jira project key -- a letter followed by "
+            f"letters, digits or underscores -- and got {project!r}"
+        )
+    return project
 
 
 def run_jira(
@@ -140,6 +169,7 @@ def read_scope(
     Returns the moment the pass was taken alongside its data, because the
     view states that moment separately from the flow reading's own.
     """
+    validate_project_key(project)
     flagged_field = resolve_flagged_field(script=script, runner=runner)
     fields = _SEARCH_FIELDS if flagged_field is None else f"{_SEARCH_FIELDS},{flagged_field}"
     issues = search(
@@ -217,7 +247,13 @@ def flagged_since(
     if not isinstance(issue, Mapping):
         return None
     histories = (issue.get("changelog") or {}).get("histories") or []
+    # Compared as instants, never as strings. Jira renders `created` in
+    # the requesting user's offset, so two entries either side of a
+    # daylight-saving change order by their local clock faces under a
+    # string comparison and the wrong one wins "last changed". The string
+    # itself is what comes back, so the reported moment stays verbatim.
     latest: str | None = None
+    latest_at: datetime | None = None
     for history in histories:
         if not isinstance(history, Mapping):
             continue
@@ -231,9 +267,30 @@ def flagged_since(
             # its name, so both are accepted.
             names = {flagged_field.lower(), FLAGGED_FIELD_NAME}
             changed_field = str(item.get("fieldId") or item.get("field") or "").lower()
-            if changed_field in names and (latest is None or str(created) > latest):
-                latest = str(created)
+            if changed_field not in names:
+                continue
+            created_at = state.parse_moment(str(created))
+            if _is_later(created_at, latest_at, seen_any=latest is not None):
+                latest, latest_at = str(created), created_at
     return latest
+
+
+def _is_later(
+    candidate: datetime | None, incumbent: datetime | None, *, seen_any: bool
+) -> bool:
+    """Whether ``candidate`` replaces ``incumbent`` as the latest change.
+
+    An unreadable timestamp never displaces a readable one, and is kept
+    only while nothing readable has been seen: reporting a moment the
+    view could not parse is still better than reporting none at all.
+    """
+    if not seen_any:
+        return True
+    if candidate is None:
+        return False
+    if incumbent is None:
+        return True
+    return candidate > incumbent
 
 
 def _state_record(

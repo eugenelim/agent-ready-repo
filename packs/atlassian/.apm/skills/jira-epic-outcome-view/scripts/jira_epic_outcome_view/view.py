@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from . import outcome as outcome_reader
+from . import parents as parent_chains
 from . import state
 
 #: The group that carries work whose parent chain never reached an
@@ -41,8 +42,10 @@ _BUCKETS = frozenset({"feature", "defect", "debt", "risk", "subtask", "other"})
 _OTHER_BUCKET = "other"
 _SUBTASK_BUCKET = "subtask"
 
-_NO_PARENT_LINK = "no parent link was recorded for this issue"
-_NOT_IN_SCOPE = "the parent chain ends at {parent}, which is not an in-scope Epic"
+# The three chain-ending reasons are worded once, in the module that
+# walks the chain. A second wording here would drift against it, and the
+# reader would have no way to tell which one described their data.
+_NO_PARENT_LINK = parent_chains.NO_PARENT_LINK
 
 
 def normalised_bucket(row: Mapping[str, Any]) -> str:
@@ -83,6 +86,7 @@ def build_epic_rows(
     jira_taken_at: str,
     include_subtasks: bool = False,
     supplied_outcomes: Mapping[str, str] | None = None,
+    chain_ends: Mapping[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """One row per in-scope Epic, plus an unattributed group when needed.
 
@@ -93,7 +97,10 @@ def build_epic_rows(
     with no delivered work still renders -- absent work is an answer.
     ``supplied_outcomes`` carries what the team stated this session in
     response to the prompt; it comes back as paste-ready text and is
-    never written to Jira by this view.
+    never written to Jira by this view. ``chain_ends`` carries why each
+    unresolved chain ended, from the walk that saw the raw links; without
+    it the only reason this builder can state truthfully is that no
+    parent link reached it.
 
     The two moments are carried separately on every row. They are two
     passes over Jira and the view never claims one atomic snapshot.
@@ -110,7 +117,7 @@ def build_epic_rows(
         if parent in in_scope:
             grouped[str(parent)].append(row)
         else:
-            unattributed[str(key)] = {"reason": _reason_for(key, parents, parent)}
+            unattributed[str(key)] = {"reason": _reason_for(str(key), chain_ends)}
 
     supplied = dict(supplied_outcomes or {})
     flagged_supported = state.flagged_field_available(jira_state)
@@ -143,16 +150,15 @@ def build_epic_rows(
     return rows
 
 
-def _reason_for(key: str, parents: Mapping[str, str | None], parent: str | None) -> str:
+def _reason_for(key: str, chain_ends: Mapping[str, str] | None) -> str:
     """Why this issue's chain never reached an in-scope Epic.
 
     The reason is carried per issue rather than once for the group: two
     issues can end for different reasons, and one group-level string
-    cannot say so.
+    cannot say so. It comes from the chain walk, which is the only place
+    a parent outside the scope is still distinguishable from a cycle.
     """
-    if key not in parents or parent is None:
-        return _NO_PARENT_LINK
-    return _NOT_IN_SCOPE.format(parent=parent)
+    return (chain_ends or {}).get(key) or _NO_PARENT_LINK
 
 
 def _epic_row(

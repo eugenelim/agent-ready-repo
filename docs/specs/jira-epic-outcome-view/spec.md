@@ -210,12 +210,12 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
 
 ## Acceptance Criteria
 
-- [ ] The view groups a Jira scope's work by Epic and renders, for each Epic,
+- [x] The view groups a Jira scope's work by Epic and renders, for each Epic,
       both a delivery reading and an outcome position.
-- [ ] The flow reading is `flow-metrics` run once in `--per-issue` mode. Every
+- [x] The flow reading is `flow-metrics` run once in `--per-issue` mode. Every
       per-Epic figure is an aggregation by count over that skill's own emitted
       rows, never a recomputation of a metric it defines.
-- [ ] Per-Epic throughput applies that skill's own counting rule, not a plain
+- [x] Per-Epic throughput applies that skill's own counting rule, not a plain
       count of delivered rows: a row counts when `delivered_in_window` is true
       **and**, unless `--include-subtasks` was passed, its `issuetype_bucket`
       is not `subtask` — where any bucket outside `feature`, `defect`, `debt`,
@@ -223,27 +223,27 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       `--include-subtasks` the same rows count, so the view reports the larger
       number rather than holding the excluded count fixed. Counting every
       delivered row would report a larger number under the same name.
-- [ ] Per-Epic work in flight counts rows whose `wip_at_to` is true, with no
+- [x] Per-Epic work in flight counts rows whose `wip_at_to` is true, with no
       further filter, which is that skill's own rule unchanged. `flow-metrics`
       emits no per-Epic breakdown: its output carries `aggregates`,
       `per_team` and a `--cohort-jql`-driven `cohort_breakdown`, so a per-Epic
       figure has to be grouped here or not exist.
-- [ ] Rows are grouped to Epics by the view's own read of each issue's parent
+- [x] Rows are grouped to Epics by the view's own read of each issue's parent
       link, resolved to the Epic rung. Jira Software nests Epic > Story >
       Subtask, so a subtask's immediate parent is a Story and reaching its
       Epic takes two hops.
-- [ ] An issue whose parent chain does not terminate at an in-scope Epic is
+- [x] An issue whose parent chain does not terminate at an in-scope Epic is
       rendered in a named unattributed group, with its key and the reason the
       chain ended, and the run still exits zero. Dropping it silently would
       shrink the delivery reading without saying so; failing the run would
       make one unparented issue withhold the whole view, which is worse than
       the partial answer a reader can see and act on. A per-issue row carries `key`, `team` and the derived times but no
       Epic or parent field, so the join cannot come from `flow-metrics`.
-- [ ] Because percentiles are not rendered, every per-Epic figure is a count
+- [x] Because percentiles are not rendered, every per-Epic figure is a count
       or a non-distributional observation. No per-Epic aggregation redefines
       cycle time, lead time or flow efficiency, and a criterion or task that
       would compute one fails this spec.
-- [ ] The state observations come from the same Jira read that supplies the
+- [x] The state observations come from the same Jira read that supplies the
       parent links, and each has one defined source and anchor. Work in
       flight is the `wip_at_to` row count above and is not re-derived here.
       Age is now minus the issue's status-category-changed timestamp, per
@@ -254,7 +254,7 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       changed inside the flow window, which is the same window the throughput
       count uses. An Epic with no in-flight issues renders each observation as
       an explicit none, not a blank.
-- [ ] The view states the moment of the flow reading and the moment of the
+- [x] The view states the moment of the flow reading and the moment of the
       Jira read. They are two passes over Jira and the view does not claim
       otherwise; a single rendered timestamp implying one atomic snapshot
       fails. `jira-team-status` is deliberately not composed: its first stage
@@ -262,7 +262,7 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       criteria forbid, and its declared dependencies route to `new-spec`, core
       machinery this slice must not reach. Its own value — the readiness rule
       and pick-up routing — is what this view is forbidden to render.
-- [ ] The outcome location is the Epic's `description` field, specifically
+- [x] The outcome location is the Epic's `description` field, specifically
       the block under a top-level `Outcome` heading. It is fixed, documented
       in `SKILL.md`, and not configurable per invocation. `description` is one
       of only two free-form multi-line system fields Jira ships, and the only
@@ -270,12 +270,12 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       custom field would need per-instance admin setup — per-space in
       team-managed projects, where custom fields cannot be reused across
       spaces — which the parent forbids as a prerequisite in disguise.
-- [ ] The same location is what the prompt and the paste-ready text instruct
+- [x] The same location is what the prompt and the paste-ready text instruct
       the team to write into.
-- [ ] The heading is located in both description shapes: Atlassian Document
+- [x] The heading is located in both description shapes: Atlassian Document
       Format on Cloud REST v3 and plain or wiki text on Server/DC REST v2. A
       reader that handles only one shape fails on the other deployment.
-- [ ] The heading grammar is fixed, so one reader is determinate. In ADF, a
+- [x] The heading grammar is fixed, so one reader is determinate. In ADF, a
       node of `type` `heading` at any `level`. In text, a line matching either
       a Markdown ATX heading (`#` to `######` followed by a space) or a
       Confluence wiki heading (`h1.` to `h6.` followed by a space); Setext
@@ -287,68 +287,68 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       block and the rest are ignored rather than merged, because merging would
       silently concatenate two authors' answers. A nested heading inside the
       block terminates it like any other.
-- [ ] Verbatim means the block's text with leading and trailing blank lines
+- [x] Verbatim means the block's text with leading and trailing blank lines
       removed and nothing else changed — no reflowing and no Markdown
       rendering. From ADF the traversal takes each descendant text node in
       document order, joining sibling block nodes (paragraphs, list items)
       with a single newline, rendering a `hardBreak` as a newline, and
       concatenating inline nodes with no separator. Without those three rules
       two readers produce different text and both call it verbatim.
-- [ ] An Epic whose description has no `Outcome` heading, and one whose
+- [x] An Epic whose description has no `Outcome` heading, and one whose
       heading is present with an empty block, both count as no outcome
       recorded and render the explicit nothing and the prompt. Absent and
       empty are the same answer to the reader, and treating only the first as
       absent would render a blank for the second.
-- [ ] An Epic's recorded outcome is reproduced verbatim from that block, and
+- [x] An Epic's recorded outcome is reproduced verbatim from that block, and
       the rest of the description is not rendered as outcome text.
-- [ ] The expected Epic set is derived from the fully paginated Jira result
+- [x] The expected Epic set is derived from the fully paginated Jira result
       for the requested scope and the calling credential, not from a
       hand-written fixture list.
-- [ ] The rendered view's Epic set equals that expected set exactly, and an
+- [x] The rendered view's Epic set equals that expected set exactly, and an
       Epic dropped before rendering fails.
-- [ ] Every run states that the set covers only what the calling credential
+- [x] Every run states that the set covers only what the calling credential
       can browse and that Jira omits the rest silently. Exact equality is
       asserted between two sets drawn from the same query, so it cannot detect
       a withheld issue and the disclosure is unconditional rather than
       triggered.
-- [ ] Removing any single member of the expected set from the rendered view
+- [x] Removing any single member of the expected set from the rendered view
       fails the check.
-- [ ] Every in-scope Epic whose outcome location is empty renders an explicit
+- [x] Every in-scope Epic whose outcome location is empty renders an explicit
       statement that none is recorded, rather than a blank or an omitted row.
-- [ ] Every such Epic also renders a prompt asking the team to state an
+- [x] Every such Epic also renders a prompt asking the team to state an
       outcome, naming the location to write it into.
-- [ ] The answer-input boundary is one observable surface, documented in
+- [x] The answer-input boundary is one observable surface, documented in
       `SKILL.md`: a repeatable `--outcome EPIC-KEY=<text>` argument, which a
       deterministic script can accept without an interactive session and a
       test can drive without a terminal. Absent the argument the Epic is
       treated as declined.
-- [ ] Three cases are decided rather than left to the implementation. A key
+- [x] Three cases are decided rather than left to the implementation. A key
       outside the queried scope is refused with a non-zero exit naming the
       key, because silently ignoring it loses the team's words. The same key
       given twice is refused the same way, since choosing first or last would
       discard one of two answers. `EPIC-KEY=` with empty text is a decline and
       renders the prompt, matching omission.
-- [ ] The view accepts an outcome the team states in response to that prompt
+- [x] The view accepts an outcome the team states in response to that prompt
       and renders those exact words back as paste-ready text, naming the
       location. A design that prints the prompt and never accepts an answer
       fails this criterion, and eliciting the outcome is in the parent's
       scope.
-- [ ] The view renders no score, grade or judgement of a recorded outcome.
-- [ ] Text is called paste-ready only when it carries outcome substance the
+- [x] The view renders no score, grade or judgement of a recorded outcome.
+- [x] Text is called paste-ready only when it carries outcome substance the
       team supplied in this session. A fixed scaffold with no team input is
       rendered as an elicitation prompt and is never labelled paste-ready.
-- [ ] A run that offers invented outcome substance fails, because the
+- [x] A run that offers invented outcome substance fails, because the
       parent's guardrail makes authorship non-waivable.
-- [ ] A run where the team supplies nothing renders the prompt and no
+- [x] A run where the team supplies nothing renders the prompt and no
       paste-ready text, and still renders the Epic with its explicit
       nothing.
-- [ ] Running the view issues no Jira write verb of any kind.
-- [ ] The set of sibling skills the sources actually invoke is derived from
+- [x] Running the view issues no Jira write verb of any kind.
+- [x] The set of sibling skills the sources actually invoke is derived from
       the sources, and that derived set — not a declaration — is what the two
       checks below traverse. A declaration cannot carry a read-only guarantee
       on its own, because an undeclared invocation is exactly what it fails to
       mention.
-- [ ] The skill's `manifest.json` declares that same set under `deps.skills`,
+- [x] The skill's `manifest.json` declares that same set under `deps.skills`,
       each by name and purpose, as `flow-metrics` already does for `jira` and
       `jira-align`, and the declaration is asserted equal to the derived set.
       `deps.skills` is the pack convention — 13 of 19 skill manifests use it —
@@ -356,33 +356,33 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       `deps` admits only package-manager keys. The equality assertion is what
       makes the field trustworthy here; the schema gap is recorded as a
       follow-on rather than resolved by this slice.
-- [ ] Every client reached from that derived set issues read methods only.
+- [x] Every client reached from that derived set issues read methods only.
       The derived set, not the set of skills the pack ships, is the boundary.
       A run that publishes to Confluence passes every Jira-verb and filesystem
       check while breaking the parent's read-only guardrail.
-- [ ] A sibling skill invoked by the sources but absent from `deps.skills`
+- [x] A sibling skill invoked by the sources but absent from `deps.skills`
       fails the check. Otherwise the boundary is self-reported and an
       undeclared invocation is invisible to both checks.
-- [ ] Running the view leaves two named roots byte-identical: the invocation
+- [x] Running the view leaves two named roots byte-identical: the invocation
       working directory tree and the installed pack tree.
-- [ ] `--per-issue` requires `--output FILE` and exits 2 without it, so the
+- [x] `--per-issue` requires `--output FILE` and exits 2 without it, so the
       view writes that JSONL to a scratch path outside both named roots and
       removes it before returning. The write is disclosed rather than denied:
       the read-only guarantee is that no repository artifact, no Jira object
       and neither named root changes — not that the process writes no byte
       anywhere.
-- [ ] A run that leaves the per-issue JSONL behind fails, as does one that
+- [x] A run that leaves the per-issue JSONL behind fails, as does one that
       writes it under either named root. The cache case is
       included — a populated `.context/flow-metrics/cache/` holding a stale
       `*.tmp` older than an hour. Naming the roots is what makes the check
       runnable; "the filesystem" names no comparison.
-- [ ] The broker's `~/.agentbundle/` is excluded from that comparison, and
+- [x] The broker's `~/.agentbundle/` is excluded from that comparison, and
       the view is asserted instead to issue no write there itself. The
       credential broker resolves an SSO session into an on-disk cookie jar
       under that root, so an authenticated read can legitimately change it.
       Holding the view to byte-identity there would fail on a path the view
       does not control and does not own.
-- [ ] `flow-metrics` gains a mode under which no cache operation of any kind
+- [x] `flow-metrics` gains a mode under which no cache operation of any kind
       occurs, stale-temp cleanup included. The residual defect `--no-cache`
       leaves is exactly one: the stale-temp cleanup runs ahead of the flag's
       branch and unlinks `*.tmp` files older than an hour from an existing,
@@ -392,24 +392,24 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       directory is created only on the write path, so a bypassed run does not
       materialise `.context/`. The plan holds the source coordinates, because
       this criterion's own task edits the file they point into.
-- [ ] The view composes `flow-metrics` only through that mode.
-- [ ] Invoked from a working directory that is not a repository and contains
+- [x] The view composes `flow-metrics` only through that mode.
+- [x] Invoked from a working directory that is not a repository and contains
       none of this repository's artifacts, the view returns a correct,
       non-empty answer.
-- [ ] With every adopter-repository path denied, the view still returns that
+- [x] With every adopter-repository path denied, the view still returns that
       answer. A run that reads any repository file fails.
-- [ ] The skill's sources contain no reference to `docs/product/`, an intent
+- [x] The skill's sources contain no reference to `docs/product/`, an intent
       tree, `workspace.toml`, canonical intent, a delivery brief or the
       `work-intake` route.
-- [ ] No file this slice ships under `packs/` cites an ADR number, an
+- [x] No file this slice ships under `packs/` cites an ADR number, an
       acceptance criterion or a repository-only path. `packs/AGENTS.md`
       confines shipped pack content to portable guidance.
-- [ ] No path from that derived set reaches a skill
+- [x] No path from that derived set reaches a skill
       the pack declares as a bridge. A token scan alone does not establish
       this: a skill can invoke `jira-refresh` while containing none of those
       terms, and would pass every other check here while violating ADR-0126
       D3.
-- [ ] `packs/atlassian/pack.toml` declares the pack's bridge skills as
+- [x] `packs/atlassian/pack.toml` declares the pack's bridge skills as
       `[pack.metadata]` key `bridge-skills`, a list of skill names. The table
       is intentionally open, so nothing infers the key — naming it here is
       what lets a later conformance check and a consumer find the same
@@ -419,36 +419,36 @@ it. Earlier rounds kept the two in step by hand and they drifted three times.
       since the enriched pack manifest accepts arbitrary keys there. A new
       top-level table would instead fail `CAT-L006` with `additional property
       not allowed`, because the schema is otherwise closed under `pack`.
-- [ ] The `docs/product/changelog.md` entry is free-standing at `##` and
+- [x] The `docs/product/changelog.md` entry is free-standing at `##` and
       carries a `### Highlights` subsection of outcome-led bullets, because
       this slice changes what a pack consumer can do. `/now/` is a pure byte
       parser over that file, so an unwritten block is a release the public
       page never mentions.
-- [ ] `packs/atlassian/pack.toml` and
+- [x] `packs/atlassian/pack.toml` and
       `packs/atlassian/.claude-plugin/plugin.json` carry the same bumped
       version — minor, because this slice adds a new primitive.
-- [ ] The pack's eval harness covers the new skill, which `packs/AGENTS.md`
+- [x] The pack's eval harness covers the new skill, which `packs/AGENTS.md`
       requires of any non-cosmetic pack update.
-- [ ] `.claude-plugin/marketplace.json` carries the bumped version. It
+- [x] `.claude-plugin/marketplace.json` carries the bumped version. It
       aggregates every `packs/*/.claude-plugin/plugin.json`, so the bump
       changes it. This pack's skills are not projected into the repository's
       own `.claude/` or `.agents/` trees, so those are not the regenerated
       output to check here.
-- [ ] Every generated output is regenerated by its build rather than edited,
+- [x] Every generated output is regenerated by its build rather than edited,
       and re-running that build leaves a zero diff.
-- [ ] `agentbundle catalogue lint --root . --deep` and
+- [x] `agentbundle catalogue lint --root . --deep` and
       `agentbundle catalogue verify --root .` pass.
-- [ ] Every rendered reading states the moment it was taken.
-- [ ] The view renders no percentile. `flow-metrics` computes them through
+- [x] Every rendered reading states the moment it was taken.
+- [x] The view renders no percentile. `flow-metrics` computes them through
       `statistics.quantiles`, which needs at least two points, so it nulls
       them when `n < 2` and computes them for every larger sample. That is a
       floor, not a confidence threshold: at `n = 2` a p90 is returned as fact.
       Rendering one here would put a median over four completions in front of
       a reader.
-- [ ] The view renders throughput as a count with its window, and the
+- [x] The view renders throughput as a count with its window, and the
       non-distributional observations — work in flight, age, blocked and since
       when, what moved — which need no sample at all.
-- [ ] The view runs only when invoked and leaves no resident process.
+- [x] The view runs only when invoked and leaves no resident process.
 - [ ] The installed CLI is exercised end-to-end through its documented happy
       path, and the recorded observation is **asserted against** that path,
       not merely logged: the command, its stdout, its exit code, and the

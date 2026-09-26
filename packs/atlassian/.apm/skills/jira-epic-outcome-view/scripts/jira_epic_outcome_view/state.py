@@ -10,6 +10,7 @@ visible in a single place.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -27,20 +28,38 @@ NOTHING_MOVED = "No work for this Epic changed status category inside the window
 
 _HOURS_PRECISION = 2
 
+# Jira Cloud writes its offset without a colon -- `2026-09-12T09:00:00.000+0000`
+# -- which `datetime.fromisoformat` rejects on Python 3.10, the oldest
+# interpreter this skill supports. Normalising it here is what keeps a
+# Cloud timestamp a comparable instant rather than an unreadable string.
+_OFFSET_WITHOUT_COLON = re.compile(r"([+-])(\d{2})(\d{2})$")
+
 
 def parse_moment(value: str | None) -> datetime | None:
-    """Parse an ISO-8601 instant, tolerating a trailing ``Z``.
+    """Parse a Jira instant into a timezone-aware UTC ``datetime``.
 
-    Returns ``None`` for anything unparseable rather than raising: a
-    single malformed Jira timestamp must not withhold the whole view.
+    Accepts a trailing ``Z``, an offset with or without its colon, and a
+    timestamp with no offset at all, which is read as UTC. Returns
+    ``None`` for anything unparseable rather than raising: a single
+    malformed Jira timestamp must not withhold the whole view.
+
+    The result is always aware, so two instants from two offsets compare
+    as moments. Comparing their strings instead orders two entries either
+    side of a daylight-saving change by their local clock faces.
     """
     if not value:
         return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    match = _OFFSET_WITHOUT_COLON.search(text)
+    if match is not None:
+        text = f"{text[: match.start()]}{match.group(1)}{match.group(2)}:{match.group(3)}"
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(text)
     except ValueError:
         return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 def window_bounds(window: Mapping[str, str]) -> tuple[datetime | None, datetime | None]:

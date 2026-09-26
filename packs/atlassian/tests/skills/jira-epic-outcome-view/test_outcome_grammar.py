@@ -159,3 +159,72 @@ def test_the_surrounding_document_is_not_read_as_outcome(outcome):
     )
 
     assert outcome.extract_outcome(description) == "Customers self-serve."
+
+
+def test_a_heading_nested_in_a_container_closes_the_block(outcome):
+    """The structured-document twin of the text case above. A heading
+    inside a `panel`, an `expand`, a `blockquote` or a `layoutColumn` is
+    still a heading: reading only the document's direct children swallows
+    it, and the container plus everything after it renders as the team's
+    outcome. One shape working and the other not is exactly the asymmetry
+    one grammar for both readers exists to prevent."""
+    description = _adf(
+        _heading("Outcome"),
+        _para(_text("Customers self-serve.")),
+        {
+            "type": "panel",
+            "attrs": {"panelType": "info"},
+            "content": [_heading("Detail", level=3), _para(_text("Not the outcome."))],
+        },
+    )
+
+    extracted = outcome.extract_outcome(description)
+
+    assert extracted == "Customers self-serve."
+    assert "Not the outcome." not in extracted
+
+
+def test_a_container_with_no_heading_is_still_read_as_block_text(outcome):
+    """The other side of that rule: descending is for terminating the
+    block, not for dropping the text of a container that holds none."""
+    description = _adf(
+        _heading("Outcome"),
+        {
+            "type": "blockquote",
+            "content": [_para(_text("Customers self-serve.")), _para(_text("Twice."))],
+        },
+    )
+
+    assert outcome.extract_outcome(description) == "Customers self-serve.\nTwice."
+
+
+def test_an_unlisted_inline_node_does_not_split_its_paragraph(outcome):
+    """ADF keeps gaining inline types. Choosing the separator from a closed
+    inline allowlist makes one unrecognised sibling -- `inlineExtension`,
+    `mediaInline`, `placeholder` -- split the whole paragraph, plain text
+    siblings and all, and the team's sentence arrives in pieces."""
+    description = _adf(
+        _heading("Outcome"),
+        _para(
+            _text("Customers "),
+            {"type": "inlineExtension", "attrs": {"extensionKey": "anything"}},
+            _text("self-serve."),
+        ),
+    )
+
+    assert outcome.extract_outcome(description) == "Customers self-serve."
+
+
+def test_a_block_sibling_still_joins_with_one_newline(outcome):
+    """The separator rule is decided by block-ness, so a real block child
+    must keep its newline: reading every unknown type as inline would
+    concatenate two paragraphs into one line."""
+    description = _adf(
+        _heading("Outcome"),
+        {
+            "type": "blockquote",
+            "content": [_para(_text("one")), _para(_text("two"))],
+        },
+    )
+
+    assert outcome.extract_outcome(description) == "one\ntwo"

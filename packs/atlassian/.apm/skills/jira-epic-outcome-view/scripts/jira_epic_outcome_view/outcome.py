@@ -18,7 +18,7 @@ explicit absence.
 from __future__ import annotations
 
 import re
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Collection, Iterator, Mapping, Sequence
 from typing import Any
 
 #: The heading that opens the block, compared case-insensitively after
@@ -42,13 +42,34 @@ OUTCOME_LOCATION = (
 _ATX_HEADING = re.compile(r"^#{1,6}[ \t]+(.*)$")
 _WIKI_HEADING = re.compile(r"^h[1-6]\.[ \t]+(.*)$")
 
-# Nodes that carry text inline. Siblings from this set concatenate with
-# no separator; anything else is a block and siblings join with one
-# newline. Without that split two readers produce different text and
-# both call it verbatim.
-_INLINE_TYPES = frozenset(
-    {"text", "emoji", "mention", "date", "status", "inlineCard", "hardBreak"}
+# Nodes that hold their siblings apart. Siblings join with one newline
+# when any of them is one of these, and concatenate with no separator
+# otherwise. The test is on the block set rather than on an inline
+# allowlist because ADF keeps gaining inline types: an unlisted one --
+# `inlineExtension`, `mediaInline`, `placeholder` -- would otherwise
+# split the whole paragraph it sits in, plain text siblings and all.
+_BLOCK_TYPES = frozenset(
+    {
+        "blockCard", "blockquote", "bulletList", "codeBlock", "decisionItem",
+        "decisionList", "embedCard", "expand", "extension", "bodiedExtension",
+        "heading", "layoutColumn", "layoutSection", "listItem", "mediaGroup",
+        "mediaSingle", "multiBodiedExtension", "nestedExpand", "orderedList",
+        "panel", "paragraph", "rule", "table", "tableCell", "tableHeader",
+        "tableRow", "taskItem", "taskList",
+    }
 )
+
+#: The deepest ADF nesting this reader will descend. Jira accepts a
+#: description of 32,767 characters, which is enough to nest containers
+#: far past the interpreter's own recursion limit -- and a `RecursionError`
+#: raised here would take down the whole view rather than one Epic's
+#: outcome. Past this depth the answer is no outcome for that Epic, which
+#: is the same answer an empty block gives and leaves the rest readable.
+MAX_NESTING_DEPTH = 100
+
+
+class _TooDeeplyNested(Exception):
+    """An ADF description nested past ``MAX_NESTING_DEPTH``."""
 
 
 class OutcomeAnswerError(Exception):
@@ -146,19 +167,63 @@ def _heading_title(line: str) -> str | None:
 
 def _from_document(description: Mapping[str, Any]) -> str | None:
     """The block under the first ``Outcome`` heading in an ADF description."""
+    try:
+        return _document_block(description)
+    except _TooDeeplyNested:
+        # One unreadable description is one Epic with no outcome. Letting
+        # the error out would withhold every other Epic's reading too.
+        return None
+
+
+def _document_block(description: Mapping[str, Any]) -> str | None:
     block: list[str] | None = None
-    for node in _child_nodes(description):
+    for node in _document_order(description, 0):
         if node.get("type") == "heading":
             if block is not None:
                 break
-            if _node_text(node).strip().lower() == HEADING_TEXT:
+            if _node_text(node, 0).strip().lower() == HEADING_TEXT:
                 block = []
             continue
         if block is not None:
-            block.append(_node_text(node))
+            block.append(_node_text(node, 0))
     if block is None:
         return None
     return _trimmed("\n".join(block).splitlines())
+
+
+def _document_order(node: Mapping[str, Any], depth: int) -> Iterator[Mapping[str, Any]]:
+    """The document's nodes in order, with every heading surfaced.
+
+    A container is yielded whole unless it holds a heading somewhere
+    inside it, in which case the walk descends into it. Testing only the
+    document's direct children would let a heading inside a `panel`, an
+    `expand`, a `blockquote` or a `layoutColumn` pass as ordinary text,
+    and the container plus everything after it would render as the team's
+    outcome. The text reader already ends the block at a heading of any
+    level, so a document reader that does not disagrees with it on the
+    same description.
+    """
+    _check_depth(depth)
+    for child in _child_nodes(node):
+        if child.get("type") == "heading":
+            yield child
+        elif _holds_heading(child, depth + 1):
+            yield from _document_order(child, depth + 1)
+        else:
+            yield child
+
+
+def _holds_heading(node: Mapping[str, Any], depth: int) -> bool:
+    _check_depth(depth)
+    return any(
+        child.get("type") == "heading" or _holds_heading(child, depth + 1)
+        for child in _child_nodes(node)
+    )
+
+
+def _check_depth(depth: int) -> None:
+    if depth > MAX_NESTING_DEPTH:
+        raise _TooDeeplyNested(depth)
 
 
 def _child_nodes(node: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -168,14 +233,16 @@ def _child_nodes(node: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [child for child in content if isinstance(child, Mapping)]
 
 
-def _node_text(node: Mapping[str, Any]) -> str:
+def _node_text(node: Mapping[str, Any], depth: int) -> str:
     """One node's text, by the traversal the verbatim rule pins.
 
     Each descendant text node in document order; a ``hardBreak`` as a
     newline; inline siblings concatenated with no separator; sibling
     block nodes -- paragraphs, list items -- joined with a single
-    newline.
+    newline. The descent is depth-bounded: an over-nested description
+    raises rather than exhausting the interpreter's stack.
     """
+    _check_depth(depth)
     node_type = node.get("type")
     if node_type == "text":
         return str(node.get("text") or "")
@@ -185,9 +252,9 @@ def _node_text(node: Mapping[str, Any]) -> str:
     if not children:
         return ""
     separator = (
-        "" if all(child.get("type") in _INLINE_TYPES for child in children) else "\n"
+        "\n" if any(child.get("type") in _BLOCK_TYPES for child in children) else ""
     )
-    return separator.join(_node_text(child) for child in children)
+    return separator.join(_node_text(child, depth + 1) for child in children)
 
 
 def _trimmed(lines: Sequence[str]) -> str | None:

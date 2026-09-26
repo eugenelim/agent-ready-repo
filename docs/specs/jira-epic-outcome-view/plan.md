@@ -1,7 +1,7 @@
 # Plan: jira epic outcome view
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/atlassian/.apm/skills/flow-metrics/SKILL.md`
   (metrics from changelogs, with no sample-size threshold on any of them —
   percentiles are nulled only when fewer than two values exist, which is

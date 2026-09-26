@@ -9,6 +9,7 @@ implementation leaves behind.
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -152,3 +153,48 @@ def test_the_flow_skill_is_composed_only_through_the_inert_cache_mode(flow, tmp_
     assert "--no-cache" not in argv
     assert "--per-issue" in argv
     assert "--output" in argv
+
+
+def test_nothing_is_created_before_the_location_is_checked(
+    flow, tmp_path, pack_root, monkeypatch
+):
+    """"Refused before anything is written" is a claim about ordering, and
+    only the order can test it. Creating the directory and then deciding it
+    sits in the wrong place has already written into a root the view
+    promises to leave unchanged -- and a tidy removal afterwards is not the
+    same guarantee."""
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    made = []
+    real_mkdtemp = tempfile.mkdtemp
+
+    def recording_mkdtemp(*args, **kwargs):
+        made.append((args, kwargs))
+        return real_mkdtemp(*args, **kwargs)
+
+    monkeypatch.setattr(tempfile, "mkdtemp", recording_mkdtemp)
+
+    with pytest.raises(flow.ScratchLocationError):
+        _run(flow, _recording_runner({}), tmp_path, pack_root)
+
+    assert made == [], "a directory was created inside the protected root first"
+
+
+def test_a_removal_that_fails_is_surfaced_rather_than_swallowed(
+    flow, tmp_path, pack_root, monkeypatch
+):
+    """Removing the scratch directory is how the disclosed write is undone.
+    Ignoring an error there makes a directory left behind indistinguishable
+    from one removed, and the guarantee then rests on nothing."""
+    seen = {}
+    real_rmtree = shutil.rmtree
+
+    def failing_rmtree(path, *args, **kwargs):
+        raise OSError(f"removal refused: {path}")
+
+    monkeypatch.setattr(shutil, "rmtree", failing_rmtree)
+
+    with pytest.raises(OSError, match="removal refused"):
+        _run(flow, _recording_runner(seen), tmp_path, pack_root)
+
+    monkeypatch.undo()
+    real_rmtree(seen["path"].parent, ignore_errors=True)

@@ -26,7 +26,7 @@ Show me each Epic in the ATLAS project with what it delivered and what it was me
 Or run the skill's script directly:
 
 ```bash
-python -m jira_epic_outcome_view --project ATLAS --from 2026-07-01 --to 2026-09-30
+python -B -m jira_epic_outcome_view --project ATLAS --from 2026-07-01 --to 2026-09-30
 ```
 
 ## Where the outcome comes from
@@ -54,7 +54,7 @@ one most worth looking at.
 Answer with `--outcome`, repeatable once per Epic:
 
 ```bash
-python -m jira_epic_outcome_view --project ATLAS --outcome ATLAS-42="Customers resolve a return without contacting support."
+python -B -m jira_epic_outcome_view --project ATLAS --outcome ATLAS-42="Customers resolve a return without contacting support."
 ```
 
 Your words come back as text to paste into the Epic's description. You paste

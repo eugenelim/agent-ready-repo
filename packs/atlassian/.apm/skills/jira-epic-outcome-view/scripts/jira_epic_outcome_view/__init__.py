@@ -158,6 +158,10 @@ def render(
     """The whole view as one JSON-serialisable document."""
     scope = jira_read.read_scope(script=jira_script, project=project)
     resolved_parents = parents.resolve_epics(scope["parent_links"], scope["epic_keys"])
+    # Why each unresolved chain ended, taken from the same walk. The
+    # resolved mapping alone cannot say: a parent outside the scope and a
+    # parent in a cycle are both `None` by the time it is built.
+    chain_ends = parents.chain_end_reasons(scope["parent_links"], scope["epic_keys"])
 
     scope_args = ["--project", project]
     if jql:
@@ -187,6 +191,7 @@ def render(
     epics = view.build_epic_rows(
         per_issue_rows=per_issue_rows,
         parents=resolved_parents,
+        chain_ends=chain_ends,
         jira_state=scope["jira_state"],
         outcomes=outcomes,
         supplied_outcomes=supplied,
@@ -222,6 +227,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (
         ValidationError,
         outcome.OutcomeAnswerError,
+        jira_read.ProjectKeyRefused,
         jira_read.WriteVerbRefused,
         flow.ScratchLocationError,
     ) as exc:
