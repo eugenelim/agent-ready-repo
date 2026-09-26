@@ -201,7 +201,7 @@ Sources: [openai/symphony](https://github.com/openai/symphony) and its README (p
 ### F15. Enterprise work items occupy four to six states, measured [moderate]
 
 Added 2026-09-23 from a second research round commissioned to re-test
-[FEAT-0010](../intents/FEAT-0010-intent-backed-working-view.md)'s granularity
+[FEAT-0010](../intents/FEAT-0011-intent-backed-working-view.md)'s granularity
 assumption outside this repository's corpus. Both sources are peer-reviewed and
 neither is vendor-published — a distinction that matters here, because
 everything else in this survey's delivery-metrics material is vendor telemetry.
@@ -289,7 +289,7 @@ for them**, which has not been done.
 ### F18. Outcome review needs no platform — and lapses anyway [moderate]
 
 Added 2026-09-24 from a third research round, commissioned to de-risk
-[FEAT-0012](../intents/FEAT-0012-timeline-and-strategic-progress-review.md).
+[FEAT-0012](../intents/FEAT-0013-timeline-and-strategic-progress-review.md).
 
 **No method prescribes a product.** MSP 5th edition, PRINCE2 7, PMI's
 benefits-realisation framework and Scrum.org's Evidence-Based Management all

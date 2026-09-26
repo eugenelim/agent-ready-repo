@@ -2176,6 +2176,14 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 active  = [
 ]
 shipped = [
+  # Shipped 2026-09-26: 56 of 56 acceptance criteria met, spec `Shipped` and plan
+  # `Done`. Moved from `queue` in the same change that set those statuses --
+  # membership and status move together, and the canonical reconciliation raises
+  # `impossible_transition` on a `Shipped` spec sitting in `queue`, which is
+  # exactly the finding this entry produced until it was moved. The installed-CLI
+  # manual-QA pass left the criteria for the spec's `## Follow-ons` by owner
+  # decision and is outstanding; it needs a credentialed Jira instance.
+  { path = "docs/specs/jira-epic-outcome-view/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0014-tracker-native-value-before-adoption.md" }, summary = "Group a Jira scope by Epic and render each Epic's delivery reading beside its declared outcome, read from Jira and never authored here. Read-only, zero coupling to this repository's machinery per ADR-0126 D1-D3; the first slice obliged by that ADR", needs = [] },
   {path = "docs/specs/catalogue-sync-dry-run/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "c1d4fbf1614c4ac4e173e06a7a623b54d2422343"}, summary = "agentbundle catalogue sync --dry-run and --check: resolve, replay, classify, and plan with no write path", needs = []},
   {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
   {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
@@ -2348,14 +2356,6 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # The first slice obliged by ADR-0126, and the only materialised spec of
-  # CAP-0004's family. Registered here on 2026-09-25 when its spec and plan were
-  # approved: `backlog.open` admits a non-defect entry only at `Draft`, so the
-  # approval and this membership move together, as the `brief_queue` note above
-  # records for briefs. Its ten Draft siblings stay in `backlog.open`. `needs` is
-  # empty and that is correct -- ADR-0126 D1-D3 make this slice read-only and
-  # zero-coupling, so it waits on no sibling.
-  { path = "docs/specs/jira-epic-outcome-view/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0013-tracker-native-value-before-adoption.md" }, summary = "Group a Jira scope by Epic and render each Epic's delivery reading beside its declared outcome, read from Jira and never authored here. Read-only, zero coupling to this repository's machinery per ADR-0126 D1-D3; the first slice obliged by that ADR", needs = [] },
 ]
 active  = [
 ]

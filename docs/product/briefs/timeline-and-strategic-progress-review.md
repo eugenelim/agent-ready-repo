@@ -51,10 +51,10 @@ known scope and risk without either collapsing into the other.
   consumes its steerable-input, lagging-outcome and guardrail vocabulary and
   must not invent a parallel one.
 - **The observations a forecast counts.** Owned by
-  [FEAT-0011](../intents/FEAT-0011-delivery-state-and-flow-visibility.md) and
+  [FEAT-0012](../intents/FEAT-0012-delivery-state-and-flow-visibility.md) and
   its brief.
 - **Making work visible in a tracker.** Owned by
-  [FEAT-0010](../intents/FEAT-0010-intent-backed-working-view.md).
+  [FEAT-0011](../intents/FEAT-0011-intent-backed-working-view.md).
 - **Attribution.** Whether delivered work *caused* an observed movement is
   harder than sourcing the evidence and is excluded by the parent's boundary.
 - **Any new daemon, data platform or analytics stack.** Owned by
@@ -123,7 +123,7 @@ Measured or read on 2026-09-23.
   result.
 - **No new runtime**, and none is needed: outcome evidence is sourced from
   measures an organisation already has.
-- **The sample ladder is inherited, not re-derived.** FEAT-0011 fixed
+- **The sample ladder is inherited, not re-derived.** FEAT-0012 fixed
   it; this brief enforces it for forecasts.
 - **Appetite: the first slice must make the gap visible before anything
   improves it.** Recording that an outcome was never checked is worth shipping
@@ -172,7 +172,7 @@ number, with no schema and no obligation to come back.
 
 **Why the forecast is separable.** It is separable from its sibling in this
 brief, not from everything: a team gets a forecast with its uncertainty whether
-or not any outcome evidence exists. It is not separable from FEAT-0011, whose
+or not any outcome evidence exists. It is not separable from FEAT-0012, whose
 distributional slice authors the throughput it reads, so it cannot be built
 before that slice lands.
 
@@ -214,13 +214,13 @@ so a spec can cite into it rather than restate the source.
   cannot be resolved is excluded and named. **Amended 2026-09-24** under
   ADR-0126, which obliges a pack to return value with none of this
   repository's machinery installed.
-- **[FEAT-0012](../intents/FEAT-0012-timeline-and-strategic-progress-review.md)** —
+- **[FEAT-0013](../intents/FEAT-0013-timeline-and-strategic-progress-review.md)** —
   the parent. It owns the outcome, the two separations, the de-risk verdict that
   reframed the deliverable to visible emptiness, and the attribution exclusion.
-- **[FEAT-0011](../intents/FEAT-0011-delivery-state-and-flow-visibility.md)** —
+- **[FEAT-0012](../intents/FEAT-0012-delivery-state-and-flow-visibility.md)** —
   sibling. It owns the observations a forecast counts and the sample ladder this
   brief enforces rather than re-derives.
-- **[FEAT-0010](../intents/FEAT-0010-intent-backed-working-view.md)** — sibling.
+- **[FEAT-0011](../intents/FEAT-0011-intent-backed-working-view.md)** — sibling.
   It owns making work visible in a delivery system.
 - **[CAP-0004](../intents/CAP-0004-external-tracker-projection.md)** — the
   capability. It owns the no-new-runtime guardrail and the rule that completion
@@ -235,7 +235,7 @@ so a spec can cite into it rather than restate the source.
 ## Source
 
 - **Mode:** repo-origin
-- **Locator:** `docs/product/intents/FEAT-0012-timeline-and-strategic-progress-review.md`
+- **Locator:** `docs/product/intents/FEAT-0013-timeline-and-strategic-progress-review.md`
 - **Authority:** eugenelim, lifecycle owner
 
 Projected from that intent on 2026-09-23 under ADR-0077 D1, which routes several

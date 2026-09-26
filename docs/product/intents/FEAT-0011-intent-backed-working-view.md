@@ -75,9 +75,9 @@ a delivery shape, not a second feature. The outcome has to be real on at least
 one delivery system before it ships.
 
 Does not own delivery-state or flow observation
-([FEAT-0011](FEAT-0011-delivery-state-and-flow-visibility.md)), forecast or
+([FEAT-0011](FEAT-0012-delivery-state-and-flow-visibility.md)), forecast or
 outcome review
-([FEAT-0012](FEAT-0012-timeline-and-strategic-progress-review.md)), or intent
+([FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)), or intent
 identity and placement
 ([FEAT-0001](FEAT-0001-intent-identity-and-registration.md)).
 
@@ -289,9 +289,9 @@ absorbed here. Three consequences, none actioned in this record:
   probe answers it. Recording that answer on an Accepted intent is the
   lifecycle owner's decision, because a change to an intent's unresolved
   questions is material and returns it to `Draft`.
-- **[FEAT-0011](FEAT-0011-delivery-state-and-flow-visibility.md)** reads flow
+- **[FEAT-0011](FEAT-0012-delivery-state-and-flow-visibility.md)** reads flow
   over these items. If nothing dwells, there is little flow to observe.
-- **[FEAT-0012](FEAT-0012-timeline-and-strategic-progress-review.md)** counts
+- **[FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)** counts
   units for a forecast. Monte Carlo assumes a stable item-size distribution.
 
 ```
@@ -562,8 +562,8 @@ them decides membership.
 - **2026-09-23 — the managed-unit floor belongs in a decision record, not in a
   slice.** It is architecturally significant, expensive to reverse once a team's
   board is built on it, and it constrains work beyond this feature:
-  [FEAT-0011](FEAT-0011-delivery-state-and-flow-visibility.md)'s flow readings
-  and [FEAT-0012](FEAT-0012-timeline-and-strategic-progress-review.md)'s
+  [FEAT-0011](FEAT-0012-delivery-state-and-flow-visibility.md)'s flow readings
+  and [FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)'s
   forecast both count whatever the floor admits. Burying a decision that three
   artifacts depend on inside one spec's body is how it becomes unfindable. It
   is now [ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md).

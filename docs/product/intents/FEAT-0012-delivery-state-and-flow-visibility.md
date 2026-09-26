@@ -67,7 +67,7 @@ decomposed, and how its work is cut is a later decision.
 
 Does not own the working view that made the work intent-backed
 ([FEAT-0010](FEAT-0010-intent-backed-working-view.md)), forecast or strategic
-progress ([FEAT-0012](FEAT-0012-timeline-and-strategic-progress-review.md)), or
+progress ([FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)), or
 operational coordination state inside the repository
 ([CAP-0003](CAP-0003-workspace-coordination-reorganization.md)).
 

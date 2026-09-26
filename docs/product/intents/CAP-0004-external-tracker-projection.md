@@ -443,19 +443,19 @@ re-enters the loop at `frame-intent`. All four are Accepted, de-risked
 and decomposed — the first three into delivery briefs, the fourth into a
 single delivery contract.
 
-- [Intent-backed working view](FEAT-0010-intent-backed-working-view.md) — a team
+- [Intent-backed working view](FEAT-0011-intent-backed-working-view.md) — a team
   makes the meaningful parts of its canonical intent hierarchy visible and
   actionable in its chosen delivery system, at a granularity worth managing,
   without moving product authority there.
-- [Delivery-state and flow visibility](FEAT-0011-delivery-state-and-flow-visibility.md)
+- [Delivery-state and flow visibility](FEAT-0012-delivery-state-and-flow-visibility.md)
   — a team observes real delivery state, blockers, elapsed time and flow across
   its intent-backed work, with the same meaning whether the system is Jira,
   GitHub or Linear.
-- [Timeline and strategic-progress review](FEAT-0012-timeline-and-strategic-progress-review.md)
+- [Timeline and strategic-progress review](FEAT-0013-timeline-and-strategic-progress-review.md)
   — a team and its leadership review delivery forecast, known scope and risk,
   and actual outcome evidence together, with fixed dates distinguishable from
   forecasts and completion never standing in for outcome.
-- [Tracker-native value before adoption](FEAT-0013-tracker-native-value-before-adoption.md)
+- [Tracker-native value before adoption](FEAT-0014-tracker-native-value-before-adoption.md)
   — a team that has adopted nothing installs the pack for its own delivery
   system and gets a flow view with outcomes attached, answered from the tracker
   it already runs. Added 2026-09-24 under
@@ -529,7 +529,7 @@ later reader does not infer the gate was met when it was not.
   shaping — it does not return outcome, opportunity or assumptions to the item.
 
   **This is therefore not a fourth child.** It is scope inside
-  [FEAT-0010](FEAT-0010-intent-backed-working-view.md), which already owns what
+  [FEAT-0010](FEAT-0011-intent-backed-working-view.md), which already owns what
   crosses the seam outward: returning shaped intent to the item so a team whose
   only touchpoint is the tracker sees it there, while authority stays in the
   repository. The adoption evidence (survey F2, F7) makes that the strongest

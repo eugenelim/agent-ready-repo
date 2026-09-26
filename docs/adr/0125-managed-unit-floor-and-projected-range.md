@@ -165,5 +165,5 @@ This record rests on a reframe that carries a `to-validate` hook: no adopter has
 run it, and whether a repository-canonical feature intent behaves like an
 enterprise epic once projected is unmeasured. The evidence is recorded in
 `docs/product/research/tracker-coexistence-adoption-survey.md` and in the
-de-risk sections of `docs/product/intents/FEAT-0010-intent-backed-working-view.md`
-and `docs/product/intents/FEAT-0011-delivery-state-and-flow-visibility.md`.
+de-risk sections of `docs/product/intents/FEAT-0011-intent-backed-working-view.md`
+and `docs/product/intents/FEAT-0012-delivery-state-and-flow-visibility.md`.

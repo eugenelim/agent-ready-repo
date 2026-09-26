@@ -44,7 +44,7 @@ them.
   delivery brief appears at all.** ADR-0125 D4 and D4a set the line. The
   obligation here is that each slice's output is checked against them before it
   ships, and that the check is named in its spec.
-- **Projecting must not double the board.** FEAT-0010's guardrail states the
+- **Projecting must not double the board.** FEAT-0011's guardrail states the
   comparison this brief can hold and fail: a faithful projection that doubles
   the board is a failure even if every item on it is correct. It is measurable
   at the first projection against the team's existing board, with no new
@@ -64,9 +64,9 @@ without the product model absorbing a provider's shape.
 - **What projects, and how far.** ADR-0125. This brief implements it and does
   not re-open it.
 - **Delivery-state and flow observation.**
-  [`FEAT-0011`](../intents/FEAT-0011-delivery-state-and-flow-visibility.md).
+  [`FEAT-0012`](../intents/FEAT-0012-delivery-state-and-flow-visibility.md).
 - **Forecast and outcome review.**
-  [`FEAT-0012`](../intents/FEAT-0012-timeline-and-strategic-progress-review.md).
+  [`FEAT-0013`](../intents/FEAT-0013-timeline-and-strategic-progress-review.md).
 - **Intent identity and placement.**
   [`FEAT-0001`](../intents/FEAT-0001-intent-identity-and-registration.md).
 - **Any new daemon, control plane, database or scheduler.** Owned by
@@ -194,7 +194,7 @@ Measured or read on 2026-09-23. Locations and findings, not restated status.
 - **[Inherited, survived on desk evidence]** A traditional-SDLC team can reach
   this operating model through a staged journey. CAP-0004's de-risk;
   `to-validate`, no adopter has run it.
-- **[Inherited, `to-validate`]** FEAT-0010's de-risk killed the spec tier and
+- **[Inherited, `to-validate`]** FEAT-0011's de-risk killed the spec tier and
   reframed the projected unit upward, and ADR-0125 D2 fixes the floor there. The
   reframe carries a `to-validate` hook that no adopter has discharged. Every
   slice below inherits it, and a spec must not read as though the tier were
@@ -318,7 +318,7 @@ therefore evidence about the pattern rather than a stand-in for the others.
 
 **On the set this cuts across.** ADR-0125's *Applies to* fixes the delivery
 systems at Jira Software, Jira Align, GitHub Issues + Projects and Linear.
-FEAT-0010 § Boundary enumerates none and defers to that set; its completion
+FEAT-0011 § Boundary enumerates none and defers to that set; its completion
 condition — the outcome real on at least one delivery system before shipping —
 is met by the Jira Software slice alone.
 
@@ -330,12 +330,12 @@ easiest.
 
 **The `none` rendering.** It is not a delivery system and gets no slice. Its
 profile row is part of the shared table work the Jira Software slice carries,
-and FEAT-0010 treats a mapping-only rendering as a deliverable outcome rather
+and FEAT-0011 treats a mapping-only rendering as a deliverable outcome rather
 than documentation, so nothing about it is excluded — only unsliced.
 
 **What each slice owns.** Its own delivery system's rows in the shared profile
 table, its own projection, its own return leg, and its own completion condition
-— that system works end to end. FEAT-0010 requires the outcome to be real for at
+— that system works end to end. FEAT-0011 requires the outcome to be real for at
 least one delivery system before this feature ships, and the Jira Software slice
 alone satisfies that.
 
@@ -371,7 +371,7 @@ so a spec can cite into it rather than restate the source.
   at all** (D4a). The floor is fixed rather than negotiated per team (D5). It
   applies to Jira, Jira Align, GitHub Issues + Projects and Linear, and to
   anything that counts projected items. Its reach is wider than this brief:
-  FEAT-0011's flow readings and FEAT-0012's forecast both count whatever the
+  FEAT-0012's flow readings and FEAT-0013's forecast both count whatever the
   range admits.
 - **[ADR-0077](../../adr/0077-feature-projection-and-tracker-authority.md)** —
   D1 gates feature projection on shippability and coordination need, and is
@@ -400,12 +400,12 @@ so a spec can cite into it rather than restate the source.
   a Ready brief may carry zero specs and that a brief's map separates governance
   references from delivery slices. ADR-0121 D1 makes `Level` required. Neither
   reaches the projection row this brief rests on.
-- **[FEAT-0010](../intents/FEAT-0010-intent-backed-working-view.md)** — the
+- **[FEAT-0011](../intents/FEAT-0011-intent-backed-working-view.md)** — the
   parent. It owns the outcome, the guardrails this brief inherits, the de-risk
   verdict and its `to-validate` hook, and the boundary condition that the
   outcome be real on at least one delivery system before shipping.
-- **[FEAT-0011](../intents/FEAT-0011-delivery-state-and-flow-visibility.md) and
-  [FEAT-0012](../intents/FEAT-0012-timeline-and-strategic-progress-review.md)** —
+- **[FEAT-0012](../intents/FEAT-0012-delivery-state-and-flow-visibility.md) and
+  [FEAT-0013](../intents/FEAT-0013-timeline-and-strategic-progress-review.md)** —
   siblings. They own flow observation and forecast review respectively, and both
   count whatever ADR-0125's range admits, which is why the floor is not this
   brief's to move.
@@ -430,7 +430,7 @@ so a spec can cite into it rather than restate the source.
 ## Source
 
 - **Mode:** repo-origin
-- **Locator:** `docs/product/intents/FEAT-0010-intent-backed-working-view.md`
+- **Locator:** `docs/product/intents/FEAT-0011-intent-backed-working-view.md`
 - **Authority:** eugenelim, lifecycle owner
 
 Projected from that intent on 2026-09-23 under ADR-0077 D1: several

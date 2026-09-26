@@ -59,15 +59,15 @@ the reading itself.
 **Out of scope, each with an owner.**
 
 - **Making work intent-backed in the first place.** Owned by
-  [FEAT-0010](../intents/FEAT-0010-intent-backed-working-view.md) and its brief.
+  [FEAT-0011](../intents/FEAT-0011-intent-backed-working-view.md) and its brief.
 - **Forecast and outcome review.** Owned by
-  [FEAT-0012](../intents/FEAT-0012-timeline-and-strategic-progress-review.md).
+  [FEAT-0013](../intents/FEAT-0013-timeline-and-strategic-progress-review.md).
 - **Where the floor sits.** Owned by ADR-0125. This brief consumes it.
 - **Any new daemon, control plane, database or scheduler.** Owned by
   [CAP-0004](../intents/CAP-0004-external-tracker-projection.md)'s guardrail. A
   reading is computed when asked and is as of a stated moment.
 - **Writing to a tracker.** This brief reads. The write surfaces belong to
-  FEAT-0010's brief.
+  FEAT-0011's brief.
 
 ## Current-state evidence
 
@@ -175,7 +175,7 @@ the Spec map above owns membership and status.
 **Why this line and not one spec per delivery system.** The parent's outcome is
 that an observation carries the same meaning everywhere. Cutting per system
 invites each system's spec to define its own meaning, which is the failure the
-feature exists to prevent — the opposite of FEAT-0010, where per-system slices
+feature exists to prevent — the opposite of FEAT-0011, where per-system slices
 are safe because each renders the same canonical tree rather than defining what
 it means. Delivery systems are variants inside both slices here. Slice 1
 carries two of them — Jira Software and GitHub Issues + Projects — because the
@@ -206,7 +206,7 @@ percentile as meaning the same thing on two trackers.
   claim rather than a confident one, and never silence.
 
 **One decision this cut does not settle.** Whether the cross-system vocabulary
-binds beyond this feature — FEAT-0012's forecast reads it — and therefore
+binds beyond this feature — FEAT-0013's forecast reads it — and therefore
 whether it belongs in a decision record rather than a spec. It has the same
 shape as the floor question that became ADR-0125. Slice 1 produces it; whether
 it is promoted is the owner's call once its reach is visible.
@@ -227,13 +227,13 @@ so a spec can cite into it rather than restate the source.
 - **[ADR-0019](../../adr/0019-product-intent-ontology-and-brief-projection.md)
   D5** — one-way projection for repo-origin work, as ADR-0077 refines it into
   two modes.
-- **[FEAT-0011](../intents/FEAT-0011-delivery-state-and-flow-visibility.md)** —
+- **[FEAT-0012](../intents/FEAT-0012-delivery-state-and-flow-visibility.md)** —
   the parent. It owns the outcome, the guardrails, the de-risk verdict and the
   spike that closed the thin-sample question.
-- **[FEAT-0010](../intents/FEAT-0010-intent-backed-working-view.md) and
-  [FEAT-0012](../intents/FEAT-0012-timeline-and-strategic-progress-review.md)** —
-  siblings. FEAT-0010 makes work intent-backed and owns every write surface;
-  FEAT-0012 reads this brief's observations into a forecast.
+- **[FEAT-0011](../intents/FEAT-0011-intent-backed-working-view.md) and
+  [FEAT-0013](../intents/FEAT-0013-timeline-and-strategic-progress-review.md)** —
+  siblings. FEAT-0011 makes work intent-backed and owns every write surface;
+  FEAT-0013 reads this brief's observations into a forecast.
 - **[CAP-0004](../intents/CAP-0004-external-tracker-projection.md)** — the
   capability. It owns the no-new-runtime guardrail.
 - **Installed-skill references.** `packs/atlassian/.apm/skills/flow-metrics` is
@@ -248,7 +248,7 @@ so a spec can cite into it rather than restate the source.
 ## Source
 
 - **Mode:** repo-origin
-- **Locator:** `docs/product/intents/FEAT-0011-delivery-state-and-flow-visibility.md`
+- **Locator:** `docs/product/intents/FEAT-0012-delivery-state-and-flow-visibility.md`
 - **Authority:** eugenelim, lifecycle owner
 
 Projected from that intent on 2026-09-23 under ADR-0077 D1, which routes several
