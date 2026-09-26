@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125; ADR-0077; ADR-0019
+- **Constrained by:** ADR-0127; ADR-0077; ADR-0019
 - **Brief:** brief:delivery-state-and-flow-visibility
 - **Discovery:** none
 - **Contract:** none
@@ -92,7 +92,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Violate ADR-0019 D5 as ADR-0077 D6-D12 refine it, by letting a reading
   acquire authority over canonical intent.
-- Violate ADR-0125 D4 by counting anything below the floor.
+- Violate ADR-0127 D4 by counting anything below the floor.
 - Define a term by one provider's semantics and require the other to translate
   into it.
 - Share an implementation between provider packs, or make one depend on
@@ -159,7 +159,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       or floor unresolved.
 - [ ] A provider-native item and a projected item at or above its resolved
       floor are both read. Absence of intent linkage is not by itself proof
-      of provider-native origin: ADR-0125 D5 resolves a floor from whether
+      of provider-native origin: ADR-0127 D5 resolves a floor from whether
       work crosses a repository boundary.
 - [ ] No reading returns a value for a projected item below its resolved
       floor.

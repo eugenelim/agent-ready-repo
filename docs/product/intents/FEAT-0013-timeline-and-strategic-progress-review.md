@@ -2,7 +2,7 @@
 
 - **Slug:** `timeline-and-strategic-progress-review`
 - **Status:** Accepted
-- **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `260890bd565a58fa`, including a check that every threshold it borrows from its sibling matches that record; de-risked with a surviving verdict that reframed the deliverable to making an unchecked outcome visible; and decomposed into a delivery brief. **The shaping review predates the later addition of the ADR-0125 range**, so it is evidence for the bet rather than for the current text.
+- **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `260890bd565a58fa`, including a check that every threshold it borrows from its sibling matches that record; de-risked with a surviving verdict that reframed the deliverable to making an unchecked outcome visible; and decomposed into a delivery brief. **The shaping review predates the later addition of the ADR-0127 range**, so it is evidence for the bet rather than for the current text.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -103,7 +103,7 @@ Both are settled and both bind here harder than they bound anywhere else.
 reframed to it. A forecast counts units, so this feature counts those.
 
 **The projected range is decided, and it bounds what this feature counts.**
-[ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md) settled the
+[ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md) settled the
 question FEAT-0010's kill opened: the projection is a range, floored at the
 feature intent for same-repository work and at the delivery brief where work
 crosses a repository boundary. D4 bounds the denominator — a trace below the

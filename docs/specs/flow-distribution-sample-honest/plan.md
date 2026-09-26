@@ -58,7 +58,7 @@ absence of the percentile.
 
 ## Constraints
 
-- **ADR-0125 D4** bounds the denominator: nothing below the floor is counted.
+- **ADR-0127 D4** bounds the denominator: nothing below the floor is counted.
 - **CAP-0004's guardrail** forbids a daemon, control plane, database or
   scheduler.
 - **No shared implementation across delivery systems.** `flow-metrics` stays in

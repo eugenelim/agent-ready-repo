@@ -57,7 +57,7 @@ slice must say what would make a forecast possible, not go quiet.
 
 ## Constraints
 
-- **ADR-0125 D4** bounds the denominator: nothing below the floor is counted.
+- **ADR-0127 D4** bounds the denominator: nothing below the floor is counted.
 - **CAP-0004's guardrail** forbids a daemon, control plane, database or
   scheduler.
 - **No shared implementation across delivery systems.** Each provider pack
@@ -130,7 +130,7 @@ independently. No resident state beyond that cache.
 
 ### Behavior & rules
 
-A completion below ADR-0125's floor never enters the sample. Cross-team
+A completion below ADR-0127's floor never enters the sample. Cross-team
 borrowing to reach a threshold is refused rather than offered.
 
 ### Failure, edge cases & resilience

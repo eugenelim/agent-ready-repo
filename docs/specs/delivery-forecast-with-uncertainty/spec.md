@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125
+- **Constrained by:** ADR-0127
 - **Brief:** brief:timeline-and-strategic-progress-review
 - **Discovery:** none
 - **Contract:** none
@@ -90,7 +90,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Lead a rendered forecast with a standalone date. The first forecast-bearing
   statement carries a range or a refusal.
 - Render a forecast without its range or without its sample size.
-- Violate ADR-0125 D4 by counting anything below the floor.
+- Violate ADR-0127 D4 by counting anything below the floor.
 - Borrow another team's completions to make a forecast possible.
 - Share an implementation between provider packs, or make one depend on
   another.

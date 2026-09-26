@@ -5,7 +5,7 @@
 - **Repository anchors:**
   `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
   (the table, its four columns and its `What v1 ships` statement);
-  `docs/adr/0125-managed-unit-floor-and-projected-range.md` (D1 through D4a).
+  `docs/adr/0127-managed-unit-floor-and-projected-range.md` (D1 through D4a).
   Named deviation: the table has no machine-readable form today, so the
   classification is new structure rather than a reformat.
 
@@ -46,14 +46,14 @@ whether a Linear sub-issue is schedulable. A runner reading those cells would
 be exercising judgement and calling it a check.
 
 So each cell gains one value from a closed set, each object token is given one
-spelling, and only then does the runner resolve rows against ADR-0125. The
+spelling, and only then does the runner resolve rows against ADR-0127. The
 reconciliation the brief's audit found — below-floor rows naming managed
 objects, and a canonical column with no cross-repository brief rung — falls
 out of the classification rather than being a separate hand pass.
 
 ## Constraints
 
-- **ADR-0125** D1 through D4a decide every row. This slice applies them and
+- **ADR-0127** D1 through D4a decide every row. This slice applies them and
   does not reopen the floor.
 - **ADR-0033 D2** makes `Level` an open set, so a rung with no row is named
   rather than derived.
@@ -80,7 +80,7 @@ out of the classification rather than being a separate hand pass.
 ### Design decisions
 
 - **The classification is a closed set of three.** `managed`, `trace` and
-  `none` are the distinctions ADR-0125 D4 actually draws. A fourth value would
+  `none` are the distinctions ADR-0127 D4 actually draws. A fourth value would
   be a distinction no clause reads.
 - **The classification lives in the cell, not in a sidecar.** A separate
   machine-readable file would drift from the table a person reads, and the
@@ -143,7 +143,7 @@ No new dependency.
 
 **Touches:** packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md
 
-### T2: every row resolves against ADR-0125 from its classifications
+### T2: every row resolves against ADR-0127 from its classifications
 
 **Depends on:** T1
 

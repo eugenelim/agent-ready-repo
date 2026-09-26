@@ -62,7 +62,7 @@ criterion with its own test rather than a rendering nicety.
 
 ## Constraints
 
-- **ADR-0125 D4** bounds what may be counted: below the floor a trace is
+- **ADR-0127 D4** bounds what may be counted: below the floor a trace is
   readable and must not enter a statistic.
 - **CAP-0004's guardrail** forbids a daemon, control plane, database or
   scheduler.

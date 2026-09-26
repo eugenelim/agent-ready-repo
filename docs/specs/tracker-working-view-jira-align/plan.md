@@ -42,7 +42,7 @@ Design, Tasks, and Changelog to the depth the durable work requires. Its sibling
 
 Jira Align is the deep target: it expands where Linear collapses, and the two
 product rungs land above the portfolio Epic rather than being folded into it.
-That makes this slice the one that proves ADR-0125's range in the expanding
+That makes this slice the one that proves ADR-0127's range in the expanding
 direction, which no other slice does.
 
 It is also the only slice with no return leg. The Jira Align refresh processor
@@ -59,7 +59,7 @@ the ambiguity cannot silently merge two rungs.
 
 ## Constraints
 
-- **ADR-0125** D1 through D4a fix what projects and how far; D3 and D5 are
+- **ADR-0127** D1 through D4a fix what projects and how far; D3 and D5 are
   non-waivable. This slice exercises D3's expanding direction.
 - **ADR-0019 D5**, as **ADR-0077 D6-D12** refine it, keeps this one-way for
   repo-origin work.

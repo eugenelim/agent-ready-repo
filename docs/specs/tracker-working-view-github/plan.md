@@ -9,7 +9,7 @@
   the write refusal this replaces);
   `docs/specs/tracker-working-view-jira-software/` (the pattern). Named
   deviation: GitHub's limits are hard numbers rather than degradation
-  behaviour: depth is a collapse case under ADR-0125 D3, while the per-level
+  behaviour: depth is a collapse case under ADR-0127 D3, while the per-level
   sub-issue maximum is a capacity limit and refuses.
 
 
@@ -48,7 +48,7 @@ GitHub write. `github-brief-intake` keeps its refusal untouched, so no trust
 boundary moves into a skill whose job is reading.
 
 The riskiest part is depth. GitHub's nesting maximum is a hard vendor number,
-but ADR-0125 D3 says rungs above the floor collapse and are never truncated —
+but ADR-0127 D3 says rungs above the floor collapse and are never truncated —
 so a tree deeper than GitHub can nest must land its surplus rungs on the
 carrier the pattern slice selects, and every one of them must stay reachable in
 the rollup. A silent flatten is indistinguishable from a correct projection at
@@ -59,7 +59,7 @@ no carrier absorbs it, so it refuses.
 
 ## Constraints
 
-- **ADR-0125** D1 through D4a fix what projects and how far; D3 and D5 are
+- **ADR-0127** D1 through D4a fix what projects and how far; D3 and D5 are
   non-waivable on every delivery system.
 - **ADR-0019 D5**, as **ADR-0077 D6-D12** refine it, keeps this one-way for
   repo-origin work.
@@ -104,7 +104,7 @@ no carrier absorbs it, so it refuses.
   GitHub write and its action handlers; the create belongs there.
   `github-brief-intake` keeps its refusal, so a reader asking whether the read
   path can write still finds the same answer.
-- **Depth collapses, fan-out refuses.** ADR-0125 D3 makes a rung GitHub cannot
+- **Depth collapses, fan-out refuses.** ADR-0127 D3 makes a rung GitHub cannot
   nest a collapse case, not a truncation, so it lands on the pattern's carrier.
   A rung whose children exceed the per-level maximum has no carrier to collapse
   onto, so it refuses with the limit named. The two are different failures and
@@ -195,7 +195,7 @@ is untouched.
 
 **Approach:**
 - Fan-out refuses because it is a capacity limit. Depth does not, because
-  ADR-0125 D3 makes depth a collapse case — that branch is T3's.
+  ADR-0127 D3 makes depth a collapse case — that branch is T3's.
 
 **Done when:** no maximum appears as a literal and the fan-out refusal names
 its limit.

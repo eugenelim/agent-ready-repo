@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125; ADR-0077; ADR-0019
+- **Constrained by:** ADR-0127; ADR-0077; ADR-0019
 - **Brief:** brief:intent-backed-working-view
 - **Discovery:** none
 - **Contract:** none
@@ -50,7 +50,7 @@ rebuilding it by hand.
   `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
 - `github-refresh`, which already owns every GitHub write, gains the confirmed
   create path — `packs/github/.apm/skills/github-refresh/`
-- A GitHub projection renders ADR-0125's range as issues and sub-issues
+- A GitHub projection renders ADR-0127's range as issues and sub-issues
   carrying a back-reference — `packs/github/`
 - The GitHub return leg extends to shaped intent on existing issues —
   `packs/github/.apm/skills/github-refresh/`
@@ -73,7 +73,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Always do
 
-- Satisfy ADR-0125 D1 and D3: where the tree is deeper than GitHub can nest,
+- Satisfy ADR-0127 D1 and D3: where the tree is deeper than GitHub can nest,
   collapse the surplus rungs onto the carrier the pattern slice selects and
   keep the rollup resolvable.
 - Carry the canonical identity on every projected issue and the issue identity
@@ -93,9 +93,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Violate ADR-0019 D5 as ADR-0077 D6-D12 refine it, by letting anything read
   off the tracker acquire authority over canonical intent.
-- Violate ADR-0125 D4 by projecting an agent-internal unit as a managed item,
+- Violate ADR-0127 D4 by projecting an agent-internal unit as a managed item,
   or D4a by projecting a same-repository delivery brief.
-- Violate ADR-0125 D3 by truncating a rung GitHub cannot nest. Depth is a
+- Violate ADR-0127 D3 by truncating a rung GitHub cannot nest. Depth is a
   collapse case, never a refusal.
 - Violate CAP-0004's no-new-runtime guardrail.
 - Re-decide a variation point the Jira Software slice's pattern already settles.
@@ -123,7 +123,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Acceptance Criteria
 
 - [ ] Projecting the reference tree onto an empty repository yields one GitHub
-      object for every rung in ADR-0125's range and none for any rung outside
+      object for every rung in ADR-0127's range and none for any rung outside
       it. A run yielding zero objects fails.
 - [ ] The rollup from the floor rung to the top rung of that projection
       resolves through each carrier the collapse selected.

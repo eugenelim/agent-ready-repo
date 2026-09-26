@@ -41,7 +41,7 @@ them.
   reader on the tracker side can reach the intent; a reader in the repository
   can tell what was projected.
 - **Nothing agent-internal is managed or counted, and no same-repository
-  delivery brief appears at all.** ADR-0125 D4 and D4a set the line. The
+  delivery brief appears at all.** ADR-0127 D4 and D4a set the line. The
   obligation here is that each slice's output is checked against them before it
   ships, and that the check is named in its spec.
 - **Projecting must not double the board.** FEAT-0011's guardrail states the
@@ -55,13 +55,13 @@ them.
 ## Scope / Non-goals
 
 **In scope.** Returning shaped intent onto items a team already holds;
-projecting the canonical tree outward across ADR-0125's range as items carrying
+projecting the canonical tree outward across ADR-0127's range as items carrying
 a back-reference; and the per-system hierarchy profiles that let either happen
 without the product model absorbing a provider's shape.
 
 **Out of scope, and each names where it is owned.**
 
-- **What projects, and how far.** ADR-0125. This brief implements it and does
+- **What projects, and how far.** ADR-0127. This brief implements it and does
   not re-open it.
 - **Delivery-state and flow observation.**
   [`FEAT-0012`](../intents/FEAT-0012-delivery-state-and-flow-visibility.md).
@@ -95,7 +95,7 @@ Measured or read on 2026-09-23. Locations and findings, not restated status.
   `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
   maps `none`, Linear and Jira Align. Jira Software and GitHub Issues + Projects
   have no columns.
-- **Applying ADR-0125 D1 through D4a to every row of that table finds conflicts
+- **Applying ADR-0127 D1 through D4a to every row of that table finds conflicts
   at and below the floor, and none above it.** Reported row by row.
   - Its `spec / slice (leaf)` row maps the leaf onto a Linear **Issue** and a
     Jira Align **Story**. Both are scheduled, assigned and counted on their
@@ -103,7 +103,7 @@ Measured or read on 2026-09-23. Locations and findings, not restated status.
   - Its `story-as-trace (optional)` row maps onto a Linear **sub-issue** and a
     Jira Align **Story / sub-task**. These are also schedulable and countable,
     and the row states no condition of the kind D4 requires below the floor.
-    **ADR-0125 D4 cites this row approvingly**, resting on the § *What v1 ships*
+    **ADR-0127 D4 cites this row approvingly**, resting on the § *What v1 ships*
     sentence rather than on the cells. The slice acts on the cells: they name
     managed objects, so the row needs the not-managed condition stated or its
     cells changed.
@@ -117,7 +117,7 @@ Measured or read on 2026-09-23. Locations and findings, not restated status.
   - Separately, the table's canonical column carries no rung for a delivery
     brief, so the cross-repository floor has no rendering.
   - The table's § *What v1 ships* asserts that "the spec/slice is the unit".
-    That sentence, not either table row, is the direct claim ADR-0125
+    That sentence, not either table row, is the direct claim ADR-0127
     displaces.
 - **One gated outbound content path exists, and only on Jira Software.**
   `jira-story-triage` reviews items against a five-question readiness bar,
@@ -157,7 +157,7 @@ Measured or read on 2026-09-23. Locations and findings, not restated status.
 - **Non-waivable: `core` gains no provider-specific coupling**, and the
   product-engineering intent model gains no provider-specific hierarchy. A
   provider's shape is absorbed at the edge.
-- **Non-waivable: ADR-0125 D3 and D5 hold on every delivery system.** The
+- **Non-waivable: ADR-0127 D3 and D5 hold on every delivery system.** The
   obligation is that a slice refuses to ship a rendering that violates either,
   rather than shipping it with the deviation noted.
 - **Non-waivable: one-way, for repo-origin work.** ADR-0019 D5 as ADR-0077
@@ -195,12 +195,12 @@ Measured or read on 2026-09-23. Locations and findings, not restated status.
   this operating model through a staged journey. CAP-0004's de-risk;
   `to-validate`, no adopter has run it.
 - **[Inherited, `to-validate`]** FEAT-0011's de-risk killed the spec tier and
-  reframed the projected unit upward, and ADR-0125 D2 fixes the floor there. The
+  reframed the projected unit upward, and ADR-0127 D2 fixes the floor there. The
   reframe carries a `to-validate` hook that no adopter has discharged. Every
   slice below inherits it, and a spec must not read as though the tier were
   settled.
 - **[Open risk, owned by the first slice]** Whether each delivery system's
-  hierarchy can carry the range at all. ADR-0125 keeps this as a standing
+  hierarchy can carry the range at all. ADR-0127 keeps this as a standing
   revisit trigger, and D3's collapse rule answers it only where a native carrier
   exists. Adding a canonical rung does not create a provider rung, so this is
   not answerable from the intent model and is discovered per system.
@@ -308,7 +308,7 @@ and status.
 
 **The shape, and why these are not independent bets.** Each slice makes the
 outcome real on one delivery system, end to end: the profile rows for
-ADR-0125's range, the outward projection carrying a back-reference, and the
+ADR-0127's range, the outward projection carrying a back-reference, and the
 return leg onto items that team already holds. The Jira Software slice ships
 first and sets the pattern — the normalized shape a profile carries, where a
 rung collapses when a provider is shallow, how a below-floor object is rendered
@@ -316,7 +316,7 @@ without being managed, and the confirmed-write boundary. The other three
 conform to that pattern rather than re-deciding it. A green result on one is
 therefore evidence about the pattern rather than a stand-in for the others.
 
-**On the set this cuts across.** ADR-0125's *Applies to* fixes the delivery
+**On the set this cuts across.** ADR-0127's *Applies to* fixes the delivery
 systems at Jira Software, Jira Align, GitHub Issues + Projects and Linear.
 FEAT-0011 § Boundary enumerates none and defers to that set; its completion
 condition — the outcome real on at least one delivery system before shipping —
@@ -346,7 +346,7 @@ them into the Jira slice meant approving a change to a contract four providers
 route writes through under the heading of one delivery system. Each is
 independently shippable and independently testable — the create action is
 inert until a provider declares the capability — and all four provider slices
-already depend on them as separate units. Both are accepted against ADR-0125
+already depend on them as separate units. Both are accepted against ADR-0127
 and the shared write contract rather than against a provider's documentation,
 while the Jira Software slice is accepted against the Atlassian hierarchy
 constraints recorded in § Current-state evidence above.
@@ -360,7 +360,7 @@ records the pairing as the owner's cut and does not test it.
 This section collects what each governing artifact obliges here, in one place,
 so a spec can cite into it rather than restate the source.
 
-- **[ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md) — what
+- **[ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md) — what
   projects, and how far.** The canonical tree projects as a **range** (D1), from
   its top rung down to a floor that sits at the **delivery brief** where work
   crosses a repository boundary and at the **feature intent** otherwise (D2).
@@ -378,7 +378,7 @@ so a spec can cite into it rather than restate the source.
   **superseded in part by ADR-0098**; § Source records what that refines and
   why the multi-change-in-one-repository row still holds. D2 grants
   the cross-repository brief a distinct coordination identity, which is what
-  ADR-0125 D2 rests on. D4 and D5 require every repository brief to name the
+  ADR-0127 D2 rests on. D4 and D5 require every repository brief to name the
   same durable parent and forbid reading another repository live to resolve it.
   D6–D12 govern imported-field authority and lifecycle-gated refresh, including
   the tracker-origin modes that refine ADR-0019 D5.
@@ -407,7 +407,7 @@ so a spec can cite into it rather than restate the source.
 - **[FEAT-0012](../intents/FEAT-0012-delivery-state-and-flow-visibility.md) and
   [FEAT-0013](../intents/FEAT-0013-timeline-and-strategic-progress-review.md)** —
   siblings. They own flow observation and forecast review respectively, and both
-  count whatever ADR-0125's range admits, which is why the floor is not this
+  count whatever ADR-0127's range admits, which is why the floor is not this
   brief's to move.
 - **[CAP-0004](../intents/CAP-0004-external-tracker-projection.md)** — the
   capability. It owns the no-new-runtime guardrail and the authority constraints

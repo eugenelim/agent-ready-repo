@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125
+- **Constrained by:** ADR-0127
 - **Brief:** brief:delivery-state-and-flow-visibility
 - **Discovery:** none
 - **Contract:** none
@@ -91,7 +91,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Render a percentile whose sample is below its threshold.
 - Report silence when the sample is thin. A thin sample is labelled thin.
-- Violate ADR-0125 D4 by counting anything below the floor.
+- Violate ADR-0127 D4 by counting anything below the floor.
 - Render a throughput comparison across windows, or call a throughput figure
   an improvement. The parent's guardrail is that a rise is never reported as
   an improvement when the unit itself got bigger, and no measure available
@@ -159,7 +159,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       at or above it; projected with a resolved floor and below it; or origin
       or floor unresolved.
 - [ ] A provider-native, non-projected completion is included. Absence of intent
-      linkage is not by itself proof of this: ADR-0125 D5 resolves a floor
+      linkage is not by itself proof of this: ADR-0127 D5 resolves a floor
       from whether work crosses a repository boundary.
 - [ ] A projected completion at or above its resolved floor is included.
 - [ ] A projected completion below its resolved floor is excluded.

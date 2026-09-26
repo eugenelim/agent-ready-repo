@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125; ADR-0077; ADR-0019; ADR-0033
+- **Constrained by:** ADR-0127; ADR-0077; ADR-0019; ADR-0033
 - **Brief:** brief:intent-backed-working-view
 - **Discovery:** none
 - **Contract:** none
@@ -46,17 +46,17 @@ it.
 
 ## What Changes
 
-- A Jira Align projection renders ADR-0125's range across the Theme, Epic,
+- A Jira Align projection renders ADR-0127's range across the Theme, Epic,
   Feature and Story tiers with a back-reference — `packs/atlassian/`
 - The Jira Align column in the shared profile table is reconciled against
-  ADR-0125's range — authored by the pattern slice, exercised here
+  ADR-0127's range — authored by the pattern slice, exercised here
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility | Applicable — the projection uses the Jira Align client's record creation, and its refresh processor stays fail-closed | `packs/atlassian/.apm/skills/jira-align/` | this spec | creation confirmed through the bounded action set; the refresh processor unchanged | no return-leg action is added to a fail-closed processor by this slice |
-| Maintainer procedure | Applicable — the Jira Align column predates ADR-0125 | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Jira Align render | the render matches every row |
+| Maintainer procedure | Applicable — the Jira Align column predates ADR-0127 | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Jira Align render | the render matches every row |
 | Release history | Applicable — `atlassian` changes | `packs/atlassian/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — this slice conforms to the pattern the Jira Software slice documents | — | — | — | — |
 
@@ -86,7 +86,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Violate ADR-0019 D5 as ADR-0077 D6-D12 refine it, by letting anything read
   off the tracker acquire authority over canonical intent.
-- Violate ADR-0125 D4 by projecting an agent-internal unit as a managed item,
+- Violate ADR-0127 D4 by projecting an agent-internal unit as a managed item,
   or D4a by projecting a same-repository delivery brief.
 - Violate CAP-0004's no-new-runtime guardrail.
 - Re-decide a variation point the Jira Software slice's pattern already settles.
@@ -112,7 +112,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Acceptance Criteria
 
 - [ ] Projecting the reference tree yields one Jira Align record for every rung
-      in ADR-0125's range, down to and including the floor rung. A run yielding
+      in ADR-0127's range, down to and including the floor rung. A run yielding
       zero records fails.
 - [ ] The rollup from the floor rung to the top rung of that projection
       resolves across the Jira Align tiers.

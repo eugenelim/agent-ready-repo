@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125
+- **Constrained by:** ADR-0127
 - **Brief:** brief:timeline-and-strategic-progress-review
 - **Discovery:** none
 - **Contract:** none

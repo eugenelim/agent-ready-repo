@@ -42,7 +42,7 @@ happens to use.
 - **An observation never acquires authority.** Nothing read back from a tracker
   changes canonical intent. ADR-0077 D6–D12 and ADR-0019 D5 govern this; the
   obligation is not to contradict them.
-- **Nothing below a resolved floor is counted.** ADR-0125 D4 bounds the
+- **Nothing below a resolved floor is counted.** ADR-0127 D4 bounds the
   denominator; a trace is readable and must not enter a statistic. Absence of
   intent linkage does not establish absence of a floor — D5 resolves a floor
   from whether work crosses a repository boundary — so work whose floor cannot
@@ -62,7 +62,7 @@ the reading itself.
   [FEAT-0011](../intents/FEAT-0011-intent-backed-working-view.md) and its brief.
 - **Forecast and outcome review.** Owned by
   [FEAT-0013](../intents/FEAT-0013-timeline-and-strategic-progress-review.md).
-- **Where the floor sits.** Owned by ADR-0125. This brief consumes it.
+- **Where the floor sits.** Owned by ADR-0127. This brief consumes it.
 - **Any new daemon, control plane, database or scheduler.** Owned by
   [CAP-0004](../intents/CAP-0004-external-tracker-projection.md)'s guardrail. A
   reading is computed when asked and is as of a stated moment.
@@ -208,7 +208,7 @@ percentile as meaning the same thing on two trackers.
 **One decision this cut does not settle.** Whether the cross-system vocabulary
 binds beyond this feature — FEAT-0013's forecast reads it — and therefore
 whether it belongs in a decision record rather than a spec. It has the same
-shape as the floor question that became ADR-0125. Slice 1 produces it; whether
+shape as the floor question that became ADR-0127. Slice 1 produces it; whether
 it is promoted is the owner's call once its reach is visible.
 
 ## Governance references
@@ -216,7 +216,7 @@ it is promoted is the owner's call once its reach is visible.
 This section collects what each governing artifact obliges here, in one place,
 so a spec can cite into it rather than restate the source.
 
-- **[ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md)** — the
+- **[ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md)** — the
   projection is a range floored at the feature intent for same-repository work
   and at the delivery brief where work crosses a repository boundary (D1, D2).
   Below the floor nothing is managed or counted, though a trace may be readable

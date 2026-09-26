@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125; ADR-0077; ADR-0019; ADR-0033
+- **Constrained by:** ADR-0127; ADR-0077; ADR-0019; ADR-0033
 - **Brief:** brief:intent-backed-working-view
 - **Discovery:** none
 - **Contract:** none
@@ -49,7 +49,7 @@ legible — a reader can tell which canonical rung a label stands for.
   own rule already mandates. The raw-write prohibition at
   `packs/linear/.apm/skills/linear/SKILL.md:198-200` stays exactly as written —
   `packs/linear/`
-- A Linear projection renders ADR-0125's range onto Initiative, Project and
+- A Linear projection renders ADR-0127's range onto Initiative, Project and
   Issue, with intervening rungs on labels — `packs/linear/`
 - The Linear return leg extends to shaped intent on existing issues —
   `packs/linear/`
@@ -60,7 +60,7 @@ legible — a reader can tell which canonical rung a label stands for.
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility | Applicable — a pack rule sending all writes through the refresh processor now covers a create | `packs/linear/.apm/skills/linear/SKILL.md` | this spec | the prohibition unchanged, and the create reachable only through the processor | no raw GraphQL write verb appears in the skill body |
 | Maintainer procedure | Applicable — the label encoding is the contract a fifth provider with a shallow hierarchy will copy | `packs/linear/.apm/skills/linear/SKILL.md` | this spec | the canonical-identity encoding documented in one place | a rendered label parses by the documented form |
-| Maintainer procedure | Applicable — the Linear column exists but predates ADR-0125's range | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Linear render | the render matches every row |
+| Maintainer procedure | Applicable — the Linear column exists but predates ADR-0127's range | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Linear render | the render matches every row |
 | Release history | Applicable — `linear` changes | `packs/linear/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — this slice conforms to the pattern the Jira Software slice documents | — | — | — | — |
 
@@ -90,7 +90,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Violate ADR-0019 D5 as ADR-0077 D6-D12 refine it, by letting anything read
   off the tracker acquire authority over canonical intent.
-- Violate ADR-0125 D4 by projecting an agent-internal unit as a managed item,
+- Violate ADR-0127 D4 by projecting an agent-internal unit as a managed item,
   or D4a by projecting a same-repository delivery brief.
 - Violate CAP-0004's no-new-runtime guardrail.
 - Re-decide a variation point the Jira Software slice's pattern already settles.
@@ -111,7 +111,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Acceptance Criteria
 
 - [ ] Projecting the reference tree onto an empty Linear workspace yields one
-      Linear object or label for every rung in ADR-0125's range and nothing for
+      Linear object or label for every rung in ADR-0127's range and nothing for
       any rung outside it. A run yielding zero objects fails.
 - [ ] A projected Linear issue names the canonical artifact it came from.
 - [ ] A repository reader can determine which Linear issue a rung was projected
@@ -167,6 +167,6 @@ decision, not an argued indivisibility.
 ## Assumptions
 
 - Whether a label carries enough of the rollup for a manager to read it, or
-  whether Linear's sub-issue nesting is needed for intervening rungs. ADR-0125
+  whether Linear's sub-issue nesting is needed for intervening rungs. ADR-0127
   D3 permits either carrier; which one an adopter finds legible is observable
   only against a real board.

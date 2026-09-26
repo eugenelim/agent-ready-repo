@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0019 (one-way projection for repo-origin work); ADR-0077 (the two authority modes a bridge skill operates under); ADR-0125 (what projects, for the bridge half only)
+- **Related:** ADR-0019 (one-way projection for repo-origin work); ADR-0077 (the two authority modes a bridge skill operates under); ADR-0127 (what projects, for the bridge half only)
 
 ## Decision summary
 

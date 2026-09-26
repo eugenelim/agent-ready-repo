@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125; ADR-0033
+- **Constrained by:** ADR-0127; ADR-0033
 - **Brief:** brief:intent-backed-working-view
 - **Discovery:** none
 - **Contract:** none
@@ -52,14 +52,14 @@ a runner checking a projection, because both read the same classification.
   as managed, and the canonical column gains a cross-repository delivery-brief
   rung — same file
 - Jira Software gains a column — same file
-- A runner resolves every row against ADR-0125 by reading classifications —
+- A runner resolves every row against ADR-0127 by reading classifications —
   `packs/product-engineering/`
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Maintainer procedure | Applicable — the table is the procedure a person follows to project by hand, and today its cells are free prose | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | this spec | the classified, reconciled table | every row resolves against ADR-0125 by classification |
+| Maintainer procedure | Applicable — the table is the procedure a person follows to project by hand, and today its cells are free prose | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | this spec | the classified, reconciled table | every row resolves against ADR-0127 by classification |
 | Release history | Applicable — `product-engineering` changes | `packs/product-engineering/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — this slice changes a reference table, not a structure | — | — | — | — |
 
@@ -73,7 +73,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Give every cell exactly one classification from the closed set.
 - Keep one spelling per provider-object token across the whole table.
-- Resolve each row against ADR-0125 D1 through D4a from the classifications.
+- Resolve each row against ADR-0127 D1 through D4a from the classifications.
 
 ### Ask first
 
@@ -82,7 +82,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Never do
 
-- Violate ADR-0125 D4 by classifying a below-floor object as `managed`, or
+- Violate ADR-0127 D4 by classifying a below-floor object as `managed`, or
   D4a by giving a same-repository delivery brief any row.
 - Decide the classification by reading a cell's prose.
 - Add a fifth classification value.
@@ -97,7 +97,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   spellings of the same object and a name carrying bold markup, so this check
   is what makes the rest mechanizable.
 - **Clause resolution: goal-based check.** One runner resolves every row
-  against ADR-0125 D1 through D4a from the classifications, and fails on a
+  against ADR-0127 D1 through D4a from the classifications, and fails on a
   below-floor `managed`.
 
 ## Acceptance Criteria
@@ -107,7 +107,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       without interpreting prose.
 - [ ] Each provider-object token appears with exactly one spelling and one
       classification across the whole table.
-- [ ] Every row resolves against ADR-0125 D1 through D4a by reading those
+- [ ] Every row resolves against ADR-0127 D1 through D4a by reading those
       classifications. The runner reads no free text to decide whether an
       object is managed.
 - [ ] No table cell maps a rung below the floor to an object its provider

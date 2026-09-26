@@ -8,7 +8,7 @@
   `packs/atlassian/.apm/skills/jira-refresh/` (the two shipped confirmed-write
   precedents);
   `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
-  (the profile table this reconciles); `docs/adr/0125-managed-unit-floor-and-projected-range.md`.
+  (the profile table this reconciles); `docs/adr/0127-managed-unit-floor-and-projected-range.md`.
   Named deviation: the sixth remote action has no precedent — every existing
   action annotates an item that already exists.
 
@@ -61,7 +61,7 @@ write path is evidenced by a recorded confirmation transcript.
 
 ## Constraints
 
-- **ADR-0125** D1 through D4a fix what projects and how far, and D3 and D5 are
+- **ADR-0127** D1 through D4a fix what projects and how far, and D3 and D5 are
   non-waivable on every delivery system. The plan implements the range and does
   not reopen the floor.
 - **ADR-0019 D5**, as **ADR-0077 D6-D12** refine it, keeps this one-way for
@@ -78,7 +78,7 @@ write path is evidenced by a recorded confirmation transcript.
 
 ## Construction tests
 
-- The profile-table runner resolves every row against ADR-0125 and fails on a
+- The profile-table runner resolves every row against ADR-0127 and fails on a
   below-floor managed object. It runs over the table file, so it keeps working
   when a later slice adds a column.
 - A projection fixture pair — a tree and its expected Jira rendering — drives
@@ -118,7 +118,7 @@ write path is evidenced by a recorded confirmation transcript.
   refresh processor, so four ad-hoc create paths would mean deleting that rule
   in one pack rather than extending the mechanism it names. One action in the
   shared set gives four providers one reviewed boundary.
-- **Below the floor renders as a trace or not at all.** ADR-0125 D4 permits a
+- **Below the floor renders as a trace or not at all.** ADR-0127 D4 permits a
   readable trace object provided it is neither managed nor counted, so the
   rendering is a link on the floor item rather than a child object.
 

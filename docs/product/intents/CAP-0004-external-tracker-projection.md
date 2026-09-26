@@ -2,7 +2,7 @@
 
 - **Slug:** `external-tracker-projection`
 - **Status:** Accepted
-- **Accepted:** 2026-09-23 by eugenelim, lifecycle owner, on owner authority, and re-accepted the same day after a material change: the projection rule is now stated for the authority mode it governs, and the managed-unit floor question is recorded as answered by ADR-0125. The basis: the riskiest assumption was tested under `de-risk-intent` against a kill condition predeclared before the evidence returned, and survived; the altitude was re-tested under `frame-intent` and held at `capability` on two discriminators drawn from the parent's own recorded reasoning; and Core's `shaping-reviewer` returned a clean intent-mode pass at revision `deba52f7bd484622`. A review result sets no status — this line is the owner's act, and the reviews are evidence for it.
+- **Accepted:** 2026-09-23 by eugenelim, lifecycle owner, on owner authority, and re-accepted the same day after a material change: the projection rule is now stated for the authority mode it governs, and the managed-unit floor question is recorded as answered by ADR-0127. The basis: the riskiest assumption was tested under `de-risk-intent` against a kill condition predeclared before the evidence returned, and survived; the altitude was re-tested under `frame-intent` and held at `capability` on two discriminators drawn from the parent's own recorded reasoning; and Core's `shaping-reviewer` returned a clean intent-mode pass at revision `deba52f7bd484622`. A review result sets no status — this line is the owner's act, and the reviews are evidence for it.
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -151,7 +151,7 @@ accepted one-way rule is chosen at this altitude.
   tracker-origin, so the question is live only for repo-origin work.
 - ~~Whether the managed-unit floor can be stated once, or has to be negotiated
   per provider and per team.~~ **Answered by
-  [ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md).** The
+  [ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md).** The
   projection is a range from the tree's top down to a floor that sits at the
   delivery brief where work crosses a repository boundary and at the feature
   intent otherwise; the floor is fixed rather than negotiated per team, and

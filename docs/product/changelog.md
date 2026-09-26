@@ -131,7 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   emitted document's field set, its twelve blocker codes and its twelve refusal
   codes.
 
-## [atlassian][0.10.0] — 2026-09-26
+## [atlassian][0.10.1] — 2026-09-26
 
 ### Highlights
 

@@ -2,7 +2,7 @@
 
 - **Slug:** `delivery-state-and-flow-visibility`
 - **Status:** Accepted
-- **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `7341e0ff7c3a3d7b`; de-risked with a surviving verdict on published minimums and a computed tolerance ladder; the thin-sample question closed by spike rather than deferred; and decomposed into a delivery brief. **The shaping review predates later material edits** — the ADR-0125 range, the D4 counting bound and the spike disposition — so it is evidence for the bet rather than for the current text.
+- **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `7341e0ff7c3a3d7b`; de-risked with a surviving verdict on published minimums and a computed tolerance ladder; the thin-sample question closed by spike rather than deferred; and decomposed into a delivery brief. **The shaping review predates later material edits** — the ADR-0127 range, the D4 counting bound and the spike disposition — so it is evidence for the bet rather than for the current text.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -101,13 +101,13 @@ reproducing it three times is the failure mode, not the goal.
 
 [FEAT-0010](FEAT-0010-intent-backed-working-view.md) was reframed on
 2026-09-23 and
-[ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md) then
+[ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md) then
 decided the result: the projection is a **range**, floored at the feature intent
 for same-repository work and at the delivery brief where work crosses a
 repository boundary, with the rungs above it projecting too and nothing below it
 managed or counted. This feature observes flow over whatever the range admits,
 so the change is not neutral here — it is load-bearing, in both directions.
-**ADR-0125 D4 is what bounds this feature's denominator**: a trace below the
+**ADR-0127 D4 is what bounds this feature's denominator**: a trace below the
 floor is readable and must not be counted.
 
 **It is what makes flow readable at all.** Flow metrics need items that
@@ -339,7 +339,7 @@ validation_hook:
   kill_condition: as predeclared 2026-09-23T01:14:55Z above
   status: SURVIVES on published evidence plus one computed threshold;
     to-validate on the desirability half
-  reads_back_to: ADR-0125, whose revisit trigger fires when an adopter's
+  reads_back_to: ADR-0127, whose revisit trigger fires when an adopter's
     feature-tier completions fall below this ladder. The comparison has no
     owner until an adopter exists; whoever runs the activity below owns it,
     and a below-threshold result is an ADR revisit rather than a local fix
@@ -457,4 +457,4 @@ exists. The brief owns slice membership.
   completed items and produces the vocabulary the second slice needs.
 - **One question deliberately left open:** whether the cross-system vocabulary
   binds beyond this feature and therefore belongs in a decision record. It has
-  the shape of the floor question that became ADR-0125. The brief records it.
+  the shape of the floor question that became ADR-0127. The brief records it.

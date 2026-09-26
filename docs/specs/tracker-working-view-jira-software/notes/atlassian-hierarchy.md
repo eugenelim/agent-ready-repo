@@ -25,7 +25,7 @@ The three-level default is the hierarchy a projection renders into on a
 non-paid tier, so it bounds what the profile rows may assume. The paid-plan gate
 means a mapping that needs a rung above Epic is not universally available.
 Where it is absent the rung must **collapse** onto labels or an equivalent
-carrier under ADR-0125 D3, never truncate — D3 names dropping a rung as out of
+carrier under ADR-0127 D3, never truncate — D3 names dropping a rung as out of
 contract. Upward extension matters because a new Jira level lands above Epic, so a
 canonical rung mapped there is reachable only on Premium or Enterprise. And the vocabulary shift
 scopes to Jira: rows describing **Jira** objects as "Issue" use a term Atlassian

@@ -62,7 +62,7 @@ awkward.
 
 - **ADR-0077 D6-D12** and **ADR-0019 D5**, for repo-origin work, set the
   authority boundary: an observation stays an observation.
-- **ADR-0125 D4** bounds what may be read: nothing below the floor is counted,
+- **ADR-0127 D4** bounds what may be read: nothing below the floor is counted,
   though a trace may be readable.
 - **CAP-0004's guardrail** forbids a daemon, control plane, database or
   scheduler, so a reading is computed when asked and states its moment.
@@ -138,7 +138,7 @@ call was made and is stated with the result.
 ### Behavior & rules
 
 An observation a provider cannot supply is reported as absent for that
-provider, never substituted from another. An artifact below ADR-0125's floor
+provider, never substituted from another. An artifact below ADR-0127's floor
 yields no value.
 
 ### Failure, edge cases & resilience
@@ -189,7 +189,7 @@ a reader could implement against a system neither pack supports.
 **Tests:**
 - Provider fixtures for state, assignment, blocking and elapsed time.
 - A zero-completion scope returns all four.
-- No value is returned below ADR-0125's floor.
+- No value is returned below ADR-0127's floor.
 - Every rendered reading states its moment.
 
 **Done when:** the Jira fixtures are green and each read names the vocabulary

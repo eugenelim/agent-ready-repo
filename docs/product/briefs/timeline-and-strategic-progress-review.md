@@ -205,7 +205,7 @@ sufficient reason on its own.
 This section collects what each governing artifact obliges here, in one place,
 so a spec can cite into it rather than restate the source.
 
-- **[ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md)** — D4
+- **[ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md)** — D4
   bounds what may be counted: below the floor a trace is readable and must not
   enter a statistic, so a forecast counts only managed items within a resolved
   range. Absence of intent linkage does not establish absence of a floor —

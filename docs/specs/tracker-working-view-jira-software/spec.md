@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0125; ADR-0077; ADR-0019; ADR-0033
+- **Constrained by:** ADR-0127; ADR-0077; ADR-0019; ADR-0033
 - **Brief:** brief:intent-backed-working-view
 - **Discovery:** none
 - **Contract:** none
@@ -46,7 +46,7 @@ not quite right.
 
 - The Jira Software profile declares the create capability and supplies its
   handler — `packs/atlassian/`
-- A Jira Software projection renders every rung in ADR-0125's range as Jira
+- A Jira Software projection renders every rung in ADR-0127's range as Jira
   work carrying a back-reference to its canonical artifact — `packs/atlassian/`
 - A Jira Software return leg writes shaped intent onto items the team already
   holds, through the bounded action set — `packs/atlassian/`
@@ -57,7 +57,7 @@ not quite right.
 | --- | --- | --- | --- | --- | --- |
 | Current architecture | Applicable — the projection pattern the other three delivery systems conform to has no home today | `docs/architecture/` | this spec | the pattern document, naming each variation point and which provider takes which branch | the document names every variation point an existing pack exercises |
 | Release history | Applicable — `atlassian` changes | `packs/atlassian/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
-| Decision rationale | Not applicable — ADR-0125 already records the range-and-floor decision and this spec implements it | — | — | — | — |
+| Decision rationale | Not applicable — ADR-0127 already records the range-and-floor decision and this spec implements it | — | — | — | — |
 
 ## Agent Rules
 
@@ -67,7 +67,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Always do
 
-- Satisfy ADR-0125 D1 and D3 for every rung: render the whole range and keep
+- Satisfy ADR-0127 D1 and D3 for every rung: render the whole range and keep
   the rollup resolvable through whatever carrier Jira's depth forces.
 - Put the canonical artifact's identity on every projected item, and the
   projected item's identity where a repository reader can find it.
@@ -102,7 +102,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   receipt, a log, an error or a repository artifact.
 - Violate ADR-0019 D5 as ADR-0077 D6-D12 refine it, by letting anything read
   off Jira acquire authority over canonical intent.
-- Violate ADR-0125 D4 by projecting an agent-internal unit as a managed item,
+- Violate ADR-0127 D4 by projecting an agent-internal unit as a managed item,
   or D4a by projecting a same-repository delivery brief.
 - Mutate a protected field on an item the team already holds. The protected set
   is `jira-story-triage`'s and is not restated here.
@@ -139,7 +139,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Acceptance Criteria
 
 - [ ] Projecting the reference tree onto an empty Jira project yields one Jira
-      object for every rung in ADR-0125's range and no object for any rung
+      object for every rung in ADR-0127's range and no object for any rung
       outside it. A run yielding zero objects fails.
 - [ ] The rollup from the floor rung to the top rung of that projection
       resolves through each carrier the collapse selected.

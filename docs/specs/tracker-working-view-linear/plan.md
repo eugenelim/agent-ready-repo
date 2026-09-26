@@ -48,12 +48,12 @@ what keeps the pack's one write route auditable.
 The substance is the collapse. Linear carries three native levels against a
 tree that can be deeper, so more rungs land on labels here than anywhere else.
 A label that says nothing about which canonical rung it stands for satisfies
-ADR-0125 D3 and still leaves a reader unable to reconstruct the tree, so
+ADR-0127 D3 and still leaves a reader unable to reconstruct the tree, so
 legibility is an acceptance criterion rather than a nicety.
 
 ## Constraints
 
-- **ADR-0125** D1 through D4a fix what projects and how far; D3 and D5 are
+- **ADR-0127** D1 through D4a fix what projects and how far; D3 and D5 are
   non-waivable on every delivery system.
 - **ADR-0019 D5**, as **ADR-0077 D6-D12** refine it, keeps this one-way for
   repo-origin work.
@@ -99,7 +99,7 @@ legibility is an acceptance criterion rather than a nicety.
 - **The raw-write prohibition stays.** The create action arrives through the
   refresh processor, which is what Linear's rule already mandates, so the
   prohibition needs no exception and the pack keeps one auditable write route.
-- **The label carries a parseable identity, not a readable hint.** ADR-0125 D3
+- **The label carries a parseable identity, not a readable hint.** ADR-0127 D3
   permits a label as a carrier and says nothing about what it reads. A bare
   label passes D3 and defeats the feature; a label checked only for "naming"
   its rung lets the implementation define what naming means. One documented
@@ -265,7 +265,7 @@ pack's single write route is never widened.
 
 ## Risks
 
-- **A bare label passes ADR-0125 and defeats the outcome.** Mitigated by the
+- **A bare label passes ADR-0127 and defeats the outcome.** Mitigated by the
   legibility criterion and its assertion over rendered output.
 - **The tree outgrows three levels faster than expected.** The rollup assertion
   is the detector: it walks carriers rather than levels, so a deeper tree fails

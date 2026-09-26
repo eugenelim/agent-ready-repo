@@ -2,7 +2,7 @@
 
 - **Slug:** `intent-backed-working-view`
 - **Status:** Accepted
-- **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `ce13cf8603d54841`; de-risked over two probes, killed on this repository's corpus and surviving on the enterprise population the owner set as governing; reframed to the projected range ADR-0125 then decided; and decomposed into a delivery brief. The reframe carries a `to-validate` hook — no adopter has run it.
+- **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `ce13cf8603d54841`; de-risked over two probes, killed on this repository's corpus and surviving on the enterprise population the owner set as governing; reframed to the projected range ADR-0127 then decided; and decomposed into a delivery brief. The reframe carries a `to-validate` hook — no adopter has run it.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -434,7 +434,7 @@ report.
 **The projected managed unit is the feature intent, not the spec.** A feature
 intent is durable, human-meaningful, sits above the agent-internal floor by
 construction, and carries a real lifecycle vocabulary. **Superseded in scope by
-[ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md), which
+[ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md), which
 decided a range rather than a single rung**: the feature intent is the floor for
 same-repository work, the delivery brief is the floor where work crosses a
 repository boundary, and the rungs above the floor project too. The reframe this
@@ -484,7 +484,7 @@ Deliberately undecided. Each belongs to shaping, spec or architecture.
 - Provider capability negotiation.
 - ~~Where the managed-unit floor sits, and whether it is one rule or negotiated
   per team.~~ **Answered by
-  [ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md),
+  [ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md),
   Accepted 2026-09-23.** The projection is a range running from the tree's top
   rung down to a floor that sits at the delivery brief where work crosses a
   repository boundary and at the feature intent otherwise. The floor is fixed
@@ -566,7 +566,7 @@ them decides membership.
   and [FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)'s
   forecast both count whatever the floor admits. Burying a decision that three
   artifacts depend on inside one spec's body is how it becomes unfindable. It
-  is now [ADR-0125](../../adr/0125-managed-unit-floor-and-projected-range.md).
+  is now [ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md).
 - **2026-09-23 — a decomposition that ships no code can still be a slice.** With
   a hierarchy mapping stated, a team can project by hand, which is exactly the
   `none` rendering the shipped `decompose-intent` reference treats as
