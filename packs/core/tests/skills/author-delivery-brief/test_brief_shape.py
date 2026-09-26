@@ -594,10 +594,15 @@ def test_t6_refusal_registry_equals_actual_refusals() -> None:
     an arbitrary string.  It is probed with a fixed table that deliberately
     includes a *valid* value, so a rule added after the ISO check -- the most
     likely shape a new refusal takes -- fires during the sweep and surfaces as
-    ``UNREGISTERED_``.  Measured 2026-09-25: a fourth refusal triggered by a
-    probed input reds this test; one triggered only by an input outside the
-    table does not.  That residue is inherent to probing a string domain, and
-    is stated here rather than left for a reader to discover.
+    ``UNREGISTERED_``.  The classifier anchors each sign to the end of the
+    message, so a longer wording that merely contains an existing phrase is
+    not absorbed into that class.
+
+    One residue remains and is inherent to probing a string domain: a refusal
+    that fires only on an input outside the probe table is invisible here.
+    Measured 2026-09-25 -- a fourth refusal triggered by a probed input reds
+    this test whether its wording extends an existing phrase or not; one
+    triggered only by an unprobed input does not.
     """
     doc = _m.__doc__ or ""
 
@@ -626,6 +631,12 @@ def test_t6_refusal_registry_equals_actual_refusals() -> None:
     # UNREGISTERED_cut_closed, which surfaces immediately as a set mismatch.
     # The sweep includes "2026-01-01 evidence" (a valid input that currently
     # returns None) so that any refusal added after the ISO check fires on it.
+    # Anchored to the end of the message, not a substring search.  A
+    # substring sign absorbs any longer wording that merely contains it --
+    # a new rule phrased "... is not an ISO 8601 date inside the open cut
+    # window" would be filed as cut_closed_malformed instead of surfacing as
+    # UNREGISTERED_, which is the likely wording for a new date rule rather
+    # than a contrived one.
     _CUT_CLOSED_CLASS_SIGNS: list[tuple[str, str]] = [
         ("is not an ISO 8601 date followed by evidence text", "cut_closed_malformed"),
         ("is not an ISO 8601 date", "cut_closed_malformed"),
@@ -641,7 +652,7 @@ def test_t6_refusal_registry_equals_actual_refusals() -> None:
             continue
         cls = "UNREGISTERED_cut_closed"
         for sign, name in _CUT_CLOSED_CLASS_SIGNS:
-            if sign in msg:
+            if msg.endswith(sign):
                 cls = name
                 break
         observed.add(cls)
@@ -790,4 +801,20 @@ def test_four_space_indent_is_a_code_block_not_a_heading() -> None:
         text = f"- **Status:** Draft\n{indent}## Outcome\n- **Slug:** `x`\n"
         assert "Slug" in dict(_m.read_preamble(text)), (
             f"indent {indent!r} bounded the preamble as if it were a heading"
+        )
+
+
+def test_tab_separated_heading_bounds_preamble() -> None:
+    """A tab after the hashes is a heading separator, so the line bounds.
+
+    CommonMark takes any whitespace after the `#` run as the separator, and a
+    bare `##` is an empty heading.  Both render as a section break, so a
+    record written below one is body content.  The measured consequence of
+    missing this: a `Cut-closed:` line under `##\tOutcome` satisfied a
+    `Shipped` brief's requirement and the brief reported delivered.
+    """
+    for heading in ("##\tOutcome", "##"):
+        text = f"- **Status:** Shipped\n{heading}\n- **Cut-closed:** 2026-01-01 smuggled\n"
+        assert _m.get_cut_closed(text) is None, (
+            f"a Cut-closed: record below {heading!r} was read as a preamble field"
         )

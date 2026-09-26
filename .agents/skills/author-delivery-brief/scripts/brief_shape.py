@@ -36,13 +36,24 @@ from __future__ import annotations
 import re
 from datetime import date
 
-# A section heading that actually bounds a read: ``##`` at the start of the
-# raw line, under CommonMark's three-space ceiling.  Matching the raw line
-# rather than the comment-stripped text is what tells ``  ## Outcome`` (a real
-# indented heading) from ``<!-- n --> ## Outcome`` and ``--> ## Outcome``,
-# whose ``##`` is a live *suffix* after comment text and is not a heading.
-# Four spaces or a tab is an indented code block, not a heading.
-BOUNDING_HEADING_RE = re.compile(r"^ {0,3}## ")
+# What counts as a section heading, for every reader of a brief.
+#
+# Matched against the RAW line, not the comment-stripped text.  That is what
+# tells a real heading from one preceded on its own line by comment text:
+# `  ## Outcome` is a heading, while `--> ## Outcome` and `<!-- n --> ## Outcome`
+# carry `##` as a live *suffix* after a comment and are not.  Those two share
+# an identical live suffix and differ only in where the comment opened, so the
+# comment state alone cannot separate them -- it is kept as a second guard so a
+# heading sitting wholly inside a comment never counts.
+#
+# Whitespace follows CommonMark throughout, so the rule is one rule: at most
+# three leading spaces (four, or a tab, is an indented code block), and a space
+# or a tab after the hashes, with a bare `##` an empty heading.
+BOUNDING_HEADING_RE = re.compile(r"^ {0,3}##(?:[ \t]|$)")
+
+# The Spec-map section's own opener asks the same whitespace question, so one
+# function cannot answer it two ways.
+SPEC_MAP_HEADING_RE = re.compile(r"^ {0,3}##[ \t]+Spec map\b", re.IGNORECASE)
 
 # ── Regexes ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +63,6 @@ BOUNDING_HEADING_RE = re.compile(r"^ {0,3}## ")
 _FIELD_RE = re.compile(r"^- \*\*([^*:]+):\*\*\s*(.*)$")
 
 # A level-2 ATX heading in live (non-comment) content ends the preamble.
-_HEADING_PREFIX = "## "
 
 # ISO 8601 calendar date (YYYY-MM-DD only — compact and extended-time forms
 # are not accepted).
@@ -113,22 +123,7 @@ def read_preamble(text: str) -> list[tuple[str, str]]:
         in_comment_before = in_comment
         live, in_comment = process_line(line, in_comment)
 
-        # An uncommented ## heading ends the preamble.  Two shapes must be
-        # told apart, and the comment state carried into the line is what
-        # distinguishes them:
-        #
-        #   '  ## Outcome'   -- the line did not begin inside a comment, so
-        #                       its whole text is live and the heading bounds
-        #                       the read.  CommonMark allows up to three
-        #                       leading spaces on a heading, so indentation
-        #                       alone must not smuggle a field into the body.
-        #   '-->  ## Outcome' -- the line began inside a comment and closed
-        #                       it, so the heading is a live *suffix* rather
-        #                       than a prefix and does not bound.  Treating it
-        #                       as a bound would silently drop a live field
-        #                       below it.
-        #
-        # The Spec-map scanner draws the same line for the same reason.
+        # BOUNDING_HEADING_RE states the rule and why it reads the raw line.
         if not in_comment_before and BOUNDING_HEADING_RE.match(line):
             # The bound is found, so comment state opened on or after this
             # line belongs to the body and must not invalidate the preamble

@@ -158,7 +158,7 @@ def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
         # closing it — same behaviour as the unconditional opener in the
         # old parser.  Check this before the generic terminator so that a
         # second '## Spec map' does not break the section.
-        if re.match(r"^##\s+Spec map\b", live, re.IGNORECASE):
+        if not in_comment_before and _bs.SPEC_MAP_HEADING_RE.match(line):
             continue
 
         # A '## ' heading ends the section, and the comment state carried

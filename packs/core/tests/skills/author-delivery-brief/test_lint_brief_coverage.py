@@ -1248,3 +1248,30 @@ def test_comment_closer_heading_does_not_terminate_spec_map() -> None:
             f"comment-closer-then-heading must not end the Spec-map section: rc={rc} err={err}",
         )
         expect("brief lifecycle" in err.lower(), err)
+
+
+def test_tab_separated_heading_terminates_spec_map() -> None:
+    """A tab-separated heading ends the Spec map, as a space-separated one does.
+
+    Measured before the fix: `##\tGovernance references` left the section
+    open, so that table's header row parsed as a spec row and produced a
+    stale-cell refusal naming a spec called 'Ref'. The opener and the
+    terminator now ask the same whitespace question.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped", brief="myb")
+        write_brief_raw(
+            root,
+            "myb",
+            "# Brief: myb\n\n- **Status:** Executing\n- **Slug:** `myb`\n\n"
+            "## Spec map\n\n| Spec | Status |\n| --- | --- |\n| alpha | Shipped |\n"
+            "##\tGovernance references\n\n| Ref | Status |\n| --- | --- |\n"
+            "| ADR-0001 | n/a |\n",
+        )
+        rc, out, err = run_lint(root)
+        expect(
+            "'Ref'" not in err,
+            f"a row below a tab-separated heading parsed as a spec row: {err}",
+        )
+        expect(rc == 0, f"expected a clean run, got rc={rc}: {err}")
