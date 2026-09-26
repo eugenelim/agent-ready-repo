@@ -7,16 +7,16 @@ kind: how-to
 
 # Fix a refused intent
 
-Two things check an intent's shape, and they neither tell you the same amount
-nor cover the same rules. The corpus check walks a directory of intents, exits
-non-zero, and names the field at fault — every message quoted on this page is
-one of its, and the rules decided over the whole corpus are its alone. A cold
-shaping review reads one intent against the packet it was handed and emits a
-token per failed condition, of which `MALFORMED(shape)` is the preamble one; a
-missing owner emits `MALFORMED(owner)` alone and suppresses the rest. A token
-names the condition, never the field or the rule, so a returned token tells you
-to run the check, not which message to read. This page takes each
-refusal to its remedy.
+Three checks can refuse an intent, and they do not tell you the same amount or
+cover the same rules. The corpus check walks a directory of intents, exits
+non-zero, and names the field at fault. The traceability check resolves
+cross-artifact pointers such as `Outcome co-owner:` and names the source and
+target when one is wrong. A cold shaping review reads one intent against the
+packet it was handed and emits a token per failed condition, of which
+`MALFORMED(shape)` is the preamble one; a missing owner emits
+`MALFORMED(owner)` alone and suppresses the rest. A token names the condition,
+never the field or the rule, so a returned token tells you to run the checks,
+not which message to read. This page takes each refusal to its remedy.
 
 :::note
 **Diátaxis: how-to.** For what every field means and which tier it sits in, see
@@ -44,6 +44,17 @@ then exits.
 Exit `2` is deliberately not exit `1`. "No violations found" and "clean" are
 different claims when a file would not open, and a check that reported an
 unreadable corpus as clean would be worse than one that refused.
+
+For a co-owner target that has the right field shape but may point at the wrong
+intent, also run the traceability check:
+
+```bash
+python3 lint-traceability.py --root .
+```
+
+It prints hard co-owner target failures on stderr and exits non-zero. If the
+shape check and traceability check disagree, trust both: fix the field shape
+first, then resolve the target.
 
 ## Read the refusal
 
@@ -98,12 +109,91 @@ neither the literal `no` nor an ISO 8601 date followed by exactly one terminus
 date means the calendar form `YYYY-MM-DD`: the basic form `20260922`, a week
 date, and an ordinal date are all refused.
 `Decomposed` takes `no`, or a date plus **exactly one** terminus from
-`children`, `brief`, `spec`, `direct-light`. Two termini is a refusal, and so
-is a date with none.
+`children`, `brief`, `spec`, `direct-light`, `closed-empty`. Two termini is a
+refusal, and so is a date with none.
 
 If you have not reached that stage, delete the line. Absent is a legitimate
 state and never fails a check — it means nobody recorded an answer, where `no`
 means someone decided against it.
+
+### An outcome co-owner is malformed or cannot resolve
+
+```text
+FEAT-0016-bad-co-owner.md: Outcome co-owner: value 'peer-intent' is not one
+of outcome:<target>, opportunity:<target>, capability:<target>, intent:<target>
+```
+
+`Outcome co-owner` is optional, but when you use it the value is a typed
+pointer. Write the target as one of `outcome`, `opportunity`, `capability`, or
+`intent`, then `:`, then the target identity:
+
+```markdown
+Before:
+- **Slug:** `source-intent`
+- **Outcome co-owner:** peer-intent
+
+After:
+- **Slug:** `source-intent`
+- **Outcome co-owner:** intent:peer-intent
+```
+
+The shape check stops there. The corpus traceability check then resolves the
+pointer against live intent identities. If the target does not exist, it refuses
+the source and names the missing target:
+
+```text
+intent:source-intent: Outcome co-owner names unresolved target
+intent:missing-peer
+```
+
+Fix the pointer to the live intent's identity, or delete it until that peer
+exists:
+
+```markdown
+Before:
+- **Slug:** `source-intent`
+- **Outcome co-owner:** intent:missing-peer
+
+After:
+- **Slug:** `source-intent`
+- **Outcome co-owner:** intent:peer-intent
+```
+
+A source intent cannot co-own its outcome with itself. That is a
+self-reference, and the traceability check names it separately:
+
+```text
+intent:source-intent: Outcome co-owner self-reference names itself
+(intent:source-intent)
+```
+
+Choose the other intent, or remove the line when there is no peer:
+
+```markdown
+Before:
+- **Slug:** `source-intent`
+- **Outcome co-owner:** intent:source-intent
+
+After:
+- **Slug:** `source-intent`
+- **Outcome co-owner:** intent:peer-intent
+```
+
+HTML comments do not declare preamble fields. A line inside a comment is absent,
+so the check emits no co-owner finding at all:
+
+```markdown
+Before:
+<!--
+- **Outcome co-owner:** intent:peer-intent
+-->
+
+After:
+- **Outcome co-owner:** intent:peer-intent
+```
+
+Use that repair only when the co-owner was intended. If the comment was a note
+or a template reminder, leave it commented: absent optional fields are valid.
 
 ### The field name is retired
 
@@ -160,8 +250,8 @@ section with one checkbox item per outcome, each carrying text:
 An empty item is refused too, for the same reason: a box with no text records
 that something is owed without saying what.
 
-The other three termini leave the section unread, because the child intent,
-brief, or spec carries the detail instead.
+The other termini leave the section unread, because the child intent, brief,
+spec, or explicit childless closure carries the detail instead.
 
 ### A supersession is missing half of itself
 

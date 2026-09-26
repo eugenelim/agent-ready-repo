@@ -387,6 +387,72 @@ def test_ac0011_read_preamble_returns_nothing_for_a_body_only_field() -> None:
     assert intent_shape.read_preamble(text) == []
 
 
+# STUB: AC-0007
+def test_ac0007_html_comment_regions_are_not_preamble() -> None:
+    text = "\n".join(
+        [
+            "# Intent",
+            "",
+            "- **Owner:** maintainer",
+            "- **Slug:** source",
+            "- **Level:** feature",
+            "<!--",
+            "- **Status:** Draft",
+            "- **Outcome co-owner:** intent:hidden",
+            "## Hidden heading",
+            "-->",
+            "- **Status:** Accepted",
+            "- **Outcome co-owner:** intent:visible",
+            "",
+            "## Outcome",
+        ]
+    )
+
+    pairs = intent_shape.read_preamble(text)
+
+    assert pairs.count(("Status", "Accepted")) == 1
+    assert ("Status", "Draft") not in pairs
+    assert ("Outcome co-owner", "intent:hidden") not in pairs
+    assert ("Outcome co-owner", "intent:visible") in pairs
+
+
+def test_ac0007_unclosed_html_comment_hides_the_remaining_preamble() -> None:
+    text = "\n".join(
+        [
+            "# Intent",
+            "",
+            "- **Owner:** maintainer",
+            "- **Slug:** source",
+            "- **Level:** feature",
+            "<!--",
+            "- **Status:** Draft",
+            "- **Type:** hidden-retired-field",
+            "## Hidden heading",
+        ]
+    )
+
+    fields_at_fault = _fields_at_fault(text)
+
+    assert "Status" in fields_at_fault
+    assert "Type" not in fields_at_fault
+    assert ("Status", "Draft") not in intent_shape.read_preamble(text)
+
+
+@pytest.mark.parametrize("shape", SHAPES)
+def test_ac0008_visible_trailing_comments_keep_normalizing(shape: str) -> None:
+    text = _preamble(_with(**{"Outcome co-owner": "intent:peer"}), shape=shape)
+
+    assert intent_shape.present_fields(text)["Outcome co-owner"] == "intent:peer"
+    assert _accepted(text)
+
+
+def test_ac0008_visible_comment_only_optional_field_is_absent() -> None:
+    text = _preamble(_with(**{"Outcome co-owner": "<!-- peer if shared -->"}))
+
+    assert "Outcome co-owner" not in intent_shape.present_fields(text)
+    assert _accepted(text)
+
+
 # ══ T2: the progress fields and the direct-light decomposition ════════════════
 
 
@@ -408,6 +474,48 @@ def _with_decomposition(decomposed: str, items: list[str] | None = None,
             lines.append(f"- [ ] {text}")
         lines.append("")
     return "\n".join(lines)
+
+
+# STUB: AC-0001
+def test_ac0001_outcome_co_owner_requires_an_intent_kind_and_target() -> None:
+    valid = _preamble(_with(**{"Outcome co-owner": "intent:peer"}))
+    invalid = _preamble(_with(**{"Outcome co-owner": "peer"}))
+
+    assert "Outcome co-owner" not in _fields_at_fault(valid)
+    assert "Outcome co-owner" in _fields_at_fault(invalid)
+
+
+# STUB: AC-0005
+def test_ac0005_closed_empty_is_a_decomposition_terminus() -> None:
+    text = _with_decomposition(
+        "2026-09-24 closed-empty",
+        [],
+        section=False,
+    )
+
+    assert _accepted(text)
+    assert "closed-empty" in intent_shape.DECOMPOSITION_TERMINI
+
+
+@pytest.mark.parametrize("kind", ["outcome", "opportunity", "capability", "intent"])
+def test_ac0001_outcome_co_owner_accepts_each_declared_kind(kind: str) -> None:
+    assert _accepted(_preamble(_with(**{"Outcome co-owner": f"{kind}:peer"})))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "peer",
+        "epic:peer",
+        "intent:",
+        "intent:   ",
+        ":peer",
+    ],
+)
+def test_ac0001_outcome_co_owner_refuses_non_pointer_shapes(value: str) -> None:
+    assert "Outcome co-owner" in _fields_at_fault(
+        _preamble(_with(**{"Outcome co-owner": value}))
+    )
 
 
 # ── AC-0005: the two date-or-literal progress fields ──────────────────────────
@@ -492,17 +600,35 @@ def test_ac0006_accepts_the_literal_no() -> None:
     assert _accepted(_preamble(_with(Decomposed="no")))
 
 
-@pytest.mark.parametrize("terminus", ["children", "brief", "spec", "direct-light"])
+@pytest.mark.parametrize(
+    "terminus",
+    ["children", "brief", "spec", "direct-light", "closed-empty"],
+)
 def test_ac0006_accepts_a_date_with_each_terminus(terminus: str) -> None:
     items = ["Do the one bounded thing"] if terminus == "direct-light" else None
     assert _accepted(_with_decomposition(f"2026-09-21 {terminus}", items))
 
 
-def test_ac0006_terminus_set_is_exactly_the_four_named_termini() -> None:
+def test_ac0006_terminus_set_is_exactly_the_five_named_termini() -> None:
     """Pinned literally for the same reason AC-0002's membership is."""
     assert frozenset(intent_shape.DECOMPOSITION_TERMINI) == frozenset(
-        {"children", "brief", "spec", "direct-light"}
+        {"children", "brief", "spec", "direct-light", "closed-empty"}
     )
+
+
+def test_ac0006_reports_absent_no_and_closed_empty_as_distinct_states() -> None:
+    absent = intent_shape.progress_state(_preamble())["Decomposed"]
+    declared_no = intent_shape.progress_state(_preamble(_with(Decomposed="no")))[
+        "Decomposed"
+    ]
+    closed_empty = intent_shape.progress_state(
+        _preamble(_with(Decomposed="2026-09-24 closed-empty"))
+    )["Decomposed"]
+
+    assert absent == intent_shape.PROGRESS_ABSENT
+    assert declared_no == intent_shape.PROGRESS_NO
+    assert closed_empty == "2026-09-24 closed-empty"
+    assert len({absent, declared_no, closed_empty}) == 3
 
 
 @pytest.mark.parametrize(

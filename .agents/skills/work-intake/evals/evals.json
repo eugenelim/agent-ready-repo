@@ -415,6 +415,39 @@
         "States that Cancelled means the bet was ratified, then cancelled, not that it delivered",
         "Does not accept a bare date as a valid Accepted: value"
       ]
+    },
+    {
+      "id": "commented-outcome-co-owner-is-absent",
+      "prompt": "The intent preamble contains `Outcome co-owner: intent:missing-peer` inside an HTML comment. Explain how the checks treat it.",
+      "expected_output": "The commented line is absent preamble data. The preamble reader ignores closed and unclosed HTML comment regions before it recognizes fields or the first visible body heading, so the hidden co-owner neither satisfies the field nor produces an unresolved-target finding. If the peer was intended, move the line out of the comment and keep the typed pointer form.",
+      "assertions": [
+        "Treats the commented declaration as absent rather than malformed",
+        "Emits no unresolved co-owner finding for the hidden value",
+        "Explains that visible placement in the preamble is required",
+        "Does not read body prose or comments to supply the declaration"
+      ]
+    },
+    {
+      "id": "malformed-outcome-co-owner-is-refused",
+      "prompt": "The corpus lint reports `Outcome co-owner` on an intent whose value is `peer-intent`. Explain the repair.",
+      "expected_output": "`Outcome co-owner` is optional, but when present its value is constrained to a typed pointer: `outcome:<target>`, `opportunity:<target>`, `capability:<target>`, or `intent:<target>`. A bare slug such as `peer-intent` is refused. Repair it by writing the live peer's canonical typed identity, such as `intent:peer-intent`, or delete the optional field if no peer exists.",
+      "assertions": [
+        "Names the `Outcome co-owner` field as constrained when present",
+        "Refuses a bare slug value",
+        "Offers only the allowed typed pointer forms",
+        "Does not make the field required"
+      ]
+    },
+    {
+      "id": "closed-empty-is-a-decomposed-terminus",
+      "prompt": "An intent carries `Decomposed: 2026-09-24 closed-empty` and no checkbox items under `## Decomposition`. Explain whether this is valid.",
+      "expected_output": "`2026-09-24 closed-empty` is a valid `Decomposed:` value: an ISO 8601 date followed by exactly one terminus. It records a completed decomposition that deliberately has no child work, so it needs no checkbox item under `## Decomposition`. It is distinct from the literal `no`, which records a decision not to decompose.",
+      "assertions": [
+        "Accepts `closed-empty` only as a dated Decomposed terminus",
+        "Keeps the literal `no` distinct from closed-empty",
+        "Does not require direct-light checkbox items for closed-empty",
+        "Does not create a separate closed-empty field"
+      ]
     }
   ]
 }
