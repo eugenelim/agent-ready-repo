@@ -13,10 +13,11 @@ Usage:
                             equals form: --target=-mirror/main.
 
 Exit codes:
-  0  head is current (or no remote / not on a branch)
+  0  head is current, not applicable, or freshness could not be verified
+     because the environment blocked the remote check
   1  Surface required — JSON on stdout has the details
 
-JSON (stdout): {"status": "ok"|"surface", "message": str, "target": str}
+JSON (stdout): {"status": "ok"|"skipped"|"surface", "message": str, "target": str}
 """
 
 from __future__ import annotations
@@ -149,9 +150,135 @@ def _surface(message: str, target: str = "") -> int:
     return 1
 
 
+def _skipped(reason: str, target: str = "") -> int:
+    _emit(
+        {
+            "status": "skipped",
+            "message": (
+                f"base freshness was not verified ({reason}); work may continue, "
+                "but the user may want to update the branch separately"
+            ),
+            "target": target,
+        }
+    )
+    return 0
+
+
 def _ok(message: str, target: str = "") -> int:
     _emit({"status": "ok", "message": message, "target": target})
     return 0
+
+
+def _classify_remote_unavailable(stderr: str) -> str | None:
+    """Return a closed remote-unavailable category for sanitized git stderr."""
+    cause_prefixes = (
+        ("could not resolve host", "remote host could not be resolved"),
+        ("failed to connect", "remote connection failed"),
+        ("connection timed out", "remote connection timed out"),
+        ("operation timed out", "remote connection timed out"),
+        ("network is unreachable", "network is unreachable"),
+        ("connection refused", "remote connection was refused"),
+        ("authentication failed", "remote authentication failed"),
+        ("could not read username", "remote authentication failed"),
+        ("terminal prompts disabled", "remote authentication failed"),
+        ("gnutls recv error", "remote transport failed"),
+        ("the remote end hung up unexpectedly", "remote transport failed"),
+    )
+    exact_lines = {
+        "remote: repository not found.": "remote repository is unavailable",
+        "fatal: early eof": "remote transport failed",
+        "fatal: the remote end hung up unexpectedly": "remote transport failed",
+    }
+    quoted_suffixes = {
+        "does not appear to be a git repository": "remote repository is unavailable",
+        "not found": "remote repository is unavailable",
+    }
+    for raw_line in stderr.splitlines():
+        line = raw_line.strip()
+        folded = line.casefold()
+        if folded in exact_lines:
+            return exact_lines[folded]
+        if folded.startswith("fatal: authentication failed for "):
+            return "remote authentication failed"
+        if (
+            folded.startswith("fatal: could not read username for '")
+            and folded.endswith("': terminal prompts disabled")
+        ):
+            return "remote authentication failed"
+        if folded.endswith(": permission denied (publickey)."):
+            return "remote authentication failed"
+        if folded.startswith("ssh: connect to host ") and ": " in line:
+            cause = line.rsplit(": ", 1)[1].casefold()
+            if cause == "connection refused":
+                return "remote connection was refused"
+            if cause == "connection timed out":
+                return "remote connection timed out"
+            if cause == "operation timed out":
+                return "remote connection timed out"
+            if cause == "network is unreachable":
+                return "network is unreachable"
+        if folded.startswith("ssh: could not resolve hostname ") and ": " in line:
+            return "remote host could not be resolved"
+        if folded.startswith("fatal: unable to access ") and "': " in line:
+            cause = line.rsplit("': ", 1)[1].casefold()
+            for prefix, category in cause_prefixes:
+                if cause.startswith(prefix):
+                    return category
+        if folded.startswith("fatal: '") and "' " in line:
+            suffix = line.rsplit("' ", 1)[1].casefold()
+            if suffix in quoted_suffixes:
+                return quoted_suffixes[suffix]
+        if folded.startswith("fatal: repository '") and folded.endswith("' not found"):
+            return "remote repository is unavailable"
+        if folded.startswith("fatal: repository ") and folded.endswith(" not found"):
+            return "remote repository is unavailable"
+    return None
+
+
+def _classify_fetch_metadata_denied(stderr: str) -> str | None:
+    """Return a category when policy denies writing fetch metadata."""
+    denial_causes = {
+        "permission denied",
+        "operation not permitted",
+        "read-only file system",
+        "access denied",
+        "protected from writes",
+        "not permitted",
+    }
+    metadata_prefixes = (
+        "error: cannot lock ref ",
+        "error: could not lock ref ",
+        "error: unable to update local ref ",
+        "error: cannot update ref ",
+        "error: could not update ref ",
+        "error: failed to write ",
+        "error: unable to write ",
+        "error: cannot open ",
+        "fatal: remote-tracking ref update failed",
+    )
+    for raw_line in stderr.splitlines():
+        line = raw_line.strip()
+        folded = line.casefold()
+        if not any(folded.startswith(prefix) for prefix in metadata_prefixes):
+            continue
+        if ": " not in line:
+            continue
+        cause = line.rsplit(": ", 1)[1].casefold()
+        if cause in denial_causes:
+            return "git metadata write was denied by local policy"
+    return None
+
+
+def _fetch_missing_requested_branch(stderr: str, branch: str) -> bool:
+    """Return True only for Git's missing-ref diagnostic for branch."""
+    expected = {
+        f"fatal: couldn't find remote ref {branch}",
+        f"fatal: couldn't find remote ref refs/heads/{branch}",
+    }
+    return any(
+        line.strip() in expected
+        for line in stderr.splitlines()
+    )
 
 
 # ── Target resolution ────────────────────────────────────────────────────────
@@ -160,23 +287,27 @@ def _ok(message: str, target: str = "") -> int:
 def _live_remote_head_branch(remote: str) -> tuple[str | None, str | None]:
     """Query the remote's current HEAD branch via ls-remote --symref.
 
-    Returns (branch_name, error_message). Exactly one is non-None on each path:
+    Returns (branch_name, category). Exactly one is non-None on each path:
     - (branch, None) — success; branch is the current HEAD branch name
-    - (None, message) — timeout or transport/auth failure with a Surface message
+    - (None, category) — timeout, categorized unavailable check, or the
+                         sentinel "unclassified failure"
     - (None, None) — ls-remote succeeded but HEAD is detached or unborn;
                      caller should ask the user to pass --target explicitly
 
     Uses the live remote query — not the cached refs/remotes/<remote>/HEAD,
     which git fetch does not update when the ref already exists.
     """
-    rc, out, _err = _run_with_stderr(
+    rc, out, err = _run_with_stderr(
         ["git", "ls-remote", "--symref", "--", remote, "HEAD"],
         timeout=_NETWORK_TIMEOUT,
     )
     if rc == 124:
-        return None, f"ls-remote to {remote!r} timed out — check network/auth"
+        return None, "timeout"
     if rc != 0:
-        return None, f"ls-remote to {remote!r} failed — check network/auth"
+        category = _classify_remote_unavailable(err)
+        if category:
+            return None, category
+        return None, "unclassified failure"
     for line in out.splitlines():
         if line.startswith("ref:") and "\t" in line:
             ref = line.split("\t", 1)[0].replace("ref:", "").strip()
@@ -333,7 +464,12 @@ def main() -> int:
         # correctly regardless of the local refspec configuration.
         branch, live_err = _live_remote_head_branch(fetch_remote)
         if live_err is not None:
-            return _surface(live_err)
+            if live_err == "unclassified failure":
+                return _surface(
+                    f"ls-remote to {fetch_remote!r} failed with unclassified "
+                    "diagnostics — freshness could not be established"
+                )
+            return _skipped(f"ls-remote to {fetch_remote!r} could not complete: {live_err}")
         if not branch:
             return _surface(
                 f"could not determine {fetch_remote!r} HEAD — "
@@ -354,19 +490,28 @@ def main() -> int:
         timeout=_NETWORK_TIMEOUT,
     )
     if rc == 124:
-        return _surface(f"git fetch {fetch_remote!r} timed out — check network/auth", target)
+        return _skipped(f"git fetch {fetch_remote!r} timed out", target)
     if rc != 0:
         # Match git's own not-found wording only. A broader test (any stderr
         # mentioning 'remote ref') also catches transport failures that echo a
         # URL containing the phrase, and sends the agent off to correct a
         # branch name when the real cause was auth or network.
-        if "couldn't find remote ref" in fetch_err.lower():
+        if _fetch_missing_requested_branch(fetch_err, branch):
             return _surface(
                 f"git fetch {fetch_remote!r}: branch {branch!r} not found on remote — "
                 "verify the branch name in --target",
                 target,
             )
-        return _surface(f"git fetch {fetch_remote!r} failed — check network/auth", target)
+        category = _classify_fetch_metadata_denied(fetch_err)
+        if category is None:
+            category = _classify_remote_unavailable(fetch_err)
+        if category is not None:
+            return _skipped(f"git fetch {fetch_remote!r} could not complete: {category}", target)
+        return _surface(
+            f"git fetch {fetch_remote!r} failed with unclassified diagnostics — "
+            "freshness could not be established",
+            target,
+        )
 
     # Use the full remote-tracking ref for comparison to avoid DWIM resolving
     # a local branch or tag that shadows the shorthand 'REMOTE/BRANCH'.

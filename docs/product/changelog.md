@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.46] — 2026-09-26
+
+### Highlights
+
+- **Base freshness can now be unverified without stopping every work-loop.** When network access, authentication, timeouts, or enterprise Git-metadata policy prevent the check from completing, the loop tells you freshness was not verified and continues so you can update the branch separately. A proven stale base or unsafe repository state still stops the run.
+
+### Changed
+
+- `work-loop` treats classified base-freshness capability gaps as a skipped check, while keeping confirmed stale bases, missing targets, unsafe local state, and unclassified Git failures blocking.
+
 ## [core][2.26.45] — 2026-09-26
 
 ### Highlights
