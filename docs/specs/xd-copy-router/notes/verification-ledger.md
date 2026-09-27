@@ -37,6 +37,11 @@ only those two entries is this inherited state; a third name is a real finding.
 
 ## T3 — execution observations
 
+> **Superseded by the 2026-09-27 contract amendment.** The defect below was
+> real when recorded and is now repaired in the contract itself, not only
+> observed here. Read this section as history. See
+> [the amendment authorization](#owner-authorization-amendment-1).
+
 **The byte-equality extension is red here, and that is its correct state.**
 `test_every_editorial_quality_gates_copy_is_byte_identical` globs
 `*/references/editorial-quality-gates.md`, which currently returns four copies.
@@ -216,6 +221,11 @@ and none is reconciled by edit:
 These are the same third and fourth classes the final sweep rubric names.
 
 ## T10 — a contract conflict, resolved against the enforced control
+
+> **Superseded by the 2026-09-27 contract amendment.** The defect below was
+> real when recorded and is now repaired in the contract itself, not only
+> observed here. Read this section as history. See
+> [the amendment authorization](#owner-authorization-amendment-1).
 
 **The spec's changelog placement criterion cannot be satisfied.** It requires a
 free-standing `## [experience-design][4.0.0]` entry **directly beneath

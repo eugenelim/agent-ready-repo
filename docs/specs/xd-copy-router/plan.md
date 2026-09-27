@@ -788,7 +788,7 @@ if unrel is None:
     fail.append("no [Unreleased] heading")
 for pack, ver in (("experience-design", "4.0.0"), ("product-engineering", want_pe)):
     if (pack, ver) not in idx:
-        fail.append(f"no well-formed dated heading '## [{pack}][{ver}] — YYYY-MM-DD'")
+        fail.append(f"no free-standing dated heading '## [{pack}][{ver}] — YYYY-MM-DD' — either the heading is malformed, or it is nested deeper than ##, which is the case build-site.py silently withholds")
 if not fail:
     n_xd, i_xd, _ = idx[("experience-design", "4.0.0")]
     # Free-standing, not nested — NOT adjacency. The position directly beneath
@@ -799,8 +799,11 @@ if not fail:
     # entry as unreleased and still exits 0.
     if n_xd <= unrel:
         fail.append("the experience-design entry is not below [Unreleased]")
-    if not lines[i_xd].startswith("## "):
-        fail.append("the experience-design entry is nested, not free-standing at ##")
+    # No separate "is it nested?" test here, deliberately. `heads` is built by
+    # filtering on `startswith("## ")` and `i_xd` comes from it, so any such test
+    # is tautologically true. Nesting is caught by the heading lookup above: a
+    # nested `### [experience-design][4.0.0]` never enters `heads`, so the lookup
+    # fails. That branch's message names both causes so the report is honest.
     end = heads[n_xd + 1][0] if n_xd + 1 < len(heads) else len(lines)
     body = "\n".join(lines[i_xd + 1:end])
     for name in ("copy-direction", "tone-of-voice"):
@@ -808,7 +811,7 @@ if not fail:
             fail.append(f"the experience-design entry does not name {name}")
 if fail:
     sys.exit("CHANGELOG\n  " + "\n  ".join(fail))
-print("changelog: both dated entries present, experience-design directly beneath [Unreleased], both removed skills named")
+print("changelog: both dated entries present and free-standing at ##, experience-design below [Unreleased], both removed skills named")
 QQ
 
 # The two errata: present, dated, approver-signed, naming no spec and no brief.

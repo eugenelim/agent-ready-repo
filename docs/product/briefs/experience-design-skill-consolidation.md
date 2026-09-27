@@ -3,7 +3,7 @@
 - **Slug:** `experience-design-skill-consolidation`
 - **Received:** 2026-09-24
 - **Owner:** Repository maintainers (`ini-003`)
-- **Status:** Ready
+- **Status:** Executing
 - **Source / provenance:** Direct maintainer request, 2026-09-24, after an investigation into `creative-direction` measured the pack and found the larger lever outside that skill. The measurements and their methods are recorded in [`experience-design-consolidation-analysis.md`](../research/experience-design-consolidation-analysis.md), which is this brief's durable evidence. That note also records a prior-art study whose source is unnamed; it informed the shape of the standalone `creative-direction` slice, is unverifiable by a later reader, and is **not** part of this brief's evidence.
 - **Parent intent:** none — raised directly, not projected from an intent.
 
@@ -327,8 +327,8 @@ each linked spec; do not hand-edit it.
 
 | Spec | Slice | Version effect | Status |
 | --- | --- | --- | --- |
-| `xd-genre-router` | S1 — genre fold | major, `→ 3.0.0` | Approved |
-| `xd-copy-router` | S2 — copy fold | major, `→ 4.0.0` | Approved |
+| `xd-genre-router` | S1 — genre fold | major, `→ 3.0.0` | Shipped |
+| `xd-copy-router` | S2 — copy fold | major, `→ 4.0.0` | Implementing |
 
 Both also oblige bumps in `frontend-engineering` and, for S2,
 `product-engineering`. Why the order cannot change is in

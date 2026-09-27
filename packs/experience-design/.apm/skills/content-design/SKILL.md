@@ -44,6 +44,20 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
 
 Pick exactly one, from the request alone. This rubric is decidable without loading any reference.
 
+0. **First, is this any of these modes' work at all?** If the ask belongs to one
+   of these, stop here and name it — do not continue to step 1:
+   - Writing a product UI string or state microcopy (an error, an empty state,
+     a button or form label) → `ux-writing`, in the `product-engineering` pack.
+   - Visual mood, aesthetic direction, colour or type feel → `creative-direction`.
+   - What goes where on a screen, in what order → `information-architecture`.
+   - Organization-level content governance → `define-content-strategy`.
+   - Writing the final headline, tagline or label → none of these modes; they
+     produce direction, and by this point that direction should already exist.
+
+   This test comes first on purpose. Steps 1 and 2 always terminate in a mode,
+   so an out-of-scope ask reaching them is routed somewhere rather than sent
+   away.
+
 1. Is the ask about **the copy itself** — how it should sound or feel, or what its ranked
    copy goals, voice, register or arbitration rules should be?
    - No, it is about what the surface must communicate, to whom, and in what order
@@ -56,8 +70,6 @@ Pick exactly one, from the request alone. This rubric is decidable without loadi
 Question 1 asks about copy, not only about feel. "Name the copy goals for this
 pricing-page hero" names neither sound nor feel, and it is still a copy ask: it
 belongs to the per-surface mode, not to the content brief.
-
-Boundaries this rubric does not cross: `ux-writing` (in the `product-engineering` pack) owns product UI strings and state microcopy; `creative-direction` owns visual mood; `information-architecture` owns page hierarchy; `define-content-strategy` owns organization-level content governance. If the ask is to write the final headline or label, every mode here has already done its job.
 
 The three modes share one reference set. `references/copy-jtbd.md`, `references/interrogation-sequence.md`, `references/copy-grounding.md`, `references/copy-arbitration.md` and `references/plain-language-floor.md` each carry a **scope parameter** that binds to the running mode; load them once and read the scope rows for the mode in hand. `references/editorial-quality-gates.md` is the shared editorial gate, cited here directly so the copy is not an orphan.
 
