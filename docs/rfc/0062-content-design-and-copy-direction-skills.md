@@ -193,6 +193,48 @@ Copyhackers' model requires a VoC research report before copy direction begins. 
 This RFC is Accepted: the body above is preserved as the original decision record.
 Corrections are appended here, Approver-signed.
 
+### Current state
+
+The corrections in force, as a table. Where this table and the body above
+disagree, this table governs.
+
+| Subject | Correction in force | Set by |
+| --- | --- | --- |
+| Registrations | The three copy-layer registrations this RFC and its 2026-08-02 erratum established are **one skill with three modes**: message and narrative structure, per-surface acquisition copy goals, and brand-level register. | 2026-09-27 |
+| Output contracts | Unchanged. All three artifacts keep their paths and their `type:` values, and the brand register still emits `scope: brand-level` alongside its `type:`. | 2026-09-27 |
+| Brand-level scope | The brand register remains brand-level, and `copy/brand-register.md` remains a reserved path. A per-surface request under that slug is refused, not repaired. | 2026-08-02, unchanged 2026-09-27 |
+| Onboarding copy boundary | Unchanged in substance: narrative arc and structure, copy voice and register, and UI-state strings remain three distinct owners; the first two are now two modes of one skill. | 2026-08-02, restated 2026-09-27 |
+
+### History / audit trail
+
+Dated entries, oldest first.
+
+- **2026-09-27 (Approver: eugenelim) — The three copy-layer registrations become
+  one skill with three modes.**
+  This RFC established two skills and re-scoped a third; the 2026-08-02 erratum
+  below settled the boundary between them. That boundary held, but it required a
+  documentation section to explain which of three registrations a copy task
+  belonged to. The three registrations are now **one skill with three modes** —
+  message and narrative structure, per-surface acquisition copy goals, and
+  brand-level register — selected from the request rather than chosen by the
+  reader.
+
+  **All three output contracts are unchanged.** Each mode still writes its own
+  artifact, at its own path, with its own `type:`. The content brief keeps
+  `content/<slug>.md`; the per-surface record keeps `copy/<surface-slug>.md`; the
+  brand register keeps `copy/brand-register.md` and still emits `scope:
+  brand-level` together with its `type:`, because downstream reads gate on the
+  pair rather than on `type:` alone. Merging the artifacts was considered and
+  rejected: it would change what a frontend handoff reads and what the experience
+  reviewer's marketing-clarity lens fires on.
+
+  **The 2026-08-02 brand-register reservation survives.** The register remains
+  brand-level and `copy/brand-register.md` remains reserved; a per-surface request
+  under that slug is still refused rather than silently renamed.
+
+  Removing two registrations is a breaking change: the `experience-design` pack
+  advances to **4.0.0**.
+
 - **2026-08-02 (Approver: eugenelim) — Scope of tone-of-voice re-scoped to brand-level;
   onboarding copy voice boundary moved from ux-writing to copy-direction.**
   The implementation spec (`docs/specs/xd-copy-direction/spec.md`) extended the

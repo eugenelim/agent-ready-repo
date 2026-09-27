@@ -31,7 +31,8 @@ journey-mapping
     ↓
 content-design
     ↓
-copy-direction  ←──── tone-of-voice (brand register, optional)
+content-design  ←──── content-design (brand register mode, optional)
+(per-surface copy goals mode)
     ↓
 user-flow
     ↓
@@ -54,7 +55,7 @@ experience-reviewer  ←  independent cold review
 Each skill consumes a specific upstream artifact and cannot produce reliable output without it:
 
 - `content-design` needs the journey's key touchpoints to know what the surface is trying to accomplish and for whom.
-- `copy-direction` needs the content brief from `content-design` to name per-surface copy goals grounded in the surface's declared intent. For acquisition surfaces, `tone-of-voice`'s brand register is an optional upstream anchor.
+- `content-design`'s per-surface acquisition copy goals mode needs the content brief its own message and narrative structure mode writes, to name per-surface copy goals grounded in the surface's declared intent. For acquisition surfaces, the brand register is an optional upstream anchor.
 - `user-flow` needs the content brief to sequence screens in a way that delivers on the stated content intent, not just the functional path.
 - `creative-direction` needs the journey's emotional arc (the pains, the moments of relief) to ground the aesthetic direction in real user feeling rather than preference.
 - `design-system` needs the named aesthetic direction to derive a token taxonomy that isn't arbitrary.
@@ -97,7 +98,7 @@ A design that passes the quality floor is correct. It is not necessarily good. M
 
 The `creative-direction` skill is the gate between correct and good: it grounds visual and brand goals in persona, precedent, and platform conventions — naming a direction that the rest of the craft sequence must satisfy as a coherence constraint. A `creative-direction` doc that only restates correctness goals ("it should be accessible and clear") has not cleared the gate.
 
-This principle applies to every skill in the pack. `design-principles` must name principles that a team would actually dispute, not principles everyone already agrees with. `tone-of-voice` must produce ranked goals that create real copy arbitration, not aspirational adjectives.
+This principle applies to every skill in the pack. `design-principles` must name principles that a team would actually dispute, not principles everyone already agrees with. `content-design`'s brand-level register mode must produce ranked goals that create real copy arbitration, not aspirational adjectives.
 
 ---
 
@@ -137,8 +138,8 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 |-------|-------|--------|-----------------|
 | `journey-mapping` | User, outcome, platform | Journey map (stages × emotions × pains × opportunities) | What the user is trying to accomplish and where it breaks |
 | `content-design` | Journey key touchpoints | Content brief per surface | What the surface says, for whom, to what objective |
-| `tone-of-voice` | Brand/product register | Brand-register doc (copy goals + arbitration rules) | How the brand sounds across all surfaces; what wins when goals conflict |
-| `copy-direction` | Content brief + tone-of-voice brand register (optional) | Per-surface copy goals | Which copy goals govern each acquisition surface |
+| `content-design` (brand-level register) | Brand/product register | Brand-register doc (copy goals + arbitration rules) | How the brand sounds across all surfaces; what wins when goals conflict |
+| `content-design` (per-surface copy goals) | Content brief + brand register (optional) | Per-surface copy goals | Which copy goals govern each acquisition surface |
 | `user-flow` | Journey + content brief | Screen inventory, transitions, per-screen briefs | Which screens exist, what state each handles, how they connect |
 | `service-blueprint` | Journey + screen flow | Blueprint (evidence of service / frontstage / line of visibility / backstage / support) | What services back each screen action |
 | `process-mapping` | Internal workflow | As-is / to-be process (SIPOC, swimlane, pain register) | What the internal operations look like, where waste is |
@@ -148,16 +149,54 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 
 `journey-mapping` and `user-flow` carry a platform/surface axis — responsive-web, iOS, Android, cross-platform. This affects what the method asks at each stage (iOS has HIG interaction patterns; cross-platform requires explicit divergence documentation). Skills that consume per-screen briefs inherit the platform context from the brief.
 
-### Content-design vs. tone-of-voice vs. copy-direction vs. ux-writing
+### Choosing a copy mode, and the one cross-pack boundary
 
-Four skills touch copy; they operate at different layers:
+The copy layer is **one skill in three modes**, plus one skill in another pack.
+There is no longer a choice between copy skills to get wrong; there is a mode
+selection the skill makes from the request, and a pack boundary that still
+matters.
 
-- **`tone-of-voice`** sets the brand register: named, ranked copy goals grounded in persona and precedent, with arbitration rules. Brand-level and cross-surface — sets the standard all per-surface copy decisions reference.
-- **`content-design`** sets surface intent: what this specific surface says, for whom, in what structure. Execution-layer, per-surface — answers "what goes here?" not "how does it sound?"
-- **`copy-direction`** names per-surface copy goals for a specific marketing or acquisition surface. Takes the content brief from `content-design` and the brand register from `tone-of-voice` (optional) as upstream inputs — answers "how does this surface sound and what does it emphasize?"
-- **`ux-writing`** (product-engineering pack) writes the actual per-state UI strings. Consumes the state matrix from `user-flow` and loads the brand register from `tone-of-voice` by fixed path as voice input.
+- **`content-design`, brand-level register mode** sets the brand register: named,
+  ranked copy goals grounded in persona and precedent, with arbitration rules.
+  Brand-level and cross-surface — it sets the standard all per-surface copy
+  references. Writes the reserved `copy/brand-register.md`.
+- **`content-design`, message and narrative structure mode** sets surface intent:
+  what this specific surface says, for whom, in what structure. Per-surface —
+  it answers "what goes here?", not "how does it sound?". Writes
+  `content/<slug>.md`.
+- **`content-design`, per-surface acquisition copy goals mode** names copy goals
+  for one marketing or acquisition surface. Takes the content brief and the brand
+  register (optional) as upstream referents. Writes `copy/<surface-slug>.md`.
+- **`ux-writing`** (product-engineering pack) writes the actual per-state UI
+  strings. It consumes the state matrix from `user-flow` and loads the brand
+  register by fixed path as voice input. **This is the boundary that remains
+  real**, because it crosses packs: UI state copy lives there, everything else
+  here.
 
-Running `content-design` before `copy-direction` is correct. Running `tone-of-voice` before `copy-direction` is correct (the brand register is an optional upstream anchor for per-surface copy goals). Running `ux-writing` after `user-flow` is correct.
+The ordering inside the skill is unchanged by the fold. Running the message and
+narrative structure mode before the per-surface mode is correct. Running the
+brand-level register mode before the per-surface mode is correct — the register
+is an optional upstream anchor for per-surface goals. What the fold removed is
+the need for a reader to know which of three registrations a copy task belonged
+to; what it kept is every artifact, path and `type:` those registrations wrote.
+
+The three modes were separate skills until the copy fold. That change is recorded
+in the errata of the two RFCs that established them, which are the durable record
+of why the boundary moved.
+
+### Shared references are held identical by test, not by autonomy
+
+An earlier note in this pack read *"Skill autonomy beats DRY at this scale — each
+skill stands alone"*, and it justified shipping `references/editorial-quality-gates.md`
+as independent per-skill copies that were free to drift. **That note is
+superseded.** The file is now one body with two copies —
+`content-design`'s and `information-architecture`'s — held byte-identical by
+`test_every_editorial_quality_gates_copy_is_byte_identical` in the roster suite,
+following the same precedent `containment.md` already set in this pack.
+
+Autonomy is still why the copies exist: a skill installs standalone and cannot
+reach another skill's reference files. What changed is that the copies may no longer
+drift silently. Duplication is the delivery mechanism; equality is the contract.
 
 ---
 
@@ -245,7 +284,7 @@ Each skill writes under a subdirectory of `output_dir`:
 |---|---|
 | `journeys/` | journey-mapping |
 | `content/` | content-design |
-| `copy/` | tone-of-voice (the brand-level register), copy-direction (per surface) |
+| `copy/` | content-design — its brand-level register mode writes the register, its per-surface acquisition copy goals mode writes one record per surface |
 | `screens/` | user-flow (the screen flow and the per-screen briefs), information-architecture (the IA doc). `interaction-design` and the craft skills enrich a brief `user-flow` owns; they write no file of their own |
 | `blueprints/` | service-blueprint |
 | `processes/` | process-mapping |

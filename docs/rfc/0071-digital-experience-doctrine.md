@@ -470,6 +470,45 @@ implemented as part of this initiative's specs:
 
 ## Errata
 
+### Current state
+
+The corrections in force, as a table. Where this table and the body above
+disagree, this table governs.
+
+| Subject | Correction in force | Set by |
+| --- | --- | --- |
+| Skill count in the D3 sweep | **12.** The sweep at line 311 covers every skill the `experience-design` pack ships. | 2026-09-27, superseding 2026-08-02 |
+| Copy-layer registrations | The copy layer is **one skill with three modes**, not two or three registrations. The D3 ordering dependency between them is void: there is no longer an upstream skill and a downstream skill to order. | 2026-09-27 |
+| Copy-layer boundary | The boundary this RFC drew between per-surface copy positioning and the brand-level register survives as a **boundary between two modes of one skill**, with the register still upstream of per-surface goals. | 2026-08-02, restated 2026-09-27 |
+
+### History / audit trail
+
+Dated entries, oldest first.
+
+- **2026-09-27 (Approver: eugenelim) — Copy-layer registrations folded to one;
+  the D3 skill count is corrected to 12. This entry supersedes the 2026-08-02
+  entry below on the skill count.**
+  This RFC carries a skill inventory in operative text. The D3 bullet at line 311
+  scopes its trigger-description sweep to "All 19 skills"; the 2026-08-02 erratum
+  below corrected that count to 20. Two subsequent folds changed it again, and
+  this entry sets it to **12**. It **supersedes** the 2026-08-02 correction on
+  this point: two errata asserting different counts with nothing ranking them
+  would leave a reader unable to tell which is in force, and the `Current state`
+  table above is what settles it.
+
+  The same D3 item states an ordering dependency between the two copy-layer
+  registrations, naming one as upstream of the other. That dependency is void as
+  an ordering between skills, because the copy layer is now one skill with three
+  modes. The relationship it described survives inside that skill: the
+  brand-level register mode remains upstream of the per-surface acquisition copy
+  goals mode, which references the register when one exists.
+
+  This RFC's Area D boundary statement — that per-surface copy positioning and
+  the brand-level register are separately owned — is reversed as a statement
+  about registrations and retained as a statement about scope. One skill now owns
+  both, and it keeps them apart by mode rather than by registration. All three
+  copy artifacts keep their paths and their `type:` values.
+
 - **2026-08-02 (Approver: eugenelim) — `tone-of-voice` upstream relationship corrected.**
   The D3 work-list item (lines 313–314) described `copy-direction` as the upstream
   voice-direction skill relative to `tone-of-voice`. This is reversed. The correct
