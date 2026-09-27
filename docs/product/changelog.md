@@ -102,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known gap
 
 - The pack's journey page and its guide tree still describe the previous pre-flight — a named aesthetic reference and a seed token block. The skill is the current behaviour; those pages land in the next patch.
+
 ## [experience-design][4.0.1] — 2026-09-27
 
 ### Highlights
