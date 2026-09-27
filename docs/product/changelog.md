@@ -103,6 +103,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The pack's journey page and its guide tree still describe the previous pre-flight — a named aesthetic reference and a seed token block. The skill is the current behaviour; those pages land in the next patch.
 
+## [experience-design][4.0.2] — 2026-09-27
+
+### Highlights
+
+- `creative-direction` now turns product context into a buildable visual contract, not just a mood statement: it records the engagement mode, product-specific visual thesis, first-viewport thesis, honest evidence and asset status, and optional visual-target boundaries without requiring Product Engineering, Frontend Engineering, a comp, browser control, or image analysis.
+
+### Changed
+
+- The Experience Design guide now describes the direct-answer and optional-artifact inputs `creative-direction` accepts, plus the product-specific output fields adopters should expect.
+- The pack and Claude plugin metadata now publish Experience Design `4.0.2`.
+
 ## [experience-design][4.0.1] — 2026-09-27
 
 ### Highlights

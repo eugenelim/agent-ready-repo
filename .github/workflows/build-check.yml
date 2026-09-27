@@ -707,6 +707,17 @@ jobs:
         run: >-
           python -m pytest
           packs/frontend-engineering/tests/skills/frontend-engineering/ -q
+      # The creative-direction contract suite is the pack's only pack-tree
+      # suite, and every other experience-design contract lives in
+      # tests/roster/. Without this step the suite would reach CI only through
+      # the dispatch-only test-corpus.yml, which no pull request triggers. The
+      # path is spelled exactly as the Makefile's run-test-suite line spells
+      # it, for the same both-directions reason as the step above.
+      - name: pytest creative-direction contract (pr-gate-suite-disposition)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: >-
+          python -m pytest
+          packs/experience-design/tests/skills/creative-direction/ -q
       # The dedup guard is the second instance, and the more expensive one:
       # ~65s, because it shells out to `make -n` repeatedly to compare the
       # Makefile's expansion against pinned plan digests. It earns the budget by

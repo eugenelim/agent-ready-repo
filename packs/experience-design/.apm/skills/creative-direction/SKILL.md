@@ -50,6 +50,51 @@ Confirm all three before drafting; if any fails, push back and resolve it first.
 2. **You're naming direction, not deriving values** — the moment the ask is spacing, type, or color *values*, hand off to `design-system`. This skill stops at named goals.
 3. **You know the target surface** — `responsive-web`, `iOS`, `Android`, or `cross-platform`. If absent, elicit it before grounding the goals; platform conventions are a referent for every goal.
 
+## Input contract
+
+Begin from any adequate combination of product intent, Digital Experience Contract,
+screen brief, existing product, approved visual target, or direct user answers.
+These are evidence sources, not installed-pack dependencies. When an optional
+source or capability is absent, ask only the unresolved fallback question or
+record a labeled assumption and continue.
+
+Do not block on a Product Engineering pack, Frontend Engineering pack, comp,
+browser runtime, image-capable harness, or image-analysis tool. A missing visual
+target is a valid input state.
+
+## Engagement mode
+
+Engagement mode is the visitor posture the surface mainly serves. Surface genre
+is the kind of surface being designed and the IA/craft context it belongs to.
+Engagement mode is an overlay on surface genre; it does not replace or overwrite
+surface genre.
+
+Name one primary engagement mode. Name a secondary mode only when the surface
+serves a distinct user job, and record that reason.
+
+- `persuade` — establishing relevance, confidence, and desire.
+- `operate` — supporting repeated or consequential work.
+- `read` — making structured information easy to understand and navigate.
+- `experience` — making exploration or immersion part of the value.
+
+## Output contract
+
+Every captured direction records these commitments alongside the ranked goals
+and direction sheet:
+
+- **Engagement mode** — primary mode, and secondary mode only with a distinct
+  user job.
+- **Product-specific visual thesis** — the audience's situation, the product's
+  distinctive mechanism, and the honest proof the surface can show.
+- **First-viewport thesis** — what the opening viewport makes clear, what
+  concrete evidence or mechanism it exposes, and which primary action or
+  continuation it supports. This is not a hero layout prescription.
+- **Approved visual target** — optional. When present, identify the target,
+  what is binding, what is illustrative, and what may adapt responsively.
+- **Signature interaction** — the interaction that materially expresses the
+  product or helps someone understand or operate it. `none` is valid.
+  Decorative motion is not a signature interaction.
+
 ## Operations
 
 ### frame

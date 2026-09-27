@@ -11,6 +11,10 @@
   {"query": "Our app feels generic — I want a distinctive emotional direction for it", "should_trigger": true},
   {"query": "Let's define the aesthetic goals for the product before any design work starts", "should_trigger": true},
   {"query": "I keep saying 'make it pop' but I need to name what I actually want it to feel like", "should_trigger": true},
+  {"query": "Turn these direct product answers into a product-specific visual direction with an engagement mode and first-viewport thesis", "should_trigger": true},
+  {"query": "We have no comp or upstream product docs; use my answers to establish the creative direction and note what proof is real", "should_trigger": true},
+  {"query": "Create a visual direction from this approved reference image description, and say what is binding versus illustrative", "should_trigger": true},
+  {"query": "Clean and modern is too generic; help us make the direction specific to our product mechanism and evidence", "should_trigger": true},
 
   {"query": "We have a direction for the main product — make it feel bolder without changing the goals", "should_trigger": true},
   {"query": "The existing direction feels too quiet; can you amend it to feel more assured?", "should_trigger": true},
@@ -24,6 +28,8 @@
   {"query": "Structure the information architecture for the dashboard", "should_trigger": false},
   {"query": "How should the navigation for this app be organized?", "should_trigger": false},
   {"query": "Lay out the visual hierarchy of this settings page", "should_trigger": false},
+  {"query": "Invent customer testimonials and a conversion metric for this landing page", "should_trigger": false},
+  {"query": "Analyze this screenshot and tell me whether the rendered UI matches the approved comp", "should_trigger": false},
   {"query": "Write the empty-state copy for the inbox", "should_trigger": false},
   {"query": "Build the React component for the hero section", "should_trigger": false},
   {"query": "Pick the final hex codes for our button palette", "should_trigger": false}

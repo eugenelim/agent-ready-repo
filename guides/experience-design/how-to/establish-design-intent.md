@@ -30,7 +30,7 @@ order: 3
 | Skill | Needs | What it produces | Needed? |
 | --- | --- | --- | --- |
 | `design-principles` | The journey's pains and peak moments | 3–5 named principles, each grounded in a journey moment. | Optional |
-| `creative-direction` | The audience and any brand or precedent referents | Named emotional and brand goals grounded in stable referents. | Required |
+| `creative-direction` | The target surface plus any product intent, Digital Experience Contract, screen brief, existing product, approved visual target, or direct answers. | A product-specific visual direction: engagement mode, ranked goals, visual thesis, first-viewport thesis, honest evidence and asset status, and any approved target boundaries. | Required |
 | `design-system` | The approved aesthetic direction | Primitive and semantic tokens derived from the aesthetic direction. | Optional |
 
 Prompts go into an AI agent session with this pack installed — the same session
@@ -93,13 +93,15 @@ Turn these journey pains and peak moments into three to five design principles.
 <!-- rung: JOURNEY stage 3 -->
 
 ```
-Set a visual direction for this surface from its audience, persona, precedents, and platform conventions.
+Set a visual direction for this surface from its audience, product mechanism,
+available proof, surface genre, and any approved visual target. We have direct
+answers, not an upstream product brief.
 ```
 
 **Agent returns:**
-<!-- rung: JOURNEY stage 3 -->
+<!-- rung: creative-direction SKILL.md -->
 
-> **Agent:** Done — I've written a named, ranked aesthetic direction grounded in stable referents to `<output_dir>/direction/<slug>.md`.
+> **Agent:** Done — I've written a product-specific aesthetic direction to `<output_dir>/direction/<slug>.md`. It names the primary engagement mode, keeps surface genre separate, states the product-specific visual thesis and first-viewport thesis, records that no approved visual target exists, and separates available evidence from placeholders.
 
 **You push back:**
 <!-- rung: creative-direction SKILL.md -->
@@ -108,16 +110,16 @@ Set a visual direction for this surface from its audience, persona, precedents, 
 >
 > **Agent:** I replaced the generic direction with specific, bounded goals.
 
-**Output varies** with the audience, referents, target surface, and genre.
+**Output varies** with the audience, product mechanism, honest proof, engagement mode, target surface, surface genre, and approved visual target if one exists.
 <!-- rung: creative-direction SKILL.md -->
 
 **You decide:** Approve a specific aesthetic direction before screen design begins. This is the pack's `approve-aesthetic-direction` gate, and it covers the token set below too — one decision, not two.
 <!-- rung: JOURNEY stage 3 -->
 
-**Check (grounded):** Ask what persona, precedent quality, standard, or platform convention supports each goal; this surfaces fresh opinion presented as direction.
+**Check (grounded):** Ask what audience situation, product mechanism, honest proof, persona, precedent quality, standard, or platform convention supports each goal. A direction that could be relabeled for a category peer without changing its evidence or choices has not passed.
 <!-- rung: creative-direction SKILL.md -->
 
-**Watch out for:** Confident aesthetic language can conceal guesses. Notice goals with no referent and lines borrowed from a general genre pattern; argue with those first, and reject any direction that conflicts with the quality floor.
+**Watch out for:** Confident aesthetic language can conceal guesses. Notice goals with no referent, invented proof, placeholder screenshots treated as real assets, decorative motion presented as a signature interaction, and lines borrowed from a general genre pattern. Argue with those first, and reject any direction that conflicts with the quality floor.
 <!-- rung: creative-direction SKILL.md -->
 
 **Where it lands:** `<output_dir>/direction/<slug>.md`.
@@ -159,6 +161,58 @@ status: "<proposed | selected>"
      A goal with no stable referent is still a fresh opinion; ground it first. -->
 
 1. <dominant goal — e.g. "Quiet confidence">
+2. <goal>
+3. <goal>
+
+## Engagement mode
+
+<!-- Engagement mode is the visitor posture. Surface genre is the kind of
+     surface being designed; neither overwrites the other. Choose one primary
+     mode: persuade, operate, read, or experience. Add a secondary mode only
+     when a distinct user job justifies it. -->
+
+**Primary mode:** <persuade | operate | read | experience>
+
+**Secondary mode:** <none, or one mode plus the distinct user job that earns it>
+
+**Surface genre:** <surface family, kept separate from engagement mode>
+
+## Product-specific visual thesis
+
+<!-- Ground the direction in this product, not the category. A thesis that could
+     be relabeled for a category peer without changing evidence or choices has
+     not passed the specificity check. -->
+
+**Audience's situation:** <what the audience is trying to do or decide>
+
+**Distinctive mechanism:** <what the product does differently, visibly, or structurally>
+
+**Honest proof:** <real proof the surface can show; use "none yet" rather than inventing claims>
+
+## First-viewport thesis
+
+<!-- This is not a hero layout template. State what the opening viewport must
+     make clear, what evidence or mechanism it exposes, and which primary
+     action or continuation it supports. -->
+
+**Opening clarity:** <what someone understands first>
+
+**Exposed evidence or mechanism:** <what concrete proof or mechanism is visible>
+
+**Primary action or continuation:** <the next action, scroll, read, or exploration path>
+
+## Approved visual target
+
+<!-- Optional. If no target exists, write "none" and continue. If one exists,
+     record its identity and boundaries. -->
+
+**Target:** <none, reference image, comp, existing surface, or other target>
+
+**Binding:** <composition, proportion, spatial relationship, or "none">
+
+**Illustrative:** <qualities that inform but do not bind>
+
+**May adapt responsively:** <what changes across viewport or platform states>
 ```
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
