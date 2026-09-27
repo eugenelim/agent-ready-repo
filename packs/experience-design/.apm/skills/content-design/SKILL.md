@@ -44,12 +44,18 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
 
 Pick exactly one, from the request alone. This rubric is decidable without loading any reference.
 
-1. Does the ask name **how the copy should sound or feel**, rather than what the surface must communicate?
-   - No → **message and narrative structure**.
+1. Is the ask about **the copy itself** — how it should sound or feel, or what its ranked
+   copy goals, voice, register or arbitration rules should be?
+   - No, it is about what the surface must communicate, to whom, and in what order
+     → **message and narrative structure**.
    - Yes → continue.
-2. Is the register being set for **one named surface**, or for **the brand across every channel**?
+2. Is that copy being settled for **one named surface**, or for **the brand across every channel**?
    - One surface → **per-surface acquisition copy goals**.
    - The brand, or "every channel", or "consistent across surfaces" → **brand-level register**.
+
+Question 1 asks about copy, not only about feel. "Name the copy goals for this
+pricing-page hero" names neither sound nor feel, and it is still a copy ask: it
+belongs to the per-surface mode, not to the content brief.
 
 Boundaries this rubric does not cross: `ux-writing` (in the `product-engineering` pack) owns product UI strings and state microcopy; `creative-direction` owns visual mood; `information-architecture` owns page hierarchy; `define-content-strategy` owns organization-level content governance. If the ask is to write the final headline or label, every mode here has already done its job.
 

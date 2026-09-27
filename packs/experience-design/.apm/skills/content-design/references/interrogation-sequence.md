@@ -21,6 +21,8 @@ Start where the user already is. Ask for the feeling of the copy in their words 
 - "When someone reads our copy here, what should they feel in the first three seconds?" — per surface, point at the above-fold copy on this surface; brand-level, point at the headline.
 - "What would the corporate-bad version sound like? What exactly makes it wrong?" — per surface: "of this surface's copy"; brand-level: "of our copy, for us".
 
+Capture the raw words verbatim. "Direct but warm," "expert but not arrogant," "like a colleague, not a manual" — these are the seeds. Do not translate them yet.
+
 ## Stage 2 — Probe the register and associations
 
 For each seed word or phrase, find what is underneath it. The same register word means different things to different teams; the job is to pin down *this* meaning, for the scope in hand.

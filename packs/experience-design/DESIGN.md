@@ -29,10 +29,9 @@ Things a reasonable reader might expect this pack to provide. It doesn't, by des
 ```
 journey-mapping
     ↓
-content-design
+content-design [message and narrative structure]
     ↓
-content-design  ←──── content-design (brand register mode, optional)
-(per-surface copy goals mode)
+content-design [per-surface copy goals]  ←──── content-design [brand-level register] (optional)
     ↓
 user-flow
     ↓

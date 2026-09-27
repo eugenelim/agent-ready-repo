@@ -84,6 +84,26 @@ Follow-on records it.
 | Step 3: "with X demoted to one reference among several, not the spec" | Rule only in `tone-of-voice` | Kept |
 | "If a user offers several examples, the overlap between them is the signal" | Rule only in `tone-of-voice` | Kept |
 | Exit: "Goals that survived their opposite are real" | Rule only in `tone-of-voice` | Kept |
+| Stage 1 close: "Capture the raw words verbatim… Do not translate them yet." | **Identical in both** — not a divergence at all | **Dropped by the first merge, and restored.** See the note below |
+
+**A rule identical in both variants was dropped, and the method that missed it.**
+The Stage 1 closing paragraph — "Capture the raw words verbatim. 'Direct but
+warm,' 'expert but not arrogant,' 'like a colleague, not a manual' — these are
+the seeds. Do not translate them yet." — is byte-identical in both pre-fold
+variants. The first merge of this file omitted it.
+
+It was missed because the verification was built from the **diff** between the
+two sources. Every row in the table above is a difference, and the check that
+"no rule was dropped" string-matched the distinctive rules the diff surfaced.
+Content identical in both variants never appears in a diff, so it was never in
+the set being checked. A merge verified against a diff can only prove that
+nothing *contested* was lost; it says nothing about what both sides agreed on.
+
+The repair was a different check: every paragraph of both pre-fold sources
+compared against each merged file, across all six reconciled references, scoring
+the best match. Exactly one paragraph in the whole set had no counterpart — this
+one. It is now restored in place, closing Stage 1 before the Stage 2 heading as
+it did in both sources. No other reference lost anything.
 
 ## `editorial-quality-gates.md` — localized, and genuinely three-way
 
@@ -156,7 +176,7 @@ alone survives in full.
 | Persona-language definition: `copy-direction` scopes mining to "this surface's reader type" | Scope-borne | Parameterised to "the scope's reader type" |
 | "This is the strongest referent because it connects the goal directly to the reader's frame of reference" | Rule only in `tone-of-voice` | Kept |
 | VoC source bullets: `tone-of-voice` adds why each source is trustworthy ("before any product vocabulary has landed", "without performing for a brand", "not the survey's vocabulary") | Richer on one side | Kept |
-| Absent-VoC handling: `copy-direction` flags the literal string **"directional — not backed by VoC research"**; `tone-of-voice` describes the flag in prose | Both real; one is checkable | `copy-direction`'s literal **wins**. A reader copies a literal; a description has to be re-invented, and the two would drift |
+| Absent-VoC handling: `copy-direction` flags the literal string **"directional — not backed by VoC research"**; `tone-of-voice` describes the flag in prose | Both real; one is checkable | `copy-direction`'s literal **wins**, at **both** sites the file names it: the absent-VoC elicitation step and the recording checklist. A reader copies a literal; a description has to be re-invented, and the two would drift. The first merge applied the verdict at the checklist only and left the prose form in the elicitation step, which is that drift appearing inside one file |
 | "Record the answer as a sketch — it is an approximation, not a validated referent" | Rule only in `tone-of-voice` | Kept |
 | "A copy goal grounded only in the team's sense of what sounds right is a preference, not a referent. Push it back to elicitation." | Rule only in `tone-of-voice` | Kept |
 | Precedent definition: `tone-of-voice` adds "provide a concrete pointer a team can orient to without abstracting the goal into a formula" | Richer on one side | Kept |

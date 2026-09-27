@@ -14,7 +14,7 @@ Grounding a copy goal in persona language means grounding it in the words the au
 - Community posts or forums — the phrasing people use when they talk about the problem among themselves, without performing for a brand.
 - Survey verbatims — open-ended responses that capture the reader's own language, not the survey's vocabulary.
 
-If VoC data is absent, elicit persona language inline: ask "What words does your audience use when they describe this problem to a colleague?" Record the answer as a sketch — it is an approximation, not a validated referent — and flag the resulting goals as directional until real VoC data is available.
+If VoC data is absent, elicit persona language inline: ask "What words does your audience use when they describe this problem to a colleague?" Record the answer as a sketch — it is an approximation, not a validated referent — and flag the resulting goals as **"directional — not backed by VoC research"** until real VoC data is available.
 
 A copy goal grounded only in the team's sense of what sounds right is a preference, not a referent. Push it back to elicitation.
 

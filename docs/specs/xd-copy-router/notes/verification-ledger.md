@@ -308,10 +308,37 @@ directory after upgrading.
 
 | # | Judgement | Verdict | Reviewer | Date |
 | --- | --- | --- | --- | --- |
-| 1 | Each reconciliation preserved the rule the surviving modes need | **Pass.** Verified per file against both sources, not by reading the result. For the two scope-borne rewrites every heading and every distinctive rule from both variants was checked present by string match; the only heading not carried is `copy-direction`'s scope-bound title, which the scope parameter replaces. `notes/reference-reconciliation.md` records the disposition of every substantive difference. | Claude (implementer) | 2026-09-27 |
-| 2 | No rule present in either variant was silently dropped | **Pass, with two dropped items, neither silent.** `audience-jtbd.md` ceases to exist as a basename — recorded, with the reason that `creative-direction` holds a third file of that name which this delivery must not touch. The three-copy duplication note on `editorial-quality-gates.md` is deleted — recorded, and `DESIGN.md` states what supersedes it. Two differences that a naive merge would have dropped were caught and kept: `copy-direction`'s literal VoC flag string, and its wider jargon-check escape hatch. | Claude (implementer) | 2026-09-27 |
+| 1 | Each reconciliation preserved the rule the surviving modes need | **Pass, re-signed after a failed first signing.** Verified per file against both sources, not by reading the result. For the two scope-borne rewrites every heading and every distinctive rule from both variants was checked present by string match; the only heading not carried is `copy-direction`'s scope-bound title, which the scope parameter replaces. `notes/reference-reconciliation.md` records the disposition of every substantive difference. | Claude (implementer) | 2026-09-27 |
+| 2 | No rule present in either variant was silently dropped | **Pass, re-signed after a failed first signing. Three dropped items, none silent.** `audience-jtbd.md` ceases to exist as a basename — recorded, with the reason that `creative-direction` holds a third file of that name which this delivery must not touch. The three-copy duplication note on `editorial-quality-gates.md` is deleted — recorded, and `DESIGN.md` states what supersedes it. Two differences that a naive merge would have dropped were caught and kept: `copy-direction`'s literal VoC flag string, and its wider jargon-check escape hatch. | Claude (implementer) | 2026-09-27 |
 | 3 | The three modes remain distinguishable to a reader | **Pass.** `SKILL.md` opens with a three-row table binding each mode to its scope, artifact and path, then a two-question rubric decidable from the request with no reference loaded. Each mode section states what it produces, where it lands, and what it must not do, and the shared anti-patterns close with an explicit refusal to cross the mode boundary mid-run. A reader can answer "which mode is this?" without reading a procedure. | Claude (implementer) | 2026-09-27 |
 | 4 | The guide is sufficient | **Pass.** `copy-boundary.md` was rewritten rather than retargeted: its premise is no longer a four-way choice between skills but a mode selection the skill makes, with one real boundary left because it crosses packs. It states that folding the registrations did not merge the outputs and lists all three artifact paths, so the claim is checkable rather than reassuring. All four guide gates exit 0. | Claude (implementer) | 2026-09-27 |
+
+**Verdicts 1 and 2 were signed once on a method that could not see the defect,
+and are re-signed here.** A post-gates review found a rule dropped from the
+merged `interrogation-sequence.md`: Stage 1's "Capture the raw words verbatim…
+Do not translate them yet." It is byte-identical in both pre-fold variants.
+
+The first signing verified completeness by string-matching the *distinctive*
+rules each variant carried — that is, the rules the **diff** between them
+surfaced. Content identical in both sides never appears in a diff, so it was
+never in the set being checked. The method could prove nothing contested was
+lost and said nothing about what both sides agreed on. That is a flaw in the
+check, not an unlucky miss, and it is why the verdicts were wrong rather than
+merely optimistic.
+
+The re-signing rests on a different check: every paragraph of both pre-fold
+sources compared against each merged file, across all six reconciled
+references, scored for best match. Exactly one paragraph in the whole set had no
+counterpart — the one above. It is restored, and the reconciliation note carries
+its row. Verdict 2's dropped-item count rises from two to three, all three
+recorded with reasons: `audience-jtbd.md` as a basename, the three-copy
+duplication note, and this paragraph, which is restored rather than dropped.
+
+A second post-gates finding is also closed here: the `copy-grounding.md` verdict
+that `copy-direction`'s literal VoC flag wins was applied at the recording
+checklist but not at the elicitation step, leaving the two sites disagreeing —
+the exact drift the verdict was written to prevent, reproduced inside one file.
+Both sites now carry the literal.
 
 **Fifth verdict — the `brand-register` slug refusal survives.** **Pass.** The
 per-surface mode's step 6 stops when `<surface-slug>` is `brand-register`,
