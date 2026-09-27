@@ -5386,8 +5386,8 @@ import sys
 from pathlib import Path
 
 COHORT_PATH = (
-    Path.cwd()
-    / "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+    Path(__file__).resolve().parents[3]
+    / ".apm/skills/work-loop/scripts/loop-cohort.py"
 )
 
 
@@ -5997,8 +5997,8 @@ import sys
 from pathlib import Path
 
 ENGINE_PATH = (
-    Path.cwd()
-    / "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"
+    Path(__file__).resolve().parents[3]
+    / ".apm/skills/work-loop/scripts/loop-engine.py"
 )
 
 

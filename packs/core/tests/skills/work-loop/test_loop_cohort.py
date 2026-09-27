@@ -1957,7 +1957,7 @@ def test_raw_refusal_reasons_are_closed_and_reachable(tmp: Path) -> None:
 
 
 def test_clean_source_replay_forms_are_exhaustive(tmp: Path) -> None:
-    """Resumption must map each persisted clean source to its own command form.
+    """Resumption must preserve every clean form in the replayed engine payload.
 
     Scoped to the `reviewers-clean` table row. A file-wide search passes while
     that row is removed, reordered, or mis-mapped, as long as the strings survive
@@ -1977,9 +1977,14 @@ def test_clean_source_replay_forms_are_exhaustive(tmp: Path) -> None:
         return
     row = rows[0]
     required = (
-        '`"direct-clean"` → `--direct-clean-file <raw-path>`',
-        '`"structural-clean"` → `--structural-clean-file <raw-path>`',
-        '`"report"` → `--report <adjudication-path> --adjudication`',
+        "re-issue the same `loop-engine transition ... reviewers-clean` payload",
+        "`--all-skipped`",
+        "`--direct-clean-file`",
+        "`--structural-clean-file`",
+        "`--report --adjudication`",
+        "the transition id is also the review operation id",
+        "no human authorization gate is needed for a matching replay",
+        "Do not run `loop-cohort review record` separately",
     )
     missing = [form for form in required if form not in row]
     if missing:

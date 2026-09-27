@@ -1101,6 +1101,10 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       ...(existsSync(pageDir)
         ? readdirSync(pageDir, { withFileTypes: true })
             .filter((e) => e.isDirectory())
+            // Directory enumeration is lexical on the CI filesystem, so page
+            // 10 otherwise precedes page 2. The 181st release is the first one
+            // that creates page 10 and exposed the mismatch.
+            .sort((a, b) => Number(a.name) - Number(b.name))
             .map((e) => join(pageDir, e.name, 'index.html'))
             .filter((f) => existsSync(f))
         : []),

@@ -189,7 +189,7 @@ def test_plan_pre_execute_block_has_no_reopen() -> None:
 
 
 def test_finding_adjudication_blocks_carry_code_review_condition() -> None:
-    """Pin the CODE-REVIEW condition comment in both finding-adjudication blocks."""
+    """Pin the CODE-REVIEW condition in the finding-adjudication repair block."""
     text = FINDING_ADJUDICATION.read_text(encoding="utf-8")
     blocks = fenced_blocks(text)
     # Blocks where findings-remain is the actual transition invocation.
@@ -197,14 +197,18 @@ def test_finding_adjudication_blocks_carry_code_review_condition() -> None:
         b for b in blocks
         if block_fires_edge(b, "findings-remain") and REOPEN_CMD in b
     ]
-    assert len(reopen_blocks) == 2, (
-        f"Expected 2 finding-adjudication blocks with reopen and findings-remain, "
+    assert len(reopen_blocks) == 1, (
+        f"Expected 1 finding-adjudication block with reopen and findings-remain, "
         f"got {len(reopen_blocks)}"
     )
+    condition = "sustained findings that remain in CODE-REVIEW, reopen the wave first"
+    assert condition in text, (
+        "The finding-adjudication repair procedure must state its CODE-REVIEW condition"
+    )
+    assert text.index(condition) < text.index(reopen_blocks[0]), (
+        "The CODE-REVIEW condition must precede the repair transition block"
+    )
     for block in reopen_blocks:
-        assert "CODE-REVIEW" in block, (
-            "Each finding-adjudication reopen block must state the CODE-REVIEW condition"
-        )
         assert reopen_precedes_edge(block, "findings-remain"), (
             "wave reopen must appear before findings-remain in the block"
         )
@@ -349,8 +353,8 @@ _PROCEDURE_FILES = [
 ]
 
 
-def test_transition_invocation_count_is_seven() -> None:
-    """Assert exactly 7 loop-engine transition invocations naming a guarded edge.
+def test_transition_invocation_count_is_six() -> None:
+    """Assert exactly 6 loop-engine transition invocations naming a guarded edge.
 
     Counts non-comment invocation lines, not fenced blocks. Two blocks already
     name a second edge in comment lines; a block count stays constant when a
@@ -361,8 +365,8 @@ def test_transition_invocation_count_is_seven() -> None:
     stated blind spot).
     """
     count = count_invocations(_PROCEDURE_FILES)
-    assert count == 7, (
-        f"Expected 7 loop-engine transition invocations naming a guarded edge "
+    assert count == 6, (
+        f"Expected 6 loop-engine transition invocations naming a guarded edge "
         f"across procedure files, found {count}. "
         f"A new invocation must be classified (add a named per-site assertion "
         f"above and update this count)."
