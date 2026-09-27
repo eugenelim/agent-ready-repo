@@ -63,3 +63,49 @@ was reconciled against elsewhere. The working selector is
 `-k every_editorial_quality_gates_copy_is_byte_identical`, and the whole-file
 run reaches it unconditionally. Recorded here rather than by editing the sealed
 plan.
+
+## T5 — execution observations
+
+**The surviving-skill sweep has two forms, and only the precise one is
+satisfiable.** The verification map runs two checks over `content-design`:
+
+1. A registration/path-position grep —
+   `skills/(copy-direction|tone-of-voice)`, a backticked bare name, or
+   "<name> skill". This one is **clean**.
+2. A broader "strip the discriminators, then search what is left" grep, whose
+   pattern is the bare `\b(copy-direction|tone-of-voice)\b`.
+
+Form 2 cannot reach zero, and the spec is why. It requires the relocated assets
+to be named exactly `content-design/assets/copy-direction-template.md` and
+`content-design/assets/tone-of-voice-template.md`, and the bare pattern matches
+inside both filenames. It also matches "a copy-direction record", the artifact
+name, which appears inside the frontmatter `description` that T9 pins
+byte-identical to the tested probe candidate — so that occurrence cannot be
+edited at all without reopening T1.
+
+Measured after the merge, form 2 returns exactly three kinds of hit and nothing
+else: `copy-direction record` ×4 (artifact name, one inside the pinned
+description), `copy-direction-template.md` ×2, and `tone-of-voice-template.md`
+×2. Every one is an artifact name or a spec-mandated asset filename; none is a
+registration, a routing target, or a path into a removed skill directory.
+
+The spec's own wording settles which reading governs: it scopes the check to
+"the removed names in registration or path position — `skills/copy-direction`,
+"the `tone-of-voice` skill", a routing target". Form 1 implements that scope and
+passes. Recorded here rather than by editing the sealed plan.
+
+Two genuine registration hits were found and retargeted, both named by the plan:
+`content-design/SKILL.md`'s legacy-artifact branch described "the old per-surface
+tone-of-voice behaviour", now "the old per-surface brand-voice behaviour of
+experience-design 1.x"; and `references/communication-modes.md` routed
+downstream work to a removed skill, now to this skill's per-surface acquisition
+copy goals mode.
+
+**The pooled corpus matches the spec's figures exactly.** 29 distinct positive
+and 32 distinct negative queries, zero opposite-`should_trigger` collisions,
+with the `ux-writing` and `creative-direction` negatives retained. All eight
+eval definitions from the three sources carry into one `evals.json`, re-prefixed
+by mode because `content-design` and `tone-of-voice` both used the ids `1` and
+`2`. Both source `evals/files/` trees carry: their `agentbundle-layout.toml`
+fixtures are byte-identical and land as one, and `sample-brief.md` had only one
+source.

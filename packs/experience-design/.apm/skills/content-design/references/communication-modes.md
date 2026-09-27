@@ -2,8 +2,9 @@
 
 Three modes govern how a surface should be written. The mode is set by the surface's
 communication job, not its content type. Declare it in the artifact's `communication_mode:`
-frontmatter field so downstream skills (`copy-direction` and the marketing route in
-`information-architecture`) apply the correct editorial register.
+frontmatter field so downstream work — this skill's per-surface acquisition copy goals
+mode, and the marketing route in `information-architecture` — applies the correct
+editorial register.
 
 ## MODE 1 — product-copy
 
