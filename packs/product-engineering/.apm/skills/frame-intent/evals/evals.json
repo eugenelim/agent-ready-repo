@@ -94,6 +94,50 @@
         "Keeps `closed-empty` distinct from the literal `no`",
         "Does not require direct-light checkbox items for closed-empty"
       ]
+    },
+    {
+      "id": "qualifying-feature-exposes-product-to-experience-handoff",
+      "prompt": "Frame a feature intent for a checkout confirmation change that materially changes the visible success state and what the surface must explain to the buyer.",
+      "expected_output": "The result stays at feature-intent altitude and includes the optional Product-to-experience handoff because the work materially changes a human-facing surface. The handoff states the affected journey or surface, the user outcome and first-success behavior, the product mechanism or proof the interface may expose, evidence for user-visible claims, and constraints, prohibited claims, and material unknowns. It does not choose engagement mode, visual direction, typography, color, layout, motion, first-viewport composition, a signature interaction, or an implementation approach.",
+      "assertions": [
+        "Activates the handoff for a feature with material surface impact",
+        "Includes all five product-fact groups from the optional handoff block",
+        "Derives facts from the intent or Product Engineering contract fields",
+        "Does not select downstream design or implementation decisions"
+      ]
+    },
+    {
+      "id": "backend-only-feature-skips-product-to-experience-handoff",
+      "prompt": "Frame a feature intent for replacing an internal billing queue dependency. It has no material change to any user-facing surface, journey, interaction, content hierarchy, visible state, or claim/action obligation.",
+      "expected_output": "The result may be a feature-level intent, but it omits the Product-to-experience handoff because the work is backend-only or dependency work with no material surface effect. The intent still frames outcome, opportunity, assumptions, and decomposition without adding design prompts or downstream experience decisions.",
+      "assertions": [
+        "Skips the handoff for backend-only or dependency work",
+        "Requires material surface effect rather than feature altitude alone",
+        "Keeps the ordinary intent flow intact",
+        "Does not add irrelevant design prompts"
+      ]
+    },
+    {
+      "id": "product-strategy-surface-mention-skips-product-to-experience-handoff",
+      "prompt": "Frame a product-strategy intent for improving the customer portal's account-management experience across the next year.",
+      "expected_output": "The result uses product-strategy fields for durable product-level framing and does not offer or emit the Product-to-experience handoff, even though the subject mentions a digital surface. It preserves audience, challenge, guiding policy, coherent actions, horizon, and evidence context without becoming a screen or visual brief.",
+      "assertions": [
+        "Does not offer or emit the handoff at product-strategy altitude",
+        "Treats a surface mention as insufficient without capability or feature altitude",
+        "Keeps product-strategy framing at product level",
+        "Does not become a design or screen brief"
+      ]
+    },
+    {
+      "id": "experience-design-absent-handoff-remains-readable-markdown",
+      "prompt": "Frame a capability intent that creates a human-facing onboarding surface in an installation where Experience Design is not installed.",
+      "expected_output": "frame-intent still completes the intent-authoring flow and may include the optional Product-to-experience handoff as ordinary Markdown because the capability has material surface impact. It does not install, require, probe for, or invoke Experience Design, and the handoff remains a read-only Product Engineering fact projection that a downstream pack can consume later without owning or rewriting Product Engineering fields.",
+      "assertions": [
+        "Continues authoring when Experience Design is absent",
+        "Uses ordinary Markdown rather than a required downstream schema",
+        "Does not install, require, probe for, or invoke Experience Design",
+        "Keeps Product Engineering fields under Product Engineering ownership"
+      ]
     }
   ]
 }
