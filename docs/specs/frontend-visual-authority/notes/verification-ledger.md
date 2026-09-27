@@ -349,3 +349,38 @@ only in the suite.
 It also separated two states this slice cares about keeping apart: the
 render-and-observe loop *activated* for that surface and *could not execute*,
 which it recorded as not-run rather than as an activation skip.
+
+### Case A — the integrated path, under a cold read
+
+The agent resolved `approved-visual-target`, and the part that matters is that
+it kept the two rungs apart without being told to: composition from the target,
+and colour, type and spacing from the taxonomy, because rung 1 "never binds
+colour, type, spacing or motion values". It did not load the fallback block, and
+said why — that file licenses itself only at the terminal rung.
+
+It derived the scale rather than inheriting one. The direction commits to a
+headline at roughly six times body, and the taxonomy puts the headline at step
++3 of a single ratio, so it solved r³ ≈ 6 for r ≈ 1.8 and built both the type
+and space scales from that one number. That is the behaviour the skill asks for
+— "that resolution is the work, not a reason to skip to a default" — arrived at
+from the artifacts alone.
+
+**It surfaced a genuine conflict instead of routing around it.** The conversion
+method wants a proof signal above the fold; the approved target puts the metrics
+below it. Placement is composition, so rung 1 won, and it recorded the contract's
+`product proof` field as outstanding and handed the choice back rather than
+inventing a second statistic for the hero. That is the arbitration the precedence
+exists to produce.
+
+It also recorded the responsive divergence as reference-sanctioned rather than as
+a match: the two-thirds measure cannot survive 320px or 400% zoom, and the
+reference says a target that cannot survive correct responsive adaptation is the
+one that gives way.
+
+Two things it raised, both recorded as follow-ons rather than fixed here. The
+`screens/` directory holds artifacts from two writers with different shapes, only
+one of which the frontend slot reads — not a broken handoff, since `user-flow`
+feeds that slot, but a collision worth an owner. And a `status:` value meaning
+"the option we picked" is not the same claim as "a human confirmed this
+composition"; the reference asks for the property rather than a token, so either
+satisfies it, and nothing tells a reader which was meant.
