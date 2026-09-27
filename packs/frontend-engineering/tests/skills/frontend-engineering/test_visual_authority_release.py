@@ -11,10 +11,9 @@ import json
 import tomllib
 
 import pytest
-from frontend_engineering_visual_authority_rules import PACK_ROOT, SKILL_DIR
+from frontend_engineering_visual_authority_rules import PACK_ROOT, SKILL_DIR, read
 
 PACK_TOML = PACK_ROOT / "pack.toml"
-PLUGIN_JSON = PACK_ROOT / ".claude-plugin" / "plugin.json"
 JOURNEY = PACK_ROOT / "JOURNEY.md"
 EVALS = SKILL_DIR / "evals" / "evals.json"
 
@@ -30,7 +29,11 @@ REMOVED_STEP_WORDING = ("aesthetic reference", "seed token block", "token seed b
 
 
 def _pack() -> dict:
-    return tomllib.loads(PACK_TOML.read_text(encoding="utf-8"))
+    return tomllib.loads(read(PACK_TOML))
+
+
+def _evals() -> dict:
+    return json.loads(read(EVALS))
 
 
 def test_the_pack_declares_no_required_dependency_on_another_pack() -> None:
@@ -44,7 +47,7 @@ def test_the_pack_declares_no_required_dependency_on_another_pack() -> None:
 
 
 def test_the_journey_declares_no_prerequisite_pack() -> None:
-    assert "prerequisitePacks: []" in JOURNEY.read_text(encoding="utf-8")
+    assert "prerequisitePacks: []" in read(JOURNEY)
 
 
 @pytest.mark.parametrize("field", ["starter-prompt", "expected-result"])
@@ -59,7 +62,7 @@ def test_the_first_value_strings_describe_the_shipped_preflight(field: str) -> N
 
 @pytest.mark.parametrize("case_id", SLICE_ONE_CASES)
 def test_the_control_flow_case_ships(case_id: str) -> None:
-    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    data = _evals()
     case = next((e for e in data["evals"] if e["id"] == case_id), None)
     assert case is not None, f"{case_id} is not in the eval harness"
     assert case["prompt"].strip() and case["expected_output"].strip()
@@ -67,13 +70,18 @@ def test_the_control_flow_case_ships(case_id: str) -> None:
 
 
 def test_eval_ids_stay_unique() -> None:
-    ids = [e["id"] for e in json.loads(EVALS.read_text(encoding="utf-8"))["evals"]]
+    ids = [e["id"] for e in _evals()["evals"]]
     assert len(ids) == len(set(ids)), "duplicate eval id"
 
 
-def test_the_pack_and_plugin_versions_match_and_moved() -> None:
+def test_the_pack_pins_the_slice_one_version() -> None:
+    """Pins only the value this slice owns.
+
+    The pack/plugin equality is already asserted by
+    `test_pack_and_plugin_versions_match[frontend-engineering]` in the
+    conformance suite; repeating it here would give one property two homes.
+    """
     version = _pack()["pack"]["version"]
-    assert version == json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))["version"]
     assert version == "0.3.4", (
         f"pack.toml carries {version!r}, not the 0.3.4 slice 1 ships at. If "
         f"slice 2 is landing, this pin moves to 0.3.5 with it — that is "

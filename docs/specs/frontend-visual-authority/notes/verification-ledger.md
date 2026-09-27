@@ -213,3 +213,56 @@ boundary is stated honestly with no implied verification.
 | deep catalogue lint | exit 0 |
 | roster + conformance | 57 passed |
 | self-host | ok |
+
+## Quality review — the third whole-file search, and a counter that disagreed
+
+I asked the reviewer to assume a third instance of the unfalsifiable-assertion
+shape existed, because this diff had already produced two. It did.
+
+**`AC-0008`'s routing check was a whole-file search against a section-scoped
+criterion.** The criterion says the PLAN pre-flight names the fallback
+reference; the assertion searched all 960 body lines and passed only because
+the string happened to occur once. Relocating the pointer anywhere — an EXECUTE
+note, a references index — left the criterion false and the test green. Now
+scoped to the same pre-flight window the precedence test derives; proved by
+moving the pointer out.
+
+**The body-budget counter did not derive the count the way the lint does.**
+The lint computes `"\n".join(lines[end+1:]).splitlines()`; mine took
+`len(lines[end+1:])`. Those differ by one whenever the file ends with a blank
+line. Both read 960 only because the file ends with a single newline — and with
+the budget at its ceiling, a stray trailing blank would have red the gate
+against a file the lint considers in-bounds, blaming body length. The counter
+now performs the lint's derivation verbatim; adding a trailing blank line no
+longer moves it.
+
+**The EXECUTE sequence check did not check the sequence, and two weaker forms
+failed before one held.** Asserting the three words appear in the phase is
+nearly vacuous: the section heading is "Render and observe before the gates",
+so `render` and `observe` match the heading and any downstream ordering passes,
+while "correct responsive adaptation" supplies `correct` with the flow deleted.
+The check is now anchored on the fenced flow block, and both mutations — an
+out-of-order step and a deleted block — red.
+
+Also repaired: the upstream-enum sweep now runs over every rule table the
+reference states rather than one of them, so a later table with condition
+columns arrives guarded; the print-route guard anchors on the un-gating clause
+rather than on position, since a rewrite could keep the link in place and
+re-gate it in prose; the absence sweeps read explicit UTF-8 without
+`errors="ignore"`, because swallowing a mis-decode in a completeness check
+silently drops the bytes that would have matched; rule-table parse failures now
+name the file they were actually given rather than the sibling module's; rows
+and lines are looked up through readers that refuse a missing key by name; the
+budget's failure message names AC-0009 and the two admissible responses, so
+raising the constant is visibly a contract change; the sweep roots are named for
+the trees they denote; the duplicated pack/plugin equality assertion returns to
+its one existing home; and Lens 7's prose pin is narrowed to the disclaimer the
+lens must carry.
+
+| Gate | Result |
+| --- | --- |
+| ruff / mypy | clean |
+| pack suite | 420 passed |
+| deep catalogue lint | exit 0 |
+| roster + conformance | 57 passed |
+| self-host | ok |

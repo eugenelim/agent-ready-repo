@@ -4,6 +4,11 @@ Every rule this slice adds lives in `references/visual-observation.md`. If
 nothing asserts that `SKILL.md` states the contract and routes to that file, a
 perfectly correct reference can ship while the skill an agent actually loads
 routes to none of it — and every other criterion stays green.
+
+**Assertions here are scoped to the section their criterion names.** This diff
+shipped three whole-file searches that could not fail for the thing they were
+written to catch; a containment check over a 960-line file is not evidence
+about a named section of it.
 """
 
 from __future__ import annotations
@@ -11,17 +16,26 @@ from __future__ import annotations
 import re
 
 from frontend_engineering_visual_authority_rules import (
+    FALLBACK_TOKENS,
+    PRINT_SURFACE,
     SKILL,
-    SKILL_DIR,
+    preflight,
+    read,
+    section,
     skill_body_lines,
 )
 
+# Encodes AC-0009. Raising it is a contract change, not a test fix.
 BODY_BUDGET = 960
+
+
+def _step_two() -> str:
+    return section(read(SKILL), "### 2. Resolve token values", "\n### ")
 
 
 def test_the_entrypoint_carries_no_token_declaration_block() -> None:
     """The seed block moved out; only its routing rule stays."""
-    text = SKILL.read_text(encoding="utf-8")
+    text = read(SKILL)
     assert ":root {" not in text, (
         "a :root declaration block is back in the entrypoint; the fallback "
         "values belong in references/fallback-tokens.md"
@@ -38,29 +52,38 @@ def test_a_token_usage_is_not_a_token_declaration() -> None:
 
     A bare containment check on the token name reds on the focus-visible rule,
     which cites `var(--ds-color-primary)` as the correct replacement for
-    `outline: none`. That citation is not a declaration and must survive, so
-    the predicate is anchored rather than containment-based.
+    `outline: none`. That citation is not a declaration and must survive.
     """
-    text = SKILL.read_text(encoding="utf-8")
-    assert "var(--ds-color-primary)" in text, (
+    assert "var(--ds-color-primary)" in read(SKILL), (
         "the focus-visible rule's token usage was removed; the anchored "
         "predicate exists precisely so this line does not have to go"
     )
 
 
-def test_the_entrypoint_routes_to_the_fallback_reference() -> None:
-    """Without this, deleting the block and writing the reference satisfies
-    every other criterion while the entrypoint points at nothing."""
-    assert "references/fallback-tokens.md" in SKILL.read_text(encoding="utf-8")
+def test_the_preflight_routes_to_the_fallback_reference() -> None:
+    """Scoped to the PLAN pre-flight, which is where the criterion says the
+    pointer lives. Relocating it to an EXECUTE note or a references index
+    would leave the criterion false and a whole-file search green."""
+    assert FALLBACK_TOKENS.name in preflight(), (
+        f"the PLAN pre-flight does not name {FALLBACK_TOKENS.name}; a pointer "
+        f"elsewhere in the file does not satisfy the criterion"
+    )
 
 
 def test_the_entrypoint_body_stays_within_budget() -> None:
-    """The catalogue lint errors above 1000 lines. This budget sits under it
-    with headroom, and re-runs after every task that writes the entrypoint."""
+    """The budget encodes AC-0009 and sits at its ceiling.
+
+    Two responses are admissible when this reds: pay for the addition with a
+    removal, or amend AC-0009. Raising the constant alone silently rewrites the
+    contract in a suite whose purpose is that the ratchet cannot move quietly.
+    """
     n = skill_body_lines()
     assert n <= BODY_BUDGET, (
-        f"SKILL.md body is {n} lines against a {BODY_BUDGET} budget; the "
-        f"catalogue skill-spec lint hard-errors at 1000"
+        f"SKILL.md body is {n} lines against the {BODY_BUDGET}-line budget "
+        f"AC-0009 states. Either pay for the addition with a removal, or amend "
+        f"AC-0009 in docs/specs/frontend-visual-authority/spec.md — raising "
+        f"BODY_BUDGET on its own changes the contract without saying so. "
+        f"(The catalogue lint hard-errors separately at 1000.)"
     )
 
 
@@ -72,33 +95,34 @@ def test_print_guidance_is_reachable_from_every_rung() -> None:
     authority rung. That made the page box, colour-adjust and page-break rules
     unreachable for a slide deck whose tokens came from a taxonomy or an
     incumbent system — while the skill still advertises slide decks and its own
-    QA checklist still asks whether print output is correct. The medium is
-    independent of which rung supplied the values.
+    QA checklist still asks whether print output is correct.
     """
-    print_reference = SKILL_DIR / "references" / "print-surface.md"
-    assert print_reference.exists(), "the print/PPT guidance has no home"
-    body = print_reference.read_text(encoding="utf-8")
-    for rule in ("@page", "print-color-adjust", "page-break"):
-        assert rule in body, f"{rule} is not in the print reference"
-
-    fallback = (SKILL_DIR / "references" / "fallback-tokens.md").read_text(encoding="utf-8")
-    assert "@page" not in fallback, (
+    assert PRINT_SURFACE.exists(), "the print/PPT guidance has no home"
+    body = read(PRINT_SURFACE)
+    for rule_text in ("@page", "print-color-adjust", "page-break"):
+        assert rule_text in body, f"{rule_text} is not in {PRINT_SURFACE.name}"
+    assert "@page" not in read(FALLBACK_TOKENS), (
         "print CSS is back in the rung-gated fallback, where a surface on a "
         "higher rung is told never to load it"
     )
-    # Scoped, not a whole-file search. The claim is that the route is reachable
-    # *whatever rung* supplied the values, so a link that drifts inside the
-    # rung-gated fallback bullet must red — that is the defect this guards, and
-    # a containment check over the file would not see it.
-    skill = SKILL.read_text(encoding="utf-8")
-    step_two = skill.split("### 2. Resolve token values", 1)[1].split("\n### ", 1)[0]
-    assert "references/print-surface.md" in step_two, (
-        "the token-resolution step does not route to the print guidance"
+
+
+def test_the_print_route_is_not_gated_on_a_rung() -> None:
+    """Semantic, not positional.
+
+    An earlier version of this guard asserted the link sat *after* the rung
+    list. That is a proxy: a rewrite keeping the link at the end of the step
+    while re-gating it in prose ("load it when the fallback supplied values")
+    passes the position check and reintroduces the defect. What the step must
+    carry is the un-gating clause itself.
+    """
+    step = _step_two()
+    assert PRINT_SURFACE.name in step, (
+        f"the token-resolution step does not route to {PRINT_SURFACE.name}"
     )
-    rung_gate = step_two.index("only\n   when neither exists")
-    route = step_two.index("references/print-surface.md")
-    assert route > step_two.index("Whichever rung supplies them"), (
-        "the print route sits inside the rung-gated part of the step; a deck "
-        "whose tokens came from a taxonomy would never be told to load it"
+    flattened = re.sub(r"\s+", " ", step).lower()
+    assert "whatever rung" in flattened, (
+        "the print route carries no clause un-gating it from the rung that "
+        "supplied token values; without one a deck on a higher rung is never "
+        "told to load it"
     )
-    assert route > rung_gate
