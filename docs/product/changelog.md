@@ -74,6 +74,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Cohort state moves to schema 2 with `pending_transition` and a unified, oldest-first-truncated `transition_history`; engine state remains schema 1. Runs crossing this boundary must use the authorized `loop-cohort reset` then `loop-engine reset` recovery pair.
 
+## [experience-design][4.0.1] — 2026-09-27
+
+### Highlights
+
+- **The first approval now happens where you can actually make it.** The journey approval covers the journey *and* the screens derived from it, so it comes after the screen flow exists rather than before. The check that earns it — does every screen trace to a moment in the journey — needs both halves in front of you.
+- **The adopter guide opens with the work, not the roster.** The `experience-design` guide front door now answers "I have an experience to design — how do I get from the user's outcome to reviewed design intent?" It leads with one ordinary-language request, the stage sequence, the three decisions that are yours, what you end up holding, and which downstream pack consumes each artifact. The skill reference is still there, one level down.
+
+### Fixed
+
+- `JOURNEY.md` no longer claims `journey-mapping` produces a screen list. It produces the journey; `user-flow` derives the screens, and the skill refuses a journey with one stage per screen. The gate contract in that file was already correct about when the approval falls; only its walkthrough disagreed.
+- `JOURNEY.md` describes `experience-reviewer` as a dispatched reviewer role rather than presenting it as a skill to run, matching how the guide already described it.
+
 ## [core][2.27.0] — 2026-09-27
 
 ### Highlights
