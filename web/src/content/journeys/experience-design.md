@@ -114,7 +114,7 @@ relatedJourneys:
 |----------|--------------|---------|
 | `experience-status` | Orient — where the design thread is, what's next | Optional |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains | Required |
-| `content-design` | Set surface intent — what this screen says and for whom, and in its other two modes the per-surface copy goals and the brand-level register | Required |
+| `content-design` | Set surface intent — what this screen says and for whom, plus per-surface copy goals and the brand register in its other two modes | Required |
 | `user-flow` | Build the screen inventory with per-screen state briefs | Required |
 | `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
 | `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |

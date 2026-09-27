@@ -257,3 +257,67 @@ standing conflict is therefore untouched by this delivery.
 The regeneration also cleared the two inherited stale projection entries recorded
 above: `experience-design` moved 2.0.9 → 4.0.0 and `frontend-engineering`
 0.3.2 → 0.3.3. Every pack's projection entry now equals its own `pack.toml`.
+
+## T11 — the delivery-wide registration sweep
+
+Run 2026-09-27 over the five trees, `workspace.toml`, and the five in-scope
+`docs/` files, with the generated `now-highlights` projection excluded. It
+returns **14 files**, and every hit classifies:
+
+| Class | Files | Disposition |
+| --- | ---: | --- |
+| 1 — registration | **0** | Must be zero. It is. |
+| 2 — counted discriminator | 10 | Required to survive, at the occurrence counts the two carve-out tables record |
+| 3 — release history | 1 | `docs/product/changelog.md`, permanent: the 4.0.0 entry is obliged to name both removed skills |
+| 4 — frozen decision record | 2 | Both RFCs, permanent: `Accepted`, amendable only by erratum, and RFC-0062's own filename and title contain a removed name |
+
+`workspace.toml` is the one file the four-class rubric does not cleanly reach,
+and its three hits are none of the four. They are record mentions of the same
+kind as classes 3 and 4: this delivery's own queue summary, which describes the
+fold and names what it folds; a different delivery whose **slug**
+(`xd-copy-direction`) contains the substring; and a `ref` to RFC-0062's
+filename. None tells the catalogue a skill exists, so none is a registration.
+The rubric enumerating four classes rather than five is a gap in the plan, not a
+defect in the tree.
+
+## T11 — install and update behaviour for a removed skill directory
+
+Established by read-only inspection of the exact code path rather than by a
+local fixture, because the mechanism is decidable from the source and a fixture
+adds a flake without adding evidence.
+
+`agentbundle.commands.upgrade._apply_single_row` is the whole-pack update path.
+Across its 191 lines it walks only the **new** projection, writes those paths,
+and records them. It contains no `unlink`, no `rmtree`, no prune, and no
+old-minus-new comparison. Its single removal call, `_unproject_removed_rows`,
+reconciles user-scope **hook-wiring rows** — not skill files.
+
+The contrast that makes this conclusive is still present: the separate
+direct-skill update contract explicitly plans removals, asserted by
+`test_direct_skill_upgrade_plans_writes_and_removals_without_catalogue` in the
+agentbundle integration suite.
+
+**A whole-pack `agentbundle upgrade` therefore leaves a retired skill directory
+resident**, with its `SKILL.md` registration still active, so a copy task could
+still route to a skill this pack no longer ships. The `experience-design` 4.0.0
+changelog entry carries the adopter action under `### Removed`: remove the
+`copy-direction` and `tone-of-voice` directories from the installation's skills
+directory after upgrading.
+
+## T11 — manual-QA verdicts
+
+| # | Judgement | Verdict | Reviewer | Date |
+| --- | --- | --- | --- | --- |
+| 1 | Each reconciliation preserved the rule the surviving modes need | **Pass.** Verified per file against both sources, not by reading the result. For the two scope-borne rewrites every heading and every distinctive rule from both variants was checked present by string match; the only heading not carried is `copy-direction`'s scope-bound title, which the scope parameter replaces. `notes/reference-reconciliation.md` records the disposition of every substantive difference. | Claude (implementer) | 2026-09-27 |
+| 2 | No rule present in either variant was silently dropped | **Pass, with two dropped items, neither silent.** `audience-jtbd.md` ceases to exist as a basename — recorded, with the reason that `creative-direction` holds a third file of that name which this delivery must not touch. The three-copy duplication note on `editorial-quality-gates.md` is deleted — recorded, and `DESIGN.md` states what supersedes it. Two differences that a naive merge would have dropped were caught and kept: `copy-direction`'s literal VoC flag string, and its wider jargon-check escape hatch. | Claude (implementer) | 2026-09-27 |
+| 3 | The three modes remain distinguishable to a reader | **Pass.** `SKILL.md` opens with a three-row table binding each mode to its scope, artifact and path, then a two-question rubric decidable from the request with no reference loaded. Each mode section states what it produces, where it lands, and what it must not do, and the shared anti-patterns close with an explicit refusal to cross the mode boundary mid-run. A reader can answer "which mode is this?" without reading a procedure. | Claude (implementer) | 2026-09-27 |
+| 4 | The guide is sufficient | **Pass.** `copy-boundary.md` was rewritten rather than retargeted: its premise is no longer a four-way choice between skills but a mode selection the skill makes, with one real boundary left because it crosses packs. It states that folding the registrations did not merge the outputs and lists all three artifact paths, so the claim is checkable rather than reassuring. All four guide gates exit 0. | Claude (implementer) | 2026-09-27 |
+
+**Fifth verdict — the `brand-register` slug refusal survives.** **Pass.** The
+per-surface mode's step 6 stops when `<surface-slug>` is `brand-register`,
+states that the path is reserved for the brand-level register mode, and asks the
+user for a different slug. It refuses rather than repairing: the text says so
+explicitly ("Do not repair the request by renaming it silently"). The
+`copy-boundary.md` guide states the same refusal to the adopter. This is
+recorded as a fifth entry rather than as one of the four, because the Testing
+Strategy enumerates four judgements and this is not among them.
