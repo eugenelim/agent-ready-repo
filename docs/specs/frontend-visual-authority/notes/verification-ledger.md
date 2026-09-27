@@ -384,3 +384,58 @@ feeds that slot, but a collision worth an owner. And a `status:` value meaning
 "the option we picked" is not the same claim as "a human confirmed this
 composition"; the reference asks for the property rather than a token, so either
 satisfies it, and nothing tells a reader which was meant.
+
+## Experience review — three blockers, all coherence failures I introduced
+
+The verdict was SHIP WITH CHANGES, and the diagnosis was sharper than the count:
+the rest of the skill was never updated to match the demotion of the token block.
+
+**The craft rules and two gates still mandated the namespace step 2 had just
+demoted.** Step 2 says never fork a system a higher source answers; four rules
+and both token gates said to use `--ds-*` literally. A surface correctly
+extending an incumbent `--color-*` system therefore failed its own gate, and an
+agent resolving that in the obvious direction re-seeds the fork step 2 forbids.
+Step 2 now records the namespace it resolved, and the rules and gates refer to
+that record rather than a literal prefix.
+
+**The manifest could not record the split the top rung creates.** Rung 1 binds
+composition only, so whenever it resolves two rungs are in force — and the field
+took one value, while a shipped eval asserts exactly the split. Lens 7 was
+reading a field that had no room for the claim it tests. The field now records
+composition-authority and value-authority, naming the same rung where one
+supplied both. Proved: collapsing it back to one value reds.
+
+**Two files stated different load conditions for the fallback block.** The skill
+said "when neither exists"; the reference said "when the precedence reaches its
+lowest rung". Those come apart in a case the design creates — a confirmed visual
+target at the top rung with no taxonomy and no incumbent system — where one says
+load and the other says do not, leaving an agent with no values and a motive to
+fabricate them. One condition now, stated in the skill, with the reference
+pointing at it.
+
+Also closed: the brownfield hole, where a surface with a partial or incoherent
+visual system satisfied neither "established" nor "genuinely greenfield" and the
+precedence terminated with nothing supplying authority — the most common real
+retrofit. `local-premise` is now unconditionally terminal, and rung 3 says to
+extend the best-supported existing pattern and record the rung as partial.
+
+And the prohibition two evals assert — that no product is named as an anchor —
+is now in the prose that governs it: a premise names the qualities wanted,
+never a product to copy. Before, an agent following rung 4 exactly could fail
+an eval the pack ships.
+
+Roughly 40 lines came back from prose that restated rules the reference owns,
+which is what paid for the additions: body 960 → 957 despite four blocker fixes.
+
+**One finding was reverted rather than fixed.** The `1b` heading names another
+pack as required and carries an undefined `T2`. The reviewer marked it
+pre-existing, and a shipped test pins it byte-exact — changing it moves an
+anchor for something outside this slice. Recorded as a follow-on instead.
+
+| Gate | Result |
+| --- | --- |
+| ruff / mypy | clean |
+| pack suite | 420 passed |
+| deep catalogue lint | exit 0 |
+| roster + conformance | 57 passed |
+| self-host | ok |

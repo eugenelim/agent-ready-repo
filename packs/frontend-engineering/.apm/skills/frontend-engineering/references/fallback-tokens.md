@@ -1,17 +1,16 @@
 # Fallback token block
 
-Load this only when the visual-authority precedence reaches its lowest rung —
-no token taxonomy resolved from the adopter's design tree, and no incumbent
-token system in the repository to inherit. On any higher rung the values come
+Read this when no token taxonomy resolved from the adopter's design tree and
+the repository has no incumbent token system to extend. That is step 2's
+condition and the only one; it does not depend on which rung supplied
+composition. On any higher rung the values come
 from there, and seeding this block instead forks the product's visual identity.
 
 The block is a starting point for a greenfield surface with no design authority
 of its own. It is not a house style, and nothing here outranks a taxonomy or an
 existing system.
 
-Provide a CSS custom properties block before writing any HTML. Selecting from
-`var(--ds-color-primary)` beats fabricating a fresh hex per session —
-token-seeding is the single strongest lever for visual consistency.
+Provide a CSS custom properties block before writing any HTML. Reading a value from a named token beats fabricating a fresh hex per session.
 
 **The accent below is deliberately not a brand colour.** A greenfield surface's
 accent is a decision to make, not a value to inherit: shipping a saturated
@@ -31,7 +30,8 @@ at the top of the CSS file and referenced by semantics.
 
 ```css
 :root {
-  /* Color roles — semantic, not raw hex */
+  /* Semantic roles bound straight to values: this seed collapses the
+     primitive and semantic tiers. Split them before writing components. */
   --ds-color-surface:      #ffffff;
   --ds-color-surface-alt:  #f8fafc;
   --ds-color-on-surface:   #1a202c;

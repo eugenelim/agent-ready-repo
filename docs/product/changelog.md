@@ -81,13 +81,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The named-aesthetic-reference step is now visual-authority resolution. The canonical product-reference table is gone, along with every pointer to it.
+- The named-aesthetic-reference step is now visual-authority resolution. The canonical product-reference table is gone, along with every pointer to it. A product name was always a poor instrument for this: it carries whatever the model associates with that product today, which is why so much generated work converges on the same look. **If you relied on it, two routes give you back the determinism.** Write a direction artifact under your design output directory and the build inherits it; or state the qualities you want in-session — the density, the voice, the restraint — and the run records that as `local-premise`. Naming a product as shorthand for qualities still works in conversation; what changed is that the skill no longer reaches for one on your behalf.
 - The seed token block moved out of the always-loaded skill into a fallback reference, read only when no taxonomy and no incumbent system supply values.
 - Print and slide guidance — the page box, colour-adjust and page-break rules — moved to its own reference, loaded whenever the output targets a PPT slide or PDF export, whatever supplied the token values.
 
 ### Fixed
 
-- A claimed visual verification with no rendered capture behind it is rejected rather than recorded. Where no browser is reachable, the run names the missing capability and claims nothing.
+- A run could previously record a completed visual check without any capture behind it, because nothing connected the claim to the evidence. A claim with no capture is now rejected, and where no browser is reachable the run names the missing capability and claims nothing.
 
 ### Known gap
 

@@ -46,6 +46,15 @@ def test_the_authority_field_names_the_rungs_it_may_record() -> None:
     )
     missing = [rung for rung in RUNGS if rung not in row]
     assert not missing, f"the field names no vocabulary for {missing}"
+    # The top rung binds composition only, so whenever it resolves two rungs
+    # are in force by construction and the field must have room for both. A
+    # single-value field leaves the values-rung unrecorded, and Lens 7 then
+    # tests a claim the record never had space to make.
+    lowered = row.lower()
+    assert "composition" in lowered and "values" in lowered, (
+        "the visual authority field records one rung; it must record the rung "
+        "that supplied composition and the rung that supplied values"
+    )
 
 
 def test_the_status_skill_agrees_on_the_field_count() -> None:

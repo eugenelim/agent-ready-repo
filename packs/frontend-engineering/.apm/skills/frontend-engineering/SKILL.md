@@ -125,7 +125,7 @@ two source tokens, `repository layout configuration` or `user-profile layout
 configuration`; neither is a path. The confinement refusal is the exception, since
 a path outside the root has no relative form.
 
-**What a skip hands to step 1.** A slot with no conforming artifact is a named
+**What a skip hands to step 1, visual authority.** A slot with no conforming artifact is a named
 skip and step 1 fills that slot alone; a resolved directory with none in any slot
 is the second skip, `design handoff: no conforming artifact under <output_dir>`.
 Those skips are the only states that hand an unfilled slot forward from a read that completed. The precedence chain's own demotion edges are routine and need no skip — but **a refusal is not one of them**: it halts the mode, and no rung below is reached at all. Record which route brought you to a lower rung, so a rung below the artifacts can tell a legitimate demotion from a refusal someone absorbed.
@@ -144,32 +144,35 @@ enforces it outside the agent.
 
 ### 1. Resolve visual authority
 
-Significant visual work inherits its visual decisions; it does not re-make
-them. Resolve authority from the highest rung that supplies it, and never let a
-lower rung override a higher one:
+Every surface inherits its visual decisions rather than re-making them.
+Resolve authority from the highest rung that supplies it. A lower rung never
+overrides a higher one, and a rung silent on an axis hands that axis down.
 
 1. **`approved-visual-target`** — the direction artifact step 0 read, when it
    records a human-confirmed composition. Binds composition only: arrangement,
-   proportion, spatial relationships. It never binds colour, type, spacing or
-   motion values.
+   proportion, spatial relationships. It supplies no colour, type, spacing or
+   motion values, so those always come from a lower rung.
 2. **`direction-and-taxonomy`** — that artifact's aesthetic goals, axis
    commitments and signature element, with the token taxonomy's roles and
    scales. A direction recording no confirmation resolves here, and the run
    records that it was unconfirmed.
-3. **`incumbent-system`** — the repository's existing visual system, for an
-   established surface. Extend it; do not fork it.
-4. **`local-premise`** — state a concise visual premise in-session, only when
-   no rung above resolved and the surface is genuinely greenfield.
+3. **`incumbent-system`** — the repository's existing visual system. Extend it;
+   do not fork it. Where that system is partial or incoherent, extend its
+   best-supported pattern and record the rung as partial rather than declaring
+   the surface greenfield.
+4. **`local-premise`** — state a concise visual premise in-session. This rung
+   is terminal and always available: it is what a surface with nothing above it
+   uses. A premise names the qualities wanted — the density, the voice, the
+   restraint — never a product to copy.
 
-Record which rung supplied authority, including when it was the fallback. That
-record is the manifest's `visual authority` field.
+**Record two rungs, not one.** Whenever the top rung resolves, two are in force:
+composition from it, values from below. The manifest's `visual authority` field
+records both, and they name the same rung when one supplied everything.
 
-Visual authority governs how the surface looks and nothing beneath it: product
-behaviour, accessibility, content correctness, data and state, security,
-established component contracts and platform constraints all stay outside it,
-and where a visual decision fights the accessibility floor, the floor wins.
+Because rung 1 supplies no values, step 2 resolves them from rung 2 downward.
 
-Rules, the full rung table and what each rung binds:
+What each rung binds, what visual authority never governs, and why a refusal is
+never a demotion:
 [`references/visual-observation.md`](references/visual-observation.md).
 
 ### 1b. Genre routing (T2 — requires experience-design pack)
@@ -198,27 +201,31 @@ as either `XD genre routing: <skill-name> loaded` or `XD genre routing: skipped
 
 ### 2. Resolve token values
 
-Token values come from the highest rung of the visual-authority precedence that
-supplies them. Never seed a parallel `--ds-*` system when a higher rung already
-answers.
+Values come from the highest source that supplies them. Never fork a system a
+higher source already answers.
 
 1. **The token taxonomy**, when one resolved in step 0. It carries roles,
    scales and relationships rather than numbers, so resolve its named roles
    into values for this medium and density — that resolution is the work, not a
    reason to skip to a default.
-2. **The incumbent token system** already in the repository, when the surface
-   has one. Extend it; do not fork it.
-3. **[`references/fallback-tokens.md`](references/fallback-tokens.md)**, only
-   when neither exists. It carries a minimum semantic set.
+2. **The incumbent token system** already in the repository. Extend it; do not
+   fork it.
+3. **[`references/fallback-tokens.md`](references/fallback-tokens.md)** — read
+   it when neither of the two above resolved. That is the only condition; it
+   does not depend on which rung supplied composition.
 
-Whichever rung supplies them, define primitives once and reference them from a
-semantic layer: `Primitive → Semantic → Component`, one-way. Components read
-semantics, never raw values.
+**Record the token namespace you resolved** — `--ds-*` from the fallback,
+`--color-*` or whatever an incumbent system already uses. The craft rules and
+the token gates below mean *that* namespace, not a literal prefix: a surface
+extending an existing system passes by using the system it inherited.
+
+Define primitives once and reference them from a semantic layer:
+`Primitive → Semantic → Component`, one-way. Components read semantics, never
+raw values.
 
 **Targeting a PPT slide or PDF export?** Also load
 [`references/print-surface.md`](references/print-surface.md), whatever rung
-supplied the values: page box, colour-adjust and page-break rules are
-medium-specific, not a fallback, and the QA checklist asks about print at every rung.
+supplied the values.
 
 ### 3. State matrix
 
@@ -369,15 +376,10 @@ After running all five gates, generate the evidence manifest (see Evidence manif
 
 ### Render and observe before the gates
 
-Significant visual work is looked at while it is being built, not only when it
-is finished. Activate this loop when a reader could tell the before and the
-after apart across the room — a new surface or major component, a substantial
-redesign, a change to layout, typography or composition, a responsive
-restructuring, or implementation from an approved visual target. Skip it for
-copy-only, behaviour-only, trivial-variant, non-visual accessibility and
-refactor work — and **record the skip with its reason**.
-
-When it activates:
+Significant visual work is looked at while it is built. **The test: could a
+reader tell the before and the after apart across the room?** If yes, this loop
+runs. If no, it does not — and the skip is recorded with its reason, because an
+unrecorded skip and a run that never asked the question read alike afterwards.
 
 ```text
 implement a representative surface or state
@@ -386,25 +388,20 @@ render at the relevant channel(s) — reuse the GATES step 5 capture mechanism
         ↓
 observe: compare against the rung that supplied visual authority
         ↓
-material divergence?  yes → correct once → render and observe once more
-                       no → continue
+material divergence? → correct once → render and observe once more
 ```
 
-**The bound is one correction pass and one verification render.** A further
-pass happens only when the operator asks for it. Divergence still present after
-the verification render is recorded, not iterated on.
+**One correction pass, one verification render.** Anything still diverging is
+recorded, not iterated on. A further pass happens only when the operator asks.
 
-Render the smallest set that makes judgement meaningful: the primary state, one
-narrow-channel capture where responsive behaviour carries intent, and any state
-that materially changes the arrangement. **This does not discharge the GATES
-step 5 capture matrix** — that gate still runs in full. If nothing can be
-rendered, name the missing capability, claim no visual verification, and
-continue with the checks that genuinely run; a claim with no capture behind it
-is rejected.
+Render the smallest set that makes judgement meaningful. **This does not
+discharge the GATES step 5 capture matrix** — that gate still runs in full. If
+nothing can be rendered, name the missing capability, claim no visual
+verification, and continue with the checks that genuinely run.
 
-The comparison is perceptual, not pixel parity, and a visual target never
-overrides correct responsive adaptation or accessible behaviour. Activation
-rubric, divergence classes, observation form and full rules:
+The comparison is perceptual, not pixel parity. Which cases activate it, which
+skip, what counts as material divergence, the observation form, and what
+visual authority never governs:
 [`references/visual-observation.md`](references/visual-observation.md).
 
 ### Avoid the AI Aesthetic
@@ -415,12 +412,12 @@ AI-generated UI has recognisable failure patterns. Refuse all of them:
 |---|---|---|
 | Purple / indigo everything | Models default to `bg-indigo-500` — every generated app looks identical | Use the token values the visual-authority rung supplied |
 | Excessive gradients | Add visual noise; clash with most design systems | Flat colour or a single subtle gradient matching the system |
-| Rounded everything (`rounded-2xl` / `border-radius: 16px` on all elements) | Ignores the radius hierarchy in real designs — cards, buttons, and inputs each have a distinct radius | Use the `--ds-radius-*` scale; vary by element type |
+| Rounded everything (`rounded-2xl` / `border-radius: 16px` on all elements) | Ignores the radius hierarchy in real designs — cards, buttons, and inputs each have a distinct radius | Use the radius scale the resolved token namespace supplies; vary by element type |
 | Generic hero sections | Template-driven layout with no connection to actual content or user need | Content-first layout driven by what the user needs to do |
 | Lorem ipsum placeholder copy | Hides layout problems that real content reveals (wrapping, overflow, long names) | Realistic-length placeholder text that approximates actual content |
 | Oversized equal padding everywhere | Destroys visual hierarchy; wastes screen space | Use the spacing scale; vary padding by component level |
 | Uniform card grids | Ignores information priority and scanning patterns | Purpose-driven layouts — group by relationship, not by grid slot |
-| Shadow-heavy design | Layered shadows compete with content; slow on low-end devices | Use `--ds-shadow-sm` sparingly; flat or a single elevation level |
+| Shadow-heavy design | Layered shadows compete with content; slow on low-end devices | Use the smallest elevation the namespace supplies, sparingly; flat or one level |
 
 ### HTML element selection rules
 
@@ -462,9 +459,9 @@ the specific forms below are.
 
 ### CSS rules
 
-- WRONG: `color: #5e6ad2`, `background: #f8fafc`, `margin: 13px` / RIGHT: all colour and spacing values via `var(--ds-*)` — no hardcoded hex, rgb, hsl, or magic pixel values
+- WRONG: `color: #5e6ad2`, `background: #f8fafc`, `margin: 13px` / RIGHT: every colour and spacing value read from the token namespace step 2 recorded — no hardcoded hex, rgb, hsl, or magic pixel values
 - WRONG: `z-index: 9999` / RIGHT: define a named z-index scale: `--z-base: 0; --z-overlay: 100; --z-modal: 200; --z-toast: 300` — use named custom properties only
-- WRONG: `line-height: 24px` / RIGHT: unitless — `line-height: var(--ds-leading-normal)` or `line-height: 1.5`
+- WRONG: `line-height: 24px` / RIGHT: unitless — a leading token from the recorded namespace, or `line-height: 1.5`
 - WRONG: `#nav {}`, `ul.nav {}` / RIGHT: class selectors only; no ID selectors; no qualified selectors
 - WRONG: selector depth > 3 levels / RIGHT: max 3 levels of nesting
 - WRONG: `tabindex="2"`, `tabindex="5"` (positive values) / RIGHT: `tabindex="0"` to enter tab order; `tabindex="-1"` for programmatic focus targets only; never positive values — they disrupt the natural tab sequence
@@ -605,7 +602,7 @@ Note: this command selects only the `wcag21aa` tag group — WCAG 2.2 AA is our 
       ["color", "background-color", "border-color", "font-size"],
       {
         "ignoreValues": ["inherit", "transparent", "currentColor"],
-        "message": "Use design tokens (var(--ds-*)) — no hardcoded values"
+        "message": "Use the token namespace step 2 recorded — no hardcoded values"
       }
     ]
   }
@@ -617,7 +614,7 @@ Install: `npm install --save-dev stylelint stylelint-declaration-strict-value`
 ### 4. Visual QA checklist (agent-executable, no tooling)
 
 - [ ] All applicable states from the 18-state matrix are present in the HTML — not just the happy path; check each applicable state by reading the HTML
-- [ ] No hardcoded colour or spacing values outside the token-definition block — grep: `grep -E "#[0-9a-fA-F]{3,6}|rgba?\(|hsl\(|[0-9]+px" <file.css>` should return only the `:root` / primitive token-definition block, no other hex, rgb, or px values
+- [ ] No hardcoded colour or spacing values outside the token-definition block — grep: `grep -E "#[0-9a-fA-F]{3,6}|rgba?\(|hsl\(|[0-9]+px" <file.css>` should return only the block defining the primitives of the namespace step 2 recorded, no other hex, rgb, or px values
 - [ ] Print output correct: if PPT/PDF context, open in browser and trigger print preview — check slide boundaries, colour preservation, no overflow
 - [ ] Rendered-page inspection run, and its observations recorded — section 5 below. This is the item that replaces "take a screenshot and look at it": a filename is not an observation.
 
@@ -873,7 +870,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | viewports | The channels covered, each as the width predicate that defines it (e.g. `<480`, `>=480 <1152`, `>=1152` for breakpoints 480 and 1152), plus whether those channels came from declared breakpoints or from the fallback bands, the supported minimum width in force or none-declared, and any declared breakpoints the minimum discarded. Record the last two as plain numbers, never as predicates; the example above declares no minimum (worked example: minimum none-declared), so it records none-declared and discards nothing |
 | browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
 | states | Which of the 18 states were exercised during testing |
-| visual authority | Which rung supplied the visual decisions — `approved-visual-target`, `direction-and-taxonomy`, `incumbent-system` or `local-premise` — and the artifact or convention it named. Record the fallback rung explicitly; a blank field and an unconsidered one read alike. Where a direction recorded no human confirmation, say so |
+| visual authority | Two rungs: the one that supplied **composition** and the one that supplied **values** — `approved-visual-target`, `direction-and-taxonomy`, `incumbent-system` or `local-premise` — naming the artifact or convention each came from. They are the same rung where one supplied both. Record the fallback rung explicitly; a blank field and an unconsidered one read alike. Where a direction recorded no human confirmation, say so. Record the token namespace resolved, and how a lower rung was reached |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |
 | inspection observations | What was seen in the captures, plus the rendered-page inspection **result state and verdict** (`completed`/`pass`, `completed`/`fail`, or a non-completed state). A value naming only filenames does not satisfy this field — `screenshots` already records that images exist; this field records what looking at them found. A completed inspection with nothing wrong is recorded as such, naming the routes and states inspected |
 | a11y result | Output of the accessibility gate (pa11y/axe-core, `wcag21aa`); include manual-check outcomes for WCAG 2.5.8 Target Size (AA) and 2.4.13 Focus Appearance (AAA enhancement), and the stated WCAG 2.2 AA gap (2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8) |
