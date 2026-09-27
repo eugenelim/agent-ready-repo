@@ -86,6 +86,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `work-loop` treats classified base-freshness capability gaps as a skipped check, while keeping confirmed stale bases, missing targets, unsafe local state, and unclassified Git failures blocking.
 
+## [experience-design][4.0.0] — 2026-09-27
+
+### Highlights
+
+- **The copy layer is now one skill with three modes.** `content-design` covers message and narrative structure, per-surface acquisition copy goals, and the brand-level register. You pick a task, not a registration — the skill selects the mode from your request. The `copy-direction` and `tone-of-voice` skills are removed.
+- **Nothing you have already written moves.** All three artifacts keep their paths and their `type:` values: `content/<slug>.md`, `copy/<surface-slug>.md`, and the reserved `copy/brand-register.md`, which still carries `scope: brand-level` beside its `type:`. An existing document needs no migration.
+- **Shared copy references were reconciled rather than merged.** Six references that shared a name across the folded skills disagreed; each was resolved deliberately, and the two whose variants differed only by scope are now one body with a named scope parameter that binds per mode.
+
+### Changed
+
+- Folded `copy-direction` and `tone-of-voice` into `content-design`, which now runs in three named modes with a selection rubric that needs no reference loaded.
+- `editorial-quality-gates.md` is one canonical body held byte-identical across the two skills that need it, replacing a recorded decision to let per-skill copies drift.
+- `ux-writing` in the `product-engineering` pack keeps its scope; its pointers to the removed skills now name the surviving modes.
+
+### Removed
+
+- The `copy-direction` and `tone-of-voice` skills. **After upgrading an existing installation, remove the `copy-direction` and `tone-of-voice` skill directories from that installation's skills directory.** Whole-pack `agentbundle upgrade` does not prune paths the new pack no longer declares, so leaving them in place would keep their stale `SKILL.md` registrations active and a copy task could still route to a skill this pack no longer ships.
+
+## [product-engineering][0.13.20] — 2026-09-27
+
+### Changed
+
+- `ux-writing`'s scope boundary, onboarding tri-point, and brand-register migration prompt now name `content-design`'s modes instead of the two removed `experience-design` skills. The skill's own behaviour, its artifact markers, and the copy it writes are unchanged.
+
 ## [core][2.26.45] — 2026-09-26
 
 ### Highlights

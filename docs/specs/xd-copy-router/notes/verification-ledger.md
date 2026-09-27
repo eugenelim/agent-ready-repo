@@ -214,3 +214,46 @@ and none is reconciled by edit:
   frozen decision record whose filename contains the substring permanently.
 
 These are the same third and fourth classes the final sweep rubric names.
+
+## T10 — a contract conflict, resolved against the enforced control
+
+**The spec's changelog placement criterion cannot be satisfied.** It requires a
+free-standing `## [experience-design][4.0.0]` entry **directly beneath
+`[Unreleased]`**, and `plan.md`'s changelog validator asserts exactly that
+adjacency. But `tests/roster/test_verification_ledger_contract.py::test_the_core_release_heading_sits_directly_beneath_unreleased`
+requires the heading directly beneath `[Unreleased]` to be `[core]` at core's
+shipped version. Both cannot hold: the position admits one heading.
+
+The conflict is not theoretical on this branch. The sibling
+`creative-direction-modes` delivery placed its release heading in that position,
+CI's gate-main failed on this same test, and commit `e1164adeb` exists only to
+move it back out.
+
+**Resolved in favour of the enforced test.** The entry is free-standing at `##`
+and sits immediately below the `[core]` block. What the criterion is actually
+protecting is preserved: `packs/AGENTS.local.md` requires a release entry to be
+free-standing at `##` and **never nested under `[Unreleased]`**, "where it could
+never publish", because `tools/build-site.py` withholds a nested entry as
+unreleased and still exits 0. This entry is not nested, so it publishes.
+
+The "directly beneath" wording is the part that is wrong, and it is wrong in the
+spec and in the plan's validator together. The obligation it was reaching for —
+free-standing, not nested, therefore publishable — is met. Recorded here rather
+than by editing the sealed contract, and surfaced to the owner rather than
+resolved silently.
+
+## T10 — `FORCE=1` was not needed
+
+The spec lists passing `FORCE=1` to `make build-self` under **Ask first**,
+because `packs/AGENTS.local.md` instructs the release pipeline to use it while
+the root `AGENTS.local.md` says never to pass it from automation.
+
+The question did not have to be asked. `make build-self` refuses only a **dirty**
+working tree, and says so: "working tree is dirty — refusing to write. Pass
+--force to override (the dirty-tree check only)." Committing the version bumps
+first made the tree clean, and the unforced run then succeeded with exit 0. The
+standing conflict is therefore untouched by this delivery.
+
+The regeneration also cleared the two inherited stale projection entries recorded
+above: `experience-design` moved 2.0.9 → 4.0.0 and `frontend-engineering`
+0.3.2 → 0.3.3. Every pack's projection entry now equals its own `pack.toml`.
