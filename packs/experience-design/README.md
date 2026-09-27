@@ -46,9 +46,7 @@ What to run next: user-flow
 |----------|--------------|
 | `experience-status` | Orient — where the design thread is, what's next |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains, opportunities |
-| `content-design` | Set surface intent — what this screen says and for whom |
-| `copy-direction` | Name the per-surface copy goals for a marketing or acquisition surface |
-| `tone-of-voice` | Set the brand-level copy register — cross-surface voice personality |
+| `content-design` | The copy layer in three modes: surface intent, per-surface copy goals, and the brand-level register |
 | `user-flow` | Build the screen inventory — transitions and per-screen state briefs |
 | `creative-direction` | Anchor the aesthetic — grounded in persona and precedent |
 | `design-system` | Derive the token taxonomy from the aesthetic direction |
@@ -97,7 +95,7 @@ The reviewer runs forked — no authoring context. You act on its findings, then
 ## What the pack ships
 
 **Connective thread** — from outcome to screen inventory:
-`journey-mapping` → `content-design` → `tone-of-voice` (optional, brand register) → `copy-direction` (acquisition surfaces) → `user-flow` → `service-blueprint` / `process-mapping`
+`journey-mapping` → `content-design` (surface intent, then the brand register and per-surface copy goals as needed) → `user-flow` → `service-blueprint` / `process-mapping`
 
 **Craft sequence** — from structure to behavior:
 `design-principles` → `creative-direction` → `design-system` → `information-architecture` (route by genre when known) → `interaction-design`

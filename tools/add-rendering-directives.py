@@ -227,8 +227,7 @@ SKILLS: dict[str, list[str]] = {
     "devils-advocate":              ["severity-list"],
     # experience-design (additional)
     "design-principles":            ["narrative", "key-value"],
-    "content-design":               ["table", "key-value"],
-    "tone-of-voice":                ["key-value", "narrative"],
+    "content-design":               ["table", "key-value", "narrative"],
     "design-system":                ["narrative"],
     "creative-direction":           ["key-value", "narrative"],
     # contracts

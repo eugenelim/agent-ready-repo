@@ -66,10 +66,11 @@ seam (every skill declares its inputs and what consumes it):
   documentation, analytical, informational, marketplace, and workspace surfaces
   each specialize the IA and structure layer without changing the skill you run.
   Declare the genre once; the right method applies.
-- **`content-design` · `copy-direction` · `tone-of-voice`** — the copy layer:
-  `tone-of-voice` names the brand-level register; `copy-direction` names per-surface
-  acquisition copy goals grounded in that register; `content-design` structures what
-  each surface needs to say.
+- **`content-design`** — the copy layer, in three modes: the brand-level register
+  mode names the cross-surface register; the per-surface acquisition copy goals mode
+  names goals grounded in that register; the message and narrative structure mode
+  structures what each surface needs to say. One skill, one mode chosen per run,
+  three artifacts.
 - **`design-review`** — the authoring-time critique (design-principles
   integration chain + genre-specific rubrics + heuristics + taste mode) you run
   as you go.

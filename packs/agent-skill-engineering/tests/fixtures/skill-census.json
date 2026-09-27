@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 133,
+  "population_size": 131,
   "entries": [
     {"pack": "_example", "skill": "example-skill", "families": ["inline-procedure"], "exception": null},
     {"pack": "_okf-pilot-cost-engineering", "skill": "cost-engineering", "families": ["procedure-plus-generated-reference-handoff"], "exception": null},
@@ -74,7 +74,6 @@
     {"pack": "desk-research", "skill": "identify-perspectives", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "desk-research", "skill": "source-map", "families": ["artifact-template-producer", "progressive-reference"], "exception": null},
     {"pack": "experience-design", "skill": "content-design", "families": ["artifact-template-producer"], "exception": null},
-    {"pack": "experience-design", "skill": "copy-direction", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "experience-design", "skill": "creative-direction", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "experience-design", "skill": "design-principles", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "experience-design", "skill": "design-review", "families": ["artifact-template-producer", "progressive-presentation"], "exception": null},
@@ -85,7 +84,6 @@
     {"pack": "experience-design", "skill": "journey-mapping", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "experience-design", "skill": "process-mapping", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "experience-design", "skill": "service-blueprint", "families": ["artifact-template-producer"], "exception": null},
-    {"pack": "experience-design", "skill": "tone-of-voice", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "experience-design", "skill": "user-flow", "families": ["artifact-template-producer"], "exception": null},
     {"pack": "figma", "skill": "figma", "families": ["integration-credential-boundary"], "exception": null},
     {"pack": "frontend-engineering", "skill": "a11y-engineering", "families": ["progressive-reference"], "exception": null},

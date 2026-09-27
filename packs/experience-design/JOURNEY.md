@@ -25,13 +25,7 @@ skills:
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
     humanTouches: 1
   - name: content-design
-    description: "Produces a content brief for a surface — what it should say, for whom, in what form, and to what objective — before any wireframe or screen flow starts."
-    humanTouches: 0
-  - name: tone-of-voice
-    description: "Names the brand-level copy register — the cross-surface voice and copy personality that all per-surface copy decisions reference."
-    humanTouches: 0
-  - name: copy-direction
-    description: "Names the copy direction for a specific marketing or acquisition surface — ranked copy goals grounded in stable referents, plus arbitration rules for that surface."
+    description: "The copy layer in three modes: a content brief for a surface, per-surface acquisition copy goals, or the brand-level register every per-surface goal references."
     humanTouches: 0
   - name: user-flow
     description: "Derives the screen inventory and flow from the customer journey — what screens exist, what state each handles, what the transitions are."
@@ -119,9 +113,7 @@ relatedJourneys:
 |----------|--------------|---------|
 | `experience-status` | Orient — where the design thread is, what's next | Optional |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains | Required |
-| `content-design` | Set surface intent — what this screen says and for whom | Required |
-| `tone-of-voice` | Set the brand-level copy register — cross-surface copy personality all per-surface goals reference | Optional |
-| `copy-direction` | Name per-surface copy goals — voice, register, arbitration rules for a specific marketing surface | Optional |
+| `content-design` | Set surface intent — what this screen says and for whom, plus per-surface copy goals and the brand register in its other two modes | Required |
 | `user-flow` | Build the screen inventory with per-screen state briefs | Required |
 | `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
 | `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |

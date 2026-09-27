@@ -70,10 +70,9 @@ arbitration rules, `user-flow` for screen sequence and edge paths,
 **Set direction and assess the result.** Use `creative-direction` for visual
 goals, `design-system` for the token taxonomy, `content-design` for the surface's
 message and narrative structure, and `design-review` for an authoring-time
-critique. Copy has four distinct layers: `tone-of-voice` owns the brand register;
-`content-design` owns what a surface must communicate; `copy-direction` owns
-copy goals for one acquisition surface; `ux-writing` in product engineering
-owns product UI strings.
+critique. Copy has two owners: `content-design` covers the brand register, what a
+surface must communicate, and copy goals for one acquisition surface — one mode
+each — while `ux-writing` in product engineering owns product UI strings.
 
 **Match the surface genre.** Use `information-architecture` for marketing,
 docs and help, dashboards, editorial reading, multi-party exchange, sustained
@@ -107,8 +106,8 @@ to run the connective path end to end.
 - [Thread a feature from journey to screens](how-to/author-design-intent.md) —
   map the journey, derive the screen flow and per-screen briefs, blueprint the
   services, design and critique each screen, and get an independent review.
-- [Route copy work across content-design, copy-direction, ux-writing, and tone-of-voice](how-to/copy-boundary.md) —
-  which skill owns what across the four-way copy boundary.
+- [Choose the right copy mode](how-to/copy-boundary.md) —
+  which of `content-design`'s three modes owns a copy task, and where `ux-writing` begins.
 
 ## Reference
 

@@ -14,7 +14,7 @@ away. When frontmatter changes, update this page in the same change. For a
 task-oriented walkthrough, see [Thread a feature from journey to screens](../how-to/author-design-intent.md).
 :::
 
-The pack contains 14 pure-Markdown skills and one independent reviewer agent.
+The pack contains 12 pure-Markdown skills and one independent reviewer agent.
 It installs at user scope across every adapter declared by the pack manifest.
 
 ## Operating contract
@@ -56,9 +56,9 @@ syntax or fixed visual values.
 | Organize hierarchy and wayfinding | `information-architecture` | IA and layout reasoning | Not markup or styles |
 | Specify behavior within a screen | `interaction-design` | Behavioral and state specification | Not component code or UI strings |
 | Critique an existing design | `design-review` | Severity-rated findings | Not code review or new design creation |
-| Decide a surface's message and structure | `content-design` | Content brief | Not brand register, copy goals, or UI strings |
-| Set copy goals for one acquisition surface | `copy-direction` | Copy-direction record | Not brand register, content structure, or UI strings |
-| Define the cross-surface brand register | `tone-of-voice` | Brand-register document | Not one surface's copy direction or UI strings |
+| Decide a surface's message and structure | `content-design` (message and narrative structure) | Content brief | Not UI strings |
+| Set copy goals for one acquisition surface | `content-design` (per-surface acquisition copy goals) | Copy-direction record | Not UI strings |
+| Define the cross-surface brand register | `content-design` (brand-level register) | Brand-register document | Not one surface's copy direction or UI strings |
 | Structure a surface by genre | `information-architecture` | Genre-fit IA and layout reasoning | Not product strategy, final copy, or implementation |
 
 ## Connective and operational skills
@@ -210,10 +210,12 @@ tokens.
 
 ## Content and copy
 
-The copy path has four owners in sequence: `tone-of-voice` defines the brand
-register; `content-design` decides what the surface communicates and how it is
-structured; `copy-direction` sets acquisition-surface copy goals; `ux-writing`
-in product engineering writes product UI strings.
+The copy path has two owners. `content-design` covers three of the four steps,
+one per mode: the brand-level register mode defines the brand register, the
+message and narrative structure mode decides what the surface communicates and
+how it is structured, and the per-surface acquisition copy goals mode sets
+acquisition-surface copy goals. `ux-writing` in product engineering writes
+product UI strings.
 
 ### `content-design`
 
@@ -228,7 +230,7 @@ including the message, audience, form, order, objective, and
 or content-system implementation. It does not own brand register,
 acquisition-surface copy goals, or product UI strings.
 
-### `copy-direction`
+### `content-design` — per-surface acquisition copy goals mode
 
 **Use when:** “Name the copy goals for this pricing-page hero before anyone
 writes the lines.”
@@ -237,10 +239,10 @@ writes the lines.”
 surface. Writes `<output_dir>/copy/<surface-slug>.md`.
 
 **Routes away:** product/growth strategy, acquisition-bet framing, and surface
-implementation. It may reference `tone-of-voice`, runs after `content-design`,
-and does not own `ux-writing`'s product UI strings.
+implementation. It may reference the brand register, runs after the message and
+narrative structure mode, and does not own `ux-writing`'s product UI strings.
 
-### `tone-of-voice`
+### `content-design` — brand-level register mode
 
 **Use when:** “Our teams sound inconsistent; define the brand voice every
 channel should share.”
@@ -249,8 +251,8 @@ channel should share.”
 arbitration rules. Writes `<output_dir>/copy/brand-register.md`.
 
 **Routes away:** organization-level product/content strategy, initiative
-shaping, and copy implementation. It anchors but does not replace
-`content-design`, `copy-direction`, or `ux-writing`.
+shaping, and copy implementation. It anchors but does not replace the other two
+modes or `ux-writing`.
 
 ## Surface genres
 

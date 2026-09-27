@@ -197,3 +197,20 @@ instead of a skill name.
 Neither touches the reviewer's pass structure, its state coverage, or its
 quality floor, so nothing the intent asks for is changed, satisfied, or
 invalidated. `xd-state-reviewer-doctrine.md` is confirmed unaffected.
+
+## T7a — `workspace.toml` classification
+
+Three lines still match the removed-name pattern. None is a skill registration,
+and none is reconciled by edit:
+
+- The `xd-copy-router` queue entry's own `summary`, which describes this
+  delivery as folding `content-design`, `copy-direction` and `tone-of-voice`
+  into one skill. That is an accurate statement of what the delivery does; the
+  names appear as the subject of the work, not as skills the catalogue is told
+  exist.
+- `docs/specs/xd-copy-direction/spec.md`, a different delivery whose **slug**
+  contains the substring. It is a spec path, not a skill name.
+- A `ref` to `docs/rfc/0062-content-design-and-copy-direction-skills.md`, a
+  frozen decision record whose filename contains the substring permanently.
+
+These are the same third and fourth classes the final sweep rubric names.
