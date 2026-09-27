@@ -111,14 +111,13 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan
 
 **Full mode — after gates pass (wave routing):**
 ```
-# More waves remain — fire wave-passed, advance cohort wave pointer, return to EXECUTE:
+# More waves remain — fire wave-passed; the engine records the cohort wave
+# advance before it writes engine-state.json, then return to EXECUTE:
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-passed \
     --wave-index <n>   # guard: wave check --expect more
 # Accounting precondition: the advancing branch refuses a wave whose tasks are not accounted for
 # — every task in wave <n> needs a dispatch-receipt record, receipt or decline.
-# Re-issuing an advance that already landed stays a no-op.
-python '<skill-dir>/scripts/loop-cohort.py' wave advance docs/specs/<feature> \
-    --from-index <n> --expect-run-id <run_id>
+# Re-issuing the same engine transition after an interruption is the replay.
 
 # Final wave — fire gates-clean, proceed to REVIEW:
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gates-clean
@@ -131,8 +130,6 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gate
 python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
     --expect-run-id <run_id>
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gates-failed
-python '<skill-dir>/scripts/loop-cohort.py' record-attempt docs/specs/<feature> \
-    --phase implement --cycle-id <run_id>:<seq> --expect-run-id <run_id>
 ```
 Fix the failure and return to EXECUTE.
 
@@ -144,43 +141,36 @@ clean result. This section owns the order in which the transition and the
 recording fire once that conclusion is reached.
 
 **When every warranted mandatory reviewer has completed with no unresolved Blocker or Concern — clean, or carrying only deferred Nits recorded with their citations — and every non-mandatory reviewer is in that state or a named skip** — for a spec-backed run, normally write `Status: Shipped` in `spec.md`, then fire
-`reviewers-clean` and, if at least one reviewer produced a clean report, record
-it (transition first; record is non-idempotent — recording first then crashing
-leaves CODE-REVIEW with the audit count already moved; the default guard
-requires Status: Shipped). A direct-light run has no spec status to write and
-fires no engine or cohort transition:
+`reviewers-clean`, passing the clean-review evidence to that same engine
+transition. The engine records the review round under the transition id before
+it writes engine-state.json, so a resume repeats the same engine command rather
+than a separate `review record`. A direct-light run has no spec status to write
+and fires no engine or cohort transition:
 ```
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean
-# The transition must succeed before recording. It prints `(seq=N)`; pass that N
-# as the operation id's sequence so a resuming session recomputes the same id.
 # If at least one reviewer produced the exact direct-clean sentinel, persist
 # that reviewer's complete return to the ignored session path first, then name
 # the file; the command reads its bytes and compares them to the sentinel, so a
 # recorded clean never rests on the controller's own account of what was said:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --direct-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
-    --expect-run-id <run_id> --operation-id <run_id>:<seq>
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean \
+    --direct-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md
 # If it is clean but not byte-exact (a trailing newline, say). Refuses a report
 # carrying a `## Not checked` footer: that always takes the adjudicator path.
-# This form re-classifies the persisted artifact itself, and takes the same
-# operation id so a replay is a no-op rather than a second round:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --structural-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
-    --expect-run-id <run_id> --operation-id <run_id>:<seq>
+# This form re-classifies the persisted artifact before marker persistence:
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean \
+    --structural-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md
 # Otherwise, if clean exists only through adjudication:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --report <adjudication-report-path> --adjudication \
-    --expect-run-id <run_id> --operation-id <run_id>:<seq>
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean \
+    --report <adjudication-report-path> --adjudication
 # Only if every warranted reviewer was non-mandatory and a named skip:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --all-skipped --expect-run-id <run_id> --operation-id <run_id>:<seq>
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean \
+    --all-skipped
 ```
 A mandatory named skip blocks before `Status: Shipped`, `reviewers-clean`, or the `--all-skipped` path; do not let verdict emission discover that failure only after the state machine has advanced.
 For an intermediate review unit whose required work is not yet complete,
 leave `spec.md` at `Status: Implementing` and declare that boundary explicitly:
 ```
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean \
-    --intent-incomplete
+    --intent-incomplete --all-skipped
 ```
 This opt-in accepts `Implementing` only; it does not disable the status guard or
 permit another status. The next required unit still returns through
@@ -221,23 +211,16 @@ complete the Finish checklist and produce the five-field final handoff.
 
 ### Specialist findings
 
-If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `findings-remain` and record only their fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW.
+If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via
+`findings-remain`, passing the sustained fingerprints to that same engine
+transition, then apply the fixes, fire `wave-complete` to reach
+`CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW.
 `wave reopen` supersedes the current wave's dispatch records before `findings-remain`; the transition refuses if a live record exists.
 ```
-# Never record when the transition is refused: it carries the retry-cap guard,
-# and `review record --fingerprint` carries its own cap too. The caps are belt
-# and braces, but the rail is not only about the cap -- record after ANY refused
-# transition and the cohort ends a round ahead of the engine, a desync only a
-# forbidden `state.json` hand-edit reconciles.
-# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
-# N: a resuming session reads the same value from `loop-engine status`, so the
-# operation id it recomputes matches and the round is not written twice.
 python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
     --expect-run-id <run_id>
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id> \
-    --operation-id <run_id>:<seq>
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
+    --fingerprint <fp1> --fingerprint <fp2> ...
 # Apply the specialist's fixes, then fire wave-complete (required to reach
 # CODE-VERIFICATION before gates-clean/gates-failed). Run the wave-exit check
 # first: it prints the absent-container notice the transition cannot.

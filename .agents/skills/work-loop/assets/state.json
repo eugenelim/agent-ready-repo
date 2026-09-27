@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "run_id": null,
   "feature": "<feature-name>",
   "plan_review_status": "pending",
@@ -11,8 +11,8 @@
   "completed_task_ids": [],
   "completed_task_section_hashes": {},
   "completed_task_evidence": {},
-  "amendment_history": [],
-  "amendment_pending": null,
+  "transition_history": [],
+  "pending_transition": null,
   "implementation_retry_count": 0,
   "max_implementation_retries": 5,
   "last_record_attempt_cycle_id": null,

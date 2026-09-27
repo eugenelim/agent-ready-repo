@@ -19,3 +19,13 @@ when that matches its release model.
 - Describe the user-visible change.
 
 -->
+
+## [core][2.27.1] — 2026-09-27
+
+### Highlights
+
+- **Interrupted work-loop transitions now replay without separate cohort repair commands.** The five registered cohort-effect transitions apply their effects through `loop-cohort.py`, record one durable transition identity, and safely resume without double-advancing a wave, double-counting a retry, or duplicating a review round.
+
+### Changed
+
+- Cohort state moves to schema 2 with `pending_transition` and a unified, oldest-first-truncated `transition_history`; engine state remains schema 1. Runs crossing this boundary must use the authorized `loop-cohort reset` then `loop-engine reset` recovery pair.

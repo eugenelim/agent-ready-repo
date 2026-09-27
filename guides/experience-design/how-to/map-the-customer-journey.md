@@ -29,7 +29,7 @@ order: 1
 
 | Skill | Needs | What it produces | Needed? |
 | --- | --- | --- | --- |
-| `journey-mapping` | A user, an outcome, and the surface | A journey map: outcome phases, emotions, pains, and a proposed screen list. | Required |
+| `journey-mapping` | A user, an outcome, and the surface | A journey map: outcome phases, actions, emotions, pains, opportunities, and the marked peak, dip, and end moments. | Required |
 | `service-blueprint` | The journey map | A blueprint connecting frontstage actions to backstage and support work. | Optional |
 | `process-mapping` | The internal operation to document | A SIPOC, as-is and to-be swimlanes, and the delta between them. | Optional |
 | `experience-status` | Nothing — it reads what exists | A read-only report of what design artifacts already exist. | Optional |
@@ -53,22 +53,22 @@ Map the journey for a new account owner who wants to connect their first data so
 **Agent returns:**
 <!-- rung: JOURNEY stage 1 -->
 
-> **Agent:** Done — I've written a journey map with stages, actions, emotions, pains, opportunities, and a proposed screen list to `<output_dir>/journeys/<slug>.md`.
+> **Agent:** Done — I've written a journey map with stages, actions, emotions, pains, and opportunities to `<output_dir>/journeys/<slug>.md`, with the peak, dip, and end moments marked. Screens come next, in `user-flow`.
 
 **You push back:**
 <!-- rung: journey-mapping SKILL.md -->
 
 > **You:** You made one stage per screen. Regroup these as coarse phases of the customer outcome, then derive screens later.
 >
-> **Agent:** I replaced the screen-shaped stages with outcome phases and kept the proposed screens separate.
+> **Agent:** I replaced the screen-shaped stages with outcome phases and left screen derivation to `user-flow`.
 
 **Output varies** with the user, outcome, evidence level, surface, and surface genre.
 <!-- rung: journey-mapping SKILL.md -->
 
-**You decide:** Approve the journey map before screens are derived from it — the pack's `approve-journey` gate.
+**You decide:** Read the journey now and redirect it now — a one-sentence correction here is cheaper than one after screens exist. The pack's `approve-journey` gate does not close here, though: it covers the journey *and* the screens derived from it, so it closes at the end of step 2 once `user-flow` has produced the screen list.
 <!-- rung: JOURNEY stage 1 -->
 
-**Check (grounded):** Ask whether each proposed screen traces to the customer outcome or a named failure moment; this surfaces screens copied from the current product or added as a wish list.
+**Check (grounded):** Ask what evidence puts each pain and emotion where it is; this surfaces a stage that describes the current product's steps rather than what the customer is trying to do.
 <!-- rung: JOURNEY stage 1 -->
 
 **Watch out for:** A polished map may present assumed emotions and pains with the same confidence as observed evidence. Check the `evidence-level`; label unsupported lines as assumptions, then correct the user, outcome, or failing moment and re-run the skill.
@@ -301,7 +301,7 @@ Show the current design-thread status.
 
 ## Where this leads
 
-**Done with this step:** You can move on when the journey names the outcome and every proposed screen traces to a phase or a named failure moment.
+**Done with this step:** You can move on when the journey names the outcome, the stages are coarse phases rather than screens, and the moments where it breaks are named.
 <!-- rung: authored -->
 
 This is stage 1 of the `experience-design` thread. Four steps remain before the design set is ready for build planning.

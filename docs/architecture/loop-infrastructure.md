@@ -102,7 +102,7 @@ Makefile and finding nothing is not evidence that a linter is ungated.
 | State | Location | Write authority | Readers |
 | --- | --- | --- | --- |
 | FSM phase state | `docs/specs/**/engine-state.json` (gitignored) | `loop-engine.py` | Harness operators |
-| Cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py`, and `loop-engine.py` in-process on `contract-amendment` (see § 4) | Harness operators and engine guards |
+| Cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py`; the engine invokes that module in-process for registered effects (see § 4) | Harness operators and engine guards |
 | Transition events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Harness operators and workspace MCP |
 
 ### Concurrency control
@@ -112,17 +112,19 @@ through `_statelock.py` (ADR-0074). The two locks are distinct files and know
 nothing of each other: holding one says nothing about the other.
 
 `loop-engine.py` holds `engine-state.json.lock` across a whole `transition` —
-the state-machine table lookup, the plan-hash pre-guard, the event guard, and
-the outbox finalisation — so the read-decide-write section is atomic against a
-second engine process. `loop-cohort.py` holds `state.json.lock` for the body of
-each mutation verb.
+the state-machine table lookup, the plan-hash pre-guard, the event guard, the
+registered cohort effect, and the outbox finalisation — so the
+read-decide-write section is atomic against a second engine process.
+`loop-cohort.py` holds `state.json.lock` for each mutation verb and for each
+marker/effect commit in the registered-transition protocol.
 
 The engine's guard layer reads cohort state without taking the cohort lock, and
-the diagram marks those reads as unserialised. Since the cohort-state identity
-check, the engine does take the cohort lock once per non-exempt transition — not
-for the guard reads, but around the commit, where it re-reads cohort state and
-refuses if it moved since the transition's first read. The diagram below shows
-the guard reads only.
+the diagram marks those reads as unserialised. For a registered effect, the
+engine calls `loop-cohort.py` while still holding the engine lock. The cohort
+module acquires its own lock to persist the marker, releases it, and later
+acquires it again to reclassify and commit the effect, history entry, and marker
+clear together. The diagram shows both the unlocked guard read and the
+engine-invoked writer path.
 
 ```mermaid
 flowchart LR
@@ -132,6 +134,7 @@ flowchart LR
   end
   subgraph CP["loop-cohort.py"]
     CV["mutation verbs: wave advance, dispatch-receipt, wave reopen"]
+    CT["registered transition protocol"]
   end
 
   EL(["engine-state.json.lock"])
@@ -143,21 +146,24 @@ flowchart LR
   EL -- serialises --> ES
   ET -- "read + write" --> ES
   ET -- calls --> EG
+  ET -- "invokes registered effect" --> CT
+  ET -- "holds for non-effect commit" --> CL
 
   CV -- holds --> CL
   CL -- serialises --> CS
   CV -- "read + write" --> CS
+  CT -- holds --> CL
+  CT -- "read + write" --> CS
 
   EG -. "read, NOT serialised" .-> CS
 ```
 
-The two domains **are** nested, on two paths now. Four acquisition sites exist
-in the skill's scripts: two in `loop-cohort.py` (`:270` and `:992`) and two in
-`loop-engine.py` (the engine-state lock, and the cohort lock the commit takes). On the
-`contract-amendment` transition the engine loads `loop-cohort.py` as a module and
-calls `apply_contract_amendment`, which takes the cohort lock at
-`loop-cohort.py:992` while the engine still holds its own — so the engine-then-cohort
-order is live in shipped code.
+The two domains **are** nested on two paths. For a registered effect, the engine
+loads `loop-cohort.py` as a module and calls its transition functions while the
+engine lock is held; those functions take the cohort lock. For a non-effect
+transition, the engine takes the cohort lock directly across fingerprint
+revalidation and the engine-state commit. Neither path holds the cohort lock
+across a subprocess.
 
 The order is fixed and acyclic. `loop-cohort.py` never reads `engine-state.json`,
 so no site takes the pair the other way, and engine-then-cohort is the only
@@ -169,28 +175,20 @@ ordered pair that exists.
 identity and schedule checks before guarded transitions. `check-spec-status.py`
 imports the canonical status parser from `lint-spec-status.py`.
 
-The engine reads cohort state but does not write it — with one qualification
-the identity check introduced: `exclusive()` creates and unlinks the
-`state.json.lock` sibling, so the engine is now a writer in the cohort
-*directory* for the first time. ADR-0061 **D3** governs state content, not the
-directory. The cohort tool does not advance FSM phase state.
+The engine does not write or unlink cohort `state.json` directly. ADR-0125 D3
+keeps `loop-cohort.py` as its writer of record; the cohort tool likewise does
+not advance FSM phase state. The engine guard layer may read cohort state
+directly in-process through `_loop_guards.read_state`, which is the unserialised
+read shown in § 3.
 
-This split is ADR-0061's **Option A**, the pure phase tracker: a transition
-*permits* a change and never *causes* one. The engine is a referee, so every
-state mutation is invoked explicitly by the skill rather than as a side effect of
-a transition.
-
-Both halves of that decision have drifted. ADR-0061 D3 says the engine never
-writes cohort state and "reads it only through the designated read-only verbs".
-The guard layer now reads `state.json` directly in-process through
-`_loop_guards.read_state`, having previously shelled out to `loop-cohort.py`; that
-direct read is the unserialised read in section 6. And the `contract-amendment`
-transition writes cohort state through `apply_contract_amendment`, so the engine
-is not read-only with respect to cohort state on every path.
-
-The rest of the split holds: the other fourteen events invoke no cohort mutation
-from the engine, and every cohort write they need is invoked explicitly by the
-skill.
+ADR-0125 D1 departs from ADR-0061's pure-referee split: an eligible engine event
+now causes its cohort effect as part of the transition by invoking
+`loop-cohort.py`. ADR-0125 D2 closes that authority to five events:
+`contract-amendment`, `wave-passed`, `gates-failed`, `findings-remain`, and
+`reviewers-clean`. The two review events have effects only on their
+`CODE-REVIEW` edges; the same event names on `SPEC-PLAN-REVIEW` remain
+effect-free. Every other event gains no cohort-write authority and skips the
+registered-transition protocol.
 
 ### Reopen obligation on three backward edges
 
@@ -381,42 +379,42 @@ compares against the pinned `plan_hash` on every `CODE-*` transition, so a direc
 edit leaves every subsequent transition refusing with no forward edge; reset is
 then the only exit, at the cost above.
 
-### Replay markers close two crash windows, and a protocol closes four more
+### Durable markers close the transition crash windows
 
-Two durable markers already make an interrupted transition recoverable.
+Two durable records make an interrupted transition recoverable.
 
 | Marker | Where | Window it closes |
 | --- | --- | --- |
-| `amendment_pending` | cohort `state.json` | the cohort write landed but engine-state did not |
+| `pending_transition` plus the last `transition_history` entry | cohort `state.json` | a registered marker or cohort effect landed but engine-state did not |
 | `events.pending` | `.loop-run/` | engine-state was written but the `events.jsonl` append did not happen |
 
-`cmd_transition` mutates the cohort first and writes engine-state last, so an
-ordinary crash always leaves the cohort ahead and never behind. The reverse
-direction means the two untracked files diverged by some other means, and it
-takes a separate recovery branch that re-checks the schedule before completing
-the missing cohort write.
+For a registered effect, `cmd_transition` commits the cohort side first and
+writes engine state last. Replaying the same engine command therefore completes
+an absent effect or recognizes the last matching history entry without applying
+the effect twice. A legacy or manually-created engine-first divergence uses the
+same registered protocol after re-checking the schedule.
 
-`amendment_pending` outlives the transition that opens it. `begin_contract_amendment`
-sets it and `complete_contract_amendment_reapproval` clears it, at a fresh plan
-approval many transitions later, so the marker spans the amendment cycle rather
-than one critical section. `_recover_pending` replays the outbox entry only when
-`to`, `seq` and `run_id` all match the owning engine state, and
-`contract_amendment_replay_status` classifies the cohort side as `absent`,
-`applied` or `conflict` — where `applied` additionally re-reads `plan.md` and
-re-runs `validate_completed_task_sections`, because a marker match alone would
-launder an edit to an already-completed task section into the baseline.
+`pending_transition` is the short-lived durable marker for the registered
+cohort-effect transition in progress. `transition_history` is the single replay
+ledger and replaces `amendment_history`; `contract-amendment` keeps the same
+artifact pin by re-reading `plan.md` and re-running
+`validate_completed_task_sections`, while the other registered effects reduce
+`applied` to the last history match. History retention drops oldest entries
+only when the whole cohort state would exceed 1 MiB, and this is safe because
+the replay predicate reads the last entry only.
 
-Four further events pair a transition with a cohort mutation that no marker
-covers: `wave-passed` with `wave advance`, `gates-failed` with `record-attempt`,
-and `findings-remain` and `reviewers-clean` with `review record`. Their crash
-windows are closed by a documented recovery protocol a person or agent executes
-by hand — see
-[`references/session-resumption.md`](../../packs/core/.apm/skills/work-loop/references/session-resumption.md).
-Three of the four key on `<run_id>:<transition_sequence>`; `wave-passed` keys on
-`last_event_context.completed_wave_index` instead. The `reviewers-clean` replay
-requires explicit human authorization, because without a matching
-`--operation-id` it can double-count a review round and overwrite one level of
-fingerprint audit history.
+The closed registry is `contract-amendment`, `wave-passed`, `gates-failed`,
+`findings-remain`, and `reviewers-clean`. The two review events own cohort
+effects only on their `CODE-REVIEW` edges; their `SPEC-PLAN-REVIEW`
+pre-execute edges remain legal engine transitions with no cohort review effect
+and no review-counter increment. For CODE-review effects, the engine passes the
+durable transition id as the cohort review `operation_id`, so replay repeats the
+same `loop-engine transition` command rather than a separate
+`loop-cohort review record` or a manual authorization gate.
+
+Cohort state is schema 2 and engine state remains schema 1. A run crossing the
+boundary is refused rather than migrated; the authorized recovery is the
+destructive pair `loop-cohort reset` then `loop-engine reset`.
 
 ### A wave-exit verdict is not serialised against the wave pointer
 
@@ -455,22 +453,21 @@ it is unreachable from the sequential single-controller flow that Phase 1
 supports.
 
 **This is now serialised, and the diagram above shows the pre-serialisation
-behaviour.** `cmd_transition` fingerprints cohort `state.json` before its first
-cohort read and re-reads it under the cohort lock before committing, refusing
-when it moved; the mutator above can no longer land in that window undetected.
-The check covers every event except `contract-amendment`, whose own effect
-writes cohort state. See
+behaviour.** For a non-effect transition, `cmd_transition` fingerprints cohort
+`state.json` before its first cohort read and re-reads it under the cohort lock
+before committing, refusing when it moved; the mutator above can no longer land
+in that window undetected. Registered effect edges skip that fingerprint rail
+because they intentionally mutate cohort state, and instead reclassify marker
+and history under the lock owned by `loop-cohort.py`. See
 [`loop-parallelism.md` § 2](loop-parallelism.md#2-serialising-a-transition-against-cohort-state)
 for the mechanism and, importantly, for the residuals it does not close.
 
-Two of those residuals bear on this section directly. `contract-amendment` is
-exempt, so the transition that rewrites the approved baseline keeps the window
-described above. And the consequence this section names — `gates-clean` asking
-only whether the current wave is the last, so a wave is entered and exited with
-no guard reading its receipts — is **not** closed by serialisation: it needs no
-interleaving at all. An advance that lands before the `gates-clean` guard runs
-produces it with every read consistent. That is a missing check rather than a
-lost race, and it remains open.
+One residual bears on this section directly. The consequence this section names
+— `gates-clean` asking only whether the current wave is the last, so a wave is
+entered and exited with no guard reading its receipts — is **not** closed by
+serialisation: it needs no interleaving at all. An advance that lands before the
+`gates-clean` guard runs produces it with every read consistent. That is a
+missing check rather than a lost race, and it remains open.
 
 ## 7. Observability and evidence
 
@@ -479,11 +476,16 @@ phase and cohort state; `loop-engine transition` appends one line per
 transition to `.loop-run/events.jsonl` (ephemeral, gitignored). Workspace MCP
 reads that stream.
 
-The event line and the cohort's round payloads join on `<run_id>:<seq>`: the
-engine writes the run identifier and sequence, and `loop-cohort` records a
-round under `--operation-id <run_id>:<seq>`. So finding counts and
-round-recurrence are read from cohort state through that join rather than
-duplicated onto the line.
+Review-round correlation has two forms. A direct or pre-EXECUTE `review record`
+uses `<run_id>:<seq>`, which joins directly to the engine event carrying that
+run and sequence. A registered CODE-REVIEW effect uses its SHA-256
+`transition_id` as the review operation id. Its retained `transition_history`
+entry carries that id, the event, and `pre_transition_sequence`; it correlates
+to the engine event with the same run and event at sequence
+`pre_transition_sequence + 1`. Finding counts and round recurrence remain on
+the cohort side rather than being duplicated onto the event line. Because old
+history entries may be truncated, that second correlation is available only
+while the corresponding history entry is retained.
 
 The envelope's field set, its export posture, its configuration route and what
 a backend can do with it are a cross-cutting concern: see
@@ -503,11 +505,12 @@ a backend can do with it are a cross-cutting concern: see
   on that path increments. `loop-engine.py` maps
   `("spec-plan", "findings-remain")` to the same `_guard_check_phase_review`
   the code path uses, and that guard refuses at
-  `review_retry_count >= max_review_retries`. `review_retry_count` is
-  incremented in exactly one place — `loop-cohort.py` `review record
-  --fingerprint` — which an ordinary pre-EXECUTE round does not call; the
-  work-loop skill's `references/pre-execute-review.md` states that separation
-  deliberately, reserving the call for the bounded evidence-replacement path.
+  `review_retry_count >= max_review_retries`. A registered CODE-REVIEW
+  `findings-remain` effect increments `review_retry_count` through
+  `loop-cohort.py`; direct `review record --fingerprint` does the same for the
+  separate bounded evidence-replacement path. An ordinary pre-EXECUTE round
+  uses neither writer. The work-loop skill's `references/pre-execute-review.md`
+  states that separation deliberately.
   So an ordinary spec/plan revision cycle reads `0/5` on every round and the
   cap never fires. Whether such a loop stops is therefore an orchestrator
   judgement, not a mechanical refusal. Reproduced directly: twelve consecutive
@@ -517,14 +520,18 @@ a backend can do with it are a cross-cutting concern: see
 - **`reset` destroys the run record.** `loop-cohort reset` is `path.unlink()` on
   `state.json` with no archive, so `completed_task_ids`,
   `completed_task_section_hashes`, `review_round_count`, `review_retry_count`,
-  `amendment_history` and `dispatch_receipts` are lost rather than set aside.
+  `pending_transition`, `transition_history`, and `dispatch_receipts` are lost
+  rather than set aside.
   Because in-place re-planning is closed by construction (§ 6), reset is the only
   recovery from a wrong plan approach, so this loss is on the sole exit from that
   situation. Known defect.
-- No invariant spans the two lock domains. A guard verdict derived from cohort
-  state is not revalidated before the engine commits, so an invariant whose
-  terms live in both files — the wave-exit verdict and `current_wave_index`
-  above — has no mechanical protection.
+- Cross-domain transition commits use one of two mechanical rails. Non-effect
+  transitions revalidate the whole cohort fingerprint while holding the cohort
+  lock; registered effect edges reclassify marker/history under the cohort
+  module's lock before the engine-state commit. This prevents a concurrent
+  cohort write from silently invalidating the transition's earlier reads, but
+  it does not add a missing guard such as the `gates-clean` receipt check
+  described in § 6.
 
 ## 9. Relevant ADRs
 
@@ -538,6 +545,7 @@ not shipped.
 - [ADR-0061 — Loop infrastructure](../adr/0061-loop-infrastructure-phase-1.md)
 - [ADR-0064 — Events JSONL as FSM event source](../adr/0064-events-jsonl-as-fsm-event-source.md)
 - [ADR-0074 — Work loop owns its state lock](../adr/0074-the-work-loop-owns-its-state-lock.md)
+- [ADR-0125 — Durable transitions make four cohort mutations engine-invoked](../adr/0125-engine-invoked-cohort-mutations.md)
 
 ## 10. Last verified against commit
 

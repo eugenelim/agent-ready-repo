@@ -39,14 +39,17 @@ that is structural rather than a setting.
 | Transition events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Operators, workspace MCP |
 | Round payloads | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py` | Engine guards, operators |
 
-The two join on `<run_id>:<seq>`. The engine writes the run identifier and the
-transition sequence; the cohort records a round under
-`--operation-id <run_id>:<seq>` and stores it as
-`last_review_record_operation_id`. So the event line carries *when* and the
-cohort carries *what* — finding fingerprints, their previous-round rotation, and
-the recurrence flag `review inspect` computes. A consumer wanting findings per
-round or repetition across rounds reads the cohort side through that join; it is
-not duplicated onto the line.
+The correlation has two forms. A direct or pre-EXECUTE `review record` stores
+`<run_id>:<seq>` as `last_review_record_operation_id`, so it joins directly to
+the engine event with that run and sequence. A registered CODE-REVIEW
+`findings-remain` or `reviewers-clean` effect stores its SHA-256
+`transition_id` instead. Its retained `transition_history` entry also carries
+the event and `pre_transition_sequence`, so it joins to the engine event with
+the same run and event at sequence `pre_transition_sequence + 1`. The event
+line still carries *when* and the cohort carries *what* — finding fingerprints,
+their previous-round rotation, and the recurrence flag `review inspect`
+computes. The transition-history correlation is bounded by history retention;
+it is not a permanent telemetry index.
 
 ## 4. Dependencies and allowed edges
 

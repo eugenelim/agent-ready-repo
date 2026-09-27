@@ -259,7 +259,7 @@ date: <YYYY-MM-DD>
 <!-- rung: JOURNEY stage 2 -->
 
 ```
-Turn the approved journey into screens, transitions, failure routes, and one brief per screen.
+Turn the journey into screens, transitions, failure routes, and one brief per screen.
 ```
 
 **Agent returns:**
@@ -277,7 +277,7 @@ Turn the approved journey into screens, transitions, failure routes, and one bri
 **Output varies** with the journey, surface, navigation model, and genre.
 <!-- rung: user-flow SKILL.md -->
 
-**No decision gate at this step.**
+**You decide:** The pack's `approve-journey` gate closes here. You approve the journey and the screen list derived from it as one thing, because the check that earns the gate is whether every screen traces to a moment in the journey — and that check needs both halves in front of you. Removing a screen the journey does not imply, or sending the journey back because a screen exposed a missing moment, are both outcomes of this gate. What it makes safe is everything after it: the screen list is the contract the rest of the design work is built on.
 <!-- rung: JOURNEY stage 2 -->
 
 **Check (observable):** Walk every action, including one failure, to a named screen or state; this surfaces dead ends, orphan screens, and missing recovery routes.
@@ -323,7 +323,7 @@ surface-genre: <marketing | documentation | informational | analytical | transac
 
 ## Where this leads
 
-**Done with this step:** You can move on when every action, including at least one failure, reaches a named screen or state, and every screen has a brief.
+**Done with this step:** You can move on when every action, including at least one failure, reaches a named screen or state, every screen has a brief, and you have approved the journey and this screen list together.
 <!-- rung: authored -->
 
 Stage 2 of five. The briefs produced here are what every later step reads.
