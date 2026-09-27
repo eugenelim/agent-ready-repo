@@ -1585,6 +1585,7 @@ def test_pack_delivery_contract_is_complete_and_version_increased(workspace_stat
                 current_primitives.update(
                     f"{primitive_root}/{entry.name}"
                     for entry in current_root.iterdir()
+                    if entry.name != "__pycache__"
                 )
 
         major, minor, patch = (int(part) for part in base_version.split("."))
@@ -1594,6 +1595,11 @@ def test_pack_delivery_contract_is_complete_and_version_increased(workspace_stat
             expected_version = f"{major}.{minor + 1}.0"
         else:
             expected_version = f"{major}.{minor}.{patch + 1}"
+        # A shallow checkout or fork without origin/main deliberately falls
+        # back to HEAD above. There is no independent baseline in that case,
+        # so preserve the pre-existing no-assert behavior for the bump itself.
+        if base == "HEAD":
+            expected_version = core_version
         assert core_version == expected_version, (base_version, core_version)
         assert f"## [core][{core_version}]" in changelog, core_version
     assert any("prune" in path.read_text(encoding="utf-8") for path in evals if path.is_file())
