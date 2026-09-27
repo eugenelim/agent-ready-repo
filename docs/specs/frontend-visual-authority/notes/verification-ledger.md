@@ -492,3 +492,50 @@ circulation are not. Nothing above rests on those figures.
 
 Assertions pin both halves — the derivation and the check — and both mutations
 red.
+
+## Two limits of the observation loop, recorded rather than fixed
+
+Comparative investigation of how other frontend agent tooling holds a visual
+direction surfaced two honest limits in what this slice ships. Neither is
+required by the accepted intent; both are recorded so a later slice starts from
+them rather than rediscovering them.
+
+**The builder observes its own work.** The EXECUTE loop has the agent that wrote
+the surface compare the render against the authority it inherited. That is a
+structurally weaker control than an independent read, and the specific failure it
+is exposed to is well attested: a model that has just produced a recreation of
+something tends to believe the recreation succeeded. The mitigation this slice
+does ship is the reviewer lens, which runs in a forked context that never saw the
+authoring session — but that lens tests the manifest's *claim*, not the rendered
+result. Closing the gap properly means an independent observer inside the
+implementation loop, which is a slice of its own.
+
+**A verification render confirms presence and position, not quality.** The bound
+is one correction pass and one verification render. A second render can show that
+an element moved, appeared, or stopped overflowing. It cannot establish that the
+correction reached the quality the observation named. The reference already
+handles the residue honestly — `residual-divergence: recorded-not-iterated` — so
+nothing overclaims, but the verification step is weaker evidence than its name
+suggests.
+
+Recorded as strengths, since the comparison also tested them: the reviewer being
+structurally denied the authoring context, rejecting a verification claim with no
+capture behind it, distinguishing a capture that is missing from one that is
+unusable, and bounding the loop in numbers rather than prose all survived the
+comparison as sound. So did the rule that visual authority is evidence rather
+than a filename — an absent design document does not make an existing surface
+greenfield — which this slice arrived at independently when a review found the
+brownfield hole.
+
+## The counterfactual check now closes both doors
+
+The check added to the terminal rung asked whether the premise is one you would
+write for any similar brief. That catches convergence on the category's default
+and misses convergence on the predictable *reaction* to it — which is how the
+obvious escape routes get used up: a look adopted because it reads as
+deliberately-not-generic becomes the new generic.
+
+The check now asks whether the premise is guessable from the category alone, or
+from the category plus the obvious reaction against it. Either answer means a
+default rather than a choice. Both halves are pinned, and removing the second
+half reds.

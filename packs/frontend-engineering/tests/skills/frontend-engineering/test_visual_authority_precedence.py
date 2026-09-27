@@ -175,7 +175,9 @@ def test_the_terminal_rung_carries_a_mechanism_not_a_reference_list() -> None:
 
     A shipped list of named references is a shared library, and shared
     libraries converge the work that uses them — which is the failure the whole
-    precedence exists to prevent. Deriving the premise from the surface's own
+    precedence exists to prevent. The check has to close both doors: a premise
+    guessable from the category is a default, and so is one guessable from the
+    category plus the obvious reaction against it. Deriving the premise from the surface's own
     subject matter, then testing it against what any similar brief would have
     produced, yields a different answer by construction. It cannot become a
     default because it ships no default.
@@ -185,8 +187,12 @@ def test_the_terminal_rung_carries_a_mechanism_not_a_reference_list() -> None:
         "the terminal rung does not say where a premise comes from, so it has "
         "no way to differ between surfaces"
     )
-    assert "similar brief" in rung, (
-        "the terminal rung has no check against the answer it would give for "
-        "any similar brief — without one a default passes as a choice"
+    assert "category alone" in rung, (
+        "the terminal rung has no check against the category's default premise"
     )
-    assert "never a product to copy" in rung
+    assert "reaction against it" in rung, (
+        "the check catches the category default but not the predictable "
+        "reaction to it — and an anti-default becomes its own default, which "
+        "is how the obvious escape routes got used up"
+    )
+    assert "never a product" in rung

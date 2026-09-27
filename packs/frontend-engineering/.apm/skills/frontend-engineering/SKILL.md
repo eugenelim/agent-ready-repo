@@ -162,11 +162,11 @@ overrides a higher one, and a rung silent on an axis hands that axis down.
    the surface greenfield.
 4. **`local-premise`** — state a concise visual premise in-session. Terminal
    and always available. Derive it from the surface's own subject matter — its
-   industry, its materials, the vernacular of the people it serves — because
-   that is what makes one premise differ from the next. Then check it once:
-   would you write this same premise for any similar brief? If yes it is a
-   default, not a choice; revise it and say what changed. A premise names
-   qualities, never a product to copy.
+   industry, materials, and the vernacular of the people it serves — which is
+   what makes one premise differ from the next. Then check it once: could
+   someone guess this premise from the category alone, or from the category
+   plus the obvious reaction against it? Either way it is a default, not a
+   choice; revise it and say what changed. It names qualities, never a product.
 
 **Record two rungs, not one.** Whenever the top rung resolves, two are in force:
 composition from it, values from below. The manifest's `visual authority` field
