@@ -6,8 +6,6 @@ tagline: "The design/UX seat for product teams."
 skills:
   - creative-direction
   - content-design
-  - copy-direction
-  - tone-of-voice
   - design-review
   - design-system
   - information-architecture
@@ -60,4 +58,4 @@ sustained-work workspace instead of applying one generic page recipe.
   components, data bindings, or build evidence.
 
 A forked-context `experience-reviewer` supplies the independent design pass; it
-is an agent, not a fifteenth skill.
+is an agent, not a thirteenth skill.

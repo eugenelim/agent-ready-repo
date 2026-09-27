@@ -179,3 +179,21 @@ ship". The guide tree is T7a's `Touches:` and T7a depends on T6, so no ordering
 makes this green here. It is the same shape as the byte-equality assertion's red
 between T3 and T6: the suite is correct, and it is reporting work a descendant
 owns.
+
+## T7 — `xd-state-reviewer-doctrine.md`: confirmed unaffected
+
+The intent is not edited by this delivery, and the check is satisfied by this
+record rather than by the update branch.
+
+The intent asks for the `experience-reviewer` quality floor to cover a wider
+state set and to be restructured into cold-read, task-completion and
+contract-review passes. This delivery's two edits to
+`.apm/agents/experience-reviewer.md` are a sync citation, retargeted from the
+deleted `tone-of-voice` copy of `references/editorial-quality-gates.md` to the
+surviving canonical copy under `content-design`, and an artifact-exclusion
+clause, which now names the surviving artifact type `type: tone-of-voice`
+instead of a skill name.
+
+Neither touches the reviewer's pass structure, its state coverage, or its
+quality floor, so nothing the intent asks for is changed, satisfied, or
+invalidated. `xd-state-reviewer-doctrine.md` is confirmed unaffected.

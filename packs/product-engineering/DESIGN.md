@@ -132,12 +132,12 @@ A plain versioned file is readable by any tool, diff-able in review, and require
 `ux-writing` is the content layer of the design seat:
 
 - **`experience-design`'s `user-flow`** produces the per-screen state matrix (one row per screen × state). Pass that matrix to `ux-writing` and it writes copy keyed to every cell — one string per screen/state combination.
-- **`experience-design`'s `tone-of-voice`** sets the brand register: ranked copy goals and arbitration rules. `ux-writing` receives the voice direction and applies it per state.
+- **`experience-design`'s `content-design`, in its brand-level register mode,** sets the brand register: ranked copy goals and arbitration rules. `ux-writing` receives the voice direction and applies it per state.
 - **Without a screen flow**, `ux-writing` is still fully useful: it detects absent and names states inline. The pairing is additive, not required.
 
 ### Scope boundary
 
-`ux-writing` covers product UI copy: error states, empty states, button labels, loading messages. Marketing and acquisition copy (hero headlines, above-fold narrative, taglines, onboarding copy voice) belongs to `experience-design`'s `copy-direction`. Brand-level copy register belongs to `experience-design`'s `tone-of-voice`. Onboarding narrative arc and structure belongs to `experience-design`'s `content-design`. Documentation prose belongs to `new-guide`. The boundary is the surface type: UI state copy lives here; everything else does not.
+`ux-writing` covers product UI copy: error states, empty states, button labels, loading messages. Marketing and acquisition copy (hero headlines, above-fold narrative, taglines, onboarding copy voice), the brand-level copy register, and onboarding narrative arc and structure all belong to `experience-design`'s `content-design` — to its per-surface acquisition copy goals, brand-level register, and message and narrative structure modes respectively. Documentation prose belongs to `new-guide`. The boundary is the surface type: UI state copy lives here; everything else does not.
 
 ---
 
