@@ -46,7 +46,7 @@ artifact, at its own path, and the rules they share exist once.
 | Current product truth | Applicable — the reviewer cites a path this change deletes | `packs/experience-design/.apm/agents/experience-reviewer.md` | This spec | Its sync citation resolves; its exclusion clause names surviving artifact types | The agent and the skill agree |
 | Shared-reference integrity | Applicable — one reference is held by two skills | `content-design/` and `information-architecture/` | This spec | One canonical copy plus a byte-equality assertion | The roster suite covers it |
 | Interface compatibility | Applicable — a removal | `packs/experience-design/pack.toml`, `.claude-plugin/plugin.json`, regenerated `.claude-plugin/marketplace.json` | `packs/AGENTS.md` § Version bump rule | Matching **major** bump in both source manifests | All three read `4.0.0` |
-| Interface compatibility | Applicable — a second pack's content changes | `packs/product-engineering/pack.toml`, `.claude-plugin/plugin.json`, regenerated marketplace entry | `packs/AGENTS.md` § Version bump rule | One **patch** above the merge-base value in both source manifests | Both read one patch above the merge-base. Reading on 2026-09-25: `0.13.18`, so the target is `0.13.19` |
+| Interface compatibility | Applicable — a second pack's content changes | `packs/product-engineering/pack.toml`, `.claude-plugin/plugin.json`, regenerated marketplace entry | `packs/AGENTS.md` § Version bump rule | One **patch** above the merge-base value in both source manifests | Both read one patch above the merge-base, **whatever the merge-base reads when this delivery runs**. The target is derived at execution time, never copied from this cell. Reading on 2026-09-26, after this branch was rebased onto `origin/main`: `0.13.19`, so the target is `0.13.20` unless the merge-base has moved again |
 | Decision rationale | Applicable — two Accepted RFCs carry decisions that no longer hold | `docs/rfc/0062-…md` § Errata, `docs/rfc/0071-…md` § Errata, and `DESIGN.md` § 4 | RFC-0055 D2 | Approver-signed errata in the two-layer form | Each erratum stands alone without naming a spec |
 | User promise | Applicable — the skills a reader invokes change | `guides/experience-design/` | `author-product-docs` | Updated copy-boundary guidance | Guide-agreement test passes and a named reviewer judges the guide sufficient |
 | Public site truth | Applicable — the pack's published pages name each skill | `web/src/content/` | This spec | Frontmatter, `whatChanges`, and stage prose updated | The site build succeeds |
@@ -283,7 +283,7 @@ artifact, at its own path, and the rules they share exist once.
       or a path**. This is scoped deliberately: `type: tone-of-voice` contains
       the string `tone-of-voice`, so a bare `\b(copy-direction|tone-of-voice)\b`
       grep over `content-design/SKILL.md` is **mutually exclusive** with the
-      carve-out criterion above, which requires seven such discriminator
+      carve-out criterion below, which requires seven such discriminator
       occurrences in that same file. The check is therefore for the removed names
       in registration or path position — `skills/copy-direction`, "the
       `tone-of-voice` skill", a routing target — never the `type:` literal.
@@ -359,15 +359,21 @@ artifact, at its own path, and the rules they share exist once.
       skill exists — a roster, a routing target, an availability probe, an
       install list. `docs/` outside the five files holds delivery and decision
       records that *mention* the skills: shipped specs, closed ADRs, the
-      `docs/design/` corpus, and — the case that rules the frozen-record
-      justification out — the two sibling specs `xd-genre-router` (Approved) and
-      `creative-direction-modes` (Implementing), which are **live** records under
-      this spec's own test and would be updated, not refused, if they held a
-      registration. They do not; they name the skills as delivery context. An
-      earlier draft claimed `docs/` was in scope while the command excluded it
-      entirely, then justified the exclusion on a rule that does not apply to two
-      of the excluded files. The bound is now stated on both sides and rests on
-      the right reason. *(goal-based)*
+      `docs/design/` corpus, and the sibling delivery records. None of them tells
+      the catalogue a skill exists, so none is a registration, and that — not any
+      claim about their lifecycle state — is why they are out of scope. **The
+      bound must not be justified by the frozen-record rule**, because whether a
+      given excluded file is frozen changes over time while the bound does not:
+      the two sibling specs `xd-genre-router` and `creative-direction-modes` were
+      cited by an earlier draft as *live* counterexamples and both now read
+      `Shipped`. A justification that flips with a sibling's status was the wrong
+      justification even while it happened to hold. The live-record case still
+      exists and is the one inside the scope: `xd-state-reviewer-doctrine.md` is
+      a live intent, is one of the five `docs/` files this delivery edits, and is
+      in scope because this delivery's reviewer edits reach it — not because of
+      its status either. An earlier draft also claimed `docs/` was in scope while
+      the command excluded it entirely. The bound is now stated on both sides and
+      rests on what a registration is. *(goal-based)*
 - [ ] The string `tone-of-voice` survives wherever it is the **artifact
       discriminator** rather than a skill name, because the output contract above
       requires the template to keep emitting `type: tone-of-voice`. The sweep
@@ -387,11 +393,38 @@ artifact, at its own path, and the rules they share exist once.
       | `tone-of-voice/assets/tone-of-voice-template.md` (inherited) | 1 |
       | `tone-of-voice/evals/evals.json` (inherited) | 2 |
       | `experience-status/SKILL.md` | 1 |
+      | `guides/experience-design/how-to/derive-the-screen-flow.md` | 1 |
       | `product-engineering/.apm/skills/ux-writing/SKILL.md` | 3 |
       | `product-engineering/.apm/skills/ux-writing/evals/evals.json` | 2 |
 
       A sweep that removes these breaks the discriminator while passing a
-      name-based check.
+      name-based check. The guide row is the one an earlier draft missed: it
+      quotes the brand-register template rung, so it carries this literal as
+      well as the `type: copy-direction` one the sibling table below records.
+      An occurrence in neither table falls in none of the final sweep's four
+      classes.
+- [ ] **`type: copy-direction` is the second discriminator and is carved out on
+      the same terms.** The sweep pattern matches `copy-direction` as a whole
+      word, so every one of these occurrences is a sweep hit, and the output
+      contract above requires the per-surface record to keep emitting the
+      marker. Carving out only `type: tone-of-voice` leaves two contradictions
+      rather than one gap: the check that no removed name survives inside the
+      surviving skill would flag the two literals `content-design/SKILL.md`
+      inherits, and the delivery-wide sweep's rubric would read the two
+      surviving outside uses as defects. Counts measured 2026-09-26:
+
+      | File | `type: copy-direction` uses that must survive |
+      | --- | ---: |
+      | `copy-direction/SKILL.md` (inherited into the merged skill) | 2 |
+      | `copy-direction/assets/copy-direction-template.md` (inherited) | 1 |
+      | `copy-direction/evals/evals.json` (inherited) | 2 |
+      | `experience-status/SKILL.md` | 1 |
+      | `guides/experience-design/how-to/derive-the-screen-flow.md` | 1 |
+
+      **Not on the list, deliberately:**
+      `copy-direction/references/agentbundle-layout.md` holds three further uses
+      and is deleted with its directory, the same case as its `tone-of-voice`
+      sibling below. *(goal-based)*
 
       **Not on the list, deliberately:**
       `tone-of-voice/references/agentbundle-layout.md` holds five further uses
@@ -404,7 +437,7 @@ artifact, at its own path, and the rules they share exist once.
 - [ ] `ux-writing/SKILL.md`'s cross-skill pointer "surface the same migration
       prompt as `tone-of-voice` step 6" is retargeted to the surviving mode's
       step, while its **three** `type: tone-of-voice` discriminator literals
-      stay — the count the carve-out table below records and the tree measures
+      stay — the count the carve-out table above records and the tree measures
       (all three sit on one line). An earlier draft said four here and three in
       the table. *(goal-based)*
 - [ ] `packs/product-engineering`'s `ux-writing` `SKILL.md` and its
@@ -416,16 +449,16 @@ artifact, at its own path, and the rules they share exist once.
 - [ ] Every skill-count numeral for this pack reads **12** post-fold. The count
       is expressed three different ways across these files, so the criterion is
       stated per file and per numeral rather than as one value asserted across
-      all of them. Readings are from 2026-09-25, pre-genre-fold; the genre fold
-      lands first and takes each to its 14-skill form, which is what this
-      delivery actually edits:
+      all of them. The `Today` column was re-measured on 2026-09-26, after the
+      genre fold landed, so it is the form this delivery actually edits; the
+      pre-genre-fold readings were `20`, `20`, `20` and `twenty-first`:
 
       | File | Numeral | Today | Post-fold |
       | --- | --- | --- | --- |
-      | `packs/experience-design/docs/index.md` | prose, line 3 | `pack of 20 skills` | `pack of 12 skills` |
-      | `packs/experience-design/docs/index.md` | heading, line 11 | `**Skills (20) in two families:**` | `**Skills (12) in two families:**` |
-      | `guides/experience-design/reference/experience-design.md` | prose, line 17 | `20 pure-Markdown skills` | `12 pure-Markdown skills` |
-      | `web/src/content/packs/experience-design.md` | **ordinal**, line 69 | `twenty-first skill` | `thirteenth skill` |
+      | `packs/experience-design/docs/index.md` | prose, line 3 | `pack of 14 skills` | `pack of 12 skills` |
+      | `packs/experience-design/docs/index.md` | heading, line 11 | `**Skills (14) in two families:**` | `**Skills (12) in two families:**` |
+      | `guides/experience-design/reference/experience-design.md` | prose, line 17 | `14 pure-Markdown skills` | `12 pure-Markdown skills` |
+      | `web/src/content/packs/experience-design.md` | **ordinal** | `fifteenth skill` | `thirteenth skill` |
       | `packs/experience-design/README.md` | none | — | still none |
       | `packs/experience-design/JOURNEY.md` | none | — | still none |
 
@@ -466,6 +499,21 @@ artifact, at its own path, and the rules they share exist once.
       shipped `content-design` description is byte-identical to it. A material
       routing or boundary change requires a new owner-approved bounded probe or
       stops the slice. *(bounded routing-classification evidence)*
+- [ ] **The post-fold world the probe tests is the world that ships, for every
+      candidate description the probe shows it — not only
+      `content-design`'s.** `ux-writing` is a boundary candidate and this
+      delivery edits its description: it ends "or to establish the brand-level
+      copy register (use `tone-of-voice`)", a routing target the registration
+      sweep obliges T7 to retarget. T1 runs before T7, so the naive probe would
+      classify against a `ux-writing` description that no longer exists at ship
+      time. T1 therefore states the **post-fold** `ux-writing` description in its
+      post-fold candidate set, and T9 checks the shipped description against it:
+      byte-identical, or a recorded verdict that the divergence is immaterial
+      with its reason. The same rule binds any other candidate description this
+      delivery edits. Without it the shipped routing surface is bound at one
+      candidate and unbound at the rest, which is the gap that makes a 18/18
+      result prove less than it appears to.
+      *(bounded routing-classification evidence)*
 - [ ] The note names this fold's abort path and its three triggers: a
       classification mismatch or low-confidence result, an explicit owner stop,
       or the brief's approximately three-week window elapsing. On any trigger,
@@ -567,8 +615,11 @@ artifact, at its own path, and the rules they share exist once.
       earlier draft wrote `0.13.17 → 0.13.18`; the pack reached `0.13.18` on its
       own before this spec was approved, which made the criterion pass against an
       untouched tree and would have let the obliged bump be skipped in silence.
-      The reading on 2026-09-25 is `0.13.18`, so the target is `0.13.19` unless
-      the merge-base has moved again. *(goal-based)*
+      The merge-base has since moved twice, which is why the target is stated as
+      a derivation rather than a number: the reading was `0.13.18` on 2026-09-25
+      and is `0.13.19` on 2026-09-26, after this branch was rebased onto
+      `origin/main`, so the target is `0.13.20` unless the merge-base has moved
+      again. *(goal-based)*
 
 ### Gates
 

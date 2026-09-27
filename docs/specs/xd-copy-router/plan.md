@@ -35,8 +35,12 @@ named scope parameter, which is authoring rather than merging.
   `product-engineering` takes a **patch** computed from its value at this
   delivery's merge-base, never a literal copied from here: it reached `0.13.18`
   on its own while this plan was in draft, which is how an earlier `0.13.17 →
-  0.13.18` constraint came to be satisfied by an untouched tree.
-  `frontend-engineering` takes none: it names neither removed skill.
+  0.13.18` constraint came to be satisfied by an untouched tree, and it reached
+  `0.13.19` on `origin/main` before this delivery started, which would have done
+  the same to a `0.13.19` literal.
+  `frontend-engineering` takes no **bump**: it names neither removed skill. It
+  does move in the **projection**, which is a different surface — see the
+  inherited-red note under Construction tests.
 - ADR-0038 — alias-free; the sweep completes inside this PR.
 - RFC-0062's 2026-08-02 erratum — `tone-of-voice` is brand-level and
   `copy/brand-register.md` is reserved. Both survive.
@@ -54,6 +58,18 @@ Cross-cutting, after every wave:
 python3 tools/lint-experience-agnostic.py
 python3 -m pytest tests/roster -q -k "experience or content_design"
 ```
+
+**One gate arrives red, and T10 is what clears it.** This delivery inherits an
+out-of-date self-host projection: `.claude-plugin/marketplace.json` reads
+`experience-design 2.0.9` against a `pack.toml` of `3.0.0`, and
+`frontend-engineering 0.3.2` against `0.3.3`. Neither is this delivery's doing —
+the genre fold and the frontend repair both bumped a manifest without committing
+a regenerated projection. `agentbundle catalogue verify` therefore fails before
+this delivery changes anything, and it keeps failing until T10 regenerates the
+projection. Read a pre-T10 `catalogue verify` failure as this inherited state,
+not as a defect this slice introduced, and confirm the reported mismatch names
+only those two entries before continuing — a third name is a real finding. This
+is the same expected-pre-state record the pytest exit-5 note carries below.
 
 ## Verification command map
 
@@ -167,17 +183,76 @@ T="$CD/assets/tone-of-voice-template.md"
 grep -q 'type: tone-of-voice' "$T" && grep -q 'scope: brand-level' "$T"
 ```
 
+**The per-surface copy direction keeps its marker and its path.** This block is
+the entry the `type: copy-direction` output-contract criterion owed and did not
+have: the assets block above tests only that the relocated template exists, and
+an empty file passes a `test -f`. Both halves are checked, because the criterion
+names both — the `type:` the template emits, and the path the mode writes:
+
+```bash
+grep -q 'type: copy-direction' "$CD/assets/copy-direction-template.md" \
+  || echo "the relocated copy-direction template no longer emits type: copy-direction"
+grep -q '<output_dir>/copy/<surface-slug>.md' "$CD/SKILL.md" \
+  || echo "SKILL.md no longer states the per-surface output path"
+# The brand register's reserved path is the sibling literal, and the two must not
+# collapse into one another:
+grep -q '<output_dir>/copy/brand-register.md' "$CD/SKILL.md" \
+  || echo "SKILL.md no longer states the reserved brand-register path"
+```
+
 **The discriminator survives, by counted occurrence.** `grep -c` counts *lines*;
 these are *occurrences*, so the check must use `grep -o`:
 
+**There are TWO discriminators, not one.** `type: copy-direction` is an artifact
+marker the output contract requires to survive, exactly as `type: tone-of-voice`
+is, and `$REMOVED` matches it — `copy-direction` is a whole word inside it. An
+earlier draft carved out only `type: tone-of-voice`, which left two live
+contradictions: the surviving skill's own check below would have flagged the two
+`type: copy-direction` literals it inherits as registration violations, and the
+final sweep's rubric would have read `experience-status/SKILL.md` and
+`derive-the-screen-flow.md` as defects. Both counts were measured 2026-09-26.
+
 ```bash
-check() { n=$(grep -o 'type: tone-of-voice' "$1" 2>/dev/null | wc -l | tr -d ' '); [ "$n" = "$2" ] || echo "$1: want $2, got $n"; }
-check "$CD/SKILL.md" 7            # 4 inherited from copy-direction + 3 from tone-of-voice
-check "$CD/assets/tone-of-voice-template.md" 1
-check "$CD/evals/evals.json" 2
-check packs/experience-design/.apm/skills/experience-status/SKILL.md 1
-check packs/product-engineering/.apm/skills/ux-writing/SKILL.md 3
-check packs/product-engineering/.apm/skills/ux-writing/evals/evals.json 2
+check() { n=$(grep -o "$3" "$1" 2>/dev/null | wc -l | tr -d ' '); [ "$n" = "$2" ] || echo "$1: want $2 of '$3', got $n"; }
+TOV='type: tone-of-voice'
+CDR='type: copy-direction'
+check "$CD/SKILL.md" 7 "$TOV"     # 4 inherited from copy-direction + 3 from tone-of-voice
+check "$CD/assets/tone-of-voice-template.md" 1 "$TOV"
+check "$CD/evals/evals.json" 2 "$TOV"
+check packs/experience-design/.apm/skills/experience-status/SKILL.md 1 "$TOV"
+check packs/product-engineering/.apm/skills/ux-writing/SKILL.md 3 "$TOV"
+check packs/product-engineering/.apm/skills/ux-writing/evals/evals.json 2 "$TOV"
+# The second discriminator. Inherited from copy-direction/ as it folds in:
+check "$CD/SKILL.md" 2 "$CDR"
+check "$CD/assets/copy-direction-template.md" 1 "$CDR"
+check "$CD/evals/evals.json" 2 "$CDR"
+# And the two that survive outside the surviving skill:
+check packs/experience-design/.apm/skills/experience-status/SKILL.md 1 "$CDR"
+check guides/experience-design/how-to/derive-the-screen-flow.md 1 "$CDR"
+# The same guide quotes the brand-register template rung, so it holds one
+# `type: tone-of-voice` too. An earlier draft listed it under $CDR only,
+# which left that occurrence in none of the final sweep's four classes.
+check guides/experience-design/how-to/derive-the-screen-flow.md 1 "$TOV"
+# copy-direction/references/agentbundle-layout.md holds 3 more and is deleted
+# with its directory, the same case as tone-of-voice's copy.
+# Those three `ux-writing` discriminators sit on ONE physical line — the same
+# line that carries the forbidden pointer "surface the same migration prompt as
+# `tone-of-voice` step 6". So the file is a required sweep hit whether or not the
+# pointer is retargeted, and the registration sweep, which reports filenames,
+# cannot decide it. The step-6 criterion therefore gets the same treatment this
+# map already gives `$CD`: remove the discriminator OCCURRENCES, then search what
+# is left. `grep -v` would drop the whole line and take the pointer with it.
+sed -e 's/type: tone-of-voice//g' -e 's/type: copy-direction//g' packs/product-engineering/.apm/skills/ux-writing/SKILL.md \
+  | grep -nE "$REMOVED"   # want no output: the pointer names the surviving mode's step
+# Measured 2026-09-26, this returns THREE lines, not one. The step-6 pointer is
+# the only one the criteria name; T7 owns all three:
+#   :3  the frontmatter description — "(use `tone-of-voice`)"
+#   :32 the scope-boundary blockquote and the onboarding tri-point, which name
+#       `copy-direction` twice as the skill to use
+#   :74 the step-6 migration-prompt pointer, sharing its line with the three
+#       required discriminators
+# The check is complete even though the prose enumerates a subset, which is why
+# it is a command and not a reading.
 # tone-of-voice/references/agentbundle-layout.md holds 5 more and is deleted with
 # its directory; the Follow-on records that the family shrinks rather than closing
 ```
@@ -186,32 +261,82 @@ check packs/product-engineering/.apm/skills/ux-writing/evals/evals.json 2
 the spec's stated scope: the five trees, the repo-root `workspace.toml`, and the
 five `docs/` files this delivery edits — **not** `docs/` wholesale. The reason is
 what a registration sweep owns, **not** the frozen-record rule: the rest of
-`docs/` holds records that *mention* the skills rather than register them, and
-two of them — `xd-genre-router` (Approved) and `creative-direction-modes`
-(Implementing) — are live records the frozen-record rule does not cover at all.
-An earlier draft's comment claimed `docs/` was in scope while the command omitted
-it entirely, and then justified the omission on that rule:
+`docs/` holds records that *mention* the skills rather than register them. Do
+not restore the lifecycle-status justification an earlier draft used here. It
+named `xd-genre-router` and `creative-direction-modes` as live counterexamples;
+both now read `Shipped`, so a bound resting on their status would have moved
+while the bound itself did not. An earlier draft's comment also claimed `docs/`
+was in scope while the command omitted it entirely:
 
 ```bash
-DOCS_IN_SCOPE="docs/rfc/0062-content-design-and-copy-direction-skills.md \
-docs/rfc/0071-digital-experience-doctrine.md \
-docs/product/briefs/digital-experience-doctrine-completion.md \
-docs/product/intents/xd-state-reviewer-doctrine.md \
-docs/product/changelog.md"
-grep -rlE "$REMOVED" packs/ guides/ web/ tools/ tests/ workspace.toml $DOCS_IN_SCOPE 2>/dev/null \
+# The five in-scope `docs/` paths are SEPARATE LITERAL ARGUMENTS, and stderr is
+# NOT discarded. Both are load-bearing, and an earlier draft got both wrong in a
+# way that disarmed this control without failing.
+#
+# It wrote the five paths as one space-joined scalar and expanded it unquoted.
+# bash word-splits that; **zsh does not**, unless SH_WORD_SPLIT is set. So under
+# zsh — this repository's shell, and the macOS default — all five paths arrived
+# as ONE non-existent argument, `grep` reported `No such file or directory` to
+# the stderr that the same line threw away, and the command still exited 0 on
+# its `packs/` hits. Measured 2026-09-26 on the same tree: zsh printed 26 files
+# and **zero** `docs/` files, bash printed 29 including three `docs/` files, and
+# both exited 0. The entire `docs/` half of this delivery's registration scope
+# was checked by nothing, including the two RFCs this delivery must amend.
+grep -rlE "$REMOVED" packs/ guides/ web/ tools/ tests/ workspace.toml \
+  docs/rfc/0062-content-design-and-copy-direction-skills.md \
+  docs/rfc/0071-digital-experience-doctrine.md \
+  docs/product/briefs/digital-experience-doctrine-completion.md \
+  docs/product/intents/xd-state-reviewer-doctrine.md \
+  docs/product/changelog.md \
   | grep -vE '\.apm/skills/(copy-direction|tone-of-voice)/' \
   | grep -vF 'web/src/lib/now-highlights.generated.json'
 # `now-highlights.generated.json` is excluded: it is generated and gitignored,
 # rebuilt from the changelog by every `web/` and `docs-site/` run, so it is not a
 # surface this delivery edits and a hit there is noise, not a defect.
 # want: only files whose hits are discriminator uses on the counted list above.
-# Recorded readings, 2026-09-25, for the five trees + workspace.toml only:
-#   27 files pre-genre-fold. An earlier draft recorded 28; `git grep` at each of
-#   the last five commits also returns 27, so 28 was never a reading and a
-#   reviewer comparing against it would chase a phantom one-file delta.
-#   24 files post-genre-fold — that fold deletes conversion-design/SKILL.md, its
-#   evals/evals.json and its editorial-quality-gates.md. **24 is this slice's
-#   baseline**, because the genre fold lands first.
+# Recorded readings for the five trees + workspace.toml only:
+#   27 files pre-genre-fold, 2026-09-25. An earlier draft recorded 28; `git grep`
+#   at each of the last five commits also returns 27, so 28 was never a reading
+#   and a reviewer comparing against it would chase a phantom one-file delta.
+#   26 files post-genre-fold, measured 2026-09-26 once that fold had landed.
+#   **26 is this slice's baseline.** An earlier reading of 24 was derived rather
+#   than measured, and was wrong in both directions: it assumed the genre fold
+#   DELETED conversion-design's SKILL.md, evals/evals.json and
+#   editorial-quality-gates.md, when the fold RELOCATED the latter two into
+#   `information-architecture`, where they still name a removed skill; and it
+#   missed informational-design/evals/evals.json leaving the set entirely.
+#   Measured composition of the 26: packs 17, guides 5, web 2, tools 1, tests 0,
+#   workspace.toml 1.
+#   The `docs/` arm adds THREE more, for 29 printed lines in total, and it needs
+#   its own reading for the same reason: without one, a reviewer cannot tell a
+#   `docs/` file that stopped matching from an argument list that stopped being
+#   passed — which is exactly how the zsh defect above stayed invisible.
+#   Reading, 2026-09-26: docs/rfc/0062-… matches, docs/rfc/0071-… matches,
+#   docs/product/changelog.md matches; the brief and
+#   docs/product/intents/xd-state-reviewer-doctrine.md match nothing yet.
+#   NONE of these three is retargeted, and an earlier reading that said T8
+#   "retargets" the two RFCs was wrong in a way that made the final sweep
+#   unreachable. Both RFCs read `Status: Accepted`, which this spec's `Never do`
+#   rule amends by erratum only. T8 ADDS an erratum entry to each; it removes
+#   nothing. RFC-0062 cannot stop matching even in principle — its filename and
+#   its title line are `content-design and copy-direction skills` — so it matches
+#   on 43 lines today and permanently, and RFC-0071 on 36. The changelog is the
+#   same shape for a different reason: the 4.0.0 entry is obliged to name both
+#   removed skills, and T11 adds adopter-action text naming both retired
+#   directories, so its hits grow rather than shrink.
+#   The final sweep therefore classifies into FOUR classes, not three:
+#     registration hit          -> defect
+#     counted discriminator     -> required (`type: tone-of-voice`, `type: copy-direction`)
+#     release history           -> expected, permanent (docs/product/changelog.md)
+#     frozen decision record    -> expected, permanent (the two RFC paths above)
+#   The fourth class exists because a frozen record mentions a skill without
+#   registering it, and the only way to make it stop matching is the rewrite the
+#   `Never do` rule refuses.
+#   Three of the packs hits are the genre fold's new surfaces —
+#   information-architecture/references/conversion-design.md,
+#   information-architecture/references/editorial-quality-gates.md, and
+#   information-architecture/evals/evals.json — which did not exist when this
+#   plan was approved and which T7's `Touches:` already owns.
 # Classify each hit registration vs discriminator; a registration hit is a
 # defect, a discriminator hit is required.
 grep -n 'copy/' packs/experience-design/DESIGN.md
@@ -226,8 +351,15 @@ a stub shipped as `copy-direction-legacy`, which is the case ADR-0038 forbids.
 And `pack.evals.skills` needs membership, not length — a list that dropped an
 unrelated skill and kept `tone-of-voice` has length twelve:
 
+There is deliberately no `ls -d … 2>/dev/null | wc -l  # want 0` line here. It
+prints the wanted `0` both when the directories are gone and when the path
+prefix is wrong or unreadable, so it is the same disarmed shape the sweep block
+above was repaired for. The Python block subsumes it and cannot be fooled the
+same way: it derives `skills` from `iterdir()`, which raises on a bad prefix
+rather than printing zero, and catches a survivor through `extra` and the
+twelve-directory count.
+
 ```bash
-ls -d packs/experience-design/.apm/skills/{copy-direction,tone-of-voice} 2>/dev/null | wc -l   # want 0
 python3 - <<'QQ'
 import pathlib, sys, tomllib
 root = pathlib.Path("packs/experience-design")
@@ -353,8 +485,15 @@ grep -nE '(skills/(copy-direction|tone-of-voice))|(`(copy-direction|tone-of-voic
 # Then remove the discriminator OCCURRENCES and search what is left. `grep -v`
 # would drop the whole line, so `route to tone-of-voice when type: tone-of-voice`
 # would pass while still naming a routing target.
-sed 's/type: tone-of-voice//g' "$CD/SKILL.md" | grep -nE "$REMOVED"   # want no output
-sed 's/type: tone-of-voice//g' "$CD/references/communication-modes.md" | grep -nE "$REMOVED"   # want no output
+sed -e 's/type: tone-of-voice//g' -e 's/type: copy-direction//g' "$CD/SKILL.md" | grep -nE "$REMOVED"   # want no output
+sed -e 's/type: tone-of-voice//g' -e 's/type: copy-direction//g' "$CD/references/communication-modes.md" | grep -nE "$REMOVED"   # want no output
+# The eval corpus is a third surface inside the surviving skill, and an earlier
+# draft read only the two above. `content-design/evals/evals.json` names
+# `copy-direction` as a downstream consumer on three lines today; those are
+# routing targets, not `type:` literals, so the counted-occurrence check cannot
+# see them and they would surface at T11 as class-1 hits nothing had required
+# anyone to remove.
+sed -e 's/type: tone-of-voice//g' -e 's/type: copy-direction//g' "$CD/evals/evals.json" | grep -nE "$REMOVED"   # want no output
 ```
 
 **Skill counts — negative and positive, cardinal and ordinal:**
@@ -382,10 +521,12 @@ grep -q 'thirteenth skill' web/src/content/packs/experience-design.md   # ordina
 # `thirteen skills`. An earlier draft matched only number-then-noun.
 ! grep -rnoiE '(\b(1[0-9]|2[0-9]|ten|eleven|twelve|thirteen|fourteen|twenty)\b[^.]{0,12}\bskills?\b)|(\bskills?\b[^.]{0,4}\(?\b(1[0-9]|2[0-9]|ten|eleven|twelve|thirteen|fourteen|twenty)\b)' \
   packs/experience-design/README.md packs/experience-design/JOURNEY.md
-# Readings, 2026-09-25 (pre-genre-fold): "pack of 20 skills" (index.md:3),
-# "**Skills (20) in two families:**" (index.md:11), "20 pure-Markdown skills"
-# (guides:17), "twenty-first skill" (web:69). The genre fold lands first and
-# takes each to its 14-skill form; this delivery edits that form.
+# Readings, 2026-09-26, after the genre fold landed — this is the form this
+# delivery actually edits: "pack of 14 skills" (index.md:3),
+# "**Skills (14) in two families:**" (index.md:11), "14 pure-Markdown skills"
+# (guides:17), "fifteenth skill" (web:63). The pre-genre-fold readings were
+# 20/20/20/twenty-first; the ordinal counts the reviewer agent last, so it lands
+# on "thirteenth" for a 12-skill pack, never on "12".
 ```
 
 **The sibling brief's rows are restated, not merely absent.** An absence check
@@ -543,7 +684,7 @@ the first two to move in one edit and an earlier draft checked
 # content and the block would print "versions agree" against a base it never read.
 [ -n "$BASE" ] || { echo "BASE unset — run the roots block first"; return 1 2>/dev/null || exit 1; }
 python3 - "$BASE" <<'QQ'
-import json, subprocess, sys, tomllib
+import json, pathlib, subprocess, sys, tomllib
 base = sys.argv[1]
 def toml_at(rev, path):
     out = subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True, text=True, check=True).stdout
@@ -572,15 +713,31 @@ for m, want in targets.items():
     name = m.split("/")[-1]
     if proj.get(name) != want:
         fail.append(f"marketplace.json[{name}]: want {want}, got {proj.get(name)}")
+# Projection-wide, not just the two packs this delivery bumps. The regeneration
+# is a whole-file rewrite, so it necessarily carries corrections this delivery
+# did not author: it arrived with `experience-design` at 2.0.9 against a
+# pack.toml of 3.0.0 and `frontend-engineering` at 0.3.2 against 0.3.3, both left
+# by earlier deliveries. Asserting only the two named entries lets a hand edit
+# fix those two, leave `frontend-engineering` stale, print "versions agree", and
+# still fail `catalogue verify`. Every pack's projection entry must equal its
+# own pack.toml.
+for pack_toml in sorted(pathlib.Path("packs").glob("*/pack.toml")):
+    name = pack_toml.parent.name
+    want_any = tomllib.load(open(pack_toml, "rb"))["pack"]["version"]
+    if name in proj and proj[name] != want_any:
+        fail.append(f"marketplace.json[{name}]: projection {proj[name]} != pack.toml {want_any}")
 if fail:
     sys.exit("VERSION MISMATCH\n  " + "\n  ".join(fail))
 print("versions agree:", targets)
 QQ
 ```
 
-Pre-state readings, 2026-09-25: `experience-design` `2.0.10`,
-`product-engineering` `0.13.18`. An earlier draft recorded `2.0.9` and `0.13.17`.
-The `4.0.0` arithmetic is unaffected, but a stale reading defeats the stated
+Pre-state readings, 2026-09-26, after the genre fold landed and this branch was
+rebased onto `origin/main`: `experience-design` `3.0.0`, `product-engineering`
+`0.13.19`, so the derived `product-engineering` target is `0.13.20`. Earlier
+readings were `2.0.10` / `0.13.18` on 2026-09-25 and `2.0.9` / `0.13.17` before
+that. The `4.0.0` arithmetic is unaffected — it counts major bumps, not the
+base — but a stale reading defeats the stated
 purpose of recording readings at all — telling a broken command from a failing
 check.
 
@@ -723,7 +880,7 @@ show, so a reviewer can execute it and record a verdict:
 | Per-file reconciliation record | `notes/reference-reconciliation.md`: six named files, each with winner, differences, reason |
 | Brand-naming verdict | the same note: which convention wins, `[example service]` or real company names |
 | Three-way editorial verdict | the same note: which gating condition survives, `conversion-design`'s or `copy-direction`'s upstream-`communication_mode` form |
-| `DESIGN.md` records the supersession | `packs/experience-design/DESIGN.md`: an explicit statement that the byte-equality test supersedes the "Skill autonomy beats DRY at this scale" note. Owned by T7, whose `Touches:` reaches that file. The reference-side check only sees the note disappear from the two copies; nothing else requires the positive statement |
+| `DESIGN.md` records the supersession | `packs/experience-design/DESIGN.md`: an explicit statement that the byte-equality test supersedes the "Skill autonomy beats DRY at this scale" note. Owned by **T8**, the only task whose `Touches:` names that file. The reference-side check only sees the note disappear from the two copies; nothing else requires the positive statement |
 | Autonomy-note removal has an owning `Touches:` | T3's `Touches:` names `information-architecture/references/editorial-quality-gates.md`; grep that the note is absent from both surviving copies |
 | Routing-classification evidence | `notes/routing-classification-evidence.md`: nine fixed pre-fold and nine fixed post-fold rows; all 18 expected selections at high confidence; exact prompts and descriptions; zero retries; the proxy limits, abort path, and owner decision |
 | Pooled `eval_queries.json` corpus | `$CD/evals/eval_queries.json`: 29 distinct positives and 32 distinct negatives; no query appears with both `should_trigger` values; every source positive is present; the negative set retains cases owned by `ux-writing` and `creative-direction`. Compare source membership against the guarded merge-base because T6 deletes two source files |
@@ -774,18 +931,18 @@ and named neither T2 nor T7a.
 | Routing-classification evidence + abort path | `notes/routing-classification-evidence.md` | T1, T9 | Nine pre-fold and nine post-fold classifications; 18/18 expected selections at high confidence; exact tested post-fold description; proxy limits; all three abort triggers and `eugenelim` |
 | Genre-fold precondition | `notes/verification-ledger.md` | T2 | The relocated file exists, is byte-identical at the merge-base, and is cited |
 | Reconciliation record | `notes/reference-reconciliation.md` | T3, T4 | Six files, each with a winner, a clause, or a recorded drop and its reason |
-| Shared-reference integrity | `content-design/` + `information-architecture/` | T3, T5 | The byte-equality extension is GREEN and both `SKILL.md` files cite the file |
+| Shared-reference integrity | `content-design/` + `information-architecture/` | T3, T5, T6 | T3 lands the byte-equality extension with its vacuity guard; T5 lands the citation in `content-design/SKILL.md`, the only side this delivery installs; **T2 verifies** the `information-architecture` side, which is a genre-fold post-condition in no task's `Touches:`; **T6 is where it goes GREEN**, because the glob sees the two doomed copies until T6 deletes them |
 | Merged skill (current product truth) | `CD/` | T5 | Three modes, three assets, all output contracts; `lint-experience-agnostic` exits 0 |
-| Eval harness | `content-design/evals/` | T5, T6 | Pooled positives and negatives; `evals.json` and `files/` carried or the drop recorded |
+| Eval harness | `content-design/evals/` + `notes/verification-ledger.md` | T5, T6 | Pooled positives and negatives. **T6 writes the four per-source disposition lines** into the ledger, which is in its `Touches:`; T5 reads the sources at the merge-base and edits neither |
 | Two directories removed | `packs/experience-design/.apm/skills/` | T6 | Directory count 12, every directory declared, no undeclared stub |
 | Reviewer + cross-pack | `.apm/agents/experience-reviewer.md`, `packs/product-engineering/**` | T7 | The sync citation resolves; the exclusion clause names an artifact `type:` |
 | Sibling brief rows | `docs/product/briefs/digital-experience-doctrine-completion.md` | T7 | Both stale occurrences gone; 4 families / 19 files / 11 hashes present |
-| Two errata (decision rationale) | RFC-0062, RFC-0071, `DESIGN.md` § 4 | T8 | Two-layer form; neither new entry names a spec or a brief |
+| Two errata (decision rationale) | RFC-0062, RFC-0071, `DESIGN.md` §§ 4 and 7 | T8 | Two-layer form; neither new entry names a spec or a brief. **T8 is the sole editor of `DESIGN.md`**, including the supersession statement |
 | User promise | `guides/experience-design/` | T7a | Guide-agreement test passes and a named reviewer judges the guide sufficient |
 | Registry + projection surfaces | `workspace.toml`, `skill-census.json`, `tools/add-rendering-directives.py` | T7a | Census suite passes; no removed name in any of the three |
-| Public site truth | `web/src/content/` | T7 | Frontmatter, `whatChanges` and stage prose updated; `npm run build` exits 0 |
+| Public site truth | `web/src/content/` | T7 | Frontmatter, `whatChanges` and stage prose updated; the **ordinal reads `thirteenth skill`**; `npm run build` exits 0 |
 | Versions + release history | manifests, `.claude-plugin/marketplace.json`, changelog | T10 | All three surfaces agree per pack; both catalogue commands exit 0 |
-| Manual-QA verdicts | `notes/verification-ledger.md` | T11 | All four verdicts with reviewer and date, plus the install observation |
+| Manual-QA verdicts + final sweep | `notes/verification-ledger.md` | T11 | All four verdicts with reviewer and date, the `brand-register` refusal verdict as a fifth entry, the install observation, and the **delivery-wide registration sweep**, which only this last task can reach |
 
 ## Design (LLD)
 
@@ -845,9 +1002,13 @@ The exact post-fold candidate is:
 > copy goals for this landing page", and "define how our brand should sound
 > across product and marketing".
 
-The candidate is 895 UTF-8 bytes when joined as one frontmatter scalar. T1
-recomputes the byte count from the exact joined text rather than trusting this
-illustrative reading; the 1024-byte cap and byte identity are the gates.
+The candidate is 895 **characters** when joined as one frontmatter scalar. T1
+recomputes the character count from the exact joined text rather than trusting
+this illustrative reading. The unit matters: `skill_spec_lint.py` raises on
+`len(desc)`, which counts characters, so a non-ASCII candidate measured in bytes
+would be checked against a limit that does not run. This candidate is ASCII, so
+its two counts coincide at 895 today. The 1024-**character** cap and byte
+identity are the gates.
 
 ### Failure, edge cases & resilience
 
@@ -860,6 +1021,32 @@ illustrative reading; the 1024-byte cap and byte identity are the gates.
   and the pair escalates rather than being merged on a guess.
 
 ## Tasks
+
+### The ownership rule these tasks obey
+
+**A task may only assert what it can reach.** An assertion belongs to a task
+when the thing asserted is inside that task's own `Touches:`, or is installed by
+one of its ancestors in the graph. An assertion that depends on a
+non-ancestor — a descendant, or an unordered sibling — cannot be satisfied at
+that task's position, and the only way to "pass" it is to declare done against a
+check that is still failing.
+
+This rule is written down because the task list violated it repeatedly and
+each violation read as reasonable in isolation: a delivery-wide sweep asserted
+at the task that deletes the directories, a shared-file equality test closed out
+before the duplicate copies are gone, a ledger entry required from a task whose
+`Touches:` does not include the ledger. Three consequences follow, and the task
+sections below are written to them:
+
+1. **`Touches:` is precise, never a convenient prefix.** A prefix such as
+   `packs/experience-design/` silently claims another task's files and makes two
+   unordered siblings co-owners of the same surface. Each task lists what it
+   actually edits.
+2. **A whole-scope assertion lands on the last task that can reach the whole
+   scope**, not on the task whose subject matter it resembles.
+3. **Every obligation is owned by exactly one task.** Where an obligation moved
+   during this reconciliation, the task that gave it up says so, so the move is
+   visible rather than inferred from an absence.
 
 ### T1: The bounded routing-classification evidence is durable
 
@@ -882,6 +1069,11 @@ illustrative reading; the 1024-byte cap and byte identity are the gates.
   actual selections, confidence, owner authorization, date, zero-retry count,
   and the exact tested post-fold description. That candidate is at most 1024
   characters.
+- The post-fold candidate set states the **post-fold** `ux-writing` description,
+  not today's. Today's ends "or to establish the brand-level copy register (use
+  `tone-of-voice`)", which T7 must retarget; T1 runs first, so testing today's
+  text would classify a boundary candidate that does not ship. Author the
+  retargeted description here, test it, and let T7 install it and T9 check it.
 - The note states the limits: this is a classification proxy, not a Claude
   `Skill` activation event; Codex retains platform system context; one sample
   per case and world does not establish broad recall, false-positive rates,
@@ -945,7 +1137,13 @@ not completion.
   new `test_every_editorial_quality_gates_copy_is_byte_identical`, carrying the
   existing `len(copies) >= 2` vacuity guard. Extending the existing suite avoids
   the three further guarded edits `tests/AGENTS.md` obliges for a new
-  `tests/roster/test_*.py`.
+  `tests/roster/test_*.py`. **This task owns the extension's existence, not its
+  passing.** The assertion globs every
+  `*/references/editorial-quality-gates.md`, and three copies exist until T6
+  deletes `copy-direction/` and `tone-of-voice/` — so it is legitimately red
+  from here until T6, which owns its GREEN. Expecting green at this position
+  would force either a premature deletion outside this `Touches:` or a weakened
+  assertion.
 
 **Approach:** the classification is the decision, so it is recorded per file
 before the rewrite rather than inferred from the result. `copy-arbitration.md`
@@ -994,17 +1192,28 @@ recorded drop with its reason.
 - All three output paths and `type:` values unchanged; the brand register emits
   `type: tone-of-voice` **and** `scope: brand-level`.
 - The pooled `evals/` harness carries `eval_queries.json`, `evals.json` and the
-  `evals/files/` fixture tree, or the drop is recorded with its reason.
-- The `brand-register` slug refusal survives (manual QA, ledger).
+  `evals/files/` fixture tree, **or a source is deliberately dropped** — the
+  criterion admits either, and T6's disposition script accepts a `dropped`
+  verb, so an assertion that only admits carrying fails a legitimate drop
+  before the task that records it runs. The **recording** branch is not this
+  task's:
+  the per-source disposition lines go in `notes/verification-ledger.md`, which
+  is in T6's `Touches:` and not in this one. T5 carries; T6 records.
+- The `brand-register` slug refusal survives. This task implements the
+  behaviour; **T11 records the verdict**, because the ledger is in T11's
+  `Touches:` and not in this one. It is a fifth ledger entry, not one of the
+  four manual-QA judgements the Testing Strategy enumerates.
 - The three legacy-1.x migration prompts and the three `type:`-collision branches
   survive.
 - `content-design/SKILL.md` cites `references/editorial-quality-gates.md`.
 - Neither removed name survives inside the surviving skill **in registration,
   routing-target or path position**. The `type: tone-of-voice` discriminator
-  literals are required to survive — seven of them in `SKILL.md` — so an
+  literals are required to survive — **seven** `type: tone-of-voice` and **two**
+  `type: copy-direction` in `SKILL.md` — so an
   unqualified "neither name survives" contradicts the carve-out. Five lines of
-  `content-design/SKILL.md` and one of `references/communication-modes.md` name
-  them in the forbidden positions today, and this is the task that edits both.
+  `content-design/SKILL.md`, one of `references/communication-modes.md` and
+  **three of `evals/evals.json`** name them in the forbidden positions today,
+  and this is the task that edits all three.
 
 **Done when:** every mechanical test passes and `lint-experience-agnostic` exits 0.
 
@@ -1019,18 +1228,50 @@ recorded drop with its reason.
   in `pack.evals.skills` and the two sets are equal at **twelve** — membership,
   not length, and a check that a stub under a third name fails.
 - Neither removed name is declared; `content-design` is.
-- No removed name survives **as a registration** within the stated scope — the
-  five trees, `workspace.toml`, and the five `docs/` files this delivery edits.
-  Every surviving hit is a discriminator use on the protected list.
+- No removed name survives **as a registration inside
+  `packs/experience-design/.apm/skills/`**. This `Touches:` is four explicit
+  paths rather than the tree, so the assertion rests on the rule's second
+  clause — a task may assert what an **ancestor** installed. Measured
+  2026-09-26, exactly seven files under that tree match outside the two deleted
+  directories, and each is reachable: `content-design/SKILL.md`,
+  `content-design/references/communication-modes.md` and
+  `content-design/evals/evals.json` are T5's work; the relocated
+  `information-architecture/references/editorial-quality-gates.md` is T3's;
+  `information-architecture/references/conversion-design.md` and
+  `information-architecture/evals/evals.json` are this task's own; and
+  `experience-status/SKILL.md` is **this task's**, and its `Touches:` now names
+  it. An earlier enumeration called it "edited by nobody, because both of its
+  hits are counted discriminators" and was wrong twice: the file carries four
+  hits, not two, and the fourth is a registration — its "What to run next"
+  suggestion list names both removed skills as routing targets. The two
+  `type:` literals on lines 67-68 stay at their counted occurrences; the
+  suggestion line is retargeted to the surviving skill. That includes the genre
+  fold's three new surfaces, which are this task's work and nobody else's:
+  `information-architecture/references/conversion-design.md` names both removed
+  skills in routing-target position, and `information-architecture/evals/evals.json`
+  names them in bare-name position. Neither is a `type:` literal, so neither is
+  carved out. The **delivery-wide** sweep is deliberately not asserted here:
+  its remaining hits live in `guides/`, `web/`, `tools/`, `workspace.toml`, the
+  two RFCs and the changelog, which T7, T7a, T8, T10 and T11 clean — and all of
+  them depend on T6, so no ordering can put them before it. T11 owns that
+  assertion, as the last task in the graph.
 - The two directories' `evals/evals.json` and `evals/files/` are carried into
   `content-design/evals/` or their drop is recorded with a reason in
-  `notes/verification-ledger.md`. Neither asset dies unremarked with its
-  directory.
+  `notes/verification-ledger.md`, which this `Touches:` now reaches. It did not,
+  while this task was obliged to write that record.
+- **The byte-equality assertion goes GREEN here, not at T3.** T3 lands the
+  extension; it cannot be green there. The new test globs
+  `*/references/editorial-quality-gates.md` exactly as the containment precedent
+  globs its own module, and three copies exist until this task deletes two of
+  them — so between T3 and T6 the glob sees copies that legitimately differ.
+  T3 owns the extension's existence and its vacuity guard; this task owns its
+  passing.
 - Both templates have already moved under T5; this task confirms nothing under
   `assets/` is lost with the deletion.
 
-**Done when:** the two sets are equal at twelve, the registration grep is empty,
-and the harness disposition is recorded.
+**Done when:** the two sets are equal at twelve, the registration grep is empty
+**within `.apm/skills/`**, the byte-equality assertion passes, and the harness
+disposition is recorded in the ledger.
 
 **Approach:** `packs/AGENTS.md` § Security and authoring rules obliges a
 non-cosmetic pack update to update the pack's eval harness, and `skill_spec_lint`
@@ -1038,7 +1279,7 @@ cross-checks `pack.evals.skills` against `eval_queries.json` only — so a vanis
 `evals.json` leaves `catalogue lint --deep` green. The disposition is therefore
 stated here rather than inferred from a passing gate.
 
-**Touches:** packs/experience-design/.apm/skills/, packs/experience-design/pack.toml
+**Touches:** packs/experience-design/.apm/skills/copy-direction/, packs/experience-design/.apm/skills/tone-of-voice/, packs/experience-design/.apm/skills/experience-status/SKILL.md, packs/experience-design/.apm/skills/information-architecture/references/conversion-design.md, packs/experience-design/.apm/skills/information-architecture/evals/evals.json, packs/experience-design/pack.toml, tests/roster/test_experience_design_write_declaration_and_containment.py, docs/specs/xd-copy-router/notes/verification-ledger.md
 
 ### T7: Reviewer, cross-pack and sibling-brief surfaces are consistent
 
@@ -1047,7 +1288,12 @@ stated here rather than inferred from a passing gate.
 **Tests:**
 - `experience-reviewer.md`'s sync citation resolves; its `Does NOT fire on` list
   names surviving skills or artifact types.
-- `xd-state-reviewer-doctrine.md` is updated or recorded confirmed unaffected.
+- `xd-state-reviewer-doctrine.md` is updated against this delivery's
+  `experience-reviewer.md` edits, **or** recorded confirmed unaffected in
+  `notes/verification-ledger.md`. Both branches are available to this task
+  because both files are in its `Touches:`; while the ledger was absent from it,
+  an executor finding the intent genuinely unaffected had to either make a
+  pointless edit or write outside its authority.
 - `ux-writing/SKILL.md`'s `tone-of-voice step 6` pointer is retargeted while its
   **three** discriminator literals stay — the measured count, all on one line;
   `product-engineering/DESIGN.md` updated.
@@ -1056,17 +1302,25 @@ stated here rather than inferred from a passing gate.
   eight families becoming **four**: 19 files / 11 hashes, containment 5/1, layout
   10/7, editorial gates 2/1, interrogation 2/2. Both stale occurrences of the
   31/24 figure are amended, line 68's and line 81's.
-- `DESIGN.md` §4 rewritten as mode selection; no removed slug pack-wide **in
-  registration position**. The discriminator carve-out list survives untouched —
-  an unqualified "no removed slug" would forbid the `type: tone-of-voice`
-  literals the output contract requires.
-- `DESIGN.md` records that the byte-equality test supersedes the "Skill autonomy
-  beats DRY at this scale" note, which the fold reverses.
-- Astro build exits 0; census fixture matches.
+- `web/src/content/packs/experience-design.md`'s **ordinal** reads
+  `thirteenth skill`. This task owns that numeral because `web/src/content/**`
+  is in this `Touches:` and in no other task's; T7a owns the two `docs/index.md`
+  numerals and the guides numeral, which sit in its own. Neither task asserts
+  "every" numeral, because neither can reach them all.
+- `web/src/content/{journeys,packs}/experience-design.md` name the surviving
+  skill only, including the journey page's `skills:` frontmatter list.
+- Astro build exits 0.
+- **Not this task's, and moved deliberately:** `packs/experience-design/DESIGN.md`
+  — both its § 4 rewrite and its supersession statement — is **T8's**. T8's
+  `Touches:` names that file and this task's no longer does, so one task edits
+  it. The census fixture is **T7a's**, for the same reason. Both clauses lived
+  here while this task's `Touches:` was the prefix `packs/experience-design/`,
+  which claimed files four other tasks edit.
 
-**Done when:** the sibling row reads post-fold and the site builds.
+**Done when:** the sibling brief row reads post-fold, the `web/` ordinal reads
+`thirteenth skill`, and the site builds.
 
-**Touches:** packs/experience-design/**, packs/product-engineering/**, docs/product/briefs/digital-experience-doctrine-completion.md, docs/product/intents/xd-state-reviewer-doctrine.md, web/src/content/**
+**Touches:** packs/experience-design/.apm/agents/experience-reviewer.md, packs/product-engineering/.apm/skills/ux-writing/**, packs/product-engineering/DESIGN.md, docs/product/briefs/digital-experience-doctrine-completion.md, docs/product/intents/xd-state-reviewer-doctrine.md, web/src/content/**, docs/specs/xd-copy-router/notes/verification-ledger.md
 
 ### T7a: The guide tree and the three registry surfaces are consistent
 
@@ -1075,11 +1329,15 @@ stated here rather than inferred from a passing gate.
 **Tests:**
 - `guides/experience-design/how-to/copy-boundary.md` describes mode selection
   within one skill.
-- Every skill-count numeral reads its post-fold form, checked **per numeral**:
-  `guides/…/reference/experience-design.md` "12 pure-Markdown skills" (reads "20"
-  today, 14 after the genre fold), and `packs/experience-design/docs/index.md`'s
-  **two** numerals — the prose line and the `**Skills (N)**` heading. Checking
-  only the prose line leaves the heading stale.
+- **The three skill-count numerals in this task's own `Touches:`** read their
+  post-fold form, checked per numeral: `guides/…/reference/experience-design.md`
+  "12 pure-Markdown skills" (reads `14` today, on the 2026-09-26
+  post-genre-fold reading this pair records throughout), and
+  `packs/experience-design/docs/index.md`'s **two** numerals — the prose line
+  and the `**Skills (N)**` heading. Checking only the prose line leaves the
+  heading stale. The word "every" is deliberately not used: the fourth
+  numeral is the `web/` ordinal, which lives in T7's `Touches:` and is
+  asserted there.
 - `README.md` and `JOURNEY.md` carry no skill-count numeral today and acquire
   none; their obligation is naming the surviving skill set, not a count.
 - `workspace.toml` carries no removed skill name.
@@ -1111,18 +1369,34 @@ three acceptance criteria name them.
 - Neither **new** entry names a spec or a brief; RFC-0062's frozen 2026-08-02
   entry keeps its spec path and moves to `### History` unchanged.
 - Both sections in RFC-0055 D2's two-layer form.
+- **`packs/experience-design/DESIGN.md`, in full — moved here from T7.** § 4's
+  "Content-design vs. tone-of-voice vs. copy-direction vs. ux-writing" section
+  is rewritten as mode selection within one skill plus the one surviving
+  cross-pack boundary. § 7's artifact table `copy/` row is retargeted. The file
+  records that the byte-equality test supersedes the "Skill autonomy beats DRY
+  at this scale" note, which this fold reverses. No removed name survives in
+  this file in registration position; `DESIGN.md` holds no `type:` literal of
+  either kind, so it carries no discriminator carve-out. This task's `Touches:`
+  is the only one naming the file.
 
-**Done when:** both entries exist in two-layer form and cite no delivery artifact.
+**Done when:** both entries exist in two-layer form, cite no delivery artifact,
+and `DESIGN.md` carries the rewritten § 4, the retargeted § 7 row and the
+supersession statement.
 
 **Touches:** docs/rfc/0062-content-design-and-copy-direction-skills.md, docs/rfc/0071-digital-experience-doctrine.md, packs/experience-design/DESIGN.md
 
 ### T9: The shipped routing controls match the accepted evidence
 
-**Depends on:** T5, T6
+**Depends on:** T5, T6, T7
 
 **Tests:**
 - The shipped `content-design` frontmatter description is byte-identical to
   T1's tested post-fold candidate and is at most 1024 characters.
+- The shipped `ux-writing` description is byte-identical to the post-fold
+  `ux-writing` description T1 put in its candidate set, or the divergence is
+  recorded as immaterial with its reason. T7 edits that description and T1 runs
+  first, so without this check the probe's boundary candidate is not the one
+  that ships.
 - The evidence note still records all nine pre-fold and nine post-fold rows,
   18/18 expected high-confidence selections, zero retries, and every stated
   proxy limit.
@@ -1146,9 +1420,18 @@ stops the slice.
 - `experience-design` reads `4.0.0` in both manifests **and** in the regenerated
   `.claude-plugin/marketplace.json` entry, read as JSON — the projection is a
   third surface and an earlier draft checked only the two source manifests.
-- `product-engineering` reads exactly **one patch above its merge-base value** in both, and in the projection. The 2026-09-25 reading is `0.13.18`, so the target is `0.13.19` unless the base has moved; the target is derived at execution time, never copied from here.
+- `product-engineering` reads exactly **one patch above its merge-base value** in both, and in the projection. The 2026-09-26 reading, after the rebase onto `origin/main`, is `0.13.19`, so the target is `0.13.20` unless the base has moved again; the target is derived at execution time, never copied from here.
 - Two changelog entries; the `experience-design` one names both removed skills.
-- Both catalogue commands exit 0.
+- **The delivery-wide registration sweep is not asserted here either.** This
+  task writes the changelog, and T11 writes it again — its adopter-action text
+  names both removed directories, which are sweep hits this task cannot see. The
+  assertion belongs to the last task in the graph, which is T11.
+- Every pack's `.claude-plugin/marketplace.json` entry equals its own
+  `pack.toml`, not only the two this delivery bumps. The regeneration clears the
+  inherited `experience-design 2.0.9` and `frontend-engineering 0.3.2` entries
+  recorded under Construction tests; this is the task that clears them.
+- Both catalogue commands exit 0. Before this task they do not, for that
+  inherited reason.
 
 **Done when:** every version surface agrees and catalogue passes.
 
@@ -1161,9 +1444,36 @@ stops the slice.
 **Tests:**
 - Observed `agentbundle` install/update behaviour for a removed directory
   recorded; the changelog states the manual step if stale directories persist.
-- Four manual-QA verdicts recorded with reviewer and date.
+- Four manual-QA verdicts recorded with reviewer and date, plus the
+  `brand-register` slug-refusal verdict, which is a fifth ledger entry rather
+  than one of the four: `spec.md`'s Testing Strategy enumerates four judgements
+  and the refusal is not among them, so recording it as one of the four would
+  displace a judgement the contract names.
+- **The delivery-wide registration sweep carries no unclassified hit.** This is
+  the last task in the graph and the only position from which the whole scope is
+  reachable: T6 cleans `.apm/skills/`, T7 the reviewer and cross-pack surfaces,
+  T7a the guides and registry surfaces, T8 amends the two RFCs, T10 the release
+  surfaces, and this task writes the changelog last. Run the sweep block from
+  the verification command map and place every surviving hit in one of four
+  classes:
+  1. **Registration** — a roster, routing target, availability probe or install
+     list. A defect. Must be zero.
+  2. **Counted discriminator** — `type: tone-of-voice` or `type: copy-direction`
+     at an occurrence count the carve-out tables record. Required to survive;
+     a missing one fails a number.
+  3. **Release history** — `docs/product/changelog.md`. Permanent and expected:
+     the `4.0.0` entry is obliged to name both removed skills, and this task
+     adds adopter-action text naming both retired directories.
+  4. **Frozen decision record** — `docs/rfc/0062-…md` and `docs/rfc/0071-…md`.
+     Permanent and expected. Both are `Status: Accepted`, which the spec amends
+     by erratum only, so T8 adds entries and removes nothing; RFC-0062 cannot
+     stop matching at all, because its filename and title name the skill. The
+     assertion is **not** that these files stop matching — that would require
+     the rewrite the `Never do` rule refuses.
 
-**Done when:** the ledger carries the install observation and all four verdicts.
+**Done when:** the ledger carries the install observation, all four verdicts and
+the refusal verdict, and every sweep hit falls in one of the four classes with
+class 1 empty.
 
 **Touches:** docs/specs/xd-copy-router/notes/verification-ledger.md, docs/product/changelog.md
 
@@ -1250,3 +1560,39 @@ keeps its path and `type:`, so no adopter content migrates. Rollback is
   the fixed 18-call proxy before any pack edit; T9 verifies the exact tested
   description and the 29-positive / 32-negative corpus without another live
   activation run.
+
+- 2026-09-26 — **Amended scope re-approved by eugenelim after six confirmatory
+  review rounds.** The pair was re-reviewed against a tree the approval had not
+  seen: the sibling genre fold had landed and the branch had been rebased onto
+  `origin/main`. Six rounds raised 46 findings and sustained 40. Three
+  acceptance criteria change. `type: copy-direction` becomes a second
+  discriminator carve-out with its own measured occurrence counts, because the
+  sweep pattern matches it as a whole word and carving out only
+  `type: tone-of-voice` made the surviving skill's own check contradict the
+  output contract. The routing probe must test the post-fold `ux-writing`
+  description rather than today's, because this delivery edits that description
+  and T1 runs before T7 installs it. The final registration sweep classifies
+  into four classes rather than asserting emptiness, because two `Accepted`
+  RFCs match the pattern permanently — RFC-0062 by its own filename — and the
+  only way to make them stop is the rewrite the `Never do` rule refuses.
+
+- 2026-09-26 — **Amended build strategy re-approved by eugenelim.** The task
+  list is reconciled against one rule, now stated at the head of `## Tasks`: a
+  task may only assert what its own `Touches:` reaches or an ancestor installs.
+  The list violated it throughout, and each violation read as reasonable alone —
+  a delivery-wide sweep asserted at the task that deletes the directories, a
+  shared-file equality test closed out before the duplicate copies are gone, a
+  ledger record required from a task that may not write the ledger. `Touches:`
+  is now precise edit authority rather than a convenient prefix, six assertions
+  moved to the task that can reach them, and no two unordered tasks share edit
+  authority over any path. The verification map's registration sweep was also
+  repaired: it passed its five in-scope `docs/` paths as one unquoted scalar,
+  which `zsh` does not word-split, so under this repository's shell it scanned
+  none of them and still exited 0.
+
+  **Residual accepted.** Round six's four findings were applied but not
+  re-reviewed, so no reviewer has confirmed the pair clean against the final
+  state. The residual is bounded: every factual claim in those four was
+  verified directly against the tree before repair, and all nine carve-out
+  occurrence counts were re-measured afterwards. This follows the stop rule this
+  delivery's earlier round six already set.
