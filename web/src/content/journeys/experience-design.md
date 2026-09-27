@@ -120,7 +120,7 @@ relatedJourneys:
 | `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |
 | `information-architecture` | Decide what goes where on each screen and how users stay oriented | Required |
 | `interaction-design` | Design states, feedback, and animation per screen | Required |
-| `experience-reviewer` | Independent cold review — forked context, read-only | Required |
+| `experience-reviewer` | Independent cold review — forked context, read-only. A reviewer agent the design thread dispatches, described here rather than run like the skills above | Required |
 
 ---
 
@@ -136,12 +136,10 @@ journey-mapping
   Stage 1  Aware          finds product, expectations vague
   Stage 2  First-session  blank state, no direction, high drop-off
   Stage 3  Value          first export, relief, converts
-
-Approve the journey and screen list? ›
 ```
 
-- **You decide:** approve the journey map before screens are derived from it — a one-sentence redirect here saves a full design cycle.
-- **Output:** an approved journey map with key failure modes and a derived screen list.
+- **You decide:** read the journey and redirect it now — a one-sentence correction here is cheaper than one after screens exist. The `approve-journey` gate itself covers the journey *and* the screens derived from it, so it closes at the end of step 2.
+- **Output:** a journey map with the outcome, the key failure modes, and the peak, dip, and end moments marked. Screens are derived next, by `user-flow`.
 - **State:** draft
 
 #### The minimal viable thread
@@ -204,9 +202,12 @@ user-flow
 
   /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
   States per screen: loading · empty · error · success · content · partial · disabled
+
+Approve the journey and screen list? ›
 ```
 
-- **Output:** a screen inventory with per-screen briefs, ready for the craft sequence.
+- **You decide:** the `approve-journey` gate closes here — you approve the journey and the screen list together, because the check that earns it is whether every screen traces to a moment in the journey.
+- **Output:** an approved screen inventory with per-screen briefs, ready for the craft sequence.
 - **State:** draft
 
 ---
@@ -252,10 +253,10 @@ interaction-design [/onboarding/welcome]
 
 ### 5. Review independently
 
-Type `experience-reviewer`. It reads your design artifacts cold — no authoring context — and returns findings across handle-all-states, WCAG 2.2 AA, aesthetic fit, and cross-screen coherence.
+Ask for an independent review of the finished design set. The `experience-reviewer` agent is dispatched to do it — a reviewer role rather than a skill you type. It reads your design artifacts cold, with no authoring context, and returns findings across handle-all-states, accessibility, aesthetic fit, and cross-screen coherence.
 
 ```text
-experience-reviewer
+independent review — findings returned in session
 
   Blocker  Welcome screen: empty state not designed
   Concern  Connect screen: error text has no recovery action

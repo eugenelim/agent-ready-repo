@@ -258,8 +258,11 @@ modes or `ux-writing`.
 
 Declare the chosen genre once in the per-screen brief's `surface-genre:` field.
 `information-architecture` applies the matching method for marketing,
-documentation, analytical, informational, marketplace, workspace, or general IA
-surfaces without replacing the connective or behavior skills.
+documentation, analytical, informational, marketplace, or workspace surfaces
+without replacing the connective or behavior skills. A `transactional-journey`
+brief routes to `interaction-design`'s wizard-and-stepper patterns instead. When
+a brief declares no genre the skill elicits one rather than falling back to a
+generic method — the genre is what supplies the structural vocabulary.
 
 Use it when a screen needs genre-fit structure: an acquisition page's offer
 story, a help center's navigation, a monitoring view's business questions, an
