@@ -9,9 +9,6 @@ output is correct.
 
 Use `pt` for typographic values here.
 
-When the output targets a PPT slide or PDF export, add this block and use
-`pt` for typographic values:
-
 ```css
 @page {
   size: 960px 540px; /* 16:9 slide — standard widescreen */

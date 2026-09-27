@@ -153,6 +153,11 @@ def test_the_entrypoint_states_the_precedence_and_routes_to_the_reference() -> N
     """
     text = SKILL.read_text(encoding="utf-8")
     preflight = text.split("## PLAN phase", 1)[1].split("\n## ", 1)[0]
+    # Bound at the first mode subsection: AC-0000 names the shared pre-flight,
+    # and the mode sections that follow are a different contract. Without this
+    # the window is the whole PLAN phase, and rung keys relocated into a mode
+    # section would satisfy the test while the criterion is false.
+    preflight = preflight.split("\n### Mode:", 1)[0]
     positions = [preflight.find(rung) for rung in RUNGS]
     assert all(pos >= 0 for pos in positions), (
         f"the PLAN pre-flight is missing rung keys: "

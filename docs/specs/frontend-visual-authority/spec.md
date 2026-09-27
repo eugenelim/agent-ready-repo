@@ -37,7 +37,8 @@ no visual-verification claim can be recorded for a surface nothing looked at.
 - A four-rung visual-authority precedence rule, replacing the named-aesthetic-reference step — `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md` § PLAN pre-flight
 - The canonical product-reference table (Linear, Stripe, Vercel, Raycast, Arc, Notion, Toss) — deleted
 - Every surviving pointer to that table, renamed to the standalone fallback rung it becomes — `SKILL.md` § 0, `references/design-handoff.md` § refusals, and the shipped `design-handoff-read` eval case
-- The concrete seed token block and its print/PPT companion, moved out of the always-loaded path — `references/fallback-tokens.md`
+- The concrete seed token block, moved out of the always-loaded path — `references/fallback-tokens.md`
+- The print/PPT block, moved to its own reference and routed independently of which rung supplied token values — `references/print-surface.md`. Held by a regression assertion rather than a criterion: it guards a defect this slice introduced and then fixed, which the accepted intent did not ask for
 - A render → observe → bounded-correct loop for significant visual work — `SKILL.md` § EXECUTE phase
 - Perceptual comparison guidance and the machine-readable rule tables behind it — `references/visual-observation.md`
 - One new evidence-manifest field, `visual authority` — `SKILL.md` § Evidence manifest, the field list `fe-status` reads, and the two guide manifest examples

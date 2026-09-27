@@ -122,3 +122,43 @@ describe one reachable world.
 | deep catalogue lint | exit 0 |
 | roster + conformance | 75 passed |
 | spec-status lint | metadata clean |
+
+## Implementation review round 2 — no blockers
+
+Three concerns, five nits. Two are worth recording because they are repeats of
+traps this work already hit once.
+
+**The print-route assertion I added to fix a whole-file-search hole was itself
+a whole-file search.** It asserted the link appeared somewhere in `SKILL.md`,
+so moving that link inside the rung-gated fallback bullet — restoring the exact
+defect it was written to prevent — would have left it green. It is now scoped
+to a position after the rung list, and proved: link present but rung-gated
+reds.
+
+**Verifying a stale sentence, I grepped for a phrase that wraps across a line
+break and concluded it was absent.** It was present. This is the same
+line-wrap trap that made the original stranded-pointer criterion miss two of
+its nine sites, and the reason that criterion's predicate is
+whitespace-normalized. A containment grep over raw text is not a safe way to
+prove a phrase is gone.
+
+Also repaired: the trim had dropped "continue with the checks that genuinely
+run", which the shipped no-browser eval asserts — the skill no longer
+instructed behaviour its own eval graded; the pre-flight assertion's window now
+stops at the first mode subsection rather than running to the end of the PLAN
+phase; the version pin's failure message reads as scheduled slice-2 work rather
+than a regression; the print reference states its trigger once; and the release
+note names where print guidance now lives.
+
+`references/print-surface.md` is held by a regression assertion rather than an
+acceptance criterion, deliberately: it guards a defect this slice introduced
+and fixed, which the accepted intent never asked for.
+
+| Gate | Result |
+| --- | --- |
+| ruff / mypy | clean |
+| pack suite | 413 passed |
+| deep catalogue lint | exit 0 |
+| roster + conformance | 65 passed |
+| spec-status lint | metadata clean |
+| self-host | ok |

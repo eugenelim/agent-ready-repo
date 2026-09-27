@@ -86,6 +86,19 @@ def test_print_guidance_is_reachable_from_every_rung() -> None:
         "print CSS is back in the rung-gated fallback, where a surface on a "
         "higher rung is told never to load it"
     )
-    assert "references/print-surface.md" in SKILL.read_text(encoding="utf-8"), (
-        "the entrypoint does not route to the print guidance"
+    # Scoped, not a whole-file search. The claim is that the route is reachable
+    # *whatever rung* supplied the values, so a link that drifts inside the
+    # rung-gated fallback bullet must red — that is the defect this guards, and
+    # a containment check over the file would not see it.
+    skill = SKILL.read_text(encoding="utf-8")
+    step_two = skill.split("### 2. Resolve token values", 1)[1].split("\n### ", 1)[0]
+    assert "references/print-surface.md" in step_two, (
+        "the token-resolution step does not route to the print guidance"
     )
+    rung_gate = step_two.index("only\n   when neither exists")
+    route = step_two.index("references/print-surface.md")
+    assert route > step_two.index("Whichever rung supplies them"), (
+        "the print route sits inside the rung-gated part of the step; a deck "
+        "whose tokens came from a taxonomy would never be told to load it"
+    )
+    assert route > rung_gate

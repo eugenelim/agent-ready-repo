@@ -83,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The named-aesthetic-reference step is now visual-authority resolution. The canonical product-reference table is gone, along with every pointer to it.
 - The seed token block moved out of the always-loaded skill into a fallback reference, read only when no taxonomy and no incumbent system supply values.
+- Print and slide guidance — the page box, colour-adjust and page-break rules — moved to its own reference, loaded whenever the output targets a PPT slide or PDF export, whatever supplied the token values.
 
 ### Fixed
 

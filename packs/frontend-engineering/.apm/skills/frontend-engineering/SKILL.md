@@ -209,8 +209,7 @@ answers.
 2. **The incumbent token system** already in the repository, when the surface
    has one. Extend it; do not fork it.
 3. **[`references/fallback-tokens.md`](references/fallback-tokens.md)**, only
-   when neither exists. It carries a minimum semantic set and the print/PPT
-   companion.
+   when neither exists. It carries a minimum semantic set.
 
 Whichever rung supplies them, define primitives once and reference them from a
 semantic layer: `Primitive → Semantic → Component`, one-way. Components read
@@ -399,8 +398,9 @@ Render the smallest set that makes judgement meaningful: the primary state, one
 narrow-channel capture where responsive behaviour carries intent, and any state
 that materially changes the arrangement. **This does not discharge the GATES
 step 5 capture matrix** — that gate still runs in full. If nothing can be
-rendered, name the missing capability and claim no visual verification; a claim
-with no capture behind it is rejected.
+rendered, name the missing capability, claim no visual verification, and
+continue with the checks that genuinely run; a claim with no capture behind it
+is rejected.
 
 The comparison is perceptual, not pixel parity, and a visual target never
 overrides correct responsive adaptation or accessible behaviour. Activation

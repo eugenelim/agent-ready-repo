@@ -75,5 +75,7 @@ def test_the_pack_and_plugin_versions_match_and_moved() -> None:
     version = _pack()["pack"]["version"]
     assert version == json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))["version"]
     assert version == "0.3.4", (
-        f"slice 1 ships at 0.3.4 per the spec; pack.toml carries {version!r}"
+        f"pack.toml carries {version!r}, not the 0.3.4 slice 1 ships at. If "
+        f"slice 2 is landing, this pin moves to 0.3.5 with it — that is "
+        f"scheduled work, not a regression."
     )
