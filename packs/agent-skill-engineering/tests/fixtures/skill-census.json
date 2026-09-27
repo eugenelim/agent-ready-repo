@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 138,
+  "population_size": 139,
   "entries": [
     {"pack": "_example", "skill": "example-skill", "families": ["inline-procedure"], "exception": null},
     {"pack": "_okf-pilot-cost-engineering", "skill": "cost-engineering", "families": ["procedure-plus-generated-reference-handoff"], "exception": null},
@@ -48,6 +48,7 @@
     {"pack": "core", "skill": "capture-work", "families": ["compatibility-deprecation", "artifact-template-producer"], "exception": null},
     {"pack": "core", "skill": "close-work", "families": ["state-status-lifecycle", "artifact-template-producer"], "exception": null},
     {"pack": "core", "skill": "contract-acquisition", "families": ["progressive-reference", "deterministic-script-backed"], "exception": null},
+    {"pack": "core", "skill": "explain-diff", "families": ["artifact-template-producer", "deterministic-script-backed", "progressive-reference"], "exception": null},
     {"pack": "core", "skill": "init-project", "families": ["artifact-template-producer", "explicit-multi-mode"], "exception": null},
     {"pack": "core", "skill": "intake-intent", "families": ["router-or-intake-classifier", "artifact-template-producer"], "exception": null},
     {"pack": "core", "skill": "new-spec", "families": ["artifact-template-producer", "state-status-lifecycle"], "exception": null},

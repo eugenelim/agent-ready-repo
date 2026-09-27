@@ -63,6 +63,7 @@ confirmation and pending receipt.
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
 | `close-work` | Verify lasting context, pause or close delivery work, and preview a safe disposition |
 | `bug-fix` | Diagnose and fix a specific bug |
+| `explain-diff` | Turn a local diff, branch, commit, or PR representation into one model-designed offline HTML lesson |
 | `intake-intent` | Create or admit a repository intent |
 | `author-delivery-brief create\|continue` | Create a coordination brief or continue one into confirmed spec slices |
 | `new-spec` | Author a spec directly, without the brief layer; it can use shaping review before construction |

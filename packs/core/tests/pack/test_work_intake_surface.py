@@ -31,7 +31,10 @@ _SKILL_BODIES = {
     "new-spec": (_SKILLS / "new-spec" / "SKILL.md").read_text(encoding="utf-8"),
     "workspace-status": (_SKILLS / "workspace-status" / "SKILL.md").read_text(encoding="utf-8"),
     "work-loop": (_SKILLS / "work-loop" / "SKILL.md").read_text(encoding="utf-8"),
+    "explain-diff": (_SKILLS / "explain-diff" / "SKILL.md").read_text(encoding="utf-8"),
 }
+_EXPLAIN_DIFF_EVALS = _SKILLS / "explain-diff" / "evals" / "evals.json"
+_EXPLAIN_DIFF_REFERENCES = _SKILLS / "explain-diff" / "references"
 _EVAL_QUERY_FILES = {
     "new-spec": _SKILLS / "new-spec" / "evals" / "eval_queries.json",
     "bug-fix": _SKILLS / "bug-fix" / "evals" / "eval_queries.json",
@@ -46,6 +49,7 @@ _EVAL_QUERY_FILES = {
     "receive-brief": _SKILLS / "receive-brief" / "evals" / "eval_queries.json",
     "capture-work": _SKILLS / "capture-work" / "evals" / "eval_queries.json",
     "close-work": _SKILLS / "close-work" / "evals" / "eval_queries.json",
+    "explain-diff": _SKILLS / "explain-diff" / "evals" / "eval_queries.json",
 }
 _FIXTURE_PATHS = {
     "evals/files/routing/start-minimal-intent.json": (
@@ -116,6 +120,7 @@ _CHANGED_SKILLS = {
         "Read Write Edit Bash Agent",
         {"filesystem_write", "filesystem_read_untrusted", "network_fetch"},
     ),
+    "explain-diff": ("Read Write Bash", {"filesystem_write", "filesystem_read_untrusted"}),
 }
 
 
@@ -258,6 +263,99 @@ def test_changed_skill_permissions_are_minimal() -> None:
         assert match is not None, skill
         assert match.group(1) == allowed_tools, skill
         assert _boundaries(frontmatter) == boundaries, skill
+
+
+def test_explain_diff_workflow_pins_model_owned_html_contract() -> None:
+    body = _SKILL_BODIES["explain-diff"]
+    frontmatter = _frontmatter(body)
+    assert re.search(r"^allowed-tools:\s*Read Write Bash$", frontmatter, re.MULTILINE)
+    assert "version-2" not in body
+    assert "archetype" not in body.lower()
+    assert "references/html-authoring.md" in body
+    assert "scripts/publish_explanation.py" in body
+    assert "Name the page's teaching concept" in body
+    assert "visual system, and reading sequence" in body
+    assert "Author one complete HTML document directly" in body
+    assert "reviewer fast path" in body
+    assert "repository-relative file" in body
+    assert "minimal before/after excerpt or concrete worked behavior" in body
+    assert "literal technical thesis before using a metaphor" in body
+    assert "No palette, font stack, light/dark mode, density" in body
+    assert "fallback font with different metrics" in body
+    assert "inline paths wrap without widening" in body
+    assert "never color an incorrect or unanswered result as\n   success" in body
+    assert "Never treat a sample page, prior output, palette, type stack, or theme" in body
+    assert "data-quiz-rationale" in body
+    assert "one non-empty `name` that is unique to that question" in body
+    assert "session-specific open or inspection result in the handoff" in body
+    assert "EXPLAIN_DIFF_CSP" in body
+    assert "EXPLAIN_DIFF_RUNTIME" in body
+    assert "No package install, network request, external asset, browser runtime, or other\npack is required" in body
+
+    contract = (_EXPLAIN_DIFF_REFERENCES / "html-authoring.md").read_text(encoding="utf-8")
+    for required in (
+        "Teaching concept",
+        "Central visual",
+        "data-explain-role=\"background\"",
+        "data-explain-role=\"intuition\"",
+        "data-explain-role=\"code\"",
+        "data-explain-role=\"quiz\"",
+        "data-evidence=\"observed\"",
+        ":focus-visible",
+        "prefers-reduced-motion",
+        "fast path near the start",
+        "why the difference matters",
+        "one dominant analogy",
+        "No sample output establishes a cream editorial theme",
+        "Do not copy CSS from a previous explainer",
+        "Grid and flex children can shrink",
+        "Compose for the whole fallback stack",
+        "Inline `code`, file paths, and identifiers",
+        "Tables keep short headers and labels readable",
+        "Quiz feedback is neutral before evaluation",
+        "one non-empty name unique to that question",
+        "This is an audience\ndecision, not a rule",
+        "data-quiz-rationale",
+        "purple",
+        "gradient",
+    ):
+        assert required in contract
+    assert "Do not include `script`, event-handler attributes" in contract
+
+
+def test_explain_diff_workflow_evals_cover_model_authored_html_cases() -> None:
+    evals = json.loads(_EXPLAIN_DIFF_EVALS.read_text(encoding="utf-8"))["evals"]
+    by_id = {case["id"]: case for case in evals}
+    expected = {
+        "local-diff-model-authored-html-boundary",
+        "architecture-boundary-page-uses-component-map",
+        "data-flow-page-uses-transformation-path",
+        "fail-closed-lifecycle-page-uses-state-story",
+        "mixed-audience-reviewer-fast-path",
+        "sensitive-literals-are-placeholdered-before-publication",
+        "installed-skill-remains-independent",
+        "browser-capability-offered-only-after-consent",
+        "no-browser-capability-local-open-instructions",
+    }
+    assert expected <= by_id.keys()
+
+    all_assertions = "\n".join(
+        assertion for case in evals for assertion in case["assertions"]
+    )
+    assert "complete HTML document directly rather than JSON" in all_assertions
+    assert "repository-relative files and symbols" in all_assertions
+    assert "question-specific teaching rationale" in all_assertions
+    assert "default or prior-page theme" in all_assertions
+    assert "publish_explanation.py" in all_assertions
+    assert "credential-shaped values" in all_assertions
+    assert "does NOT reference or require any other pack or skill" in all_assertions
+    assert "does NOT claim browser rendering or visual QA happened" in all_assertions
+
+    queries = json.loads(_EVAL_QUERY_FILES["explain-diff"].read_text(encoding="utf-8"))
+    false_queries = {item["query"] for item in queries if item["should_trigger"] is False}
+    assert "Review this diff for bugs, missing tests, and security issues." in false_queries
+    assert "Convert this Markdown guide into HTML." in false_queries
+    assert "Build a polished product UI for comparing two code snippets." in false_queries
 
 
 def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:

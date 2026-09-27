@@ -64,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.0] — 2026-09-27
+
+### Highlights
+
+- Ask the agent to explain a diff, branch, commit, or pull request and you get back one self-contained offline HTML lesson — background, intuition, a code walkthrough, and a five-question quiz — written for that specific change rather than poured into a shared template. The agent reports the exact file path it wrote.
+
+### Added
+
+- `explain-diff` skill. It traces the changed code and nearby tests, designs the lesson, and publishes it through a bundled standard-library publisher that needs no network access and no third-party dependency.
+- The publisher writes a dated, collision-resistant file under the operating system's temporary directory by default, and writes elsewhere only to an output root the user approves. It redacts secrets, tokens, email addresses, private hostnames, personal names, and user-home paths from the page while preserving the code path being taught.
+- `work-intake` routes explanation requests to `explain-diff`, keeping them separate from correctness review, bug fixing, and document conversion.
+
 ## [core][2.26.46] — 2026-09-26
 
 ### Highlights
