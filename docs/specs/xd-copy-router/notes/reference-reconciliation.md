@@ -143,3 +143,70 @@ agnosticism ADR-0024 and RFC-0033 establish for shipped pack content.
 No meaning is lost: in every instance the sentence already names the *attribute*
 being borrowed, which is the referent the rule is about — the company name was
 never load-bearing.
+
+## `copy-grounding.md` — localized
+
+**Outcome:** one body at `content-design/references/copy-grounding.md`, built
+from `tone-of-voice`'s variant, which is a near-superset, with four verdicts
+applied. `copy-direction`'s variant did not "lose": the one section it held
+alone survives in full.
+
+| Difference | Classification | Disposition |
+| --- | --- | --- |
+| Persona-language definition: `copy-direction` scopes mining to "this surface's reader type" | Scope-borne | Parameterised to "the scope's reader type" |
+| "This is the strongest referent because it connects the goal directly to the reader's frame of reference" | Rule only in `tone-of-voice` | Kept |
+| VoC source bullets: `tone-of-voice` adds why each source is trustworthy ("before any product vocabulary has landed", "without performing for a brand", "not the survey's vocabulary") | Richer on one side | Kept |
+| Absent-VoC handling: `copy-direction` flags the literal string **"directional — not backed by VoC research"**; `tone-of-voice` describes the flag in prose | Both real; one is checkable | `copy-direction`'s literal **wins**. A reader copies a literal; a description has to be re-invented, and the two would drift |
+| "Record the answer as a sketch — it is an approximation, not a validated referent" | Rule only in `tone-of-voice` | Kept |
+| "A copy goal grounded only in the team's sense of what sounds right is a preference, not a referent. Push it back to elicitation." | Rule only in `tone-of-voice` | Kept |
+| Precedent definition: `tone-of-voice` adds "provide a concrete pointer a team can orient to without abstracting the goal into a formula" | Richer on one side | Kept |
+| Precedent example names a real company | Brand-naming | `[example service]` wins; see the convention verdict above |
+| Anti-pattern "Licenses": `tone-of-voice` adds "Readers who recognize the source will feel the copy is derivative" | Rule only in `tone-of-voice` | Kept |
+| Whole block: "Common copy precedent domains to consider" (4 domains) | Present only in `tone-of-voice` | Kept in full |
+| Persuasion standards: `tone-of-voice` adds the failure mode for each of the three standards | Richer on one side | Kept |
+| Whole section: "Relationship to the brand register" | Present only in `copy-direction` | **Kept in full.** Its cross-skill reference to a `tone-of-voice` doc is restated as "the artifact the brand-level register mode writes" — the skill is gone, the artifact and the obligation are not |
+| Recording destination: "the copy-direction doc" vs "the tone-of-voice doc" | Scope-borne, and both name removed skills | Restated as "the document this mode writes" |
+
+## `plain-language-floor.md` — localized
+
+**Outcome:** one body at `content-design/references/plain-language-floor.md`,
+built from `tone-of-voice`'s variant with four verdicts applied.
+
+| Difference | Classification | Disposition |
+| --- | --- | --- |
+| Floor definition: `tone-of-voice` adds "it applies regardless of direction" | Rule only in `tone-of-voice` | Kept |
+| "Two bodies of guidance define the floor" framing, and the "Known for:" gloss on each standard | Richer on one side | Kept |
+| "Neither standard is reprinted here… Specific guidance from either standard is cited by its source when applied." | Rule only in `tone-of-voice` | Kept |
+| Check 1 anchor: "the reader map" vs "the reader map from Step 1" | Scope-borne — the step number is each mode's own | Unnumbered form kept, which is true in both modes |
+| Check 1 escape hatch: `copy-direction` admits a referent showing the audience **uses** the jargon natively; `tone-of-voice` admits only one that **translates** it | Substantive — the two admit different evidence | **Union kept.** Taking `tone-of-voice`'s narrower form alone would have silently removed a legitimate grounding route |
+| "This is distinct from technical precision — a developer audience brings technical vocabulary" | Rule only in `tone-of-voice` | Kept; "for this brand" parameterised to name the scope on both sides |
+| Check 2: "fragile — it fails when the audience expands, the market changes, or the product localises" | Rule only in `tone-of-voice` | Kept |
+| Check 3: the worked "speaks peer-to-peer with founders" example | Richer on one side | Kept |
+| Recording destination: "the copy-direction doc" vs "the tone-of-voice doc" | Names removed skills | Restated as "the document this mode writes" |
+
+## `audience-jtbd.md` ↔ `copy-jtbd.md` — the same role under two names
+
+**Outcome:** one body at `content-design/references/copy-jtbd.md`. The merged
+file is **not** named `audience-jtbd.md`: `creative-direction` holds a third file
+of that basename which this delivery does not touch, so reusing the name would
+open a new two-copy family instead of closing one.
+
+The pre-fold `diff` has **ten hunks** across 22 changed lines. Adjacency is
+textual, so hunks are not the unit of a substantive difference — but every one
+is accounted for below, folded into a row or named as not substantive.
+
+| # | Hunk | Difference | Disposition |
+| --- | --- | --- | --- |
+| 1 | `1c1` | Title "Audience JTBD mapping for copy-direction" vs "Copy JTBD mapping" | Scope-borne and skill-naming. Scope-neutral title kept |
+| 2 | `7c7` | "It is distinct from a generic persona description…" | Rule only in `copy-jtbd`. Kept |
+| 3 | `13c13` | *Situation* examples: "reading a campaign announcement" vs "reading an announcement after an upgrade" | Not substantive — both are illustrations of the same slot. **Both kept**, since each names a real moment the other omits |
+| 4 | `15c15` | *Goal* example: "a clear reason to act now" vs "to upgrade now" | Not substantive. The more general "act now" kept, which covers the upgrade case |
+| 5 | `19c19` | Section heading swap | Consequence of rows 6 and 7, not a difference of its own |
+| 6 | `21c21` | Whole section "The difference between a copy JTBD and an aesthetic JTBD" | Present only in `copy-jtbd`. **Kept in full.** Its closing line "Copy direction uses the copy JTBD as its primary audience referent" became "Both copy modes use…" |
+| 7 | `23,24d22` | Whole section "Relationship to the content brief", plus its worked example | Present only in `audience-jtbd`. **Kept in full.** Its reference to "`content-design` output" became "the artifact the message and narrative structure mode writes" |
+| 8 | `27c25` | "Copy that serves the primary reader precisely and does not reach the secondary reader is still a success…" | Rule only in `copy-jtbd`. Kept |
+| 9 | `30,31c28,29` | **Ranking criteria 1 and 2 differ, and criterion 2 differs in kind, not only in scope.** Criterion 1 is scope-borne ("read this copy on this surface" vs "engage with this brand's copy"). Criterion 2 is two different tests: "Whose conversion matters most?" versus "Whose engagement is most register-dependent?" | Criterion 1 parameterised. **Criterion 2 keeps both tests**, named per mode under one heading. Dropping either would delete a ranking rule one surviving mode depends on — this is the "more than one ranking criterion" the spec warned the pair diverges on |
+| 10 | `40c38` | Exit question 1: "this surface's copy" vs "this copy" | Scope-borne. Parameterised, with the per-surface form kept as an aside |
+
+**Nothing dropped.** Both sections that existed on only one side survive in full,
+and both ranking criteria survive.
