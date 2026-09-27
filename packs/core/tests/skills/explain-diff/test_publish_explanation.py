@@ -117,7 +117,13 @@ def test_publisher_injects_only_the_fixed_runtime_and_matching_csp(tmp_path: Pat
 # STUB: AC-0003
 @pytest.mark.parametrize(
     ("draft", "message"),
-    [(b"{" + b" " * 1_048_576, "1,048,576 bytes"), (b"\xff", "UTF-8")],
+    # Explicit ids, not generated ones: pytest exports the node id as
+    # PYTEST_CURRENT_TEST, the child inherits it, and a generated id carrying the
+    # megabyte draft pushes the subprocess environment past ARG_MAX.
+    [
+        pytest.param(b"{" + b" " * 1_048_576, "1,048,576 bytes", id="oversize"),
+        pytest.param(b"\xff", "UTF-8", id="undecodable"),
+    ],
 )
 def test_publisher_rejects_size_and_encoding_before_output(
     tmp_path: Path, draft: bytes, message: str
