@@ -1,7 +1,7 @@
 # Plan: One copy-layer skill with three modes
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule; § Authoring or editing a skill); `tests/AGENTS.md` (the three guarded edits a **new** `tests/roster/test_*.py` owes, which this plan avoids by extending an existing suite); `tests/roster/test_experience_design_write_declaration_and_containment.py` — specifically `test_every_containment_copy_is_byte_identical`, which globs `*/references/containment.md` off the filesystem and is the pattern this delivery reuses, and separately `test_every_skill_citing_the_module_ships_its_own_copy`, which is the citation-derived one and runs citation → copy, so neither can fail on a copy that nothing cites; two analogous multi-mode skills — `packs/core/.apm/skills/project-knowledge/` (capture / distill / enquire behind one description) and `packs/core/.apm/skills/author-delivery-brief/` (create / continue); the accepted `xd-genre-router` routing-classification evidence and static-corpus approach. Named uncertainties: the pervasive-versus-localized divergence classification has no repository precedent and is authored here as a judgement with a recorded verdict; the bounded Codex probe is a description-level decision input, so production activation remains unmeasured.
 
 > **Plan contract:** this is the implementation strategy. It may change

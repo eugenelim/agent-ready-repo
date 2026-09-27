@@ -1,6 +1,6 @@
 # Spec: One copy-layer skill with three modes
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0062 and its 2026-08-02 erratum (amended by erratum in this change); RFC-0071 (digital-experience doctrine, amended by erratum); RFC-0055 D2 (errata structure); RFC-0033 / ADR-0024 (framework agnosticism); ADR-0038 (alias-free precedent)
@@ -137,34 +137,34 @@ artifact, at its own path, and the rules they share exist once.
 
 ### The surviving skill
 
-- [ ] `content-design/SKILL.md` carries exactly three modes, named literally:
+- [x] `content-design/SKILL.md` carries exactly three modes, named literally:
       **message and narrative structure**, **per-surface acquisition copy
       goals**, and **brand-level register**. Naming them literally prevents
       confusion with the three `communication_mode` values a roster suite already
       asserts. *(goal-based)*
-- [ ] `SKILL.md` carries a mode-selection rubric decidable without loading a
+- [x] `SKILL.md` carries a mode-selection rubric decidable without loading a
       reference. *(goal-based)*
-- [ ] The merged `description` is at most **1024 characters**. This is a hard
+- [x] The merged `description` is at most **1024 characters**. This is a hard
       error in `skill_spec_lint.py`, not a warning, and the three source
       descriptions total 2,273 characters (769 + 732 + 772), so roughly 55% must
       compress away. The criterion exists because catalogue lint would otherwise
       be the first thing to notice. *(goal-based)*
-- [ ] Each mode states what it produces, where it lands, and what it must not do.
+- [x] Each mode states what it produces, where it lands, and what it must not do.
       *(goal-based)*
-- [ ] The three modes remain distinguishable to a reader. *(manual QA)*
+- [x] The three modes remain distinguishable to a reader. *(manual QA)*
 
 ### Reference reconciliation
 
-- [ ] Each of these six references exists exactly once under `content-design`:
+- [x] Each of these six references exists exactly once under `content-design`:
       `copy-arbitration.md`, `copy-grounding.md`, `interrogation-sequence.md`,
       `plain-language-floor.md`, `editorial-quality-gates.md`, and
       `copy-jtbd.md` — the merged jobs-to-be-done reference, named literally so
       the existence check can run. *(goal-based)*
-- [ ] The merged file is **not** named `audience-jtbd.md`.
+- [x] The merged file is **not** named `audience-jtbd.md`.
       `creative-direction/references/audience-jtbd.md` is a third instance of
       that basename and is out of scope here, so reusing the name would create a
       new two-copy, two-hash family instead of closing one. *(goal-based)*
-- [ ] The sixth pair is reconciled: `copy-direction/references/audience-jtbd.md`
+- [x] The sixth pair is reconciled: `copy-direction/references/audience-jtbd.md`
       and `tone-of-voice/references/copy-jtbd.md` are the same role under two
       names. The reconciliation note enumerates **every** substantive difference
       and classifies each as per-mode clause, winner, or drop — not only the
@@ -172,9 +172,9 @@ artifact, at its own path, and the rules they share exist once.
       merge that silently drops the differences it omits, and the pair is known
       to diverge on more than one ranking criterion and to carry a section on
       each side the other lacks. *(goal-based)*
-- [ ] `notes/reference-reconciliation.md` records, for each reconciled file,
+- [x] `notes/reference-reconciliation.md` records, for each reconciled file,
       which variant won, the substantive differences, and why. *(goal-based)*
-- [ ] `docs/product/briefs/digital-experience-doctrine-completion.md` has its own
+- [x] `docs/product/briefs/digital-experience-doctrine-completion.md` has its own
       rows amended in this PR, with post-fold counts: its re-check row currently
       reads "31 files / 24 hashes: containment 5/1; layout 12/9; editorial gates
       3/3; interrogation 3/3; four other pairs 2/2", and its Adjacent-work row
@@ -198,16 +198,16 @@ artifact, at its own path, and the rules they share exist once.
       decides a disagreement. Restating three sub-counts and leaving the 31/24
       headline and the family count stale discharges the obligation in form
       only. *(goal-based)*
-- [ ] The brief's **second** stale occurrence is amended too. The 31/24 figure
+- [x] The brief's **second** stale occurrence is amended too. The 31/24 figure
       appears twice: in the re-check row and again in the Adjacent-work row as
       "the 31/24 measurement rules out a mechanical dedup sweep". Amending the
       first alone leaves a contradicting stale count one screen below.
       *(goal-based)*
-- [ ] Where a mode genuinely needs a different rule, and the divergence is
+- [x] Where a mode genuinely needs a different rule, and the divergence is
       **localized**, the difference is a named per-mode clause inside the one
       file, not a second file. *(manual QA — paired with the classification
       verdict above.)*
-- [ ] Where the divergence is **pervasive and scope-borne** — the same rule
+- [x] Where the divergence is **pervasive and scope-borne** — the same rule
       restated throughout, differing only in whose scope it names — the file is
       rewritten as one body with a single named scope parameter. The
       "one variant wins outright" branch is **not** available here: the scope is
@@ -220,21 +220,21 @@ artifact, at its own path, and the rules they share exist once.
       one carries a section the other lacks. *(manual QA — the classification is
       a judgement; the verdict for each reconciled file is recorded in the
       ledger.)*
-- [ ] The reconciliation note states which brand-naming convention wins.
+- [x] The reconciliation note states which brand-naming convention wins.
       `tone-of-voice`'s `copy-grounding.md`, `interrogation-sequence.md` and
       `SKILL.md` body name real companies as examples where `copy-direction`'s
       equivalents say `[example service]`, and `tools/lint-experience-agnostic.py` checks neither,
       so nothing else will catch a regression. *(goal-based)*
-- [ ] No reconciled reference is the concatenation of both variants.
+- [x] No reconciled reference is the concatenation of both variants.
       *(manual QA)*
-- [ ] No rule present in either variant is silently dropped; a dropped rule is
+- [x] No rule present in either variant is silently dropped; a dropped rule is
       named in the reconciliation note with its reason. *(manual QA)*
-- [ ] Each reconciliation preserves the rule the surviving modes need, verified
+- [x] Each reconciliation preserves the rule the surviving modes need, verified
       against the modes that cite it. *(manual QA)*
 
 ### The three-way shared reference
 
-- [ ] The `editorial-quality-gates.md` reconciliation is **three-way, not a
+- [x] The `editorial-quality-gates.md` reconciliation is **three-way, not a
       pair**, and its verdict on one clause is recorded explicitly.
       `conversion-design`'s copy — the one the genre fold relocates and pins —
       differs from `copy-direction`'s on five lines, and one is substantive:
@@ -245,7 +245,7 @@ artifact, at its own path, and the rules they share exist once.
       that upstream condition, which is exactly the rule loss this spec forbids.
       The reconciliation note records which gating condition survives and why.
       *(goal-based)*
-- [ ] `editorial-quality-gates.md` exists in `content-design` as the canonical
+- [x] `editorial-quality-gates.md` exists in `content-design` as the canonical
       copy and in `information-architecture`. **This is a dependency on the genre
       fold, not an assumption about it**: that spec carries matching criteria
       requiring the file to land byte-identical under `information-architecture`
@@ -253,7 +253,7 @@ artifact, at its own path, and the rules they share exist once.
       without both, in which case this fold stops and the genre fold is amended
       before it resumes — it does not create the file itself, because a second
       author of a shared file is how the drift started. *(goal-based)*
-- [ ] The two copies are byte-identical, asserted by extending
+- [x] The two copies are byte-identical, asserted by extending
       `tests/roster/test_experience_design_write_declaration_and_containment.py`,
       whose `test_every_containment_copy_is_byte_identical` is the exact pattern.
       Extending an existing suite avoids the three further guarded edits
@@ -261,7 +261,7 @@ artifact, at its own path, and the rules they share exist once.
       step in `build-check.yml`, a `STEP_DISPOSITION` entry in
       `tools/lint-ci-parity.py`, and a `.workspace-prune-protected.toml` entry.
       A new suite instead of an extension owes all three. *(goal-based)*
-- [ ] `content-design/SKILL.md` cites `references/editorial-quality-gates.md`
+- [x] `content-design/SKILL.md` cites `references/editorial-quality-gates.md`
       directly, not from a reference body — `communication-modes.md` is where the
       citation lives today. This mirrors the obligation the genre fold carries on
       `information-architecture`. **The citation rests on the grep in `plan.md`,
@@ -273,13 +273,13 @@ artifact, at its own path, and the rules they share exist once.
       spec mandates is of the first, so nothing in the suite would catch an
       uncited copy. An earlier draft claimed the suite derives its copy set from
       `SKILL.md` text and therefore enforced this; it does not. *(goal-based)*
-- [ ] The recorded note in each copy reading *"Skill autonomy beats DRY at this
+- [x] The recorded note in each copy reading *"Skill autonomy beats DRY at this
       scale"* is removed, and `DESIGN.md` records that the byte-equality test
       supersedes it. The fold reverses that decision, so it is addressed rather
       than left dangling. *(goal-based)*
-- [ ] No surviving reference cites a deleted sibling skill's path.
+- [x] No surviving reference cites a deleted sibling skill's path.
       *(goal-based)*
-- [ ] Inside the surviving skill, no removed name survives **as a registration
+- [x] Inside the surviving skill, no removed name survives **as a registration
       or a path**. This is scoped deliberately: `type: tone-of-voice` contains
       the string `tone-of-voice`, so a bare `\b(copy-direction|tone-of-voice)\b`
       grep over `content-design/SKILL.md` is **mutually exclusive** with the
@@ -291,7 +291,7 @@ artifact, at its own path, and the rules they share exist once.
 
 ### Output contracts unchanged
 
-- [ ] **All three assets survive the directory deletions**, under
+- [x] **All three assets survive the directory deletions**, under
       `content-design/assets/`: `content-brief-template.md` (already there),
       `copy-direction-template.md` (today under `copy-direction/assets/`), and
       `tone-of-voice-template.md` (today under `tone-of-voice/assets/`). Each
@@ -301,33 +301,33 @@ artifact, at its own path, and the rules they share exist once.
       named neither moved file anywhere — the plan's own commands already read
       `content-design/assets/tone-of-voice-template.md` as though the move had
       been specified. *(goal-based)*
-- [ ] The per-surface copy direction still writes
+- [x] The per-surface copy direction still writes
       `<output_dir>/copy/<surface-slug>.md` with `type: copy-direction`, through
       the relocated `content-design/assets/copy-direction-template.md`.
       *(goal-based)*
-- [ ] The brand register still writes the reserved
+- [x] The brand register still writes the reserved
       `<output_dir>/copy/brand-register.md`, and its relocated template at
       `content-design/assets/tone-of-voice-template.md` emits **both**
       `type: tone-of-voice` **and** `scope: brand-level`. Both skills gate on the
       pair together, so a fold that keeps only `type:` breaks the upstream
       referent read and the legacy discriminator while passing a `type:`-only
       criterion. *(goal-based)*
-- [ ] The content brief still writes its existing path and `type: content-brief`.
+- [x] The content brief still writes its existing path and `type: content-brief`.
       *(goal-based)*
-- [ ] Requesting `brand-register` as a per-surface slug is still refused, not
+- [x] Requesting `brand-register` as a per-surface slug is still refused, not
       repaired. *(manual QA — prose behaviour in a `SKILL.md`; the verdict is
       recorded in `notes/verification-ledger.md`, which is the single route.)*
-- [ ] The three legacy-1.x migration prompts survive: `type: tone-of-voice` found
+- [x] The three legacy-1.x migration prompts survive: `type: tone-of-voice` found
       at a per-surface slug; `type: tone-of-voice` without `scope: brand-level`;
       and user-profile `output_dir` cross-brand confirmation. *(goal-based)*
-- [ ] The three-branch `type:`-collision handling on write survives.
+- [x] The three-branch `type:`-collision handling on write survives.
       *(goal-based)*
 
 ### The removals
 
-- [ ] The `copy-direction` and `tone-of-voice` directories are absent and
+- [x] The `copy-direction` and `tone-of-voice` directories are absent and
       `content-design` survives. *(goal-based)*
-- [ ] `pack.toml` `[pack.evals].skills` and the set of directories under
+- [x] `pack.toml` `[pack.evals].skills` and the set of directories under
       `.apm/skills/` are **equal**, at twelve. Membership, not cardinality: a
       length-only check passes a list that dropped an unrelated skill and kept
       `tone-of-voice`, and set equality is also what makes ADR-0038's alias-free
@@ -335,7 +335,7 @@ artifact, at its own path, and the rules they share exist once.
       under a third name like `copy-direction-legacy`, which counting the two
       removed names could never see. Neither removed name is declared;
       `content-design` is. *(goal-based)*
-- [ ] The two removed skills' quality-eval sets — each ships `evals/evals.json`
+- [x] The two removed skills' quality-eval sets — each ships `evals/evals.json`
       **and** an `evals/files/` fixture tree that `content-design/evals/` does
       not have — are either carried into the surviving harness or dropped with a
       recorded reason. `packs/AGENTS.md` § Security and authoring rules obliges a
@@ -346,7 +346,7 @@ artifact, at its own path, and the rules they share exist once.
       criterion for the same reason; an earlier draft here covered
       `eval_queries.json` alone and left `evals.json` and the fixtures to die
       with the directory. *(goal-based)*
-- [ ] No file names a removed skill **as a registration** — in a skill roster, a
+- [x] No file names a removed skill **as a registration** — in a skill roster, a
       routing target, an availability probe, or an install list. **Scope:**
       `packs/`, `guides/`, `web/`, `tools/`, `tests/`, the repo-root
       `workspace.toml`, and the five `docs/` files this delivery edits
@@ -374,7 +374,7 @@ artifact, at its own path, and the rules they share exist once.
       its status either. An earlier draft also claimed `docs/` was in scope while
       the command excluded it entirely. The bound is now stated on both sides and
       rests on what a registration is. *(goal-based)*
-- [ ] The string `tone-of-voice` survives wherever it is the **artifact
+- [x] The string `tone-of-voice` survives wherever it is the **artifact
       discriminator** rather than a skill name, because the output contract above
       requires the template to keep emitting `type: tone-of-voice`. The sweep
       must not touch: `packs/product-engineering/.apm/skills/ux-writing/evals/evals.json`,
@@ -403,7 +403,7 @@ artifact, at its own path, and the rules they share exist once.
       well as the `type: copy-direction` one the sibling table below records.
       An occurrence in neither table falls in none of the final sweep's four
       classes.
-- [ ] **`type: copy-direction` is the second discriminator and is carved out on
+- [x] **`type: copy-direction` is the second discriminator and is carved out on
       the same terms.** The sweep pattern matches `copy-direction` as a whole
       word, so every one of these occurrences is a sweep hit, and the output
       contract above requires the per-surface record to keep emitting the
@@ -434,19 +434,19 @@ artifact, at its own path, and the rules they share exist once.
       would oblige the delivery to preserve occurrences inside a file it
       removes, which is unsatisfiable. The Follow-on records that this shrinks
       the `agentbundle-layout` family rather than closing it. *(goal-based)*
-- [ ] `ux-writing/SKILL.md`'s cross-skill pointer "surface the same migration
+- [x] `ux-writing/SKILL.md`'s cross-skill pointer "surface the same migration
       prompt as `tone-of-voice` step 6" is retargeted to the surviving mode's
       step, while its **three** `type: tone-of-voice` discriminator literals
       stay — the count the carve-out table above records and the tree measures
       (all three sit on one line). An earlier draft said four here and three in
       the table. *(goal-based)*
-- [ ] `packs/product-engineering`'s `ux-writing` `SKILL.md` and its
+- [x] `packs/product-engineering`'s `ux-writing` `SKILL.md` and its
       `DESIGN.md` name the surviving skill as a registration. `DESIGN.md` names
       `tone-of-voice` at two points that the registration sweep reaches and the
       discriminator carve-out does not. *(goal-based)*
-- [ ] `workspace.toml` entries naming a removed skill are reconciled.
+- [x] `workspace.toml` entries naming a removed skill are reconciled.
       *(goal-based)*
-- [ ] Every skill-count numeral for this pack reads **12** post-fold. The count
+- [x] Every skill-count numeral for this pack reads **12** post-fold. The count
       is expressed three different ways across these files, so the criterion is
       stated per file and per numeral rather than as one value asserted across
       all of them. The `Today` column was re-measured on 2026-09-26, after the
@@ -473,33 +473,33 @@ artifact, at its own path, and the rules they share exist once.
 
 ### Routing-classification evidence
 
-- [ ] `notes/routing-classification-evidence.md` records 18 independent cold
+- [x] `notes/routing-classification-evidence.md` records 18 independent cold
       Codex classifications: nine pre-fold and nine post-fold cases, one sample
       per case and world, `fork_turns: "none"`, descriptions only, and no
       retries. *(bounded routing-classification evidence)*
-- [ ] The note records the exact nine prompts, every candidate description,
+- [x] The note records the exact nine prompts, every candidate description,
       expected selections, actual selections, and confidence.
       *(bounded routing-classification evidence)*
-- [ ] Six copy-layer cases cover the three modes twice each. Before the fold,
+- [x] Six copy-layer cases cover the three modes twice each. Before the fold,
       two select `content-design`, two select `copy-direction`, and two select
       `tone-of-voice`; after the fold, all six select `content-design`.
       *(bounded routing-classification evidence)*
-- [ ] Three boundary cases select `ux-writing`, `creative-direction`, and
+- [x] Three boundary cases select `ux-writing`, `creative-direction`, and
       `information-architecture` in both worlds. *(bounded routing-classification evidence)*
-- [ ] All 18 selections match their expected route at high confidence. Any
+- [x] All 18 selections match their expected route at high confidence. Any
       mismatch or lower-confidence result stops the slice before a skill
       directory is deleted and returns the evidence decision to `eugenelim`.
       *(bounded routing-classification evidence)*
-- [ ] The note states that this is a classification proxy, not a Claude `Skill`
+- [x] The note states that this is a classification proxy, not a Claude `Skill`
       activation event; Codex retained platform system context; and one sample
       per case and world does not establish broad recall, false-positive rates,
       repeated-sampling stability, or production behavior.
       *(bounded routing-classification evidence)*
-- [ ] The tested post-fold description is at most 1024 characters and the
+- [x] The tested post-fold description is at most 1024 characters and the
       shipped `content-design` description is byte-identical to it. A material
       routing or boundary change requires a new owner-approved bounded probe or
       stops the slice. *(bounded routing-classification evidence)*
-- [ ] **The post-fold world the probe tests is the world that ships, for every
+- [x] **The post-fold world the probe tests is the world that ships, for every
       candidate description the probe shows it — not only
       `content-design`'s.** `ux-writing` is a boundary candidate and this
       delivery edits its description: it ends "or to establish the brand-level
@@ -514,7 +514,7 @@ artifact, at its own path, and the rules they share exist once.
       candidate and unbound at the rest, which is the gap that makes a 18/18
       result prove less than it appears to.
       *(bounded routing-classification evidence)*
-- [ ] The note names this fold's abort path and its three triggers: a
+- [x] The note names this fold's abort path and its three triggers: a
       classification mismatch or low-confidence result, an explicit owner stop,
       or the brief's approximately three-week window elapsing. On any trigger,
       the two directories are not deleted and nothing in this slice ships. The
@@ -522,23 +522,23 @@ artifact, at its own path, and the rules they share exist once.
 
 ### Eval preservation
 
-- [ ] The surviving `eval_queries.json` carries the three source files' 29
+- [x] The surviving `eval_queries.json` carries the three source files' 29
       distinct positive queries and 32 distinct negative queries. No query has
       both `should_trigger: true` and `should_trigger: false`; the negative set
       includes cases owned by `ux-writing` and `creative-direction`.
       *(goal-based)*
-- [ ] `notes/verification-ledger.md` records the observed `agentbundle`
+- [x] `notes/verification-ledger.md` records the observed `agentbundle`
       install-and-update behaviour for a removed skill directory, and the
       changelog states the adopter action if stale directories are not pruned.
       *(goal-based)*
 
 ### Governance records
 
-- [ ] `docs/rfc/0062-…md` § Errata carries a dated, approver-signed entry
+- [x] `docs/rfc/0062-…md` § Errata carries a dated, approver-signed entry
       recording that the three registrations become one, that all three output
       contracts are unchanged, and that the 2026-08-02 erratum's brand-register
       reservation survives. *(goal-based)*
-- [ ] `docs/rfc/0071-…md` § Errata carries its own entry. RFC-0071 carries the
+- [x] `docs/rfc/0071-…md` § Errata carries its own entry. RFC-0071 carries the
       skill inventory in operative text, an ordering dependency that references
       `copy-direction` by name, and a boundary statement this fold reverses. The
       entry names the post-fold count — **12** — and states that it **supersedes**
@@ -547,18 +547,18 @@ artifact, at its own path, and the rules they share exist once.
       the case RFC-0055 D2's two-layer form exists for: the supersession is what
       makes the `### Current state` layer authoritative over the log.
       *(goal-based)*
-- [ ] Neither **new** erratum entry names a spec or a delivery brief, and each
+- [x] Neither **new** erratum entry names a spec or a delivery brief, and each
       reads completely for someone holding only that RFC. RFC-0062's existing
       2026-08-02 entry cites a spec path twice and moves into `### History`
       unchanged; the rule binds what this delivery writes, not what it inherits.
       *(goal-based)*
-- [ ] Both Errata sections conform to RFC-0055 D2's two-layer
+- [x] Both Errata sections conform to RFC-0055 D2's two-layer
       `### Current state` / `### History` structure. Both trigger conditions fire
       on each. *(goal-based)*
-- [ ] `DESIGN.md` § 4's "Content-design vs. tone-of-voice vs. copy-direction vs.
+- [x] `DESIGN.md` § 4's "Content-design vs. tone-of-voice vs. copy-direction vs.
       ux-writing" section is rewritten as mode selection within one skill plus
       the one cross-pack boundary that remains. *(goal-based)*
-- [ ] `DESIGN.md` names no removed skill as a registration, **including § 7's
+- [x] `DESIGN.md` names no removed skill as a registration, **including § 7's
       artifact table**, whose `copy/` row reads "tone-of-voice (the brand-level
       register), copy-direction (per surface)" — two skill-name registrations the
       sweep must retarget. `DESIGN.md` contains no `type: tone-of-voice` literal
@@ -567,42 +567,42 @@ artifact, at its own path, and the rules they share exist once.
 
 ### Cross-pack and reviewer boundaries
 
-- [ ] `experience-reviewer.md`'s sync citation — which today points at
+- [x] `experience-reviewer.md`'s sync citation — which today points at
       `tone-of-voice`'s `references/editorial-quality-gates.md` — resolves to the
       surviving canonical path. *(goal-based)*
-- [ ] Its artifact-exclusion clause naming "tone-of-voice docs" names a surviving
+- [x] Its artifact-exclusion clause naming "tone-of-voice docs" names a surviving
       artifact `type:` rather than a skill name, since "tone-of-voice" becomes a
       mode name. *(goal-based)*
-- [ ] `experience-reviewer.md`'s `Does NOT fire on` list and its sync
+- [x] `experience-reviewer.md`'s `Does NOT fire on` list and its sync
       parenthetical name only surviving skills or artifact types. The lens itself
       names no skill, so a criterion asking whether it "names a skill that
       exists" could not fail. *(goal-based)*
 
-- [ ] `docs/product/intents/xd-state-reviewer-doctrine.md` is updated against
+- [x] `docs/product/intents/xd-state-reviewer-doctrine.md` is updated against
       this delivery's `experience-reviewer.md` edits, or recorded as confirmed
       unaffected. The brief and the sibling genre spec both delegate this check
       here, and it appears in neither's criteria. *(goal-based)*
 
 ### Registry and projection surfaces
 
-- [ ] `packs/agent-skill-engineering/tests/fixtures/skill-census.json` matches
+- [x] `packs/agent-skill-engineering/tests/fixtures/skill-census.json` matches
       the new inventory. *(goal-based)*
-- [ ] `JOURNEY.md`, `README.md`, `docs/index.md`, and
+- [x] `JOURNEY.md`, `README.md`, `docs/index.md`, and
       `web/src/content/{journeys,packs}/experience-design.md` name the surviving
       skill only, including the journey page's `skills:` frontmatter list.
       *(goal-based)*
-- [ ] `tools/add-rendering-directives.py`'s per-skill map carries no removed
+- [x] `tools/add-rendering-directives.py`'s per-skill map carries no removed
       name. *(goal-based)*
-- [ ] The site build succeeds. *(goal-based)*
+- [x] The site build succeeds. *(goal-based)*
 
 ### Release
 
-- [ ] `pack.toml` and `.claude-plugin/plugin.json` both read `4.0.0` — the second
+- [x] `pack.toml` and `.claude-plugin/plugin.json` both read `4.0.0` — the second
       **major** bump, because the genre fold takes `3.0.0` and lands first.
       *(goal-based)*
-- [ ] `.claude-plugin/marketplace.json` reads `4.0.0` for `experience-design`,
+- [x] `.claude-plugin/marketplace.json` reads `4.0.0` for `experience-design`,
       regenerated by self-host. *(goal-based)*
-- [ ] `docs/product/changelog.md` carries a **free-standing**
+- [x] `docs/product/changelog.md` carries a **free-standing**
       `## [experience-design][4.0.0] — <YYYY-MM-DD>` entry — a top-level `##`
       heading, **never nested under `[Unreleased]`** — naming both removed
       skills explicitly. **Not "directly beneath `[Unreleased]`",** which an
@@ -613,7 +613,7 @@ artifact, at its own path, and the rules they share exist once.
       `tools/build-site.py` withholds a **nested** entry as unreleased and still
       exits 0, so a nested entry never reaches `/now/`. A free-standing entry
       anywhere below the core block satisfies it. *(goal-based)*
-- [ ] `packs/product-engineering/pack.toml` and its
+- [x] `packs/product-engineering/pack.toml` and its
       `.claude-plugin/plugin.json` read exactly **one patch above the value at
       this delivery's merge-base**, its marketplace entry is regenerated, and the
       changelog carries its entry. Patch, not major: this delivery changes that
@@ -631,21 +631,21 @@ artifact, at its own path, and the rules they share exist once.
 
 ### Gates
 
-- [ ] `python3 tools/lint-experience-agnostic.py` exits 0. *(goal-based)*
-- [ ] `tests/roster/test_content_design_communication_mode_contract.py` and all
+- [x] `python3 tools/lint-experience-agnostic.py` exits 0. *(goal-based)*
+- [x] `tests/roster/test_content_design_communication_mode_contract.py` and all
       `test_experience_*` suites pass. *(goal-based)*
-- [ ] `agentbundle catalogue lint --root . --deep` and
+- [x] `agentbundle catalogue lint --root . --deep` and
       `agentbundle catalogue verify --root .` each exit 0 after the projection is
       regenerated. *(goal-based)*
-- [ ] The five commands in `guides/AGENTS.md` § Essential commands each exit 0.
+- [x] The five commands in `guides/AGENTS.md` § Essential commands each exit 0.
       *(goal-based)*
-- [ ] `make lint-ruff lint-mypy` exits 0. *(goal-based)*
-- [ ] `notes/verification-ledger.md` records all four manual-QA verdicts with the
+- [x] `make lint-ruff lint-mypy` exits 0. *(goal-based)*
+- [x] `notes/verification-ledger.md` records all four manual-QA verdicts with the
       reviewer's name and date. *(goal-based)*
 
 ### Documentation
 
-- [ ] `guides/experience-design/how-to/copy-boundary.md` describes mode selection
+- [x] `guides/experience-design/how-to/copy-boundary.md` describes mode selection
       within one skill. *(manual QA)*
 
 ## Follow-ons
