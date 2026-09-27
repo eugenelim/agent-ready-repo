@@ -1065,6 +1065,34 @@ def test_commit_writes_appear_exactly_once_in_cmd_transition() -> None:
         )
 
 
+def test_loop_engine_never_writes_or_unlinks_cohort_state_json_directly() -> None:
+    """ADR-0125 D3: registered effects write cohort state only via loop-cohort.py."""
+    tree = _engine_tree()
+    offenders = []
+    mutating_calls = {"replace", "unlink", "write_text", "write_bytes", "open"}
+    for fn in _ast_mod.walk(tree):
+        if not isinstance(fn, _ast_mod.FunctionDef):
+            continue
+        for node in _ast_mod.walk(fn):
+            if not isinstance(node, _ast_mod.Call):
+                continue
+            names = set(_called_names(node))
+            if "write_state_atomic" in names:
+                offenders.append(f"{fn.name}:{node.lineno}:write_state_atomic")
+                continue
+            if not names & mutating_calls:
+                continue
+            dumped = _ast_mod.dump(node)
+            if "_engine_state_path" in dumped or "engine-state.json" in dumped:
+                continue
+            if "state_path_for" in dumped or "state.json" in dumped:
+                offenders.append(f"{fn.name}:{node.lineno}:{sorted(names & mutating_calls)}")
+    assert not offenders, (
+        "loop-engine.py must not directly mutate cohort state.json; route "
+        f"registered effects through loop-cohort.py instead: {offenders}"
+    )
+
+
 def _commit_hold_node(fn):
     """The `with _cohort_commit_hold(...)` statement inside cmd_transition."""
     for n in _ast_mod.walk(fn):
@@ -1335,6 +1363,35 @@ def test_loop_cohort_never_reaches_the_engine_lock_or_engine_state() -> None:
     )
 
 
+def test_apply_transition_effect_reclassifies_inside_the_cohort_lock() -> None:
+    """AC9: replay status is recomputed after the cohort lock is acquired."""
+    fn = _fn(_cohort_tree(), "apply_transition_effect")
+    with_nodes = [
+        node for node in _ast_mod.walk(fn)
+        if isinstance(node, (_ast_mod.With, _ast_mod.AsyncWith))
+        and any("exclusive" in _called_names(item.context_expr) for item in node.items)
+    ]
+    assert len(with_nodes) == 1, "apply_transition_effect must have one cohort lock"
+    with_node = with_nodes[0]
+    inside = _called_names(with_node)
+    assert "_last_transition_status" in inside, (
+        "apply_transition_effect must re-read transition history under the "
+        "cohort lock before deciding whether an effect is absent/applied/conflict"
+    )
+    status_line = min(
+        node.lineno for node in _ast_mod.walk(with_node)
+        if isinstance(node, _ast_mod.Call)
+        and "_last_transition_status" in _called_names(node)
+    )
+    effect_line = min(
+        node.lineno for node in _ast_mod.walk(with_node)
+        if isinstance(node, _ast_mod.Name) and node.id == "_TRANSITION_EFFECTS"
+    )
+    assert status_line < effect_line, (
+        "apply_transition_effect must reclassify before invoking a registered effect"
+    )
+
+
 def test_cohort_commit_hold_reaches_no_spawn_and_stays_under_the_timeout() -> None:
     """AC22: the only hold this delivery creates, bounded by a number with an origin.
 
@@ -1504,17 +1561,15 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     test's own message warns about.
 
     The count is the MAXIMUM over mutually exclusive branches, not their sum:
-    `contract-amendment` is the only event that acquires through its effect and
-    the only event exempt from the identity check, so at most one cohort
-    acquisition is live on any single path.
+    registered cohort effects prepare, classify, and apply through
+    `loop-cohort.py`, while non-members keep the engine-side fingerprint hold.
     """
     engine = _load_module(ENGINE, "_engine_acq_budget")
     sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_acq_budget")
 
     # Two mutually exclusive groups, both counted by SITE rather than by
-    # containing function. `contract-amendment` is the only event that acquires
-    # through its effect and the only event exempt from the identity check, so
-    # at most one group is live on any single path.
+    # containing function. Registered effects acquire through the cohort module;
+    # non-members acquire through the old engine-side fingerprint hold.
     engine_sites, unclassified, engine_fns = _engine_cohort_acquisition_sites()
     mutator_sites, acquiring = _cohort_mutator_acquisition_sites()
     assert not unclassified, (
@@ -1526,7 +1581,10 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
         f"engine-side cohort acquisition sites: {engine_sites}, expected 1. "
         "Re-derive the bound rather than widening this assertion."
     )
-    assert (mutator_sites, acquiring) == (2, {"apply_contract_amendment"}), (
+    assert (mutator_sites, acquiring) == (
+        4,
+        {"prepare_transition", "apply_transition_effect"},
+    ), (
         f"acquiring cohort-mutator sites changed: {mutator_sites} site(s) across "
         f"{sorted(acquiring)}. Re-derive the bound rather than widening this."
     )
@@ -1536,11 +1594,10 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     # acquisition anywhere — including a second inside a function already
     # counted — forces a human back to this derivation. The BOUND is over
     # distinct acquiring functions, which is the collapse AC15 names: a group's
-    # sites sit in mutually exclusive branches, as the amendment's two do (the
-    # recovery branch returns before the normal path's call), so summing them
-    # would charge the budget for a wait that cannot happen. The pinned site
-    # counts are what keep that proxy honest — it stops being valid silently
-    # only if a site is added, and then the assertion above has already fired.
+    # sites sit in mutually exclusive branches, so summing them would charge the
+    # budget for a wait that cannot happen. The pinned site counts are what keep
+    # that proxy honest — it stops being valid silently only if a site is added,
+    # and then the assertion above has already fired.
     concurrent = max(len(engine_fns), len(acquiring))
     max_hold = (engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
                 + sl.DEFAULT_TIMEOUT * concurrent)

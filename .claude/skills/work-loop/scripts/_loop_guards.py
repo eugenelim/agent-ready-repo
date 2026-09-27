@@ -117,7 +117,8 @@ TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 # Each standalone CLI retains a local declaration so its schema validation gains no
 # new load dependency. The alignment test keeps these declarations and the template
 # on one schema version.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+RESET_PAIR_ORDER = "run `loop-cohort reset` then `loop-engine reset`"
 
 
 # ── result type ───────────────────────────────────────────────────────────
@@ -895,7 +896,7 @@ def validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> str | None
     if sv != SCHEMA_VERSION:
         return (
             f"{verb}: unsupported schema_version={_scalar(sv)} "
-            f"(expected {SCHEMA_VERSION}); run reset pair"
+            f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
         )
     stored = state.get("run_id")
     if stored != expect_run_id:
@@ -1045,7 +1046,7 @@ def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
             ok=False,
             reason=(
                 f"identity: unsupported schema_version={_scalar(sv)} "
-                f"(expected {SCHEMA_VERSION})"
+                f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
             ),
         )
     stored = state.get("run_id")
@@ -1489,7 +1490,7 @@ def _wave_exit_verdict(state: dict) -> GuardResult:
             reason=(
                 f"wave exit: schedule_waves is malformed ({_scalar(waves)}); "
                 "expected a non-empty list of waves — run schedule to persist a "
-                "partition, or if amendment_pending is set, complete the amendment "
+                "partition, or if pending_transition is set, complete the amendment "
                 "with approve-plan and then schedule"
             ),
         )
@@ -1652,7 +1653,7 @@ def check_phase(spec_dir: Path, *, phase: str,
             ok=False,
             reason=(
                 f"check: unsupported schema_version={_scalar(sv)} "
-                f"(expected {SCHEMA_VERSION}); run reset pair"
+                f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
             ),
         )
 

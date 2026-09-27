@@ -202,7 +202,7 @@ def make_fixture(guards, root: Path, name: str, *, mode: str, state: str,
         "last_transition_at": "2026-01-01T00:00:00Z",
     }), encoding="utf-8")
     st = {
-        "schema_version": 1, "run_id": run_id, "feature": name,
+        "schema_version": guards.SCHEMA_VERSION, "run_id": run_id, "feature": name,
         "plan_review_status": "pending",
         "approved_spec_hash": None, "approved_plan_hash": None, "plan_hash": None,
         "schedule_waves": [], "current_wave_index": 0,
@@ -210,6 +210,7 @@ def make_fixture(guards, root: Path, name: str, *, mode: str, state: str,
         "review_retry_count": 0, "finding_fingerprints": [],
         "previous_finding_fingerprints": [],
         "max_implementation_retries": 5, "max_review_retries": 5,
+        "pending_transition": None, "transition_history": [],
     }
     if approved:
         st.update({

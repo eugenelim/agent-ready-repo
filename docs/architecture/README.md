@@ -38,20 +38,22 @@ rules live with that split.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
-- **STATUS: § 2 IMPLEMENTED; §§ 1, 3 AND 4 PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
-  ships the cohort-state identity check that serialises a transition commit
-  against a concurrent cohort mutation (§ 2), and
-  proposes a `pending_transition` replay marker generalising the shipped
-  `amendment_pending` marker to every event that needs one,
-  and treats serialising the wave-exit verdict and raising plan width as the two
-  dependent changes behind concurrent execution. It introduces one unified
-  transition history and a `schema_version` bump that refuses in-flight state.
+- **STATUS: §§ 1 AND 2 IMPLEMENTED; §§ 3 AND 4 PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
+  ships the unified `pending_transition`/`transition_history` replay protocol
+  for five registered cohort effects (§ 1) and the cohort-state identity check
+  that serialises non-effect transition commits against concurrent cohort
+  mutation (§ 2). Cohort schema 2 refuses in-flight schema-1 state; engine state
+  remains schema 1. [ADR-0125](../adr/0125-engine-invoked-cohort-mutations.md)
+  D1-D3 authorize the engine-invoked, closed-registry,
+  `loop-cohort.py`-written effect boundary.
+  Raising plan width and the wave decision contract remain the two dependent
+  changes behind concurrent execution.
   § 4 specifies the read-only wave decision contract: a JSON verdict naming,
   per wave, which tasks are candidates for concurrent dispatch, with a coded
   reason for every refusal and the colliding peer and glob where one exists.
-  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D8 defers the schema,
-  and D5 defers parallel-wave orchestration — it is D5's *Revisit if* clause,
-  not D5 itself, that names the bounded round cap.
+  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D5 still defers
+  parallel-wave orchestration — it is D5's *Revisit if* clause, not D5 itself,
+  that names the bounded round cap.
 - **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by

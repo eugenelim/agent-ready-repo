@@ -282,10 +282,16 @@ import uuid  # noqa: E402
 
 
 def _seed_state(tmp_path):
-    """Seed a minimal Phase-1 state.json and return the run_id."""
+    """Seed a minimal valid cohort state.json and return the run_id."""
     run_id = str(uuid.uuid4())
     (tmp_path / "state.json").write_text(
-        json.dumps({"schema_version": 1, "run_id": run_id}), encoding="utf-8"
+        json.dumps({
+            "schema_version": lc.SCHEMA_VERSION,
+            "run_id": run_id,
+            "pending_transition": None,
+            "transition_history": [],
+        }),
+        encoding="utf-8",
     )
     return run_id
 

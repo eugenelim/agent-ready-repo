@@ -4,6 +4,7 @@ guards, lifecycle walks, and session-resumption state.
 
 Run with pytest.
 """
+# ruff: noqa: E402 -- approved AC stubs are appended byte-for-byte.
 
 from __future__ import annotations
 
@@ -157,7 +158,7 @@ _engine_spec.loader.exec_module(_engine)
 
 def minimal_cohort_state(run_id: str, feature: str, extra: dict | None = None) -> dict:
     base = {
-        "schema_version": 1,
+        "schema_version": _cohort.SCHEMA_VERSION,
         "run_id": run_id,
         "feature": feature,
         "plan_review_status": "pending",
@@ -177,6 +178,8 @@ def minimal_cohort_state(run_id: str, feature: str, extra: dict | None = None) -
         "auto_parallel": False,
         "last_commit_sha": None,
         "worktrees": [],
+        "pending_transition": None,
+        "transition_history": [],
     }
     if extra:
         base.update(extra)
@@ -1453,13 +1456,17 @@ def test_legal_transition_findings_remain_spec_plan_mode(tmp: Path) -> None:
         spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-REVIEW")
     )
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    before_cohort = (spec_dir / "state.json").read_bytes()
     rc, _, _ = run_engine("transition", str(spec_dir), "findings-remain")
+    after_cohort = (spec_dir / "state.json").read_bytes()
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
         return
     state = json.loads((spec_dir / "engine-state.json").read_text())
     if state.get("state") != "SPEC-PLAN-DRAFTING":
         fail(name, f"expected SPEC-PLAN-DRAFTING; got {state.get('state')!r}")
+    elif after_cohort != before_cohort:
+        fail(name, "SPEC-PLAN-REVIEW findings-remain mutated cohort state")
     else:
         ok(name)
 
@@ -1575,13 +1582,17 @@ def test_legal_reviewers_clean_spec_plan(tmp: Path) -> None:
         spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-REVIEW")
     )
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    before_cohort = (spec_dir / "state.json").read_bytes()
     rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean")
+    after_cohort = (spec_dir / "state.json").read_bytes()
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}: {err.strip()}")
         return
     state = json.loads((spec_dir / "engine-state.json").read_text())
     if state.get("state") != "SPEC-HUMAN-GATE":
         fail(name, f"expected SPEC-HUMAN-GATE; got {state.get('state')!r}")
+    elif after_cohort != before_cohort:
+        fail(name, "SPEC-PLAN-REVIEW reviewers-clean mutated cohort state")
     else:
         ok(name)
 
@@ -1713,9 +1724,12 @@ def test_legal_wave_passed_to_code_implementation(tmp: Path) -> None:
     state = json.loads((spec_dir / "engine-state.json").read_text())
     if state.get("state") != "CODE-IMPLEMENTATION":
         fail(name, f"expected CODE-IMPLEMENTATION; got {state.get('state')!r}")
-    elif state.get("last_event_context") != {"completed_wave_index": 0}:
+    elif state.get("last_event_context") != {
+        "completed_wave_index": 0,
+        "pre_transition_sequence": 0,
+    }:
         lec = state.get("last_event_context")
-        fail(name, f"expected last_event_context={{completed_wave_index: 0}}; got {lec!r}")
+        fail(name, f"unexpected last_event_context: {lec!r}")
     else:
         ok(name)
 
@@ -1809,7 +1823,9 @@ def test_legal_reviewers_clean_code_to_human_gate(tmp: Path) -> None:
         "schedule_waves": [["T1"]],
         "current_wave_index": 0,
     }))
-    rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean")
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "reviewers-clean", "--all-skipped"
+    )
     if rc != 0:
         fail(name, f"expected exit 0 with Status: Shipped; got {rc}: {err.strip()}")
         return
@@ -2015,9 +2031,8 @@ def test_guard_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
 
     # The shared guard reason names no flag, because `loop-cohort check --phase
     # review` prints it too and accepts none. This adapter does accept one, so it
-    # must add the remedy -- and must name BOTH halves, which is the part a reader
-    # misses and the reason a one-sided waiver desyncs engine from cohort.
-    missing = [f for f in ("--allow-retry-cap-override", "review record", "human")
+    # must add the remedy and name the human authorization boundary.
+    missing = [f for f in ("--allow-retry-cap-override", "--fingerprint", "human")
                if f not in err]
     if missing:
         fail(name + "-remedy", f"cap refusal omits {missing}: {err}")
@@ -2027,8 +2042,11 @@ def test_guard_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
     # The same transition with the explicit waiver must pass, or the matching
     # `review record --allow-retry-cap-override` is unreachable and records a
     # round the engine will not transition on.
-    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain",
-                            "--allow-retry-cap-override")
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "findings-remain",
+        "--fingerprint", "f" * 64,
+        "--allow-retry-cap-override",
+    )
     if rc != 0:
         fail(name + "-override", f"expected 0 with the waiver, got {rc}: {err}")
     else:
@@ -2678,27 +2696,24 @@ def test_no_chat_history_route_gates_failed_via_cli(tmp: Path) -> None:
 # ── T2: wave-passed crash windows and refusals ────────────────────────────
 
 
-def test_wave_passed_window_a_advance_before_crash(tmp: Path) -> None:
-    """window A — crash before advance; advance succeeds and increments once."""
+def test_wave_passed_transition_advances_cohort_without_followup(tmp: Path) -> None:
+    """wave-passed transition owns the cohort wave advance."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-a")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
     if rc_t != 0:
         fail("wave-passed-window-a",
              f"wave-passed transition failed: rc={rc_t} {err_t.strip()!r}")
         return
-    before = _read_cohort_state(spec_dir)
-    if before["current_wave_index"] != 0:
-        fail("wave-passed-window-a",
-             f"pre-condition: current_wave_index={before['current_wave_index']} != 0")
-        return
-    rc, _, err = run_cohort(
-        "wave", "advance", str(spec_dir),
-        "--from-index", "0", "--expect-run-id", run_id,
-    )
     after = _read_cohort_state(spec_dir)
-    if rc != 0 or after["current_wave_index"] != 1:
+    history = after.get("transition_history", [])
+    if after["current_wave_index"] != 1:
         fail("wave-passed-window-a",
-             f"rc={rc} idx={after.get('current_wave_index')} err={err.strip()!r}")
+             f"current_wave_index={after['current_wave_index']} != 1")
+    elif not history or history[-1].get("event") != "wave-passed":
+        fail("wave-passed-window-a",
+             f"missing wave-passed history: {history!r}")
+    elif run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)[0] != 0:
+        fail("wave-passed-window-a", "run-id pairing failed after engine-owned advance")
     else:
         ok("wave-passed-window-a")
 
@@ -2875,7 +2890,7 @@ def test_gates_failed_wrong_run_id_prefix_refused(tmp: Path) -> None:
 
 
 def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:
-    """fifth repair cycle permitted; implementation_retry_count reaches 5."""
+    """fifth repair cycle permitted; engine records count 5 without a second verb."""
     spec_dir, run_id, _ = _setup_retry_boundary_run(tmp, "gf-5th")
     st = _read_cohort_state(spec_dir)
     st["implementation_retry_count"] = 4
@@ -2885,17 +2900,15 @@ def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:
     # docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
     run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
-    eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
-    cycle_id = f"{run_id}:{eng['transition_sequence']}"
-    rc_r, _, err_r = run_cohort(
-        "record-attempt", str(spec_dir),
-        "--phase", "implement", "--cycle-id", cycle_id, "--expect-run-id", run_id,
-    )
     after = _read_cohort_state(spec_dir)
-    if rc_t != 0 or rc_r != 0 or after["implementation_retry_count"] != 5:
+    history = after.get("transition_history", [])
+    if rc_t != 0 or after["implementation_retry_count"] != 5:
         fail("gates-failed-fifth-permitted",
-             f"rc_t={rc_t} rc_r={rc_r} count={after.get('implementation_retry_count')} "
-             f"t_err={err_t.strip()!r} r_err={err_r.strip()!r}")
+             f"rc_t={rc_t} count={after.get('implementation_retry_count')} "
+             f"t_err={err_t.strip()!r}")
+    elif not history or history[-1].get("event") != "gates-failed":
+        fail("gates-failed-fifth-permitted",
+             f"missing gates-failed history: {history!r}")
     else:
         ok("gates-failed-fifth-permitted")
 
@@ -2933,7 +2946,9 @@ def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:
     # supersedes it before findings-remain is admitted from CODE-REVIEW. Spec:
     # docs/specs/repair-round-dispatch-assertion/spec.md § The three edges.
     run_cohort("wave", "reopen", str(spec_dir), "--expect-run-id", run_id)
-    run_engine("transition", str(spec_dir), "findings-remain")
+    run_engine(
+        "transition", str(spec_dir), "findings-remain", "--fingerprint", "f" * 64
+    )
     rc, out, _ = run_engine("status", str(spec_dir), "--json")
     try:
         eng = json.loads(out)
@@ -2950,7 +2965,9 @@ def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:
 def test_findings_remain_no_auto_replay(tmp: Path) -> None:
     """cohort state unchanged after recovery reads; reads must succeed."""
     spec_dir, run_id = make_code_review_run(tmp, "fr-noreplay")
-    run_engine("transition", str(spec_dir), "findings-remain")
+    run_engine(
+        "transition", str(spec_dir), "findings-remain", "--fingerprint", "f" * 64
+    )
     before = (spec_dir / "state.json").read_bytes()
     # Full documented read sequence
     rc_s, _, _ = run_engine("status", str(spec_dir), "--json")
@@ -2989,7 +3006,12 @@ def test_findings_remain_skill_prose_present(tmp: Path) -> None:
         fail("findings-remain-skill-prose-present",
              "could not find findings-remain row in the resumption reference")
         return
-    required = ["stale fingerprint baseline", "under-count", "do NOT auto-reissue"]
+    required = [
+        "same `loop-engine transition",
+        "Do not run `loop-cohort review record` separately",
+        "stale fingerprint baseline",
+        "under-count",
+    ]
     missing = [p for p in required if p not in row_line]
     if missing:
         fail("findings-remain-skill-prose-present",
@@ -3013,7 +3035,9 @@ def test_reviewers_clean_no_silent_replay(tmp: Path) -> None:
     """cohort state unchanged after recovery reads; reads must succeed."""
     spec_dir, run_id = make_code_review_run(tmp, "rc-noreplay")
     write_spec(spec_dir, status="Shipped")
-    rc_t, _, err_t = run_engine("transition", str(spec_dir), "reviewers-clean")
+    rc_t, _, err_t = run_engine(
+        "transition", str(spec_dir), "reviewers-clean", "--all-skipped"
+    )
     if rc_t != 0:
         fail("reviewers-clean-no-silent-replay",
              f"reviewers-clean transition failed: rc={rc_t} {err_t.strip()!r}")
@@ -3060,8 +3084,11 @@ def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:
         fail("reviewers-clean-skill-prose-obligations",
              "could not find reviewers-clean row in the resumption reference")
         return
-    required = ["non-idempotent", "double-increment",
-                "fingerprint audit history", "authorized"]
+    required = [
+        "transition id is also the review operation id",
+        "no human authorization gate",
+        "Do not run `loop-cohort review record` separately",
+    ]
     missing = [p for p in required if p not in row_line]
     if missing:
         fail("reviewers-clean-skill-prose-obligations",
@@ -3764,7 +3791,9 @@ def test_reviewers_clean_still_requires_shipped(tmp: Path) -> None:
         "schedule_waves": [["T1"]],
         "current_wave_index": 0,
     }))
-    rc, _, _ = run_engine("transition", str(spec_dir), "reviewers-clean")
+    rc, _, _ = run_engine(
+        "transition", str(spec_dir), "reviewers-clean", "--all-skipped"
+    )
     if rc == 0:
         fail(name, "expected non-zero when spec.md Status != Shipped (CODE-REVIEW source)")
     else:
@@ -3864,7 +3893,7 @@ _TRANSITION_STEPS = [
     # scheduled baseline before it may derive new completed-section pins. A
     # `find` on the shared callee would report the recovery branch's position
     # and make this ordering assertion fail for a step that had not moved.
-    ("CODE schedule pre-check", "and not cohort_amendment_already_applied"),
+    ("CODE schedule pre-check", "and not cohort_effect_already_applied"),
     ("event-specific guard", "guard_fn(spec_dir, state, event_args)"),
     # The DECISION and the FINALIZATION are two steps, and they were previously one
     # anchor: the label said "state decision" while the anchor was the atomic write,
@@ -4666,9 +4695,30 @@ def test_cohort_contention_refusal_names_the_cohort_lock(
     assert "cohort" in err.lower(), f"refusal must name the cohort lock: {err!r}"
 
 
-def test_contract_amendment_is_the_only_exempt_event() -> None:
-    """AC3: one exemption, and it is the event whose own effect writes cohort state."""
-    assert frozenset({"contract-amendment"}) == _engine._FINGERPRINT_EXEMPT_EVENTS
+def test_fingerprint_exemption_is_closed_and_review_edge_scoped() -> None:
+    """The registry stays closed; review effects are only CODE-REVIEW effects."""
+    closed = frozenset(
+        {
+            "contract-amendment",
+            "wave-passed",
+            "gates-failed",
+            "findings-remain",
+            "reviewers-clean",
+        }
+    )
+    assert closed == _engine._FINGERPRINT_EXEMPT_EVENTS
+    assert _engine._transition_edge_has_cohort_effect(
+        "findings-remain", "CODE-REVIEW"
+    )
+    assert _engine._transition_edge_has_cohort_effect(
+        "reviewers-clean", "CODE-REVIEW"
+    )
+    assert not _engine._transition_edge_has_cohort_effect(
+        "findings-remain", "SPEC-PLAN-REVIEW"
+    )
+    assert not _engine._transition_edge_has_cohort_effect(
+        "reviewers-clean", "SPEC-PLAN-REVIEW"
+    )
 
 
 def test_a_reclaim_at_the_end_of_the_hold_exits_non_zero(tmp: Path, capsys, monkeypatch) -> None:
@@ -4925,7 +4975,10 @@ def test_wave_passed_admitted_with_live_records_at_code_verification(tmp: Path) 
     state = json.loads((spec_dir / "engine-state.json").read_text())
     if state.get("state") != "CODE-IMPLEMENTATION":
         fail(name, f"expected CODE-IMPLEMENTATION; got {state.get('state')!r}")
-    elif state.get("last_event_context") != {"completed_wave_index": 0}:
+    elif state.get("last_event_context") != {
+        "completed_wave_index": 0,
+        "pre_transition_sequence": 0,
+    }:
         fail(name, f"last_event_context changed: {state.get('last_event_context')!r}")
     else:
         ok(name)
@@ -5163,7 +5216,9 @@ def test_findings_remain_override_waives_the_cap_but_not_the_repair_round(
         extra={"review_retry_count": 5, "max_review_retries": 5},
     )
     rc, _, err = run_engine(
-        "transition", str(spec_dir), "findings-remain", "--allow-retry-cap-override"
+        "transition", str(spec_dir), "findings-remain",
+        "--fingerprint", "f" * 64,
+        "--allow-retry-cap-override",
     )
     if rc == 0:
         fail(name, "expected a refusal — the override does not reach the repair round")
@@ -5323,3 +5378,642 @@ def test_inert_source_state_discriminators_skip_repair_round_when_state_is_wrong
         "with a live dispatch record in the fixture. If this assertion fails "
         "the fixture needs a live record."
     )
+
+
+# STUB: AC-0003 — the transition effect registry is the closed five-event set
+import importlib.util
+import sys
+from pathlib import Path
+
+COHORT_PATH = (
+    Path.cwd()
+    / "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+)
+
+
+def _load_cohort():
+    spec = importlib.util.spec_from_file_location("durable_t2_cohort", COHORT_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_transition_effect_registry_is_closed() -> None:
+    cohort = _load_cohort()
+    assert set(cohort._TRANSITION_EFFECTS) == {
+        "contract-amendment", "wave-passed", "gates-failed",
+        "findings-remain", "reviewers-clean",
+    }
+
+
+def test_transition_replay_status_uses_last_history_entry_only(tmp_path: Path) -> None:
+    cohort = _load_cohort()
+    state = {
+        "schema_version": 2,
+        "run_id": "run-current",
+        "pending_transition": None,
+        "transition_history": [
+            {
+                "transition_id": "a" * 64,
+                "pre_transition_sequence": 7,
+                "event": "gates-failed",
+                "args": {},
+            },
+            {
+                "transition_id": "b" * 64,
+                "pre_transition_sequence": 7,
+                "event": "gates-failed",
+                "args": {},
+            },
+        ],
+    }
+    (tmp_path / "state.json").write_text(json.dumps(state) + "\n", encoding="utf-8")
+
+    assert cohort.transition_replay_status(
+        tmp_path,
+        transition_id="a" * 64,
+        pre_transition_sequence=7,
+        event="gates-failed",
+        args={},
+    ) == "conflict"
+
+
+def _registered_engine_effect_fixture(
+    tmp: Path, event: str
+) -> tuple[Path, list[str], dict]:
+    name = f"engine-registered-{event}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    if event == "reviewers-clean":
+        write_spec(spec_dir, status="Shipped")
+    else:
+        write_spec(spec_dir, status="Implementing")
+    write_plan(
+        spec_dir,
+        "# Plan\n\n"
+        "## T1: completed baseline\n\n**Depends on:** none\n\nproof one\n\n"
+        "## T2: remaining work\n\n**Depends on:** T1\n\nbuild two\n",
+    )
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
+    waves = [["T1"], ["T2"]]
+    extra = {
+        "plan_review_status": "approved",
+        "approved_spec_hash": spec_hash,
+        "approved_plan_hash": plan_hash,
+        "plan_hash": plan_hash,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        "dispatch_receipts": {},
+        "implementation_retry_count": 0,
+        "max_implementation_retries": 5,
+        "review_round_count": 0,
+        "review_retry_count": 0,
+        "max_review_retries": 5,
+    }
+    engine_state = "CODE-VERIFICATION"
+    argv = ["transition", str(spec_dir), event]
+    expected: dict = {"engine_state": "CODE-IMPLEMENTATION"}
+    if event == "contract-amendment":
+        engine_state = "CODE-IMPLEMENTATION"
+        extra["current_wave_index"] = 1
+        extra["dispatch_receipts"] = _receipts_for(waves, 0, ["T1"])
+        argv.extend(
+            [
+                "--owner-authority-ref", "approval:owner",
+                "--reason-ref", "reason:repair",
+                "--completed-evidence-ref", "T1=gates:t1",
+            ]
+        )
+        expected = {
+            "engine_state": "SPEC-PLAN-DRAFTING",
+            "plan_review_status": "pending",
+        }
+    elif event == "wave-passed":
+        extra["dispatch_receipts"] = _receipts_for(waves, 0, ["T1"])
+        argv.extend(["--wave-index", "0"])
+        expected["current_wave_index"] = 1
+    elif event == "gates-failed":
+        expected["implementation_retry_count"] = 1
+    elif event == "findings-remain":
+        engine_state = "CODE-REVIEW"
+        argv.extend(["--fingerprint", "f" * 64])
+        expected["review_retry_count"] = 1
+    elif event == "reviewers-clean":
+        engine_state = "CODE-REVIEW"
+        argv.append("--all-skipped")
+        expected["engine_state"] = "CODE-HUMAN-GATE"
+        expected["review_round_count"] = 1
+    else:  # pragma: no cover - parameter table is closed below
+        raise AssertionError(event)
+    write_engine_state(
+        spec_dir,
+        minimal_engine_state(run_id, name, "code", engine_state),
+    )
+    engine_snapshot = json.loads((spec_dir / "engine-state.json").read_text())
+    engine_snapshot["transition_sequence"] = 12
+    write_engine_state(spec_dir, engine_snapshot)
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra=extra))
+    return spec_dir, argv, expected
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        "contract-amendment",
+        "wave-passed",
+        "gates-failed",
+        "findings-remain",
+        "reviewers-clean",
+    ],
+)
+def test_engine_registered_transitions_commit_one_cohort_history_entry(
+    tmp: Path, event: str
+) -> None:
+    spec_dir, argv, expected = _registered_engine_effect_fixture(tmp, event)
+
+    rc, _, err = run_engine(*argv)
+    if rc != 0:
+        fail(event, f"expected registered transition to pass: {err.strip()!r}")
+        return
+
+    engine_state = json.loads((spec_dir / "engine-state.json").read_text())
+    cohort_state = json.loads((spec_dir / "state.json").read_text())
+    history = cohort_state.get("transition_history", [])
+    if engine_state.get("state") != expected["engine_state"]:
+        fail(event, f"unexpected engine state {engine_state.get('state')!r}")
+    if engine_state.get("transition_sequence") != 13:
+        fail(event, f"unexpected engine sequence {engine_state.get('transition_sequence')!r}")
+    context = engine_state.get("last_event_context") or {}
+    if context.get("pre_transition_sequence") != 12:
+        fail(event, f"context did not persist pre sequence: {context!r}")
+    if cohort_state.get("pending_transition") is not None:
+        fail(event, "pending_transition was not cleared")
+    if len(history) != 1:
+        fail(event, f"expected one history entry, got {len(history)}")
+    entry = history[0]
+    if entry.get("event") != event:
+        fail(event, f"history event mismatch: {entry.get('event')!r}")
+    if entry.get("pre_transition_sequence") != 12:
+        fail(event, f"history sequence mismatch: {entry.get('pre_transition_sequence')!r}")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(entry.get("transition_id"))):
+        fail(event, f"transition_id is not SHA-256: {entry.get('transition_id')!r}")
+    for key, value in expected.items():
+        if key == "engine_state":
+            continue
+        if cohort_state.get(key) != value:
+            fail(event, f"expected cohort {key}={value!r}; got {cohort_state.get(key)!r}")
+
+
+def test_engine_non_member_transition_skips_cohort_effect_protocol(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    name = "engine-non-member-skips-cohort-effect"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    before = (spec_dir / "state.json").read_bytes()
+
+    class ForbiddenCohortProtocol:
+        def prepare_transition(self, *args, **kwargs):  # pragma: no cover
+            raise AssertionError("prepare_transition called for non-member")
+
+        def transition_replay_status(self, *args, **kwargs):  # pragma: no cover
+            raise AssertionError("transition_replay_status called for non-member")
+
+        def apply_transition_effect(self, *args, **kwargs):  # pragma: no cover
+            raise AssertionError("apply_transition_effect called for non-member")
+
+    monkeypatch.setattr(_engine, "_cohort_mutator_module", ForbiddenCohortProtocol())
+    monkeypatch.setattr(_engine, "_get_repo_root", lambda: tmp)
+    args = _engine.build_parser().parse_args(
+        ["transition", str(spec_dir), "spec-approved"]
+    )
+
+    assert _engine.cmd_transition(args) == 0
+    assert (spec_dir / "state.json").read_bytes() == before
+
+
+def test_invalid_cross_event_payload_refuses_before_marker(
+    tmp: Path,
+) -> None:
+    spec_dir, argv, _expected = _registered_engine_effect_fixture(tmp, "wave-passed")
+    before = (spec_dir / "state.json").read_bytes()
+
+    rc, _out, err = run_engine(*argv, "--fingerprint", "f" * 64)
+
+    if rc == 0:
+        fail("cross-event-payload", "expected review payload on wave-passed to refuse")
+    if "does not accept review evidence" not in err:
+        fail("cross-event-payload", f"unexpected diagnostic: {err.strip()!r}")
+    assert (spec_dir / "state.json").read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    ("event", "expected"),
+    [
+        ("findings-remain", "requires --fingerprint"),
+        ("reviewers-clean", "requires --all-skipped or one clean report form"),
+    ],
+)
+def test_code_review_registered_review_events_require_explicit_payload(
+    tmp: Path, event: str, expected: str
+) -> None:
+    spec_dir, argv, _expected = _registered_engine_effect_fixture(tmp, event)
+    argv = [part for part in argv if part not in {"--all-skipped", "--fingerprint", "f" * 64}]
+    before = (spec_dir / "state.json").read_bytes()
+
+    rc, _out, err = run_engine(*argv)
+
+    if rc == 0:
+        fail(event, "expected CODE-REVIEW review event without payload to refuse")
+    if expected not in err:
+        fail(event, f"unexpected diagnostic: {err.strip()!r}")
+    assert (spec_dir / "state.json").read_bytes() == before
+
+
+def test_malformed_findings_fingerprint_refuses_before_marker_and_retry_succeeds(
+    tmp: Path,
+) -> None:
+    """Payload validation must not strand the durable transition marker."""
+    spec_dir, argv, _expected = _registered_engine_effect_fixture(
+        tmp, "findings-remain"
+    )
+    before = (spec_dir / "state.json").read_bytes()
+    malformed = ["not-a-fingerprint" if part == "f" * 64 else part for part in argv]
+
+    rc, _out, err = run_engine(*malformed)
+
+    assert rc != 0
+    assert "lowercase 40- or 64-character SHA hex" in err
+    assert (spec_dir / "state.json").read_bytes() == before
+
+    rc, _out, err = run_engine(*argv)
+
+    assert rc == 0, err
+    cohort_state = json.loads((spec_dir / "state.json").read_text())
+    assert cohort_state["pending_transition"] is None
+    assert len(cohort_state["transition_history"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("event", "payload"),
+    [
+        ("findings-remain", ["--fingerprint", "f" * 64]),
+        ("findings-remain", ["--allow-retry-cap-override"]),
+        ("reviewers-clean", ["--all-skipped"]),
+        ("reviewers-clean", ["--direct-clean-file", "unused"]),
+        ("reviewers-clean", ["--structural-clean-file", "unused"]),
+        ("reviewers-clean", ["--report", "unused", "--adjudication"]),
+    ],
+)
+def test_pre_execute_review_edges_refuse_review_effect_payload(
+    tmp: Path, event: str, payload: list[str]
+) -> None:
+    """SPEC-PLAN-REVIEW has no cohort effect and must not drop effect args."""
+    name = f"pre-execute-payload-{event}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir,
+        minimal_engine_state(run_id, name, "code", "SPEC-PLAN-REVIEW"),
+    )
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    engine_before = (spec_dir / "engine-state.json").read_bytes()
+    cohort_before = (spec_dir / "state.json").read_bytes()
+
+    rc, _out, err = run_engine("transition", str(spec_dir), event, *payload)
+
+    assert rc != 0
+    assert "does not accept review-effect payload" in err
+    assert (spec_dir / "engine-state.json").read_bytes() == engine_before
+    assert (spec_dir / "state.json").read_bytes() == cohort_before
+
+
+@pytest.mark.parametrize(
+    ("event", "target"),
+    [
+        ("findings-remain", "SPEC-PLAN-DRAFTING"),
+        ("reviewers-clean", "SPEC-HUMAN-GATE"),
+    ],
+)
+def test_pre_execute_engine_already_advanced_recovery_does_not_apply_review_effect(
+    tmp: Path, event: str, target: str
+) -> None:
+    name = f"pre-execute-recovery-{event}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    engine_state = minimal_engine_state(run_id, name, "code", target)
+    engine_state["last_event"] = event
+    engine_state["last_event_context"] = {"pre_transition_sequence": 7}
+    engine_state["transition_sequence"] = 8
+    write_engine_state(spec_dir, engine_state)
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    before = (spec_dir / "state.json").read_bytes()
+
+    rc, _out, _err = run_engine("transition", str(spec_dir), event)
+
+    assert rc != 0
+    assert (spec_dir / "state.json").read_bytes() == before
+
+
+def _run_engine_with_cohort_crash(
+    tmp: Path,
+    argv: list[str],
+    *,
+    cut: str,
+) -> tuple[int, str, str]:
+    """Run public engine transition in a child that exits after a cohort cut."""
+    bootstrap = tmp / f"crash-{cut}.py"
+    bootstrap.write_text(
+        (
+            "from __future__ import annotations\n"
+            "import importlib.util\n"
+            "import os\n"
+            "import sys\n"
+            f"engine_path = {str(ENGINE)!r}\n"
+            f"cohort_path = {str(COHORT)!r}\n"
+            "engine_spec = importlib.util.spec_from_file_location('crash_engine', engine_path)\n"
+            "engine = importlib.util.module_from_spec(engine_spec)\n"
+            "assert engine_spec is not None and engine_spec.loader is not None\n"
+            "engine_spec.loader.exec_module(engine)\n"
+            "cohort_spec = importlib.util.spec_from_file_location('crash_cohort', cohort_path)\n"
+            "cohort = importlib.util.module_from_spec(cohort_spec)\n"
+            "assert cohort_spec is not None and cohort_spec.loader is not None\n"
+            "cohort_spec.loader.exec_module(cohort)\n"
+            "class CrashCohort:\n"
+            "    def __getattr__(self, name):\n"
+            "        return getattr(cohort, name)\n"
+            "    def prepare_transition(self, *args, **kwargs):\n"
+            "        result = cohort.prepare_transition(*args, **kwargs)\n"
+            "        if sys.argv[1] == 'after-marker':\n"
+            "            os._exit(86)\n"
+            "        return result\n"
+            "    def apply_transition_effect(self, *args, **kwargs):\n"
+            "        result = cohort.apply_transition_effect(*args, **kwargs)\n"
+            "        if sys.argv[1] == 'after-effect':\n"
+            "            os._exit(87)\n"
+            "        return result\n"
+            "engine._cohort_mutator_module = CrashCohort()\n"
+            "raise SystemExit(engine.main(sys.argv[2:]))\n"
+        ),
+        encoding="utf-8",
+    )
+    proc = subprocess.run(
+        [sys.executable, str(bootstrap), cut, *argv],
+        cwd=tmp,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if len(argv) >= 2:
+        spec_dir = Path(argv[1])
+        stale_time = 1
+        for lock in (
+            spec_dir / "engine-state.json.lock",
+            spec_dir / "state.json.lock",
+        ):
+            if lock.exists() and not lock.is_symlink():
+                os.utime(lock, (stale_time, stale_time))
+    return proc.returncode, proc.stdout, proc.stderr
+
+
+def _assert_registered_effect_final_state(
+    spec_dir: Path,
+    *,
+    event: str,
+    expected: dict,
+) -> None:
+    engine_state = json.loads((spec_dir / "engine-state.json").read_text())
+    cohort_state = json.loads((spec_dir / "state.json").read_text())
+    history = [
+        entry for entry in cohort_state.get("transition_history", [])
+        if entry.get("event") == event
+    ]
+    assert engine_state["state"] == expected["engine_state"]
+    assert engine_state["transition_sequence"] == 13
+    assert cohort_state["pending_transition"] is None
+    assert len(history) == 1
+    assert history[0]["pre_transition_sequence"] == 12
+    assert re.fullmatch(r"[0-9a-f]{64}", history[0]["transition_id"])
+    for key, value in expected.items():
+        if key == "engine_state":
+            continue
+        assert cohort_state.get(key) == value
+
+
+@pytest.mark.parametrize(
+    ("event", "cut", "exit_code"),
+    [
+        (event, cut, exit_code)
+        for event in (
+            "contract-amendment",
+            "wave-passed",
+            "gates-failed",
+            "findings-remain",
+            "reviewers-clean",
+        )
+        for cut, exit_code in (
+            ("after-marker", 86),
+            ("after-effect", 87),
+        )
+    ],
+)
+def test_registered_transition_crash_replay_applies_effect_once(
+    tmp: Path, event: str, cut: str, exit_code: int
+) -> None:
+    spec_dir, argv, expected = _registered_engine_effect_fixture(tmp, event)
+    before_engine = json.loads((spec_dir / "engine-state.json").read_text())
+
+    rc, _out, err = _run_engine_with_cohort_crash(tmp, argv, cut=cut)
+
+    assert rc == exit_code, err
+    crashed_engine = json.loads((spec_dir / "engine-state.json").read_text())
+    assert crashed_engine["transition_sequence"] == before_engine["transition_sequence"]
+    if cut == "after-marker":
+        crashed_cohort = json.loads((spec_dir / "state.json").read_text())
+        assert crashed_cohort["pending_transition"]["event"] == event
+        assert not [
+            entry for entry in crashed_cohort.get("transition_history", [])
+            if entry.get("event") == event
+        ]
+    else:
+        crashed_cohort = json.loads((spec_dir / "state.json").read_text())
+        assert crashed_cohort["pending_transition"] is None
+        assert len([
+            entry for entry in crashed_cohort.get("transition_history", [])
+            if entry.get("event") == event
+        ]) == 1
+
+    replay_rc, _replay_out, replay_err = run_engine(*argv)
+
+    assert replay_rc == 0, replay_err
+    _assert_registered_effect_final_state(spec_dir, event=event, expected=expected)
+
+
+@pytest.mark.parametrize("cut", ["after-marker", "after-effect"])
+@pytest.mark.parametrize(
+    ("form", "content", "extra_args"),
+    [
+        (
+            "direct-clean",
+            "Clean — ready to commit.",
+            ["--direct-clean-file"],
+        ),
+        (
+            "structural-clean",
+            "Clean — ready to commit.\n",
+            ["--structural-clean-file"],
+        ),
+        (
+            "report",
+            "## Main-loop result\n\nClean — ready to commit.\n\n"
+            "## Refuted audit\n\nNone.\n\n"
+            "## Indeterminate audit\n\nNone.\n",
+            ["--report"],
+        ),
+    ],
+)
+def test_file_backed_reviewers_clean_replays_after_artifact_removal(
+    tmp: Path,
+    cut: str,
+    form: str,
+    content: str,
+    extra_args: list[str],
+) -> None:
+    """Both cohort crash cuts replay from durable reduced review facts."""
+    spec_dir, argv, expected = _registered_engine_effect_fixture(
+        tmp, "reviewers-clean"
+    )
+    artifact = spec_dir / f"{form}.md"
+    artifact.write_text(content, encoding="utf-8")
+    argv.remove("--all-skipped")
+    argv.extend([*extra_args, str(artifact)])
+    if form == "report":
+        argv.append("--adjudication")
+
+    rc, _out, err = _run_engine_with_cohort_crash(tmp, argv, cut=cut)
+
+    assert rc == (86 if cut == "after-marker" else 87), err
+    artifact.unlink()
+
+    replay_rc, _replay_out, replay_err = run_engine(*argv)
+
+    assert replay_rc == 0, replay_err
+    _assert_registered_effect_final_state(
+        spec_dir,
+        event="reviewers-clean",
+        expected=expected,
+    )
+    cohort_state = json.loads((spec_dir / "state.json").read_text())
+    history = cohort_state["transition_history"]
+    assert history[-1]["args"]["clean_source"] == form
+
+
+def test_file_backed_reviewers_clean_unprepared_missing_artifact_refuses(
+    tmp: Path,
+) -> None:
+    spec_dir, argv, _expected = _registered_engine_effect_fixture(
+        tmp, "reviewers-clean"
+    )
+    argv.remove("--all-skipped")
+    argv.extend(["--direct-clean-file", str(spec_dir / "missing.md")])
+    before = (spec_dir / "state.json").read_bytes()
+
+    rc, _out, err = run_engine(*argv)
+
+    assert rc != 0
+    assert "--direct-clean-file is unreadable" in err
+    assert (spec_dir / "state.json").read_bytes() == before
+
+
+def test_file_backed_reviewers_clean_replay_refuses_changed_form(
+    tmp: Path,
+) -> None:
+    spec_dir, argv, _expected = _registered_engine_effect_fixture(
+        tmp, "reviewers-clean"
+    )
+    artifact = spec_dir / "clean.md"
+    artifact.write_text("Clean — ready to commit.", encoding="utf-8")
+    argv.remove("--all-skipped")
+    argv.extend(["--direct-clean-file", str(artifact)])
+    rc, _out, err = _run_engine_with_cohort_crash(tmp, argv, cut="after-marker")
+    assert rc == 86, err
+    artifact.unlink()
+    changed = [
+        "--structural-clean-file" if part == "--direct-clean-file" else part
+        for part in argv
+    ]
+    before = (spec_dir / "state.json").read_bytes()
+
+    replay_rc, _replay_out, replay_err = run_engine(*changed)
+
+    assert replay_rc != 0
+    assert "replay payload form conflicts" in replay_err
+    assert (spec_dir / "state.json").read_bytes() == before
+
+
+@pytest.mark.parametrize("corruption", ["args-type", "digest"])
+def test_file_backed_reviewers_clean_replay_refuses_malformed_durable_args(
+    tmp: Path, corruption: str
+) -> None:
+    spec_dir, argv, _expected = _registered_engine_effect_fixture(
+        tmp, "reviewers-clean"
+    )
+    artifact = spec_dir / "clean.md"
+    artifact.write_text("Clean — ready to commit.", encoding="utf-8")
+    argv.remove("--all-skipped")
+    argv.extend(["--direct-clean-file", str(artifact)])
+    rc, _out, err = _run_engine_with_cohort_crash(tmp, argv, cut="after-marker")
+    assert rc == 86, err
+    artifact.unlink()
+    state = json.loads((spec_dir / "state.json").read_text())
+    if corruption == "args-type":
+        state["pending_transition"]["args"] = []
+    else:
+        state["pending_transition"]["args"]["clean_digest"] = "bad"
+    write_cohort_state(spec_dir, state)
+    before = (spec_dir / "state.json").read_bytes()
+
+    replay_rc, _replay_out, replay_err = run_engine(*argv)
+
+    assert replay_rc != 0
+    assert "persisted replay args are malformed" in replay_err
+    assert (spec_dir / "state.json").read_bytes() == before
+
+
+# STUB: AC-0015 — review evidence is part of the engine transition payload
+import importlib.util
+import sys
+from pathlib import Path
+
+ENGINE_PATH = (
+    Path.cwd()
+    / "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"
+)
+
+
+def _load_engine():
+    spec = importlib.util.spec_from_file_location("durable_t3_engine", ENGINE_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_review_transition_accepts_effect_payload() -> None:
+    engine = _load_engine()
+    args = engine.build_parser().parse_args(
+        ["transition", "docs/specs/example", "reviewers-clean", "--all-skipped"]
+    )
+    assert args.all_skipped is True

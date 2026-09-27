@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.1] — 2026-09-27
+
+### Highlights
+
+- **Interrupted work-loop transitions now replay without separate cohort repair commands.** The five registered cohort-effect transitions apply their effects through `loop-cohort.py`, record one durable transition identity, and safely resume without double-advancing a wave, double-counting a retry, or duplicating a review round.
+
+### Changed
+
+- Cohort state moves to schema 2 with `pending_transition` and a unified, oldest-first-truncated `transition_history`; engine state remains schema 1. Runs crossing this boundary must use the authorized `loop-cohort reset` then `loop-engine reset` recovery pair.
+
 ## [core][2.27.0] — 2026-09-27
 
 ### Highlights
