@@ -133,3 +133,28 @@ and no repository access. One sample per case and world does not establish
 broad recall, false-positive rates, repeated-sampling stability, or production
 activation behavior. The nine cases are fixed and were written before the runs;
 they are not a random sample of real requests.
+
+## T9 — shipped-description binding, verified
+
+Checked 2026-09-27 against the shipped tree.
+
+| Description | Tested | Shipped | Verdict |
+| --- | ---: | ---: | --- |
+| `content-design` | 895 chars | 895 chars | **Byte-identical** |
+| `ux-writing` (post-fold) | 972 chars | 972 chars | **Byte-identical** |
+
+Both are within the 1,024-character cap `skill_spec_lint.py` enforces as an
+error rather than a warning. No divergence had to be recorded as immaterial,
+because there is none, and no second probe was run.
+
+The `ux-writing` row is the one worth naming. That description is a boundary
+candidate the probe classified, and this delivery edits it — its pre-fold form
+ended "(use `tone-of-voice`)", a routing target naming a removed skill. Had T1
+tested the pre-fold text, the shipped boundary would have been unverified even
+with an 18/18 result, because only `content-design`'s description was bound.
+
+The pooled corpus also holds: 29 distinct positive and 32 distinct negative
+queries, no query under both `should_trigger` values, with 8 negatives owned by
+`ux-writing` and 3 by `creative-direction` retained.
+
+No live activation run and no repeated classifier sampling occurred.
