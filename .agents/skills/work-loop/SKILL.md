@@ -7,6 +7,7 @@ metadata:
   boundaries:
     - filesystem_write
     - filesystem_read_untrusted
+    - network_fetch
 ---
 
 # Skill: work-loop
@@ -146,7 +147,7 @@ containing this `SKILL.md`. From the repository root, invoke every Python script
 below as `python '<skill-dir>/scripts/<name>.py' ...`, substituting the actual
 directory and passing the resolved script path as one argument.
 
-**Base freshness check.** Before reading `workspace.toml` or any spec: run `python '<skill-dir>/scripts/check-base-freshness.py'`. Exit 0: head is current, proceed. Exit 1: read `message` in the JSON output and Surface it — on POSIX with a clean working tree, `message` includes the git rebase command to run; for other cases (dirty tree, network error, Windows) `message` describes the specific issue and what to do. Pass `--target REMOTE/BRANCH` for non-default targets (stacked PRs, release branches); required when more than one remote is configured.
+**Base freshness check.** Before reading `workspace.toml` or any spec: run `python '<skill-dir>/scripts/check-base-freshness.py'`. Read the JSON `status` value. `ok` means the base is current; proceed silently. `skipped` means freshness was not verified because the environment prevented the remote check or fetch; tell the user that the base was not verified and they may want to update it separately, then continue without retrying. `surface` stops the loop: read `message` in the JSON output and Surface it. Pass `--target REMOTE/BRANCH` for non-default targets (stacked PRs, release branches); required when more than one remote is configured. The helper may run required local read-only Git checks. Its network-capable Git calls are only remote discovery and fetch against configured remotes, and Git metadata writes from fetch are confined to the current repository. Do not inspect credentials, bypass enterprise policy, or repeatedly retry; a skipped result is not proof that `HEAD` is current.
 
 ## Step 0. ORIENT
 

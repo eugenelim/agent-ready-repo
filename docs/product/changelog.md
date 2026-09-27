@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.27.0] — 2026-09-26
+## [core][2.27.0] — 2026-09-27
 
 ### Highlights
 
@@ -75,6 +75,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `explain-diff` skill. It traces the changed code and nearby tests, designs the lesson, and publishes it through a bundled standard-library publisher that needs no network access and no third-party dependency.
 - The publisher writes a dated, collision-resistant file under the operating system's temporary directory by default, and writes elsewhere only to an output root the user approves. It redacts secrets, tokens, email addresses, private hostnames, personal names, and user-home paths from the page while preserving the code path being taught.
 - `work-intake` routes explanation requests to `explain-diff`, keeping them separate from correctness review, bug fixing, and document conversion.
+
+## [core][2.26.46] — 2026-09-26
+
+### Highlights
+
+- **Base freshness can now be unverified without stopping every work-loop.** When network access, authentication, timeouts, or enterprise Git-metadata policy prevent the check from completing, the loop tells you freshness was not verified and continues so you can update the branch separately. A proven stale base or unsafe repository state still stops the run.
+
+### Changed
+
+- `work-loop` treats classified base-freshness capability gaps as a skipped check, while keeping confirmed stale bases, missing targets, unsafe local state, and unclassified Git failures blocking.
 
 ## [core][2.26.45] — 2026-09-26
 
