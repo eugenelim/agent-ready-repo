@@ -34,3 +34,32 @@ self-host projection is out of date: `.claude-plugin/marketplace.json` reads
 deliveries that bumped a manifest without committing a regenerated projection.
 T10 regenerates it and clears both. A pre-T10 `catalogue verify` failure naming
 only those two entries is this inherited state; a third name is a real finding.
+
+## T3 — execution observations
+
+**The byte-equality extension is red here, and that is its correct state.**
+`test_every_editorial_quality_gates_copy_is_byte_identical` globs
+`*/references/editorial-quality-gates.md`, which currently returns four copies.
+The two surviving ones — `content-design`'s and `information-architecture`'s —
+are byte-identical at
+`1308734c18d8ec49592408dff5e15e74751645ba8efae2ef0f5900bbcb506f77`. The
+assertion fails naming exactly `['copy-direction', 'tone-of-voice']`, the two
+directories T6 deletes. T3 owns the extension's existence; T6 owns its GREEN.
+A green result at this position would mean the glob was narrowed or a deletion
+happened outside T3's `Touches:`.
+
+**The verification map's selector does not match the mandated test name.**
+`plan.md`'s byte-equality block runs
+`-k editorial_quality_gates_copies_are_byte_identical`, while T3's `Tests:`
+mandates the name `test_every_editorial_quality_gates_copy_is_byte_identical`.
+`-k` matches substrings, and the map's string is not a substring of the
+mandated name, so the map's selector exits **5** — "no tests ran" — even now
+that the extension exists. The map reads exit 5 as "the extension has not
+landed yet", so as written it can never observe this test at all.
+
+The contract-mandated name is authoritative and is what shipped; the map's
+selector is the inconsistent copy of the same value, the same drift this pair
+was reconciled against elsewhere. The working selector is
+`-k every_editorial_quality_gates_copy_is_byte_identical`, and the whole-file
+run reaches it unconditionally. Recorded here rather than by editing the sealed
+plan.
