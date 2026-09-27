@@ -1,10 +1,11 @@
 {
   "skill_name": "content-design",
+  "version": "1.0",
   "evals": [
     {
-      "id": 1,
+      "id": "brief-1",
       "prompt": "Write a content brief for an acquisition surface — a landing page for a developer tool targeting technical team leads who are evaluating the product.",
-      "expected_output": "A structured content brief that: declares the surface type (acquisition), names the audience awareness level using the Schwartz five-stage ladder, selects a narrative arc (StoryBrand or CCD) with a stated applicability rationale, assigns each scroll section one content job (problem / guide proof / plan / stakes / CTA), states the above-fold structure contract (headline what/who/why + subheadline), names a primary and transitional CTA with label direction and next state, and names a success metric. The brief contains content direction — what to say, for whom, in what order — not finished copy. It declares communication_mode: product-copy in the artifact frontmatter, ends with the artifact path <output_dir>/content/<slug>.md resolved from the [design] output_dir, and names copy-direction (per-surface copy voice) and user-flow (screen sequencing) as downstream consumers.",
+      "expected_output": "A structured content brief that: declares the surface type (acquisition), names the audience awareness level using the Schwartz five-stage ladder, selects a narrative arc (StoryBrand or CCD) with a stated applicability rationale, assigns each scroll section one content job (problem / guide proof / plan / stakes / CTA), states the above-fold structure contract (headline what/who/why + subheadline), names a primary and transitional CTA with label direction and next state, and names a success metric. The brief contains content direction — what to say, for whom, in what order — not finished copy. It declares communication_mode: product-copy in the artifact frontmatter, ends with the artifact path <output_dir>/content/<slug>.md resolved from the [design] output_dir, and names the per-surface acquisition copy goals mode (per-surface copy voice) and user-flow (screen sequencing) as downstream consumers.",
       "assertions": [
         "Surface type declared as acquisition",
         "Audience awareness level named using the Schwartz five-stage ladder with a rationale",
@@ -16,11 +17,11 @@
         "No finished copy strings — only direction, job descriptions, and structure contracts",
         "Artifact frontmatter declares communication_mode: product-copy",
         "Artifact path <output_dir>/content/<slug>.md stated, resolved from the configured [design] output_dir",
-        "copy-direction named as downstream for per-surface copy voice; user-flow named for screen sequencing"
+        "the per-surface acquisition copy goals mode named as downstream for per-surface copy voice; user-flow named for screen sequencing"
       ]
     },
     {
-      "id": 2,
+      "id": "brief-2",
       "prompt": "Write a content brief for a product/reference surface — an API quickstart guide for developers integrating for the first time.",
       "expected_output": "A structured content brief that: declares the surface type (product/reference), names the user task as a verb phrase, states the completion definition, selects a content format (numbered steps for a procedural task) with a format rationale, assigns each content item to a must-say / probably-say / might-say tier using the Nava PBC model, names a completion metric, and declares communication_mode: reference-documentation in the artifact frontmatter at the artifact path <output_dir>/content/<slug>.md. The brief contains content direction — what to include, in what format, in what priority order — not finished content.",
       "assertions": [
@@ -33,8 +34,104 @@
         "Artifact frontmatter declares communication_mode: reference-documentation",
         "Artifact path <output_dir>/content/<slug>.md stated, resolved from the configured [design] output_dir",
         "No finished copy strings — direction and hierarchy only",
-        "copy-direction NOT named as downstream (communication_mode is not product-copy); user-flow named for screen sequencing"
+        "the per-surface acquisition copy goals mode NOT named as downstream (communication_mode is not product-copy); user-flow named for screen sequencing"
       ]
+    },
+    {
+      "id": "surface-per-surface-direction",
+      "prompt": "What voice should our pricing page have? We want authority without sounding cold or corporate.",
+      "expected_output": "A small set of NAMED copy goals, each a noun phrase a non-designer can recall, RANKED so a tie can break, with a single dominant goal. Each goal grounded in at least one stable referent (persona language, copy precedent, or persuasion standard). At least one arbitration rule recorded. Output scoped to the pricing page — not brand-level. No finished copy strings (no headlines, taglines, or CTA copy).",
+      "assertions": [
+        "Output identifies reader types and at least one JTBD sentence",
+        "Output names 3–5 copy goals, each a recall-able noun phrase",
+        "Each goal has at least one stable referent (persona language, copy precedent, or persuasion standard)",
+        "Goals are ranked with a dominant goal named",
+        "At least one arbitration rule is recorded",
+        "Output does NOT contain finished copy — no headline, tagline, or CTA string",
+        "Output does NOT claim to cover all surfaces — scoped to the pricing page"
+      ]
+    },
+    {
+      "id": "surface-content-brief-grounding",
+      "prompt": "Here's our content brief for the homepage [communication_mode: product-copy, audience: technical founders]. What copy direction should we name?",
+      "expected_output": "A copy-direction record that sources its reader map from the content brief's audience. Goals are scoped to the homepage surface — not brand-level. Because communication_mode is product-copy, the output notes the editorial-quality-gates anti-AI-smell scan.",
+      "assertions": [
+        "Reader map references the content brief's audience",
+        "If communication_mode is product-copy, editorial-quality-gates.md check is noted",
+        "Goals are scoped to the homepage surface — not brand-level",
+        "Output references the anti-AI-smell scan if communication_mode: product-copy is declared"
+      ]
+    },
+    {
+      "id": "surface-brand-register-deference",
+      "prompt": "We have a brand register doc. Now what copy direction should our campaign landing page have?",
+      "expected_output": "A copy-direction record that references the brand-register doc as an upstream referent (in step 3). Per-surface goals are checked against the brand register. Any tension is surfaced as an open question — the brand register is not silently overridden.",
+      "assertions": [
+        "Output references the brand-register doc as an upstream referent in step 3",
+        "Output checks per-surface goals against the brand register",
+        "Any tension between per-surface goals and brand register is surfaced as an open question",
+        "Output does not silently override the brand register"
+      ]
+    },
+    {
+      "id": "surface-artifact-production",
+      "prompt": "Given the content brief at sample-brief.md, write the copy direction for the launch page.",
+      "files": [
+        "evals/files/sample-brief.md",
+        "evals/files/agentbundle-layout.toml"
+      ],
+      "expected_output": "A copy-direction doc written to copy/launch-page.md with frontmatter type: copy-direction. Contains reader map, 3–5 ranked named copy goals each with a stable referent, a dominant goal, and at least one arbitration rule. No finished copy strings. The skill reports the output path.",
+      "expect": {
+        "produces": [
+          "copy/launch-page.md"
+        ],
+        "output_contains": [
+          "copy/launch-page.md"
+        ]
+      },
+      "assertions": [
+        "Output file is written to copy/launch-page.md with frontmatter type: copy-direction",
+        "Output contains a reader map with at least one JTBD sentence",
+        "Output names 3–5 ranked copy goals, each with a stable referent",
+        "Output names a dominant goal",
+        "Output contains no finished copy strings (no headlines, taglines, or CTA copy)"
+      ]
+    },
+    {
+      "id": "register-1",
+      "prompt": "A technical founder describes their product's copy vibe: 'direct but warm — we're the guide, not the expert. Our audience is technical founders and their teams.' Name the brand-level copy register for this product.",
+      "expected_output": "A small set of NAMED brand-level copy goals, each a noun phrase a non-designer can recall, RANKED so a tie can break, with a single dominant goal that wins when goals conflict. Each goal grounded in at least one stable referent (persona language, a named copy precedent, or a persuasion standard). At least one arbitration rule recorded (which goal wins which conflict and why). No finished copy strings or formula tables. VoC posture declared (directional if elicited inline). Output written to copy/brand-register.md — not a per-surface slug path.",
+      "assertions": [
+        "Names the primary reader type and writes or references a copy JTBD sentence",
+        "Produces at least two named copy goals, each a short noun phrase (not a sentence or a single vague word)",
+        "Ranks the goals and names a single dominant goal that breaks ties",
+        "Each goal has at least one stable referent: persona language, a named copy precedent, or a named persuasion standard",
+        "Records at least one arbitration rule (conflict type → winner → reason)",
+        "Does NOT produce finished copy strings, formula tables, or pre-written headlines",
+        "If VoC is absent, flags goals as 'directional — not backed by VoC research'",
+        "Artifact path copy/brand-register.md stated or implied (not a per-surface slug path)"
+      ]
+    },
+    {
+      "id": "register-2",
+      "prompt": "Name the brand-level copy register for a developer-tool startup that wants to sound like a guide, not a guru. Use agentbundle-layout.toml in this workspace to resolve the output path.",
+      "expected_output": "Named, ranked brand-level copy goals written to copy/brand-register.md with type: tone-of-voice frontmatter. At least one arbitration rule. VoC posture declared. Does NOT write finished copy.",
+      "assertions": [
+        "Writes the brand register to copy/brand-register.md (not a per-surface path)",
+        "Frontmatter includes type: tone-of-voice",
+        "Does NOT produce per-surface copy direction (no landing-page or campaign-specific goals)"
+      ],
+      "files": [
+        "evals/files/agentbundle-layout.toml"
+      ],
+      "expect": {
+        "produces": [
+          "copy/brand-register.md"
+        ],
+        "output_contains": [
+          "copy/brand-register.md"
+        ]
+      }
     }
   ]
 }

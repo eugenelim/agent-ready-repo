@@ -1,25 +1,246 @@
 [
-  {"query": "Before wireframes, decide what our onboarding page must say and how the story should unfold", "should_trigger": true},
-  {"query": "Write the final error, empty-state, and button text for this product flow", "should_trigger": false},
-  {"query": "What should this landing page say to convert technical team leads?", "should_trigger": true},
-  {"query": "Write a content brief for our onboarding flow — we need to decide what it should communicate", "should_trigger": true},
-  {"query": "What's the narrative arc for this marketing page? We don't know what to say first", "should_trigger": true},
-  {"query": "What does our API quickstart page need to communicate to developers?", "should_trigger": true},
-  {"query": "Help me decide the above-fold structure for our pricing page", "should_trigger": true},
-  {"query": "We're redesigning our feature page — what should it say and in what order?", "should_trigger": true},
-  {"query": "Should we use StoryBrand or CCD for our new landing page?", "should_trigger": true},
-  {"query": "What's the content hierarchy for our help article — what must we say vs. what's optional?", "should_trigger": true},
-  {"query": "Before we start wireframing, what should this page actually say?", "should_trigger": true},
-  {"query": "We need to figure out our conversion architecture — what belongs above the fold?", "should_trigger": true},
-
-  {"query": "Write the hero headline for our landing page", "should_trigger": false},
-  {"query": "What should the error message say when login fails?", "should_trigger": false},
-  {"query": "Name the voice axes for our product — how formal should we be?", "should_trigger": false},
-  {"query": "Make the empty-state copy warmer and more encouraging", "should_trigger": false},
-  {"query": "Map the customer journey for a B2B SaaS trial user", "should_trigger": false},
-  {"query": "What keywords should we target for our SEO strategy?", "should_trigger": false},
-  {"query": "Build the screen flow for the checkout experience", "should_trigger": false},
-  {"query": "What does our A/B test data say about the CTA button colour?", "should_trigger": false},
-  {"query": "Write the button labels for the settings page", "should_trigger": false},
-  {"query": "What is the visual aesthetic direction for this landing page?", "should_trigger": false}
+  {
+    "query": "Before wireframes, decide what our onboarding page must say and how the story should unfold",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the final error, empty-state, and button text for this product flow",
+    "should_trigger": false
+  },
+  {
+    "query": "What should this landing page say to convert technical team leads?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a content brief for our onboarding flow — we need to decide what it should communicate",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the narrative arc for this marketing page? We don't know what to say first",
+    "should_trigger": true
+  },
+  {
+    "query": "What does our API quickstart page need to communicate to developers?",
+    "should_trigger": true
+  },
+  {
+    "query": "Help me decide the above-fold structure for our pricing page",
+    "should_trigger": true
+  },
+  {
+    "query": "We're redesigning our feature page — what should it say and in what order?",
+    "should_trigger": true
+  },
+  {
+    "query": "Should we use StoryBrand or CCD for our new landing page?",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the content hierarchy for our help article — what must we say vs. what's optional?",
+    "should_trigger": true
+  },
+  {
+    "query": "Before we start wireframing, what should this page actually say?",
+    "should_trigger": true
+  },
+  {
+    "query": "We need to figure out our conversion architecture — what belongs above the fold?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the hero headline for our landing page",
+    "should_trigger": false
+  },
+  {
+    "query": "What should the error message say when login fails?",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the voice axes for our product — how formal should we be?",
+    "should_trigger": false
+  },
+  {
+    "query": "Make the empty-state copy warmer and more encouraging",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the customer journey for a B2B SaaS trial user",
+    "should_trigger": false
+  },
+  {
+    "query": "What keywords should we target for our SEO strategy?",
+    "should_trigger": false
+  },
+  {
+    "query": "Build the screen flow for the checkout experience",
+    "should_trigger": false
+  },
+  {
+    "query": "What does our A/B test data say about the CTA button colour?",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the button labels for the settings page",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the visual aesthetic direction for this landing page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the copy goals for this pricing-page hero before anyone writes the lines",
+    "should_trigger": true
+  },
+  {
+    "query": "Define the voice our brand should use consistently across every channel",
+    "should_trigger": false
+  },
+  {
+    "query": "What voice should our landing page have? We know we want authority but not cold",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a copy direction doc for our pricing page — we know the vibe but can't name it",
+    "should_trigger": true
+  },
+  {
+    "query": "What should our above-fold hero copy feel like for our new product launch surface?",
+    "should_trigger": true
+  },
+  {
+    "query": "Help us name copy goals for our onboarding welcome surface before we write the copy",
+    "should_trigger": true
+  },
+  {
+    "query": "What copy direction should drive our campaign landing page?",
+    "should_trigger": true
+  },
+  {
+    "query": "Our above-fold copy sounds like everyone else's on this page — help us name a distinctive register",
+    "should_trigger": true
+  },
+  {
+    "query": "What copy goals should drive our acquisition landing page hero section?",
+    "should_trigger": true
+  },
+  {
+    "query": "Before we write the tagline for this surface, we need to name what it should feel like",
+    "should_trigger": true
+  },
+  {
+    "query": "What voice should our copy have overall — across all our surfaces?",
+    "should_trigger": false
+  },
+  {
+    "query": "How do we sound different from our competitors as a brand?",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the error message for when login fails",
+    "should_trigger": false
+  },
+  {
+    "query": "What should the empty state say when there are no projects yet?",
+    "should_trigger": false
+  },
+  {
+    "query": "What's the visual aesthetic direction for the landing page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the button labels for the onboarding flow",
+    "should_trigger": false
+  },
+  {
+    "query": "What SEO keywords should we target for our homepage?",
+    "should_trigger": false
+  },
+  {
+    "query": "What should this landing page say — give me the full narrative structure",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the customer journey for a new user signing up",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this design and give me feedback on the layout",
+    "should_trigger": false
+  },
+  {
+    "query": "Help me decide the narrative arc for our acquisition landing page",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a tone-of-voice doc for our whole product",
+    "should_trigger": false
+  },
+  {
+    "query": "Our teams sound inconsistent; define the brand voice every channel should share",
+    "should_trigger": true
+  },
+  {
+    "query": "Set the copy goals for this pricing-page hero and campaign only",
+    "should_trigger": false
+  },
+  {
+    "query": "What voice should our brand have across all channels? We're a developer tool and we sound too corporate",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we sound different from our competitors? They all sound the same",
+    "should_trigger": true
+  },
+  {
+    "query": "We want to sound like a guide, not an expert. Help us name that direction",
+    "should_trigger": true
+  },
+  {
+    "query": "Our marketing copy sounds like everyone else's — help us name a distinctive brand register",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the copy arbitration rule when urgency and warmth conflict across our communications?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a brand register for our startup — something any copywriter we hire can follow",
+    "should_trigger": true
+  },
+  {
+    "query": "Define the copy personality for our brand — we need a consistent voice across every piece of content",
+    "should_trigger": true
+  },
+  {
+    "query": "Name the dominant copy goals that should govern all our marketing and product communications",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a copy direction doc for our landing page — we know the vibe but can't name it",
+    "should_trigger": false
+  },
+  {
+    "query": "What copy goals should drive our product launch announcement?",
+    "should_trigger": false
+  },
+  {
+    "query": "Before we write the tagline, we need to name what it should feel like",
+    "should_trigger": false
+  },
+  {
+    "query": "What should our hero headline feel like? We want authority without sounding cold",
+    "should_trigger": false
+  },
+  {
+    "query": "Copy vibe check — does our above-fold copy sound like us?",
+    "should_trigger": false
+  },
+  {
+    "query": "What should this landing page say — give me the full structure",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the CTA button copy for the pricing page",
+    "should_trigger": false
+  }
 ]

@@ -153,7 +153,7 @@ Format output with the following sections (omit sections with zero entries):
 - If journey map is missing: run `journey-mapping`
 - If screen flow is missing (but journey map exists): run `user-flow`
 - If per-screen briefs are missing (but flow exists): run `user-flow`
-- If all three exist: the thread is complete. Suggest, without calling any of it missing: `service-blueprint` for backstage mapping, `process-mapping` for the internal workflow, `content-design` and `tone-of-voice` / `copy-direction` for what the surfaces say, `design-principles` for arbitration rules, `information-architecture` for per-screen structure, and `creative-direction` / `design-system` / `interaction-design` to enrich the screen briefs.
+- If all three exist: the thread is complete. Suggest, without calling any of it missing: `service-blueprint` for backstage mapping, `process-mapping` for the internal workflow, `content-design` for what the surfaces say, in any of its three modes, `design-principles` for arbitration rules, `information-architecture` for per-screen structure, and `creative-direction` / `design-system` / `interaction-design` to enrich the screen briefs.
 
 ---
 

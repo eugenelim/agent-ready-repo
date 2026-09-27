@@ -46,18 +46,16 @@ What to run next: user-flow
 |----------|--------------|
 | `experience-status` | Orient — where the design thread is, what's next |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains, opportunities |
-| `content-design` | Set surface intent — what this screen says and for whom |
-| `copy-direction` | Name the per-surface copy goals for a marketing or acquisition surface |
-| `tone-of-voice` | Set the brand-level copy register — cross-surface voice personality |
+| `content-design` | The copy layer in three modes: surface intent, per-surface copy goals, and the brand-level register |
 | `user-flow` | Build the screen inventory — transitions and per-screen state briefs |
 | `creative-direction` | Anchor the aesthetic — grounded in persona and precedent |
 | `design-system` | Derive the token taxonomy from the aesthetic direction |
-| `information-architecture` | Structure a screen — hierarchy, reading flow, wayfinding |
+| `information-architecture` | Structure a screen — hierarchy, reading flow, wayfinding, with genre routing when known |
 | `interaction-design` | Design the behavioral layer — states, feedback, animation |
 | `design-review` | Authoring-time critique — quality floor + coherence |
 | `experience-reviewer` | Independent cold review — forked context, read-only |
 
-Genre-direct alternatives to `information-architecture` for known surface types: `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`.
+For known surface types, `information-architecture` selects the matching genre method before designing hierarchy.
 
 ---
 
@@ -97,10 +95,10 @@ The reviewer runs forked — no authoring context. You act on its findings, then
 ## What the pack ships
 
 **Connective thread** — from outcome to screen inventory:
-`journey-mapping` → `content-design` → `tone-of-voice` (optional, brand register) → `copy-direction` (acquisition surfaces) → `user-flow` → `service-blueprint` / `process-mapping`
+`journey-mapping` → `content-design` (surface intent, then the brand register and per-surface copy goals as needed) → `user-flow` → `service-blueprint` / `process-mapping`
 
 **Craft sequence** — from structure to behavior:
-`design-principles` → `creative-direction` → `design-system` → `information-architecture` / genre-direct skill → `interaction-design`
+`design-principles` → `creative-direction` → `design-system` → `information-architecture` (route by genre when known) → `interaction-design`
 
 **Review** — quality floor, aesthetic fit, cross-brief coherence:
 `design-review` (authoring-time) → `experience-reviewer` (independent cold review)
