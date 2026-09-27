@@ -125,10 +125,10 @@ two source tokens, `repository layout configuration` or `user-profile layout
 configuration`; neither is a path. The confinement refusal is the exception, since
 a path outside the root has no relative form.
 
-**What reaches the lower rungs.** A slot with no conforming artifact is a named
+**What a skip hands to step 1.** A slot with no conforming artifact is a named
 skip and step 1 fills that slot alone; a resolved directory with none in any slot
 is the second skip, `design handoff: no conforming artifact under <output_dir>`.
-Those skips are the only states that reach it.
+Those skips are the only states that hand an unfilled slot forward. They do not constrain the precedence chain, whose own demotion edges are routine and need no skip.
 
 **Every refusal stops the whole read** and halts the mode in a named state.
 Record the matching name verbatim from the table in `references/design-handoff.md`
@@ -215,6 +215,11 @@ answers.
 Whichever rung supplies them, define primitives once and reference them from a
 semantic layer: `Primitive → Semantic → Component`, one-way. Components read
 semantics, never raw values.
+
+**Targeting a PPT slide or PDF export?** Also load
+[`references/print-surface.md`](references/print-surface.md), whatever rung
+supplied the values: page box, colour-adjust and page-break rules are
+medium-specific, not a fallback, and the QA checklist asks about print at every rung.
 
 ### 3. State matrix
 
@@ -367,12 +372,11 @@ After running all five gates, generate the evidence manifest (see Evidence manif
 
 Significant visual work is looked at while it is being built, not only when it
 is finished. Activate this loop when a reader could tell the before and the
-after apart across the room — a new surface, a new major component, a
-substantial redesign, a change to layout, typography or composition, a
-responsive restructuring, or implementation from an approved visual target.
-Skip it for copy-only edits, behaviour-only changes, a trivial component
-variant, an accessibility fix with no visible effect, or an engineering
-refactor — and **record the skip with its reason**.
+after apart across the room — a new surface or major component, a substantial
+redesign, a change to layout, typography or composition, a responsive
+restructuring, or implementation from an approved visual target. Skip it for
+copy-only, behaviour-only, trivial-variant, non-visual accessibility and
+refactor work — and **record the skip with its reason**.
 
 When it activates:
 
@@ -394,15 +398,13 @@ the verification render is recorded, not iterated on.
 Render the smallest set that makes judgement meaningful: the primary state, one
 narrow-channel capture where responsive behaviour carries intent, and any state
 that materially changes the arrangement. **This does not discharge the GATES
-step 5 capture matrix** — that gate still runs in full.
-
-If nothing can be rendered here, name the missing capability, claim no visual
-verification, and continue with the checks that genuinely run. A claimed visual
-verification with no capture behind it is rejected.
+step 5 capture matrix** — that gate still runs in full. If nothing can be
+rendered, name the missing capability and claim no visual verification; a claim
+with no capture behind it is rejected.
 
 The comparison is perceptual, not pixel parity, and a visual target never
-overrides correct responsive adaptation or accessible behaviour. The classes
-that count as material divergence, the observation form and the full rules:
+overrides correct responsive adaptation or accessible behaviour. Activation
+rubric, divergence classes, observation form and full rules:
 [`references/visual-observation.md`](references/visual-observation.md).
 
 ### Avoid the AI Aesthetic

@@ -194,8 +194,9 @@ def test_no_stale_lens_count_statement_survives(reviewer: str) -> None:
         "across six lenses", "these six lenses", "the six lenses",
         "the other five lenses", "the other five against",
     )
+    haystack = reviewer.lower()
     for phrase in stale:
-        assert phrase not in reviewer, (
+        assert phrase not in haystack, (
             f"{phrase!r} survives alongside the seven-lens heading"
         )
     assert reviewer.count("seven lenses") >= 2

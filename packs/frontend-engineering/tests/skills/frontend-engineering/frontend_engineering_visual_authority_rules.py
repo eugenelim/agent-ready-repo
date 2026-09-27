@@ -22,10 +22,14 @@ OBSERVATION = SKILL_DIR / "references" / "visual-observation.md"
 FALLBACK_TOKENS = SKILL_DIR / "references" / "fallback-tokens.md"
 REVIEWER = PACK_ROOT / ".apm" / "agents" / "frontend-reviewer.md"
 
-# The sweep root for aesthetic-anchor literals. Deliberately narrower than the
-# pack: `responsive-layout` legitimately says "linear interpolation", and this
-# slice does not touch it.
+# Two roots, because the two sweeps verify different criteria.
+#
+# Aesthetic-anchor literals sweep narrowly: `responsive-layout` legitimately
+# says "linear interpolation", and this slice does not touch it.
 ANCHOR_ROOTS = (SKILL_DIR, PACK_ROOT / ".apm" / "agents")
+# Pointers to the deleted reference set sweep the whole export tree, because a
+# sibling skill naming it would leave the criterion false and the suite green.
+STRANDED_ROOTS = (PACK_ROOT / ".apm",)
 
 
 def skill_body_lines() -> int:

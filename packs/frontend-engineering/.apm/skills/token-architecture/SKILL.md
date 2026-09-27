@@ -8,7 +8,7 @@ description: Design and govern a three-tier CSS custom property token system (pr
 Load this skill when the primary task is designing or auditing a token
 **system** — the architecture that governs how tokens are named, derived, and
 organized. Do not load this skill for routine surface work where seeding a
-token block is sufficient; the seed token block in `frontend-engineering` step 2
+token block is sufficient; the fallback token block `frontend-engineering` routes to at its lowest authority rung
 covers that case. Load `token-architecture` when:
 
 - The product needs a token system designed from scratch

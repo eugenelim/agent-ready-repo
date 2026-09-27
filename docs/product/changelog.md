@@ -88,6 +88,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A claimed visual verification with no rendered capture behind it is rejected rather than recorded. Where no browser is reachable, the run names the missing capability and claims nothing.
 
+### Known gap
+
+- The pack's journey page and its guide tree still describe the previous pre-flight — a named aesthetic reference and a seed token block. The skill is the current behaviour; those pages land in the next patch.
+
 ## [core][2.27.0] — 2026-09-27
 
 ### Highlights

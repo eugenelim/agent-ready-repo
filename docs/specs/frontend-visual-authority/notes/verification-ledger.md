@@ -79,3 +79,46 @@ inverting a demotion edge, keying the top rung on the upstream enum,
 reintroducing an anchor, and naming an upstream pack each red. The first three
 are the ones that close the two adversarial blockers — before them, the
 reference could ship correct while the always-loaded skill routed to none of it.
+
+## Implementation review — findings and repairs
+
+Nine findings against the slice-1 diff. Two were blockers, and one of them
+invalidated a proof recorded above.
+
+**The pre-flight assertion could not fail for the thing it was written to
+catch.** It searched the whole of `SKILL.md` for the four rung keys. The T5
+evidence-manifest row lists all four, in precedence order, as the field's
+vocabulary — so deleting the entire pre-flight section left the assertion
+green. The T3 mutation proof in this ledger was sound when it ran and stopped
+being sound when T5 changed the file; it was never re-run. The assertion is now
+scoped to the PLAN pre-flight section, as its EXECUTE sibling already was, and
+re-proved against the current file: deleting the section reds it.
+
+The general lesson, recorded because it cost a blocker: **a mutation proof is
+evidence about one file state.** Later edits to the same file can silently
+restore the property the mutation was meant to remove.
+
+**Moving the token block carried the print/PPT CSS out of reach.** It became
+the sole home of `@page`, `print-color-adjust` and the page-break rules, inside
+a reference the skill says to load only at the lowest authority rung — while
+the skill still advertises slide decks and its QA checklist still asks whether
+print output is correct. A deck whose tokens came from a taxonomy was told
+never to load the only guidance satisfying its own gate. The print block now
+lives in `references/print-surface.md`, routed independently of rung, with an
+assertion that reds if it returns to the rung-gated file.
+
+Also repaired: the renamed skip wording no longer forbids the precedence
+chain's own demotions; `token-architecture`'s pointer to the moved block; the
+stranded-phrase sweep widened to the whole export tree, which the criterion
+always said but the test did not do; the lens-count guard made case-insensitive
+as its criterion states; the version assertion pinned to the value the
+criterion names; and the standalone eval case restated so its assertions
+describe one reachable world.
+
+| Gate | Result |
+| --- | --- |
+| ruff / mypy | clean |
+| pack suite | 413 passed |
+| deep catalogue lint | exit 0 |
+| roster + conformance | 75 passed |
+| spec-status lint | metadata clean |

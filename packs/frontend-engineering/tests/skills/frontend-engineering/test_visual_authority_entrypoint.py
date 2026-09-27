@@ -10,7 +10,11 @@ from __future__ import annotations
 
 import re
 
-from frontend_engineering_visual_authority_rules import SKILL, skill_body_lines
+from frontend_engineering_visual_authority_rules import (
+    SKILL,
+    SKILL_DIR,
+    skill_body_lines,
+)
 
 BODY_BUDGET = 960
 
@@ -57,4 +61,31 @@ def test_the_entrypoint_body_stays_within_budget() -> None:
     assert n <= BODY_BUDGET, (
         f"SKILL.md body is {n} lines against a {BODY_BUDGET} budget; the "
         f"catalogue skill-spec lint hard-errors at 1000"
+    )
+
+
+def test_print_guidance_is_reachable_from_every_rung() -> None:
+    """Regression guard.
+
+    Moving the seed token block out of the entrypoint carried the print/PPT
+    CSS with it, into a reference the skill says to load *only* at the lowest
+    authority rung. That made the page box, colour-adjust and page-break rules
+    unreachable for a slide deck whose tokens came from a taxonomy or an
+    incumbent system — while the skill still advertises slide decks and its own
+    QA checklist still asks whether print output is correct. The medium is
+    independent of which rung supplied the values.
+    """
+    print_reference = SKILL_DIR / "references" / "print-surface.md"
+    assert print_reference.exists(), "the print/PPT guidance has no home"
+    body = print_reference.read_text(encoding="utf-8")
+    for rule in ("@page", "print-color-adjust", "page-break"):
+        assert rule in body, f"{rule} is not in the print reference"
+
+    fallback = (SKILL_DIR / "references" / "fallback-tokens.md").read_text(encoding="utf-8")
+    assert "@page" not in fallback, (
+        "print CSS is back in the rung-gated fallback, where a surface on a "
+        "higher rung is told never to load it"
+    )
+    assert "references/print-surface.md" in SKILL.read_text(encoding="utf-8"), (
+        "the entrypoint does not route to the print guidance"
     )

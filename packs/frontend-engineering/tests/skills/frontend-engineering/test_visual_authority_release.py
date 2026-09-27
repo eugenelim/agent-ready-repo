@@ -74,4 +74,6 @@ def test_eval_ids_stay_unique() -> None:
 def test_the_pack_and_plugin_versions_match_and_moved() -> None:
     version = _pack()["pack"]["version"]
     assert version == json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))["version"]
-    assert version != "0.3.3", "pack content changed without a version bump"
+    assert version == "0.3.4", (
+        f"slice 1 ships at 0.3.4 per the spec; pack.toml carries {version!r}"
+    )

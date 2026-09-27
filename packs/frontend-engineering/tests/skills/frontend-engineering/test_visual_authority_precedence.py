@@ -13,6 +13,7 @@ from frontend_engineering_visual_authority_rules import (
     ANCHOR_ROOTS,
     OBSERVATION,
     SKILL,
+    STRANDED_ROOTS,
     observation_rows,
     observation_table,
 )
@@ -45,8 +46,8 @@ STRANDED = ("canonical set", "canonical product-reference set", "canonical refer
 SWEPT_SUFFIXES = {".md", ".json", ".toml", ".html", ".txt", ".css", ".js"}
 
 
-def _shipped_files():
-    for root in ANCHOR_ROOTS:
+def _shipped_files(roots=ANCHOR_ROOTS):
+    for root in roots:
         for path in root.rglob("*"):
             if path.is_file() and path.suffix in SWEPT_SUFFIXES:
                 yield path
@@ -133,7 +134,7 @@ def test_no_shipped_file_points_at_the_deleted_reference_set(phrase: str) -> Non
     """Case-insensitive and whitespace-normalized: one live pointer wrapped
     mid-phrase across a line break and one was a capitalised heading."""
     hits = []
-    for f in _shipped_files():
+    for f in _shipped_files(STRANDED_ROOTS):
         normalized = re.sub(r"\s+", " ", f.read_text(errors="ignore")).lower()
         if phrase in normalized:
             hits.append(str(f))
@@ -142,13 +143,22 @@ def test_no_shipped_file_points_at_the_deleted_reference_set(phrase: str) -> Non
 
 def test_the_entrypoint_states_the_precedence_and_routes_to_the_reference() -> None:
     """The rules live in the reference; this asserts the always-loaded skill
-    actually carries the contract and points at them. Without it the reference
-    can be perfectly correct and the entrypoint route to none of it."""
+    actually carries the contract and points at them.
+
+    **Scoped to the PLAN pre-flight section**, not to the whole file. The
+    evidence-manifest row further down lists all four rung keys in order as the
+    field's vocabulary, so a whole-file search passes even with the pre-flight
+    contract deleted — which is exactly the hole this assertion exists to
+    close.
+    """
     text = SKILL.read_text(encoding="utf-8")
-    positions = [text.find(rung) for rung in RUNGS]
+    preflight = text.split("## PLAN phase", 1)[1].split("\n## ", 1)[0]
+    positions = [preflight.find(rung) for rung in RUNGS]
     assert all(pos >= 0 for pos in positions), (
-        f"pre-flight is missing rung keys: "
+        f"the PLAN pre-flight is missing rung keys: "
         f"{[r for r, pos in zip(RUNGS, positions, strict=True) if pos < 0]}"
     )
     assert positions == sorted(positions), "the rungs are not in precedence order"
-    assert "references/visual-observation.md" in text
+    assert "references/visual-observation.md" in preflight, (
+        "the pre-flight does not route to the reference that holds its rules"
+    )
