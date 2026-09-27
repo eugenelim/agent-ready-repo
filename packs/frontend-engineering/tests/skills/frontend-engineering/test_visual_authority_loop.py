@@ -26,7 +26,7 @@ ACTIVATES = [
     "responsive-restructuring",
     "implementation-from-visual-target",
 ]
-SKIPS = [
+SKIP_MEMBERS = [
     "copy-only",
     "behaviour-only",
     "trivial-variant",
@@ -44,7 +44,7 @@ def test_the_activation_rubric_enumerates_what_it_covers() -> None:
 
 
 def test_the_activation_rubric_enumerates_what_it_skips() -> None:
-    assert _members("Activation", "skips") == SKIPS
+    assert _members("Activation", "skips") == SKIP_MEMBERS
 
 
 def test_activation_carries_a_test_and_demands_the_skip_be_recorded() -> None:
