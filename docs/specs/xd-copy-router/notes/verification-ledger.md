@@ -348,3 +348,40 @@ explicitly ("Do not repair the request by renaming it silently"). The
 `copy-boundary.md` guide states the same refusal to the adopter. This is
 recorded as a fifth entry rather than as one of the four, because the Testing
 Strategy enumerates four judgements and this is not among them.
+
+## Contract amendment — owner authorization
+
+<a id="owner-authorization-amendment-1"></a>
+
+On 2026-09-27 the scope owner `eugenelim` authorized a controlled contract
+amendment to close two post-gates findings that cannot be closed inside the
+pinned contract. The owner chose amendment over closing the criteria against
+recorded substance, so that the shipped contract carries no check that cannot
+run.
+
+<a id="amendment-reason-1"></a>
+
+**Two corrections are in scope, and nothing else.**
+
+1. **The changelog placement criterion is unsatisfiable as worded.** It requires
+   the `## [experience-design][4.0.0]` entry "directly beneath `[Unreleased]`",
+   while `tests/roster/test_verification_ledger_contract.py::test_the_core_release_heading_sits_directly_beneath_unreleased`
+   requires `[core]` in exactly that position. The position admits one heading.
+   The criterion, its Durable Outputs row, and `plan.md`'s changelog validator
+   are reworded to the obligation they were reaching for — **free-standing at
+   `##`, never nested under `[Unreleased]`** — which is what
+   `packs/AGENTS.local.md` actually requires and what makes an entry publish.
+   The conflict is not hypothetical on this branch: commit `e1164adeb` exists
+   only to undo the same mistake in a sibling delivery after CI caught it.
+
+2. **The byte-equality criterion's named verification cannot observe its test.**
+   `plan.md`'s command map selects `-k editorial_quality_gates_copies_are_byte_identical`
+   while the mandated and shipped test is
+   `test_every_editorial_quality_gates_copy_is_byte_identical` — "copy_is", not
+   "copies_are". The selector matches nothing, exits 5, and the block reads
+   exit 5 as "the extension has not landed yet", so the check reports the
+   pre-state permanently. The selector is corrected.
+
+Neither correction changes what the delivery must achieve. Both change a stated
+check so it can observe the thing it names. No acceptance criterion is removed,
+narrowed in substance, or deferred, and no scope moves to a follow-on.
