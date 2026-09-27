@@ -180,7 +180,7 @@ large enough claim to earn a position above the fold on the primary landing
 page.
 
 Worth recording *why* the first replacement attempt was also wrong, because the
-error is repeatable. `conversion-design`'s above-fold spec names this slot
+error is repeatable. `information-architecture`'s marketing reference names this slot
 **friction microcopy** — "one line that removes the dominant objection to
 clicking the primary CTA" — and the target-state brief names that objection as
 *"what does this do to my repository, and can I undo it."* Optimising inside
@@ -231,6 +231,6 @@ on the other surface. It does not write marketing headlines, and neither does
 this skill: finished home-page copy is drafted directly against the four goals
 above.
 
-`conversion-design` reads `communication_mode: product-copy` from the content
+`information-architecture` with the marketing reference reads `communication_mode: product-copy` from the content
 brief and runs its own editorial quality gate against the above-fold spec and
 scroll story.

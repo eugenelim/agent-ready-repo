@@ -403,4 +403,14 @@ On acceptance:
 
 ## Errata
 
+### Current state
+
+RFC-0066 D4 no longer authorizes six separate genre-specific skill
+registrations. The six genre methods are preserved as references under
+`information-architecture`, and the D2 taxonomy and D5(d)
+`transactional-journey` route are unchanged.
+
+### History / audit trail
+
+- **2026-09-26 — D4 genre-specific registrations retired.** D4's six genre-specific registrations (`conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`, `informational-design`, and `workspace-design`) are retired. Their genre methods remain available as references under `information-architecture`. D2's seven-type taxonomy is unchanged, and D5(d)'s `transactional-journey` route remains `interaction-design`. eugenelim.
 - **2026-07-27 — `voice-and-microcopy → ux-writing` rename governance.** D7 required "a separate product-engineering RFC" for this rename. That separate RFC was not written. The rename was implemented directly via `docs/specs/ux-writing-rename/`, citing this RFC's D7 decision + ADR-0038 as the governing authority. RFC-0071 OQ3's grep-verified count (21 operative files) was honored in that spec. This errata discharges the "separate product-engineering RFC" requirement from D7. eugenelim.

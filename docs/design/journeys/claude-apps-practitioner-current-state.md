@@ -164,7 +164,7 @@ packs declare `["claude-code"]`, so that claim is unavailable until the
 contract's owner decides the vocabulary. This journey describes reaching and
 running a method; it does not certify a first-value surface.
 
-**Next step.** `documentation-design` owns the surface design for a
+**Next step.** `information-architecture` with the documentation reference owns the surface design for a
 documentation-genre journey — it decides what content type belongs where and
 what the first-value moment is per type. The two decisions it must make are
 whether the Stage 1 fix is a new page or a home-page entry, and whether the

@@ -68,5 +68,6 @@ The map is ready when you can answer three questions:
 3. If the direction serves the primary reader precisely, what does it
    sacrifice for each secondary reader — and is that the intended trade?
 
-Record the map in the creative-direction doc. It becomes the Persona
-referent for each named goal.
+Carry the map into `converge`'s capture, where it becomes the Persona
+referent for each named goal. On `inherit`, which reaches no writer, hold it
+in the session.

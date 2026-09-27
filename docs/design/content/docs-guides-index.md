@@ -176,7 +176,7 @@ days against 6 for the repository's docs directory.
 
 - **Does the first path need splitting?** It is stated at about an hour, and a
   first-value on-ramp should be closer to twenty minutes of active work.
-  Splitting a short on-ramp out of it is `documentation-design`'s call.
+  Splitting a short on-ramp out of it is `information-architecture`'s documentation reference call.
 - **What is the real example search query?** It has to be a query that actually
   returns something useful, which needs checking against the index rather than
   inventing.
@@ -195,7 +195,7 @@ surfaces and for onboarding, which converts an evaluator into an active user.
 `ux-writing` owns UI-state copy only: the search placeholder, the no-results
 recovery, and the partial-path marker.
 
-`documentation-design` is the next substantive step: the Diátaxis type map, the
+`information-architecture` with the documentation reference is the next substantive step: the Diátaxis type map, the
 first-value target per content type, and the on-ramp split.
 `information-architecture` has already fixed the navigation model and the job
 grouping.

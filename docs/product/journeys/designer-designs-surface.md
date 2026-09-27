@@ -10,7 +10,7 @@ initiative_links:
     name: Experience pack surface-genre uplift
     milestones: experience 0.6.0 (all stages)
     role: primary
-updated: 2026-07-19
+updated: 2026-09-26
 ---
 
 # Journey: Designer designs a surface
@@ -29,7 +29,7 @@ Two paths share this journey:
 
 **Outcome:** A screen-flow brief with `surface-genre:` declared, genre-specific IA and interaction patterns applied, design principles produced and referenced in the design review, and a handoff artefact ready for `frontend-engineering`.
 
-**Surface:** cross-platform — CLI/terminal, agent-assisted. The artefacts (screen briefs, design-principles document, conversion design document) are markdown files in the adopter's repo.
+**Surface:** cross-platform — CLI/terminal, agent-assisted. The artefacts (screen briefs, design-principles document, genre-aware IA notes) are markdown files in the adopter's repo.
 
 **Trigger:**
 - Feature design: a product brief exists; the designer is asked to take it from brief to screen design.
@@ -43,11 +43,11 @@ Two paths share this journey:
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| experience-design | user | current (1.0.0) | 18 skills: the full design thread (journey → realization), 6 genre-specific Direct skills, design-principles, and the surface-genre contract |
+| experience-design | user | current (3.0.0) | the full design thread (journey → realization), one genre-aware information-architecture skill, design-principles, and the surface-genre contract |
 
 **Setup:**
 1. Install experience-design pack at user scope.
-2. Begin with `journey-mapping` → `design-principles` → genre-specific Direct skill → `user-flow` → `interaction-design` → `design-review`.
+2. Begin with `journey-mapping` → `design-principles` → `information-architecture` with the matching genre reference → `user-flow` → `interaction-design` → `design-review`.
 3. Surface genre declared once at `user-flow` (or elicited inline); flows to all downstream skills automatically.
 
 ---
@@ -59,7 +59,6 @@ sequenceDiagram
     participant D as Designer
     participant JM as journey-mapping
     participant DP as design-principles
-    participant GS as genre-specific skill
     participant UF as user-flow
     participant IA as information-architecture
     participant ID as interaction-design
@@ -71,11 +70,11 @@ sequenceDiagram
     D->>DP: Derives 3-5 design principles from peak moments + pains
     DP-->>D: Named principles (arbitration-ready, evidence-grounded)
     Note over D: Define phase complete — principles govern all downstream decisions
-    D->>GS: Genre-specific Direct skill (conversion / documentation / analytical / marketplace / informational / workspace)
-    GS-->>D: Genre-specific layout strategy, proof structure, density targets
+    D->>IA: Genre-aware IA (loads the matching genre reference)
+    IA-->>D: Genre-specific layout strategy, proof structure, density targets
     D->>UF: Screen flow (surface-genre: declared in every brief)
     UF-->>D: Briefs with genre field + elicitation fallback
-    D->>IA: IA design (genre routing: reads genre-specific skill output)
+    D->>IA: IA design (success metric binding + hierarchy)
     IA-->>D: Genre-appropriate hierarchy + success metric binding
     D->>ID: Interaction design (routes to genre pattern families)
     ID-->>D: Wizard / data table / destructive / save-state / analytical / marketplace patterns
@@ -97,7 +96,7 @@ Most design work does not start at Stage 1. The full journey (all six stages) is
 
 **Amend (3 skills):** Invoke `user-flow` with `surface-genre` known → `interaction-design` → `design-review`. Load `docs/design/principles/<slug>.md` before review. If no principles artefact exists, run `design-principles` first using the product context from the brief.
 
-**Feature (4–5 skills):** Run the genre-specific Direct skill for the surface type (e.g. `conversion-design` for a landing page) → `user-flow` → `interaction-design` → `design-review`. Add `design-principles` at the start if no principles artefact exists. Add `information-architecture` before `interaction-design` when IA structure is open.
+**Feature (4–5 skills):** Run `information-architecture` with the surface type declared (for example, `surface-genre: marketing` for a landing page) → `user-flow` → `interaction-design` → `design-review`. Add `design-principles` at the start if no principles artefact exists.
 
 **Full journey (6 stages):** Start at Stage 1 when the product is new, the user journey has not been mapped, or design decisions need grounding in discovery evidence. The stage breakdown below describes each step.
 
@@ -117,16 +116,16 @@ The `design-principles` skill fills the Define phase between discovery and scree
 
 ## Stage 3: Direct
 
-Six genre-specific Direct skills route each surface to the right patterns:
+`information-architecture` routes each surface to the right genre reference before it designs the hierarchy:
 
-- **`conversion-design`** (marketing): hero approach selection (5 patterns), above-fold 6-element spec, IC-first principle for developer tools, scroll story 7-zone structure, social proof 6-tier hierarchy calibrated to maturity stage.
-- **`documentation-design`** (documentation): Diátaxis type mapping + density calibration, nav-at-scale strategy selection (3 strategies by complexity tier), TTFV as design target, onboarding path as numbered Start Here spine, machine-readability requirements.
-- **`analytical-design`** (analytical): domain-model-first approach, business-question anchoring (3–5 explicit questions), three-tier widget hierarchy, Shneiderman's mantra (overview → zoom/filter → details on demand), role-based views, spatial layout grammar, per-widget state handling.
-- **`marketplace-design`** (marketplace): listing card IA, filter/facet architecture, comparison affordances, browse-first vs. search-first routing, cart/transaction bridge to interaction-design wizard patterns.
-- **`informational-design`** (informational): typography as primary design tool (type scale, line length 45–75 chars, line height 1.4–1.6×), F/Z reading flow calibration (heavy headlines + pull quotes for scanners; body density for committed readers), editorial grid (asymmetric column), article page structure, "what's next" chain design, content entry point diversity.
-- **`workspace-design`** (workspace): context-persistence patterns, session arc design (arrive → orient → work → persist → collaborate), collaboration state IA (presence indicators, live-editing, following mode), interrupt and notification design (low-interruption default), permission/sharing model IA, ambient vs. focal attention zones. **Agentic UI patterns** — task queue surface, agent status indicators, human-in-the-loop confirmation surfaces (impossible to accidentally bypass), output review and revision patterns, agent history and auditability, multi-agent coordination visibility.
+- **marketing:** hero approach selection, above-fold contract, scroll story, and proof hierarchy.
+- **documentation:** Diátaxis type mapping, density calibration, navigation strategy, first-value path, and machine-readability requirements.
+- **analytical:** domain-model-first approach, business-question anchoring, widget hierarchy, role-based views, spatial layout grammar, and per-widget state handling.
+- **marketplace:** listing card IA, filter and facet architecture, comparison affordances, browse-first vs. search-first routing, and transaction bridge.
+- **informational:** reading-pattern calibration, typographic hierarchy, editorial grid, article page structure, next-step chain, and content entry point diversity.
+- **workspace:** context-persistence patterns, session arc design, collaboration state IA, interrupt and notification design, permission model, attention zones, and agentic UI patterns.
 
-`information-architecture` applies genre routing at step 1 (reads the genre-specific skill output for all six genres; applies progressive disclosure for `transactional-journey`) and success metric binding (before designing hierarchy, name the measurable outcome the surface serves). `creative-direction` carries genre canonical references: for each genre, the canonical aesthetic reference tier to study (developer tool marketing sites for `marketing`; Stripe/Vercel/Django Docs for `documentation`; Notion/Linear/Figma for `workspace`; etc.).
+`information-architecture` also keeps the `transactional-journey` hand-off to `interaction-design` and binds the hierarchy to a success metric before layout decisions. `creative-direction` carries genre canonical references: for each genre, the canonical aesthetic reference tier to study.
 
 ---
 
@@ -169,9 +168,9 @@ Stage 5 closes the full Define→Validate chain: principles produced at Stage 2 
 
 | # | Capability | Stage |
 |---|---|---|
-| G1 | `workspace-design` skill — session arc, collaboration state IA, agentic UI patterns | Stage 3 |
+| G1 | Workspace genre method — session arc, collaboration state IA, agentic UI patterns | Stage 3 |
 | G2 | `design-review` mandatory design-principles integration at step 1 | Stage 5 |
-| G3 | `informational-design` skill — typography, F/Z reading flow, editorial grid, what's-next chain | Stage 3 |
+| G3 | Informational genre method — typography, F/Z reading flow, editorial grid, what's-next chain | Stage 3 |
 | G4 | `design-review` genre-specific rubrics for all six addressable genres | Stage 5 |
 | G5 | `user-flow` `## Genre-specific notes` conditional section in every screen brief (all 7 genres) | Stage 4 |
 | G6 | `creative-direction` genre canonical reference tier for all 7 genres | Stage 3 |
@@ -229,9 +228,8 @@ Design quality signals that indicate the skill chain is working. These are proce
 - **Skill:** `journey-mapping` — map the customer journey with peak moments, evidence level, and genre stage templates
 - **Skill:** `service-blueprint` — map backstage + evidence-of-service + fail points
 - **Skill:** `design-principles` — derive 3–5 arbitration-ready design principles from peak moments and pains
-- **Skill:** `conversion-design` (marketing) / `documentation-design` (documentation) / `analytical-design` (analytical) / `marketplace-design` (marketplace) / `informational-design` (informational) / `workspace-design` (workspace + agentic UI) — genre-specific Direct design
 - **Skill:** `creative-direction` — visual personality and aesthetic direction
-- **Skill:** `information-architecture` — hierarchy design with genre routing + success metric binding
+- **Skill:** `information-architecture` — hierarchy design with genre routing, loaded genre references, and success metric binding
 - **Skill:** `user-flow` — screen sequencing with `surface-genre:` in every brief
 - **Skill:** `interaction-design` — interaction patterns (wizard, data table, destructive action, save-state, analytical widgets)
 - **Skill:** `design-review` — gate review referenced against design principles
@@ -243,7 +241,7 @@ Design quality signals that indicate the skill chain is working. These are proce
 
 **Feature design path:** The lowest point is Stage 1 (Discover) when the journey map has no peak moments — the designer knows there are problems but doesn't know which one to solve. The second lowest point is Stage 5 (Validate) when review findings have no criteria to anchor them to.
 
-All genres now have dedicated Direct skills. The remaining friction for the first-time user is Stage 3 (Direct) cognitive load — six genre-specific skills mean more choices, more reading. The tradeoff is deliberate: depth over simplicity.
+All genres now route through `information-architecture`. The remaining friction for the first-time user is declaring the right `surface-genre:`; the skill then loads the matching genre method without making the designer choose a separate registration.
 
 **Peak moment (shipped):** Stage 2 (Define) — the first time a designer derives design principles and runs the arbitration test ("given two wireframes, which does this principle prefer?"), the value of the Define phase becomes immediate. Designers who have run it once do not skip it.
 
@@ -259,12 +257,12 @@ All original open design questions are resolved in RFC-0066. No open design ques
 
 **Post-0.6.0 watch items** (not open questions — monitoring items for after the pack ships):
 
-1. **Cognitive load at Stage 3 (Direct):** Six genre-specific Direct skills is a significant choice surface. If adopters report confusion about which skill to pick, a selection guide (single decision-tree doc) may be needed. Revisit after 0.6.0 has been in use for one quarter.
+1. **Cognitive load at Stage 3 (Direct):** The separate genre-skill choice has been removed. If adopters still struggle, the gap is in selecting the right `surface-genre:` value, not in choosing among skill registrations.
 
-2. **agentic UI patterns depth:** workspace-design ships with foundational agentic UI patterns (task queue, agent status, HITL confirmation, output review). As the platform's own agent-augmented workspaces mature, these patterns may need a dedicated skill extension. Track via adopter feedback.
+2. **agentic UI patterns depth:** the workspace genre method ships with foundational agentic UI patterns (task queue, agent status, HITL confirmation, output review). As the platform's own agent-augmented workspaces mature, these patterns may need a dedicated skill extension. Track via adopter feedback.
 
 ---
 
 ## Handoff notes
 
-**Shipped in RFC-0066 implementation PR:** 7 new skills, 7 extensions across 6 existing skills, D1 genre-specific notes template added to the screen-brief, D5(e/f/g) design-review + creative-direction extensions, D7 rename sweep (9 skills to canonical vocabulary), D8 0.5.0 → 0.6.0 bump. Marketing site (`web/`) and docs guides (`guides/experience/`) updated in the same PR.
+**Shipped in RFC-0066 implementation PR:** 7 new skills, 7 extensions across 6 existing skills, D1 genre-specific notes template added to the screen-brief, D5(e/f/g) design-review + creative-direction extensions, D7 rename sweep (9 skills to canonical vocabulary), D8 0.5.0 → 0.6.0 bump. Marketing site (`web/`) and docs guides (`guides/experience/`) updated in the same PR. The current pack shape folds the six genre registrations into `information-architecture` while preserving their methods as genre references.

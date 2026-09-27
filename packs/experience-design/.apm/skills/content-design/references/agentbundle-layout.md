@@ -19,11 +19,19 @@ One key:
 output_dir = "docs/design"   # a base directory; output files go *under* it
 ```
 
-- **`output_dir` is a base, not the leaf.** The `content-design` skill writes
-  to `<output_dir>/content/<slug>.md` with frontmatter `type: content-brief`,
-  where `<slug>` is a short kebab-case name for the surface (e.g. `landing-page`,
-  `api-quickstart`, `onboarding-flow`). The `content/` directory is created lazily
-  on first write — you do not need to pre-create it.
+- **`output_dir` is a base, not the leaf.** This reference resolves the base
+  only. `content-design` runs in three modes and **each mode appends its own
+  leaf and writes its own frontmatter marker**; the mode's own step in
+  `SKILL.md` states both, and is authoritative. Resolve the base here, then
+  read that step.
+
+  For the message and narrative structure mode the leaf is
+  `<output_dir>/content/<slug>.md` with frontmatter `type: content-brief`,
+  where `<slug>` is a short kebab-case name for the surface (e.g.
+  `landing-page`, `api-quickstart`, `onboarding-flow`). The other two modes
+  write under `<output_dir>/copy/`, one file per surface plus one reserved
+  brand-level file. Leaf directories are created lazily on first write — you do
+  not need to pre-create them.
 
 ## Repo-root first, then user-profile
 
@@ -66,9 +74,9 @@ repo tree is treated as untrusted-origin and confirmed before writing.
 output_dir = "~/Documents/MyVault/design"   # absolute path; ~ is expanded
 ```
 
-## Extension to the pack's marker set
+## Extension to the pack's marker set (message and narrative structure mode)
 
-The marker is the `type: content-brief` frontmatter field. Do not omit it: a consumer that scans `<output_dir>` reads the marker to tell a content brief from every other file it finds there, and an artifact without it is not discoverable that way whatever its path.
+This section covers the content brief. The other two modes carry their own markers, named in their own steps; the brand-level one is a **pair** of fields, not a single `type:`, and downstream reads gate on both. The content brief's marker is the `type: content-brief` frontmatter field. Do not omit it: a consumer that scans `<output_dir>` reads the marker to tell a content brief from every other file it finds there, and an artifact without it is not discoverable that way whatever its path.
 
 `content-brief` extends the `design` pack's existing discover-by-marker set alongside the creative-direction artifact (`type: creative-direction`). An adopter who stores both types in non-default locations can configure each independently via the `[design]` table.
 

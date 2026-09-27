@@ -12,6 +12,11 @@
   {"query": "Let's define the aesthetic goals for the product before any design work starts", "should_trigger": true},
   {"query": "I keep saying 'make it pop' but I need to name what I actually want it to feel like", "should_trigger": true},
 
+  {"query": "We have a direction for the main product — make it feel bolder without changing the goals", "should_trigger": true},
+  {"query": "The existing direction feels too quiet; can you amend it to feel more assured?", "should_trigger": true},
+  {"query": "Refine the direction we established — distill it down to its core commitments", "should_trigger": true},
+  {"query": "We already defined a visual direction and I want to push the typeset quality further", "should_trigger": true},
+
   {"query": "Derive a spacing and type scale from our aesthetic direction", "should_trigger": false},
   {"query": "Set up our design tokens and name them by role", "should_trigger": false},
   {"query": "Critique this landing-page mockup and rank the issues", "should_trigger": false},

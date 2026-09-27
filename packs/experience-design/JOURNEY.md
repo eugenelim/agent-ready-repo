@@ -19,19 +19,13 @@ contract:
     - approve-journey
     - approve-aesthetic-direction
     - review-experience-designs
-whatChanges: "After installing experience-design, every design task runs a fixed thread: journey-mapping to anchor user outcomes, user-flow to derive the screen inventory, a craft sequence (creative-direction → design-system → information-architecture → interaction-design) to design each screen, and an independent experience-reviewer pass that reads design artifacts cold. The quality floor — handle-all-states, WCAG 2.2 AA, reduced-motion — is non-negotiable at every step. You decide at three gates: the journey and screen list, the aesthetic direction, and the post-review pass before design feeds the build loop. experience-status orients to the thread at the start of any session."
+whatChanges: "After installing experience-design, every design task runs a fixed thread: journey-mapping to anchor user outcomes, user-flow to derive the screen inventory, a craft sequence (creative-direction → design-system → information-architecture → interaction-design) to design each screen, and an independent experience-reviewer pass that reads design artifacts cold. information-architecture selects a genre method when the brief declares a surface genre. The quality floor — handle-all-states, WCAG 2.2 AA, reduced-motion — is non-negotiable at every step. You decide at three gates: the journey and screen list, the aesthetic direction, and the post-review pass before design feeds the build loop. experience-status orients to the thread at the start of any session."
 skills:
   - name: journey-mapping
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
     humanTouches: 1
   - name: content-design
-    description: "Produces a content brief for a surface — what it should say, for whom, in what form, and to what objective — before any wireframe or screen flow starts."
-    humanTouches: 0
-  - name: tone-of-voice
-    description: "Names the brand-level copy register — the cross-surface voice and copy personality that all per-surface copy decisions reference."
-    humanTouches: 0
-  - name: copy-direction
-    description: "Names the copy direction for a specific marketing or acquisition surface — ranked copy goals grounded in stable referents, plus arbitration rules for that surface."
+    description: "The copy layer in three modes: a content brief for a surface, per-surface acquisition copy goals, or the brand-level register every per-surface goal references."
     humanTouches: 0
   - name: user-flow
     description: "Derives the screen inventory and flow from the customer journey — what screens exist, what state each handles, what the transitions are."
@@ -52,25 +46,7 @@ skills:
     description: "Derives the design token set from the creative direction — the primitive and semantic tokens that carry the design into code."
     humanTouches: 0
   - name: information-architecture
-    description: "Designs the layout zones and information hierarchy for a screen, given its per-screen brief."
-    humanTouches: 0
-  - name: analytical-design
-    description: "Produces a structural specification for an analytical surface — dashboard IA, widget hierarchy, and role-based view architecture — from business questions and domain model."
-    humanTouches: 0
-  - name: conversion-design
-    description: "Produces a structural specification for a marketing surface — above-fold contract, scroll story, and social-proof architecture — from content brief and design principles."
-    humanTouches: 0
-  - name: documentation-design
-    description: "Produces a structural specification for a documentation surface — content hierarchy, navigation strategy, and TTFV architecture — from Diátaxis content typing and reading goal."
-    humanTouches: 0
-  - name: informational-design
-    description: "Produces a structural specification for an informational surface — typographic hierarchy, reading-pattern calibration, and editorial grid — from editorial structure and reading goal."
-    humanTouches: 0
-  - name: marketplace-design
-    description: "Produces a structural specification for a marketplace surface — listing card IA, filter and facet architecture, and transaction bridge — from buyer journey and listing object model."
-    humanTouches: 0
-  - name: workspace-design
-    description: "Produces a structural specification for a workspace surface — context-persistence architecture, attention zone layout, and interrupt design — from session arc and collaboration model."
+    description: "Designs the layout zones and information hierarchy for a screen, selecting the analytical, marketing, documentation, informational, marketplace, or workspace genre method when the brief declares one."
     humanTouches: 0
   - name: interaction-design
     description: "Designs the interactive behaviors for a screen — states, transitions, feedback patterns — against WCAG 2.2 AA."
@@ -137,9 +113,7 @@ relatedJourneys:
 |----------|--------------|---------|
 | `experience-status` | Orient — where the design thread is, what's next | Optional |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains | Required |
-| `content-design` | Set surface intent — what this screen says and for whom | Required |
-| `tone-of-voice` | Set the brand-level copy register — cross-surface copy personality all per-surface goals reference | Optional |
-| `copy-direction` | Name per-surface copy goals — voice, register, arbitration rules for a specific marketing surface | Optional |
+| `content-design` | Set surface intent — what this screen says and for whom, plus per-surface copy goals and the brand register in its other two modes | Required |
 | `user-flow` | Build the screen inventory with per-screen state briefs | Required |
 | `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
 | `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |
@@ -259,7 +233,8 @@ Approve the aesthetic direction? ›
 
 ### 4. Design each screen
 
-Type `information-architecture` (or a genre-direct skill for dashboards, marketing, docs, or marketplace surfaces), then `interaction-design` per screen.
+Type `information-architecture`; when the brief declares a surface genre, it
+loads that genre's method. Then type `interaction-design` per screen.
 
 ```text
 interaction-design [/onboarding/welcome]

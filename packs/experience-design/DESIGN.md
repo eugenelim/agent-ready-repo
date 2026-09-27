@@ -29,16 +29,16 @@ Things a reasonable reader might expect this pack to provide. It doesn't, by des
 ```
 journey-mapping
     ↓
-content-design
+content-design [message and narrative structure]
     ↓
-copy-direction  ←──── tone-of-voice (brand register, optional)
+content-design [per-surface copy goals]  ←──── content-design [brand-level register] (optional)
     ↓
 user-flow
     ↓
 design-principles  ←──── creative-direction
     ↓                          ↓
 information-architecture   design-system
-  (or genre-direct skill)
+  (route by genre when known)
     ↓
 interaction-design
     ↓
@@ -54,11 +54,11 @@ experience-reviewer  ←  independent cold review
 Each skill consumes a specific upstream artifact and cannot produce reliable output without it:
 
 - `content-design` needs the journey's key touchpoints to know what the surface is trying to accomplish and for whom.
-- `copy-direction` needs the content brief from `content-design` to name per-surface copy goals grounded in the surface's declared intent. For acquisition surfaces, `tone-of-voice`'s brand register is an optional upstream anchor.
+- `content-design`'s per-surface acquisition copy goals mode needs the content brief its own message and narrative structure mode writes, to name per-surface copy goals grounded in the surface's declared intent. For acquisition surfaces, the brand register is an optional upstream anchor.
 - `user-flow` needs the content brief to sequence screens in a way that delivers on the stated content intent, not just the functional path.
 - `creative-direction` needs the journey's emotional arc (the pains, the moments of relief) to ground the aesthetic direction in real user feeling rather than preference.
 - `design-system` needs the named aesthetic direction to derive a token taxonomy that isn't arbitrary.
-- `information-architecture` (and the genre-direct skills) needs both the content brief and the aesthetic direction as constraints.
+- `information-architecture` needs both the content brief and the aesthetic direction as constraints. When a screen declares a surface genre, it loads the matching genre method before arranging hierarchy.
 - `interaction-design` needs the per-screen brief produced by `user-flow` — which includes the state matrix — to design behavior for the right set of states.
 - `design-review` and `experience-reviewer` need the completed artifacts to review against something concrete.
 
@@ -97,7 +97,7 @@ A design that passes the quality floor is correct. It is not necessarily good. M
 
 The `creative-direction` skill is the gate between correct and good: it grounds visual and brand goals in persona, precedent, and platform conventions — naming a direction that the rest of the craft sequence must satisfy as a coherence constraint. A `creative-direction` doc that only restates correctness goals ("it should be accessible and clear") has not cleared the gate.
 
-This principle applies to every skill in the pack. `design-principles` must name principles that a team would actually dispute, not principles everyone already agrees with. `tone-of-voice` must produce ranked goals that create real copy arbitration, not aspirational adjectives.
+This principle applies to every skill in the pack. `design-principles` must name principles that a team would actually dispute, not principles everyone already agrees with. `content-design`'s brand-level register mode must produce ranked goals that create real copy arbitration, not aspirational adjectives.
 
 ---
 
@@ -137,8 +137,8 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 |-------|-------|--------|-----------------|
 | `journey-mapping` | User, outcome, platform | Journey map (stages × emotions × pains × opportunities) | What the user is trying to accomplish and where it breaks |
 | `content-design` | Journey key touchpoints | Content brief per surface | What the surface says, for whom, to what objective |
-| `tone-of-voice` | Brand/product register | Brand-register doc (copy goals + arbitration rules) | How the brand sounds across all surfaces; what wins when goals conflict |
-| `copy-direction` | Content brief + tone-of-voice brand register (optional) | Per-surface copy goals | Which copy goals govern each acquisition surface |
+| `content-design` (brand-level register) | Brand/product register | Brand-register doc (copy goals + arbitration rules) | How the brand sounds across all surfaces; what wins when goals conflict |
+| `content-design` (per-surface copy goals) | Content brief + brand register (optional) | Per-surface copy goals | Which copy goals govern each acquisition surface |
 | `user-flow` | Journey + content brief | Screen inventory, transitions, per-screen briefs | Which screens exist, what state each handles, how they connect |
 | `service-blueprint` | Journey + screen flow | Blueprint (evidence of service / frontstage / line of visibility / backstage / support) | What services back each screen action |
 | `process-mapping` | Internal workflow | As-is / to-be process (SIPOC, swimlane, pain register) | What the internal operations look like, where waste is |
@@ -148,16 +148,54 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 
 `journey-mapping` and `user-flow` carry a platform/surface axis — responsive-web, iOS, Android, cross-platform. This affects what the method asks at each stage (iOS has HIG interaction patterns; cross-platform requires explicit divergence documentation). Skills that consume per-screen briefs inherit the platform context from the brief.
 
-### Content-design vs. tone-of-voice vs. copy-direction vs. ux-writing
+### Choosing a copy mode, and the one cross-pack boundary
 
-Four skills touch copy; they operate at different layers:
+The copy layer is **one skill in three modes**, plus one skill in another pack.
+There is no longer a choice between copy skills to get wrong; there is a mode
+selection the skill makes from the request, and a pack boundary that still
+matters.
 
-- **`tone-of-voice`** sets the brand register: named, ranked copy goals grounded in persona and precedent, with arbitration rules. Brand-level and cross-surface — sets the standard all per-surface copy decisions reference.
-- **`content-design`** sets surface intent: what this specific surface says, for whom, in what structure. Execution-layer, per-surface — answers "what goes here?" not "how does it sound?"
-- **`copy-direction`** names per-surface copy goals for a specific marketing or acquisition surface. Takes the content brief from `content-design` and the brand register from `tone-of-voice` (optional) as upstream inputs — answers "how does this surface sound and what does it emphasize?"
-- **`ux-writing`** (product-engineering pack) writes the actual per-state UI strings. Consumes the state matrix from `user-flow` and loads the brand register from `tone-of-voice` by fixed path as voice input.
+- **`content-design`, brand-level register mode** sets the brand register: named,
+  ranked copy goals grounded in persona and precedent, with arbitration rules.
+  Brand-level and cross-surface — it sets the standard all per-surface copy
+  references. Writes the reserved `copy/brand-register.md`.
+- **`content-design`, message and narrative structure mode** sets surface intent:
+  what this specific surface says, for whom, in what structure. Per-surface —
+  it answers "what goes here?", not "how does it sound?". Writes
+  `content/<slug>.md`.
+- **`content-design`, per-surface acquisition copy goals mode** names copy goals
+  for one marketing or acquisition surface. Takes the content brief and the brand
+  register (optional) as upstream referents. Writes `copy/<surface-slug>.md`.
+- **`ux-writing`** (product-engineering pack) writes the actual per-state UI
+  strings. It consumes the state matrix from `user-flow` and loads the brand
+  register by fixed path as voice input. **This is the boundary that remains
+  real**, because it crosses packs: UI state copy lives there, everything else
+  here.
 
-Running `content-design` before `copy-direction` is correct. Running `tone-of-voice` before `copy-direction` is correct (the brand register is an optional upstream anchor for per-surface copy goals). Running `ux-writing` after `user-flow` is correct.
+The ordering inside the skill is unchanged by the fold. Running the message and
+narrative structure mode before the per-surface mode is correct. Running the
+brand-level register mode before the per-surface mode is correct — the register
+is an optional upstream anchor for per-surface goals. What the fold removed is
+the need for a reader to know which of three registrations a copy task belonged
+to; what it kept is every artifact, path and `type:` those registrations wrote.
+
+The three modes were separate skills until the copy fold. That change is recorded
+in the errata of the two RFCs that established them, which are the durable record
+of why the boundary moved.
+
+### Shared references are held identical by test, not by autonomy
+
+An earlier note in this pack read *"Skill autonomy beats DRY at this scale — each
+skill stands alone"*, and it justified shipping `references/editorial-quality-gates.md`
+as independent per-skill copies that were free to drift. **That note is
+superseded.** The file is now one body with two copies —
+`content-design`'s and `information-architecture`'s — held byte-identical by
+`test_every_editorial_quality_gates_copy_is_byte_identical` in the roster suite,
+following the same precedent `containment.md` already set in this pack.
+
+Autonomy is still why the copies exist: a skill installs standalone and cannot
+reach another skill's reference files. What changed is that the copies may no longer
+drift silently. Duplication is the delivery mechanism; equality is the contract.
 
 ---
 
@@ -176,26 +214,26 @@ The aesthetic direction names the emotional and brand goals that visual decision
 **Design-system** ← aesthetic direction  
 The token taxonomy derives from the aesthetic direction. Every token decision must trace back to a named goal in the direction. A token that can't be explained by the direction is a gap in the direction, not a token decision.
 
-**Information-architecture / genre-direct skills** ← content brief + aesthetic direction  
-Hierarchy, reading flow, and wayfinding are set before behavioral design begins. The IA is the skeleton; interaction design is the muscle. Designing interaction without a settled IA produces behaviors that fight the structure.
+**Information-architecture with genre routing** ← content brief + aesthetic direction
+Hierarchy, reading flow, and wayfinding are set before behavioral design begins. The IA is the skeleton; interaction design is the muscle. When a screen has a known surface genre, the genre route supplies the specialized structural vocabulary inside `information-architecture`. Designing interaction without a settled IA produces behaviors that fight the structure.
 
 **Interaction-design** ← per-screen brief + IA  
 The behavioral layer is designed last in the craft sequence because it depends on knowing what states exist (from the per-screen brief's state matrix) and what the structural hierarchy is (from IA).
 
-### The genre-direct skills
+### The genre routes
 
-Six surface-typed IA skills run in place of the general `information-architecture` skill when the screen has a known surface genre:
+`information-architecture` is the single IA skill. For known surface genres, it selects the matching genre reference before designing hierarchy:
 
-| Skill | Surface genre | What's specific |
-|-------|--------------|-----------------|
-| `analytical-design` | Dashboards, reporting surfaces | Widget hierarchy, role-based view architecture, business-question-to-layout map |
-| `conversion-design` | Marketing, acquisition, landing pages | Above-fold contract, scroll story, social-proof architecture |
-| `documentation-design` | Docs, help, reference | Diátaxis content typing, navigation strategy, TTFV architecture |
-| `informational-design` | Editorial, content-first pages | Typographic hierarchy, reading-pattern calibration, editorial grid |
-| `marketplace-design` | Listings, search, transactional surfaces | Listing card IA, filter and facet architecture, transaction bridge |
-| `workspace-design` | Productivity tools, workspace surfaces | Context-persistence architecture, attention zone layout, interrupt design |
+| Surface genre | What's specific |
+|--------------|-----------------|
+| Analytical surfaces | Widget hierarchy, role-based view architecture, business-question-to-layout map |
+| Marketing surfaces | Above-fold contract, scroll story, social-proof architecture |
+| Documentation surfaces | Diátaxis content typing, navigation strategy, TTFV architecture |
+| Informational surfaces | Typographic hierarchy, reading-pattern calibration, editorial grid |
+| Marketplace surfaces | Listing card IA, filter architecture, comparison, transaction bridge |
+| Workspace surfaces | Context-persistence architecture, attention zone layout, interrupt design |
 
-The genre-direct skills are not a replacement for `creative-direction` or `design-system` — they are a replacement for `information-architecture` only. The full craft sequence runs; only the IA step changes.
+The genre routes are not a replacement for `creative-direction` or `design-system` — they specialize `information-architecture` only. The full craft sequence runs; only the IA method changes.
 
 ---
 
@@ -245,8 +283,8 @@ Each skill writes under a subdirectory of `output_dir`:
 |---|---|
 | `journeys/` | journey-mapping |
 | `content/` | content-design |
-| `copy/` | tone-of-voice (the brand-level register), copy-direction (per surface) |
-| `screens/` | user-flow (the screen flow and the per-screen briefs), information-architecture (the IA doc). `interaction-design` and the craft/genre skills enrich a brief `user-flow` owns; they write no file of their own |
+| `copy/` | content-design — its brand-level register mode writes the register, its per-surface acquisition copy goals mode writes one record per surface |
+| `screens/` | user-flow (the screen flow and the per-screen briefs), information-architecture (the IA doc). `interaction-design` and the craft skills enrich a brief `user-flow` owns; they write no file of their own |
 | `blueprints/` | service-blueprint |
 | `processes/` | process-mapping |
 | `principles/` | design-principles |
@@ -320,11 +358,17 @@ Structurally identical to core's adversarial-reviewer rationale. An authoring-se
 
 **Alternative considered:** stateful review that has access to the authoring session's reasoning, so it can review the design *and* the decision trail. Rejected for the same reason as in core: a reviewer that knows what was intended will systematically read gaps charitably.
 
-### Why six genre-direct skills instead of one general IA skill with genre flags (from v1)
+### Why genre methods now live inside information-architecture (approved by eugenelim, 2026-09-26)
 
-Each genre has a distinct structural logic that a general IA skill with a flag would produce via branching. A conversion surface's above-fold contract is not a weaker version of a dashboard's widget hierarchy — they are different structural problems. Separate skills make the genre's structural logic explicit and reviewable without reading a flag-driven conditional tree.
+Surface genres still have distinct structural logic, but they no longer need separate skill registrations to preserve it. The genre method is clearer as a selected reference inside `information-architecture`: the user chooses one IA skill, the brief's `surface-genre:` value selects the specialized method, and the method remains reviewable without making the skill roster carry six extra entries.
 
-**Alternative considered:** one `information-architecture` skill with a `genre:` parameter. Rejected because the genre-specific reasoning (above-fold contract, scroll story, social-proof architecture for conversion; TTFV architecture, Diátaxis typing for documentation) is substantive enough to earn a separate skill definition. A flag-parameterized skill would bury the genre logic; separate skills make it first-class.
+**Earlier rationale amended:** the v1 rejection below treated a single skill with a genre flag as the only alternative to separate registrations. The accepted shape is narrower: one IA skill with explicit genre routes and reference-loaded methods, not a hidden conditional tree.
+
+### Why the original genre-direct split changed (from v1, amended)
+
+At v1, each genre's distinct structural logic was recorded as the reason for separate registrations. A conversion surface's above-fold contract is not a weaker version of a dashboard's widget hierarchy — they are different structural problems. That method-preservation claim still stands, but registration is no longer the mechanism that preserves it.
+
+**Alternative considered:** one `information-architecture` skill with a `genre:` parameter. Rejected in v1 because the genre-specific reasoning (above-fold contract, scroll story, social-proof architecture for conversion; TTFV architecture, Diátaxis typing for documentation) is substantive enough to need its own method body. Amended on 2026-09-26: the method body can stay first-class as a loaded reference while `information-architecture` owns the routing decision.
 
 ### Why correctness is the floor, not the ceiling (from v1)
 

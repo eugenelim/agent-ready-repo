@@ -83,22 +83,21 @@ grouping signal is lost.
 
 ## Genre routing
 
-The craft sequence's IA step is served by a **genre-direct skill**, and
-`packs/experience-design/DESIGN.md` is explicit that this replaces
-`information-architecture` only — the rest of the sequence still runs.
+The craft sequence's IA step is served by `information-architecture`, which
+loads the relevant genre reference before designing hierarchy.
 
-**Selected: `marketplace-design`.** The dominant structural questions here are
-listing-card IA — what one card must carry, how twenty of them group, and how a
-reader scans across them — which is that skill's subject. `conversion-design`
-was considered and rejected: its above-fold contract and social-proof
-architecture assume the persuasion goal this surface explicitly does not have.
-`documentation-design` was rejected because this is not a Diátaxis-typed
-reference tree.
+**Selected: `information-architecture` with the marketplace reference.** The
+dominant structural questions here are listing-card IA — what one card must
+carry, how twenty of them group, and how a reader scans across them. The
+marketing reference was considered and rejected: its above-fold contract and
+social-proof architecture assume the persuasion goal this surface explicitly
+does not have. The documentation reference was rejected because this is not a
+Diátaxis-typed reference tree.
 
-**What that routing does not license.** `marketplace-design`'s filter and facet
-architecture and its transaction bridge do not apply: there is no transaction,
-and twenty items do not warrant faceting. Taking the genre wholesale is as wrong
-as taking none of it.
+**What that routing does not license.** The marketplace reference's filter and
+facet architecture and its transaction bridge do not apply: there is no
+transaction, and twenty items do not warrant faceting. Taking the genre
+wholesale is as wrong as taking none of it.
 
 ## What this surface must not become
 

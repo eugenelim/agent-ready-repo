@@ -164,7 +164,7 @@ in ordered, job-led form — and buries that peak under a taxonomy.
 
 ## Handoff notes
 
-**For `documentation-design`:** the first-value moment is already built and
+**For `information-architecture` with the documentation reference:** the first-value moment is already built and
 mislocated. The work is wayfinding, not authoring. Two changes carry nearly all
 of it: lead the index with "Follow a path", and re-group the sidebar by job. The
 second is authored in `site.toml [[guide_groups]]` and consumed by

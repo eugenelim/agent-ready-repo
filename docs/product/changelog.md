@@ -86,6 +86,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `work-loop` treats classified base-freshness capability gaps as a skipped check, while keeping confirmed stale bases, missing targets, unsafe local state, and unclassified Git failures blocking.
 
+## [experience-design][4.0.0] — 2026-09-27
+
+### Highlights
+
+- **The copy layer is now one skill with three modes.** `content-design` covers message and narrative structure, per-surface acquisition copy goals, and the brand-level register. You pick a task, not a registration — the skill selects the mode from your request. The `copy-direction` and `tone-of-voice` skills are removed.
+- **Nothing you have already written moves.** All three artifacts keep their paths and their `type:` values: `content/<slug>.md`, `copy/<surface-slug>.md`, and the reserved `copy/brand-register.md`, which still carries `scope: brand-level` beside its `type:`. An existing document needs no migration.
+- **Shared copy references were reconciled rather than merged.** Six references that shared a name across the folded skills disagreed; each was resolved deliberately, and the two whose variants differed only by scope are now one body with a named scope parameter that binds per mode.
+
+### Changed
+
+- Folded `copy-direction` and `tone-of-voice` into `content-design`, which now runs in three named modes with a selection rubric that needs no reference loaded.
+- `editorial-quality-gates.md` is one canonical body held byte-identical across the two skills that need it, replacing a recorded decision to let per-skill copies drift.
+- `ux-writing` in the `product-engineering` pack keeps its scope; its pointers to the removed skills now name the surviving modes.
+
+### Removed
+
+- The `copy-direction` and `tone-of-voice` skills. **After upgrading an existing installation, remove the `copy-direction` and `tone-of-voice` skill directories from that installation's skills directory.** Whole-pack `agentbundle upgrade` does not prune paths the new pack no longer declares, so leaving them in place would keep their stale `SKILL.md` registrations active and a copy task could still route to a skill this pack no longer ships.
+
+## [product-engineering][0.13.20] — 2026-09-27
+
+### Changed
+
+- `ux-writing`'s scope boundary, onboarding tri-point, and brand-register migration prompt now name `content-design`'s modes instead of the two removed `experience-design` skills. The skill's own behaviour, its artifact markers, and the copy it writes are unchanged.
+
 ## [core][2.26.45] — 2026-09-26
 
 ### Highlights
@@ -153,6 +177,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   emitted document's field set, its twelve blocker codes and its twelve refusal
   codes.
 
+## [experience-design][3.0.0] — 2026-09-26
+
+### Highlights
+
+- `information-architecture` now owns the surface-genre routing that previously required six separate registrations: `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, and `workspace-design`.
+- The removed registrations' methods now live as genre references under `information-architecture`, so adopters should update direct skill references and invocations to call `information-architecture` with the relevant `surface-genre:` value.
+
+### Changed
+
+- Folded the six genre-specific design registrations into `information-architecture` while preserving their methods as routed references.
+- Kept `interaction-design` as the destination for transactional journeys.
+- After upgrading an existing installation, remove the retired `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, and `workspace-design` skill directories from that installation's skills directory. Whole-pack `agentbundle upgrade` does not prune paths that the new pack no longer declares, so leaving them in place would keep their stale `SKILL.md` registrations active.
+
+## [frontend-engineering][0.3.3] — 2026-09-26
+
+### Highlights
+
+- Frontend pre-flight now routes every `surface-genre:` value through the consolidated `information-architecture` handoff when `experience-design` is co-installed, with `interaction-design` still owning transactional journeys.
+- The design-system handoff now names the shipped `design-system` skill slug, and `experience-design` `>=3.0.0` is the recommended floor for the genre-aware route.
+
+### Fixed
+
+- Repaired the frontend genre-routing table for the experience-design fold.
+- Corrected the design-system slug in the handoff path.
+- Raised the recommended `experience-design` co-install floor to `>=3.0.0`.
+
 ## [atlassian][0.10.1] — 2026-09-26
 
 ### Highlights
@@ -182,6 +232,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` marks every dispatch record for the current wave superseded. The records stay on disk; recording a fresh assertion for any task makes that task account again. The three edges that require a reopen before re-entering implementation are `gates-failed` from code verification, `findings-remain` from code review, and `blocker-applied` from the code human gate.
+
+## [experience-design][2.0.10] — 2026-09-25
+
+### Highlights
+
+- The `creative-direction` skill now exposes five named operations — `frame`, `explore`, `visualize`, `converge`, and `refine` — each with a dedicated reference, so craft detail loads only when the operation needs it.
+- A route rule (`inherit`, `extend`, `originate`) selects how much invention the work warrants; `inherit` runs no divergence and no visual step when a direction already exists for the surface.
+- Divergence generation in `explore` draws referents from the audience's own world — publications, instruments, maps, architecture, packaging, signage — rather than from other software products, so candidate directions stop converging on the category default.
+- The visual step in `visualize` is capability-gated: it defaults to a text schematic in any harness that cannot produce images, with a named skip rather than a blocker, and produces a rendered comp only on the `originate` route when the harness supports it.
+- Asking to refine an existing direction now reaches the skill and amends the document in place, instead of starting a second direction for the same surface.
 
 ## [core][2.26.41] — 2026-09-24
 

@@ -20,6 +20,10 @@
     "should_trigger": true
   },
   {
+    "query": "Build a marketplace listing surface from this experience-design handoff and implement its HTML and CSS",
+    "should_trigger": true
+  },
+  {
     "query": "Create a new web surface from this screen brief",
     "should_trigger": true
   },

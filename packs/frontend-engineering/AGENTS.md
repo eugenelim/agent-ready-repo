@@ -8,7 +8,8 @@ for HTML/CSS/JS work. The guide tree for all skills lives in
 tutorials, how-to, and a reference page covering all skills and the reviewer.
 
 For full genre routing in the frontend pre-flight (the `experience-design` co-install
-that supplies `conversion-design`, `documentation-design`, `analytical-design`, and the
-other XD genre skills), `experience-design` must be installed alongside this pack.
+that supplies `information-architecture` for the `surface-genre:` `marketing`,
+`documentation`, `informational`, `analytical`, `marketplace`, and `workspace`
+set), `experience-design` must be installed alongside this pack.
 The main `frontend-engineering` skill records a named skip when `experience-design`
 is absent — the skip is documented in the spec, not silently omitted.
