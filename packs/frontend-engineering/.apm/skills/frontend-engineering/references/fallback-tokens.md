@@ -9,9 +9,15 @@ The block is a starting point for a greenfield surface with no design authority
 of its own. It is not a house style, and nothing here outranks a taxonomy or an
 existing system.
 
-Provide a CSS custom properties block before writing any HTML. The model
-selects from `var(--ds-color-primary)` rather than fabricating `#5e6ad2` per
-session — token-seeding is the single strongest lever for visual consistency.
+Provide a CSS custom properties block before writing any HTML. Selecting from
+`var(--ds-color-primary)` beats fabricating a fresh hex per session —
+token-seeding is the single strongest lever for visual consistency.
+
+**The accent below is deliberately not a brand colour.** A greenfield surface's
+accent is a decision to make, not a value to inherit: shipping a saturated
+default here would hand every surface that reaches this rung the same look, which
+is the failure the AI-aesthetic rules name. Replace `--ds-color-primary` with the
+accent this product actually wants before writing components against it.
 
 **Three-tier architecture (one-way dependency):**
 ```
@@ -30,7 +36,7 @@ at the top of the CSS file and referenced by semantics.
   --ds-color-surface-alt:  #f8fafc;
   --ds-color-on-surface:   #1a202c;
   --ds-color-on-surface-2: rgba(0, 0, 0, 0.60);
-  --ds-color-primary:      #5e6ad2;
+  --ds-color-primary:      #1f2933;  /* placeholder ink — replace, do not ship */
   --ds-color-on-primary:   #ffffff;
   --ds-color-error:        #dc2626;
   --ds-color-on-error:     #ffffff;

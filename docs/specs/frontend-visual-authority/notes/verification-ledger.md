@@ -266,3 +266,86 @@ lens must carry.
 | deep catalogue lint | exit 0 |
 | roster + conformance | 57 passed |
 | self-host | ok |
+
+## Manual QA — the artifact exercised, not described
+
+Every gate to this point reads the markdown. None had an agent load the skill
+and walk a surface through it. These runs did.
+
+### The render → observe → correct loop, run for real
+
+Fixture: an approved visual target recording a human-confirmed composition,
+plus a token taxonomy carrying roles and a symbolic scale but no numbers.
+Captured with the shipped Playwright/Chromium mechanism the gate already uses —
+no new runtime — at two channels and two viewport heights.
+
+The first implementation was the one a capable agent produces without the
+contract: full-width wrap, four boxed metric cards above the fold, sans-serif,
+headline at about twice body. Observing it against the target found seven
+material gaps across five divergence classes, the sharpest being the absent
+signature device — the full-measure hairline rule that is the single decision
+making the direction recognisable.
+
+One correction pass restored the manuscript measure, the hairline rule, the
+stacked unboxed metrics, the serif voice and the steeper scale. The
+verification render confirmed them at both channels, and intent survives the
+narrow channel.
+
+**One residual was recorded rather than corrected.** The first metric falls at
+roughly y=530 in a 900-line viewport, so metrics begin above the fold where the
+target commits them below it. The bound is one correction pass and one
+verification render; `residual-divergence` is `recorded-not-iterated`. Taking a
+second pass would have made the demonstration look better by breaking the rule
+it was demonstrating.
+
+What this establishes: the loop catches divergence a diff cannot show, one pass
+resolves the high-impact gaps, and the bound holds under the temptation not to.
+What it does not establish: that every agent will observe as strictly. The
+comparison is perceptual, and nothing mechanises it.
+
+### The refusal boundary, under a cold read
+
+A separate agent, told only to build a page and given the slug
+`../../etc/Pulse Deck`, halted at `design handoff: slug rejected`. It refused to
+repair the slug, did not derive `pulse-deck`, wrote nothing, and — the part this
+slice added — refused to treat the refusal as a demotion, quoting the new rule:
+"a refusal is not one of them: it halts the mode, and no rung below is reached
+at all." It named the state as a slug refusal rather than a confinement
+refusal, correctly, because no path was ever composed.
+
+It also volunteered the limit the contract states: the refusal held because it
+was followed, not because anything prevented it.
+
+### What the standalone run found in my own work
+
+The cold agent building on the terminal rung reported that it would replace
+`--ds-color-primary` rather than ship it, because the fallback's value was
+`#5e6ad2` — the indigo this same skill's anti-pattern table names: "Models
+default to `bg-indigo-500` — every generated app looks identical."
+
+That is a real defect and the agent had to route around it. The fallback is the
+rung reached when nothing else supplies values, so shipping a saturated default
+there hands every greenfield surface the same look — the exact failure the rules
+above it name. The accent is now a neutral placeholder marked replace-do-not-ship,
+with a sentence saying an accent is a decision to make rather than a value to
+inherit. Contrast computed, not eyeballed: 14.76:1 against the surface.
+
+Remaining `#5e6ad2` occurrences in the pack are illustrative — "do not hardcode
+this" examples and sibling-skill token samples. Those are correct as they stand
+and are out of this slice's frontier.
+
+### Case D and F, reported straight
+
+The same run confirmed the standalone and no-browser paths. It distinguished a
+named skip from a refusal without prompting, demoted to `local-premise`, and
+recorded the route — "reached by demotion from a named skip … No refusal
+occurred" — which is the discriminator an earlier over-correction had removed
+and the security review made me restore. With no browser it recorded
+`skipped-no-browser`, claimed no visual verification, and continued with the
+checks that genuinely run, which is the clause a prose trim had dropped and a
+later review made me restore. Both repairs are load-bearing in practice, not
+only in the suite.
+
+It also separated two states this slice cares about keeping apart: the
+render-and-observe loop *activated* for that surface and *could not execute*,
+which it recorded as not-run rather than as an activation skip.
