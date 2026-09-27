@@ -157,7 +157,7 @@ proves nothing about this delivery:
 
 ```bash
 python3 -m pytest tests/roster/test_experience_design_write_declaration_and_containment.py \
-  -q -k editorial_quality_gates_copies_are_byte_identical
+  -q -k every_editorial_quality_gates_copy_is_byte_identical
 # Before the extension lands the selector matches nothing and pytest exits **5**
 # ("no tests ran") — not 1. Exit 5 is the expected pre-state; exit 1 means the
 # extension exists and fails; exit 0 means it exists and passes. Treating 5 as
@@ -791,8 +791,16 @@ for pack, ver in (("experience-design", "4.0.0"), ("product-engineering", want_p
         fail.append(f"no well-formed dated heading '## [{pack}][{ver}] — YYYY-MM-DD'")
 if not fail:
     n_xd, i_xd, _ = idx[("experience-design", "4.0.0")]
-    if n_xd != unrel + 1:
-        fail.append("the experience-design entry is not the heading directly beneath [Unreleased]")
+    # Free-standing, not nested — NOT adjacency. The position directly beneath
+    # [Unreleased] is owned by test_the_core_release_heading_sits_directly_beneath_unreleased,
+    # which requires [core] there, so requiring it here was unsatisfiable. What
+    # matters is that the entry is a top-level `## ` heading rather than nested
+    # inside the [Unreleased] section, because build-site.py withholds a nested
+    # entry as unreleased and still exits 0.
+    if n_xd <= unrel:
+        fail.append("the experience-design entry is not below [Unreleased]")
+    if not lines[i_xd].startswith("## "):
+        fail.append("the experience-design entry is nested, not free-standing at ##")
     end = heads[n_xd + 1][0] if n_xd + 1 < len(heads) else len(lines)
     body = "\n".join(lines[i_xd + 1:end])
     for name in ("copy-direction", "tone-of-voice"):
@@ -1596,3 +1604,34 @@ keeps its path and `type:`, so no adopter content migrates. Rollback is
   verified directly against the tree before repair, and all nine carve-out
   occurrence counts were re-measured afterwards. This follows the stop rule this
   delivery's earlier round six already set.
+
+- 2026-09-27 — **Amendment: two checks corrected so each can observe what it
+  names. Authorized by eugenelim after post-gates review.** Neither correction
+  changes what the delivery must achieve; both change a stated check that could
+  not run.
+
+  The changelog placement criterion required the `[experience-design][4.0.0]`
+  entry **directly beneath `[Unreleased]`**. That position is owned by
+  `tests/roster/test_verification_ledger_contract.py::test_the_core_release_heading_sits_directly_beneath_unreleased`,
+  which requires `[core]` at its shipped version there, and the position admits
+  one heading — so the criterion and an enforced test could not both hold. The
+  conflict is not hypothetical on this branch: commit `e1164adeb` exists only to
+  undo the same mistake in a sibling delivery after CI caught it. The criterion,
+  its Durable Outputs row, and this plan's changelog validator now require what
+  the obligation actually is: a **free-standing** `##` entry, **never nested**
+  under `[Unreleased]`, because `tools/build-site.py` withholds a nested entry as
+  unreleased and still exits 0, so only nesting stops it publishing. The amended
+  validator and the enforced test now pass together.
+
+  The byte-equality criterion's named verification selected
+  `-k editorial_quality_gates_copies_are_byte_identical` while the mandated and
+  shipped test is `test_every_editorial_quality_gates_copy_is_byte_identical` —
+  "copy_is", not "copies_are". The selector matched nothing and exited 5, which
+  the block reads as "the extension has not landed yet", so the delivery's named
+  check for that criterion reported the pre-state permanently. The selector is
+  corrected and now runs the assertion.
+
+- 2026-09-27 — Amended scope and build strategy re-approved by eugenelim. The
+  eleven completed tasks and their evidence are preserved by the amendment
+  event; no acceptance criterion is removed, narrowed in substance, or deferred,
+  and no scope moves to a follow-on.
