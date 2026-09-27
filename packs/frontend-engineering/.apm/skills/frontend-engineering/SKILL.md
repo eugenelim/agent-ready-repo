@@ -128,7 +128,7 @@ a path outside the root has no relative form.
 **What a skip hands to step 1.** A slot with no conforming artifact is a named
 skip and step 1 fills that slot alone; a resolved directory with none in any slot
 is the second skip, `design handoff: no conforming artifact under <output_dir>`.
-Those skips are the only states that hand an unfilled slot forward. They do not constrain the precedence chain, whose own demotion edges are routine and need no skip.
+Those skips are the only states that hand an unfilled slot forward from a read that completed. The precedence chain's own demotion edges are routine and need no skip — but **a refusal is not one of them**: it halts the mode, and no rung below is reached at all. Record which route brought you to a lower rung, so a rung below the artifacts can tell a legitimate demotion from a refusal someone absorbed.
 
 **Every refusal stops the whole read** and halts the mode in a named state.
 Record the matching name verbatim from the table in `references/design-handoff.md`

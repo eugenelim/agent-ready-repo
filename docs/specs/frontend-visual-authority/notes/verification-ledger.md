@@ -162,3 +162,54 @@ and fixed, which the accepted intent never asked for.
 | roster + conformance | 65 passed |
 | spec-status lint | metadata clean |
 | self-host | ok |
+
+## Security review — one blocker, and it was mine
+
+**The precedence chain gave a refusal a demotion reading.** The handoff read
+halts the mode on a refusal — reserved tree, confinement failure, bad slug,
+declined confirmation, exceeded bound, dependency failure. The chain this slice
+introduced says a rung that does not supply an axis hands it down. After a
+refusal no artifact resolved, so an agent satisfying the precedence table alone
+could demote to the incumbent system and carry on building, which is exactly
+what the refusal exists to stop. The file that owns the demotion rule never
+mentioned refusals and did not point at the contract that does — and it is
+explicitly loadable on its own, which is precisely the post-refusal state.
+
+Before this slice there was no general fall-through, so the only one was the
+single narrow path the refusal clause named. The diff created the hole.
+
+Closed with a `## Refusals are not demotions` rule table in the file that owns
+the chain: `refusal-demotes: never`, the halt outcome, `demotion-requires: a
+resolved read, or a named skip`, and `demotion-record`.
+
+**A second finding was an over-correction of mine.** An earlier round told me
+the renamed skip wording wrongly forbade the chain's routine demotions. I
+removed the discriminator outright — "routine and need no skip" — which
+licensed *unrecorded* demotion, so nothing downstream could tell a legal
+demotion from a refusal quietly absorbed. The receiver-side discriminator is
+restored: a lower rung records how it was reached.
+
+Also: the read contract's prohibition named an "authority rung" it never
+defined, which is weaker than the concrete thing it replaced — now identified
+and linked; and the reference driving the visual comparison now carries the
+read contract's own boundary, since a composition is the field most likely to
+carry an image path and an agent told to compare against it has a motive to
+open one.
+
+Six mutations proved the boundary: permitting refusal demotion, weakening the
+demotion precondition, dropping the discriminator, removing the read-boundary
+rule, removing the pointer to the refusal contract, and collapsing the
+entrypoint's refusal/demotion distinction each red.
+
+Checked and clean by the reviewer: the four surviving refusal prohibitions
+(no repair, no substitution, no downgrade-to-skip, discard already-extracted)
+came through the rewording intact, and the recorded-human-confirmation trust
+boundary is stated honestly with no implied verification.
+
+| Gate | Result |
+| --- | --- |
+| ruff / mypy | clean |
+| pack suite | 419 passed |
+| deep catalogue lint | exit 0 |
+| roster + conformance | 57 passed |
+| self-host | ok |
