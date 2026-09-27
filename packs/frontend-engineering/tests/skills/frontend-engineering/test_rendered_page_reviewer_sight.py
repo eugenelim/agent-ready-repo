@@ -57,7 +57,7 @@ def test_the_reviewer_carries_a_reader_visible_layout_lens(reviewer: str) -> Non
     """Verifies: the reviewer carries a lens for reader-visible layout failure
     whose severity comes from the pack's finding-class mapping."""
     assert "### Lens 6 — Reader-visible layout failure" in reviewer
-    assert "## What you review — the six lenses" in reviewer, (
+    assert "## What you review — the seven lenses" in reviewer, (
         "the lens count in the heading was not updated with the new lens"
     )
     lens = _lens_six(reviewer)
@@ -179,17 +179,26 @@ def test_the_confirmation_rule_is_scoped_per_lens(reviewer: str) -> None:
     )
 
 
-def test_no_stale_five_lens_statement_survives(reviewer: str) -> None:
-    """The heading was updated to six and two other statements were not, which
-    is how a reader learns the lens list is unreliable."""
-    # Only statements counting ALL the lenses. "The other five lenses read the
-    # diff" inside Lens 6 is accurate — there are five others — so matching a
-    # bare "five lenses" would fail on correct prose.
-    for stale in ("across five lenses", "these five lenses", "the five lenses"):
-        assert stale not in reviewer, (
-            f"{stale!r} survives alongside the six-lens heading"
+def test_no_stale_lens_count_statement_survives(reviewer: str) -> None:
+    """A heading updated to the new count while other statements keep the old
+    one is how a reader learns the lens list is unreliable.
+
+    Only statements that count the lenses are banned. The ranges `Lenses 1-5`
+    and `lenses 1-5` are deliberately legal: they name the diff-reading lenses
+    rather than the roster, and they stay true as lenses are added. Lens 6's own
+    sentence was rewritten to stop counting at all, because with a seventh lens
+    that reads the manifest, "the other N read the diff" is false at every N.
+    """
+    stale = (
+        "across five lenses", "these five lenses", "the five lenses",
+        "across six lenses", "these six lenses", "the six lenses",
+        "the other five lenses", "the other five against",
+    )
+    for phrase in stale:
+        assert phrase not in reviewer, (
+            f"{phrase!r} survives alongside the seven-lens heading"
         )
-    assert reviewer.count("six lenses") >= 2
+    assert reviewer.count("seven lenses") >= 2
 
 
 def test_one_authority_governs_an_overlapping_control(reviewer: str) -> None:

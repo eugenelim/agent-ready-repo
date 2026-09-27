@@ -64,6 +64,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [frontend-engineering][0.3.4] — 2026-09-27
+
+### Highlights
+
+- When your team has already agreed a visual direction, the frontend build now inherits it instead of quietly picking a different look. The skill resolves visual authority from the design artifacts your repository already points at, falls back to the visual system you already have, and only invents a premise when a surface is genuinely greenfield. It no longer names a product as an aesthetic anchor.
+- Significant visual work is now looked at while it is being built. The agent renders a representative state, compares it against the direction it inherited, corrects once where the difference is material, and renders again to check — then goes on to the usual gates. The loop is bounded: a further pass happens only if you ask.
+
+### Added
+
+- A four-rung visual-authority precedence — an approved visual target, then the direction and token taxonomy, then the incumbent system, then a stated local premise — with each rung naming what it binds and which rung it falls to. A lower rung never overrides a higher one.
+- A statement of what visual authority never controls: product behaviour, accessibility, content correctness, data and state, security, established component contracts, and platform constraints. Where a visual decision fights the accessibility floor, the floor wins.
+- A `visual authority` field in the evidence manifest, recording which rung supplied the visual decisions and the artifact or convention it named. A run that used the fallback records that explicitly.
+- A seventh lens in `frontend-reviewer`, testing the manifest's visual-authority claims against the diff. It scores no aesthetics and re-runs no design work.
+- Six evaluation cases covering the approved-target, direction-only, brownfield, standalone, non-visual and no-browser paths.
+
+### Changed
+
+- The named-aesthetic-reference step is now visual-authority resolution. The canonical product-reference table is gone, along with every pointer to it.
+- The seed token block moved out of the always-loaded skill into a fallback reference, read only when no taxonomy and no incumbent system supply values.
+
+### Fixed
+
+- A claimed visual verification with no rendered capture behind it is rejected rather than recorded. Where no browser is reachable, the run names the missing capability and claims nothing.
+
 ## [core][2.27.0] — 2026-09-27
 
 ### Highlights

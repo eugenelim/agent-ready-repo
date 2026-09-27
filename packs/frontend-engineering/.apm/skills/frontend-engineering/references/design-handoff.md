@@ -106,7 +106,7 @@ reporting success.
 
 Specifically, after a refusal: the rejected value is not repaired or normalized;
 no other slug, artifact, or output directory is substituted; the refusal is not
-downgraded to a skip; the canonical product-reference set is not consulted for any
+downgraded to a skip; no lower authority rung is consulted for any
 slot; and nothing already extracted in the same read reaches the code-emitting
 step.
 
@@ -135,7 +135,7 @@ matching name verbatim, so two runs of one failure do not report it two ways:
 
 After any of them: do not repair or normalize the rejected value; do not
 substitute another slug, artifact or output directory; do not downgrade the
-refusal to a skip; do not consult the canonical product-reference set for any
+refusal to a skip; do not fall through to a lower authority rung for any
 slot; and discard whatever the read already extracted, so a refusal on the third
 artifact does not leave the first two feeding the emitted code.
 
