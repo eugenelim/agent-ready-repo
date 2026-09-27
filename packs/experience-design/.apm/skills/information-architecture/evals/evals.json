@@ -40,7 +40,7 @@
         "Defines the above-fold contract: primary claim + proof context + single CTA, all visible before scroll",
         "Sequences the scroll story as proof tiers, each tier earning the next",
         "Names the social-proof architecture and explains why that proof type is most credible to this specific audience",
-        "Does NOT write copy (not a content-design, copy-direction, or tone-of-voice output)",
+        "Does NOT write copy (not a content-design output in any of its modes)",
         "Does NOT produce color values, font names, or implementation code"
       ],
       "source_skill": "conversion-design"
@@ -70,7 +70,7 @@
         "Selects a reading pattern (F-pattern or Z-pattern) justified by the audience's scanning behavior, not by habit",
         "Designs a typographic hierarchy that lets a scanner extract the article's argument without reading every word",
         "Designs the 'what's next' chain that sustains engagement after the primary content ends",
-        "Does NOT write content (not a content-design or tone-of-voice output)",
+        "Does NOT write content (not a content-design output)",
         "Does NOT produce CSS, color values, font name decisions, or spacing values"
       ],
       "source_skill": "informational-design"

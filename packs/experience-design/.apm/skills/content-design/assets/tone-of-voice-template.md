@@ -8,11 +8,12 @@ date: <YYYY-MM-DD>
 # Brand register: <brand or product name>
 
 <!--
-  Written by the `tone-of-voice` skill. Fill the angle-bracket prompts and
+  Written by `content-design` in its brand-level register mode. Fill the angle-bracket prompts and
   delete this comment. This doc names the brand-level copy register — the
   cross-surface copy personality that all per-surface copy decisions reference.
   It holds NO finished copy, formula tables, or per-surface direction strings.
-  Per-surface copy direction lives in copy/<surface-slug>.md (copy-direction skill).
+  Per-surface copy direction lives in copy/<surface-slug>.md, written by the
+  per-surface acquisition copy goals mode.
   Keep this doc short enough that a writer picks up the brand register in two minutes.
 -->
 

@@ -7,7 +7,7 @@ date: <YYYY-MM-DD>
 # Copy direction: <surface name>
 
 <!--
-  Written by the `copy-direction` skill. Fill the angle-bracket prompts and
+  Written by `content-design` in its per-surface acquisition copy goals mode. Fill the angle-bracket prompts and
   delete this comment. This doc names *copy direction* for one specific surface —
   the goals and arbitration rules that steer every copy choice here. It holds NO
   finished copy, formula tables, or pre-written strings. Keep it short enough
@@ -64,11 +64,11 @@ Resolved trade-offs:
 
 ## Brand-register consistency
 
-<!-- Note here whether a tone-of-voice brand-register doc was used as an
+<!-- Note here whether a brand-register doc was used as an
      upstream referent. If so, confirm these per-surface goals are consistent
      with it, or record any tension as an open question. -->
 
-- Brand-register referent: <path to tone-of-voice brand-register doc, or "none — no brand register exists">
+- Brand-register referent: <path to the brand-register doc, or "none — no brand register exists">
 - Consistency check: <consistent | tension on: <goal name> — see open questions>
 
 ## Plain-language floor notes

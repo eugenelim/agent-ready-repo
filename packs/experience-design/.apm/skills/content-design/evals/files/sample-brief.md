@@ -9,4 +9,4 @@ audience: early-adopter technical founders evaluating the product for the first 
 
 Surface type: acquisition. Narrative arc: StoryBrand (problem-guide-plan-CTA). Above-fold: headline names the user problem; subheadline names the product's key differentiator.
 
-Downstream: copy-direction for per-surface copy voice.
+Downstream: the per-surface acquisition copy goals mode, for per-surface copy voice.

@@ -109,3 +109,73 @@ by mode because `content-design` and `tone-of-voice` both used the ids `1` and
 `2`. Both source `evals/files/` trees carry: their `agentbundle-layout.toml`
 fixtures are byte-identical and land as one, and `sample-brief.md` had only one
 source.
+
+## T6 — eval-harness disposition, per source
+
+Four source items existed at the merge-base under the two deleted directories.
+Each gets its own disposition; one surviving `content-design/evals/` directory
+does not prove both sources were handled.
+
+copy-direction/evals/evals.json: carried - its four eval definitions are in
+content-design/evals/evals.json, re-prefixed `surface-` because two sources both
+used the ids `1` and `2`.
+
+copy-direction/evals/files: carried - both fixtures landed in
+content-design/evals/files/. `sample-brief.md` had only this source;
+`agentbundle-layout.toml` was byte-identical to the other source's copy and the
+two merged into one file.
+
+tone-of-voice/evals/evals.json: carried - its two eval definitions are in
+content-design/evals/evals.json, re-prefixed `register-`.
+
+tone-of-voice/evals/files: carried - its only member, `agentbundle-layout.toml`,
+is byte-identical to `copy-direction`'s and is present as the single merged copy
+in content-design/evals/files/.
+
+Nothing was dropped, so no drop reason is owed. The pooled `eval_queries.json`
+carries 29 distinct positives and 32 distinct negatives with no query appearing
+under both `should_trigger` values.
+
+## T6 — the byte-equality assertion is GREEN here
+
+`test_every_editorial_quality_gates_copy_is_byte_identical` passes now that the
+glob returns exactly the two surviving copies. It was red from T3, correctly, and
+this is the task that clears it — the transition T3's record predicted.
+
+## T6 — execution observations
+
+**The deletion left no empty directory shells.** Both directories are gone from
+the working tree as well as the index, so the sibling genre fold's outcome —
+where a managed filesystem refused `rmdir` and left six empty shells behind — did
+not recur here.
+
+**T6's `Touches:` was narrower than its own assertion needed.** The task asserts
+no removed name survives as a registration anywhere under `.apm/skills/`, and it
+may do so because every matching file is its own or an ancestor's. But repairing
+the hits required editing six files outside its declared `Touches:`:
+`experience-status/SKILL.md` (a "what to run next" suggestion list naming both
+removed skills as routing targets), `content-design/assets/copy-direction-template.md`
+and `assets/tone-of-voice-template.md` (each opening "Written by the `<name>`
+skill" — a registration inside a shipped template), `content-design/evals/evals.json`
+and `evals/files/sample-brief.md`, and
+`information-architecture/references/conversion-design.md`.
+
+All six are surfaces an ancestor installed or that the genre fold created, and
+all are inside the assertion's stated scope; none belongs to an unordered
+sibling, so no two tasks contend for them. The gap is that the reconciliation
+gave this task authority over the four paths it deletes and rewrites, not over
+the ancestor-installed files its own sweep obliges it to clean. Recorded rather
+than resolved by editing the sealed plan.
+
+One occurrence is deliberately kept: `content-design/evals/eval_queries.json`
+contains the positive query "Write a tone-of-voice doc for our whole product".
+That is a user's phrasing, not a registration — users will keep asking in the
+old vocabulary, and the corpus exists to prove the surviving skill still answers.
+
+**Two guide-agreement assertions go red at T6 and T7a clears them.**
+`tests/roster/test_experience_design_guide_agreement.py` fails with
+"`derive-the-screen-flow.md` runs `tone-of-voice`, which this pack does not
+ship". The guide tree is T7a's `Touches:` and T7a depends on T6, so no ordering
+makes this green here. It is the same shape as the byte-equality assertion's red
+between T3 and T6: the suite is correct, and it is reporting work a descendant
+owns.

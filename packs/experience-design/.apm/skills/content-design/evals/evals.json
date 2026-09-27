@@ -5,7 +5,7 @@
     {
       "id": "brief-1",
       "prompt": "Write a content brief for an acquisition surface — a landing page for a developer tool targeting technical team leads who are evaluating the product.",
-      "expected_output": "A structured content brief that: declares the surface type (acquisition), names the audience awareness level using the Schwartz five-stage ladder, selects a narrative arc (StoryBrand or CCD) with a stated applicability rationale, assigns each scroll section one content job (problem / guide proof / plan / stakes / CTA), states the above-fold structure contract (headline what/who/why + subheadline), names a primary and transitional CTA with label direction and next state, and names a success metric. The brief contains content direction — what to say, for whom, in what order — not finished copy. It declares communication_mode: product-copy in the artifact frontmatter, ends with the artifact path <output_dir>/content/<slug>.md resolved from the [design] output_dir, and names copy-direction (per-surface copy voice) and user-flow (screen sequencing) as downstream consumers.",
+      "expected_output": "A structured content brief that: declares the surface type (acquisition), names the audience awareness level using the Schwartz five-stage ladder, selects a narrative arc (StoryBrand or CCD) with a stated applicability rationale, assigns each scroll section one content job (problem / guide proof / plan / stakes / CTA), states the above-fold structure contract (headline what/who/why + subheadline), names a primary and transitional CTA with label direction and next state, and names a success metric. The brief contains content direction — what to say, for whom, in what order — not finished copy. It declares communication_mode: product-copy in the artifact frontmatter, ends with the artifact path <output_dir>/content/<slug>.md resolved from the [design] output_dir, and names the per-surface acquisition copy goals mode (per-surface copy voice) and user-flow (screen sequencing) as downstream consumers.",
       "assertions": [
         "Surface type declared as acquisition",
         "Audience awareness level named using the Schwartz five-stage ladder with a rationale",
@@ -17,7 +17,7 @@
         "No finished copy strings — only direction, job descriptions, and structure contracts",
         "Artifact frontmatter declares communication_mode: product-copy",
         "Artifact path <output_dir>/content/<slug>.md stated, resolved from the configured [design] output_dir",
-        "copy-direction named as downstream for per-surface copy voice; user-flow named for screen sequencing"
+        "the per-surface acquisition copy goals mode named as downstream for per-surface copy voice; user-flow named for screen sequencing"
       ]
     },
     {
@@ -34,7 +34,7 @@
         "Artifact frontmatter declares communication_mode: reference-documentation",
         "Artifact path <output_dir>/content/<slug>.md stated, resolved from the configured [design] output_dir",
         "No finished copy strings — direction and hierarchy only",
-        "copy-direction NOT named as downstream (communication_mode is not product-copy); user-flow named for screen sequencing"
+        "the per-surface acquisition copy goals mode NOT named as downstream (communication_mode is not product-copy); user-flow named for screen sequencing"
       ]
     },
     {
@@ -54,7 +54,7 @@
     {
       "id": "surface-content-brief-grounding",
       "prompt": "Here's our content brief for the homepage [communication_mode: product-copy, audience: technical founders]. What copy direction should we name?",
-      "expected_output": "A copy-direction doc that sources its reader map from the content brief's audience. Goals are scoped to the homepage surface — not brand-level. Because communication_mode is product-copy, the output notes the editorial-quality-gates anti-AI-smell scan.",
+      "expected_output": "A copy-direction record that sources its reader map from the content brief's audience. Goals are scoped to the homepage surface — not brand-level. Because communication_mode is product-copy, the output notes the editorial-quality-gates anti-AI-smell scan.",
       "assertions": [
         "Reader map references the content brief's audience",
         "If communication_mode is product-copy, editorial-quality-gates.md check is noted",
@@ -65,7 +65,7 @@
     {
       "id": "surface-brand-register-deference",
       "prompt": "We have a brand register doc. Now what copy direction should our campaign landing page have?",
-      "expected_output": "A copy-direction doc that references the brand-register doc as an upstream referent (in step 3). Per-surface goals are checked against the brand register. Any tension is surfaced as an open question — the brand register is not silently overridden.",
+      "expected_output": "A copy-direction record that references the brand-register doc as an upstream referent (in step 3). Per-surface goals are checked against the brand register. Any tension is surfaced as an open question — the brand register is not silently overridden.",
       "assertions": [
         "Output references the brand-register doc as an upstream referent in step 3",
         "Output checks per-surface goals against the brand register",

@@ -1,6 +1,6 @@
 # conversion-design method
 
-Converts the content brief and design-principles artefact into a **structural specification for a marketing surface** — the above-fold contract, the scroll story, and the social-proof architecture that carries a visitor from "not sure" to "ready to act." This skill is IA and structure; it does not write copy (that is `content-design` for section structure and `copy-direction` for per-surface copy voice and goals; `tone-of-voice` defines the brand-level register that `copy-direction` grounds against) and does not derive tokens or color (that is `design-system` and `creative-direction`).
+Converts the content brief and design-principles artefact into a **structural specification for a marketing surface** — the above-fold contract, the scroll story, and the social-proof architecture that carries a visitor from "not sure" to "ready to act." This skill is IA and structure; it does not write copy (that is `content-design`, whose modes cover section structure, per-surface copy voice and goals, and the brand-level register those goals ground against) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 
 
