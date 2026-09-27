@@ -127,3 +127,5 @@
 | 0123 | [Product changelog uses per-update sources and generated views](0123-product-changelog-per-update-sources-and-generated-views.md) | Accepted | 2026-09-22 |
 | 0124 | [The experience contract's frontend section is owned by `frontend-engineering`, not `core`](0124-experience-contract-frontend-section-owned-by-frontend-engineering.md) | Accepted | 2026-09-22 |
 | 0125 | [Durable transitions make four cohort mutations engine-invoked](0125-engine-invoked-cohort-mutations.md) | Accepted | 2026-09-25 |
+| 0126 | [Integration packs carry standalone value, and coupling lives in named bridge skills](0126-integration-packs-standalone-value-and-bridge-skills.md) | Accepted | 2026-09-24 |
+| 0127 | [What projects into a delivery system: a range from the tree's top down to a floor](0127-managed-unit-floor-and-projected-range.md) | Accepted | 2026-09-23 |

@@ -258,6 +258,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-cache", dest="no_cache", action="store_true", help="Bypass the on-disk cache."
     )
+    parser.add_argument(
+        "--inert-cache",
+        dest="inert_cache",
+        action="store_true",
+        help=(
+            "Perform no cache operation of any kind, stale-temp cleanup included. "
+            "Off by default. --no-cache still unlinks stale temps from an existing "
+            "cache directory, so a caller that must not write anywhere needs this."
+        ),
+    )
     parser.add_argument("--verbose", action="store_true", help="Debug logging.")
 
     return parser
@@ -514,7 +524,11 @@ def _run_pipeline(args: argparse.Namespace, window: Window) -> int:
 
     # 4. Cache key + read --------------------------------------------------
     cache_dir = Path.cwd() / ".context" / "flow-metrics" / "cache"
-    cleanup_stale_tmps(cache_dir)
+    # The cleanup runs above the --no-cache branch and unlinks stale temps from
+    # an existing cache directory. Deleting a file is a write, so a caller that
+    # must leave the tree byte-identical cannot reach this path at all.
+    if not args.inert_cache:
+        cleanup_stale_tmps(cache_dir)
     window_dict = {
         "from": window.from_date.isoformat(),
         "to": window.to_date.isoformat(),
@@ -541,7 +555,8 @@ def _run_pipeline(args: argparse.Namespace, window: Window) -> int:
         # report rather than building a malformed empty IN () clause.
         rows = []
     else:
-        cached = None if args.no_cache else read_cache(cache_dir, key)
+        bypass_cache = args.no_cache or args.inert_cache
+        cached = None if bypass_cache else read_cache(cache_dir, key)
         if cached is not None:
             rows = list(cached)
         else:
@@ -554,7 +569,7 @@ def _run_pipeline(args: argparse.Namespace, window: Window) -> int:
                 issuetype_config,
                 window,
             )
-            rows = list(stream) if args.no_cache else list(write_cache_tee(cache_dir, key, stream))
+            rows = list(stream) if bypass_cache else list(write_cache_tee(cache_dir, key, stream))
 
     notes = NotesCollector()
 

@@ -32,7 +32,7 @@ FAILURES: list[str] = []
 
 # Pinned so a shrinking SCA input set is a named failure rather than a quieter
 # gate. Raise these in the same commit that adds a manifest.
-_EXPECTED_PACK_MANIFESTS = 8
+_EXPECTED_PACK_MANIFESTS = 9
 _EXPECTED_TOOLS_MANIFESTS = [
     "requirements-ci-security-locked.txt",
     "requirements-evals-locked.txt",

@@ -77,6 +77,16 @@
         "Does not gate the transition on the review date",
         "Deletes or moves nothing, and offers no transition out of Reclassified"
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "Close this delivery brief as Shipped. Its Spec map has all-Shipped children and the human has confirmed the outcome. What field must be added to the brief before the lint will accept it?",
+      "expected_output": "The brief must carry a Cut-closed: preamble field with an ISO 8601 date followed by non-empty evidence text before the coverage lint will accept a Shipped brief. The refusal is the lint's; this workflow surfaces the requirement and prompts the human to confirm the field's value, but does not bypass the lint check.",
+      "assertions": [
+        "Names Cut-closed: as the required field",
+        "States the format: ISO 8601 date plus evidence text",
+        "Attributes the refusal to the coverage lint, not this workflow"
+      ]
     }
   ]
 }

@@ -157,7 +157,14 @@ The full flag surface:
 - **`--per-issue`** — Emit one JSONL row per issue with all derived
   fields, instead of aggregates. Requires `--output`.
 - **`--no-cache`** — Bypass the on-disk cache at
-  `.context/flow-metrics/cache/<cache-key>.jsonl`.
+  `.context/flow-metrics/cache/<cache-key>.jsonl`. It skips the cache read and
+  the cache write, and creates no cache directory — but it still removes stale
+  `*.tmp` files from a cache directory that already exists.
+- **`--inert-cache`** — Perform no cache operation of any kind, stale-temp
+  cleanup included. Off by default. Use this, not `--no-cache`, when the run
+  must leave the working directory byte-identical: removing a stale temp is a
+  write, so `--no-cache` alone is not enough for a caller that promises to
+  change nothing on disk.
 - **`--verbose`** — Debug logging (state-transition walks, cache hits,
   upstream skill invocations).
 - **`--yes`** — Overwrite `--output FILE` without prompting.

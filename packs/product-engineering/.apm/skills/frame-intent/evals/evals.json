@@ -72,6 +72,28 @@
         "Offers Superseded as a bare Status token, not `Superseded by <slug>`",
         "Writes `Superseded by:` only alongside `Status: Superseded`, since either alone is refused"
       ]
+    },
+    {
+      "id": "intent-template-offers-optional-outcome-co-owner",
+      "prompt": "Frame an intent whose outcome is shared with another live intent. Show how the template handles the shared outcome declaration.",
+      "expected_output": "The framed intent keeps `Outcome co-owner:` as an optional preamble field. In the template it is seeded as comment-only guidance, so it is absent until the author supplies a value. When the shared outcome is real, the value is a typed pointer such as `intent:peer-intent`; when there is no peer, the field stays omitted rather than guessed.",
+      "assertions": [
+        "Offers `Outcome co-owner:` in the intent template",
+        "Keeps the field optional and absent while it carries only a comment",
+        "Uses a typed pointer such as `intent:<slug>` when populated",
+        "Does not infer a co-owner from body prose"
+      ]
+    },
+    {
+      "id": "intent-template-offers-closed-empty-decomposition",
+      "prompt": "Frame an intent whose decomposition is already complete and deliberately has no child work. Show which template value records that.",
+      "expected_output": "The template's `Decomposed:` guidance offers `closed-empty` as one of the dated termini: `YYYY-MM-DD closed-empty`. That records a completed childless decomposition. It is not the literal `no`, and it is not `direct-light`, so it does not require checkbox items under `## Decomposition`.",
+      "assertions": [
+        "Offers `closed-empty` in the `Decomposed:` template guidance",
+        "Requires a date plus the terminus rather than the bare word",
+        "Keeps `closed-empty` distinct from the literal `no`",
+        "Does not require direct-light checkbox items for closed-empty"
+      ]
     }
   ]
 }

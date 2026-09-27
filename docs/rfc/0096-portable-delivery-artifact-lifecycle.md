@@ -532,3 +532,117 @@ record. Corrections are appended here, Approver-signed.
   (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:432-439`), and Wave 7d
   remains dependent on Wave 7c
   (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:458-459`).
+
+- **2026-09-24 (Approver: eugenelim) — Wave 7 never assigned the step that
+  proves eligibility; Wave 7e opens to own it.**
+
+  Section 9 gives Wave 7 the objective "classify history, prune proven-eligible
+  artifacts, and project the dependency-scoped completion receipt from its
+  coordination surface"
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:317-319`). That
+  objective presupposes eligibility is already proven and assigns the proving
+  step to no wave. The 2026-09-01 Errata split Wave 7 into four owned slices and
+  the 2026-09-03 Errata added a fifth; none of the five owns discovery. Taking
+  them in turn: Wave 7a-i closes cooling scope and Wave 7a-ii projects the
+  completion receipt, and neither selects or ranks an artifact; Wave 7b
+  classifies an artifact's history and supplies the read-free parent mechanism,
+  which answers what an artifact is rather than which artifacts to consider. The
+  remaining two are the near misses. Wave 7c
+  prunes an explicitly supplied selection and states that it "does not choose,
+  rank, or discover deletion candidates"
+  (`packs/core/.apm/skills/workspace-status/references/mutate.md`, the prune
+  authorization section). Wave 7d is repository cleanup and "produces no
+  portable contract" (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:474-475`).
+  Wave 6 projects closeout state, due reviews, and exceptions
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:306-315`), which is
+  cooling state rather than candidate discovery.
+
+  The gap is an omission in section 9, not in the model. Section 7 already
+  sanctions the capability: "deterministic helpers resolve, confine, fingerprint,
+  date, and report eligibility; workflows own policy and confirmation"
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:220`). Reporting
+  eligibility is an assigned helper role with no wave shipping it.
+
+  **Wave 7e — Retirement-candidate projection.** Objective: report which
+  delivery artifacts are retirement candidates, report every blocker that holds
+  one back, and attribute each candidate to the area of the repository that owns
+  it. Dependencies: Wave 6 for the projection surface and
+  Wave 7c for the prune it feeds. Wave 7e does not depend on Wave 5: it reads no
+  lifecycle record and no cooling verdict.
+
+  Wave 7e ships in slices. The first is read-only and writes nothing; persisting
+  the area attribution, and making a spec named in a delivered brief retirable,
+  are separate slices behind it. The write boundary below governs the wave, not
+  the first slice, which has no writer at all. Behavior: reporting eligibility authorizes
+  nothing, and every deletion still runs the unchanged Wave 7c seam under
+  independent confirmation. Write boundary: every reporting surface is
+  read-only, and exactly one named subcommand writes, touching only the
+  persisted area-attribution map and no other byte of the file that holds it.
+  Non-goals: selection, deletion, and the corpus cleanup Wave 7d
+  owns. Wave 7e does not distil: it moves, condenses, and rewrites nothing. It
+  does report that an artifact holds content which must reach an owner before
+  disposition, and names the role that owner fills, which is the projection of a
+  next action that `close-work` already licenses `workspace-status` to make.
+  Choosing the destination and performing the move stay with `close-work`.
+
+  Evidence: reproducibility over an unchanged tree, one case per blocker
+  in which the blocker holds a candidate back, and byte-level isolation of the
+  one write. Impact: a portable contract — unlike Wave 7d, which produces none.
+  Parallelism: after Wave 7c, and independent of Wave 7d.
+
+  **Slice count and order.** The 2026-09-03 Errata called Wave 7d "the last of
+  the five slices"
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:458`). That sentence is
+  superseded: Wave 7 has six slices, and Wave 7e is the last. Wave 7e does not
+  depend on Wave 7d and may run before or after it. The two read the same
+  surfaces — Wave 7e reports an inbound citation from exactly the surfaces the
+  2026-09-13 Errata enumerates for the Wave 7d carve-out — so running 7d first
+  reduces what 7e reports without changing whether any verdict is correct.
+
+  **What Wave 7e reports, and what it does not.** A candidate is reported
+  eligible only when none of the blockers Wave 7e carries is unresolved. This
+  erratum fixes the **coverage obligation**; it does not name the codes, which
+  are the implementing contract's to choose and to keep machine-checkable.
+
+  Wave 7e must report, at minimum, an inbound literal reference from any surface
+  the 2026-09-13 Errata enumerates for the Wave 7d carve-out
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:513-522`), and section
+  6's missing history and unresolved references. It may report further
+  conditions the lifecycle model carries; reporting more never makes a verdict
+  unsafe.
+
+  It does not report section 6's fingerprint drift or uncertain authority. Both
+  are decided from lifecycle-record fields, and Wave 7e reads no lifecycle
+  record. They remain deletion blockers in full; Wave 7c enforces them at the
+  mutation, which is where section 6 places them.
+
+  Reporting a subset is safe in exactly one direction. Wave 7e never reports a
+  candidate eligible that a full check would block on a condition it carries,
+  and it may report one eligible that Wave 7c later blocks. Eligibility here
+  authorizes nothing.
+
+  **Age is reported from change history, and is not a cooling verdict.**
+  Section 6's clock runs from `completed_on`, a selected delivery-completion
+  event recorded on a lifecycle record, and section 6 states that "creation,
+  Ready, edits, and session end never start the clock"
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:177-178`). Wave 7e
+  reads no lifecycle record and therefore cannot compute that clock. It reports
+  the artifact's last recorded change instead, labelled as such.
+
+  The two are different facts and Wave 7e does not present one as the other. An
+  edit-derived age is not conservative in a fixed direction: where the last
+  recorded change post-dates the delivery event it reports less elapsed time,
+  and where the selected event is a later release or acceptance it reports
+  more. It is a triage signal for a human reading a report, and section 6's
+  clock continues to govern every disposition and deletion unchanged.
+
+  Wave 7e computes its own triage threshold over change history and reads no
+  Wave 5 seam. That threshold is not section 6's 30-day rule, which is unchanged
+  and continues to run from `completed_on` on a lifecycle record.
+
+  Wave 7e does not import the cooling module. Cross-skill imports are not
+  portable across adapter projections
+  (`guides/_shared/reference/skill-script-conventions.md`, § Sharing code across
+  skills), so a wave that needed section 6's clock would have to route it
+  through shared code rather than reach across skills. Wave 7e does not need
+  it.

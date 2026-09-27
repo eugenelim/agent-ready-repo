@@ -23,7 +23,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { JSDOM } from 'jsdom';
-import { catalogueOutcomes } from '../lib/catalogue-navigation';
 
 const REPO_ROOT = join(__dirname, '../../..');
 const BUILD_ROOT = join(REPO_ROOT, 'build');
@@ -37,6 +36,10 @@ const NOW_PROJECTION = join(REPO_ROOT, 'web/src/lib/now-highlights.generated.jso
 const SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'web/src/lib/shared-chrome.generated.json');
 const DOCS_SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'docs-site/src/shared-chrome.generated.json');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
+const CORE_START_WORK_GUIDE = join(
+  DOCS_ROOT,
+  'guides/core/how-to/start-or-remember-work/index.html'
+);
 
 /**
  * spec/site-shared-chrome AC7, for one emitted shared-chrome link.
@@ -379,31 +382,199 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     ).toBeGreaterThan(0);
   }, SCAN_TIMEOUT_MS);
 
-  it('wayfinding AC2–AC3: the landing has one flagship lead, six supporting outcomes, and one primary action', () => {
+  it('workflow-page contract: Core start-work guide opens with the usable route', () => {
+    expect(existsSync(CORE_START_WORK_GUIDE)).toBe(true);
+    const d = doc(CORE_START_WORK_GUIDE);
+    const main = d.querySelector('main')!;
+    const text = normalizedText(main.textContent);
+    const position = (needle: string) => {
+      const index = text.indexOf(needle);
+      expect(index, `missing: ${needle}`).toBeGreaterThanOrEqual(0);
+      return index;
+    };
+
+    expect(d.querySelector('h1')?.textContent?.trim()).toBe('Start a software change');
+    expect(d.querySelectorAll('h1')).toHaveLength(1);
+
+    const prompt = position('Start work on adding export retention controls');
+    const coreStep1 = position("Reads your request and the repository's current work state");
+    const coreStep2 = position('Chooses the shortest safe route');
+    const coreStep3 = position('Starts the next workflow only after any required artifact');
+    const shapingFork = position('If the user, problem, outcome, or solution direction is still open');
+    const shapingSequence = position('frames the intent, explores options when the direction is open');
+    const humanBoundary = position('commits the shaped result to build');
+    const resultExample = position('docs/specs/export-retention/spec.md');
+    const completionSignal = position('This step is done when Core has either started the build loop');
+    const nextAction = position('workspace-status');
+    const deepReference = position('State and skill reference');
+
+    expect(prompt).toBeLessThan(coreStep1);
+    expect(coreStep1).toBeLessThan(coreStep2);
+    expect(coreStep2).toBeLessThan(coreStep3);
+    expect(coreStep3).toBeLessThan(shapingFork);
+    expect(shapingFork).toBeLessThan(shapingSequence);
+    expect(shapingSequence).toBeLessThan(humanBoundary);
+    expect(humanBoundary).toBeLessThan(resultExample);
+    expect(resultExample).toBeLessThan(completionSignal);
+    expect(completionSignal).toBeLessThan(nextAction);
+    expect(nextAction).toBeLessThan(deepReference);
+
+    const links = [...main.querySelectorAll<HTMLAnchorElement>('a[href]')].map((link) =>
+      link.getAttribute('href')
+    );
+    expect(links).toContain(
+      `${DOCS_BASE_PATH}guides/product-engineering/how-to/shape-a-feature-intent/`
+    );
+    expect(links).toContain(
+      `${DOCS_BASE_PATH}guides/core/reference/work-intake-routing-and-lifecycle/`
+    );
+  });
+
+  it('docs home routes by task before setup and reference material', () => {
     const d = doc(DOCS_HOME);
-    const leadCards = d.querySelectorAll('.docs-hub__lead .sl-link-card');
+    const primaryRoutes = [
+      ...d.querySelectorAll<HTMLElement>('.docs-hub__primary .docs-hub__route'),
+    ];
+    const primaryCards = d.querySelectorAll('.docs-hub__primary .sl-link-card');
     const supportingCards = d.querySelectorAll('.docs-hub__supporting .sl-link-card');
-    expect(leadCards).toHaveLength(1);
+    expect(primaryCards).toHaveLength(2);
     expect(supportingCards).toHaveLength(6);
 
-    const cards = [...leadCards, ...supportingCards];
-    const expectedTitles = new Set(catalogueOutcomes.map((outcome) => outcome.title));
-    const actualTitles = new Set(
-      cards.map((card) => card.querySelector('.title')?.textContent?.trim() ?? '')
-    );
-    expect(actualTitles).toEqual(expectedTitles);
+    const cards = [...primaryCards, ...supportingCards];
+    const route = (card: Element) => ({
+      title: card.querySelector('.title')?.textContent?.trim() ?? '',
+      href: card.querySelector('a')?.getAttribute('href') ?? '',
+    });
+    const primaryRouteOrder = [...primaryCards].map(route);
+    expect(primaryRouteOrder).toEqual([
+      [
+        'Shape an idea',
+        `${DOCS_BASE_PATH}guides/product-engineering/how-to/shape-a-feature-intent/`,
+      ],
+      [
+        'Build a known change',
+        `${DOCS_BASE_PATH}guides/core/how-to/start-or-remember-work/`,
+      ],
+    ].map(([title, href]) => ({ title, href })));
 
-    const flagship = catalogueOutcomes.find((outcome) => outcome.flagship);
-    expect(leadCards[0]?.querySelector('.title')?.textContent?.trim()).toBe(flagship?.title);
+    const expectedTaskRoutes = new Map([
+      [
+        'Shape an idea',
+        `${DOCS_BASE_PATH}guides/product-engineering/how-to/shape-a-feature-intent/`,
+      ],
+      ['Build a known change', `${DOCS_BASE_PATH}guides/core/how-to/start-or-remember-work/`],
+      [
+        'Make an architecture decision',
+        `${DOCS_BASE_PATH}guides/architect/how-to/shape-an-architecture-concept/`,
+      ],
+      ['Fix or investigate a bug', `${DOCS_BASE_PATH}guides/core/how-to/bug-fix/`],
+      [
+        'Understand a repository',
+        `${DOCS_BASE_PATH}guides/architect/how-to/assess-a-repository/`,
+      ],
+      [
+        'Research a question',
+        `${DOCS_BASE_PATH}guides/desk-research/how-to/run-the-research/`,
+      ],
+      [
+        'Prepare and run a release',
+        `${DOCS_BASE_PATH}guides/release-engineering/how-to/run-a-release/`,
+      ],
+      [
+        'Adapt the agent setup to your project',
+        `${DOCS_BASE_PATH}guides/core/how-to/adapt-to-project/`,
+      ],
+    ]);
+    const actualTaskRoutes = new Map(cards.map((card) => [route(card).title, route(card).href]));
+    expect(actualTaskRoutes).toEqual(expectedTaskRoutes);
+
     for (const card of cards) {
       expect(card.querySelector('.description')?.textContent?.trim()).toBeTruthy();
       const href = card.querySelector('a')?.getAttribute('href');
-      expect(href).toBeTruthy();
       expect(existsSync(builtDocsPage(href!)!)).toBe(true);
     }
+    const cardDescription = (title: string) =>
+      cards
+        .find((card) => card.querySelector('.title')?.textContent?.trim() === title)
+        ?.querySelector('.description')
+        ?.textContent?.trim();
+    expect(cardDescription('Research a question')).toContain('Try:');
+
+    const routeLabels = primaryRoutes.map((routeWrapper) => ({
+      label: routeWrapper.querySelector('.docs-hub__category')?.textContent?.trim(),
+      title: routeWrapper.querySelector('.title')?.textContent?.trim(),
+    }));
+    expect(routeLabels).toEqual([
+      { label: 'Shape', title: 'Shape an idea' },
+      { label: 'Build', title: 'Build a known change' },
+    ]);
+    const supportingLabels = [...d.querySelectorAll('.docs-hub__supporting .docs-hub__group')].map(
+      (group) => group.querySelector('h3')?.textContent?.trim()
+    );
+    expect(supportingLabels).toEqual(['Shape', 'Investigate', 'Operate']);
 
     expect(d.querySelectorAll('.hero a.primary')).toHaveLength(1);
     expect(d.querySelectorAll('.hero a.minimal')).toHaveLength(1);
+    expect(d.querySelector('.hero a.primary')?.textContent?.trim()).toBe('Choose a task');
+    expect(d.querySelector('.hero a.minimal')?.textContent?.trim()).toBe('Set up first');
+    expect(d.querySelector('.hero a.primary')?.getAttribute('href')).toBe(
+      '#what-are-you-trying-to-do'
+    );
+    expect(d.querySelector('.hero a.minimal')?.getAttribute('href')).toBe(
+      `${DOCS_BASE_PATH}getting-started/`
+    );
+
+    const expectedSupportingRoutes = new Map([
+      ['Install and configure your first workflow', `${DOCS_BASE_PATH}getting-started/`],
+      [
+        'Follow the install-to-ship walkthrough',
+        `${DOCS_BASE_PATH}guides/#the-install-to-ship-walkthrough`,
+      ],
+      ['Browse guides and learning paths', `${DOCS_BASE_PATH}guides/`],
+      ['Browse the pack and skill reference', `${DOCS_BASE_PATH}packs/`],
+      [
+        'Understand the three supervised loops',
+        `${DOCS_BASE_PATH}getting-started/three-loops/`,
+      ],
+      [
+        'Use the agentbundle CLI reference',
+        `${DOCS_BASE_PATH}guides/_shared/reference/agentbundle/`,
+      ],
+      [
+        'Understand how packs, profiles, adapters, and catalogues fit together',
+        `${DOCS_BASE_PATH}guides/_shared/explanation/pack-catalogue/`,
+      ],
+      [
+        'Build or govern your own catalogue',
+        `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-catalogue/`,
+      ],
+    ]);
+    const pageLinks = [
+      ...d.querySelectorAll<HTMLAnchorElement>(
+        '.hero a[href], main .sl-markdown-content a[href]:not(.sl-anchor-link)'
+      ),
+    ];
+    for (const [label, expectedHref] of expectedSupportingRoutes) {
+      const link = pageLinks.find((candidate) => candidate.textContent?.trim() === label);
+      expect(link?.getAttribute('href'), label).toBe(expectedHref);
+      expect(existsSync(builtDocsPage(expectedHref)!)).toBe(true);
+    }
+    expect(new Set(pageLinks.map((link) => link.getAttribute('href')))).toEqual(
+      new Set([
+        '#what-are-you-trying-to-do',
+        ...expectedTaskRoutes.values(),
+        ...expectedSupportingRoutes.values(),
+      ])
+    );
+
+    const sectionHeadings = [...d.querySelectorAll('main h2')].map((heading) =>
+      heading.textContent?.trim()
+    );
+    expect(sectionHeadings.slice(0, 3)).toEqual([
+      'What are you trying to do?',
+      'New to Agent Ready Repo?',
+      'Go deeper',
+    ]);
   });
 
   it('wayfinding AC4: guide pagination follows the complete generated sidebar order', () => {

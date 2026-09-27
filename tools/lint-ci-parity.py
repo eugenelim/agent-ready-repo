@@ -646,6 +646,12 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest repair-round predicate parity (spec contract vs shipped guard)":
         LOCAL("test-after-build-check"),
+    "pytest spec-retirement candidate contract (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest spec-retirement candidate CLI (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest brief lifecycle single home (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -934,6 +940,9 @@ _GATE_MAIN_CHECKS = (
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
     "pytest repair-round predicate parity (spec contract vs shipped guard)",
+    "pytest spec-retirement candidate contract (roster-owned)",
+    "pytest spec-retirement candidate CLI (roster-owned)",
+    "pytest brief lifecycle single home (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
@@ -1219,6 +1228,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'packs/atlassian/tests/pack/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
     'packs/atlassian/tests/skills/jira/test_intake_policy.py':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
@@ -1230,6 +1244,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "so it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/flow-metrics/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira-epic-outcome-view/':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"

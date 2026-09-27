@@ -101,6 +101,6 @@ or `bug-fix`. For an existing artifact whose tracker source changed, follow
 - [Project intents and slices out to a tracker](project-slices-to-a-tracker.md) — the other mode: repo-first projection
 - [Tracker vocabulary](../reference/tracker-vocabulary.md)
 - [Use work intake](use-work-intake.md)
-- [Start or remember work](../../core/how-to/start-or-remember-work.md)
+- [Start work](../../core/how-to/start-or-remember-work.md)
 - [GitHub intake](../../github/how-to/intake-a-github-milestone-as-a-brief.md)
 - [Linear intake and sync](../../linear/how-to/linear-brief-intake-and-sync.md)

@@ -10,7 +10,9 @@
  *
  * Design language: optical-size display serif (Source Serif 4 Variable)
  * over Inter, eyebrow-labeled sidebar groups, hairline rules as the only
- * chrome, dark code blocks on light ground, single cobalt accent.
+ * chrome, dark code blocks on light ground, single cobalt accent for actions.
+ * Docs-home route categories may use restrained hues as redundant orientation
+ * cues only.
  * All text/ground pairs measured ≥ 4.5:1 — the record lives in the spec's
  * plan.md LLD tables.
  */
@@ -43,6 +45,19 @@
   --doc-accent-strong: #8ab0f9; /* text-safe on dark ground (8.68:1) */
   --doc-tint: rgba(138, 176, 249, 0.12);
   --doc-hover-fill: rgba(255, 255, 255, 0.04);
+
+  --doc-route-shape-fill: #211735;
+  --doc-route-shape-text: #c4b5fd;
+  --doc-route-shape-border: #5b4a8a;
+  --doc-route-build-fill: #102044;
+  --doc-route-build-text: #93c5fd;
+  --doc-route-build-border: #2c4270;
+  --doc-route-investigate-fill: #0f2c2b;
+  --doc-route-investigate-text: #5eead4;
+  --doc-route-investigate-border: #28615d;
+  --doc-route-operate-fill: #33220f;
+  --doc-route-operate-text: #facc15;
+  --doc-route-operate-border: #6b4423;
 }
 
 :root[data-theme='light'],
@@ -58,6 +73,19 @@
   --doc-accent-strong: #1d4ed8; /* links, eyebrows, chip text (6.31:1) */
   --doc-tint: rgba(37, 99, 235, 0.08);
   --doc-hover-fill: rgba(17, 24, 39, 0.04);
+
+  --doc-route-shape-fill: #f1edff;
+  --doc-route-shape-text: #5b21b6;
+  --doc-route-shape-border: #c4b5fd;
+  --doc-route-build-fill: #e8f0ff;
+  --doc-route-build-text: #1d4ed8;
+  --doc-route-build-border: #93c5fd;
+  --doc-route-investigate-fill: #dff8f4;
+  --doc-route-investigate-text: #0f766e;
+  --doc-route-investigate-border: #5eead4;
+  --doc-route-operate-fill: #fff3d6;
+  --doc-route-operate-text: #92400e;
+  --doc-route-operate-border: #facc15;
 }
 
 /* ── Starlight slot mapping — dark ──────────────────────────────────────── */
@@ -200,18 +228,81 @@ site-search kbd {
   justify-content: flex-start;
 }
 
-.sl-markdown-content .docs-hub__lead,
+.sl-markdown-content .docs-hub__primary,
 .sl-markdown-content .docs-hub__supporting {
   margin-top: 1rem;
 }
 
-.docs-hub__lead .sl-link-card {
-  border-inline-start: 3px solid var(--doc-accent-strong);
-  padding: 1.25rem;
+.sl-markdown-content .docs-hub__primary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.sl-markdown-content .docs-hub__supporting {
+  display: grid;
+  gap: 1rem;
+}
+
+.sl-markdown-content .docs-hub__route,
+.sl-markdown-content .docs-hub__group {
+  --docs-hub-route-fill: var(--doc-tint);
+  --docs-hub-route-text: var(--doc-accent-strong);
+  --docs-hub-route-border: var(--doc-rule);
+  background-color: var(--docs-hub-route-fill);
+  border: 1px solid var(--docs-hub-route-border);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.sl-markdown-content .docs-hub__route--shape {
+  --docs-hub-route-fill: var(--doc-route-shape-fill);
+  --docs-hub-route-text: var(--doc-route-shape-text);
+  --docs-hub-route-border: var(--doc-route-shape-border);
+}
+
+.sl-markdown-content .docs-hub__route--build {
+  --docs-hub-route-fill: var(--doc-route-build-fill);
+  --docs-hub-route-text: var(--doc-route-build-text);
+  --docs-hub-route-border: var(--doc-route-build-border);
+}
+
+.sl-markdown-content .docs-hub__route--investigate {
+  --docs-hub-route-fill: var(--doc-route-investigate-fill);
+  --docs-hub-route-text: var(--doc-route-investigate-text);
+  --docs-hub-route-border: var(--doc-route-investigate-border);
+}
+
+.sl-markdown-content .docs-hub__route--operate {
+  --docs-hub-route-fill: var(--doc-route-operate-fill);
+  --docs-hub-route-text: var(--doc-route-operate-text);
+  --docs-hub-route-border: var(--doc-route-operate-border);
+}
+
+.sl-markdown-content .docs-hub__category,
+.sl-markdown-content .docs-hub__group > h3 {
+  color: var(--docs-hub-route-text);
+  font-family: var(--doc-font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  margin: 0 0 0.55rem;
+  text-transform: uppercase;
+}
+
+.sl-markdown-content .docs-hub__group > p {
+  color: var(--doc-text);
+  font-size: 0.9375rem;
+  margin: 0 0 0.75rem;
+}
+
+.docs-hub__primary .sl-link-card {
+  padding: 1.15rem;
   box-shadow: none;
 }
 
-.docs-hub__lead .sl-link-card .title {
+.docs-hub__primary .sl-link-card .title {
   font-size: var(--sl-text-xl);
 }
 
@@ -222,6 +313,10 @@ site-search kbd {
 @media (max-width: 49.999rem) {
   [data-has-hero] .hero h1 {
     font-size: var(--sl-text-3xl);
+  }
+
+  .sl-markdown-content .docs-hub__primary {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -206,6 +206,41 @@ def test_sidecar_converged() -> None:
         expect("sidecar (authoritative)" in out, f"reports sidecar source: {out}")
 
 
+@pytest.mark.parametrize(
+    ("target", "expected"),
+    [
+        ("intent:missing", "unresolved target"),
+        ("intent:source", "self-reference"),
+    ],
+    ids=["unresolved-peer", "self-reference"],
+)
+def test_sidecar_outcome_co_owner_refuses_invalid_peer(
+    target: str, expected: str
+) -> None:
+    """AC-0002/AC-0003 apply when a sidecar owns graph structure."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes, edges = _chain_nodes_edges()
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="o")
+        write(
+            root / "docs" / "product" / "intents" / "source.md",
+            "# Intent\n\n"
+            "- **Slug:** source\n"
+            f"- **Outcome co-owner:** {target}\n",
+        )
+
+        rc, out, err = run_raw(root)
+
+        expect(rc == 1, f"invalid sidecar co-owner must fail: {out} {err}")
+        expect(
+            expected in err
+            and "Outcome co-owner" in err
+            and "intent:source" in err
+            and target in err,
+            f"finding names source, field, and target: {err}",
+        )
+
+
 def test_sidecar_orphan_and_strict() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -1321,6 +1356,167 @@ def test_unclaimed_intent_parent_pointer_wires_the_in_edge() -> None:
                f"the in-edge, got edges={g.edges!r}")
 
 
+# STUB: AC-0002
+def test_ac0002_outcome_co_owner_helper_reports_unresolved_target() -> None:
+    module_spec = importlib.util.spec_from_file_location("_trace_co_owner", str(LINTER))
+    assert module_spec is not None and module_spec.loader is not None
+    mod = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(mod)
+
+    findings = mod.outcome_co_owner_findings(
+        {"intent:source": "intent:missing"},
+        {"intent:source"},
+    )
+
+    expect(bool(findings), "an unresolved co-owner must produce a finding")
+    report = "\n".join(findings)
+    expect("intent:source" in report, report)
+    expect("Outcome co-owner" in report, report)
+    expect("intent:missing" in report, report)
+
+
+def test_ac0002_unresolved_outcome_co_owner_refuses() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        base = root / "docs" / "product" / "intents"
+        # An `intent:` node is not a CHAIN layer, so intent files alone leave
+        # the corpus unanchored and `check()` no-ops clean before it can reach
+        # any co-owner finding. The brief is the anchor this AC is read through.
+        write_brief(root, "anchor")
+        write(
+            base / "source.md",
+            "# Intent\n\n"
+            "- **Slug:** source\n"
+            "- **Outcome co-owner:** intent:missing\n",
+        )
+
+        rc, out, err = run_raw(root)
+
+        expect(rc == 1, f"unresolved co-owner must fail: {out} {err}")
+        expect("Outcome co-owner" in err and "intent:source" in err
+               and "intent:missing" in err,
+               f"finding names source, field, and target: {err}")
+
+
+def test_ac0003_self_co_owner_refuses() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        base = root / "docs" / "product" / "intents"
+        write_brief(root, "anchor")  # see AC-0002 above: intents alone no-op
+        write(
+            base / "source.md",
+            "# Intent\n\n"
+            "- **Slug:** source\n"
+            "- **Outcome co-owner:** intent:source\n",
+        )
+
+        rc, out, err = run_raw(root)
+
+        expect(rc == 1, f"self co-owner must fail: {out} {err}")
+        expect("self-reference" in err and "intent:source" in err,
+               f"finding names self-reference: {err}")
+
+
+def test_ac0004_outcome_co_owner_does_not_add_graph_edges() -> None:
+    spec = importlib.util.spec_from_file_location("_trace_co_owner_edges", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    def build_graph(root: Path) -> object:
+        graph = mod.Graph()
+        mod.build_standalone(root, {}, graph, {})
+        return graph
+
+    with tempfile.TemporaryDirectory() as without_tmp, tempfile.TemporaryDirectory() as with_tmp:
+        without_root = Path(without_tmp)
+        with_root = Path(with_tmp)
+        for root, co_owner in ((without_root, ""), (with_root, "- **Outcome co-owner:** intent:peer\n")):
+            base = root / "docs" / "product" / "intents"
+            write(
+                base / "source.md",
+                "# Intent\n\n"
+                "- **Slug:** source\n"
+                f"{co_owner}",
+            )
+            write(base / "peer.md", "# Intent\n\n- **Slug:** peer\n")
+
+        without_graph = build_graph(without_root)
+        with_graph = build_graph(with_root)
+
+        expect(with_graph.edges == without_graph.edges,
+               f"co-owner must not add graph edges: {without_graph.edges!r} vs "
+               f"{with_graph.edges!r}")
+        expect(not with_graph.dangling,
+               f"valid co-owner should not create dangling findings: {with_graph.dangling!r}")
+
+
+def test_ac0019_commented_outcome_co_owner_is_absent() -> None:
+    fixtures = {
+        "closed": "<!--\n- **Outcome co-owner:** intent:missing\n-->\n",
+        "unclosed": "<!--\n- **Outcome co-owner:** intent:missing\n",
+    }
+    for label, hidden in fixtures.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            # Without the anchor the run no-ops clean and this `rc == 0` holds
+            # for a corpus the lint never read — see AC-0002 above.
+            write_brief(root, "anchor")
+            write(
+                root / "docs" / "product" / "intents" / f"{label}.md",
+                "# Intent\n\n"
+                f"- **Slug:** {label}\n"
+                f"{hidden}",
+            )
+
+            rc, out, err = run_raw(root)
+
+            expect(rc == 0, f"hidden co-owner is absent for {label}: {out} {err}")
+            expect("Outcome co-owner" not in out + err,
+                   f"hidden co-owner produced a finding for {label}: {out} {err}")
+
+
+def test_ac0019_co_owner_reader_has_no_sibling_skill_dependency() -> None:
+    source = LINTER.read_text(encoding="utf-8")
+
+    expect("work-intake" not in source,
+           "the projected work-loop linter must not depend on a sibling skill")
+    expect("intent_shape.py" not in source,
+           "the projected work-loop linter must not load a sibling parser")
+
+
+def test_ac0019_self_contained_reader_observes_preamble_visibility() -> None:
+    spec = importlib.util.spec_from_file_location("_trace_visible_preamble", str(LINTER))
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    text = (
+        "- **Slug:** source\n"
+        "<!--\n"
+        "- **Outcome co-owner:** intent:hidden\n"
+        "## Hidden heading\n"
+        "-->\n"
+        "- **Outcome co-owner:** `intent:visible extra` <!-- note -->\n"
+        "## Outcome\n"
+        "- **Outcome co-owner:** intent:body\n"
+    )
+
+    value = mod._intent_preamble_field(text, "Outcome co-owner")
+    expect(value == "intent:visible extra",
+           "the reader must preserve the exact visible value while ignoring "
+           "comments and body fields")
+    findings = mod.outcome_co_owner_findings(
+        {"intent:source": value},
+        {"intent:source", "intent:visible"},
+    )
+    expect(bool(findings) and "intent:visible extra" in "\n".join(findings),
+           "a longer declaration must not resolve through its leading token")
+    expect(mod._intent_preamble_field(
+        "- **Slug:** source\n<!--\n- **Outcome co-owner:** intent:hidden\n",
+        "Outcome co-owner",
+    ) is None, "an unclosed comment must hide the rest of the preamble")
+
+
 # --------------------------------------------------------------------------
 # Structural-only / output-shape / stdlib / no-hardcoded-path NFRs
 # --------------------------------------------------------------------------
@@ -1367,7 +1563,7 @@ def test_stdlib_only() -> None:
     import ast
     tree = ast.parse(LINTER.read_text(encoding="utf-8"))
     stdlib = {"__future__", "argparse", "json", "re", "subprocess", "sys",
-              "pathlib", "tomllib", "os"}
+              "pathlib", "tomllib", "os", "importlib"}
     mods: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

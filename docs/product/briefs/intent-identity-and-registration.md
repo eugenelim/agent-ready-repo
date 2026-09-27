@@ -97,6 +97,15 @@ Recorded so they are not mistaken for omissions. `author-delivery-brief` §4 pla
 
   - **Inbound 2026-09-23 — splitting supersession into a bare `Status: Superseded` plus a `Superseded by:` pointer field.** Handed here by [`intent-lifecycle-and-closure`](intent-lifecycle-and-closure.md), whose Ready review found it could not own the change: [`intent-metadata-shape-contract`](../../specs/intent-metadata-shape-contract/spec.md) is `Shipped` in this brief's Spec map, and its ticked AC-0002 fixes `Superseded by <slug>` inside the `Status` vocabulary while AC-0021 reads the pointer out of `Status`. Both would need amending, and an intent preamble field's shape is this brief's parent's under `FEAT-0005`'s § Boundary as amended on 2026-09-23. The decision itself is settled and recorded in [`FEAT-0005`](../intents/FEAT-0005-lifecycle-and-closure.md) § Legal transitions, on the ADR precedent that `checkable-adr-metadata` states: `Status` is one bare lifecycle token and supersession is a separate mirrored field. What is open here is whether it lands as a sixth slice or as an amendment to the shipped spec, and which readers of the `Status`-embedded pointer it has to carry — `intent_shape.py` and its tests are the known ones, and the ADR migration had to teach its index generator the same lesson. No intent carries the status today, so the corpus migration is empty; the cost is contract and readers.
 
+- **Settled 2026-09-25 — the closure declarations land as a seventh slice, `intent-preamble-closure-declarations`.** One slice rather than two: both declarations change `intent_shape.py`, the same adopter field table and the same two validation gates, and both unblock the same closure-check slice. A new slice rather than an amendment follows `intent-preamble-lifecycle-records`' precedent: the shipped metadata-shape spec records what was true at delivery and stays historical. The carve-out declaration is `Outcome co-owner:`, carrying one canonical typed pointer to another intent artifact; its shape is decided from one artifact and its target from the traceability corpus, without creating a graph edge. Deliberate childlessness is not a second field: it is `Decomposed: YYYY-MM-DD closed-empty`, leaving the literal `no` with one meaning. `read_preamble()` also ignores HTML-comment regions, because hidden text cannot satisfy either declaration. The refusal behavior remains `intent-lifecycle-and-closure` slice 2's. Confirmed by eugenelim on 2026-09-25, separately from the Ready confirmation and from the sixth-slice confirmation. Original inbound entry follows.
+
+  - **Inbound 2026-09-24 — two declared intent preamble fields the closure check must refuse on: the carve-out mark and the closed-empty marker.** Handed here by [`intent-lifecycle-and-closure`](intent-lifecycle-and-closure.md) slice 2, under [FEAT-0005](../intents/FEAT-0005-lifecycle-and-closure.md) § Boundary, which assigns the shape of any new **intent** preamble field to `FEAT-0001` and keeps only the refusal with that child. Neither field exists: measured 2026-09-24, `intent_shape.py` declares `Status`, `Accepted`, `Fulfilled`, `De-risked`, `Shaping-reviewed` and `Decomposed` and nothing else.
+
+    - **The carve-out mark.** [FEAT-0005](../intents/FEAT-0005-lifecycle-and-closure.md) § De-risk record › Constraints C1 requires a closure to be refused when a carve-out changed neither the Outcome nor named a co-owner. With no declared field the only signal is body prose, and the delivery brief's § Scope forbids gating a transition on an artifact body — so C1 has no satisfying design until this field exists. `remote-ci-verification-parity` is the live instance.
+    - **The closed-empty marker.** [FEAT-0005](../intents/FEAT-0005-lifecycle-and-closure.md) § De-risk record › Constraints C2 makes an empty child set a refusal rather than a pass, because a universal over an empty set is vacuously true. Its legitimate-exception arm needs a declared marker to distinguish a deliberately childless intent from an undecomposed one; silence cannot carry it. `STRAT-0002-platform-core` is the legitimate instance.
+
+    **This is a blocking edge, not a preference:** that brief records slice 2 as unspecifiable until both fields are recorded here. Value vocabulary and validation are this brief's to decide; the refusal behaviour is not.
+
 ## Source
 
 - **Mode:** repo-origin
@@ -115,7 +124,7 @@ These constrain or explain delivery. They do not affect coverage or closure roll
 
 ## Spec map
 
-Six slices. The Status column is auto-derived from each spec; it is not hand-edited.
+Seven slices. The Status column is auto-derived from each spec; it is not hand-edited.
 
 **Sequencing, as planning guidance rather than blocking edges.** `typed-intent-ordinal-allocator` goes first, and
 `intent-renumber-and-reissue` follows it. Nothing gates the allocator on a resolved folder.
@@ -124,6 +133,8 @@ at any point; none depends on an ordinal existing. `intent-preamble-lifecycle-re
 point and depends on no other slice. Nothing blocks on it either: `lifecycle-transition-contract` consumes whichever form
 its two records have landed in. Running it first is a preference, because that spec's migration writes those records onto
 every intent the new rules refuse and doing so before the shape is fixed migrates the same artifacts twice.
+`intent-preamble-closure-declarations`, cut 2026-09-25, is independently enterable and carries no dependency on another
+slice in this brief. It is a blocking dependency of `intent-lifecycle-and-closure` slice 2, which owns that edge.
 
 | Spec | Status |
 | --- | --- |
@@ -133,6 +144,7 @@ every intent the new rules refuse and doing so before the shape is fixed migrate
 | `intent-reference-grammar-migration` | <auto> |
 | `intent-renumber-and-reissue` | <auto> |
 | `intent-preamble-lifecycle-records` | <auto> |
+| `intent-preamble-closure-declarations` | <auto> |
 
 ### Slice map note
 
@@ -147,6 +159,13 @@ from the 2026-09-20 Ready confirmation, as the post-Ready slice path requires.
 the grounds. One slice rather than two: both items edit `intent_shape.py` and the
 same adopter field table, and both are measured against the same frozen spec,
 so two slices would give the restated packet-decidable enumeration two homes.
+
+**Seventh slice cut 2026-09-25 by eugenelim**, on a confirmation distinct from
+the Ready transition and the sixth-slice confirmation. `intent-preamble-closure-declarations`
+delivers the 2026-09-24 inbound edge under § Post-Ready decisions. Its confirmed
+cut fixes one new peer-pointer field, one new `Decomposed:` terminus, comment-aware
+preamble visibility, and the two live migrations; it excludes closure refusal
+behavior, which remains with `intent-lifecycle-and-closure` slice 2.
 
 
 ## Errata

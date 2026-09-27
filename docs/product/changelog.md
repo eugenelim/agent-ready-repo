@@ -64,6 +64,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.45] — 2026-09-26
+
+### Highlights
+
+- Intent preambles can now say an outcome is shared with another intent by adding `Outcome co-owner:` as a typed peer pointer. The corpus and traceability checks reject malformed, missing-target, and self-referential peers without turning the peer into a parent or delivery edge.
+- `Decomposed:` can now record a finished childless decomposition with `YYYY-MM-DD closed-empty`. It stays distinct from the literal `no`, so an author can tell "we deliberately closed this with no child work" from "we decided not to decompose."
+
+### Changed
+
+- `work-intake` ignores preamble-shaped lines inside HTML comments before it recognizes fields or the first visible body heading. A hidden `Outcome co-owner:` line is absent, not malformed or unresolved.
+- `Outcome co-owner:` is constrained when present to `outcome:<target>`, `opportunity:<target>`, `capability:<target>`, or `intent:<target>`, and traceability resolves the value against another live intent identity without adding graph edges.
+- `Decomposed:` accepts `closed-empty` as a dated terminus. The `direct-light` checkbox-item rule remains exclusive to `direct-light`.
+
+## [product-engineering][0.13.19] — 2026-09-26
+
+### Highlights
+
+- The intent template and product-engineering how-tos now show both closure declarations authors can copy: optional `Outcome co-owner:` for a shared outcome, and `closed-empty` for a decomposition that is complete with no child work.
+
+### Changed
+
+- `frame-intent`'s template seeds `Outcome co-owner:` as an optional comment-only field, so it is absent until an author writes a typed peer pointer.
+- The frame and handoff how-tos list `closed-empty` beside the existing `Decomposed:` termini, and the refused-intent guide shows how to repair malformed, unresolved, self-referential, and comment-hidden co-owner declarations.
+
+## [core][2.26.44] — 2026-09-26
+
+### Highlights
+
+- **A `Shipped` brief now requires a `Cut-closed:` declaration.** When you close a brief as `Shipped`, add a `Cut-closed:` preamble field recording that no further slices are coming: an ISO 8601 date then evidence, as in `2026-08-25 All nine slices are Shipped.` It must sit above the brief's first `## ` heading; written below one it reads as absent. The coverage lint also refuses a `Draft` brief that carries the field, and every other state may carry it or omit it.
+- **A brief that passed the coverage lint yesterday can fail today**, so this is a gate change to plan for rather than a new option to adopt. Any repository holding a `Status: Shipped` brief without the new field fails until it is backfilled — run it from your repository root as `python3 <skill>/scripts/lint-brief-coverage.py --root .` before your pipeline does — it resolves `docs/product/briefs` beneath the root you pass, so pointing it at the briefs directory itself finds nothing and exits 0.
+- **A brief's states and legal moves are now documented once**, so the reference guide and the lint cannot disagree about which transitions are legal or what each status requires of its children.
+
+### Changed
+
+- `lint-brief-coverage.py` now reads `Status:`, `Slug:`, and `Cut-closed:` through a bounded preamble reader that stops at the first uncommented `## ` heading and ignores fields inside HTML comments. A field placed below a section heading or inside a comment is no longer read.
+- A `Shipped` brief without a `Cut-closed:` record is refused with exit 1. The field must be an ISO 8601 date (`YYYY-MM-DD`) followed by non-empty evidence text.
+- A `Draft` brief with a `Cut-closed:` record is refused with exit 1 (a material edit reopens the cut).
+- The brief status vocabulary, child-execution-evidence predicate, and transition table are now the sole property of `brief_shape.py`. `lint-brief-coverage.py` defines none of them.
+
+## [core][2.26.43] — 2026-09-25
+
+### Highlights
+
+- `workspace-status` can now tell you which delivery contracts are retirement
+  candidates. It reads the repository, reports every blocker holding each
+  candidate back, and names the migration obligations a candidate must discharge
+  before its container can go. Being listed authorizes nothing: a human selects,
+  and the separately confirmed prune executes.
+- Evidence the run could not read withholds eligibility rather than passing
+  silently. Each blocker declares the input corpus its absence rests on, and a
+  refusal naming any member of that corpus suppresses every candidate that
+  blocker is evaluated over — including candidates carrying no blocker of their
+  own, which are reported rather than dropped. A shorter list never means a
+  cleaner one.
+- Ages come from recorded change history and are labelled as such. They are not
+  the thirty-day cooling clock, which runs from a delivery-completion event this
+  capability does not read, so the report is a triage signal rather than a
+  disposition.
+
+### Added
+
+- `retirement-candidates`, a read-only subcommand that writes nothing and
+  succeeds against a read-only checkout.
+- `contracts/jsonschema/spec-retirement-candidates.schema.json`, which owns the
+  emitted document's field set, its twelve blocker codes and its twelve refusal
+  codes.
+
+## [atlassian][0.10.1] — 2026-09-26
+
+### Highlights
+
+- **You can now see what each Jira Epic delivered beside what that work was meant to change, in one read-only view.** Ask for a project's Epics and their outcomes: the view groups the project's work by Epic, counts delivery from the `flow-metrics` skill's own per-issue rows, and renders each Epic's recorded outcome next to it. It writes nothing to Jira and leaves no file behind.
+- **An Epic with no recorded outcome says so, and asks you for one.** Instead of a blank row, the view states plainly that nothing is recorded and names the one place to write it — the block under an `Outcome` heading in the Epic's description. Hand your answer back with `--outcome EPIC-KEY=<text>` and your exact words come back as text you paste into Jira yourself, so the outcome stays something your team said.
+- **A `flow-metrics` run can now touch the on-disk cache not at all.** The new `--inert-cache` mode performs no cache read, write, directory creation or stale-temporary-file cleanup, which `--no-cache` still did. It is off by default, so every existing `flow-metrics` run behaves exactly as before.
+
+### Added
+
+- `jira-epic-outcome-view`: a read-only Jira skill that groups a project's work by Epic and renders each Epic's delivery reading beside its recorded outcome. Throughput and work in flight are counts over `flow-metrics`' own per-issue rows, never a recomputation, so no duration or percentile is reported. Work whose parent chain never reaches an in-scope Epic is rendered in a named unattributed group with the reason, rather than dropped.
+- A repeatable `--outcome EPIC-KEY=<text>` argument on that skill turns a team's stated outcome into paste-ready text naming the fixed location to paste it into. A key outside the queried scope, or the same key passed twice, is refused with exit 2 naming the key; `EPIC-KEY=` with no text is a decline and renders the prompt.
+- `--inert-cache` on `flow-metrics`, a default-off mode under which no cache operation of any kind occurs.
+- `[pack.metadata].bridge-skills` in the pack manifest declares which of this pack's skills may reach a host repository's delivery machinery. Every skill outside that list returns value to a team that has installed nothing but this pack.
+
+### Changed
+
+- The Epic outcome view reads its outcome from one fixed, documented location — the block under a top-level `Outcome` heading in the Epic's description — in both description shapes Jira returns: the structured document from Cloud and plain or wiki text from Server and Data Center. The location is not configurable per invocation.
+- Every reading the view renders states the moment it was taken, and the delivery reading and the Jira read state their two moments separately rather than implying one snapshot. Every run also discloses that it covers only the work the calling credential can browse.
+
 ## [core][2.26.42] — 2026-09-24
 
 ### Highlights

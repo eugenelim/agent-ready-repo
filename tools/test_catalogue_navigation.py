@@ -1,8 +1,10 @@
 """Source contract for outcome-led catalogue navigation.
 
 The marketing homepage and catalogue import one outcome map. Public Markdown
-entry points remain authored for their medium, so this test keeps their labels
-aligned without requiring generated prose.
+catalogue entry points remain authored for their medium, so this test keeps
+their labels aligned without requiring generated prose. The task-first docs
+homepage is intentionally independent: it routes to concrete workflows rather
+than repeating the catalogue's outcome taxonomy.
 """
 
 from __future__ import annotations
@@ -19,7 +21,6 @@ MARKETING_SURFACES = (
 )
 MARKDOWN_SURFACES = (
     REPO_ROOT / "guides/README.md",
-    REPO_ROOT / "docs-site/src/content/docs/index.mdx",
 )
 EXCLUDED_PACKS = {"user-guide-diataxis"}
 CATALOGUE_IMPORT = re.compile(
