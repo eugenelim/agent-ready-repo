@@ -81,37 +81,24 @@ Two places accumulate as you walk, and they hold most of what you end up with.
 | Where | What collects there |
 | --- | --- |
 | `<output_dir>/intents/<slug>.md` | The intent itself — the outcome, its altitude and owner, the opportunity behind it, and later the decomposition |
-| `<output_dir>/shaping/<slug>/` | The working record of the walk — the ranked opportunities, the candidate options, the bet, and the capability map and situation framing when you run them |
+| `<output_dir>/shaping/<slug>/` | The working record — the ranked opportunities, the candidate options, the bet, and the capability map when you run it |
 
-`<slug>` is the short kebab-case name for this piece of work — set at step 1,
-unchanged after that, and how every later artifact traces back.
-`<output_dir>` is where this repository keeps product artifacts: the agent
-resolves it from `agentbundle-layout.toml`'s `[product]` key, surfaces the path
-it settled on, and asks you if nothing is configured, with `docs/product/` the
-designed default.
-
-If you point `output_dir` somewhere of your own — a personal vault, say —
-that is where the intent is authored. Bringing it into the repository is a
-separate step: Core proposes a destination under `docs/product/intents/` and
-confirms it with you before writing anything.
+`<slug>` is this work's short name, fixed at step 1 so everything traces back to
+it. `<output_dir>` is where this repository keeps product artifacts; the agent
+asks when it is not configured, and tells you which path it wrote to.
 
 **The intent file accretes** rather than being replaced. Step 1 creates it,
-de-risking carries its validation hook onto it for later stages to read, and
-step 4 adds the decomposition to it under a `## Decomposition` section. It is
+de-risking adds its validation hook, and step 4 adds the decomposition. It is
 the one file to keep if you keep only one.
 
-Four things land elsewhere: a Lean Canvas, a value-stream rollup, the product's
-voice chart, and domain framing each have their own home, and a coordinating
-delivery brief lands at `docs/product/briefs/<slug>.md`, a fixed path because
-Core reads it there. The supervised `discovery-loop` route keeps
-its own typed working files besides. Each step page names, for every skill it
-runs, where that skill's output lands or that it writes none; [the discovery
-sidecar reference](reference/discovery-sidecar-and-roster.md) covers the loop's
-files.
+A few things land elsewhere — a Lean Canvas, a value-stream rollup, the
+product's voice chart, domain framing, and a coordinating delivery brief. Each
+step page names where its skills write, and [the discovery sidecar
+reference](reference/discovery-sidecar-and-roster.md) covers the files the
+supervised `discovery-loop` route keeps.
 
-Anything a skill only reports in the session — an elimination verdict, a
-de-risking result — is yours to carry into the artifact of the step it belongs
-to. The walk tells you where.
+Where a skill only reports in the session, carry what matters into that step's
+artifact — the walk says where.
 
 ## How the approved result reaches delivery
 
@@ -120,8 +107,8 @@ what it produces depends on the shape of the result.
 
 - **One independently shippable feature** — a slice a customer would notice on
   its own — becomes a **delivery contract**, and `core` writes a spec for it.
-  The spec records where it came from in its own provenance headers, so the
-  link back to this work survives the handoff.
+  A slice that arrived through a delivery brief has that brief stamped on its
+  spec, so the link back to this work survives the handoff.
 - **A result spanning several specs or repositories** needs a **coordinating
   delivery brief** first, because no single spec owns it.
 - **At `capability` level or above**, decomposition produces child intents
@@ -168,7 +155,7 @@ When one stage of the walk needs more than the short route:
 - [Frame a situation](how-to/frame-a-situation.md) — classify the signal and anchor the team to the right entry point, when the problem itself is unclear.
 - [Identify opportunities](how-to/identify-opportunities.md) — surface the jobs behind an opportunity area and score them.
 - [Generate solution options](how-to/generate-solution-options.md) — produce comparable options that expose the real decision.
-- [Create a Lean Canvas](how-to/create-a-lean-canvas.md) — problem, solution, metrics, and unfair advantage on one page.
+- [Create a Lean Canvas](how-to/create-a-lean-canvas.md) — the initiative's core hypothesis on one page.
 - [Place a bet](how-to/place-a-bet.md) — commit to a direction with the betting table behind it.
 - [Map capabilities](how-to/map-capabilities.md) — turn a committed bet into what you must be able to do, and what exists today.
 

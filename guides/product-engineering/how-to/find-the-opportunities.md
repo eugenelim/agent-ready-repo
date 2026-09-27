@@ -35,9 +35,14 @@ order: 2
 | `explore-options` | Candidate approaches | Each candidate examined against constraints and evidence. | Required |
 
 Prompts go into an AI agent session with this pack installed — the same session
-throughout. `<slug>` is the short kebab-case name for this piece of work, and it
-stays the same from the intent through to the brief, which is how the
-traceability lint follows one thread.
+throughout. In the paths below, `<slug>` is this piece of work's short
+kebab-case name, fixed at step 1 so every later artifact traces back to it; `<initiative>` is the discovery initiative's kebab-case directory slug; `<output_dir>` is
+where this repository keeps product artifacts, and the agent asks when it is
+not configured; `<discovery_dir>` is where the discovery loop keeps its
+initiative directories, defaulting to `docs/discovery/`. The agent tells you
+which path it wrote to.
+<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
@@ -53,7 +58,7 @@ Identify the opportunities in this situation and assess each one.
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/identify-opportunities/SKILL.md -->
 
-> **Agent:** Done — I've written an opportunity assessment with each opportunity's value and the confidence behind it to `docs/discovery/<initiative>/opportunity-assessment.md`.
+> **Agent:** Done — I've written an opportunity assessment with each opportunity's value and the confidence behind it to `<output_dir>/shaping/<slug>/opportunity-assessment.md`.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/identify-opportunities/SKILL.md -->
@@ -74,7 +79,7 @@ Identify the opportunities in this situation and assess each one.
 **Watch out for:** Uniform ratings mean nothing was compared. Notice a list where everything is high value — the ranking is the product, not the list.
 <!-- rung: packs/product-engineering/.apm/skills/identify-opportunities/SKILL.md -->
 
-**Where it lands:** `docs/discovery/<initiative>/opportunity-assessment.md`.
+**Where it lands:** `<output_dir>/shaping/<slug>/opportunity-assessment.md`.
 <!-- rung: packs/product-engineering/.apm/skills/identify-opportunities/SKILL.md -->
 
 **What it looks like:**
@@ -115,7 +120,7 @@ Diverge on this opportunity — give me approaches that differ in kind, not in d
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/diverge-solutions/SKILL.md -->
 
-> **Agent:** Done — I've written several candidate approaches that differ structurally rather than cosmetically. Nothing was written to disk.
+> **Agent:** Done — I've written to `<output_dir>/shaping/<slug>/solution-options.md` several candidate approaches that differ structurally rather than cosmetically.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/diverge-solutions/SKILL.md -->
@@ -136,24 +141,43 @@ Diverge on this opportunity — give me approaches that differ in kind, not in d
 **Watch out for:** Divergence is the step most often skipped by producing three shades of the first idea. Notice options that would be built by the same team in the same way.
 <!-- rung: packs/product-engineering/.apm/skills/diverge-solutions/SKILL.md -->
 
-**Writes no artifact.** It reports in the agent session and does not change files.
+**Where it lands:** `<output_dir>/shaping/<slug>/solution-options.md`.
 <!-- rung: packs/product-engineering/.apm/skills/diverge-solutions/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/diverge-solutions/examples/opportunity-to-options.md -->
 
 ```markdown
-Candidates — <opportunity>
+---
+type: solution-options
+slug: pe-shaping-memory
+opportunity: "PEs spend 60–80% of shaping time re-explaining context to agents at each session start, with no durable per-initiative memory of prior framing decisions."
+date: 2026-07-21
+recommendation: Workspace.toml shaping section
+---
 
-## Candidate A: <name>
+# Solution Options: pe-shaping-memory
 
-- **Approach:** <how it solves the opportunity>
-- **Differs by:** <what makes it structurally different from B and C>
+## Opportunity
 
-## Candidate B: <name>
+PEs spend 60–80% of shaping time re-explaining context to agents at each session
+start, with no durable per-initiative memory of prior framing decisions.
+
+## Options
+
+### Option A: Structured shaping log
+
+**Approach:** PEs maintain a freeform markdown journal per initiative. Agents
+read it at session start.
+**Key bets:**
+- PEs will consistently update the log after sessions.
+- Freeform prose is retrieval-friendly enough for agent context surfacing.
+**Trade-offs:** Lowest tooling investment; highest maintenance burden. Drift-prone
+under pressure. No staleness signal.
+**Status:** parked
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*An excerpt of the example the skill ships. The remaining options, the recommendation, the residual bets and the `workspace.toml` suggestion continue in the same shape.*
 
 ## Run `explore-options` — test them against reality
 
@@ -167,7 +191,7 @@ Explore these candidates against our real constraints and tell me which survive.
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/explore-options/SKILL.md -->
 
-> **Agent:** Done — I've written each candidate examined against the constraints, with the ones that do not survive named and why. Nothing was written to disk.
+> **Agent:** Done — I've recorded each candidate examined against the constraints, with the ones that do not survive named and why, onto the loop's plan tree.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/explore-options/SKILL.md -->
@@ -188,22 +212,38 @@ Explore these candidates against our real constraints and tell me which survive.
 **Watch out for:** An option eliminated on an unconfirmed constraint is eliminated for no reason. Notice rejections with no evidence behind the constraint that killed them.
 <!-- rung: packs/product-engineering/.apm/skills/explore-options/SKILL.md -->
 
-**Writes no artifact.** It reports in the agent session and does not change files.
+**Where it lands:** `<discovery_dir>/<initiative>/_state/plan-tree.json` — the candidate set and the selection go onto the plan-tree node.
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 <!-- rung: packs/product-engineering/.apm/skills/explore-options/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/assets/plan-tree.md -->
 
-```markdown
-Exploration — <opportunity>
-
-## Candidate A — <survives | eliminated>
-
-- **Constraint tested:** <constraint> — <confirmed | assumed>
-- **Result:** <what it means for this candidate>
+```json
+{
+  "id": "intent:cap.household-coordination",
+  "type": "intent",
+  "altitude": "capability",
+  "parent_id": "intent:vision",
+  "lifecycle": "diverging",
+  "validation_status": "hypothesis",
+  "round": 1,
+  "round_cap": 12,
+  "cost_spent": 0.8,
+  "candidates": [
+    {"id": "cand.kitchen-draft-approve", "altitude": "narrow-slice", "mechanic": "draft-and-approve", "riskiest_assumption": "users want approval-gated drafting", "status": "rejected", "rationale": "myopic — misses whole-household altitude"},
+    {"id": "cand.whole-household-coord", "altitude": "whole-domain", "mechanic": "coordination-layer", "riskiest_assumption": "one assistant can span calendar+travel+budget", "status": "selected"}
+  ],
+  "selection": "cand.whole-household-coord",
+  "validation_hook": {
+    "assumption": "a household will delegate cross-domain coordination to one assistant",
+    "kill_condition": "<3/8 pilot households delegate beyond one domain",
+    "activity": "diary study + Wizard-of-Oz coordination pilot"
+  }
+}
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*A divergence node, excerpted from the plan-tree template. This step fills `candidates` and `selection` — each candidate with its own riskiest assumption, a status, and a rationale on the rejected ones. The `validation_hook` shown here is filled later, at step 3; yours will still be `null`.*
 
 ## Where this leads
 
