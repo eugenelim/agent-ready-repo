@@ -60,6 +60,14 @@ area, run `identify-opportunities` after framing.
 
 `frame-intent` is **knowledge-surface aware**: when an internal knowledge surface is reachable (an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set), it consults the business-domain and meaning areas so the outcome and opportunity use your org's real terms and rules instead of generic ones, and it states which surface it used — or "none", with the confidence lowered to match.
 
+When the feature materially affects a human-facing surface, `frame-intent` can
+add an optional **Product-to-experience handoff** to the same intent. It carries
+only product facts: the affected journey or surface, the user's first success,
+the product mechanism or proof the interface may expose, evidence for visible
+claims, and constraints, prohibited claims, or unknowns. Backend-only work and
+product-level intents omit it, and the handoff does not choose engagement mode,
+visual direction, layout, motion, or implementation approach.
+
 ### Optional independent shaping review
 
 If the Core pack and its `shaping-reviewer` are installed, `frame-intent` can
