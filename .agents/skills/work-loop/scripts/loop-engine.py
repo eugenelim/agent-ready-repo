@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """loop-engine — work-loop phase FSM validator (Phase 1, Option A).
 
-Validates legal phase ordering, runs read-only guards, and records the
-current phase in engine-state.json. Does NOT invoke loop-cohort mutations.
-The skill invokes all mutations explicitly.
+Validates legal phase ordering, runs guards, and records the current phase in
+engine-state.json. For the closed ADR-0125 registry it invokes cohort effects
+through loop-cohort.py before committing engine state; loop-cohort.py remains
+the cohort writer of record. Other cohort mutations remain explicit skill
+calls.
 
 Two modes in Phase 1:
   code       — full ten-state lifecycle with implementation waves
@@ -34,6 +36,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -402,19 +405,35 @@ def _cohort_fingerprint(spec_dir: Path) -> str:
         return _FP_OTHER_UNUSABLE
 
 
-# The one event exempt from the identity check, and why it must be.
-# `contract-amendment` writes cohort state as its own effect, so its
-# fingerprint always differs and including it would refuse every amendment.
-# The exemption is mechanically forced, not a judgement about risk — and it is
-# also what keeps the hold from ever enclosing `apply_contract_amendment`,
-# which takes the cohort lock itself and would self-deadlock on a lock that is
-# not reentrant. The cost is disclosed: the transition that rewrites the
-# approved baseline is the one transition this check does not cover.
-_FINGERPRINT_EXEMPT_EVENTS = frozenset({"contract-amendment"})
+_REGISTERED_COHORT_EFFECT_EVENTS = frozenset(
+    {
+        "contract-amendment",
+        "wave-passed",
+        "gates-failed",
+        "findings-remain",
+        "reviewers-clean",
+    }
+)
+_REVIEW_FINGERPRINT_RE = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})")
+
+# Registered cohort effects intentionally mutate cohort state through
+# loop-cohort.py before the engine-state commit. The old fingerprint hold is
+# still the right rail for all other events, but it would reject the successful
+# registered effect it is meant to protect.
+_FINGERPRINT_EXEMPT_EVENTS = _REGISTERED_COHORT_EFFECT_EVENTS
+
+
+def _transition_edge_has_cohort_effect(event: str, source_state: str) -> bool:
+    """Whether this FSM edge owns one of the closed registered cohort effects."""
+    if event not in _REGISTERED_COHORT_EFFECT_EVENTS:
+        return False
+    if event in {"findings-remain", "reviewers-clean"}:
+        return source_state == "CODE-REVIEW"
+    return True
 
 
 @contextlib.contextmanager
-def _cohort_commit_hold(spec_dir: Path, event: str):
+def _cohort_commit_hold(spec_dir: Path, event: str | None):
     """Hold the cohort lock across the commit, or nothing for an exempt event.
 
     A context manager rather than two branches so `_write_events_pending` and
@@ -434,7 +453,9 @@ def _cohort_commit_hold(spec_dir: Path, event: str):
         yield
 
 
-def _revalidate_cohort_state(spec_dir: Path, event: str, captured: str) -> str | None:
+def _revalidate_cohort_state(
+    spec_dir: Path, event: str | None, captured: str
+) -> str | None:
     """None when cohort state is unchanged since the capture, else the refusal.
 
     Called by the caller that already holds the cohort lock; it does not
@@ -1139,8 +1160,8 @@ def _guard_check_phase_review(
             " — that is the default answer, because a cap firing means the loop "
             "stopped converging. Only a human directing this run may continue "
             "past it, by passing --allow-retry-cap-override to this transition "
-            "AND to the matching `loop-cohort review record`; either half alone "
-            "leaves the cohort and the engine a round apart"
+            "with --fingerprint for the sustained fingerprints; the engine records the cohort "
+            "review effect before it writes engine state"
         )
     return err
 
@@ -1626,6 +1647,287 @@ def _contract_amendment_id(
     return "amendment-" + hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
+def _canonical_transition_args(args: dict) -> dict:
+    """Return JSON-canonical transition args for durable transition identity."""
+    return json.loads(
+        json.dumps(args, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    )
+
+
+def _registered_transition_id(
+    run_id: str,
+    sequence: int,
+    event: str,
+    canonical_args: dict,
+) -> str:
+    """Return the single durable id shared by engine and cohort idempotency."""
+    args_json = json.dumps(
+        canonical_args, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    material = f"{run_id}\0{sequence}\0{event}\0{args_json}"
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _registered_recovery_pre_sequence(state: dict) -> int:
+    """Return the pre-transition sequence for an already-advanced engine state."""
+    context = state.get("last_event_context") or {}
+    persisted = context.get("pre_transition_sequence")
+    if (
+        isinstance(persisted, int)
+        and not isinstance(persisted, bool)
+        and persisted >= 0
+    ):
+        return persisted
+    current = state.get("transition_sequence", 0)
+    if isinstance(current, bool) or not isinstance(current, int) or current <= 0:
+        raise ValueError(
+            "registered transition recovery requires a positive engine "
+            "transition_sequence"
+        )
+    return current - 1
+
+
+def _review_clean_args_from_file(
+    spec_dir: Path,
+    *,
+    direct_clean_file: str | None,
+    structural_clean_file: str | None,
+    report: str | None,
+    adjudication: bool,
+) -> tuple[dict | None, str | None]:
+    """Reduce reviewers-clean file inputs to durable bounded facts."""
+    cohort = _cohort_mutator()
+    if direct_clean_file is not None:
+        if adjudication:
+            return None, (
+                "transition reviewers-clean: --direct-clean-file and "
+                "--adjudication name different recording forms"
+            )
+        artifact_path = cohort._resolved_report(direct_clean_file)
+        try:
+            raw = artifact_path.read_bytes()
+        except OSError:
+            return None, (
+                "transition reviewers-clean: --direct-clean-file is unreadable"
+            )
+        if raw != cohort.CLEAN_SUBSTRING.encode("utf-8"):
+            return None, (
+                "transition reviewers-clean: --direct-clean-file requires the "
+                "exact clean sentinel"
+            )
+        return {
+            "clean_source": "direct-clean",
+            "clean_digest": hashlib.sha256(raw).hexdigest(),
+        }, None
+    if structural_clean_file is not None:
+        if adjudication:
+            return None, (
+                "transition reviewers-clean: --structural-clean-file and "
+                "--adjudication name different recording forms"
+            )
+        artifact_path = cohort._resolved_report(structural_clean_file)
+        result = cohort._classify_raw_report(artifact_path)
+        if result["classification"] != "clean":
+            return None, (
+                "transition reviewers-clean: --structural-clean-file requires "
+                "a clean raw-report classification"
+            )
+        if result["not_checked_present"]:
+            return None, (
+                "transition reviewers-clean: a report carrying a '## Not checked' "
+                "footer is not eligible for the clean fast path"
+            )
+        digest = result.get("_classified_digest")
+        if not isinstance(digest, str):
+            return None, (
+                "transition reviewers-clean: --structural-clean-file produced "
+                "no digest for the classified bytes"
+            )
+        return {"clean_source": "structural-clean", "clean_digest": digest}, None
+    if report is not None:
+        if not adjudication:
+            return None, (
+                "transition reviewers-clean: --report requires --adjudication"
+            )
+        report_path = cohort._resolved_report(report)
+        state = cohort.read_state(spec_dir)
+        result = cohort._classify_report(
+            report_path,
+            state,
+            require_adjudication=True,
+        )
+        if result["classification"] != "clean":
+            return None, (
+                "transition reviewers-clean: --report classified as "
+                f"{result['classification']!r}; use findings-remain for findings"
+            )
+        try:
+            clean_digest = hashlib.sha256(report_path.read_bytes()).hexdigest()
+        except OSError:
+            return None, (
+                "transition reviewers-clean: --report became unreadable while "
+                "deriving its durable digest"
+            )
+        return {"clean_source": "report", "clean_digest": clean_digest}, None
+    return None, None
+
+
+def _persisted_reviewers_clean_args(
+    spec_dir: Path,
+    *,
+    pre_transition_sequence: int,
+    requested_source: str,
+) -> tuple[dict | None, str | None]:
+    """Recover reduced clean facts for a prepared or applied transition."""
+    cohort = _cohort_mutator()
+    state = cohort.read_state(spec_dir)
+    candidates: list[object] = [state.get("pending_transition")]
+    history = state.get("transition_history", [])
+    if isinstance(history, list) and history:
+        candidates.append(history[-1])
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        if (
+            candidate.get("pre_transition_sequence") != pre_transition_sequence
+            or candidate.get("event") != "reviewers-clean"
+        ):
+            continue
+        stored = candidate.get("args")
+        if not isinstance(stored, dict):
+            return None, "transition reviewers-clean: persisted replay args are malformed"
+        if stored.get("clean_source") != requested_source:
+            return None, (
+                "transition reviewers-clean: replay payload form conflicts with "
+                "the persisted transition"
+            )
+        digest = stored.get("clean_digest")
+        if set(stored) != {"clean_source", "clean_digest"} or not (
+            isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)
+        ):
+            return None, "transition reviewers-clean: persisted replay args are malformed"
+        return _canonical_transition_args(stored), None
+    return None, None
+
+
+def _registered_effect_args(
+    spec_dir: Path,
+    event: str,
+    args: argparse.Namespace,
+    *,
+    pre_transition_sequence: int,
+) -> tuple[dict | None, str | None]:
+    """Validate and canonicalize registered cohort-effect payloads."""
+    fingerprints = tuple(getattr(args, "fingerprint", None) or [])
+    all_skipped = bool(getattr(args, "all_skipped", False))
+    direct_clean_file = getattr(args, "direct_clean_file", None)
+    structural_clean_file = getattr(args, "structural_clean_file", None)
+    report = getattr(args, "report", None)
+    adjudication = bool(getattr(args, "adjudication", False))
+    clean_option_count = sum(
+        value is not None for value in (direct_clean_file, structural_clean_file, report)
+    )
+
+    if event == "contract-amendment":
+        cohort = _cohort_mutator()
+        state = cohort.read_state(spec_dir)
+        waves = state.get("schedule_waves", [])
+        current_index = state.get("current_wave_index", 0)
+        prior = state.get("completed_task_ids", [])
+        if not isinstance(waves, list) or not isinstance(current_index, int):
+            return None, "transition contract-amendment requires a current scheduled wave"
+        completed = list(dict.fromkeys([*prior, *[t for w in waves[:current_index] for t in w]]))
+        try:
+            completed_task_evidence = cohort.parse_completed_task_evidence_entries(
+                tuple(args.completed_evidence_ref or []), set(completed)
+            )
+        except Exception as exc:
+            return None, f"contract-amendment evidence invalid: {_diag(exc)}"
+        args.completed_task_evidence = completed_task_evidence
+        return _canonical_transition_args(
+            {
+                "owner_authority_ref": args.owner_authority_ref,
+                "reason_ref": args.reason_ref,
+                "completed_task_evidence": completed_task_evidence,
+            }
+        ), None
+    if event == "wave-passed":
+        return _canonical_transition_args({"wave_index": args.wave_index}), None
+    if event == "gates-failed":
+        return {}, None
+    if event == "findings-remain":
+        if all_skipped or clean_option_count or adjudication:
+            return None, (
+                "transition findings-remain accepts --fingerprint and "
+                "--allow-retry-cap-override only"
+            )
+        if not fingerprints:
+            return None, "transition findings-remain requires --fingerprint"
+        if any(_REVIEW_FINGERPRINT_RE.fullmatch(fp) is None for fp in fingerprints):
+            return None, (
+                "transition findings-remain --fingerprint must be lowercase "
+                "40- or 64-character SHA hex"
+            )
+        return _canonical_transition_args(
+            {
+                "fingerprints": sorted(set(fingerprints)),
+                "allow_retry_cap_override": bool(args.allow_retry_cap_override),
+            }
+        ), None
+    if event == "reviewers-clean":
+        if fingerprints or bool(args.allow_retry_cap_override):
+            return None, (
+                "transition reviewers-clean does not accept findings evidence"
+            )
+        if all_skipped and clean_option_count:
+            return None, (
+                "transition reviewers-clean accepts either --all-skipped or one "
+                "clean report form"
+            )
+        if all_skipped:
+            return _canonical_transition_args({"all_skipped": True}), None
+        if clean_option_count == 0:
+            return None, (
+                "transition reviewers-clean requires --all-skipped or one clean "
+                "report form"
+            )
+        requested_source = (
+            "direct-clean"
+            if direct_clean_file is not None
+            else "structural-clean"
+            if structural_clean_file is not None
+            else "report"
+        )
+        if adjudication != (report is not None):
+            return None, (
+                "transition reviewers-clean: --adjudication is accepted only "
+                "with --report"
+            )
+        try:
+            persisted_args, persisted_err = _persisted_reviewers_clean_args(
+                spec_dir,
+                pre_transition_sequence=pre_transition_sequence,
+                requested_source=requested_source,
+            )
+        except Exception as exc:
+            return None, f"transition reviewers-clean replay args failed: {_diag(exc)}"
+        if persisted_err is not None:
+            return None, persisted_err
+        if persisted_args is not None:
+            return persisted_args, None
+        clean_args, err = _review_clean_args_from_file(
+            spec_dir,
+            direct_clean_file=direct_clean_file,
+            structural_clean_file=structural_clean_file,
+            report=report,
+            adjudication=adjudication,
+        )
+        if err is not None:
+            return None, err
+        return _canonical_transition_args(clean_args or {"all_skipped": True}), None
+    return None, None
+
+
 @_locked("transition")
 def cmd_transition(args: argparse.Namespace) -> int:
     try:
@@ -1648,6 +1950,17 @@ def cmd_transition(args: argparse.Namespace) -> int:
     reason_ref = args.reason_ref
     completed_evidence_entries = tuple(args.completed_evidence_ref or [])
     completed_task_evidence: dict[str, list[str]] = {}
+    args.completed_task_evidence = completed_task_evidence
+    review_payload_supplied = any(
+        (
+            getattr(args, "fingerprint", None),
+            getattr(args, "all_skipped", False),
+            getattr(args, "direct_clean_file", None),
+            getattr(args, "structural_clean_file", None),
+            getattr(args, "report", None),
+            getattr(args, "adjudication", False),
+        )
+    )
 
     # Validate --wave-index usage
     if event == "wave-passed":
@@ -1671,12 +1984,15 @@ def cmd_transition(args: argparse.Namespace) -> int:
                     completed_evidence_entries
                 )
             )
+            args.completed_task_evidence = completed_task_evidence
         except Exception as exc:
             return stop(f"contract-amendment evidence invalid: {_diag(exc)}")
     elif owner_authority_ref or reason_ref or completed_evidence_entries:
         return stop(
             f"transition {event!r} does not accept contract-amendment evidence"
         )
+    if review_payload_supplied and event not in {"findings-remain", "reviewers-clean"}:
+        return stop(f"transition {event!r} does not accept review evidence")
 
     # recover at command start — before any early-exit check.
     # _recover_engine_state_tmp promotes crash-left .tmp → engine-state.json.
@@ -1713,73 +2029,93 @@ def cmd_transition(args: argparse.Namespace) -> int:
 
     if intent_incomplete and current_state != "CODE-REVIEW":
         return stop("transition --intent-incomplete requires CODE-REVIEW")
+    if (
+        current_state == "SPEC-PLAN-REVIEW"
+        and event in {"findings-remain", "reviewers-clean"}
+        and (review_payload_supplied or allow_retry_cap_override)
+    ):
+        return stop(
+            f"transition {event} from SPEC-PLAN-REVIEW does not accept "
+            "review-effect payload"
+        )
 
     # Step 0: run_id preflight (all transitions)
     err = _run_id_preflight(spec_dir, run_id)
     if err:
         return stop(err)
 
-    # Recovery for a divergence between the two per-spec scratch files, where
-    # engine-state records the amendment at drafting but the cohort state does
-    # not. Reissuing the exact event completes only the missing cohort write and
-    # does not increment the transition sequence.
-    #
-    # Note this is NOT the ordinary crash window. `cmd_transition` mutates the
-    # cohort first and writes engine-state last, so a crash between them always
-    # leaves the cohort ahead, never behind — that direction is handled on the
-    # normal path by `contract_amendment_replay_status`. Reaching this branch
-    # requires the two untracked files to have diverged by some other means, so
-    # the plan cannot be assumed to still match what was approved.
-    if (
-        event == "contract-amendment"
-        and mode == "code"
-        and current_state == "SPEC-PLAN-DRAFTING"
-        and state.get("last_event") == "contract-amendment"
-    ):
-        context = state.get("last_event_context") or {}
-        amendment_id = _contract_amendment_id(
-            run_id,
-            int(state.get("transition_sequence", 0)),
-            owner_authority_ref,
-            reason_ref,
-            completed_task_evidence,
-        )
-        if (
-            context.get("amendment_id") != amendment_id
-            or context.get("owner_authority_ref") != owner_authority_ref
-            or context.get("reason_ref") != reason_ref
-            or context.get("completed_task_evidence", {})
-            != completed_task_evidence
+    # Engine-first divergence recovery: if engine-state already records a
+    # registered event at its target state but the cohort effect is missing,
+    # complete only the cohort side. Normal T3 commits write engine state last,
+    # so this is a repair for legacy/manual divergence, not the ordinary crash
+    # cut.
+    if event in _REGISTERED_COHORT_EFFECT_EVENTS and state.get("last_event") == event:
+        matching_sources = {
+            source
+            for (source, transition_event), target in _TRANSITIONS_BY_MODE.get(
+                mode, {}
+            ).items()
+            if transition_event == event and target == current_state
+        }
+        if any(
+            _transition_edge_has_cohort_effect(event, source)
+            for source in matching_sources
         ):
-            return stop("contract-amendment replay facts do not match engine state")
-        # The engine-side facts above only prove the caller reissued the same
-        # event. They say nothing about `plan.md`, and this branch does not fall
-        # through to Step 1b, so without this check the cohort mutation reaches
-        # its derive path — `task_section_hashes` over whatever the plan now
-        # holds — and an edit to an already-completed task section is laundered
-        # into the baseline that `validate_completed_task_sections` later
-        # ratifies. Verify the plan still matches the scheduled baseline first;
-        # canonical form normalises the status token and checkbox brackets, so
-        # ordinary task check-offs do not trip it.
-        err = _schedule_check_current(spec_dir)
-        if err:
-            return stop(err)
-        try:
-            _cohort_mutator().apply_contract_amendment(
+            try:
+                repair_seq = _registered_recovery_pre_sequence(state)
+            except ValueError as exc:
+                return stop(str(exc))
+            cohort_effect_args, effect_err = _registered_effect_args(
                 spec_dir,
-                expected_run_id=run_id,
-                owner_authority_ref=owner_authority_ref,
-                reason_ref=reason_ref,
-                completed_task_evidence=completed_task_evidence,
-                amendment_id=amendment_id,
+                event,
+                args,
+                pre_transition_sequence=repair_seq,
             )
-        except Exception as exc:
-            return stop(f"contract-amendment cohort recovery failed: {_diag(exc)}")
-        print(
-            f"loop-engine: contract-amendment replay completed cohort state "
-            f"for {spec_dir.name}"
-        )
-        return 0
+            if effect_err:
+                return stop(effect_err)
+            transition_id = _registered_transition_id(
+                run_id, repair_seq, event, cohort_effect_args or {}
+            )
+            try:
+                replay_status = _cohort_mutator().transition_replay_status(
+                    spec_dir,
+                    transition_id=transition_id,
+                    pre_transition_sequence=repair_seq,
+                    event=event,
+                    args=cohort_effect_args or {},
+                )
+            except Exception as exc:
+                return stop(f"{event} replay check failed: {_diag(exc)}")
+            if replay_status == "conflict":
+                return stop(f"{event} cohort state conflicts with this event")
+            if replay_status == "absent" and event == "contract-amendment":
+                err = _schedule_check_current(spec_dir)
+                if err:
+                    return stop(err)
+            try:
+                if replay_status == "absent":
+                    _cohort_mutator().prepare_transition(
+                        spec_dir,
+                        transition_id=transition_id,
+                        pre_transition_sequence=repair_seq,
+                        event=event,
+                        args=cohort_effect_args or {},
+                        opened_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    )
+                _cohort_mutator().apply_transition_effect(
+                    spec_dir,
+                    transition_id=transition_id,
+                    pre_transition_sequence=repair_seq,
+                    event=event,
+                    args=cohort_effect_args or {},
+                )
+            except Exception as exc:
+                return stop(f"{event} cohort recovery failed: {_diag(exc)}")
+            print(
+                f"loop-engine: {event} replay completed cohort state "
+                f"for {spec_dir.name}"
+            )
+            return 0
 
     # Step 1: validate event against FSM for current mode × state
     table = _TRANSITIONS_BY_MODE.get(mode, {})
@@ -1789,35 +2125,44 @@ def cmd_transition(args: argparse.Namespace) -> int:
             f"illegal transition: mode={mode!r} state={current_state!r} event={event!r}"
         )
     next_state = table[key]
+    cohort_effect_enabled = _transition_edge_has_cohort_effect(event, current_state)
 
-    cohort_amendment_already_applied = False
-    if event == "contract-amendment":
-        expected_amendment_id = _contract_amendment_id(
-            run_id,
-            int(state.get("transition_sequence", 0)) + 1,
-            owner_authority_ref,
-            reason_ref,
-            completed_task_evidence,
+    pre_seq = int(state.get("transition_sequence", 0))
+    new_seq = pre_seq + 1
+    cohort_effect_args = None
+    transition_id = None
+    cohort_effect_already_applied = False
+    if cohort_effect_enabled:
+        cohort_effect_args, err = _registered_effect_args(
+            spec_dir,
+            event,
+            args,
+            pre_transition_sequence=pre_seq,
+        )
+        if err:
+            return stop(err)
+        transition_id = _registered_transition_id(
+            run_id, pre_seq, event, cohort_effect_args or {}
         )
         try:
-            replay_status = _cohort_mutator().contract_amendment_replay_status(
+            replay_status = _cohort_mutator().transition_replay_status(
                 spec_dir,
-                amendment_id=expected_amendment_id,
-                owner_authority_ref=owner_authority_ref,
-                reason_ref=reason_ref,
-                completed_task_evidence=completed_task_evidence,
+                transition_id=transition_id,
+                pre_transition_sequence=pre_seq,
+                event=event,
+                args=cohort_effect_args or {},
             )
         except Exception as exc:
-            return stop(f"contract-amendment replay check failed: {_diag(exc)}")
+            return stop(f"{event} replay check failed: {_diag(exc)}")
         if replay_status == "conflict":
-            return stop("contract-amendment cohort state conflicts with this event")
-        cohort_amendment_already_applied = replay_status == "applied"
+            return stop(f"{event} cohort state conflicts with this event")
+        cohort_effect_already_applied = replay_status == "applied"
 
     # Step 1b: mandatory plan-hash check for CODE-* states (except `done`)
     if (
         current_state in _CODE_STATES
         and event not in _DONE_EXEMPT_FROM_SCHEDULE_GUARD
-        and not cohort_amendment_already_applied
+        and not cohort_effect_already_applied
     ):
         err = _schedule_check_current(spec_dir)
         if err:
@@ -1825,7 +2170,7 @@ def cmd_transition(args: argparse.Namespace) -> int:
 
     # Step 2: fire event-specific guard (if one exists)
     guard_fn = _GUARDS.get((mode, event))
-    if guard_fn is not None:
+    if guard_fn is not None and not cohort_effect_already_applied:
         event_args = {}
         if wave_index is not None:
             event_args["wave_index"] = wave_index
@@ -1837,40 +2182,64 @@ def cmd_transition(args: argparse.Namespace) -> int:
         if err:
             return stop(err)
 
-    new_seq = int(state.get("transition_sequence", 0)) + 1
-    amendment_id = None
-    if event == "contract-amendment":
-        amendment_id = _contract_amendment_id(
-            run_id,
-            new_seq,
-            owner_authority_ref,
-            reason_ref,
-            completed_task_evidence,
-        )
+    if cohort_effect_enabled:
+        assert transition_id is not None
+        assert cohort_effect_args is not None
+        if not cohort_effect_already_applied:
+            try:
+                _cohort_mutator().prepare_transition(
+                    spec_dir,
+                    transition_id=transition_id,
+                    pre_transition_sequence=pre_seq,
+                    event=event,
+                    args=cohort_effect_args,
+                    opened_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                )
+                replay_status = _cohort_mutator().transition_replay_status(
+                    spec_dir,
+                    transition_id=transition_id,
+                    pre_transition_sequence=pre_seq,
+                    event=event,
+                    args=cohort_effect_args,
+                )
+            except Exception as exc:
+                return stop(f"{event} cohort prepare failed: {_diag(exc)}")
+            if replay_status == "conflict":
+                return stop(f"{event} cohort state conflicts with this event")
         try:
-            _cohort_mutator().apply_contract_amendment(
+            _cohort_mutator().apply_transition_effect(
                 spec_dir,
-                expected_run_id=run_id,
-                owner_authority_ref=owner_authority_ref,
-                reason_ref=reason_ref,
-                completed_task_evidence=completed_task_evidence,
-                amendment_id=amendment_id,
+                transition_id=transition_id,
+                pre_transition_sequence=pre_seq,
+                event=event,
+                args=cohort_effect_args,
             )
         except Exception as exc:
-            return stop(f"contract-amendment cohort mutation failed: {_diag(exc)}")
+            return stop(f"{event} cohort mutation failed: {_diag(exc)}")
 
     # Build transition metadata (shared by outbox and engine-state write).
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     last_event_context = None
     if event == "wave-passed" and wave_index is not None:
-        last_event_context = {"completed_wave_index": wave_index}
+        last_event_context = {
+            "completed_wave_index": wave_index,
+            "pre_transition_sequence": pre_seq,
+        }
     elif event == "contract-amendment":
         last_event_context = {
-            "amendment_id": amendment_id,
+            "amendment_id": transition_id,
+            "pre_transition_sequence": pre_seq,
             "owner_authority_ref": owner_authority_ref,
             "reason_ref": reason_ref,
             "completed_task_evidence": completed_task_evidence,
         }
+    elif event in {"findings-remain", "reviewers-clean"}:
+        last_event_context = {
+            "pre_transition_sequence": pre_seq,
+            **(cohort_effect_args or {}),
+        }
+    elif event in _REGISTERED_COHORT_EFFECT_EVENTS:
+        last_event_context = {"pre_transition_sequence": pre_seq}
 
     new_state = {
         **state,
@@ -1930,8 +2299,11 @@ def cmd_transition(args: argparse.Namespace) -> int:
     # refusal's own return value is discarded on the way.
     _committed = False
     try:
-        with _cohort_commit_hold(spec_dir, event):
-            _stale = _revalidate_cohort_state(spec_dir, event, _cohort_fp_at_capture)
+        cohort_hold_event = event if cohort_effect_enabled else None
+        with _cohort_commit_hold(spec_dir, cohort_hold_event):
+            _stale = _revalidate_cohort_state(
+                spec_dir, cohort_hold_event, _cohort_fp_at_capture
+            )
             if _stale:
                 return stop(_stale)
 
@@ -2023,8 +2395,40 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-retry-cap-override",
         action="store_true",
         dest="allow_retry_cap_override",
-        help=("waive the review retry cap for this findings-remain transition; "
-              "the matching `review record` needs the same flag"),
+        help="waive the review retry cap for this findings-remain transition",
+    )
+    sp.add_argument(
+        "--fingerprint",
+        action="append",
+        default=None,
+        help="finding fingerprint payload for findings-remain",
+    )
+    sp.add_argument(
+        "--direct-clean-file",
+        default=None,
+        help="persisted exact clean reviewer return for reviewers-clean",
+    )
+    sp.add_argument(
+        "--structural-clean-file",
+        default=None,
+        help="raw clean reviewer return accepted by review raw-classify",
+    )
+    sp.add_argument(
+        "--report",
+        default=None,
+        help="clean adjudication report for reviewers-clean",
+    )
+    sp.add_argument(
+        "--all-skipped",
+        action="store_true",
+        default=False,
+        dest="all_skipped",
+        help="all warranted reviewers were named skips for reviewers-clean",
+    )
+    sp.add_argument(
+        "--adjudication",
+        action="store_true",
+        help="require the finding-adjudicator envelope for --report",
     )
     sp.add_argument("--owner-authority-ref", dest="owner_authority_ref", default=None)
     sp.add_argument("--reason-ref", dest="reason_ref", default=None)

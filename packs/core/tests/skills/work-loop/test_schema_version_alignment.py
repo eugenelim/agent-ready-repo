@@ -101,29 +101,27 @@ def _declared_schema_versions() -> dict[str, int]:
     return found
 
 
-def test_schema_version_declarations_match_state_template() -> None:
-    """Each plainly declared ``SCHEMA_VERSION`` agrees with the template."""
+def test_schema_version_declarations_match_their_state_owners() -> None:
+    """Cohort state is schema 2 while engine-state remains schema 1."""
     template = json.loads((SKILL_DIR / "assets" / "state.json").read_text(encoding="utf-8"))
-    expected = template["schema_version"]
+    cohort_expected = template["schema_version"]
 
     declared = _declared_schema_versions()
     # The three that hold the loop's schema checks must be among them, or an
     # empty scan would agree with the template and prove nothing.
     assert {"loop-engine.py", "loop-cohort.py", "_loop_guards.py"} <= set(declared)
-    assert declared == dict.fromkeys(declared, expected)
+    assert declared["loop-cohort.py"] == cohort_expected == 2
+    assert declared["_loop_guards.py"] == cohort_expected
+    assert declared["loop-engine.py"] == 1
 
     # The values above are read from source; confirm the three that matter
-    # carry the same value once actually executed.
+    # carry the same owner-specific values once actually executed.
     engine = _load(SCRIPTS / "loop-engine.py", "_schema_version_engine")
     guards = _load(SCRIPTS / "_loop_guards.py", "_schema_version_guards")
     cohort = _load(SCRIPTS / "loop-cohort.py", "_schema_version_cohort")
 
-    assert (
-        engine.SCHEMA_VERSION
-        == guards.SCHEMA_VERSION
-        == cohort.SCHEMA_VERSION
-        == expected
-    )
+    assert engine.SCHEMA_VERSION == 1
+    assert guards.SCHEMA_VERSION == cohort.SCHEMA_VERSION == cohort_expected
 
 
 def test_no_script_states_the_schema_version_as_a_bare_literal() -> None:

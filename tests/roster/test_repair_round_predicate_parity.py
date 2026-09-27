@@ -64,7 +64,7 @@ def guards():
 # from wave-complete-dispatch-receipts).
 # ---------------------------------------------------------------------------
 
-SUPPORTED_SCHEMA = 1
+SUPPORTED_SCHEMA = 2
 _RECEIPTS_KEY = "dispatch_receipts"
 _SUPERSEDED_KEY = "superseded"
 _DECLINE_REASONS = ("no-implementer-installed", "human-directed")
@@ -424,6 +424,8 @@ def _is_accounted(guards, doc: dict) -> bool:
     else:
         idx = raw_idx
     if idx >= len(waves):
+        return False
+    if not _wave_well_formed(waves[idx]):
         return False
     return guards.unaccounted_wave_tasks(doc, idx) == []
 

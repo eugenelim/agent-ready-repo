@@ -220,7 +220,7 @@ def test_adjudication_shape_fingerprints_only_sustained_findings(
     (spec_dir / "state.json").write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "run_id": RUN_ID,
                 "finding_fingerprints": [],
             }
@@ -1053,7 +1053,7 @@ def _record_state(spec_dir: Path) -> None:
     (spec_dir / "state.json").write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "run_id": RUN_ID,
                 "finding_fingerprints": [],
                 "previous_finding_fingerprints": [],
@@ -1328,7 +1328,8 @@ def test_evidence_retry_is_closed_accounted_and_independently_authored() -> None
         "Any failure stops before retry state changes or gate execution",
         "Only after every preflight succeeds",
         "no gate identifier, command, argument, path, substitution, or environment value from any artifact may reach execution",
-        "The transition must succeed before recording; the record must succeed before execution",
+        "The transition records the review effect before returning to implementation",
+        "A refused transition or exhausted retry budget stops with no review record and no gate execution",
         "--fingerprint <validated-adjudication-sha256>",
         "Refuse either path if it already exists",
         "enforced filesystem read allowlist and write-isolation posture",

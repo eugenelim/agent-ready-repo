@@ -1,6 +1,6 @@
 # Durable transitions and within-wave parallelism
 
-**STATUS: § 2 implemented; §§ 1, 3 and 4 planned.**
+**STATUS: §§ 1 and 2 implemented; §§ 3 and 4 planned.**
 
 This document states decisions and their costs. Shipped behaviour the baseline
 records is cited from [`loop-infrastructure.md`](loop-infrastructure.md);
@@ -11,14 +11,16 @@ ADR-0061 **D5** is a fifth change this document does not scope.
 
 ## 1. Durable transitions
 
-**Decision.** Generalise the replay marker that `contract-amendment` carries
-([§ 6](loop-infrastructure.md#6-failure-and-recovery-behavior)) to every event
-with a cohort effect, so no crash window depends on a person executing a
-recovery table.
+**Decision.** The replay marker that `contract-amendment` carried is now the
+general durable-transition protocol for the five registered cohort effects. The
+engine prepares a short-lived cohort marker, applies the cohort effect through
+`loop-cohort.py`, appends unified history, clears the marker, and writes
+engine-state last. No registered transition depends on a person executing a
+separate recovery table.
 
 ```
 transition_id      = H(run_id, pre_transition_sequence, event, canonical(event_args))
-pending_transition = {transition_id, event, args, opened_at}   -- cohort state.json
+pending_transition = {transition_id, pre_transition_sequence, event, args, opened_at}
 status(spec_dir, transition_id) ->
     applied   iff the transition history's last entry is transition_id
               and the artifacts the effect derived from still match what it pinned
@@ -35,27 +37,34 @@ sequenceDiagram
 
   Note over E: engine lock held, cohort lock not yet taken
   E->>S: classify transition_id (unlocked read)
+  E->>S: acquire lock, persist pending_transition, release
   E->>S: acquire state.json.lock
   E->>S: re-classify, apply the effect, append history, clear the marker
   E->>S: release state.json.lock
   E->>E: write engine-state, finalise the outbox
 ```
 
-An event with no cohort effect skips steps 2 to 4.
+An event with no cohort effect skips the cohort-effect protocol and stays on the
+cohort-fingerprint rail described in § 2. `findings-remain` and
+`reviewers-clean` are registry members only for their `CODE-REVIEW` edges; their
+`SPEC-PLAN-REVIEW` pre-execute edges carry no cohort review effect.
 
 ### Effect registry
 
-| Event | Cohort verb | Args from | Artifacts pinned |
+| Event / edge | Cohort effect | Args from | Artifacts pinned |
 | --- | --- | --- | --- |
-| `contract-amendment` | `apply_contract_amendment` | owner authority, reason, completed-task evidence | `plan.md`, via `validate_completed_task_sections` |
-| `wave-passed` | `wave advance` | `last_event_context.completed_wave_index` | none |
+| `contract-amendment` | contract amendment | owner authority, reason, completed-task evidence | `plan.md`, via `validate_completed_task_sections` |
+| `wave-passed` | wave advance | `--wave-index` / completed wave index | none |
 | `gates-failed` | `record-attempt` | the pre-transition sequence | none |
-| `findings-remain` | `review record` | the pre-transition sequence | none |
-| `reviewers-clean` | `review record` | the pre-transition sequence | none |
+| `findings-remain` from `CODE-REVIEW` | review record with findings | transition payload fingerprints | none |
+| `reviewers-clean` from `CODE-REVIEW` | review record with clean evidence | transition payload clean artifact or explicit `--all-skipped` | none |
 
 Where nothing is pinned, `applied` reduces to the history match alone.
 
-The other ten events need no effect.
+Events outside this closed registry gain no cohort-write authority. The
+`SPEC-PLAN-REVIEW` `findings-remain` and `reviewers-clean` edges are legal
+pre-execute transitions, but they do not prepare/apply a cohort effect and do
+not increment review counters.
 
 ### Three departures from shipped behaviour
 
@@ -86,11 +95,12 @@ is the ambiguity the marker exists to remove.
 
 ### The schema change
 
-`pending_transition` and the unified history are new keys in `state.json`.
-`SCHEMA_VERSION` is triplicated across `loop-cohort.py`, `_loop_guards.py` and
-`loop-engine.py` and stamped on both state files, so the design must say whether
-one version moves or two — a cohort-only key addition bumped naively invalidates
-every engine-state file too.
+`pending_transition` and `transition_history` are the durable representation in
+cohort `state.json`. They replace `amendment_pending` and
+`amendment_history`; there is no second replay truth. Cohort state is schema 2
+in `loop-cohort.py`, `_loop_guards.py`, and the bundled `assets/state.json`.
+Engine state remains schema 1 in `loop-engine.py`, because the engine-state file
+shape did not change.
 
 An in-flight run meeting the new engine is refused, not migrated. Recovery is the
 destructive reset pair — `loop-cohort reset` then `loop-engine reset` — which
@@ -100,23 +110,31 @@ reset deletes `state.json`, so no marker survives the upgrade and none needs
 translating. Rolling the engine back after new state exists costs the same pair
 in the other direction, and nothing preserves the run.
 
-**Retention.** The shipped `amendment_history` bound is a hard refusal at
-`MAX_AMENDMENT_HISTORY = 20` plus a 1 MiB aggregate ceiling. That bound cannot
-carry over: `gates-failed` alone can fire repeatedly in one run, so refuse-at-20
-would halt an ordinary retry-heavy run. The unified history truncates oldest
-instead, which is safe only because `applied` reads the last entry alone. The
-design must also say whether it replaces `amendment_history` or sits beside it,
-since `contract_amendment_replay_status` and `cmd_status` both read the existing
-one.
+**Retention.** The old `amendment_history` hard refusal at 20 entries did not
+carry over. `transition_history` trims oldest entries only when needed to keep
+the compact UTF-8 serialization of the whole cohort state at or below the
+1 MiB ceiling, and it never drops the newest entry. That is safe because
+`applied` and `conflict` inspect the last history entry for the
+pre-transition sequence; older entries are audit history only.
+
+**Review replay.** For CODE-review findings and clean review, the durable
+transition id is also the review `operation_id`. This removes the old
+`reviewers-clean` manual replay authorization: replay the same engine command,
+not a separate `loop-cohort review record`, and the review round is recorded at
+most once.
 
 ## 2. Serialising a transition against cohort state
 
 **Decision.** `cmd_transition` fingerprints cohort `state.json` before its first
-cohort read, re-reads it under the cohort lock before committing, and refuses
-when it moved. The fingerprint is a sha256 over the canonical parsed form, read
-through the guard layer's exported bounded reader. Every event takes the check
-except `contract-amendment` ([§ 6](loop-infrastructure.md#6-failure-and-recovery-behavior)
-describes the race this closes).
+cohort read. For a non-effect transition it re-reads the fingerprint under the
+cohort lock before committing and refuses when it moved. The fingerprint is a
+sha256 over the canonical parsed form, read through the guard layer's exported
+bounded reader. Registered effect edges skip this check because their cohort
+write intentionally changes the fingerprint; they instead use § 1's
+marker/history classification and lock-held reclassification through
+`loop-cohort.py`. The same event names on effect-free edges, including the two
+`SPEC-PLAN-REVIEW` review edges, retain the fingerprint check. [§ 6](loop-infrastructure.md#6-failure-and-recovery-behavior)
+describes the race this closes.
 
 **Whole state, not a field subset.** Two earlier designs asked which cohort
 facts a verdict depended on and answered per guard — first as pinned fields,
@@ -171,11 +189,11 @@ Eight residuals, each disclosed rather than fixed.
 1. **Any concurrent cohort write refuses**, including a benign `dispatch-receipt`
    that would only have made a verdict more true. Fail-closed, retryable, and
    unreachable in a sequential single-controller run.
-2. **`contract-amendment` is exempt**, because its own effect writes cohort
-   state and its fingerprint therefore always differs. That exemption also keeps
-   the hold from enclosing `apply_contract_amendment`, which takes the cohort
-   lock itself on a lock that is not reentrant — but it means the transition
-   that rewrites the approved baseline is the one this check does not cover.
+2. **Registered effect edges are exempt from this fingerprint rail**, because
+   their own effects write cohort state and their fingerprints therefore always
+   differ. The exemption also prevents a direct engine hold from enclosing the
+   cohort module's non-reentrant lock. Those edges use § 1's history/marker
+   protocol instead; effect-free edges with the same event name are not exempt.
 3. **The hold serialises cohort `state.json` only.** Every other guard input in
    and under the spec directory — `spec.md` and `plan.md` status and hashes, any
    artifact `check_artifact_status` stats, the bundled retry-cap defaults —
@@ -700,18 +718,14 @@ Owner rather than a decision already taken.
 ADR-0061 is Frozen: its body is immutable, and its `## Errata` section is
 append-only for meaning-preserving clarifications.
 
-- **D3, the drift that already exists** — "the engine never writes cohort state,
-  and reads it only through the designated read-only verbs". Both halves are
-  already untrue ([`loop-infrastructure.md` § 4](loop-infrastructure.md#4-dependencies-and-allowed-edges)).
-  Recording that reverses nothing, so it routes to an erratum on ADR-0061, like
-  the 2026-08-31 erratum already there.
-- **D3 and D4, the extension** — the effect registry widens the breach from one
-  event to five and moves four cohort mutations from skill-invoked to
-  engine-invoked. D4 says "Every cohort mutation is invoked explicitly by the
-  skill", so this is a reversal, not a clarification, and an erratum cannot carry
-  it. It needs a record superseding ADR-0061 in part on D3 and D4 together, and a
-  restated write-authority row against
-  [§ 3](loop-infrastructure.md#3-owned-state-and-write-authority).
+- **ADR-0061 D3, read-channel drift** — the 2026-09-22 erratum records that the
+  guard layer reads `state.json` directly rather than only through the named
+  read-only verbs. ADR-0125 does not alter that clause.
+- **ADR-0061 D3 and D4, the effect-registry extension** — ADR-0125 is the
+  accepted superseding record: ADR-0125 D1 authorizes engine-invoked transition
+  effects, ADR-0125 D2 closes the eligible set at § 1's five registry rows, and
+  ADR-0125 D3 keeps `loop-cohort.py` as writer of record and refuses a direct
+  engine write to `state.json`.
 - **D8** and **D5** are deferrals a new decision would lift. Each needs a record
   that supersedes ADR-0061 in part.
 - **D5 and § 4** — writing § 4 needs no record, as a design that ships nothing.
@@ -732,13 +746,10 @@ append-only for meaning-preserving clarifications.
 
 | Question | Who decides |
 | --- | --- |
-| Whether the unified history replaces or sits beside `amendment_history` | loop-infrastructure owner |
 | What a wave does when one task fails — task or wave blast radius | loop-infrastructure owner |
 | Whether the measured nesting hazard reopens RFC-0015 open question 2, whose substrate choice is already resolved as delegate-to-driver | RFC-0015 approver |
 | Whether task-cutting guidance belongs in the plan template | `new-spec` owner |
-| Whether the `SCHEMA_VERSION` bump moves one constant or all three | loop-infrastructure owner |
 | Where the read-only width report lives — `schedule --dry-run` or a `new-spec` lint | `new-spec` owner |
-| Whether `reviewers-clean` keeps its human-authorization gate once the marker supplies idempotency | loop-infrastructure owner |
 | Whether enabling a read-only § 4 verb falls inside D5's deferral of parallel-wave *orchestration*, given that the verb list naming `dispatch-decision` sits in ADR-0061's *Modes in scope* field rather than in D5 | loop-infrastructure owner |
 | Whether the § 4 screen may influence the parallel greenlight at all — the *Ask first* clause `supervisor-predict-disjointness` reserved | that spec's Owner |
 

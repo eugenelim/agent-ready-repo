@@ -59,13 +59,13 @@ EXPECTED_STATE_KEYS = {
     "auto_parallel",
     "last_commit_sha",
     "worktrees",
-    # Controlled full-mode contract amendment: completed-task pins, their
-    # bounded evidence, the append-only snapshot log, and the replay marker.
+    # Controlled full-mode contract amendment and generalized transition replay:
+    # completed-task pins/evidence plus the unified history and marker.
     "completed_task_ids",
     "completed_task_section_hashes",
     "completed_task_evidence",
-    "amendment_history",
-    "amendment_pending",
+    "transition_history",
+    "pending_transition",
     # Per-task dispatch receipts, keyed by partition digest, wave index and task
     # identifier. Present from `init` so an absent container means one thing only:
     # cohort state written before receipts existed, which the wave exit exempts.
@@ -327,9 +327,13 @@ class LoopCohortCliTest(unittest.TestCase):
 
     def test_02_template_init_defaults(self) -> None:
         template = json.loads(STATE_TEMPLATE.read_text(encoding="utf-8"))
-        self.assertEqual(template["schema_version"], 1)
+        self.assertEqual(template["schema_version"], 2)
         self.assertIsNone(template["run_id"])
         self.assertEqual(template["plan_review_status"], "pending")
+        self.assertIsNone(template["pending_transition"])
+        self.assertEqual(template["transition_history"], [])
+        self.assertNotIn("amendment_pending", template)
+        self.assertNotIn("amendment_history", template)
 
     def test_03_init_without_run_id_fails(self) -> None:
         self._assert_cli(2, "init", str(self._spec_dir()))
@@ -342,7 +346,7 @@ class LoopCohortCliTest(unittest.TestCase):
         spec_dir, run_id = self._initialized()
         state = self._state(spec_dir)
         self.assertEqual(state["run_id"], run_id)
-        self.assertEqual(state["schema_version"], 1)
+        self.assertEqual(state["schema_version"], 2)
         self.assertEqual(state["plan_review_status"], "pending")
 
     def test_06_init_refuses_existing_state(self) -> None:

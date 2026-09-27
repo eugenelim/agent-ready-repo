@@ -404,9 +404,10 @@ Run in order; proceed only if each passes:
 Don't move past a failing gate by editing the gate. On failure → FIX.
 
 **Full mode — wave routing.** After gates pass, more waves remain means
-`wave-passed` then a cohort wave advance; the final wave fires `gates-clean`
-and proceeds to REVIEW. A failure runs `wave reopen`, fires `gates-failed`,
-records the attempt, and returns to EXECUTE. Commands and the accounting
+`wave-passed`; the engine records the cohort wave advance and then writes
+engine state. The final wave fires `gates-clean` and proceeds to REVIEW. A
+failure runs `wave reopen`, fires `gates-failed` (which records the attempt),
+and returns to EXECUTE. Commands and the accounting
 precondition: load [`references/full-mode-engine.md`](references/full-mode-engine.md)
 § *GATES — wave routing*.
 **Pre-existing failure triage.** Failure on a file not in the diff = pre-existing (file-not-in-diff is confirmation enough). If the failing file IS in the diff but failure looks unrelated, confirm with `git show HEAD:<file>` or a worktree-check (not a stash — the stash stack is shared across worktrees). Pre-existing: grep `[backlog].open` for the test/file name; if no entry exists, add `{slug = "pre-existing-…", source = "pre-flight/<iso-date>"}` with a cold-start-sufficient comment, treat as known-skip (continue, don't go to FIX). If the diff made the failure worse → in-scope, go to FIX. Full schema and three-condition heuristic: [`references/pre-flight-failures.md`](references/pre-flight-failures.md).
@@ -520,8 +521,8 @@ change surface; don't scan for config files.
 **When every warranted mandatory reviewer has completed with no unresolved Blocker or Concern — clean, or carrying only deferred Nits recorded with their citations — and every non-mandatory reviewer is in that state or a named skip**, the review unit's reviewer requirement is satisfied. A mandatory named skip blocks that conclusion; do not let verdict emission discover the failure only after the state machine has advanced.
 
 **A spec-backed run** normally writes `Status: Shipped` in `spec.md`, fires
-`reviewers-clean`, records the clean result if at least one reviewer produced
-a clean report, and walks the `CODE-HUMAN-GATE`.
+`reviewers-clean` with the clean-review payload on the engine transition, and
+walks the `CODE-HUMAN-GATE`.
 Before waiting at that gate on a final unit, complete the
 [Finish checklist](#finish-checklist) and open the PR. An intermediate unit
 under an incomplete accepted intent stays at `Status: Implementing` and
@@ -537,10 +538,10 @@ continues through DECIDE, completes the Finish checklist, and produces the
 five-field final handoff.
 
 If a specialist adjudication sustains findings, run `wave reopen`, then exit
-`CODE-REVIEW` via `findings-remain` and record only their fingerprints before
-applying the fixes; then return through `wave-complete` to `CODE-VERIFICATION`,
-re-run GATES, and re-enter REVIEW. Commands, the record-after-a-refused-transition
-rail, and the retry-cap interaction:
+`CODE-REVIEW` via `findings-remain` with only their fingerprints on that engine
+transition before applying the fixes; then return through `wave-complete` to
+`CODE-VERIFICATION`, re-run GATES, and re-enter REVIEW. Commands and the
+retry-cap interaction:
 [`references/full-mode-engine.md`](references/full-mode-engine.md)
 § *REVIEW and the human gate*.
 
