@@ -1700,7 +1700,7 @@ spec.loader.exec_module(mod)
 real_hold = mod._cohort_commit_hold
 
 def probed(spec_dir, event):
-    (probe / "guarded").write_text(event, encoding="utf-8")
+    (probe / "guarded").write_text(event or "<no-effect>", encoding="utf-8")
     deadline = time.monotonic() + 60.0
     while not (probe / "mutated").exists():
         if time.monotonic() >= deadline:
@@ -1995,9 +1995,11 @@ def probed(spec_dir, event):
     path = mod._guards().state_path_for(spec_dir)
     try:
         with real_exclusive(path, timeout=0.1, poll=0.005):
-            (probe / "uncontended").write_text(event, encoding="utf-8")
+            (probe / "uncontended").write_text(
+                event or "<no-effect>", encoding="utf-8"
+            )
     except sl.StateLockTimeout:
-        (probe / "contended").write_text(event, encoding="utf-8")
+        (probe / "contended").write_text(event or "<no-effect>", encoding="utf-8")
     sl.exclusive = recording_exclusive
     return real_hold(spec_dir, event)
 

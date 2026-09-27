@@ -1791,7 +1791,10 @@ def test_legal_findings_remain_code_mode(tmp: Path) -> None:
         "review_retry_count": 0,
         "max_review_retries": 5,
     }))
-    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain")
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "findings-remain",
+        "--fingerprint", "f" * 64,
+    )
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}: {err.strip()}")
         return
@@ -1860,7 +1863,8 @@ def test_reviewers_clean_intent_incomplete_requires_implementing(
     write_spec(spec_dir, status=status)
 
     rc, _, err = run_engine(
-        "transition", str(spec_dir), "reviewers-clean", "--intent-incomplete"
+        "transition", str(spec_dir), "reviewers-clean",
+        "--all-skipped", "--intent-incomplete",
     )
     if rc != expected_rc:
         fail(name, f"expected exit {expected_rc}; got {rc}: {err.strip()}")
@@ -2023,7 +2027,10 @@ def test_guard_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
         "review_retry_count": 5,  # at cap
         "max_review_retries": 5,
     }))
-    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain")
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "findings-remain",
+        "--fingerprint", "f" * 64,
+    )
     if rc == 0:
         fail(name, "expected non-zero when review_retry_count == max")
     else:
@@ -4911,6 +4918,11 @@ _REPAIR_ROUND_EDGES = {
 }
 
 
+def _repair_round_effect_args(event: str) -> list[str]:
+    """Return the registered effect payload needed to reach the guard under test."""
+    return ["--fingerprint", "f" * 64] if event == "findings-remain" else []
+
+
 @pytest.mark.parametrize("event", sorted(_REPAIR_ROUND_EDGES))
 def test_the_three_edges_refuse_then_admit_after_a_reopen(tmp: Path, event: str) -> None:
     """Each named edge refuses with a live record, and admits once reopened.
@@ -4928,7 +4940,8 @@ def test_the_three_edges_refuse_then_admit_after_a_reopen(tmp: Path, event: str)
                                 _receipts_for(waves, 0, ["T1"]))
     before = (spec_dir / "engine-state.json").read_bytes()
 
-    rc, _, err = run_engine("transition", str(spec_dir), event)
+    effect_args = _repair_round_effect_args(event)
+    rc, _, err = run_engine("transition", str(spec_dir), event, *effect_args)
     if rc == 0:
         fail(name, f"{event} was admitted while wave 0 still held a live record")
         return
@@ -4944,7 +4957,7 @@ def test_the_three_edges_refuse_then_admit_after_a_reopen(tmp: Path, event: str)
         fail(name, f"wave reopen failed: {err.strip()!r}")
         return
 
-    rc, _, err = run_engine("transition", str(spec_dir), event)
+    rc, _, err = run_engine("transition", str(spec_dir), event, *effect_args)
     if rc != 0:
         fail(name, f"{event} still refused after the reopen: {err.strip()!r}")
         return
@@ -5137,7 +5150,9 @@ def test_a_falsified_conjunct_is_admitted_with_no_reopen(
             coh[key] = value
     write_cohort_state(spec_dir, coh)
 
-    rc, _, err = run_engine("transition", str(spec_dir), event)
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), event, *_repair_round_effect_args(event)
+    )
     if on_stderr is None:
         if rc != 0:
             fail(name, f"expected exit 0 (no reopen needed); got {rc}: {err.strip()!r}")
@@ -5189,7 +5204,10 @@ def test_findings_remain_composition_order_retry_cap_reason_wins(tmp: Path) -> N
         _receipts_for(waves, 0, ["T1"]),
         extra={"review_retry_count": 5, "max_review_retries": 5},
     )
-    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain")
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "findings-remain",
+        "--fingerprint", "f" * 64,
+    )
     if rc == 0:
         fail(name, "expected a refusal at the review retry cap")
     elif "review retry cap reached" not in err:
