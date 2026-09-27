@@ -1,0 +1,44 @@
+{
+  "id": "jira-epic-outcome-view",
+  "name": "Jira Epic Outcome View",
+  "version": "0.1.0",
+  "description": "Group a Jira project's work by Epic and show, for each Epic, what it delivered beside what that work was meant to change. The delivery half is composed from the flow-metrics skill's own per-issue rows -- counts only, never a recomputed duration and never a percentile. The outcome half is read from the Epic description's Outcome block; where none is recorded the view says so and asks the team for one. Read-only: no Jira write verb, and neither the working directory tree nor the installed pack tree changes across a run.",
+  "category": "workflows",
+  "tags": ["jira", "epics", "outcomes", "delivery", "read-only"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Sibling skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only -- never a runtime path.",
+    "skills": [
+      {
+        "name": "jira",
+        "source": "this pack -- the jira skill",
+        "purpose": "Every Jira read: the field catalogue lookup that locates the flagged field, the paginated search that supplies the Epic set, each issue's parent link and each issue's state, and the per-issue change history that says when a flag was last raised. Read verbs and `raw GET` only; no transition, comment, attachment, create, update or delete."
+      },
+      {
+        "name": "flow-metrics",
+        "source": "this pack -- the flow-metrics skill",
+        "purpose": "The delivery reading, run exactly once in per-issue mode with the cache inert. Its rows are grouped and counted here; no metric it defines is recomputed. The inert cache mode is the only mode this view composes through, because the plain bypass flag still unlinks stale temporary files from a cache directory relative to the working directory."
+      }
+    ],
+    "system": [
+      "python >= 3.10"
+    ],
+    "_pip_rationale": "No deps.pip entry: stdlib only. Every per-Epic figure is a count, so no numeric stack is needed."
+  },
+  "input": {
+    "arguments": "Required: --project KEY. Optional: --from YYYY-MM-DD / --to YYYY-MM-DD (inclusive window bounds, default: the last 90 days ending today UTC); --include-subtasks (count delivered subtasks in throughput, as flow-metrics does under the same flag); --jql \"<expr>\" (extra JQL narrowing the flow reading's scope).",
+    "env": {
+      "JIRA_EPIC_OUTCOME_VIEW_JIRA_SCRIPT": "Optional path to the jira skill's script, when it is not installed beside this skill.",
+      "JIRA_EPIC_OUTCOME_VIEW_FLOW_METRICS_SCRIPTS": "Optional path to the flow-metrics skill's scripts directory, when it is not installed beside this skill."
+    }
+  },
+  "output": {
+    "artifacts": [
+      "stdout: one JSON document carrying the project, the window, the moment of the flow reading, the moment of the Jira read, the browse-permission disclosure, and one entry per Epic.",
+      "No file is left anywhere. The per-issue file flow-metrics requires is written to a scratch directory outside both the invocation working directory tree and the installed pack tree, and is removed before this process returns -- including when the run fails."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}
