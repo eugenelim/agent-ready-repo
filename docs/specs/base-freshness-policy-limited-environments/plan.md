@@ -1,7 +1,7 @@
 # Plan: Base freshness in policy-limited environments
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/AGENTS.md` and `packs/AGENTS.local.md`
   own pack release and projection rules;
   `packs/core/.apm/skills/work-loop/scripts/check-base-freshness.py` and

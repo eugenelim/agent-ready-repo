@@ -112,7 +112,10 @@ _CHANGED_SKILLS = {
         {"filesystem_write", "filesystem_read_untrusted", "network_fetch"},
     ),
     "workspace-status": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
-    "work-loop": ("Read Write Edit Bash Agent", {"filesystem_write", "filesystem_read_untrusted"}),
+    "work-loop": (
+        "Read Write Edit Bash Agent",
+        {"filesystem_write", "filesystem_read_untrusted", "network_fetch"},
+    ),
 }
 
 

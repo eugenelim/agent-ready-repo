@@ -171,59 +171,114 @@ def _ok(message: str, target: str = "") -> int:
 
 def _classify_remote_unavailable(stderr: str) -> str | None:
     """Return a closed remote-unavailable category for sanitized git stderr."""
-    msg = stderr.lower()
-    categories = (
+    cause_prefixes = (
         ("could not resolve host", "remote host could not be resolved"),
         ("failed to connect", "remote connection failed"),
         ("connection timed out", "remote connection timed out"),
         ("operation timed out", "remote connection timed out"),
         ("network is unreachable", "network is unreachable"),
         ("connection refused", "remote connection was refused"),
-        ("does not appear to be a git repository", "remote repository is unavailable"),
-        ("could not read from remote repository", "remote repository is unavailable"),
-        ("repository not found", "remote repository is unavailable"),
         ("authentication failed", "remote authentication failed"),
-        ("permission denied (publickey)", "remote authentication failed"),
         ("could not read username", "remote authentication failed"),
         ("terminal prompts disabled", "remote authentication failed"),
         ("gnutls recv error", "remote transport failed"),
         ("the remote end hung up unexpectedly", "remote transport failed"),
-        ("early eof", "remote transport failed"),
     )
-    for needle, category in categories:
-        if needle in msg:
-            return category
-    if msg.startswith("ssh: connect to host "):
-        return "remote connection failed"
+    exact_lines = {
+        "remote: repository not found.": "remote repository is unavailable",
+        "fatal: early eof": "remote transport failed",
+        "fatal: the remote end hung up unexpectedly": "remote transport failed",
+    }
+    quoted_suffixes = {
+        "does not appear to be a git repository": "remote repository is unavailable",
+        "not found": "remote repository is unavailable",
+    }
+    for raw_line in stderr.splitlines():
+        line = raw_line.strip()
+        folded = line.casefold()
+        if folded in exact_lines:
+            return exact_lines[folded]
+        if folded.startswith("fatal: authentication failed for "):
+            return "remote authentication failed"
+        if (
+            folded.startswith("fatal: could not read username for '")
+            and folded.endswith("': terminal prompts disabled")
+        ):
+            return "remote authentication failed"
+        if folded.endswith(": permission denied (publickey)."):
+            return "remote authentication failed"
+        if folded.startswith("ssh: connect to host ") and ": " in line:
+            cause = line.rsplit(": ", 1)[1].casefold()
+            if cause == "connection refused":
+                return "remote connection was refused"
+            if cause == "connection timed out":
+                return "remote connection timed out"
+            if cause == "operation timed out":
+                return "remote connection timed out"
+            if cause == "network is unreachable":
+                return "network is unreachable"
+        if folded.startswith("ssh: could not resolve hostname ") and ": " in line:
+            return "remote host could not be resolved"
+        if folded.startswith("fatal: unable to access ") and "': " in line:
+            cause = line.rsplit("': ", 1)[1].casefold()
+            for prefix, category in cause_prefixes:
+                if cause.startswith(prefix):
+                    return category
+        if folded.startswith("fatal: '") and "' " in line:
+            suffix = line.rsplit("' ", 1)[1].casefold()
+            if suffix in quoted_suffixes:
+                return quoted_suffixes[suffix]
+        if folded.startswith("fatal: repository '") and folded.endswith("' not found"):
+            return "remote repository is unavailable"
+        if folded.startswith("fatal: repository ") and folded.endswith(" not found"):
+            return "remote repository is unavailable"
     return None
 
 
 def _classify_fetch_metadata_denied(stderr: str) -> str | None:
     """Return a category when policy denies writing fetch metadata."""
-    msg = stderr.lower()
-    denied = (
+    denial_causes = {
         "permission denied",
         "operation not permitted",
         "read-only file system",
         "access denied",
         "protected from writes",
         "not permitted",
+    }
+    metadata_prefixes = (
+        "error: cannot lock ref ",
+        "error: could not lock ref ",
+        "error: unable to update local ref ",
+        "error: cannot update ref ",
+        "error: could not update ref ",
+        "error: failed to write ",
+        "error: unable to write ",
+        "error: cannot open ",
+        "fatal: remote-tracking ref update failed",
     )
-    metadata = (
-        "cannot lock ref",
-        "could not lock ref",
-        "unable to update local ref",
-        "cannot update ref",
-        "could not update ref",
-        "failed to write",
-        "unable to write",
-        "refs/remotes/",
-        ".git/",
-        "remote-tracking",
-    )
-    if any(d in msg for d in denied) and any(m in msg for m in metadata):
-        return "git metadata write was denied by local policy"
+    for raw_line in stderr.splitlines():
+        line = raw_line.strip()
+        folded = line.casefold()
+        if not any(folded.startswith(prefix) for prefix in metadata_prefixes):
+            continue
+        if ": " not in line:
+            continue
+        cause = line.rsplit(": ", 1)[1].casefold()
+        if cause in denial_causes:
+            return "git metadata write was denied by local policy"
     return None
+
+
+def _fetch_missing_requested_branch(stderr: str, branch: str) -> bool:
+    """Return True only for Git's missing-ref diagnostic for branch."""
+    expected = {
+        f"fatal: couldn't find remote ref {branch}",
+        f"fatal: couldn't find remote ref refs/heads/{branch}",
+    }
+    return any(
+        line.strip() in expected
+        for line in stderr.splitlines()
+    )
 
 
 # ── Target resolution ────────────────────────────────────────────────────────
@@ -441,7 +496,7 @@ def main() -> int:
         # mentioning 'remote ref') also catches transport failures that echo a
         # URL containing the phrase, and sends the agent off to correct a
         # branch name when the real cause was auth or network.
-        if "couldn't find remote ref" in fetch_err.lower():
+        if _fetch_missing_requested_branch(fetch_err, branch):
             return _surface(
                 f"git fetch {fetch_remote!r}: branch {branch!r} not found on remote — "
                 "verify the branch name in --target",

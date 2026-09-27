@@ -68,12 +68,19 @@ def load_freshness_module():
     return module
 
 
-def assert_skipped_notice(data: dict[str, object]) -> None:
+def assert_skipped_notice(
+    data: dict[str, object],
+    stderr: str = "",
+    forbidden_message_fragments: tuple[str, ...] = (),
+) -> None:
+    assert stderr == ""
     assert data.get("status") == "skipped"
     message = str(data.get("message", ""))
     assert "not verified" in message
     assert "may continue" in message
     assert "separately" in message
+    for fragment in forbidden_message_fragments:
+        assert fragment not in message
 
 
 # ---------------------------------------------------------------------------
@@ -139,14 +146,24 @@ def test_unavailable_remote_head_skips(tmp: Path) -> None:
     git(repo, "commit", "-m", "init")
     git(repo, "remote", "add", "origin", str(tmp / "missing.git"))
 
-    rc, out, _err = run_freshness(repo)
+    missing_remote = tmp / "missing.git"
+    rc, out, err = run_freshness(repo)
     data = json.loads(out)
 
     assert rc == 0
-    assert_skipped_notice(data)
+    assert_skipped_notice(
+        data,
+        err,
+        (
+            str(missing_remote),
+            "does not appear to be a git repository",
+        ),
+    )
 
 
-def test_fetch_denied_remote_tracking_ref_skips(tmp: Path) -> None:
+def test_fetch_denied_remote_tracking_ref_skips(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     origin = tmp / "denied-origin"
     origin.mkdir()
     git(tmp, "init", "-b", "main", str(origin))
@@ -164,18 +181,43 @@ def test_fetch_denied_remote_tracking_ref_skips(tmp: Path) -> None:
     git(origin, "add", ".")
     git(origin, "commit", "-m", "B")
 
-    refs_dir = clone / ".git" / "refs" / "remotes" / "origin"
-    original_mode = refs_dir.stat().st_mode
-    refs_dir.chmod(0o500)
-    try:
-        rc, out, _err = run_freshness(clone, "--target=origin/main")
-    finally:
-        refs_dir.chmod(original_mode)
-    data = json.loads(out)
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    raw_stderr = (
+        "error: cannot lock ref 'refs/remotes/origin/main': "
+        "Unable to create '.git/refs/remotes/origin/main.lock': Permission denied"
+    )
+    exercised_fetch = False
+
+    def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        nonlocal exercised_fetch
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            exercised_fetch = True
+            return 1, "", raw_stderr
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    captured = capsys.readouterr()
+    data = json.loads(captured.out)
 
     assert rc == 0
+    assert exercised_fetch
     assert data.get("target") == "origin/main"
-    assert_skipped_notice(data)
+    assert "git metadata write was denied by local policy" in data.get("message", "")
+    assert_skipped_notice(
+        data,
+        captured.err,
+        (
+            raw_stderr,
+            "refs/remotes/origin/main",
+            ".git/refs/remotes/origin/main.lock",
+            "Permission denied",
+        ),
+    )
 
 
 def test_ls_remote_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -200,10 +242,11 @@ def test_ls_remote_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, cap
     monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
 
     rc = module.main()
-    data = json.loads(capsys.readouterr().out)
+    captured = capsys.readouterr()
+    data = json.loads(captured.out)
 
     assert rc == 0
-    assert_skipped_notice(data)
+    assert_skipped_notice(data, captured.err)
 
 
 def test_fetch_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -234,11 +277,12 @@ def test_fetch_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys:
     monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
 
     rc = module.main()
-    data = json.loads(capsys.readouterr().out)
+    captured = capsys.readouterr()
+    data = json.loads(captured.out)
 
     assert rc == 0
     assert data.get("target") == "origin/main"
-    assert_skipped_notice(data)
+    assert_skipped_notice(data, captured.err)
 
 
 @pytest.mark.parametrize(
@@ -253,6 +297,32 @@ def test_fetch_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys:
         (
             "fatal: 'missing.git' does not appear to be a git repository",
             "remote repository is unavailable",
+        ),
+        (
+            "fatal: could not read Username for 'https://example.invalid/repo.git': "
+            "terminal prompts disabled",
+            "remote authentication failed",
+        ),
+        (
+            "ssh: connect to host example.invalid port 22: Network is unreachable",
+            "network is unreachable",
+        ),
+        (
+            "ssh: connect to host example.invalid port 22: Operation timed out",
+            "remote connection timed out",
+        ),
+        (
+            "ssh: connect to host example.invalid port 22: Operation timed out\n"
+            "fatal: Could not read from remote repository.",
+            "remote connection timed out",
+        ),
+        (
+            "ssh: Could not resolve hostname example.invalid: Name or service not known",
+            "remote host could not be resolved",
+        ),
+        (
+            "fatal: the remote end hung up unexpectedly",
+            "remote transport failed",
         ),
     ],
 )
@@ -275,6 +345,19 @@ def test_remote_unavailable_classifier_closed_categories(stderr: str, category: 
             "fatal: unable to access 'https://example.invalid/repo.git/': "
             "URL rejected: malformed input to a URL function"
         ),
+        (
+            "fatal: unable to access 'bad://Could not resolve host/Authentication failed': "
+            "URL using bad/illegal format or missing URL"
+        ),
+        (
+            "fatal: unable to access 'bad://terminal prompts disabled/"
+            "Network is unreachable/the remote end hung up unexpectedly': "
+            "URL using bad/illegal format or missing URL"
+        ),
+        (
+            "fatal: protocol 'ssh://Network is unreachable' is not supported"
+        ),
+        "fatal: Could not read from remote repository.",
     ],
 )
 def test_remote_unavailable_classifier_rejects_unmatched_diagnostics(stderr: str) -> None:
@@ -300,6 +383,49 @@ def test_fetch_metadata_denied_classifier_closed_categories(stderr: str) -> None
     )
 
 
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        (
+            "error: cannot lock ref 'refs/remotes/Permission denied/main': "
+            "URL using bad/illegal format or missing URL"
+        ),
+        (
+            "error: cannot open '.git/refs/remotes/origin/Permission denied': "
+            "protocol syntax error"
+        ),
+    ],
+)
+def test_fetch_metadata_denied_classifier_rejects_echoed_denial_phrases(
+    stderr: str,
+) -> None:
+    module = load_freshness_module()
+
+    assert module._classify_fetch_metadata_denied(stderr) is None
+
+
+def test_fetch_missing_branch_classifier_anchors_to_requested_branch() -> None:
+    module = load_freshness_module()
+
+    assert module._fetch_missing_requested_branch(
+        "fatal: couldn't find remote ref main", "main"
+    )
+    assert module._fetch_missing_requested_branch(
+        "fatal: couldn't find remote ref refs/heads/main", "main"
+    )
+    assert not module._fetch_missing_requested_branch(
+        "fatal: couldn't find remote ref other", "main"
+    )
+    assert not module._fetch_missing_requested_branch(
+        "fatal: couldn't find remote ref main", "Main"
+    )
+    assert not module._fetch_missing_requested_branch(
+        "fatal: '/tmp/couldn't find remote ref/main/gone.git' "
+        "does not appear to be a git repository",
+        "main",
+    )
+
+
 def test_fetch_unclassified_failure_surfaces_without_raw_stderr(
     tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -320,9 +446,48 @@ def test_fetch_unclassified_failure_surfaces_without_raw_stderr(
     module = load_freshness_module()
     original = module._run_with_stderr
     raw_stderr = (
-        "fatal: unable to access 'bad::url': URL using bad/illegal format "
-        "or missing URL"
+        "error: cannot lock ref 'refs/remotes/Permission denied/main': "
+        "URL using bad/illegal format or missing URL"
     )
+
+    def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 128, "", raw_stderr
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert data.get("status") == "surface"
+    assert "unclassified diagnostics" in data.get("message", "")
+    assert raw_stderr not in data.get("message", "")
+
+
+def test_fetch_trailer_only_failure_surfaces_without_raw_stderr(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    origin = tmp / "fetch-trailer-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "fetch-trailer-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    raw_stderr = "fatal: Could not read from remote repository."
 
     def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
         if len(cmd) > 1 and cmd[1] == "fetch":
@@ -355,7 +520,43 @@ def test_ls_remote_unclassified_failure_surfaces_without_raw_stderr(
 
     module = load_freshness_module()
     original = module._run_with_stderr
-    raw_stderr = "fatal: protocol 'bad' is not supported"
+    raw_stderr = (
+        "fatal: unable to access 'bad://Could not resolve host/Authentication failed': "
+        "URL using bad/illegal format or missing URL"
+    )
+
+    def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "ls-remote":
+            return 128, "", raw_stderr
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert data.get("status") == "surface"
+    assert "unclassified diagnostics" in data.get("message", "")
+    assert raw_stderr not in data.get("message", "")
+
+
+def test_ls_remote_trailer_only_failure_surfaces_without_raw_stderr(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = tmp / "ls-remote-trailer-only"
+    repo.mkdir()
+    git(tmp, "init", str(repo))
+    (repo / "f.txt").write_text("init")
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "init")
+    git(repo, "remote", "add", "origin", "https://example.invalid/repo.git")
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    raw_stderr = "fatal: Could not read from remote repository."
 
     def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
         if len(cmd) > 1 and cmd[1] == "ls-remote":
@@ -769,15 +970,16 @@ def test_fetch_missing_branch(tmp: Path) -> None:
     ok("fetch_missing_branch")
 
 
-def test_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
-    """A transport failure whose stderr echoes 'remote ref' is NOT a missing branch.
+def test_fetch_transport_error_mentioning_missing_ref_phrase(tmp: Path) -> None:
+    """A transport failure whose stderr echoes the missing-ref phrase skips.
 
     Regression guard: the classifier used to accept any stderr containing the
-    substring 'remote ref', so an unreachable remote whose URL happens to carry
-    that phrase was reported as a wrong branch name — sending the agent to fix
-    --target when the real cause was auth or network.  Git echoes the URL in
-    'does not appear to be a git repository', which is how the phrase gets into
-    the stderr of a failure that has nothing to do with a missing ref.
+    substring "couldn't find remote ref", so an unreachable remote whose URL
+    happens to carry that phrase was reported as a wrong branch name — sending
+    the agent to fix --target when the real cause was auth or network. Git
+    echoes the URL in 'does not appear to be a git repository', which is how
+    the phrase gets into the stderr of a failure that has nothing to do with a
+    missing ref.
     """
     origin = tmp / "transport-origin"
     origin.mkdir()
@@ -792,15 +994,15 @@ def test_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
         check=True,
         capture_output=True,
     )
-    # Repoint origin at a path that does not exist and that contains the
-    # literal substring 'remote ref'.
-    unreachable = tmp / "has remote ref in path" / "gone.git"
+    # Repoint origin at a path that does not exist and that contains the exact
+    # missing-ref phrase.
+    unreachable = tmp / "has couldn't find remote ref in path" / "gone.git"
     git(clone, "remote", "set-url", "origin", str(unreachable))
 
-    rc, out, _err = run_freshness(clone, "--target=origin/main")
+    rc, out, err = run_freshness(clone, "--target=origin/main")
     if rc != 0:
         fail(
-            "fetch_transport_error_mentioning_remote_ref",
+            "fetch_transport_error_mentioning_missing_ref_phrase",
             f"expected exit 0, got {rc}; out={out!r}",
         )
         return
@@ -808,30 +1010,46 @@ def test_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
         data = json.loads(out)
     except json.JSONDecodeError as exc:
         fail(
-            "fetch_transport_error_mentioning_remote_ref",
+            "fetch_transport_error_mentioning_missing_ref_phrase",
             f"invalid JSON: {exc}; out={out!r}",
         )
         return
     msg = data.get("message", "")
+    try:
+        assert_skipped_notice(
+            data,
+            err,
+            (
+                str(unreachable),
+                "does not appear to be a git repository",
+                "couldn't find remote ref",
+            ),
+        )
+    except AssertionError as exc:
+        fail(
+            "fetch_transport_error_mentioning_missing_ref_phrase",
+            f"skipped notice leaked raw details or stderr: {exc}; data={data!r} err={err!r}",
+        )
+        return
     if data.get("status") != "skipped":
         fail(
-            "fetch_transport_error_mentioning_remote_ref",
+            "fetch_transport_error_mentioning_missing_ref_phrase",
             f"expected status=skipped, got {data!r}",
         )
         return
     if "not found on remote" in msg:
         fail(
-            "fetch_transport_error_mentioning_remote_ref",
+            "fetch_transport_error_mentioning_missing_ref_phrase",
             f"transport failure misreported as a missing branch: {msg!r}",
         )
         return
     if "not verified" not in msg:
         fail(
-            "fetch_transport_error_mentioning_remote_ref",
+            "fetch_transport_error_mentioning_missing_ref_phrase",
             f"expected the skipped freshness notice, got {msg!r}",
         )
         return
-    ok("fetch_transport_error_mentioning_remote_ref")
+    ok("fetch_transport_error_mentioning_missing_ref_phrase")
 
 
 def test_dirty_tree_says_commit_not_stash(tmp: Path) -> None:

@@ -1,6 +1,6 @@
 # Spec: Base freshness in policy-limited environments
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -88,7 +88,7 @@ unsafe repository states still stop the loop.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Remote-query unavailability is non-blocking. When automatic
+- [x] **AC-0001.** Remote-query unavailability is non-blocking. When automatic
   target discovery cannot complete `git ls-remote`, the helper exits 0 with
   `status: "skipped"` only for a timeout or a closed, sanitized
   network/transport/authentication category. Its message says freshness was
@@ -97,49 +97,49 @@ unsafe repository states still stop the loop.
   `ls-remote` failures exit 1 with `status: "surface"` and expose only a
   bounded category rather than raw stderr.
 
-- [ ] **AC-0002.** Fetch unavailability is non-blocking. When an explicit or
+- [x] **AC-0002.** Fetch unavailability is non-blocking. When an explicit or
   discovered target reaches `git fetch`, the helper exits 0 with
   `status: "skipped"` only for a timeout, a classified remote
   transport/authentication failure, or a classified permission/policy denial
   while Git writes fetch metadata or the remote-tracking ref. The message has
   the same user-facing consequence as AC-0001.
 
-- [ ] **AC-0003.** A missing target branch remains blocking. When Git reports
+- [x] **AC-0003.** A missing target branch remains blocking. When Git reports
   that the named remote branch does not exist, the helper exits 1 with
   `status: "surface"` and tells the user to verify the branch name.
 
-- [ ] **AC-0004.** A proven stale base remains blocking. When the remote query
+- [x] **AC-0004.** A proven stale base remains blocking. When the remote query
   and fetch succeed and `HEAD` is behind the target, the helper exits 1 with
   `status: "surface"` and retains its safe rebase guidance.
 
-- [ ] **AC-0005.** Local-state and target-selection refusals remain blocking. An
+- [x] **AC-0005.** Local-state and target-selection refusals remain blocking. An
   active rebase, unresolvable HEAD, malformed or ambiguous target, multiple
   remotes without a target, invalid branch name, comparison failure, and dirty
   or unrelated histories continue to exit 1 with `status: "surface"`.
 
-- [ ] **AC-0006.** The caller handles all three statuses explicitly. The
+- [x] **AC-0006.** The caller handles all three statuses explicitly. The
   work-loop proceeds silently on `ok`, informs the user and proceeds on
   `skipped`, and stops on `surface`. It does not retry an unavailable operation
   or claim that a skipped check established freshness.
 
-- [ ] **AC-0007.** Regression coverage pins the boundary. The targeted pytest
+- [x] **AC-0007.** Regression coverage pins the boundary. The targeted pytest
   suite covers unavailable `ls-remote`, unavailable fetch caused by a denied
   ref update, missing target branch, confirmed stale base, and representative
   local/configuration refusals; the work-loop eval harness covers the required
   agent response to `skipped`.
 
-- [ ] **AC-0008.** The published pack is consistent. The core pack patch version
+- [x] **AC-0008.** The published pack is consistent. The core pack patch version
   is bumped in its source manifests, self-hosting regenerates adapter
   projections, catalogue verification reports no drift, and the release
   changelog records the non-blocking unavailable-check behavior.
 
-- [ ] **AC-0009.** An unclassified fetch failure remains blocking. When fetch
+- [x] **AC-0009.** An unclassified fetch failure remains blocking. When fetch
   exits non-zero and its C-locale diagnostic matches neither the missing-branch
   case nor a closed unavailable category from AC-0002, the helper exits 1 with
   `status: "surface"`, says freshness could not be established, and preserves
   the diagnostic only as a bounded category rather than copying raw stderr.
 
-- [ ] **AC-0010.** The skill declares the minimum authority used by base
+- [x] **AC-0010.** The skill declares the minimum authority used by base
   freshness. Its source metadata includes the repository's `network_fetch`
   boundary. Its procedure permits the local read-only Git checks required by
   AC-0004 and AC-0005, while confining network-capable Git subprocesses to
