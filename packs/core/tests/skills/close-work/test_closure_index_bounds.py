@@ -104,7 +104,9 @@ def _spec(
     discovery: str | None = None,
 ) -> str:
     """Build a minimal spec preamble string."""
-    lines = [f"- **Slug:** {slug}", f"- **Status:** {status}"]
+    # A spec carries no ``Slug:``: 0 of 487 in the corpus do. Its
+    # identity is its directory name, per the shipped convention.
+    lines = [f"- **Status:** {status}"]
     if brief:
         lines.append(f"- **Brief:** brief:{brief}")
     if discovery:
@@ -143,15 +145,28 @@ class FakeFS:
         return self.reader(path)
 
     def dir_lister(self, d: Path) -> Iterable[Path]:
+        """Mirror ``_default_dir_lister``: flat ``.md`` plus ``*/spec.md``.
+
+        A lister that returns only depth-1 paths cannot find specs, because
+        specs live at ``docs/specs/<slug>/spec.md`` (one subdirectory deep).
+        The original flat-only filter matched the HEAD convention (specs carried
+        a ``Slug:`` field and were stored flat) but diverged once ``_spec_slug``
+        made the directory name authoritative. Updated here to match the shipped
+        layout so the fixture behaviour agrees with the production path.
+        """
         key = str(d)
         self.accessed_dirs.add(key)
         prefix = key + "/"
-        # Return paths whose parent directory matches d exactly.
-        return sorted(
-            Path(p)
-            for p in self.files
-            if p.startswith(prefix) and "/" not in p[len(prefix):]
-        )
+        out: list[Path] = []
+        for p in self.files:
+            if not p.startswith(prefix):
+                continue
+            rest = p[len(prefix):]
+            if "/" not in rest or (rest.count("/") == 1 and rest.endswith("/spec.md")):
+                # Flat ``.md`` directly in directory, or spec nested one level
+                # deep as ``<slug>/spec.md``, matching ``_default_dir_lister``.
+                out.append(Path(p))
+        return sorted(out)
 
 
 def _build(
@@ -265,18 +280,18 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
         b_path: _intent(b_slug, parent=a_slug, decomposed="spec"),
         c_path: _intent(c_slug, parent=a_slug, decomposed="spec"),
         # S_B's Discovery: is a bare path pointing to B's intent file.
-        str(SPECS_DIR / f"{s_b_slug}.md"): _spec(
+        str(SPECS_DIR / s_b_slug / "spec.md"): _spec(
             s_b_slug,
             discovery=f"docs/product/intents/{b_slug}.md",
         ),
         # S_C's Discovery: points to C's intent file.
-        str(SPECS_DIR / f"{s_c_slug}.md"): _spec(
+        str(SPECS_DIR / s_c_slug / "spec.md"): _spec(
             s_c_slug,
             discovery=f"docs/product/intents/{c_slug}.md",
         ),
         # SHARED is a candidate during both B's and C's spec scans.
         # Its Discovery: points to some other intent not in our closure.
-        str(SPECS_DIR / f"{shared_slug}.md"): _spec(
+        str(SPECS_DIR / shared_slug / "spec.md"): _spec(
             shared_slug,
             discovery="docs/product/intents/unrelated-intent.md",
         ),
@@ -292,7 +307,7 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
 
     # The shared candidate file is in the specs collection and is encountered
     # in BOTH B's and C's spec scans, but should be read at most once.
-    assert fs.read_counter[str(SPECS_DIR / f"{shared_slug}.md")] <= 1, (
+    assert fs.read_counter[str(SPECS_DIR / shared_slug / "spec.md")] <= 1, (
         "shared candidate opened more than once despite visited set"
     )
 
@@ -354,7 +369,7 @@ def test_ac0025_brief_terminus_opens_briefs_and_specs_not_intents() -> None:
         str(INTENTS_DIR / "unrelated-intent.md"): _intent("unrelated-intent"),
         # These should be accessed.
         str(BRIEFS_DIR / f"{br_slug}.md"): _brief(br_slug, parent=a_slug),
-        str(SPECS_DIR / f"{sp_slug}.md"): _spec(sp_slug, brief=br_slug),
+        str(SPECS_DIR / sp_slug / "spec.md"): _spec(sp_slug, brief=br_slug),
     }
     fs = FakeFS(files)
     _build(fs, a_slug, "brief")
@@ -377,7 +392,7 @@ def test_ac0025_spec_terminus_opens_only_specs_directory() -> None:
     a_path = f"docs/product/intents/{a_slug}.md"
     files = {
         str(INTENTS_DIR / f"{a_slug}.md"): _intent(a_slug, decomposed="spec"),
-        str(SPECS_DIR / f"{sp_slug}.md"): _spec(sp_slug, discovery=a_path),
+        str(SPECS_DIR / sp_slug / "spec.md"): _spec(sp_slug, discovery=a_path),
         # Unrelated files in other collections.
         str(BRIEFS_DIR / "unrelated-brief.md"): _brief("unrelated-brief"),
     }
@@ -571,6 +586,277 @@ def _collect_measurements() -> dict[str, object]:
         }
 
     return measurements
+
+
+# ── Default-seam reachability: real filesystem via tmp_path ──────────────────
+
+
+def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> None:
+    """``_default_reader`` and ``_default_dir_lister`` both run against real files.
+
+    Every other test injects seams, so the default implementations are never
+    exercised under test; this case closes that gap. No ``_reader`` or
+    ``_dir_lister`` is passed; the module's defaults handle all I/O.
+
+    Three collection layouts are covered in one call using the ``brief``
+    terminus, which accesses both the briefs collection (flat ``.md``) and the
+    specs collection (``*/spec.md`` one level deep):
+
+    - ``docs/product/briefs/`` — flat ``.md`` files (brief terminus phase 1).
+    - ``docs/specs/<feature>/spec.md`` — nested spec files (brief terminus
+      phase 2).
+
+    A separate ``children`` call covers:
+    - ``docs/product/intents/`` — flat ``.md`` files.
+
+    The ``_``-prefixed exclusion is verified on real on-disk files in both
+    the flat (briefs) and nested (specs subdirectory) layouts.
+    """
+    # ── Build the on-disk tree ────────────────────────────────────────────────
+    intents_dir = tmp_path / "docs" / "product" / "intents"
+    briefs_dir = tmp_path / "docs" / "product" / "briefs"
+    specs_dir = tmp_path / "docs" / "specs"
+    intents_dir.mkdir(parents=True)
+    briefs_dir.mkdir(parents=True)
+    specs_dir.mkdir(parents=True)
+
+    ancestor_slug = "real-ancestor"
+    brief_slug = "real-brief"
+    spec_slug = "real-spec-feature"  # a spec's identity is its directory name
+    child_intent_slug = "real-child-intent"
+
+    # Ancestor intent (used for both brief-terminus and children-terminus calls).
+    (intents_dir / f"{ancestor_slug}.md").write_text(
+        _intent(ancestor_slug, decomposed="brief"), encoding="utf-8"
+    )
+    # Brief: flat .md, parent = ancestor.
+    (briefs_dir / f"{brief_slug}.md").write_text(
+        _brief(brief_slug, parent=ancestor_slug), encoding="utf-8"
+    )
+    # Spec: nested one level under docs/specs/<feature>/spec.md.
+    spec_feature = specs_dir / spec_slug
+    spec_feature.mkdir()
+    (spec_feature / "spec.md").write_text(
+        _spec(spec_slug, brief=brief_slug), encoding="utf-8"
+    )
+
+    # _-prefixed brief file: should be excluded by _default_dir_lister.
+    (briefs_dir / "_internal-brief.md").write_text(
+        _brief("internal-brief", parent=ancestor_slug), encoding="utf-8"
+    )
+    # _-prefixed spec subdirectory: the entire directory is excluded.
+    hidden_spec_dir = specs_dir / "_hidden-feature"
+    hidden_spec_dir.mkdir()
+    (hidden_spec_dir / "spec.md").write_text(
+        _spec("hidden-spec", brief=brief_slug), encoding="utf-8"
+    )
+
+    # Intent child for the children-terminus call below.
+    (intents_dir / f"{child_intent_slug}.md").write_text(
+        _intent(child_intent_slug, parent=ancestor_slug), encoding="utf-8"
+    )
+    # _-prefixed intent file: should be excluded.
+    (intents_dir / "_private-intent.md").write_text(
+        _intent("private-intent", parent=ancestor_slug), encoding="utf-8"
+    )
+
+    # ── Case 1: brief terminus — exercises briefs (flat) + specs (nested) ────
+    # Ancestor has Decomposed: brief; the module resolves briefs then their specs.
+    result_brief = ci._build_descendant_closure(
+        ancestor_slug,
+        "brief",
+        tmp_path,
+        # No _reader or _dir_lister: both defaults run against the real tree.
+    )
+
+    assert brief_slug in result_brief, (
+        "_default_dir_lister should find flat .md files in the briefs directory"
+    )
+    assert spec_slug in result_brief, (
+        "_default_dir_lister should find spec.md files nested one level under docs/specs/"
+    )
+    # _-prefixed brief excluded.
+    assert "internal-brief" not in result_brief, (
+        "_-prefixed brief file must be excluded by _default_dir_lister"
+    )
+    # _-prefixed spec subdirectory excluded.
+    assert "hidden-spec" not in result_brief, (
+        "_-prefixed spec subdirectory must be excluded by _default_dir_lister"
+    )
+
+    # ── Case 2: children terminus — exercises intents (flat) ─────────────────
+    # Rewrite ancestor's Decomposed: to children for this call.
+    (intents_dir / f"{ancestor_slug}.md").write_text(
+        _intent(ancestor_slug, decomposed="children"), encoding="utf-8"
+    )
+    result_children = ci._build_descendant_closure(
+        ancestor_slug,
+        "children",
+        tmp_path,
+        # No _reader or _dir_lister: both defaults run against the real tree.
+    )
+
+    assert child_intent_slug in result_children, (
+        "_default_dir_lister should find flat .md files in the intents directory"
+    )
+    # _-prefixed intent file excluded.
+    assert "private-intent" not in result_children, (
+        "_-prefixed intent file must be excluded by _default_dir_lister"
+    )
+
+
+# ── Discovery: confinement (trust boundary) ───────────────────────────────────
+#
+# The default reader uses read_confined_regular_file from file_safety.py.
+# These tests verify that a Discovery: value that escapes the root via any
+# of the three corpus forms (bare path, backtick path, markdown link), an
+# absolute path, or a symlink contributes no descendant edge and does not
+# read any file outside the root.
+#
+# All tests use tmp_path (real on-disk tree) and no injected seams, so the
+# default confined reader runs.
+
+
+def _make_spec_terminus_tree(tmp_path: Path, discovery_value: str) -> tuple[Path, str, str]:
+    """Write a minimal real tree with a spec whose Discovery: holds the given value.
+
+    Returns (root, ancestor_slug, spec_slug).  The spec uses the ``spec``
+    terminus, so ``_resolve_discovery_slug`` is exercised against
+    ``discovery_value``.
+    """
+    root = tmp_path
+    intents_dir = root / "docs" / "product" / "intents"
+    specs_dir = root / "docs" / "specs"
+    intents_dir.mkdir(parents=True)
+    specs_dir.mkdir(parents=True)
+
+    ancestor_slug = "confine-test-ancestor"
+    spec_slug = "confine-test-spec"
+
+    (intents_dir / f"{ancestor_slug}.md").write_text(
+        _intent(ancestor_slug, decomposed="spec"), encoding="utf-8"
+    )
+    spec_feature = specs_dir / "confine-test-feature"
+    spec_feature.mkdir()
+    (spec_feature / "spec.md").write_text(
+        _spec(spec_slug, discovery=discovery_value), encoding="utf-8"
+    )
+    return root, ancestor_slug, spec_slug
+
+
+@pytest.mark.parametrize(
+    "discovery_value,label",
+    [
+        ("../../../etc/passwd", "bare dotdot path"),
+        ("`../../../etc/passwd`", "backtick dotdot path"),
+        ("[link](../../../etc/passwd)", "markdown link dotdot"),
+        ("/etc/passwd", "absolute path outside root"),
+    ],
+)
+def test_confinement_escaping_discovery_contributes_no_edge(
+    tmp_path: Path, discovery_value: str, label: str
+) -> None:
+    """An escaping Discovery: value in any corpus form contributes no edge.
+
+    The default confined reader raises ``UnsafeContentError`` (a ValueError
+    subclass) when a path escapes the root; ``_get_fields`` treats that as
+    an unreadable artifact and contributes no descendant.
+
+    The ancestor itself IS found (it is the starting point, not a descendant);
+    only the escaping spec contributes no edge.
+    """
+    root, ancestor_slug, spec_slug = _make_spec_terminus_tree(tmp_path, discovery_value)
+
+    # Call with no injected seams: default confined reader runs.
+    result = ci._build_descendant_closure(ancestor_slug, "spec", root)
+
+    assert spec_slug not in result, (
+        f"{label}: escaping Discovery: should contribute no edge, "
+        f"but '{spec_slug}' appeared in result"
+    )
+
+
+def test_confinement_symlink_outside_root_contributes_no_edge(
+    tmp_path: Path,
+) -> None:
+    """A Discovery: value pointing to a symlink outside the root contributes no edge.
+
+    file_safety.py rejects symlinks via O_NOFOLLOW / post-open inode check.
+    """
+    root = tmp_path / "repo"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+
+    # A real intent file lives outside the repo root.
+    outside_intent = outside / "leaked-intent.md"
+    outside_intent.write_text(
+        _intent("leaked-intent"), encoding="utf-8"
+    )
+
+    intents_dir = root / "docs" / "product" / "intents"
+    specs_dir = root / "docs" / "specs"
+    intents_dir.mkdir(parents=True)
+    specs_dir.mkdir(parents=True)
+
+    ancestor_slug = "symlink-test-ancestor"
+    spec_slug = "symlink-test-spec"
+
+    (intents_dir / f"{ancestor_slug}.md").write_text(
+        _intent(ancestor_slug, decomposed="spec"), encoding="utf-8"
+    )
+
+    # Symlink inside the repo root pointing to the outside file.
+    symlink_path = intents_dir / "symlink-to-outside.md"
+    symlink_path.symlink_to(outside_intent)
+
+    # The spec's Discovery: points to the symlink (by relative path from root).
+    discovery_value = "docs/product/intents/symlink-to-outside.md"
+    spec_feature = specs_dir / "symlink-test-feature"
+    spec_feature.mkdir()
+    (spec_feature / "spec.md").write_text(
+        _spec(spec_slug, discovery=discovery_value), encoding="utf-8"
+    )
+
+    result = ci._build_descendant_closure(ancestor_slug, "spec", root)
+
+    assert spec_slug not in result, (
+        "symlink-pointing-outside should contribute no edge (file_safety rejects symlinks)"
+    )
+
+
+def test_confinement_valid_discovery_within_root_resolves_correctly(
+    tmp_path: Path,
+) -> None:
+    """A well-formed in-corpus Discovery: value that stays within root resolves correctly.
+
+    This is the positive arm: the confined reader must not refuse a valid value.
+    """
+    root = tmp_path
+    intents_dir = root / "docs" / "product" / "intents"
+    specs_dir = root / "docs" / "specs"
+    intents_dir.mkdir(parents=True)
+    specs_dir.mkdir(parents=True)
+
+    ancestor_slug = "valid-ancestor"
+    spec_slug = "valid-feature"  # a spec's identity is its directory name
+
+    (intents_dir / f"{ancestor_slug}.md").write_text(
+        _intent(ancestor_slug, decomposed="spec"), encoding="utf-8"
+    )
+    spec_feature = specs_dir / spec_slug
+    spec_feature.mkdir()
+    # Use a bare relative path pointing to the ancestor's intent file.
+    discovery_value = f"docs/product/intents/{ancestor_slug}.md"
+    (spec_feature / "spec.md").write_text(
+        _spec(spec_slug, discovery=discovery_value), encoding="utf-8"
+    )
+
+    result = ci._build_descendant_closure(ancestor_slug, "spec", root)
+
+    assert spec_slug in result, (
+        "a valid in-root Discovery: must resolve correctly with the confined reader"
+    )
 
 
 if __name__ == "__main__":

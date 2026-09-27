@@ -87,6 +87,36 @@
         "States the format: ISO 8601 date plus evidence text",
         "Attributes the refusal to the coverage lint, not this workflow"
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "I want to close this intent, but its Decomposed: field is absent. What does the closure eligibility check return?",
+      "expected_output": "The check returns a refuse verdict naming the absent ratified Decomposed: value as the missing precondition. No status is written. The human must add a valid Decomposed: value and re-run closeout before the ancestor can be evaluated for eligibility.",
+      "assertions": [
+        "Returns refuse, not not-eligible or eligible",
+        "Names the absent Decomposed: precondition explicitly",
+        "Writes no status and proposes no closure record"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Run the closure eligibility check on this Accepted intent. Its decomposition points to three child intents, two of which are Fulfilled but one is still Accepted.",
+      "expected_output": "The check returns a not-eligible verdict and names the one live descendant (the Accepted child intent) along with its current state. No status is written. The verdict lists every non-terminal descendant so the human knows exactly what must complete before this ancestor can close.",
+      "assertions": [
+        "Returns not-eligible, not refuse or eligible",
+        "Names every live descendant and its current state",
+        "Writes no status"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Run the closure eligibility check on this Accepted intent. All descendants in its full closure are terminal. Present the result.",
+      "expected_output": "The check returns an eligible verdict and presents an evidence packet carrying the decision date, the decider, the ratified Decomposed: value, a per-descendant verdict with evidence locator for each, and a stated-confidence line. No status is written by the check itself; the human must confirm before a closure record is written to the intent.",
+      "assertions": [
+        "Returns eligible, not refuse or not-eligible",
+        "Presents an evidence packet with the required fields",
+        "States that the check writes no status — the human confirms first"
+      ]
     }
   ]
 }
