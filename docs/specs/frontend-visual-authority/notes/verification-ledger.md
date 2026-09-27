@@ -439,3 +439,56 @@ anchor for something outside this slice. Recorded as a follow-on instead.
 | deep catalogue lint | exit 0 |
 | roster + conformance | 57 passed |
 | self-host | ok |
+
+## The terminal rung: why it carries a mechanism and not a list
+
+The rung reached when nothing else supplies authority was one sentence — state
+a premise, name qualities not products. That prevents rudderless work and does
+nothing to make the result good, which left five of the eight anti-pattern rows
+circular on this path: *don't use indigo → use what the rung supplied → the rung
+supplied a placeholder you were told to replace.*
+
+The obvious fix is a curated list of references that are not the current
+default. Investigation argued against it on four counts.
+
+**A curated library is a shared library, and shared libraries converge the work
+that uses them.** That is the same mechanism measured at the framework layer
+before any of this: colour distance across the web fell about a third and layout
+distance close to a half over the decade to 2019, with shared code and shared
+libraries among the named causes. A referent list is that, one layer up.
+
+**Specificity and availability are the same property.** Every visual tradition
+concrete enough for a model to render is, for exactly that reason, already a
+packaged prompt keyword with token sets built around it. There is no referent
+both well-documented enough to act on and obscure enough to be untouched.
+
+**The decay horizon is about a year, and it has already run once in public.**
+A major vendor's anti-default list moved from one palette to an entirely
+different set within twelve months, and now names its own brand accent as a
+tell. The same vendor shipped an eleven-item style menu and removed it, moving
+to derivation instead.
+
+**One of this repository's own presets is already on that list.** The broadsheet
+direction — column grid, hairline rules, serif, dense — is named as a generated
+default. The QA fixture built earlier in this session used precisely that look,
+which means the loop was demonstrated catching divergence while correcting
+toward the current attractor. Recorded as a follow-on for the owning pack.
+
+What survives is not a list. The terminal rung now derives the premise from the
+surface's own subject matter — its industry, its materials, the vernacular of
+the people it serves — and then tests it once against what any similar brief
+would have produced, revising what matches. That yields a different answer per
+surface by construction, so it cannot become a default: it ships no default.
+It also gives the five circular anti-pattern rows a positive answer that does
+not depend on a token system existing.
+
+This is the same shape the sibling direction skill already uses for its
+counterfactual check, arrived at independently, which is the strongest
+available signal that it is the durable form.
+
+One honest limit: there is no published measurement of generated-interface
+convergence. The mechanism is well evidenced and the specific figures in
+circulation are not. Nothing above rests on those figures.
+
+Assertions pin both halves — the derivation and the check — and both mutations
+red.

@@ -168,3 +168,25 @@ def test_the_preflight_states_the_precedence_and_routes_to_the_reference() -> No
     assert OBSERVATION.name in window, (
         "the pre-flight does not route to the reference that holds its rules"
     )
+
+
+def test_the_terminal_rung_carries_a_mechanism_not_a_reference_list() -> None:
+    """The fallback must produce a different answer per surface.
+
+    A shipped list of named references is a shared library, and shared
+    libraries converge the work that uses them — which is the failure the whole
+    precedence exists to prevent. Deriving the premise from the surface's own
+    subject matter, then testing it against what any similar brief would have
+    produced, yields a different answer by construction. It cannot become a
+    default because it ships no default.
+    """
+    rung = preflight().split("**`local-premise`**", 1)[1].split("\n\n", 1)[0].lower()
+    assert "subject matter" in rung, (
+        "the terminal rung does not say where a premise comes from, so it has "
+        "no way to differ between surfaces"
+    )
+    assert "similar brief" in rung, (
+        "the terminal rung has no check against the answer it would give for "
+        "any similar brief — without one a default passes as a choice"
+    )
+    assert "never a product to copy" in rung
