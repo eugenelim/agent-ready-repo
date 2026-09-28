@@ -20,7 +20,7 @@ satisfies this rule.
 | Rung | Source | Requires | Falls to | Binds |
 | --- | --- | --- | --- | --- |
 | approved-visual-target | direction/<slug>.md | recorded-human-confirmation | direction-and-taxonomy | Composition only: arrangement, proportion, spatial relationships |
-| direction-and-taxonomy | direction/<slug>.md and tokens/<slug>.md | artifact-resolved | incumbent-system | Aesthetic goals, axis commitments, the signature element, token roles and scales |
+| direction-and-taxonomy | direction/<slug>.md and tokens/<slug>.md | artifact-resolved | incumbent-system | Aesthetic goals, axis commitments, the signature element, token roles, scales, and every value the taxonomy resolved |
 | incumbent-system | the repository's existing visual system | established-surface | local-premise | Every axis the rungs above leave open |
 | local-premise | none — stated in-session | no-higher-rung-resolved | none — terminal | A concise stated premise, for a greenfield surface only |
 

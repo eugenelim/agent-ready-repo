@@ -496,6 +496,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest journey depth ladder and composition (experience composition)":
         LOCAL("test-after-build-check"),
+    "pytest adopter prose agrees with the shipped slice (frontend visual authority)":
+        LOCAL("test-after-build-check"),
     "pytest self-host recipe config (externalize-self-host-config)":
         LOCAL("test-after-build-check"),
     "pytest self-host fixture guard (windows-build-self-entry)":
@@ -897,6 +899,7 @@ _GATE_MAIN_CHECKS = (
     "pytest shared-libs projection retirement (credbroker T9)",
     "pytest shared state-coverage map (experience composition)",
     "pytest journey depth ladder and composition (experience composition)",
+    "pytest adopter prose agrees with the shipped slice (frontend visual authority)",
     "pytest self-host recipe config (externalize-self-host-config)",
     "pytest self-host fixture guard (windows-build-self-entry)",
     "pytest make-free gate chains (windows-build-gate-chain)",

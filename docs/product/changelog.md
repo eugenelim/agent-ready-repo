@@ -86,6 +86,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Cohort state moves to schema 2 with `pending_transition` and a unified, oldest-first-truncated `transition_history`; engine state remains schema 1. Runs crossing this boundary must use the authorized `loop-cohort reset` then `loop-engine reset` recovery pair.
 
+## [frontend-engineering][0.3.5] — 2026-09-28
+
+### Highlights
+
+- The guides now describe the pre-flight the pack actually ships. The design-handoff how-to states the four-rung precedence in order and says what happens when a slot is empty; the tutorial walks the rung an adopter without a design tree actually uses, working from a stated premise rather than copying a named product.
+- Where your token taxonomy already resolved a value, the build now uses that value as given instead of re-deriving its own. Re-deriving a number the design step already decided is how a surface drifts from the direction it was supposed to inherit; what the taxonomy left as a relationship, or recorded as unresolved, is still the build's work to settle.
+- You can now see what the frontend reviewer actually checks. Its reference page documents all seven lenses, including the visual-authority lens, and says what evidence confirms each one — the diff for five, a rendered capture for one, the evidence manifest for the last.
+
+### Changed
+
+- The tutorial's worked example is re-based onto the standalone fallback rung. Its brief states a visual premise in the pack's own words, and the step that used to pick an aesthetic reference now resolves visual authority and records the rung it landed on. The seed-token step is now token-value resolution. It starts from the fallback block the reference ships, replaces the placeholder accent as that reference instructs, and accounts for every value it changes or adds relative to that block — so a reader can tell an inherited number from a decided one.
+- The journey's implementation sequence describes visual-authority resolution and the render-observe-correct loop instead of an aesthetic reference and a seed token block. The acceptance gate asks for `visual authority` in the manifest, and the review gate names the visual-authority lens.
+- Both guide manifest examples carry the `visual authority` field, so an example no longer shows a manifest shorter than the field list it documents.
+- Where the token taxonomy resolved a value, the build now uses it as given rather than re-deriving it. Re-deriving a value the design step already decided is how a surface drifts from its direction; what the taxonomy left as a relationship, or recorded unresolved, is still the run's work.
+
+### Fixed
+
+- Adopter guidance that described a fallback the previous release deleted. The `experience-design` journey, its depth how-to and its README each said the frontend pre-flight falls back to its own canonical reference for an unfilled slot. It does not: the slot resolves from a lower rung, and the run records which. The frontend design-handoff how-to carried the same claim.
+- The `frontend-engineering` reference page described the reviewer as reading five lenses and the rendered page for a sixth, which stopped being true when the seventh lens shipped.
+
 ## [experience-design][4.0.3] — 2026-09-28
 
 ### Highlights

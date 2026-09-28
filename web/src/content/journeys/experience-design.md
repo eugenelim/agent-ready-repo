@@ -280,5 +280,6 @@ configured to write to.
 | Per-screen brief | `screens/<slug>/<screen>.md` | `user-flow`, enriched by `interaction-design` |
 | Token taxonomy | `tokens/<slug>.md` | `design-system` |
 
-A slot no artifact fills is not an error: the frontend pre-flight falls back to
-its own canonical reference for that slot and records which one it used.
+A slot no artifact fills is not an error: the frontend pre-flight resolves that
+axis from a lower rung of its visual-authority precedence and records which rung
+supplied it.

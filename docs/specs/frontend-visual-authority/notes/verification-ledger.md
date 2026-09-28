@@ -539,3 +539,357 @@ The check now asks whether the premise is guessable from the category alone, or
 from the category plus the obvious reaction against it. Either answer means a
 default rather than a choice. Both halves are pinned, and removing the second
 half reds.
+
+## Slice 2 — pre-change baseline
+
+Read on the slice-2 branch, at `14595deaf`, before any slice-2 edit.
+
+| Reading | Value |
+| --- | --- |
+| `python3 -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q` | 421 passed, 1.62 s |
+| ruff / mypy | clean (149 source files) |
+| `lint-pack-journeys` | 14 JOURNEY.md files valid |
+| `lint-web-journey-parity` | 19 journeys in parity |
+| `lint-guide-titles` / `check-guide-index` | 237 files OK / 21 packs present |
+| `packs/frontend-engineering` version | `0.3.4` in pack.toml, plugin.json and marketplace.json — all three agree |
+
+**The open criteria, measured rather than assumed.** AC-0023 fails on six
+`Linear` occurrences, all in the tutorial (lines 31, 58, 64, 90, 94, 123).
+AC-0023a fails on four sites: three in `how-to/read-the-design-handoff.md` and
+one in the tutorial. Both counts come from the criteria's own predicates —
+case-sensitive whole-word for AC-0023, whitespace-normalized case-insensitive
+for AC-0023a — not from a raw grep.
+
+**Pre-flight step numbering, for AC-0024b.** The shipped steps after slice 1 are
+`0. Design handoff read`, `1. Resolve visual authority`, `1b. Genre routing`,
+`2. Resolve token values`, `3. State matrix`. The guides carry three references
+to a numbered pre-flight step: the tutorial's `(step 0)` and `(step 1b …)`, both
+of which still resolve, and `reference/frontend-engineering.md`'s "step 2", which
+resolves to a step that exists but describes it as seeding a block that slice 1
+moved into `references/fallback-tokens.md`. The audit guide's `## Step N`
+headings are that guide's own procedure, not pre-flight steps, and are out of
+AC-0024b's scope.
+
+**The journey line that carries two allowances.** `JOURNEY.md:184` is the
+stage-3 implementation sequence and the sole carrier of `narrows the state
+matrix` + `absent or broken` and of `inapplicable` + `omitted`. The roster test
+lowercases the file and requires both cues of a pair on one physical line, so
+the rewrite keeps each pair co-located. The other two allowances sit on line 173
+(`proportional` + `risk and scope`) and line 195 (`optional` + `stylelint`).
+
+## Slice 2 — contract amendment
+
+The owner reversed slice 1's decline of the cross-pack correction, in session.
+The criterion carrying it states the scope and the owner decision behind it;
+this entry does not restate them. Slice 1's Follow-on recording the opposite
+decision is gone from the spec; the plan's Changelog carries both the decline
+and the reason it gave.
+
+**The correction reaches more sites than the two slice 1 noticed, and review
+found them in two rounds rather than one.** A sweep under the criterion's own
+predicate found `guides/experience-design/README.md:206` carrying the same false
+claim in its crossing table. A second round found a third home the first sweep's
+roots excluded: `web/src/content/journeys/experience-design.md`, the committed
+mirror. That one matters because no shipped lint compares a mirror against its
+source — `lint-web-journey-parity` checks skill counts, and this slice adds no
+skill directory — so the mirror could have shipped the deleted mechanism with
+the criterion green and every lint at zero. The criterion is now a sweep with
+the mirror named explicitly, not a list.
+
+**Three assertions in this spec's history could not fail for the thing they were
+written to catch, and two of them were written in this slice's own review.** The
+first was slice 1's pre-flight check. The second cited AC-0006's literal list for
+a phrase none of those literals matched. The third swept two trees while the
+claim lived in three. The shape recurs because a predicate is written against
+the sites the author already has in mind, and the sites the author has in mind
+are the ones that were easy to find.
+
+**The banned literal is the one the sentences spell.** The phrase is `falls back
+to its own canonical reference`. AC-0006's three literals — `canonical set`,
+`canonical product-reference set`, `canonical reference set` — appear at none of
+the three sites, so a criterion citing that list alone would have gone green
+against all three files unchanged. Two of the three sites wrap between `to` and
+`its own`, so whitespace normalization is load-bearing here for real, which is
+the same line-wrap trap this ledger already records twice.
+
+A second criterion was added in the same amendment, for a defect the spec never
+recorded: `guides/frontend-engineering/reference/frontend-engineering.md`
+describes `frontend-reviewer` as reading "five lenses and the rendered page for
+a sixth", which slice 1 falsified when AC-0016 put a seventh lens in the shipped
+agent. Nothing pinned the guide's count, so nothing red. It carries an absence
+half as well as a presence half, because AC-0018 already demonstrated that
+adding a count leaves the stale one in place.
+
+## Slice 2 — implementation
+
+| Reading | Value |
+| --- | --- |
+| pack suite + new roster module | 431 passed |
+| `tests/roster tests/conformance` | 1923 passed, 6 skipped, 56 subtests, 7 m 18 s |
+| ruff / mypy | clean (149 source files) |
+| deep catalogue lint | exit 0 |
+| journey lints (pack, contract, parity) | 14 valid / 20 conform / 20 in parity |
+| guide lints (titles, index, validate) | 237 files / 21 packs / 231 checked |
+| `lint-pack-test-boundary` | 8 cases pass |
+| `lint-ci-parity` | 118 steps dispositioned, both axes |
+| `SKILL.md` body | 960 → 960 (budget 960; the two edits were line-neutral) |
+
+**Two carriers the handover did not know about.** The session landing
+`design-system-values` named two sites for its token-value correction. A sweep of
+the export tree found four: the entrypoint's own rung-2 description, and two
+shipped eval cases whose `expected_output` graded the superseded behaviour. The
+eval cases are also what brings the change inside the pack rule obliging a
+non-cosmetic update to refresh its eval harness — an obligation slice 2 had no
+task for until T6v gained one.
+
+**The absence sweep needed normalization, and that was not cosmetic.** A raw grep
+of the export tree for the three superseded literals found three carriers; the
+normalized sweep found four. The one a raw grep misses wraps between `roles and`
+and `scales`, and it is in the always-loaded entrypoint.
+
+**The anchor design caught a real co-location failure.** AC-0026 scopes its
+presence half to the sentence carrying a surviving anchor. In
+`guides/experience-design/how-to/choose-the-depth.md` the first correction put
+the anchor and `a lower rung` in two adjacent sentences, and the criterion red.
+A file-wide containment check would have passed it. The fix was a colon.
+
+**Six mutations, each redding exactly one assertion.** Reintroducing the banned
+phrase; dropping `a lower rung` at one carrier; splitting an anchor from its
+literal; reverting the lens count; moving the visual-authority row out of last
+position; deleting lens 7's evidence basis. All restored clean.
+
+**One mutation was invalid before it was informative.** The lens-7 evidence
+mutation first reported green because the search string spanned a line break the
+shipped text wraps at — the same trap the criteria declare predicates for, this
+time defeating the proof rather than the check. Re-run against the wrapped form,
+it red. A mutation that does not apply is not evidence that an assertion holds.
+
+**Degradation recorded.** `loop-cohort schedule` asks for one implementer
+subagent per task. Every task was implemented in-session by the controller
+instead, recorded as eleven `human-directed` declines — the closer of the two
+accepted reasons, since an `implementer` agent type is installed and was simply
+not dispatched.
+
+## Slice 2 — experience review
+
+SHIP WITH CHANGES, twenty findings, nearly all on the tutorial. The diagnosis
+was sharper than the count: the rebase moved the tutorial's premise and left
+everything downstream of it — token block, page contract, gates, manifest —
+describing the surface it used to be.
+
+**The manifest edit silently never landed, and my verification could not see
+it.** I added the `visual authority` field to the tutorial's evidence manifest,
+then checked by counting occurrences of the string in the file. The count was 2
+and I read that as success. Both occurrences were the step-2 heading and the
+step-2 recording block; the manifest edit had matched nothing, because the
+continuation line is indented and my search string was not. A `str.replace` that
+matches nothing returns the original and raises nothing. Every edit in the repair
+pass asserts its match before writing.
+
+**The worked example contradicted the premise it had just stated.** The premise
+reserved one status colour; the token block shipped three. It asked for type
+sized for glances; no type token or CSS rule reached that. The page contract
+still named a generic product user, not the shift-reading dispatch staff the
+premise was derived from. A reader following the tutorial would have learned that
+a premise is decoration.
+
+**Two accessibility numbers were invented.** The manifest recorded a focus ring
+at `4.8:1`; the tokens compute `6.52:1`. It recorded a `32×40px` target that no
+CSS produced — the gate text said to add the minimums "if needed". Both are now
+values the shown code produces, contrast computed rather than eyeballed, and the
+live region and focus move the contract promises are recorded as unverified
+rather than claimed as passing.
+
+**The pack's own worked example was missing the step the release shipped.** The
+tutorial went HTML → CSS → gates, with no render-observe-correct pass, while the
+journey and the reference both describe that loop running before the gates. It
+now has one, and says plainly how it differs from gate 5's rendered-page
+inspection.
+
+**One finding declined.** The journey's stage-3 line is a single 120-word
+sentence and the reviewer asked for it to be split. It is the sole carrier of two
+proportionality allowances whose cue words the roster test requires on one
+physical line. Splitting it reds `test_the_frontend_journey_carries_its_four_
+proportionality_allowances` even with every word surviving. The plan's Constraints
+records this; readability loses to a contract test here, deliberately.
+
+| Gate after the repair | Result |
+| --- | --- |
+| pack suite + roster module | 431 passed |
+| guide lints (titles, index, validate) | 237 / 21 / 231 |
+| journey lints (pack, parity) | 14 valid / 20 in parity |
+| `tools/test_build_site_routing.py` | 94 passed, 1 skipped |
+
+## Slice 2 — implementation review
+
+The blocker was not a wrong claim. Every slice-2 criterion's predicate held when
+checked by hand. **Nine of the twelve had no verification artifact at all.**
+
+The plan's Tests bullets promised each one by name. The prose landed, the
+criteria were verified in-session, and nothing was written that would red on the
+next edit — for AC-0019, AC-0019c, AC-0023, AC-0023a, AC-0024, AC-0024a,
+AC-0024b, AC-0028 and AC-0028a. That is this spec's entire thesis failed at its
+last step: the delivery whose whole subject is "a claim nothing pins goes false
+unnoticed" shipped nine claims nothing pinned.
+
+The gap is closed by `test_visual_authority_slice_two.py` for the pack-side
+criteria and by five additions to the roster module for the guide tree.
+
+**Two assertions I had already written were weaker than their own docstrings.**
+The last-row check asserted that no reader-visible row followed the
+visual-authority row — which an eighth row inserted *after* it satisfies, while
+`lenses 1-5` and `lens 6` silently repoint. It now parses the table and asserts
+the row is final; the mutation reds. And the absence sweep read only `.md` and
+`.json`, so `packs/experience-design/pack.toml` — which carries the `first-value`
+strings an adopter meets on first run — was never read. Reinstating the banned
+phrase there passed. Both mutations now red.
+
+**The tutorial claimed to read a block it did not show.** Step 4 said it reads
+the shipped fallback reference, then printed the pre-change dark block: the
+reference ships a *light* surface with a placeholder ink accent. The step now
+starts from the shipped values and records the three departures the premise
+produces, each traceable to it — which also answers why a premise that rejected
+"dark dashboard" as a category default still resolves to a dark surface. The
+changelog line was making the same claim and now matches.
+
+**A numbering collision the criterion could see and a reader could not.** The
+step-citation assertion first red against correct text, because it read the
+guides' own `## Step N` procedure headings as pre-flight citations. Scoping it to
+lowercase `step N` — the form these guides actually use for the pre-flight — left
+two genuine ambiguities in prose written this session. The tutorial now states
+the convention once and the check enforces it.
+
+**The boundary lint caught a dynamic path join in my new pack module.** Check 8
+cannot prove `PACK_ROOT / relative_path` stays inside the pack. The sites are now
+explicit path constants. Recorded because the plan argued earlier that an
+existing blind spot in that lint is not a licence to add to it, and this is the
+same rule applied to my own code.
+
+**One finding declined, with its reason.** The reviewer asked for the journey's
+stage-3 line to be split for readability. It is the sole carrier of two
+proportionality allowances whose cue words a roster test requires on one physical
+line. Readability loses to a contract test here, deliberately, and the new pack
+module now asserts the co-location directly so the failure names the line that
+moved rather than the suite that noticed.
+
+| Final gate | Result |
+| --- | --- |
+| pack suite + roster module | 451 passed |
+| `tests/roster tests/conformance` | 1923 passed, 6 skipped, 56 subtests |
+| `tools/` | exit 0 |
+| ruff / mypy | clean |
+| deep catalogue lint | exit 0 |
+| `lint-pack-test-boundary` | 8 cases |
+| `lint-ci-parity` | both axes |
+| `self-host --check` | ok |
+| spec-status lint | metadata clean, 44 criteria checked |
+
+## Slice 2 — review verification round
+
+Three findings, all sustained and repaired.
+
+**AC-0028's fourth carrier was declared but not asserted.** The criterion names
+four sites; the module pinned three. The absence sweep catches a *reintroduced*
+superseded literal, so an edit that simply dropped the claim from the two eval
+cases would have red nothing. The presence half now covers them, pinned by case
+id, and the mutation reds.
+
+**The departure account undercounted its own block.** The tutorial said the
+surface departs from the shipped fallback "in three places" while the printed
+block also re-tones `--ds-color-error`, adds a `--ds-color-success` role the
+fallback does not define, and adds `--ds-duration-skeleton`. The same honesty
+defect as the false fallback claim, one layer down: values presented as
+inherited that were invented. The account now covers all five plus the motion
+token, and separates premise decisions from consequences the premise forces.
+
+**Touches staleness reappeared one task over.** T6v gained the shared module in
+the previous repair; T6 owns that module's journey half and did not name it.
+Fixed, with the split recorded so the next reader does not have to infer it.
+
+| Gate after the verification round | Result |
+| --- | --- |
+| pack suite + roster module | 453 passed |
+| ruff / boundary lint / guides | clean, 8 cases, 231 checked |
+| `tools/test_build_site_routing.py` | 94 passed, 1 skipped |
+
+## Slice 2 — merge from main
+
+Merged `origin/main` at `dea7ef0b4` (close-work closure check). Auto-merge was
+clean, which is the state the two documented traps fire in, so both were checked
+rather than assumed.
+
+**Three files overlapped**, all three-way merged with both sides intact:
+`.github/workflows/build-check.yml` (our named roster step plus main's eight
+closure steps; the workflow went 118 → 119 dispositioned steps),
+`tools/lint-ci-parity.py` (our two axis entries plus main's five), and
+`docs/product/changelog.md`.
+
+**Trap 1 — the generated marketplace file.** A conflict-free merge there has
+twice silently dropped an incoming version bump, because each side edits a
+different line and git has no reason to flag it. Reconciled every entry against
+its `packs/<name>/pack.toml`: no mismatches across 15 entries, and
+`frontend-engineering` still reads `0.3.5`. `core` is not published to the
+marketplace, so that pairing does not exist to check.
+
+**Trap 2 — the changelog's three machine-checked invariants.** `[core][2.27.2]`
+sits directly beneath `[Unreleased]` at the version `packs/core/pack.toml` now
+ships — main's bump, correctly ordered above our entry. Exactly one blank line
+around every heading. The routing contracts in
+`tests/roster/test_verification_ledger_contract.py` pass. Our
+`[frontend-engineering][0.3.5]` entry survived intact.
+
+| Gate on the merged tree | Result |
+| --- | --- |
+| pack suite + roster module | 453 passed |
+| `tests/roster tests/conformance packs/core/tests/skills/close-work/` | 2180 passed, 6 skipped, 56 subtests, 4 m 44 s |
+| ruff / mypy | clean |
+| deep catalogue lint | exit 0 |
+| `self-host --check` | ok |
+| journey, guide and boundary lints | all clean |
+| `lint-ci-parity` | 119 steps, both axes |
+| spec-status lint | metadata clean |
+
+## Slice 2 — merge from main with design-system-values
+
+Merged `265b05ff0`. The upstream work landed with no `frontend-engineering`
+edits, so the handover held and nothing duplicated.
+
+**The marketplace trap fired, third merge running.** The auto-merge of
+`.claude-plugin/marketplace.json` was conflict-free and silently dropped
+`experience-design 4.0.3`, keeping `4.0.2`, while preserving our `0.3.5` — each
+side edited a different line of a generated file, so git flagged nothing and no
+test would have caught it. Found by the prescribed reconciliation against every
+`pack.toml`; fixed by regenerating from source rather than editing the number.
+
+**One real conflict, in the changelog**, where both sides inserted a release
+entry at the same point. Resolved structurally — both entries kept — then the
+three invariants re-checked: `[core][2.27.2]` directly beneath `[Unreleased]` at
+the version `packs/core/pack.toml` ships, exactly one blank line around every
+heading, and the routing contracts green. The first invariant check reported a
+false violation because it read the core version with the wrong lookup; a
+checker that is itself wrong is how a real violation gets talked past.
+
+**The crossing contract survived.** `type: token-taxonomy` and
+`<output_dir>/tokens/<slug>.md` are unchanged upstream, and
+`test_design_handoff_contract_matches_corpus.py` passes, so the frontend read
+contract needed nothing. AC-0026's five carriers all still pass both halves
+after the auto-merge into two files the upstream commit also touched.
+
+**And the same defect one tree over, in prose written this session.** The
+rung-2 description in `how-to/read-the-design-handoff.md` said the taxonomy
+supplies "roles and scales" — the exact wording AC-0028 bans inside the pack,
+reproduced in the guide that documents it. A raw grep of that file reported the
+phrase absent: it wraps between `roles` and `and scales`. That is the line-wrap
+trap defeating a diagnostic for the sixth time in this delivery, and the reason
+every predicate here normalizes. The guide-tree sweep now covers the three
+superseded literals, and the mutation that restores the wrapped form reds.
+
+| Gate on the merged tree | Result |
+| --- | --- |
+| pack suite + roster module | 456 passed |
+| `tests/roster tests/conformance` | 1934 passed, 6 skipped, 56 subtests, 6 m 58 s |
+| `tools/` | exit 0 |
+| ruff / mypy | clean |
+| deep catalogue lint, self-host | exit 0, ok |
+| guide, journey, boundary, parity lints | all clean |
+| PR #1458 CI | 37 pass, `deploy` skipped |
