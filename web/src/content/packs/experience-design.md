@@ -36,7 +36,7 @@ result is a connected set of screen-level decisions that can survive a handoff.
 
 ## Set the creative and content direction
 
-Name the visual direction and token taxonomy. Decide the surface's message,
+Name the visual direction and resolve the design system. Decide the surface's message,
 brand register, and acquisition-copy goals, then critique the rendered design
 against the shared quality floor. Copy routes by altitude: brand register →
 surface message and structure → acquisition-surface copy goals → product UI

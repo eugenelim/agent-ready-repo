@@ -1,6 +1,6 @@
 ---
 title: Establish design intent
-summary: Derive durable principles, an aesthetic direction, and a token taxonomy before screen craft begins.
+summary: Derive durable principles, an aesthetic direction, and a resolved design system before screen craft begins.
 pack: experience-design
 kind: how-to
 order: 3
@@ -11,7 +11,7 @@ order: 3
 **Step 3 of 5 — Establish design intent**
 <!-- rung: JOURNEY stage 3 -->
 
-**What changes:** Journey evidence becomes decision rules, a grounded aesthetic direction, and a token taxonomy that constrain screen work.
+**What changes:** Journey evidence becomes decision rules, a grounded aesthetic direction, and a resolved design system that constrain screen work.
 <!-- rung: JOURNEY stage 3 -->
 
 **What you need first:** Journey pains and peak moments, the target surface, and any stable persona, precedent, brand, or platform referents.
@@ -31,7 +31,7 @@ order: 3
 | --- | --- | --- | --- |
 | `design-principles` | The journey's pains and peak moments | 3–5 named principles, each grounded in a journey moment. | Optional |
 | `creative-direction` | The target surface plus any product intent, Digital Experience Contract, screen brief, existing product, approved visual target, or direct answers. | A product-specific visual direction: engagement mode, ranked goals, visual thesis, first-viewport thesis, honest evidence and asset status, and any approved target boundaries. | Required |
-| `design-system` | The approved aesthetic direction | Primitive and semantic tokens derived from the aesthetic direction. | Optional |
+| `design-system` | The approved aesthetic direction, plus whatever system the product already has | A project-specific design system: the relationships that must hold and the values that make them buildable. | Optional |
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In every path below, `<output_dir>` is the design output directory
@@ -310,26 +310,40 @@ distinct when it differs on at least six of the fifteen axes. If the closest
 pair falls below that mark, revise the named axes before you treat the set as
 meaningfully different.
 
-## Run `design-system` — the token set
+## Run `design-system` — the design system
+
+The skill first looks for the design system your product already has, and picks
+one of four routes from what it finds: `inherit` when a coherent system covers
+this work, `extend` when it cannot express something new, `originate` when
+there is no system yet, and `refine` when a shipped system reads wrong across
+screens.
+
+Every value it resolves comes from a ranked source — the skill calls these
+**rungs**, running from a constraint you stated, through the approved direction,
+through the system you already have, down to the skill's own derivation. The
+artifact names the rung behind each decision, so you can tell an inherited
+value from a derived one. A domain no rung reaches is recorded as unresolved
+rather than guessed.
+<!-- rung: design-system SKILL.md -->
 
 **You type:**
 <!-- rung: JOURNEY stage 3 -->
 
 ```
-Derive the semantic token and scale taxonomy from the approved aesthetic direction.
+Turn the approved aesthetic direction into the design system we can build.
 ```
 
 **Agent returns:**
 <!-- rung: JOURNEY stage 3 -->
 
-> **Agent:** Done — I've written a semantic token and scale taxonomy whose roles trace to the approved direction to `<output_dir>/tokens/<slug>.md`.
+> **Agent:** Done — I've written the design system to `<output_dir>/tokens/<slug>.md`. Every role traces to the approved direction, each resolved domain records the authority behind it, and two domains the direction never reached are recorded unresolved.
 
 **You push back:**
 <!-- rung: design-system SKILL.md -->
 
-> **You:** The accent color appears as an isolated value with no semantic role. Replace it with a role derived from the direction, and keep implementation values out of this taxonomy.
+> **You:** The accent color appears as an isolated value with no semantic role, and nothing says which goal it serves. Give it a role, and say what authority put that value there.
 >
-> **Agent:** I repaired the role and its rationale.
+> **Agent:** I named the role, traced it to the dominant goal, and recorded the rung that supplied the value.
 
 **Output varies** with the direction’s named goals, surface needs, and accessibility constraints.
 <!-- rung: design-system SKILL.md -->
@@ -337,10 +351,10 @@ Derive the semantic token and scale taxonomy from the approved aesthetic directi
 **You decide:** The same `approve-aesthetic-direction` gate as above closes here, once the token roles trace to the direction you approved.
 <!-- rung: JOURNEY stage 3 -->
 
-**Check (grounded):** Ask which named aesthetic goal explains each token role; this surfaces arbitrary values and roles imported from a generic system.
+**Check (grounded):** Ask which named aesthetic goal explains each role, and which rung supplied each resolved value. A value with no rung behind it was invented; a domain the direction reached but the artifact left blank is a decision handed to whoever writes the code.
 <!-- rung: design-system SKILL.md -->
 
-**Watch out for:** A complete-looking taxonomy may contain roles projected from general design-system patterns. Notice any role with no direction rationale or accessibility constraint; challenge those lines first and remove unsupported tokens.
+**Watch out for:** A complete-looking system may contain roles projected from general design-system patterns. Notice any role with no direction rationale or accessibility constraint; challenge those first. Watch equally for the opposite — a tidy set of role names with the values left for later, which is the same problem moved downstream.
 <!-- rung: design-system SKILL.md -->
 
 **Where it lands:** `<output_dir>/tokens/<slug>.md`.
@@ -352,29 +366,56 @@ Derive the semantic token and scale taxonomy from the approved aesthetic directi
 ```markdown
 ---
 type: token-taxonomy
-slug: "<kebab-case-slug — the system this taxonomy serves>"
-direction: "<name of the aesthetic direction this taxonomy derives from>"
+slug: "<kebab-case-slug — the system this serves>"
+direction: "<name of the aesthetic direction this derives from>"
+route: "<inherit | extend | originate | refine>"
 date: "<YYYY-MM-DD>"
 ---
 
-# Token taxonomy: <system or product name>
+# Design system: <system or product name>
 
 <!--
   Written by the `design-system` skill. Fill the angle-bracket prompts and
-  delete this comment. This doc holds the *taxonomy* — the roles, the layering,
-  and the scale relationships expressed symbolically. It holds NO resolved
-  values: no palette, no spacing sheet, no type sheet, no timing table. You
-  record the method and the shape; whoever builds resolves the numbers for
-  their medium and density, and records them in the interchange file, not here.
+  delete this comment.
+
+  This doc holds the system: the relationships that must survive
+  implementation, and the values that make them executable for THIS product.
+  Resolve a domain when the authority table gave you the right to; record it
+  unresolved when nothing did. Do not leave a domain the direction reached as
+  a prompt for whoever builds — that is the decision this document exists to
+  make. Delete any section the product does not need; an empty section is
+  worse than an absent one. Four sections are never deletable: Authority,
+  Accessibility, Proving set, and Unresolved decisions. They are what makes the
+  rest checkable.
 -->
 
-## Direction this derives from
+## Authority
 
-<!-- Name the goals from the aesthetic direction. Every role and every scale
-     decision below traces back to one of them. A taxonomy with no named goal
-     behind it is arbitrary. -->
+<!-- Where every decision below came from. A reader must be able to tell an
+     inherited value from an invented one. -->
 
-- **<goal 1>** — <one line on what it asks of the system>
+- **Route:** <inherit | extend | originate | refine> — <why this one>
+- **Direction source:** <path or name of the approved direction, or "none">
+- **Incumbent source:** <the file or module the interface actually reads its
+  visual values from, or "none found — searched <where>">
+- **Visual target:** <what it is and what it was read for, or "none". It binds
+  composition and relationships; it supplies no value>
+- **Stated constraints:** <any constraint that arrived already decided, or "none">
+
+A domain nothing resolved is marked `unresolved` here *and* explained under
+Unresolved decisions. Both are required: this table says which domains are
+open, that one says why and who closes them.
+
+| Domain | Rung that supplied it |
+|---|---|
+| Typography | `<stated-constraint \| approved-direction \| incumbent-system \| platform-convention \| derivation \| unresolved>` |
+| Color | `<…>` |
+| Spacing and rhythm | `<…>` |
+| Shape and containment | `<…>` |
+| Depth | `<…>` |
+| Motion | `<…>` |
+| Graphic language | `<…>` |
+| Spatial structure | `<…>` |
 ```
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*

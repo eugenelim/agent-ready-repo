@@ -41,16 +41,20 @@ evidence. This is an observation on a date, not a status field.
 | add `design-system-foundations` as a distinct XD skill | not started, and **contradicted** — see below | no such directory in any pack; `packs/experience-design/.apm/skills/` holds 20 skills, none of them this |
 | lightweight mode | not started | `lightweight mode` / `full mode` → 0 hits across `experience-design` and `frontend-engineering` |
 | full mode (DTCG, light/dark, semantic aliases, component anatomy) | partial, wrong pack | the capability ships in `packs/frontend-engineering/.apm/skills/token-architecture/SKILL.md` (8 DTCG hits, a `## DTCG export` section, 4 light/dark, 3 semantic-alias), not in XD. `component anatomy` → 0 hits anywhere |
-| keep taxonomy derivation and foundation implementation separate | not started | only one skill exists; `design-system/SKILL.md` states it "does not implement token values", so the implementation half has no XD owner |
+| keep taxonomy derivation and foundation implementation separate | superseded by [ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md) | observed 2026-09-20: one skill existed and `design-system/SKILL.md` stated it "does not implement token values", so the implementation half had no XD owner. ADR-0128 D2 keeps one skill and carries the separation as four routes inside it; the quoted wording no longer appears in the skill |
 
 **0 shipped · 1 partial · 3 not started.**
 
-**This requirement contradicts an accepted decision.**
+**This requirement contradicted an accepted decision, and
+[ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md)
+now answers it.**
 [ADR-0052](../../adr/0052-nine-experience-pack-skill-renames.md) (Accepted) D1
 renamed `design-system-foundations` → `design-system`, on the reasoning that
 "'-foundations' was a qualifier that added friction". RFC-0071 asks for the name
-back. Two accepted records disagree, and this intent cannot be delivered until
-one of them gives way. That is a decision, not an implementation task.
+back. ADR-0128 keeps ADR-0052's name and carries D3a's capability as four
+routes inside the one skill, so the foundation half gains an owner without a
+second registration. Read ADR-0128 for what that costs: D3a's requirement for
+distinct triggers, outputs, and reviewers is the part not met.
 
 Separately, `design-system-foundations` is referenced by 4 shipped
 `references/digital-experience-contract.md` copies although no such skill

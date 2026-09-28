@@ -584,6 +584,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest creative-direction contract (pr-gate-suite-disposition)":
         LOCAL("test-after-build-check"),
+    "pytest design-system contract (pr-gate-suite-disposition)":
+        LOCAL("test-after-build-check"),
     "pytest shared-test dedup guard (pr-gate-suite-disposition)":
         LOCAL("test-after-build-check"),
     "pytest pack-test compatibility class characterization (ADR-0101)":
@@ -924,6 +926,7 @@ _GATE_MAIN_CHECKS = (
     "pytest pack-test compatibility class characterization (ADR-0101)",
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)",
     "pytest creative-direction contract (pr-gate-suite-disposition)",
+    "pytest design-system contract (pr-gate-suite-disposition)",
     "pytest shared-test dedup guard (pr-gate-suite-disposition)",
     "pytest user-libs vendored floor (credbroker-user-scope T3)",
     "pytest cursor adapter (cursor-full-parity)",
@@ -1220,6 +1223,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/experience-design/tests/skills/creative-direction/':
         PR_GATED(
             "build-check.yml / gate-main / pytest creative-direction contract "
+            "(pr-gate-suite-disposition)"
+        ),
+    'packs/experience-design/tests/skills/design-system/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest design-system contract "
             "(pr-gate-suite-disposition)"
         ),
     'packs/architect/tests/pack/':

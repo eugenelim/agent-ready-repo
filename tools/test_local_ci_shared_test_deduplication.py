@@ -902,11 +902,26 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # already gone stale. The baseline is bare `origin/main`, which this branch is
 # rebased onto and whose Makefile differs from this worktree's by the single
 # line above and nothing else.
+# Bumped 2026-09-28 for spec/design-system-values, which appends one
+# `run-test-suite` line so the new `design-system` contract suite gates a PR
+# rather than only `make test`.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added line and none
+# removed or reordered — `$(PYTHON) -m pytest
+# packs/experience-design/tests/skills/design-system/ -q`, placed immediately
+# after the `creative-direction` line it mirrors. It is a new pytest process
+# rather than a lengthened batch line, so it takes a plan index and shifts
+# every entry after it, which is why both whole digests move for one line.
+# `EXPECTED_ROOT_TOOL_PATHS` is untouched: the suite is a pack path, not a root
+# tool path, so `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `e1190720a9…` and `4de3f063de…` still in place
+# returns an empty error list, so this supersedes live values rather than a pin
+# that had already gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "e1190720a9298c137b8853e6e523ed5f6b242ea340625dbe5c179f76c8fc4456"
+    "2cc997687b4418796004a92cfa6de6e910ec971ac0de5481b44c4da5685ad297"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "4de3f063de39556f54fa9b4346e6505329710b762f9a4f7dabda0b4a650f4306"
+    "c42d6c84fad994c4c225f343005ed50c25c2425f483e2b6ca18abf825b9972ff"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

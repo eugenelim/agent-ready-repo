@@ -106,6 +106,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adopter guidance that described a fallback the previous release deleted. The `experience-design` journey, its depth how-to and its README each said the frontend pre-flight falls back to its own canonical reference for an unfilled slot. It does not: the slot resolves from a lower rung, and the run records which. The frontend design-handoff how-to carried the same claim.
 - The `frontend-engineering` reference page described the reviewer as reading five lenses and the rendered page for a sixth, which stopped being true when the seventh lens shipped.
 
+## [experience-design][4.0.3] — 2026-09-28
+
+### Highlights
+
+- **`design-system` now decides your product's visual system instead of handing you an empty table of token names.** It resolves typography, color, spacing, shape, depth and motion. Each decision records the authority behind it, so you can tell an inherited value from a derived one at a glance.
+- **A system you already have is inherited, not replaced.** The skill finds the source of visual truth your interface actually reads from and judges whether it is coherent. It fills only the gaps your current work needs, keeps your naming conventions, and will not build a second system beside your first.
+- **Nothing in the pack carries a palette, typeface, scale, radius, shadow or easing value.** Your product's values come from your direction and your existing system, so two unrelated products no longer end up looking the same.
+
+### Added
+
+- Four routes with a selection rubric that picks one before any reference loads, so the choice is readable on a small model.
+- A six-rung design-authority precedence — a stated constraint, an approved visual target, the approved direction, the incumbent system, the named platform's convention, then the skill's own derivation. A rung overrides a lower one only on the axis it decides. The approved visual target binds composition and relationships and supplies no value, matching what the direction writer and the frontend build already say.
+- A map from each of the fifteen direction axes to the one system domain it constrains, so every resolved value is traceable to the commitment that authorised it.
+- A rule for the two things `[platform-default]` means upstream. Where your named target surface genuinely owns a decision, the value resolves from that platform's convention. Where nobody decided, the domain is recorded unresolved with the missing authority named — never filled with a guess.
+- A proving set: the smallest group of real product needs that exercises every resolved domain, checked before the artifact is written and recorded in it. Token tables that look tidy and fail on contact with real content are the thing this catches.
+- Two references — value derivation and incumbent systems — loaded only by the route that needs them.
+- Seven evaluation cases: a mature incumbent system, a greenfield distinctive direction, a visual target, a rejected category default, a brownfield conflict, insufficient authority, and an accessibility conflict.
+
+### Changed
+
+- The artifact records authority, the relationships implementation must preserve, explicitly prohibited treatments, the proving set, accessibility adaptations, how the values bind to whatever architecture you already use, what changed against an incumbent system, and only genuinely unresolved decisions. Its address and `type: token-taxonomy` identity are unchanged, so anything already reading it keeps working.
+- Accessibility is now stated as a floor that constrains every resolved value and supplies none. It is not ranked against a goal, because it is not in the arbitration. A value that cannot clear it is adapted, and the adaptation is recorded rather than made silently.
+- The pack's "no values, ever" invariant is now "no universal values, ever" — it binds what the pack carries, not what a run writes for you.
+- The Experience Design guide and pack documentation describe the resolved artifact.
+- The pack and Claude plugin metadata now publish Experience Design `4.0.3`.
+
 ## [frontend-engineering][0.3.4] — 2026-09-27
 
 ### Highlights

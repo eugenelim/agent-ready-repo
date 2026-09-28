@@ -737,6 +737,16 @@ jobs:
         run: >-
           python -m pytest
           packs/experience-design/tests/skills/creative-direction/ -q
+      # The design-system contract suite is the pack's second pack-tree suite,
+      # added with the values contract. Same reasoning as the step above: without
+      # it the suite reaches CI only through the dispatch-only test-corpus.yml,
+      # which no pull request triggers. The path is spelled exactly as the
+      # Makefile's run-test-suite line spells it.
+      - name: pytest design-system contract (pr-gate-suite-disposition)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: >-
+          python -m pytest
+          packs/experience-design/tests/skills/design-system/ -q
       # The dedup guard is the second instance, and the more expensive one:
       # ~65s, because it shells out to `make -n` repeatedly to compare the
       # Makefile's expansion against pinned plan digests. It earns the budget by
