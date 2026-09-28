@@ -115,6 +115,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `JOURNEY.md` no longer claims `journey-mapping` produces a screen list. It produces the journey; `user-flow` derives the screens, and the skill refuses a journey with one stage per screen. The gate contract in that file was already correct about when the approval falls; only its walkthrough disagreed.
 - `JOURNEY.md` describes `experience-reviewer` as a dispatched reviewer role rather than presenting it as a skill to run, matching how the guide already described it.
 
+## [product-engineering][0.13.21] — 2026-09-27
+
+### Highlights
+
+- **Feature and capability intents can now carry product facts for downstream experience work only when a surface is materially affected.** The optional handoff names the affected journey or surface, first-success behavior, product proof, claim evidence, constraints, prohibited claims, and unknowns while backend-only work and product-level framing stay unchanged.
+
+### Changed
+
+- `frame-intent` adds an optional Product-to-experience handoff block for qualifying capability and feature intents, keeps it as Product Engineering-owned Markdown, and does not require or invoke any downstream pack.
+- The feature-intent how-to names when the optional handoff appears and where Product Engineering stops.
+
 ## [core][2.27.0] — 2026-09-27
 
 ### Highlights
