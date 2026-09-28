@@ -1,6 +1,6 @@
 # Spec: Intent renumber, reissue, and the tombstone
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098
@@ -42,11 +42,12 @@ ordinal out of circulation for as long as its tombstone stands.
 - A tombstone left at every filename an intent vacates —
   `docs/product/intents/`. This slice writes the reissue shape; the retirement
   shape is contracted here and written by a follow-on
-- The citation sweep — `docs/product/**`, `docs/specs/**`, and `workspace.toml`,
-  the three trees that cite an intent by path
+- The citation sweep — every tracked file in AC-0001's derived set, which is
+  where the searched surface is defined
 - A `Tombstone:` preamble field and the shape of the artifact carrying it —
-  defined by this spec, and validated by
-  `intent-metadata-shape-contract`'s lint under its AC-0017
+  defined by this spec, and validated by the corpus-lint
+  routing-and-validation criterion in
+  `docs/specs/intent-metadata-shape-contract/spec.md`
 - An operator how-to — `guides/product-engineering/how-to/`
 - Where it ships — inside `packs/core`, so an adopter installing core has it,
   beside the allocator it depends on
@@ -177,7 +178,12 @@ ordinal out of circulation for as long as its tombstone stands.
       an unstaged successor cannot escape the search. The relation is string
       occurrence, not a list of citation forms: enumerating forms is what
       leaves a stale citation passing, and a bare path in a `Discovery:` or
-      `Brief:` header is already a form no link-target rule reaches.
+      `Brief:` header is already a form no link-target rule reaches. "After a
+      rename" includes the catalogue self-host projection step: a tracked
+      generated projection carries whatever its `.apm/` source carries, so the
+      operation repoints the source and the projection is regenerated rather
+      than edited. The criterion is evaluated after that step, which is the
+      only point at which both it and the bar on editing a projection hold.
 - [ ] **AC-0002.** After a rename the successor's `Slug:` bytes equal the
       retired source's, the tombstone carries those same bytes, and every
       unaffected intent keeps its prior `Slug:` bytes. The corpus gains an
@@ -254,7 +260,15 @@ ordinal out of circulation for as long as its tombstone stands.
 - [ ] **AC-0017.** `Retired:` carries a single non-empty line.
 - [ ] **AC-0018.** Over AC-0001's searched set, every file that cited the
       vacated path before a rename cites the new path after it, and no other content in that file changes.
-      A citation is repointed, never removed. The renamed artifact itself is
+      A citation is repointed, never removed. A tracked generated projection is
+      outside this criterion. The operation repoints that file's `.apm/` source
+      and never writes the projection, so conservation over the projection is a
+      property of the self-host step and not of the rename — a version line, a
+      header, or an extension substitution would falsify it with the rename
+      entirely correct. The catalogue's self-host drift gate, `CAT-V-015`, owns
+      that property. AC-0001 still reaches the projection, because its relation
+      is string occurrence and a repointed source plus any regeneration
+      satisfies it. The renamed artifact itself is
       outside this criterion, because it becomes a tombstone; AC-0024 governs
       it.
 - [ ] **AC-0024.** The successor's bytes equal the retired source's bytes
@@ -280,30 +294,6 @@ ordinal out of circulation for as long as its tombstone stands.
 - `AC-0023`
   - unsatisfiable as a criterion; `AC-0003` and `AC-0026` carry the
     observables.
-
-## Follow-ons` with its owner.
-- `AC-0010`
-  - re-pointing an inbound tombstone. An inbound tombstone is a file citing the
-    vacated path, so `AC-0018` already requires it to cite the new path with
-    nothing else changed, and `AC-0003` already places that change in the
-    rename. The criterion added no state that could fail on its own.
-- `AC-0023`
-  - the mid-write journal and its exact recovery set. Unsatisfiable
-  as a criterion, because recording a path before or after mutating it leaves a
-  different gap under termination, and no criterion can name the atomic
-  mechanism that would close both. The transaction design is `plan.md`'s;
-  `AC-0003` keeps the observable.
-- `AC-0019`
-  - standalone retirement's success path. Sustained in all three
-  shaping rounds as an independently shippable outcome with its own input,
-  semantics and refusals; sharing the transaction is not sharing the outcome.
-  The `Retired:` field shape stays in the tombstone contract at `AC-0005` and
-  `AC-0017`, because the sibling lint validates both tombstone shapes whoever
-  writes them. What left is the operation.
-- `AC-0014`
-  - the three tombstone field value shapes as one criterion. Split
-  into `AC-0015`, `AC-0016` and `AC-0017`: date parsing, path confinement and
-  free-text non-emptiness are different failures with different remedies.
 
 ## Follow-ons
 

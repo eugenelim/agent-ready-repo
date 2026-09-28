@@ -1,6 +1,6 @@
 # Plan: Intent renumber, reissue, and the tombstone
 
-- **Status:** Drafting
+- **Status:** Approved
 - **Spec:** [`spec.md`](spec.md)
 
 ## Approach
@@ -38,8 +38,10 @@ sessions working in this worktree.
 - **ADR-0098 D2** makes `intake-intent` the owner of admission. This operation
   is not admission and must not touch the admission transaction.
 - **`docs/specs/intent-metadata-shape-contract/spec.md`** owns the corpus lint.
-  Its AC-0017 routes by this spec's AC-0006 and validates the tombstone branch
-  against AC-0005. Those two criteria are load-bearing for that spec's live
+  Its corpus-lint routing-and-validation criterion — cited by name and path,
+  because a bare criterion number resolves against this spec's own criteria —
+  routes by this spec's AC-0006 and validates the tombstone branch against
+  AC-0005. Those two criteria are load-bearing for that spec's live
   implementation: do not change either without telling its owner.
 - The blessed confinement helper is `file_safety.py`
   (`validate_confined_directory`, `list_confined_regular_files`,
@@ -124,6 +126,20 @@ operation creates, regardless of index state. Two paths are excluded by name:
 the tombstone standing at the vacated path, and this spec's own
 `notes/verification-ledger.md`, which records renames as history.
 
+**A tracked generated projection is repointed at its source, never written.**
+A projection under `.claude/`, `.agents/` or any other adapter root is a copy
+of an `.apm/` file, and both are tracked, so both land in the searched set. The
+operation rewrites the `.apm/` source and writes no projection — `spec.md`'s
+`Never do` bars editing one, and `packs/AGENTS.md` § Self-hosting projection
+bars it independently. The projection is brought into line by the self-host
+step that `packs/AGENTS.md` already mandates after any `.apm/` edit, which the
+T8 how-to names as the rename's closing step and which AC-0001 folds into
+"after a rename". This is why the exclusion list stays two literal paths: a
+projection is not excluded from the search, it is corrected by regeneration.
+
+The live case is not hypothetical; `notes/verification-ledger.md` records the
+measured instance and the date it was measured.
+
 **The success domain.** A request succeeds when all of: the source resolves
 inside `docs/product/intents/` and exists; the token is in `NAMESPACE_TOKENS`;
 the source has a `workspace.toml` entry; the allocator can answer for the
@@ -155,10 +171,42 @@ a path that does not yet exist.
 
 A process killed inside Commit leaves a partially applied rename. That is the
 one state the design does not undo itself, and the spec does not promise it
-does: the staging directory survives the kill and names every intended path, so
-recovery is re-running the commit phase or `git restore`. Nothing durable is
-written outside the working tree and index, which is what makes `git restore`
-sufficient.
+does. What makes AC-0026's second arm reachable is that the staging directory
+survives the kill and names every path Commit intended to write. The partition
+that recovery reads is derived from what Commit writes, not enumerated by hand:
+
+- **Exactly one file is created** — the successor, at a filename the allocator
+  had not yet issued, so it is untracked and git holds no version of it.
+- **Every other target is replaced** — each citing file, `workspace.toml`, and
+  the tombstone. The tombstone belongs here, not with the created paths: it
+  lands at the vacated path, which is the live source's own tracked path, and
+  Commit never moves the source aside. Every path in this set is tracked and
+  has a committed version.
+- **The staging directory is not a target at all.** It is the recovery record,
+  created during Stage, and it is a directory, so no unlink reaches it.
+
+Recovery is one of two operations over that derivation, and `git restore` alone
+is neither:
+
+- **Forward.** Re-run Commit over the surviving staging directory. Ends in the
+  complete rename.
+- **Back.** `git restore` every replaced path — which includes the vacated
+  path, restoring the source over the tombstone — unlink the successor, then
+  remove the staging directory tree with a stdlib recursive removal under the
+  same confinement check every other write passes. Ends in the pre-rename
+  state.
+
+The backward direction states its own directory teardown because `cooling.py`
+offers no precedent for one: it establishes `os.replace` at `cooling.py:630`
+and a single-file `os.unlink` at `cooling.py:643`, and nothing more.
+
+`git restore` on its own cannot reach either state, because the successor and
+the staging directory are untracked and it does not remove them; a bare
+`git restore` would leave both standing beside a restored source, which is the
+third state AC-0026 forbids. Deriving the partition from Commit's writes is
+what makes both directions terminate, and it is why the staging directory is
+retained until recovery rather than cleaned up at Commit's end. Nothing durable
+is written outside the working tree, the index, and that staging directory.
 
 A concurrent reader is the one cross-component case. `intent-metadata-shape-contract`'s
 corpus lint reads `docs/product/intents/` and holds no lock, and neither does
@@ -181,7 +229,17 @@ Owned by: T4
 
 - **Staging plus `os.replace` over write-in-place plus undo.** An undo log has
   to be correct under its own failures; a staging directory does not exist until
-  it is complete. `cooling.py:630` sets the precedent in this repository.
+  it is complete.
+- **A shared staging root and retained recovery state, deviating from
+  `cooling.py`'s shape.** `packs/core/.apm/skills/close-work/scripts/cooling.py:615-645`
+  is the repository's durable-write precedent, and its shape is narrower: a
+  per-target hidden temporary in the validated destination directory, one
+  `os.replace`, and an unlink in `finally` so nothing survives a failure. This
+  operation writes across several directories at once and its partial state
+  spans files, so it inherits the directory-descriptor-relative `os.replace`,
+  the exclusive-create open, and the per-write confinement check, but keeps one
+  staging root and retains it. § Failure, edge cases & resilience owns why
+  retention is load-bearing; it is the partition recovery reads.
 - **String occurrence over a parsed citation relation.** A parser is narrower
   than the truth and each review round found the form it missed. A string search
   over a derived file set is exhaustive by construction; its cost is two named
@@ -212,7 +270,13 @@ independent string search, in both directions — a missing file and an extra on
 each fail. Cases: a Markdown inline link, a bare path in a `Discovery:` header,
 a `path =` value in TOML, the same path inside a fenced code block, the two
 named exclusions, and an untracked created file. The `Discovery:` case is the
-one a link-target parser gets wrong and is the reason this task exists.
+one a link-target parser gets wrong and is the reason this task exists. One
+further case is a fixture carrying an `.apm/` source and its adapter-root
+projection, both citing the vacated path: the computed plan rewrites the source
+and leaves the projection untouched, and after the fixture's self-host step the
+vacated path occurs in neither. A plan that writes the projection directly
+fails this case even though a bare path search over the finished tree would
+come back clean, which is the whole point of asserting it here.
 Covers AC-0001's relation.
 
 **Approach:** Derive the parent set from `git ls-files` plus the operation's
@@ -238,11 +302,22 @@ AC-0015, AC-0016, AC-0017, and AC-0006's biconditional on both arms.
 **Tests:** A failure injected at each write point in Stage, and at each in
 Commit. A Stage failure leaves the tree and index byte-identical. A Commit
 interruption leaves either the full rename or a recoverable partial state whose
-staging directory names every intended path, and nothing else. A successful
+staging directory names every intended path, and nothing else. From that partial
+state, each of the two recovery directions above is run and the resulting tree
+compared byte for byte: forward recovery yields the complete rename, backward
+recovery yields the pre-rename tree — the source restored at the vacated path
+with no tombstone standing there — and neither leaves the successor or the
+staging directory behind, which is the third state AC-0026 forbids and the case
+a bare `git restore` produces. One case asserts the tombstone is restored by the
+replaced-path arm rather than unlinked, because classifying it as created is the
+error that makes backward recovery delete the source. A successful
 rename is compared byte for byte: the successor equals the source with the
 vacated path substituted and differs nowhere else, which is the self-citing
 source case; each citing file differs only at the path; no other file differs;
-every intent the rename did not touch keeps its prior `Slug:` bytes. Covers
+every intent the rename did not touch keeps its prior `Slug:` bytes. These
+assertions are evaluated at the transaction's exit; AC-0001's post-self-host
+arm over a projection is T2's case, and AC-0018 does not reach a projection at
+all. Covers
 AC-0003, AC-0026, AC-0013, AC-0018, AC-0024, and AC-0002's successor and
 unaffected-intent arms.
 
@@ -262,7 +337,8 @@ next ordinal after a rename exceeds every ordinal that token carries, tombstones
 counted. An allocator refusal produces `allocator-refused` and no write. Covers
 AC-0004 and AC-0012.
 
-**Depends on:** T1
+**Depends on:** T1, T4 — both cases assert over a completed rename, which T4
+builds.
 
 ### T6 — Resolution stops at a tombstone, and inbound tombstones re-point
 
@@ -293,11 +369,19 @@ directory and the one that silently frees the ordinal.
 **Tests:** An end-to-end rename driven through the surface an
 installed `packs/core` exposes, not through the module. `packs/core` builds and
 the surface appears in its manifest. Covers AC-0025 and the integration tests
-above. Manual: an operator follows the how-to through one real rename.
+above. Manual: an operator follows the how-to through one real rename, ending
+with the self-host step, and confirms the vacated path then occurs in no
+tracked file — projections included.
 
 **Approach:** The two `SKILL.md` statements that nothing renames an intent point
 here instead, and the changelog entry lands with them, because all three are the
 same "what the pack now does" edit.
+
+The how-to names the self-host projection step as the rename's closing step,
+not as an optional tidy-up: when the vacated path was cited by an `.apm/` file,
+the operation repoints the source only, and AC-0001 does not hold until the
+projections are regenerated. A rename whose operator stops at the refusal-free
+exit leaves a stale citation in every adapter root.
 
 **Depends on:** T4, T5, T6, T7
 
