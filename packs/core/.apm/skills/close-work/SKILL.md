@@ -76,6 +76,17 @@ passing test, ownership, writability, or a prior approval.
    `Shipped` brief without a `Cut-closed:` record — is refused by
    `scripts/lint-brief-coverage.py`; the refusal is the lint's, not this
    workflow's.
+   When any artifact reaches a terminal state on this run, check the closure
+   eligibility of each **intent** ancestor above it. The check reads the
+   ancestor's decomposition and its full descendant closure without writing any
+   status, then returns one of three verdicts: **refuse** (a required precondition
+   is absent — name it and stop), **not-eligible** (at least one descendant in the
+   full closure remains non-terminal — name every live descendant and its current
+   state), or **eligible** (every descendant in the full closure is terminal —
+   present an evidence packet for the human to decide on). The check never sets a
+   status. On a confirmed eligible terminal transition on an intent, write a
+   closure record to that intent carrying the decision date, the decider, and the
+   evidence they reviewed.
 2. Resolve every applicable durable-output destination with the installed sibling
    semantic-surface resolver. Use its explicit → policy/configuration → established
    repository convention → established external destination → confirmation-required

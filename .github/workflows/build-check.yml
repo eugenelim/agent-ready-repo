@@ -637,6 +637,17 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_brief_lifecycle_single_home.py
 
+      # AC-0036 of closure-eligibility-check: the reader-facing guide's
+      # § Review the closeout preview names all three verdicts and says what a
+      # human decides at each. Roster-owned because it reads `guides/`, which a
+      # pack test may not reach. Sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it: the carve-out stops at the first
+      # failure, so a step after it reports the same failure against a broad
+      # target instead of the named one.
+      - name: pytest closure guide surface (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_closure_guide_surface.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

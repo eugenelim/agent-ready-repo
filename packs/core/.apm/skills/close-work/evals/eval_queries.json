@@ -62,5 +62,17 @@
   {
     "query": "Refactor the surface resolver to reduce duplication",
     "should_trigger": false
+  },
+  {
+    "query": "Run the closure eligibility check on this intent's ancestors",
+    "should_trigger": true
+  },
+  {
+    "query": "Check which ancestor intents are eligible to close now that this spec is shipped",
+    "should_trigger": true
+  },
+  {
+    "query": "The eligibility check refused — what precondition is missing?",
+    "should_trigger": true
   }
 ]

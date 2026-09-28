@@ -106,6 +106,36 @@ Recorded so they are not mistaken for omissions. `author-delivery-brief` §4 pla
 
     **This is a blocking edge, not a preference:** that brief records slice 2 as unspecifiable until both fields are recorded here. Value vocabulary and validation are this brief's to decide; the refusal behaviour is not.
 
+
+- **Settled 2026-09-26 — what the 2026-09-25 closure declarations did and did
+  not make decidable, recorded by eugenelim, lifecycle owner.** The entry above
+  stands: `Outcome co-owner:` shipped as the carve-out declaration and the
+  refusal behaviour is `intent-lifecycle-and-closure` slice 2's. Specifying that
+  slice established that **the shipped field decides only half of C1**, so slice
+  2 ships no C1 refusal. This narrows the earlier entry's expectation; it does
+  not reopen the field decision.
+
+  **Why half.** C1 refuses a close where a carve-out changed **neither** the
+  Outcome **nor** named a co-owner. That is a disjunction. `Outcome co-owner:`
+  answers the second half exactly. Nothing declares the first: measured
+  2026-09-26, the string `carve` appears nowhere in `intent_shape.py`, and an
+  Outcome change is visible only in an artifact body, which
+  [FEAT-0005](../intents/FEAT-0005-lifecycle-and-closure.md)'s brief § Scope
+  forbids gating a transition on. A refusal keyed on the co-owner field alone
+  would fire on every intent that simply has no co-owner. Slice 2 therefore
+  names the declared co-owner in its evidence packet and gates no verdict on it.
+
+  **A second observable is owed for the same reason.** FEAT-0005 § Staleness
+  refresh at closure names three checks and assigns specifying them to that
+  child. Checks 1 and 2 ship in slice 2. Check 3 — that the artifact's own
+  claims still hold — does not: an intent's citations live in its body, so no
+  declared field can decide it. Slice 2 presents those claims for human
+  revalidation in the same packet and asserts no refusal.
+
+  Both remaining gaps are intent preamble field-shape questions, which FEAT-0005
+  § Boundary assigns here. Decider: eugenelim. Neither blocks slice 2; each
+  would unblock a refusal slice 2 deliberately does not carry.
+
 ## Source
 
 - **Mode:** repo-origin

@@ -839,6 +839,13 @@ EXPECTED_SCRIPT_STEPS = [
     ".claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py",
     "packs/core/tests/skills/work-loop/test_lint_traceability.py",
     ".claude/skills/work-loop/scripts/lint-traceability.py",
+    # The closure check carries read-side projections of five shipped
+    # vocabularies, because a cross-skill import is banned. The pack suite
+    # proves the predicates; the parity script is what proves the projections
+    # still agree with their upstreams, so it runs against the live corpus
+    # right after it.
+    "packs/core/tests/skills/close-work/test_closure_terminality.py",
+    "tools/check_closure_terminality_parity.py",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
     "tools/catalogue/tests/test_verify_host_checks.py",
