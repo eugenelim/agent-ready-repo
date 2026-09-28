@@ -18,6 +18,14 @@ An approved visual target never binds colour, type, spacing, or motion values â€
 
 A standalone call after selection produces no recordable target: `converge`'s capture has already run, and `refine` records axis amendments only. Only the selected direction's approved visual target reaches the doc. A target approved on a candidate the human does not choose is discarded with that candidate. An approved visual target's compositional commitments are written into `<output_dir>/direction/<slug>.md` itself, because a file beside the direction doc sits off every path a downstream consumer reads.
 
+When a target exists, record its identity and three boundaries: what is binding,
+what is illustrative, and what may adapt responsively. Composition can bind;
+surface treatment, content claims, exact values, and invented product media do
+not become true because a target shows them.
+
+When no target exists, record `none` and continue. Absence of an approved visual
+target is not a blocker.
+
 ## Default representation
 
 A text schematic is the default representation. It describes spatial arrangement, region proportions, and the relationships between content zones in plain prose and lightweight structural notation. No image-capable harness is required.

@@ -52,6 +52,23 @@ prose above is still valid for quick framing. See
 - **Social job:** <how they want to be perceived by others>
 - **Struggling moment:** <where the current situation fails them>
 
+## Product-to-experience handoff
+
+<!-- Optional. Fill only for a capability or feature intent whose change creates
+or materially changes a human-facing digital surface, journey, interaction,
+content hierarchy, visible state, or what a surface must prove, explain, or
+allow. Omit for product-vision, product-strategy, backend-only, infrastructure,
+internal refactor, dependency, build, or other non-surface work. Derive these
+facts from this intent and, when present, the Digital Experience Contract's
+Product Engineering fields; do not choose experience or implementation
+decisions here. -->
+
+- **Affected journey or surface:** <what user journey or surface is materially affected>
+- **User outcome and first-success behavior:** <what the user can now accomplish, and the behavior that proves first success>
+- **Product mechanism or proof:** <the product-specific mechanism, object, rule, or proof the interface may expose>
+- **Evidence for user-visible claims:** <observed, supported, inferred, assumed, or unknown evidence behind claims a person may see>
+- **Constraints, prohibited claims, and material unknowns:** <what the experience must respect, must not claim, and still does not know>
+
 ## Product-vision fields
 
 <!-- LEVEL-CONDITIONAL — fill only when `Level: product-vision`. The existence

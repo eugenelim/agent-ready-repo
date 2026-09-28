@@ -16,6 +16,13 @@ Name two arrangements before drawing any referents:
 Exclude both from the candidate set. The default is already occupied. Its
 predictable opposite is a reflex, not an idea.
 
+Also name any category-default styling and generic tropes the brief is likely to
+fall into: familiar page structures, fashionable type voices, stock product
+imagery, decorative motion, and material treatments the category already owns.
+This is a detection step, not a prohibition. A familiar pattern remains valid
+when the primary engagement mode and user job earn it; record the reason before
+using it.
+
 ## Deriving referents from the audience's world
 
 Candidates come from what the audience encounters — not from what software

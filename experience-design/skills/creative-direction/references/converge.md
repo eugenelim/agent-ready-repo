@@ -38,6 +38,27 @@ Fill the direction sheet across all fifteen axes for the selected direction. Eac
 
 The first seven axes are structural. Do not leave them at `[platform-default]` by default — decide them.
 
+## Capture the product-specific fields
+
+Record the engagement mode before the direction sheet: primary mode, plus a
+secondary mode only when a distinct user job justifies it. Keep the surface
+genre as a separate field.
+
+Record the product-specific visual thesis: the audience's situation, the
+product's distinctive mechanism, and the honest proof the surface can show. A
+generic "clean and modern" direction does not pass without product-specific
+evidence and choices.
+
+Record the first-viewport thesis: what the opening viewport makes clear, what
+concrete evidence or mechanism it exposes, and which primary action or
+continuation it supports. Do not reduce this to a hero layout template.
+
+Record the approved visual target disposition: `none`, or the named target with
+what is binding, what is illustrative, and what may adapt responsively.
+
+Record available evidence, available assets, placeholders, and provenance for
+any sourced or generated visual assets proposed by the direction.
+
 ## Run the counterfactual check
 
 Name a comparator — a similar brief you could plausibly have been given — and work it through. Any part of the direction that matches what you would produce for that brief is a default, not a choice. Revise it. Record the comparator, what it produced, and what changed and why in the doc's `## Counterfactual check` table. That table is a required field of the direction doc: an empty table means the check has not run, not that nothing needed revision.
@@ -61,6 +82,12 @@ The target is `<output_dir>/direction/<slug>.md`. When the target does not exist
 ## Signature device
 
 Record the signature device: the single visual decision that makes the direction recognisable. `refine` holds it fixed, so a direction without one has nothing to hold.
+
+## Signature interaction
+
+Record a signature interaction only when it materially expresses the product or
+helps a person understand or operate it. `none` is valid. Decorative motion does
+not satisfy this field.
 
 ## Borrowed-discipline record
 

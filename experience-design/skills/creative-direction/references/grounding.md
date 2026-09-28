@@ -6,6 +6,31 @@ build decision. A referent is stable when it exists outside the
 current session and can be pointed to — so a later choice traces back
 to it, not to a fresh opinion.
 
+## Product-specific visual thesis
+
+Before goals can steer visual choices, ground the product itself. Record the
+audience's situation, the distinctive mechanism the product uses to change that
+situation, and the honest proof the surface can show. Honest proof may be a real
+workflow, product state, sample object, certified fact, or user-visible
+mechanism already available to the team.
+
+A direction fails the specificity check when it could be relabeled for a
+category peer without materially changing its evidence, mechanism, or visual
+commitments. Rewrite the thesis until the product would lose something real if a
+peer inherited it unchanged.
+
+## Evidence, assets, and provenance
+
+Separate available evidence from placeholders. Separate available assets from
+placeholders. Do not invent testimonials, customer metrics, product screenshots,
+certifications, or product claims to make the direction feel proved.
+
+When proposing a sourced or generated visual asset, record provenance: where it
+came from, whether it is sourced or generated, what it is allowed to prove, and
+what remains placeholder material. A generated asset can explore composition or
+tone; it cannot prove a real product state, customer outcome, certification, or
+customer quote.
+
 ## The four referent types
 
 ### 1 — Persona
