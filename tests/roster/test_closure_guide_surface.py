@@ -1,5 +1,10 @@
 """
-Goal-based check for AC-0036 of docs/specs/closure-eligibility-check/.
+Goal-based check for AC-0036 of the closure-eligibility-check spec.
+
+The spec is named without its path on purpose. A `docs/specs/<slug>` literal
+in a roster test declares that the test depends on that directory, and the
+protected manifest must then carry it so a prune cannot remove it. This test
+reads `guides/`, not the spec, so the dependency would be false.
 
 The reader-facing guide's § Review the closeout preview names all three
 verdicts and says what a human decides at each. Scoped to that section's body:

@@ -45,8 +45,16 @@ def _normalise_slug(raw: str) -> str:
 
     The corpus's dominant shape is ``- **Slug:** `value` <!-- ... -->``. Stripping
     backticks first no-ops on it, because the line does not end in a backtick.
+
+    ``re.DOTALL`` matters and is not decoration: without it ``.`` stops at a
+    newline, so a comment spanning lines is left in the value and every later
+    comparison runs against text that still carries markup. It also keeps this
+    in step with the shipped normalizers this tool exists to check against —
+    ``intent_shape._COMMENT_SUFFIX`` and its counterpart in ``closure_index``
+    both set it, and a parity tool that normalises differently from its
+    subject can report a disagreement that is its own.
     """
-    value = re.sub(r"<!--.*?-->\s*$", "", raw).strip()
+    value = re.sub(r"<!--.*?-->\s*$", "", raw, flags=re.DOTALL).strip()
     if len(value) >= 2 and value.startswith("`") and value.endswith("`"):
         value = value[1:-1].strip()
     return value
