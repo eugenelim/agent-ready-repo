@@ -547,50 +547,6 @@ def test_ac0023_write_raising_reader_raises_nothing() -> None:
     assert b_slug in result, "expected descendant was not found"
 
 
-# ── Measurement recording ─────────────────────────────────────────────────────
-
-
-def _collect_measurements() -> dict[str, object]:
-    """Run the scaling fixtures and collect read counts for the ledger."""
-    measurements: dict[str, object] = {}
-
-    for collection_size in [20, 100, 400]:
-        fs, root_slug = _make_scaling_fixture(collection_size)
-        ci._build_descendant_closure(
-            root_slug, "children", ROOT,
-            _reader=fs.reader, _dir_lister=fs.dir_lister,
-        )
-        total = sum(fs.read_counter.values())
-        max_r = _max_reads(fs)
-        measurements[f"collection_{collection_size}"] = {
-            "total_reads": total,
-            "max_per_artifact": max_r,
-            "collection_size": collection_size,
-            "closure_size": 4,
-        }
-
-    for depth in [2, 3, 4, 5]:
-        fs, root_slug = _make_saturated_ladder(depth)
-        ci._build_descendant_closure(
-            root_slug, "children", ROOT,
-            _reader=fs.reader, _dir_lister=fs.dir_lister,
-        )
-        total = sum(fs.read_counter.values())
-        max_r = _max_reads(fs)
-        n_intents = len(fs.files)
-        measurements[f"depth_{depth}"] = {
-            "total_reads": total,
-            "max_per_artifact": max_r,
-            "depth": depth,
-            "collection_size": n_intents,
-        }
-
-    return measurements
-
-
-# ── Default-seam reachability: real filesystem via tmp_path ──────────────────
-
-
 def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> None:
     """``_default_reader`` and ``_default_dir_lister`` both run against real files.
 
@@ -857,10 +813,3 @@ def test_confinement_valid_discovery_within_root_resolves_correctly(
     assert spec_slug in result, (
         "a valid in-root Discovery: must resolve correctly with the confined reader"
     )
-
-
-if __name__ == "__main__":
-    # Run measurements and print; used by the verification-ledger update below.
-    import json
-    data = _collect_measurements()
-    print(json.dumps(data, indent=2))
