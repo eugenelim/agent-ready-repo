@@ -64,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.2] — 2026-09-27
+
+### Highlights
+
+- Ask the agent to explain a diff, branch, commit, or pull request and you get back one self-contained offline HTML lesson — background, intuition, a code walkthrough, and a five-question quiz — written for that specific change rather than poured into a shared template. The agent reports the exact file path it wrote.
+
+### Added
+
+- `explain-diff` skill. It traces the changed code and nearby tests, designs the lesson, and publishes it through a bundled standard-library publisher that needs no network access and no third-party dependency.
+- The publisher writes a dated, collision-resistant file under the operating system's temporary directory by default, and writes elsewhere only to an output root the user approves. It redacts secrets, tokens, email addresses, private hostnames, personal names, and user-home paths from the page while preserving the code path being taught.
+- `work-intake` routes explanation requests to `explain-diff`, keeping them separate from correctness review, bug fixing, and document conversion.
+
 ## [core][2.27.1] — 2026-09-27
 
 ### Highlights
@@ -202,6 +214,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `ux-writing`'s scope boundary, onboarding tri-point, and brand-register migration prompt now name `content-design`'s modes instead of the two removed `experience-design` skills. The skill's own behaviour, its artifact markers, and the copy it writes are unchanged.
+- `close-work` now checks whether each intent ancestor above a closing artifact can itself close. When any artifact reaches a terminal state, the skill evaluates each intent ancestor and returns one of three verdicts — **refuse**, **not-eligible**, or **eligible** — with named grounds, and presents an evidence packet before any status is written. On a confirmed eligible transition, a closure record is written to the intent carrying the date, decider, and evidence reviewed.
+
+### Added
+
+- Closure eligibility check in the § Closeout procedure: fires on each intent ancestor when any artifact reaches a terminal state; returns refuse (missing precondition), not-eligible (live descendants named), or eligible (all-terminal closure, evidence packet presented); writes a closure record on confirmed eligible transitions; never sets a status itself.
+- `closure_index.py` and `closure_terminality.py` script seams implementing terminus-driven descendant discovery, confined reads, verdict types, an evidence packet, and a per-decision index discarded by scope.
 
 ## [core][2.26.45] — 2026-09-26
 
