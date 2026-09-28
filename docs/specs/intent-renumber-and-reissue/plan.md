@@ -165,9 +165,48 @@ root: the successor, the tombstone, each rewritten citing file, and the edited
 `workspace.toml`. A failure here abandons the staging directory and the tree is
 untouched.
 
-**Commit.** `os.replace` each staged file over its target, directory-descriptor
-relative, source-before-citations so no window exists where a citation points at
-a path that does not yet exist.
+**Commit.** First sweep: unlink every orphaned per-target temporary in each
+destination directory Commit is about to write. Then, for each staged file, copy
+it to a per-target temporary *beside its target* — exclusive-create,
+`O_NOFOLLOW`, successive candidate names on `FileExistsError` — and `os.replace`
+that temporary onto the target with one directory descriptor as both ends. Order
+is source before citations, so no window exists where a citation points at a
+path that does not yet exist.
+
+Two properties are load-bearing, and each answers a failure the other does not.
+
+*Commit copies rather than moves.* `os.replace` consumes its source, so a
+Commit that replaced straight out of staging would destroy the record its own
+forward recovery reads: after the first success, re-running Commit would find
+that entry gone and could not distinguish "already applied" from "never
+staged". Copying leaves the canonical staged entries intact through Commit,
+which is what makes forward recovery idempotent — a re-run rewrites each target
+from a source that is still there, and an already-applied target is rewritten
+with identical bytes.
+
+*The temporary sits beside its target, and the sweep is what makes that safe.*
+A kill runs no cleanup handler, so a temporary can be orphaned wherever it
+lives. Two designs were considered and the difference is where the orphan is
+answered, not whether it can occur. Putting temporaries in the staging root
+would keep them out of tracked directories, but the replace would then cross
+directories, and `rename(2)` refuses `EXDEV` between distinct mount points even
+when both share one device — so no `st_dev` comparison can predict it, and an
+`EXDEV` met during Commit would defeat the forward recovery that re-runs Commit,
+collapsing AC-0026 to one arm. A same-directory replace cannot raise `EXDEV` at
+all. So the temporary stays beside its target and the orphan is recovered rather
+than prevented: it is a member of the partial state a kill inside Commit already
+produces, which is the state the partition exists to name and both directions
+exist to clear.
+
+The exposure that makes the sweep non-optional is measured, not predicted. An
+orphaned partial copy of a tombstone in `docs/product/intents/` carries
+`Tombstone:`, so AC-0006 routes it as a tombstone on its content — the name does
+not exempt it — and it then fails AC-0005's three-field contract, failing the
+Shipped sibling's corpus lint. `notes/verification-ledger.md` records the run
+that established it, together with the finding that the allocator is unaffected
+because such a name classifies as `outside`. The window in which that state
+exists is the window between a kill and the next recovery action, which is the
+window the design already accepts for a half-applied rename.
 
 A process killed inside Commit leaves a partially applied rename. That is the
 one state the design does not undo itself, and the spec does not promise it
@@ -184,16 +223,26 @@ that recovery reads is derived from what Commit writes, not enumerated by hand:
   has a committed version.
 - **The staging directory is not a target at all.** It is the recovery record,
   created during Stage, and it is a directory, so no unlink reaches it.
+- **Per-target temporaries are created and normally consumed.** Each lives
+  beside its target and is consumed by the `os.replace` that applies it, so
+  after a complete Commit none remain. A kill can orphan the one in flight, so
+  recovery routes them explicitly: they are untracked, `git restore` does not
+  remove them, and leaving one behind is the third state AC-0026 forbids just
+  as much as leaving the successor behind.
 
 Recovery is one of two operations over that derivation, and `git restore` alone
 is neither:
 
-- **Forward.** Re-run Commit over the surviving staging directory. Ends in the
-  complete rename.
-- **Back.** `git restore` every replaced path — which includes the vacated
-  path, restoring the source over the tombstone — unlink the successor, then
-  remove the staging directory tree with a stdlib recursive removal under the
-  same confinement check every other write passes. Ends in the pre-rename
+- **Forward.** Re-run Commit over the surviving staging directory. Its first
+  sweep clears any temporary the kill orphaned, and it terminates in the
+  complete rename because Commit copies rather than moves: every staged entry
+  is still present whatever prefix of Commit ran, and rewriting an
+  already-applied target with identical bytes is a no-op.
+- **Back.** Sweep the per-target temporaries first, because `git restore`
+  cannot see them. Then `git restore` every replaced path — which includes the
+  vacated path, restoring the source over the tombstone — unlink the successor,
+  and remove the staging directory tree with a stdlib recursive removal under
+  the same confinement check every other write passes. Ends in the pre-rename
   state.
 
 The backward direction states its own directory teardown because `cooling.py`
@@ -230,16 +279,21 @@ Owned by: T4
 - **Staging plus `os.replace` over write-in-place plus undo.** An undo log has
   to be correct under its own failures; a staging directory does not exist until
   it is complete.
-- **A shared staging root and retained recovery state, deviating from
-  `cooling.py`'s shape.** `packs/core/.apm/skills/close-work/scripts/cooling.py:615-645`
-  is the repository's durable-write precedent, and its shape is narrower: a
-  per-target hidden temporary in the validated destination directory, one
-  `os.replace`, and an unlink in `finally` so nothing survives a failure. This
-  operation writes across several directories at once and its partial state
-  spans files, so it inherits the directory-descriptor-relative `os.replace`,
-  the exclusive-create open, and the per-write confinement check, but keeps one
-  staging root and retains it. § Failure, edge cases & resilience owns why
-  retention is load-bearing; it is the partition recovery reads.
+- **`cooling.py`'s swap, with one deviation, and a sweep it has no need of.**
+  `packs/core/.apm/skills/close-work/scripts/cooling.py:615-645` is the
+  repository's durable-write precedent, and Commit inherits its swap whole: the
+  exclusive-create `O_NOFOLLOW` open, the `FileExistsError` name retry, the
+  temporary beside its target, and one directory descriptor as both ends of the
+  `os.replace`. The deviation is **the retained staging root**, which
+  `cooling.py` has no equivalent for because it writes one file; this operation
+  writes across several directories, so its partial state spans files and needs
+  one place naming the whole intended path set. What is added rather than
+  deviated is **the sweep**: `cooling.py` discards its temporary in a `finally`
+  block, which a kill never runs, and tolerates an orphan only by retrying
+  names. That is sufficient for one file whose directory nothing lints; it is
+  not sufficient for `docs/product/intents/`, so recovery removes orphans
+  instead of relying on a handler that may not run. § Failure, edge cases &
+  resilience owns the argument.
 - **String occurrence over a parsed citation relation.** A parser is narrower
   than the truth and each review round found the form it missed. A string search
   over a derived file set is exhaustive by construction; its cost is two named
@@ -310,7 +364,22 @@ with no tombstone standing there — and neither leaves the successor or the
 staging directory behind, which is the third state AC-0026 forbids and the case
 a bare `git restore` produces. One case asserts the tombstone is restored by the
 replaced-path arm rather than unlinked, because classifying it as created is the
-error that makes backward recovery delete the source. A successful
+error that makes backward recovery delete the source. One case interrupts
+Commit after each prefix and re-runs it, asserting every staging entry survived
+that prefix and the re-run ends in the complete rename: forward recovery is
+idempotent only because Commit copies to a temporary instead of moving out of
+staging, and a Commit that moved would pass every other case here while
+failing this one. Three cases cover the per-target temporary, because it is the
+one path class that a kill can leave in a tracked directory. One kills Commit
+part-way through a single target's copy, then runs each recovery direction and
+asserts no temporary remains in any destination directory afterwards — a
+direction that skips the sweep fails here and nowhere else. One asserts the
+corpus lint over the fixture's intents directory is clean after that recovery,
+which is the instrument the orphan actually breaks: asserting on the
+temporary's name instead would pass while the lint failed, because AC-0006
+routes on content. One leaves an orphan in place from a previous attempt and
+asserts the next Commit's opening sweep removes it and the rename then
+succeeds, rather than the orphan surviving under a retried name. A successful
 rename is compared byte for byte: the successor equals the source with the
 vacated path substituted and differs nowhere else, which is the self-citing
 source case; each citing file differs only at the path; no other file differs;
@@ -321,10 +390,15 @@ all. Covers
 AC-0003, AC-0026, AC-0013, AC-0018, AC-0024, and AC-0002's successor and
 unaffected-intent arms.
 
-**Approach:** Stage-then-`os.replace` with directory descriptors, as
-`close-work/scripts/cooling.py:630` does. Commit order is source before
-citations, so no window exists where a citation names a path that does not yet
-exist.
+**Approach:** Stage, then sweep each destination directory for orphaned
+temporaries, then per target copy to a temporary beside its target and
+`os.replace` it with one directory descriptor as both ends — inheriting
+`close-work/scripts/cooling.py:615-645`'s exclusive-create open, name retry and
+descriptor-relative replace whole. Commit order is source before citations, so
+no window exists where a citation names a path that does not yet exist. Commit
+never moves a file out of the staging directory, which is what forward recovery
+depends on; the sweep is what keeps a kill from leaving a file the corpus lint
+reads.
 
 **Depends on:** T1, T2, T3
 
