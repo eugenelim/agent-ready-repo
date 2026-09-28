@@ -941,3 +941,150 @@ test for SKILL.md or guide text assertions was found in
 `packs/core/tests/skills/close-work/`. The `_extract_section` helper is new
 and specific to document-section assertions. Ladder stopped at rung 7 (minimum
 correct change). The eval harness additions reused the existing JSON schema.
+
+## Controller notes on T8, the sync, and the manual QA
+
+**Two defects made the check non-functional on real data, and 238 passing
+tests did not see either.** Found only by building a real packet from a real
+tree, which the owner's instruction to run the manual QA properly forced.
+
+1. *Parent edges are typed.* `Parent intent:` carries `<kind>:<slug>`, and the
+   kind names the parent's altitude. Measured 2026-09-27: 33 `capability:`,
+   6 `opportunity:`, 5 `outcome:`, 5 `intent:`. The inversion matched
+   `intent:` alone, so all 8 `children`-terminus ancestors resolved an empty
+   descendant set. Fixed against `intent_shape.OUTCOME_CO_OWNER_KINDS`, which
+   already governs this identical grammar for `Outcome co-owner:`; it is now
+   the fifth parity-pinned projection.
+2. *Specs carry no `Slug:` field.* 0 of 487 do. Identity is the directory
+   name, per `lint-traceability.recognize_specs`. The code read a `Slug:`
+   field and `continue`d, skipping every spec before its up-edge was
+   examined — so the `spec` terminus, used by 12 of 24 decomposed intents,
+   was also entirely dead.
+
+**Why the suite could not see it.** Every fixture wrote `intent:` prefixes,
+invented a `Slug:` on specs, and laid specs out flat rather than at
+`<slug>/spec.md`. The tests and the implementation shared one model of the
+reference grammar and neither matched the corpus, so each confirmed the other.
+The delivery brief's own warning names this exactly: a fixture and a rule
+written from one mental model prove consistency with each other, not
+correctness.
+
+**The durable control.** The parity gate now asserts, **per terminus**, that
+each inversion resolves at least one descendant on the live corpus. Per
+terminus is the load-bearing part: the first version checked corpus-wide and
+passed while `children` was dead, because the `spec` terminus still worked. A
+corpus-wide check cannot see one dead inversion among several.
+
+**Effect of the fix, measured.** Before: every decomposed ancestor refused
+with `empty-descendant-set`. After: 11 not-eligible and 1 eligible across the
+Accepted decomposed intents, and all three termini resolve
+(`children` 8, `brief` 4, `spec` 1). The not-eligible branch the de-risk
+record called never-run now runs on 11 real ancestors.
+
+### The manual QA ran for real, and the packet did not carry the decision
+
+`architect-design-conditional-overlays` is a genuine eligible closure, so the
+run used it rather than a fixture. A fresh decider was given the packet alone,
+with no repository access and an instruction not to look anything up.
+
+**Verdict: could not decide.** Not a decline on the merits. The packet
+establishes that the tree beneath the intent is finished; it never states what
+the intent promised, so the decider could not judge whether finishing that
+tree delivered it. The one blocking absence was the intent's own outcome
+statement. The decider also flagged that a single descendant named
+`architect-design-shape-overlay` under a parent named
+`architect-design-conditional-overlays` needs a completeness claim — "N of N
+ratified children" — distinct from the terminality claim, because
+all-descendants-terminal is silent about children that were never created.
+
+**The predeclared line passed, and the pass is not worth much.** "The decider
+opened nothing the packet did not name" was met — the decider opened nothing
+at all. It was also instructed not to, and it declined rather than deciding.
+A decider who refuses to decide satisfies that line vacuously. The line
+measures *whether anything outside the packet was consulted*; what matters is
+*whether the packet was sufficient*, and only the first was tested. The
+parent's § Validation hook owns that line, and it is weaker than the property
+it was written to establish.
+
+**Smaller packet findings from the same run.** `stated confidence` names no
+confidence, only caveats. Its co-owner caveat reads as boilerplate that
+contradicts `outcome co owner: None` two lines below, leaving the decider
+hunting a risk that is not there. `workspace registration` renders an
+unlabelled path-and-collection pair. `Shipped` carries no date or evidence
+pointer. Nothing states what approving actually does.
+
+### Divergence from upstream on freshness, recorded deliberately
+
+`origin/main` gained `fix(work-loop): continue when base freshness is
+unavailable`: when a closed set of remote-unavailable causes blocks the check,
+it now returns `skipped` and work continues. This check does the opposite and
+refuses. That is intentional, on the ground the parent intent already states:
+`check-base-freshness.py` gates *entry* to work, where being permissive is
+cheap because the branch can be updated later, while this check gates a
+*terminal status write*, which the parent calls the moment the claim is
+strongest and least recoverable. Adopting the upstream distinction between
+"network blocked" and "not a repository" would be a real improvement and is
+not taken here.
+
+### The run's telemetry ends at schema 1
+
+Upstream's durable-cohort-transitions change moved cohort state to schema 2
+mid-flight. This run is schema 1, so `loop-cohort` and `loop-engine` both
+refuse and point at a destructive reset pair. Owner decision 2026-09-27: leave
+the state at schema 1 and complete without further transitions, preserving the
+audit trail — 7 dispatch receipts, the wave history, and the approval baseline
+hashes — rather than discarding it to obtain a well-formed final state. The
+engine therefore records no formal close for this run, and that is deliberate.
+
+## The manual QA, second run — against the amended packet
+
+The owner amended AC-0027 from six fields to eight on the first run's finding,
+adding `stated_outcome` (AC-0038) and a `ratified_child_count` reported as
+"N of M" separately from the terminality basis (AC-0039), plus a conditional
+co-owner caveat (AC-0040). The line was also raised: the first run's line —
+*the decider opened nothing the packet did not name* — passes for a decider
+who declines, so the second run used **the decider could reach a decision
+from the packet alone**.
+
+**Line met.** A fresh decider, packet only, reached **decline** on the merits
+from the packet alone. Not an abstention.
+
+**And the finding is sharper than the first.** The decider observed that the
+packet supported a decline and *could not have supported an approve*. The
+stated outcome carries three clauses; the ratified decomposition is 1 of 1;
+nothing maps the single child to the clauses. Had that child genuinely
+delivered all three, the packet would have looked identical and the decider
+would still have declined. In its words: a packet that can only ever produce
+one of the two answers is a rejection filter, not a decision instrument.
+
+**Not fixable the way it was asked, and the reason matters.** The requested
+field is a clause-to-descendant coverage map. No check can derive it: which
+descendant delivered which clause of a prose outcome is a semantic judgement,
+and it is precisely the judgement the parent's § Outcome › Guardrail keeps
+with the human — a status is never set by a count. Adding the mapping
+mechanically would mean the check pre-deciding the thing it exists to elicit.
+
+**What *is* mechanically available and is not yet carried**, recorded as the
+real residue rather than the one asked for:
+
+- *What the ratification accepted.* `Decomposed:` carries a date and a
+  terminus and names no member, so the packet can say ratification happened
+  and never what it covered. On a 1-of-1 tree that is the whole question.
+  Closing it needs a field FEAT-0001 owns, not a change here.
+- *Evidence behind a descendant's status.* The packet carries `Shipped` and a
+  path; who set it and against what check is absent.
+- *What approving does, and whether it reverses.* A decider authorising an
+  irreversible step should be told it is one.
+
+**Two interpretation defects survived the amendment** and are cheap: the
+`workspace registration` pair renders unlabelled, so `backlog.open` reads
+either as a register section or as a live open item that closure would
+strand; and `disposition row: None` cannot be told from "none required" — the
+two readings point opposite ways.
+
+**What this run establishes about the instrument, not just the packet.** Two
+runs at two different lines produced two different verdicts — *cannot decide*
+then *decline* — and only the second was informative. The weaker line is
+satisfiable by refusing to engage. Any future slice reusing the parent's
+§ Validation hook wording will inherit that, which is why the wording is
+recorded as owed back to the parent.

@@ -629,3 +629,120 @@ def test_the_module_contains_no_write_primitive() -> None:
         f"closure_index.py gained a filesystem-mutating call: {found}. "
         "The check is read-only; mutation belongs behind the confirmation seam."
     )
+
+
+def _dr(slug: str, status: str = "Fulfilled", kind: str = "intent"):
+    """A terminal descendant record, for packet-shape assertions."""
+    return ci.DescendantRecord(slug=slug, kind=kind, status=status, terminus="")
+
+
+# ── AC-0038/0039/0040: what a real decider needed and did not get ────────────
+#
+# These three come from the manual run, not from review. A decider given the
+# six-field packet for a real eligible closure returned *cannot decide*: the
+# packet showed the tree was finished and never said what the intent promised.
+
+
+def test_ac0038_packet_carries_the_ancestors_stated_outcome() -> None:
+    outcome = "Adopters stop hand-rolling the overlay."
+    pk = ci._build_eligible_packet(
+        ancestor_slug="anc",
+        ancestor_terminus="children",
+        ancestor_fields={"Decomposed": "2026-09-19 children", "__outcome__": outcome},
+        descendants={},
+        basis="all-descendants-terminal",
+        decider="eugenelim",
+        decision_date="2026-09-27",
+        workspace_lookup=None,
+        disposition_lookup=None,
+    )
+    assert pk.stated_outcome == outcome
+
+
+def test_ac0038_a_missing_outcome_is_stated_not_omitted() -> None:
+    """A decider cannot tell a dropped field from an intent that promised nothing."""
+    pk = ci._build_eligible_packet(
+        ancestor_slug="anc",
+        ancestor_terminus="children",
+        ancestor_fields={"Decomposed": "2026-09-19 children"},
+        descendants={},
+        basis="b",
+        decider="d",
+        decision_date="2026-09-27",
+        workspace_lookup=None,
+        disposition_lookup=None,
+    )
+    assert pk.stated_outcome
+    assert "not stated" in pk.stated_outcome
+
+
+def test_ac0039_child_count_reports_resolved_against_declared() -> None:
+    """Resolved and declared are reported separately (AC-0039)."""
+    pk = ci._build_eligible_packet(
+        ancestor_slug="anc",
+        ancestor_terminus="children",
+        ancestor_fields={"Decomposed": "2026-09-19 children", "__declared_children__": "4"},
+        descendants={"a": _dr("a"), "b": _dr("b")},
+        basis="b",
+        decider="d",
+        decision_date="2026-09-27",
+        workspace_lookup=None,
+        disposition_lookup=None,
+    )
+    # Both numbers present: a tree missing a ratified child must be visible,
+    # not inferable only by someone who already knows the denominator.
+    assert pk.ratified_child_count == "2 of 4"
+
+
+def test_ac0039_an_unknown_denominator_is_said_not_guessed() -> None:
+    """An unknown denominator is stated, never guessed (AC-0039)."""
+    pk = ci._build_eligible_packet(
+        ancestor_slug="anc",
+        ancestor_terminus="children",
+        ancestor_fields={"Decomposed": "2026-09-19 children"},
+        descendants={"a": _dr("a")},
+        basis="b",
+        decider="d",
+        decision_date="2026-09-27",
+        workspace_lookup=None,
+        disposition_lookup=None,
+    )
+    assert "1 resolved" in pk.ratified_child_count
+    assert "not stated" in pk.ratified_child_count
+
+
+def test_ac0040_no_co_owner_means_no_co_owner_caveat() -> None:
+    """A caveat that always fires sends the decider after a ruled-out risk (AC-0040)."""
+    pk = ci._build_eligible_packet(
+        ancestor_slug="anc",
+        ancestor_terminus="children",
+        ancestor_fields={"Decomposed": "2026-09-19 children"},
+        descendants={},
+        basis="b",
+        decider="d",
+        decision_date="2026-09-27",
+        workspace_lookup=None,
+        disposition_lookup=None,
+    )
+    assert pk.outcome_co_owner is None
+    assert "co-owner" not in pk.stated_confidence.lower()
+
+
+def test_ac0040_a_declared_co_owner_does_carry_the_caveat() -> None:
+    """The paired arm for AC-0040: removing the caveat outright would pass the case above."""
+    pk = ci._build_eligible_packet(
+        ancestor_slug="anc",
+        ancestor_terminus="children",
+        ancestor_fields={
+            "Decomposed": "2026-09-19 children",
+            "Outcome co-owner": "capability:peer-thing",
+        },
+        descendants={},
+        basis="b",
+        decider="d",
+        decision_date="2026-09-27",
+        workspace_lookup=None,
+        disposition_lookup=None,
+    )
+    assert pk.outcome_co_owner == "capability:peer-thing"
+    assert "co-owner" in pk.stated_confidence.lower()

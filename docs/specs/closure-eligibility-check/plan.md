@@ -1,7 +1,7 @@
 # Plan: closure eligibility check
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - `packs/core/.apm/skills/close-work/SKILL.md` § Closeout procedure step 1 and
     § Exact immediate effect — the contract surface this change extends, and the
@@ -406,9 +406,16 @@ paired positive case.
 **Mode:** TDD, plus manual QA for the real run
 
 **Tests:**
-- The packet carries date, decider, ratified `Decomposed:` value, verification
-  basis, per-descendant verdict with evidence locator, and a stated-confidence
-  line naming what was not checked (AC-0027).
+- The packet carries all eight fields, asserted per field so dropping any one
+  reds on its own (AC-0027).
+- The packet carries the ancestor's stated outcome, read from its declared
+  outcome section; an ancestor whose outcome section is absent reports that
+  absence rather than omitting the field silently (AC-0038).
+- The ratified child count reports resolved and declared separately, and a
+  tree where the two differ shows both numbers rather than one (AC-0039).
+- An ancestor declaring no `Outcome co-owner:` produces a stated-confidence
+  line with no co-owner caveat; one declaring a co-owner does carry it — the
+  paired arm, without which removing the caveat entirely would pass (AC-0040).
 - An ancestor declaring `Outcome co-owner:` has that peer named in the packet,
   and the verdict is unchanged by the peer's state (AC-0028).
 - The check runs to a verdict against a filesystem double that raises on any
@@ -485,6 +492,12 @@ guide section renders.
 - 2026-09-26 — spec approved by eugenelim. Taken on a `Findings` result rather
   than a `Clean` one; `spec.md`'s `Approved:` line records the review trend and
   the residual risk accepted.
+- 2026-09-27 — AC-0027 amended from six packet fields to eight, and AC-0038,
+  AC-0039 and AC-0040 added, on owner authority after the first manual run
+  returned *cannot decide* against a real eligible closure. The engine could
+  not record the amendment transitions: upstream moved cohort state to schema
+  2 mid-run, so authority and evidence are recorded here and in
+  `notes/verification-ledger.md` instead.
 - 2026-09-26 — plan approved by eugenelim, on the same basis. T1's
   brief-terminality mechanism stays a discovery predicate carrying a kill
   condition: if no route keeps a single defining home, T1 stops and routes the

@@ -1,6 +1,6 @@
 # Spec: closure eligibility check
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-09-26 by eugenelim, spec and plan together. **Taken on a `Findings` result, not a `Clean` one**, and recorded here because `work-loop` expects a Clean pre-EXECUTE review and this transition did not have one. Four adversarial spec-mode rounds returned 8, 4, 4 and 2 Blockers, and a shaping review run fresh after the slice was narrowed returned 4; every finding from the final round of both reviewers was applied, and no round was re-run to confirm the result. The owner accepted the residual risk § Assumptions records — three unratified deviations from the parent's § Boundary conditions, and a brief-terminality read mechanism still carried as a T1 discovery predicate with a kill condition rather than a settled design.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -160,7 +160,13 @@ Each criterion appears in exactly one group below. Every task states its mode.
   the module-private construction. A reachability differential against
   `validate_live_intent()` is not used here, and § Assumptions records that
   substitution against the parent's condition (b) for the owner to confirm.
-- **The packet — AC-0027, AC-0028, AC-0031:** TDD for the field set, including
+- **The packet — AC-0027, AC-0028, AC-0031, AC-0038, AC-0039, AC-0040:** TDD
+  for the field set. The three added criteria come from the manual run, not
+  from review: a decider given the six-field packet for a real eligible
+  closure returned *cannot decide*, because the packet established that the
+  tree was finished and never said what the intent promised. AC-0040 is a
+  negative: the co-owner caveat must not fire when no co-owner is declared.
+  Also TDD for the field set, including
   AC-0031's naming of the registration entry the human must clear, plus manual
   QA for
   one real closure decision, judged against the line the parent's § Validation
@@ -187,19 +193,19 @@ Each criterion appears in exactly one group below. Every task states its mode.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** A terminal transition on an artifact fires a closure check
+- [x] **AC-0001.** A terminal transition on an artifact fires a closure check
       on each **intent** ancestor above it, on the `close-work` run performing
       that transition. No sweep and no schedule reaches the check. A brief is
       walked through to reach the intent above it and is never itself evaluated
       as an ancestor.
-- [ ] **AC-0002.** The ancestor chain resolves from the declared up-edge each
+- [x] **AC-0002.** The ancestor chain resolves from the declared up-edge each
       artifact kind carries: an intent's and a brief's `Parent intent:`, and a
       spec's `Brief:` or `Discovery:` value. A spec carries no `Parent intent:`
       field and reaches a `spec`-terminus intent only through `Discovery:`, so
       an implementation reading `Parent intent:` and `Brief:` alone resolves no
       ancestor for half the decomposed corpus — measured 2026-09-26, 12 of 24
       decomposed intents carry a `spec` terminus.
-- [ ] **AC-0003.** A `Discovery:` value is resolved across the three forms the
+- [x] **AC-0003.** A `Discovery:` value is resolved across the three forms the
       corpus uses — measured 2026-09-26: 17 bare repository-relative paths, 9
       backticked paths, and 3 markdown links. Resolution reads the target
       artifact's `Slug:` to obtain identity, and a value whose target is not an
@@ -207,22 +213,22 @@ Each criterion appears in exactly one group below. Every task states its mode.
       `intent_shape.normalize_value` does not reduce the link form, so a
       mechanism relying on it alone leaves `rendered-page-visual-inspection`
       unresolvable against its `spec`-terminus parent.
-- [ ] **AC-0004.** The check returns exactly one of `refuse`, `not-eligible`, or
+- [x] **AC-0004.** The check returns exactly one of `refuse`, `not-eligible`, or
       `eligible`. Every reachable path returns one of the three, and no path
       collapses `refuse` into `not-eligible`.
-- [ ] **AC-0005.** This spec declares the terminal intent statuses to be
+- [x] **AC-0005.** This spec declares the terminal intent statuses to be
       exactly `Fulfilled`, `Withdrawn`, `Cancelled` and `Superseded`, and that
       declaration is the only place the check reads intent terminality from. A
       parity test asserts it against the parent intent's § The lifecycle ›
       Intent states `Terminal` column, iterated over the shipped status
       vocabulary so a status added upstream fails rather than passing unnoticed.
-- [ ] **AC-0006.** A brief's terminality is decided by a two-part predicate
+- [x] **AC-0006.** A brief's terminality is decided by a two-part predicate
       over the shipped brief vocabulary: a status outside that vocabulary is
       **live**, and a status inside it with no outgoing edge in the shipped
       transition table is terminal. The unknown status resolves live because
       eligible authorises a terminal write, so the safe direction is the one
       that refuses to authorise it.
-- [ ] **AC-0007.** Both terminality predicates are parity-pinned projections,
+- [x] **AC-0007.** Both terminality predicates are parity-pinned projections,
       each carrying a test that asserts it against the upstream home it derives
       from and reds when that upstream changes. Neither is authoritative. The
       intent projection additionally states what it is **not**:
@@ -231,41 +237,41 @@ Each criterion appears in exactly one group below. Every task states its mode.
       status at which a kind rests in its collection — and not lifecycle
       terminality. Reusing it would make `Accepted` terminal, which is the
       false-eligible direction.
-- [ ] **AC-0008.** An ancestor intent whose `Status` is neither `Accepted` nor
+- [x] **AC-0008.** An ancestor intent whose `Status` is neither `Accepted` nor
       terminal refuses, naming the unreached `Accepted` precondition.
-- [ ] **AC-0009.** An ancestor intent that has already reached a terminal state refuses,
+- [x] **AC-0009.** An ancestor intent that has already reached a terminal state refuses,
       naming that it is already closed.
-- [ ] **AC-0010.** An ancestor intent whose `Decomposed:` is absent or `no` refuses,
+- [x] **AC-0010.** An ancestor intent whose `Decomposed:` is absent or `no` refuses,
       naming the absent ratified delivery set.
-- [ ] **AC-0011.** An ancestor whose `Decomposed:` terminus expects artifact
+- [x] **AC-0011.** An ancestor whose `Decomposed:` terminus expects artifact
       children but whose descendant set is empty refuses, naming the empty set.
-- [ ] **AC-0012.** An ancestor whose `Decomposed:` terminus is `closed-empty`
+- [x] **AC-0012.** An ancestor whose `Decomposed:` terminus is `closed-empty`
       but whose descendant set is non-empty refuses, naming the descendants the
       terminus says do not exist.
-- [ ] **AC-0013.** An ancestor whose `Decomposed:` terminus is `direct-light`
+- [x] **AC-0013.** An ancestor whose `Decomposed:` terminus is `direct-light`
       but whose descendant set is non-empty refuses, naming those descendants.
-- [ ] **AC-0014.** An ancestor whose `Decomposed:` terminus is `closed-empty`
+- [x] **AC-0014.** An ancestor whose `Decomposed:` terminus is `closed-empty`
       and whose descendant set is empty returns eligible on that ground, absent
       a refusal ground another criterion states.
-- [ ] **AC-0015.** An ancestor whose `Decomposed:` terminus is `direct-light`
+- [x] **AC-0015.** An ancestor whose `Decomposed:` terminus is `direct-light`
       and whose descendant set is empty returns eligible on that ground, absent
       a refusal ground another criterion states. That terminus records children
       that are not artifacts, so no artifact walk can observe them.
-- [ ] **AC-0016.** An ancestor that has reached `Accepted`, carries a
+- [x] **AC-0016.** An ancestor that has reached `Accepted`, carries a
       `Decomposed:` terminus expecting artifact children, and whose full
       descendant closure is non-empty and entirely terminal returns eligible on
       that ground, absent a refusal ground another criterion states.
-- [ ] **AC-0017.** An ancestor with at least one non-terminal descendant in its
+- [x] **AC-0017.** An ancestor with at least one non-terminal descendant in its
       full closure returns not-eligible on that ground, absent a refusal ground
       another criterion states, and the verdict names every live descendant's
       slug and its current state.
-- [ ] **AC-0018.** A refusal ground outranks both the not-eligible and the
+- [x] **AC-0018.** A refusal ground outranks both the not-eligible and the
       eligible grounds. Where an input satisfies a refusal criterion and also
       satisfies AC-0014, AC-0015, AC-0016 or AC-0017, the check refuses, so
       exactly one verdict is defined for every input.
-- [ ] **AC-0019.** The descendant set is the full closure beneath the ancestor,
+- [x] **AC-0019.** The descendant set is the full closure beneath the ancestor,
       not one hop.
-- [ ] **AC-0020.** The closure crosses artifact kinds, routed by the ancestor's
+- [x] **AC-0020.** The closure crosses artifact kinds, routed by the ancestor's
       `Decomposed:` terminus, and every terminus in the shipped vocabulary that
       names an artifact collection states the up-edge inverted to reach it: a
       `children` terminus inverts `Parent intent:` over intents, a `brief`
@@ -274,27 +280,27 @@ Each criterion appears in exactly one group below. Every task states its mode.
       `Discovery:` over specs. Every arm inverts a declared preamble field; no
       arm reads a body table, including a brief's Spec map. A terminus naming no artifact collection inverts
       nothing.
-- [ ] **AC-0021.** Every descendant state a verdict rests on is resolved during
+- [x] **AC-0021.** Every descendant state a verdict rests on is resolved during
       the decision that uses it. No decision reuses a state, an index, or a
       verdict built by an earlier decision.
-- [ ] **AC-0022.** A closure decision refuses when HEAD is not current against
+- [x] **AC-0022.** A closure decision refuses when HEAD is not current against
       the merge target at the closing edge, and does not refuse on that ground when it is current.
-- [ ] **AC-0023.** The descendant set is written to no file and no environment
+- [x] **AC-0023.** The descendant set is written to no file and no environment
       variable, asserted by a write-raising filesystem double and an environment
       snapshot compared across the decision.
-- [ ] **AC-0024.** A closure decision opens each artifact at most once. The
+- [x] **AC-0024.** A closure decision opens each artifact at most once. The
       limit is a per-artifact maximum over every artifact the decision opens,
       candidates included, measured from the check's entry to its verdict; a
       visited set is the enforcement mechanism; and the input that makes it fire
       first is a diamond, where one descendant is reachable from an evaluated
       ancestor by more than one path.
-- [ ] **AC-0025.** A closure decision opens only the collections the
+- [x] **AC-0025.** A closure decision opens only the collections the
       `Decomposed:` termini along its closure name. A collection no terminus
       along that closure names is never opened. The enforcement mechanism is
       that discovery is driven by the terminus at each level rather than by a
       directory scan, and the input that makes it fire first is an ancestor
       whose terminus names one collection while another collection exists.
-- [ ] **AC-0037.** A closure decision opens no more artifacts than the summed
+- [x] **AC-0037.** A closure decision opens no more artifacts than the summed
       size of the collections the `Decomposed:` termini along its closure name.
       The limit is measured per decision from the check's entry to its verdict;
       its enforcement mechanism is that discovery never recurses outside those
@@ -304,21 +310,37 @@ Each criterion appears in exactly one group below. Every task states its mode.
       400 artifacts and not more. This is the bound the parent's § Boundary and
       the brief's § Candidate delivery slices both owe, stated as a derivation
       because the absolute number moves with the corpus.
-- [ ] **AC-0026.** The descendant construction is module-private, and a test
+- [x] **AC-0026.** The descendant construction is module-private, and a test
       enumerates its callers. Adding a caller outside the closure check's own
       entry point fails that test.
-- [ ] **AC-0027.** An eligible verdict presents an evidence packet carrying six
-      fields: the decision date, the decider, the ancestor's ratified
-      `Decomposed:` value, the basis on which the outcome was verified, a
-      per-descendant verdict with an evidence locator for each, and a
-      stated-confidence line naming what was not checked.
-- [ ] **AC-0028.** Where the ancestor declares an `Outcome co-owner:`, the packet
+- [x] **AC-0027.** An eligible verdict presents an evidence packet carrying
+      eight fields: the decision date, the decider, the ancestor's **stated
+      outcome**, the ancestor's ratified `Decomposed:` value, a **ratified
+      child count** of the form "N of N", the basis on which the outcome was
+      verified, a per-descendant verdict with an evidence locator for each,
+      and a stated-confidence line naming what was not checked.
+- [x] **AC-0038.** The packet carries the ancestor's stated outcome, read from
+      its declared outcome section. A decider asked whether finishing the tree
+      delivered the intent cannot answer from terminality alone, because
+      terminality says the recorded children finished and says nothing about
+      what was promised.
+- [x] **AC-0039.** The packet's ratified child count states how many
+      descendants the walk resolved against how many the ratified
+      decomposition declares, and the two are reported separately rather than
+      as one number. "Every descendant is terminal" is silent about a
+      descendant that was never created, so a completeness claim cannot be
+      derived from a terminality claim.
+- [x] **AC-0040.** Where the ancestor declares no `Outcome co-owner:`, the
+      stated-confidence line carries no co-owner caveat. A caveat that fires
+      unconditionally sends a decider looking for a risk the packet has
+      already ruled out.
+- [x] **AC-0028.** Where the ancestor declares an `Outcome co-owner:`, the packet
       names that peer. The verdict is not gated on the peer's state, which sits
       outside the closure the check is entitled to read.
-- [ ] **AC-0029.** The check writes no `Status:` value.
-- [ ] **AC-0030.** No `Status:` write reaches the filesystem on a path where
+- [x] **AC-0029.** The check writes no `Status:` value.
+- [x] **AC-0030.** No `Status:` write reaches the filesystem on a path where
       the human declined the presented evidence or has not yet answered.
-- [ ] **AC-0031.** Where the closing intent has a `workspace.toml`
+- [x] **AC-0031.** Where the closing intent has a `workspace.toml`
       registration, the evidence packet names that entry and its collection as
       an effect the human must clear in the same confirmed action as the status
       write. The check performs no such write itself. Leaving the entry in
@@ -326,25 +348,25 @@ Each criterion appears in exactly one group below. Every task states its mode.
       `workspace-queue-reconciliation` reports as `impossible_transition`, and
       no collection admits a closed intent, so an uncleared entry is
       permanently non-dispatchable.
-- [ ] **AC-0032.** A terminal transition on an intent writes a closure record
+- [x] **AC-0032.** A terminal transition on an intent writes a closure record
       whose value satisfies the shipped `Fulfilled:` value rule — an ISO date, a
       space, then non-empty text naming the decider and the evidence — asserted
       by passing the written value back through that rule.
-- [ ] **AC-0033.** `close-work`'s § Closeout procedure states the trigger, all
+- [x] **AC-0033.** `close-work`'s § Closeout procedure states the trigger, all
       three verdict names as a set, and the closure record. The assertion is
       scoped to that section's body: measured 2026-09-26, the skill file already
       contains 13 occurrences of refusal and eligibility wording in its
       disposition contract, so a document-wide substring check passes before
       any work is done.
-- [ ] **AC-0034.** The product-bet disposition lookup is optional. When no
+- [x] **AC-0034.** The product-bet disposition lookup is optional. When no
       disposition row's eligibility clause reaches the artifact, the check
       reports that absence and continues; it neither defaults to a row nor fails
       the decision.
-- [ ] **AC-0035.** An artifact a disposition row's eligibility clause does
+- [x] **AC-0035.** An artifact a disposition row's eligibility clause does
       reach has that row reported. Without this arm an implementation reporting
       absence unconditionally, never consulting the contract, satisfies the
       absence criterion.
-- [ ] **AC-0036.** `guides/core/how-to/close-and-disposition-work.md`
+- [x] **AC-0036.** `guides/core/how-to/close-and-disposition-work.md`
       § Review the closeout preview names all three verdicts and says what a
       human decides at each. The assertion is scoped to that section's body.
 
@@ -367,6 +389,31 @@ Each criterion appears in exactly one group below. Every task states its mode.
 - eugenelim, `brief:intent-lifecycle-and-closure` slice 4 — the retention
   eligibility row for work that closed without delivering. AC-0034 reports the
   absence this spec leaves in place; slice 4 fills it.
+- eugenelim, [FEAT-0001](../../product/intents/FEAT-0001-intent-identity-and-registration.md) —
+  **a ratified-membership field.** `Decomposed:` records a date and a terminus
+  and names no member, so a packet can say a decomposition was ratified and
+  never what it covered. On a one-child tree that is the whole question, and
+  the second manual run declined on exactly it. Mechanically closable only by
+  a field that names members.
+- eugenelim, `brief:intent-lifecycle-and-closure` — **the packet cannot
+  distinguish a complete delivery from an incomplete one.** Both manual runs
+  found this; the second stated it precisely: the packet supports a decline
+  and cannot support an approve, because nothing maps outcome clauses to
+  descendants. A mechanical mapping is not available — which descendant
+  delivered which clause is the judgement the parent's Guardrail keeps with
+  the human — so closing this needs a shaping decision about what the packet
+  owes, not an implementation change.
+- eugenelim, parent intent § Validation hook — **the predeclared line is
+  weaker than the property.** "The decider opened nothing the packet did not
+  name" is satisfied by a decider who declines to engage, as the first run
+  showed. "The decider could reach a decision from the packet alone" is the
+  line that produced a finding. Any slice reusing the current wording
+  inherits the weakness.
+- eugenelim, `brief:intent-lifecycle-and-closure` — **two packet fields read
+  two ways.** `workspace registration` renders an unlabelled path/collection
+  pair, so `backlog.open` reads either as a register section or as a live
+  open item closure would strand; and `disposition row: None` cannot be told
+  from "none required".
 - eugenelim, [`brief:intent-identity-and-registration`](../../product/briefs/intent-identity-and-registration.md)
   § Post-Ready decisions — a declared carve-out marker and a declared citation
   or claims marker, both recorded there 2026-09-26. Without the first, C1's

@@ -178,6 +178,31 @@ def reference_kind_parity_disagreements(upstream_kinds: Iterable[str]) -> list[s
     return disagreements
 
 
+def read_stated_outcome(text: str) -> str:
+    """Return the ancestor's declared outcome, collapsed to one line.
+
+    Reads the ``## Outcome`` section. This is body text, not a preamble
+    field, and it is read deliberately: it is shown to a human and gates no
+    verdict. The no-body-gating rule constrains what a *transition* may be
+    decided on, and nothing here decides one.
+
+    Returns ``""`` when no outcome section exists, so the caller can state the
+    absence rather than omit the field.
+    """
+    lines = text.splitlines()
+    out: list[str] = []
+    inside = False
+    for line in lines:
+        if line.startswith("## "):
+            if inside:
+                break
+            inside = line.strip().lower() == "## outcome"
+            continue
+        if inside and line.strip():
+            out.append(line.strip().lstrip("-").strip())
+    return " ".join(out).strip()
+
+
 def _spec_slug(path: Path) -> str:
     """A spec's identity is its directory name, not a preamble field.
 
@@ -560,17 +585,47 @@ def _build_eligible_packet(
         disposition_lookup(ancestor_slug) if disposition_lookup is not None else None
     )
 
+    # The ancestor's own promise. Without it a decider can see that the tree
+    # finished and still not know whether finishing it delivered anything
+    # (AC-0038). A stated absence beats a silent omission: the decider cannot
+    # otherwise tell a missing field from an intent that promised nothing.
+    stated_outcome = ancestor_fields.get("__outcome__", "").strip() or (
+        "not stated: the ancestor declares no outcome section this check could read"
+    )
+
+    # Resolved against declared, separately (AC-0039). Terminality is silent
+    # about a child that was never created, so completeness cannot be read off
+    # it. ``declared`` is unknown unless the ancestor states it, and an
+    # unknown denominator is said rather than guessed.
+    declared_raw = ancestor_fields.get("__declared_children__", "").strip()
+    ratified_child_count = (
+        f"{len(descendants)} of {declared_raw}"
+        if declared_raw
+        else f"{len(descendants)} resolved; declared count not stated by the ancestor"
+    )
+
     # Stated confidence: name the known gaps so the decider can judge (AC-0027).
-    stated_confidence = (
-        "Peer closure state not verified: Outcome co-owner, if declared, is named "
-        "but its current status is outside the boundary this check may read. "
+    # The co-owner caveat is conditional (AC-0040). Firing it when no co-owner
+    # is declared sends the decider hunting a risk the packet already ruled
+    # out two fields below.
+    caveats = []
+    if outcome_co_owner is not None:
+        caveats.append(
+            "Peer closure state not verified: the declared Outcome co-owner is "
+            "named but its current status is outside the boundary this check "
+            "may read."
+        )
+    caveats.append(
         "The ancestor's own cited claims were not independently re-validated."
     )
+    stated_confidence = " ".join(caveats)
 
     return EligiblePacket(
         decision_date=decision_date,
         decider=decider,
+        stated_outcome=stated_outcome,
         ratified_decomposed=ratified_decomposed,
+        ratified_child_count=ratified_child_count,
         verification_basis=basis,
         per_descendant_verdicts=per_descendant,
         stated_confidence=stated_confidence,
@@ -779,9 +834,19 @@ class ClosureNotEligible:
 class EligiblePacket:
     """Evidence packet presented to the human decider on an eligible verdict (AC-0027).
 
-    Six required fields carry the decision context needed to confirm the closure.
-    All six must be non-empty so the packet is self-sufficient — the decider
-    does not need to open any artifact that the packet does not name.
+    Eight required fields carry the decision context needed to confirm the
+    closure. Self-sufficiency is the property that matters and it is stronger
+    than "the decider consulted nothing": a decider who declines consults
+    nothing too. A six-field version of this packet was put to a decider on a
+    real eligible closure and returned *cannot decide* — it established that
+    the tree was finished and never said what the intent promised, so there
+    was no way to judge whether finishing the tree delivered it.
+
+    ``stated_outcome`` and ``ratified_child_count`` are the two fields that
+    answered that. The second is deliberately separate from the terminality
+    basis: "every descendant is terminal" is silent about a descendant that
+    was never created, so a completeness claim cannot be read off a
+    terminality claim.
 
     Two optional fields report co-ownership and workspace-registration obligations.
     One optional field reports the product-bet disposition lookup.
@@ -793,8 +858,23 @@ class EligiblePacket:
     decider: str
     """Identity of the decider performing the closure (non-empty)."""
 
+    stated_outcome: str
+    """The ancestor's own outcome, or a stated absence.
+
+    Read from its declared outcome section. Never silently omitted: a decider
+    cannot tell a missing field from an intent that promised nothing.
+    """
+
     ratified_decomposed: str
     """Ancestor's full ``Decomposed:`` value (e.g. ``"2026-09-19 children"``)."""
+
+    ratified_child_count: str
+    """Descendants resolved against descendants declared, as ``"N of M"``.
+
+    Reported separately from the terminality basis, and the two numbers are
+    reported separately from each other, so a tree missing a ratified child
+    is visible rather than inferred.
+    """
 
     verification_basis: str
     """Basis on which the outcome was verified (non-empty)."""
@@ -1206,6 +1286,15 @@ def check_ancestor_closure(
         )
 
     ct = _get_closure_terminality()
+
+    # The ancestor's own promise reaches the packet through ``_ancestor_fields``
+    # under the key ``__outcome__``. It is *supplied*, not scanned for: the
+    # caller performing the closeout already has the ancestor open, and adding
+    # a scan here would read artifacts the read bounds do not admit. Use
+    # ``read_stated_outcome`` on the ancestor's text to produce it. When it is
+    # absent the packet states the absence rather than dropping the field.
+    ancestor_fields: dict[str, str] = dict(_ancestor_fields or {})
+
     descendants = _build_descendant_closure(
         ancestor_slug,
         ancestor_terminus,
@@ -1226,7 +1315,7 @@ def check_ancestor_closure(
             basis=verdict.basis,
             decider=_decider,
             decision_date=_decision_date or _current_date(),
-            ancestor_fields=_ancestor_fields or {},
+            ancestor_fields=ancestor_fields,
             workspace_lookup=_workspace_lookup,
             disposition_lookup=_disposition_lookup,
         )
