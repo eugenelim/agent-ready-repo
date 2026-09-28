@@ -81,7 +81,8 @@ humanGates:
     trigger: "After implementation, audit, or verify mode produces gate results"
     duration: "10-20 minutes"
     whatToCheck:
-      - "Routes, viewports, browsers, states, screenshots, inspection observations, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items are present."
+      - "Routes, viewports, browsers, states, visual authority, screenshots, inspection observations, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items are present."
+      - "Visual authority names the rung that supplied composition and the rung that supplied values, and the token namespace resolved. A blank field and an unconsidered one read alike."
       - "Inspection observations say what was seen in the captures and name the result state AND the verdict; a list of screenshot filenames does not satisfy the field, and a skipped or failed inspection is not a completed one."
       - "The inspection verdict is `pass`. A `fail` verdict means the run looked at the page and found a blocking reader-visible failure: accept it as a known exception with a named owner, or send it back. A completed run is not a passing one."
       - "Core Web Vitals use p75 targets, with mobile and desktop separated where field data exists."
@@ -95,7 +96,7 @@ humanGates:
     trigger: "After gates and manifest are ready, before merge or handoff"
     duration: "10-20 minutes"
     whatToCheck:
-      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Target Size (Minimum) (AA) and Focus Appearance (AAA enhancement), Core Web Vitals regression signals, and reader-visible layout failure read from the rendered captures were reviewed."
+      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Target Size (Minimum) (AA) and Focus Appearance (AAA enhancement), Core Web Vitals regression signals, reader-visible layout failure read from the rendered captures, and the visual-authority lens testing the manifest's recorded rungs against the diff were reviewed."
       - "Security, reliability, or product-design concerns were routed to the appropriate reviewer instead of claimed as covered here."
     whatGoodLooksLike: "The reviewer finds no blocking frontend regressions, or the findings are fixed and rerun."
     whatBadLooksLike: "The same author judges their own UI diff complete without an independent read."
@@ -181,7 +182,7 @@ buys evidence and completeness; it never buys a surface someone cannot use.
 ### 3. Implement or audit the surface
 
 - **You provide:** repository access, the route or component location, design-system constraints, and any existing token, a11y, performance, or rendering requirements.
-- **Agent does:** follows the implementation sequence for create or retrofit: reads the design handoff the adopter's `[design] output_dir` names when one resolves, then the aesthetic reference it carries or a canonical one, optional genre routing through the co-installed design pack, seed token block, state matrix, semantic HTML, CSS token discipline, responsive behavior, and public-surface checks where applicable. States that are genuinely inapplicable to the surface are omitted with the reason recorded, and a retrofit narrows the state matrix to what is absent or broken rather than re-enumerating all eighteen. In audit mode, it reads the surface and reports findings without writing code.
+- **Agent does:** follows the implementation sequence for create or retrofit: reads the design handoff the adopter's `[design] output_dir` names when one resolves, then resolves visual authority from the highest rung that supplies it — a confirmed visual target, the direction and token taxonomy, the repository's incumbent system, or a premise stated in-session — and records which rung supplied composition and which supplied values; then optional genre routing through the co-installed design pack, token values, state matrix, semantic HTML, CSS token discipline, responsive behavior, and public-surface checks where applicable. It renders the surface and compares it against that authority before the gates run, correcting once within a stated bound and recording anything left over. States that are genuinely inapplicable to the surface are omitted with the reason recorded, and a retrofit narrows the state matrix to what is absent or broken rather than re-enumerating all eighteen. In audit mode, it reads the surface and reports findings without writing code.
 - **You do:** answer any product decision that changes the contract, such as what to preserve in a retrofit or which known debt is allowed as a ride-along.
 - **You decide:** accept scoped implementation decisions or keep them out of this change.
 - **Output:** implemented frontend work for create/retrofit, or an audit report for audit mode.

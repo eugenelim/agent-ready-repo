@@ -27,8 +27,9 @@ You received this brief from your design collaborator:
 > **Notification card** — shows the user's most recent notification. States:
 > loading (skeleton while fetching), empty (no notifications yet, first-run),
 > content (notification with title, body, and timestamp), error (fetch failed,
-> retry affordance). The card sits in a 360px-wide sidebar column. Aesthetic
-> reference: Linear (professional dark-surface SaaS).
+> retry affordance). The card sits in a 360px-wide sidebar column. The surface
+> is an operations console for warehouse dispatch staff who read it over a full
+> shift.
 
 ---
 
@@ -44,25 +45,40 @@ The skill loads. You are now in the PLAN phase.
 
 ---
 
-## Step 2. Name the aesthetic reference
+## Step 2. Resolve visual authority
 
 The pre-flight's first step (step 0) reads a design handoff when your repository
 configures one. This tutorial does not, so that step records its skip —
-`design handoff: no [design] section configured` — and the aesthetic reference
-comes from the canonical set below. If your team does keep design work in a
-configured directory, read
-[Read the design handoff](../how-to/read-the-design-handoff.md) first: the
-direction would come from there and this step would name it rather than choose
-one.
+`design handoff: no [design] section configured`. Visual authority then resolves
+down the precedence chain: no confirmed visual target, no direction or taxonomy,
+and — for this walkthrough — no incumbent system to extend. That lands on the
+terminal rung, `local-premise`, which is the rung an adopter without a design
+tree actually walks. If your team does keep design work in a configured
+directory, read
+[Read the design handoff](../how-to/read-the-design-handoff.md) first: authority
+would resolve higher and this step would record which rung supplied it.
 
-From the brief: **Linear** — professional SaaS, dark surface, high contrast,
-no gradients.
+A premise states the qualities the surface wants. It never names a product to
+copy. Derive it from the surface's own subject matter — who reads it, what they
+are doing, what the work is like — which is what makes one premise differ from
+the next.
+
+From the brief: dispatch staff reading a console across a full shift. That
+argues for low-glare surfaces, a restrained palette that lets one status colour
+carry meaning, and type sized for glances rather than reading.
+
+Then check it once: could someone guess this premise from the category alone, or
+from the obvious reaction against it? "Dark dashboard" is the category default
+and "playful pastel ops tool" is the predictable reaction — both are defaults
+rather than choices. The shift-length reading condition is what makes this
+premise specific, so keep that and drop the rest.
 
 Record this in the spec:
 
 ```
-Aesthetic reference: Linear (professional SaaS — dark surface, high contrast,
-no gradients, sharp edges, monochrome icon treatment)
+visual authority: composition local-premise / values local-premise — no design
+handoff resolved, no incumbent system. Premise: a low-glare console read across
+a full shift; one reserved status colour; type sized for glances.
 ```
 
 ---
@@ -84,14 +100,22 @@ XD genre routing: skipped (experience-design pack absent)
 
 ---
 
-## Step 4. Seed the token block
+## Step 4. Resolve token values
 
-Provide the CSS custom properties block before writing HTML. Based on the
-Linear aesthetic reference, seed a dark-surface token block:
+Values come from the highest source that supplies them. No taxonomy resolved in
+step 0 and there is no incumbent token system here, so this walkthrough reads
+the fallback block from
+`references/fallback-tokens.md` — that is step 2's condition and the only one.
+Record the namespace you resolved (`--ds-*` from the fallback here); the craft
+rules and the token gates mean *that* namespace, not a literal prefix.
+
+The fallback's accent ships as a placeholder marked replace-do-not-ship, because
+an accent is a decision to make rather than a value to inherit. The premise
+reserves one status colour, so that is the decision this surface makes:
 
 ```css
 :root {
-  /* Color — dark surface, Linear aesthetic */
+  /* Color — low-glare surface, one reserved status accent */
   --ds-color-surface:      #0d0d0d;
   --ds-color-surface-alt:  #141414;
   --ds-color-on-surface:   #e2e8f0;
@@ -120,7 +144,7 @@ Linear aesthetic reference, seed a dark-surface token block:
   --ds-leading-tight:  1.25;
   --ds-leading-normal: 1.5;
 
-  /* Radius — sharp edges match Linear aesthetic */
+  /* Radius — restrained, so status colour carries the emphasis */
   --ds-radius-sm: 3px;
   --ds-radius-md: 6px;
 
@@ -130,7 +154,7 @@ Linear aesthetic reference, seed a dark-surface token block:
 }
 ```
 
-Record the token block in the spec.
+Record the token block and the resolved namespace in the spec.
 
 ---
 

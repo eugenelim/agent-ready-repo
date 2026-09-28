@@ -539,3 +539,133 @@ The check now asks whether the premise is guessable from the category alone, or
 from the category plus the obvious reaction against it. Either answer means a
 default rather than a choice. Both halves are pinned, and removing the second
 half reds.
+
+## Slice 2 — pre-change baseline
+
+Read on the slice-2 branch, at `14595deaf`, before any slice-2 edit.
+
+| Reading | Value |
+| --- | --- |
+| `python3 -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q` | 421 passed, 1.62 s |
+| ruff / mypy | clean (149 source files) |
+| `lint-pack-journeys` | 14 JOURNEY.md files valid |
+| `lint-web-journey-parity` | 19 journeys in parity |
+| `lint-guide-titles` / `check-guide-index` | 237 files OK / 21 packs present |
+| `packs/frontend-engineering` version | `0.3.4` in pack.toml, plugin.json and marketplace.json — all three agree |
+
+**The open criteria, measured rather than assumed.** AC-0023 fails on six
+`Linear` occurrences, all in the tutorial (lines 31, 58, 64, 90, 94, 123).
+AC-0023a fails on four sites: three in `how-to/read-the-design-handoff.md` and
+one in the tutorial. Both counts come from the criteria's own predicates —
+case-sensitive whole-word for AC-0023, whitespace-normalized case-insensitive
+for AC-0023a — not from a raw grep.
+
+**Pre-flight step numbering, for AC-0024b.** The shipped steps after slice 1 are
+`0. Design handoff read`, `1. Resolve visual authority`, `1b. Genre routing`,
+`2. Resolve token values`, `3. State matrix`. The guides carry three references
+to a numbered pre-flight step: the tutorial's `(step 0)` and `(step 1b …)`, both
+of which still resolve, and `reference/frontend-engineering.md`'s "step 2", which
+resolves to a step that exists but describes it as seeding a block that slice 1
+moved into `references/fallback-tokens.md`. The audit guide's `## Step N`
+headings are that guide's own procedure, not pre-flight steps, and are out of
+AC-0024b's scope.
+
+**The journey line that carries two allowances.** `JOURNEY.md:184` is the
+stage-3 implementation sequence and the sole carrier of `narrows the state
+matrix` + `absent or broken` and of `inapplicable` + `omitted`. The roster test
+lowercases the file and requires both cues of a pair on one physical line, so
+the rewrite keeps each pair co-located. The other two allowances sit on line 173
+(`proportional` + `risk and scope`) and line 195 (`optional` + `stylelint`).
+
+## Slice 2 — contract amendment
+
+The owner reversed slice 1's decline of the cross-pack correction, in session.
+The criterion carrying it states the scope and the owner decision behind it;
+this entry does not restate them. Slice 1's Follow-on recording the opposite
+decision is gone from the spec; the plan's Changelog carries both the decline
+and the reason it gave.
+
+**The correction reaches more sites than the two slice 1 noticed, and review
+found them in two rounds rather than one.** A sweep under the criterion's own
+predicate found `guides/experience-design/README.md:206` carrying the same false
+claim in its crossing table. A second round found a third home the first sweep's
+roots excluded: `web/src/content/journeys/experience-design.md`, the committed
+mirror. That one matters because no shipped lint compares a mirror against its
+source — `lint-web-journey-parity` checks skill counts, and this slice adds no
+skill directory — so the mirror could have shipped the deleted mechanism with
+the criterion green and every lint at zero. The criterion is now a sweep with
+the mirror named explicitly, not a list.
+
+**Three assertions in this spec's history could not fail for the thing they were
+written to catch, and two of them were written in this slice's own review.** The
+first was slice 1's pre-flight check. The second cited AC-0006's literal list for
+a phrase none of those literals matched. The third swept two trees while the
+claim lived in three. The shape recurs because a predicate is written against
+the sites the author already has in mind, and the sites the author has in mind
+are the ones that were easy to find.
+
+**The banned literal is the one the sentences spell.** The phrase is `falls back
+to its own canonical reference`. AC-0006's three literals — `canonical set`,
+`canonical product-reference set`, `canonical reference set` — appear at none of
+the three sites, so a criterion citing that list alone would have gone green
+against all three files unchanged. Two of the three sites wrap between `to` and
+`its own`, so whitespace normalization is load-bearing here for real, which is
+the same line-wrap trap this ledger already records twice.
+
+A second criterion was added in the same amendment, for a defect the spec never
+recorded: `guides/frontend-engineering/reference/frontend-engineering.md`
+describes `frontend-reviewer` as reading "five lenses and the rendered page for
+a sixth", which slice 1 falsified when AC-0016 put a seventh lens in the shipped
+agent. Nothing pinned the guide's count, so nothing red. It carries an absence
+half as well as a presence half, because AC-0018 already demonstrated that
+adding a count leaves the stale one in place.
+
+## Slice 2 — implementation
+
+| Reading | Value |
+| --- | --- |
+| pack suite + new roster module | 431 passed |
+| `tests/roster tests/conformance` | 1923 passed, 6 skipped, 56 subtests, 7 m 18 s |
+| ruff / mypy | clean (149 source files) |
+| deep catalogue lint | exit 0 |
+| journey lints (pack, contract, parity) | 14 valid / 20 conform / 20 in parity |
+| guide lints (titles, index, validate) | 237 files / 21 packs / 231 checked |
+| `lint-pack-test-boundary` | 8 cases pass |
+| `lint-ci-parity` | 118 steps dispositioned, both axes |
+| `SKILL.md` body | 960 → 960 (budget 960; the two edits were line-neutral) |
+
+**Two carriers the handover did not know about.** The session landing
+`design-system-values` named two sites for its token-value correction. A sweep of
+the export tree found four: the entrypoint's own rung-2 description, and two
+shipped eval cases whose `expected_output` graded the superseded behaviour. The
+eval cases are also what brings the change inside the pack rule obliging a
+non-cosmetic update to refresh its eval harness — an obligation slice 2 had no
+task for until T6v gained one.
+
+**The absence sweep needed normalization, and that was not cosmetic.** A raw grep
+of the export tree for the three superseded literals found three carriers; the
+normalized sweep found four. The one a raw grep misses wraps between `roles and`
+and `scales`, and it is in the always-loaded entrypoint.
+
+**The anchor design caught a real co-location failure.** AC-0026 scopes its
+presence half to the sentence carrying a surviving anchor. In
+`guides/experience-design/how-to/choose-the-depth.md` the first correction put
+the anchor and `a lower rung` in two adjacent sentences, and the criterion red.
+A file-wide containment check would have passed it. The fix was a colon.
+
+**Six mutations, each redding exactly one assertion.** Reintroducing the banned
+phrase; dropping `a lower rung` at one carrier; splitting an anchor from its
+literal; reverting the lens count; moving the visual-authority row out of last
+position; deleting lens 7's evidence basis. All restored clean.
+
+**One mutation was invalid before it was informative.** The lens-7 evidence
+mutation first reported green because the search string spanned a line break the
+shipped text wraps at — the same trap the criteria declare predicates for, this
+time defeating the proof rather than the check. Re-run against the wrapped form,
+it red. A mutation that does not apply is not evidence that an assertion holds.
+
+**Degradation recorded.** `loop-cohort schedule` asks for one implementer
+subagent per task. Every task was implemented in-session by the controller
+instead, recorded as eleven `human-directed` declines — the closer of the two
+accepted reasons, since an `implementer` agent type is installed and was simply
+not dispatched.

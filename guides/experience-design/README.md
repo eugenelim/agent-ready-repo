@@ -203,7 +203,7 @@ consumer takes a different part of what you produced.
 
 | Design output | What happens next |
 | --- | --- |
-| The aesthetic direction, the per-screen briefs, and the token roles | `frontend-engineering`'s design pre-flight reads all three under the same slug before it writes any code. A slot you left empty is not an error — it falls back to its own canonical reference and records which one it used. |
+| The aesthetic direction, the per-screen briefs, and the token roles | `frontend-engineering`'s design pre-flight reads all three under the same slug before it writes any code. A slot you left empty is not an error — it resolves from a lower rung of the pre-flight's visual-authority precedence and records which rung supplied it. |
 | The state matrix inside each brief | `product-engineering`'s `ux-writing` writes a UI string per screen × state, keyed to that matrix. It is the one copy boundary that crosses packs. |
 | The brand register | `ux-writing` loads it as the voice those strings are written in. |
 | The service blueprint's backstage column | Point `architect`'s design work at it before anyone proposes a backend: it names the frontstage obligations the backend has to meet. |

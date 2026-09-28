@@ -222,6 +222,7 @@ perf result: [LCP / INP / CLS values from Lighthouse; mobile and desktop]
 console/network result: [console error count; unexpected third-party calls]
 analytics events: [which measurement events were verified]
 known exceptions: [documented, accepted gaps with rationale and owner]
+visual authority: [rung that supplied composition / rung that supplied values, naming the artifact or convention each came from, and the token namespace resolved]
 unverified items: [items not verifiable in this session + reason]
 ```
 

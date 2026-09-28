@@ -53,17 +53,41 @@ files and no fourth.
 is missing or different is skipped, and the scan continues. Design directories
 hold many kinds of document; that is expected, not an error.
 
+## How visual authority resolves
+
+What the pre-flight reads feeds a four-rung precedence. Authority comes from the
+highest rung that supplies it; a rung silent on an axis hands that axis down, and
+a lower rung never overrides a higher one.
+
+1. **`approved-visual-target`** — the direction artifact, when it records a
+   human-confirmed composition. Binds composition only, so colour, type, spacing
+   and motion always come from lower down.
+2. **`direction-and-taxonomy`** — the direction's aesthetic goals, axis
+   commitments and signature element, with the token taxonomy. A direction
+   recording no confirmation resolves here, and the run records that.
+3. **`incumbent-system`** — the visual system your repository already has.
+   Extend it; do not fork it.
+4. **`local-premise`** — a premise stated in the session, naming qualities rather
+   than a product. Terminal and always available.
+
+The run records which rung supplied composition and which supplied values. They
+name the same rung when one supplied both.
+
 ## What "skipped" means
 
-A skip means nothing was there to read. The build falls back to its own canonical
-reference set for whatever is missing, and carries on.
+A skip means nothing was there to read. It is not an error: the build resolves
+from a lower rung for whatever is missing, records which rung it used, and
+carries on.
 
 - **No `[design]` section configured** — neither layout file names one. Nothing is
-  read; the canonical set supplies the aesthetic reference.
+  read, so authority resolves from rung 3 or rung 4.
 - **No conforming artifact** — the directory resolved, but nothing in it matches a
-  read path with the right `type:`. Same fallback.
+  read path with the right `type:`. Same demotion.
 - **One slot empty** — say you have a token taxonomy but no direction doc. The
-  taxonomy is used, and the canonical set fills the direction slot only.
+  taxonomy supplies values, and composition resolves from a rung below it.
+
+A refusal is not a demotion. The refusals below halt the mode, and no rung
+beneath is reached at all.
 
 ## What "refused" means
 

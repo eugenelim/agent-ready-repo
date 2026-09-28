@@ -74,16 +74,19 @@ def test_eval_ids_stay_unique() -> None:
     assert len(ids) == len(set(ids)), "duplicate eval id"
 
 
-def test_the_pack_pins_the_slice_one_version() -> None:
-    """Pins only the value this slice owns.
+def test_the_pack_pins_the_shipped_version() -> None:
+    """Pins only the value this delivery owns.
 
     The pack/plugin equality is already asserted by
     `test_pack_and_plugin_versions_match[frontend-engineering]` in the
     conformance suite; repeating it here would give one property two homes.
+
+    Moved from 0.3.4 to 0.3.5 when slice 2 landed, which is the move slice 1's
+    own failure message scheduled.
     """
     version = _pack()["pack"]["version"]
-    assert version == "0.3.4", (
-        f"pack.toml carries {version!r}, not the 0.3.4 slice 1 ships at. If "
-        f"slice 2 is landing, this pin moves to 0.3.5 with it — that is "
-        f"scheduled work, not a regression."
+    assert version == "0.3.5", (
+        f"pack.toml carries {version!r}, not the 0.3.5 slice 2 ships at. A "
+        f"later delivery moves this pin with its own bump; it is not a value "
+        f"to change on its own."
     )

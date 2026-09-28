@@ -67,9 +67,9 @@ path relative to the design output directory you configure:
 | Per-screen brief | `screens/<slug>/<screen>.md` | `user-flow`, enriched by `interaction-design` |
 | Token taxonomy | `tokens/<slug>.md` | `design-system` |
 
-A slot no artifact fills is not an error. The frontend pre-flight falls back to
-its own canonical reference for that slot and records which one it used, so a
-shortened thread degrades visibly rather than silently.
+A slot no artifact fills is not an error: the frontend pre-flight resolves that
+axis from a lower rung of its visual-authority precedence and records which rung
+supplied it, so a shortened thread degrades visibly rather than silently.
 
 ## Where this leads
 

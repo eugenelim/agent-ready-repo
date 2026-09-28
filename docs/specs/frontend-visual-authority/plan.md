@@ -86,6 +86,7 @@ reference rather than being restated in the suite. It reuses the existing
 | Guides: precedence order and observation loop | T7 |
 | Guides: the tutorial's worked example re-based onto rung 4 | T7 |
 | Journey stage 3 and the acceptance gate's `whatToCheck` | T6 |
+| Cross-pack: the `experience-design` sites describing the deleted fallback | T6x |
 | Matching bumped pack and plugin versions | T8 |
 | Six eval cases A–F | T8 |
 | Changelog entry | T8 |
@@ -178,7 +179,9 @@ Every criterion has exactly one owning task, and every task owns at least one.
 | T5 | 1 | AC-0015, AC-0015a, AC-0016, AC-0017, AC-0018, AC-0018a, AC-0019a |
 | T5r | 1 | AC-0019b, AC-0020, AC-0021, AC-0022, AC-0025 |
 | T6 | 2 | AC-0019, AC-0019c |
-| T7 | 2 | AC-0023, AC-0023a, AC-0024, AC-0024a, AC-0024b |
+| T6x | 2 | AC-0026 |
+| T7 | 2 | AC-0023, AC-0023a, AC-0024, AC-0024a, AC-0024b, AC-0027 |
+| T6v | 2 | AC-0028, AC-0028a |
 | T8 | 2 | AC-0025a |
 
 T1 owns no criterion: it establishes the pre-change baseline the later tasks are
@@ -234,7 +237,7 @@ measured against.
 
 **Depends on:** T3
 
-**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/.apm/skills/frontend-engineering/references/visual-observation.md, packs/frontend-engineering/tests/skills/frontend-engineering/
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/.apm/skills/frontend-engineering/references/visual-observation.md, packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json, packs/frontend-engineering/tests/skills/frontend-engineering/
 
 **Tests:**
 - Table assertions for the loop bound and the activation rubric.
@@ -305,14 +308,38 @@ same spec, after slice 1 merges. The spec stays `Implementing` until T8 closes.
 
 **Done when:** every criterion the coverage table assigns to this task is green and the three lints exit zero.
 
+### T6x: The `experience-design` prose stops describing a fallback that is gone
+
+**Depends on:** T7
+
+**Touches:** packs/experience-design/JOURNEY.md, guides/experience-design/how-to/choose-the-depth.md, guides/experience-design/README.md, web/src/content/journeys/experience-design.md, web/src/content/journeys/frontend-engineering.md (rewritten by the shared generator), guides/frontend-engineering/how-to/read-the-design-handoff.md (shared with T7, which rewrites the same page for its own criteria), tests/roster/
+
+**Tests:**
+- The module `tests/roster/test_frontend_visual_authority_adopter_prose.py`, which T7 creates and this task extends — T7 runs first, so it owns the file's creation and its three CI registrations. It is where these assertions are permitted to live: `tools/lint-pack-test-boundary.py` check 8 (`pack-tests-stay-in-pack`) stops a pack suite climbing to the root to read another source tree, so neither pack's own suite can hold a check spanning `packs/experience-design/` and `guides/experience-design/`.
+- The module's CI registrations are T7's, since T7 creates it; this task adds assertions to an already-registered file. One module rather than two, so the registrations are paid once.
+- It sweeps the roots for the banned phrase rather than asserting over a listed file set, so a site added later is caught, and pairs that with a per-site presence assertion. Both read the normalized form. The criterion states the roots, the carrier sites and the anchor each presence assertion scopes to; this bullet names the mechanism and restates none of them.
+- A repository-wide sweep under the criterion's predicate found five carriers, not the two slice 1 recorded; the fifth sits in the frontend guide tree, on a page T7 rewrites for its own criteria — and in the same sentence, which carries both this task's banned phrase and the literal T7's criteria oblige deleting. That is a real ordering, not a shared file: T7 rewrites the sentence, then this task's anchored presence assertion is what holds the rewrite to saying the right thing. The criterion's anchors are chosen to survive T7's edit, which is what makes the order safe rather than merely declared.
+- The sweep covers the committed journey mirror as well, because no shipped lint compares a mirror against its source: `lint-web-journey-parity` checks skill counts and this slice adds no skill directory. The frontend suite already closes this same hole for its own journey by asserting over both committed copies; this is that seam, for the design journey.
+- `python3 tools/lint-web-journey-parity.py` exits zero after the design journey's mirror is regenerated alongside the frontend one.
+- `tests/roster/test_experience_journey_composition.py` still green. The sentence this task rewrites sits directly beneath the crossing-artifacts table that module pins by backticked path, so a prose edit one line below a pinned table gets its own named guard rather than relying on T6's bullet for the other journey.
+
+**Approach:**
+- Prose only. The scope and the owner decision behind it are stated once, in the criterion the coverage table assigns to this task; this task does not restate them.
+- The mirror is regenerated by the same `--journeys-only` build T6 runs. That is one mechanism covering both journeys; it shares a generated file and the parity lint with T6, so the two must not run concurrently even though neither orders the other.
+- **Why this follows T7.** `guides/frontend-engineering/how-to/read-the-design-handoff.md:58-59` is one sentence carrying both the literal T7's criteria delete and the phrase this task's absence half bans. T7 rewrites it; this task's anchored presence assertion then holds that rewrite to saying the right thing. The reverse order asserts over a sentence still carrying the banned phrase. This task also creates the roster module T7 extends, so the dependency runs one way on prose and the other on the module — sequencing them T7-then-T6x settles it: T7 creates the module with its own assertion and pays the three registrations, and this task adds the cross-pack assertions to it.
+
+**Done when:** the criterion the coverage table assigns to this task is green and the parity lint exits zero over both regenerated mirrors.
+
 ### T7: Adopter guidance states the precedence and names no product as an anchor
 
-**Depends on:** T6
+**Depends on:** none within slice 2
 
-**Touches:** guides/frontend-engineering/how-to/read-the-design-handoff.md, guides/frontend-engineering/tutorials/scaffold-a-component.md, guides/frontend-engineering/how-to/run-an-audit.md, guides/frontend-engineering/README.md, guides/frontend-engineering/reference/frontend-engineering.md
+**Touches:** guides/frontend-engineering/how-to/read-the-design-handoff.md, guides/frontend-engineering/tutorials/scaffold-a-component.md, guides/frontend-engineering/how-to/run-an-audit.md, guides/frontend-engineering/README.md, guides/frontend-engineering/reference/frontend-engineering.md, tests/roster/
 
 **Tests:**
 - Assertions for the guide tree carrying no product anchor, and for the how-to naming the rung order.
+- A lens-count assertion in `tests/roster/test_frontend_visual_authority_adopter_prose.py`, which this task creates — including the three registrations `tests/AGENTS.md` obliges for a new roster module: a named step in `.github/workflows/build-check.yml` above the bulk `pytest tests/ -q` step, and both `tools/lint-ci-parity.py` axes (`_LOCAL_STEP_DISPOSITION` valued `LOCAL("test-after-build-check")` plus a `_GATE_MAIN_CHECKS` entry, without which the parity lint reds on a missing phase-and-dependency axis). It takes its literals and case handling from the criterion. It reads the page's own count rather than re-deriving it from the agent file, because the defect being caught is precisely the two drifting apart.
+- `tests/roster/` rather than the frontend pack suite, under one reading of `lint-pack-test-boundary.py` check 8 applied to both new assertions: `guides/frontend-engineering/` is outside `packs/frontend-engineering/`, so asserting over it from that pack's suite is the same climb T6x avoids. Two shipped modules do make that climb today and the lint does not see it — its visitor resolves `.parent` chains only from locally bound names — but an existing blind spot is not a licence to add to it.
 - `test_every_manifest_describing_surface_names_the_inspection` still passes over the guide tree it sweeps.
 - `python3 tools/lint-guide-titles.py` and `python3 tools/check-guide-index.py` exit zero.
 
@@ -322,11 +349,31 @@ same spec, after slice 1 merges. The spec stays `Implementing` until T8 closes.
 
 **Done when:** every criterion the coverage table assigns to this task is green, both lints exit zero, and the tutorial's worked example names no product.
 
+### T6v: The token-value source states what the taxonomy already decided
+
+**Depends on:** none within slice 2
+
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/.apm/skills/frontend-engineering/references/visual-observation.md, packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json, packs/frontend-engineering/tests/skills/frontend-engineering/
+
+**Tests:**
+- A pack-suite absence sweep over the export tree for the three superseded literals, plus one section-scoped presence assertion per site, each taking its region and literal from the criterion. Scoped rather than whole-file: the superseded text sits inside the very section the presence half reads, so only an absence half can evict it.
+- The eval-harness shape lint passes over the two edited cases, and their `expected_output` no longer grades the superseded contract.
+- A regression assertion that the two protected statements survive, taking both literals and the normalized predicate from the criterion that pins them.
+- `test_the_entrypoint_body_stays_within_budget` still green. The body is at 960 of 960, so this task has no room: § 2's replacement is four lines for four, and § 1's rung-2 entry is reworded within its existing three lines. If either runs long, the overrun is paid by deleting the redundant sentence at the end of § 2's source 3 — not by raising `BODY_BUDGET`, which would rewrite AC-0009's contract silently.
+- `python3 -m agentbundle catalogue lint --root . --deep` exits zero.
+
+**Approach:**
+- Handed over by the session landing `docs/specs/design-system-values`, which backed its edits out rather than take the `0.3.5` version this spec reserves. They ship under this slice's bump.
+- The handover named two sites; a sweep of the export tree found four. The two it missed are the entrypoint's own rung-2 description and two shipped eval cases that grade the superseded behaviour — which is also what brings this task inside the pack rule obliging a non-cosmetic update to update its eval harness.
+- The merge-order constraint is recorded in the spec's `Constrained by` field, where the metadata contract puts an external precondition and where a human deciding the merge will meet it, rather than inside a criterion whose checkable half could be ticked while the uncheckable half went unmet.
+
+**Done when:** every criterion the coverage table assigns to this task is green, the body budget is unmoved, and the deep lint exits zero.
+
 ### T8: The pack ships as a coherent release
 
-**Depends on:** T7
+**Depends on:** T6, T6v, T6x, T7
 
-**Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, docs/product/changelog.md
+**Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, .claude-plugin/marketplace.json (regenerated by `make build-self`), docs/product/changelog.md
 
 **Tests:**
 - `test_pack_and_plugin_versions_match[frontend-engineering]` carries the slice-2 version pair.
@@ -336,7 +383,9 @@ same spec, after slice 1 merges. The spec stays `Implementing` until T8 closes.
 
 ## Rollout
 
-**Version level.** `0.3.4`, a patch. `packs/README.md` § Versioning
+**Version level.** A patch. The criteria hold the values for both slices; this
+section argues the increment and restates no number, because two homes for one
+version is the sync hazard the single-join doctrine above exists to avoid. `packs/README.md` § Versioning
 expectations gives three increments — patch for changed bodies, minor for new
 primitives, major for removals — and primitives there are the `.apm/`
 directories: skills, agents, commands, hooks. This slice adds no primitive: two
@@ -369,5 +418,35 @@ manifest. No migration, no data change, no deployment step.
 - Scope approved by the owner, with the delivery split at the T5/T6 boundary:
   slice 1 is the executable contract in `packs/frontend-engineering/.apm/`,
   slice 2 is the journey, guide tree and their release. The owner also settled
-  the version level at patch and declined the cross-pack correction of the two
-  `experience-design` sentences, which is recorded as a Follow-on.
+  the version level at patch and declined the cross-pack correction of the
+  `experience-design` prose, on the ground that correcting another pack's files
+  would pull that pack's version bump and eval-harness obligation into a
+  frontend change. That decline was superseded by the slice-2 amendment below,
+  which is where the correction now lives and which records why the obligation
+  it feared does not arise.
+- Slice 2 amendment, owner-authorized in session. The owner reversed slice 1's
+  decline of the cross-pack `experience-design` correction and settled its
+  scope; the criterion carrying it states that decision. A defect the slice-1
+  review did not reach was folded into the same amendment: the guide page
+  describing `frontend-reviewer` still said six lenses while the shipped agent
+  carries seven, and nothing pinned the page's count. One task was added and
+  the coverage table above assigns both criteria; this entry deliberately
+  assigns none, because that table is the single join.
+- Slice-2 scope approved by the owner (G1): the amendment's two criteria are
+  accepted as written, including the owner-settled prose-only scope that keeps
+  the cross-pack correction from importing a second pack release.
+- Slice-2 build strategy approved by the owner (G2): T6x added, T7 sequenced
+  before it on their shared sentence, one roster module carrying both
+  cross-tree assertions with its CI registrations, and T8 depending on all
+  three.
+- Contract amendment, owner-authorized in session on 2026-09-28. Scope handed
+  over from the session landing `docs/specs/design-system-values`, which hit
+  this spec's reserved version pin and backed its two pack edits out rather
+  than collide. The owner accepted them and settled the sequencing: this spec
+  merges behind that work, because until it lands the edits describe a
+  contract no installed skill has.
+- Amended scope approved by the owner (G1 re-taken): AC-0028 widened to the four
+  carriers a sweep found, with an absence half and a normalized predicate, and
+  AC-0028a repinned to the shipped bytes.
+- Amended build strategy approved (G2 re-taken): T6v owns the handover across
+  four carriers including the eval harness, and T8 depends on it.
