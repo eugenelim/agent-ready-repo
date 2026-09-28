@@ -54,15 +54,22 @@ import pytest
 # ── Module loader ─────────────────────────────────────────────────────────────
 
 _SCRIPTS = (
-    Path(__file__).resolve().parents[4]
-    / "core" / ".apm" / "skills" / "close-work" / "scripts"
+    Path(__file__).resolve().parents[3]
+    / ".apm" / "skills" / "close-work" / "scripts"
 )
+
+# Literal paths: the pack-boundary lint cannot prove a computed join stays
+# inside the owning pack, and it is right not to try.
+_MODULE_PATHS = {
+    "closure_index": _SCRIPTS / "closure_index.py",
+    "closure_terminality": _SCRIPTS / "closure_terminality.py",
+}
 
 
 def _load(name: str, key: str):
     """Load a close-work script by absolute path under a unique sys.modules key."""
-    spec = importlib.util.spec_from_file_location(key, _SCRIPTS / f"{name}.py")
-    assert spec and spec.loader, f"no module at {_SCRIPTS / f'{name}.py'}"
+    spec = importlib.util.spec_from_file_location(key, _MODULE_PATHS[name])
+    assert spec and spec.loader, f"no module at {_MODULE_PATHS[name]}"
     module = importlib.util.module_from_spec(spec)
     sys.modules[key] = module
     spec.loader.exec_module(module)

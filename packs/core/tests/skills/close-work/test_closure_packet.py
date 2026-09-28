@@ -45,12 +45,12 @@ from pathlib import Path
 # ── Module loaders ────────────────────────────────────────────────────────────
 
 _SCRIPTS = (
-    Path(__file__).resolve().parents[4]
-    / "core" / ".apm" / "skills" / "close-work" / "scripts"
+    Path(__file__).resolve().parents[3]
+    / ".apm" / "skills" / "close-work" / "scripts"
 )
 _WORK_INTAKE = (
-    Path(__file__).resolve().parents[4]
-    / "core" / ".apm" / "skills" / "work-intake" / "scripts"
+    Path(__file__).resolve().parents[3]
+    / ".apm" / "skills" / "work-intake" / "scripts"
 )
 
 

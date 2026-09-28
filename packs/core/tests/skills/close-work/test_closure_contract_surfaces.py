@@ -7,9 +7,9 @@ AC-0033: close-work/SKILL.md § Closeout procedure states the trigger, all three
          eligibility wording in its § Disposition contract, so a document-wide
          substring check passes before any work is done.
 
-AC-0036: guides/core/how-to/close-and-disposition-work.md § Review the closeout
-         preview names all three verdicts and says what a human decides at each.
-         Scoped to that section's body only.
+AC-0036 covers the reader-facing guide, which lives outside this pack. A pack
+test may not reach above its owning pack, so that half lives in
+tests/roster/test_closure_guide_surface.py.
 """
 
 from __future__ import annotations
@@ -17,14 +17,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-# Locate repository root relative to this file:
-# packs/core/tests/skills/close-work/ → packs/core/tests/skills/
-#   → packs/core/tests/ → packs/core/ → packs/ → <repo-root>
-_TESTS_DIR = Path(__file__).parent
-_REPO_ROOT = _TESTS_DIR.parents[4]
+# Anchored at the owning pack: packs/core/tests/skills/close-work/ → packs/core/
+_PACK_ROOT = Path(__file__).resolve().parents[3]
 
-_SKILL_PATH = _REPO_ROOT / "packs/core/.apm/skills/close-work/SKILL.md"
-_GUIDE_PATH = _REPO_ROOT / "guides/core/how-to/close-and-disposition-work.md"
+_SKILL_PATH = _PACK_ROOT / ".apm" / "skills" / "close-work" / "SKILL.md"
 
 _VERDICT_NAMES = frozenset({"refuse", "not-eligible", "eligible"})
 
@@ -102,29 +98,4 @@ def test_ac0033_scoped_to_section_not_whole_document() -> None:
     )
     assert "Eligibility now" in disposition_section, (
         "Sanity: '§ Disposition contract' body should contain its own header text"
-    )
-
-
-# ---------------------------------------------------------------------------
-# AC-0036 — § Review the closeout preview in the guide
-# ---------------------------------------------------------------------------
-
-
-def test_ac0036_review_section_names_all_three_verdicts() -> None:
-    """§ Review the closeout preview names refuse, not-eligible, and eligible."""
-    text = _GUIDE_PATH.read_text(encoding="utf-8")
-    section = _extract_section(text, "Review the closeout preview")
-    missing = {v for v in _VERDICT_NAMES if not _VERDICT_PATTERNS[v].search(section)}
-    assert not missing, (
-        f"§ Review the closeout preview is missing verdict name(s): {sorted(missing)}"
-    )
-
-
-def test_ac0036_review_section_says_what_to_decide() -> None:
-    """§ Review the closeout preview describes what the human decides at each verdict."""
-    text = _GUIDE_PATH.read_text(encoding="utf-8")
-    section = _extract_section(text, "Review the closeout preview")
-    # The guide uses "What you decide" as a table column header.
-    assert "you decide" in section.lower(), (
-        "§ Review the closeout preview must state what the human decides at each verdict"
     )

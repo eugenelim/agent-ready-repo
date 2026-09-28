@@ -16,9 +16,16 @@ from pathlib import Path
 import pytest
 
 _SCRIPTS = (
-    Path(__file__).resolve().parents[4]
-    / "core" / ".apm" / "skills" / "close-work" / "scripts"
+    Path(__file__).resolve().parents[3]
+    / ".apm" / "skills" / "close-work" / "scripts"
 )
+
+# Literal paths: the pack-boundary lint cannot prove a computed join stays
+# inside the owning pack, and it is right not to try.
+_MODULE_PATHS = {
+    "closure_index": _SCRIPTS / "closure_index.py",
+    "closure_terminality": _SCRIPTS / "closure_terminality.py",
+}
 
 
 def _load(name: str):
@@ -27,8 +34,8 @@ def _load(name: str):
     Skill directories are not packages and are not importable by name; every
     loader in this pack resolves its own sibling directory the same way.
     """
-    spec = importlib.util.spec_from_file_location(name, _SCRIPTS / f"{name}.py")
-    assert spec and spec.loader, f"no module at {_SCRIPTS / f'{name}.py'}"
+    spec = importlib.util.spec_from_file_location(name, _MODULE_PATHS[name])
+    assert spec and spec.loader, f"no module at {_MODULE_PATHS[name]}"
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)

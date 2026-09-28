@@ -44,13 +44,20 @@ import pytest
 # ── Load the module under test ────────────────────────────────────────────────
 
 _SCRIPTS = (
-    Path(__file__).resolve().parents[4]
-    / "core" / ".apm" / "skills" / "close-work" / "scripts"
+    Path(__file__).resolve().parents[3]
+    / ".apm" / "skills" / "close-work" / "scripts"
 )
+
+# Literal paths: the pack-boundary lint cannot prove a computed join stays
+# inside the owning pack, and it is right not to try.
+_MODULE_PATHS = {
+    "closure_index": _SCRIPTS / "closure_index.py",
+    "closure_terminality": _SCRIPTS / "closure_terminality.py",
+}
 
 
 def _load(name: str):
-    spec = importlib.util.spec_from_file_location(name, _SCRIPTS / f"{name}.py")
+    spec = importlib.util.spec_from_file_location(name, _MODULE_PATHS[name])
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
