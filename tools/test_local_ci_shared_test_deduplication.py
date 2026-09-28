@@ -880,11 +880,33 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # baseline is bare `origin/main`, which this branch is merged up to and whose
 # Makefile differs from this worktree's by the single line above and nothing
 # else.
+# Re-pinned 2026-09-27 for the experience-design pack's creative-direction
+# contract suite, which adds one `run-test-suite` line. Same shape as the
+# explain-diff re-pin it supersedes: the suite existed with no runner naming
+# it, so `lint-pack-test-boundary`'s `every-suite-dir-has-a-runner` refused it,
+# and wiring it here is what moves the plan.
+# (1) Sole cause: this commit's Makefile change is one added line and zero
+# removed or reordered — `$(PYTHON) -m pytest
+# packs/experience-design/tests/skills/creative-direction/ -q`, after the
+# `frontend-engineering` pack line. Expanding this worktree's Makefile through
+# `_effective_composition_errors`' own path gives standalone 69 -> 70 and
+# composed 68 -> 69 lines, with the new line appearing exactly once at index 36
+# in each; deleting it from the new plan recomputes
+# `3bd4c26d…` and `c4325088…` — the superseded pins — element for element, so
+# nothing else moved, was reordered, or was dropped. It is a pack suite, not a
+# root or tools group, so `_root_tool_pytest_groups` and
+# EXPECTED_ROOT_TOOL_PATHS are untouched.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `3bd4c26d…` and `c4325088…` still in place returns
+# an empty error list, so this supersedes live values rather than a pin that had
+# already gone stale. The baseline is bare `origin/main`, which this branch is
+# rebased onto and whose Makefile differs from this worktree's by the single
+# line above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "3bd4c26d5016c07995cb16533c02d0466092483743635e91a9c08b370d4825c5"
+    "e1190720a9298c137b8853e6e523ed5f6b242ea340625dbe5c179f76c8fc4456"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "c4325088bf87bcdcad29491fcf741e0890215b4425973a5ecc1f56472e65a173"
+    "4de3f063de39556f54fa9b4346e6505329710b762f9a4f7dabda0b4a650f4306"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

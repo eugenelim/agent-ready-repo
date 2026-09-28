@@ -33,6 +33,69 @@ status: "<proposed | selected>"
 2. <goal>
 3. <goal>
 
+## Engagement mode
+
+<!-- Engagement mode is the visitor posture. Surface genre is the kind of
+     surface being designed; neither overwrites the other. Choose one primary
+     mode: persuade, operate, read, or experience. Add a secondary mode only
+     when a distinct user job justifies it. -->
+
+**Primary mode:** <persuade | operate | read | experience>
+
+**Secondary mode:** <none, or one mode plus the distinct user job that earns it>
+
+**Surface genre:** <surface family, kept separate from engagement mode>
+
+## Product-specific visual thesis
+
+<!-- Ground the direction in this product, not the category. A thesis that could
+     be relabeled for a category peer without changing evidence or choices has
+     not passed the specificity check. -->
+
+**Audience's situation:** <what the audience is trying to do or decide>
+
+**Distinctive mechanism:** <what the product does differently, visibly, or structurally>
+
+**Honest proof:** <real proof the surface can show; use "none yet" rather than inventing claims>
+
+## First-viewport thesis
+
+<!-- This is not a hero layout template. State what the opening viewport must
+     make clear, what evidence or mechanism it exposes, and which primary
+     action or continuation it supports. -->
+
+**Opening clarity:** <what someone understands first>
+
+**Exposed evidence or mechanism:** <what concrete proof or mechanism is visible>
+
+**Primary action or continuation:** <the next action, scroll, read, or exploration path>
+
+## Approved visual target
+
+<!-- Optional. If no target exists, write "none" and continue. If one exists,
+     record its identity and boundaries. -->
+
+**Target:** <none, reference image, comp, existing surface, or other target>
+
+**Binding:** <composition, proportion, spatial relationship, or "none">
+
+**Illustrative:** <qualities that inform but do not bind>
+
+**May adapt responsively:** <what changes across viewport or platform states>
+
+## Evidence and assets
+
+<!-- Keep real material separate from placeholders. Record provenance for every
+     sourced or generated visual asset proposed by this direction. -->
+
+**Available evidence:** <facts, workflows, states, or proof available now>
+
+**Available assets:** <real product media, brand assets, diagrams, or references available now>
+
+**Placeholders:** <unknown or not-yet-sourced material>
+
+**Asset provenance:** <source or generated method; what each asset may and may not prove>
+
 ## What each goal means
 
 <!-- For each goal: one line on what it means here, one line on what would
@@ -89,6 +152,13 @@ status: "<proposed | selected>"
      Recorded by `converge`; `refine` may not move it. -->
 
 **Signature device:** <the one decision a viewer would name if asked what makes this look like itself>
+
+## Signature interaction
+
+<!-- Name an interaction only when it materially expresses the product or helps
+     someone understand or operate it. Decorative motion does not qualify. -->
+
+**Signature interaction:** <earned interaction and what it expresses or enables, or `none`>
 
 ## Counterfactual check
 
