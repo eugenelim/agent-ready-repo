@@ -47,6 +47,10 @@ The skill loads. You are now in the PLAN phase.
 
 ## Step 2. Resolve visual authority (step 1 of the pre-flight)
 
+> Two sequences run here, and this tutorial keeps them apart by case.
+> **Step N** with a capital is a step of this tutorial. **step N** in lower case
+> is a step of the skill's pre-flight, which each heading names in brackets.
+
 The pre-flight's first step (step 0) reads a design handoff when your repository
 configures one. This tutorial does not, so that step records its skip —
 `design handoff: no [design] section configured`. Visual authority then resolves
@@ -108,11 +112,31 @@ the fallback block from
 Record the namespace you resolved (`--ds-*` from the fallback here); the craft
 rules and the token gates mean *that* namespace, not a literal prefix.
 
-The fallback's accent ships as a placeholder marked replace-do-not-ship, because
-an accent is a decision to make rather than a value to inherit. The premise
-reserves one *accent*, so that is the decision this surface makes. Error and
-success are not premise decisions — they are quality-floor obligations every
-surface owes, and they stay reserved for state rather than for emphasis:
+The shipped block is a **light** surface with a placeholder ink accent
+(`--ds-color-primary: #1f2933`, marked replace-do-not-ship, because an accent is
+a decision to make rather than a value to inherit). Start from it and record
+every value the premise changes, so a reader can see which numbers were decided
+and which were inherited.
+
+This surface departs from it in three places, each traceable to the premise:
+
+- **Surface goes dark** (`#ffffff` → `#0d0d0d`). Step 2 rejected "dark
+  dashboard" as a category default, and this is not that: it is the low-glare
+  half of the premise, for a console read in a dispatch bay across a night
+  shift. The reasoning matters more than the value — a dark surface chosen
+  because dashboards are dark is a default; one chosen because the room is dim
+  and the shift is long is a decision, and it is the one that survives the
+  counterfactual check.
+- **The accent becomes the reserved status colour** (`#1f2933` → `#8b93e8`).
+  This is the replacement the reference instructs, and the premise says what it
+  is for: one accent, doing one job.
+- **Radii tighten** (`4px`/`8px` → `3px`/`6px`), so the status colour carries
+  the emphasis rather than the shape.
+
+Error and success are not premise decisions — they are quality-floor obligations
+every surface owes, and they stay reserved for state rather than emphasis. The
+fallback's remaining tokens (its shadows, its wider type and space scales) come
+through unchanged and are omitted below only for length:
 
 ```css
 :root {
@@ -328,7 +352,7 @@ Key rules from the token block and craft rules:
 
 Before the gates, look at what you built against the authority you inherited.
 This is the loop the skill runs during EXECUTE, and it is not the rendered-page
-inspection in step 10's gate 5: that one runs after the code is done and asks
+inspection in Step 10's gate 5: that one runs after the code is done and asks
 whether anything is reader-visibly broken. This one asks whether the surface
 looks like what step 2 committed to.
 
@@ -424,7 +448,7 @@ inspection observations: completed / pass — nothing reader-visible wrong acros
 a11y result:
   pa11y wcag21aa: 0 errors, 0 warnings
   manual 2.5.8 Target Size (Minimum) (AA): pass — retry button 32×40px, from the
-    min-inline-size/min-block-size pair step 8 sets
+    min-inline-size/min-block-size pair Step 8 sets
   manual 2.4.13 Focus Appearance (AAA enhancement): pass — 2px outline;
     --ds-color-primary #8b93e8 on --ds-color-surface-alt #141414 computes
     6.52:1, above the 3:1 floor. Computed, not eyeballed

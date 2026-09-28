@@ -128,8 +128,9 @@ known exceptions, and the recommended next action.
 A **forked-context** reviewer for diffs whose primary output is HTML/CSS/JS. It
 reads across seven lenses — the diff for five, the **rendered page** for one,
 and the evidence manifest for one — so it is seeded with the surface's capture
-set and `inspection observations` alongside the diff, and can capture the adopter-named routes itself when the set it was given
-does not cover what the diff makes it suspicious of. It does not write to the
+set and `inspection observations` alongside the diff, and can capture the
+adopter-named routes itself when the set it was given does not cover what the
+diff makes it suspicious of. It does not write to the
 repository under review.
 
 | Lens | What it checks |

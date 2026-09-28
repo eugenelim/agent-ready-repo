@@ -719,3 +719,67 @@ records this; readability loses to a contract test here, deliberately.
 | guide lints (titles, index, validate) | 237 / 21 / 231 |
 | journey lints (pack, parity) | 14 valid / 20 in parity |
 | `tools/test_build_site_routing.py` | 94 passed, 1 skipped |
+
+## Slice 2 — implementation review
+
+The blocker was not a wrong claim. Every slice-2 criterion's predicate held when
+checked by hand. **Nine of the twelve had no verification artifact at all.**
+
+The plan's Tests bullets promised each one by name. The prose landed, the
+criteria were verified in-session, and nothing was written that would red on the
+next edit — for AC-0019, AC-0019c, AC-0023, AC-0023a, AC-0024, AC-0024a,
+AC-0024b, AC-0028 and AC-0028a. That is this spec's entire thesis failed at its
+last step: the delivery whose whole subject is "a claim nothing pins goes false
+unnoticed" shipped nine claims nothing pinned.
+
+The gap is closed by `test_visual_authority_slice_two.py` for the pack-side
+criteria and by five additions to the roster module for the guide tree.
+
+**Two assertions I had already written were weaker than their own docstrings.**
+The last-row check asserted that no reader-visible row followed the
+visual-authority row — which an eighth row inserted *after* it satisfies, while
+`lenses 1-5` and `lens 6` silently repoint. It now parses the table and asserts
+the row is final; the mutation reds. And the absence sweep read only `.md` and
+`.json`, so `packs/experience-design/pack.toml` — which carries the `first-value`
+strings an adopter meets on first run — was never read. Reinstating the banned
+phrase there passed. Both mutations now red.
+
+**The tutorial claimed to read a block it did not show.** Step 4 said it reads
+the shipped fallback reference, then printed the pre-change dark block: the
+reference ships a *light* surface with a placeholder ink accent. The step now
+starts from the shipped values and records the three departures the premise
+produces, each traceable to it — which also answers why a premise that rejected
+"dark dashboard" as a category default still resolves to a dark surface. The
+changelog line was making the same claim and now matches.
+
+**A numbering collision the criterion could see and a reader could not.** The
+step-citation assertion first red against correct text, because it read the
+guides' own `## Step N` procedure headings as pre-flight citations. Scoping it to
+lowercase `step N` — the form these guides actually use for the pre-flight — left
+two genuine ambiguities in prose written this session. The tutorial now states
+the convention once and the check enforces it.
+
+**The boundary lint caught a dynamic path join in my new pack module.** Check 8
+cannot prove `PACK_ROOT / relative_path` stays inside the pack. The sites are now
+explicit path constants. Recorded because the plan argued earlier that an
+existing blind spot in that lint is not a licence to add to it, and this is the
+same rule applied to my own code.
+
+**One finding declined, with its reason.** The reviewer asked for the journey's
+stage-3 line to be split for readability. It is the sole carrier of two
+proportionality allowances whose cue words a roster test requires on one physical
+line. Readability loses to a contract test here, deliberately, and the new pack
+module now asserts the co-location directly so the failure names the line that
+moved rather than the suite that noticed.
+
+| Final gate | Result |
+| --- | --- |
+| pack suite + roster module | 451 passed |
+| `tests/roster tests/conformance` | 1923 passed, 6 skipped, 56 subtests |
+| `tools/` | exit 0 |
+| ruff / mypy | clean |
+| deep catalogue lint | exit 0 |
+| `lint-pack-test-boundary` | 8 cases |
+| `lint-ci-parity` | both axes |
+| `self-host --check` | ok |
+| spec-status lint | metadata clean, 44 criteria checked |

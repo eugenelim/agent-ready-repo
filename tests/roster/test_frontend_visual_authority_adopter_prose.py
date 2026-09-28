@@ -50,8 +50,16 @@ def sentences(text: str) -> list[str]:
     return re.split(r"(?<=[.!|])\s+", text)
 
 
-def markdown_files(root: Path) -> list[Path]:
-    return [p for p in sorted(root.rglob("*")) if p.is_file() and p.suffix in (".md", ".json")]
+# Every shipped text suffix in the swept roots. `.toml` is here because
+# `packs/<pack>/pack.toml` carries the `first-value` starter-prompt and
+# expected-result strings an adopter reads on first run -- excluding it let the
+# banned phrase survive on an installed surface. An absence check's whole value
+# is completeness, so an unknown suffix is surfaced rather than skipped.
+SWEPT_SUFFIXES = (".md", ".json", ".toml")
+
+
+def shipped_text_files(root: Path) -> list[Path]:
+    return [p for p in sorted(root.rglob("*")) if p.is_file() and p.suffix in SWEPT_SUFFIXES]
 
 
 # --- the deleted fallback -------------------------------------------------
@@ -77,13 +85,13 @@ FALLBACK_CARRIERS = {
 def test_the_swept_roots_are_not_empty() -> None:
     """A sweep over an empty root passes trivially."""
     for rel in SWEPT_ROOTS:
-        assert markdown_files(ROOT / rel), f"{rel} yielded no files to sweep"
+        assert shipped_text_files(ROOT / rel), f"{rel} yielded no files to sweep"
 
 
 def test_no_surface_describes_the_deleted_canonical_fallback() -> None:
     """The absence half. The frontend pre-flight resolves down a precedence
     chain; it has no canonical reference of its own to fall back to."""
-    swept = [p for rel in SWEPT_ROOTS for p in markdown_files(ROOT / rel)]
+    swept = [p for rel in SWEPT_ROOTS for p in shipped_text_files(ROOT / rel)]
     swept.append(ROOT / NAMED_MIRROR)
     stale = [
         str(p.relative_to(ROOT)) for p in swept if contains(normalized(p), BANNED_FALLBACK)
@@ -148,16 +156,36 @@ def test_the_visual_authority_row_is_the_tables_last() -> None:
     """The lens table is unnumbered, so `lenses 1-5` and `lens 6` resolve by row
     order alone. A row inserted anywhere but last silently repoints both ranges
     while every literal check stays green."""
-    text = normalized(ROOT / REFERENCE_PAGE)
-    row = text.rfind("| Visual authority |")
-    assert row != -1, f"{REFERENCE_PAGE} has no visual-authority lens row"
-    # Every other lens row must appear before it. Checked against the row that
-    # is last today rather than against a count, so adding an eighth lens fails
-    # here loudly instead of passing on an arithmetic coincidence.
-    assert "| Reader-visible layout failure |" not in text[row:], (
-        f"{REFERENCE_PAGE}: the visual-authority row is not the table's last "
-        f"row, so the page's `lenses 1-5` and `lens 6` ranges now point at the "
-        f"wrong lenses"
+    raw = (ROOT / REFERENCE_PAGE).read_text(encoding="utf-8")
+    rows = [
+        line.strip() for line in raw.splitlines()
+        if line.strip().startswith("| ") and "|---" not in line
+    ]
+    labelled = [r for r in rows if r.lower().startswith("| lens |") or "| what it checks |" in r.lower()]
+    assert labelled, f"{REFERENCE_PAGE}: the lens table header is gone"
+    header = rows.index(labelled[0])
+    # The table runs from its header to the first non-row line after it.
+    table: list[str] = []
+    started = False
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if stripped == rows[header]:
+            started = True
+            continue
+        if started:
+            if stripped.startswith("|"):
+                if "|---" not in stripped:
+                    table.append(stripped)
+            elif stripped == "":
+                continue
+            else:
+                break
+    assert table, f"{REFERENCE_PAGE}: the lens table has no rows"
+    assert table[-1].startswith("| Visual authority |"), (
+        f"{REFERENCE_PAGE}: the visual-authority row is not the table's LAST "
+        f"row -- the last row is {table[-1][:48]!r}. The table is unnumbered, so "
+        f"`lenses 1-5` and `lens 6` resolve by row order; any row after visual "
+        f"authority silently repoints both ranges"
     )
 
 
@@ -172,4 +200,110 @@ def test_the_reference_page_states_what_confirms_the_seventh_lens() -> None:
     assert contains(text, "manifest confirms lens 7"), (
         f"{REFERENCE_PAGE}'s per-lens evidence rule does not say what confirms "
         f"the seventh lens, so it accounts for six of seven"
+    )
+
+
+# --- the guide tree describes the shipped pre-flight -----------------------
+#
+# These five criteria shipped with no artifact in the first implementation
+# pass. Each predicate held when checked by hand, which is exactly the state
+# that makes the omission easy to miss: nothing was wrong, and nothing would
+# have caught the next edit.
+
+GUIDE_TREE = "guides/frontend-engineering"
+HANDOFF_HOWTO = f"{GUIDE_TREE}/how-to/read-the-design-handoff.md"
+
+# Aesthetic anchors. Case-sensitive and whole-word by criterion: the sibling
+# skill legitimately says "linear interpolation", and `Arc` is a word a
+# case-folded sweep would find inside ordinary prose.
+PRODUCT_ANCHORS = ("Linear", "Stripe", "Vercel", "Raycast", "Arc", "Notion", "Toss")
+
+# The deleted set's names. Whitespace-normalized because one live pointer used
+# to wrap mid-phrase, which is how an earlier sweep of this tree reported two
+# of its sites absent.
+DELETED_SET_PHRASES = ("canonical set", "canonical product-reference set", "canonical reference set")
+
+RUNG_ORDER = ("approved-visual-target", "direction-and-taxonomy", "incumbent-system", "local-premise")
+
+
+def test_no_guide_page_names_a_product_as_an_aesthetic_anchor() -> None:
+    """A product name carries whatever a model associates with it today, which
+    is the convergence this slice exists to stop. The tutorial used one as its
+    worked example in six places."""
+    pattern = re.compile(r"\b(" + "|".join(PRODUCT_ANCHORS) + r")\b")
+    hits = {
+        str(p.relative_to(ROOT)): sorted(set(pattern.findall(p.read_text(encoding="utf-8"))))
+        for p in shipped_text_files(ROOT / GUIDE_TREE)
+        if pattern.search(p.read_text(encoding="utf-8"))
+    }
+    assert not hits, f"guide pages still name products as aesthetic anchors: {hits}"
+
+
+@pytest.mark.parametrize("phrase", DELETED_SET_PHRASES)
+def test_no_guide_page_points_at_the_deleted_reference_set(phrase: str) -> None:
+    stale = [
+        str(p.relative_to(ROOT)) for p in shipped_text_files(ROOT / GUIDE_TREE)
+        if contains(normalized(p), phrase)
+    ]
+    assert not stale, f"{phrase!r} survives in {stale}, naming a set this slice deleted"
+
+
+def test_the_handoff_how_to_names_the_four_rungs_in_order() -> None:
+    """Order is the criterion, not mere presence: a page listing the rungs in
+    any order describes a precedence that does not exist."""
+    text = normalized(ROOT / HANDOFF_HOWTO)
+    positions = []
+    for rung in RUNG_ORDER:
+        assert contains(text, rung), f"{HANDOFF_HOWTO} does not name the {rung!r} rung"
+        positions.append(text.index(rung))
+    assert positions == sorted(positions), (
+        f"{HANDOFF_HOWTO} names all four rungs but not in precedence order; "
+        f"first-mention order was "
+        f"{[r for _, r in sorted(zip(positions, RUNG_ORDER, strict=True))]}"
+    )
+
+
+def test_the_reference_page_describes_the_precedence_not_a_named_reference() -> None:
+    """The pre-flight summary is what a reader skims to learn what the skill
+    does. It listed the deleted step by name."""
+    text = normalized(ROOT / REFERENCE_PAGE)
+    assert contains(text, "visual-authority precedence"), (
+        f"{REFERENCE_PAGE}'s pre-flight description does not name the "
+        f"precedence rule"
+    )
+    for banned in ("named aesthetic\nreference", "seed token block"):
+        assert not contains(text, banned.replace("\n", " ")), (
+            f"{REFERENCE_PAGE}'s pre-flight description still lists {banned!r} "
+            f"as a step"
+        )
+
+
+def test_every_numbered_pre_flight_reference_resolves() -> None:
+    """A guide citing `step N` of the pre-flight must cite one that exists.
+
+    The shipped steps are read from the skill rather than listed here, so a
+    renumbering moves this check instead of silently invalidating it.
+
+    Matched case-sensitively on a lowercase `step N`, which is how these guides
+    cite the *pre-flight*: "(step 0)", "(step 1b -- requires experience-design)",
+    "step 2 covers that". A guide's own procedure headings are `## Step N.` with
+    a capital, and they are a different sequence that this criterion does not
+    govern -- reading both as one list is what made the first version of this
+    assertion fail against correct text.
+    """
+    skill = (
+        ROOT / "packs" / "frontend-engineering" / ".apm" / "skills"
+        / "frontend-engineering" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    shipped = set(re.findall(r"^### (\d+[a-z]?)\. ", skill, re.M))
+    assert shipped, "no numbered pre-flight steps found in SKILL.md"
+    cited: dict[str, set[str]] = {}
+    for path in shipped_text_files(ROOT / GUIDE_TREE):
+        found = set(re.findall(r"\bstep (\d+[a-z]?)\b", normalized(path)))
+        if found:
+            cited[str(path.relative_to(ROOT))] = found
+    dangling = {f: sorted(v - shipped) for f, v in cited.items() if v - shipped}
+    assert not dangling, (
+        f"these guides cite pre-flight steps that do not exist after the "
+        f"renumbering: {dangling}. Shipped steps are {sorted(shipped)}"
     )
