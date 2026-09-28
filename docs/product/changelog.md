@@ -74,6 +74,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Cohort state moves to schema 2 with `pending_transition` and a unified, oldest-first-truncated `transition_history`; engine state remains schema 1. Runs crossing this boundary must use the authorized `loop-cohort reset` then `loop-engine reset` recovery pair.
 
+## [frontend-engineering][0.3.4] — 2026-09-27
+
+### Highlights
+
+- When your team has already agreed a visual direction, the frontend build now inherits it instead of quietly picking a different look. The skill resolves visual authority from the design artifacts your repository already points at, falls back to the visual system you already have, and only invents a premise when a surface is genuinely greenfield. It no longer names a product as an aesthetic anchor.
+- Significant visual work is now looked at while it is being built. The agent renders a representative state, compares it against the direction it inherited, corrects once where the difference is material, and renders again to check — then goes on to the usual gates. The loop is bounded: a further pass happens only if you ask.
+
+### Added
+
+- A four-rung visual-authority precedence — an approved visual target, then the direction and token taxonomy, then the incumbent system, then a stated local premise — with each rung naming what it binds and which rung it falls to. A lower rung never overrides a higher one.
+- A statement of what visual authority never controls: product behaviour, accessibility, content correctness, data and state, security, established component contracts, and platform constraints. Where a visual decision fights the accessibility floor, the floor wins.
+- A `visual authority` field in the evidence manifest, recording which rung supplied the visual decisions and the artifact or convention it named. A run that used the fallback records that explicitly.
+- A seventh lens in `frontend-reviewer`, testing the manifest's visual-authority claims against the diff. It scores no aesthetics and re-runs no design work.
+- Six evaluation cases covering the approved-target, direction-only, brownfield, standalone, non-visual and no-browser paths.
+
+### Changed
+
+- The named-aesthetic-reference step is now visual-authority resolution. The canonical product-reference table is gone, along with every pointer to it. A product name was always a poor instrument for this: it carries whatever the model associates with that product today, which is why so much generated work converges on the same look. **If you relied on it, two routes give you back the determinism.** Write a direction artifact under your design output directory and the build inherits it; or state the qualities you want in-session — the density, the voice, the restraint — and the run records that as `local-premise`. Naming a product as shorthand for qualities still works in conversation; what changed is that the skill no longer reaches for one on your behalf.
+- The seed token block moved out of the always-loaded skill into a fallback reference, read only when no taxonomy and no incumbent system supply values.
+- Print and slide guidance — the page box, colour-adjust and page-break rules — moved to its own reference, loaded whenever the output targets a PPT slide or PDF export, whatever supplied the token values.
+
+### Fixed
+
+- A run could previously record a completed visual check without any capture behind it, because nothing connected the claim to the evidence. A claim with no capture is now rejected, and where no browser is reachable the run names the missing capability and claims nothing.
+
+### Known gap
+
+- The pack's journey page and its guide tree still describe the previous pre-flight — a named aesthetic reference and a seed token block. The skill is the current behaviour; those pages land in the next patch.
+
 ## [experience-design][4.0.1] — 2026-09-27
 
 ### Highlights
