@@ -12,14 +12,9 @@ route set, and the refusal to fill an axis nothing decided.
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import pathlib
 import re
-import sys
 from pathlib import Path
-
-import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "design-system"
@@ -155,49 +150,46 @@ def _skill_text() -> str:
     return "\n".join(parts)
 
 
-def _value_rules() -> list[tuple[str, re.Pattern[str]]]:
-    """Return the repository lint's own value-shape rules.
-
-    Borrowed rather than copied. A hand-copied subset silently drifted once
-    already: it kept the lint's digit-requiring hex lookahead but dropped the
-    companion rule for `#fff`, and dropped `vmin`/`vmax` and the decimal-seconds
-    rule entirely — so `#ccc`, `0.3s` and `24vmin` passed the test while the
-    lint would have caught every one. The lint reads Markdown only, and this is
-    the check standing over the JSON it never opens, so the two agreeing is the
-    whole point.
-    """
-    tools = pathlib.Path(__file__).resolve().parents[5] / "tools"
-    if not (tools / "lint-experience-agnostic.py").is_file():
-        pytest.skip(f"repository lint not reachable from {tools}")
-    sys.path.insert(0, str(tools))
-    try:
-        spec = importlib.util.spec_from_file_location(
-            "experience_design_agnostic_lint", tools / "lint-experience-agnostic.py"
-        )
-        assert spec is not None and spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-    finally:
-        sys.path.remove(str(tools))
-    # Value shapes only. The lint's stack-token rules (framework names, styling
-    # syntax, platform roles) are about portability, not about shipping a value.
-    wanted = {
+# The four value shapes, spelled exactly as the repository's experience
+# agnosticism lint spells them. This suite is pack-local and may not read above
+# its own pack, so the patterns are copied rather than imported — and a copy
+# drifts, which it already did once: an earlier revision kept the lint's
+# digit-requiring hex lookahead but dropped the companion rule for `#fff`, and
+# dropped `vmin`/`vmax` and the decimal-seconds rule, so `#ccc`, `0.3s` and
+# `24vmin` passed here while the lint caught every one.
+#
+# `tests/roster/test_design_system_eval_guard_matches_the_lint.py` is what
+# keeps the copy honest: it reads both sides and fails when they diverge. That
+# test lives in the roster tree precisely because comparing them requires
+# reading the lint, which a pack test may not do.
+VALUE_SHAPE_RULES = (
+    (
         "color literal",
+        re.compile(
+            r"#(?=[0-9a-fA-F]*[0-9])[0-9a-fA-F]{3}\b"
+            r"|#(?=[0-9a-fA-F]*[0-9])[0-9a-fA-F]{6}\b"
+            r"|#([0-9a-fA-F])\1{2}\b"
+            r"|\brgba?\s*\(|\bhsla?\s*\("
+        ),
+    ),
+    (
         "dimension / duration literal",
-        "ratio literal",
+        re.compile(
+            r"\b\d+(\.\d+)?\s?(px|ms|rem|em|pt|vh|vw|vmin|vmax)\b"
+            r"|\b\d+\.\d+\s?s\b"
+        ),
+    ),
+    ("ratio literal", re.compile(r"\b\d+(\.\d+)?\s*:\s*1\b")),
+    (
         "named easing curve",
-    }
-    rules = [(label, pat) for label, pat in module._rules() if label in wanted]
-    assert len(rules) == len(wanted), (
-        f"the lint no longer names every value rule this test borrows: "
-        f"got {sorted(label for label, _ in rules)}, wanted {sorted(wanted)}"
-    )
-    return rules
+        re.compile(r"\bcubic-bezier\b|\bease-in-out\b|\bease-in\b|\bease-out\b"),
+    ),
+)
 
 
 def _assert_no_value_shapes(text: str, where: str) -> None:
     """Fail when *text* carries a shipped design value in any common notation."""
-    for label, pattern in _value_rules():
+    for label, pattern in VALUE_SHAPE_RULES:
         match = pattern.search(text)
         assert match is None, f"{label} {match.group(0)!r} in {where}"
 
