@@ -669,3 +669,53 @@ subagent per task. Every task was implemented in-session by the controller
 instead, recorded as eleven `human-directed` declines — the closer of the two
 accepted reasons, since an `implementer` agent type is installed and was simply
 not dispatched.
+
+## Slice 2 — experience review
+
+SHIP WITH CHANGES, twenty findings, nearly all on the tutorial. The diagnosis
+was sharper than the count: the rebase moved the tutorial's premise and left
+everything downstream of it — token block, page contract, gates, manifest —
+describing the surface it used to be.
+
+**The manifest edit silently never landed, and my verification could not see
+it.** I added the `visual authority` field to the tutorial's evidence manifest,
+then checked by counting occurrences of the string in the file. The count was 2
+and I read that as success. Both occurrences were the step-2 heading and the
+step-2 recording block; the manifest edit had matched nothing, because the
+continuation line is indented and my search string was not. A `str.replace` that
+matches nothing returns the original and raises nothing. Every edit in the repair
+pass asserts its match before writing.
+
+**The worked example contradicted the premise it had just stated.** The premise
+reserved one status colour; the token block shipped three. It asked for type
+sized for glances; no type token or CSS rule reached that. The page contract
+still named a generic product user, not the shift-reading dispatch staff the
+premise was derived from. A reader following the tutorial would have learned that
+a premise is decoration.
+
+**Two accessibility numbers were invented.** The manifest recorded a focus ring
+at `4.8:1`; the tokens compute `6.52:1`. It recorded a `32×40px` target that no
+CSS produced — the gate text said to add the minimums "if needed". Both are now
+values the shown code produces, contrast computed rather than eyeballed, and the
+live region and focus move the contract promises are recorded as unverified
+rather than claimed as passing.
+
+**The pack's own worked example was missing the step the release shipped.** The
+tutorial went HTML → CSS → gates, with no render-observe-correct pass, while the
+journey and the reference both describe that loop running before the gates. It
+now has one, and says plainly how it differs from gate 5's rendered-page
+inspection.
+
+**One finding declined.** The journey's stage-3 line is a single 120-word
+sentence and the reviewer asked for it to be split. It is the sole carrier of two
+proportionality allowances whose cue words the roster test requires on one
+physical line. Splitting it reds `test_the_frontend_journey_carries_its_four_
+proportionality_allowances` even with every word surviving. The plan's Constraints
+records this; readability loses to a contract test here, deliberately.
+
+| Gate after the repair | Result |
+| --- | --- |
+| pack suite + roster module | 431 passed |
+| guide lints (titles, index, validate) | 237 / 21 / 231 |
+| journey lints (pack, parity) | 14 valid / 20 in parity |
+| `tools/test_build_site_routing.py` | 94 passed, 1 skipped |

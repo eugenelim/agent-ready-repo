@@ -76,4 +76,4 @@ supplied it, so a shortened thread degrades visibly rather than silently.
 With the tier chosen, walk the thread from
 [Map the customer journey](map-the-customer-journey.md) onward. To decide
 which copy skill a surface needs, see
-[Choose the right copy skill](copy-boundary.md).
+[Choose the right copy mode](copy-boundary.md).

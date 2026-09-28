@@ -56,19 +56,31 @@ hold many kinds of document; that is expected, not an error.
 ## How visual authority resolves
 
 What the pre-flight reads feeds a four-rung precedence. Authority comes from the
-highest rung that supplies it; a rung silent on an axis hands that axis down, and
-a lower rung never overrides a higher one.
+highest rung that supplies it, and a rung silent on an axis hands that axis down.
 
-1. **`approved-visual-target`** — the direction artifact, when it records a
-   human-confirmed composition. Binds composition only, so colour, type, spacing
-   and motion always come from lower down.
-2. **`direction-and-taxonomy`** — the direction's aesthetic goals, axis
-   commitments and signature element, with the token taxonomy. A direction
-   recording no confirmation resolves here, and the run records that.
-3. **`incumbent-system`** — the visual system your repository already has.
-   Extend it; do not fork it.
+Each rung below names the signal that puts you on it, so you can tell which one
+your situation lands on.
+
+1. **`approved-visual-target`** — your `direction/<slug>.md` records that a
+   person confirmed the composition: the arrangement of the page, not its
+   colours. **You are here if** the artifact says somewhere that the composition
+   was approved or signed off, rather than merely proposed or picked. It binds
+   composition only, so colour, type, spacing and motion always come from lower
+   down.
+2. **`direction-and-taxonomy`** — the direction's *aesthetic goals* (the ranked
+   qualities it wants, like "calm" or "dense"), its *axis commitments* (where it
+   sits on scales like restrained-to-expressive), and its *signature element*
+   (the one device that makes it recognisable), plus the token taxonomy's roles
+   and scales. **You are here if** you have a direction but nothing in it records
+   a human confirming the composition. The run records that it was unconfirmed.
+3. **`incumbent-system`** — the visual system your repository already has:
+   a token file, a shipped component layer, or a stylesheet a reasonable person
+   would call the house style. **You are here if** that exists and no design
+   artifact resolved. Extend it; do not fork it. If it is partial or incoherent,
+   extend its best-supported pattern and the run records the rung as partial.
 4. **`local-premise`** — a premise stated in the session, naming qualities rather
-   than a product. Terminal and always available.
+   than a product. **You are here if** none of the above applies. Terminal and
+   always available, so the chain never runs out.
 
 The run records which rung supplied composition and which supplied values. They
 name the same rung when one supplied both.

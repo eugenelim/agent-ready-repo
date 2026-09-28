@@ -79,7 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - The guides now describe the pre-flight the pack actually ships. The design-handoff how-to states the four-rung precedence in order and says what happens when a slot is empty; the tutorial walks the rung an adopter without a design tree actually uses, working from a stated premise rather than copying a named product.
-- The reviewer reference no longer undercounts itself. It documents all seven lenses, including the visual-authority lens, and says what evidence confirms each one.
+- Where your token taxonomy already resolved a value, the build now uses that value as given instead of re-deriving its own. Re-deriving a number the design step already decided is how a surface drifts from the direction it was supposed to inherit; what the taxonomy left as a relationship, or recorded as unresolved, is still the build's work to settle.
+- You can now see what the frontend reviewer actually checks. Its reference page documents all seven lenses, including the visual-authority lens, and says what evidence confirms each one — the diff for five, a rendered capture for one, the evidence manifest for the last.
 
 ### Changed
 

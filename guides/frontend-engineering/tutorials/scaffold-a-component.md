@@ -45,7 +45,7 @@ The skill loads. You are now in the PLAN phase.
 
 ---
 
-## Step 2. Resolve visual authority
+## Step 2. Resolve visual authority (step 1 of the pre-flight)
 
 The pre-flight's first step (step 0) reads a design handoff when your repository
 configures one. This tutorial does not, so that step records its skip —
@@ -59,9 +59,8 @@ directory, read
 would resolve higher and this step would record which rung supplied it.
 
 A premise states the qualities the surface wants. It never names a product to
-copy. Derive it from the surface's own subject matter — who reads it, what they
-are doing, what the work is like — which is what makes one premise differ from
-the next.
+copy. Derive it from the surface's own subject matter — who reads it, what
+they are doing, what the work is like.
 
 From the brief: dispatch staff reading a console across a full shift. That
 argues for low-glare surfaces, a restrained palette that lets one status colour
@@ -100,7 +99,7 @@ XD genre routing: skipped (experience-design pack absent)
 
 ---
 
-## Step 4. Resolve token values
+## Step 4. Resolve token values (step 2 of the pre-flight)
 
 Values come from the highest source that supplies them. No taxonomy resolved in
 step 0 and there is no incumbent token system here, so this walkthrough reads
@@ -111,7 +110,9 @@ rules and the token gates mean *that* namespace, not a literal prefix.
 
 The fallback's accent ships as a placeholder marked replace-do-not-ship, because
 an accent is a decision to make rather than a value to inherit. The premise
-reserves one status colour, so that is the decision this surface makes:
+reserves one *accent*, so that is the decision this surface makes. Error and
+success are not premise decisions — they are quality-floor obligations every
+surface owes, and they stay reserved for state rather than for emphasis:
 
 ```css
 :root {
@@ -135,7 +136,8 @@ reserves one status colour, so that is the decision this surface makes:
   --ds-space-5:  24px;
   --ds-space-6:  32px;
 
-  /* Type scale */
+  /* Type scale — "sized for glances" puts the card's own body at --ds-text-lg,
+     one step above the app default, and reserves -sm for the timestamp */
   --ds-text-sm:   0.75rem;
   --ds-text-base: 0.875rem;
   --ds-text-lg:   1rem;
@@ -148,8 +150,11 @@ reserves one status colour, so that is the decision this surface makes:
   --ds-radius-sm: 3px;
   --ds-radius-md: 6px;
 
-  /* Motion */
+  /* Motion — the skeleton pulse gets its own slower token: at 200ms it cycles
+     about five times a second, which a low-glare shift-long surface should not
+     do, and which sits near the flashing threshold WCAG 2.3.1 guards */
   --ds-duration-moderate: 200ms;
+  --ds-duration-skeleton: 1600ms;
   --ds-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 ```
@@ -184,8 +189,9 @@ States that are applicable and must be tested:
 ## Step 6. Fill the page/screen contract
 
 ```
-target user: Authenticated product user checking for updates
-primary job: See the most recent notification and act on it
+target user: Warehouse dispatch staff, reading the console across a full shift
+primary job: See the most recent notification and act on it without losing the
+dispatch view
 primary action: Click through to the referenced item (if in content state)
 expected result: User navigates to the notification's context
 next action: Clear the notification or take the referenced action
@@ -243,9 +249,14 @@ templating system.
 </article>
 ```
 
-**Error state:**
+**Error state.** `role="alert"` announces the failure, and `tabindex="-1"` lets
+the retry handler move focus here so a keyboard user is not stranded where the
+skeleton used to be. That focus move is the contract's "focus managed on retry
+click" — it is JavaScript this tutorial does not write, so it is recorded below
+as unverified rather than claimed.
+
 ```html
-<article class="notif-card notif-card--error" role="alert">
+<article class="notif-card notif-card--error" role="alert" tabindex="-1">
   <p class="notif-card__error-msg">Could not load notifications.</p>
   <button type="button" class="notif-card__retry">Retry</button>
 </article>
@@ -278,13 +289,7 @@ Key rules from the token block and craft rules:
 .notif-card__skeleton-meta {
   background-color: var(--ds-color-outline);
   border-radius: var(--ds-radius-sm);
-}
-
-/* Default: no animation */
-.notif-card__skeleton-title,
-.notif-card__skeleton-body,
-.notif-card__skeleton-meta {
-  animation: none;
+  animation: none; /* default; the guarded rule below opts in */
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -296,8 +301,16 @@ Key rules from the token block and craft rules:
   .notif-card__skeleton-title,
   .notif-card__skeleton-body,
   .notif-card__skeleton-meta {
-    animation: shimmer var(--ds-duration-moderate) var(--ds-ease-standard) infinite;
+    animation: shimmer var(--ds-duration-skeleton) var(--ds-ease-standard) infinite;
   }
+}
+
+/* Target size — WCAG 2.2 SC 2.5.8 (AA) wants at least 24x24 CSS px. Set it
+   here rather than leaving it to a later "if needed": the manifest records a
+   measured value, and a measurement needs code that produced it. */
+.notif-card__retry {
+  min-block-size: 40px;
+  min-inline-size: 32px;
 }
 
 /* Focus styles — verified below as WCAG 2.2 SC 2.4.13 Focus Appearance (AAA enhancement) */
@@ -311,7 +324,36 @@ Key rules from the token block and craft rules:
 
 ---
 
-## Step 9. Run the GATES
+## Step 9. Render, observe, correct
+
+Before the gates, look at what you built against the authority you inherited.
+This is the loop the skill runs during EXECUTE, and it is not the rendered-page
+inspection in step 10's gate 5: that one runs after the code is done and asks
+whether anything is reader-visibly broken. This one asks whether the surface
+looks like what step 2 committed to.
+
+Render a representative state — content is the right one here, because it is the
+state the premise describes — and compare:
+
+- **Is the premise visible?** A low-glare console read across a full shift means
+  no bright field, one accent doing one job, and a timestamp that recedes.
+- **Did anything default in?** The most common divergence is a value nobody
+  decided: a stock indigo accent, a heading at twice body for no stated reason.
+- **What is the signature decision?** On this card it is the restraint — the
+  status colour is the only saturated thing on the surface.
+
+Correct once where the difference is material, then render again to check. The
+bound is one correction pass and one verification render; anything still
+diverging is recorded rather than iterated on. A further pass happens only if
+you ask for one.
+
+This card needed one correction: the first pass gave the timestamp the same
+weight as the body, which fought "sized for glances". Dropping it to
+`--ds-text-sm` resolved it, and the verification render confirmed the hierarchy.
+
+---
+
+## Step 10. Run the GATES
 
 After the HTML and CSS are written, run the five GATES in order:
 
@@ -320,14 +362,18 @@ After the HTML and CSS are written, run the five GATES in order:
 npx html-validate --preset standard,a11y --max-warnings 0 notification-card.html
 ```
 
-**Gate 2 — Accessibility audit:**
+**Gate 2 — Accessibility audit.** The automated run checks the WCAG 2.1 AA
+ruleset; WCAG 2.2 AA is the target, and the delta is the two manual checks below
+plus the gap recorded in the manifest.
+
 ```bash
 npx pa11y "file:///$(pwd)/notification-card.html" --standard WCAG2AA --reporter cli
 ```
 
 Then manually verify:
-- WCAG 2.5.8 Target Size (Minimum), AA: `.notif-card__retry` button is at
-  least 24×24 CSS px (add `min-height: 32px; min-width: 32px` if needed).
+- WCAG 2.5.8 Target Size (Minimum), AA: `.notif-card__retry` is at least
+  24×24 CSS px. Step 8 sets `min-block-size: 40px; min-inline-size: 32px`, so
+  this check confirms a value the stylesheet states rather than one you add now.
 - WCAG 2.4.13 Focus Appearance, AAA enhancement: the `.notif-card__retry`
   and `.notif-card__link` focus rings are at least 2px, with 3:1 contrast
   against the adjacent surface.
@@ -337,7 +383,11 @@ Then manually verify:
 grep -E "#[0-9a-fA-F]{3,6}|rgba?\(|hsl\(|[0-9]+px" notification-card.css
 ```
 
-Output should return only the `:root` token definition block.
+Expect two kinds of hit, and nothing else: the `:root` token definition block,
+and the small set of geometry values a token system does not own — the 1px
+hairline border, the 2px focus ring and its offset, and the target-size minimums.
+Those are structural, not thematic. A hit that is a colour, a spacing step or a
+type size is the real finding this gate is looking for.
 
 **Gate 4 — Visual QA checklist:**
 - [ ] All 4 states are present in the HTML (loading, first-run, content, error)
@@ -355,29 +405,37 @@ filenames: [Inspect the rendered page](../how-to/inspect-the-rendered-page.md).
 
 ---
 
-## Step 10. Produce the evidence manifest
+## Step 11. Produce the evidence manifest
 
 After gates pass, fill the evidence manifest:
 
 ```
 routes: notification-card.html
-viewports: 375px (mobile), 1280px (desktop)
+viewports: 390px (mobile), 1280px (desktop)
 browsers: Chrome (Baseline Widely Available policy)
 states: loading, first-run, content, error, high-zoom (200%), reduced-motion,
   keyboard-only
+visual authority: composition local-premise / values local-premise — no design
+  handoff resolved and no incumbent system, so the premise recorded in step 2
+  supplied both. Token namespace --ds-* from the fallback block
 screenshots: loading-state.png, empty-state.png, content-state.png, error-state.png
 inspection observations: completed / pass — nothing reader-visible wrong across
   the four required captures at 390x600 and 1280x900, at rest and scrolled
 a11y result:
   pa11y wcag21aa: 0 errors, 0 warnings
-  manual 2.5.8 Target Size (Minimum) (AA): pass — retry button 32×40px, link 32×24px
-  manual 2.4.13 Focus Appearance (AAA enhancement): pass — 2px outline at 4.8:1 contrast
+  manual 2.5.8 Target Size (Minimum) (AA): pass — retry button 32×40px, from the
+    min-inline-size/min-block-size pair step 8 sets
+  manual 2.4.13 Focus Appearance (AAA enhancement): pass — 2px outline;
+    --ds-color-primary #8b93e8 on --ds-color-surface-alt #141414 computes
+    6.52:1, above the 3:1 floor. Computed, not eyeballed
   WCAG 2.2 AA gap: 2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8 not yet checked
 perf result: component-level; no CWV measurement for isolated component
 console/network result: no console errors; fetch mock active during review
 analytics events: notification_card_viewed fires on content state render
 known exceptions: none
-unverified items: none
+unverified items: the retry focus move and the loading-to-content announcement
+  are contract requirements living in the component's JavaScript, which this
+  tutorial does not write. Verify both with a screen reader before release
 ```
 
 ---
