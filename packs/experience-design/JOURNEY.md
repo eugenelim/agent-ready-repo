@@ -43,7 +43,7 @@ skills:
     description: "Establishes the visual direction for a surface — named emotional and brand goals grounded in stable referents — as the aesthetic reference all subsequent screens must satisfy."
     humanTouches: 1
   - name: design-system
-    description: "Derives the design token set from the creative direction — the primitive and semantic tokens that carry the design into code."
+    description: "Resolves the design system from the creative direction and whatever system the product already has — the relationships that must hold and the values that make them buildable."
     humanTouches: 0
   - name: information-architecture
     description: "Designs the layout zones and information hierarchy for a screen, selecting the analytical, marketing, documentation, informational, marketplace, or workspace genre method when the brief declares one."
@@ -80,9 +80,10 @@ humanGates:
       - "Does the aesthetic direction name a specific visual character — not just 'clean and modern'?"
       - "Are the contrast ratios in the token set verified at WCAG 2.2 AA minimum?"
       - "Is the palette constrained to a small number of semantic roles — does adding a new color require a decision?"
-      - "Are the tokens derived from the aesthetic direction, not borrowed from a generic design system?"
-    whatGoodLooksLike: "A named aesthetic reference with a token set that derives directly from it, passes the contrast floor, and could be handed to a developer without ambiguity."
-    whatBadLooksLike: "An aesthetic direction that could apply to any product, or a token set that introduces hardcoded values outside the semantic token system."
+      - "Are the values derived from the aesthetic direction, not borrowed from a generic design system?"
+      - "Is every domain the direction reached actually resolved, rather than left for whoever writes the code?"
+    whatGoodLooksLike: "A named aesthetic reference with a resolved system that derives directly from it, passes the contrast floor, records which authority supplied each decision, and could be handed to a developer without ambiguity."
+    whatBadLooksLike: "An aesthetic direction that could apply to any product, a system that names categories and leaves the visual decisions to implementation, or one that introduces hardcoded values outside the semantic roles."
     consequence: "The aesthetic direction is the constraint every subsequent screen must satisfy. Approving a vague direction means screens drift with no shared reference to hold them together — and the experience-reviewer will flag every screen for the same missing constraint."
   - id: review-experience-designs
     globalGate: null
@@ -116,7 +117,7 @@ relatedJourneys:
 | `content-design` | Set surface intent — what this screen says and for whom, plus per-surface copy goals and the brand register in its other two modes | Required |
 | `user-flow` | Build the screen inventory with per-screen state briefs | Required |
 | `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
-| `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |
+| `design-system` | Resolve the system's relationships and values from the direction and the incumbent system | Optional |
 | `information-architecture` | Decide what goes where on each screen and how users stay oriented | Required |
 | `interaction-design` | Design states, feedback, and animation per screen | Required |
 | `experience-reviewer` | Independent cold review — forked context, read-only. A reviewer agent the design thread dispatches, described here rather than run like the skills above | Required |
@@ -213,7 +214,7 @@ Approve the journey and screen list? ›
 
 ### 3. Establish design intent
 
-Type `creative-direction` to anchor the visual direction in persona, precedent, and platform conventions. Type `design-system` to derive the token taxonomy from it.
+Type `creative-direction` to anchor the visual direction in persona, precedent, and platform conventions. Type `design-system` to resolve that direction into a buildable system.
 
 ```text
 creative-direction
@@ -227,7 +228,7 @@ Approve the aesthetic direction? ›
 ```
 
 - **You decide:** approve the direction before screens are designed — a vague direction ("clean and modern") is a rejection.
-- **Output:** a named aesthetic direction with a derived token taxonomy.
+- **Output:** a named aesthetic direction and a resolved design system derived from it.
 - **State:** draft
 
 ---

@@ -52,7 +52,7 @@ syntax or fixed visual values.
 | Orient to existing design work | `experience-status` | Read-only status and next design skill | Not portfolio, shaping, or build status |
 | Create durable design arbitration rules | `design-principles` | Named principles with tests | Not product positioning or component rules |
 | Name a visual direction | `creative-direction` | Ranked aesthetic goals | Not market positioning or visual implementation |
-| Derive token names and scales | `design-system` | Token taxonomy and rationale | Not token implementation |
+| Resolve the design system | `design-system` | Relationships plus the values that make them buildable | Not component code |
 | Organize hierarchy and wayfinding | `information-architecture` | IA and layout reasoning | Not markup or styles |
 | Specify behavior within a screen | `interaction-design` | Behavioral and state specification | Not component code or UI strings |
 | Critique an existing design | `design-review` | Severity-rated findings | Not code review or new design creation |
@@ -141,7 +141,7 @@ through the `[design]` layout contract below.
 
 **Routes away:** target segments and product positioning, choosing or scoping a
 bet, and encoding rules in components. Use `creative-direction` for visual
-goals, `design-system` for token taxonomy, and `design-review` for critique.
+goals, `design-system` to resolve the system, and `design-review` for critique.
 
 ### `creative-direction`
 
@@ -159,11 +159,15 @@ critique.
 
 ### `design-system`
 
-**Use when:** “Derive semantic spacing, type, and color token names from our
-approved direction.”
+**Use when:** “Turn our approved direction into a design system we can
+actually build.”
 
-**Returns:** a semantic token/scale taxonomy and its rationale. It names and
-organizes the system but does not implement token values.
+**Returns:** a project-specific design system — the relationships that must
+survive implementation, and the values that make them buildable.
+
+It resolves each domain from the highest-ranked authority that reaches it, and
+records which one that was. A domain no authority reaches is recorded
+unresolved rather than chosen. It does not write component code.
 
 **Routes away:** product differentiation, design-system initiative shaping, and
 token or component implementation. Use `creative-direction` to establish the
@@ -205,8 +209,8 @@ approved aesthetic reference.
 
 **Routes away:** product-strategy review, bet selection/framing, and code or
 implementation review. Use `creative-direction` to create a direction,
-`information-architecture` to design hierarchy, and `design-system` to derive
-tokens.
+`information-architecture` to design hierarchy, and `design-system` to resolve
+the system.
 
 ## Content and copy
 

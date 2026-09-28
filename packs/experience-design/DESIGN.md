@@ -14,7 +14,7 @@ Living design reference for the experience-design pack. Records the philosophy, 
 
 Things a reasonable reader might expect this pack to provide. It doesn't, by design:
 
-- **No stack specifics.** No UI-framework code, no styling-language syntax, no animation library, no fixed spacing/timing/color/motion-curve tables, no token values, no pixel comps. The pack ships the method to derive your design; you choose your tools and fill in the numbers.
+- **No stack specifics.** No UI-framework code, no styling-language syntax, no animation library, no fixed spacing/timing/color/motion-curve tables, no token values, no pixel comps. The pack itself carries no value — nothing here would arrive the same way for two unrelated products. A `design-system` run resolves the values *your* approved direction, existing system and platform give it authority to fix, and writes them into your artifact.
 - **No product strategy.** The pack assumes an agreed user and outcome. Framing, opportunity sizing, and UX strategy are upstream (`product-strategy` pack). When that input is absent, `journey-mapping` degrades gracefully but the output is weaker.
 - **No UI copy strings.** Per-state UI copy (button labels, error messages, empty states) is the `ux-writing` skill's domain in `product-engineering`. This pack sets content intent and copy direction; `ux-writing` writes the actual strings keyed to the state matrix.
 - **No code review.** `experience-reviewer` reviews design artifacts only — journeys, screen flows, briefs, aesthetic directions. It never reviews code diffs (use core's `adversarial-reviewer`) or architecture docs (use architect's `design-reviewer`).
@@ -57,7 +57,7 @@ Each skill consumes a specific upstream artifact and cannot produce reliable out
 - `content-design`'s per-surface acquisition copy goals mode needs the content brief its own message and narrative structure mode writes, to name per-surface copy goals grounded in the surface's declared intent. For acquisition surfaces, the brand register is an optional upstream anchor.
 - `user-flow` needs the content brief to sequence screens in a way that delivers on the stated content intent, not just the functional path.
 - `creative-direction` needs the journey's emotional arc (the pains, the moments of relief) to ground the aesthetic direction in real user feeling rather than preference.
-- `design-system` needs the named aesthetic direction to derive a token taxonomy that isn't arbitrary.
+- `design-system` needs the named aesthetic direction so the system it resolves isn't arbitrary.
 - `information-architecture` needs both the content brief and the aesthetic direction as constraints. When a screen declares a surface genre, it loads the matching genre method before arranging hierarchy.
 - `interaction-design` needs the per-screen brief produced by `user-flow` — which includes the state matrix — to design behavior for the right set of states.
 - `design-review` and `experience-reviewer` need the completed artifacts to review against something concrete.
@@ -103,13 +103,16 @@ This principle applies to every skill in the pack. `design-principles` must name
 
 ## 3. The method principle: derive, never prescribe
 
-### Why no values tables
+### Why the pack ships no values, and a run resolves them
 
-The pack ships method and taxonomy shapes, not values. This is a deliberate scope decision, not a gap:
+The pack ships no value; the artifact a run writes for one product does. Those
+are two different statements and only the first is a scope decision:
 
 - **Portability.** Values are always project-specific (a fintech's type scale is not a gaming product's type scale). A pack that ships values forces the adopter to either use them as-is (wrong) or override them everywhere (friction without benefit).
 - **Standards don't need reprinting.** WCAG contrast ratios, Material 3 motion curves, Apple HIG tap target sizes — these are published, maintained, and authoritative. A pack that reprints them creates a maintenance burden and an accuracy risk. The method says what to check and points to where; the adopter follows the live standard.
-- **Method survives stack changes.** The token taxonomy shape (primitive → semantic → component) is stable across design tools, styling preprocessors, and component frameworks. A values table is not.
+- **Method survives stack changes.** The system's shape (primitive → semantic → component) is stable across design tools, styling preprocessors, and component frameworks. A values table is not.
+
+What none of that licenses is refusing to decide. A run that leaves typography, color, spacing or shape for whoever writes the code has not avoided arbitrary values — it has moved them to a surface with less design context, where they will be filled from category habit. So a `design-system` run resolves every domain its authority reaches, records the authority that supplied each one, and records a domain nothing reached as unresolved rather than choosing.
 
 ### What "method" means in practice
 
@@ -117,7 +120,7 @@ Each skill:
 - Names what to decide (e.g. "name each spacing value by semantic role, not by numeric scale")
 - Gives a decision rule (e.g. "every token decision must trace back to a named goal in the aesthetic direction")
 - Points to the standard for the constraint (e.g. "WCAG 2.2 AA for contrast ratios")
-- Leaves values blank (e.g. the taxonomy shape has named slots; the adopter fills the numbers)
+- Resolves the values that rule implies for this product, and records which authority supplied each one (e.g. the direction's axis tokens, the incumbent system, or the named platform's convention)
 
 ### The two kinds of "no stack"
 
@@ -211,8 +214,8 @@ Principles must derive from real user pain points in the journey. A principle no
 **Creative-direction** ← principles + persona + precedent  
 The aesthetic direction names the emotional and brand goals that visual decisions must serve. It is grounded in three things: the persona (who the user is, what their existing context looks like), stable referents (products or visual traditions that achieve the named goal), and platform conventions (iOS/Material/web norms the design inherits whether it wants to or not). An aesthetic direction not grounded in all three is arbitrary.
 
-**Design-system** ← aesthetic direction  
-The token taxonomy derives from the aesthetic direction. Every token decision must trace back to a named goal in the direction. A token that can't be explained by the direction is a gap in the direction, not a token decision.
+**Design-system** ← aesthetic direction + the product's existing system  
+The system derives from the aesthetic direction and whatever the product already has. Every decision must trace back to a named goal or a committed axis in the direction, to a stated constraint, or to the incumbent system. A decision that can't be explained by one of those is a gap in the authority, not a decision to make anyway.
 
 **Information-architecture with genre routing** ← content brief + aesthetic direction
 Hierarchy, reading flow, and wayfinding are set before behavioral design begins. The IA is the skeleton; interaction design is the muscle. When a screen has a known surface genre, the genre route supplies the specialized structural vocabulary inside `information-architecture`. Designing interaction without a settled IA produces behaviors that fight the structure.
@@ -330,7 +333,7 @@ The backstage column of the `service-blueprint` is the slicing instrument handed
 
 3. **The quality floor is non-negotiable.** No skill may produce output that explicitly defers the quality floor ("we'll add states later," "accessibility to follow"). The floor is the minimum bar for any output to leave the skill; if the design can't meet it, the skill surfaces to the human rather than shipping below floor.
 
-4. **No values, ever.** No skill may emit a fixed colour value, spacing value, timing curve, or breakpoint table. Method and taxonomy shape only.
+4. **No universal values, ever.** No skill may ship a fixed colour value, spacing value, timing curve, or breakpoint table — nothing that would arrive the same way for two unrelated products. This binds what the pack carries. It does not bind what a run writes: `design-system` resolves project-specific values into its artifact wherever the approved direction, the incumbent system, a stated constraint or the named platform's convention gives it the authority, and records a domain nothing reached as unresolved rather than filling it.
 
 5. **No tool winners.** No skill names a specific design tool (Figma, Sketch, Penpot, etc.) as the prescribed tool. Tool categories are allowed ("a vector-based screen design tool"); specific tools are not.
 
@@ -340,11 +343,13 @@ The backstage column of the `service-blueprint` is the slicing instrument handed
 
 ## 10. Design decisions and rationale log
 
-### Why no values tables (from v1)
+### Why the pack ships no values (from v1, amended)
 
-The pack ships in two parts: method (what to decide and how) and taxonomy shape (the slot structure for values). Values are intentionally absent because: (a) they are always project-specific, (b) the authoritative standards (WCAG, HIG, Material) already publish them and are better maintained, (c) any values we ship create a false anchor the adopter will optimize against rather than derive from first principles. The method works precisely because it forces derivation.
+The pack ships in two parts: method (what to decide and how) and the system's shape (the structure decisions live in). Pack-level values are intentionally absent because: (a) they are always project-specific, (b) the authoritative standards (WCAG, HIG, Material) already publish them and are better maintained, (c) any values we ship create a false anchor the adopter will optimize against rather than derive from first principles. The method works precisely because it forces derivation.
 
 **Alternative considered:** ship sensible defaults for common stacks (one for web, one for iOS, one for Android). Rejected because "sensible defaults" become cargo-culted values within one sprint. Teams stop asking "does this ratio serve the aesthetic direction?" and start asking "does this match the default?" The method value evaporates.
+
+**Amendment.** v1 also read this rule as forbidding a *run* from resolving values, which left the artifact naming categories and deciding nothing. That is the same failure by another route: the decisions still got made, just downstream by an agent holding less design context, which is exactly where a category default gets reached for. The prohibition now binds what the pack carries, and a run resolves what its authority supports. The pack-level half is the one a mechanical check can hold, and a check holds it over every Markdown file in this pack.
 
 ### Why user-scope by default (from v1)
 

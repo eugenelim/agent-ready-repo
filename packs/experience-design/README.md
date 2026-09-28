@@ -49,7 +49,7 @@ What to run next: user-flow
 | `content-design` | The copy layer in three modes: surface intent, per-surface copy goals, and the brand-level register |
 | `user-flow` | Build the screen inventory — transitions and per-screen state briefs |
 | `creative-direction` | Anchor the aesthetic — grounded in persona and precedent |
-| `design-system` | Derive the token taxonomy from the aesthetic direction |
+| `design-system` | Resolve the design system — the relationships and the values — from the direction and the product's existing system |
 | `information-architecture` | Structure a screen — hierarchy, reading flow, wayfinding, with genre routing when known |
 | `interaction-design` | Design the behavioral layer — states, feedback, animation |
 | `design-review` | Authoring-time critique — quality floor + coherence |
@@ -103,7 +103,7 @@ The reviewer runs forked — no authoring context. You act on its findings, then
 **Review** — quality floor, aesthetic fit, cross-brief coherence:
 `design-review` (authoring-time) → `experience-reviewer` (independent cold review)
 
-Every skill ships portable **method**, not your stack: no UI-framework code, no values tables, no fixed token set, no pixel comps.
+Every skill ships portable **method**, not your stack: no UI-framework code, no values tables, no fixed token set, no pixel comps. The pack carries no value of its own; a `design-system` run resolves your product's values into your artifact.
 
 ---
 
