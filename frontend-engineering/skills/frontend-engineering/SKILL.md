@@ -153,8 +153,8 @@ overrides a higher one, and a rung silent on an axis hands that axis down.
    proportion, spatial relationships. It supplies no colour, type, spacing or
    motion values, so those always come from a lower rung.
 2. **`direction-and-taxonomy`** — that artifact's aesthetic goals, axis
-   commitments and signature element, with the token taxonomy's roles and
-   scales. A direction recording no confirmation resolves here, and the run
+   commitments and signature element, with the token taxonomy's roles, scales
+   and resolved values. A direction recording no confirmation resolves here, and the run
    records that it was unconfirmed.
 3. **`incumbent-system`** — the repository's existing visual system. Extend it;
    do not fork it. Where that system is partial or incoherent, extend its
@@ -207,10 +207,10 @@ as either `XD genre routing: <skill-name> loaded` or `XD genre routing: skipped
 Values come from the highest source that supplies them. Never fork a system a
 higher source already answers.
 
-1. **The token taxonomy**, when one resolved in step 0. It carries roles,
-   scales and relationships rather than numbers, so resolve its named roles
-   into values for this medium and density — that resolution is the work, not a
-   reason to skip to a default.
+1. **The token taxonomy**, when one resolved in step 0. **Use a value it
+   resolved as given** — re-deriving one the design step already decided is how
+   a surface drifts from its direction. Resolve what it left as a relationship,
+   or recorded unresolved — that is the work, not a reason to skip to a default.
 2. **The incumbent token system** already in the repository. Extend it; do not
    fork it.
 3. **[`references/fallback-tokens.md`](references/fallback-tokens.md)** — read
