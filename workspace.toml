@@ -2108,6 +2108,18 @@ open = [
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
+  # Slice 9 of `intent-identity-and-registration`, cut from
+  # `intent-renumber-and-reissue` on 2026-09-28 and Draft. It takes that slice's
+  # transaction: twelve criteria, the staging-and-recovery design, and the
+  # operator surface. The cut was evidence-driven -- a spec-stage security pass
+  # sustained ten findings against the transaction, four against the repairs to
+  # those, and six against the repairs to those, while the sibling's request and
+  # tombstone contracts took none. Registered in `backlog.open` because it is a
+  # Draft spec and that is the only initiative-free collection admitting one;
+  # it moves to ini-010's work queue when its spec is approved, as its sibling
+  # did. `needs` carries the blocking edge: its tombstone writing rests on the
+  # ADR that sibling's T4 produces.
+  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-renumber-and-reissue/spec.md"}] },
   { path = "docs/specs/frame-intent-escape-verdicts/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Three out-of-root escape forms get three verdicts: a symlink refuses, a dot-dot segment refuses under ADR-0030 D6, and an absolute-only external path keeps D7 Ask-first", needs = [] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
