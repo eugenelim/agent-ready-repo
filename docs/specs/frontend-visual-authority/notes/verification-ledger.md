@@ -811,3 +811,40 @@ Fixed, with the split recorded so the next reader does not have to infer it.
 | pack suite + roster module | 453 passed |
 | ruff / boundary lint / guides | clean, 8 cases, 231 checked |
 | `tools/test_build_site_routing.py` | 94 passed, 1 skipped |
+
+## Slice 2 — merge from main
+
+Merged `origin/main` at `dea7ef0b4` (close-work closure check). Auto-merge was
+clean, which is the state the two documented traps fire in, so both were checked
+rather than assumed.
+
+**Three files overlapped**, all three-way merged with both sides intact:
+`.github/workflows/build-check.yml` (our named roster step plus main's eight
+closure steps; the workflow went 118 → 119 dispositioned steps),
+`tools/lint-ci-parity.py` (our two axis entries plus main's five), and
+`docs/product/changelog.md`.
+
+**Trap 1 — the generated marketplace file.** A conflict-free merge there has
+twice silently dropped an incoming version bump, because each side edits a
+different line and git has no reason to flag it. Reconciled every entry against
+its `packs/<name>/pack.toml`: no mismatches across 15 entries, and
+`frontend-engineering` still reads `0.3.5`. `core` is not published to the
+marketplace, so that pairing does not exist to check.
+
+**Trap 2 — the changelog's three machine-checked invariants.** `[core][2.27.2]`
+sits directly beneath `[Unreleased]` at the version `packs/core/pack.toml` now
+ships — main's bump, correctly ordered above our entry. Exactly one blank line
+around every heading. The routing contracts in
+`tests/roster/test_verification_ledger_contract.py` pass. Our
+`[frontend-engineering][0.3.5]` entry survived intact.
+
+| Gate on the merged tree | Result |
+| --- | --- |
+| pack suite + roster module | 453 passed |
+| `tests/roster tests/conformance packs/core/tests/skills/close-work/` | 2180 passed, 6 skipped, 56 subtests, 4 m 44 s |
+| ruff / mypy | clean |
+| deep catalogue lint | exit 0 |
+| `self-host --check` | ok |
+| journey, guide and boundary lints | all clean |
+| `lint-ci-parity` | 119 steps, both axes |
+| spec-status lint | metadata clean |
