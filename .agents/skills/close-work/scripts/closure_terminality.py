@@ -89,14 +89,6 @@ def is_intent_terminal(status: str) -> bool:
 
 # ── Briefs: derived, because a shipped surface carries this ───────────────────
 
-BRIEF_STATUS_VOCABULARY: tuple[str, ...] = (
-    "Draft",
-    "Ready",
-    "Executing",
-    "Shipped",
-    "Withdrawn",
-    "Cancelled",
-)
 
 BRIEF_TRANSITIONS_PROJECTION: frozenset[tuple[str, str]] = frozenset(
     {
@@ -110,6 +102,18 @@ BRIEF_TRANSITIONS_PROJECTION: frozenset[tuple[str, str]] = frozenset(
         ("Executing", "Cancelled"),
     }
 )
+
+BRIEF_STATUS_VOCABULARY: tuple[str, ...] = tuple(
+    sorted({state for pair in BRIEF_TRANSITIONS_PROJECTION for state in pair})
+)
+"""Every brief status, derived from the transition projection above.
+
+Derived rather than written out. ``author-delivery-brief``'s ``brief_shape.py``
+is the single home for this vocabulary, and a shipped test asserts that exactly
+one file under ``packs/*/.apm/`` enumerates all six tokens. Restating them here
+would be the second enumeration that test exists to catch — and a second thing
+to keep in step, when the transition table already implies the member set.
+"""
 
 
 def _has_outgoing_edge(status: str, edges: Iterable[tuple[str, str]]) -> bool:

@@ -2359,15 +2359,6 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # Slice 2 of `intent-lifecycle-and-closure`, materialized 2026-09-26. Spec is
-  # `Draft`, so canonical preflight reports `unapproved_spec` until the work-loop
-  # scope gate runs -- that is the accurate state, not drift. `needs` is empty:
-  # slices 1 and 3 and `intent-preamble-closure-declarations` are all Shipped, so
-  # every surface this slice consumes exists. It takes an ordering edge on
-  # CAP-0003 for the `workspace.toml` registration write ONLY, and that write is
-  # out of scope here -- no collection admits a closed intent today -- so the edge
-  # constrains a Follow-on rather than this item.
-  { path = "docs/specs/closure-eligibility-check/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "A terminal transition fires a closure check on its ancestors that gathers descendant state at decision time, classifies refuse/not-eligible/eligible without collapsing the first two, presents an evidence packet a human decides on, and records the decision", needs = [] },
 ]
 active  = [
 ]
@@ -2388,6 +2379,13 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 2 of `intent-lifecycle-and-closure`, delivered 2026-09-27 and moved
+  # from `queue` to `shipped` in the same change that set the spec `Shipped`
+  # and the plan `Done`. Membership and status move together: leaving a
+  # non-`Draft` spec in an open collection is what `workspace-queue-reconciliation`
+  # reports as `impossible_transition`, which is the same invariant this
+  # slice's own check refuses a closure on.
+  { path = "docs/specs/closure-eligibility-check/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "A terminal transition fires a closure check on its ancestors that gathers descendant state at decision time, classifies refuse/not-eligible/eligible without collapsing the first two, presents an evidence packet a human decides on, and records the decision", needs = [] },
   # Slice 3 of `intent-lifecycle-and-closure`, delivered 2026-09-26 and moved
   # from `active` in the same change that set the spec `Shipped` and the plan
   # `Done`, for the membership-and-status reason recorded just above. Slice 2
