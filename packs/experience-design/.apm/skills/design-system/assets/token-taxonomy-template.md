@@ -1,108 +1,208 @@
 ---
 type: token-taxonomy
-slug: "<kebab-case-slug — the system this taxonomy serves>"
-direction: "<name of the aesthetic direction this taxonomy derives from>"
+slug: "<kebab-case-slug — the system this serves>"
+direction: "<name of the aesthetic direction this derives from>"
+route: "<inherit | extend | originate | refine>"
 date: "<YYYY-MM-DD>"
 ---
 
-# Token taxonomy: <system or product name>
+# Design system: <system or product name>
 
 <!--
   Written by the `design-system` skill. Fill the angle-bracket prompts and
-  delete this comment. This doc holds the *taxonomy* — the roles, the layering,
-  and the scale relationships expressed symbolically. It holds NO resolved
-  values: no palette, no spacing sheet, no type sheet, no timing table. You
-  record the method and the shape; whoever builds resolves the numbers for
-  their medium and density, and records them in the interchange file, not here.
+  delete this comment.
+
+  This doc holds the system: the relationships that must survive
+  implementation, and the values that make them executable for THIS product.
+  Resolve a domain when the authority table gave you the right to; record it
+  unresolved when nothing did. Do not leave a domain the direction reached as
+  a prompt for whoever builds — that is the decision this document exists to
+  make. Delete any section the product does not need; an empty section is
+  worse than an absent one. Four sections are never deletable: Authority,
+  Accessibility, Proving set, and Unresolved decisions. They are what makes the
+  rest checkable.
 -->
+
+## Authority
+
+<!-- Where every decision below came from. A reader must be able to tell an
+     inherited value from an invented one. -->
+
+- **Route:** <inherit | extend | originate | refine> — <why this one>
+- **Direction source:** <path or name of the approved direction, or "none">
+- **Incumbent source:** <the file or module the interface actually reads its
+  visual values from, or "none found — searched <where>">
+- **Visual target:** <what it is and what it was read for, or "none". It binds
+  composition and relationships; it supplies no value>
+- **Stated constraints:** <any constraint that arrived already decided, or "none">
+
+A domain nothing resolved is marked `unresolved` here *and* explained under
+Unresolved decisions. Both are required: this table says which domains are
+open, that one says why and who closes them.
+
+| Domain | Rung that supplied it |
+|---|---|
+| Typography | `<stated-constraint \| approved-direction \| incumbent-system \| platform-convention \| derivation \| unresolved>` |
+| Color | `<…>` |
+| Spacing and rhythm | `<…>` |
+| Shape and containment | `<…>` |
+| Depth | `<…>` |
+| Motion | `<…>` |
+| Graphic language | `<…>` |
+| Spatial structure | `<…>` |
 
 ## Direction this derives from
 
-<!-- Name the goals from the aesthetic direction. Every role and every scale
-     decision below traces back to one of them. A taxonomy with no named goal
-     behind it is arbitrary. -->
+<!-- The ranked goals, and the axis tokens that gave you authority. Every
+     decision below traces to one of them. -->
 
-- **<goal 1>** — <one line on what it asks of the system>
-- **<goal 2>** — <one line>
-- **<goal 3>** — <one line>
+- **<goal 1>** — <what it asks of the system>
+- **<goal 2>** — <…>
+- **<goal 3>** — <…>
 
-## Layering
+**Axes this direction decided:** <list the axes carrying a decided token>
+**Axes left to the platform:** <axes at `[platform-default]` the named target surface owns>
+**Axes nobody decided:** <axes with no authority — these become unresolved decisions below>
 
-<!-- Two layers, always. Primitives are few and carry no context; semantic
-     roles reference primitives and are what consumers bind to. Re-pointing a
-     semantic role at a different primitive is how a direction change lands
-     without a rename. -->
+## System commitments
 
-| Layer | What it holds | Who may reference it |
+<!-- One block per domain you resolved. In each: the relationship first, then
+     the values that make it executable. Skip a domain you did not resolve and
+     record it under Unresolved decisions instead. -->
+
+### Typography
+
+- **Relationship:** <how the roles relate — what reads larger, tighter, quieter>
+- **Families:** <the family or families, and which role each serves>
+- **Roles and values:**
+
+| Role | Job it does | Resolved value | Traces to |
+|---|---|---|---|
+| `<display>` | <…> | <size, weight, line height, tracking, measure> | <goal or axis> |
+| `<body>` | <…> | <…> | <…> |
+| `<ui>` | <…> | <…> | <…> |
+
+### Color
+
+- **Relationship:** <how much of the surface carries color; what separates what>
+- **Roles and values:**
+
+| Role | Job it does | Resolved value | Traces to |
+|---|---|---|---|
+| `<surface.default>` | <…> | <…> | <…> |
+| `<text.default>` | <…> | <…> | <…> |
+| `<accent.action>` | <the one action that matters> | <…> | <…> |
+| `<border.divider>` | <…> | <…> | <…> |
+| `<state.*>` | <…> | <…> | <…> |
+
+- **Contrast budget:** <where the eye lands first, second, third — and which
+  roles deliberately sit quiet>
+
+### Spacing and rhythm
+
+- **Relationship:** <section rhythm against control rhythm; density character>
+- **Base and ratio:** <what the base anchors, and the ratio that generates the steps>
+- **Steps and their use:** <step → the situation it serves, with the resolved value>
+- **Container and gutters:** <how the content area behaves, and at what widths>
+
+### Shape and containment
+
+- **Relationship:** <what is a bounded panel and what stays open field>
+- **Corner treatment:** <resolved>
+- **Borders and dividers:** <resolved, or "none — separation is by spacing">
+- **When a region becomes a panel:** <the rule>
+
+### Depth
+
+- **Relationship:** <flat, or layered — and what that means here>
+- **Levels:** <only the elevation levels that exist, with resolved values. A
+  flat system records "none" and is complete, not unfinished>
+
+### Motion
+
+- **Relationship:** <what motion is telling the reader; none is valid>
+- **Durations:** <the families the product needs, resolved>
+- **Easing:** <the behaviour, resolved>
+- **Reduced motion:** <how the information the motion carried survives when the
+  platform's reduced-motion signal is set>
+
+### Graphic language
+
+<!-- Only when the direction made imagery or ornament systematic. Most products
+     have none; delete this section rather than inventing a subsystem. -->
+
+- **Rule:** <how images are cropped and toned; what the recurring mark is;
+  where it may and may not appear>
+
+### Spatial structure
+
+- **Column behaviour:** <resolved>
+- **Alignment:** <what the surface holds to>
+- **Balance:** <symmetric, or deliberately weighted, and why>
+
+## Rules implementation must preserve
+
+<!-- The relationships a build may not break, and the treatments this direction
+     rules out. Values may be adapted; these may not. -->
+
+- <relationship that must survive, stated so a person can check it by looking>
+- <…>
+
+**Prohibited treatments:** <a default this direction explicitly rejects — say
+it here so a build does not reach for it. "none" is valid>
+
+**May adapt responsively:** <what a build is free to move across channels>
+
+## Proving set
+
+<!-- The real product needs this system was checked against, and what each
+     exposed. A system nobody tested reads the same as one that passed. -->
+
+| Product need | Domains it exercised | What it exposed |
 |---|---|---|
-| Primitive | <the raw decisions, named without context — e.g. "the deepest surface tone"> | Semantic roles only |
-| Semantic | <the jobs, each pointing at one primitive> | Every consumer |
+| <the primary surface> | <…> | <held, or the finding> |
+| <a form control> | <…> | <…> |
+| <the narrow channel> | <…> | <…> |
 
-## Semantic roles
+## Accessibility
 
-<!-- One row per role. Name the job, not the appearance: if a visual refresh
-     would force a rename, the name was literal — fix it here. Leave the value
-     column as a prompt; resolving it is the builder's step, not this doc's. -->
+<!-- Criteria live in the shared quality floor at
+     `../design-review/references/quality-floor.md`; read thresholds from the
+     standard itself. Where the context does not fix a level, the product owner
+     chooses it and is named here. -->
 
-| Role name | The job it does | Primitive it points at | Traces to goal | Value (builder fills) |
-|---|---|---|---|---|
-| `<surface.primary>` | <the surface a primary action sits on> | `<primitive name>` | <goal> | <unresolved> |
-| `<text.default>` | <the reading text on the default surface> | `<primitive name>` | <goal> | <unresolved> |
-| `<emphasis.warning>` | <the emphasis level a warning carries> | `<primitive name>` | <goal> | <unresolved> |
-| `<…>` | <…> | `<…>` | <…> | <unresolved> |
+- **Standard and conformance level:** <the named standard, at the level your context requires — and who chose it when the context did not>
+- **Pairings checked:** <which resolved role-against-role pairings were checked>
+- **Adaptations made:** <what the direction asked for, what the floor required,
+  and what you resolved instead. "none required" is valid>
 
-## Scale relationships
+## Binding
 
-<!-- One base and one ratio per scale. The ratio IS the decision; the steps
-     fall out of it. Name the ratio as a concept derived from a goal — tighter
-     reads dense and calm, wider reads bold and spacious — and leave the number
-     to the builder. Steps stay symbolic. -->
+<!-- How these values reach the interface, following whatever the project
+     already uses. Where binding happens later or elsewhere, say so. -->
 
-### Spacing
+- **Architecture:** <the project's existing shape — layered token source, a
+  custom-property file, a theme object, a platform token source, a constants
+  module, or design-only with binding deferred>
+- **Where the values live:** <path, or "not yet bound">
+- **Naming convention followed:** <the incumbent one, named>
 
-- **Base:** `<what the base anchors — e.g. the default gap between related items>`
-- **Ratio as concept:** <how fast the scale should grow, and which goal asks for that>
-- **Steps:** `step −2` · `step −1` · `base` · `step +1` · `step +2`
-- **Where each step is used:** <step → the density situation it serves>
+## Changes to the incumbent system
 
-### Type
+<!-- Required on inherit, extend and refine. Delete on a confirmed-greenfield
+     originate. A change with nothing retained is a replacement wearing an
+     extension's name. -->
 
-- **Base:** `<what the base anchors — e.g. body reading text>`
-- **Ratio as concept:** <how fast headings should separate, and which goal asks for that>
-- **Steps:** `step −1` · `base` · `step +1` · `step +2` · `step +3`
-- **Where each step is used:** <step → the heading or supporting-text job it serves>
-- **Relationship to spacing:** <shared ratio, or a named deliberate divergence and why>
+- **Retained:** <incumbent values and relationships carried unchanged>
+- **Extended:** <what was added, on which incumbent scale, at which naming>
+- **Replaced:** <what changed, what it was, and which approved commitment required it>
 
-## Accessibility floor
+## Unresolved decisions
 
-<!-- The floor is a constraint at derivation time, not a later pass. Read the
-     threshold from the recognized standard at the conformance level your
-     context requires; never reprint it here. -->
+<!-- Genuine gaps only: a domain no authority reached. Name what is missing and
+     who resolves it. A routine decision parked here is the failure this
+     document exists to prevent. -->
 
-- **Standard and conformance level:** <named standard, level your context requires>
-- **Pairings checked:** <which role-against-role pairings were derived against the floor>
-- **Tensions found:** <any role that cannot clear the floor without breaking a goal — surface it, do not wave it through>
-
-## Contrast budget
-
-<!-- Contrast is finite. Decide where the eye lands first, second, third, and
-     spend the strongest contrast there; most of the surface sits quiet. -->
-
-1. <what the eye should land on first, and the role carrying it>
-2. <second>
-3. <third>
-
-- **Quiet majority:** <which roles deliberately sit low in the budget>
-
-## Serialization
-
-<!-- The taxonomy travels as an interchange file, not as this prose. Point at
-     the W3C Design Tokens interchange shape and record where the file lives. -->
-
-- **Interchange file:** `<path to the serialized token file>`
-- **Shape:** W3C Design Tokens interchange (name, type, value; groups nest)
-- **What lives where:** this doc holds roles and relationships; the interchange file holds the resolved values
-
-## Open questions
-
-- <unresolved role, missing goal, or a tension between a goal and the floor>
+| Domain | Authority that is missing | Who resolves it |
+|---|---|---|
+| <…> | <…> | <…> |
