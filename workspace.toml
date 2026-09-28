@@ -670,18 +670,27 @@ open = [
   #   spec-authoring-protocol-measured-before-shipping.md -> docs/specs/finding-response-scoring/ Shipped
   #   review-response-protocol-across-reviewer-surfaces.md -> docs/specs/finding-response-receptacle/ Shipped
   #   direct-skill-lifecycle.md -> docs/specs/direct-skill-lifecycle/ Shipped 2026-09-09
-  # Found while memoising the engine's own `_get_repo_root` in
-  # docs/specs/loop-engine-repo-root-memo. `loop-cohort.py:148` carries a second,
-  # uncached copy of the same helper. The two share one process whenever
-  # `_cohort_mutator()` loads the cohort module (`loop-engine.py`, reached from
-  # `cmd_transition` on a contract-amendment), so after that spec
-  # ships one copy memoises and its twin does not. Deferring was safe because
-  # the memo caches only successes and alters no refusal text, leaving the
-  # convergence `test_git_lookup_failure_refuses_boundedly_in_both_tools` pins
-  # between the two copies untouched. Mechanical: apply the same cwd-keyed,
-  # success-only memo, or record why the cohort copy should stay uncached.
+  # Retired 2026-09-28: `loop-cohort-repo-root-uncached`, because the memo it
+  # asked for is in the tree. The entry read "loop-cohort.py keeps an uncached
+  # _get_repo_root after the engine's copy was memoised", registered from
+  # spec/loop-engine-repo-root-memo's post-GATES adversarial review, and asked
+  # for the same cwd-keyed, success-only memo or a recorded reason to stay
+  # uncached. `0a53a60b4` ("fix(core): memoise loop-cohort's repository-root
+  # lookup", 2026-09-23) applied the memo and is an ancestor of HEAD.
+  # Verified in the tree rather than from the commit message: the authored
+  # source `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` carries
+  # `_REPO_ROOT_CACHE`, the `str(Path.cwd())` key read inside the `try`, and the
+  # success-only write after the returncode check — the engine's shape exactly,
+  # including the comment on why an unkeyed cache would hand a second repository
+  # the first one's root. Both projections agree (`.agents/` and `.claude/`), so
+  # source and projection are not in disagreement.
+  # Lint-safe to remove: invariant (iv) of lint-spec-status.py resolves only
+  # literal `(deferred: <slug>)` markers, and no file carries one naming this
+  # slug. The one surviving reference is prose in the Follow-ons section of
+  # docs/specs/loop-engine-repo-root-memo/spec.md:118-126, which is Shipped and
+  # frozen; that paragraph is now stale and cannot be edited in place, so this
+  # note is where its claim is superseded.
   {slug = "product-templates-emit-raw-html-comments", summary = "The shipped intent, spec, plan and brief templates carry their author guidance as HTML comments, so every artifact made from them contains raw HTML a CommonMark editor drops or shows verbatim. Measured 2026-09-24 with markdown-it-py over the repository: 543 of 921 spec and plan files, 53 of 104 RFCs, 26 of 154 intents and 5 of 20 briefs are affected, 891 tokens in total, of which 201 are multi-line blocks. intent-template.md alone ships 20. Fixing the templates is what stops new artifacts inheriting it; a sweep over existing files is separate and is NOT purely mechanical, because nine intent comments carry content rather than guidance (five discovery-chain rungs, one deliberate product-vision altitude, and three recording that a needs edge is stated but unenforced), the Status annotations are the only place a reader sees the lifecycle enum, and scanner-suppression-and-pin-hygiene.md contains the literal <!-- --> in prose as one of four comment syntaxes, so a regex sweep corrupts that sentence", source = "session 2026-09-24, owner reported the intent artifacts are unviewable in a TipTap markdown editor"},
-  {slug = "loop-cohort-repo-root-uncached", summary = "loop-cohort.py keeps an uncached _get_repo_root after the engine's copy was memoised; the two run in one process on a contract-amendment transition", source = "spec/loop-engine-repo-root-memo (post-GATES adversarial review)"},
   # Discovered while shaping docs/specs/conventions-retirement. The core pack's
   # seeds impose obligations and links that only other packs -- or no pack --
   # can satisfy, and core declares no dependency on any of them. Verified
@@ -730,12 +739,20 @@ open = [
   { slug = "sender-cannot-explain-its-effective-configuration", source = "pre-flight/2026-09-16" },
   # Three documentation-versus-code defects around the governance index, all found
   # while measuring whether an ADR `Area` field would duplicate the index's `domains:`
-  # key. (1) `packs/governance-extras/.apm/skills/new-adr/references/infra-decisions.md:4-5`
-  # claims its seven infra-mode topics "correspond to" the `generate-iac` governance-index
-  # domains; the manifest carries eight. The seven/eight split is deliberate -- seven
-  # authoring topics, eight index domains, both shipped in 8d6688d36 -- so the fix is the
-  # correspondence sentence, not either list. (2) The manifest says `generate-iac` "reads
-  # this manifest at Stage 0 and adds any missing domain rows"; it does not. That skill
+  # key. (1) IS CLOSED, and only (2) and (3) keep this entry open.
+  # (1) FIXED 2026-09-24 by `b59becf26` (#1436), an ancestor of HEAD.
+  # `packs/governance-extras/.apm/skills/new-adr/references/infra-decisions.md:4-6`
+  # claimed its seven infra-mode topics "correspond to" the `generate-iac`
+  # governance-index domains while the manifest carries eight. The seven/eight
+  # split is deliberate -- seven authoring topics, eight index domains, both
+  # shipped in 8d6688d36 -- so the sentence was the defect rather than either
+  # list. It now reads that each topic maps to a domain and names
+  # `observability` as the domain with no dedicated authoring topic. Verified in
+  # the tree, not from the commit message. That commit deliberately left the
+  # other two open and did not touch workspace.toml, which is why this entry
+  # still described (1) as outstanding until 2026-09-28.
+  # (2) The manifest says `generate-iac` "reads this manifest at Stage 0 and
+  # adds any missing domain rows"; it does not. That skill
   # only bootstraps the whole file when no index exists, and never names the eight domains.
   # The same unimplemented claim is repeated in `guides/governance-extras/how-to/
   # governance-index.md` and in accepted RFC-0065, so nothing in the repository ever writes
@@ -746,7 +763,7 @@ open = [
   # not a domain at all; the skill labels the map "heuristic". Nothing is blocked: the
   # infra loop works for the six mapped domains. Unblock: an owner decision on (2), since
   # deleting versus implementing that claim changes whether (3) is a gap or by design.
-  {path = "packs/governance-extras/seeds/governance/manifest.example.yaml", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: correct infra-decisions.md's false seven-to-eight correspondence claim, delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token", needs = []},
+  {path = "packs/governance-extras/seeds/governance/manifest.example.yaml", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token. The third defect, infra-decisions.md's false seven-to-eight correspondence claim, was fixed by b59becf26 on 2026-09-24", needs = []},
   # Two corrections to `loop-telemetry-export`'s contract that were found by doing
   # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
   # a completed task's section, and both corrections land inside T2 and T4, which
