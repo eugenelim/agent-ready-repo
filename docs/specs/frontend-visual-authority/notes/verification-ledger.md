@@ -783,3 +783,31 @@ moved rather than the suite that noticed.
 | `lint-ci-parity` | both axes |
 | `self-host --check` | ok |
 | spec-status lint | metadata clean, 44 criteria checked |
+
+## Slice 2 — review verification round
+
+Three findings, all sustained and repaired.
+
+**AC-0028's fourth carrier was declared but not asserted.** The criterion names
+four sites; the module pinned three. The absence sweep catches a *reintroduced*
+superseded literal, so an edit that simply dropped the claim from the two eval
+cases would have red nothing. The presence half now covers them, pinned by case
+id, and the mutation reds.
+
+**The departure account undercounted its own block.** The tutorial said the
+surface departs from the shipped fallback "in three places" while the printed
+block also re-tones `--ds-color-error`, adds a `--ds-color-success` role the
+fallback does not define, and adds `--ds-duration-skeleton`. The same honesty
+defect as the false fallback claim, one layer down: values presented as
+inherited that were invented. The account now covers all five plus the motion
+token, and separates premise decisions from consequences the premise forces.
+
+**Touches staleness reappeared one task over.** T6v gained the shared module in
+the previous repair; T6 owns that module's journey half and did not name it.
+Fixed, with the split recorded so the next reader does not have to infer it.
+
+| Gate after the verification round | Result |
+| --- | --- |
+| pack suite + roster module | 453 passed |
+| ruff / boundary lint / guides | clean, 8 cases, 231 checked |
+| `tools/test_build_site_routing.py` | 94 passed, 1 skipped |

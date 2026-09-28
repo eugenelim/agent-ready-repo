@@ -118,7 +118,8 @@ a decision to make rather than a value to inherit). Start from it and record
 every value the premise changes, so a reader can see which numbers were decided
 and which were inherited.
 
-This surface departs from it in three places, each traceable to the premise:
+This surface departs from it in five places. Three are premise decisions; two
+are adjustments the premise forces once the surface is dark:
 
 - **Surface goes dark** (`#ffffff` → `#0d0d0d`). Step 2 rejected "dark
   dashboard" as a category default, and this is not that: it is the low-glare
@@ -132,6 +133,18 @@ This surface departs from it in three places, each traceable to the premise:
   is for: one accent, doing one job.
 - **Radii tighten** (`4px`/`8px` → `3px`/`6px`), so the status colour carries
   the emphasis rather than the shape.
+- **Error is re-toned for the dark surface** (`#dc2626` → `#f87171`). The
+  fallback's red is chosen against white; on `#0d0d0d` it loses contrast, so the
+  lighter tone restores it. Not a premise decision — a consequence of the first
+  one.
+- **A success role is added** (`--ds-color-success: #4ade80`), which the shipped
+  fallback does not define. The state matrix in step 5 needs it; when a surface
+  needs a role the fallback has no token for, add it to the semantic layer rather
+  than reaching for a raw value at the point of use.
+
+One more token appears below that the fallback does not ship:
+`--ds-duration-skeleton`, added in the motion section for the reason stated
+there.
 
 Error and success are not premise decisions — they are quality-floor obligations
 every surface owes, and they stay reserved for state rather than emphasis. The

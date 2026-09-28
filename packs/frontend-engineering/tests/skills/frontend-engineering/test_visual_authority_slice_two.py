@@ -14,6 +14,7 @@ mutation proof that reported green because the mutation never applied.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -126,6 +127,17 @@ RESOLVED_VALUE_SITES = (
     (VISUAL_OBSERVATION, ("every value the taxonomy resolved",)),
 )
 
+EVALS = PACK_ROOT / ".apm" / "skills" / "frontend-engineering" / "evals" / "evals.json"
+
+# The two eval cases that grade where values come from. Pinned by case id, and
+# by presence rather than absence: the absence sweep above only catches a
+# *reintroduced* superseded literal, so an edit that simply drops the claim
+# would red nothing. This is the criterion's fourth carrier.
+VALUE_GRADING_EVAL_IDS = (
+    "visual-authority-approved-target",
+    "visual-authority-direction-only",
+)
+
 PROTECTED = (
     "It supplies no colour, type, spacing or motion values, so those always come from a lower rung.",
     "Because rung 1 supplies no values, step 2 resolves them from rung 2 downward.",
@@ -165,6 +177,19 @@ def test_each_site_says_the_taxonomy_supplies_resolved_values(
     text = flat(site)
     missing = [literal for literal in literals if not holds(text, literal)]
     assert not missing, f"{site.name} does not carry {missing}"
+
+
+@pytest.mark.parametrize("eval_id", VALUE_GRADING_EVAL_IDS)
+def test_the_value_grading_evals_expect_resolved_values(eval_id: str) -> None:
+    """The eval harness grades the behaviour this source change alters, which is
+    why `packs/AGENTS.md` obliges a non-cosmetic pack update to update it."""
+    cases = {c["id"]: c for c in json.loads(EVALS.read_text(encoding="utf-8"))["evals"]}
+    assert eval_id in cases, f"{eval_id} is gone from the eval harness"
+    expected = re.sub(r"\s+", " ", cases[eval_id]["expected_output"])
+    assert holds(expected, "resolved"), (
+        f"eval {eval_id} no longer expects the run to take the values the "
+        f"taxonomy resolved; it grades the superseded contract"
+    )
 
 
 @pytest.mark.parametrize("statement", PROTECTED, ids=["rung-1-binds-no-values", "step-2-from-rung-2"])

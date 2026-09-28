@@ -295,7 +295,7 @@ same spec, after slice 1 merges. The spec stays `Implementing` until T8 closes.
 
 **Depends on:** T5
 
-**Touches:** packs/frontend-engineering/JOURNEY.md, web/src/content/journeys/frontend-engineering.md
+**Touches:** packs/frontend-engineering/JOURNEY.md, web/src/content/journeys/frontend-engineering.md, packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_slice_two.py (its journey half; T6v owns the token-source half of the same module)
 
 **Tests:**
 - Assertions for the review gate naming the new lens, and for the empty prerequisite-pack list.
