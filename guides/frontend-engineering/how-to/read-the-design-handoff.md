@@ -70,8 +70,8 @@ your situation lands on.
 2. **`direction-and-taxonomy`** — the direction's *aesthetic goals* (the ranked
    qualities it wants, like "calm" or "dense"), its *axis commitments* (where it
    sits on scales like restrained-to-expressive), and its *signature element*
-   (the one device that makes it recognisable), plus the token taxonomy's roles
-   and scales. **You are here if** you have a direction but nothing in it records
+   (the one device that makes it recognisable), plus the token taxonomy's
+   roles, scales and the values it resolved. **You are here if** you have a direction but nothing in it records
    a human confirming the composition. The run records that it was unconfirmed.
 3. **`incumbent-system`** — the visual system your repository already has:
    a token file, a shipped component layer, or a stylesheet a reasonable person

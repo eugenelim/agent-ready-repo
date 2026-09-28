@@ -307,3 +307,24 @@ def test_every_numbered_pre_flight_reference_resolves() -> None:
         f"these guides cite pre-flight steps that do not exist after the "
         f"renumbering: {dangling}. Shipped steps are {sorted(shipped)}"
     )
+
+
+# The token taxonomy resolves values now (ADR-0128). The pack's own export tree
+# is swept by the sibling pack module; this covers the guide tree, which
+# describes the same contract to an adopter and drifted from it once already.
+SUPERSEDED_TAXONOMY_CLAIMS = ("roles and scales", "rather than numbers", "roles rather than")
+
+
+@pytest.mark.parametrize("literal", SUPERSEDED_TAXONOMY_CLAIMS)
+def test_no_guide_page_describes_a_value_free_taxonomy(literal: str) -> None:
+    """Normalized, because the occurrence this was written for wrapped between
+    `roles` and `and scales` -- a raw grep of this very file reported it absent."""
+    stale = [
+        str(p.relative_to(ROOT)) for p in shipped_text_files(ROOT / GUIDE_TREE)
+        if contains(normalized(p), literal)
+    ]
+    assert not stale, (
+        f"{literal!r} survives in {stale}; the taxonomy resolves values, so a "
+        f"guide saying it carries roles and scales instead contradicts the "
+        f"skill it documents"
+    )

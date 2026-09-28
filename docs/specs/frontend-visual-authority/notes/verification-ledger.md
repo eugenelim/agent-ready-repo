@@ -848,3 +848,48 @@ around every heading. The routing contracts in
 | journey, guide and boundary lints | all clean |
 | `lint-ci-parity` | 119 steps, both axes |
 | spec-status lint | metadata clean |
+
+## Slice 2 — merge from main with design-system-values
+
+Merged `265b05ff0`. The upstream work landed with no `frontend-engineering`
+edits, so the handover held and nothing duplicated.
+
+**The marketplace trap fired, third merge running.** The auto-merge of
+`.claude-plugin/marketplace.json` was conflict-free and silently dropped
+`experience-design 4.0.3`, keeping `4.0.2`, while preserving our `0.3.5` — each
+side edited a different line of a generated file, so git flagged nothing and no
+test would have caught it. Found by the prescribed reconciliation against every
+`pack.toml`; fixed by regenerating from source rather than editing the number.
+
+**One real conflict, in the changelog**, where both sides inserted a release
+entry at the same point. Resolved structurally — both entries kept — then the
+three invariants re-checked: `[core][2.27.2]` directly beneath `[Unreleased]` at
+the version `packs/core/pack.toml` ships, exactly one blank line around every
+heading, and the routing contracts green. The first invariant check reported a
+false violation because it read the core version with the wrong lookup; a
+checker that is itself wrong is how a real violation gets talked past.
+
+**The crossing contract survived.** `type: token-taxonomy` and
+`<output_dir>/tokens/<slug>.md` are unchanged upstream, and
+`test_design_handoff_contract_matches_corpus.py` passes, so the frontend read
+contract needed nothing. AC-0026's five carriers all still pass both halves
+after the auto-merge into two files the upstream commit also touched.
+
+**And the same defect one tree over, in prose written this session.** The
+rung-2 description in `how-to/read-the-design-handoff.md` said the taxonomy
+supplies "roles and scales" — the exact wording AC-0028 bans inside the pack,
+reproduced in the guide that documents it. A raw grep of that file reported the
+phrase absent: it wraps between `roles` and `and scales`. That is the line-wrap
+trap defeating a diagnostic for the sixth time in this delivery, and the reason
+every predicate here normalizes. The guide-tree sweep now covers the three
+superseded literals, and the mutation that restores the wrapped form reds.
+
+| Gate on the merged tree | Result |
+| --- | --- |
+| pack suite + roster module | 456 passed |
+| `tests/roster tests/conformance` | 1934 passed, 6 skipped, 56 subtests, 6 m 58 s |
+| `tools/` | exit 0 |
+| ruff / mypy | clean |
+| deep catalogue lint, self-host | exit 0, ok |
+| guide, journey, boundary, parity lints | all clean |
+| PR #1458 CI | 37 pass, `deploy` skipped |
