@@ -490,29 +490,65 @@ def test_subdirectory_root_resolves_to_git_toplevel(tmp_path: Path) -> None:
 
 
 def test_is_dirty_git_launch_failure_returns_path_dirty(tmp_path: Path) -> None:
-    """A git launch failure (OSError) is treated as dirty, not clean.
+    """A git status OSError is treated as dirty, not clean.
 
-    A non-git directory or a missing git binary causes subprocess.run to
-    raise OSError. The fail-closed rule maps that to ``path-dirty`` rather
-    than silently passing the request.
+    The ls-files probe runs first and succeeds (both paths are tracked with
+    tag ``H``). Only the subsequent status probe is failed with OSError.
+    A blanket ``subprocess.run`` patch would fire on ls-files and never reach
+    the status branch, so the patch inspects argv: ls-files calls are
+    forwarded to the real subprocess.run; status raises OSError. Deleting
+    the OSError branch in ``_is_dirty`` leaves this test red.
     """
-    _setup_standard(tmp_path)
-    with patch("subprocess.run", side_effect=OSError("git not found")):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _setup_standard(repo)
+    _commit_all(repo)
+
+    _real_run = subprocess.run
+
+    def _fail_status_oserror(*args, **kwargs):
+        cmd = list(args[0]) if args else []
+        if "ls-files" in cmd:
+            return _real_run(*args, **kwargs)
+        if "status" in cmd:
+            raise OSError("simulated git failure")
+        return _real_run(*args, **kwargs)
+
+    with patch("subprocess.run", side_effect=_fail_status_oserror):
         result = validator.validate_rename_request(
-            _SOURCE_REL, _TOKEN, repository_root=tmp_path
+            _SOURCE_REL, _TOKEN, repository_root=repo
         )
     assert result == "path-dirty"
 
 
 def test_is_dirty_timeout_returns_path_dirty(tmp_path: Path) -> None:
-    """A git status timeout is treated as dirty, not clean."""
-    _setup_standard(tmp_path)
-    with patch(
-        "subprocess.run",
-        side_effect=subprocess.TimeoutExpired(cmd=["git"], timeout=10),
-    ):
+    """A git status TimeoutExpired is treated as dirty, not clean.
+
+    The ls-files probe succeeds; only the status probe is failed with
+    TimeoutExpired. The patch inspects argv so ls-files is forwarded to the
+    real subprocess.run. Deleting the TimeoutExpired branch in ``_is_dirty``
+    leaves this test red.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _setup_standard(repo)
+    _commit_all(repo)
+
+    _real_run = subprocess.run
+
+    def _fail_status_timeout(*args, **kwargs):
+        cmd = list(args[0]) if args else []
+        if "ls-files" in cmd:
+            return _real_run(*args, **kwargs)
+        if "status" in cmd:
+            raise subprocess.TimeoutExpired(cmd=["git"], timeout=10)
+        return _real_run(*args, **kwargs)
+
+    with patch("subprocess.run", side_effect=_fail_status_timeout):
         result = validator.validate_rename_request(
-            _SOURCE_REL, _TOKEN, repository_root=tmp_path
+            _SOURCE_REL, _TOKEN, repository_root=repo
         )
     assert result == "path-dirty"
 
@@ -520,14 +556,33 @@ def test_is_dirty_timeout_returns_path_dirty(tmp_path: Path) -> None:
 def test_is_dirty_nonzero_exit_returns_path_dirty(tmp_path: Path) -> None:
     """A nonzero git status exit code is treated as dirty, not clean.
 
-    Running ``git status`` inside a directory that is not a git repository
-    exits 128. The fail-closed rule maps any nonzero exit to ``path-dirty``.
+    The ls-files probe succeeds; only the status probe returns exit code 128.
+    The patch inspects argv so ls-files is forwarded to the real subprocess.run
+    while status returns a nonzero CompletedProcess. Deleting the nonzero-
+    returncode branch in ``_is_dirty`` leaves this test red.
     """
-    _setup_standard(tmp_path)
-    # tmp_path is not a git repository; git status exits nonzero.
-    result = validator.validate_rename_request(
-        _SOURCE_REL, _TOKEN, repository_root=tmp_path
-    )
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _setup_standard(repo)
+    _commit_all(repo)
+
+    _real_run = subprocess.run
+
+    def _fail_status_nonzero(*args, **kwargs):
+        cmd = list(args[0]) if args else []
+        if "ls-files" in cmd:
+            return _real_run(*args, **kwargs)
+        if "status" in cmd:
+            return subprocess.CompletedProcess(
+                args=cmd, returncode=128, stdout=b"", stderr=b""
+            )
+        return _real_run(*args, **kwargs)
+
+    with patch("subprocess.run", side_effect=_fail_status_nonzero):
+        result = validator.validate_rename_request(
+            _SOURCE_REL, _TOKEN, repository_root=repo
+        )
     assert result == "path-dirty"
 
 
@@ -802,6 +857,73 @@ def test_skip_worktree_modified_source_refuses_path_dirty(tmp_path: Path) -> Non
     assert result == "path-dirty"
 
 
+def test_combined_index_flags_modified_source_refuses_path_dirty(tmp_path: Path) -> None:
+    """A source modified after both ``--assume-unchanged`` and ``--skip-worktree`` refuses.
+
+    git emits the lowercase tag ``s`` when both flags are set simultaneously.
+    The previous denylist recognised ``h`` and ``S`` but missed ``s`` (the
+    combined state). The current allowlist — only ``H`` is clean — rejects every
+    non-H tag, including ``s``. Reverting to a denylist that omits ``s`` leaves
+    this test red.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _setup_standard(repo)
+    _commit_all(repo)
+
+    subprocess.run(
+        ["git", "update-index", "--assume-unchanged", _SOURCE_REL],
+        cwd=repo, check=True, capture_output=True,
+    )
+    subprocess.run(
+        ["git", "update-index", "--skip-worktree", _SOURCE_REL],
+        cwd=repo, check=True, capture_output=True,
+    )
+    (repo / _SOURCE_REL).write_text(
+        _live_intent_text() + "\n<!-- combined-flags edit -->\n",
+        encoding="utf-8",
+    )
+
+    result = validator.validate_rename_request(_SOURCE_REL, _TOKEN, repository_root=repo)
+    assert result == "path-dirty"
+
+
+def test_non_ascii_filename_clean_resolves(tmp_path: Path) -> None:
+    """A committed intent with a non-ASCII filename resolves without ``path-dirty``.
+
+    Without ``-z``, git renders non-ASCII paths in octal-escaped form when
+    ``core.quotePath`` is true; a clean tracked file whose name carries a
+    non-ASCII character would never match the name we asked about, and would
+    refuse with ``path-dirty``. NUL-separated records from ``-z`` are byte-exact
+    regardless of ``core.quotePath``. This test would fail if ``-z`` were removed
+    from the ``ls-files`` invocation.
+
+    ``core.quotePath`` is set to true explicitly so the test pins this behaviour
+    regardless of the runner's global git config.
+    """
+    non_ascii_rel = "docs/product/intents/FEAT-0001-café.md"
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    subprocess.run(
+        ["git", "config", "core.quotePath", "true"],
+        cwd=repo, check=True, capture_output=True,
+    )
+    _make_intents_dir(repo)
+    (repo / non_ascii_rel).write_text(_live_intent_text(), encoding="utf-8")
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(non_ascii_rel), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        non_ascii_rel, _TOKEN, repository_root=repo
+    )
+    assert isinstance(result, validator.ResolvedRequest), (
+        f"expected ResolvedRequest for non-ASCII filename, got {result!r}"
+    )
+
+
 # ── B3: registry matching counts only declared collection entries ─────────────
 
 
@@ -832,6 +954,11 @@ def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
         ("nested two deep", '[a.b]\nitems = [ {{ path = "{p}" }} ]\n'),
         ("collection name under the wrong parent", '[notes]\nopen = [ {{ path = "{p}" }} ]\n'),
         ("initiative collection outside an initiative", '[other]\nshaping_queue = [ {{ path = "{p}" }} ]\n'),
+        # Initiative keys must match ^ini-\d{3}$ exactly. A non-digit suffix
+        # and a two-digit ordinal both fail the canonical check, so entries
+        # under those tables must not be counted as registrations.
+        ("ini-decoy prefix not canonical", '[ini-decoy.work]\nqueue = [ {{ path = "{p}" }} ]\n'),
+        ("ini-01 two-digit key not canonical", '[ini-01.work]\nqueue = [ {{ path = "{p}" }} ]\n'),
     ],
 )
 def test_decoy_arrays_outside_a_registry_collection_are_not_counted(

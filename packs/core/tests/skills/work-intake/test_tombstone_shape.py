@@ -24,6 +24,8 @@ is a tombstone; a file without it is not. Both arms are tested.
 from __future__ import annotations
 
 import importlib.util
+import ntpath
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -429,10 +431,95 @@ def test_serialize_unsafe_inputs_refuse(
     ``test_round_trip_property``.
     """
     result = tombstone.serialize_tombstone(slug, date, reissued_as=reissued_as, retired=retired)
-    assert isinstance(result, str), (
-        f"expected a refusal token for slug={slug!r}, reissued_as={reissued_as!r}, "
-        f"retired={retired!r}; got bytes {result!r}"
+    assert result == "serializer-rejected", (
+        f"expected 'serializer-rejected' for slug={slug!r}, reissued_as={reissued_as!r}, "
+        f"retired={retired!r}; got {result!r}"
     )
+
+
+# ── B2: _check_reissued_path is host-independent (uses posixpath, not os.path) ─
+
+
+def test_check_reissued_path_host_independent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_check_reissued_path accepts a valid successor path even when os.path is ntpath.
+
+    The call site uses ``posixpath.normpath``, which is bound at import time.
+    Monkeypatching ``os.path`` to ``ntpath`` proves the implementation is
+    host-independent: the test passes now and would fail if anyone reverted the
+    call site to ``os.path.normpath``. On Windows, ``ntpath.normpath`` rewrites
+    forward slashes to backslashes, after which the forward-slash prefix test
+    refuses every valid repository-relative path. Because the module binds
+    ``posixpath`` directly at import, swapping ``os.path`` has no effect on the
+    running code — but it would if the call site were changed.
+    """
+    monkeypatch.setattr(os, "path", ntpath)
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as=_REISSUED_PATH
+    )
+    assert isinstance(result, bytes), (
+        f"expected bytes for valid successor path with os.path=ntpath, got {result!r}"
+    )
+
+
+# ── B3: control characters in a successor path ───────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "ctrl_char",
+    [
+        "\x00",  # NUL — survives normalisation, not a splitlines() boundary,
+                 # and round-trips unchanged; no downstream check would catch it.
+        "\t",    # TAB — a C0 control character caught by the same guard.
+        "\x07",  # BEL — another C0 control character.
+        "\x7f",  # DEL — explicitly refused alongside the C0 set.
+    ],
+)
+def test_control_char_in_reissued_as_refuses_invalid_path(ctrl_char: str) -> None:
+    """A control character embedded in the successor path returns ``invalid-path``.
+
+    NUL is the critical case: it survives ``posixpath.normpath``, is not a
+    ``str.splitlines()`` boundary, and round-trips through the self-check
+    unchanged. No guard downstream of ``_check_reissued_path`` would catch it.
+    Deleting the control-character check leaves the NUL and DEL sub-cases red.
+    """
+    path_with_ctrl = f"{_INTENTS_PREFIX}/FEAT-0002{ctrl_char}renamed.md"
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as=path_with_ctrl
+    )
+    assert result == "invalid-path", (
+        f"expected 'invalid-path' for ctrl char {ctrl_char!r} in path, got {result!r}"
+    )
+
+
+# ── B4: lone surrogates are refused at encode time ───────────────────────────
+
+
+def test_lone_surrogate_in_slug_refused() -> None:
+    """A lone surrogate in the slug returns ``serializer-rejected`` without raising.
+
+    A lone surrogate (e.g. ``\\ud800``) is valid in a Python ``str`` but cannot
+    be encoded to UTF-8. It passes every individual guard and the round-trip
+    self-check because both operate on ``str``. The ``text.encode("utf-8")`` call
+    is wrapped to return ``"serializer-rejected"`` rather than raising. This test
+    uses ``pytest.raises`` nowhere — the point is that the function does NOT raise.
+    """
+    result = tombstone.serialize_tombstone(
+        "a\ud800b", _DATE_A, retired=_RETIRED_NOTE
+    )
+    assert result == "serializer-rejected"
+
+
+def test_lone_surrogate_in_retired_note_refused() -> None:
+    """A lone surrogate in the retirement note returns ``serializer-rejected`` without raising.
+
+    Same mechanism as for the slug: the surrogate passes every guard and the
+    round-trip self-check, then the ``encode("utf-8")`` wrap catches it. The
+    function returns a token rather than raising ``UnicodeEncodeError``.
+    """
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, retired="note\ud800end"
+    )
+    assert result == "serializer-rejected"
 
 
 # ── C1: parse_tombstone value checks can fail ─────────────────────────────────
