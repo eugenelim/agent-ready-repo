@@ -128,7 +128,7 @@ def test_non_iso_date_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, "not-a-date", reissued_as=_REISSUED_PATH
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-date", f"expected 'invalid-date', got {result!r}"
 
 
 def test_non_calendar_date_refuses() -> None:
@@ -136,7 +136,7 @@ def test_non_calendar_date_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, "2026-13-01", reissued_as=_REISSUED_PATH
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-date", f"expected 'invalid-date', got {result!r}"
 
 
 def test_absolute_reissued_as_refuses() -> None:
@@ -144,7 +144,7 @@ def test_absolute_reissued_as_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, _DATE_A, reissued_as="/etc/passwd"
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
 
 
 def test_outside_intents_reissued_as_refuses() -> None:
@@ -152,7 +152,7 @@ def test_outside_intents_reissued_as_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, _DATE_A, reissued_as="../../docs/specs/other.md"
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
 
 
 def test_sibling_directory_reissued_as_refuses() -> None:
@@ -165,7 +165,7 @@ def test_sibling_directory_reissued_as_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, _DATE_A, reissued_as="docs/other/a.md"
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
 
 
 def test_reissued_as_traversing_out_after_prefix_refuses() -> None:
@@ -177,7 +177,7 @@ def test_reissued_as_traversing_out_after_prefix_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, _DATE_A, reissued_as=f"{_INTENTS_PREFIX}/../../x.md"
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
 
 
 def test_bare_filename_reissued_as_refuses() -> None:
@@ -185,7 +185,7 @@ def test_bare_filename_reissued_as_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, _DATE_A, reissued_as="FEAT-0002-renamed.md"
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
 
 
 def test_backslash_reissued_as_refuses() -> None:
@@ -197,19 +197,19 @@ def test_backslash_reissued_as_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, _DATE_A, reissued_as=f"{_INTENTS_PREFIX}\\..\\..\\x.md"
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
 
 
 def test_empty_retired_refuses() -> None:
     """An empty retirement note is refused."""
     result = tombstone.serialize_tombstone(_SLUG, _DATE_A, retired="")
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "empty-retired", f"expected 'empty-retired', got {result!r}"
 
 
 def test_whitespace_only_retired_refuses() -> None:
     """A whitespace-only retirement note is refused."""
     result = tombstone.serialize_tombstone(_SLUG, _DATE_A, retired="   ")
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "empty-retired", f"expected 'empty-retired', got {result!r}"
 
 
 def test_both_pointer_fields_refuses() -> None:
@@ -217,13 +217,13 @@ def test_both_pointer_fields_refuses() -> None:
     result = tombstone.serialize_tombstone(
         _SLUG, _DATE_A, reissued_as=_REISSUED_PATH, retired=_RETIRED_NOTE
     )
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "pointer-conflict", f"expected 'pointer-conflict', got {result!r}"
 
 
 def test_neither_pointer_field_refuses() -> None:
     """Supplying neither pointer field is refused."""
     result = tombstone.serialize_tombstone(_SLUG, _DATE_A)
-    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+    assert result == "pointer-missing", f"expected 'pointer-missing', got {result!r}"
 
 
 # ── Parser refusals ───────────────────────────────────────────────────────────
@@ -241,8 +241,8 @@ def test_fourth_field_refused_on_parse() -> None:
         "- **Extra:** unexpected",  # fourth field — one too many
     ]) + "\n"
     result = tombstone.parse_tombstone(text)
-    assert isinstance(result, str), (
-        f"expected refusal token for four-field tombstone, got {result!r}"
+    assert result == "bad-shape", (
+        f"expected 'bad-shape' for four-field tombstone, got {result!r}"
     )
 
 
@@ -261,9 +261,78 @@ def test_non_tombstone_text_refused_on_parse() -> None:
         "A live intent body.",
     ])
     result = tombstone.parse_tombstone(live_intent_text)
-    assert isinstance(result, str), (
-        f"expected refusal token for live intent, got {result!r}"
+    assert result == "not-tombstone", (
+        f"expected 'not-tombstone' for live intent, got {result!r}"
     )
+
+
+# ── B4: multiline value injection ─────────────────────────────────────────────
+
+
+def test_multiline_retired_refuses_empty_retired() -> None:
+    """A retired note with an embedded newline is refused.
+
+    A multiline value would inject extra preamble fields into the serialised
+    text. The single-line constraint maps this refusal to ``empty-retired``.
+    """
+    result = tombstone.serialize_tombstone(
+        _SLUG,
+        _DATE_A,
+        retired=(
+            "reason\n- **Reissued as:** docs/product/intents/FEAT-9999-injected.md"
+        ),
+    )
+    assert result == "empty-retired", f"expected 'empty-retired', got {result!r}"
+
+
+def test_newline_in_reissued_as_refuses_invalid_path() -> None:
+    """A reissued_as path with an embedded newline is refused as invalid-path."""
+    result = tombstone.serialize_tombstone(
+        _SLUG,
+        _DATE_A,
+        reissued_as=f"{_REISSUED_PATH}\n- **Extra:** injected",
+    )
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
+
+
+def test_round_trip_property() -> None:
+    """Every successful serialization parses back to exactly the three supplied values."""
+    cases = [
+        (_SLUG, _DATE_A, _REISSUED_PATH, None),
+        (_SLUG, _DATE_A, None, _RETIRED_NOTE),
+        (_SLUG, _DATE_B, _REISSUED_PATH, None),
+        ("another-slug", "2025-01-01", f"{_INTENTS_PREFIX}/FEAT-0003-other.md", None),
+    ]
+    for slug, date, reissued, retired in cases:
+        raw = tombstone.serialize_tombstone(slug, date, reissued_as=reissued, retired=retired)
+        assert isinstance(raw, bytes), f"expected bytes for ({slug!r}, {date!r})"
+        parsed = tombstone.parse_tombstone(raw.decode("utf-8"))
+        assert isinstance(parsed, tombstone.Tombstone), (
+            f"parse failed for ({slug!r}, {date!r}): {parsed!r}"
+        )
+        assert parsed.slug == slug
+        assert parsed.date == date
+        assert parsed.reissued_as == reissued
+        assert parsed.retired == retired
+
+
+# ── B6: intents directory itself accepted as successor ────────────────────────
+
+
+def test_intents_directory_itself_refuses_invalid_path() -> None:
+    """The intents directory path itself is refused as a successor."""
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as="docs/product/intents"
+    )
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
+
+
+def test_intents_directory_trailing_slash_refuses_invalid_path() -> None:
+    """The intents directory with trailing slash is refused as a successor."""
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as="docs/product/intents/"
+    )
+    assert result == "invalid-path", f"expected 'invalid-path', got {result!r}"
 
 
 # ── Partition rule — both arms ────────────────────────────────────────────────
@@ -290,7 +359,9 @@ def test_text_without_tombstone_field_is_not_a_tombstone() -> None:
     """A file without ``Tombstone:`` is not a tombstone (reverse arm).
 
     The partition rule says a file without ``Tombstone:`` is a live intent.
-    Parsing such a file must refuse, not return a Tombstone.
+    Parsing such a file must refuse with ``not-tombstone``, not return a
+    Tombstone. Replacing the partition guard would return ``bad-shape``
+    instead, which the exact token assertion catches.
     """
     live_text = "\n".join([
         "# Not a tombstone",
@@ -305,6 +376,6 @@ def test_text_without_tombstone_field_is_not_a_tombstone() -> None:
         "Body.",
     ])
     result = tombstone.parse_tombstone(live_text)
-    assert isinstance(result, str), (
-        f"expected refusal for live intent, got {result!r}"
+    assert result == "not-tombstone", (
+        f"expected 'not-tombstone' for live intent, got {result!r}"
     )
