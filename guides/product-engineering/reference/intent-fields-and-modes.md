@@ -98,6 +98,17 @@ a check.
 comment is absent, not malformed — so a seeded field you have not filled in
 costs nothing and asserts nothing.
 
+## Body sections
+
+These are sections, not preamble fields, and no tier above applies to them.
+
+| Section | Meaning |
+| --- | --- |
+| **Outcome** | a steerable *input* metric + the *lagging* outcome + a *guardrail* |
+| **Opportunity** | the solution-independent need (a job to be done) |
+| `Assumptions` | what must be true for the bet to pay off |
+| `Decomposition` | the children: lower-level intents, or a spec/slice at the leaf. When `Decomposed` ends in `direct-light`, each checkbox item here states its own requested outcome |
+
 ## Tombstone files
 
 When an intent is renamed, the old filename is retired rather than deleted. A
@@ -123,17 +134,6 @@ same `<TYPE>-NNNN-<slug>.md` structure and `.md` extension. Changing the name in
 any way would break the ordinal reservation: a name outside the expected shape
 either fails every later admission in the directory, or frees the ordinal
 silently with no error. The correct name is the retired name, exactly as it was.
-
-## Body sections
-
-These are sections, not preamble fields, and no tier above applies to them.
-
-| Section | Meaning |
-| --- | --- |
-| **Outcome** | a steerable *input* metric + the *lagging* outcome + a *guardrail* |
-| **Opportunity** | the solution-independent need (a job to be done) |
-| `Assumptions` | what must be true for the bet to pay off |
-| `Decomposition` | the children: lower-level intents, or a spec/slice at the leaf. When `Decomposed` ends in `direct-light`, each checkbox item here states its own requested outcome |
 
 ## Product-altitude fields (level-conditional)
 
