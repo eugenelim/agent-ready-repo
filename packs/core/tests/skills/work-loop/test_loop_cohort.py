@@ -4237,10 +4237,15 @@ def test_status_wave_dispatch_accounting_shape(tmp: Path) -> None:
         fail(name, f"default output lacks wave_dispatch_accounting; got {out.strip()!r}")
         return
 
-    # Non-list case (schedule_waves absent → None): wave_dispatch_accounting must be [].
+    # Non-list case: `schedule_waves` PRESENT and not a list. An absent key is
+    # not sufficient — `state.get("schedule_waves", [])` defaults to `[]`, so the
+    # comprehension is empty and the assertion below passes with the isinstance
+    # guard deleted. A string is Sized, so without the guard it would yield one
+    # null entry per character; with it, [].
     spec_dir2 = make_spec_dir(tmp, f"{name}-nonlist")
     write_state(spec_dir2, {
         "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
+        "schedule_waves": "abc", _RECEIPTS_KEY: {},
     })
     rc, out, err = run_cohort("status", str(spec_dir2), "--json")
     if rc != 0:

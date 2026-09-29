@@ -427,3 +427,18 @@ def test_unreadable_records_degrade_at_the_scope_they_occupy(g) -> None:
     one = _state(g, waves, {"T1": {"kind": g.RECEIPT_KIND}, "T2": 5})
     assert g.wave_accounting_summary(one, 0) == {
         "tasks": 2, "receipts": 1, "declines": 0, "superseded": 0, "unaccounted": 1}
+
+
+def test_a_non_true_superseded_value_stays_live(g) -> None:
+    """`accounts_for_task` tests `is not True`, not truthiness.
+
+    The expected figures below are LITERALS. Every other oracle in this file
+    routes through `accounts_for_task`, so a truthiness rewrite of that
+    declaration moves both sides of those comparisons together and they stay
+    green; only an independently written expectation can fail. A truthy read
+    would report this record as superseded and unaccounted instead of live.
+    """
+    waves = [["T1"]]
+    state = _state(g, waves, {"T1": {"kind": g.RECEIPT_KIND, g.SUPERSEDED_KEY: "yes"}})
+    assert g.wave_accounting_summary(state, 0) == {
+        "tasks": 1, "receipts": 1, "declines": 0, "superseded": 0, "unaccounted": 0}

@@ -53,8 +53,9 @@ confirmed byte-identical to a pre-mutation copy.
 | restored | 14 passed |
 
 Both are the hazards the positional, predicate-based counting basis exists to
-prevent, and both are caught by the generated domain rather than by a fixture
-someone remembered to write.
+prevent. The generated domain catches both; so does the hand-written superseded
+case, which expects `receipts: 0` for a superseded record — the walk is not the
+sole detector of either, and an earlier version of this paragraph said it was.
 
 ## Mutation proof — T2, the status writer
 
@@ -68,7 +69,7 @@ Restored by editing back; 2 passed.
 | Gate | Result |
 | --- | --- |
 | `make lint-ruff lint-mypy` | pass — "All checks passed!", "Success: no issues found in 149 source files" |
-| `test_wave_accounting_walk.py` | 14 passed, 1,120 generated states |
+| `test_wave_accounting_walk.py` | 17 passed. The generator emits 2,520 tuples over five axes, which reduce to **207 distinct `(state, index)` pairs**; 336 yield a present summary, 240 of them at a non-zero wave index. The tuple count is not a coverage figure and an earlier version of this row reported it as one. |
 | `test_loop_guards.py` | 163 passed |
 | `test_loop_cohort.py` | 238 passed |
 | `walk_verdict_partition.py` | unedited against `origin/main`; 35,728 states walked, 0 overlapping, 0 uncovered — identical to the baseline captured before any change |
@@ -81,3 +82,28 @@ T1, T3 and T4 were implemented by the controller rather than dispatched to an
 Their dispatch receipts read `decline (human-directed)`, which is the closest
 value in a closed set of two and is not an accurate description of what
 happened; the accurate description is this paragraph.
+
+## Post-review repairs, and the mutations that now fail
+
+Two post-GATES reviews found that several walk assertions could not fail. Each
+repair below is recorded with the mutation that previously survived and now
+reddens. All mutations applied to a scratch copy or reverted by editing back;
+the source was confirmed byte-identical afterwards.
+
+| Previously survived | Now |
+| --- | --- |
+| `str(wave_index)` → `"0"` in the container walk — **252 tests stayed green**, so a wave's summary could be read out of wave 0's subtree | `test_a_summary_reads_its_own_wave_not_wave_zero` red. Wave 1 carries different task names and record kinds, so reading the wrong subtree reports the wrong figures |
+| deleting `isinstance(waves, list)` from the precondition | `test_every_axis_value_reaches_the_outcome_it_forces` red, 8 failures. The schedule axis gained a non-`Sized` value (`5`); the previous `"not-a-list"` was `Sized` and the range check absorbed it |
+| deleting an axis value such as `live-decline` from a generator | `test_the_generators_match_the_declared_axis_values` red. Expectations now come from a literal table, not from the generator being checked |
+| rewriting `accounts_for_task` to a truthiness read of `superseded` | `test_a_non_true_superseded_value_stays_live` red. Its expected figures are literals, so it does not move with the predicate |
+| deleting the `isinstance` guard in `cmd_status` | `test_status_wave_dispatch_accounting_shape` red. The non-list arm now drives `schedule_waves: "abc"`, present and not a list; an absent key defaulted to `[]` and hid the guard |
+
+A sixth finding — that the record-coverage assertion credited an axis label
+rather than evidence the record was read — is repaired by taking credit from the
+subtree the generator actually built, and by placing the record at the wave's
+first *distinct* task so a duplicated identifier cannot overwrite it.
+
+The container walk is stated three times across `superseded_wave_tasks`,
+`unaccounted_wave_tasks` and `wave_accounting_summary`. The third copy now has
+the control the second one has: the non-zero-index case above fails if it
+descends to the wrong key.
