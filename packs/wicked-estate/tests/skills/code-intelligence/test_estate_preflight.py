@@ -94,6 +94,38 @@ def test_default_db_path_is_used_when_nothing_overrides(monkeypatch, tmp_path) -
     assert preflight.resolve_db(None, tmp_path) == tmp_path / ".wicked-estate" / "graph.db"
 
 
+@pytest.mark.parametrize(
+    "hostile",
+    ["../../etc/passwd", "/etc/passwd", "~/.ssh/id_rsa", "  ", ""],
+)
+def test_env_override_outside_the_root_is_refused(monkeypatch, tmp_path, hostile) -> None:
+    """CWE-22 / CWE-73: an ambient env var must not steer this at any file.
+
+    Refusal falls back to the trusted default rather than erroring, so a stray
+    value degrades instead of blocking the workflow.
+    """
+    monkeypatch.setenv(preflight.DB_ENV_VAR, hostile)
+    assert preflight.resolve_db(None, tmp_path) == tmp_path / ".wicked-estate" / "graph.db"
+
+
+def test_env_override_escaping_via_symlink_is_refused(monkeypatch, tmp_path) -> None:
+    """Containment is checked after resolve(), so a symlink cannot smuggle."""
+    outside = tmp_path.parent / "outside-target.db"
+    outside.write_bytes(b"")
+    inside_link = tmp_path / "looks-local.db"
+    inside_link.symlink_to(outside)
+    monkeypatch.setenv(preflight.DB_ENV_VAR, str(inside_link))
+    assert preflight.resolve_db(None, tmp_path) == tmp_path / ".wicked-estate" / "graph.db"
+
+
+def test_env_override_inside_the_root_is_honoured(monkeypatch, tmp_path) -> None:
+    """The guard must not break the legitimate case it exists to protect."""
+    legit = tmp_path / "custom" / "graph.db"
+    legit.parent.mkdir()
+    monkeypatch.setenv(preflight.DB_ENV_VAR, str(legit))
+    assert preflight.resolve_db(None, tmp_path) == legit.resolve()
+
+
 def test_install_refuses_without_cargo(monkeypatch, capsys) -> None:
     """Tier 2 permits a manager the user already has; it never bootstraps one."""
     monkeypatch.setattr(preflight.shutil, "which", lambda _name: None)

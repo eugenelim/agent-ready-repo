@@ -68,11 +68,18 @@ def test_first_value_verification_points_at_the_preflight() -> None:
     assert first_value["writes-to-repo"] is False
 
 
+#: Literal paths, not paths built from a loop variable. `lint-pack-test-boundary`
+#: reads these statically and cannot prove containment for a dynamic segment, so
+#: a computed path reads to it as an escape above the pack.
+EVALS_DIR = PACK_ROOT / ".apm" / "skills" / "code-intelligence" / "evals"
+AGENTS_DIR = PACK_ROOT / ".apm" / "agents"
+
+
 def test_declared_eval_skills_ship_their_fixtures() -> None:
-    for skill in load_pack()["evals"]["skills"]:
-        evals_dir = PACK_ROOT / ".apm" / "skills" / skill / "evals"
-        assert (evals_dir / "eval_queries.json").is_file()
-        assert (evals_dir / "evals.json").is_file()
+    """The declared set is pinned to the literal path checked below."""
+    assert load_pack()["evals"]["skills"] == ["code-intelligence"]
+    assert (EVALS_DIR / "eval_queries.json").is_file()
+    assert (EVALS_DIR / "evals.json").is_file()
 
 
 def test_no_tests_inside_the_runtime_payload() -> None:
@@ -87,5 +94,5 @@ def test_no_tests_inside_the_runtime_payload() -> None:
 
 def test_skill_and_agents_exist() -> None:
     assert (PACK_ROOT / ".apm/skills/code-intelligence/SKILL.md").is_file()
-    for agent in ("code-investigator", "impact-analyst"):
-        assert (PACK_ROOT / ".apm/agents" / f"{agent}.md").is_file()
+    assert (AGENTS_DIR / "code-investigator.md").is_file()
+    assert (AGENTS_DIR / "impact-analyst.md").is_file()

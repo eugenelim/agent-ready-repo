@@ -88,7 +88,7 @@ which one you used; they are not interchangeable.
 
 | Intent | CLI | Returns |
 | --- | --- | --- |
-| Hotspots / load-bearing symbols | `wicked-estate rank` | The global top 25 symbols by PageRank over `Calls` + `Imports`, as text. **Fixed at 25, ignores `--json`, and takes no seed or filter** — so it cannot rank a supplied set such as a blast radius. |
+| Hotspots / load-bearing symbols | `wicked-estate rank` | The global top symbols by PageRank over `Calls` + `Imports`, as text, **capped at 25** (fewer on a smaller graph). **Ignores `--json`, and takes no seed or filter** — so it cannot rank a supplied set such as a blast radius. |
 | Architectural communities | `wicked-estate clusters [<min-size>] [--json] [--resolution <γ>] [--hierarchical] [--package-bias <f>]` | Louvain communities over `Calls` + `Imports`. `γ > 1.0` yields smaller, tighter clusters. |
 | Semantic clustering | `wicked-estate clusters --weight semantic [--k <n> \| --eps <d> --min-pts <n>]` | Embedding-based clustering. Requires an `--embeddings` index. |
 | Bounded task context | `wicked-estate context <name> --budget <chars> --json` | Neighbours of up to 20 full-text seed matches, scored by **fixed edge weights, not PageRank**, packed into the character budget. Each row is `{file, kind, line, name}` — note there is no `symbol_id`. |

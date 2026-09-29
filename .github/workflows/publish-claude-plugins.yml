@@ -85,6 +85,7 @@ on:
       - 'packs/product-documentation/**'
       - 'packs/product-engineering/**'
       - 'packs/product-strategy/**'
+      - 'packs/wicked-estate/**'
       # Every pack's scope declaration, not just a published one's. The job
       # re-derives the publishable set from all of `packs/` in order to
       # WITHDRAW a pack whose scopes narrowed, so a narrowing has to trigger

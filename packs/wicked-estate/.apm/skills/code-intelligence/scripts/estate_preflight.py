@@ -97,13 +97,49 @@ def read_version(binary: str) -> tuple[int, ...] | None:
     return tuple(int(part) for part in match.groups(default="0"))
 
 
+def _safe_override_path(raw: str, base: Path) -> Path | None:
+    """Resolve an operator-supplied path override and confine it to ``base``.
+
+    Returns the resolved path when it stays inside ``base``, and ``None``
+    otherwise so the caller falls back to its trusted default.
+
+    ``WICKED_ESTATE_DB`` is operator config, but this script runs
+    automatically at the start of a workflow, so a stray or hostile value must
+    not steer it at an arbitrary file — not only traversal (``../../etc/passwd``,
+    CWE-22) but any absolute path to a secret, or a symlink that escapes after
+    resolution (CWE-73). Containment is checked *after* ``resolve()``, so a
+    symlink is validated at its real target rather than its lexical form.
+    """
+    raw = raw.strip()
+    if not raw:
+        return None
+    try:
+        resolved = Path(raw).expanduser().resolve()
+        base_resolved = base.resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if not resolved.is_relative_to(base_resolved):
+        print(
+            f"ignoring out-of-bounds {DB_ENV_VAR} override {raw!r} "
+            f"(must resolve within {base_resolved})",
+            file=sys.stderr,
+        )
+        return None
+    return resolved
+
+
 def resolve_db(explicit: str | None, root: Path) -> Path:
-    """Resolve the graph path using the CLI's own precedence order."""
+    """Resolve the graph path using the CLI's own precedence order.
+
+    Explicit ``--db`` beats ``WICKED_ESTATE_DB``, which beats the default. The
+    explicit argument is a direct instruction from the caller and is taken as
+    given; the environment variable is ambient and is confined to *root*.
+    """
     if explicit:
         return Path(explicit).expanduser()
-    from_env = os.environ.get(DB_ENV_VAR)
-    if from_env:
-        return Path(from_env).expanduser()
+    from_env = _safe_override_path(os.environ.get(DB_ENV_VAR, ""), root)
+    if from_env is not None:
+        return from_env
     return root / DEFAULT_DB_RELPATH
 
 

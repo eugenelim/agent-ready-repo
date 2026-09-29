@@ -228,9 +228,9 @@ required, and this pack works within all of them.
 3. **The CLI blast radius has a silent depth-12 horizon.** It is reported by
    neither completeness field, so a truncated-by-reach answer is
    indistinguishable from a complete one.
-4. **Nothing ranks a supplied set of symbols on the CLI.** `rank` is a fixed
-   global top-25 with no seed, no filter, and no `--json`, so "which of these
-   47 dependents matter most" has no CLI answer.
+4. **Nothing ranks a supplied set of symbols on the CLI.** `rank` is a global
+   top-25 with no seed, no filter, and no `--json`, so "which of these 47
+   dependents matter most" has no CLI answer.
 5. **Lineage is MCP-only.** Forward transitive reachability has no CLI verb,
    despite being the documented complement of `blast-radius`, which does.
 6. **Rules discovery is MCP-only.** `RulesInventory` and `rules.recall` have no

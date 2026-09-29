@@ -20,6 +20,7 @@ that mutates cannot corrupt the shared fixture.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -27,11 +28,38 @@ from pathlib import Path
 import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
-REPO_ROOT = PACK_ROOT.parents[1]
 
-#: Indexing the whole catalogue takes ~15s; one subtree is enough to exercise
-#: every documented shape and keeps the fixture cheap.
-INDEX_SUBTREE = "packages"
+#: A purpose-built micro-repository, written into a temp directory and indexed
+#: for real. Two properties make it a better fixture than pointing the indexer
+#: at this repository: the assertions do not drift when unrelated files move,
+#: and `handle` is deliberately defined twice so the ambiguity `resolve` must
+#: report is a property of the fixture rather than a lucky collision.
+#:
+#: Indexing the pack's own tree was the first attempt and does not work: its
+#: runtime payload lives under `.apm/`, and the indexer skips dot-prefixed
+#: directories, so only the test files would be seen.
+FIXTURE_SOURCES = {
+    "core.py": (
+        "def helper():\n"
+        "    return 1\n"
+        "\n"
+        "def handle():\n"
+        "    return helper()\n"
+    ),
+    "other.py": (
+        "def handle():\n"
+        "    return 2\n"
+    ),
+    "caller.py": (
+        "from core import handle\n"
+        "\n"
+        "def entry():\n"
+        "    return handle()\n"
+        "\n"
+        "def second_caller():\n"
+        "    return handle()\n"
+    ),
+}
 
 BINARY = shutil.which("wicked-estate")
 
@@ -54,10 +82,16 @@ def run(*args: str, db: Path) -> subprocess.CompletedProcess[str]:
 
 @pytest.fixture(scope="session")
 def indexed_graph(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Build one real index for the whole session."""
-    db = tmp_path_factory.mktemp("estate") / "graph.db"
+    """Write the micro-repository and index it once for the whole session."""
+    workspace = tmp_path_factory.mktemp("estate")
+    source = workspace / "src"
+    source.mkdir()
+    for name, body in FIXTURE_SOURCES.items():
+        (source / name).write_text(body, encoding="utf-8")
+
+    db = workspace / "graph.db"
     completed = subprocess.run(
-        [BINARY, "index", str(REPO_ROOT / INDEX_SUBTREE), "--db", str(db)],
+        [BINARY, "index", str(source), "--db", str(db)],
         capture_output=True,
         text=True,
         check=False,
@@ -79,7 +113,7 @@ def graph(indexed_graph: Path, tmp_path: Path) -> Path:
 @pytest.fixture(scope="session")
 def known_symbol(indexed_graph: Path) -> dict:
     """A real symbol resolved from the real index."""
-    completed = run("resolve", "validate_confined_directory", "--json", db=indexed_graph)
+    completed = run("resolve", "handle", "--json", db=indexed_graph)
     hits = json.loads(completed.stdout)
     assert hits, "fixture symbol not found; the indexed subtree may have moved"
     return hits[0]
@@ -95,8 +129,8 @@ def test_resolve_json_carries_the_documented_fields(known_symbol: dict) -> None:
 
 def test_resolve_reports_ambiguity_rather_than_collapsing_it(graph: Path) -> None:
     """The pack tells agents several hits are a finding; the CLI must give them."""
-    hits = json.loads(run("resolve", "validate_confined_directory", "--json", db=graph).stdout)
-    assert len(hits) > 1, "expected a deliberately ambiguous fixture name"
+    hits = json.loads(run("resolve", "handle", "--json", db=graph).stdout)
+    assert len(hits) == 2, "`handle` is defined twice in the fixture"
 
 
 # ── blast radius ───────────────────────────────────────────────────────────
@@ -143,11 +177,16 @@ def test_nodes_has_no_symbol_filter(graph: Path, known_symbol: dict) -> None:
 
 
 def test_rank_ignores_json_and_is_fixed_width(graph: Path) -> None:
-    """capability-map.md says rank is text-only and fixed at 25 rows."""
+    """capability-map.md says rank is text-only and capped at 25 rows.
+
+    The cap is a maximum, not a fixed count: a graph smaller than 25 symbols
+    prints however many it has.
+    """
     stdout = run("rank", "--json", db=graph).stdout
     with pytest.raises(json.JSONDecodeError):
         json.loads(stdout)
-    assert "top 25 symbols by PageRank" in stdout
+    assert re.match(r"top \d+ symbols by PageRank", stdout)
+    assert int(re.match(r"top (\d+)", stdout).group(1)) <= 25
 
 
 # ── annotations ────────────────────────────────────────────────────────────
