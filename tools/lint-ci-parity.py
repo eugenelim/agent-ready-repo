@@ -1330,6 +1330,21 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. `make test` runs it in the linear batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
+    'packs/wicked-estate/tests/pack/':
+        NO_PR_GATE(
+            "Pack manifest and surface-vocabulary suite. `make test` runs it; no pull-request "
+            "workflow names it, so it reaches CI only through the dispatch-only "
+            "test-corpus.yml. The vocabulary guard it carries is also enforced statically by "
+            "lint-pack-test-boundary, which every pull request does run."
+        ),
+    'packs/wicked-estate/tests/skills/code-intelligence/':
+        NO_PR_GATE(
+            "Pack skill suite. Its integration half executes the `wicked-estate` binary against "
+            "a real index and skips wholesale when that binary is absent, which is every "
+            "hosted runner — gating a pull request on a suite that cannot run there would "
+            "record a pass that proves nothing. `make test` runs it; the dispatch-only "
+            "test-corpus.yml is its CI route."
+        ),
     'packs/converters/tests/skills/markdown-to-html/':
         PR_GATED(
             "build-check.yml / gate-main / pytest markdown-to-html installed entry-point "
