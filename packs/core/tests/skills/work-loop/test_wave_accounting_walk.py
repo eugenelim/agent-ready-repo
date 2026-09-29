@@ -67,21 +67,42 @@ def test_wave_accounting_summary_is_present_for_a_readable_wave(g) -> None:
 
 _LIVE_WAVES = [["T1", "T2"], ["T3"]]
 
+# The domain's expected axis values, declared as literals INDEPENDENTLY of the
+# generators below. The assertion compares the generators against this table, so
+# deleting a value from a generator reddens instead of shrinking the expectation
+# with it. An earlier version read its expectations from the generators and
+# could not fail for 16 of 22 values.
+_EXPECTED_AXIS_VALUES = {
+    "schedule": ("list", "sized-non-list", "unsized-non-list"),
+    "container": ("absent", "empty", "superseded-digest", "non-mapping",
+                  "malformed-at-digest", "malformed-at-wave", "well-formed"),
+    "wave": ("well-formed", "non-list", "empty", "non-string-element",
+             "duplicated-identifier"),
+    "record": ("live-receipt", "live-decline", "superseded-true",
+               "superseded-not-true", "bad-reason-string",
+               "bad-reason-unhashable", "not-a-record", "no-record"),
+    "index": ("in-range-0", "in-range-1", "out-of-range"),
+}
 
-def _containers(g, waves):
+# Values whose presence must FORCE an absent summary. Hardcoded, not derived.
+_FORCES_ABSENT = frozenset({
+    ("schedule", "sized-non-list"), ("schedule", "unsized-non-list"),
+    ("container", "absent"), ("wave", "non-list"), ("wave", "empty"),
+    ("wave", "non-string-element"), ("index", "out-of-range"),
+})
+
+
+def _containers(g, waves, subtree_by_wave=None):
     """Container values, keyed by the declared path rather than a literal depth."""
     digest = g.partition_digest(waves)
-
-    def keyed(subtree):
-        return {digest: {"0": subtree}}
     return {
         "absent": ABSENT,
         "empty": {},
         "superseded-digest": {"0" * 64: {"0": {"T1": {"kind": g.RECEIPT_KIND}}}},
         "non-mapping": 5,
         "malformed-at-digest": {digest: 5},
-        "malformed-at-wave": keyed(5),
-        "well-formed": keyed({}),
+        "malformed-at-wave": {digest: {"0": 5}},
+        "well-formed": {digest: dict(subtree_by_wave or {})},
     }
 
 
@@ -113,32 +134,55 @@ def _waves_at_index(g):
     }
 
 
+# Index 1's wave, and the records filed under it. Distinct from wave 0's in BOTH
+# task names and record kind, so a summary that reads wave 0's subtree for index
+# 1 reports different figures and the walk reddens. Without this the container
+# walk's wave-index key is unpinned: replacing `str(wave_index)` with "0" left
+# the whole suite green.
+_WAVE_ONE = ["W1", "W2", "W3"]
+
+
 def _domain(g):
-    """Every axis combination, as (labels, state)."""
-    schedule_axis = {"list": "list", "non-list": "non-list"}
-    index_axis = {"in-range": 0, "out-of-range": 9}
+    """Every axis combination, as (labels, state, index, read_at)."""
+    schedules = {
+        "list": None,                    # a real list, built per-case below
+        "sized-non-list": "not-a-list",  # Sized: absorbed by the range check
+        "unsized-non-list": 5,           # NOT Sized: only `isinstance` rejects it
+    }
+    indices = {"in-range-0": 0, "in-range-1": 1, "out-of-range": 9}
     out = []
     for sched, wave_label, cont_label, rec_label, idx_label in itertools.product(
-        schedule_axis, _waves_at_index(g), _containers(g, _LIVE_WAVES),
-        _records(g), index_axis,
+        _EXPECTED_AXIS_VALUES["schedule"], _waves_at_index(g),
+        _EXPECTED_AXIS_VALUES["container"], _records(g),
+        _EXPECTED_AXIS_VALUES["index"],
     ):
         wave = _waves_at_index(g)[wave_label]
-        waves = wave if sched == "non-list" else [wave, ["T3"]]
-        if sched == "non-list":
-            waves = "not-a-list"
-        container = _containers(g, waves if isinstance(waves, list) else [])[cont_label]
-        record = _records(g)[rec_label]
-        # Place the record at the wave's own first position so it is reachable
-        # when the container and wave are both well-formed.
-        if cont_label == "well-formed" and isinstance(waves, list) and isinstance(wave, list):
-            subtree = {}
-            for pos, task in enumerate(wave):
+        index = indices[idx_label]
+        if sched != "list":
+            # The wave axis does not vary here: `schedule_waves` is not a list,
+            # so no wave value is ever reached.
+            waves = schedules[sched]
+            container = _containers(g, [])[cont_label]
+        else:
+            waves = [wave, _WAVE_ONE]
+            # Wave 0 gets the record under test at its FIRST DISTINCT task, and
+            # every other position a plain live receipt. Wave 1 gets all live
+            # declines under its own task names. Placing at the first distinct
+            # task stops a duplicated identifier from overwriting the record.
+            sub0, placed = {}, False
+            for task in wave if isinstance(wave, list) else []:
                 if not isinstance(task, str):
                     continue
-                value = record if pos == 0 else {"kind": g.RECEIPT_KIND}
-                if value is not ABSENT:
-                    subtree[task] = value
-            container = {g.partition_digest(waves): {"0": subtree}}
+                if not placed:
+                    value = _records(g)[rec_label]
+                    if value is not ABSENT:
+                        sub0[task] = value
+                    placed = True
+                elif task not in sub0:
+                    sub0[task] = {"kind": g.RECEIPT_KIND}
+            sub1 = {t: {"kind": g.DECLINE_KIND, "reason": g.DECLINE_REASONS[0]}
+                    for t in _WAVE_ONE}
+            container = _containers(g, waves, {"0": sub0, "1": sub1})[cont_label]
         state = {
             "schema_version": g.SCHEMA_VERSION,
             "schedule_waves": waves,
@@ -146,10 +190,20 @@ def _domain(g):
         }
         if container is not ABSENT:
             state[g.RECEIPTS_KEY] = container
-        out.append(
-            ({"schedule": sched, "wave": wave_label, "container": cont_label,
-              "record": rec_label, "index": idx_label}, state,
-             index_axis[idx_label]))
+        labels = {"schedule": sched, "wave": wave_label, "container": cont_label,
+                  "record": rec_label, "index": idx_label}
+        # The record value the summary would actually read at this index, or
+        # None when this state files no record under test. Credit is taken from
+        # THIS, not from the label.
+        read_at = None
+        if sched == "list" and cont_label == "well-formed" and index == 0:
+            held = container.get(g.partition_digest(waves), {}).get("0")
+            if isinstance(held, dict) and isinstance(wave, list):
+                for task in wave:
+                    if isinstance(task, str):
+                        read_at = held.get(task, ABSENT)
+                        break
+        out.append((labels, state, index, read_at))
     return out
 
 
@@ -158,14 +212,13 @@ def _domain(g):
 
 def test_domain_is_non_empty_and_reaches_both_outcomes(g) -> None:
     """A vacuous domain would make every claim below true and prove nothing."""
-    outcomes = {s is not None
-                for _, st, i in _domain(g)
-                for s in (g.wave_accounting_summary(st, i),)}
+    outcomes = {g.wave_accounting_summary(st, i) is not None
+                for _, st, i, _ in _domain(g)}
     assert outcomes == {True, False}, f"both outcomes must be reached; got {outcomes}"
 
 
 def test_no_generated_state_raises(g) -> None:
-    for labels, state, index in _domain(g):
+    for labels, state, index, _ in _domain(g):
         try:
             g.wave_accounting_summary(state, index)
         except Exception as exc:  # noqa: BLE001 — totality is the property
@@ -174,7 +227,7 @@ def test_no_generated_state_raises(g) -> None:
 
 def test_summary_is_present_exactly_when_the_precondition_holds(g) -> None:
     """AC-0002's biconditional, over the whole domain."""
-    for labels, state, index in _domain(g):
+    for labels, state, index, _ in _domain(g):
         waves = state.get("schedule_waves")
         expected = (
             g.RECEIPTS_KEY in state
@@ -189,7 +242,7 @@ def test_summary_is_present_exactly_when_the_precondition_holds(g) -> None:
 def test_present_summaries_hold_the_arithmetic_invariant(g) -> None:
     """AC-0004, over every present summary the walk generates."""
     seen = 0
-    for labels, state, index in _domain(g):
+    for labels, state, index, _ in _domain(g):
         s = g.wave_accounting_summary(state, index)
         if s is None:
             continue
@@ -201,7 +254,7 @@ def test_present_summaries_hold_the_arithmetic_invariant(g) -> None:
 
 def test_present_summaries_agree_with_the_guard_outstanding_count(g) -> None:
     """AC-0005, over every present summary the walk generates."""
-    for labels, state, index in _domain(g):
+    for labels, state, index, _ in _domain(g):
         s = g.wave_accounting_summary(state, index)
         if s is None:
             continue
@@ -211,31 +264,57 @@ def test_present_summaries_agree_with_the_guard_outstanding_count(g) -> None:
 
 def test_absent_summaries_coincide_with_nothing_outstanding(g) -> None:
     """The drift control: the helper must not call unreadable what the guard reads."""
-    for labels, state, index in _domain(g):
+    for labels, state, index, _ in _domain(g):
         if g.wave_accounting_summary(state, index) is not None:
             continue
         assert g.unaccounted_wave_tasks(state, index) == [], (
             f"{labels}: summary absent but the guard reports outstanding tasks")
 
 
-def test_every_record_class_is_counted_in_some_present_summary(g) -> None:
+def test_a_summary_reads_its_own_wave_not_wave_zero(g) -> None:
+    """The container walk's wave-index key is load-bearing.
+
+    Wave 1 carries different task names and a different record kind from wave 0,
+    so a summary that descends to `"0"` for index 1 reports wave 0's figures.
+    Without this the whole suite stayed green with `str(wave_index)` replaced by
+    the literal `"0"`.
+    """
+    checked = 0
+    for labels, state, index, _ in _domain(g):
+        if index != 1:
+            continue
+        s = g.wave_accounting_summary(state, 1)
+        if s is None:
+            continue
+        checked += 1
+        assert s["tasks"] == len(_WAVE_ONE), (
+            f"{labels}: index 1 reported {s['tasks']} tasks, wave 1 has "
+            f"{len(_WAVE_ONE)} — the summary read another wave's subtree")
+        if labels["container"] == "well-formed":
+            assert s["declines"] == len(_WAVE_ONE) and s["receipts"] == 0, (
+                f"{labels}: wave 1 is all declines; got {s}")
+    assert checked, "no present summary at index 1 — the axis stopped generating"
+
+
+def test_every_record_class_is_read_and_classified(g) -> None:
     """Coverage the walk proves rather than asserts.
 
-    Requires each record value to be COUNTED — read through a mapping subtree and
-    classified — not merely to appear in a state whose summary is present. An
-    empty, superseded-digest or non-mapping container yields a present summary in
-    which no record is read at all, so appearing only there would leave the value
-    unclassified and AC-0004/AC-0005 vacuous for it.
+    Credit comes from the record the summary would actually READ at that index —
+    computed from the subtree the generator built — never from the axis label.
+    An earlier version credited the label, so a wave that overwrote the record
+    under test still counted it as covered.
     """
     counted = set()
-    for labels, state, index in _domain(g):
-        if labels["container"] != "well-formed" or labels["wave"] == "empty":
+    for labels, state, index, read_at in _domain(g):
+        if read_at is None:
             continue
         if g.wave_accounting_summary(state, index) is None:
             continue
-        counted.add(labels["record"])
-    missing = sorted(set(_records(g)) - counted)
-    assert not missing, f"record classes never counted in a present summary: {missing}"
+        expected = _records(g)[labels["record"]]
+        if (read_at is ABSENT and expected is ABSENT) or read_at == expected:
+            counted.add(labels["record"])
+    missing = sorted(set(_EXPECTED_AXIS_VALUES["record"]) - counted)
+    assert not missing, f"record classes never read by a present summary: {missing}"
 
 
 def test_every_reachable_predicate_combination_is_counted(g) -> None:
@@ -246,29 +325,37 @@ def test_every_reachable_predicate_combination_is_counted(g) -> None:
         f"the record axis no longer reaches every combination: {sorted(reachable)}")
 
 
-def test_every_axis_value_reaches_the_outcome_it_forces(g) -> None:
-    """Per axis VALUE, not per axis: an axis that drops all but one value passes
-    a per-axis check unchanged."""
-    forces_absent = {
-        ("schedule", "non-list"), ("container", "absent"), ("wave", "non-list"),
-        ("wave", "empty"), ("wave", "non-string-element"),
-        ("index", "out-of-range"),
+def test_the_generators_match_the_declared_axis_values(g) -> None:
+    """The expectation is a literal table, not a read of the generator.
+
+    Deleting a value from `_containers`, `_waves_at_index` or `_records` must
+    redden here. An earlier version compared each generator against itself.
+    """
+    actual = {
+        "container": tuple(_containers(g, _LIVE_WAVES)),
+        "wave": tuple(_waves_at_index(g)),
+        "record": tuple(_records(g)),
     }
-    seen_absent, seen_any = set(), set()
-    for labels, state, index in _domain(g):
+    for axis, values in actual.items():
+        assert set(values) == set(_EXPECTED_AXIS_VALUES[axis]), (
+            f"{axis} generator no longer matches the declared domain: "
+            f"missing {sorted(set(_EXPECTED_AXIS_VALUES[axis]) - set(values))}, "
+            f"unexpected {sorted(set(values) - set(_EXPECTED_AXIS_VALUES[axis]))}")
+
+
+def test_every_axis_value_reaches_the_outcome_it_forces(g) -> None:
+    """Per axis VALUE, against the literal table above."""
+    seen_any, seen_absent = set(), set()
+    for labels, state, index, _ in _domain(g):
         absent = g.wave_accounting_summary(state, index) is None
         for axis, value in labels.items():
             seen_any.add((axis, value))
             if absent:
                 seen_absent.add((axis, value))
-    for axis, values in (("schedule", ("list", "non-list")),
-                         ("container", tuple(_containers(g, _LIVE_WAVES))),
-                         ("wave", tuple(_waves_at_index(g))),
-                         ("record", tuple(_records(g))),
-                         ("index", ("in-range", "out-of-range"))):
+    for axis, values in _EXPECTED_AXIS_VALUES.items():
         for value in values:
             assert (axis, value) in seen_any, f"axis value never generated: {axis}={value}"
-    missing = sorted(forces_absent - seen_absent)
+    missing = sorted(_FORCES_ABSENT - seen_absent)
     assert not missing, f"values that force an absent summary never did: {missing}"
 
 
