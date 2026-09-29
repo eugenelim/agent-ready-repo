@@ -35,6 +35,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 _NETWORK_TIMEOUT = 60  # seconds; git fetch / ls-remote
+_HEX_OBJECT_LENGTHS = {40, 64}
 
 
 def _quote_for_shell(s: str) -> str | None:
@@ -281,39 +282,14 @@ def _fetch_missing_requested_branch(stderr: str, branch: str) -> bool:
     )
 
 
-# ── Target resolution ────────────────────────────────────────────────────────
-
-
-def _live_remote_head_branch(remote: str) -> tuple[str | None, str | None]:
-    """Query the remote's current HEAD branch via ls-remote --symref.
-
-    Returns (branch_name, category). Exactly one is non-None on each path:
-    - (branch, None) — success; branch is the current HEAD branch name
-    - (None, category) — timeout, categorized unavailable check, or the
-                         sentinel "unclassified failure"
-    - (None, None) — ls-remote succeeded but HEAD is detached or unborn;
-                     caller should ask the user to pass --target explicitly
-
-    Uses the live remote query — not the cached refs/remotes/<remote>/HEAD,
-    which git fetch does not update when the ref already exists.
-    """
-    rc, out, err = _run_with_stderr(
-        ["git", "ls-remote", "--symref", "--", remote, "HEAD"],
-        timeout=_NETWORK_TIMEOUT,
-    )
-    if rc == 124:
-        return None, "timeout"
-    if rc != 0:
-        category = _classify_remote_unavailable(err)
-        if category:
-            return None, category
-        return None, "unclassified failure"
-    for line in out.splitlines():
-        if line.startswith("ref:") and "\t" in line:
-            ref = line.split("\t", 1)[0].replace("ref:", "").strip()
-            if ref.startswith("refs/heads/"):
-                return ref.removeprefix("refs/heads/"), None
-    return None, None
+def _fetch_porcelain_unsupported(stderr: str) -> bool:
+    """Return True only for Git rejecting fetch's porcelain option."""
+    expected = {
+        "error: unknown option `porcelain'",
+        "error: unknown option 'porcelain'",
+        "error: unknown option: porcelain",
+    }
+    return any(line.strip().casefold() in expected for line in stderr.splitlines())
 
 
 # ── Target resolution helpers ────────────────────────────────────────────────
@@ -346,6 +322,152 @@ def _valid_branch(branch: str) -> bool:
     """
     rc, _ = _run(["git", "check-ref-format", f"refs/heads/{branch}"])
     return rc == 0
+
+
+# ── Remote advertisement ─────────────────────────────────────────────────────
+
+
+def _looks_like_full_object_id(value: str) -> bool:
+    """Return whether value is a full SHA-1 or SHA-256 object ID."""
+    return len(value) in _HEX_OBJECT_LENGTHS and all(c in "0123456789abcdefABCDEF" for c in value)
+
+
+def _parse_fetch_advertisement(out: str, destination: str) -> tuple[str | None, str | None]:
+    """Parse the single porcelain dry-run fetch record for destination.
+
+    Returns (object_id, problem). Exactly one is non-None.
+    """
+    matches: list[tuple[str, str, str]] = []
+    for raw_line in out.splitlines():
+        if not raw_line.strip():
+            continue
+        raw_parts = raw_line.split()
+        if raw_line[:1] in {"=", "+", "*", "!"}:
+            flag = raw_line[:1]
+            parts = raw_line[1:].split()
+        elif len(raw_parts) == 3:
+            flag = " "
+            parts = raw_parts
+        else:
+            flag = raw_line[:1]
+            parts = raw_line[1:].split()
+        if len(parts) != 3:
+            return None, "malformed fetch advertisement"
+        old_oid, new_oid, advertised_destination = parts
+        if advertised_destination != destination:
+            return None, "malformed fetch advertisement"
+        if flag not in {" ", "=", "+", "*", "!"}:
+            return None, "malformed fetch advertisement"
+        if not (_looks_like_full_object_id(old_oid) and _looks_like_full_object_id(new_oid)):
+            return None, "malformed fetch advertisement"
+        if len(old_oid) != len(new_oid):
+            return None, "malformed fetch advertisement"
+        matches.append((flag, old_oid, new_oid))
+    if len(matches) != 1:
+        return None, "malformed fetch advertisement"
+    flag, _old_oid, new_oid = matches[0]
+    if flag == "!":
+        return None, "malformed fetch advertisement"
+    return new_oid.lower(), None
+
+
+def _parse_ls_remote_advertisement(
+    out: str, requested_ref: str
+) -> tuple[str | None, str | None, bool]:
+    """Parse one ls-remote object record for requested_ref.
+
+    Returns (object_id, problem, missing). Exactly one of object_id/problem or
+    missing=True is set.
+    """
+    matches: list[str] = []
+    for raw_line in out.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) != 2:
+            return None, "malformed ls-remote advertisement", False
+        oid, ref = parts
+        if ref != requested_ref:
+            return None, "malformed ls-remote advertisement", False
+        if not _looks_like_full_object_id(oid):
+            return None, "malformed ls-remote advertisement", False
+        matches.append(oid.lower())
+    if not matches:
+        return None, None, True
+    if len(matches) != 1:
+        return None, "malformed ls-remote advertisement", False
+    return matches[0], None, False
+
+
+def _read_only_advertised_target(
+    remote: str,
+    source: str,
+    destination: str,
+) -> tuple[str | None, str | None]:
+    """Return the live target object ID without updating local Git metadata."""
+    refspec = f"+{source}:{destination}"
+    rc, out, err = _run_with_stderr(
+        [
+            "git",
+            "fetch",
+            "--dry-run",
+            "--porcelain",
+            "--verbose",
+            "--no-tags",
+            "--no-recurse-submodules",
+            "--no-write-fetch-head",
+            "--no-auto-maintenance",
+            "--no-write-commit-graph",
+            "--",
+            remote,
+            refspec,
+        ],
+        timeout=_NETWORK_TIMEOUT,
+    )
+    if rc == 124:
+        return None, "timeout"
+    if rc == 0:
+        oid, problem = _parse_fetch_advertisement(out, destination)
+        return oid, problem
+    if _fetch_porcelain_unsupported(err):
+        ls_ref = source if source != "HEAD" else "HEAD"
+        rc_ls, out_ls, err_ls = _run_with_stderr(
+            ["git", "ls-remote", "--", remote, ls_ref],
+            timeout=_NETWORK_TIMEOUT,
+        )
+        if rc_ls == 124:
+            return None, "timeout"
+        if rc_ls != 0:
+            category = _classify_remote_unavailable(err_ls)
+            if category:
+                return None, category
+            return None, "unclassified failure"
+        oid, problem, missing = _parse_ls_remote_advertisement(out_ls, ls_ref)
+        if missing:
+            return None, "missing target"
+        return oid, problem
+    if source.startswith("refs/heads/") and _fetch_missing_requested_branch(
+        err, source.removeprefix("refs/heads/")
+    ):
+        return None, "missing target"
+    category = _classify_remote_unavailable(err)
+    if category:
+        return None, category
+    return None, "unclassified failure"
+
+
+def _target_is_contained(oid: str) -> tuple[bool | None, str | None]:
+    """Return whether HEAD contains oid, treating absent objects as stale."""
+    rc, _ = _run(["git", "merge-base", "--is-ancestor", oid, "HEAD"])
+    if rc == 0:
+        return True, None
+    if rc == 1:
+        return False, None
+    rc_obj, _ = _run(["git", "cat-file", "-e", f"{oid}^{{commit}}"])
+    if rc_obj != 0:
+        return False, None
+    return None, "could not compare advertised target against HEAD"
 
 
 # ── Argument parser ──────────────────────────────────────────────────────────
@@ -452,6 +574,8 @@ def main() -> int:
                 f"--target branch {branch!r} is not a valid git branch name"
             )
         target = args.target
+        source = f"refs/heads/{branch}"
+        destination = f"refs/remotes/{fetch_remote}/{branch}"
     elif len(all_remotes) > 1:
         return _surface(
             f"multiple remotes {all_remotes} — pass --target REMOTE/BRANCH "
@@ -459,44 +583,70 @@ def main() -> int:
         )
     else:
         fetch_remote = all_remotes[0]
-        # Resolve the remote's current HEAD live before fetching, so that
-        # renamed default branches and single-branch clones are handled
-        # correctly regardless of the local refspec configuration.
-        branch, live_err = _live_remote_head_branch(fetch_remote)
-        if live_err is not None:
-            if live_err == "unclassified failure":
-                return _surface(
-                    f"ls-remote to {fetch_remote!r} failed with unclassified "
-                    "diagnostics — freshness could not be established"
-                )
-            return _skipped(f"ls-remote to {fetch_remote!r} could not complete: {live_err}")
-        if not branch:
+        branch = "HEAD"
+        target = f"{fetch_remote}/HEAD"
+        source = "HEAD"
+        destination = f"refs/remotes/{fetch_remote}/HEAD"
+
+    advertised_oid, advertise_err = _read_only_advertised_target(
+        fetch_remote, source, destination
+    )
+    if advertise_err is not None:
+        if advertise_err == "missing target":
             return _surface(
-                f"could not determine {fetch_remote!r} HEAD — "
-                "pass --target REMOTE/BRANCH explicitly"
+                f"git fetch {fetch_remote!r}: branch {branch!r} not found on remote — "
+                "verify the branch name in --target",
+                target,
             )
-        if not _valid_branch(branch):
+        if advertise_err == "unclassified failure":
             return _surface(
-                f"remote HEAD branch name {branch!r} is not valid — "
-                "pass --target REMOTE/BRANCH explicitly"
+                f"read-only remote advertisement from {fetch_remote!r} failed with "
+                "unclassified diagnostics — freshness could not be established",
+                target,
             )
-        target = f"{fetch_remote}/{branch}"
+        if advertise_err.startswith("malformed "):
+            return _surface(
+                f"{advertise_err} from {fetch_remote!r} — freshness could not be established",
+                target,
+            )
+        return _skipped(
+            f"read-only remote advertisement from {fetch_remote!r} could not complete: "
+            f"{advertise_err}",
+            target,
+        )
+    if advertised_oid is None:
+        return _surface(
+            f"read-only remote advertisement from {fetch_remote!r} was empty — "
+            "freshness could not be established",
+            target,
+        )
+
+    contained, compare_err = _target_is_contained(advertised_oid)
+    if compare_err is not None:
+        return _surface(compare_err, target)
+    if contained:
+        return _ok("head is current", target)
 
     # Fetch the target branch explicitly with a force-update refspec so that
     # single-branch clones and force-pushed stacked branches are refreshed.
-    refspec = f"+refs/heads/{branch}:refs/remotes/{fetch_remote}/{branch}"
+    refspec = f"+{source}:{destination}"
     rc, _, fetch_err = _run_with_stderr(
         ["git", "fetch", "--no-tags", "--recurse-submodules=no", "--", fetch_remote, refspec],
         timeout=_NETWORK_TIMEOUT,
     )
     if rc == 124:
-        return _skipped(f"git fetch {fetch_remote!r} timed out", target)
+        return _surface(
+            f"branch is stale relative to {target!r}, but this environment "
+            "could not prepare the update because git fetch timed out — ask the "
+            "user to update the branch separately",
+            target,
+        )
     if rc != 0:
         # Match git's own not-found wording only. A broader test (any stderr
         # mentioning 'remote ref') also catches transport failures that echo a
         # URL containing the phrase, and sends the agent off to correct a
         # branch name when the real cause was auth or network.
-        if _fetch_missing_requested_branch(fetch_err, branch):
+        if source.startswith("refs/heads/") and _fetch_missing_requested_branch(fetch_err, branch):
             return _surface(
                 f"git fetch {fetch_remote!r}: branch {branch!r} not found on remote — "
                 "verify the branch name in --target",
@@ -506,7 +656,12 @@ def main() -> int:
         if category is None:
             category = _classify_remote_unavailable(fetch_err)
         if category is not None:
-            return _skipped(f"git fetch {fetch_remote!r} could not complete: {category}", target)
+            return _surface(
+                f"branch is stale relative to {target!r}, but this environment "
+                f"could not prepare the update because {category} — ask the user "
+                "to update the branch separately",
+                target,
+            )
         return _surface(
             f"git fetch {fetch_remote!r} failed with unclassified diagnostics — "
             "freshness could not be established",
@@ -515,7 +670,7 @@ def main() -> int:
 
     # Use the full remote-tracking ref for comparison to avoid DWIM resolving
     # a local branch or tag that shadows the shorthand 'REMOTE/BRANCH'.
-    full_ref = f"refs/remotes/{fetch_remote}/{branch}"
+    full_ref = destination
 
     rc, count_str = _run(["git", "rev-list", "--count", f"HEAD..{full_ref}"])
     if rc != 0:

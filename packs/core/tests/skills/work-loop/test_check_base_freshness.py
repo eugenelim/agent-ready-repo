@@ -88,6 +88,56 @@ def assert_skipped_notice(
 # ---------------------------------------------------------------------------
 
 
+def test_fresh_dry_run_never_attempts_write_fetch(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    origin = tmp / "fresh-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+    repo = tmp / "fresh-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(repo)],
+        check=True,
+        capture_output=True,
+    )
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    fetch_commands: list[list[str]] = []
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "ls-remote":
+            pytest.fail("default freshness attempted separate remote discovery")
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            fetch_commands.append(cmd)
+            if "--dry-run" not in cmd:
+                pytest.fail("freshness attempted a write-capable fetch")
+            return 0, f"= {head} {head} refs/remotes/origin/HEAD", ""
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    assert module.main() == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
+    assert fetch_commands and all("--dry-run" in cmd for cmd in fetch_commands)
+    assert any("+HEAD:refs/remotes/origin/HEAD" in cmd for cmd in fetch_commands)
+
+
 def test_no_remote(tmp: Path) -> None:
     """No remote → exit 0, status ok."""
     repo = tmp / "no-remote"
@@ -161,7 +211,7 @@ def test_unavailable_remote_head_skips(tmp: Path) -> None:
     )
 
 
-def test_fetch_denied_remote_tracking_ref_skips(
+def test_stale_fetch_denied_remote_tracking_ref_surfaces(
     tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     origin = tmp / "denied-origin"
@@ -191,7 +241,7 @@ def test_fetch_denied_remote_tracking_ref_skips(
 
     def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
         nonlocal exercised_fetch
-        if len(cmd) > 1 and cmd[1] == "fetch":
+        if len(cmd) > 1 and cmd[1] == "fetch" and "--dry-run" not in cmd:
             exercised_fetch = True
             return 1, "", raw_stderr
         return original(cmd, timeout=timeout)
@@ -204,20 +254,411 @@ def test_fetch_denied_remote_tracking_ref_skips(
     captured = capsys.readouterr()
     data = json.loads(captured.out)
 
-    assert rc == 0
+    assert rc == 1
     assert exercised_fetch
+    assert data.get("status") == "surface"
     assert data.get("target") == "origin/main"
-    assert "git metadata write was denied by local policy" in data.get("message", "")
-    assert_skipped_notice(
-        data,
-        captured.err,
+    message = data.get("message", "")
+    assert "stale" in message
+    assert "could not prepare the update" in message
+    assert "update the branch separately" in message
+    assert "git metadata write was denied by local policy" in message
+    assert captured.err == ""
+    assert raw_stderr not in message
+    assert "refs/remotes/origin/main" not in message
+    assert ".git/refs/remotes/origin/main.lock" not in message
+    assert "Permission denied" not in message
+
+
+@pytest.mark.parametrize(
+    "advertisement",
+    [
+        "not porcelain",
         (
-            raw_stderr,
-            "refs/remotes/origin/main",
-            ".git/refs/remotes/origin/main.lock",
-            "Permission denied",
+            "= 0123456789012345678901234567890123456789 "
+            "0123456789012345678901234567890123456789 refs/remotes/origin/main\n"
+            "= 0123456789012345678901234567890123456789 "
+            "0123456789012345678901234567890123456789 refs/remotes/origin/main"
         ),
+        (
+            "= 0123456789012345678901234567890123456789 "
+            "0123456789012345678901234567890123456789 refs/remotes/other/main"
+        ),
+    ],
+)
+def test_malformed_dry_run_advertisement_surfaces_without_raw_stderr(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    advertisement: str,
+) -> None:
+    origin = tmp / "malformed-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "malformed-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
     )
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    raw_stderr = "fatal: raw transport detail should not leak"
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 0, advertisement, raw_stderr
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert data.get("status") == "surface"
+    assert "malformed fetch advertisement" in data.get("message", "")
+    assert raw_stderr not in data.get("message", "")
+
+
+def test_unsupported_porcelain_fallback_ls_remote_fresh(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    origin = tmp / "fallback-fresh-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "fallback-fresh-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=clone,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    commands: list[list[str]] = []
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        commands.append(cmd)
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            if "--dry-run" not in cmd:
+                pytest.fail("fallback fresh path attempted a write-capable fetch")
+            return 129, "", "error: unknown option `porcelain'"
+        if len(cmd) > 1 and cmd[1] == "ls-remote":
+            return 0, f"{head}\trefs/heads/main", ""
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    assert module.main() == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
+    assert any(cmd[1] == "ls-remote" for cmd in commands)
+
+
+def test_unsupported_porcelain_fallback_ls_remote_stale(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    origin = tmp / "fallback-stale-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "fallback-stale-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    (origin / "b.txt").write_text("b")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "B")
+    newer = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=origin,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    write_fetches = 0
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        nonlocal write_fetches
+        if len(cmd) > 1 and cmd[1] == "fetch" and "--dry-run" in cmd:
+            return 129, "", "error: unknown option `porcelain'"
+        if len(cmd) > 1 and cmd[1] == "ls-remote":
+            return 0, f"{newer}\trefs/heads/main", ""
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            write_fetches += 1
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert write_fetches == 1
+    assert data.get("status") == "surface"
+    assert "behind" in data.get("message", "")
+
+
+def test_unsupported_porcelain_fallback_missing_target_ignores_cached_ref(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    origin = tmp / "fallback-missing-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "fallback-missing-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    cached = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=clone,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    git(clone, "update-ref", "refs/remotes/origin/no-such-branch", cached)
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    commands: list[list[str]] = []
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        commands.append(cmd)
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            if "--dry-run" not in cmd:
+                pytest.fail("fallback missing-target path attempted a write-capable fetch")
+            return 129, "", "error: unknown option `porcelain'"
+        if len(cmd) > 1 and cmd[1] == "ls-remote":
+            return 0, "", ""
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["check-base-freshness", "--target=origin/no-such-branch"],
+    )
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert data.get("status") == "surface"
+    assert data.get("target") == "origin/no-such-branch"
+    assert "not found on remote" in data.get("message", "")
+    assert any(cmd[1] == "ls-remote" for cmd in commands)
+    assert all(
+        cmd[1] != "fetch" or "--dry-run" in cmd
+        for cmd in commands
+        if len(cmd) > 1
+    )
+
+
+def test_stale_fetch_remote_move_to_contained_target_returns_ok(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    origin = tmp / "move-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "move-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    contained = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=clone,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (origin / "b.txt").write_text("b")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "B")
+    advertised = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=origin,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch" and "--dry-run" in cmd:
+            return 0, f"  {contained} {advertised} refs/remotes/origin/main", ""
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            git(origin, "reset", "--hard", contained)
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=origin/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    assert module.main() == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
+
+
+def test_explicit_target_uses_configured_remote_name(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    origin = tmp / "configured-remote-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "configured-remote-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    git(clone, "remote", "rename", "origin", "upstream")
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=clone,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+    remote_commands: list[list[str]] = []
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] in {"fetch", "ls-remote"}:
+            remote_commands.append(cmd)
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 0, f"= {head} {head} refs/remotes/upstream/main", ""
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(sys, "argv", ["check-base-freshness", "--target=upstream/main"])
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    assert module.main() == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
+    assert remote_commands
+    assert all("--" in cmd for cmd in remote_commands)
+    assert all(cmd[cmd.index("--") + 1] == "upstream" for cmd in remote_commands)
+    assert any(
+        "+refs/heads/main:refs/remotes/upstream/main" in cmd
+        for cmd in remote_commands
+    )
+
+
+def test_raw_url_target_rejected_before_network_execution(
+    tmp: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    origin = tmp / "raw-url-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "raw-url-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+
+    module = load_freshness_module()
+    original = module._run_with_stderr
+
+    def fake_run_with_stderr(
+        cmd: list[str], *, timeout: int | None = None
+    ) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] in {"fetch", "ls-remote"}:
+            pytest.fail(f"raw URL target reached network-capable git command: {cmd}")
+        return original(cmd, timeout=timeout)
+
+    monkeypatch.chdir(clone)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["check-base-freshness", "--target=https://example.invalid/repo.git/main"],
+    )
+    monkeypatch.setattr(module, "_run_with_stderr", fake_run_with_stderr)
+
+    rc = module.main()
+    data = json.loads(capsys.readouterr().out)
+
+    assert rc == 1
+    assert data.get("status") == "surface"
+    assert "configured remote name" in data.get("message", "")
 
 
 def test_ls_remote_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -233,6 +674,8 @@ def test_ls_remote_timeout_skips(tmp: Path, monkeypatch: pytest.MonkeyPatch, cap
     original = module._run_with_stderr
 
     def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 129, "", "error: unknown option `porcelain'"
         if len(cmd) > 1 and cmd[1] == "ls-remote":
             return 124, "", ""
         return original(cmd, timeout=timeout)
@@ -526,6 +969,8 @@ def test_ls_remote_unclassified_failure_surfaces_without_raw_stderr(
     )
 
     def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 129, "", "error: unknown option `porcelain'"
         if len(cmd) > 1 and cmd[1] == "ls-remote":
             return 128, "", raw_stderr
         return original(cmd, timeout=timeout)
@@ -559,6 +1004,8 @@ def test_ls_remote_trailer_only_failure_surfaces_without_raw_stderr(
     raw_stderr = "fatal: Could not read from remote repository."
 
     def fake_run_with_stderr(cmd: list[str], *, timeout: int | None = None) -> tuple[int, str, str]:
+        if len(cmd) > 1 and cmd[1] == "fetch":
+            return 129, "", "error: unknown option `porcelain'"
         if len(cmd) > 1 and cmd[1] == "ls-remote":
             return 128, "", raw_stderr
         return original(cmd, timeout=timeout)

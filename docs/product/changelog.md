@@ -64,6 +64,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.5] — 2026-09-29
+
+### Highlights
+
+- Work-loop can now prove a current branch is fresh before it tries to write Git metadata. If the branch is stale, it still stops: environments that can prepare the update ask before updating, and locked-down environments tell you to refresh the branch separately.
+
+### Fixed
+
+- The base-freshness check now advertises the configured remote target first and returns current branches as ready without requiring a metadata-writing fetch.
+- Stale branches remain blocking even when Git metadata writes are denied, with separate messages for update-capable and user-refresh-only environments.
+
 ## [core][2.27.4] — 2026-09-29
 
 ### Highlights
