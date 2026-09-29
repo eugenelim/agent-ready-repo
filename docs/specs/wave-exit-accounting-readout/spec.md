@@ -1,6 +1,6 @@
 # Spec: A per-wave dispatch accounting readout
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061; ADR-0125 D2; `docs/specs/durable-transitions/spec.md` AC-0003
@@ -164,50 +164,50 @@ guards against raising on.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** For each wave whose summary is present,
+- [x] **AC-0001.** For each wave whose summary is present,
   `wave_dispatch_accounting` reports that wave's `tasks`, `receipts`,
   `declines`, `superseded`, and `unaccounted`.
-- [ ] **AC-0002.** A wave's summary is present exactly when the receipts
+- [x] **AC-0002.** A wave's summary is present exactly when the receipts
   container key is present in cohort state, `schedule_waves` is a list, the wave
   index is in range for it, and the wave at that index is a non-empty list of
   task identifiers; it is absent otherwise. A present summary is never zeroed
   counts standing in for an absent one.
-- [ ] **AC-0003.** Every reported figure is counted once per position in that
+- [x] **AC-0003.** Every reported figure is counted once per position in that
   wave's task list rather than once per key in the receipts container: a wave
   listing one task identifier twice reports `tasks: 2` for that wave, and a
   container key naming a task the wave does not list changes no reported figure.
-- [ ] **AC-0004.** `receipts + declines + unaccounted == tasks` for every present
+- [x] **AC-0004.** `receipts + declines + unaccounted == tasks` for every present
   summary the committed walk generates.
-- [ ] **AC-0005.** `unaccounted` equals the number of the wave's task positions
+- [x] **AC-0005.** `unaccounted` equals the number of the wave's task positions
   the guard layer reports as outstanding, for every present summary the
   committed walk generates.
-- [ ] **AC-0006.** A task whose record is marked superseded counts toward
+- [x] **AC-0006.** A task whose record is marked superseded counts toward
   `superseded` and toward `unaccounted`, and toward neither `receipts` nor
   `declines`.
-- [ ] **AC-0007.** A receipts subtree that is not a mapping yields a present
+- [x] **AC-0007.** A receipts subtree that is not a mapping yields a present
   summary reporting every task in that wave as unaccounted, while a subtree that
   is a mapping holding a live record for every task position but one, whose
   remaining position holds a value that is not a dispatch record, leaves exactly
   that one task unaccounted.
-- [ ] **AC-0008.** `loop-cohort status` reports `wave_dispatch_accounting` in
+- [x] **AC-0008.** `loop-cohort status` reports `wave_dispatch_accounting` in
   both its default and `--json` output, as a list whose length equals
   `len(schedule_waves)` when that value is a list, and `[]` otherwise.
-- [ ] **AC-0009.** Two states alike but for the record kind — one wave all live
+- [x] **AC-0009.** Two states alike but for the record kind — one wave all live
   receipts, one wave all live declines — produce different
   `wave_dispatch_accounting` values, while `dispatch_receipts_enforced` stays
   equal for both.
-- [ ] **AC-0010.** `loop-cohort status` refuses a cohort state whose
+- [x] **AC-0010.** `loop-cohort status` refuses a cohort state whose
   `schema_version` it does not support.
-- [ ] **AC-0011.** `check --phase wave-exit` passes a cohort state whose
+- [x] **AC-0011.** `check --phase wave-exit` passes a cohort state whose
   `schema_version` it does not support.
-- [ ] **AC-0012.** `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py`
+- [x] **AC-0012.** `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py`
   is unedited against the base ref, and reports 35,728 states walked, 0
   overlapping, and 0 uncovered. The unedited clause is load-bearing: without it
   an implementer who changes the oracle supplies the comparison value the
   criterion is checked against.
-- [ ] **AC-0013.** The source, `.claude/`, and `.agents/` work-loop copies are
+- [x] **AC-0013.** The source, `.claude/`, and `.agents/` work-loop copies are
   byte-equivalent after `make build-self`.
-- [ ] **AC-0014.** Driven through the installed CLI against an all-declined and
+- [x] **AC-0014.** Driven through the installed CLI against an all-declined and
   an all-implemented fixture, `loop-cohort status --json` returns
   `wave_dispatch_accounting` values a reader can tell apart without opening
   `state.json`.

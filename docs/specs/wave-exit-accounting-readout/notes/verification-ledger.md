@@ -110,3 +110,21 @@ The container walk is stated three times across `superseded_wave_tasks`,
 `unaccounted_wave_tasks` and `wave_accounting_summary`. The third copy now has
 the control the second one has: the non-zero-index case above fails if it
 descends to the wrong key.
+
+## Deletion sweep over the domain's axis values
+
+The walk's coverage rule is only as good as its ability to notice a missing axis
+value. Independently re-measured at `e2e8069c7`: each of the **23 declared axis
+values** was deleted from its own generator in turn, one at a time, across
+`_schedules`, `_containers`, `_waves_at_index`, `_records` and `_indices`.
+**Zero survivors** — every deletion reddens, with
+`test_the_generators_match_the_declared_axis_values` firing in all 23. Failure
+counts vary by value rather than by axis: deleting `"list"` from `_schedules`
+gives 6, `"unsized-non-list"` gives 2, `"out-of-range"` from `_indices` gives 2,
+`"in-range-0"` and `"in-range-1"` give 3 each.
+
+This is what the earlier arrangement could not do. Before the repair, three of
+the five axes compared a generator against itself and the other two were driven
+straight off the expectation table, so 16 of 22 values were deletable in
+silence — and deleting `"unsized-non-list"` re-opened the
+`isinstance(waves, list)` mutation it had been added to close.

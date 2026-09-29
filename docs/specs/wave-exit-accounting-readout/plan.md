@@ -1,7 +1,7 @@
 # Plan: A per-wave dispatch accounting readout
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/references/state-schema.md`
   (the receipts data model and the two tolerated wave-exit classes);
   `unaccounted_breakdown` and `superseded_wave_tasks` in `_loop_guards.py` as the
@@ -416,3 +416,4 @@ state is rewritten, so no run in flight changes behaviour.
 - 2026-09-28 — Drafted.
 - 2026-09-28 — Spec approved by eugenelim.
 - 2026-09-28 — Plan approved by eugenelim.
+- 2026-09-29 — Shipped.
