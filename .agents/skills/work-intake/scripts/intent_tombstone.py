@@ -30,6 +30,15 @@ Serialize refusal tokens:
     ``invalid-path``       — the successor path is absolute or resolves outside
                              ``docs/product/intents/``.
     ``empty-retired``      — the retirement note is empty or whitespace only.
+    ``serializer-rejected`` — the round-trip self-check failed: parsing the
+                             serialized bytes back yielded a different slug, date,
+                             or pointer than the supplied inputs, or did not
+                             produce a valid tombstone at all. This catches
+                             characters and encodings that the individual guards
+                             above do not enumerate — Unicode line separators,
+                             trailing HTML comments stripped during normalization,
+                             and field-shaped injections in any of the three
+                             fields.
 
 Parse refusal tokens:
     ``not-tombstone``      — the text carries no ``Tombstone:`` field.
@@ -241,6 +250,25 @@ def serialize_tombstone(
         lines.append(f"- **Retired:** {retired}")
 
     text = "\n".join(lines) + "\n"
+
+    # ── Round-trip self-check ─────────────────────────────────────────────────
+    # Parse the text we are about to return and verify it reproduces the same
+    # slug, date, and pointer that were supplied. This catches characters and
+    # encodings that evaded the individual guards above: CR-only line endings
+    # (\r), Unicode line separators (U+2028/U+2029 are str.splitlines()
+    # boundaries but not \n or \r), trailing HTML comments that
+    # normalize_value strips on the way back out, and field-shaped injections
+    # in any of the three fields. Any mismatch — including a parse that does
+    # not return a Tombstone at all — refuses rather than emitting bytes whose
+    # own parser disagrees with.
+    _parsed = parse_tombstone(text)
+    if not isinstance(_parsed, Tombstone):
+        return "serializer-rejected"
+    if _parsed.slug != slug or _parsed.date != date:
+        return "serializer-rejected"
+    if _parsed.reissued_as != reissued_as or _parsed.retired != retired:
+        return "serializer-rejected"
+
     return text.encode("utf-8")
 
 
