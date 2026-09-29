@@ -224,9 +224,15 @@ and is caught by the cold read, not here.
 
 ### Why these obligations
 
-[`docs/product/research/workflow-guidebooks-survey.md`](../docs/product/research/workflow-guidebooks-survey.md)
-owns the evidence, the per-obligation confidence, and the known limitations —
-this section does not restate them. Four obligations are **house choices** the
-survey does not evidence and labels as such: `position`, `variability`'s
-wording, `next_step`, and `artifact_preview`'s authored fallback, which nothing
-independently verifies where a skill declares no shape.
+[`docs/product/research/workflow-guidebooks-survey.md`](../product/research/workflow-guidebooks-survey.md)
+owns the evidence, confidence, and known limitations behind the original
+12-obligation protocol. Four parts of that protocol are **house choices** the
+survey labels as such: `position`, `variability`'s wording, `next_step`, and
+`artifact_preview`'s authored fallback, which nothing independently verifies
+where a skill declares no shape.
+
+The reader failures behind `what_changes`, `correction`, `go_deeper`, and
+`step_map` are recorded in
+[`docs/product/guidebook-methodology.md`](../product/guidebook-methodology.md).
+They are reader-derived design choices rather than measured effectiveness
+claims; `correction` also draws on the survey's anchoring evidence.

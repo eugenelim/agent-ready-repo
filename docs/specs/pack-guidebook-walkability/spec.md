@@ -1,6 +1,6 @@
 # Spec: pack guidebook walkability
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -44,25 +44,36 @@ guidebook per pack whose steps are that pack's journey stages.
 
 ### The guidebook step contract
 
-Derived in
-[`docs/product/research/workflow-guidebooks-survey.md`](../../product/research/workflow-guidebooks-survey.md),
-which grounds each row in cited practitioner evidence and records what the
-evidence does *not* support.
+**Owner ratification, 2026-09-28.** The delivered standalone contract at
+[`docs/guides/guidebook-step-contract.md`](../../guides/guidebook-step-contract.md)
+is the accepted design. Its 16 identifiers below replace the 12-row draft that
+preceded implementation. `guides/AGENTS.md` remains the scoped pointer that
+puts the contract in a guide author's rule-lookup path.
 
-| # | Every guidebook step carries |
-| --: | --- |
-| 1 | Where you are — the sequence, with this step marked, in the page body |
-| 2 | What you must already hold, and what skipping it costs |
-| 3 | What you type — a literal utterance |
-| 4 | What comes back — the agent's turn, attributed and separate from your input |
-| 5 | That the output varies, **stated at this step and not once up front** |
-| 6 | Where you decide — the human gate, or an explicit statement that this step has none |
-| 7 | How to tell it worked — **the judgement a machine cannot make**, never a restatement of the request and never a structural check the lint already performs |
-| 8 | What to do when it does not — **a named decision**: fix locally, re-prompt with the failing case, discard, step back, or escalate. Fullest at a declared decision gate |
-| 9 | What you now hold — the deliverable named, **with its path, and any templated segment marked as templated** |
-| 10 | What to expect inside it — **the expected heading outline**, with its source declared. Verified against the skill's template asset or a real artifact **where one exists**; where none does, the obligation is presence plus declared authorship and nothing verifies correctness. No embedded sample |
-| 11 | What to run next — named and linked |
-| 12 | **Any concept the step depends on** — named, and linked to where it is explained. Authored bounded, in a sentence or two plus a link out, only where no explanation exists |
+The first 12 obligations were derived in
+[`docs/product/research/workflow-guidebooks-survey.md`](../../product/research/workflow-guidebooks-survey.md),
+which records the cited practitioner evidence and its limits. The four added
+obligations came from the reader failures recorded in
+[`docs/product/guidebook-methodology.md`](../../product/guidebook-methodology.md).
+
+| Id | Every guidebook step carries |
+| --- | --- |
+| `position` | Where you are in the sequence, with this step marked, in the page body |
+| `prerequisite_cost` | What you must already hold, and what skipping it costs |
+| `utterance` | What you type — a literal request |
+| `attributed_response` | What comes back, attributed as the agent's turn and separate from your input |
+| `variability` | That output varies — stated at this step, not once up front |
+| `decision` | Where you decide, or that this step has no decision gate |
+| `judgement_check` | How to tell it worked — a declared judgement kind, never a structural check the lint performs |
+| `failure_path` | What to do when it does not: fix locally, re-prompt with the failing case, discard, step back, or escalate |
+| `artifact_location` | The deliverable named, with its path; templated segments marked as templated |
+| `artifact_preview` | An excerpt of the artifact itself, taken verbatim from the source that defines its shape |
+| `next_step` | What to run next, named and linked |
+| `concept_resolved` | Any concept the step depends on, named and linked to where it is explained |
+| `what_changes` | What this step makes different, and what it costs to skip it |
+| `correction` | One turn where the reader pushes back and the agent adjusts |
+| `go_deeper` | One closing pointer at the authoritative source this step projects from |
+| `step_map` | A table naming every skill this step runs, what each produces, and whether it is needed |
 
 **What actually exists to project from, measured per stage.** An earlier draft
 of this spec claimed rows 3, 4, 6 and 9 already exist in the journey stages.
@@ -84,7 +95,7 @@ step granularity.
 So every projected obligation needs a **source ladder with a stated fallback**,
 and the absence of a source must be representable rather than silent — silence
 currently means both "this step has no gate" and "nobody recorded one". The
-ladders are fixed here and AC-0009 checks them:
+ladders are fixed here and AC-0006 checks them:
 
 | Row | First source | Fallback | If none |
 | --- | --- | --- | --- |
@@ -92,7 +103,7 @@ ladders are fixed here and AC-0009 checks them:
 | 4 response | the stage's fenced sample | — | authored, and recorded as authored |
 | 6 decision | the stage's `You decide` line | — | the step states **no decision gate at this step** |
 | 9 path | the named skill's `SKILL.md` | the stage's `Output` line | authored, and recorded as authored |
-| 10 outline | the named skill's template asset | a real committed artifact of that type | authored against what the skill writes, and recorded as authored |
+| 10 preview | the named skill's template asset | a real committed artifact of that type | authored against what the skill writes, and recorded as authored |
 
 **Each row's standing in the evidence is labelled per row, because the survey's
 confidence varies and a contract presenting every row as equally evidence-backed
@@ -109,9 +120,13 @@ converts a coherence choice into an effectiveness claim.**
 | 7 | `[high]` on excluding machine-checkable items, from peer-reviewed automation-complacency work; `[moderate]` on plausibility-testing failure. |
 | 8 | `[moderate]` — a review with no failure path causes approval; the inspection tradition's rework loop is older and stronger. |
 | 9 | `[moderate]` — naming an artifact without its location is a named anti-pattern, and templated-path notation is `[high]`. |
-| 10 | **Split.** The two-channel requirement is `[high]`. The outline-against-source mechanic is a house translation for a versioned repository. **Its authored fallback is a house choice and a known limitation**: where a skill declares no shape, nothing independent verifies the outline is right, and the contract says so rather than implying verification it does not perform. |
+| 10 | **Split.** The two-channel requirement is `[high]`. The preview-against-source mechanic is a house translation for a versioned repository. **Its authored fallback is a house choice and a known limitation**: where a skill declares no shape, nothing independent verifies the preview is right, and the contract says so rather than implying verification it does not perform. |
 | 11 | House choice. The pinball anti-pattern is documented; the next-step link has no controlled evidence behind it. |
 | 12 | **Split.** Linking rather than inlining is `[moderate]`, and the content-drift anti-pattern it avoids is `[high]`. Authoring a bounded explanation where none exists is a house choice — no surveyed source addresses an undocumented concept, because those corpora assume the conceptual material exists. |
+| 13 | Reader-derived house choice. A first-reader failure showed that a step with no stated purpose reads as ceremony; the methodology records the observation. |
+| 14 | Reader-derived house choice, supported by the survey's anchoring and correction evidence: the guide must model disagreement rather than only a clean response. |
+| 15 | Reader-derived house choice. A step closes with one reader-facing authoritative pointer; the methodology records why an arbitrary skill file is not that pointer. |
+| 16 | Reader-derived house choice. The step map makes required versus optional runs explicit after a cold read found prose-only distinctions ambiguous. |
 
 ### Why the guidebook is a guide, not a journey edit
 
@@ -119,8 +134,10 @@ The guidebook lives in `guides/<pack>/`, ordered by the `order:` frontmatter the
 sidebar generator already consumes at `tools/build-site.py:872`. It projects its
 prompts and agent responses verbatim from the owning `JOURNEY.md` stage rather
 than restating them, so drift is a test failure rather than a hope — drift is
-the top runbook anti-pattern in the cited evidence. No file under `packs/**`
-changes, so this is not a released pack change.
+the top runbook anti-pattern in the cited evidence. This outcome needs no file
+under `packs/**`, so it is not a released pack change. The delivery commit also
+carried a product-strategy citation repair; closeout classifies that repair
+outside this spec rather than widening this outcome after delivery.
 
 ### The walk's surfaces still lie, and that travels with this slice
 
@@ -139,13 +156,13 @@ correction is carried here rather than deferred.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Applicable — the guidebooks are what a team walks | `guides/<pack>/` for the five packs, ordered by `order:` | `author-product-docs` conventions | Each guidebook's steps match its journey's stages in count and order, and every step satisfies the contract | The lint passes over all five |
-| Current product truth | Applicable — the contract governs every future guidebook step | `guides/AGENTS.md`, the scoped guidance for the tree the contract applies to | This spec's owner | It enumerates its obligations by identifier, names its judgement kinds and its prohibited-claim vocabulary, and cites the survey for why each obligation exists | No new document and no new bucket: the rule-lookup walk already obliges an author to read this file, and `docs/CONVENTIONS.md` stays untouched because it is a pack-seed projection |
+| Current product truth | Applicable — the contract governs every future guidebook step | `docs/guides/guidebook-step-contract.md`, reached through the scoped pointer in `guides/AGENTS.md` | This spec's owner | It enumerates its obligations by identifier, names its judgement kinds and its prohibited-claim vocabulary, and links to the evidence and reader-derived methodology | The standalone contract is normative, the scoped pointer resolves, and `docs/CONVENTIONS.md` stays untouched because it is a pack-seed projection |
 | Interface compatibility | Applicable — the slice ships a checker other packs will be held to | `tools/lint-guidebook-steps.py` and its `--help` | This spec's owner | `--help` names every obligation it checks, its flags, and what each exit code means | An adopter learns every check and exit code from `--help` alone |
 | Decision rationale | Applicable — the contract is a house choice grounded in external evidence | `docs/product/research/workflow-guidebooks-survey.md` | This spec's owner | Each contract row traces to a cited finding; rows resting on weak evidence say so | Survey states the confidence behind every row and its known unknowns |
 | Decision rationale | Applicable — an owner decision reversed the inherited walk premise | [`notes/walk-premise-correction.md`](notes/walk-premise-correction.md) and this plan's `## Changelog` | This spec's owner | The premise note states its evidence and authority; each delivery decision is dated | No owner decision is discoverable only from a commit message |
 | Reusable learning | Applicable — the mutation proofs are a recorded exercise | `notes/verification-ledger.md` | This spec's owner | Every guard's mutation applied, observed red, restored by editing | Ledger records each mutation with its observed failure |
 | Current product truth | Applicable — the brief tracks slice delivery, and this slice carves three pages out of two sibling specs, partly delivers one intent, and takes scope from another | the brief, the three sibling specs, `skill-sequence-wayfinding`, `experience-design-delivery-packet`, and the four bounded artifacts, all listed in [`notes/ownership-consolidation.md`](notes/ownership-consolidation.md) | `lint-brief-coverage` roll-up | The brief's Spec map cell is `<auto>`; every artifact in the ledger carries its own record | Roll-up names this spec; the ledger and the records agree in both directions |
-| Release history | **Not applicable** | — | — | — | No `packs/**` source changes, so not a released pack change |
+| Release history | **Not applicable to this spec** | — | — | — | The guidebook contract and guide content require no `packs/**` change. The product-strategy citation repair bundled in the delivery commit is a separate correction and is not evidence for this outcome. |
 
 ## Boundaries
 
@@ -196,11 +213,11 @@ correction is carried here rather than deferred.
 ## Testing Strategy
 
 `GB` = `tools/test_lint_guidebook_steps.py`, new and repository-level; it reads
-the convention, the guide markdown, and the five packs' `JOURNEY.md` and
+the standalone contract, the guide markdown, and the five packs' `JOURNEY.md` and
 `SKILL.md` sources, so it needs no build and cannot skip silently.
 
 - **The contract's normative statement and its obligation set (AC-0001):**
-  goal-based check over `guides/AGENTS.md`, on `GB`. The observation is
+  goal-based check over `docs/guides/guidebook-step-contract.md`, on `GB`. The observation is
   structural and its parts fail independently: the section exists; it carries a
   normative statement binding every step; it enumerates obligations by
   identifier with no duplicate; its judgement-kinds closed set overlaps the
@@ -229,7 +246,7 @@ the convention, the guide markdown, and the five packs' `JOURNEY.md` and
   without naming the obligation would satisfy AC-0005 and fail AC-0002.
 - **Per-skill obligations and skill reach (AC-0015, AC-0008):** TDD on `GB`.
   AC-0015 walks every skill each step names and asserts that skill's own
-  utterance, path and outline are present; AC-0008 is a set difference between
+  utterance, path and artifact preview are present; AC-0008 is a set difference between
   the pack's published skills and the skills its steps name. They fail on
   different inputs — a step naming every skill with one shared utterance
   satisfies AC-0008 and fails AC-0015.
@@ -289,53 +306,53 @@ Identifiers are opaque and append-only: AC-0001 to AC-0013 keep the meanings
 they were assigned, and the obligations round 1 surfaced were appended as
 AC-0014 to AC-0021 rather than renumbered into place.
 
-- [ ] **AC-0001.** `guides/AGENTS.md` carries the guidebook step contract: a
+- [x] **AC-0001.** `docs/guides/guidebook-step-contract.md` carries the guidebook step contract, and `guides/AGENTS.md` points to it: a
       normative statement that it governs every guidebook step, its obligations
       enumerated by identifier, its closed set of judgement kinds, and its
       prohibited-claim vocabulary. So a step author and a reviewer read the same
       list, and the list is binding rather than merely present. Both halves are
       checked: identifiers without the normative statement, and the statement
       without the identifiers, each fail.
-- [ ] **AC-0002.** `tools/lint-guidebook-steps.py` fails a step missing any
+- [x] **AC-0002.** `tools/lint-guidebook-steps.py` fails a step missing any
       contract obligation, and its report names which obligation is missing on
       which step, so a failure is actionable without re-reading the contract.
-- [ ] **AC-0003.** For every obligation the contract enumerates, the lint
+- [x] **AC-0003.** For every obligation the contract enumerates, the lint
       registers a check **and that check detects the obligation's failure**: the
       suite derives one failure fixture per obligation identifier read from the
       contract, and requires the registered check to emit that identifier.
       Registry-key equality alone is not enough — a no-op registered against a
       new obligation would satisfy it while checking nothing. For an obligation
       with more than one failure mode the suite carries one fixture per mode,
-      and `artifact_outline` has two: **absent**, and **present but divergent
+      and `artifact_preview` has two: **absent**, and **present but divergent
       from its source**. Omission alone would be satisfied by a
       presence-only implementation, which is the whole of what row 10 promises
       where a source exists.
-- [ ] **AC-0004.** Each of the five packs has an ordered guidebook whose step
+- [x] **AC-0004.** Each of the five packs has an ordered guidebook whose step
       count equals its journey's stage count, whose step order equals the
       journey's stage order, and each of whose steps names the stage it
       implements.
-- [ ] **AC-0005.** The lint passes over every step of all five guidebooks.
-- [ ] **AC-0006.** Every projected value traces to the source its ladder names,
+- [x] **AC-0005.** The lint passes over every step of all five guidebooks.
+- [x] **AC-0006.** Every projected value traces to the source its ladder names,
       or the step records which fallback it used. A value matching no source and
       recording no fallback fails, so an invented utterance cannot pass as a
       projected one. The ladders are the ones fixed in the Objective, and they
       exist because only 13 of 25 stages carry an utterance and 14 a gate.
-- [ ] **AC-0007.** In every step's sample, the reader's input and the agent's
+- [x] **AC-0007.** In every step's sample, the reader's input and the agent's
       turn are separately attributed. A single unlabelled block containing both
       fails, which is what a journey stage does today.
-- [ ] **AC-0008.** Every published skill in each of the five packs is named by
+- [x] **AC-0008.** Every published skill in each of the five packs is named by
       at least one step of that pack's guidebook, so no skill is reachable only
       by reading the pack's source.
-- [ ] **AC-0009.** `guides/README.md` § P2b contains none of the contract's
+- [x] **AC-0009.** `guides/README.md` § P2b contains none of the contract's
       enumerated handoff-chain phrasings, and states the corrected relationship
       in its place. The prohibition half is **lexical and says so**; a novel
       paraphrase passes it, and catching one is the cold read's obligation. The
       positive half is what stops the criterion being satisfied by deleting the
       sentence and saying nothing.
-- [ ] **AC-0010.** P2b's fourth step ends at an approved, build-ready decision
+- [x] **AC-0010.** P2b's fourth step ends at an approved, build-ready decision
       brief and routes onward to the build loop rather than promising a merged
       change.
-- [ ] **AC-0011.** The journeys index's sequence group carries no claim that
+- [x] **AC-0011.** The journeys index's sequence group carries no claim that
       each discipline hands a named artifact to the next, **and no sequence card
       states a handoff the packs' contracts do not make**. The group body and
       the four cards are one predicate here because the existing suite asserts
@@ -346,7 +363,7 @@ AC-0014 to AC-0021 rather than renumbered into place.
       the cards of handoff language and saying nothing fails. That positive half
       is the brief's inherited requirement that all four taglines agree with
       their sequence position.
-- [ ] **AC-0012.** Every target path inside the five packs that the three
+- [x] **AC-0012.** Every target path inside the five packs that the three
       sibling accepted-base ledgers own is accounted for exactly once — taken by
       this slice or retained by its sibling — and the consolidation ledger and
       each artifact's own record agree on which. The oracle compares **three**
@@ -356,13 +373,13 @@ AC-0014 to AC-0021 rather than renumbered into place.
       passes it while the scope disappears from both slices. Paths rather than
       pack names, because S3 alone holds 16 `packs/**/.apm/skills/**` targets
       inside the five packs that this slice cannot edit.
-- [ ] **AC-0013.** No surface this slice writes contains any term from the
+- [x] **AC-0013.** No surface this slice writes contains any term from the
       contract's stated prohibited-claim vocabulary — the adoption, completion,
       task-success and first-value terms enumerated there. The criterion is
       **lexical and says so**: a paraphrase it does not enumerate passes, and
       catching one is a review obligation carried by the cold read, not a claim
       this criterion makes.
-- [ ] **AC-0014.** Each human judgement check declares its kind from the
+- [x] **AC-0014.** Each human judgement check declares its kind from the
       contract's closed set of judgement kinds, and no machine-owned obligation
       identifier appears in that set. The lint fails a judgement check
       declaring no kind, or one declaring a kind that names a machine-owned
@@ -371,35 +388,35 @@ AC-0014 to AC-0021 rather than renumbered into place.
       needs an oracle — and a closed set of kinds is one a lint can decide,
       where "does this paraphrase a machine check" is not. Whether a declared
       judgement is a *good* one stays with the cold read.
-- [ ] **AC-0015.** For every skill a step names, that step carries that skill's
-      own utterance, artifact path and expected outline, **keyed to that skill**
+- [x] **AC-0015.** For every skill a step names, that step carries that skill's
+      own utterance, artifact path and artifact preview, **keyed to that skill**
       in a per-skill sub-entry rather than shared across the step. Naming ten
       skills against one shared utterance does not satisfy this criterion — and
       a step-level value cannot be attributed to a skill at all, which is why
       the representation is part of the obligation and not left to the
       implementer.
-- [ ] **AC-0016.** Each of the three journey groups on the index carries the
+- [x] **AC-0016.** Each of the three journey groups on the index carries the
       modifier assigned to its own relationship, and each of those modifiers
       declares its own at-rest style rule, the three rules differing. The
       criterion reaches the declared rules only; *visual* distinction is a
       review obligation and not a claim it makes.
-- [ ] **AC-0017.** The onward route from the sequence resolves to P2b's own
+- [x] **AC-0017.** The onward route from the sequence resolves to P2b's own
       anchor, matched whole rather than by a shared fragment.
-- [ ] **AC-0018.** P2b sits immediately after P2, with no other path heading
+- [x] **AC-0018.** P2b sits immediately after P2, with no other path heading
       between them.
-- [ ] **AC-0019.** P2b is not counted as a stage of the five-stage walkthrough.
-- [ ] **AC-0020.** P2b's selection condition names the disciplines the work
+- [x] **AC-0019.** P2b is not counted as a stage of the five-stage walkthrough.
+- [x] **AC-0020.** P2b's selection condition names the disciplines the work
       needs, and neither P2's nor P2b's contains the contract's enumerated
       problem-clarity phrasings. Lexical on the prohibition, positive on the
       axis — so restating clarity in words the contract does not enumerate
       passes, and the cold read owns that residue.
-- [ ] **AC-0022.** Every concept a step names as required resolves to an
+- [x] **AC-0022.** Every concept a step names as required resolves to an
       explanation — a link that resolves, or a bounded explanation on the step
       itself where nothing to link to exists. A named concept resolving to
       nothing fails. Whether a step *should* have named a concept it silently
       assumes is not reachable mechanically and is the cold read's obligation,
       so this criterion claims resolution and not sufficiency.
-- [ ] **AC-0021.** **Each** pack's guidebook gets a cold read, and each one
+- [x] **AC-0021.** **Each** pack's guidebook gets a cold read, and each one
       records for every step: what to type, what comes back, where to decide,
       what is held, what runs next, **whether any sentence claims the reader
       will adopt faster or reach value sooner however phrased, and whether any
@@ -457,9 +474,11 @@ AC-0014 to AC-0021 rather than renumbered into place.
   own `SKILL.md`, and 6 of 25 journey stages name one in their `Output` line, so
   a step's artifact location is projectable from the skill rather than authored
   (source: measured 2026-09-11)
-- Technical: 18 of 74 skills ship a template asset and 23 state a shape in
-  prose, while 38 supply neither, so row 10's outline is authored for roughly
-  half the corpus (source: measured 2026-09-11)
+- Technical: at shaping time, 18 of 74 skills shipped a template asset and 23
+  stated a shape in prose, while 38 supplied neither. The delivered row 10
+  requires a verbatim artifact preview from a declared source where one exists
+  and a declared authored fallback where none does (source: measured
+  2026-09-11; delivered contract)
 - Technical: a guide linking into `docs/` renders as an off-site GitHub blob URL
   and escapes the rendered-link fragment audit, so an artifact pointer is stated
   as a path rather than linked (source: `guides/AGENTS.md:21`;
