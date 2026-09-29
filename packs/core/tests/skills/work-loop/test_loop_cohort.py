@@ -4134,17 +4134,18 @@ def _wave_exit_state(**over) -> dict:
     return state
 
 
-def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
+def test_status_tells_a_declined_wave_from_an_implemented_one(
     tmp: Path,
 ) -> None:
-    """Differential: two waves alike but for the record kind, one reported value.
+    """Differential: two waves alike but for the record kind, two reported values.
 
     A decline is accounting, not an exemption, so both waves exit accounted for.
-    Asserted as a DIFFERENCE rather than as the literal `True`, because `True`
-    is also what an implemented wave reports — a row pinning that constant stays
-    green when the two stop being alike, which is the whole claim.
+    `dispatch_receipts_enforced` is asserted EQUAL across both arms — it reflects
+    container presence, not the accounting detail, so both states carry the same
+    value. `wave_dispatch_accounting` is asserted DIFFERENT — it reflects the
+    actual record kind so a declined wave must read apart from an implemented one.
     """
-    name = "status-conflates-decline-with-receipt"
+    name = "status-tells-decline-from-receipt"
     fixtures = {
         "receipt": {"kind": _mod.RECEIPT_KIND},
         "decline": {"kind": _mod.DECLINE_KIND,
@@ -4159,6 +4160,7 @@ def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
         fail(name, "both fixtures carry the same kind — no decline is exercised")
         return
     seen = {}
+    seen_accounting = {}
     for kind, record in fixtures.items():
         spec_dir = make_spec_dir(tmp, f"{name}-{kind}")
         write_state(spec_dir, _wave_exit_state(
@@ -4182,9 +4184,77 @@ def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
         if "dispatch_receipts_enforced" not in payload:
             fail(name, "status no longer reports dispatch_receipts_enforced")
             return
+        if "wave_dispatch_accounting" not in payload:
+            fail(name, "status no longer reports wave_dispatch_accounting")
+            return
         seen[kind] = payload["dispatch_receipts_enforced"]
+        seen_accounting[kind] = payload["wave_dispatch_accounting"]
     if seen["receipt"] != seen["decline"]:
-        fail(name, f"status now distinguishes them: {seen!r}")
+        fail(name, f"dispatch_receipts_enforced now distinguishes them: {seen!r}")
+        return
+    if seen_accounting["receipt"] == seen_accounting["decline"]:
+        fail(name, f"wave_dispatch_accounting does not distinguish them: {seen_accounting!r}")
+    else:
+        ok(name)
+
+
+def test_status_wave_dispatch_accounting_shape(tmp: Path) -> None:
+    """Payload shape: wave_dispatch_accounting on both output surfaces (AC-0008).
+
+    Length equals len(schedule_waves) when that is a list; [] when it is not.
+    Present in both the default text output and the --json output.
+    """
+    name = "status-wave-dispatch-accounting-shape"
+    run_id = str(uuid.uuid4())
+
+    # List case: length must equal len(schedule_waves).
+    waves = _WAVES  # [["T1", "T2"], ["T3"]]
+    spec_dir = make_spec_dir(tmp, f"{name}-list")
+    write_state(spec_dir, {
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
+        "schedule_waves": waves, "current_wave_index": 0,
+        _RECEIPTS_KEY: {},
+    })
+    rc, out, err = run_cohort("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"status refused: {err.strip()!r}")
+        return
+    payload = json.loads(out)
+    if "wave_dispatch_accounting" not in payload:
+        fail(name, "--json output lacks wave_dispatch_accounting")
+        return
+    if len(payload["wave_dispatch_accounting"]) != len(waves):
+        fail(name, (
+            f"--json length {len(payload['wave_dispatch_accounting'])} "
+            f"!= len(schedule_waves) {len(waves)}"
+        ))
+        return
+    rc, out, err = run_cohort("status", str(spec_dir))
+    if rc != 0:
+        fail(name, f"default status refused: {err.strip()!r}")
+        return
+    if "wave_dispatch_accounting" not in out:
+        fail(name, f"default output lacks wave_dispatch_accounting; got {out.strip()!r}")
+        return
+
+    # Non-list case (schedule_waves absent → None): wave_dispatch_accounting must be [].
+    spec_dir2 = make_spec_dir(tmp, f"{name}-nonlist")
+    write_state(spec_dir2, {
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
+    })
+    rc, out, err = run_cohort("status", str(spec_dir2), "--json")
+    if rc != 0:
+        fail(name, f"status refused absent schedule_waves: {err.strip()!r}")
+        return
+    payload2 = json.loads(out)
+    if "wave_dispatch_accounting" not in payload2:
+        fail(name, "--json output lacks wave_dispatch_accounting for non-list waves")
+        return
+    if payload2["wave_dispatch_accounting"] != []:
+        fail(name, (
+            f"wave_dispatch_accounting should be [] for non-list schedule_waves; "
+            f"got {payload2['wave_dispatch_accounting']!r}"
+        ))
     else:
         ok(name)
 
