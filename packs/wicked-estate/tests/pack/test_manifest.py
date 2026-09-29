@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tomllib
 from pathlib import Path
 
@@ -35,12 +36,29 @@ def test_declares_the_estate_cli_as_a_runtime_dependency() -> None:
     assert deps["wicked-estate-mcp"]["optional"] is True
 
 
+#: An exact semver pin. A range (`^0.16`, `~0.16`, `>=0.16`, `0.16.*`) is not a
+#: pin: it resolves to whatever is newest at install time.
+_EXACT_PIN = re.compile(r"--version\s+'?(\d+\.\d+\.\d+)'?(?:\s|$)")
+
+
 def test_runtime_dependency_installs_are_pinned_and_unprivileged() -> None:
-    """Tier-2 installs must be pinned and must never assume sudo."""
+    """Tier-2 installs must carry an exact pin and never assume sudo.
+
+    Asserting only that the `--version` flag is present would accept a caret
+    range, which is the bug this replaced.
+    """
     for dep in load_pack()["runtime-dependencies"]:
         install = dep["install"]
-        assert "--version" in install, f"{dep['package']} install is not pinned"
+        assert _EXACT_PIN.search(install), (
+            f"{dep['package']} install is not pinned to an exact version: {install}"
+        )
         assert "sudo" not in install, f"{dep['package']} install assumes sudo"
+
+
+def test_pin_guard_rejects_a_range() -> None:
+    """Negative control: a caret range must not read as a pin."""
+    assert _EXACT_PIN.search("cargo install foo --version '^0.16' --locked") is None
+    assert _EXACT_PIN.search("cargo install foo --version 0.16.7 --locked") is not None
 
 
 def test_first_value_verification_points_at_the_preflight() -> None:

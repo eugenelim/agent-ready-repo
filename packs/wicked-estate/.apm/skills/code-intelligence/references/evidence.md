@@ -49,11 +49,11 @@ Three signals tell you an answer is a floor rather than a total. All three are
 easy to drop when summarizing, and dropping them turns a careful result into an
 overclaim.
 
-### `unresolved`
+### `unresolved` (CLI) / `unresolved_callers` (MCP)
 
-Present on `blast-radius --json` and MCP `BlastRadius`. It counts call sites the
-resolver could not bind to any symbol. Each one is a potential dependent you
-were not shown.
+The two surfaces name this differently, so read the field the surface actually
+returns. It counts references the resolver could not bind to any symbol. Each
+one is a potential dependent you were not shown.
 
 > **Say:** "17 resolved dependents, and 4 call sites the indexer could not bind —
 > so there may be more."
@@ -63,12 +63,24 @@ were not shown.
 A common cause is dynamic dispatch, reflection, or a language the index covers
 structurally but not precisely. A non-zero count is normal; hiding it is not.
 
-### `truncated_dependents`
+### `truncated_dependents` (CLI) / `truncated` + `total` (MCP)
 
-Present on `blast-radius --json`. The CLI bounds the serialized output at 25,000
-characters and reports how many rows it dropped. A non-zero value means you are
-looking at a prefix, ordered by whatever the store returned — not the most
-important dependents.
+The CLI bounds serialized output at 25,000 characters and reports how many rows
+it dropped. A non-zero value means you are looking at a prefix, ordered by
+whatever the store returned — not the most important dependents. On a mid-size
+repository this fires easily: a probe against this catalogue returned 7
+unresolved and **727 truncated**.
+
+### The depth cap nobody reports
+
+The CLI hardcodes blast-radius traversal to **depth 12**. Dependents beyond 12
+hops are dropped and are counted in *neither* of the two fields above — the
+horizon is silent. MCP `BlastRadius` takes an explicit `depth` (default 8, max
+24) and stamps each dependent with its own `depth`, so there the reach is
+visible.
+
+When reach matters to your conclusion, say which surface you used and what its
+horizon was.
 
 ### Node caps on traversal
 
@@ -82,11 +94,20 @@ depth, so you can at least say how far you got.
 
 The index describes the revision it was built from, not your working tree.
 
-The CLI prints this on stdout, unprompted, from most read commands:
+The CLI prints this on stdout:
 
 ```
 STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate index . --repo my-repo` to refresh
 ```
+
+**But only from five subcommands** — `query`, `blast-radius`, `stats`,
+`clusters`, and `context` — and `blast-radius` suppresses it under `--json`,
+because machine output must be exactly one JSON document. Since this skill
+teaches the `--json` forms, you will usually not see it at all.
+
+So do not treat its absence as evidence of freshness. Run a bare
+`wicked-estate stats` when freshness matters; that is the one command that
+prints the line and is worth running anyway.
 
 When you see it, every answer in that session describes an older revision. Two
 honest options:
@@ -118,23 +139,33 @@ Annotations are Wicked Estate's explicit evidence layer, and they are the one
 place the estate records a human or agent judgment alongside its provenance.
 
 ```bash
-wicked-estate annotations OrderService --json
+wicked-estate annotations --symbol <symbol_id> --json
 ```
 
-Each annotation carries `key`, `value`, `type`, `confidence`, `provenance`,
-`author`, and `last_verified`, and the JSON output flags whether the annotation
-is `advisory`.
+Each annotation carries exactly these fields: `key`, `value`, `type`,
+`confidence`, `provenance`, `author`, `ts`, and `advisory`.
+
+Two shape traps, both verified against the binary:
+
+- **The `<name>` form returns an array**, one `{symbol, annotations[]}` entry
+  per name match. Only the `--symbol <id>` form returns a single object, which
+  is why the command above uses it.
+- **There is no `last_verified` field in the JSON.** The human-readable
+  `stale-annotations` output mentions one, but the machine output gives you
+  `ts`. Report `ts`; do not promise a verification date the payload does not
+  carry.
 
 Two rules:
 
 - **An annotation is a claim, not a fact.** It has an author and a confidence
   for a reason. Report it with its provenance attached: *"annotated as
-  deprecated by `platform-team`, confidence 0.8, last verified 2026-03-11"* —
-  not "this is deprecated".
+  deprecated by `platform-team`, confidence 0.8, recorded 2026-03-11"* — not
+  "this is deprecated".
 - **Check whether it is stale.** `wicked-estate stale-annotations <cutoff>
-  --json` returns the `(symbol, annotation)` pairs whose `last_verified` predates
-  the cutoff. Never-verified annotations always come back stale. An old
-  annotation on fast-moving code is weak evidence.
+  --json` returns `{symbol, annotation}` pairs older than the cutoff. The
+  cutoff is **Unix seconds**; a date string is rejected with a usage error.
+  Never-verified annotations always come back stale. An old annotation on
+  fast-moving code is weak evidence.
 
 ### Do not write workflow state here
 

@@ -3,7 +3,7 @@ name: code-intelligence
 description: Use when a question is about what is true in a codebase rather than what to change — locate a symbol, explain a class or service, find callers and callees, trace dependencies, work out the blast radius of a change, assemble bounded context for a task, find hotspots or architectural clusters, or inspect lineage and business rules. Triggers on "what calls this", "what breaks if I change X", "how does X actually work", "where is X implemented", "what depends on X", "map this codebase", "what are the hotspots here", "is this dead code", "trace this dependency". Answers from an indexed code graph and preserves the confidence, provenance, and unresolved-edge counts that index reports. Do NOT use to decide what a change should be — that belongs to whichever workflow skill asked the question.
 allowed-tools: Bash Read Grep Glob
 metadata:
-  boundaries: [filesystem_read_untrusted]
+  boundaries: [filesystem_read_untrusted, network_egress]
 ---
 
 # Skill: code-intelligence
@@ -94,8 +94,11 @@ early as the objective allows.
    More than one hit is a finding, not an inconvenience. Say which one you
    picked and why, or ask.
 
-2. **Retrieve.** Get metadata for the resolved symbol — kind, file, line,
-   signature, annotations — with `wicked-estate nodes --json`.
+2. **Retrieve.** `resolve --json` already gave you kind, file, and line. For the
+   signature use `wicked-estate source --symbols <id> --signatures-only`, and
+   for annotations `wicked-estate annotations --symbol <id> --json`.
+   `wicked-estate nodes` has no symbol filter and returns the whole graph — it
+   is an inventory verb, never a lookup.
 
 3. **Inspect.** Read the actual source before concluding anything about
    behaviour: `wicked-estate source <name> --json`.
@@ -130,17 +133,19 @@ flattening it into confident prose.
 Three rules are load-bearing:
 
 - **A blast radius is a floor, not a total.** `blast-radius --json` returns an
-  `unresolved` count of call sites the indexer could not bind, and a
-  `truncated_dependents` count when output was capped at 25,000 characters. A
-  non-zero `unresolved` means there may be dependents you were not shown. Report
-  the number; never present the list as complete.
+  `unresolved` count of references the indexer could not bind, and a
+  `truncated_dependents` count when output was capped at 25,000 characters.
+  A third limit is **not reported at all**: the CLI traverses to a hardcoded
+  depth of 12. Report the two numbers, and mention the horizon when reach
+  matters; never present the list as complete.
 - **A heuristic edge is not a fact.** Every edge carries confidence and
   provenance. A name-matched edge and a compiler-verified one look identical in
   a flat list. Where an edge is load-bearing for your conclusion, verify it
   against source before relying on it.
-- **`STALENESS:` on stdout means the graph predates the working tree.** The CLI
-  prints it when commits have landed since the last index. Treat every answer
-  from that point as describing an older revision, and say which.
+- **Freshness will not appear in your JSON.** The `STALENESS:` line prints from
+  only five subcommands, and `blast-radius` suppresses it under `--json`. Its
+  absence is not evidence the graph is current — run a bare `wicked-estate
+  stats` when freshness matters, and say which revision you answered from.
 
 Full handling — the confidence and provenance model, the annotation evidence
 envelope, freshness, and how to phrase a bounded claim — is in

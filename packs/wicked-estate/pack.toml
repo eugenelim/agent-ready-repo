@@ -33,8 +33,8 @@ package = "wicked-estate"
 version = ">=0.16"
 optional = false
 skills = ["code-intelligence"]
-install = "cargo install wicked-estate --version '^0.16' --locked"
-note = "Provides the `wicked-estate` binary. Tier-2 dependency: scripts/estate_preflight.py detects it first and installs only on explicit consent, and only when cargo is already present. The pack reads an index the adopter builds with `wicked-estate index <path>`; it never writes to the graph."
+install = "cargo install wicked-estate --version 0.16.7 --locked"
+note = "Provides the `wicked-estate` binary. Tier-2 dependency: scripts/estate_preflight.py detects it first and installs only on explicit consent, and only when cargo is already present. Pinned to an exact version, not a range, per the three-tier policy. Deviation on record: the policy's named managers are uv/npm/pipx/brew; cargo is used because upstream publishes only to crates.io and ships no release binaries, and `cargo install` compiles from source so the consent prompt states the time cost. The pack reads an index the adopter builds with `wicked-estate index <path>`; it never writes to the graph."
 
 [[pack.runtime-dependencies]]
 ecosystem = "cargo"
@@ -42,7 +42,7 @@ package = "wicked-estate-mcp"
 version = ">=0.16"
 optional = true
 skills = ["code-intelligence"]
-install = "cargo install wicked-estate-mcp --version '^0.16' --locked"
+install = "cargo install wicked-estate-mcp --version 0.16.7 --locked"
 note = "Optional structured provider. Register it only when the session needs Lineage, RulesInventory/rules.recall, or the memory/knowledge domains, which have no CLI verb. Registering it makes 29 tool schemas resident in the agent's context for the whole session, so it is off by default."
 
 [pack.links]
@@ -67,5 +67,5 @@ starter-prompt   = "What is the blast radius of changing the request handler in 
 expected-result  = "A list of resolved dependents with file:line, plus the count of call sites the indexer could not bind — stated as a completeness limit rather than hidden."
 next-action      = "Inspect the highest-risk dependents with `wicked-estate source`."
 verification     = "python scripts/estate_preflight.py --check"
-recovery         = "Exit 2 means the binary is absent — run `cargo install wicked-estate --version '^0.16' --locked`. Exit 3 means no index — run `wicked-estate index .` from the repository root."
+recovery         = "Exit 2 means the binary is absent — run `cargo install wicked-estate --version 0.16.7 --locked`. Exit 3 means no index — run `wicked-estate index .` from the repository root."
 writes-to-repo   = false

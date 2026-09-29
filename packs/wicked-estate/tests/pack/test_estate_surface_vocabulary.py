@@ -182,23 +182,133 @@ def test_capability_map_records_the_verified_version() -> None:
     )
 
 
-def test_no_workflow_state_vocabulary_in_runtime_payload() -> None:
-    """The pack must not smuggle job-lifecycle semantics into estate guidance.
+#: A backticked CamelCase identifier — the shape an MCP estate tool is written
+#: in. Illustrative symbol names in examples are not backticked as bare
+#: CamelCase tool references, so this targets tool mentions specifically.
+_CAMEL_TOOL = re.compile(r"`([A-Z][a-z]+(?:[A-Z][a-z]+)+)`")
 
-    These are the exact terms the pack's boundary section rules out. They may
-    appear as prohibitions, so the check targets the graph-relationship spelling
-    that would only occur if someone modelled workflow state as estate data.
+#: CamelCase identifiers that are legitimately not MCP tools — example symbol
+#: names invented for the worked examples, and upstream type names.
+CAMEL_NON_TOOLS = frozenset(
+    {
+        "OrderService",
+        "ChargeProcessor",
+        "RetryQueue",
+        "WebhookHandler",
+        "PaymentGateway",
+        "RefundCalculator",
+        "LedgerEntry",
+        "InvoiceBuilder",
+        "CheckoutController",
+        "LegacyAuthAdapter",
+        "EventBus",
+        "MoneyType",
+        # Upstream graph node kinds, not MCP tools.
+        "RuleSet",
+    }
+)
+
+#: Workflow-lifecycle vocabulary the pack's boundary section rules out of the
+#: estate integration. Phrased as the graph-relationship or state spellings
+#: that would only appear if someone modelled a job as estate data.
+WORKFLOW_STATE_TERMS = (
+    "MIGRATES_TO",
+    "INTENTIONALLY_CHANGED",
+    "migration phase",
+    "cutover readiness",
+    "release approval",
+    "bug triage status",
+    "modernization wave",
+)
+
+#: A line that *forbids* a term is the pack working correctly. A line that
+#: *uses* it as estate data is the violation. Only an explicit prohibition
+#: cue exempts a line, and the cues are deliberately narrow.
+_PROHIBITION_CUES = (
+    "never",
+    "do not",
+    "does not",
+    "must not",
+    "belong",
+    "rules out",
+    "not assign",
+    "declines",
+    "instead of",
+)
+
+
+def _workflow_state_offenders(text: str, label: str) -> list[str]:
+    """Paragraphs that use a workflow-state term without prohibiting it.
+
+    Scope is the paragraph, not the line: prose wraps, so a prohibition and
+    the term it forbids routinely land on different lines. Judging per line
+    reports the pack's own boundary section as a violation.
     """
-    forbidden = ("MIGRATES_TO", "INTENTIONALLY_CHANGED")
-    offenders: list[str] = []
-    for document in runtime_documents():
-        text = document.read_text(encoding="utf-8")
-        for term in forbidden:
-            # Naming a term to forbid it is fine; asserting it as a real
-            # relationship is not. Require the negation to be adjacent.
-            for line in text.splitlines():
-                if term in line and not any(
-                    cue in line.lower() for cue in ("not ", "never", "do not", "belong")
-                ):
-                    offenders.append(f"{document.name}: {line.strip()}")
-    assert not offenders, "workflow state asserted as estate data: " + "; ".join(offenders)
+    offenders = []
+    for block in re.split(r"\n\s*\n", text):
+        # Collapse wrapping before matching: a cue or a term routinely
+        # straddles a line break, and "not\nassign" must read as "not assign".
+        flat = " ".join(block.split())
+        lowered = flat.lower()
+        if any(cue in lowered for cue in _PROHIBITION_CUES):
+            continue
+        for term in WORKFLOW_STATE_TERMS:
+            if term.lower() in lowered:
+                offenders.append(f"{label}: {flat[:120]}")
+                break
+    return offenders
+
+
+@pytest.mark.parametrize("document", runtime_documents(), ids=lambda p: p.name)
+def test_camelcase_mcp_tools_exist_upstream(document: Path) -> None:
+    """A backticked CamelCase tool name must be a real MCP estate tool."""
+    text = document.read_text(encoding="utf-8")
+    used = {match.group(1) for match in _CAMEL_TOOL.finditer(text)}
+    unknown = sorted(used - MCP_ESTATE_TOOLS - CAMEL_NON_TOOLS)
+    assert not unknown, (
+        f"{document.relative_to(PACK_ROOT)} names CamelCase identifiers that are "
+        f"neither MCP tools in Wicked Estate {VERIFIED_AGAINST} nor declared "
+        f"example symbols: {unknown}"
+    )
+
+
+def test_camelcase_guard_rejects_an_invented_tool() -> None:
+    """Negative control: the guard above must actually fire.
+
+    Without this, a regex that silently matches nothing would pass every
+    document and prove nothing — the failure mode the previous version of this
+    suite shipped with.
+    """
+    fabricated = "Use `PathQuery` to get the route between two symbols."
+    used = {m.group(1) for m in _CAMEL_TOOL.finditer(fabricated)}
+    assert used - MCP_ESTATE_TOOLS - CAMEL_NON_TOOLS == {"PathQuery"}
+
+
+def test_cli_guard_rejects_an_invented_verb() -> None:
+    """Negative control for the CLI verb guard."""
+    fabricated = "Run `wicked-estate shortest-path A B` to trace it."
+    used = {m.group(1) for m in _CLI_INVOCATION.finditer(fabricated)}
+    assert used - CLI_VERBS == {"shortest-path"}
+
+
+@pytest.mark.parametrize("document", runtime_documents(), ids=lambda p: p.name)
+def test_no_workflow_state_vocabulary_in_runtime_payload(document: Path) -> None:
+    """The pack must not smuggle job-lifecycle semantics into estate guidance."""
+    offenders = _workflow_state_offenders(
+        document.read_text(encoding="utf-8"), document.name
+    )
+    assert not offenders, "workflow state asserted as estate data: " + "; ".join(
+        offenders
+    )
+
+
+def test_workflow_state_guard_rejects_an_assertion() -> None:
+    """Negative control: an affirmative use of the vocabulary must fail."""
+    violation = "Record the migration phase as an annotation on each symbol."
+    assert _workflow_state_offenders(violation, "synthetic") != []
+
+
+def test_workflow_state_guard_allows_a_prohibition() -> None:
+    """Negative control's twin: forbidding the term must stay legal."""
+    allowed = "Never write a migration phase into the graph."
+    assert _workflow_state_offenders(allowed, "synthetic") == []

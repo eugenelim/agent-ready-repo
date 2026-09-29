@@ -35,6 +35,10 @@ from pathlib import Path
 #: against. Every CLI verb the skill names exists in this release.
 MINIMUM_VERSION = (0, 16)
 
+#: Exact pinned version. A caret range would resolve to whatever 0.16.x is
+#: newest at install time, which is not a pin.
+PINNED_VERSION = "0.16.7"
+
 #: Pinned install, matching `[[pack.runtime-dependencies]]` in pack.toml.
 #: `--locked` makes the build reproducible from the crate's shipped lockfile.
 INSTALL_COMMAND = [
@@ -42,7 +46,7 @@ INSTALL_COMMAND = [
     "install",
     "wicked-estate",
     "--version",
-    "^0.16",
+    PINNED_VERSION,
     "--locked",
 ]
 
@@ -69,9 +73,13 @@ def find_binary() -> str | None:
 def read_version(binary: str) -> tuple[int, ...] | None:
     """Return the CLI's version as a tuple, or None when it cannot be parsed.
 
-    An unparseable version is deliberately not fatal on its own: the caller
-    decides, so a future output format change degrades to a warning rather than
-    blocking a working binary.
+    Wicked Estate has no `--version` flag. The argument falls through to the
+    dispatcher's default arm, which prints a 65-line usage banner whose first
+    line reads ``wicked-estate 0.16.7 — usage:``. That banner is what this
+    parses, which is why the regex scans rather than anchoring, and why an
+    unparseable result is deliberately not fatal: the pack is reading an
+    unspecified fallback, so a future change to the banner must degrade to a
+    warning rather than block a working binary.
     """
     try:
         completed = subprocess.run(

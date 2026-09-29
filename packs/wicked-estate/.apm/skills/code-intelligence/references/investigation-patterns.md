@@ -21,14 +21,23 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    Several hits means the name is ambiguous. Narrow with `--file` or `--kind`,
    or ask which one the user means. Do not silently take the first.
 
-2. **Retrieve metadata.** Kind, signature, and any annotations already on it:
+2. **Retrieve metadata.** `resolve --json` already gave you kind, file, and
+   line. For the signature, go straight to the symbol:
 
    ```bash
-   wicked-estate nodes --json --semantics | ...   # filter to the resolved symbol_id
+   wicked-estate source --symbols <symbol_id> --signatures-only
    ```
 
-   The `--semantics` form also surfaces `requirement` and `rule_confidence`
-   where someone has recorded them.
+   Do **not** reach for `wicked-estate nodes` here. It has no symbol filter —
+   only `--kind` and `--annotated-with` — so it returns the whole graph, and
+   `--semantics` adds a per-node semantics read and edge fetch on top of that.
+   It is an inventory command, not a lookup.
+
+   For annotations on this one symbol:
+
+   ```bash
+   wicked-estate annotations --symbol <symbol_id> --json
+   ```
 
 3. **Inspect the source.** Never describe behaviour you have not read:
 
@@ -80,8 +89,16 @@ this work".
    ```
 
 3. **Read the completeness fields before reading the list.** `unresolved` counts
-   call sites that could not be bound, and `truncated_dependents` counts rows
+   references that could not be bound, and `truncated_dependents` counts rows
    dropped at the 25,000-character bound. Both mean your list is a floor.
+
+   There is a third limit and it is **not reported**: the CLI traverses to a
+   hardcoded depth of 12, and anything further away is silently absent from all
+   three numbers. Say so when the answer depends on reach.
+
+   Freshness is not in this output either — `blast-radius` suppresses its
+   `STALENESS:` line under `--json`. Run a bare `wicked-estate stats` to learn
+   whether the graph is behind the working tree.
 
 4. **Separate direct from transitive.** The flat `dependents` array does not
    distinguish them. Get depth by traversing:
@@ -93,16 +110,24 @@ this work".
      `graph-view --focus <subject>` as the local first-hop picture, and say
      that finer depth attribution was not available.
 
-5. **Inspect the important paths, not the whole list.** Rank the dependents and
-   read the ones that carry weight:
+5. **Inspect the important paths, not the whole list.** A hundred-row list
+   pasted back is not impact analysis. Five paths read properly is.
 
-   ```bash
-   wicked-estate rank        # which dependents are load-bearing
-   wicked-estate source --symbols <id1>,<id2> --json
-   ```
+   Choosing *which* five is where the CLI runs out. `wicked-estate rank` is a
+   global top-25 by PageRank; it takes no seed and no input set, so it cannot
+   rank your dependents. Two honest routes:
 
-   A hundred-row list pasted back is not impact analysis. Five paths read
-   properly is.
+   - **MCP registered:** `BlastRadius` returns `summary.top_by_pagerank`, which
+     ranks the dependents it found. This is the only ranked-dependents result
+     available anywhere in the surface.
+   - **CLI only:** select by judgement from `{file, kind, name}` — public
+     entry points, anything in a hot directory, anything whose name suggests it
+     touches the changing behaviour — and **say the selection was yours, not a
+     ranking**. Then read them:
+
+     ```bash
+     wicked-estate source --symbols <id1>,<id2> --json
+     ```
 
 6. **Validate the conclusions against source.** For every dependent you call
    out as breaking, confirm from its source that it actually uses the part you
@@ -206,8 +231,10 @@ it is clearly marked as a reading.
 2. **Keep it bounded.** A budget is not a formality. Raise it deliberately when
    the returned set is visibly too thin, not by default.
 
-3. **Explain why each item is in the bundle.** The tool ranks by personalized
-   PageRank; the user cannot see that ranking. One clause per item —
+3. **Explain why each item is in the bundle.** The CLI `context` scores
+   neighbours of up to 20 full-text seed matches with fixed edge weights — it
+   is proximity, not PageRank, and only MCP `ContextBundle` uses personalized
+   PageRank. Either way the user cannot see the scoring. One clause per item —
    "`PaymentGateway`, because `CheckoutController` calls it directly on the
    success path" — turns a list into context.
 

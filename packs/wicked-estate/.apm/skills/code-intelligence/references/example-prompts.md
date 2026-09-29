@@ -45,24 +45,28 @@ bug, or write a fix. The `bug-fix` workflow owns the diagnosis and the change.
 **Pattern:** Analyze change impact (2).
 
 ```bash
+wicked-estate stats                                  # freshness, before anything else
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
-wicked-estate rank                                   # which dependents matter
-wicked-estate source --symbols <top-5-ids> --json    # read those five
+wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
 ```
 
 **A good answer looks like:**
 
-> 47 resolved dependents, 0 unresolved, no truncation — so this list is
-> complete as far as the index goes.
+> 47 resolved dependents, 0 unresolved, no truncation. Two caveats on that:
+> the CLI traverses to a fixed depth of 12 and does not tell you whether it hit
+> that limit, and `stats` reports the graph is current with the working tree.
 >
-> Five are load-bearing by PageRank: `Invoice`, `LedgerEntry`,
-> `PaymentGateway`, `RefundCalculator`, and the `Money` serde implementation.
-> I read all five. Four construct `Money` positionally and will fail to compile
-> with a new field; `RefundCalculator` only reads `.amount` and is unaffected.
+> I picked five to read — `Invoice`, `LedgerEntry`, `PaymentGateway`,
+> `RefundCalculator`, and the `Money` serde implementation — chosen because
+> they are public constructors or serialization paths, **not because the tool
+> ranked them**. The CLI cannot rank a supplied set. Four construct `Money`
+> positionally and will fail to compile with a new field; `RefundCalculator`
+> only reads `.amount` and is unaffected.
 >
-> I could not separate direct from transitive dependents — `blast-radius` returns
-> a flat list with no depth. The five above are direct, verified from source.
+> I could not separate direct from transitive dependents: the CLI blast radius
+> is a flat list with no depth. Registering the MCP server would give per-
+> dependent depth and a PageRank ranking over exactly these 47.
 
 **What the skill did not do:** estimate effort, propose a migration order, or
 decide whether the field should be optional.
@@ -112,7 +116,7 @@ wicked-estate source --cluster 3 --signatures-only
 ```bash
 wicked-estate resolve LegacyAuthAdapter --json
 wicked-estate blast-radius LegacyAuthAdapter --json
-wicked-estate annotations LegacyAuthAdapter --json
+wicked-estate annotations --symbol <symbol_id> --json
 wicked-estate dead-code --json | grep LegacyAuthAdapter
 ```
 
@@ -122,11 +126,12 @@ wicked-estate dead-code --json | grep LegacyAuthAdapter
 > nothing in the graph references it.
 >
 > That is not sufficient to call it safe. `blast-radius` also reports 2
-> unresolved call sites in the graph overall, and edgeless does not mean unused:
-> anything reached by reflection, dynamic dispatch, or framework registration
-> looks exactly like this. I checked its annotations — it carries
-> `deprecated=true`, author `platform-team`, confidence 0.9, last verified
-> 2025-11-03, which is 11 months old.
+> unresolved references, and edgeless does not mean unused: anything reached by
+> reflection, dynamic dispatch, or framework registration looks exactly like
+> this. `dead-code` is a wide net — on this catalogue it returns 65% of all
+> nodes. I checked its annotations — it carries `deprecated=true`, author
+> `platform-team`, confidence 0.9, recorded 2025-11-03. That is a timestamp
+> (`ts`), not a verification date; the JSON carries no `last_verified`.
 >
 > The graph says nothing references it. Confirming it is dead needs a check the
 > index cannot perform: a search for string-based references to the class name,
@@ -156,7 +161,8 @@ wicked-estate by-requirement REQ-441          # only if requirements were annota
 
 **A good answer looks like:**
 
-> By PageRank, the three heaviest batch programs are `CALCINT` (interest
+> In the global top-25 by PageRank, the three heaviest batch programs are
+> `CALCINT` (interest
 > calculation), `POSTGL` (general-ledger posting), and `VALACCT`. `CALCINT`
 > has 61 resolved dependents with 14 unresolved call sites — the highest
 > unresolved count in the graph, which for COBOL usually means dynamic `CALL`

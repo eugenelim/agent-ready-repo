@@ -17,15 +17,21 @@ them — not the raw output of every command.
 
 ## Before you start
 
-Run the preflight:
+Confirm the graph is usable, using the CLI itself:
 
 ```bash
-python scripts/estate_preflight.py --check
+wicked-estate stats
 ```
 
-Exit 0 means proceed. Exit 2 (no binary), 3 (no index), or 4 (version below
-floor) means you work from `Grep`, `Glob`, and `Read` instead — and every
-finding in your report carries the fallback label described below.
+Success prints node and edge counts — proceed. It also prints a `STALENESS:`
+line when the graph is behind the working tree, which is why this is the right
+probe: it is the one command that reports freshness and readiness together.
+
+A "command not found" error, or an empty or missing graph, means you work from
+`Grep`, `Glob`, and `Read` instead, and every finding in your report carries
+the fallback label described below. The remediation is
+`cargo install wicked-estate --version 0.16.7 --locked`, then
+`wicked-estate index .` — offer it; do not run it yourself.
 
 ## How you work
 

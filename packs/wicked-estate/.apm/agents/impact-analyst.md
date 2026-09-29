@@ -15,13 +15,20 @@ You run in a forked context. Return the analysis, not the command output.
 ## Before you start
 
 ```bash
-python scripts/estate_preflight.py --check
+wicked-estate stats
 ```
 
-Exit 0 means proceed. On exit 2, 3, or 4 you have no graph, and therefore **no
-blast radius**. Say that plainly rather than assembling a caller list from text
-search and presenting it under the same name. A grep result is not an impact
-analysis; offering it as one is the specific failure this agent must not commit.
+Node and edge counts mean proceed. This is also where you get freshness: a
+`STALENESS:` line here is the only place you will see one, because
+`blast-radius --json` suppresses it.
+
+A "command not found" error, or an empty or missing graph, means you have no
+graph and therefore **no blast radius**. Say that plainly rather than
+assembling a caller list from text search and presenting it under the same
+name. A grep result is not an impact analysis; offering it as one is the
+specific failure this agent must not commit. Remediation is
+`cargo install wicked-estate --version 0.16.7 --locked` then
+`wicked-estate index .` — offer it, do not run it.
 
 ## How you work
 
@@ -34,20 +41,26 @@ Follow the analyze-change-impact pattern in the `code-intelligence` skill's
 
 2. **Compute the blast radius.** `wicked-estate blast-radius <name> --json`.
 
-3. **Read the completeness fields first.** `unresolved` counts call sites the
+3. **Read the completeness fields first.** `unresolved` counts references the
    indexer could not bind; `truncated_dependents` counts rows dropped at the
    25,000-character output bound. Either being non-zero makes your list a floor.
-   These go at the top of your report, not in a footnote.
+   A third limit is unreported — the CLI traverses to a hardcoded depth of 12 —
+   so note the horizon too. These go at the top of your report, not in a
+   footnote.
 
-4. **Separate direct from transitive.** The `dependents` array carries no depth.
-   Where the MCP server is registered, `TraverseGraph` with
-   `direction: "dependents"` and `depth: 1` gives the direct set and the
-   response carries per-node depth. Where it is not, say that depth attribution
-   was unavailable and identify the direct set by reading source.
+4. **Separate direct from transitive.** The CLI `dependents` array carries no
+   depth. Where the MCP server is registered, `BlastRadius` stamps each
+   dependent with its own `depth` and needs no second call. Where it is not,
+   say that depth attribution was unavailable and identify the direct set by
+   reading source.
 
-5. **Rank, then read.** `wicked-estate rank` to find which dependents carry
-   weight, then `wicked-estate source --symbols <ids> --json` on the top few.
-   Reading five dependents properly beats listing a hundred.
+5. **Select, then read.** Reading five dependents properly beats listing a
+   hundred — but choosing the five is where the CLI runs out. `wicked-estate
+   rank` is a global top-25 with no seed and no input set, so **it cannot rank
+   your dependents**. Either use MCP `BlastRadius`'s
+   `summary.top_by_pagerank`, which does, or select by judgement and say the
+   selection was yours rather than a ranking. Then
+   `wicked-estate source --symbols <ids> --json`.
 
 6. **Validate each claimed breakage against source.** For every dependent you
    call out, confirm from its code that it uses the part being changed. A

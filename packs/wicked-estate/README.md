@@ -83,7 +83,7 @@ The MCP server advertises **29 tool schemas**, and they stay resident in the
 agent's context for the entire session whether or not a single one is called.
 The CLI costs nothing until you run it.
 
-The CLI is also the larger surface. It dispatches 33 subcommands, including
+The CLI is also the larger surface. It accepts 34 subcommand names, including
 several with no MCP equivalent: requirement linkage (`by-requirement`,
 `semantics`), snapshot identity (`fingerprint`, `changed-since`, `stats`), the
 annotation evidence envelope (`annotations`, `stale-annotations`), and
@@ -112,10 +112,12 @@ Some of what that found:
 
 - **There is no path query.** You can establish that A reaches B. You cannot ask
   for the route.
-- **`blast-radius` returns no depth**, so direct and transitive impact cannot be
-  separated from the CLI alone.
-- **Per-edge confidence and provenance are not printed on the common read
-  paths**, even though every edge carries them.
+- **The CLI blast radius has a silent depth-12 horizon**, reported by neither
+  completeness field.
+- **Nothing ranks a supplied set of symbols on the CLI** — `rank` is a fixed
+  global top-25, so "which of these 47 dependents matter most" has no CLI answer.
+- **Per-edge confidence and provenance are not printed on the CLI read paths**,
+  even though every edge carries them. MCP `BlastRadius` does surface them.
 
 None of these are requests to change Wicked Estate, and nothing in this pack
 depends on them changing. They are the map of where an agent must stop and say
