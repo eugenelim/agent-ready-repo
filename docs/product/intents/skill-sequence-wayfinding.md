@@ -203,7 +203,7 @@ this intent attributed it to the wrong owner. Ledger:
 
 **Out — the static guidebook for the five SOP packs.**
 [`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
-(S7 of `sdlc-guide-uplift-and-learning-paths`, Draft) fixes an eleven-obligation
+(S7 of `sdlc-guide-uplift-and-learning-paths`) fixes a sixteen-obligation
 guidebook step contract and satisfies it **by hand** for `desk-research`,
 `product-strategy`, `experience-design`, `product-engineering` and `core`. Four
 of its obligations are this capability's outcome stated as authored prose:

@@ -105,6 +105,14 @@ looking properly and nowhere near enough to authorise new pack surface.
 Everything past step 4 — sequencing, surface budget, the upgrade proposal —
 belongs in a research plan and then a delivery brief, not in this intent.
 
+## Boundary with `pack-guidebook-walkability`
+
+Authoring the `experience-design` pack guidebook belongs to
+[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md).
+This intent keeps the distinct deliverable-accounting question: whether every
+expected deliverable is owned by a skill, satisfied by an existing artifact,
+or named by the pack as out of scope. It does not re-author the guidebook.
+
 ## Assumptions
 
 Ordered so that the first failure is the cheapest. Each carries a kill
