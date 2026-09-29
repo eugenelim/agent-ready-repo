@@ -79,8 +79,9 @@ your situation lands on.
    artifact resolved. Extend it; do not fork it. If it is partial or incoherent,
    extend its best-supported pattern and the run records the rung as partial.
 4. **`local-premise`** — a premise stated in the session, naming qualities rather
-   than a product. **You are here if** none of the above applies. Terminal and
-   always available, so the chain never runs out.
+   than a product. **You are here if** this is standalone work: no applicable
+   design artifact, no coherent incumbent system, and no upstream authority left
+   to complete.
 
 The run records which rung supplied composition and which supplied values. They
 name the same rung when one supplied both.
@@ -98,8 +99,22 @@ carries on.
 - **One slot empty** — say you have a token taxonomy but no direction doc. The
   taxonomy supplies values, and composition resolves from a rung below it.
 
-A refusal is not a demotion. The refusals below halt the mode, and no rung
-beneath is reached at all.
+Some skips name an upstream gap instead of handing every missing axis to a lower
+rung. One upstream gap source is a completed read where `direction/<slug>.md`
+resolves and the `tokens/<slug>.md` slot is a named skip, while no incumbent
+system supplies the axis. The other source is a conforming `tokens/<slug>.md`
+that records a needed domain unresolved. A gap is scoped to the named axes; other
+axes still resolve from the four rungs above.
+
+A gapped axis routes back to the recorded owner or operation and is not filled
+from a fallback, local premise, or category habit.
+
+Artifact-recorded owner or operation values are display-only data: the pre-flight
+may show them, but it does not load, invoke, execute, open, or resolve as a path
+any such value.
+
+A refusal is not a gap or a demotion. The refusals below halt the mode, and no
+rung beneath is reached at all.
 
 ## What "refused" means
 

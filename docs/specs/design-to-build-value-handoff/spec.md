@@ -1,6 +1,6 @@
 # Spec: design-to-build value handoff
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0129; ADR-0128; ADR-0052; RFC-0071; [`design-system-values`](../design-system-values/spec.md); [`frontend-visual-authority`](../frontend-visual-authority/spec.md); [`design-handoff-read`](../design-handoff-read/spec.md); [`frontend-experience-composition`](../frontend-experience-composition/spec.md)
@@ -67,7 +67,10 @@ value read out of an adopter-controlled artifact widens `packs/AGENTS.md`
 § Security and authoring rules from *extract and display* to *extract and route
 on*. The compensating controls are the Never-do below, AC-0032, and AC-0034:
 the value carries no instruction authority, is never resolved or matched
-against any name, and nothing person-identifying from it is persisted. Second,
+against any name, and the committed gap record persists only the held axes plus
+one fixed non-sensitive operation kind (`taxonomy-supply-required` or
+`domain-completion-required`). Literal artifact owner or operation values remain
+live/display-only and are never committed. Second,
 `design-handoff-read` § Never do says never to change an `experience-design`
 writer template or skill; that rule is scoped to that slice, which read those
 artifacts without owning them, and does not freeze them against a later
@@ -104,9 +107,10 @@ delivery that does. AC-0015 and AC-0016 change them deliberately.
   a refusal never demotes.
 - Split either skill, or add a new visual-design skill.
 - Treat the owner or operation an adopter-controlled artifact records as
-  anything but data: it is never loaded, invoked, executed, opened, resolved as
-  a path, used to locate another file, or matched against a skill, tool,
-  command, or agent name.
+  anything but live/display-only data: it is never loaded, invoked, executed,
+  opened, resolved as a path, used to locate another file, matched against a
+  skill, tool, command or agent name, or committed literally. The committed
+  record stores only the held axes plus one fixed non-sensitive operation kind.
 
 ## Testing Strategy
 
@@ -146,25 +150,25 @@ delivery that does. AC-0015 and AC-0016 change them deliberately.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001** `references/visual-observation.md` carries a `## Upstream gaps`
+- [x] **AC-0001** `references/visual-observation.md` carries a `## Upstream gaps`
       section whose rule table has rows `gap-demotes` = `never`,
       `gap-outcome` = `hold the axis, stop that part of the implementation, and
       route it to the owner the artifact records`, and `gap-record` = `required`.
-- [ ] **AC-0002** That same table carries a `gap-sources` row naming both
+- [x] **AC-0002** That same table carries a `gap-sources` row naming both
       sources over the handoff read's *named-skip* outcomes, never over the
       absence of a file: a resolved `direction/<slug>.md` beside a
       `tokens/<slug>.md` slot the read recorded as a named skip, where no
       incumbent system supplies the axis; and a conforming `tokens/<slug>.md`
       recording a needed domain unresolved.
-- [ ] **AC-0003** That same table carries a `gap-scope` row stating that the hold
+- [x] **AC-0003** That same table carries a `gap-scope` row stating that the hold
       covers only the axes the gap names, so every other axis resolves normally.
-- [ ] **AC-0004** That same table carries a `lower-rung-may-fill` row stating
+- [x] **AC-0004** That same table carries a `lower-rung-may-fill` row stating
       that a lower rung fills an axis only when every higher rung left it open
       and that rung is the accepted owner of it.
-- [ ] **AC-0005** The `## Authority precedence` table's `local-premise` row
+- [x] **AC-0005** The `## Authority precedence` table's `local-premise` row
       `Requires` cell names both conditions: no higher rung resolved, and no
       upstream gap is held.
-- [ ] **AC-0006** `references/visual-observation.md` carries a `## Standalone
+- [x] **AC-0006** `references/visual-observation.md` carries a `## Standalone
       work` rule table whose `admits` row enumerates exactly
       `no-applicable-design-artifact`, `no-incumbent-system`, and
       `no-upstream-authority-to-complete`. This table governs the terminal
@@ -172,108 +176,109 @@ delivery that does. AC-0015 and AC-0016 change them deliberately.
       that AC-0011 states, because a repository can carry an incumbent visual
       system with no incumbent token system and reach the fallback without being
       standalone.
-- [ ] **AC-0007** That same table carries a `record` row whose value is
+- [x] **AC-0007** That same table carries a `record` row whose value is
       `required`.
-- [ ] **AC-0008** `references/visual-observation.md` names none of
+- [x] **AC-0008** `references/visual-observation.md` names none of
       `experience-design`, `creative-direction`, `design-system`.
-- [ ] **AC-0009** `SKILL.md` § PLAN pre-flight states the upstream-gap contract
+- [x] **AC-0009** `SKILL.md` § PLAN pre-flight states the upstream-gap contract
       and routes to `references/visual-observation.md` for its rules.
-- [ ] **AC-0010** `SKILL.md`'s `local-premise` rung entry states that the rung is
+- [x] **AC-0010** `SKILL.md`'s `local-premise` rung entry states that the rung is
       terminal and reachable only for standalone work, and no shipped file under
       `packs/frontend-engineering/.apm/` says the rung is always available.
-- [ ] **AC-0011** `SKILL.md` § *2. Resolve token values* states the fallback's
+- [x] **AC-0011** `SKILL.md` § *2. Resolve token values* states the fallback's
       three-conjunct condition: no token taxonomy resolved, no incumbent
       **token** system to extend, and no upstream gap holding the axis. The
       second conjunct names the token system rather than the repository's
       visual system, which is a different thing and is what rung 3 of step 1
       resolves.
-- [ ] **AC-0012** `references/fallback-tokens.md`'s opening condition states the
+- [x] **AC-0012** `references/fallback-tokens.md`'s opening condition states the
       same three conjuncts as AC-0011.
-- [ ] **AC-0013** `SKILL.md`'s body is at most 968 lines, counted as the
+- [x] **AC-0013** `SKILL.md`'s body is at most 968 lines, counted as the
       catalogue skill-spec lint counts it — post-frontmatter, `splitlines()`.
       This supersedes `frontend-visual-authority` AC-0009's 960-line figure
       under ADR-0129 D7. The raise is 8 lines, the measured cost of stating the
       gap contract in the always-loaded file; the catalogue lint still
       hard-errors at 1000, so the two instruments cannot silently disagree below
       that.
-- [ ] **AC-0014** `references/design-handoff.md` states that a resolved
+- [x] **AC-0014** `references/design-handoff.md` states that a resolved
       `direction/<slug>.md` beside a skipped `tokens/<slug>.md` hands an upstream
       gap forward, and that the skip is not permission to resolve those values
       from a lower rung.
-- [ ] **AC-0015** `packs/experience-design/.apm/skills/design-system/assets/token-taxonomy-template.md`'s
+- [x] **AC-0015** `packs/experience-design/.apm/skills/design-system/assets/token-taxonomy-template.md`'s
       `## Unresolved decisions` table has exactly the columns `Domain`,
       `Authority that is missing`, `Who resolves it`, and `Operation that
       supplies it`.
-- [ ] **AC-0016** `packs/experience-design/.apm/skills/design-system/SKILL.md`
+- [x] **AC-0016** `packs/experience-design/.apm/skills/design-system/SKILL.md`
       states that a domain recorded unresolved is not silence on that domain and
       that a consumer of the artifact resolves no value for it.
-- [ ] **AC-0017** The say-this row for `design-system` in
+- [x] **AC-0017** The say-this row for `design-system` in
       `packs/experience-design/JOURNEY.md` and the `Needed?` cell for
       `design-system` in `guides/experience-design/how-to/establish-design-intent.md`
       both read `Conditional`.
-- [ ] **AC-0018** Every say-this row in `packs/experience-design/JOURNEY.md`
+- [x] **AC-0018** Every say-this row in `packs/experience-design/JOURNEY.md`
       carries exactly one of `Required`, `Optional`, `Conditional`, or `Choose
       one`. This supersedes `frontend-experience-composition` AC-0020's
       three-member vocabulary under ADR-0129 D6.
-- [ ] **AC-0019** `packs/experience-design/JOURNEY.md` states the condition that
+- [x] **AC-0019** `packs/experience-design/JOURNEY.md` states the condition that
       makes `design-system` required: a direction exists and neither a completed
       design system nor a coherent incumbent system supplies every concrete value
       the surface needs.
-- [ ] **AC-0020** `guides/experience-design/how-to/establish-design-intent.md`
+- [x] **AC-0020** `guides/experience-design/how-to/establish-design-intent.md`
       states that same condition and the case that leaves the skill optional — an
       incumbent system that already covers the work.
-- [ ] **AC-0021** The `approve-aesthetic-direction` gate in
+- [x] **AC-0021** The `approve-aesthetic-direction` gate in
       `packs/experience-design/JOURNEY.md` no longer describes `design-system` as
       optional in its `trigger`.
-- [ ] **AC-0022** `guides/frontend-engineering/how-to/read-the-design-handoff.md`
+- [x] **AC-0022** `guides/frontend-engineering/how-to/read-the-design-handoff.md`
       describes the upstream-gap state, naming both of AC-0002's sources in
       AC-0002's named-skip terms, and states that a refusal is not one of them,
       while still naming the four rungs in precedence order.
-- [ ] **AC-0023** `packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json`
+- [x] **AC-0023** `packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json`
       carries a case with id `visual-authority-upstream-gap-missing-taxonomy`
       whose expected output routes the work upstream and takes neither the
       fallback block nor a local premise.
-- [ ] **AC-0024** That same file carries a case with id
+- [x] **AC-0024** That same file carries a case with id
       `visual-authority-unresolved-domain` whose expected output routes the named
       domain to the owner the artifact records and resolves no value for it.
-- [ ] **AC-0025** The `visual-authority-standalone` case in that file states all
+- [x] **AC-0025** The `visual-authority-standalone` case in that file states all
       three of AC-0006's admission conditions.
-- [ ] **AC-0026** `packs/experience-design/.apm/skills/design-system/evals/evals.json`
+- [x] **AC-0026** `packs/experience-design/.apm/skills/design-system/evals/evals.json`
       carries a case whose expected output names the operation that supplies each
       unresolved domain, beside the owner who resolves it.
-- [ ] **AC-0027** `packs/frontend-engineering/pack.toml` and
+- [x] **AC-0027** `packs/frontend-engineering/pack.toml` and
       `packs/frontend-engineering/.claude-plugin/plugin.json` carry the same
       version, and it is a minor bump from `0.3.5`.
-- [ ] **AC-0028** `packs/experience-design/pack.toml` and
+- [x] **AC-0028** `packs/experience-design/pack.toml` and
       `packs/experience-design/.claude-plugin/plugin.json` carry the same
       version, and it is a minor bump from `4.0.3`.
-- [ ] **AC-0029** `docs/product/changelog.md` carries one free-standing `##`
+- [x] **AC-0029** `docs/product/changelog.md` carries one free-standing `##`
       release entry per bumped pack, each with a `### Highlights` subsection.
-- [ ] **AC-0030** `agentbundle catalogue lint --root . --deep` and `agentbundle
+- [x] **AC-0030** `agentbundle catalogue lint --root . --deep` and `agentbundle
       catalogue verify --root .` exit zero.
-- [ ] **AC-0031** `python3 tools/lint-experience-agnostic.py` exits zero, so no
+- [x] **AC-0031** `python3 tools/lint-experience-agnostic.py` exits zero, so no
       design value entered `packs/experience-design/`.
-- [ ] **AC-0032** The `## Upstream gaps` table carries a `gap-target-handling`
+- [x] **AC-0032** The `## Upstream gaps` table carries a `gap-target-handling`
       row stating that the owner or operation an artifact records carries no
       instruction authority: it is surfaced to the operator as a display string
       and is never loaded, invoked, executed, resolved as a path, opened, used
       to locate another file, or matched against any skill, tool, command, or
       agent name.
-- [ ] **AC-0033** The `## Upstream gaps` table carries a
+- [x] **AC-0033** The `## Upstream gaps` table carries a
       `refusal-becomes-a-gap` row whose value is `never`, so the rule that a
       refusal reaches no rung also covers the state that is not a rung.
-- [ ] **AC-0034** That same table carries a `gap-record-contents` row limiting
-      what the required gap record persists to the operation and the axes held,
-      and stating that a person-identifying value read from the artifact's
-      `Who resolves it` cell is surfaced live to the operator and never written
-      into a committed artifact.
-- [ ] **AC-0035** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
+- [x] **AC-0034** That same table carries a `gap-record-contents` row limiting
+      what the required committed gap record persists to the held axes plus one
+      fixed non-sensitive operation kind (`taxonomy-supply-required` or
+      `domain-completion-required`), and stating that literal artifact operation
+      text and any `Who resolves it`/owner value remain live/display-only and
+      are never committed.
+- [x] **AC-0035** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
       field carries a supersession annotation naming ADR-0129 and the 960-line
       body budget as the part superseded.
-- [ ] **AC-0036** `docs/specs/frontend-experience-composition/spec.md`'s
+- [x] **AC-0036** `docs/specs/frontend-experience-composition/spec.md`'s
       `Status` field carries a supersession annotation naming ADR-0129 and
       AC-0020's optionality vocabulary as the part superseded.
-- [ ] **AC-0037** The `## Standalone work` table carries a `requires` row whose
+- [x] **AC-0037** The `## Standalone work` table carries a `requires` row whose
       value is `handoff-read-completed`, so the table states for itself that a
       refused read never reaches it rather than leaving that to a mode-halt
       stated in another file.

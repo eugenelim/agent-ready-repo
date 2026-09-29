@@ -161,12 +161,14 @@ overrides a higher one, and a rung silent on an axis hands that axis down.
    best-supported pattern and record the rung as partial rather than declaring
    the surface greenfield.
 4. **`local-premise`** — state a concise visual premise in-session. Terminal
-   and always available. Derive it from the surface's own subject matter — its
-   industry, materials, and the vernacular of the people it serves — which is
-   what makes one premise differ from the next. Then check it once: could
-   someone guess this premise from the category alone, or from the category
-   plus the obvious reaction against it? Either way it is a default, not a
-   choice; revise it and say what changed. It names qualities, never a product.
+   and reachable only for standalone work: no applicable design artifact, no
+   incumbent system, and no upstream authority left to complete. Derive it from
+   the surface's own subject matter — its industry, materials, and the
+   vernacular of the people it serves — which is what makes one premise differ
+   from the next. Then check it once: could someone guess this premise from the
+   category alone, or from the category plus the obvious reaction against it?
+   Either way it is a default, not a choice; revise it and say what changed. It
+   names qualities, never a product.
 
 **Record two rungs, not one.** Whenever the top rung resolves, two are in force:
 composition from it, values from below. The manifest's `visual authority` field
@@ -174,8 +176,11 @@ records both, and they name the same rung when one supplied everything.
 
 Because rung 1 supplies no values, step 2 resolves them from rung 2 downward.
 
-What each rung binds, what visual authority never governs, and why a refusal is
-never a demotion:
+An upstream gap is not a rung: it means authority above implementation still
+owes the axis. Hold only that axis, stop that part of the implementation, and
+route it to the owner or operation the artifact records. What each rung binds,
+what visual authority never governs, why a refusal is never a demotion, and the
+full upstream-gap rules:
 [`references/visual-observation.md`](references/visual-observation.md).
 
 ### 1b. Genre routing (T2 — requires experience-design pack)
@@ -207,15 +212,14 @@ as either `XD genre routing: <skill-name> loaded` or `XD genre routing: skipped
 Values come from the highest source that supplies them. Never fork a system a
 higher source already answers.
 
-1. **The token taxonomy**, when one resolved in step 0. **Use a value it
-   resolved as given** — re-deriving one the design step already decided is how
-   a surface drifts from its direction. Resolve what it left as a relationship,
-   or recorded unresolved — that is the work, not a reason to skip to a default.
+1. **The token taxonomy**, when one resolved in step 0. **Use a value it resolved as given** — resolved values remain as given; re-deriving one the design step already decided is how a surface drifts from its direction.
+   Relationships can still be resolved. An explicitly unresolved taxonomy domain is an upstream gap: hold that domain and route it upstream. An incumbent habit, platform habit, fallback, local premise, or category habit must not fill that domain.
 2. **The incumbent token system** already in the repository. Extend it; do not
    fork it.
 3. **[`references/fallback-tokens.md`](references/fallback-tokens.md)** — read
-   it when neither of the two above resolved. That is the only condition; it
-   does not depend on which rung supplied composition.
+   it only when no token taxonomy resolved, no incumbent token system exists to
+   extend, and no upstream gap holds the axis. It does not depend on which rung
+   supplied composition.
 
 **Record the token namespace you resolved** — `--ds-*` from the fallback,
 `--color-*` or whatever an incumbent system already uses. The craft rules and

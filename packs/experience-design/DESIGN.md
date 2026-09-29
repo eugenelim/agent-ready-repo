@@ -57,7 +57,7 @@ Each skill consumes a specific upstream artifact and cannot produce reliable out
 - `content-design`'s per-surface acquisition copy goals mode needs the content brief its own message and narrative structure mode writes, to name per-surface copy goals grounded in the surface's declared intent. For acquisition surfaces, the brand register is an optional upstream anchor.
 - `user-flow` needs the content brief to sequence screens in a way that delivers on the stated content intent, not just the functional path.
 - `creative-direction` needs the journey's emotional arc (the pains, the moments of relief) to ground the aesthetic direction in real user feeling rather than preference.
-- `design-system` needs the named aesthetic direction so the system it resolves isn't arbitrary.
+- `design-system` needs the named aesthetic direction so the system it resolves isn't arbitrary. It is required when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs; when the incumbent system already covers the work, the thread can keep that system rather than produce a new one.
 - `information-architecture` needs both the content brief and the aesthetic direction as constraints. When a screen declares a surface genre, it loads the matching genre method before arranging hierarchy.
 - `interaction-design` needs the per-screen brief produced by `user-flow` — which includes the state matrix — to design behavior for the right set of states.
 - `design-review` and `experience-reviewer` need the completed artifacts to review against something concrete.
@@ -217,6 +217,8 @@ The aesthetic direction names the emotional and brand goals that visual decision
 **Design-system** ← aesthetic direction + the product's existing system  
 The system derives from the aesthetic direction and whatever the product already has. Every decision must trace back to a named goal or a committed axis in the direction, to a stated constraint, or to the incumbent system. A decision that can't be explained by one of those is a gap in the authority, not a decision to make anyway.
 
+Run this step when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs. If the incumbent system already covers the work, preserve it as the authority for those values.
+
 **Information-architecture with genre routing** ← content brief + aesthetic direction
 Hierarchy, reading flow, and wayfinding are set before behavioral design begins. The IA is the skeleton; interaction design is the muscle. When a screen has a known surface genre, the genre route supplies the specialized structural vocabulary inside `information-architecture`. Designing interaction without a settled IA produces behaviors that fight the structure.
 
@@ -236,7 +238,7 @@ The behavioral layer is designed last in the craft sequence because it depends o
 | Marketplace surfaces | Listing card IA, filter architecture, comparison, transaction bridge |
 | Workspace surfaces | Context-persistence architecture, attention zone layout, interrupt design |
 
-The genre routes are not a replacement for `creative-direction` or `design-system` — they specialize `information-architecture` only. The full craft sequence runs; only the IA method changes.
+The genre routes are not a replacement for `creative-direction`: creative-direction still runs. They specialize `information-architecture` only. `design-system` runs when its condition requires it; genre routing itself does not decide that condition or force the system step.
 
 ---
 

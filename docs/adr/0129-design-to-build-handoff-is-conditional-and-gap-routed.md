@@ -83,10 +83,12 @@ We will make the design-to-build handoff conditional and gap-routed.
   by reference, because the pre-flight is what an agent always loads. Its body
   budget rises from 960 to 968 lines to pay for that.
 - **D8:** The owner or operation read out of an adopter-controlled artifact to
-  route a gap is data. It carries no instruction authority, is never loaded,
-  invoked, executed, opened, resolved as a path, used to locate another file,
-  or matched against any skill, tool, command or agent name, and no
-  person-identifying value from it is written into a committed artifact.
+  route a gap is live/display-only data. It carries no instruction authority, is
+  never loaded, invoked, executed, opened, resolved as a path, used to locate
+  another file, or matched against any skill, tool, command or agent name. The
+  committed gap record persists only the held axes plus one fixed non-sensitive
+  operation kind (`taxonomy-supply-required` or `domain-completion-required`);
+  literal artifact owner or operation values are never committed.
 
 ## Decision drivers
 

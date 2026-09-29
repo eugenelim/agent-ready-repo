@@ -20,7 +20,7 @@ contract:
     - approve-journey
     - approve-aesthetic-direction
     - review-experience-designs
-whatChanges: "After installing experience-design, every design task runs a fixed thread: journey-mapping to anchor user outcomes, user-flow to derive the screen inventory, a craft sequence (creative-direction → design-system → information-architecture → interaction-design) to design each screen, and an independent experience-reviewer pass that reads design artifacts cold. information-architecture selects a genre method when the brief declares a surface genre. The quality floor — handle-all-states, WCAG 2.2 AA, reduced-motion — is non-negotiable at every step. You decide at three gates: the journey and screen list, the aesthetic direction, and the post-review pass before design feeds the build loop. experience-status orients to the thread at the start of any session."
+whatChanges: "After installing experience-design, every design task runs a thread: journey-mapping anchors user outcomes, user-flow derives the screen inventory, creative-direction sets the aesthetic constraint, design-system runs when its condition requires it — when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs — then information-architecture and interaction-design design each screen, and an independent experience-reviewer pass reads design artifacts cold. information-architecture selects a genre method when the brief declares a surface genre. The quality floor — handle-all-states, WCAG 2.2 AA, reduced-motion — is non-negotiable at every step. You decide at three gates: the journey and screen list, the aesthetic direction, and the post-review pass before design feeds the build loop. experience-status orients to the thread at the start of any session."
 skills:
   - name: journey-mapping
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
@@ -75,7 +75,7 @@ humanGates:
   - id: approve-aesthetic-direction
     globalGate: null
     label: "Approve the aesthetic direction"
-    trigger: "After creative-direction and optionally design-system complete"
+    trigger: "After creative-direction, and after design-system when its condition requires it"
     duration: "5–10 minutes"
     whatToCheck:
       - "Does the aesthetic direction name a specific visual character — not just 'clean and modern'?"
@@ -118,7 +118,7 @@ relatedJourneys:
 | `content-design` | Set surface intent — what this screen says and for whom, plus per-surface copy goals and the brand register in its other two modes | Required |
 | `user-flow` | Build the screen inventory with per-screen state briefs | Required |
 | `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
-| `design-system` | Resolve the system's relationships and values from the direction and the incumbent system | Optional |
+| `design-system` | Resolve the system's relationships and values from the direction and the incumbent system | Conditional |
 | `information-architecture` | Decide what goes where on each screen and how users stay oriented | Required |
 | `interaction-design` | Design states, feedback, and animation per screen | Required |
 | `experience-reviewer` | Independent cold review — forked context, read-only. A reviewer agent the design thread dispatches, described here rather than run like the skills above | Required |
@@ -217,6 +217,8 @@ Approve the journey and screen list? ›
 
 Type `creative-direction` to anchor the visual direction in persona, precedent, and platform conventions. Type `design-system` to resolve that direction into a buildable system.
 
+`design-system` is conditional: run it when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs.
+
 ```text
 creative-direction
 
@@ -283,3 +285,7 @@ configured to write to.
 A slot no artifact fills is not an error: the frontend pre-flight resolves that
 axis from a lower rung of its visual-authority precedence and records which rung
 supplied it.
+
+Exception: a resolved direction beside a named-skipped token taxonomy, with no
+incumbent system supplying the axis, holds and routes that axis upstream.
+Ordinary genuinely open axes may still resolve from lower rungs.

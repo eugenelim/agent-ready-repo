@@ -199,10 +199,10 @@ it here so a build does not reach for it. "none" is valid>
 
 ## Unresolved decisions
 
-<!-- Genuine gaps only: a domain no authority reached. Name what is missing and
-     who resolves it. A routine decision parked here is the failure this
-     document exists to prevent. -->
+<!-- Genuine gaps only: a domain no authority reached. Name what is missing,
+     who resolves it, and the operation that supplies it. A routine decision
+     parked here is the failure this document exists to prevent. -->
 
-| Domain | Authority that is missing | Who resolves it |
-|---|---|---|
-| <…> | <…> | <…> |
+| Domain | Authority that is missing | Who resolves it | Operation that supplies it |
+|---|---|---|---|
+| <…> | <…> | <…> | <…> |

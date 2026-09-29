@@ -1,10 +1,10 @@
 # Fallback token block
 
-Read this when no token taxonomy resolved from the adopter's design tree and
-the repository has no incumbent token system to extend. That is step 2's
-condition and the only one; it does not depend on which rung supplied
-composition. On any higher rung the values come
-from there, and seeding this block instead forks the product's visual identity.
+Read this only when no token taxonomy resolved from the adopter's design tree,
+the repository has no incumbent token system to extend, and no upstream gap
+holds the axis. That is step 2's condition and the only one; it does not depend
+on which rung supplied composition. On any higher rung the values come from
+there, and seeding this block instead forks the product's visual identity.
 
 The block is a starting point for a greenfield surface with no design authority
 of its own. It is not a house style, and nothing here outranks a taxonomy or an

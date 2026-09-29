@@ -25,8 +25,9 @@ from frontend_engineering_visual_authority_rules import (
     skill_body_lines,
 )
 
-# Encodes AC-0009. Raising it is a contract change, not a test fix.
-BODY_BUDGET = 960
+# Encodes design-to-build value handoff AC-0013. Raising it is a contract
+# change, not a test fix.
+BODY_BUDGET = 968
 
 
 def _step_two() -> str:
@@ -71,17 +72,17 @@ def test_the_preflight_routes_to_the_fallback_reference() -> None:
 
 
 def test_the_entrypoint_body_stays_within_budget() -> None:
-    """The budget encodes AC-0009 and sits at its ceiling.
+    """The budget encodes AC-0013 and sits at its ceiling.
 
     Two responses are admissible when this reds: pay for the addition with a
-    removal, or amend AC-0009. Raising the constant alone silently rewrites the
+    removal, or amend AC-0013. Raising the constant alone silently rewrites the
     contract in a suite whose purpose is that the ratchet cannot move quietly.
     """
     n = skill_body_lines()
     assert n <= BODY_BUDGET, (
         f"SKILL.md body is {n} lines against the {BODY_BUDGET}-line budget "
-        f"AC-0009 states. Either pay for the addition with a removal, or amend "
-        f"AC-0009 in docs/specs/frontend-visual-authority/spec.md — raising "
+        f"AC-0013 states. Either pay for the addition with a removal, or amend "
+        f"AC-0013 in docs/specs/design-to-build-value-handoff/spec.md — raising "
         f"BODY_BUDGET on its own changes the contract without saying so. "
         f"(The catalogue lint hard-errors separately at 1000.)"
     )

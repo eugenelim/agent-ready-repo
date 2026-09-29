@@ -31,12 +31,17 @@ order: 3
 | --- | --- | --- | --- |
 | `design-principles` | The journey's pains and peak moments | 3–5 named principles, each grounded in a journey moment. | Optional |
 | `creative-direction` | The target surface plus any product intent, Digital Experience Contract, screen brief, existing product, approved visual target, or direct answers. | A product-specific visual direction: engagement mode, ranked goals, visual thesis, first-viewport thesis, honest evidence and asset status, and any approved target boundaries. | Required |
-| `design-system` | The approved aesthetic direction, plus whatever system the product already has | A project-specific design system: the relationships that must hold and the values that make them buildable. | Optional |
+| `design-system` | The approved aesthetic direction, plus whatever system the product already has | A project-specific design system: the relationships that must hold and the values that make them buildable. | Conditional |
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In every path below, `<output_dir>` is the design output directory
 this pack is configured to write to, and `<slug>` is the short name you give
 this piece of work.
+
+Run `design-system` when a direction exists and neither a completed design system
+nor a coherent incumbent system supplies every concrete value the surface needs.
+It remains optional when an incumbent system that already covers the work is in
+place.
 
 <!-- rung: packs/experience-design/JOURNEY.md -->
 

@@ -137,6 +137,16 @@ def _flat(text: str) -> str:
     return re.sub(r"\s+", " ", text).lower()
 
 
+def _table_header(markdown: str, heading: str) -> list[str]:
+    """Return the first table header under a Markdown heading."""
+    section = markdown.split(f"\n## {heading}\n", 1)
+    assert len(section) == 2, f"missing ## {heading}"
+    for line in section[1].splitlines():
+        if line.strip().startswith("|"):
+            return [cell.strip() for cell in line.strip().strip("|").split("|")]
+    raise AssertionError(f"missing table under ## {heading}")
+
+
 def _skill_text() -> str:
     """Return all contract-bearing design-system prose."""
     parts = [
@@ -346,6 +356,24 @@ def test_the_artifact_records_authority_relationships_and_proving_set() -> None:
     assert "type: token-taxonomy" in template
 
 
+def test_unresolved_decisions_record_the_operation_that_supplies_them() -> None:
+    """AC-0015 pins the routing fields on the unresolved-decisions table."""
+    assert _table_header(_read(TEMPLATE), "Unresolved decisions") == [
+        "Domain",
+        "Authority that is missing",
+        "Who resolves it",
+        "Operation that supplies it",
+    ]
+
+
+def test_unresolved_is_not_silence_for_artifact_consumers() -> None:
+    """AC-0016 pins that consumers do not fill an explicitly unresolved domain."""
+    lowered = _flat(_read(SKILL))
+
+    assert "unresolved is not silence" in lowered
+    assert "consumer of the artifact resolves no value for it" in lowered
+
+
 def test_brownfield_changes_are_itemised() -> None:
     """AC-0012 pins the retained / extended / replaced record and its refusals."""
     contract = _skill_text()
@@ -448,9 +476,44 @@ def test_eval_corpus_covers_every_required_scenario() -> None:
     assert "unresolved" in corpus
     assert "measured" in corpus
 
-    positive = [q["query"].lower() for q in queries if q.get("should_trigger") is True]
-    negative = [q["query"].lower() for q in queries if q.get("should_trigger") is False]
+    positive = [
+        query.lower()
+        for q in queries
+        if q.get("should_trigger") is True and isinstance((query := q.get("query")), str)
+    ]
+    negative = [
+        query.lower()
+        for q in queries
+        if q.get("should_trigger") is False and isinstance((query := q.get("query")), str)
+    ]
     assert any("incumbent" in q for q in positive)
     assert any("concrete" in q or "resolve" in q for q in positive)
     assert any("component code" in q or "stylesheet" in q for q in negative)
     assert any("rank the aesthetic goals" in q or "emotional direction" in q for q in negative)
+
+
+def test_eval_corpus_records_operation_beside_each_unresolved_owner() -> None:
+    """AC-0026 pins the eval-side unresolved routing record."""
+    evals, _queries = _eval_payloads()
+    cases = evals.get("evals")
+    assert isinstance(cases, list)
+
+    matching_cases = [
+        json.dumps(case, sort_keys=True).lower()
+        for case in cases
+        if "operation that supplies it" in json.dumps(case, sort_keys=True).lower()
+    ]
+    assert matching_cases, (
+        "no design-system eval expects unresolved domains to record the "
+        "supplying operation beside the owner"
+    )
+
+    case_text = matching_cases[0]
+    for phrase in (
+        "unresolved",
+        "who resolves it",
+        "operation that supplies it",
+        "beside",
+        "consumer resolves no value",
+    ):
+        assert phrase in case_text

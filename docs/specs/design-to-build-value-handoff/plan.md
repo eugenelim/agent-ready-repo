@@ -1,7 +1,7 @@
 # Plan: design-to-build value handoff
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially,
@@ -204,7 +204,8 @@ record which route was taken — the two routes are not equivalent evidence.
 **Goal-based checks:**
 
 - AC-0008 — `! grep -qE 'experience-design|creative-direction|design-system'
-  references/visual-observation.md`. The bare `grep` form is wrong here: `grep`
+  packs/frontend-engineering/.apm/skills/frontend-engineering/references/visual-observation.md`.
+  The bare `grep` form is wrong here: `grep`
   exits 1 on no match, so the passing case would read as a failure. Also
   asserted by the existing `test_the_reference_names_no_upstream_producer`.
 - AC-0013 — the existing `test_the_entrypoint_body_stays_within_budget` with its
@@ -393,8 +394,8 @@ Covers AC-0035, AC-0036.
 
 **Tests:** goal-based — the version-pair comparison, the per-heading
 `### Highlights` check, the catalogue lint and verify,
-`tools/lint-experience-agnostic.py`, and `make build-self` leaving a clean tree
-on re-run.
+`tools/validate_guides.py`, `tools/lint-experience-agnostic.py`, and `make
+build-self` leaving a clean tree on re-run.
 
 **Approach:** minor-bump both packs, write both changelog entries with
 `### Highlights`, register the spec in `workspace.toml` under `["ini-003".work]`,
@@ -422,6 +423,11 @@ a revert.
 
 ## Changelog
 
+- 2026-09-29 — Plan approved (build strategy) by eugenelim.
+- 2026-09-29 — Spec approved (scope) by eugenelim.
+- 2026-09-29 — Round 5: 2 adversarial Blockers sustained. T7 now runs the
+  guide validator required by the spec's Testing Strategy, and AC-0008's
+  absence check names the repository-root frontend reference path.
 - 2026-09-29 — Round 2: 7 findings sustained across both reviewers, 1 refuted,
   and one conflict escalated to the owner. Two adjudications disagreed on
   whether the fallback condition needed a fourth conjunct; the refutation's
