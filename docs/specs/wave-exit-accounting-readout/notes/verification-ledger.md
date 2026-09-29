@@ -69,7 +69,7 @@ Restored by editing back; 2 passed.
 | Gate | Result |
 | --- | --- |
 | `make lint-ruff lint-mypy` | pass — "All checks passed!", "Success: no issues found in 149 source files" |
-| `test_wave_accounting_walk.py` | 17 passed. The generator emits 2,520 tuples over five axes, which reduce to **207 distinct `(state, index)` pairs**; 336 yield a present summary, 240 of them at a non-zero wave index. The tuple count is not a coverage figure and an earlier version of this row reported it as one. |
+| `test_wave_accounting_walk.py` | 17 passed. The generator emits 2,520 tuples over five axes; deduplicated these are **207 distinct `(state, index)` pairs**, of which **75 yield a present summary** and **50 of those sit at a non-zero wave index**. All three figures are distinct-pair counts. Two earlier versions of this row were wrong: the first reported the raw tuple count as coverage, the second mixed tuple counts (336, 240) into a distinct-pair sentence and so claimed more present summaries than there were distinct states. |
 | `test_loop_guards.py` | 163 passed |
 | `test_loop_cohort.py` | 238 passed |
 | `walk_verdict_partition.py` | unedited against `origin/main`; 35,728 states walked, 0 overlapping, 0 uncovered — identical to the baseline captured before any change |
