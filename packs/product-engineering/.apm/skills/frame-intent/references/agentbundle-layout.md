@@ -55,8 +55,21 @@ the SKILL.md body for the full procedure.
 
 Regardless of anchor, the skill resolves `output_dir` to its full absolute path
 (realpath-resolved, `~`-expanded, `..` rejected) and **surfaces that path before
-the first write**. A repo-root-sourced `output_dir` that resolves outside the repo
-tree is treated as untrusted-origin and confirmed before writing.
+the first write**. It then applies three distinct verdicts:
+
+- A destination whose resolution passed through a symlink leaving its anchoring
+  root is refused before writing.
+- A destination whose configured path carries a `..` segment is refused before
+  writing.
+- A repo-root-sourced absolute value that resolves outside the repository by the
+  absolute path alone, with no symlink escape and no `..` segment, is
+  untrusted-origin: the skill discloses the resolved absolute realpath and asks
+  the adopter to confirm before writing.
+
+Being outside the repository is not itself a reason to refuse. A personal-scope
+destination is legitimate when the resolved absolute realpath is disclosed first;
+the symlink and `..` refusals still apply within that destination's own anchoring
+root.
 
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml

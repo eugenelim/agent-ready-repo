@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [product-engineering][0.13.22] — 2026-09-29
+
+### Highlights
+
+- `frame-intent` now refuses a configured destination before writing when resolving it follows a symlink out of its anchoring root. An ordinary absolute destination outside the repository still asks first, and a personal-scope destination remains legitimate.
+
+### Changed
+
+- Split output-directory escapes into three explicit verdicts in both the `frame-intent` workflow and its layout reference: refuse symlink escapes, refuse paths containing `..`, and ask before using absolute-only paths that resolve outside the repository.
+
 ## [core][2.27.4] — 2026-09-29
 
 ### Highlights
