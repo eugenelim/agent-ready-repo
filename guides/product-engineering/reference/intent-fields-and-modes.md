@@ -109,6 +109,32 @@ These are sections, not preamble fields, and no tier above applies to them.
 | `Assumptions` | what must be true for the bet to pay off |
 | `Decomposition` | the children: lower-level intents, or a spec/slice at the leaf. When `Decomposed` ends in `direct-light`, each checkbox item here states its own requested outcome |
 
+## Tombstone files
+
+When an intent is renamed, the old filename is retired rather than deleted. A
+**tombstone file** is left at the vacated name so that the old ordinal is never
+reissued to a new intent.
+
+**Partition rule:** a file in `docs/product/intents/` is a tombstone if and only
+if its preamble carries a `Tombstone:` field. Every file in the directory is
+either a live intent or a tombstone; this single field is what decides which.
+
+A tombstone's preamble carries exactly three fields and no others:
+
+| Field | Value |
+| --- | --- |
+| `Slug` | The slug the retired file carried — unchanged from the original intent |
+| `Tombstone` | The retirement date, written as one ISO 8601 calendar date `YYYY-MM-DD` |
+| `Reissued as` or `Retired` | Exactly one of these two: `Reissued as` holds the repository-relative path to the renamed successor (under `docs/product/intents/`); `Retired` holds a single non-empty line describing why the intent was retired without a successor |
+
+Both pointer fields together, or neither, are refused.
+
+The tombstone file's **name** is the retired intent filename, unchanged — the
+same `<TYPE>-NNNN-<slug>.md` structure and `.md` extension. Changing the name in
+any way would break the ordinal reservation: a name outside the expected shape
+either fails every later admission in the directory, or frees the ordinal
+silently with no error. The correct name is the retired name, exactly as it was.
+
 ## Product-altitude fields (level-conditional)
 
 When `Level` is a product altitude, the `intent` template seeds an extra, **level-conditional** field block — filled only at that rung; an empty heading is a prompt, not an error. Both live in the single `intent-template.md`; there is no new per-rung template or schema.
