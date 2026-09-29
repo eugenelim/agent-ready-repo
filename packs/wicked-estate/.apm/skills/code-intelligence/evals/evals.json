@@ -1,0 +1,61 @@
+{
+  "skill_name": "code-intelligence",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "What breaks if I change parse_config? The blast radius returns 23 resolved dependents and reports unresolved: 4.",
+      "expected_output": "An impact answer that states the unresolved count as a completeness limit before or alongside the dependent list, describes the list as a floor rather than a total, ranks or narrows to the load-bearing dependents rather than pasting all 23, and grounds each claimed breakage in source rather than in the edge alone.",
+      "assertions": [
+        "States the unresolved count of 4 and explains that there may be dependents not shown",
+        "Does not describe the 23 dependents as a complete or total list",
+        "Narrows to the load-bearing dependents instead of returning the flat list",
+        "Says that each claimed breakage was or should be verified against source",
+        "Does not assign a risk rating, effort estimate, or release decision"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Wicked Estate is not installed in this environment. What is the blast radius of the Money type?",
+      "expected_output": "A refusal to produce a blast radius, with a clear statement that the index is unavailable, an offer of text-search-based candidate references explicitly labelled as a different kind of evidence, and the install or index remediation command. It must not present grep output under the name blast radius.",
+      "assertions": [
+        "States plainly that Wicked Estate is unavailable",
+        "Does not produce anything labelled a blast radius, lineage, provenance, or confidence score",
+        "If it offers a fallback, labels it as a text search that cannot report what it missed",
+        "Surfaces the install command rather than attempting a silent install"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Map how this codebase is organized. clusters returns 12 communities and rank puts EventBus::publish first.",
+      "expected_output": "An architecture answer that separates what the graph reported from the responder's reading of it, using distinct labelling for observed structure versus interpretation, and does not present an inference about system design as something the graph asserted.",
+      "assertions": [
+        "Separates observed structure from architectural interpretation with distinct labels",
+        "Attributes cluster counts and PageRank ordering to the tool output",
+        "Marks any claim about intent, coupling quality, or design as interpretation",
+        "Does not grade the architecture or recommend a re-architecture"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "dead-code lists LegacyAuthAdapter and its blast radius is zero. Can I delete it?",
+      "expected_output": "An answer that reports the graph findings accurately but refuses to conclude the symbol is unused, explaining that an edgeless symbol can still be reached by reflection, dynamic dispatch, or framework registration, and naming the check that would settle it.",
+      "assertions": [
+        "Reports that the graph shows no references",
+        "Explicitly distinguishes 'no edges in the graph' from 'unused'",
+        "Names at least one mechanism the index cannot see (reflection, dynamic dispatch, string lookup, or framework registration)",
+        "Does not declare the deletion safe on graph output alone"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "For our COBOL-to-services migration, which programs should go in wave one? CALCINT has 61 dependents and 14 unresolved call sites.",
+      "expected_output": "A workflow-neutral answer that supplies dependency weight, coupling, and completeness evidence, and declines to assign migration waves, phases, cutover order, or readiness — routing that decision back to the migration workflow.",
+      "assertions": [
+        "Reports dependency weight and the 14 unresolved call sites as raising true weight above 61",
+        "Does not assign a migration wave, phase, cutover order, or readiness verdict",
+        "States that sequencing belongs to the migration workflow rather than to this skill",
+        "Does not propose creating a MIGRATES_TO relationship or any migration state in the graph"
+      ]
+    }
+  ]
+}

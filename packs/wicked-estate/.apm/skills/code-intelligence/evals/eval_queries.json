@@ -1,0 +1,82 @@
+[
+  {
+    "query": "what breaks if I change the parse_config function",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "what calls OrderService in this repo",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "give me the blast radius of the Money type",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "I just joined this team, help me map how this codebase is organized",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "which symbols here are the load-bearing hotspots",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "where is the retry logic actually implemented",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "is LegacyAuthAdapter dead code or is something still using it",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "assemble the context I need to work on the checkout flow",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "trace the dependencies of the billing module",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "which COBOL programs carry the most downstream dependency weight",
+    "skill": "code-intelligence",
+    "should_trigger": true
+  },
+  {
+    "query": "add a currency field to Money and update all the call sites",
+    "skill": "code-intelligence",
+    "should_trigger": false
+  },
+  {
+    "query": "write a spec for the new checkout flow",
+    "skill": "code-intelligence",
+    "should_trigger": false
+  },
+  {
+    "query": "review this diff for correctness bugs",
+    "skill": "code-intelligence",
+    "should_trigger": false
+  },
+  {
+    "query": "what migration phase is the billing service in",
+    "skill": "code-intelligence",
+    "should_trigger": false
+  },
+  {
+    "query": "deploy the billing service to staging",
+    "skill": "code-intelligence",
+    "should_trigger": false
+  },
+  {
+    "query": "draw me a C4 container diagram of the proposed architecture",
+    "skill": "code-intelligence",
+    "should_trigger": false
+  }
+]

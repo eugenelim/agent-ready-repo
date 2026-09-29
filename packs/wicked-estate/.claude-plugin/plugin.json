@@ -1,0 +1,5 @@
+{
+  "name": "wicked-estate",
+  "version": "0.1.0",
+  "description": "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing \u2014 answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses."
+}
