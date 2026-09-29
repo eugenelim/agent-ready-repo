@@ -1,0 +1,230 @@
+{
+  "artifact_alias": "artifact-green",
+  "commands": [],
+  "executable_attachments": [],
+  "forbidden_subject_actions": [
+    "tools",
+    "web",
+    "delegation",
+    "repository inspection",
+    "messaging",
+    "code execution",
+    "shell commands",
+    "external files"
+  ],
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "non_secret": true,
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "acceptance_mapping": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "atom": {
+              "type": "string"
+            },
+            "evidence": {
+              "maxLength": 260,
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "satisfied",
+                "missed",
+                "unclear"
+              ]
+            }
+          },
+          "required": [
+            "atom",
+            "status",
+            "evidence"
+          ],
+          "type": "object"
+        },
+        "maxItems": 8,
+        "minItems": 4,
+        "type": "array"
+      },
+      "alias": {
+        "type": "string"
+      },
+      "decision_record": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "because": {
+              "maxLength": 360,
+              "type": "string"
+            },
+            "decision": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "risk": {
+              "maxLength": 260,
+              "type": "string"
+            }
+          },
+          "required": [
+            "decision",
+            "because",
+            "risk"
+          ],
+          "type": "object"
+        },
+        "maxItems": 6,
+        "minItems": 2,
+        "type": "array"
+      },
+      "proposed_change_manifest": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "change": {
+              "maxLength": 320,
+              "type": "string"
+            },
+            "reason": {
+              "maxLength": 320,
+              "type": "string"
+            },
+            "section": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          "required": [
+            "section",
+            "change",
+            "reason"
+          ],
+          "type": "object"
+        },
+        "maxItems": 6,
+        "minItems": 1,
+        "type": "array"
+      },
+      "protocol_deviations": {
+        "items": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "maxItems": 8,
+        "type": "array"
+      },
+      "self_audit": {
+        "additionalProperties": false,
+        "properties": {
+          "remaining_questions": {
+            "items": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "scope_drift_risk": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "semantic_drift_risk": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          }
+        },
+        "required": [
+          "semantic_drift_risk",
+          "scope_drift_risk",
+          "remaining_questions"
+        ],
+        "type": "object"
+      },
+      "task_summary": {
+        "maxLength": 900,
+        "type": "string"
+      }
+    },
+    "required": [
+      "alias",
+      "task_summary",
+      "decision_record",
+      "proposed_change_manifest",
+      "acceptance_mapping",
+      "self_audit",
+      "protocol_deviations"
+    ],
+    "type": "object"
+  },
+  "run_id": "run-0b",
+  "schema_version": 1,
+  "slot_id": "run-0b:010",
+  "study_id": "codex-collaboration-r1",
+  "synthetic": true,
+  "task_title": "Release-note scope triage",
+  "worker_alias": "calibration-recovery-subject-010",
+  "worker_visible_artifact": {
+    "construction_plan": {
+      "checks": [
+        "preserve each acceptance atom exactly once in the acceptance mapping",
+        "separate required facts from optional wording changes",
+        "call out any semantic or scope drift risk",
+        "return only the bounded JSON object matching the supplied schema"
+      ],
+      "narrative_notes": [],
+      "policy": "single artifact; amendments are not requested in Run 0",
+      "shape": "unified contract"
+    },
+    "description": "Artifact Packet Green contains one unified Contract document with outcome and checklist paragraphs in a single section.",
+    "draft_with_known_issues": [
+      "Draft wording implies sync is faster, although performance is not part of the update.",
+      "Draft wording omits that offline edits were already queued before this update."
+    ],
+    "outcome_contract": {
+      "acceptance_atoms": [
+        {
+          "id": "A1",
+          "text": "The release covers version 2.4.1 of Atlas Notes."
+        },
+        {
+          "id": "A2",
+          "text": "The update fixes a sync status label that could show stale text after reconnecting."
+        },
+        {
+          "id": "A3",
+          "text": "The update adds no new user-facing feature."
+        },
+        {
+          "id": "A4",
+          "text": "The note must mention that offline edits were already queued before this update."
+        },
+        {
+          "id": "A5",
+          "text": "The note must avoid promising faster sync performance."
+        },
+        {
+          "id": "A6",
+          "text": "The acceptance check is a reviewer confirming the four required facts and no extra promise."
+        }
+      ],
+      "prohibited_promises": [
+        "The note must avoid promising faster sync performance."
+      ],
+      "scenario": "A team must publish concise release notes for a maintenance update to a fictional package called Atlas Notes.",
+      "stable_outcome": "Produce a bounded change plan for release notes that keeps customer-visible promises stable while separating optional editorial improvements."
+    }
+  }
+}

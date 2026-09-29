@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "package_id": "pack-profiles",
+  "use": "main",
+  "complexity": "complex",
+  "provenance": "pre-build",
+  "baseline_commit": "9a2f554ae653efbe008daf3ca3522a37ba6aaede",
+  "reference_commit": "8e07cfaa572758430a1d97f52c23c19b208ade9f",
+  "worker_visible": {
+    "candidate_source": "git-free baseline snapshot, not produced because calibration stopped",
+    "acceptance_atoms": [
+      "catalogue-owned profiles are listed by the CLI",
+      "profile install dispatches ordered dependency batches",
+      "profile manifests enforce scope and dependency completeness"
+    ],
+    "permitted_paths": [
+      "profiles/**",
+      "packages/agentbundle/agentbundle/**",
+      "packages/agentbundle/tests/**",
+      "tools/lint-profiles.py",
+      "tools/test-lint-profiles.py"
+    ],
+    "prohibited_paths": [
+      "docs/product/research/plan-evolution-experiments/task-packages/**",
+      ".context/experiments/codex-collaboration-r1/**",
+      "docs/product/research/plan-evolution-experiments/codex-collaboration-evidence-index.json"
+    ],
+    "visible_regression_commands": [
+      "python3 -m pytest -p no:cacheprovider --import-mode=importlib -q packages/agentbundle/tests/unit/test_cli_profile_surface.py packages/agentbundle/tests/unit/test_dependencies_batch.py packages/agentbundle/tests/unit/test_profile_reader.py tools/test-lint-profiles.py"
+    ]
+  },
+  "controller_only_oracle_recipe": {
+    "recipe_id": "pack-list-profiles",
+    "status": "resolved-not-executed",
+    "semantic_check": "inject a hidden pytest asset that creates a temporary catalogue profile and asserts list-profiles emits it with scope, packs, and dependency order intact",
+    "seeded_mutation": "remove list-profiles/profile-reader dispatch in the grading clone and require the hidden assertion to fail",
+    "restore_check": "restore the reference file state and require the same hidden assertion to pass"
+  },
+  "calibration_status": "non-executed",
+  "stopped_reason": "AC-0007A subprocess confinement was unenforceable: sandbox-exec profile application exited 71 Operation not permitted, and current causal_runner validates policy labels only; filesystem, egress, and process-tree confinement are unobservable.",
+  "raw_retention": {
+    "secret_or_personal_bytes_retained": false,
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

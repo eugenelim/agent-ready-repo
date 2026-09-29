@@ -1,0 +1,106 @@
+{
+  "adaptive_reserve": {
+    "availability": "unavailable",
+    "released_contiguous_prefix": 0,
+    "released_item_ids": [],
+    "unavailable_study_ordinals": [
+      217,
+      240
+    ]
+  },
+  "analysis_inputs": {
+    "H1": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H10": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H12": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H13": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H2": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H3": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H4": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H5": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    },
+    "H8": {
+      "reason": "W1 gate did not release W2, so no core inferential slots were legal to reserve or launch before the W2 decision gate.",
+      "status": "unavailable"
+    }
+  },
+  "gate": "W2",
+  "gate_decision": "stopped-before-core",
+  "inputs": {
+    "design_digest": "sha256:2af2430cfffd3779fbfd734cd59ea161166a1b00d97b33a30a09f3324155f01f",
+    "t4_evidence_index_digest": "sha256:bbbd8de2c1a724dba403fe4bdb9ff6ecc89afc9f5c4ad97d475e1c608f6b9192",
+    "t4_results_digest": "sha256:fdc0bbfb50d73035e788c3e51cc416b88429d23ad67dd6e6160ab8a269b46750",
+    "w1_gate_memo_digest": "sha256:51600b2b17b090bd1101bbec25cfed5de8092f65ac3e7a2c4591936e73bb1eb7"
+  },
+  "no_inferential_success_claim": true,
+  "observed": {
+    "builder_self_audits_captured": 0,
+    "censoring_checks_available": false,
+    "futility_checks_available": false,
+    "harm_checks_available": false,
+    "legal_core_slots_completed": 0,
+    "predictive_resolution_checks_available": false,
+    "task_coverage_checks_available": false,
+    "token_checks_available": false,
+    "w1_gate_decision": "W2-unavailable",
+    "w2_core_slots_terminal": 0,
+    "w2_released_by_w1": false
+  },
+  "plan_task": "T5",
+  "process_accounting": {
+    "t5_inferential_processes_started": 0,
+    "t5_model_processes_started": 0,
+    "t5_ordinals_reserved": 0
+  },
+  "release_reserve": false,
+  "release_w3_fixed": false,
+  "reserve_item_ids": [],
+  "schema_version": 1,
+  "status": "complete",
+  "stop_reasons": [
+    "W1 gate left W2 unavailable",
+    "instrument calibration loss was above the W1 threshold",
+    "admitted task coverage was below the 12-task inference threshold"
+  ],
+  "w2_core": {
+    "inferential_processes_started_in_t5": 0,
+    "model_processes_started_in_t5": 0,
+    "ordinals_reserved_in_t5": 0,
+    "reservation_policy": "blocked-without-reservation",
+    "terminal_state": "unavailable",
+    "unavailable_study_ordinals": [
+      81,
+      160
+    ]
+  },
+  "w3_fixed": {
+    "availability": "unavailable",
+    "release_memo_digest": "not-issued",
+    "unavailable_study_ordinals": [
+      161,
+      216
+    ]
+  }
+}

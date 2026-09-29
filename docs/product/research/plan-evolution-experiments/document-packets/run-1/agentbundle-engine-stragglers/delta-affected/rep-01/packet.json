@@ -1,0 +1,233 @@
+{
+  "commands": [],
+  "executable_attachments": [],
+  "forbidden_subject_actions": [
+    "tools",
+    "web",
+    "delegation",
+    "repository inspection",
+    "messaging",
+    "code execution",
+    "shell commands",
+    "external files",
+    "editing the subject"
+  ],
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "non_secret": true,
+  "policy_aperture": {
+    "aperture": "Revision 1 is broad. Revisions 2 and 3 review changed material plus invariants affected by those changes.",
+    "changed_material_rule": "After revision 1, cite changed material status for each finding.",
+    "review_opportunities": [
+      1,
+      2,
+      3
+    ]
+  },
+  "policy_id": "delta-affected",
+  "policy_label": "broad first, then delta plus affected-invariant review",
+  "replication": 1,
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "alias": {
+        "type": "string"
+      },
+      "artifact_version_reviewed": {
+        "type": "string"
+      },
+      "changed_material_assessment": {
+        "maxLength": 500,
+        "type": "string"
+      },
+      "findings": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "affected_acceptance_atom_ids": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 1,
+              "type": "array"
+            },
+            "category": {
+              "enum": [
+                "missing-required-fact",
+                "incorrect-fact",
+                "scope-drift",
+                "unbounded-claim",
+                "contradiction",
+                "clarity",
+                "other"
+              ]
+            },
+            "changed_material_status": {
+              "enum": [
+                "unchanged-existing",
+                "new-or-changed",
+                "affected-invariant",
+                "not-applicable"
+              ]
+            },
+            "confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "finding_id": {
+              "maxLength": 40,
+              "type": "string"
+            },
+            "fingerprint": {
+              "maxLength": 120,
+              "type": "string"
+            },
+            "quote_or_location": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "rationale": {
+              "maxLength": 360,
+              "type": "string"
+            },
+            "severity": {
+              "enum": [
+                "critical",
+                "major",
+                "minor",
+                "note"
+              ]
+            }
+          },
+          "required": [
+            "finding_id",
+            "severity",
+            "category",
+            "quote_or_location",
+            "rationale",
+            "affected_acceptance_atom_ids",
+            "changed_material_status",
+            "confidence",
+            "fingerprint"
+          ],
+          "type": "object"
+        },
+        "maxItems": 10,
+        "type": "array"
+      },
+      "no_edit_confirmation": {
+        "const": true
+      },
+      "protocol_deviations": {
+        "items": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "maxItems": 8,
+        "type": "array"
+      },
+      "review_aperture": {
+        "maxLength": 220,
+        "type": "string"
+      }
+    },
+    "required": [
+      "alias",
+      "review_aperture",
+      "artifact_version_reviewed",
+      "findings",
+      "changed_material_assessment",
+      "no_edit_confirmation",
+      "protocol_deviations"
+    ],
+    "type": "object"
+  },
+  "review_subject": {
+    "acceptance_atoms": [
+      {
+        "id": "A1",
+        "text": "Catalogue init next steps must be structured and bounded."
+      },
+      {
+        "id": "A2",
+        "text": "List-targets help must cover package and adapter routes."
+      },
+      {
+        "id": "A3",
+        "text": "Release-impact checks must classify changed surfaces without silent drops."
+      },
+      {
+        "id": "A4",
+        "text": "Manifest parsing must remain strict for generated catalogue state."
+      }
+    ],
+    "document_title": "AgentBundle engine straggler note",
+    "revisions": [
+      {
+        "artifact_id": "agentbundle-engine-stragglers-r1",
+        "delta_from_previous": {
+          "added_lines": [
+            "AgentBundle engine straggler note - revision 1",
+            "",
+            "Audience: repository maintainers reviewing a proposed documentation change.",
+            "Catalogue init returns bounded structured next steps. List-targets help covers package and adapter routes, and release-impact checks classify each declared changed surface. Generated manifest parsing ignores unknown fields so older state remains usable."
+          ],
+          "basis": "initial-artifact",
+          "removed_lines": []
+        },
+        "document_text": "AgentBundle engine straggler note - revision 1\n\nAudience: repository maintainers reviewing a proposed documentation change.\nCatalogue init returns bounded structured next steps. List-targets help covers package and adapter routes, and release-impact checks classify each declared changed surface. Generated manifest parsing ignores unknown fields so older state remains usable.",
+        "revision": 1
+      },
+      {
+        "artifact_id": "agentbundle-engine-stragglers-r2",
+        "delta_from_previous": {
+          "added_lines": [
+            "AgentBundle engine straggler note - revision 2",
+            "Catalogue init keeps its structured next steps and list-targets help covers both routing forms. Release-impact checks now name unclassified surfaces, but generated manifest parsing still skips unknown state. Passing the parser proves every generated catalogue is compatible."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "AgentBundle engine straggler note - revision 1",
+            "Catalogue init returns bounded structured next steps. List-targets help covers package and adapter routes, and release-impact checks classify each declared changed surface. Generated manifest parsing ignores unknown fields so older state remains usable."
+          ]
+        },
+        "document_text": "AgentBundle engine straggler note - revision 2\n\nAudience: repository maintainers reviewing a proposed documentation change.\nCatalogue init keeps its structured next steps and list-targets help covers both routing forms. Release-impact checks now name unclassified surfaces, but generated manifest parsing still skips unknown state. Passing the parser proves every generated catalogue is compatible.",
+        "revision": 2
+      },
+      {
+        "artifact_id": "agentbundle-engine-stragglers-r3",
+        "delta_from_previous": {
+          "added_lines": [
+            "AgentBundle engine straggler note - revision 3",
+            "Catalogue init, list-targets help, and release-impact classification are all documented as bounded outputs. The final generated-manifest parser continues after unknown state instead of rejecting it. The note calls this safe for every future manifest version."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "AgentBundle engine straggler note - revision 2",
+            "Catalogue init keeps its structured next steps and list-targets help covers both routing forms. Release-impact checks now name unclassified surfaces, but generated manifest parsing still skips unknown state. Passing the parser proves every generated catalogue is compatible."
+          ]
+        },
+        "document_text": "AgentBundle engine straggler note - revision 3\n\nAudience: repository maintainers reviewing a proposed documentation change.\nCatalogue init, list-targets help, and release-impact classification are all documented as bounded outputs. The final generated-manifest parser continues after unknown state instead of rejecting it. The note calls this safe for every future manifest version.",
+        "revision": 3
+      }
+    ]
+  },
+  "run_id": "run-1",
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "synthetic": true,
+  "task_complexity": "complex",
+  "task_id": "agentbundle-engine-stragglers",
+  "task_provenance": "reconstructed",
+  "trajectory_id": "run-1:agentbundle-engine-stragglers:p-delta-affected:rep-1",
+  "worker_alias_prefix": "run1-reviewer-06-delta-affected"
+}

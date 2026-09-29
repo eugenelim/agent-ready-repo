@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "package_id": "agentbundle-engine-stragglers",
+  "use": "main",
+  "complexity": "complex",
+  "provenance": "reconstructed",
+  "baseline_commit": "8c3494be9b12327ecffb64b6d6e7772ec028df4c",
+  "reference_commit": "de230418863662ebbe46fb2f5acfed49cebdb890",
+  "worker_visible": {
+    "candidate_source": "git-free baseline snapshot, not produced because calibration stopped",
+    "acceptance_atoms": [
+      "catalogue init next steps are structured and bounded",
+      "list-targets help covers package and adapter routes",
+      "release-impact checks classify changed surfaces without silent drops",
+      "manifest parsing remains strict for generated catalogue state"
+    ],
+    "permitted_paths": [
+      "packages/agentbundle/agentbundle/**",
+      "packages/agentbundle/tests/unit/test_catalogue_wave3_init_nextsteps.py",
+      "packages/agentbundle/tests/unit/test_cli_list_targets_help.py",
+      "tools/check_release_impact.py",
+      "tools/test_check_release_impact.py"
+    ],
+    "prohibited_paths": [
+      "docs/product/research/plan-evolution-experiments/task-packages/**",
+      ".context/experiments/codex-collaboration-r1/**",
+      "docs/product/research/plan-evolution-experiments/codex-collaboration-evidence-index.json"
+    ],
+    "visible_regression_commands": [
+      "python3 -m pytest -p no:cacheprovider --import-mode=importlib -q packages/agentbundle/tests/unit/test_catalogue_wave3_init_nextsteps.py packages/agentbundle/tests/unit/test_cli_list_targets_help.py tools/test_check_release_impact.py"
+    ]
+  },
+  "controller_only_oracle_recipe": {
+    "recipe_id": "agentbundle-engine-four-assertion-overlay",
+    "status": "resolved-not-executed",
+    "semantic_check": "inject a hidden pytest overlay with four assertions covering next-step structure, list-targets help, release-impact classification, and manifest strictness",
+    "seeded_mutation": "break one assertion target in the grading clone and require the overlay to fail at assertion level",
+    "restore_check": "restore the reference file state and require the same overlay to pass"
+  },
+  "calibration_status": "non-executed",
+  "stopped_reason": "AC-0007A subprocess confinement was unenforceable: sandbox-exec profile application exited 71 Operation not permitted, and current causal_runner validates policy labels only; filesystem, egress, and process-tree confinement are unobservable.",
+  "raw_retention": {
+    "secret_or_personal_bytes_retained": false,
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "analysis_inputs": {
+    "H6": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "H7": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "H9": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    }
+  },
+  "gate": "review-allocation",
+  "inputs": {
+    "design_digest": "sha256:2af2430cfffd3779fbfd734cd59ea161166a1b00d97b33a30a09f3324155f01f",
+    "t5_evidence_index_digest": "sha256:050e62a43161a0d0d995f434b230deec60927d4c07d3004bf40afb2e18b56322",
+    "t5_results_digest": "sha256:b05b369dc434ed97a4b3c8747cf0bccea4809ce73ebfb4f0d4f7ee23cf218b4f",
+    "w2_gate_memo_digest": "sha256:f75c419d6382b8cb91b1df5dccd033b65d11403301041dd95b4cdea0ded3bfe6"
+  },
+  "no_review_performance_claim": true,
+  "observed": {
+    "builder_self_audits_available": 0,
+    "duplicate_findings": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "eligible_subjects": 0,
+    "indeterminate_findings": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "refuted_findings": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "reserve_available": false,
+    "review_ordinals_reserved": 0,
+    "review_processes_started": 0,
+    "review_terminal_slots": 0,
+    "reviewer_churn_items": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "reviewer_churn_tokens": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "unique_sustained_findings": {
+      "reason": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+      "status": "unavailable"
+    },
+    "w2_gate_decision": "stopped-before-core",
+    "w3_fixed_available": false
+  },
+  "plan_task": "T6",
+  "process_accounting": {
+    "t6_model_processes_started": 0,
+    "t6_ordinals_reserved": 0,
+    "t6_review_processes_started": 0
+  },
+  "review_allocation": {
+    "availability": "unavailable",
+    "capacity_processes": 36,
+    "release_flag": false,
+    "reservation_policy": "blocked-without-reservation"
+  },
+  "review_decision": "unavailable-before-subject-selection",
+  "schema_version": 1,
+  "status": "complete",
+  "stop_reasons": [
+    "T5 stopped before legal core builder outputs existed",
+    "no blinded review subjects were eligible",
+    "no builder self-audits were available for H7 comparison"
+  ],
+  "unavailable_inputs": {
+    "churn": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+    "findings": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+    "reviews": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+    "self_audits": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment.",
+    "subjects": "T5 stopped before any legal core builder output, so no unchanged blinded subject or builder self-audit existed for review assignment."
+  }
+}

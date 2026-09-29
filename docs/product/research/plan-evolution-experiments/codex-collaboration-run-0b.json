@@ -1,0 +1,413 @@
+{
+  "accounting": {
+    "actual_dispatch_byte_equal": 8,
+    "alias_pass": 8,
+    "atom_coverage_pass": 8,
+    "privacy_screen_pass": 8,
+    "protocol_deviation_pass": 8,
+    "schema_pass": 8,
+    "starts": 8,
+    "static_grade_pass": 8,
+    "terminals": 8
+  },
+  "evidence_class": "non-inferential",
+  "gate_result": "pass",
+  "inferential_release_flags": {
+    "holdout": false,
+    "run_0b": false,
+    "run_1": false,
+    "run_6": false,
+    "run_7": false,
+    "runs_2_5": false
+  },
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "later_document_collection": "eligible-to-open",
+  "limitations": {
+    "candidate_build_claim": "unavailable",
+    "controller_message_payload_equality": "observed",
+    "hidden_system_prompt_equality": "unobservable and not claimed",
+    "secure_confinement": "unavailable",
+    "served_model_identity": "unavailable",
+    "shared_filesystem": true,
+    "token_usage": "unavailable",
+    "tool_use": "controller-unobservable; subjects reported no deviations",
+    "wall_clock": "unavailable"
+  },
+  "no_second_recovery": true,
+  "preserved_run_0a": {
+    "report": "docs/product/research/plan-evolution-experiments/codex-collaboration-run-0-report.md",
+    "status": "failed-closed-and-unchanged"
+  },
+  "requested_model": "gpt-5.6-luna",
+  "run_id": "run-0b",
+  "schema_version": 1,
+  "slots": [
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot011",
+      "alias_pass": true,
+      "artifact_alias": "artifact-amber",
+      "atom_coverage": {
+        "counts": {
+          "A1": 1,
+          "A2": 1,
+          "A3": 1,
+          "A4": 1,
+          "A5": 1,
+          "A6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-alpha",
+      "launch_position": 1,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:9efa4719a62eb01eaf24bc6e9e7d93a8e1140c1b0c491ad82731d0911b4b1255",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 3,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:011",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "no_new_feature": true,
+          "offline_already_queued": true,
+          "reject_faster_sync": true,
+          "stale_reconnect_label": true,
+          "version": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 11,
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-011"
+    },
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot009",
+      "alias_pass": true,
+      "artifact_alias": "artifact-blue",
+      "atom_coverage": {
+        "counts": {
+          "A1": 1,
+          "A2": 1,
+          "A3": 1,
+          "A4": 1,
+          "A5": 1,
+          "A6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-alpha",
+      "launch_position": 2,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:df17af4d1ba65973f5a3c7517028f58a84924c1c4ccc948cada73d754e3399b3",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 1,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:009",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "no_new_feature": true,
+          "offline_already_queued": true,
+          "reject_faster_sync": true,
+          "stale_reconnect_label": true,
+          "version": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 9,
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-009"
+    },
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot010",
+      "alias_pass": true,
+      "artifact_alias": "artifact-green",
+      "atom_coverage": {
+        "counts": {
+          "A1": 1,
+          "A2": 1,
+          "A3": 1,
+          "A4": 1,
+          "A5": 1,
+          "A6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-alpha",
+      "launch_position": 3,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:b2c8bead692be25e9900212a0c09ad2bf2f28c4167d308743d472a44650720d7",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 2,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:010",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "no_new_feature": true,
+          "offline_already_queued": true,
+          "reject_faster_sync": true,
+          "stale_reconnect_label": true,
+          "version": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 10,
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-010"
+    },
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot016",
+      "alias_pass": true,
+      "artifact_alias": "artifact-slate",
+      "atom_coverage": {
+        "counts": {
+          "B1": 1,
+          "B2": 1,
+          "B3": 1,
+          "B4": 1,
+          "B5": 1,
+          "B6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-beta",
+      "launch_position": 4,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:46dc61442adaf1e39a6f957a0f77e781357765615d3c9ea5371776ab3dc37c46",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 8,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:016",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "final_sale_ineligible": true,
+          "post_eligibility_options": true,
+          "reject_same_day": true,
+          "thirty_day_window": true,
+          "unreadable_receipt_escalation": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 16,
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-016"
+    },
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot013",
+      "alias_pass": true,
+      "artifact_alias": "artifact-blue",
+      "atom_coverage": {
+        "counts": {
+          "B1": 1,
+          "B2": 1,
+          "B3": 1,
+          "B4": 1,
+          "B5": 1,
+          "B6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-beta",
+      "launch_position": 5,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:f94ad5ba8ca30af1744ff35b7ac9712b1cb2961bdd2fa5af03967c7184b150aa",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 5,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:013",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "final_sale_ineligible": true,
+          "post_eligibility_options": true,
+          "reject_same_day": true,
+          "thirty_day_window": true,
+          "unreadable_receipt_escalation": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 13,
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-013"
+    },
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot012",
+      "alias_pass": true,
+      "artifact_alias": "artifact-slate",
+      "atom_coverage": {
+        "counts": {
+          "A1": 1,
+          "A2": 1,
+          "A3": 1,
+          "A4": 1,
+          "A5": 1,
+          "A6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-alpha",
+      "launch_position": 6,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:b9b29506322425026b285b63106abcd46e8af4082e4cfebd0b4b65a552225d70",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 4,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:012",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "no_new_feature": true,
+          "offline_already_queued": true,
+          "reject_faster_sync": true,
+          "stale_reconnect_label": true,
+          "version": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 12,
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-012"
+    },
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot015",
+      "alias_pass": true,
+      "artifact_alias": "artifact-amber",
+      "atom_coverage": {
+        "counts": {
+          "B1": 1,
+          "B2": 1,
+          "B3": 1,
+          "B4": 1,
+          "B5": 1,
+          "B6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-beta",
+      "launch_position": 7,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:b9654c1142e226696e3974ac7e820ed008cb1d4933ed1a8c9cd48a14335afd00",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 7,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:015",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "final_sale_ineligible": true,
+          "post_eligibility_options": true,
+          "reject_same_day": true,
+          "thirty_day_window": true,
+          "unreadable_receipt_escalation": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 15,
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-015"
+    },
+    {
+      "actual_dispatch_byte_equal": true,
+      "agent_identifier": "/root/run0b_slot014",
+      "alias_pass": true,
+      "artifact_alias": "artifact-green",
+      "atom_coverage": {
+        "counts": {
+          "B1": 1,
+          "B2": 1,
+          "B3": 1,
+          "B4": 1,
+          "B5": 1,
+          "B6": 1
+        },
+        "foreign_atoms": [],
+        "pass": true
+      },
+      "canonical_task_id": "doc-task-beta",
+      "launch_position": 8,
+      "privacy_screen_pass": true,
+      "protocol_deviation_pass": true,
+      "report_digest": "sha256:deb012311b14cec2bda9b096dad735ecba29d1d837b63dc04351610b270f0779",
+      "requested_model": "gpt-5.6-luna",
+      "resolved_model_identity": "unavailable",
+      "run_ordinal": 6,
+      "schema_errors": [],
+      "schema_pass": true,
+      "slot_gate_pass": true,
+      "slot_id": "run-0b:014",
+      "starts": 1,
+      "static_grade": {
+        "checks": {
+          "final_sale_ineligible": true,
+          "post_eligibility_options": true,
+          "reject_same_day": true,
+          "thirty_day_window": true,
+          "unreadable_receipt_escalation": true
+        },
+        "pass": true
+      },
+      "study_ordinal": 14,
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "worker_alias": "calibration-recovery-subject-014"
+    }
+  ],
+  "study_id": "codex-collaboration-r1"
+}

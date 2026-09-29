@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "package_id": "work-loop-argless-resume",
+  "use": "holdout",
+  "complexity": "medium",
+  "provenance": "pre-build",
+  "baseline_commit": "065304285566875ad412d6b1a4525eebc837ba9a",
+  "reference_commit": "d667e5fba45a2e111fe650e1ea869f02a113ba96",
+  "worker_visible": {
+    "candidate_source": "git-free baseline snapshot, not produced because calibration stopped",
+    "acceptance_atoms": [
+      "argless resume requests activate the work-loop when exactly one active spec exists",
+      "argless resume requests ask for a choice when multiple active specs exist",
+      "argless resume requests explain no active spec when none exists"
+    ],
+    "permitted_paths": [
+      ".agents/skills/work-loop/SKILL.md",
+      ".claude/skills/work-loop/SKILL.md",
+      "packs/core/.apm/skills/work-loop/SKILL.md",
+      "workspace.toml"
+    ],
+    "prohibited_paths": [
+      "docs/product/research/plan-evolution-experiments/task-packages/**",
+      ".context/experiments/codex-collaboration-r1/**",
+      "docs/product/research/plan-evolution-experiments/codex-collaboration-evidence-index.json"
+    ],
+    "visible_regression_commands": [
+      "structural work-loop-argless-resume predicates"
+    ]
+  },
+  "controller_only_oracle_recipe": {
+    "recipe_id": "work-loop-argless-predicates",
+    "status": "resolved-not-executed",
+    "semantic_check": "inject a hidden structural predicate asset that checks resume phrasing, exactly-one active spec activation, no-active explanation, multiple-active choice, and absence of first-path fallback",
+    "seeded_mutation": "reintroduce first-path fallback or remove an argless resume branch in the grading clone and require the predicate asset to fail",
+    "restore_check": "restore the reference file state and require the same predicate asset to pass"
+  },
+  "calibration_status": "non-executed",
+  "stopped_reason": "AC-0007A subprocess confinement was unenforceable: sandbox-exec profile application exited 71 Operation not permitted, and current causal_runner validates policy labels only; filesystem, egress, and process-tree confinement are unobservable.",
+  "raw_retention": {
+    "secret_or_personal_bytes_retained": false,
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

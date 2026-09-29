@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.0",
+  "study_id": "codex-headless-via-claude-run7-r1",
+  "status": "complete",
+  "integration_status": "integrated-independent-summary",
+  "provider": "codex-headless-via-claude",
+  "claim_class": "bounded non-inferential requested-routing case study",
+  "requested_model": "gpt-5.6-luna",
+  "requested_reasoning_effort": "medium",
+  "served_model_identity": "unavailable-not-independently-observed",
+  "answer": {
+    "leading_policy": "closure-review",
+    "policy_sequence": [
+      "broad review",
+      "repair 1",
+      "repair 2",
+      "cold full closure review"
+    ],
+    "supported_claim": "On this sparse, high-quality document corpus, closure review matched full replay on every graded end-state defect count while reducing review starts, tokens, worker time, raw prose, and churn prose.",
+    "unsupported_claim": "The study does not establish defect-detection or repair-quality noninferiority because final recall was defined for only 3 of 12 matched subjects and no repair changed the graded defect set.",
+    "next_test": "Use seeded repairable defects on the requested Sol route before checking policy sensitivity on Sonnet and Opus."
+  },
+  "design": {
+    "tasks": 6,
+    "selected_subjects": 12,
+    "trajectories": 36,
+    "policies": {
+      "full-replay": "broad review, repair, full review, repair, full review",
+      "focused-rereview": "broad review, repair, changed-field review, repair, changed-field review",
+      "closure-review": "broad review, repair, repair, cold full closure review"
+    },
+    "unit_of_generalization": "task",
+    "source": "12 byte-identical selected responses from the earlier cold controlled-evolving construction corpus"
+  },
+  "primary_closure_minus_full": {
+    "residual_severe_defects": {
+      "closure_sum": 3,
+      "full_sum": 3,
+      "mean_paired_difference": 0.0,
+      "task_cluster_interval": [0.0, 0.0]
+    },
+    "residual_total_defects": {
+      "closure_sum": 5,
+      "full_sum": 5,
+      "mean_paired_difference": 0.0,
+      "task_cluster_interval": [0.0, 0.0]
+    },
+    "review_starts": {
+      "closure_sum": 24,
+      "full_sum": 36,
+      "absolute_change": -12,
+      "percent_change": -33.3333,
+      "mean_paired_difference": -1.0,
+      "task_cluster_interval": [-1.0, -1.0],
+      "tasks_favouring_closure": 6
+    },
+    "total_tokens": {
+      "closure_sum": 1220901,
+      "full_sum": 1516928,
+      "absolute_change": -295027,
+      "percent_change": -19.4498,
+      "mean_paired_difference": -24668.9167,
+      "task_cluster_interval": [-25074.4167, -24171.3333],
+      "tasks_favouring_closure": 6
+    },
+    "summed_worker_seconds": {
+      "closure_sum": 1260.893,
+      "full_sum": 1505.132,
+      "absolute_change": -244.239,
+      "percent_change": -16.2271,
+      "mean_paired_difference": -20.3532,
+      "task_cluster_interval": [-26.6614, -12.9682],
+      "tasks_favouring_closure": 6
+    },
+    "raw_review_words": {
+      "closure_sum": 1597,
+      "full_sum": 2363,
+      "absolute_change": -766,
+      "percent_change": -32.4164,
+      "mean_paired_difference": -63.8333,
+      "task_cluster_interval": [-105.3333, -25.0833],
+      "tasks_favouring_closure": 5
+    },
+    "churn_words": {
+      "closure_sum": 440,
+      "full_sum": 1023,
+      "absolute_change": -583,
+      "percent_change": -56.9892,
+      "mean_paired_difference": -48.5833,
+      "task_cluster_interval": [-66.1667, -35.5],
+      "tasks_favouring_closure": 6
+    }
+  },
+  "focused_rereview": {
+    "residual_severe_defects": 3,
+    "residual_total_defects": 5,
+    "review_starts": 36,
+    "total_tokens": 1503197,
+    "summed_worker_seconds": 1305.857,
+    "raw_review_words": 1908,
+    "churn_words": 403,
+    "interpretation": "Lowest churn total, but no review-start saving; closure used 282296 fewer tokens."
+  },
+  "detection_and_repair_limits": {
+    "known_registry_defects": 5,
+    "subjects_with_defined_final_recall": 3,
+    "subjects_without_defined_final_recall": 9,
+    "closure_final_recall": 0.0,
+    "full_final_recall": 0.0,
+    "noninferiority_margin": "-0.05 recall retention",
+    "noninferiority_claimed": false,
+    "why_not_claimed": "Only 3 of 12 matched subjects carried a defined final recall value.",
+    "repair_benefit_defects_removed_all_policies": 0,
+    "repair_benefit_severity_reduction_all_policies": 0,
+    "repair_origin_defects_all_policies": 0,
+    "repair_responses": 72,
+    "repairs_declared_no_op": 53,
+    "repairs_document_unchanged": 51
+  },
+  "finding_dispositions": {
+    "total": 103,
+    "sustained": 8,
+    "mechanically_refuted": 94,
+    "duplicate": 1,
+    "adjudicated": 9,
+    "warning": "Mechanical refutation means no modeled registry defect at that element; it does not establish that the reviewer was wrong."
+  },
+  "accounting": {
+    "calibration": {
+      "reservations": 6,
+      "observed_model_starts": 6,
+      "terminals": 6,
+      "gate_passed": true,
+      "input_tokens": 130780,
+      "output_tokens": 628,
+      "summed_worker_seconds": 48.911
+    },
+    "main": {
+      "review_reservations": 96,
+      "repair_reservations": 72,
+      "adjudication_reservations": 3,
+      "cli_process_starts": 171,
+      "observed_model_starts": 171,
+      "terminals": 171,
+      "tool_events": 0,
+      "schema_failures": 0,
+      "process_failures": 0,
+      "timeouts": 0,
+      "quarantines": 0,
+      "exclusions": 0,
+      "post_model_start_repairs_or_retries": 0,
+      "summed_worker_seconds": 4113.042
+    }
+  },
+  "integrity": {
+    "handoff_json": {
+      "path": ".context/codex-headless-run7-result.json",
+      "sha256": "d3f915bde1a8ba7c293ec7ff4d36a78d11dbd06472347344da6afa3d82d85d58"
+    },
+    "handoff_report": {
+      "path": ".context/codex-headless-run7-result.md",
+      "sha256": "bb7b827a71e4f5e02f586ec2312d50e425f1ac4f2ef4eb20401b97803cd30120"
+    },
+    "verified_source_artifacts": {
+      "accounting": "d2010fca5723172a6b443654dda0a1a4d8393a23b356fbe63469e5eb6e7a72af",
+      "aliases": "c061599ef8d605331662cab359dac011b08af63c7d0c3a9416c010a7c4fb8009",
+      "calibration_gate": "43994c1b8085c0c763dee56ac5458898e55472353862002f285b552bd2fd0b65",
+      "copy_equality_proofs": "93312395596dfc0187b033a918e4f568e9e9178fe5e796bac315a1c41fad68bb",
+      "design_freeze": "3e8c61bc4e8a97e761e0877cb4e30d9775dabb5e267e6a70899a88ed08a6b63d",
+      "eligible_subjects": "0afd9660dfe7b14a7299889281559e2130ad4be96483a39f7af33c68c0836351",
+      "hidden_registry": "700dd4638cacb697e9d2491bac4fb030bca6a98935ae140bc97fcf49f5cc9f6c",
+      "launch_order": "99988100e9bbc4e509704bea37637a71c71d94ae2c8164e8bcbac27aa774db1a",
+      "measures": "4b047daafcf8de1a143dd32cdc9cc2cac029281cfeba4940b5a11d056a8e6270",
+      "selection_rule": "3934939fbff1c4b8db4e966b3d8170b59c3493807e9884e08a0bbb3dc6e0dd9a",
+      "trajectory_state": "46a0106b19dde7d3e7e9250bc220ae289350208d26cef4383a3ec0fe49120346",
+      "worker_visible": "0367617fb6e0aceda70b3cdf9be99392be0f1d7f0e2508a1e8783ce2b6f26a39"
+    },
+    "copy_equality": "36 of 36",
+    "lineage_reconciliation": "36 of 36"
+  },
+  "amendments": [
+    {
+      "what": "Open the minimum adjudication batches allowed by the frozen capacity rather than all 12 available batches.",
+      "timing": "Before the first adjudication batch",
+      "mechanically_derived": true,
+      "affects_study_measure": false,
+      "used_batches": 3,
+      "unused_capacity": 9
+    }
+  ],
+  "incidents": [
+    {
+      "kind": "repair-envelope-alias-echo",
+      "ordinal": 36,
+      "effect_on_measures": "none",
+      "terminal_and_not_repaired": true
+    }
+  ],
+  "limitations": [
+    "Only five known defects existed across the 12 subjects, in three subjects and two tasks.",
+    "No repair changed the graded defect set, so repair-quality contrasts are uninformative.",
+    "Mechanical registry refutation is not proof that a reviewer finding was wrong.",
+    "Six task clusters support corpus descriptions, not population inference.",
+    "Lexical grading detects wording, not reasoning quality.",
+    "Served model identity was unavailable.",
+    "Requested read-only execution and zero observed tool events are not proof of confinement.",
+    "Summed worker time is not controller wall-clock time.",
+    "The study concerns documents, not implementation or build performance."
+  ]
+}
