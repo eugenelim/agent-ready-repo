@@ -824,6 +824,76 @@ def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
     assert result == "source-unregistered"
 
 
+@pytest.mark.parametrize(
+    ("shape", "registry_toml"),
+    [
+        ("array of tables", '[[decoy]]\npath = "{p}"\n'),
+        ("inline array of dicts", '[decoy]\nitems = [ {{ path = "{p}" }} ]\n'),
+        ("nested two deep", '[a.b]\nitems = [ {{ path = "{p}" }} ]\n'),
+        ("collection name under the wrong parent", '[notes]\nopen = [ {{ path = "{p}" }} ]\n'),
+        ("initiative collection outside an initiative", '[other]\nshaping_queue = [ {{ path = "{p}" }} ]\n'),
+    ],
+)
+def test_decoy_arrays_outside_a_registry_collection_are_not_counted(
+    tmp_path: Path, shape: str, registry_toml: str
+) -> None:
+    """A path inside any array outside a declared collection is unregistered.
+
+    Position inside *some* array is not registration. Each shape here puts a
+    matching ``path`` in an array the register does not own, and an earlier
+    revision counted every one of them because it asked only whether a dict
+    sat in a list. Registration is decided by the whole key path, so these
+    stay unregistered however entry-shaped they look.
+    """
+    _setup_standard(tmp_path, registered=False)
+    (tmp_path / "workspace.toml").write_text(
+        registry_toml.format(p=_SOURCE_REL), encoding="utf-8"
+    )
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=tmp_path
+    )
+    assert result == "source-unregistered", f"{shape} was counted as a registration"
+
+
+@pytest.mark.parametrize(
+    "registry_toml",
+    [
+        '[ini-010.work]\nqueue = [ {{ path = "{p}" }} ]\n',
+        '[ini-010.work]\nactive = [ {{ path = "{p}" }} ]\n',
+        '[ini-010.work]\nshipped = [ {{ path = "{p}" }} ]\n',
+        '[ini-010.shaping_queue]\nbacklog = [ {{ path = "{p}" }} ]\n',
+        '[ini-010.shaping_queue]\nactive = [ {{ path = "{p}" }} ]\n',
+        '[backlog]\nopen = [ {{ path = "{p}" }} ]\n',
+    ],
+)
+def test_every_declared_registry_collection_registers(
+    tmp_path: Path, registry_toml: str
+) -> None:
+    """Each collection the register actually uses counts as a registration.
+
+    The companion decoy test constrains position; this one keeps that
+    constraint from being drawn too tightly. An earlier revision admitted
+    only the work collections and silently stopped counting the seventeen
+    intents registered under an initiative's shaping backlog.
+
+    Needs a committed working tree: the dirty check proves each guarded path
+    is tracked and unchanged, so a bare directory refuses before the
+    registration result is reachable.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _setup_standard(repo, registered=False)
+    (repo / "workspace.toml").write_text(
+        registry_toml.format(p=_SOURCE_REL), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=repo
+    )
+    assert not isinstance(result, str), f"expected a resolved request, got {result!r}"
+
+
 # ── C2: root-discovery failures refuse before reading ─────────────────────────
 
 

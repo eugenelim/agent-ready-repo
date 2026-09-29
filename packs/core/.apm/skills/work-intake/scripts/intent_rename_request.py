@@ -236,45 +236,53 @@ def _is_dirty(repository_root: Path, source_rel: str) -> bool:
 def _count_registry_matches(data: object, target_path: str) -> int:
     """Count workspace entries whose ``path`` field equals ``target_path``.
 
-    An entry is a dict that appears as a **direct element of an array**.
-    Dicts that appear as values of other dicts are container nodes: they are
-    traversed to reach collection arrays but are never counted themselves.
+    Registration is decided by **where** a path sits in the register, not by
+    whether some table happens to carry a ``path`` key. Only two locations
+    hold registrations: an initiative's work collections, and the shared
+    backlog. A dict counts only when it is a direct element of one of those
+    arrays.
 
-    This position rule is what separates a registered entry from every other
-    dict that may carry a ``path`` key — top-level initiative tables, inline
-    ``source`` sub-tables, and bare ``[decoy]`` sections all carry dict
-    values, not array elements, and are therefore ignored. Only the entry
-    arrays under the known collection keys (``open``, ``queue``, ``active``,
-    ``shipped``, and their siblings) reach the entry-candidate branch.
+    Position alone is not enough. Any array element anywhere would admit a
+    decoy — an unrelated array of tables, or an ``open`` list under some
+    other section — so the key path is matched as a whole rather than by its
+    last segment.
 
-    Nested arrays inside an entry (``needs``, and any future sub-lists) are
-    also excluded: entry dicts are never recursed into, so their children
-    never reach the array branch.
+    Nested structure inside an entry is never reached: an entry is compared
+    and not traversed, so its ``needs`` edges and inline ``source`` table
+    cannot contribute a second count for the same path.
 
-    Complexity: O(n) in the number of nodes in the TOML document, with at
-    most one dict-values traversal per container node.
+    Complexity: O(n) in the number of nodes reachable from the two matched
+    collection shapes, which is a small fraction of the document.
     """
+    initiative_collections = {
+        "work": ("queue", "active", "shipped"),
+        "shaping_queue": ("active", "backlog"),
+    }
+
+    def _is_registry_collection(key_path: tuple[str, ...]) -> bool:
+        """True for an initiative collection, or the shared backlog."""
+        if len(key_path) == 3 and key_path[0].startswith("ini-"):
+            return key_path[2] in initiative_collections.get(key_path[1], ())
+        return len(key_path) == 2 and key_path == ("backlog", "open")
+
     count = 0
-    # Stack entries: ``(node, is_array_element)``.
-    # ``is_array_element=True``  → entry candidate; check path, do not recurse.
-    # ``is_array_element=False`` → container dict or raw array; traverse.
-    work: list[tuple[object, bool]] = [(data, False)]
+    work: list[tuple[object, tuple[str, ...]]] = [(data, ())]
     while work:
-        node, is_entry_candidate = work.pop()
-        if isinstance(node, dict):
-            if is_entry_candidate:
-                # Array element: compare path and stop — never recurse further.
-                p = node.get("path")
-                if isinstance(p, str) and p == target_path:
-                    count += 1
-            else:
-                # Container node: traverse all values to reach collection arrays.
-                for val in node.values():
-                    work.append((val, False))
-        elif isinstance(node, list):
-            # Every element of any array is an entry candidate.
-            for item in node:
-                work.append((item, True))
+        node, key_path = work.pop()
+        if not isinstance(node, dict):
+            continue
+        for key, value in node.items():
+            if not isinstance(key, str):
+                continue
+            child_path = key_path + (key,)
+            if isinstance(value, list) and _is_registry_collection(child_path):
+                for item in value:
+                    if isinstance(item, dict):
+                        entry_path = item.get("path")
+                        if isinstance(entry_path, str) and entry_path == target_path:
+                            count += 1
+            elif isinstance(value, dict):
+                work.append((value, child_path))
     return count
 
 
