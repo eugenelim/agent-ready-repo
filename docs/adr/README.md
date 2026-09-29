@@ -130,3 +130,4 @@
 | 0126 | [Integration packs carry standalone value, and coupling lives in named bridge skills](0126-integration-packs-standalone-value-and-bridge-skills.md) | Accepted | 2026-09-24 |
 | 0127 | [What projects into a delivery system: a range from the tree's top down to a floor](0127-managed-unit-floor-and-projected-range.md) | Accepted | 2026-09-23 |
 | 0128 | [Project token values are resolved by routes inside `design-system`, not by a second skill](0128-design-system-one-skill-resolves-project-values.md) | Accepted | 2026-09-27 |
+| 0129 | [The design-to-build handoff is conditional, and implementation never fills an upstream gap](0129-design-to-build-handoff-is-conditional-and-gap-routed.md) | Accepted | 2026-09-28 |
