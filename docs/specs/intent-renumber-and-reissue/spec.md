@@ -1,6 +1,6 @@
 # Spec: Intent renumber, reissue, and the tombstone
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098; ADR-0129
@@ -145,7 +145,7 @@ holds. The operation that applies a rename is
 
 ## Acceptance Criteria
 
-- [ ] **AC-0021.** A rename request carries exactly two things: the
+- [x] **AC-0021.** A rename request carries exactly two things: the
       repository-relative path of an existing live intent inside
       `docs/product/intents/`, and the target token from the allocator's
       `NAMESPACE_TOKENS`. A request missing or failing either is refused,
@@ -153,32 +153,32 @@ holds. The operation that applies a rename is
       request: a duplicate ordinal and an altitude change produce the same
       operation, and a declared cause the contract does not constrain would
       change nothing an implementation must do.
-- [ ] **AC-0020.** The operation refuses before its first write when any path
+- [x] **AC-0020.** The operation refuses before its first write when any path
       it would touch carries an uncommitted change, so the recovery that the
       transaction slice
       (`docs/specs/intent-rename-transaction/spec.md`) relies on cannot
       discard unrelated work.
-- [ ] **AC-0004.** For every token the allocator recognizes — its
+- [x] **AC-0004.** For every token the allocator recognizes — its
       `NAMESPACE_TOKENS`, derived from the closed level-to-token table the
       parent intent owns — its next ordinal exceeds every ordinal that token
       carries in `docs/product/intents/`, counting tombstones alongside live
       intents.
-- [ ] **AC-0005.** A tombstone carries exactly three fields: `Slug:`, unchanged from the
+- [x] **AC-0005.** A tombstone carries exactly three fields: `Slug:`, unchanged from the
       retired artifact; `Tombstone:`, the retirement date; and exactly one of
       `Reissued as:` or `Retired:`.
-- [ ] **AC-0006.** A file in `docs/product/intents/` is a tombstone if and only
+- [x] **AC-0006.** A file in `docs/product/intents/` is a tombstone if and only
       if its preamble carries a `Tombstone:` field. This is the partition rule;
       that every file in the directory is routed by it and validated against one
       of the two contracts is `intent-metadata-shape-contract`'s corpus-lint routing criterion, whose
       gate owns the check.
-- [ ] **AC-0015.** `Tombstone:` carries one ISO 8601 date: the UTC calendar
+- [x] **AC-0015.** `Tombstone:` carries one ISO 8601 date: the UTC calendar
       date at the rename's start. An operation spanning midnight therefore
       writes that date and not the one it finished on.
-- [ ] **AC-0016.** `Reissued as:` carries a repository-relative path under
+- [x] **AC-0016.** `Reissued as:` carries a repository-relative path under
       `docs/product/intents/`; an absolute path, or one resolving outside that
       directory, is refused.
-- [ ] **AC-0017.** `Retired:` carries a single non-empty line.
-- [ ] **AC-0027.** An Accepted ADR records the tombstone convention, and this
+- [x] **AC-0017.** `Retired:` carries a single non-empty line.
+- [x] **AC-0027.** An Accepted ADR records the tombstone convention, and this
       spec cites it in `Constrained by:`. Without it, applying ADR-0108 D3's
       non-reuse rule to intent filenames rests on no decision; this is a
       governing constraint the contract needs, not a document the delivery

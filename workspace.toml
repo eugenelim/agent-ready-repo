@@ -2389,17 +2389,6 @@ backlog = [
 queue   = [
 ]
 active  = [
-  # Slice 8 of `intent-identity-and-registration`. Moved here from `queue` on
-  # 2026-09-28 when the spec went `Implementing`: `queue` admits an Approved
-  # spec only, so membership and status move together or the canonical
-  # reconciliation raises `impossible_transition`. Approved after the
-  # spec-mode adversarial review that new-spec step 7 requires, then amended
-  # under the pre-EXECUTE review -- six adversarial rounds and four security
-  # rounds, twelve findings sustained, converged clean. `needs` is empty:
-  # AC-0027's ADR is this spec's own task T4, and the operator surface that
-  # rests on it moved to `intent-rename-transaction`, so the ordering is
-  # internal to the plan rather than a blocking edge on another item.
-  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
@@ -2418,6 +2407,16 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 8 of `intent-identity-and-registration`. Delivered 2026-09-29 and
+  # moved from `active` to `shipped` in the change that set the spec
+  # `Shipped` and the plan `Done`; membership and status move together or the
+  # canonical reconciliation raises `impossible_transition`. Ships the rename
+  # request contract, the tombstone shape and the allocator property; the
+  # operation that composes them is `intent-rename-transaction`, which this
+  # unblocks. Two residuals are carried in `[backlog].open`:
+  # `intent-rename-h1-title-false-refusal` and
+  # `contract-amendment-prepare-strands-the-run`.
+  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
   # Slice 2 of `intent-lifecycle-and-closure`, delivered 2026-09-27 and moved
   # from `queue` to `shipped` in the same change that set the spec `Shipped`
   # and the plan `Done`. Membership and status move together: leaving a

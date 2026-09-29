@@ -1,6 +1,6 @@
 # Plan: Intent renumber, reissue, and the tombstone
 
-- **Status:** Approved
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Approach
