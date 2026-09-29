@@ -140,18 +140,22 @@ def _check_date(value: str) -> str | None:
 
 
 def _check_reissued_path(path: str) -> str | None:
-    """Return ``"invalid-path"`` if path is absolute or resolves outside intents.
+    """Return ``"invalid-path"`` unless path is repository-relative under intents.
 
-    The check is purely lexical: the path is normalised via ``os.path.normpath``
-    rather than resolved on the filesystem, so no filesystem access is needed.
-    An absolute path is caught before normalisation; a relative path that
-    traverses up and out of the intents directory is caught after.
+    The value is repository-relative, so it is normalised as given rather than
+    joined onto the intents prefix: joining would read a caller's
+    ``docs/other/a.md`` as a name *inside* the intents directory and accept it,
+    and would let ``docs/product/intents/../../x.md`` normalise back under the
+    prefix it had already escaped.
+
+    The check is purely lexical -- ``os.path.normpath`` rather than filesystem
+    resolution -- because the successor named here need not exist yet. A
+    backslash is rejected before normalisation, which treats it as an ordinary
+    character on POSIX while Windows would read it as a separator.
     """
-    if Path(path).is_absolute():
+    if Path(path).is_absolute() or "\\" in path:
         return "invalid-path"
-    # Join with the intents prefix and normalise away any ``..`` segments.
-    normalised = os.path.normpath(str(Path(_INTENTS_PREFIX) / path))
-    # Accept only paths that remain inside the intents directory.
+    normalised = os.path.normpath(path)
     if normalised != _INTENTS_PREFIX and not normalised.startswith(
         _INTENTS_PREFIX + "/"
     ):

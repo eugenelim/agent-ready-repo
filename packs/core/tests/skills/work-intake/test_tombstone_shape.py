@@ -155,6 +155,51 @@ def test_outside_intents_reissued_as_refuses() -> None:
     assert isinstance(result, str), f"expected refusal token, got {result!r}"
 
 
+def test_sibling_directory_reissued_as_refuses() -> None:
+    """A repository-relative path in another directory is refused.
+
+    The value is repository-relative, so this names a real path outside the
+    intents directory. Validating it as a name *inside* that directory accepts
+    it and writes a tombstone pointing out of the corpus.
+    """
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as="docs/other/a.md"
+    )
+    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+
+
+def test_reissued_as_traversing_out_after_prefix_refuses() -> None:
+    """A successor path that climbs out after the prefix is refused.
+
+    ``docs/product/intents/../../x.md`` normalises to ``docs/x.md``. Joining it
+    onto the prefix instead re-enters the directory it had escaped.
+    """
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as=f"{_INTENTS_PREFIX}/../../x.md"
+    )
+    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+
+
+def test_bare_filename_reissued_as_refuses() -> None:
+    """A bare filename is not a repository-relative path under intents."""
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as="FEAT-0002-renamed.md"
+    )
+    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+
+
+def test_backslash_reissued_as_refuses() -> None:
+    """A backslash separator is refused before normalisation.
+
+    POSIX normalisation treats it as an ordinary character, so a path Windows
+    would read as escaping the directory would otherwise pass.
+    """
+    result = tombstone.serialize_tombstone(
+        _SLUG, _DATE_A, reissued_as=f"{_INTENTS_PREFIX}\\..\\..\\x.md"
+    )
+    assert isinstance(result, str), f"expected refusal token, got {result!r}"
+
+
 def test_empty_retired_refuses() -> None:
     """An empty retirement note is refused."""
     result = tombstone.serialize_tombstone(_SLUG, _DATE_A, retired="")
