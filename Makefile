@@ -394,20 +394,18 @@ sast-unleased:
 	# input fails closed if the optional dependency declaration changes.
 	python3 tools/audit-requirements.py --optional-group lint \
 		packages/agentbundle/pyproject.toml
-	# One temporary suppression: semgrep 1.174 through 1.178 requires
-	# pyjwt[crypto]~=2.13.0, which excludes the patched PyJWT 2.14.0 release.
-	# CVE-2026-102274 is a malformed-JWK-set availability failure; this gate runs
-	# Semgrep locally against repository files and does not consume untrusted
-	# JWK sets. Remove the suppression when a Semgrep release accepts PyJWT 2.14
-	# or newer. This leg previously carried four mcp/click suppressions until
-	# Semgrep 1.174 shipped fixed versions; the same unblock rule retired them.
+	# Semgrep 1.178.0 requires pyjwt~=2.13.0, excluding the 2.14.0 release that
+	# fixes CVE-2026-102274. The advisory is a conditional availability failure
+	# while parsing a malformed JWK set; this CI-only static-analysis invocation
+	# receives source paths and no JWK set. Remove the one suppression as soon as
+	# a Semgrep release permits PyJWT>=2.14.0.
 	# Note what this command does and does not see: pip-audit RESOLVES the
 	# requirements file, so it always audits the newest version the range allows
 	# and would read clean even at the old `semgrep>=1.166` floor. It says
 	# nothing about the semgrep actually installed on this machine — that is what
 	# requirements-sast.txt's floor is for, and why the floor moved with this
 	# change rather than being left behind.
-	@echo "pip-audit -r tools/requirements-sast.txt (Semgrep PyJWT transitive CVE allowlist applied)"
+	@echo "pip-audit -r tools/requirements-sast.txt (Semgrep PyJWT transitive-dependency exception applied)"
 	@pip-audit -r tools/requirements-sast.txt \
 		--ignore-vuln CVE-2026-102274
 	# Both shipped packages declare dependencies=[]; their optional extras are

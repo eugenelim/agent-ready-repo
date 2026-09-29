@@ -8,6 +8,7 @@
   {"query": "We have a strategy doc — frame the capability intent from it", "should_trigger": true},
   {"query": "Write a PRD-style intent for self-serve signup", "should_trigger": true},
   {"query": "What outcome and opportunity are we chasing with the new dashboard?", "should_trigger": true},
+  {"query": "Shape a generic feature intent with output_dir configured through a repository symlink that leaves the repo", "should_trigger": true},
 
   {"query": "Test whether this bet holds before we build it", "should_trigger": false},
   {"query": "What's the riskiest assumption in this intent?", "should_trigger": false},

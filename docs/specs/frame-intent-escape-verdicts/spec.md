@@ -1,6 +1,6 @@
 # Spec: three escape forms, three verdicts
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Mode:** full
 - **Plan:** [`plan.md`](plan.md)
@@ -9,7 +9,7 @@
 
 ## Objective
 
-`frame-intent` gives three different answers to three different out-of-root cases, where its body currently gives one. `SKILL.md:239-243` calls any repo-sourced value resolving outside the tree untrusted-origin and confirms before writing. A symlink leaving the anchoring root and a `..` segment are not that case: the first is a security control and the second is already rejected by ADR-0030 D6.
+`frame-intent` now gives three different answers to three different out-of-root cases. Before this slice, its body gave one answer: any repo-sourced value resolving outside the tree was untrusted-origin and confirmed before writing. The corrected contract is in `SKILL.md:280-304`. A symlink leaving the anchoring root and a `..` segment are not the Ask-first case: the first is a security control and the second is already rejected by ADR-0030 D6.
 
 The split is three-way, and each arm is decided by a record rather than a preference.
 
@@ -34,13 +34,13 @@ Out of scope: the resolution order and whether a pack default precedes elicitati
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The body instructs refusal, before any write, of a destination whose resolution passes through a symlink leaving its anchoring root — the repository root at repository scope, the configured directory at personal scope.
-- [ ] **AC-0002.** The body instructs refusal of a destination whose path carries a `..` segment, per ADR-0030 D6, rather than routing it to confirmation.
-- [ ] **AC-0003.** The body instructs Ask-first for a repository-scope destination that resolves outside the repository root by an absolute value alone — no `..`, no symlink — with the resolved absolute realpath disclosed first, and cites ADR-0030 D7 as the record that permits it.
-- [ ] **AC-0004.** The body instructs that being outside the repository is not itself grounds for refusal: a personal-scope destination is legitimate, with disclosure of the resolved absolute realpath as its control. This does not lift AC-0001 or AC-0002, which apply within that scope's own anchoring root.
-- [ ] **AC-0005.** The body distinguishes all three arms, so no single verdict — blanket refusal or blanket confirmation — satisfies it.
-- [ ] **AC-0006.** `references/agentbundle-layout.md` expresses the same three-way distinction, or replaces its own verdict with a pointer to the body that owns it, so a stale reference cannot contradict a corrected body.
-- [ ] **AC-0007.** One recorded consumer invocation shows the symlink arm refusing, with the observed output and a tree state showing no file created.
+- [x] **AC-0001.** The body instructs refusal, before any write, of a destination whose resolution passes through a symlink leaving its anchoring root — the repository root at repository scope, the configured directory at personal scope.
+- [x] **AC-0002.** The body instructs refusal of a destination whose path carries a `..` segment, per ADR-0030 D6, rather than routing it to confirmation.
+- [x] **AC-0003.** The body instructs Ask-first for a repository-scope destination that resolves outside the repository root by an absolute value alone — no `..`, no symlink — with the resolved absolute realpath disclosed first. ADR-0030 D7 is the governing record; shipped pack prose states the portable rule directly without citing internal governance.
+- [x] **AC-0004.** The body instructs that being outside the repository is not itself grounds for refusal: a personal-scope destination is legitimate, with disclosure of the resolved absolute realpath as its control. This does not lift AC-0001 or AC-0002, which apply within that scope's own anchoring root.
+- [x] **AC-0005.** The body distinguishes all three arms, so no single verdict — blanket refusal or blanket confirmation — satisfies it.
+- [x] **AC-0006.** `references/agentbundle-layout.md` expresses the same three-way distinction, or replaces its own verdict with a pointer to the body that owns it, so a stale reference cannot contradict a corrected body.
+- [x] **AC-0007.** One recorded consumer invocation shows the symlink arm refusing, with the observed output and a tree state showing no file created.
 
 ## Assumptions
 

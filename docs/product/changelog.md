@@ -104,6 +104,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
+## [product-engineering][0.13.22] — 2026-09-29
+
+### Highlights
+
+- `frame-intent` now refuses a configured destination before writing when resolving it follows a symlink out of its anchoring root. An ordinary absolute destination outside the repository still asks first, and a personal-scope destination remains legitimate.
+
+### Changed
+
+- Split output-directory escapes into three explicit verdicts in both the `frame-intent` workflow and its layout reference: refuse symlink escapes, refuse paths containing `..`, and ask before using absolute-only paths that resolve outside the repository.
+
 ## [core][2.27.3] — 2026-09-28
 
 ### Highlights

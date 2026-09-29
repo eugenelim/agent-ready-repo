@@ -954,7 +954,11 @@ MAKE_BASELINE_DIGESTS = {
     # recomputed from `2b1574e19~1` and matched exactly — so this supersedes a
     # live pin, not a stale one, and the move is confined to the one line that
     # commit deliberately added.
-    "sast-unleased": "9b2decb9e6baf12f75074c508590272b3052fa0a367a437bab290c2bca6e3dff",
+    # Bumped 2026-09-29 for the one-advisory PyJWT exception forced by
+    # Semgrep's pyjwt~=2.13.0 dependency. The Makefile records the bounded
+    # exposure and removes the exception once Semgrep permits PyJWT>=2.14.0;
+    # the other seven extracted surfaces reproduced byte-identically in CI.
+    "sast-unleased": "332e0a2dec9aac3f91c31a6400a2040c419621b1e9b2e046918898ba81616aa7",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
     "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
     # Bumped 2026-09-13 for the httpsconnection-detected exclusion. Verified
