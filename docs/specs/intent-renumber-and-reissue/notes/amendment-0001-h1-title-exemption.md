@@ -1,6 +1,6 @@
 # Amendment 0001 — exempt the H1 title from the damaged-marker scan
 
-- **Status:** Authorized
+- **Status:** Authorized, attempted, blocked — carried as a follow-on
 - **Date:** 2026-09-28
 - **Scope owner:** eugenelim
 - **Target:** `plan.md` § Design (LLD) → Behavior & rules, the liveness rule
@@ -73,3 +73,43 @@ The finding is F4 of the adjudicated post-gates adversarial review, retained
 with the two other lenses' adjudications under
 `.context/reviews/63804b99-bb0f-4f30-8405-0345af393fa0/`. That directory is
 ignored, so this record — not the report — is the durable reference.
+
+## Outcome: authorized, attempted, and blocked by a tool defect
+
+The amendment was authorized and attempted on 2026-09-29. It could not be
+executed, and the reason is a defect in the transition rather than anything
+about this change.
+
+`loop-engine transition <spec-dir> contract-amendment` prepares its cohort
+effect before the mutation validates. The first call omitted
+`--completed-evidence-ref` bindings, because `state.json` reported
+`completed_task_ids: []` and no bindings appeared owed; the mutation then
+refused for missing bindings on T1, T2 and T3, and the prepare marker was
+already written. Supplying the bindings changes the canonical args, so prepare
+refuses with `pending transition conflicts with this sequence`
+(`loop-cohort.py:1341-1346`). Re-issuing the original arguments matches the
+stored identity, passes prepare, and fails the same mutation again. Both
+outcomes were reproduced.
+
+The marker is cleared only by `approve-plan`, which refuses while the spec
+reads `Implementing`, and `completed_task_evidence` has no writer outside this
+transition's own arguments. Every route into the amendment cycle is therefore
+closed, and the recovery available today is the destructive reset pair, which
+would discard the approved hashes, the schedule, the dispatch receipts and the
+review counters for a latent false refusal that no corpus file triggers.
+
+The scope owner chose to ship without the amendment and carry both items.
+`workspace.toml [backlog].open` now holds
+`intent-rename-h1-title-false-refusal` for the rule, and
+`contract-amendment-prepare-strands-the-run` for the transition defect, which
+will strand the next mid-EXECUTE amendment in this repository regardless of
+this slice.
+
+Nothing about the defect's analysis above changes. If the rule is amended
+later, this record is the authority and reasoning to amend it with.
+
+The two neighbouring cases that were implementation drift — a `Slug` value or
+an annotation bullet whose text contains the word — were repaired under the
+ordinary findings-remain path and are covered by
+`test_slug_value_containing_tombstone_passes` and
+`test_annotation_bullet_mentioning_tombstone_passes`.

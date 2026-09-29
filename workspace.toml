@@ -602,6 +602,28 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The rename validator refuses a live intent whose H1 title contains the
+  # word "tombstone": the approved liveness rule refuses any unparsed preamble
+  # line bearing the token, and a title never parses as a field. A false
+  # refusal, fail-closed and loud, and no file in `docs/product/intents/`
+  # triggers it today (measured across all 157 on 2026-09-28). The scope owner
+  # authorized amending the approved rule to exempt the title; the amendment
+  # could not be executed -- see the sibling entry -- so it is carried here.
+  # `docs/specs/intent-renumber-and-reissue/notes/amendment-0001-h1-title-exemption.md`
+  # holds the authority, the reasoning and the residual risk.
+  { slug = "intent-rename-h1-title-false-refusal", source = "spec/intent-renumber-and-reissue (post-gates adversarial review, adjudicated F4)" },
+  # `loop-engine transition <spec> contract-amendment` can strand a run. The
+  # cohort prepare writes `pending_transition` before the mutation validates,
+  # so a mutation that refuses -- for example on a missing
+  # `--completed-evidence-ref` binding -- leaves the marker behind. Re-issuing
+  # with the bindings changes the canonical args and prepare then refuses with
+  # `pending transition conflicts with this sequence`; re-issuing the original
+  # args matches identity and fails the same mutation again. The marker is
+  # cleared only by `approve-plan`, which refuses while the spec is
+  # `Implementing`, and `completed_task_evidence` has no independent writer, so
+  # every route is closed. Reproduced twice on 2026-09-29 at
+  # `loop-cohort.py:1341-1346`. Recovery today is the destructive reset pair.
+  { slug = "contract-amendment-prepare-strands-the-run", source = "spec/intent-renumber-and-reissue (blocked amendment, 2026-09-29)" },
   # The product-documentation authoring workflow assumes ARR pack surfaces,
   # while teams also need to document applications, libraries, CLIs, and
   # services. Shape a surface-discovery contract and non-pack evaluation set
