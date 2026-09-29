@@ -176,3 +176,44 @@ needs a bind mount the spike could not create without elevation. It is moot for
 this design, because after the 2026-09-28 decision Commit never renames across
 directories. Nor does it bound Windows behaviour, where the reparse-point
 semantics of D and F differ and were not exercised.
+
+## 2026-09-28 — the allocator property, re-run rather than re-measured
+
+What AC-0004 rests on, and where that evidence lives. The six candidate
+tombstone filenames were measured on 2026-09-21 and recorded in
+`docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md` under
+`## 2026-09-21 — what the tombstone decision inherits from this slice`. This
+slice cites that table and does not re-measure it: two of the six keep the
+`<TYPE>-NNNN-<slug>.md` shape and allocate correctly, three refuse the whole
+directory, and one — a `tombstone-` prefix that leaves the namespace — silently
+frees the ordinal. The last is the shape to avoid, because the refusing three
+fail visibly and it does not.
+
+The inherited control is
+`test_tombstone_filename_shapes_pin_allocation_and_check` in
+`packs/core/tests/skills/work-intake/test_intent_ordinal.py`, committed
+87768ba4d. Re-run on 2026-09-28: 6 passed in 0.94s. This slice adds no
+coverage there.
+
+What was verified separately, because the inherited test pins filename *shapes*
+rather than the property itself: the allocator's next ordinal exceeds every
+ordinal its token carries in `docs/product/intents/`, over the corpus as it
+stands.
+
+| Token | Ordinals present | Highest | Next allocated |
+| --- | --- | --- | --- |
+| `CAP` | 7 | 7 | 8 |
+| `FEAT` | 14 | 14 | 15 |
+| `STRAT` | 4 | 4 | 5 |
+| `VISION` | 1 | 1 | 2 |
+
+And the tombstone arm, which is the half the property exists for: a tombstone
+placed above the current maximum keeps its ordinal out of circulation. A
+tombstone at `CAP-0012` moved the next allocation from 8 to 13; one at
+`FEAT-0019` moved it from 15 to 20. Measured on a temporary copy of the corpus,
+never the real directory, because other sessions share this worktree.
+
+What it bounds: the guarantee holds over the directory as it stands, with
+tombstones counted alongside live intents. What it does not bound: a tombstone
+deleted by hand frees its ordinal again, and nothing here detects that — the
+residual `## Assumptions` already records.
