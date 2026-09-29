@@ -917,11 +917,34 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `e1190720a9…` and `4de3f063de…` still in place
 # returns an empty error list, so this supersedes live values rather than a pin
 # that had already gone stale.
+# Bumped 2026-09-29 for the `wicked-estate` pack, which appends two
+# `run-test-suite` lines so `lint-pack-test-boundary`'s
+# `every-suite-dir-has-a-runner` accepts its two new suites.
+# (1) Sole cause: `git diff origin/main -- Makefile` is three added lines and
+# none removed or reordered — `$(PYTHON) -m pytest
+# packs/wicked-estate/tests/pack/ -q` and `$(PYTHON) -m pytest
+# packs/wicked-estate/tests/skills/code-intelligence/ -q`, plus a two-line
+# comment recording why the second skips on a hosted runner. A comment takes no
+# plan index, so the two pytest lines are the whole movement: each is a new
+# process rather than a lengthened batch line, so both take an index and shift
+# every entry after them, which is why both whole digests move. They land at
+# plan indices 52 and 53 in each plan (standalone 71 -> 73, composed 70 -> 72),
+# and deleting exactly those two from the new plans recomputes `2cc99768…` and
+# `c42d6c84…` — the superseded pins — element for element, so nothing else
+# moved, was reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is
+# untouched: both are pack paths, not root tool paths, so
+# `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `2cc99768…` and `c42d6c84…` still in place
+# returns an empty error list, so this supersedes live values rather than a pin
+# that had already gone stale. The baseline is bare `origin/main`, which this
+# branch is rebased onto and whose Makefile differs from this worktree's by the
+# three lines above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "2cc997687b4418796004a92cfa6de6e910ec971ac0de5481b44c4da5685ad297"
+    "bf970632e653365722547d85fe25c18886bb5a92bd7de93ced72a907fc7bbafa"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "c42d6c84fad994c4c225f343005ed50c25c2425f483e2b6ca18abf825b9972ff"
+    "32e04ee010ee27c25e2619ec6d972d24383e9baf73a2909054660397786be7f6"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
