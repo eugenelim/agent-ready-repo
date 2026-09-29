@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.3] — 2026-09-28
+
+### Highlights
+
+- **`loop-cohort status` now shows what each wave's dispatch records actually say.** A wave whose every task was declined used to read exactly like one whose every task was implemented; both reported the same single flag. The new per-wave counts separate receipts, declines, superseded records and unaccounted tasks, so someone reading a finished run can tell which waves were implemented and which were not.
+
+### Added
+
+- `wave_dispatch_accounting` in `loop-cohort status`, in both the default and `--json` output: one entry per scheduled wave, or `null` for a wave whose accounting is undefined. Counts are taken once per task position, so a wave listing one identifier twice counts it twice and a receipts key naming a task outside the wave counts for nothing. The value reflects the partition live at the time of the call, not what any past wave exit saw.
+
 ## [core][2.27.2] — 2026-09-27
 
 ### Highlights
