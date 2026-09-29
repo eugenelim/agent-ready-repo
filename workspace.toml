@@ -2046,56 +2046,41 @@ open = [
   # `wave-passed` edge it found and did not fix. The frozen receipts spec still
   # points at the retired entry; this comment is where that pointer resolves.
 
-  # A wave exit that passes with no receipts container records nothing about
-  # having passed: the read-only guard cannot write, and a durable side effect
-  # on a transition is ADR-0061 Option B, which needs the absent
-  # pending_transition schema. `loop-cohort status` does report
-  # `dispatch_receipts_enforced: false` for that state, but that is the
-  # container's presence read at call time, not a trace of any exit -- and
-  # `schedule` restores an absent container, so the value flips and the
-  # exemption becomes unreadable after the fact.
+  # Retired 2026-09-29: the ADR-0061 wave-exit trace entry, which asked to
+  # "leave a durable trace when a wave exit passes with dispatch receipts
+  # unenforced, and give a reader a way to tell an exempted wave from an
+  # accounted one". The two clauses ended differently and the entry is retired
+  # on both, not on one standing in for the other.
   #
-  # For the oldest state class the guard tolerates -- an unsupported
-  # schema_version -- NEITHER channel survives. That verdict row returns before
-  # the container-absent notice is reached, so it emits nothing, and
-  # `loop-cohort status` refuses the same state. The residual list in
-  # docs/specs/wave-complete-dispatch-receipts/spec.md:660-662 states THAT
-  # sentence correctly, where an earlier version of this comment wrongly said
-  # the stdout notice remained. The "or with every task declined" clause earlier
-  # in the same bullet, at :657, is superseded by the correction below; that
-  # spec is Shipped and cannot be edited, so the supersession is recorded here.
+  # The READER clause is closed. docs/specs/wave-exit-accounting-readout
+  # (Shipped, core 2.27.3) added `wave_dispatch_accounting` to `loop-cohort
+  # status`: one entry per scheduled wave counting live receipts, live declines,
+  # superseded records and unaccounted task positions. Verified through the
+  # installed CLI rather than from the spec: two fixtures alike but for the
+  # record kind report `receipts: 2, declines: 0` and `receipts: 0, declines: 2`
+  # for the same wave, while `dispatch_receipts_enforced` reads `True` for both
+  # -- which is the conflation this entry registered. The evidence is in that
+  # spec's notes/verification-ledger.md.
   #
-  # `.loop-run/events.jsonl` is NOT the missing trace, checked 2026-09-24
-  # because a pass on this entry wrongly claimed it was durable and retired the
-  # entry on that ground. It does record the wave-complete transition, but
-  # ADR-0064 D1 calls it append-only and ephemeral, `loop-engine reset` removes
-  # the directory outright (`cmd_reset`'s `shutil.rmtree(loop_run)`), and the owned-state tables in
-  # docs/architecture/telemetry.md and docs/architecture/loop-infrastructure.md
-  # label it ephemeral. Three of the eight verdict rows can pass; the other five
-  # refuse before the transition, so they append no line at all.
+  # The TRACE clause is dispositioned, not delivered, and ADR-0061's 2026-09-28
+  # erratum is where that disposition lives. `pending_transition` shipped in core
+  # 2.27.1, so the prerequisite the earlier errata named is met -- but ADR-0125 D2
+  # closes the engine effect registry and the shipped docs/specs/durable-transitions
+  # AC-0003 enumerates it as exactly contract-amendment, wave-passed, gates-failed,
+  # findings-remain and reviewers-clean. `wave-complete` is not a member, so it
+  # gains no write authority from the schema's arrival. The two tolerated rows
+  # then differ: the absent-container row now has a reader, though still no trace
+  # of a past exit, because the readout reports the live partition at call time;
+  # the unsupported-schema row gains neither, because `status` refuses that state
+  # before building its payload and every cohort mutation verb refuses it too,
+  # while migration across the version boundary is forbidden in both directions.
+  # No marker can be written into that state and no reader can be offered for it.
+  # Reopen only if that last sentence stops being true.
   #
-  # Corrected 2026-09-24: an all-declined wave is NOT one of these cases. A
-  # decline is accounting, not an exemption -- both kinds count as accounted for
-  # and the records persist in state.json, so that wave's history is readable
-  # for as long as the partition digest holds. It does not survive a partition
-  # move: `schedule` rewrites the container through `receipts_for_partition`,
-  # which keeps only the live digest's subtree, so an amendment that repartitions
-  # the waves drops a completed wave's declines. Within a run whose partition has
-  # not moved, what is missing is a reader, not a record: `loop-cohort status`
-  # reports `dispatch_receipts_enforced` as `RECEIPTS_KEY in state`
-  # (loop-cohort.py:1328), so an all-declined wave reads identically to one in
-  # which every task was implemented. ADR-0061's 2026-09-24 erratum records the
-  # corrected picture, and two tests in
-  # packs/core/tests/skills/work-loop/test_loop_cohort.py pin it.
-  #
-  # Not a request to tighten either tolerance: the unsupported-schema and
-  # absent-container rows exist so a run already in flight when receipts shipped
-  # still reaches its wave boundary, and a change making either refuse is a
-  # regression, not a fix. Note that the shipped spec's residual list cites this
-  # entry at path packs/core/.apm/skills/work-loop/scripts/loop-cohort.py while
-  # the entry is keyed to the ADR; that drift predates this pass and is left as
-  # found. Unblocks now; no dependency.
-  { path = "docs/adr/0061-loop-infrastructure-phase-1.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced, and give a reader a way to tell an exempted wave from an accounted one, since the stdout notice is ephemeral and the status flag reports the container's presence at call time rather than any past exit", needs = [] },
+  # Left as found, as the entry recorded: the shipped receipts spec's residual
+  # list cites this entry at packs/core/.apm/skills/work-loop/scripts/loop-cohort.py
+  # while the entry was keyed to the ADR. That drift predates the entry and this
+  # note is where the pointer resolves.
   # The repository work-graph family's eight registered Draft intents: five feature
   # children of docs/product/intents/CAP-0001-repository-work-graph.md, and three
   # sibling capabilities under docs/product/intents/STRAT-0001-graph-powered-sdlc.md.
