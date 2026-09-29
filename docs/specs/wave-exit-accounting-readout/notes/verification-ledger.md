@@ -46,16 +46,19 @@ Both mutations applied by editing `_loop_guards.py` and reverted by editing it
 back; never `git checkout`, `reset` or `stash`. After each revert the file was
 confirmed byte-identical to a pre-mutation copy.
 
-| Mutation | Result |
+| Mutation (applied at the call site inside `wave_accounting_summary`) | Tests that redden |
 | --- | --- |
-| classify records on `kind` alone (`accounts_for_task` → `is_dispatch_record`) | `test_present_summaries_hold_the_arithmetic_invariant` red: `assert ((2 + 0) + 1) == 2` — a superseded receipt counted as a receipt *and* as unaccounted |
-| read `superseded` by truthiness rather than the declared `is not True` | same assertion red — `superseded: "yes"` is live, so a truthy read loses a live receipt |
-| restored | 14 passed |
+| classify records on `kind` alone (`accounts_for_task` → `is_dispatch_record`) | `test_present_summaries_hold_the_arithmetic_invariant` (`assert ((2 + 0) + 1) == 2` — a superseded receipt counted as a receipt *and* as unaccounted) and `test_a_superseded_record_counts_as_superseded_and_unaccounted` |
+| read `superseded` by truthiness rather than the declared `is not True` | `test_present_summaries_hold_the_arithmetic_invariant` and `test_a_non_true_superseded_value_stays_live`. The hand-written superseded case does **not** fire: a truthy read and `is not True` agree on `superseded: True`, so only a non-`True` value separates them |
+| restored | 17 passed |
 
 Both are the hazards the positional, predicate-based counting basis exists to
-prevent. The generated domain catches both; so does the hand-written superseded
-case, which expects `receipts: 0` for a superseded record — the walk is not the
-sole detector of either, and an earlier version of this paragraph said it was.
+prevent. Detection is attributed per mutation above, measured rather than
+assumed: the first is caught by a hand-written fixture as well as the walk, the
+second only by the walk's invariant and by the case written specifically to pin
+`is not True` with literal expected figures. Two earlier versions of this
+paragraph were wrong — the first credited the generated domain alone, the second
+credited the hand-written fixture for both.
 
 ## Mutation proof — T2, the status writer
 

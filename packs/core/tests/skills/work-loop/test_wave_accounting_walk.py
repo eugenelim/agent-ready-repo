@@ -123,6 +123,20 @@ def _records(g):
     }
 
 
+def _schedules(g):
+    """`schedule_waves` shapes. `list` is built per-case in `_domain`.
+
+    A Sized non-list is absorbed by the range check, so only a NON-Sized value
+    makes the `isinstance(waves, list)` conjunct load-bearing.
+    """
+    return {"list": None, "sized-non-list": "not-a-list", "unsized-non-list": 5}
+
+
+def _indices(g):
+    """Wave indices. `in-range-1` is what pins the container walk's wave key."""
+    return {"in-range-0": 0, "in-range-1": 1, "out-of-range": 9}
+
+
 def _waves_at_index(g):
     """One value per conjunct of `wave_is_well_formed`: list, non-empty, all str."""
     return {
@@ -144,17 +158,12 @@ _WAVE_ONE = ["W1", "W2", "W3"]
 
 def _domain(g):
     """Every axis combination, as (labels, state, index, read_at)."""
-    schedules = {
-        "list": None,                    # a real list, built per-case below
-        "sized-non-list": "not-a-list",  # Sized: absorbed by the range check
-        "unsized-non-list": 5,           # NOT Sized: only `isinstance` rejects it
-    }
-    indices = {"in-range-0": 0, "in-range-1": 1, "out-of-range": 9}
+    schedules = _schedules(g)
+    indices = _indices(g)
     out = []
     for sched, wave_label, cont_label, rec_label, idx_label in itertools.product(
-        _EXPECTED_AXIS_VALUES["schedule"], _waves_at_index(g),
-        _EXPECTED_AXIS_VALUES["container"], _records(g),
-        _EXPECTED_AXIS_VALUES["index"],
+        schedules, _waves_at_index(g), _EXPECTED_AXIS_VALUES["container"],
+        _records(g), indices,
     ):
         wave = _waves_at_index(g)[wave_label]
         index = indices[idx_label]
@@ -328,13 +337,17 @@ def test_every_reachable_predicate_combination_is_counted(g) -> None:
 def test_the_generators_match_the_declared_axis_values(g) -> None:
     """The expectation is a literal table, not a read of the generator.
 
-    Deleting a value from `_containers`, `_waves_at_index` or `_records` must
-    redden here. An earlier version compared each generator against itself.
+    Deleting a value from any of the five generators must redden here. An
+    earlier version compared three generators against themselves and drove the
+    other two straight off this table, so the table was both generator and
+    expectation for them and their values were silently deletable.
     """
     actual = {
+        "schedule": tuple(_schedules(g)),
         "container": tuple(_containers(g, _LIVE_WAVES)),
         "wave": tuple(_waves_at_index(g)),
         "record": tuple(_records(g)),
+        "index": tuple(_indices(g)),
     }
     for axis, values in actual.items():
         assert set(values) == set(_EXPECTED_AXIS_VALUES[axis]), (
