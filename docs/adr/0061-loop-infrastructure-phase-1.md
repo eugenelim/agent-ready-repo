@@ -159,3 +159,32 @@ this consequence yet: `docs/architecture/loop-infrastructure.md` covers the
 wave-exit verdict only where it is not serialised against the wave pointer,
 which is a different question. The body above is left as written.
 Approver: eugenelim.
+
+**Erratum, 2026-09-28.** The prerequisite named above has shipped, and two
+sentences in this record are now false. The 2026-08-31 erratum names a
+`pending_transition` schema as absent, and the 2026-09-24 erratum repeats that
+it "is still absent"; `docs/specs/durable-transitions/spec.md` delivered that
+schema, along with `transition_history`, in core 2.27.1. Both sentences are
+superseded. A reader landing at either should take this erratum as current.
+
+The schema existing does not reopen Option B, and the reason has changed rather
+than gone away. ADR-0125 D2 closes the eligible set for engine-applied cohort
+effects to the effect registry, and `durable-transitions` AC-0003 enumerates
+that registry as exactly `contract-amendment`, `wave-passed`, `gates-failed`,
+`findings-remain` and `reviewers-clean`. `wave-complete` is not a member, so it
+gains no write authority from the schema's arrival; adding it would take a
+record superseding D2 and an amendment to a shipped criterion.
+
+What each tolerated wave-exit row gains, stated per row rather than together,
+because they differ. The **absent-container** row now has a reader:
+`loop-cohort status` succeeds on that state and its `wave_dispatch_accounting`
+distinguishes it from an accounted wave. What it still lacks is a trace of any
+past exit — the value reports the live partition when the call is made. The
+**unsupported-schema** row gains neither. `status` refuses that state before
+building its payload, and every cohort mutation verb refuses it too, while
+migration across the version boundary is forbidden in both directions — so no
+marker can be written into it and no reader can be offered for it. That row's
+residual is closed by nothing in this delivery and is recorded here as standing.
+
+`docs/specs/wave-exit-accounting-readout/spec.md` carries the reader change and
+its acceptance criteria. Approver: eugenelim.

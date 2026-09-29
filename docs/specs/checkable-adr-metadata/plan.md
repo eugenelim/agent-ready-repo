@@ -1,7 +1,7 @@
 # Plan: Checkable ADR metadata
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** conventions from root `AGENTS.md` § Coding conventions,
   `packs/AGENTS.md` §§ "Security and authoring rules", "Shipped pack content
   carries no internal-governance citations" and "Self-hosting projection", and
@@ -651,6 +651,9 @@ enumerates it.
 
 ## Changelog
 
+- 2026-09-28: closeout bookkeeping only. The delivered implementation and its
+  accepted criteria are unchanged; the spec moved to Shipped, this plan moved
+  to Done, and the workspace entry moved from active to shipped.
 - 2026-09-17: initial plan.
 - 2026-09-17: revised from spec-stage review round 1 — helper extraction added,
   lint split across tasks, corpus floor replaced with a run-time comparison,
@@ -738,4 +741,3 @@ enumerates it.
   `Never do` carve-out narrowed because the three record classes no longer
   share one row. Amended with zero completed tasks, so re-approval and
   re-scheduling cost nothing beyond the gates themselves.
-

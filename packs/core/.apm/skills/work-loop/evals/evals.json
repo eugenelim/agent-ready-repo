@@ -1072,6 +1072,18 @@
         "Response names all three guarded edges: gates-failed, findings-remain, and blocker-applied",
         "Response does not claim wave reopen is required before wave-passed or gates-clean"
       ]
+    },
+    {
+      "id": "status-wave-dispatch-accounting",
+      "prompt": "A work-loop run has finished. Reading `loop-cohort status`, how do you tell a wave whose every task was declined from one whose every task was implemented, and what does that field NOT tell you?",
+      "expected_output": "Read `wave_dispatch_accounting`, not `dispatch_receipts_enforced`. The flag reports only whether the receipts container is present, so it reads the same for both waves. `wave_dispatch_accounting` carries one entry per wave in `schedule_waves`, each counting that wave's live receipts, live declines, superseded records and unaccounted task positions: an all-declined wave shows declines equal to its task count and receipts zero, an implemented wave the reverse. What it does not tell you: what any PAST wave exit saw. It reports the partition live at the time of the call, and `schedule` keeps only the records filed under the current partition digest, so after a repartition a completed wave's records are gone and that wave reports its tasks as unaccounted. Read it beside `current_wave_index` to separate a wave the run never reached from one it reached and left unaccounted.",
+      "assertions": [
+        "Response names `wave_dispatch_accounting` as the field to read",
+        "Response says `dispatch_receipts_enforced` reports container presence and reads the same for both waves",
+        "Response names the per-wave counts: live receipts, live declines, superseded records and unaccounted task positions",
+        "Response says the value reflects the live partition at the time of the call, not what any past wave exit saw",
+        "Response names `current_wave_index` as what separates a wave never reached from one reached and left unaccounted"
+      ]
     }
   ]
 }

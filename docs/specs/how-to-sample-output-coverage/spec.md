@@ -60,6 +60,15 @@ does not move the goalposts.
 - Deliver any related intent's excluded experience-design, cross-pack tutorial,
   intent-index, or new first-value content.
 
+## Boundary with `pack-guidebook-walkability`
+
+`pack-guidebook-walkability` takes
+`guides/core/how-to/start-or-remember-work.md` and
+`guides/core/how-to/close-and-disposition-work.md` because they are steps in
+core's ordered guidebook. This spec retains every other entry in
+[`notes/accepted-base.md`](notes/accepted-base.md). The accepted base itself is
+unchanged; this is a delivery disposition, not a new measurement.
+
 ## Testing Strategy
 
 - **Goal-based audit checks:** a fresh affordance ledger must show C on every

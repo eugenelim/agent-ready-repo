@@ -39,8 +39,8 @@ All in `guides/core/`, which already carries an ordered fragment at orders 9 to
 
 | Page | Also owned by |
 | --- | --- |
-| `guides/core/how-to/start-or-remember-work.md` | S3, S5 |
-| `guides/core/how-to/close-and-disposition-work.md` | S3, S5 |
+| `guides/core/how-to/start-or-remember-work.md` | S5 |
+| `guides/core/how-to/close-and-disposition-work.md` | S5 |
 | `guides/core/reference/work-intake-routing-and-lifecycle.md` | S3 |
 
 Owner decision, 2026-09-11: **T6 absorbs core's four existing ordered pages into
@@ -51,6 +51,18 @@ and the carve-out is recorded on both sides for **those three only**. AC-0012
 compares target paths for exactly this reason, and its universe is the three
 siblings' accepted-base ledgers.
 
+### Machine-checkable disposition
+
+Each sibling retains every other path in its own accepted-base ledger. The
+three explicit exceptions below move to this slice; no accepted-base entry is
+deleted or re-measured.
+
+| Sibling spec | Taken by `pack-guidebook-walkability` | Retained by sibling |
+| --- | --- | --- |
+| `guide-invocation-outcome-coverage` | `guides/core/reference/work-intake-routing-and-lifecycle.md` | every other accepted-base entry |
+| `tutorial-worked-examples` | none | every accepted-base entry |
+| `how-to-sample-output-coverage` | `guides/core/how-to/start-or-remember-work.md`; `guides/core/how-to/close-and-disposition-work.md` | every other accepted-base entry |
+
 ## Partly delivered here
 
 **`docs/product/intents/skill-sequence-wayfinding.md`** (Draft, capability).
@@ -60,7 +72,7 @@ where it lands, and what a good one contains. Its title, outcome, falsifier,
 opportunity, decomposition, risks and open questions all carry the second half
 now, each with its own measured baseline and its own kill signal.
 
-Four of this contract's eleven obligations are that capability's outcome stated
+Four of this contract's sixteen obligations are that capability's outcome stated
 as authored prose:
 
 | Contract row | The capability's derived form |

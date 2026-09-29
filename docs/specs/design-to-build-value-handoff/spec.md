@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0129; ADR-0128; ADR-0052; RFC-0071; [`design-system-values`](../design-system-values/spec.md); [`frontend-visual-authority`](../frontend-visual-authority/spec.md); [`design-handoff-read`](../design-handoff-read/spec.md); [`frontend-experience-composition`](../frontend-experience-composition/spec.md)
+- **Constrained by:** ADR-0130; ADR-0128; ADR-0052; RFC-0071; [`design-system-values`](../design-system-values/spec.md); [`frontend-visual-authority`](../frontend-visual-authority/spec.md); [`design-handoff-read`](../design-handoff-read/spec.md); [`frontend-experience-composition`](../frontend-experience-composition/spec.md)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none — the crossing artifacts are pack-declared adopter paths, not `contracts/` records.
@@ -55,7 +55,7 @@ owner the design artifact names.
 | --- | --- | --- | --- | --- | --- |
 | User promise | Applicable — the handoff rule changes what an adopter must run and when | `guides/experience-design/how-to/establish-design-intent.md`, `guides/frontend-engineering/how-to/read-the-design-handoff.md` | pack maintainer | The two guides state the same rule as the skills; `tests/roster/test_frontend_visual_authority_adopter_prose.py` and `tests/roster/test_experience_journey_composition.py` pass | Both guides describe the gap state and the conditional requirement |
 | Current product truth | Applicable — both journeys advertise the thread | `packs/experience-design/JOURNEY.md`, `packs/experience-design/DESIGN.md` | pack maintainer | Say-this row and gate text agree with the skills | Journey and maintainer doc carry no "optional" claim the skills contradict |
-| Decision rationale | Applicable — the handoff rule reverses part of two shipped criteria, so the decision needs a record the supersession pointers can name | `docs/adr/0129-design-to-build-handoff-is-conditional-and-gap-routed.md` | eugenelim | ADR shape lint clean; `docs/adr/README.md` regenerated; both superseded specs annotate their `Status` at it | ADR Accepted and both `Status` annotations resolve to it |
+| Decision rationale | Applicable — the handoff rule reverses part of two shipped criteria, so the decision needs a record the supersession pointers can name | `docs/adr/0130-design-to-build-handoff-is-conditional-and-gap-routed.md` | eugenelim | ADR shape lint clean; `docs/adr/README.md` regenerated; both superseded specs annotate their `Status` at it | ADR Accepted and both `Status` annotations resolve to it |
 | Interface compatibility | Applicable — the shipped skill contract is the published interface | `packs/*/pack.toml`, `packs/*/.claude-plugin/plugin.json` | pack maintainer | Matching minor bumps on both packs | Versions bumped and `make build-self` regenerated |
 | Release history | Applicable | `docs/product/changelog.md` | pack maintainer | One free-standing release entry per pack with a `### Highlights` block | Entries present at `##` |
 | Reusable learning | Not applicable — the mechanism is the artifact | — | — | — | — |
@@ -196,7 +196,7 @@ delivery that does. AC-0015 and AC-0016 change them deliberately.
 - [x] **AC-0013** `SKILL.md`'s body is at most 968 lines, counted as the
       catalogue skill-spec lint counts it — post-frontmatter, `splitlines()`.
       This supersedes `frontend-visual-authority` AC-0009's 960-line figure
-      under ADR-0129 D7. The raise is 8 lines, the measured cost of stating the
+      under ADR-0130 D7. The raise is 8 lines, the measured cost of stating the
       gap contract in the always-loaded file; the catalogue lint still
       hard-errors at 1000, so the two instruments cannot silently disagree below
       that.
@@ -218,7 +218,7 @@ delivery that does. AC-0015 and AC-0016 change them deliberately.
 - [x] **AC-0018** Every say-this row in `packs/experience-design/JOURNEY.md`
       carries exactly one of `Required`, `Optional`, `Conditional`, or `Choose
       one`. This supersedes `frontend-experience-composition` AC-0020's
-      three-member vocabulary under ADR-0129 D6.
+      three-member vocabulary under ADR-0130 D6.
 - [x] **AC-0019** `packs/experience-design/JOURNEY.md` states the condition that
       makes `design-system` required: a direction exists and neither a completed
       design system nor a coherent incumbent system supplies every concrete value
@@ -273,10 +273,10 @@ delivery that does. AC-0015 and AC-0016 change them deliberately.
       text and any `Who resolves it`/owner value remain live/display-only and
       are never committed.
 - [x] **AC-0035** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
-      field carries a supersession annotation naming ADR-0129 and the 960-line
+      field carries a supersession annotation naming ADR-0130 and the 960-line
       body budget as the part superseded.
 - [x] **AC-0036** `docs/specs/frontend-experience-composition/spec.md`'s
-      `Status` field carries a supersession annotation naming ADR-0129 and
+      `Status` field carries a supersession annotation naming ADR-0130 and
       AC-0020's optionality vocabulary as the part superseded.
 - [x] **AC-0037** The `## Standalone work` table carries a `requires` row whose
       value is `handoff-read-completed`, so the table states for itself that a

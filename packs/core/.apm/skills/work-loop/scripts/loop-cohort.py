@@ -484,6 +484,7 @@ except GuardsUnavailable as exc:
     malformed_receipts_position = receipts_for_partition = _guards_unavailable
     wave_is_well_formed = unaccounted_wave_tasks = _guards_unavailable
     accounts_for_task = unaccounted_breakdown = _guards_unavailable
+    wave_accounting_summary = _guards_unavailable
     bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
@@ -516,6 +517,7 @@ else:
     unaccounted_wave_tasks = _g.unaccounted_wave_tasks
     accounts_for_task = _g.accounts_for_task
     unaccounted_breakdown = _g.unaccounted_breakdown
+    wave_accounting_summary = _g.wave_accounting_summary
     bounded_id_list = _g.bounded_id_list
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
@@ -1990,6 +1992,15 @@ def cmd_status(args: argparse.Namespace) -> int:
         # run. An absent container is the exemption, so absence is the one value
         # that means "not enforced"; an empty container still enforces.
         "dispatch_receipts_enforced": RECEIPTS_KEY in state,
+        # Per-wave accounting summary derived from the guard's declared predicate.
+        # One entry per wave in schedule_waves (None when that wave's accounting
+        # cannot be read), or [] when schedule_waves is not a list.
+        "wave_dispatch_accounting": (
+            [wave_accounting_summary(state, i)
+             for i in range(len(state.get("schedule_waves", [])))]
+            if isinstance(state.get("schedule_waves"), list)
+            else []
+        ),
     }
     if args.json:
         print(json.dumps(result))

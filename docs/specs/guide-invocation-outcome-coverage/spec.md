@@ -66,6 +66,14 @@ total that changes as the catalogue grows.
   evaluation content.
 - Assert a fixed repository-wide guide or skill count as the completion test.
 
+## Boundary with `pack-guidebook-walkability`
+
+`pack-guidebook-walkability` takes
+`guides/core/reference/work-intake-routing-and-lifecycle.md` because the page is
+one step in core's ordered guidebook. This spec retains every other entry in
+[`notes/accepted-base.md`](notes/accepted-base.md). The accepted base itself is
+unchanged; this is a delivery disposition, not a new measurement.
+
 ## Testing Strategy
 
 - **Goal-based audit checks:** rerun `tools/audit-guide-affordances.py` with a

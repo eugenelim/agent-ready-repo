@@ -1,4 +1,4 @@
-# ADR-0129: The design-to-build handoff is conditional, and implementation never fills an upstream gap
+# ADR-0130: The design-to-build handoff is conditional, and implementation never fills an upstream gap
 
 - **Status:** Accepted
 - **Date:** 2026-09-28

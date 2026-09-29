@@ -32,7 +32,7 @@ state the condition instead.
 
 ## Repository anchors
 
-- **Governing decision:** `docs/adr/0129-design-to-build-handoff-is-conditional-and-gap-routed.md`,
+- **Governing decision:** `docs/adr/0130-design-to-build-handoff-is-conditional-and-gap-routed.md`,
   authored during PLAN because the supersession convention requires the pointer
   in a superseded document's `Status` field to name an ADR, and no existing ADR
   records this decision. ADR-0128 is the closest and stops one step short: it
@@ -384,7 +384,7 @@ roster module already reads `docs/specs/`, goal-based otherwise.
 
 **Approach:** annotate the `Status` field of
 `docs/specs/frontend-visual-authority/spec.md` and
-`docs/specs/frontend-experience-composition/spec.md`, each pointing at ADR-0129
+`docs/specs/frontend-experience-composition/spec.md`, each pointing at ADR-0130
 and naming the part superseded. The pointer goes in `Status` and nowhere else.
 Covers AC-0035, AC-0036.
 
@@ -437,12 +437,12 @@ a revert.
   house style with no token file reaches the fallback without being standalone.
   The owner chose to split them: AC-0006 keeps three admission grounds, AC-0037
   adds the `requires: handoff-read-completed` row, AC-0011 names the token
-  system explicitly, and ADR-0129 gains D5 for the separate gate. D-IDs were
+  system explicitly, and ADR-0130 gains D5 for the separate gate. D-IDs were
   renumbered, so AC-0013 now cites D7 and AC-0018 cites D6. AC-0002 gained the
-  incumbent qualifier, ADR-0129 D8 gained three prohibitions AC-0032 already
+  incumbent qualifier, ADR-0130 D8 gained three prohibitions AC-0032 already
   carried, and AC-0008 gained T1 as its owning task.
 - 2026-09-28 — Revised from 14 sustained pre-EXECUTE findings (5 security, 9
-  adversarial; 1 security finding refuted). The largest change: ADR-0129 was
+  adversarial; 1 security finding refuted). The largest change: ADR-0130 was
   authored, because the supersession convention requires a superseded spec's
   `Status` pointer to name an ADR and none existed. The gap's two sources are
   now expressed over the handoff read's named-skip outcomes rather than over a

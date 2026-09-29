@@ -67,7 +67,10 @@ the ordered paths; a continuous install-to-ship walkthrough; the
 tutorials missing complete worked input-and-output examples; the sample-output
 gap for invocable-skill how-tos; and any path metadata or navigation needed to
 keep the route visible after generation. The delivered and open tables below
-are the current status: S3-S5 and S7 remain open. S6's outcome shipped on 2026-09-11 and **its spec was discarded** — it was off, and it never reached `main`, so nothing depended on it. The design work that followed, briefly a separate slice S8, is folded into S7.
+own each slice's placement. S6's outcome shipped on 2026-09-11
+and **its spec was discarded** — it was off, and it never reached `main`, so
+nothing depended on it. The design work that followed, briefly a separate slice
+S8, is folded into the registered S7 spec.
 
 **Owner decision, 2026-09-11 — the four-discipline sequence joins this brief as
 S6.** Presenting `desk-research → product-strategy → experience-design →
@@ -198,9 +201,9 @@ finding. S4 passed a clean-room review after its earlier indeterminate review
 unit was closed and its gate and scope findings were repaired. S5 passed its
 shaping gate and three adversarial rounds. S6's outcome shipped on 2026-09-11
 after four Sol review rounds and a mechanical set-level sweep; no round returned
-a clean verdict, and its spec was discarded rather than carried. S3-S5 are
-registered below as Draft specs pending human approval. S7 has no spec yet, and
-the evidence it inherits is in `docs/product/findings/`.
+a clean verdict, and its spec was discarded rather than carried. S3-S5 and S7
+are registered below; this map is the only place this brief states their spec
+lifecycle. S7's spec links the inherited evidence and owns its closeout.
 
 | Spec | Status |
 | --- | --- |
@@ -209,21 +212,19 @@ the evidence it inherits is in `docs/product/findings/`.
 | `guide-invocation-outcome-coverage` | Draft |
 | `tutorial-worked-examples` | Draft |
 | `how-to-sample-output-coverage` | Draft |
+| `pack-guidebook-walkability` | <auto> |
 
 ## Open delivery slices
 
-Review-clean S3-S5 appear in the Spec map as non-dispatchable Drafts. S6 has
-shipped and is recorded with the delivered work above. S7 is a candidate slice
-with no spec yet.
-Shipped S1 and S2 are recorded with the delivered work above rather than mixed
-into this table.
+S3-S5 remain in this open-slice table. S7 is tracked by its registered spec and
+no longer belongs here. S1, S2 and S6 are recorded with the delivered work
+above rather than mixed into this table.
 
 | # | Candidate slice | Open portion | Independently shippable boundary |
 | --- | --- | --- | --- |
-| S3 | Raise invocation and outcome coverage — **confirmed 2026-09-09, review-clean and registered as Draft [`guide-invocation-outcome-coverage`](../../specs/guide-invocation-outcome-coverage/spec.md)** | Guides still lack literal chat inputs and stated outcomes, and user-invocable skill descriptions still lack quoted examples or `Triggers on` phrasing | Every current in-scope target identified by the audit gains its missing source-grounded invocation or outcome affordance; the accepted-base ledger proves positive movement without freezing corpus totals |
-| S4 | Complete the remaining tutorial examples — **confirmed 2026-09-09, review-clean and registered as Draft [`tutorial-worked-examples`](../../specs/tutorial-worked-examples/spec.md)** | Most tutorials describe a workflow without showing the supplied input and matching output used in the worked run | Every current in-scope tutorial target demonstrates its workflow input and keeps it paired with a representative output and the result shown; related-intent surfaces remain excluded |
-| S7 | Make the four-discipline sequence walkable, not just findable, and hold the design contract the surfaces already meet — **opened 2026-09-11; absorbed the S8 design-contract slice 2026-09-11** | S6 shipped discoverability only: no step shows a literal request, the path was reachable from nothing until its 2026-09-11 placement fix, no surface routes a Claude Desktop reader to an install, no worked example shows one artifact actually entering the next skill, and **the journey cards' own content contradicts the sequence** — `product-engineering`'s tagline reads "Raw idea → build-ready decision brief" while the group says it receives a designed bet, so the last discipline appears to restart the sequence and stop before implementation. **Absorbed from S8:** the design contract for the two surfaces — distinct group signatures, the onward route, the alternative path's placement and selection axis, and the walkthrough cases' definition of a stage — is implemented and tested but governed by no live spec, because S6 froze on shipping and reopening it was sustained as blocking | A new team can execute the sequence end to end from the guides: every step states a literal request, its result, and its next link; the path is entered from the journeys index as well as from P2; one worked example carries a real artifact across all three handoffs; every pack in the walk is operable for a reader who has not used the catalogue before; and **card IA is settled for the sequence** — what one card must carry, and each of the four taglines agreeing with its position. Card content is generated from `packs/*/JOURNEY.md`, so this half is a released pack change that S6 could not make (its AC-0018 forbids touching generated journey content); it lands here because it shares a source with the walk's handoff semantics. Its handoff is [`s7-walkability-handoff.md`](../findings/s7-walkability-handoff.md). **The absorbed design contract is already true in code and must not regress**: S7 carries it as inherited criteria with existing tests, not as new build. Three of those assertions were shown by mutation to be unable to fail before they were tightened, so re-derive them rather than trusting their names |
-| S5 | Close the how-to sample-output gap — **confirmed 2026-09-09, review-clean and registered as Draft [`how-to-sample-output-coverage`](../../specs/how-to-sample-output-coverage/spec.md)** | Sample-output coverage did not move in the earlier uplift, and many invocable-skill how-tos still describe a result without showing a representative agent response | Every current in-scope how-to target shows a source-grounded representative response; reference and explanation pages and related-intent surfaces remain excluded |
+| S3 | Raise invocation and outcome coverage — **confirmed 2026-09-09, review-clean: [`guide-invocation-outcome-coverage`](../../specs/guide-invocation-outcome-coverage/spec.md)** | Guides still lack literal chat inputs and stated outcomes, and user-invocable skill descriptions still lack quoted examples or `Triggers on` phrasing | Every current in-scope target identified by the audit gains its missing source-grounded invocation or outcome affordance; the accepted-base ledger proves positive movement without freezing corpus totals |
+| S4 | Complete the remaining tutorial examples — **confirmed 2026-09-09, review-clean: [`tutorial-worked-examples`](../../specs/tutorial-worked-examples/spec.md)** | Most tutorials describe a workflow without showing the supplied input and matching output used in the worked run | Every current in-scope tutorial target demonstrates its workflow input and keeps it paired with a representative output and the result shown; related-intent surfaces remain excluded |
+| S5 | Close the how-to sample-output gap — **confirmed 2026-09-09, review-clean: [`how-to-sample-output-coverage`](../../specs/how-to-sample-output-coverage/spec.md)** | Sample-output coverage did not move in the earlier uplift, and many invocable-skill how-tos still describe a result without showing a representative agent response | Every current in-scope how-to target shows a source-grounded representative response; reference and explanation pages and related-intent surfaces remain excluded |
 
 ## Rabbit holes
 
