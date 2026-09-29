@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -85,6 +86,11 @@ _POINTER_FIELDS: frozenset[str] = frozenset({"Reissued as", "Retired"})
 
 #: Byte limit for the workspace registry read. 16 MiB comfortably exceeds
 #: any workspace file this repository is expected to produce.
+# The register's own reader recognises exactly this initiative-key shape.
+# A table named like an initiative but outside it is not a registration
+# there, so it must not be one here; a bare `ini-` prefix would count one.
+_CANONICAL_INITIATIVE_RE = re.compile(r"^ini-\d{3}$")
+
 _WORKSPACE_MAX_BYTES = 16 * 1024 * 1024
 
 #: Byte limit for the source intent read.
@@ -186,7 +192,7 @@ def _is_dirty(repository_root: Path, source_rel: str) -> bool:
     # either untracked or ignored, which is also dirty.
     try:
         ls_result = subprocess.run(
-            [*_GIT, "ls-files", "-v", "--", *paths],
+            [*_GIT, "ls-files", "-v", "-z", "--", *paths],
             cwd=os.fspath(repository_root),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -199,20 +205,25 @@ def _is_dirty(repository_root: Path, source_rel: str) -> bool:
     if ls_result.returncode != 0:
         return True
 
-    tracked: set[str] = set()
+    # `-z` is load-bearing: without it git renders a path needing quoting in
+    # its quoted, octal-escaped form, and a clean tracked file whose name
+    # carries a non-ASCII character would never match the name we asked
+    # about. NUL-separated records are byte-exact.
+    tags: dict[str, list[str]] = {}
     ls_output = ls_result.stdout.decode("utf-8", errors="replace")
-    for line in ls_output.splitlines():
-        if len(line) < 3:
+    for record in ls_output.split("\0"):
+        if len(record) < 3:
             continue
-        flag, path = line[0], line[2:]
-        if flag in ("h", "S"):
-            # Hidden from git's scan — cannot prove clean.
-            return True
-        tracked.add(path)
+        tags.setdefault(record[2:], []).append(record[0])
 
+    # An allowlist, not a denylist. Only `H` — tracked, in the index, and not
+    # hidden — proves a path is one git will report on. Every other tag is a
+    # state that suppresses it from the scan below or leaves it unmerged, and
+    # a denylist of the hidden ones has to be rediscovered each time git grows
+    # a letter: `h`, `S` and `s` are all "assume-unchanged and/or
+    # skip-worktree", and `s` is the combination.
     for p in paths:
-        if p not in tracked:
-            # Not tracked at all — untracked or ignored.
+        if tags.get(p) != ["H"]:
             return True
 
     # ── Step 2: check for staged or working-tree modifications ────────────────
@@ -261,7 +272,7 @@ def _count_registry_matches(data: object, target_path: str) -> int:
 
     def _is_registry_collection(key_path: tuple[str, ...]) -> bool:
         """True for an initiative collection, or the shared backlog."""
-        if len(key_path) == 3 and key_path[0].startswith("ini-"):
+        if len(key_path) == 3 and _CANONICAL_INITIATIVE_RE.fullmatch(key_path[0]):
             return key_path[2] in initiative_collections.get(key_path[1], ())
         return len(key_path) == 2 and key_path == ("backlog", "open")
 

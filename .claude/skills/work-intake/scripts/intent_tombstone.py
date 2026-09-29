@@ -46,14 +46,13 @@ Parse refusal tokens:
                              missing required field, or wrong pointer count).
     ``invalid-date``       — the ``Tombstone:`` value is not a valid ISO 8601 date.
     ``invalid-path``       — the ``Reissued as:`` value is an invalid path.
-    ``empty-retired``      — the ``Retired:`` value is empty or whitespace only.
 """
 
 from __future__ import annotations
 
 import datetime
 import importlib.util
-import os
+import posixpath
 import re
 import sys
 from dataclasses import dataclass
@@ -162,14 +161,26 @@ def _check_reissued_path(path: str) -> str | None:
     and would let ``docs/product/intents/../../x.md`` normalise back under the
     prefix it had already escaped.
 
-    The check is purely lexical -- ``os.path.normpath`` rather than filesystem
+    The check is purely lexical -- normalisation rather than filesystem
     resolution -- because the successor named here need not exist yet. A
     backslash is rejected before normalisation, which treats it as an ordinary
     character on POSIX while Windows would read it as a separator.
+
+    Normalisation is POSIX regardless of the host OS. ``os.path.normpath`` is
+    ``ntpath.normpath`` on Windows and rewrites the separators, after which a
+    forward-slash prefix test rejects every valid repository-relative path.
+    The value is a repository path, not a host path, so it is read as one.
+
+    A control character is refused outright. No filesystem accepts one in a
+    name, so such a value can never resolve; a NUL in particular survives
+    normalisation, is not a line boundary, and round-trips unchanged, so
+    nothing downstream would catch it.
     """
     if Path(path).is_absolute() or "\\" in path:
         return "invalid-path"
-    normalised = os.path.normpath(path)
+    if any(ch < " " or ch == "\x7f" for ch in path):
+        return "invalid-path"
+    normalised = posixpath.normpath(path)
     if not normalised.startswith(_INTENTS_PREFIX + "/"):
         return "invalid-path"
     return None
@@ -269,7 +280,13 @@ def serialize_tombstone(
     if _parsed.reissued_as != reissued_as or _parsed.retired != retired:
         return "serializer-rejected"
 
-    return text.encode("utf-8")
+    try:
+        return text.encode("utf-8")
+    except UnicodeEncodeError:
+        # A lone surrogate survives every guard above and the round-trip
+        # check, because all of them operate on `str`. This callable returns
+        # a value or a token; it does not raise at its caller.
+        return "serializer-rejected"
 
 
 def parse_tombstone(text: str) -> Tombstone | str:
@@ -325,9 +342,10 @@ def parse_tombstone(text: str) -> Tombstone | str:
         if path_fault is not None:
             return path_fault
 
-    # Retired: must be non-empty when present.
-    if retired is not None and not retired.strip():
-        return "empty-retired"
+    # No blank-`Retired:` branch here. The shared structural validator reads a
+    # value that normalises to empty as absent, so the pointer count is zero
+    # and `bad-shape` is already returned above. A branch here would be dead,
+    # and advertising its token would make this vocabulary lie.
 
     return Tombstone(
         slug=slug,
