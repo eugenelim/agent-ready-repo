@@ -20,6 +20,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 _PACK_ROOT = Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts"
 
@@ -707,3 +709,193 @@ def test_symlinked_workspace_toml_refuses_registry_unparseable(
         _SOURCE_REL, _TOKEN, repository_root=tmp_path
     )
     assert result == "registry-unparseable"
+
+
+# ── B2: dirty probe requires positive proof of cleanliness ────────────────────
+
+
+def test_ignored_untracked_source_refuses_path_dirty(tmp_path: Path) -> None:
+    """A source that is ignored and untracked refuses with ``path-dirty``.
+
+    ``git status --porcelain`` prints nothing for an ignored-and-untracked
+    path, so absence of output alone cannot establish cleanliness. The
+    positive ls-files check detects that the path is not tracked and reports
+    dirty.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _make_intents_dir(repo)
+
+    # Commit workspace.toml and a .gitignore that hides the source — but
+    # intentionally do NOT add the source to the index.
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(_SOURCE_REL), encoding="utf-8"
+    )
+    (repo / ".gitignore").write_text(_SOURCE_REL + "\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "workspace.toml", ".gitignore"],
+        cwd=repo, check=True, capture_output=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "init without source"],
+        cwd=repo, check=True, capture_output=True,
+    )
+
+    # Write the source after committing; it is now ignored and untracked.
+    (repo / _SOURCE_REL).write_text(_live_intent_text(), encoding="utf-8")
+
+    result = validator.validate_rename_request(_SOURCE_REL, _TOKEN, repository_root=repo)
+    assert result == "path-dirty"
+
+
+def test_assume_unchanged_modified_source_refuses_path_dirty(tmp_path: Path) -> None:
+    """A source modified after ``--assume-unchanged`` refuses with ``path-dirty``.
+
+    ``git status --porcelain`` skips the working-tree stat check for files
+    flagged assume-unchanged, so a modification is invisible to it.  The
+    ls-files -v check detects the ``h`` flag and reports dirty regardless of
+    whether the file is actually modified.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _setup_standard(repo)
+    _commit_all(repo)
+
+    subprocess.run(
+        ["git", "update-index", "--assume-unchanged", _SOURCE_REL],
+        cwd=repo, check=True, capture_output=True,
+    )
+    # Modify the source; git won't notice due to the assume-unchanged flag.
+    (repo / _SOURCE_REL).write_text(
+        _live_intent_text() + "\n<!-- assume-unchanged edit -->\n",
+        encoding="utf-8",
+    )
+
+    result = validator.validate_rename_request(_SOURCE_REL, _TOKEN, repository_root=repo)
+    assert result == "path-dirty"
+
+
+def test_skip_worktree_modified_source_refuses_path_dirty(tmp_path: Path) -> None:
+    """A source modified after ``--skip-worktree`` refuses with ``path-dirty``.
+
+    Like assume-unchanged, skip-worktree hides working-tree modifications
+    from ``git status``. The ls-files -v check detects the ``S`` flag.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _setup_standard(repo)
+    _commit_all(repo)
+
+    subprocess.run(
+        ["git", "update-index", "--skip-worktree", _SOURCE_REL],
+        cwd=repo, check=True, capture_output=True,
+    )
+    (repo / _SOURCE_REL).write_text(
+        _live_intent_text() + "\n<!-- skip-worktree edit -->\n",
+        encoding="utf-8",
+    )
+
+    result = validator.validate_rename_request(_SOURCE_REL, _TOKEN, repository_root=repo)
+    assert result == "path-dirty"
+
+
+# ── B3: registry matching counts only declared collection entries ─────────────
+
+
+def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
+    """A bare TOML table carrying ``path`` but outside a collection array is not counted.
+
+    ``[decoy]\\npath = "..."`` puts a dict value at the document level, not
+    inside any collection array. The old generic dict traversal counted it
+    because any dict with a ``path`` key was treated as an entry. The new
+    structural traversal requires position inside an array.
+    """
+    _setup_standard(tmp_path, registered=False)
+    decoy_toml = (
+        f'[decoy]\npath = "{_SOURCE_REL}"\n'
+    )
+    (tmp_path / "workspace.toml").write_text(decoy_toml, encoding="utf-8")
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=tmp_path
+    )
+    assert result == "source-unregistered"
+
+
+# ── C2: root-discovery failures refuse before reading ─────────────────────────
+
+
+def test_cwd_oserror_refuses_root_unresolved_before_reading(tmp_path: Path) -> None:
+    """When ``Path.cwd()`` raises ``OSError``, root-unresolved is returned before
+    any file is read.
+
+    The ``_cwd`` seam is absent (``None``), so discovery calls ``Path.cwd()``.
+    Patching it to raise ``OSError`` exercises the guarded branch and asserts
+    that no I/O happens before the refusal.
+    """
+    with (
+        patch.object(Path, "cwd", side_effect=OSError("no cwd")),
+        patch.object(
+            validator._file_safety,
+            "read_confined_regular_file",
+        ) as mock_read,
+    ):
+        result = validator.validate_rename_request(_SOURCE_REL, _TOKEN)
+    assert result == "root-unresolved"
+    mock_read.assert_not_called()
+
+
+def test_non_git_cwd_refuses_root_unresolved_before_reading(tmp_path: Path) -> None:
+    """When git discovery fails from ``_cwd``, root-unresolved is returned before
+    any file is read.
+
+    A directory that is not a git working tree causes ``git rev-parse``
+    to exit nonzero, so ``_git_toplevel`` returns ``None``, and
+    ``validate_rename_request`` returns ``root-unresolved`` without reading
+    any file.
+    """
+    non_git = tmp_path / "non_git_dir"
+    non_git.mkdir()
+    with patch.object(
+        validator._file_safety,
+        "read_confined_regular_file",
+    ) as mock_read:
+        result = validator.validate_rename_request(
+            _SOURCE_REL, _TOKEN, _cwd=non_git
+        )
+    assert result == "root-unresolved"
+    mock_read.assert_not_called()
+
+
+# ── C3: sys.dont_write_bytecode is restored after module load ─────────────────
+
+
+@pytest.mark.parametrize("flag", [True, False])
+def test_dont_write_bytecode_preserved_after_import(flag: bool) -> None:
+    """sys.dont_write_bytecode equals its preset value after the module loads.
+
+    The module saves and restores sys.dont_write_bytecode around the sibling
+    loads. This test presets the flag to each boolean and asserts the preset
+    is unchanged after a fresh execution of the module body. Deleting the
+    save/restore would leave the flag True (the value set by the module body)
+    regardless of the preset.
+    """
+    prev = sys.dont_write_bytecode
+    sys.dont_write_bytecode = flag
+    unique_name = f"{MODULE_NAME}_bytecode_test_{flag}"
+    try:
+        path = _SCRIPTS / "intent_rename_request.py"
+        spec = importlib.util.spec_from_file_location(unique_name, path)
+        assert spec and spec.loader, path
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[unique_name] = module
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+        assert sys.dont_write_bytecode == flag, (
+            f"sys.dont_write_bytecode changed from {flag!r} to "
+            f"{sys.dont_write_bytecode!r} after module load"
+        )
+    finally:
+        sys.dont_write_bytecode = prev
+        sys.modules.pop(unique_name, None)

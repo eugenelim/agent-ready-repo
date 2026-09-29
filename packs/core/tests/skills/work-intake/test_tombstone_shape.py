@@ -28,6 +28,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 _PACK_ROOT = Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts"
 
@@ -379,3 +381,140 @@ def test_text_without_tombstone_field_is_not_a_tombstone() -> None:
     assert result == "not-tombstone", (
         f"expected 'not-tombstone' for live intent, got {result!r}"
     )
+
+
+# ── B1: round-trip self-check rejects unsafe field values ─────────────────────
+
+
+@pytest.mark.parametrize(
+    "slug, date, reissued_as, retired",
+    [
+        # LF in slug — str.splitlines() splits; parser sees wrong structure.
+        ("slug-with\ninjection", _DATE_A, None, _RETIRED_NOTE),
+        # CR in slug — str.splitlines() splits on \r; parsed slug differs.
+        ("slug-with\rinjection", _DATE_A, None, _RETIRED_NOTE),
+        # U+2028 (LINE SEPARATOR) in slug — a splitlines() boundary but not
+        # \n or \r, so the existing character checks miss it.
+        ("slug-with injection", _DATE_A, None, _RETIRED_NOTE),
+        # Field-shaped injection in slug — serialized text gains extra fields;
+        # parser returns bad-shape.
+        ("valid\n- **Owner:** injected", _DATE_A, None, _RETIRED_NOTE),
+        # Empty slug — parser returns bad-shape (empty slug is not accepted).
+        ("", _DATE_A, None, _RETIRED_NOTE),
+        # Trailing HTML comment in reissued_as — normalize_value strips it on
+        # the way back out; parsed pointer differs from the supplied value.
+        (_SLUG, _DATE_A, f"{_REISSUED_PATH} <!-- stripped -->", None),
+        # U+2028 in retired note — a splitlines() boundary; parser sees extra
+        # fields from the injected text after the line separator.
+        (_SLUG, _DATE_A, None, "ok - **Reissued as:** docs/product/intents/x.md"),
+    ],
+)
+def test_serialize_unsafe_inputs_refuse(
+    slug: str,
+    date: str,
+    reissued_as: str | None,
+    retired: str | None,
+) -> None:
+    """serialize_tombstone refuses inputs whose round-trip would disagree with
+    the supplied values.
+
+    Each case names an input that evades one or more of the individual guards
+    (CR/LF check, path check, empty-retired check) but is caught by the
+    round-trip self-check: the serialized text either does not parse back to a
+    Tombstone, or parses to a Tombstone whose values differ from the supplied
+    inputs.
+
+    Asserting ``isinstance(result, str)`` (a token, not bytes) is sufficient
+    because the positive round-trip cases are covered by
+    ``test_round_trip_property``.
+    """
+    result = tombstone.serialize_tombstone(slug, date, reissued_as=reissued_as, retired=retired)
+    assert isinstance(result, str), (
+        f"expected a refusal token for slug={slug!r}, reissued_as={reissued_as!r}, "
+        f"retired={retired!r}; got bytes {result!r}"
+    )
+
+
+# ── C1: parse_tombstone value checks can fail ─────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "text, expected_token",
+    [
+        # Invalid date value: structurally valid tombstone, bad Tombstone: value.
+        (
+            "# Tombstone: rename-test\n\n"
+            "- **Slug:** `rename-test`\n"
+            "- **Tombstone:** not-a-date\n"
+            "- **Retired:** no longer needed\n",
+            "invalid-date",
+        ),
+        # Invalid path value: absolute path in Reissued as:.
+        (
+            "# Tombstone: rename-test\n\n"
+            "- **Slug:** `rename-test`\n"
+            "- **Tombstone:** 2026-09-21\n"
+            "- **Reissued as:** /etc/passwd\n",
+            "invalid-path",
+        ),
+        # Blank retirement note: whitespace-only Retired: value. The corpus-lint
+        # structural check applies normalize_value before building the field
+        # presence set, so a whitespace-only value normalizes to the empty
+        # string and is treated as absent. That makes the pointer count zero,
+        # which is a structural fault, so the refusal token is bad-shape rather
+        # than empty-retired. The test pins this chain so that changes to either
+        # layer that let the text pass are caught.
+        (
+            "# Tombstone: rename-test\n\n"
+            "- **Slug:** `rename-test`\n"
+            "- **Tombstone:** 2026-09-21\n"
+            "- **Retired:**    \n",
+            "bad-shape",
+        ),
+    ],
+)
+def test_parse_tombstone_rejects_bad_field_values(text: str, expected_token: str) -> None:
+    """parse_tombstone applies value-shape rules independently of serialize_tombstone.
+
+    Each text is structurally valid (passes the tombstone partition and
+    structural checks) but carries an invalid field value. Deleting the
+    corresponding value check from parse_tombstone leaves the suite green
+    without this test, because existing tests only feed parse_tombstone the
+    output of serialize_tombstone, which has already validated the values.
+    """
+    result = tombstone.parse_tombstone(text)
+    assert result == expected_token, (
+        f"expected {expected_token!r} for text {text!r}, got {result!r}"
+    )
+
+
+# ── C3: sys.dont_write_bytecode is restored after module load ─────────────────
+
+
+@pytest.mark.parametrize("flag", [True, False])
+def test_dont_write_bytecode_preserved_after_import(flag: bool) -> None:
+    """sys.dont_write_bytecode equals its preset value after the module loads.
+
+    The module saves and restores sys.dont_write_bytecode around the sibling
+    loads. This test presets the flag to each boolean and asserts the preset
+    is unchanged after a fresh execution of the module body. Deleting the
+    save/restore would leave the flag True (the value set by the module body)
+    regardless of the preset.
+    """
+    prev = sys.dont_write_bytecode
+    sys.dont_write_bytecode = flag
+    unique_name = f"{MODULE_NAME}_bytecode_test_{flag}"
+    try:
+        path = _SCRIPTS / "intent_tombstone.py"
+        spec = importlib.util.spec_from_file_location(unique_name, path)
+        assert spec and spec.loader, path
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[unique_name] = module
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+        assert sys.dont_write_bytecode == flag, (
+            f"sys.dont_write_bytecode changed from {flag!r} to "
+            f"{sys.dont_write_bytecode!r} after module load"
+        )
+    finally:
+        sys.dont_write_bytecode = prev
+        sys.modules.pop(unique_name, None)

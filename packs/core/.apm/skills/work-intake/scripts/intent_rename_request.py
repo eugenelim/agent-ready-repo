@@ -121,10 +121,23 @@ class ResolvedRequest:
 
 
 def _git_toplevel(cwd: Path) -> Path | None:
-    """Return the git repository root, or ``None`` when the call fails."""
+    """Return the git repository root, or ``None`` when the call fails.
+
+    ``--no-optional-locks`` prevents the rev-parse from acquiring
+    ``.git/index.lock``, keeping this call truly read-only. ``--literal-
+    pathspecs`` is set for consistency with ``_is_dirty`` so both helpers
+    share the same argv structure; rev-parse takes no pathspecs, but the
+    flag is harmless and documents the intent.
+    """
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+            [
+                "git",
+                "--no-optional-locks",
+                "--literal-pathspecs",
+                "rev-parse",
+                "--show-toplevel",
+            ],
             cwd=os.fspath(cwd),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -143,17 +156,37 @@ def _git_toplevel(cwd: Path) -> Path | None:
 def _is_dirty(repository_root: Path, source_rel: str) -> bool:
     """Return ``True`` when the source or workspace.toml carries any uncommitted change.
 
-    Fails closed: if git cannot be launched, times out, or exits nonzero,
-    the paths are treated as dirty rather than letting an environmental
-    failure pass as a clean working tree. Only an exit-zero, empty status
-    output counts as clean.
+    Fails closed: any environmental failure — ``OSError``, ``TimeoutExpired``,
+    or a nonzero exit code from either git invocation — reports dirty rather
+    than letting the failure masquerade as a clean tree.
 
-    The pathspec covers both the source and ``workspace.toml``, since the
-    rename transaction touches both paths.
+    Reports clean **only** when every guarded path is positively established
+    as tracked in the index, not hidden from git's working-tree scan by the
+    ``assume-unchanged`` or ``skip-worktree`` flags, and identical to HEAD.
+    Absence of ``git status --porcelain`` output alone is not sufficient proof:
+    ignored-and-untracked paths, and paths flagged ``assume-unchanged``
+    (flag ``h``) or ``skip-worktree`` (flag ``S``), also produce no status
+    output yet carry no guarantee of being clean.
+
+    Both git invocations use ``--no-optional-locks`` so no index lock is
+    acquired (keeping this function truly read-only), and ``--literal-
+    pathspecs`` so a source filename containing glob characters is not
+    interpreted as a pattern.
     """
+    paths = [source_rel, "workspace.toml"]
+    _GIT = ["git", "--no-optional-locks", "--literal-pathspecs"]
+
+    # ── Step 1: verify tracked status and hidden-scan flags ───────────────────
+    # ``git ls-files -v`` prints one line per tracked path in the form
+    # ``<flag> <path>``.  Flag ``H`` is normal-tracked; ``h`` is
+    # assume-unchanged; ``S`` is skip-worktree.  Either ``h`` or ``S`` hides
+    # working-tree modifications from git's regular scan, so we treat them as
+    # dirty regardless of whether the file is actually modified — the status
+    # cannot be established positively.  A path absent from the output is
+    # either untracked or ignored, which is also dirty.
     try:
-        result = subprocess.run(
-            ["git", "status", "--porcelain", "--", source_rel, "workspace.toml"],
+        ls_result = subprocess.run(
+            [*_GIT, "ls-files", "-v", "--", *paths],
             cwd=os.fspath(repository_root),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -163,35 +196,85 @@ def _is_dirty(repository_root: Path, source_rel: str) -> bool:
         )
     except (OSError, subprocess.TimeoutExpired):
         return True
-    if result.returncode != 0:
+    if ls_result.returncode != 0:
         return True
-    return bool(result.stdout.strip())
+
+    tracked: set[str] = set()
+    ls_output = ls_result.stdout.decode("utf-8", errors="replace")
+    for line in ls_output.splitlines():
+        if len(line) < 3:
+            continue
+        flag, path = line[0], line[2:]
+        if flag in ("h", "S"):
+            # Hidden from git's scan — cannot prove clean.
+            return True
+        tracked.add(path)
+
+    for p in paths:
+        if p not in tracked:
+            # Not tracked at all — untracked or ignored.
+            return True
+
+    # ── Step 2: check for staged or working-tree modifications ────────────────
+    try:
+        status_result = subprocess.run(
+            [*_GIT, "status", "--porcelain", "--", *paths],
+            cwd=os.fspath(repository_root),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return True
+    if status_result.returncode != 0:
+        return True
+    return bool(status_result.stdout.strip())
 
 
 def _count_registry_matches(data: object, target_path: str) -> int:
-    """Count workspace entries whose top-level ``path`` field equals ``target_path``.
+    """Count workspace entries whose ``path`` field equals ``target_path``.
 
-    Traverses TOML tables and arrays iteratively. When a dict carries a
-    ``path`` key it is treated as an entry-level dict: its own ``path`` is
-    compared and the dict's values are not descended into, so ``needs``
-    arrays and nested ``source`` tables inside the entry do not contribute
-    extra counts. Dicts without a ``path`` key are container nodes; their
-    values are traversed to reach entries nested under initiative or queue
-    keys.
+    An entry is a dict that appears as a **direct element of an array**.
+    Dicts that appear as values of other dicts are container nodes: they are
+    traversed to reach collection arrays but are never counted themselves.
+
+    This position rule is what separates a registered entry from every other
+    dict that may carry a ``path`` key — top-level initiative tables, inline
+    ``source`` sub-tables, and bare ``[decoy]`` sections all carry dict
+    values, not array elements, and are therefore ignored. Only the entry
+    arrays under the known collection keys (``open``, ``queue``, ``active``,
+    ``shipped``, and their siblings) reach the entry-candidate branch.
+
+    Nested arrays inside an entry (``needs``, and any future sub-lists) are
+    also excluded: entry dicts are never recursed into, so their children
+    never reach the array branch.
+
+    Complexity: O(n) in the number of nodes in the TOML document, with at
+    most one dict-values traversal per container node.
     """
     count = 0
-    work: list[object] = [data]
+    # Stack entries: ``(node, is_array_element)``.
+    # ``is_array_element=True``  → entry candidate; check path, do not recurse.
+    # ``is_array_element=False`` → container dict or raw array; traverse.
+    work: list[tuple[object, bool]] = [(data, False)]
     while work:
-        node = work.pop()
+        node, is_entry_candidate = work.pop()
         if isinstance(node, dict):
-            p = node.get("path")
-            if isinstance(p, str) and p == target_path:
-                count += 1
-            if p is None:
-                # Container node — traverse its values to find entries.
-                work.extend(node.values())
+            if is_entry_candidate:
+                # Array element: compare path and stop — never recurse further.
+                p = node.get("path")
+                if isinstance(p, str) and p == target_path:
+                    count += 1
+            else:
+                # Container node: traverse all values to reach collection arrays.
+                for val in node.values():
+                    work.append((val, False))
         elif isinstance(node, list):
-            work.extend(node)
+            # Every element of any array is an entry candidate.
+            for item in node:
+                work.append((item, True))
     return count
 
 
