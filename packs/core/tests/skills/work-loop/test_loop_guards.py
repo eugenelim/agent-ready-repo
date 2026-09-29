@@ -2393,6 +2393,9 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         # helper listing tasks whose records are superseded (not absent)
         "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
         "unaccounted_breakdown",
+        # the per-wave count summary the status report reads, derived from the
+        # two helpers above rather than from a second reading of the container
+        "wave_accounting_summary",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
@@ -3046,6 +3049,9 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         # helper listing tasks whose records are superseded (not absent)
         "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
         "unaccounted_breakdown",
+        # the per-wave count summary the status report reads, derived from the
+        # two helpers above rather than from a second reading of the container
+        "wave_accounting_summary",
     }
     guards = load_guards()
     missing = sorted(n for n in names if not hasattr(guards, n))
