@@ -98,6 +98,32 @@ a check.
 comment is absent, not malformed — so a seeded field you have not filled in
 costs nothing and asserts nothing.
 
+## Tombstone files
+
+When an intent is renamed, the old filename is retired rather than deleted. A
+**tombstone file** is left at the vacated name so that the old ordinal is never
+reissued to a new intent.
+
+**Partition rule:** a file in `docs/product/intents/` is a tombstone if and only
+if its preamble carries a `Tombstone:` field. Every file in the directory is
+either a live intent or a tombstone; this single field is what decides which.
+
+A tombstone's preamble carries exactly three fields and no others:
+
+| Field | Value |
+| --- | --- |
+| `Slug` | The slug the retired file carried — unchanged from the original intent |
+| `Tombstone` | The retirement date, written as one ISO 8601 calendar date `YYYY-MM-DD` |
+| `Reissued as` or `Retired` | Exactly one of these two: `Reissued as` holds the repository-relative path to the renamed successor (under `docs/product/intents/`); `Retired` holds a single non-empty line describing why the intent was retired without a successor |
+
+Both pointer fields together, or neither, are refused.
+
+The tombstone file's **name** is the retired intent filename, unchanged — the
+same `<TYPE>-NNNN-<slug>.md` structure and `.md` extension. Changing the name in
+any way would break the ordinal reservation: a name outside the expected shape
+either fails every later admission in the directory, or frees the ordinal
+silently with no error. The correct name is the retired name, exactly as it was.
+
 ## Body sections
 
 These are sections, not preamble fields, and no tier above applies to them.

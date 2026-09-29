@@ -1,9 +1,9 @@
 # Spec: Intent renumber, reissue, and the tombstone
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0108; ADR-0033; ADR-0098
+- **Constrained by:** ADR-0108; ADR-0033; ADR-0098; ADR-0129
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
 - **Contract:** none
@@ -58,10 +58,10 @@ holds. The operation that applies a rename is
 | --- | --- | --- | --- | --- | --- |
 | Decision rationale | Applicable — the tombstone convention constrains every later intent, and ADR-0108 D3's non-reuse rule is the thing it implements for a second artifact class | `docs/adr/` | eugenelim | An Accepted ADR stating the tombstone convention and its two rejected alternatives | The ADR exists and this spec cites it in `Constrained by:` |
 | Interface compatibility | Applicable — `Tombstone:` is a new durable field in an adopter-visible artifact | `guides/product-engineering/reference/intent-fields-and-modes.md` | eugenelim | The field and its three-field contract documented alongside the existing intent fields | The reference page describes the field an adopter will see |
-| Maintainer procedure | Applicable — the operation is operator-invoked and its refusals need a recovery story | `guides/product-engineering/how-to/` | eugenelim | A how-to covering both causes and what to do after a refusal | The page walks one real rename end to end |
-| Current product truth | Applicable — `intake-intent` and `work-intake` both state that nothing renames an intent | the two `SKILL.md` bodies | eugenelim | Those statements point at this operation instead of asserting the capability wall | No skill still claims an intent can never be renamed |
-| Release history | Applicable — the operation ships inside `packs/core` | `packs/core/CHANGELOG.md` | eugenelim | One entry for the shipped operation | Entry present under the released version |
-| Reusable learning | Applicable — the sweep's reach was measured rather than assumed | `docs/specs/intent-renumber-and-reissue/notes/verification-ledger.md` | eugenelim | The measured citation counts and what they bound | The ledger records the measurement the criteria rest on |
+| Maintainer procedure | Not applicable here — the operator surface and its recovery story ship with [`intent-rename-transaction`](../intent-rename-transaction/spec.md), which owns the how-to. There is no operation to follow until it lands | — | — | — | — |
+| Current product truth | Not applicable here — `intake-intent` and `work-intake` state that nothing renames an intent, and that stays true until the transaction slice ships the operation. Retiring the capability wall is that slice's output, not this one's | — | — | — | — |
+| Release history | Applicable — this slice ships two new modules inside `packs/core` | `docs/product/changelog.md` | eugenelim | One core entry naming the released version. This is the file `tools/check-core-release.py` reads; `packs/core/CHANGELOG.md` does not exist | Entry present under the released version |
+| Reusable learning | Applicable — AC-0004 rests on a measurement rather than an assumption, and the ledger is where this slice records which one and where it lives | `docs/specs/intent-renumber-and-reissue/notes/verification-ledger.md` | eugenelim | The tombstone-filename-shape measurement AC-0004 rests on, cited to its 2026-09-21 record in `docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md` rather than re-measured. The orphan and transaction-failure-mode sections already in this ledger are the sibling slice's inherited inputs, not this slice's evidence | The ledger records the measurement AC-0004 rests on |
 | Current architecture | Not applicable — the operation adds no module boundary and no layer | — | — | — | — |
 
 ## Agent Rules
@@ -102,6 +102,24 @@ holds. The operation that applies a rename is
   token outside `NAMESPACE_TOKENS`, an unparseable registry, and a registry
   matching the source twice — so a positive path cannot be satisfied by
   refusing everything. One positive case asserts a fully valid request passes.
+
+  Three of those fixtures are fail-closed cases, and they are named here
+  rather than left to the plan because a completion gate reads this section
+  and not that one. Each refuses rather than resolving to either side of the
+  partition: a source whose bytes do not decode; one whose preamble yields no
+  parsed field at all; and one carrying a damaged `Tombstone:` marker beside a
+  well-formed field, which a best-effort parse reports as a live intent. A
+  fourth asserts that an invocation whose repository root does not resolve
+  refuses before it reads anything.
+
+  The check is scoped to the marker that decides the partition, not to the
+  whole preamble — a real intent's preamble carries an H1 title and may carry
+  annotations the field grammar does not match, so demanding that all of it
+  parse would refuse every live source. One positive fixture is taken from a
+  real corpus-shaped preamble so that over-strictness fails the suite.
+
+  Liveness is established, never inferred from a field's absence; inferring
+  it is how a retired name passes the tombstone refusal.
 - **The pre-run refusal (AC-0020): TDD.** A fixture with an uncommitted change
   on a path the operation would touch must refuse before writing anything.
 - **The tombstone's three-field shape (AC-0005, AC-0006): TDD.** A parse with
@@ -113,7 +131,9 @@ holds. The operation that applies a rename is
   fixture per rule — a non-ISO date, an absolute `Reissued as:`, one resolving
   outside `docs/product/intents/`, an empty `Retired:` — and a sample taken
   either side of midnight to fix the date to one value.
-- **Tombstone name safety (AC-0004): inherited, re-run not re-authored.**
+- **Tombstone name safety (AC-0004): goal-based check.** The check is that an
+  existing test still passes; this slice authors no test for it, which is why
+  the mode is goal-based rather than TDD.
   Already pinned before this spec by
   `test_tombstone_filename_shapes_pin_allocation_and_check` in
   `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, committed
@@ -166,12 +186,20 @@ holds. The operation that applies a rename is
 
 ## Retired identifiers
 
-These twelve were authored here and moved to
+Seventeen identifiers are retired here, in two groups. Every one is recorded
+so its number is never reissued — ADR-0108 D3's non-reuse rule reaches an
+identifier that moved as much as one that was retired.
+
+The first twelve — `AC-0001`, `AC-0002`, `AC-0003`, `AC-0007`, `AC-0008`,
+`AC-0009`, `AC-0012`, `AC-0013`, `AC-0018`, `AC-0024`, `AC-0025` and
+`AC-0026` — were authored here and moved to
 [`docs/specs/intent-rename-transaction/spec.md`](../intent-rename-transaction/spec.md)
 on 2026-09-28. They keep their numbers there so the review history behind
-their wording stays legible, and they are recorded here so the numbers are
-never reissued — ADR-0108 D3's non-reuse rule reaches an identifier that
-moved as much as one that was retired.
+their wording stays legible.
+
+The remaining five — `AC-0010`, `AC-0011`, `AC-0014`, `AC-0019` and
+`AC-0023` — were retired for their own reasons before that split and went
+nowhere. Each entry below carries the reason that applies to it.
 
 - `AC-0001`
   - moved to `docs/specs/intent-rename-transaction/spec.md` on
@@ -270,9 +298,10 @@ moved as much as one that was retired.
 - Process: applying ADR-0108 D3's non-reuse rule to intent filenames, with one
   tombstone file per retired name standing in for that ADR's per-directory
   retired list, is an extension of a decision scoped to loop-contract items. No
-  accepted record authorises it yet. The ADR that would is `plan.md`'s T7, and
-  T8 — the task that ships the operator surface — depends on it, so the
-  convention is ratified before anything reaches an adopter. What is open is
+  accepted record authorises it yet. The ADR that would is `plan.md`'s T4, and
+  the task that ships the operator surface now lives in
+  [`intent-rename-transaction`](../intent-rename-transaction/spec.md) and rests
+  on it, so the convention is ratified before anything reaches an adopter. What is open is
   whether the ADR ratifies `AC-0005` and `AC-0006` as written; if it does not,
   both need amendment and the sibling lint that reads them needs telling
   (settled by: eugenelim, when the ADR is drafted)
@@ -280,7 +309,7 @@ moved as much as one that was retired.
   here can see that. AC-0004 holds over the directory as it stands, and the
   tombstone file is the whole reservation record — deliberately, because
   ADR-0108's Context rejects a repository-global retired list as
-  uncoordinatable across worktrees, and this spec's `## Objective` inherits
+  uncoordinatable across worktrees, and this spec's `## Outcome` inherits
   that. So the guarantee is "no ordinal is reused while its tombstone stands",
   and hand-deleting one is corpus corruption of the same kind as deleting a
   live intent, which nothing here detects either. `Agent Rules` forbids the
