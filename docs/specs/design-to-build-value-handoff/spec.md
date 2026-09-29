@@ -128,6 +128,17 @@ delivery that does. AC-0015 and AC-0016 change them deliberately.
   run routes rather than invents is a judgement no parser makes. Graded by
   `packs/*/.apm/skills/*/evals/evals.json` and pinned present by construction
   tests, so a case cannot be deleted silently.
+- **The release surface** (AC-0027, AC-0028, AC-0029 — the two version pairs
+  and the two changelog entries): goal-based. Each is a comparison over file
+  content with no behaviour to drive, so a one-liner is the whole check: the
+  version pair is read from `pack.toml` and `.claude-plugin/plugin.json` and
+  compared, and each new `##` changelog heading is checked for a `### Highlights`
+  subsection as its first `###` line.
+- **The superseded-spec annotations** (AC-0035, AC-0036): TDD where a
+  `tests/roster/` module already reads `docs/specs/`, because that is the only
+  tree permitted to; goal-based via `lint-spec-status.py --root .` otherwise,
+  which proves the linter's leading-token truncation accepts an annotated
+  status. Record which route was taken — the two are not equivalent evidence.
 - **Catalogue and guide validity**: goal-based —
   `agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify
   --root .`, `python3 tools/validate_guides.py`,

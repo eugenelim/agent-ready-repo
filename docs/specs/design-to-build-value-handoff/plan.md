@@ -198,7 +198,8 @@ names the operation).
 sibling roster module, whichever already reads `docs/specs/`:
 `test_both_superseded_specs_annotate_their_status` — AC-0035, AC-0036. If no
 roster module reads `docs/specs/`, these two are goal-based instead, checked by
-the `grep` below; record which route was taken.
+the `lint-spec-status.py` run listed under the goal-based checks below;
+record which route was taken — the two routes are not equivalent evidence.
 
 **Goal-based checks:**
 
