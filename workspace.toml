@@ -2365,18 +2365,19 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # Slice 8 of `intent-identity-and-registration`, approved 2026-09-28 and moved
-  # here from `backlog.open` on the precedent that section records: that
-  # collection admits these specs only while they are Draft, and
-  # `intent-preamble-closure-declarations` moved the same way when its spec was
-  # approved. Approval followed the spec-mode adversarial review that new-spec
-  # step 7 requires, which had never run on this slice -- six rounds, converged
-  # clean. `needs` is empty: AC-0027's ADR is this spec's own task T7 and T8
-  # depends on it, so the ordering is internal to the plan rather than a
-  # blocking edge on another queue item.
-  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
 ]
 active  = [
+  # Slice 8 of `intent-identity-and-registration`. Moved here from `queue` on
+  # 2026-09-28 when the spec went `Implementing`: `queue` admits an Approved
+  # spec only, so membership and status move together or the canonical
+  # reconciliation raises `impossible_transition`. Approved after the
+  # spec-mode adversarial review that new-spec step 7 requires, then amended
+  # under the pre-EXECUTE review -- six adversarial rounds and four security
+  # rounds, twelve findings sustained, converged clean. `needs` is empty:
+  # AC-0027's ADR is this spec's own task T4, and the operator surface that
+  # rests on it moved to `intent-rename-transaction`, so the ordering is
+  # internal to the plan rather than a blocking edge on another item.
+  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
