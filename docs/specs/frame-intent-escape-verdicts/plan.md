@@ -1,8 +1,8 @@
 # Plan: three escape forms, three verdicts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
-- **Repository anchors:** `packs/product-engineering/.apm/skills/frame-intent/SKILL.md:229-243` (the "Resolve, then surface, then write" block and the untrusted-origin sentence this supersedes); `packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md:56-58` (the same rule restated in the shipped schema doc, which must move with it); `packs/product-engineering/tests/pack/test_frame_intent_shaping_review.py` (the prose-assertion pattern this pack already uses). Named uncertainty: prose verification cannot establish behaviour, recorded as an accepted limitation in the spec's `## Assumptions`.
+- **Status:** Done
+- **Repository anchors:** `packs/product-engineering/.apm/skills/frame-intent/SKILL.md:280-304` (the "Resolve, then surface, then write" block, all three verdicts, and the personal-scope language); `packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md:56-72` (the same rule restated in the shipped schema doc, which must move with it); `packs/product-engineering/tests/pack/test_frame_intent_shaping_review.py` (the prose-assertion pattern this pack already uses). Named uncertainty: prose verification cannot establish behaviour, recorded as an accepted limitation in the spec's `## Assumptions`.
 
 ## Approach
 
@@ -17,6 +17,7 @@ Amend prose, do not shorten it. The section already carries the anchoring and re
 - **ADR-0030 D7 for the absolute-only arm**, which this slice conforms to rather than supersedes. D7 is also the owner's recorded reconciliation with the confinement default: the checklist would confine every resolved path to a designated root, and D7 accepts a confirmed destination outside it for an adopter-configured value.
 - **ADR-0030** keeps each pack's default and posture in its own skill body, so this rule belongs in `frame-intent`'s body rather than in a shared contract.
 - **Prompt-only.** `frame-intent` reads a file and reasons about a path; there is no engine behind it, and this slice adds none.
+- **Portable authority wording.** The preserved T1 row below records its original pre-amendment phrase "citing ADR-0030 D7." AC-0003 now governs that phrase: the spec and plan cite D7 as authority, while shipped pack prose states the Ask-first rule directly and carries no internal governance citation.
 
 ## Construction tests
 
@@ -68,6 +69,22 @@ No `## Durable Outputs` table in the spec, so nothing to mirror. Each task names
 
 **Touches:** docs/specs/frame-intent-escape-verdicts/notes/verification-ledger.md
 
+### T3: The pack eval harness names the symlink-escape request
+
+**Depends on:** T2
+
+**Mode:** Goal-based check
+
+**Tests:**
+- `frame-intent/evals/eval_queries.json` includes a positive activation query that names a configured `output_dir` crossing a symlink out of the repository, keeping the pack's declared eval harness current with the non-cosmetic skill change. Construction check, no criterion: activation coverage does not prove the refusal verdict.
+
+**Approach:**
+- Add one data-only query to the existing frame-intent activation harness. Do not add an engine, script, module, or claim that an activation check proves the three-way verdict.
+
+**Done when:** the frame-intent eval query file remains valid JSON and the pack eval harness includes the symlink-escape request as a positive frame-intent activation case.
+
+**Touches:** packs/product-engineering/.apm/skills/frame-intent/evals/eval_queries.json
+
 ## Rollout
 
 Pack content only. Adopters pick it up on the next install. One behaviour change to flag in the pack's changelog entry, and it is narrower than it first looks: an adopter whose configured path crosses a symlink out of its anchoring root, or carries a `..` segment, starts getting a refusal where they previously got a prompt. An adopter whose absolute path simply resolves outside the repository keeps the prompt, unchanged.
@@ -80,3 +97,11 @@ Pack content only. Adopters pick it up on the next install. One behaviour change
 ## Changelog
 
 - 2026-09-20 — Split three ways after shaping review found ADR-0030 D6 already rejects `..`, so it was never an Ask-first case; the reference-doc criterion and the instruction-level wording of each criterion came from the same round. Originally drafted as a separate slice of `intent-identity-and-registration`, split out of `intent-placement-and-admission` so a safety change with prose-level evidence is reviewed on its own terms. Narrowed the same day to the symlink arm: the brief's blanket refusal claim traced to no source and contradicted ADR-0030 D7, while the security checklist's link-following control covers the symlink case alone.
+- 2026-09-29 — Spec scope approved by eugenelim after fresh adversarial and secure-design reviews returned clean.
+- 2026-09-29 — Plan strategy approved by eugenelim: T1 updates and checks both contract surfaces; T2 records one consumer refusal through an out-of-root symlink.
+- 2026-09-29 — Traceability-only amendment approved by eugenelim after post-gates review: updated current line anchors and described the single-verdict wording as the pre-slice baseline; outcome, criteria, tasks, and implementation scope are unchanged.
+- 2026-09-29 — Amendment review reconciled AC-0003 with pack portability rules: ADR-0030 D7 remains the contract authority, while shipped prose states its Ask-first rule directly without an internal citation.
+- 2026-09-29 — Amendment review added the required data-only frame-intent activation-eval case to the plan; it keeps the pack harness current without treating activation coverage as verdict evidence.
+- 2026-09-29 — Amended spec scope approved by eugenelim after fresh adversarial and checklist-complete secure-design reviews returned clean.
+- 2026-09-29 — Amended plan strategy approved by eugenelim: preserve completed T1/T2 evidence and add the required data-only frame-intent activation query without widening the prompt-only slice.
+- 2026-09-29 — Before pinning, moved the eval-only correction from preserved T1 into new dependent task T3, as the controlled-amendment lifecycle forbids editing a completed task row.
