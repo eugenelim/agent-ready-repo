@@ -394,23 +394,22 @@ sast-unleased:
 	# input fails closed if the optional dependency declaration changes.
 	python3 tools/audit-requirements.py --optional-group lint \
 		packages/agentbundle/pyproject.toml
-	# No suppressions. This leg carried four `--ignore-vuln` flags for semgrep's
-	# mcp/click transitive pins until semgrep 1.174 shipped mcp==1.29.0 and
-	# click~=8.4.2, clearing them. The removed flags named CVE ids while
-	# pip-audit now reports the same three advisories under PYSEC ids; OSV
-	# records them as aliases, one to one -- CVE-2026-52870/PYSEC-2026-3481,
-	# CVE-2026-52869/PYSEC-2026-3482, CVE-2026-59950/PYSEC-2026-3483 -- so the
-	# suppressions retired are exactly the advisories measured as cleared.
+	# One temporary suppression: semgrep 1.174 through 1.178 requires
+	# pyjwt[crypto]~=2.13.0, which excludes the patched PyJWT 2.14.0 release.
+	# CVE-2026-102274 is a malformed-JWK-set availability failure; this gate runs
+	# Semgrep locally against repository files and does not consume untrusted
+	# JWK sets. Remove the suppression when a Semgrep release accepts PyJWT 2.14
+	# or newer. This leg previously carried four mcp/click suppressions until
+	# Semgrep 1.174 shipped fixed versions; the same unblock rule retired them.
 	# Note what this command does and does not see: pip-audit RESOLVES the
 	# requirements file, so it always audits the newest version the range allows
 	# and would read clean even at the old `semgrep>=1.166` floor. It says
 	# nothing about the semgrep actually installed on this machine — that is what
 	# requirements-sast.txt's floor is for, and why the floor moved with this
 	# change rather than being left behind.
-	# A new suppression here needs a written diagnosis and a recorded unblock
-	# condition, the discipline that retired the last four.
-	@echo "pip-audit -r tools/requirements-sast.txt"
-	@pip-audit -r tools/requirements-sast.txt
+	@echo "pip-audit -r tools/requirements-sast.txt (Semgrep PyJWT transitive CVE allowlist applied)"
+	@pip-audit -r tools/requirements-sast.txt \
+		--ignore-vuln CVE-2026-102274
 	# Both shipped packages declare dependencies=[]; their optional extras are
 	# the only third-party code either can pull, so audit those explicitly.
 	# Mirror packages/credbroker/pyproject.toml [crypto] and
