@@ -2142,7 +2142,6 @@ open = [
   # did. `needs` carries the blocking edge: its tombstone writing rests on the
   # ADR that sibling's T4 produces.
   { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-renumber-and-reissue/spec.md"}] },
-  { path = "docs/specs/frame-intent-escape-verdicts/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Three out-of-root escape forms get three verdicts: a symlink refuses, a dot-dot segment refuses under ADR-0030 D6, and an absolute-only external path keeps D7 Ask-first", needs = [] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make a feature intent's mapping to its independently shippable spec, or to a delivery brief and its child specs, visible from the intent side; needs its own de-risk before decomposition", needs = [] },
@@ -2407,6 +2406,12 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # The final confirmed slice of `intent-identity-and-registration`, delivered
+  # 2026-09-29 and moved from `backlog.open` in the same change that set the
+  # spec `Shipped` and the plan `Done`. It keeps three out-of-root forms
+  # distinct: symlink traversal and `..` refuse, while an absolute-only path
+  # outside the repository asks before use.
+  { path = "docs/specs/frame-intent-escape-verdicts/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Three out-of-root escape forms get three verdicts: a symlink refuses, a dot-dot segment refuses under ADR-0030 D6, and an absolute-only external path keeps D7 Ask-first", needs = [] },
   # Slice 8 of `intent-identity-and-registration`. Delivered 2026-09-29 and
   # moved from `active` to `shipped` in the change that set the spec
   # `Shipped` and the plan `Done`; membership and status move together or the
