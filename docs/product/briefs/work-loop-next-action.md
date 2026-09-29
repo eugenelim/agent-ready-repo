@@ -57,6 +57,13 @@ in this brief waits on it.
   linked above. This brief must not acquire a claim about review passes the loop
   did not record — that assumption is what ended the prior attempt.
 
+## Boundary with `pack-guidebook-walkability`
+
+[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+owns static guide prose naming what to run next. This brief keeps the read-only
+runtime query that derives one authoritative next action from persisted loop
+state; neither outcome substitutes for the other.
+
 ## Appetite
 
 Two prior attempts at the reporting half exist; the second consumed ten

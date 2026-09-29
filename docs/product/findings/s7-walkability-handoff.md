@@ -5,6 +5,11 @@ a spec: it carries the facts, constraints and traps that S6 paid for, so the
 next session does not re-derive them. The governing artifacts are the brief's S7
 row and, when it exists, S7's own spec.
 
+**Superseded instruction, 2026-09-28.** S7 now has a governing spec at
+[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md).
+Use that spec and its ownership ledger for current scope. This handoff remains
+evidence of the pre-spec state and no longer directs delivery.
+
 ---
 
 Continue the SDLC guide uplift. Start from `main` — the `eugenelim/team-sop`

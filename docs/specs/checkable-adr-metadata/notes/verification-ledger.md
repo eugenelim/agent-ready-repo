@@ -439,3 +439,15 @@ hold now. The tick was the error, not the criterion.
   section is non-empty as bytes. The accepted narrowing for S014 was
   "present-and-non-empty", so this matches the criterion as written; recorded
   rather than changed.
+
+## Closeout — 2026-09-28
+
+The owner confirmed that the descriptor-relative rewrite raised as B2 is not
+part of the accepted outcome and would be disproportionate hardening for this
+delivery. It is dropped with no follow-up item. C7 remains the recorded limit
+of the mutation suite rather than an unmet acceptance criterion, and C5's third
+limb remains behaviour admitted by the accepted S014 predicate.
+
+The implementation delivered by `45ee3f969` remains the completion event. All
+32 acceptance criteria are checked; the spec is Shipped, the plan is Done, and
+the workspace entry is in the shipped collection.

@@ -58,6 +58,12 @@ exact guarantee.
   role-specific first-value content.
 - Freeze a repository-wide tutorial count into a completion check.
 
+## Boundary with `pack-guidebook-walkability`
+
+`pack-guidebook-walkability` takes no entry from this spec. This spec retains
+every entry in [`notes/accepted-base.md`](notes/accepted-base.md); the accepted
+base remains the closed tutorial queue.
+
 ## Testing Strategy
 
 - **Goal-based audit checks:** a fresh affordance ledger must show B and C on

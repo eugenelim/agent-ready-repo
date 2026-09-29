@@ -234,3 +234,80 @@ pick one structural pass, keep the interaction work — read clearly.
 `lint-guidebook-steps guides/experience-design` exits 0; 24 contract cases pass;
 the three guide validators exit 0; the new step-5 target
 `guides/README.md` § P3 exists.
+
+## Closeout — 2026-09-28
+
+### Owner ratification and contract correction
+
+The owner ratified the delivered standalone contract at
+`docs/guides/guidebook-step-contract.md` as the accepted design. It carries 16
+obligations, including `what_changes`, `correction`, `go_deeper`, and
+`step_map`; `artifact_preview` is the delivered replacement for the draft's
+outline-only obligation. `guides/AGENTS.md` is the scoped pointer, not the
+normative contract body. The spec and plan now record that controlled
+amendment. The T1 and T2 entries above remain the historical execution record
+and are superseded where they name the old destination or obligation set.
+
+The product-strategy citation repair bundled in delivery commit `f2b1f5ab4`
+is classified as a separate source correction. It does not widen this spec,
+turn the guidebook outcome into a released pack change, or supply completion
+evidence.
+
+### Ownership closure
+
+The three sibling accepted-base ledgers contain 50 unique target paths inside
+the five packs. Three move to this slice: core's work-intake reference and its
+start/close how-tos. The other 47 remain with their originating sibling. Each
+sibling spec now records the same disposition, and the consolidation ledger
+contains a structured three-row record. The AC-0012 construction test derives
+the 50-path universe from the accepted bases and compares it with both records;
+it passes.
+
+The parent brief now registers this spec in its Spec map and no longer presents
+S7 as an unowned candidate. The two partly overlapping intents, the moved
+experience-design authoring scope, the four adjacent boundaries, and the
+pre-spec S7 handoff each carry their reciprocal current record.
+
+### Affordance measurement
+
+The audit was rerun against the parent of `f2b1f5ab4` and against the current
+tree with the same instrument. Each tuple is `files / A / B / C / D / E`:
+
+| Pack | Before | Current |
+| --- | --- | --- |
+| `desk-research` | 8 / 8 / 0 / 4 / 0 / 4 | 12 / 12 / 0 / 8 / 0 / 4 |
+| `product-strategy` | 7 / 5 / 0 / 1 / 4 / 3 | 10 / 8 / 0 / 4 / 4 / 3 |
+| `experience-design` | 5 / 0 / 1 / 0 / 1 / 2 | 11 / 6 / 1 / 5 / 1 / 4 |
+| `product-engineering` | 19 / 16 / 2 / 5 / 14 / 13 | 24 / 21 / 2 / 11 / 15 / 14 |
+| `core` | 35 / 19 / 2 / 11 / 13 / 14 | 40 / 23 / 2 / 17 / 13 / 15 |
+
+These corpus-wide affordance counts are descriptive, not acceptance claims.
+The acceptance claim is the contract lint over the 20 guidebook steps.
+
+### Current verification
+
+| Gate | Result |
+| --- | --- |
+| `make lint-ruff lint-mypy` | pass; 149 source files type-checked |
+| `python3 -m pytest -p no:cacheprovider tools/test_lint_guidebook_steps.py -q` | 34 passed |
+| `python3 -m pytest -p no:cacheprovider tools/test_check_guidebook_walk.py -q` | 13 passed |
+| `python3 -m pytest -p no:cacheprovider tools/test_build_site_routing.py -q -rs` | 94 passed, 1 pre-existing skip: combined web/docs build required |
+| `python3 tools/lint-guidebook-steps.py <five guide directories>` | pass; 5 directories |
+| `python3 tools/validate_guides.py` | pass; 231 checked, 6 exempt |
+| `python3 tools/lint-guide-titles.py` | pass; 237 files |
+| `python3 tools/check-guide-index.py` | pass; all 21 active packs present |
+| `python3 .agents/skills/author-delivery-brief/scripts/lint-brief-coverage.py` | pass; 21 briefs checked |
+| `python3 .agents/skills/work-loop/scripts/lint-spec-status.py --root . --all` | pass; all 508 specs clean, 230 warnings hidden |
+| `git diff --check` | pass |
+| Independent adversarial closeout review | `Clean — ready to commit.` after one live-spec wording repair |
+
+`make site-build` cannot complete in this managed session because the local
+Node dependency is absent (`astro: command not found`). It was probed once and
+not installed or retried. The combined-build routing case therefore reports
+its existing skip, while merged delivery `f2b1f5ab4` (PR #1276) remains the
+stable completion event for the rendered and browser gates. The walk records
+for all five packs are in `docs/product/pack-walks/experience-design.md` and
+`docs/product/pack-walks/waves-2-and-3.md`; their routed source limitations are
+not guidebook acceptance failures.
+
+All 22 acceptance criteria are satisfied. No owner decision remains open.
