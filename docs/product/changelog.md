@@ -64,6 +64,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.4] — 2026-09-29
+
+### Highlights
+
+- Renaming an intent no longer risks silently handing its old number to a different intent later. A retired filename now leaves a tombstone behind, and the number allocator counts tombstones alongside live intents, so a retired number stays out of circulation for as long as its tombstone stands.
+
+### Added
+
+- A rename-request validator in `work-intake`. It answers one question — is this a well-formed request to rename a live intent — and returns either the resolved request or one fixed refusal token naming what was wrong. It refuses a source that is missing, outside the intents directory, not a regular file, unreadable, already a tombstone, unregistered, or carrying an uncommitted change; an unparseable or ambiguous registry; an unrecognized target token; and an unresolvable repository root.
+- A tombstone reader and writer in `work-intake`. A tombstone carries the retired artifact's slug unchanged, the retirement date as one ISO 8601 calendar date, and exactly one of a successor path or a retirement note. Bad values are refused rather than written: a malformed date, a successor path outside the intents directory, an empty note, both pointer fields, or neither.
+- The retirement date is supplied by the caller rather than read from a clock, so an operation running across midnight writes the date it started with rather than two different dates.
+
+### Changed
+
+- The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
+
 ## [frontend-engineering][0.4.0] — 2026-09-29
 
 ### Highlights
@@ -87,22 +103,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The design-system eval corpus now grades unresolved-domain records that place the supplying operation beside the owner and require consumers to resolve no value for those domains.
 - The pack and Claude plugin metadata now publish Experience Design `4.1.0`.
-
-## [core][2.27.4] — 2026-09-29
-
-### Highlights
-
-- Renaming an intent no longer risks silently handing its old number to a different intent later. A retired filename now leaves a tombstone behind, and the number allocator counts tombstones alongside live intents, so a retired number stays out of circulation for as long as its tombstone stands.
-
-### Added
-
-- A rename-request validator in `work-intake`. It answers one question — is this a well-formed request to rename a live intent — and returns either the resolved request or one fixed refusal token naming what was wrong. It refuses a source that is missing, outside the intents directory, not a regular file, unreadable, already a tombstone, unregistered, or carrying an uncommitted change; an unparseable or ambiguous registry; an unrecognized target token; and an unresolvable repository root.
-- A tombstone reader and writer in `work-intake`. A tombstone carries the retired artifact's slug unchanged, the retirement date as one ISO 8601 calendar date, and exactly one of a successor path or a retirement note. Bad values are refused rather than written: a malformed date, a successor path outside the intents directory, an empty note, both pointer fields, or neither.
-- The retirement date is supplied by the caller rather than read from a clock, so an operation running across midnight writes the date it started with rather than two different dates.
-
-### Changed
-
-- The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
 ## [product-engineering][0.13.22] — 2026-09-29
 
