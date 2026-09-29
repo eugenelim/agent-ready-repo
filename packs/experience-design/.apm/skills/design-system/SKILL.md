@@ -123,6 +123,8 @@ Walk the rung table per domain. Three cases it does not settle on its own:
   both match.
 - **Nothing reaches the domain.** Record it unresolved, name the missing
   authority, and say which upstream operation would supply it. Do not choose.
+  Unresolved is not silence on that domain; a consumer of the artifact resolves
+  no value for it.
 
 Resolve the smallest coherent system that expresses the direction. Prefer three
 type sizes that mean something over nine that do not, and state a relationship

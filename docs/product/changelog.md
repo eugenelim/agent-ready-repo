@@ -91,6 +91,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
+## [frontend-engineering][0.4.0] — 2026-09-29
+
+### Highlights
+
+- Frontend builds now stop on upstream design gaps instead of filling them from a fallback, local premise, or category habit. When a resolved direction is missing the needed taxonomy, or a taxonomy records a domain as unresolved, the run holds only that axis and routes it back to the recorded owner or operation.
+- Standalone visual work now has a clear admission rule: it is allowed only when there is no applicable design artifact, no incumbent system, and no upstream authority left to complete. That keeps greenfield work moving without turning unfinished design decisions into implementation choices.
+
+### Changed
+
+- The visual-authority eval corpus now grades upstream-gap routing, unresolved-domain handling, and the three standalone admission conditions.
+- The pack and Claude plugin metadata now publish Frontend Engineering `0.4.0`.
+
+## [experience-design][4.1.0] — 2026-09-29
+
+### Highlights
+
+- Design artifacts now tell downstream builders who owns every unresolved domain and which operation supplies it, so “unresolved” routes work back upstream instead of inviting a consumer to invent a value.
+- The design thread now makes `design-system` conditional, not merely optional. Run it when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs; skip it when an incumbent system already covers the work.
+
+### Changed
+
+- The design-system eval corpus now grades unresolved-domain records that place the supplying operation beside the owner and require consumers to resolve no value for those domains.
+- The pack and Claude plugin metadata now publish Experience Design `4.1.0`.
+
 ## [product-engineering][0.13.22] — 2026-09-29
 
 ### Highlights

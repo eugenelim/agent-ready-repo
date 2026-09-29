@@ -263,6 +263,41 @@ def test_the_handoff_how_to_names_the_four_rungs_in_order() -> None:
     )
 
 
+def test_the_handoff_how_to_describes_the_upstream_gap() -> None:
+    """The guide must describe the two named-skip sources and the non-source."""
+    text = normalized(ROOT / HANDOFF_HOWTO)
+    required = (
+        "upstream gap",
+        "direction/<slug>.md",
+        "tokens/<slug>.md",
+        "named skip",
+        "no incumbent system supplies",
+        "needed domain unresolved",
+        "refusal is not a gap",
+        "owner or operation",
+        "display-only data",
+    )
+    missing = [literal for literal in required if not contains(text, literal)]
+    assert not missing, (
+        f"{HANDOFF_HOWTO} does not describe the upstream-gap contract; "
+        f"missing {missing}"
+    )
+
+    display_only = [
+        s for s in sentences(text)
+        if contains(s, "owner or operation") and contains(s, "display-only data")
+    ]
+    assert display_only, (
+        f"{HANDOFF_HOWTO}: no single sentence treats owner/operation values "
+        "as display-only data"
+    )
+    banned_runtime_uses = ("load", "invoke", "execute", "open", "resolve as a path")
+    assert all(contains(display_only[0], use) for use in banned_runtime_uses), (
+        f"{HANDOFF_HOWTO}: the display-only sentence does not ban all runtime "
+        f"uses {banned_runtime_uses}"
+    )
+
+
 def test_the_reference_page_describes_the_precedence_not_a_named_reference() -> None:
     """The pre-flight summary is what a reader skims to learn what the skill
     does. It listed the deleted step by name."""

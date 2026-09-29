@@ -269,7 +269,7 @@ def floor_states() -> set[str]:
         "the attribution the named CI step exists to buy"
     )
     after = parts[1]
-    names = set()
+    names: set[str] = set()
     seen_header = False
     for line in after.splitlines():
         stripped = line.strip()
@@ -472,7 +472,13 @@ def test_no_illustrative_state_list_names_a_state_outside_the_floor() -> None:
 
 # ── the say-this table ──────────────────────────────────────────────────────
 
-OPTIONALITY = ("Required", "Optional", "Choose one")
+OPTIONALITY = ("Required", "Optional", "Conditional", "Choose one")
+
+DESIGN_SYSTEM_REQUIRED_CONDITION = (
+    "a direction exists and neither a completed design system nor a coherent "
+    "incumbent system supplies every concrete value the surface needs"
+)
+DESIGN_SYSTEM_OPTIONAL_CASE = "incumbent system that already covers the work"
 
 # The two skills the optionality-agreement criterion names. Held here so the
 # agreement check can fail when a guide table stops recording one, rather than
@@ -525,7 +531,8 @@ def _say_this_rows() -> list[list[str]]:
     """
     text = (XD / "JOURNEY.md").read_text(encoding="utf-8")
     body = text.split("\n---\n", 1)[1]
-    rows, seen_header = [], False
+    rows: list[list[str]] = []
+    seen_header = False
     for line in body.splitlines():
         stripped = line.strip()
         if not stripped.startswith("|"):
@@ -626,6 +633,82 @@ def test_the_say_this_optionality_agrees_with_the_how_to_guides() -> None:
     assert not disagree, (
         f"the journey and its how-to disagree (skill: journey, guide): {disagree}"
     )
+
+
+def test_the_design_system_optionality_is_conditional() -> None:
+    """Verifies: both adopter surfaces use the AC-0017 vocabulary."""
+    guides = _guide_optionality()
+    rows = {_unbacktick(row[0]): row for row in _say_this_rows()}
+    assert rows["design-system"][-1] == "Conditional", (
+        "the design-system say-this row must be Conditional, not a prose "
+        "condition hidden inside another optionality cell"
+    )
+    assert guides["design-system"] == "Conditional", (
+        "the design-system how-to Needed? cell must be exactly Conditional"
+    )
+
+
+def test_the_journey_states_when_the_design_system_is_required() -> None:
+    """Verifies: Conditional is explained by the required condition."""
+    text = JOURNEYS["experience-design"].read_text(encoding="utf-8").lower()
+    assert DESIGN_SYSTEM_REQUIRED_CONDITION in text, (
+        "the design journey does not state the condition that makes "
+        "design-system required"
+    )
+
+
+def test_the_how_to_states_both_halves_of_the_condition() -> None:
+    """Verifies: the guide states the required and optional cases in prose."""
+    text = re.sub(
+        r"\s+", " ", (HOW_TO / "establish-design-intent.md").read_text(encoding="utf-8")
+    ).lower()
+    assert DESIGN_SYSTEM_REQUIRED_CONDITION in text, (
+        "the how-to does not state when design-system is required"
+    )
+    assert DESIGN_SYSTEM_OPTIONAL_CASE in text, (
+        "the how-to does not state the incumbent-system case where "
+        "design-system remains optional"
+    )
+
+
+def test_the_aesthetic_direction_gate_does_not_call_the_system_optional() -> None:
+    """Verifies: the gate trigger no longer treats design-system as optional."""
+    text = JOURNEYS["experience-design"].read_text(encoding="utf-8")
+    parts = text.split("  - id: approve-aesthetic-direction", 1)
+    assert len(parts) == 2, "the approve-aesthetic-direction gate is gone"
+    block = parts[1].split("\n  - id:", 1)[0].lower()
+    assert "design-system" in block, (
+        "the gate trigger no longer names design-system, so this assertion "
+        "cannot prove whether it is described as optional"
+    )
+    assert "optional" not in block, (
+        "the approve-aesthetic-direction gate still describes design-system "
+        "as optional"
+    )
+
+
+def test_the_journey_summary_keeps_design_system_conditional() -> None:
+    """Verifies: the top-level journey summary does not restore a fixed sequence."""
+    text = JOURNEYS["experience-design"].read_text(encoding="utf-8").lower()
+    match = re.search(r'^whatchanges:\s*"([^"]+)"', text, re.M)
+    assert match, "experience-design JOURNEY.md has no whatChanges summary"
+    summary = match.group(1)
+
+    assert "creative-direction \u2192 design-system \u2192 information-architecture" not in summary
+    assert "design-system runs when its condition requires it" in summary
+    assert DESIGN_SYSTEM_REQUIRED_CONDITION in summary
+
+
+def test_the_design_explainer_keeps_genre_routing_from_forcing_the_system() -> None:
+    """Verifies: genre routing changes IA only without forcing design-system."""
+    text = (XD / "DESIGN.md").read_text(encoding="utf-8")
+    section = text.split("### The genre routes", 1)
+    assert len(section) == 2, "DESIGN.md no longer carries the genre-routes section"
+    genre_routes = section[1].split("\n---\n", 1)[0].lower().replace("`", "")
+
+    assert "the full craft sequence runs" not in genre_routes
+    assert "creative-direction still runs" in genre_routes
+    assert "design-system runs when its condition requires it" in genre_routes
 
 
 def test_every_illustrative_state_list_is_within_the_explore_subset() -> None:

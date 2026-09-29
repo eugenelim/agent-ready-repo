@@ -98,6 +98,30 @@
       ]
     },
     {
+      "id": "visual-authority-upstream-gap-missing-taxonomy",
+      "prompt": "The design tree has a resolved direction artifact for this surface, but the expected token taxonomy slot is a named skip and no incumbent token system supplies the missing axis. Build the page.",
+      "expected_output": "The run records an upstream gap for the axis the missing `tokens/<slug>.md` taxonomy would have supplied. Because the taxonomy slot is a named skip beside a resolved `direction/<slug>.md`, and no incumbent system supplies the axis, the run holds that axis and routes it upstream to the artifact-recorded owner or operation. It does not take the fallback block, does not invent a token value, and does not state a local premise for that axis. Other axes continue through the normal visual-authority rungs.",
+      "assertions": [
+        "Records the named-skip taxonomy slot as an upstream gap",
+        "Routes the held axis upstream to the artifact-recorded owner or operation",
+        "Does not take the fallback block for the held axis",
+        "Does not state a local premise for the held axis",
+        "Continues resolving other axes through the normal rungs"
+      ]
+    },
+    {
+      "id": "visual-authority-unresolved-domain",
+      "prompt": "The design tree has a conforming token taxonomy for this surface. Its typography domain is recorded as unresolved and names the owner and operation that must resolve it. Build the page.",
+      "expected_output": "The run treats the taxonomy's needed domain unresolved record as an upstream gap for typography. It routes that named domain to the owner the artifact records, surfaces the artifact-recorded owner or operation as display-only data, and resolves no value for that domain. It does not choose an incumbent value, fallback value, local premise, or category habit for the unresolved domain. Domains the taxonomy did resolve are used as given.",
+      "assertions": [
+        "Treats a needed domain unresolved record as an upstream gap",
+        "Routes the named domain to the owner the artifact records",
+        "Treats artifact-recorded owner or operation values as display-only data",
+        "Resolves no value for the unresolved domain",
+        "Uses resolved domains from the taxonomy as given"
+      ]
+    },
+    {
       "id": "visual-authority-incumbent",
       "prompt": "No new design direction exists. The repository already has a coherent token system and established components. Add a screen to this product.",
       "expected_output": "The run resolves to the incumbent-system rung and inherits the existing visual language. It extends the established tokens and components rather than forking them or seeding a parallel set, and it does not treat the absence of a new direction as licence to invent one. Rendered observation runs as a regression check: the new screen is compared against the incumbent language so drift is caught before the gates.",
@@ -111,9 +135,9 @@
     {
       "id": "visual-authority-standalone",
       "prompt": "No design pack is installed, no design artifacts exist, and the repository has no existing token system or component library to inherit. Build a new marketing page.",
-      "expected_output": "The run completes. It records the design-handoff read as a named skip rather than failing on the absence of an optional pack, and it looks for existing repository visual conventions before inventing anything. Finding none, it states a concise local visual premise before implementing and records local-premise as the rung it used. It does not fail, stall, or report a missing dependency.",
+      "expected_output": "The run completes only after the standalone admission conditions are true: no-applicable-design-artifact, no-incumbent-system, and no-upstream-authority-to-complete. It records the design-handoff read as completed with named skips rather than failing on the absence of an optional pack, and it looks for existing repository visual conventions before inventing anything. Finding none, it states a concise local visual premise before implementing and records local-premise as the rung it used. It does not fail, stall, or report a missing dependency.",
       "assertions": [
-        "Completes without any design artifact present",
+        "Completes only when no-applicable-design-artifact, no-incumbent-system, and no-upstream-authority-to-complete are all true",
         "Records the handoff read as a named skip, not a failure",
         "Looks for existing repository visual conventions before inventing one",
         "States a concise local visual premise, since no higher rung resolved",

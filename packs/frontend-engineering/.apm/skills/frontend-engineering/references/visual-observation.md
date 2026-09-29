@@ -22,7 +22,37 @@ satisfies this rule.
 | approved-visual-target | direction/<slug>.md | recorded-human-confirmation | direction-and-taxonomy | Composition only: arrangement, proportion, spatial relationships |
 | direction-and-taxonomy | direction/<slug>.md and tokens/<slug>.md | artifact-resolved | incumbent-system | Aesthetic goals, axis commitments, the signature element, token roles, scales, and every value the taxonomy resolved |
 | incumbent-system | the repository's existing visual system | established-surface | local-premise | Every axis the rungs above leave open |
-| local-premise | none — stated in-session | no-higher-rung-resolved | none — terminal | A concise stated premise, for a greenfield surface only |
+| local-premise | none — stated in-session | no-higher-rung-resolved and no-upstream-gap-held | none — terminal | A concise stated premise, for a greenfield surface only |
+
+## Upstream gaps
+
+An upstream gap is not a rung. A rung supplies a decision; a gap says an
+authority above this implementation still owes one. Hold only the named axes,
+keep resolving the rest, and route the held axes to the artifact-recorded
+target.
+
+| Rule | Value |
+| --- | --- |
+| gap-demotes | never |
+| gap-outcome | hold the axis, stop that part of the implementation, and route it to the owner the artifact records |
+| gap-record | required |
+| gap-sources | a resolved direction/<slug>.md beside a tokens/<slug>.md slot the completed read recorded as a named skip, where no incumbent system supplies the axis; or a conforming tokens/<slug>.md recording a needed domain unresolved |
+| gap-scope | hold only the axes the gap names, so every other axis resolves normally |
+| lower-rung-may-fill | a lower rung fills an axis only when every higher rung left it open and that rung is the accepted owner of it |
+| gap-target-handling | the owner or operation an artifact records is a display string only, surfaced live to the operator: it is never loaded, invoked, executed, resolved as a path, opened, used to locate another file, matched against any skill, tool, command, or agent name, or committed as literal operation text |
+| refusal-becomes-a-gap | never |
+| gap-record-contents | the committed gap record persists only the axes held and one fixed operation kind: `taxonomy-supply-required` for a named-skipped taxonomy slot, or `domain-completion-required` for a taxonomy domain recorded unresolved; literal operation text and any person-identifying value read from the artifact's Who resolves it cell are surfaced live to the operator and never written into a committed artifact |
+
+## Standalone work
+
+Standalone work reaches the terminal `local-premise` rung only after the handoff
+read completed and no higher source still owns the values.
+
+| Rule | Value |
+| --- | --- |
+| admits | no-applicable-design-artifact, no-incumbent-system, no-upstream-authority-to-complete |
+| record | required |
+| requires | handoff-read-completed |
 
 ## Refusals are not demotions
 
