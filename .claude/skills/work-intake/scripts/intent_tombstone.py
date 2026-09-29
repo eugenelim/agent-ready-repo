@@ -50,9 +50,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# Bytecode is a write; this module promises none.
-sys.dont_write_bytecode = True
-
 # ── Sibling loader ────────────────────────────────────────────────────────────
 
 
@@ -78,8 +75,16 @@ def _load_sibling(name: str, module_name: str) -> object:
     return module
 
 
-_shape = _load_sibling("intent_shape", "core_work_intake_intent_shape")
-_lint = _load_sibling("intent_corpus_lint", "core_work_intake_intent_corpus_lint")
+# Bytecode is a write; this module promises none. Save and restore the
+# caller's value so sibling loading does not change process-wide behaviour
+# for every later import in the host.
+_prev_dont_write_bytecode = sys.dont_write_bytecode
+sys.dont_write_bytecode = True
+try:
+    _shape = _load_sibling("intent_shape", "core_work_intake_intent_shape")
+    _lint = _load_sibling("intent_corpus_lint", "core_work_intake_intent_corpus_lint")
+finally:
+    sys.dont_write_bytecode = _prev_dont_write_bytecode
 
 # ── Reuse the canonical tombstone vocabulary from the corpus lint ──────────────
 # The corpus lint is the single home for these constants and structural
@@ -156,9 +161,7 @@ def _check_reissued_path(path: str) -> str | None:
     if Path(path).is_absolute() or "\\" in path:
         return "invalid-path"
     normalised = os.path.normpath(path)
-    if normalised != _INTENTS_PREFIX and not normalised.startswith(
-        _INTENTS_PREFIX + "/"
-    ):
+    if not normalised.startswith(_INTENTS_PREFIX + "/"):
         return "invalid-path"
     return None
 
@@ -207,13 +210,23 @@ def serialize_tombstone(
 
     # ── Path shape ────────────────────────────────────────────────────────────
     if has_reissued:
+        # A path value containing CR or LF would inject extra preamble fields
+        # into the serialised output, making the writer emit text that its own
+        # parser would reject as bad-shape.
+        if "\n" in reissued_as or "\r" in reissued_as:  # type: ignore[operator]
+            return "invalid-path"
         path_fault = _check_reissued_path(reissued_as)  # type: ignore[arg-type]
         if path_fault is not None:
             return path_fault
 
     # ── Retired non-empty ─────────────────────────────────────────────────────
-    if has_retired and not retired.strip():  # type: ignore[union-attr]
-        return "empty-retired"
+    if has_retired:
+        # A retirement note containing CR or LF would inject extra preamble
+        # fields; the single-line constraint treats such a value as invalid.
+        if "\n" in retired or "\r" in retired:  # type: ignore[operator]
+            return "empty-retired"
+        if not retired.strip():  # type: ignore[union-attr]
+            return "empty-retired"
 
     # ── Build the tombstone text ──────────────────────────────────────────────
     lines = [

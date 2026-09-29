@@ -34,10 +34,6 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-# Bytecode is a write; this module promises none.
-sys.dont_write_bytecode = True
-
-
 # ── Sibling loader ────────────────────────────────────────────────────────────
 
 
@@ -63,11 +59,20 @@ def _load_sibling(name: str, module_name: str) -> object:
     return module
 
 
-_shape = _load_sibling("intent_shape", "core_work_intake_intent_shape")
-_ordinal = _load_sibling("intent_ordinal", "core_work_intake_intent_ordinal")
-_transaction = _load_sibling(
-    "intake_transaction", "core_work_intake_intake_transaction"
-)
+# Bytecode is a write; this module promises none. Save and restore the
+# caller's value so sibling loading does not change process-wide behaviour
+# for every later import in the host.
+_prev_dont_write_bytecode = sys.dont_write_bytecode
+sys.dont_write_bytecode = True
+try:
+    _shape = _load_sibling("intent_shape", "core_work_intake_intent_shape")
+    _ordinal = _load_sibling("intent_ordinal", "core_work_intake_intent_ordinal")
+    _transaction = _load_sibling(
+        "intake_transaction", "core_work_intake_intake_transaction"
+    )
+    _file_safety = _load_sibling("file_safety", "core_work_intake_file_safety")
+finally:
+    sys.dont_write_bytecode = _prev_dont_write_bytecode
 
 # ── Public constants ──────────────────────────────────────────────────────────
 
@@ -77,6 +82,13 @@ INTENTS_PARENT = "docs/product/intents"
 #: The two preamble fields that appear only on tombstones.  Their presence
 #: without ``Tombstone:`` signals a structurally impossible live intent.
 _POINTER_FIELDS: frozenset[str] = frozenset({"Reissued as", "Retired"})
+
+#: Byte limit for the workspace registry read. 16 MiB comfortably exceeds
+#: any workspace file this repository is expected to produce.
+_WORKSPACE_MAX_BYTES = 16 * 1024 * 1024
+
+#: Byte limit for the source intent read.
+_SOURCE_MAX_BYTES = 4 * 1024 * 1024
 
 
 # ── Resolved request ──────────────────────────────────────────────────────────
@@ -129,15 +141,19 @@ def _git_toplevel(cwd: Path) -> Path | None:
 
 
 def _is_dirty(repository_root: Path, source_rel: str) -> bool:
-    """Return ``True`` when the path carries any uncommitted change.
+    """Return ``True`` when the source or workspace.toml carries any uncommitted change.
 
-    Fails open on errors: if git is unavailable or the root is not a
-    repository, the path is treated as clean rather than blocking the
-    caller on an unrelated environmental failure.
+    Fails closed: if git cannot be launched, times out, or exits nonzero,
+    the paths are treated as dirty rather than letting an environmental
+    failure pass as a clean working tree. Only an exit-zero, empty status
+    output counts as clean.
+
+    The pathspec covers both the source and ``workspace.toml``, since the
+    rename transaction touches both paths.
     """
     try:
         result = subprocess.run(
-            ["git", "status", "--porcelain", "--", source_rel],
+            ["git", "status", "--porcelain", "--", source_rel, "workspace.toml"],
             cwd=os.fspath(repository_root),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -146,27 +162,37 @@ def _is_dirty(repository_root: Path, source_rel: str) -> bool:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return False
+        return True
+    if result.returncode != 0:
+        return True
     return bool(result.stdout.strip())
 
 
 def _count_registry_matches(data: object, target_path: str) -> int:
-    """Count workspace entries whose ``path`` field equals ``target_path``.
+    """Count workspace entries whose top-level ``path`` field equals ``target_path``.
 
-    Searches recursively through all TOML tables and arrays so entries
-    nested under any initiative or queue key are found.
+    Traverses TOML tables and arrays iteratively. When a dict carries a
+    ``path`` key it is treated as an entry-level dict: its own ``path`` is
+    compared and the dict's values are not descended into, so ``needs``
+    arrays and nested ``source`` tables inside the entry do not contribute
+    extra counts. Dicts without a ``path`` key are container nodes; their
+    values are traversed to reach entries nested under initiative or queue
+    keys.
     """
-    if isinstance(data, dict):
-        count = 0
-        p = data.get("path")
-        if isinstance(p, str) and p == target_path:
-            count += 1
-        for value in data.values():
-            count += _count_registry_matches(value, target_path)
-        return count
-    if isinstance(data, list):
-        return sum(_count_registry_matches(item, target_path) for item in data)
-    return 0
+    count = 0
+    work: list[object] = [data]
+    while work:
+        node = work.pop()
+        if isinstance(node, dict):
+            p = node.get("path")
+            if isinstance(p, str) and p == target_path:
+                count += 1
+            if p is None:
+                # Container node — traverse its values to find entries.
+                work.extend(node.values())
+        elif isinstance(node, list):
+            work.extend(node)
+    return count
 
 
 def _liveness_refusal(text: str) -> str | None:
@@ -197,11 +223,13 @@ def _liveness_refusal(text: str) -> str | None:
     if names & _POINTER_FIELDS:
         return "source-unreadable"
 
-    # Scan each visible preamble line for the ``tombstone`` token.  A line
-    # that contains the token but does not parse as a well-formed
-    # ``Tombstone:`` field is a damaged marker — refuse rather than reading
-    # it as prose.  Strictness is scoped to this marker; every other
-    # unmatched line (H1 title, blanks, annotation bullets) is exempt.
+    # Scan each visible preamble line for the ``tombstone`` token. Lines that
+    # parse as any well-formed field are exempt regardless of their value, so
+    # a ``Slug`` whose value is ``tombstone-migration`` or a field whose value
+    # mentions tombstones in prose does not trigger this check. A visible line
+    # that mentions ``tombstone`` but does NOT parse as any well-formed field
+    # is a damaged marker — refuse rather than reading it as prose. H1 titles
+    # are not exempt: an H1 bearing the token requires a separate owner decision.
     inside_comment = False
     for line in text.splitlines():
         visible, inside_comment = _shape._visible_line_outside_comments(  # type: ignore[attr-defined]
@@ -211,10 +239,12 @@ def _liveness_refusal(text: str) -> str | None:
             break
         if "tombstone" not in visible.lower():
             continue
-        # The line mentions ``tombstone``.  Accept only a well-formed field.
-        m = _shape._FIELD_LINE.match(visible)  # type: ignore[attr-defined]
-        if not (m and m.group(1).strip() == "Tombstone"):
-            return "source-unreadable"
+        # The line mentions ``tombstone``. Exempt it if it parses as any
+        # well-formed field (any field name, any value).
+        if _shape._FIELD_LINE.match(visible):  # type: ignore[attr-defined]
+            continue
+        # Does not parse as a well-formed field — treat as a damaged marker.
+        return "source-unreadable"
 
     return None
 
@@ -251,7 +281,10 @@ def validate_rename_request(
     """
     # ── Step 1: resolve the repository root ──────────────────────────────────
     if repository_root is None:
-        cwd = _cwd if _cwd is not None else Path.cwd()
+        try:
+            cwd = _cwd if _cwd is not None else Path.cwd()
+        except OSError:
+            return "root-unresolved"
         discovered = _git_toplevel(cwd)
         if discovered is None:
             return "root-unresolved"
@@ -284,8 +317,11 @@ def validate_rename_request(
 
     # ── Step 4: read and check liveness ──────────────────────────────────────
     try:
-        text = original.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+        source_bytes = _file_safety.read_confined_regular_file(  # type: ignore[attr-defined]
+            resolved_root, original, max_bytes=_SOURCE_MAX_BYTES
+        )
+        text = source_bytes.decode("utf-8")
+    except (OSError, UnicodeDecodeError, ValueError):
         return "source-unreadable"
 
     refusal = _liveness_refusal(text)
@@ -295,9 +331,11 @@ def validate_rename_request(
     # ── Step 5: check the workspace registry ─────────────────────────────────
     workspace_path = resolved_root / "workspace.toml"
     try:
-        workspace_bytes = workspace_path.read_bytes()
-    except OSError:
-        return "source-unregistered"
+        workspace_bytes = _file_safety.read_confined_regular_file(  # type: ignore[attr-defined]
+            resolved_root, workspace_path, max_bytes=_WORKSPACE_MAX_BYTES
+        )
+    except (OSError, ValueError):
+        return "registry-unparseable"
 
     try:
         workspace_data = tomllib.loads(workspace_bytes.decode("utf-8"))
