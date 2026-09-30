@@ -701,7 +701,64 @@
               "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless `claude -p` launch, per the control verified on 2026-09-29 and recorded on case 1's row"
             },
             "normal_loop_progress": {
-              "rounds_completed": 3,
+              "rounds_completed": 4,
+              "round_4": {
+                "reviewer_role": "adversarial",
+                "round_purpose": "confirmation pass after the owner-directed scope reduction, chosen by the controller because a narrowing leaves stale references",
+                "raw_findings": 13,
+                "raw_report_sha256": "bd6fe682ddf95cd6bc9bb499a4f6105d764a8ee37df7e29c436c9a0c93a3bd6d",
+                "adjudicated": true,
+                "adjudication_sha256": "9bd6ee53c1d269d613a5c7f843dc8cbeab1e8d15818973dff5747f237b31b6de",
+                "sustained": 11,
+                "refuted": 2,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 3,
+                  "concern": 4,
+                  "nit": 4
+                },
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  91242,
+                  84740
+                ],
+                "returned_subagent_tokens_total": 175982,
+                "wall_time_seconds_total": 504.7,
+                "repair_origin_findings": 3,
+                "repair_origin_note": "Three sustained findings originated in the controller's own scope-reduction edit. Two were the same mechanical failure: a scripted string replacement anchored on text an earlier round had already rewritten matched nothing and silently no-opped, leaving Outcome and the plan's Approach asserting the retired behaviour, including a start gate reading 'This contract does not start until that is answered' on a question the ruling had already answered. No gate caught it because both are prose sections no lint reads, and the controller reported the edit as landed and wrote the same false claim into the commit message and to the owner. The third was a genuine design conflict the narrowing created between AC-0006's sweep property and the inherited gating criteria.",
+                "controller_process_deviation": "The controller repaired the Outcome section before the adjudicator returned, which breaks the gateway rule that only sustained findings drive a revision. It had verified the defect directly and the surviving text was a live start gate, but the order was wrong and is recorded because this loop's behaviour is the measured object. The adjudicator independently sustained the finding, so no unadjudicated change stands.",
+                "adjudicator_corrected_the_reviewer": "On finding 12 the adjudicator corrected a factual detail of the reviewer's claim before sustaining it, and declined to carry one sub-claim of finding 8. On finding 3 it sustained on directly verified bytes while explicitly recording that it could not run the property and that the reviewer's count of 9 violating sentences was unverified by it.",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start"
+                ]
+              },
+              "convergence_signal_round_4": {
+                "sustained_by_round": {
+                  "round_1": 11,
+                  "round_2": 15,
+                  "round_3": 10,
+                  "round_4": 11
+                },
+                "raw_by_round": {
+                  "round_1": 13,
+                  "round_2": 16,
+                  "round_3": 11,
+                  "round_4": 13
+                },
+                "blockers_by_round": {
+                  "round_1": 6,
+                  "round_2": 4,
+                  "round_3": 3,
+                  "round_4": 3
+                },
+                "repair_origin_by_round": {
+                  "round_2": 2,
+                  "round_3": 2,
+                  "round_4": 3
+                },
+                "reading": "Round 4 is not a fifth iteration on the original contract. It is a confirmation pass the controller chose to run on a deliberately narrowed contract, and its blockers are residue of that narrowing rather than defects in the mechanism. The distinguishing evidence is that both round 3 and round 4 independently re-verified the prior rounds' repairs and found them holding. What the numbers do show honestly is that repair-origin findings rose every round, from 2 to 2 to 3, and in round 4 they were the majority of the blockers: the controller is now the main source of new defects in this contract, not the contract. That is a finding about the repairing agent, not about review effectiveness, and it must not be folded into an effectiveness reading.",
+                "case_2_contrast_still_holds": "Case 2's rounds each rediscovered carriers of an extent nobody had measured, and no round confirmed a prior round's repair. Case 3's rounds 3 and 4 each did."
+              },
               "round_3": {
                 "reviewer_role": "adversarial",
                 "raw_findings": 11,
