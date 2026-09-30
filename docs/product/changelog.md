@@ -64,19 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [code-intelligence][0.1.0] — 2026-09-29
-
-### Highlights
-
-- Ask what is actually true about a codebase before changing it. Index the repository once, then ask what calls a symbol, what a change would break, or how the system is organised — answered from a resolved call graph rather than a text search.
-- Answers carry the index's own limits. The unresolved-reference count, the truncated-row count, and the traversal horizon are reported rather than rounded away, so a blast radius reads as a floor instead of a total.
-
-### Added
-
-- The `code-intelligence` skill: five reusable investigation patterns, a capability map from tool-neutral intent to the exact command, evidence and provenance handling, and a fourteen-point assessment of what the provider does and does not expose.
-- Two forked-context subagents: `code-investigator` for evidence-driven investigation, and `impact-analyst` for structured change-impact analysis. Both are workflow-neutral and read-only.
-- Graceful degradation. Without an index the skill falls back to ordinary repository search and labels it as such; it never presents a text search as a blast radius, lineage, or provenance.
-
 ## [core][2.27.5] — 2026-09-29
 
 ### Highlights
@@ -103,6 +90,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
+
+## [code-intelligence][0.1.0] — 2026-09-29
+
+### Highlights
+
+- Ask what is actually true about a codebase before changing it. Index the repository once, then ask what calls a symbol, what a change would break, or how the system is organised — answered from a resolved call graph rather than a text search.
+- Answers carry the index's own limits. The unresolved-reference count, the truncated-row count, and the traversal horizon are reported rather than rounded away, so a blast radius reads as a floor instead of a total.
+
+### Added
+
+- The `code-intelligence` skill: five reusable investigation patterns, a capability map from tool-neutral intent to the exact command, evidence and provenance handling, and a fourteen-point assessment of what the provider does and does not expose.
+- Two forked-context subagents: `code-investigator` for evidence-driven investigation, and `impact-analyst` for structured change-impact analysis. Both are workflow-neutral and read-only.
+- Graceful degradation. Without an index the skill falls back to ordinary repository search and labels it as such; it never presents a text search as a blast radius, lineage, or provenance.
 
 ## [frontend-engineering][0.4.0] — 2026-09-29
 
