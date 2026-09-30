@@ -606,6 +606,17 @@ open = [
   # because `visual-target-field` ships a frontmatter field that nothing reads,
   # and this successor is the whole justification for that: a follow-on recorded
   # only in the deferring spec's prose has no pointer a reader can resolve.
+  # PyJWT 2.13.0 now carries TWELVE advisories the repository cannot fix,
+  # because semgrep declares `pyjwt[crypto]~=2.13.0` and no direct pin or
+  # constraint can reach 2.14.0 or 2.15.0 through it. Two of the twelve arrived
+  # on 2026-09-30, during one session, each reddening gate-sast on main until an
+  # allowlist entry was justified. The allowlist is doing its job, but the
+  # arrival rate is the problem: suppression per advisory is the mute-list decay
+  # `tools/pip-audit-allowlist.toml` warns against, and the batch no longer
+  # shares one retirement version. Registered because it has no owner and no
+  # spec; the structural options are to stop depending on semgrep's
+  # `pyjwt[crypto]` extra, vendor the ruleset, or pin the advisory feed read.
+  { slug = "semgrep-pyjwt-pin-blocks-every-sca-remediation", source = "gate-sast, 2026-09-30 (CVE-2026-102270 and CVE-2026-101918 added the same day; ADR-0131 vehicle holding twelve entries)" },
   {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed, gate converge, visualize and creative-direction SKILL.md on a confirmed target under the three criteria visual-target-field retired on 2026-09-30, and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-target-field/spec.md"}]},
   # The four recorded SCA weaknesses of `make sast` are closed for ONE of its
   # pip-audit invocations and open for the rest. ADR-0131 gave the new
