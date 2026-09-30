@@ -693,7 +693,49 @@
               "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless `claude -p` launch, per the control verified on 2026-09-29 and recorded on case 1's row"
             },
             "normal_loop_progress": {
-              "rounds_completed": 1,
+              "rounds_completed": 2,
+              "round_2": {
+                "reviewer_role": "adversarial",
+                "raw_findings": 16,
+                "raw_report_sha256": "3dd9e6a9b025be388a23ac25a0740d1dd2a369ed4b27650c086be78119159a85",
+                "raw_classification": "findings",
+                "adjudicated": true,
+                "adjudication_sha256": "971882ba66163ba7e645ae6b428cbb9ffd7da765f1b5cc1c3c7b1e5b01da542b",
+                "sustained": 15,
+                "refuted": 1,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 4,
+                  "concern": 10,
+                  "nit": 1
+                },
+                "severity_adjusted_by_adjudicator": "one finding the reviewer filed as a blocker was sustained at concern, on the ground that the helper isolates the right unit against the current tree and the residual is a false-pass hole rather than a blocked start",
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  113705,
+                  85086
+                ],
+                "returned_subagent_tokens_total": 198791,
+                "wall_time_seconds_total": 1060.5,
+                "attribution": "both starts are normal-loop review work, observed rather than study-added",
+                "repair_origin_findings": 2,
+                "repair_origin_note": "two sustained findings were introduced by the round-1 repair itself: the sentence helper that bounded on '. ', and AC-0004 becoming a whole-file containment check that AC-0005's own edit would render unfailable",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start"
+                ]
+              },
+              "convergence_signal": {
+                "sustained_by_round": {
+                  "round_1": 11,
+                  "round_2": 15
+                },
+                "raw_by_round": {
+                  "round_1": 13,
+                  "round_2": 16
+                },
+                "reading": "Sustained findings rose between rounds. That is the shape that preceded case 2's decomposition, and it is recorded as a signal to watch rather than as a verdict: two rounds is not a trend, and the rounds differ in kind — round 1 attacked what the criteria said, round 2 attacked whether their verifications could fail. A deeper second layer is not the same as churn. Raw and sustained counts are recorded because the contract requires observed counts; neither is used as a quality denominator, and no effectiveness figure follows from them.",
+                "owner_informed": true
+              },
               "round_1": {
                 "reviewer_role": "adversarial",
                 "raw_findings": 13,
