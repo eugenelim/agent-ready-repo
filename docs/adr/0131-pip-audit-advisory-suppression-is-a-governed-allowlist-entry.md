@@ -154,6 +154,14 @@ flags as the weaker sibling has been corrected. `docs/adr/0083`'s "four live
 wrong before this change (one flag remained), and amending an accepted ADR is
 its own governance act rather than a side effect of this one.
 
+**Revisit if:** (1) a Semgrep release permits `PyJWT>=2.14.0`, which empties the
+allowlist and leaves the vehicle carrying nothing; (2) an entry is proposed for a
+package other than `pyjwt`, which requires widening `allowed_packages` and is a
+decision in its own right; (3) the reachability finding recorded above is
+falsified by an upstream release, at which point the acceptances lose their
+grounds rather than their trigger; or (4) this repository adopts CODEOWNERS or
+equivalent review routing, which would close residual 3.
+
 ## Residuals
 
 Three, recorded rather than implied.
