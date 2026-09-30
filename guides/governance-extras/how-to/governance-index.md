@@ -89,9 +89,9 @@ Add a new domain row when:
 - You extend a pack's standards with a repo-specific standard (e.g. a custom
   tagging standard that overrides the pack default).
 
-The `generate-iac` skill adds IaC domain rows (`state`, `layout`, `iam`,
-`tagging`, `networking`, `pipeline_auth`, `remediation`, `observability`)
-automatically if they are absent during Stage 0.
+Add the row yourself in the index. The `generate-iac` skill reads an existing
+index during Stage 0; if no governance index exists, it offers to bootstrap
+one, but it does not add domain rows to an existing index.
 
 ## Optional lint
 
