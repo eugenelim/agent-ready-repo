@@ -1,0 +1,46 @@
+# .gitleaks.toml — scanner configuration.
+#
+# The default gitleaks rule set is kept in full. This file adds one narrow
+# allowlist and disables nothing.
+#
+# Companion file: `.gitleaksignore` holds commit-scoped fingerprints for
+# historical one-off false positives. Prefer a fingerprint there when a hit will
+# never recur. Use an allowlist here only when the same false positive is
+# structurally guaranteed to reappear, because a fingerprint is pinned to one
+# commit and one line number, so the next commit mints a new one.
+
+[extend]
+useDefault = true
+
+# ── A bare SHA-256 digest is not a generic API key ──
+#
+# `generic-api-key` is an entropy heuristic. It fires on any high-entropy value
+# sitting next to a key-ish name, which makes it fire on content hashes. The
+# repository writes those down deliberately: the plan-evolution research ledger
+# identifies every case by a SHA-256 over repository files and re-verifies its
+# frozen contract by recomputing that digest on every edit, so the file carries
+# dozens of them and gains more with each commit. A digest is recomputable from
+# public content by any reader; it is not a credential.
+#
+# Scope, and why it is shaped this way rather than by path.
+#
+# `targetRules` confines this to `generic-api-key` alone. Every specific,
+# high-confidence rule — `slack-bot-token`, `aws-access-token`, `github-pat` and
+# the rest — is untouched and still fails the build anywhere in the tree,
+# including inside the research directory. This was verified by probe, not
+# assumed: a planted Slack bot token in that directory is still reported.
+#
+# A `paths` entry was tried first and removed. In gitleaks 8.30.1 a global
+# allowlist ORs its `paths` and `regexes` — `condition = "AND"` did not change
+# that — so naming the research directory exempted every `generic-api-key` hit
+# in it, including a planted 40-character AWS secret key that is not a hash at
+# all. Measured, then rejected. The regex alone is the narrower constraint.
+#
+# Residual risk, stated rather than implied: a real credential that is exactly
+# 64 lowercase hex characters AND is caught only by the entropy heuristic would
+# now pass. No mainstream provider issues a credential in that shape, and any
+# provider-recognisable token is matched by its own rule above.
+[[allowlists]]
+description = "A bare lowercase SHA-256 digest is a content hash, not a credential"
+targetRules = ["generic-api-key"]
+regexes = ['''^[a-f0-9]{64}$''']
