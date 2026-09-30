@@ -24,22 +24,19 @@ surfaces are scoped in the same change as the field, because a field that
 exists while `converge` still records a binding claim for an unconfirmed target
 would put the artifact in a state the successor slice then has to interpret.
 
-One producer behaviour changes: `converge` currently writes compositional
-commitments whenever a target exists, and afterwards writes them only for a
-confirmed one. That is the change the release entry's `### Highlights`
-subsection is owed for.
+Nothing is gated on the field in this slice. `converge` records the
+disposition and every instruction keeps the condition it has today, so no rung
+moves and nothing downstream resolves differently. The release entry's
+`### Highlights` subsection is owed for the schema addition adopters must now
+author against, not for a behaviour change.
 
-It also moves a rung. The `approved-visual-target` rung resolves from the
-recorded composition rather than from the field, so an artifact with an
-approved-but-unconfirmed target drops to `direction-and-taxonomy` as soon as
-this slice lands. Whether that is acceptable with the field-read half deferred
-is an owner decision the spec's `Outcome` records as outstanding.
-
-The scope on each producing surface is worded as a condition on the producer's
-own act of writing, never as a read of the field by a second party. The one
-field-literal form — AC-0005 — is `converge` conditioning its own write on the
-disposition it itself records, which the spec's `Never do` ruling places inside
-the carve-out. `visualize` in particular
+The gating originally drafted here — three criteria over `converge`,
+`visualize` and `SKILL.md` — moved to the successor on the owner's 2026-09-30
+ruling, because gating `converge`'s compositional-commitments write drops an
+approved-but-unconfirmed target off the `approved-visual-target` rung. The rung
+resolves from the recorded composition, not from the field, so that change
+belongs with the slice that owns rung semantics and migrates the carriers that
+explain it. `visualize` in particular
 cannot read the field: it runs before `converge` on the only route that reaches
 it, and `converge` is what creates the artifact and writes the disposition. Its
 condition is therefore the human confirmation the operation already holds.
@@ -112,9 +109,17 @@ plan approval without it.
   test passed vacuously.
 - **Isolation:** the run was local, filesystem-confined to the repository and
   disposable scratch, with no network use. No isolation downgrade was needed.
-- **Coverage tally:** 13 criteria — 11 covered by stubs, 2
+- **Coverage tally:** 10 live criteria after the 2026-09-30 retirement of
+  AC-0005 to AC-0007 — 8 covered by stubs, 2
   `no stub (goal-based check)` (AC-0008 the guidebook lint; the manual
   start-of-work baseline half of AC-0009). 0 uncovered.
+- **Re-validated after the 2026-09-30 narrowing.** Four blocks compile; four
+  pack tests and one roster test red for their own reasons —
+  AC-0001/AC-0002/AC-0003/AC-0011 on the template, AC-0012 on the guide
+  excerpt, AC-0004 on `converge`'s disposition block, AC-0013 on the eval
+  harness, and AC-0009 on `4.1.1 does not exceed the slice-start baseline
+  4.1.1`. The three gating assertions left with their criteria and are
+  re-validated in the successor's plan.
 - **Re-validated after the round-3 repair.** All four blocks compile; all five
   tests red for their own reason. AC-0012's fence selector was checked against
   the real guide: it finds exactly one ` ```markdown ` fence carrying
@@ -167,11 +172,11 @@ placeholder exactly as `status` is.
 
 Owned by: T1, T2
 
-Three producing surfaces state when a target's binding reaches the artifact:
-`converge.md`, `visualize.md`, and `creative-direction`'s own output contract in
-`SKILL.md`. `converge` is the only writer; the other two are instruction
-surfaces a producer follows, and leaving either unscoped would have a producer
-forming a binding claim the writer then records.
+`converge` is the only surface this slice touches beyond the template, and it
+touches one instruction: the disposition record. `visualize.md` and `SKILL.md`
+are untouched. The three producing surfaces are gated together in the
+successor, which is the right granularity — gating one without the others
+would have a producer forming a binding claim the writer then records.
 
 ### Dependencies & integration
 
@@ -278,13 +283,12 @@ def test_guide_excerpt_carries_the_new_template_material() -> None:
 
 **Done when:** `python3 -m pytest packs/experience-design/tests/skills/creative-direction -q` and the guidebook lint are both green.
 
-### T2: The producing surfaces are scoped to a confirmed target
+### T2: `converge` records the disposition
 
 **Depends on:** T1
 
 **Tests:**
-- `test_producing_surfaces_are_scoped_to_a_confirmed_target` — AC-0004,
-  AC-0005, AC-0006, AC-0007 — `stub: true`
+- `test_converge_records_the_disposition` — AC-0004 — `stub: true`
 
 **Stub** — add to the same file:
 
@@ -300,47 +304,27 @@ def _unique_paragraph(path: Path, anchor: str) -> str:
     return " ".join(blocks[0].split())
 
 
-# STUB: AC-0004, AC-0005, AC-0006, AC-0007  (spec: visual-target-field)
-def test_producing_surfaces_are_scoped_to_a_confirmed_target() -> None:
-    """visual-target-field AC-0004 through AC-0007."""
+# STUB: AC-0004  (spec: visual-target-field)
+def test_converge_records_the_disposition() -> None:
+    """visual-target-field AC-0004."""
     disposition = _unique_paragraph(
         REFERENCE_ROOT / "converge.md", "Record the approved visual target disposition"
     )
     for value in ("none", "unconfirmed", "confirmed"):
         assert f"visual_target: {value}" in disposition, f"AC-0004: {value}"
-
-    commitments = _unique_paragraph(
-        REFERENCE_ROOT / "converge.md",
-        "write the selected direction's compositional commitments",
-    )
-    assert "visual_target: confirmed" in commitments, "AC-0005"
-
-    boundaries = _unique_paragraph(
-        REFERENCE_ROOT / "visualize.md", "record its identity and three boundaries"
-    )
-    assert "the human has confirmed" in boundaries, "AC-0006"
-
-    skill = _read(SKILL)
-    items = [
-        block
-        for block in skill.split("\n- ")[1:]
-        if block.startswith("**Approved visual target**")
-    ]
-    assert len(items) == 1, "AC-0007: exactly one such list item in SKILL.md"
-    assert "the human has confirmed" in " ".join(items[0].split()), "AC-0007"
 ```
 
 **Approach:**
+- Reword only the disposition instruction, which today records the no-target
+  case as the bare word `none`, so it names all three field values. Leave every
+  other instruction in `converge.md`, `visualize.md` and `SKILL.md` exactly as
+  it stands — gating them is the successor's contract, and doing it here is
+  what the owner's ruling removed.
 - `_unique_paragraph` reads the file the criterion names. It does not use
   `_skill_text()`, which concatenates eight files, so a match cannot come from
   a neighbour.
-- Split `converge.md`'s five-sentence capture paragraph so the compositional-
-  commitments instruction is its own blank-line-delimited block. Without that
-  split AC-0005's unit spans the target path, the template copy, the
-  `visualize` handoff and the fill list, and the literal could satisfy the
-  criterion from a sentence unrelated to the gated write.
 
-**Touches:** packs/experience-design/.apm/skills/creative-direction/references/converge.md, packs/experience-design/.apm/skills/creative-direction/references/visualize.md, packs/experience-design/.apm/skills/creative-direction/SKILL.md, packs/experience-design/tests/skills/creative-direction/test_contract.py
+**Touches:** packs/experience-design/.apm/skills/creative-direction/references/converge.md, packs/experience-design/tests/skills/creative-direction/test_contract.py
 
 **Done when:** the creative-direction contract suite is green.
 
@@ -503,24 +487,24 @@ def test_release_surface_is_consistent() -> None:
 
 ## Rollout
 
-- **Delivery:** one PR, and only after the owner answers the rung question in
-  the spec's `Outcome`. Reversible by reverting it. No data migration is
-  needed, but "no migration because no consumer reads the field" — the reason
-  an earlier draft gave — is not the true reason: the rung moves on newly
-  written artifacts. Existing artifacts are unaffected, because `converge`
-  rewrites nothing it did not just author.
+- **Delivery:** one PR. Reversible by reverting it. No migration, and this
+  time the reason holds: nothing is gated on the field, so no rung resolves
+  differently for any artifact, new or existing.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** T1, then T2, then T3, then T4.
+- **Deployment sequencing:** T1, then T2, then T3, then T4. This slice must
+  land before `visual-target-rung-precondition`, which reads the field it
+  writes.
 
 ## Risks
 
-- **A rung drops before the successor ships.** An artifact whose target is
-  approved but never confirmed stops carrying compositional commitments, so the
-  `approved-visual-target` rung stops resolving for it and authority falls to
-  `direction-and-taxonomy`. That is a real behaviour change for adopters who
-  never recorded a confirmation, and it lands with this slice rather than with
-  the successor. It is the subject of the outstanding owner decision.
+- **An intermediate state exists between this slice and its successor.**
+  `converge` records a disposition while still writing a binding claim for an
+  unconfirmed target, so an artifact can carry `visual_target: unconfirmed`
+  beside compositional commitments. Round 1 raised this as the reason to gate
+  here; the owner's ruling accepted it instead, because the alternative moved a
+  rung inside a slice that claimed to move nothing. The successor is authored
+  and registered, and it closes the state.
 - An adopter who writes the field expecting it to bind composition will find it
   does not until the successor slice ships. The template comment states the
   field's meaning; it cannot state a downstream behaviour that does not exist

@@ -79,6 +79,23 @@ the property holds or the sweep is broken**. T4 therefore carries a mutation
 check — introduce a violating sentence in a scratch copy, assert the test reds,
 remove it — so the test is proved able to fail before it is trusted.
 
+## Stub validation record
+
+Required by `tdd-stubs.md` § *Validate* and § *Record*, which fail closed at
+plan approval without them.
+
+- **Compile pass:** `python -m py_compile` over each of the four blocks, run
+  from disposable scratch outside the repository test tree. Result: **all four
+  compile.**
+- **Intended red:** appended to a disposable copy of the owning test modules,
+  collected and run under pytest, then removed. Result: **red**, including T7's
+  inherited gating assertions and T2's rung-condition assertion, each on its
+  own criterion. The sweep test in T4 is validated separately by its own
+  mutation check, because a sweep that finds nothing passes for both the right
+  and the wrong reason.
+- **Isolation:** local, filesystem-confined to the repository and disposable
+  scratch, no network. No isolation downgrade was needed.
+
 ## Durable-output map
 
 | Durable output | Task | Evidence |
@@ -347,9 +364,70 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 
 **Done when:** the precedence suite is green.
 
+### T7: The producing surfaces are gated on a confirmed target
+
+**Depends on:** T2
+
+**Tests:**
+- `test_producing_surfaces_are_gated_on_confirmation` — AC-0012, AC-0013,
+  AC-0014 — `stub: true`
+
+**Stub** — add to `packs/experience-design/tests/skills/creative-direction/test_contract.py`:
+
+```python
+def _unique_paragraph(path: Path, anchor: str) -> str:
+    """The one blank-line-delimited block carrying `anchor`, in this file only."""
+    blocks = [b for b in re.split(r"\n\s*\n", _read(path)) if anchor in b]
+    assert len(blocks) == 1, f"{anchor!r} must occur in exactly one block of {path.name}"
+    return " ".join(blocks[0].split())
+
+
+# STUB: AC-0012, AC-0013, AC-0014  (spec: visual-target-rung-precondition)
+def test_producing_surfaces_are_gated_on_confirmation() -> None:
+    """visual-target-rung-precondition AC-0012 through AC-0014.
+
+    This module also carries other specs' criteria under overlapping numbers,
+    so every AC reference here names its spec.
+    """
+    commitments = _unique_paragraph(
+        REFERENCE_ROOT / "converge.md",
+        "write the selected direction's compositional commitments",
+    )
+    assert "visual_target: confirmed" in commitments, "AC-0012"
+
+    boundaries = _unique_paragraph(
+        REFERENCE_ROOT / "visualize.md", "record its identity and three boundaries"
+    )
+    assert "the human has confirmed" in boundaries, "AC-0013"
+
+    items = [
+        block
+        for block in _read(SKILL).split("\n- ")[1:]
+        if block.startswith("**Approved visual target**")
+    ]
+    assert len(items) == 1, "AC-0014: exactly one such list item in SKILL.md"
+    assert "the human has confirmed" in " ".join(items[0].split()), "AC-0014"
+```
+
+**Approach:**
+- Split `converge.md`'s five-sentence capture paragraph so the
+  compositional-commitments instruction is its own blank-line-delimited block
+  before gating it. Without the split, AC-0012's unit spans the target path,
+  the template copy, the `visualize` handoff and the fill list, and the literal
+  could satisfy the criterion from an unrelated sentence.
+- Gate all three surfaces in one change. `converge` is the writer; the other
+  two are instruction surfaces a producer follows, and leaving either ungated
+  would have a producer forming a binding claim the writer then records.
+- `visualize`'s condition is the human confirmation it already holds, not a
+  field read: it runs before `converge` writes the field.
+
+**Touches:** packs/experience-design/.apm/skills/creative-direction/references/converge.md, packs/experience-design/.apm/skills/creative-direction/references/visualize.md, packs/experience-design/.apm/skills/creative-direction/SKILL.md, packs/experience-design/tests/skills/creative-direction/test_contract.py
+
+**Done when:** `python3 -m pytest packs/experience-design/tests/skills/creative-direction -q` is green.
+
 ### T6: The release surface is consistent
 
-**Depends on:** T2, T3, T4, T5
+**Depends on:** T2, T3, T4, T5, T7
 
 **Tests:**
 - `no stub (goal-based check)`. `tests/conformance/test_pack_metadata.py`
@@ -375,7 +453,7 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
   reverting it.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** T1, T2, then T3 and T5 in either order, then T4,
+- **Deployment sequencing:** T1, T2, then T3, T5 and T7 in any order, then T4,
   then T6.
 
 ## Risks
@@ -395,6 +473,12 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 
 ## Changelog
 
+- 2026-09-30: Inherited AC-0012, AC-0013 and AC-0014 from `visual-target-field`,
+  which retired them as AC-0005 to AC-0007 on the owner's ruling. Gating
+  `converge`'s compositional-commitments write moves the
+  `approved-visual-target` rung, so it belongs in the slice that changes the
+  rung rather than in one whose stated outcome was that nothing downstream
+  changes. Added T7 to carry them.
 - 2026-09-30: Drafted. Third slice cut from `visual-target-confirmation`,
   carrying the consumer change and the carrier migration. Authored against a
   re-measured carrier sweep, which agreed exactly with the recorded inventory

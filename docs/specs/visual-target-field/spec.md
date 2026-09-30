@@ -21,8 +21,7 @@
 
 A direction artifact records its visual target's disposition in one closed
 frontmatter field, `visual_target`, whose values are `none`, `unconfirmed` and
-`confirmed`. `creative-direction` writes that field, and writes a target's binding claim and
-its compositional commitments only where a human has confirmed the target.
+`confirmed`. `creative-direction` writes that field.
 
 One producer behaviour changes, and it reaches further than an earlier draft of
 this section claimed. Today `converge` writes compositional commitments
@@ -47,10 +46,7 @@ not start until that is answered.
   `**Confirmation record:**` line, and its `## Approved visual target` comment
   names the frontmatter key as the canonical disposition and states the
   absent-field reading.
-- `converge` writes the disposition, and writes compositional commitments only
-  for a confirmed target.
-- `visualize` and `creative-direction`'s own output contract scope their
-  binding-boundaries instruction to a target a human has confirmed.
+- `converge` records the disposition over the closed set.
 - The `creative-direction` eval harness covers the new field.
 - The byte-pinned template excerpt inside `establish-design-intent.md` is
   re-derived so the guidebook lint stays green.
@@ -60,6 +56,7 @@ not start until that is answered.
 | Semantic role | Destination | Owner | Evidence | Closeout condition |
 | --- | --- | --- | --- | --- |
 | Interface compatibility | `packs/experience-design/.apm/skills/creative-direction/assets/creative-direction-template.md` | eugenelim | The template carries the field and its closed set | AC-0001 to AC-0003 and AC-0011 hold |
+| Producer instruction | `packs/experience-design/.apm/skills/creative-direction/references/converge.md` | eugenelim | The disposition instruction names all three values | AC-0004 holds |
 | Current product truth | `guides/experience-design/how-to/establish-design-intent.md` | eugenelim | Its excerpt matches the template verbatim and carries the new material | AC-0008 and AC-0012 hold |
 | Behavioural coverage | `packs/experience-design/.apm/skills/creative-direction/evals/` | eugenelim | The harness exercises the new field | AC-0013 holds |
 | Release history | `packs/experience-design/pack.toml`, its `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `docs/product/changelog.md` | eugenelim | Matching versions above this slice's own baseline, and one release entry this slice authored | AC-0009 and AC-0010 hold |
@@ -86,14 +83,14 @@ Retention class: repository-durable.
 
 - Never make any consumer read the field in this slice; that is the successor's
   contract, and shipping both at once is what four review rounds rejected.
-  **Ruling on the carve-out, so an implementer does not have to guess.** The
-  carve-out covers an instruction to `converge` — the operation that writes the
-  field — conditioning any of its own writes on the disposition it itself
-  records. That is one operation's internal ordering, not a second party reading
-  a published field. It does not cover any other skill, agent, guide or rung.
-  ADR-0131 anticipates exactly this: it states that the `creative-direction`
-  contract suite asserts `converge` gates compositional commitments on the
-  confirmed reading.
+  **Scope after the 2026-09-30 ruling.** This slice now contains no gating at
+  all: `converge` records the disposition and no instruction anywhere is
+  conditioned on it. The carve-out that previously admitted `converge` gating
+  its own write is no longer exercised here, and the three criteria that
+  relied on it moved to the successor. ADR-0131's statement that the
+  `creative-direction` suite asserts `converge` gates compositional
+  commitments on the confirmed reading is satisfied by that successor, not by
+  this slice.
 - Never write a sidecar file beside the direction artifact.
 - Never add a dependency, module boundary, or top-level directory.
 - Never record a person's name, handle, or contact detail in the confirmation
@@ -111,17 +108,16 @@ criterion describes. A period-delimited span of whitespace-normalized text is
 a heading, a table cell, a bullet — joins it silently, which would let an
 unscoped instruction pass because a scoped heading sat above it. Each such
 criterion also requires its anchor to occur exactly once in the named file, so
-the verification cannot silently grade a different occurrence.
+the verification cannot silently grade a different occurrence. After the
+2026-09-30 retirement only AC-0004 uses this form here; the successor spec uses
+it for the gating criteria.
 
 - **TDD — the template carries the state and its provenance (AC-0001, AC-0002,
   AC-0003, AC-0011).** The template's bytes parse; asserted from
   `packs/experience-design/tests/skills/creative-direction/test_contract.py`.
-- **TDD — the producing surfaces are scoped to a confirmed target (AC-0004,
-  AC-0005, AC-0006, AC-0007).** Each asserts an exact literal inside a bounded
-  unit as defined above, read from the single file the criterion names.
-  Asserting the literal inside that unit, not anywhere in the file, is what
-  makes removing the scope red rather than pass on some other occurrence of the
-  same word.
+- **TDD — `converge` records the disposition (AC-0004).** Asserts the three
+  literals inside a bounded unit as defined above, read from the single file
+  the criterion names.
 - **TDD — the eval harness covers the field (AC-0013).** Asserted over a named
   case's `assertions` entries in the harness, not over a concatenated corpus.
 - **Goal-based check — the pinned excerpt still matches and carries the new
@@ -182,30 +178,10 @@ the verification cannot silently grade a different occurrence.
   file. All three, because that block today records the no-target case as the
   bare word `none`; leaving it unwritten as a field value would make it read
   as `unconfirmed` under the absent-field rule, which is not what ADR-0131
-  fixes. A whole-file containment check does not
-  satisfy this criterion: once AC-0005's edit puts `visual_target: confirmed`
-  anywhere in `converge.md`, a file-level check can no longer fail.
-- [ ] **AC-0005.** In `references/converge.md`, the paragraph block containing
-  the literal `write the selected direction's compositional commitments` also
-  contains the literal `visual_target: confirmed`, and that anchor occurs
-  exactly once in the file. T2 splits that instruction into its own
-  blank-line-delimited block: today it sits inside a five-sentence paragraph
-  covering the target path, the template copy, the `visualize` handoff and the
-  fill list, so the literal could satisfy the criterion from a sentence with
-  nothing to do with the gated write.
-  The field-literal form is correct here and not a rail crossing: `converge` is
-  the operation that writes the field, so this is its own internal ordering,
-  per the ruling in `Never do`.
-- [ ] **AC-0006.** In `references/visualize.md`, the paragraph block containing
-  the literal `record its identity and three boundaries` also contains the
-  literal `the human has confirmed`, and that anchor occurs exactly once in the
-  file. The condition is the confirmation determination that operation already
-  holds — `visualize` runs before `converge` writes the field, so it has no
-  field to read and the field-literal form would be a rail crossing here.
-- [ ] **AC-0007.** In `creative-direction`'s `SKILL.md` — that file read
-  directly, not a concatenation of the skill's files — the list item beginning
-  `- **Approved visual target**` contains the literal `the human has confirmed`,
-  and that item occurs exactly once in that file.
+  fixes. The bounded unit matters even now that this slice adds no other
+  `visual_target` literal to the file: the successor adds several, and a
+  whole-file containment check written here would stop being able to fail the
+  moment that slice lands.
 - [ ] **AC-0008.** `python3 tools/lint-guidebook-steps.py guides/experience-design`
   exits zero.
 - [ ] **AC-0009.** `packs/experience-design/pack.toml`, its
@@ -256,3 +232,23 @@ the verification cannot silently grade a different occurrence.
 ## Assumptions
 
 none
+
+## Retired identifiers
+
+No identifier listed here is reused.
+
+**Moved to the successor on 2026-09-30** — AC-0005, AC-0006 and AC-0007. They
+gated `converge`'s compositional-commitments write, `visualize`'s
+binding-boundaries instruction and `creative-direction`'s output-contract entry
+on a confirmed target. Round 3 established that the first of those moves the
+`approved-visual-target` rung — it resolves from the recorded composition, not
+from the field — so an approved-but-unconfirmed target would have dropped to
+`direction-and-taxonomy` inside a slice whose whole claim was that nothing
+downstream changes. The owner ruled on 2026-09-30 that the rung should move
+once, in the slice that owns rung semantics and migrates the carriers that
+explain it. All three obligations survive, in
+[`visual-target-rung-precondition`](../visual-target-rung-precondition/spec.md).
+
+- AC-0005
+- AC-0006
+- AC-0007

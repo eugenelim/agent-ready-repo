@@ -34,6 +34,10 @@ advance keeps it gone.
 - Every carrier that states the rung's precondition names the field.
 - A new construction test enforces the **positive exclusive property** below
   over a re-run sweep, not over a fixed file list.
+- `converge`, `visualize` and `creative-direction`'s output contract are gated
+  on a confirmed target — the three obligations `visual-target-field` retired
+  on 2026-09-30 and handed here, because the first of them moves this very
+  rung.
 - `docs/specs/frontend-visual-authority/spec.md`'s `Status` records that
   ADR-0131 supersedes one of its contract-tier `Always do` rules.
 - `test_visual_authority_release.py`'s version pin moves with this delivery's
@@ -114,6 +118,9 @@ Retention class: repository-durable.
 - Before widening or narrowing the confirmation-cue set in AC-0007.
 - Before changing the `visual_target` value vocabulary, which
   `visual-target-field` owns.
+- Before gating a producing surface this contract does not already name. The
+  three it names are gated together deliberately: gating one without the others
+  has a producer forming a binding claim the writer then records.
 
 ### Never do
 
@@ -130,6 +137,12 @@ Retention class: repository-durable.
 - **TDD — the restating carriers name it too (AC-0004, AC-0005).** Verified by
   the AC-0006 property rather than per-file, because a per-file assertion is
   the closed surface set this contract may not retry.
+- **TDD — the producing surfaces are gated (AC-0012, AC-0013, AC-0014).** Each
+  asserts an exact literal inside a bounded unit — one blank-line-delimited
+  paragraph block, or one list item — read from the single file the criterion
+  names, with the anchor's uniqueness in that file asserted rather than
+  assumed. A period-delimited span of normalized text is not a bounded unit:
+  adjacent structure carrying no terminal period joins it silently.
 - **TDD — the non-Markdown carriers are covered (AC-0011).** Each pack's own
   suite asserts over parsed structure; one construction test guards the reached
   count against silent shrinkage.
@@ -179,6 +192,23 @@ Retention class: repository-durable.
   structure rather than by the sentence property, and a second construction
   test asserts that the count of non-Markdown carriers the sweep reaches has
   not silently fallen.
+- [ ] **AC-0012.** In `packs/experience-design/.apm/skills/creative-direction/references/converge.md`,
+  the paragraph block containing the literal `write the selected direction's
+  compositional commitments` also contains the literal `visual_target:
+  confirmed`, and that anchor occurs exactly once in the file. T7 splits that
+  instruction into its own blank-line-delimited block first: today it sits
+  inside a five-sentence paragraph, so the literal could satisfy the criterion
+  from a sentence unrelated to the gated write.
+- [ ] **AC-0013.** In `references/visualize.md`, the paragraph block containing
+  the literal `record its identity and three boundaries` also contains the
+  literal `the human has confirmed`, and that anchor occurs exactly once in the
+  file. The condition is the confirmation determination that operation already
+  holds: `visualize` runs before `converge` writes the field, so a field-read
+  form would be wrong here even now that reading the field is permitted.
+- [ ] **AC-0014.** In `creative-direction`'s `SKILL.md` — that file read
+  directly, not a concatenation of the skill's files — the list item beginning
+  `- **Approved visual target**` contains the literal `the human has
+  confirmed`, and that item occurs exactly once in that file.
 - [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
   line names ADR-0131 and the superseded `Always do` rule about stating rung
   conditions as properties the pack defines.
@@ -195,6 +225,18 @@ Retention class: repository-durable.
 ## Follow-ons
 
 none
+
+## Inherited obligations
+
+AC-0012, AC-0013 and AC-0014 arrived here on 2026-09-30 from
+[`visual-target-field`](../visual-target-field/spec.md), which retired them as
+AC-0005, AC-0006 and AC-0007. The reason is this contract's own subject: gating
+`converge`'s compositional-commitments write drops an approved-but-unconfirmed
+target off the `approved-visual-target` rung, because that rung resolves from
+the recorded composition rather than from the field. Landing that in a slice
+whose stated outcome was that nothing downstream changes would have moved a rung
+with nothing shipped to explain it. Here the rung change, the gating and the
+carrier migration land together.
 
 ## Assumptions
 
