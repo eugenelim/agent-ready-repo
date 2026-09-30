@@ -82,6 +82,13 @@ adopter-writable file as the content it labels, so whoever can place the artifac
 can set it. It usefully separates a taxonomy from a direction doc; it establishes
 nothing about where the file came from or who wrote it.
 
+## Completed-read skips can carry a gap
+
+A resolved `direction/<slug>.md` beside a `tokens/<slug>.md` slot the completed
+read recorded as a named skip hands an upstream gap forward for any axis no
+incumbent system supplies. The skipped token slot is not permission to resolve
+those values from a lower rung.
+
 ## Which product an artifact belongs to cannot be decided mechanically
 
 Nothing in these artifacts discriminates one product from another. `slug` is

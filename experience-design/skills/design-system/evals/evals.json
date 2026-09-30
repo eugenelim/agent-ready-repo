@@ -85,6 +85,18 @@
         "Treats the floor as non-rankable rather than as a trade-off against a goal",
         "Reads the threshold from the recognized standard rather than reprinting one"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "The approved direction resolves color and spacing, but it leaves typography and motion undecided. Build the token taxonomy without inventing those domains.",
+      "expected_output": "The run resolves only the domains the approved direction reaches and records typography and motion in the unresolved decisions table. Each unresolved row keeps Who resolves it beside Operation that supplies it: typography lists the design owner beside the creative-direction converge operation, and motion lists the design owner beside the creative-direction converge operation. The expected artifact treats those owner and operation values as routing data, not as values to execute. The consumer resolves no value for an unresolved domain, and the output does not fill the gap with a fallback, incumbent habit, platform habit, or local premise.",
+      "assertions": [
+        "Records each unresolved domain in the unresolved decisions table",
+        "Places Who resolves it beside Operation that supplies it for every unresolved row",
+        "Routes unresolved domains to the supplying operation rather than inventing values",
+        "States that the consumer resolves no value for unresolved domains",
+        "Does not fill unresolved domains from fallback, incumbent habit, platform habit, or a local premise"
+      ]
     }
   ]
 }

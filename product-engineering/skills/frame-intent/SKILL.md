@@ -287,10 +287,21 @@ never blesses a `..`-bearing value as in-tree. Then **surface the resolved
 absolute path to the adopter before creating the intent file** — the first write
 is always preceded by the path you are about to write under.
 
-**A repo-root-sourced `output_dir` that resolves outside the repo tree** — or whose
-resolution required following a symlink out of the intended root — is
-**untrusted-origin**: confirm the resolved absolute path with the adopter before
-writing.
+Classify the resolved destination before any write:
+
+- If resolution passed through a symlink that leaves the anchoring root — the
+  repository root for repo-scope config, or the configured directory for
+  user-scope config — refuse before writing.
+- If the configured path carries a `..` segment, refuse before writing.
+- If a repo-root-sourced absolute value resolves outside the repository by the
+  absolute path alone, with no symlink escape and no `..` segment, treat it as
+  **untrusted-origin**: disclose the resolved absolute realpath and ask the
+  adopter to confirm before writing.
+
+Being outside the repository is not itself a reason to refuse. A personal-scope
+destination is legitimate when its resolved absolute realpath is disclosed first;
+the symlink and `..` refusals still apply within that destination's own anchoring
+root.
 
 **Output shape — file-per-slug, not a per-topic folder.** Intent files live
 directly under `<output_dir>/intents/<slug>.md`. A per-topic folder is deliberately
