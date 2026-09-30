@@ -186,18 +186,22 @@ problem.
 
 ### 2.4 Inside `make sast`: a self-test in front of each gate
 
-The SAST leg is not four tool invocations. Every scanner runs behind a wrapper
-script — `run-bandit-gate.py`, `audit-requirements.py`, `audit-npm.py`,
-`run-semgrep-gate.py` — and each wrapper is preceded by a self-test of its own.
-pip-audit is the mixed case: four recipe calls go through the wrapper, and two
-more run it directly — one against `tools/requirements-sast.txt`, the single
-manifest the wrapper deliberately excludes, and one against a generated list of the
-optional extras declared by the two packages that have any.
+The SAST leg is not five tool invocations. Every scanner runs behind a wrapper
+script — `run-bandit-gate.py`, `audit-requirements.py`, `run-pip-audit-gate.py`,
+`audit-npm.py`, `run-semgrep-gate.py` — and each wrapper is preceded by a
+self-test of its own. pip-audit is the mixed case, and it now has two wrappers
+rather than one: four recipe calls go through `audit-requirements.py`, one
+goes through `run-pip-audit-gate.py` (`tools/requirements-sast.txt` — the
+manifest `audit-requirements.py` deliberately excludes, because its accepted
+advisories belong to a dedicated invocation), and one still runs pip-audit
+directly, against a generated list of the optional extras declared by the two
+packages that have any.
 
 | Self-test | Gate it precedes |
 | --- | --- |
 | `tools/test-sast-stderr-gate.py` | `tools/run-bandit-gate.py` |
 | `tools/test-audit-requirements.py` | `tools/audit-requirements.py` |
+| `tools/test-run-pip-audit-gate.py` | `tools/run-pip-audit-gate.py` |
 | `tools/test-audit-npm.py` | `tools/audit-npm.py` |
 | `tools/test-semgrep-strict-gate.py` | `tools/run-semgrep-gate.py` |
 

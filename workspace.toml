@@ -602,6 +602,22 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The four recorded SCA weaknesses of `make sast` are closed for ONE of its
+  # pip-audit invocations and open for the rest. ADR-0131 gave the new
+  # `tools/run-pip-audit-gate.py` an environment scrub (every `PIP_*` removed,
+  # `PIP_CONFIG_FILE` pointed at os.devnull so an on-disk pip.conf cannot
+  # re-aim the resolve, proxy and CA names removed in both cases), a 300s
+  # timeout, skipped-dependency detection, and a floor asserting the manifest's
+  # own direct requirements are present. `tools/audit-requirements.py` has the
+  # scrub and the timeout but no floor and no skip detection; the `/dev/stdin`
+  # extras audit in the recipe has none of the four.
+  # Registered because it had no owner: `docs/specs/pip-audit-batching/spec.md`
+  # (Archived) states these were recorded in `[backlog].open` under the slugs
+  # `sca-no-strict-flag`, `sca-ambient-env-can-green-the-gate`,
+  # `sca-audited-set-has-no-floor` and `sca-no-timeout-on-pip-audit`, and none
+  # of the four is in this file — verified 2026-09-29, zero matches. The
+  # carve-out in the ADR-0131 spec's Out of scope rests on this entry.
+  { slug = "sca-hardening-uneven-across-pip-audit-invocations", source = "spec/pip-audit-advisory-allowlist (ADR-0131 scope decision; the archived pip-audit-batching slugs were never registered)" },
   # The rename validator refuses a live intent whose H1 title contains the
   # word "tombstone": the approved liveness rule refuses any unparsed preamble
   # line bearing the token, and a title never parses as a field. A false

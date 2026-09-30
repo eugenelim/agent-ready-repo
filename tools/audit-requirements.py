@@ -49,10 +49,12 @@ _PIP_AUDIT_TIMEOUT_S = 300
 _SCRUBBED_ENV_PREFIXES = ("PIP_AUDIT_",)
 _SCRUBBED_ENV_NAMES = ("PIP_INDEX_URL", "PIP_EXTRA_INDEX_URL")
 
-# requirements-sast.txt has its own direct pip-audit invocation in Makefile,
-# where four accepted Semgrep transitive-dependency CVEs are suppressed. Do not
-# include it here: removing those suppressions or auditing the file twice would
-# respectively regress the accepted allowlist or duplicate SCA findings.
+# requirements-sast.txt has its own dedicated pip-audit invocation in Makefile,
+# behind tools/run-pip-audit-gate.py, where the accepted Semgrep
+# transitive-dependency advisories are carried in tools/pip-audit-allowlist.toml
+# (ADR-0131). Do not include it here: removing those suppressions or auditing the
+# file twice would respectively regress the accepted allowlist or duplicate SCA
+# findings.
 _DIRECT_SAST_MANIFEST = "requirements-sast.txt"
 
 

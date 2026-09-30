@@ -6,9 +6,11 @@
 # THIS FILE SHOULD NORMALLY BE EMPTY. It exists because `npm audit` has no
 # per-advisory ignore: without it, the only way past one unfixable transitive
 # advisory is downgrading `--audit-level`, which stops gating an entire severity
-# band for the whole repo (the gate blocks at `moderate` and above). The sibling `pip-audit` leg in `make sast` carries
-# four such suppressions today, each with a written diagnosis and an unblock
-# condition — this is the npm equivalent of those `--ignore-vuln` flags.
+# band for the whole repo (the gate blocks at `moderate` and above). The sibling
+# `pip-audit` leg in `make sast` has its own allowlist file for the same reason —
+# `tools/pip-audit-allowlist.toml`, read by `tools/run-pip-audit-gate.py`
+# (ADR-0131). That leg carried bare `--ignore-vuln` flags when this comment was
+# written; it no longer does, and the two legs now share a shape.
 #
 # Add an entry ONLY when there is no available fix. If `npm audit fix
 # --package-lock-only` resolves it, take the fix instead — a real remediation
