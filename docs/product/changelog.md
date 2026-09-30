@@ -89,6 +89,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Supervisor guidance now separates the pre-dispatch `wave-decision` screen from the existing post-write `dispatch-decision` gate and names `_DANGER_PATH_RE` as shared by both consumers.
 
+## [governance-extras][0.11.3] — 2026-09-30
+
+### Highlights
+
+- The governance-index template and its how-to guide no longer promise that `generate-iac` will fill in missing domain rows for you. It never did: it offers to create an index when you have none, and it reads the one you already have. Both places now say so, and the guide tells you to add the row yourself.
+
+### Fixed
+
+- Removed the claim that `generate-iac` "adds any missing domain rows" from the seed manifest, and the claim that it adds all eight IaC domains "automatically" from the governance-index how-to.
+
 ## [core][2.27.5] — 2026-09-29
 
 ### Highlights
