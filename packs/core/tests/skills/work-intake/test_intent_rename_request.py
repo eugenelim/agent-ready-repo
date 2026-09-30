@@ -669,6 +669,81 @@ def test_needs_only_entry_is_unregistered(tmp_path: Path) -> None:
 # ── B5: liveness scan does not over-fire on field values ──────────────────────
 
 
+def test_leading_h1_title_containing_tombstone_passes(tmp_path: Path) -> None:
+    """A leading H1 title containing ``tombstone`` does not refuse a live source.
+
+    Blank lines and HTML comments do not consume the single leading-title
+    exemption. The exemption is deliberately limited to the title: later
+    non-field lines with the token remain damaged markers.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _make_intents_dir(repo)
+    text = "\n".join([
+        "   ",
+        "   <!-- title metadata -->",
+        "",
+        "# Tombstone migration plan",
+        "",
+        "- **Slug:** `tombstone-migration`",
+        "- **Status:** Draft",
+        "- **Level:** feature",
+        "- **Owner:** test-owner",
+        "",
+        "## Outcome",
+        "",
+        "Body.",
+    ])
+    (repo / _SOURCE_REL).write_text(text, encoding="utf-8")
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(_SOURCE_REL), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=repo
+    )
+    assert isinstance(result, validator.ResolvedRequest), (
+        f"expected ResolvedRequest, got {result!r}"
+    )
+
+
+def test_second_h1_containing_tombstone_refuses_source_unreadable(
+    tmp_path: Path,
+) -> None:
+    """A second H1 containing ``tombstone`` remains a damaged marker.
+
+    Only one leading H1 title is exempt. A later H1 is a token-bearing
+    non-field preamble line and must refuse rather than widening the
+    authorized exception to every heading.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _make_intents_dir(repo)
+    text = "\n".join([
+        "# Rename test intent",
+        "",
+        "# Tombstone migration plan",
+        "",
+        "- **Slug:** `rename-test`",
+        "- **Status:** Draft",
+        "",
+        "## Outcome",
+        "",
+        "Body.",
+    ])
+    (repo / _SOURCE_REL).write_text(text, encoding="utf-8")
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(_SOURCE_REL), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=repo
+    )
+    assert result == "source-unreadable"
+
+
 def test_slug_value_containing_tombstone_passes(tmp_path: Path) -> None:
     """A source whose Slug value contains ``tombstone`` is not refused.
 
