@@ -752,7 +752,18 @@
                 "distinguishing_evidence_from_case_2": "Case 2's rounds each discovered new carriers of the same unmeasured extent (1, then 2, then 5). Case 3's rounds each moved to a different layer and did not reopen the prior one.",
                 "owner_decision_outstanding": "Round 3 surfaced an advisory finding that the slice moves rung resolution — an approved-but-unconfirmed target drops to direction-and-taxonomy — which the contract had claimed was downstream-invisible. Whether that may ship with the field-read half deferred is an owner decision. The spec records the contract as not starting until it is answered. No further review round is warranted on the contract's mechanics alone."
               },
-              "normal_loop_state": "awaiting owner decision before SPEC-HUMAN-GATE",
+              "owner_decision_2026_09_30": {
+                "question": "whether a slice that moves rung resolution may ship with the field-read half deferred",
+                "raised_by": "round 3 advisory finding 4, adjudication sustained",
+                "decision": "neither ship-as-is nor recombine: the three gating criteria move to the successor slice, which already changes the rung and migrates the carriers that explain it",
+                "effect_on_contract": "visual-target-field retired AC-0005 to AC-0007 through the spec template's Retired identifiers section and is now additive by construction; visual-target-rung-precondition inherited them as AC-0012 to AC-0014 with a new task T7",
+                "effect_on_case": "The contract narrowed after round 3 rather than after a non-converging unit. This is a scope change at the owner's decision, not a review failure, and it is recorded separately from the round counts so it is not read as a fifth round or as a second decomposition. The reviewed revision has changed, so any later measurement start against this case must bind the new revision digest.",
+                "contrast_with_case_2": "Case 2 was decomposed because four rounds could not converge on an unmeasured extent. Case 3 was narrowed because a converging review surfaced a specific, evidenced consequence and the owner chose where it should land. The two are different events and must not be pooled when reading the cohort."
+              },
+              "reviewed_revision_superseded": {
+                "note": "The enumeration-time reviewed_revision_digest 2e0b94cf753c08c861b105e9d4487d62d3f4a18616f31178e6711e230590f3b2 bound the round-1 bytes. Three repairs and one owner-directed narrowing have since changed spec.md and plan.md. The row keeps the enumeration-time digest, because the case key derives from it and the case key is immutable once a reviewer has started. A measurement start against this case must bind and record the then-current revision separately, exactly as case 2's stopped_revision_digest does."
+              },
+              "normal_loop_state": "owner decision taken; contract narrowed; awaiting SPEC-HUMAN-GATE",
               "round_2": {
                 "reviewer_role": "adversarial",
                 "raw_findings": 16,
