@@ -7,31 +7,38 @@ re-measurement the
 arm ranged from 22.92 s to 75.41 s on identical input, so its `+66.08%` figure
 carried no error bound.
 
-- **Run date:** 2026-09-30. The run started 2026-09-29 22:53 and ended
-  2026-09-30 01:53, local time.
-- **Verdict, § 7 Build performance:** `INCONCLUSIVE`. Two separate reasons, each
-  sufficient on its own. `make site-build` does not complete on this tree, so
-  the metric the bar reads cannot be produced at all. And the retained spreads
-  of the substitute phase measurement fail the approved validity rule.
-- **Verdict, § 7 Published page count:** `SURVIVE`. The two large arms emit
-  3,369 marketing pages and 3,319 `/now/` pages each, from an identical record
-  set laid out two different ways.
-- **Needs a Platform Core maintainer decision.** Two findings below are
-  delivery-blocking and are not an implementer's call: the `make site-build`
-  break, and the per-fragment Git fan-out.
+- **Run date:** 2026-09-30. Two passes. Pass 1 ran 22:53–01:53 and could not
+  produce a whole-build figure. Pass 2 ran after both of pass 1's blockers were
+  fixed, and is the authoritative record below. Pass 1 is kept in
+  [Pass 1](#pass-1-what-it-established-and-why-it-is-superseded) because it is
+  what found the blockers.
+- **Verdict, § 7 Build performance:** `INCONCLUSIVE`. All 18 whole builds
+  completed this time, but the `today` arm's retained spread is 47.4% of its
+  median, and the rule approved before the run refuses a ratio when any arm
+  exceeds 20%.
+- **Verdict, § 7 Published page count:** `SURVIVE`. Both large arms emit 3,369
+  marketing pages, 3,319 `/now/` pages and 267 docs pages, identical in all six
+  samples each, from a record set proved identical before timing.
+- **Needs a Platform Core maintainer decision.** No observed pairing of the two
+  large arms puts the fragment layout within § 7's 10% bar. The closest is
+  +26.8%. See [What needs a maintainer](#what-needs-a-maintainer).
 
-## The headline before the numbers
+## The short version
 
-`make site-build` fails on **all three arms**, including today's unmodified
-corpus. The failure is in the delivered T0–T12 tree, not in the corpus this run
-built. See [The build is broken](#the-build-is-broken).
+`make site-build` now works, so § 7's bar can be read for the first time.
 
-Once that is fixed, the second finding still stands. Validating one fragment
-runs **five Git subprocesses**. At 2,970 fragments that is 14,850 process
-spawns per `build-site.py` run, and `make site-build` runs `build-site.py`
-three times — 44,550 spawns per build. On this machine one `build-site.py` run
-took about 21 minutes in the fragment arm against about 4 seconds in the
-monolith arm. See [Where the cost lives](#where-the-cost-lives).
+| Arm | Retained median | Retained range |
+| --- | --- | --- |
+| today | 23.69 s | 19.75 – 30.98 |
+| monolith-10x | 86.57 s | 84.01 – 93.70 |
+| fragments-10x | 129.41 s | 118.77 – 141.27 |
+
+The two large arms hold the same 3,300 records and differ only in physical
+layout. Their retained ranges **do not overlap**. The bar is under 10%.
+
+The run is still reported inconclusive, because the approved validity rule is
+not conditional on which arm fails. Why that matters, and what it does and does
+not license, is in [Validity](#validity-against-the-approved-rule).
 
 ## Machine
 
@@ -48,64 +55,68 @@ Non-identifying description. No hostname or user name is recorded.
 | Git | 2.50.1 (Apple Git-155) |
 | Bare process-spawn latency | 37.9 ms for `/usr/bin/true`, mean of 60 spawns |
 
-That last row matters more than it looks. It is roughly ten times what an
-unmanaged machine costs, and it multiplies any design that spawns a process per
-record.
-
-**Observed noise.** During setup, before any timed sample, another session on
-this machine ran `make build-check` and a `pytest` suite. Both had exited before
-the timed protocol began. Nothing monitored the machine for the three hours the
-protocol then ran, so this run does not claim the machine stayed quiet
-throughout. No throttling was observed, and none was checked for.
+**Observed noise.** The machine was not monitored for quiet, and two signals say
+it was not. During pass 1's setup another session ran `make build-check` and a
+`pytest` suite; both had exited before timing began. In pass 2 the `today` arm's
+isolated web phase recorded 39.50 s against 6.67 s and 8.31 s in its sibling
+samples — a 4.8× outlier that no corpus property explains. The `today` whole-build
+arm also carries the widest spread of the three. Treat the `today` arm as the
+contended one. No throttling was observed, and none was checked for.
 
 ## Base and overlay identity
 
-| Item | Value |
-| --- | --- |
-| Base commit | `708ae9cd1c87d16b034e183e7b577d1f80d095c4` |
-| Tracked-diff SHA-256 | `d3112015613d8898cc869b31278ccd31a6030ccf7935238ec4ec4a0fb67d02d5` |
-| Overlay manifest SHA-256 | `d689726a688012b2639a5e14880a4cf3a42b0b8604601ca4c21c9b06686efdcb` |
-| Files in the overlay | 6,743 |
-| Files differing from the source worktree | 0 |
+| Item | Pass 2 (authoritative) | Pass 1 |
+| --- | --- | --- |
+| Base commit | `d72fffe55a58d2835128e2967b7d52f2090c6243` | `708ae9cd1c87d16b034e183e7b577d1f80d095c4` |
+| Tracked-diff SHA-256 | `de74509c3e23c64990df823cd8f438bf3a0e32f25fb2a94848388bea74fc5659` | `d3112015613d8898cc869b31278ccd31a6030ccf7935238ec4ec4a0fb67d02d5` |
+| Overlay manifest SHA-256 | `6e87c7b97ee13a46396f7fa1128f97a031ce223de53418c9ba52b636fedd6719` | `d689726a688012b2639a5e14880a4cf3a42b0b8604601ca4c21c9b06686efdcb` |
+| Files in the overlay | 7,008 | 6,743 |
+| Files differing from the source worktree | 0 | 0 |
 
 The tracked-diff hash is `git diff HEAD` over the source worktree. The overlay
 manifest hash covers every path and content hash in the staged tree, sorted, so
-it pins the exact T0–T12 state that was measured.
+it pins the exact state each pass measured.
 
-The overlay excluded `.git`, `.context`, `build/`, `node_modules/`, `.astro/`,
-`dist/`, the Python and test caches, and `.loop-run/`. Everything else was
-copied, so the clone carried the untracked implementation: `tools/changelog.py`,
-`tools/test_changelog.py`, `docs/product/changelog-fragment-template.md`,
-`tools/measure-changelog-anchor-drift.py` and the tracked edits to
+Each pass used a disposable **clone**, never a Git worktree, because
+`make site-build` cleans `build/` and a worktree shares the parent's Git
+directory. The overlay excluded `.git`, `.context`, `build/`, `node_modules/`,
+`.astro/`, `dist/`, the Python and test caches, and `.loop-run/`. Everything
+else was copied, so each clone carried the untracked implementation —
+`tools/changelog.py`, `tools/test_changelog.py`,
+`docs/product/changelog-fragment-template.md`,
+`tools/measure-changelog-anchor-drift.py` — and the tracked edits to
 `tools/build-site.py`. A file-by-file hash comparison found zero content
-differences against the source worktree.
+differences against the source worktree in both passes.
+
+In pass 2 the overlay also carried 262 generated, gitignored files under
+`docs-site/src/content/docs/`, left by an earlier local build. They were removed
+with `git clean -fdX` scoped to that directory before timing, so no arm inherited
+another build's pages and the page counts below are not inflated.
 
 ## Setup and commands
 
-The run used a disposable **clone**, never a Git worktree, because
-`make site-build` cleans `build/` and a worktree shares the parent's Git
-directory.
-
 ```bash
-CLONE_ROOT=$(mktemp -d /private/tmp/t13-buildcost.XXXXXXXX)
+CLONE_ROOT=$(mktemp -d /private/tmp/t13rerun.XXXXXXXX)
 git clone --no-hardlinks <source-worktree> "$CLONE_ROOT/repo"
 rsync -a --delete <excludes> <source-worktree>/ "$CLONE_ROOT/repo"/
-make bootstrap-sites                       # setup, never inside a measured duration
+git clean -fdX -- docs-site/src/content/docs        # drop inherited build output
+make bootstrap-sites                                 # setup, never inside a measured duration
 ```
 
 `make bootstrap-sites` installed 457 web packages and 466 docs-site packages,
 8 seconds each, 0 reported vulnerabilities. Dependency install is setup and sits
-outside every timed sample. Corpus generation and cleanup are also outside every
-timed sample.
+outside every timed sample. Corpus generation, corpus commit and cleanup are
+also outside every timed sample.
 
 Timed commands:
 
 ```bash
-python3 tools/build-site.py                # the site-sync phase
-npm run build --prefix web                 # isolated Astro web phase
-npx astro build                            # run inside docs-site/, see the note below
-make site-build                            # ATTEMPTED; fails on every arm
+make site-build                        # the metric § 7's bar reads
+npm run build --prefix web             # isolated phase, attribution only
+npm run build --prefix docs-site       # isolated phase, attribution only
 ```
+
+All 18 `make site-build` samples returned exit 0. So did all 24 phase samples.
 
 ## Corpus
 
@@ -150,8 +161,16 @@ Per record, only identity changes:
   headings stay unique.
 - **Date** is the source entry's real release date, so the date spread mirrors
   today's.
-- **Fragment id** is a fixed UUIDv4 built from SHA-256 over a fixed
-  namespace and the record index. Same inputs, same corpus, every time.
+- **Fragment id** is a fixed UUIDv4 built from SHA-256 over a fixed namespace
+  and the record index. Same inputs, same corpus, every time.
+
+### The two passes measured the same corpus
+
+Pass 2's normalized record-set hash is
+`99fb73837c929fd3d0ea95835d90af7764ab7c475c79f7062ea45511ad6828f7` — **identical
+to pass 1's**. Today's changelog was also unchanged between passes: 389 parsed
+records, 330 released, 190 `/now/` groups, 645,855 characters. So the two passes
+differ in code, not in corpus, and their figures are directly comparable.
 
 ### Body-size distribution
 
@@ -176,7 +195,6 @@ layouts were written, then parsed back and normalized to
 | Records read back from the fragments | 2,970 |
 | Records present only in the monolith | 0 |
 | Records present only in the fragments | 0 |
-| Normalized record-set SHA-256 | `99fb73837c929fd3d0ea95835d90af7764ab7c475c79f7062ea45511ad6828f7` |
 
 So entry count, complete body text and bytes, `Highlights`, dates, package
 names and versions, and package fan-out are identical across the two large arms.
@@ -189,15 +207,15 @@ names and versions, and package fan-out are identical across the two large arms.
 | monolith-10x | 5,132,870 B | absent | — |
 | fragments-10x | 648,990 B | 2,970 files | 4,977,110 B |
 
-The generated fragments were **committed** in the clone and `origin/main` was
+The generated fragments were **committed** in each clone and `origin/main` was
 pointed at that commit. That models the real steady state: at ten times today's
-release count almost every fragment is old and already merged. It also means
-each fragment takes the full identity path through
-`_enforce_committed_identity`, which is the path a real build takes.
+release count almost every fragment is old and already merged. It also puts each
+fragment on the full identity path through `_enforce_committed_identity`, which
+is the path a real build takes.
 
 ### Proof the corpus was traversed
 
-Retained stdout from the site-sync phase:
+Retained stdout from every arm's build:
 
 ```
 today          0 fragment(s),  190 released highlight group(s),  338 highlight(s)
@@ -217,147 +235,38 @@ fragment-sourced groups (UUID-suffixed anchor): 2970
 example anchor: core001141--2026-09-29-02123a39434e4b11be4b00376f5531aa
 ```
 
-## The build is broken
-
-`make site-build` returns exit code 2 on the **today** arm — before any
-generated corpus is involved. The web phase succeeds, then the docs-site phase
-fails:
-
-```
-[InvalidContentEntryDataError] docs → changelog data does not match collection schema.
-
-  title**: **title: Required
-
-  Location:
-    docs-site/src/content/docs/changelog.md:0:0
-```
-
-**Cause.** `generate_changelog_views` writes that destination directly:
-
-```python
-changelog_out.write_text(rendered_changelog, encoding="utf-8")   # tools/build-site.py:1659
-```
-
-At the base commit the same destination was written through
-`copy_file(changelog_src, changelog_dst, rewriter=_rewrite_changelog)`, and
-`copy_file` adds Starlight frontmatter to any file that lacks it
-(`_inject_frontmatter`, `tools/build-site.py:477`, called at line 1006). The new
-writer skips that step, so the page reaches Starlight with no `title`, and the
-docs collection schema rejects it.
-
-**Proof of cause.** Prepending `---\ntitle: "Changelog"\n---` to that generated,
-gitignored file and running `npx astro build` inside `docs-site/` succeeded:
-267 pages in 17.42 s. Nothing in the implementation was edited; T13 is a
-measurement task.
-
-This is why every `make site-build` figure is absent below. It is also why the
-isolated docs-site phase had to be run as `npx astro build` rather than
-`npm run build --prefix docs-site`: that script's `prebuild` hook regenerates
-the same file without frontmatter, so the phase fails the same way.
-
-## Where the cost lives
-
-This section is counting, not timing. It holds whatever the machine does.
-
-`collect_validated_fragments` calls `validate_fragment` with immutability
-enforcement on, which calls `_enforce_committed_identity` per fragment.
-Instrumenting `_run_git` over 20 committed fragments recorded **100 Git
-subprocesses — exactly 5.0 per fragment**, one each of `rev-parse`,
-`merge-base`, `diff`, `ls-files` and `show`.
-
-| Quantity | Value |
-| --- | --- |
-| Git subprocesses per fragment | 5 |
-| Per `build-site.py` run, at 2,970 fragments | 14,850 |
-| `build-site.py` runs inside one `make site-build` | 3 |
-| Git subprocesses per `make site-build` | 44,550 |
-
-The three runs are the `site-sync` target plus the `prebuild` hook in each of
-`web/package.json` and `docs-site/package.json`. Both hooks call
-`build-site.py --renderer-inputs`, which reaches
-`report_changelog_views(..., fragments=...)` and re-validates the whole
-directory.
-
-At this machine's 37.9 ms bare spawn latency, 14,850 spawns cost at least
-563 seconds — 9.4 minutes — from spawn overhead alone, before Git does any work.
-Measured Git spawns here ran about 88 ms each.
-
-Parsing is not the problem. The same 100 fragments validated in **2.4 ms each**
-with identity enforcement off, against **413 ms each** with it on.
-
 ## Timing protocol
 
 ### Predeclared order
 
-Fixed before any timing below was taken, and not changed afterwards:
+Fixed before any pass-2 timing, and not changed afterwards:
 
 ```
 today warm-up, monolith warm-up, fragments warm-up,
 then five rounds of: today, monolith, fragments
 ```
 
-One warm-up per arm is discarded. Retained samples then follow, round-robin.
+One warm-up per arm is discarded. Five retained samples per arm then follow,
+round-robin. Pass 2 executed this in full, with no truncation and no
+substitution. The isolated phases ran the same interleaved shape, one warm-up
+plus three retained per arm per phase, each sample preceded by an untimed
+`build-site.py` run so its generated inputs existed before the timer started.
 
-### Two declared deviations
+## Whole-build durations — `make site-build`
 
-1. **The fragment arm is truncated to two retained samples.** One fragment-arm
-   `build-site.py` run takes about 21 minutes, so five retained samples plus a
-   warm-up would need over two hours for that arm alone, and the full
-   `make site-build` protocol would need about 6.5 hours of quiet machine. The
-   truncation was approved before timing and keeps the round-robin order intact.
-2. **`make site-build` is replaced by its phases**, because it does not
-   complete. § 7's threshold reads `make site-build` only, so nothing below is
-   offered as the whole-build metric.
+This is the only command § 7's Build performance row reads.
 
-The docs-site phase pass ran the three arms **in sequence, not interleaved**,
-because each arm needs its own untimed site-sync first. A session-level trend
-cannot be separated there. Treat those three medians as the weakest numbers in
-this report.
-
-## Retained durations
-
-### Site-sync phase — `python3 tools/build-site.py`
-
-| Arm | Discarded warm-up | Retained samples (s) | n |
-| --- | --- | --- | --- |
-| today | 3.41 | 3.97, 3.34, 3.03, 3.26, 2.84 | 5 |
-| monolith-10x | 4.57 | 3.99, 5.05, 4.02, 4.51, 3.89 | 5 |
-| fragments-10x | 1392.72 | 1244.52, 1383.63 | 2 |
+| Arm | Discarded warm-up | Retained samples (s) |
+| --- | --- | --- |
+| today | 46.39 | 23.69, 24.90, 30.98, 19.75, 23.12 |
+| monolith-10x | 97.75 | 86.57, 90.63, 93.70, 84.47, 84.01 |
+| fragments-10x | 140.80 | 131.40, 141.27, 129.41, 128.79, 118.77 |
 
 | Arm | Median | Min | Max | Spread | Spread / median | 20% rule |
 | --- | --- | --- | --- | --- | --- | --- |
-| today | 3.26 | 2.84 | 3.97 | 1.13 | **34.7%** | **fail** |
-| monolith-10x | 4.02 | 3.89 | 5.05 | 1.16 | **28.9%** | **fail** |
-| fragments-10x | 1314.08 | 1244.52 | 1383.63 | 139.11 | 10.6% | pass, but n = 2 |
-
-### Isolated Astro web phase — `npm run build --prefix web`
-
-Attribution only. This command includes its own `prebuild` hook, so the
-fragment arm's number is mostly that hook, not Astro.
-
-| Arm | Discarded warm-up | Retained samples (s) | Median | Spread / median | 20% rule |
-| --- | --- | --- | --- | --- | --- |
-| today | 9.65 | 8.41, 9.46, 9.00 | 9.00 | 11.7% | pass, n = 3 |
-| monolith-10x | 16.74 | 12.22, 14.35, 15.38 | 14.35 | **22.0%** | **fail** |
-| fragments-10x | none | 1479.06 | 1479.06 | not computable | n = 1 |
-
-### Isolated Astro docs-site phase — `npx astro build` in `docs-site/`
-
-Attribution only, weakest numbers in this report, and not the command § 7
-names. Each arm's generated inputs were prepared by an untimed site-sync before
-its timer started, then the generated changelog page had `title` frontmatter
-restored so Astro would accept it.
-
-| Arm | Discarded warm-up | Retained samples (s) | Median | Spread / median | Pages | Generated page bytes |
-| --- | --- | --- | --- | --- | --- | --- |
-| today | 16.46 | 15.14, 14.57, 14.74 | 14.74 | 3.9% | 267 | 650,858 |
-| monolith-10x | 72.30 | 16.13, 16.28, 16.59 | 16.28 | 2.8% | 267 | 5,136,434 |
-| fragments-10x | 69.87 | 12.05, 10.13, 10.44 | 10.44 | 18.4% | 267 | 5,362,709 |
-
-The fragment arm reads faster than today's arm here on a larger input. Arms ran
-in sequence, so that ordering cannot be split out from an Astro content-cache
-effect. No claim is made from this table beyond the page count, which is 267 in
-every arm: the changelog is one docs page however its source is stored.
+| today | 23.69 | 19.75 | 30.98 | 11.23 | **47.4%** | **fail** |
+| monolith-10x | 86.57 | 84.01 | 93.70 | 9.69 | 11.2% | pass |
+| fragments-10x | 129.41 | 118.77 | 141.27 | 22.50 | 17.4% | pass |
 
 ## Validity against the approved rule
 
@@ -371,48 +280,52 @@ Applied to each arm on its own:
 
 | Phase | today | monolith-10x | fragments-10x |
 | --- | --- | --- | --- |
-| site-sync | 34.7% **fail** | 28.9% **fail** | 10.6% pass, n = 2 |
-| web | 11.7% pass | 22.0% **fail** | n = 1 |
-| docs-site | 3.9% pass | 2.8% pass | 18.4% pass |
+| whole build | 47.4% **fail** | 11.2% pass | 17.4% pass |
+| isolated web | 395.1% **fail** | 38.0% **fail** | 9.2% pass |
+| isolated docs-site | 19.0% pass | 10.8% pass | 11.3% pass |
 
-Arms fail the rule in both phases that separate the arms. **No performance ratio
-is accepted or judged from this run.** The instrument is not softened into a
-direction.
+The `today` whole-build arm fails. The rule says any arm failing makes the run
+inconclusive, and it is not conditional on which arm, so **no ratio is accepted
+or judged from this run.**
 
-Why it failed is worth naming: today's and the monolith's site-sync medians are
-3–4 seconds, so roughly one second of ordinary machine jitter is already 25–35%
-of the median. The absolute spreads, 1.13 s and 1.16 s, are nearly identical
-across those two arms. The dispersion is a floor of this machine, not a property
-of either corpus.
+Two things are worth stating precisely, because they change what a maintainer
+should do next without changing the verdict.
+
+**First, the arms that form the fragment-layout ratio both pass.** That ratio is
+the fragment median minus the monolith median over the monolith median. The
+`today` arm appears only in the release-growth figure, which § 7 explicitly does
+not own. So the failing arm is not one of the two the bar reads.
+
+**Second, the two large arms' retained ranges do not overlap.** The monolith arm
+spans 84.01–93.70 s and the fragment arm spans 118.77–141.27 s. Pairing the
+fastest fragment sample against the slowest monolith sample — the pairing most
+favourable to the design — still gives +26.8%. The bar is under 10%. No pairing
+of the ten retained large-arm samples reaches it.
+
+That is a statement about the observed range, not a point estimate, and it is not
+drawn from the arm that failed the predicate. It does not convert an invalid
+instrument into a result, and the verdict stays `INCONCLUSIVE`.
 
 ## Numbers recorded, not accepted
 
 Recorded because the task requires every number even when the run is
-inconclusive. **None of these is an accepted result**, and none may be cited as
-a measured ratio, because the arms above fail the validity predicate and because
-`make site-build` — the only command § 7's bar reads — never completed.
+inconclusive. **None of these is an accepted result** and none may be cited as a
+measured ratio.
 
 ```text
-site-sync phase, from medians in the table above
-  fragment layout   (1314.08 - 4.02) / 4.02 = +32,589%   (about 327x)
-  release growth    (4.02 - 3.26) / 3.26    = +23.3%
+whole build, from the medians above
+  fragment layout cost  (129.41 - 86.57) / 86.57 = +49.5%
+  release growth cost   (86.57 - 23.69) / 23.69  = +265.4%
 
-isolated web phase, from medians in the table above
-  fragment layout   (1479.06 - 14.35) / 14.35 = +10,207%  (about 103x)
-  release growth    (14.35 - 9.00) / 9.00     = +59.4%
+bounding pairings over the retained large-arm samples
+  most favourable to the design   (118.77 - 93.70) / 93.70 = +26.8%
+  least favourable                (141.27 - 84.01) / 84.01 = +68.2%
 ```
-
-The § 7 bar is under 10% on `make site-build`. These figures sit three orders of
-magnitude away from it, which is consistent with the subprocess count in
-[Where the cost lives](#where-the-cost-lives) and no tightening of the
-instrument brings it near the bar. That reasoning does not turn
-an invalid instrument into a result. It is why a maintainer decision is needed
-now rather than after a re-run.
 
 ## Published page count
 
-Read from emitted HTML after each isolated web build, and stable across every
-repeat of each arm.
+Read from emitted HTML after each whole build, and **identical across all six
+samples of each arm** — no sample of any arm produced a different count.
 
 | Arm | Marketing pages | `/now/` pages | Docs pages | Release groups |
 | --- | --- | --- | --- | --- |
@@ -422,78 +335,121 @@ repeat of each arm.
 
 The two large arms hold the same records at the same release count and emit
 **the same page count**, which is what § 7 Published page count requires. Page
-count tracks release count, not how entries are stored. Today's figures are
-recorded separately, as required; § 7's baseline row of 216 pages at 157 release
-groups predates the 190 release groups the changelog carries today.
+count tracks release count, not how entries are stored. Docs pages stay at 267
+in every arm, because the changelog is one docs page however its source is
+stored. Today's figures are recorded separately, as required; § 7's baseline row
+of 216 pages at 157 release groups predates the 190 release groups the changelog
+carries today.
+
+## Isolated phases — attribution only
+
+Not the whole-build metric. Each npm phase re-runs `build-site.py
+--renderer-inputs` through its own `prebuild` hook, so these do not decompose a
+`make site-build`.
+
+| Arm | Web warm-up | Web retained (s) | Web median | Docs warm-up | Docs retained (s) | Docs median |
+| --- | --- | --- | --- | --- | --- | --- |
+| today | 7.45 | 6.67, 39.50, 8.31 | 8.31 | 15.14 | 16.15, 19.90, 19.72 | 19.72 |
+| monolith-10x | 11.44 | 10.66, 16.21, 14.61 | 14.61 | 78.29 | 74.83, 75.60, 83.03 | 75.60 |
+| fragments-10x | 27.85 | 37.82, 36.03, 34.51 | 36.03 | 93.88 | 106.41, 106.43, 94.41 | 106.41 |
+
+**These medians sum to more than the whole build they came from.** The fragment
+arm's two phase medians total 142.44 s against a 129.41 s whole-build median.
+That is itself the proof that a phase sum is not the whole-build metric: inside
+one `make site-build` the two prebuild hooks and the Astro content cache are
+already warm from the `site-sync` that preceded them, and an isolated sample
+pays that cost again. Read these as attribution and nothing else.
+
+Both large arms emit the same page count, so the fragment arm's extra phase
+time is fragment reading and assembly plus a slightly larger assembled docs
+page — 5,362,696 bytes against the monolith arm's 5,136,434.
 
 ## Verdicts
 
-```text
-SURVIVE / KILL / INCONCLUSIVE lines, one per § 7 row
-```
-
 **§ 7 Build performance: `INCONCLUSIVE`.**
 
-Two separate reasons. `make site-build` does not complete on this tree, so
-the metric the bar reads was never produced. And the substitute phase
-measurements fail the approved 20% validity rule in both arms that carry the
-comparison.
+All 18 whole builds completed, so the metric exists for the first time. The
+`today` arm's retained spread is 47.4% of its median, and the rule approved
+before the run refuses a ratio when any arm exceeds 20%.
 
 **§ 7 Published page count: `SURVIVE`.**
 
-3,369 marketing pages and 3,319 `/now/` pages in both large arms, from a record
-set proved identical before timing, differing only in physical layout.
+3,369 marketing pages, 3,319 `/now/` pages and 267 docs pages in both large
+arms, identical in all six samples each, from a record set proved identical
+before timing.
 
 ## What needs a maintainer
 
-Neither item is an implementer's call.
+**Whether the fragment layout ships against § 7's 10% bar.** T13's Approach
+reserves that decision: "Stop and surface if the fragment-versus-monolith ratio
+is at or above the § 7 bar. Whether that blocks delivery is a Platform Core
+maintainer decision, not an implementer's." No pairing of the ten retained
+large-arm samples puts the design within the bar, and the closest is +26.8%.
 
-1. **`make site-build` is broken on the current tree.** Described in
-   [The build is broken](#the-build-is-broken), with the cause traced to one
-   line and the fix shown on a generated file. No gate caught it: the
-   source worktree's `build/` directory holds only
-   `product-changelog.md` from a `tools/changelog.py render` run, so no site
-   build has been run against this implementation.
-2. **Five Git subprocesses per fragment, 44,550 per build at 10× scale.** This
-   is a counted structural fact, not a timing estimate. Whatever the 10% bar
-   turns out to measure once the build runs again, a design that spawns a
-   process per record per build phase is the thing to decide about.
+Two paths, and this report does not choose between them:
+
+1. **Re-run the `today` arm until it satisfies the predicate**, then read the
+   ratio and record a decided verdict. The cost is low now — the full 18-sample
+   protocol took about 35 minutes. The `today` arm is the fastest and so the most
+   jitter-sensitive, and it carried a 4.8× outlier in the same session, so a
+   quiet machine is the whole task.
+2. **Decide on the range instead.** The two large arms' retained ranges are
+   disjoint and the bar is 10%. A maintainer may judge that sufficient without a
+   further pass.
+
+Pass 1's two findings are both already fixed in the tree this pass measured: the
+`make site-build` break, and the per-fragment Git fan-out. Neither is open.
+
+## Pass 1: what it established and why it is superseded
+
+Pass 1 ran against base `708ae9cd1` and produced no whole-build figure, because
+`make site-build` exited 2 on **all three arms**, today's unmodified corpus
+included. `generate_changelog_views` wrote
+`docs-site/src/content/docs/changelog.md` with a bare `write_text`, skipping the
+Starlight frontmatter that `copy_file` supplied at that commit, and the docs
+collection schema rejected the page with `title: Required`.
+
+Pass 1 also counted, by instrumenting `_run_git`, that identity validation ran
+**five Git subprocesses per fragment** — one each of `rev-parse`, `merge-base`,
+`diff`, `ls-files` and `show`. At 2,970 fragments that was 14,850 spawns per
+`build-site.py` run and 44,550 per `make site-build`, because both npm
+`prebuild` hooks re-validated the whole directory. Per fragment: 413 ms with
+enforcement on against 2.4 ms with it off. The fragment arm's site-sync median
+was 1314.08 s, which is why pass 1 could not run the protocol as specified.
+
+Both are fixed in the tree pass 2 measured. Validation now resolves the
+repository root, the merge base, one directory-wide changed-path read and one
+tracked-path read per pass, and skips the base blob for a path Git reports
+unchanged. **Pass 1's fragment-arm durations therefore describe code that no
+longer exists and must not be cited as current.** Its corpus, equality proof,
+machine description and page-count result all carried forward unchanged.
 
 ## Limitations
 
-- **This run cannot resolve the 10% bar.** It did not produce a single
-  `make site-build` sample. § 7's threshold reads that command and nothing else.
-- **No accepted ratio.** Arms fail the approved dispersion rule. Both phase
-  ratios are recorded as arithmetic over medians and are not results.
-- **The fragment arm has two retained site-sync samples and one web sample.**
-  Below the five the protocol asks for, by an approved time budget.
-- **The docs-site phase pass was sequential, not interleaved.** Its ordering
-  and any Astro content-cache effect cannot be split out.
-- **The machine was not monitored for quiet.** Concurrent heavy work by another
-  session was observed during setup and had exited before timing. Nothing
-  watched the following three hours.
+- **No accepted ratio.** The `today` arm fails the approved dispersion rule at
+  47.4%. Every ratio above is arithmetic over medians, recorded and not accepted.
+- **The machine was not monitored for quiet**, and two signals say it was not:
+  concurrent heavy work by another session during pass 1's setup, and a 4.8×
+  outlier in pass 2's `today` web phase.
+- **One machine, one session.** Spawn latency here is about 37.9 ms, roughly ten
+  times an unmanaged machine's, which inflates any per-process work.
+- **Isolated phases are attribution, never the whole-build metric.** Their
+  medians sum to more than the whole build, as shown above.
 - **Every generated record carries `Highlights`.** The fragment contract
   requires it, so keeping the two arms' record sets identical forces it. Today
   only 190 of 330 released entries carry one. The large arms therefore project
   more `/now/` groups per entry than today's corpus does, which inflates page
   count in **both** large arms equally and so does not affect their equality.
-- **One machine, one session.** Spawn latency here is about 37.9 ms, roughly ten
-  times an unmanaged machine's. That amplifies the per-fragment subprocess
-  design and is a large part of why the absolute fragment-arm durations are what
-  they are. The subprocess *count* does not depend on the machine.
-- **Isolated phases are attribution, never the whole-build metric.** Both npm
-  phases re-run `build-site.py --renderer-inputs` through a `prebuild` hook, so
-  a phase sum would double-count fragment validation.
+- **The release-growth figure is the weakest number here.** It is the one ratio
+  that reads the failing arm, and § 7 does not own it.
 
-## Disposable clone
+## Disposable clones
 
-| Item | Value |
-| --- | --- |
-| Exact resolved path | `/private/tmp/t13-buildcost.9tLaEfdC` |
-| Size before deletion | 1.0 GB |
-| Deletion | `rm -rf -- /private/tmp/t13-buildcost.9tLaEfdC` |
-| Proof | `test -e /private/tmp/t13-buildcost.9tLaEfdC` → false; no `/private/tmp/t13-buildcost.*` path remains |
+| Pass | Exact resolved path | Size | Deletion proof |
+| --- | --- | --- | --- |
+| 2 | `/private/tmp/t13rerun.04f7nIIp` | 1.0 GB | `test -e` → false; no `/private/tmp/t13rerun.*` remains |
+| 1 | `/private/tmp/t13-buildcost.9tLaEfdC` | 1.0 GB | `test -e` → false; no `/private/tmp/t13-buildcost.*` remains |
 
-The delete target was the resolved absolute path, checked against the
-`/private/tmp/t13-buildcost.` prefix before running. The clone was created with
-`mktemp -d` and removed after the run.
+Each delete target was the resolved absolute path, checked against its expected
+prefix before running. Both clones were created with `mktemp -d` and removed
+after their pass.
