@@ -484,6 +484,47 @@
               "docs/specs/visual-target-field/spec.md — full mode, a future candidate when its pre-execute review opens",
               "visual-target-rung-precondition — not yet authored, a future candidate"
             ]
+          },
+          {
+            "enumeration_ordinal": 3,
+            "stable_case_key": "937ac85de4b7c3d9337a9cc5defdfdcfbd06f14982c668f1e7b01fdbd71362b1",
+            "stable_case_key_derivation": "sha256 over the NUL-joined UTF-8 fields in the contract's stated order: release_contract_sha256, repository-relative spec path, accepted_intent_digest, reviewed_revision_digest, and the enumeration ordinal rendered as its decimal string. Recorded here because case 2's reviewed bytes were never committed, so its key cannot be recomputed from repository history to confirm the encoding by reproduction.",
+            "status": "candidate_enumerated",
+            "controller_decision_timestamp": "2026-09-30T03:24:20Z",
+            "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+            "release_contract_verified": true,
+            "spec_path": "docs/specs/visual-target-field/spec.md",
+            "accepted_intent_path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md",
+            "accepted_intent_digest": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460",
+            "reviewed_revision_digest": "2e0b94cf753c08c861b105e9d4487d62d3f4a18616f31178e6711e230590f3b2",
+            "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
+            "reviewed_artifacts": [
+              {
+                "path": "docs/specs/visual-target-field/spec.md",
+                "sha256": "ffe34f64b5c82d158a0bfde1b6df1850a85432e6a6934e747c4124030b0d945c"
+              },
+              {
+                "path": "docs/specs/visual-target-field/plan.md",
+                "sha256": "53a7b00f732e97da3742439d937805a91ebf9b7d332ea3346f5044982ac380bf"
+              }
+            ],
+            "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; successor slice cut from the decomposed visual-target-confirmation contract, carried as owner-directed follow-on work rather than a workspace queue row",
+            "base_commit": "c5429040ea3a438ac755d4f3dde3843126580999",
+            "delivery_worktree_branch": "eugenelim/visual-target-confirmation",
+            "strata_recorded": {
+              "new_spec_vs_amendment": "new_spec",
+              "specialist_review_triggers": "not_yet_observed"
+            },
+            "stopped_revision_digest": null,
+            "pre_launch_gate_evaluation": {
+              "privacy_screen": "not_yet_evaluated",
+              "least_privilege_profile_observable": "not_yet_evaluated",
+              "prompt_bytes_max": "enforceable; exact UTF-8 byte count of the serialized payload is computable before launch",
+              "input_tokens_preflight_upper_bound": "enforceable via the contract's conservative serialized-payload-bytes upper bound",
+              "wall_clock_timeout": "enforceable via a controller-owned subprocess timeout around the launch",
+              "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless `claude -p` launch, per the control verified on 2026-09-29 and recorded on case 1's row"
+            },
+            "notes_enumeration": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated until the normal work-loop's pre-execute review unit opens. The accepted intent is ADR-0131, the same persisted artifact case 2 cites; its digest differs from the one on case 2's row because the ADR was committed after case 2's enumeration-time read. The reviewed revision is committed and the delivery worktree is clean, so the bound bytes are stable; re-derive this row's identity if spec.md or plan.md changes before the first reviewer start. Full mode is the mode of record: the direction artifact is durable adopter state that older pack versions read during rollout, and the template is the published schema adopters author against. No measurement start has been launched."
           }
         ]
       },
