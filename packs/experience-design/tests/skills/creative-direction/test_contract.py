@@ -275,3 +275,21 @@ def test_eval_corpus_remains_available_for_behavior_checks() -> None:
     assert any("proof is real" in query for query in positive_queries)
     assert any("invent customer testimonials" in query for query in negative_queries)
     assert any("rendered ui matches the approved comp" in query for query in negative_queries)
+
+
+def test_the_frame_operation_excludes_inherit_from_the_interrogation() -> None:
+    """The route table promises `inherit` runs no fresh interrogation, so the
+    shared `frame` operation must not instruct one unconditionally.
+
+    Asserted at sentence granularity rather than file granularity: a qualifier
+    that drifts into a neighbouring sentence leaves the instruction reading
+    unconditionally where an agent meets it, which is the defect this pins.
+    """
+    body = re.sub(r"\s+", " ", SKILL.read_text(encoding="utf-8"))
+    sentences = [s for s in re.split(r"(?<=\.) ", body) if "Run the interrogation" in s]
+    assert sentences, "no sentence instructs running the interrogation"
+    for sentence in sentences:
+        assert "inherit" in sentence, (
+            f"the interrogation instruction does not name `inherit`: {sentence!r}. "
+            "The route table says `inherit` runs no fresh interrogation."
+        )
