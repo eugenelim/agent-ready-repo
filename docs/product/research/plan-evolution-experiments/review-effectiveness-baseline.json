@@ -588,6 +588,45 @@
               "wall_clock_timeout": "enforceable via a controller-owned subprocess timeout around the launch",
               "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless `claude -p` launch, per the control verified on 2026-09-29 and recorded on case 1's row"
             },
+            "normal_loop_progress": {
+              "rounds_completed": 1,
+              "round_1": {
+                "reviewer_role": "adversarial",
+                "raw_findings": 13,
+                "raw_report_sha256": "c8ff74797911e96ac5a4c7e623270194f9349a60ff6abe8495501c9a232efa54",
+                "raw_classification": "findings",
+                "adjudicated": true,
+                "adjudication_sha256": "b659a40dcee47938b79d0acbc89510d56ff7562c8bfceb6525ab5f4349cb2350",
+                "sustained": 11,
+                "refuted": 2,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 6,
+                  "concern": 4,
+                  "nit": 1
+                },
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  86837,
+                  58936
+                ],
+                "returned_subagent_tokens_total": 145773,
+                "wall_time_seconds_total": 560.2,
+                "attribution": "both starts are normal-loop review work, observed rather than study-added",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start, not the returned input and output counts the scorecard asks for"
+                ]
+              },
+              "revision_after_round_1": {
+                "revised_at": "2026-09-30T03:45Z",
+                "commit": "4826f2463",
+                "criteria_count_before": 10,
+                "criteria_count_after": 13,
+                "criteria_retired": 0,
+                "note": "All 11 sustained findings were acted on. The 2 refuted findings were not acted on: one asked the spec to restate a repository bump-classification rule as a criterion, the other objected to deliberate multi-homing of the closed value set. Recording the bump size in the plan's Approach is not a reversal of the first refutation — the adjudicator refuted a duty to carry it as an acceptance criterion, and T4 needs the target version to execute."
+              },
+              "measurement_starts_launched": 0
+            },
             "notes_enumeration": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated until the normal work-loop's pre-execute review unit opens. The accepted intent is ADR-0131, the same persisted artifact case 2 cites; its digest differs from the one on case 2's row because the ADR was committed after case 2's enumeration-time read. The reviewed revision is committed and the delivery worktree is clean, so the bound bytes are stable; re-derive this row's identity if spec.md or plan.md changes before the first reviewer start. Full mode is the mode of record: the direction artifact is durable adopter state that older pack versions read during rollout, and the template is the published schema adopters author against. No measurement start has been launched."
           }
         ]
