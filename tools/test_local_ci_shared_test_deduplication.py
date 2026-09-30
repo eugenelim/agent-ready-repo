@@ -1008,7 +1008,32 @@ MAKE_BASELINE_DIGESTS = {
     # line (the new --exclude-rule), and every other pinned surface reproduced
     # byte-identically. The prior pins were all current against the pre-change
     # Makefile -- zero drift -- so this supersedes a live value, not a stale one.
-    "SEMGREP_EXCLUDE": "fefa18aadb6cbbd0ce5295c006ac941d9fdf406dc938fefc62122c1d57ef77c7",
+    # Re-pinned 2026-09-30 for the third semgrep timeout exclusion,
+    # `tools/plan_evolution_workbench/test_runner.py`, which this branch
+    # introduces and on which both env-to-subprocess taint rules exceed their
+    # per-rule budget under CI load. The Makefile block carries the ADR-0102
+    # residual and retirement trigger the vehicle requires.
+    #
+    # Dispositioned through `_approved_make_surfaces` itself, both ways the
+    # blocks above require.
+    #
+    # (1) Sole cause: the same path run against this worktree's Makefile and
+    # against `HEAD~1:Makefile` (before the exclusion landed) moves exactly ONE
+    # of the eight approved surfaces. `SEMGREP_EXCLUDE` goes 10 -> 11 lines,
+    # gaining `--exclude "tools/plan_evolution_workbench/test_runner.py"` and a
+    # line-continuation backslash on the line that was previously last. Nothing
+    # else moves, is reordered, or is dropped, and the other seven surfaces —
+    # SAST_CONFIG, SAST_DIRS, build-check-unleased, gate_verdict,
+    # gate_verdict_calls, sast, sast-unleased — hash byte-identically before and
+    # after. The scanner commands, their order, and the verdicts this digest
+    # exists to pin are otherwise untouched.
+    #
+    # (2) Prior pins were current: run over `HEAD~1:Makefile`, all eight
+    # surfaces reproduce their pinned values exactly, `SEMGREP_EXCLUDE`
+    # included at `fefa18aa…`. This re-pin is not sitting on a move someone
+    # else already made, and it does not weaken the check: the surface is still
+    # pinned, to its new bytes.
+    "SEMGREP_EXCLUDE": "f7fcc14060be324ceec61273a4b14a67077909a0d77797475a22542d7e5507df",
     "gate_verdict": "aa9d2cc83cc7d9e59fe411c5788f5abf6c5810772407170fff21d28107564d79",
     "gate_verdict_calls": "116c367fbb376618b499ffba4f4d79138a5ca32f7948631e678519e9a16565be",
 }
