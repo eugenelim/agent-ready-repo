@@ -58,6 +58,17 @@
       ]
     },
     {
+      "id": 6,
+      "prompt": "The MCP server is not registered. Does BlastRadius give me per-dependent depth and a confidence envelope, and should I rely on that?",
+      "expected_output": "An answer that distinguishes what the pack observed from what it read in upstream's schemas: the MCP response shape is documented by upstream and has never been executed by this pack, so it is contract-complete rather than validated. It should say the CLI is the validated surface, that the CLI blast radius carries neither depth nor confidence, and that registering the server is what would make those available \u2014 without presenting the MCP behaviour as observed fact.",
+      "assertions": [
+        "States that the MCP surface is schema-derived and has not been executed by this pack",
+        "Does not present the MCP response shape as observed behaviour",
+        "Says the CLI surface is the validated one and lacks depth and confidence on blast radius",
+        "Distinguishes contract-complete from validated rather than treating both surfaces alike"
+      ]
+    },
+    {
       "id": "cognitive-load-output-quality",
       "prompt": "Complete a representative code-intelligence task that produces a user-facing findings handoff. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, completeness counts, and exact errors.",
       "expected_output": "The findings handoff leads with the useful outcome and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or the index's own completeness counts. Routine tool calls have no optional assistant narration between them. The final handoff states what was verified against source and what remains unestablished, and names a next action only when one remains.",
