@@ -602,6 +602,41 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The consumer half of the decomposed visual-target contract. Registered here
+  # because `visual-target-field` ships a frontmatter field that nothing reads,
+  # and this successor is the whole justification for that: a follow-on recorded
+  # only in the deferring spec's prose has no pointer a reader can resolve.
+  # PyJWT 2.13.0 now carries TWELVE advisories the repository cannot fix,
+  # because semgrep declares `pyjwt[crypto]~=2.13.0` and no direct pin or
+  # constraint can reach 2.14.0 or 2.15.0 through it. Two of the twelve arrived
+  # on 2026-09-30, during one session, each reddening gate-sast on main until an
+  # allowlist entry was justified. The arrival rate is the problem, not the
+  # mechanism: an applied survey of the alternatives (Trivy, Snyk, OWASP
+  # Dependency-Check, osv-scanner, grype, bare pip-audit) found this gate is the
+  # STRONGEST of the group, because it is the only one that implements
+  # retirement detection - a check that fails when a suppression has become
+  # unnecessary. That control is what prevents mute-list decay, and the survey
+  # found no mainstream scanner implements it natively. Do not "fix" this by
+  # reaching for another tool's ignore file; they are all weaker.
+  #
+  # VERIFIED REMEDY, held for when semgrep relaxes its pin. Tested 2026-09-30:
+  # a uv project declaring `semgrep>=1.174,<2` with
+  # `override-dependencies = ["pyjwt>=2.15.1"]` resolves semgrep 1.178.0 with
+  # pyjwt 2.15.1; semgrep runs and its env-to-subprocess taint rule still fires;
+  # and `uv audit` reports zero vulnerabilities across 64 packages. So all twelve
+  # entries are removable at the root TODAY, by moving the SAST toolchain to uv.
+  # Two costs stopped it: pip-audit structurally cannot audit an overridden
+  # resolve (it shells out to `pip install --dry-run`, which refuses the export,
+  # and `--no-deps` does not help), so the leg would have to move to `uv audit`,
+  # which announces itself as experimental; and introducing uv to the build is a
+  # new build dependency, which AGENTS.md requires an ADR to record. The owner
+  # chose on 2026-09-30 to keep the suppressions and wait for semgrep.
+  #
+  # The cheaper trigger to watch is therefore upstream: when a semgrep release
+  # permits PyJWT>=2.15.0, eleven entries retire at 2.14.0 and the twelfth at
+  # 2.15.0, and the gate itself will say so.
+  { slug = "semgrep-pyjwt-pin-blocks-every-sca-remediation", source = "gate-sast, 2026-09-30 (CVE-2026-102270 and CVE-2026-101918 added the same day; ADR-0131 vehicle holding twelve entries)" },
+  {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed, gate converge, visualize and creative-direction SKILL.md on a confirmed target under the three criteria visual-target-field retired on 2026-09-30, and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-target-field/spec.md"}]},
   # The four recorded SCA weaknesses of `make sast` are closed for ONE of its
   # pip-audit invocations and open for the rest. ADR-0131 gave the new
   # `tools/run-pip-audit-gate.py` an environment scrub (every `PIP_*` removed,

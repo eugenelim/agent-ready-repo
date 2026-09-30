@@ -91,6 +91,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
+## [experience-design][4.1.1] — 2026-09-29
+
+### Highlights
+
+- Adding a component or section to a surface that already has an aesthetic direction no longer restarts the vibe conversation. The `inherit` route now scopes the new element against the direction's existing goals and axis commitments, which is what its route table always promised.
+
+### Fixed
+
+- The `frame` operation's interrogation instruction is scoped to the `extend` and `originate` routes. It previously read unconditionally, contradicting the route table's promise that `inherit` runs no fresh interrogation.
+
 ## [code-intelligence][0.1.0] — 2026-09-29
 
 ### Highlights
