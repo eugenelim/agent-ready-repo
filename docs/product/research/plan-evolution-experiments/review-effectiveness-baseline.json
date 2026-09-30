@@ -820,7 +820,18 @@
               "reviewed_revision_superseded": {
                 "note": "The enumeration-time reviewed_revision_digest 2e0b94cf753c08c861b105e9d4487d62d3f4a18616f31178e6711e230590f3b2 bound the round-1 bytes. Three repairs and one owner-directed narrowing have since changed spec.md and plan.md. The row keeps the enumeration-time digest, because the case key derives from it and the case key is immutable once a reviewer has started. A measurement start against this case must bind and record the then-current revision separately, exactly as case 2's stopped_revision_digest does."
               },
-              "normal_loop_state": "owner decision taken; contract narrowed; awaiting SPEC-HUMAN-GATE",
+              "gate_entry_2026_09_30": {
+                "transition": "SPEC-PLAN-REVIEW -> reviewers-clean -> SPEC-HUMAN-GATE, sequence 8",
+                "event_name_is_not_the_verdict": "The engine's only edge to this gate is named `reviewers-clean`, and the reviewers were NOT clean. Round 4 returned 11 sustained findings; they were all repaired, but no review round has run against the repaired bytes. The event name is a fixed FSM label, not a claim, and the emitted review-verdict record carries state READY_WITH_RESIDUAL_RISK rather than READY so the event log is not the only account.",
+                "reason_for_entering_without_a_clean_round": "Owner instruction, given after the controller reported that repair-origin findings had risen every round (2, 2, 3) and were the majority of round 4's blockers, and recommended either one confirmation round or going straight to the gate. The owner chose the gate. This is an owner decision about where remaining risk is surfaced, not a controller judgement that the contract is clean.",
+                "residual_risk_carried_to_the_gate": [
+                  "no review round has seen the post-round-4 bytes",
+                  "three of round 4's sustained findings originated in the controller's own scope reduction, and the repair for them is itself unreviewed",
+                  "the AC-0006 / inherited-gating reconciliation is stated but has never been exercised by a reviewer or a run"
+                ],
+                "measurement_note": "The normal loop for this case terminates at the gate for review-cost purposes. Four rounds, eight observed starts, 739,853 returned subagent tokens, 3068.1 seconds. No measurement start was launched against this case."
+              },
+              "normal_loop_state": "SPEC-HUMAN-GATE, pending owner scope decision",
               "round_2": {
                 "reviewer_role": "adversarial",
                 "raw_findings": 16,
