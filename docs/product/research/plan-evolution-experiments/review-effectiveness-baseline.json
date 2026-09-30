@@ -416,19 +416,20 @@
           },
           {
             "enumeration_ordinal": 2,
-            "stable_case_key": "5f0a4da49cfb2905df68f23358386c0cc9fbd1fd667630ef8531178306e0bcb3",
+            "stable_case_key": "57f195e95c86c86a305933b9cf84745dffa8de55e261d72bda5170315135920f",
             "status": "admitted_normal_loop_open",
-            "controller_decision_timestamp": "2026-09-30T00:08:28Z",
+            "controller_decision_timestamp": "2026-09-30T00:11:05Z",
+            "identity_rederived": "The row was first written at 2026-09-30T00:08:28Z against an earlier spec/plan revision, then re-derived at the timestamp above when the contract-item alignment lint required identifier and verification-group corrections to spec.md and Owned by fields in plan.md. No reviewer had started and no measurement start had been launched, so this is a correction to the single open row rather than a second row: the earlier key 5f0a4da49cfb2905df68f23358386c0cc9fbd1fd667630ef8531178306e0bcb3 was never bound to a review and is retired unused. The enumeration ordinal is unchanged.",
             "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
             "release_contract_verified": true,
             "spec_path": "docs/specs/visual-target-confirmation/spec.md",
             "accepted_intent_path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md",
             "accepted_intent_digest": "f3256db8062e1514fa7ed0ef7c29ec0500fce9b63fe6a49c394072fa511a9b60",
-            "reviewed_revision_digest": "9932800d8e4740fbe3e94fa36cfd0d2c017587830678e8e81b3834de081e2a7e",
+            "reviewed_revision_digest": "34953cc0623d5dac4241dd864f969b157eddbe8c43ed5dae6467e394afc43c3b",
             "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
             "reviewed_artifacts": [
-              {"path": "docs/specs/visual-target-confirmation/spec.md", "sha256": "0b245c0e025ed4db74f3911ceb86fc318bc0e64cc428927d06dc37a429106382"},
-              {"path": "docs/specs/visual-target-confirmation/plan.md", "sha256": "8b5645a56ece95ad4147b174a502e7a59f1c7466360433c4dcd90647726178bc"}
+              {"path": "docs/specs/visual-target-confirmation/spec.md", "sha256": "358c6128d4fa48996d65559fb8eb12a0dde2bc66b7c503fbc0ab55eede423a5f"},
+              {"path": "docs/specs/visual-target-confirmation/plan.md", "sha256": "da83cd31bf1f34296b531a3a091a5ad380a02013b501b42480169f21c87a9341"}
             ],
             "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; owner-supplied slice request admitted through work-intake as new work, not a workspace queue row",
             "base_commit": "c5429040ea3a438ac755d4f3dde3843126580999",
