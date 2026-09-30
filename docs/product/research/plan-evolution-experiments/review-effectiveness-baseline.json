@@ -379,7 +379,7 @@
         "prospective_starts_authorized": true,
         "admission_window_started_at": "2026-09-29T21:19:31Z",
         "admission_window_ends_at": "2026-10-29T21:19:31Z",
-        "prospective_cases_admitted": 0,
+        "prospective_cases_admitted": 1,
         "measurement_starts_used": 0,
         "case_ledger": [
           {
@@ -413,6 +413,37 @@
             },
             "shadow_launch_mechanism_candidate": "headless `claude -p --output-format=json` under CLAUDE_CODE_MAX_OUTPUT_TOKENS with an explicit read-only tool allowlist, launched through a controller-owned subprocess timeout. Chosen because one mechanism makes all six pre-launch controls observable in the argv and environment, and because --output-format=json returns the usage.input_tokens and usage.output_tokens the scorecard requires. Not yet exercised.",
             "notes": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated because the normal loop has not opened yet; the earlier hard_limit_unenforceable risk against requested_output_tokens is resolved and no longer blocks admission. The privacy screen and the least-privilege profile are evaluated at prompt-construction time before the shadow start, per the frozen timing rule. No measurement start has been launched."
+          },
+          {
+            "enumeration_ordinal": 2,
+            "stable_case_key": "5f0a4da49cfb2905df68f23358386c0cc9fbd1fd667630ef8531178306e0bcb3",
+            "status": "admitted_normal_loop_open",
+            "controller_decision_timestamp": "2026-09-30T00:08:28Z",
+            "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+            "release_contract_verified": true,
+            "spec_path": "docs/specs/visual-target-confirmation/spec.md",
+            "accepted_intent_path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md",
+            "accepted_intent_digest": "f3256db8062e1514fa7ed0ef7c29ec0500fce9b63fe6a49c394072fa511a9b60",
+            "reviewed_revision_digest": "9932800d8e4740fbe3e94fa36cfd0d2c017587830678e8e81b3834de081e2a7e",
+            "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
+            "reviewed_artifacts": [
+              {"path": "docs/specs/visual-target-confirmation/spec.md", "sha256": "0b245c0e025ed4db74f3911ceb86fc318bc0e64cc428927d06dc37a429106382"},
+              {"path": "docs/specs/visual-target-confirmation/plan.md", "sha256": "8b5645a56ece95ad4147b174a502e7a59f1c7466360433c4dcd90647726178bc"}
+            ],
+            "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; owner-supplied slice request admitted through work-intake as new work, not a workspace queue row",
+            "base_commit": "c5429040ea3a438ac755d4f3dde3843126580999",
+            "delivery_worktree_branch": "eugenelim/visual-target-confirmation",
+            "strata_recorded": {"new_spec_vs_amendment": "new_spec", "specialist_review_triggers": "not_yet_observed"},
+            "stopped_revision_digest": null,
+            "pre_launch_gate_evaluation": {
+              "privacy_screen": "evaluated at prompt-construction time before the shadow start, per the frozen timing rule",
+              "least_privilege_profile_observable": "to be bound at the shadow launch via an explicit read-only tool allowlist",
+              "prompt_bytes_max": "enforceable; exact UTF-8 byte count of the serialized payload is computable before launch",
+              "input_tokens_preflight_upper_bound": "enforceable via the contract's conservative serialized-payload-bytes upper bound",
+              "wall_clock_timeout": "enforceable via a controller-owned subprocess timeout around the launch",
+              "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless launch, verified by the controller on 2026-09-29; see case 1 for the measurement"
+            },
+            "notes": "Admitted at the point the normal work-loop's pre-execute spec/plan review unit opens, before the first reviewer start. The accepted intent is a persisted repository artifact: ADR-0131 was authored during PLAN because the spec's Constrained by header cites it and a dangling citation would itself be a defect. No measurement start has been launched."
           }
         ]
       },
