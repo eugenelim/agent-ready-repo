@@ -253,14 +253,37 @@ def main() -> int:
             for line in makefile_lines
         ),
     )
+    #     The direct SAST manifest now audits behind tools/run-pip-audit-gate.py
+    #     (ADR-0131), which carries the accepted-advisory allowlist. The
+    #     expectation is still built from _DIRECT_SAST_MANIFEST so the resolver
+    #     exclusion and the dedicated invocation stay one source: if the
+    #     exclusion ever names a different manifest, this assertion moves with
+    #     it rather than silently passing against a stale literal.
     check(
         "the direct SAST audit matches the resolver exclusion",
         any(
             line.lstrip("\t ").startswith(
-                f"@pip-audit -r tools/{_MOD._DIRECT_SAST_MANIFEST}"
+                f"python3 tools/run-pip-audit-gate.py tools/{_MOD._DIRECT_SAST_MANIFEST}"
             )
             for line in makefile_lines
         ),
+    )
+    #     Position, not presence: "precedes" is a claim about order, and an
+    #     `any(...)` over both lines stays green if they are swapped.
+    _selftest_at = [
+        index
+        for index, line in enumerate(makefile_lines)
+        if line.lstrip("\t ").startswith("python3 tools/test-run-pip-audit-gate.py")
+    ]
+    _gate_at = [
+        index
+        for index, line in enumerate(makefile_lines)
+        if line.lstrip("\t ").startswith("python3 tools/run-pip-audit-gate.py")
+    ]
+    check(
+        "the wrapper's self-test precedes it",
+        bool(_selftest_at) and bool(_gate_at) and _selftest_at[0] < _gate_at[0],
+        f"self-test at {_selftest_at}, gate at {_gate_at}",
     )
     pack_manifests = sorted(
         path.relative_to(repo_root).as_posix()

@@ -230,7 +230,7 @@ SAST_DIRS := tools packs packages tests
 # written to check it. `tools/npm-audit-allowlist.toml` is genuine config: an
 # added suppression must be validated by the gate it loosens, exactly like a
 # widened bandit.yaml exclusion.
-SAST_CONFIG := bandit.yaml .snyk Makefile tools/audit-requirements.py tools/npm-audit-allowlist.toml docs-site/package-lock.json web/package-lock.json .github/workflows/build-check.yml .github/workflows/codeql.yml
+SAST_CONFIG := bandit.yaml .snyk Makefile tools/audit-requirements.py tools/npm-audit-allowlist.toml tools/pip-audit-allowlist.toml docs-site/package-lock.json web/package-lock.json .github/workflows/build-check.yml .github/workflows/codeql.yml
 
 # Single source of truth for the SAST scan scope + config surface.
 # build-check.yml's SAST-relevance detection reads these (`make -s
@@ -382,8 +382,9 @@ sast-unleased:
 	# happened yet. Every skip is printed. See tools/audit-requirements.py.
 	python3 tools/audit-requirements.py $$(find packs -name requirements.txt | sort)
 	# Discover tools/requirements*.txt in the auditor so a new CI manifest is
-	# covered at once; requirements-sast.txt remains on its direct, suppression-
-	# bearing invocation below.
+	# covered at once; requirements-sast.txt is excluded here because it has its
+	# own invocation below, behind tools/run-pip-audit-gate.py, which carries the
+	# accepted-advisory allowlist (ADR-0131).
 	python3 tools/audit-requirements.py --tools-manifests
 	# Audit the PEP 517 backends that execute during package builds. Extract the
 	# declarations from pyproject.toml itself so the SCA input cannot drift.
@@ -394,20 +395,22 @@ sast-unleased:
 	# input fails closed if the optional dependency declaration changes.
 	python3 tools/audit-requirements.py --optional-group lint \
 		packages/agentbundle/pyproject.toml
-	# Semgrep 1.178.0 requires pyjwt~=2.13.0, excluding the 2.14.0 release that
-	# fixes CVE-2026-102274. The advisory is a conditional availability failure
-	# while parsing a malformed JWK set; this CI-only static-analysis invocation
-	# receives source paths and no JWK set. Remove the one suppression as soon as
-	# a Semgrep release permits PyJWT>=2.14.0.
+	# The direct SAST manifest audits behind a wrapper, not a bare pip-audit with
+	# `--ignore-vuln` flags (ADR-0131). Semgrep declares `pyjwt[crypto]~=2.13.0`,
+	# excluding the PyJWT 2.14.0 that fixes ten advisories, so this leg carries
+	# accepted risk — and an acceptance needs a reason, a retirement condition,
+	# and a way to FAIL when it has outlived its cause. Those live in
+	# tools/pip-audit-allowlist.toml; the wrapper enforces them.
 	# Note what this command does and does not see: pip-audit RESOLVES the
 	# requirements file, so it always audits the newest version the range allows
 	# and would read clean even at the old `semgrep>=1.166` floor. It says
 	# nothing about the semgrep actually installed on this machine — that is what
-	# requirements-sast.txt's floor is for, and why the floor moved with this
-	# change rather than being left behind.
-	@echo "pip-audit -r tools/requirements-sast.txt (Semgrep PyJWT transitive-dependency exception applied)"
-	@pip-audit -r tools/requirements-sast.txt \
-		--ignore-vuln CVE-2026-102274
+	# requirements-sast.txt's floor is for.
+	# Self-test first, for the reason the two SCA legs above give: a live audit
+	# against a healthy feed is silent both when the gate works and when it has
+	# been broken into a no-op.
+	python3 tools/test-run-pip-audit-gate.py
+	python3 tools/run-pip-audit-gate.py tools/requirements-sast.txt
 	# Both shipped packages declare dependencies=[]; their optional extras are
 	# the only third-party code either can pull, so audit those explicitly.
 	# Mirror packages/credbroker/pyproject.toml [crypto] and
