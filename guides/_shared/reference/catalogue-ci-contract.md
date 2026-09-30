@@ -13,6 +13,11 @@ package, and publish an AgentBundle catalogue. It names the commands, outputs,
 exit codes, publication ordering, and responsibility boundaries — without
 prescribing a CI provider or a specific workflow shape.
 
+Use it to implement the same release flow in GitHub Actions, GitLab CI, Jenkins,
+or another runner: build without publication secrets, inject a restricted
+publisher identity only into the upload job, serialize releases, verify with a
+read identity, and retain a credential-free receipt.
+
 ## Responsibility boundary
 
 Three parties share responsibility for a catalogue CI pipeline. No party may
@@ -21,7 +26,7 @@ silently assume another's obligations.
 | Party | Owns | Never does |
 |---|---|---|
 | **AgentBundle CLI** | Correct catalogue validation; deterministic archive + SHA256 sidecar; stable JSON output shapes; stable exit-code contract | Read secrets; issue network calls; control upload order; manage retention |
-| **Organization CI** | Secrets and credential injection; HTTPS upload; publication serialization (ensuring one release lands at a time); rollback policy; artifact retention | Implement validation logic; bypass exit-code signals; skip the admission command |
+| **Organization CI** | Protected secret storage; publisher and read identities; HTTPS upload; publication serialization (ensuring one release lands at a time); rollback policy; artifact retention | Implement validation logic; expose credentials to build jobs; bypass exit-code signals; skip the admission command |
 | **Host Repository** | CI workflow files and trigger config; internal governance gates; tests proving the portable commands work in this repository | Alter the portable command signatures; branch AgentBundle's output format |
 
 ## CI lifecycle phases
@@ -42,6 +47,11 @@ Pin the version for reproducibility:
 ```bash
 pip install 'agentbundle==<version>'
 ```
+
+If the wheel is in an internal Artifactory PyPI repository, the selected Python
+package client owns authentication. Its credentials are separate from the
+identity that uploads a catalogue and from the identity that later reads a
+protected Generic repository.
 
 **Vendored.** The organization pre-installs agentbundle into a shared CI image or
 tool layer. The CI step runs catalogue commands without an explicit install.
@@ -108,6 +118,22 @@ confirm the archive is valid before uploading it.
 
 ### Phase 4 — Publication
 
+Run this phase in a protected upload job. Inject a restricted service identity
+or an organization-configured CI OIDC exchange only after the source and
+package checks pass. Use a username only when the selected upload client
+requires one.
+
+The portable controls map to common CI systems as follows:
+
+| Control | GitHub Actions example | GitLab CI example | Jenkins or another runner |
+| --- | --- | --- | --- |
+| Publisher secret | Environment or organization Actions secret | Protected, masked, and hidden CI/CD variable | Credential binding or external secret store |
+| Release gate | Protected environment and release tag | Protected release tag | Restricted release job |
+| Serialization | `concurrency` group | `resource_group` | Deployment lock or equivalent |
+
+These are mappings, not required products or variable names. The host
+repository owns its workflow syntax.
+
 Upload artifacts in this exact order:
 
 1. The archive (`.tar.gz`)
@@ -121,12 +147,13 @@ channel pointer and fails cleanly; a consumer that resolves after step 3 finds t
 archive already present.
 
 Publication serialization — preventing two concurrent releases from interleaving
-their uploads — is the CI system's responsibility.
+their uploads — is the CI system's responsibility. Configure release objects as
+immutable and allow controlled replacement only for channel descriptors.
 
 ### Phase 5 — Post-publication verification
 
-After the channel descriptor is published, download the archive and sidecar from
-the publication store and verify them locally:
+After the channel descriptor is published, use a read-only identity to download
+the archive and sidecar from the publication store and verify them locally:
 
 ```bash
 # Download from the store first (provider-specific step)
@@ -141,7 +168,9 @@ archive. This confirms the archive round-trips through the publication store
 without corruption.
 
 Optionally, smoke-test pack installation from the published catalogue to confirm
-consumer-side resolution.
+consumer-side resolution. A smoke test against a protected catalogue needs the
+same reader authentication that end users need; it must not silently reuse the
+publisher identity.
 
 ### Phase 6 — Evidence retention
 
@@ -151,6 +180,11 @@ audit, and incident response. Minimum retention artifacts:
 - The archive and SHA256 sidecar for every published release
 - The JSON output of `catalogue verify --format json` from Phase 2
 - The JSON output of `catalogue verify --archive ...` from Phase 5
+
+Also record a credential-free publication receipt: source revision, release and
+channel names, artifact paths, archive digest, CI run reference, and remote
+verification result. Never include a token, password, username, authenticated
+URL, or secret-store location.
 
 Retention period and storage location are Organization CI policy, not
 AgentBundle's.
@@ -168,18 +202,30 @@ All `agentbundle catalogue` commands follow the same convention:
 These codes are stable. A CI step that treats any non-zero exit as a failure
 gets the correct behaviour.
 
-## Secrets and network calls
+## Credential and network boundaries
 
 `agentbundle catalogue lint`, `agentbundle catalogue verify`, and
 `agentbundle catalogue package` do not read secrets and do not issue network
 calls. They operate entirely on the local filesystem.
 
-TLS certificate verification, bearer-token injection, proxy configuration, and
-upload credentials are exclusively Organization CI responsibilities. The
-`AGENTBUNDLE_HTTP_BEARER_TOKEN`, `AGENTBUNDLE_CA_BUNDLE`, and `HTTPS_PROXY`
-environment variables control AgentBundle's behaviour when resolving a remote
-catalogue source (used by install and upgrade verbs, not by the catalogue
-pipeline commands above).
+The three credential paths are independent:
+
+1. The Python package client authenticates to the repository that serves the
+   `agentbundle` wheel.
+2. The protected upload job authenticates its upload client with a restricted
+   publisher identity.
+3. AgentBundle's HTTPS client authenticates a protected catalogue read with
+   `AGENTBUNDLE_HTTP_BEARER_TOKEN`.
+
+AgentBundle does not currently reuse JFrog CLI profiles, Pip or uv credentials,
+`.netrc`, keyrings, browser login state, or the repository credential broker for
+catalogue reads. A managed launcher may inject the bearer token as a lowest-
+friction workaround, but that remains a second credential surface.
+
+`AGENTBUNDLE_CA_BUNDLE`, `HTTPS_PROXY`, and `NO_PROXY` control TLS trust and
+network routing when install or upgrade resolves a remote catalogue. They are
+not publication credentials. Keep same-origin redirects, HTTPS-only access,
+digest verification, and archive extraction confinement enabled.
 
 ## Command reference
 

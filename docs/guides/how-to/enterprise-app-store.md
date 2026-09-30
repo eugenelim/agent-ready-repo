@@ -1,180 +1,145 @@
-# How to package a catalogue for enterprise app-store distribution
+# How to operate the repository's enterprise Artifactory release path
 
-This guide covers the Artifactory-based packaging workflow for distributing a catalogue to
-disconnected hosts within an enterprise network.
+Use this maintainer guide to relate this repository's GitHub workflows to the
+provider-neutral enterprise distribution contract. Downstream organizations
+should start with the [public protected-catalogue guide](../../../guides/_shared/how-to/configure-catalogue-enterprise-distribution.md).
 
-## Overview
+## Keep the two repositories and three identities distinct
 
-The workflow has two sides:
+The supported Artifactory topology uses:
 
-- **Connected host** — has access to the catalogue source repo and Artifactory; builds and publishes.
-- **Disconnected host** — can reach the internal Artifactory registry; downloads and installs.
+- a PyPI repository for the AgentBundle wheel;
+- a Generic repository for catalogue archives, sidecars, and channel
+  descriptors.
 
-## Prerequisites
+The Python package client authenticates the wheel install. A restricted CI
+publisher uploads the catalogue. A read-only identity verifies and consumes the
+protected catalogue. These credentials are not interchangeable.
 
-- Catalogue passes `agentbundle catalogue verify --root .` on the connected host.
-- Artifactory repository accessible from the connected host.
-- Bundle identifier, release version, and channel name agreed with your platform team.
+## Commit only distribution coordinates
 
-## Configuration
-
-Add the Artifactory block to `catalogue.toml`:
+The catalogue source may contain:
 
 ```toml
 [distribution.agentbundle.artifactory]
-enabled = true
-base-url = "https://artifactory.example.com"
+enabled    = true
+base-url   = "https://artifactory.example.test/artifactory"
 repository = "agentbundle-catalogues"
-bundle = "engineering"
-channel = "stable"
+bundle     = "platform"
+channel    = "stable"
 ```
 
-Run `agentbundle catalogue sync-defaults --write` after adding or updating this block.
-The generated `install-defaults.toml` baked into the wheel will contain the channel value,
-so downstream installs resolve the correct Artifactory path.
-
-## Step 1 — Build the dist tree
+Run:
 
 ```bash
-agentbundle catalogue build --root . --output dist
+agentbundle catalogue sync-defaults --root . --write
+agentbundle catalogue sync-defaults --root . --check
 ```
 
-## Step 2 — Verify (confirm pre-package state)
+The generated defaults carry only those coordinates. Do not put credentials,
+authenticated URLs, or secret-store instructions in either file.
+
+## Build, verify, and package without publication secrets
 
 ```bash
-agentbundle catalogue verify --root .
-```
-
-The verify step must exit 0 before packaging.
-
-## Step 3 — Package
-
-```bash
+agentbundle catalogue verify --root . --format json
 agentbundle catalogue package \
   --root . \
-  --bundle engineering \
-  --release 1.2.0 \
-  --channel stable \
-  --output dist/artifactory \
-  --source-revision "$(git rev-parse HEAD)"
+  --bundle "$BUNDLE" \
+  --release "$RELEASE" \
+  --channel "$CHANNEL" \
+  --output "$OUTPUT" \
+  --source-revision "$SOURCE_REVISION"
+agentbundle catalogue verify \
+  --archive "$OUTPUT/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz" \
+  --sha256-file "$OUTPUT/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz.sha256"
 ```
 
-Output layout:
+The output is:
 
-```
-dist/catalogues/engineering/releases/1.2.0/
-  catalogue-1.2.0.tar.gz
-  catalogue-1.2.0.tar.gz.sha256
-  channels/stable.json
-```
-
-## Step 4 — Upload to Artifactory
-
-Upload the archive and sidecar (not the channel descriptor — it is audit metadata only and is not
-used by the disconnected host to resolve a local catalogue):
-
-```bash
-jf rt upload \
-  "dist/artifactory/catalogues/engineering/releases/1.2.0/stable/engineering-1.2.0.tar.gz*" \
-  "agentbundle-catalogues/engineering/releases/1.2.0/stable/"
+```text
+$OUTPUT/catalogues/$BUNDLE/
+  releases/$RELEASE/
+    catalogue-$RELEASE.tar.gz
+    catalogue-$RELEASE.tar.gz.sha256
+  channels/$CHANNEL.json
 ```
 
-## Step 5 — Download on the disconnected host
+The build job requires no Artifactory publication credential. Preserve the
+verification JSON and packaged directory as protected CI artifacts for the
+upload job.
 
-```bash
-jf rt download \
-  "agentbundle-catalogues/engineering/releases/1.2.0/stable/engineering-1.2.0.tar.gz" \
-  /tmp/downloads/
+## Publish from a protected, serialized job
 
-jf rt download \
-  "agentbundle-catalogues/engineering/releases/1.2.0/stable/engineering-1.2.0.tar.gz.sha256" \
-  /tmp/downloads/
-```
+Inject a restricted publisher identity only into the upload job. Run that job
+from a protected release tag or equivalent release event. Serialize updates to
+each channel.
 
-## Step 6 — Verify and extract
+Upload in this order:
 
-See [Flow E — fully disconnected host](flow-e-disconnected.md) for the complete receive-side
-workflow.
+1. The immutable archive.
+2. The immutable SHA256 sidecar.
+3. The mutable channel descriptor.
 
-## CI integration
+The descriptor is the live pointer used by connected AgentBundle consumers. It
+is not audit-only metadata.
 
-### Linux / macOS (base suite)
+After publishing the descriptor, use a read-only identity to download the
+archive and sidecar. Run `agentbundle catalogue verify --archive ...` on the
+downloaded files. Record only a credential-free receipt.
 
-The base CI job verifies the catalogue and packages it for distribution. Run on
-`ubuntu-latest` or `macos-latest`:
+## Map the portable contract to CI providers
 
-```yaml
-- name: Install agentbundle
-  run: python -m pip install agentbundle
+| Portable control | This repository's GitHub example | GitLab equivalent | Other runners |
+| --- | --- | --- | --- |
+| Publisher secret | Actions secret consumed by the upload job | Protected, masked, hidden CI/CD variable | Credential binding or external secret store |
+| Release gate | Tag condition and protected environment | Protected release tag | Restricted release job |
+| Serialization | Workflow `concurrency` | `resource_group` | Deployment lock |
+| Upload client | JFrog CLI in `publish-catalogue.yml` | JFrog CLI or approved equivalent | JFrog CLI or approved equivalent |
 
-- name: Package catalogue
-  run: |
-    agentbundle catalogue verify --root .
-    agentbundle catalogue package \
-      --root . \
-      --bundle ${{ env.BUNDLE }} \
-      --release ${{ env.RELEASE }} \
-      --channel ${{ env.CHANNEL }} \
-      --output dist/artifactory \
-      --source-revision ${{ github.sha }}
-```
+The repository workflows are host-specific examples:
 
-### Windows (portability check)
+- `.github/workflows/release-agentbundle.yml` builds the Python distribution and
+  uses Twine for this repository's Artifactory wheel publication path.
+- `.github/workflows/publish-catalogue.yml` packages catalogue releases and uses
+  JFrog CLI for Generic repository publication.
 
-Add a separate Windows job to prove the catalogue builds and validates on native
-Windows — path separators, hook scripts, and encoding behave correctly. The base
-suite handles packaging; the Windows job runs the verify pipeline only:
+Do not copy their GitHub syntax as the portable contract. The public
+[Catalogue CI contract](../../../guides/_shared/reference/catalogue-ci-contract.md)
+owns the provider-neutral sequence and responsibility boundary.
 
-```yaml
-build-check-windows:
-  runs-on: windows-latest
-  env:
-    PYTHONUTF8: "1"
-    PYTHONIOENCODING: "utf-8"
-  steps:
-    - uses: actions/checkout@v4
+## Account for current reader authentication
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
+Organization defaults select the protected catalogue URL. They do not
+authenticate it.
 
-    - name: Install agentbundle
-      run: python -m pip install agentbundle
+AgentBundle's HTTPS client currently reads only
+`AGENTBUNDLE_HTTP_BEARER_TOKEN`. It does not reuse a JFrog CLI profile, Pip or
+uv authentication, `.netrc`, a keyring, browser SSO state, or `credbroker`.
 
-    - name: Verify catalogue (Windows)
-      run: agentbundle catalogue verify --root .
-```
+The lowest-friction supported path is an organization-managed shell, launcher,
+or endpoint policy that injects the Artifactory-issued read token into the
+AgentBundle process. This is a workaround and a second credential surface, not
+transparent reuse. A runtime change to reuse provider-native credentials needs
+separate authorization and security review.
 
-Set `PYTHONUTF8: "1"` and `PYTHONIOENCODING: "utf-8"` so Python's stdio does not
-default to Windows code page 1252 when the verify pipeline emits `✓`/`✖` glyphs.
-Without these, the job fails on encoding, not a catalogue problem.
+## Troubleshoot without exposing secrets
 
-Never embed production Artifactory URLs, credentials, or bearer tokens in workflow YAML. Use
-secrets or a credentials broker.
+- **Wrong source:** `agentbundle config get source` shows whether a user source
+  overrides the organization bootstrap. Use `agentbundle config unset source`
+  only when the organization default should take over.
+- **401 or 403:** confirm that the read identity can fetch both the channel
+  descriptor and its referenced release objects. Do not print its token.
+- **TLS failure:** configure `AGENTBUNDLE_CA_BUNDLE` with the approved PEM CA
+  bundle path. Do not disable certificate verification.
+- **Proxy failure:** configure `HTTPS_PROXY` and `NO_PROXY` through the managed
+  environment. Keep proxy credentials out of repository files and transcripts.
+- **Expired credentials:** rotate the publisher or reader identity through the
+  owning secret platform. Do not paste values into CI output or issue reports.
 
-## Installed provenance
+## Disconnected hosts
 
-After installation from an Artifactory source, each pack row in
-`.agentbundle-state.toml` includes three provenance fields:
-
-| Field | Description |
-|---|---|
-| `artifact-uri` | The exact archive URL resolved at install time |
-| `archive-sha256` | Hex SHA-256 of the fetched archive, verified before extraction |
-| `source-revision` | Source revision recorded in the channel descriptor, if the publisher included it (e.g. the Git SHA passed via `--source-revision` in CI) |
-
-These fields are also exposed in `agentbundle list-installed --format json` under
-`artifact_uri`, `archive_sha256`, and `source_revision` on each row.
-
-Operators can correlate any installed pack to a specific archive artifact in
-Artifactory for audit or incident response. Packs installed from a local directory
-source omit all three fields.
-
-## Environment variables
-
-| Variable | Description |
-|---|---|
-| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | Bearer token for authenticated HTTPS catalogue sources. Never forwarded across origins; not logged. |
-| `AGENTBUNDLE_NO_REMOTE` | When set to `1`, skips the Artifactory org bootstrap (Layer 3) and editable-install detection (Layer 4). Useful for offline and air-gapped deployments. |
-| `AGENTBUNDLE_CA_BUNDLE` | Path to a PEM file containing one or more CA certificates. Use when your Artifactory instance uses a private or self-signed CA. Example: `export AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem` |
+A fully disconnected host must receive a local archive through the approved
+transfer path. See [Flow E — fully disconnected host](flow-e-disconnected.md).
+`AGENTBUNDLE_NO_REMOTE=1` disables remote default discovery; it does not make a
+protected Artifactory source available offline.
