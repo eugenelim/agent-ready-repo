@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.7] — 2026-10-01
+
+### Highlights
+
+- Renaming a live intent whose title mentions tombstones now works. The rename validator reads a document title as a title rather than as a damaged retirement marker, so an intent called something like "Tombstone migration plan" is no longer refused. Nothing that should be refused now passes.
+
+### Fixed
+
+- The intent rename validator's damaged-marker scan skips a single leading H1 title. A token-bearing line that parses as no field still refuses, a later heading still refuses, and a successor-pointer field without a retirement marker still refuses.
+
 ## [core][2.27.6] — 2026-09-30
 
 ### Highlights
