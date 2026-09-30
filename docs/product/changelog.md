@@ -91,6 +91,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
+## [code-intelligence][0.1.1] — 2026-09-30
+
+### Changed
+
+- The capability reference now states maturity per provider surface: the command-line surface is validated against a real index, and the MCP surface is read from upstream's published schemas and has never been run here. Claims from the two are no longer presented alike.
+- The gap analysis names which of its findings were observed by running the tool, which were read from upstream's schemas, and which were read from its source because the tool does not report them.
+
 ## [experience-design][4.1.1] — 2026-09-29
 
 ### Highlights
