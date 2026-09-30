@@ -11,8 +11,18 @@ by subprocess against the real file-path invocation elsewhere.
 """
 from __future__ import annotations
 
+import ast
 import importlib.util
+import inspect
+import itertools
+import json
+import subprocess
+import sys
+import uuid
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 LC_PATH = PACK_ROOT / ".apm/skills/work-loop/scripts/loop-cohort.py"
@@ -94,9 +104,6 @@ def test_parse_plan_preserves_authored_order():
 
 
 # ── T1: detect_unknown_deps ─────────────────────────────────────────────────
-
-import pytest  # noqa: E402
-
 
 def test_detect_unknown_deps_names_the_absent_id():
     plan = "## T1: a\n**Depends on:** none\n\n## T2: b\n**Depends on:** T7\n"
@@ -274,12 +281,6 @@ def test_dispatch_fails_closed():
 
 
 # ── T3: `schedule` verb — real file-path invocation via subprocess ──────────
-
-import json  # noqa: E402
-import subprocess  # noqa: E402
-import sys  # noqa: E402
-import uuid  # noqa: E402
-
 
 def _seed_state(tmp_path):
     """Seed a minimal valid cohort state.json and return the run_id."""
@@ -662,12 +663,813 @@ def test_schedule_is_screen_only_no_gate_call(tmp_path):
 
 # ── supervisor-auto-parallel AP-PT1: auto_parallel field + verb ─────────────
 
-import json as _json  # noqa: E402
-
-
 def _run_lc(*args, cwd: Path):
     return subprocess.run([sys.executable, str(LC_PATH), *args],
                           capture_output=True, text=True, cwd=str(cwd))
+
+
+_WAVE_DECISION_PUBLIC_REFUSAL_DETAILS = {
+    "unsupported-state-schema-version": "cohort state schema is unsupported",
+    "state-unreadable": "cohort state could not be read",
+    "no-schedule": "cohort has no scheduled wave",
+    "state-malformed": "cohort state is malformed",
+    "plan-missing": "scheduled plan could not be found",
+    "plan-status-illegal": "scheduled plan status is illegal",
+    "plan-hash-stale": "scheduled plan hash is stale",
+    "wave-index-out-of-range": "requested wave index is out of range",
+    "empty-wave": "selected wave has no unfinished work",
+}
+
+
+def _write_scheduled_state(
+    spec_dir: Path,
+    *,
+    run_id: str | None = None,
+    plan_hash: str = "0" * 64,
+    schedule_waves: list[list[str]] | object | None = None,
+    current_wave_index: object = 0,
+    completed_task_ids: object | None = None,
+    schema_version: object | None = None,
+) -> str:
+    if run_id is None:
+        run_id = str(uuid.uuid4())
+    state = {
+        "schema_version": lc.SCHEMA_VERSION if schema_version is None else schema_version,
+        "run_id": run_id,
+        "pending_transition": None,
+        "transition_history": [],
+        "plan_hash": plan_hash,
+        "schedule_waves": [["T1", "T2"]] if schedule_waves is None else schedule_waves,
+        "current_wave_index": current_wave_index,
+        "completed_task_ids": [] if completed_task_ids is None else completed_task_ids,
+    }
+    (spec_dir / "state.json").write_text(
+        json.dumps(state, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return run_id
+
+
+def _sha_plan(spec_dir: Path) -> str:
+    return lc.sha256_canonical_contract(spec_dir / "plan.md")
+
+
+def _write_plan(spec_dir: Path, plan_text: str) -> str:
+    (spec_dir / "plan.md").write_text(plan_text, encoding="utf-8", newline="\n")
+    return _sha_plan(spec_dir)
+
+
+def _scheduled_fixture(
+    spec_dir: Path,
+    plan_text: str,
+    *,
+    schedule_waves: list[list[str]] | None = None,
+    current_wave_index: object = 0,
+    completed_task_ids: object | None = None,
+) -> str:
+    plan_hash = _write_plan(spec_dir, plan_text)
+    return _write_scheduled_state(
+        spec_dir,
+        plan_hash=plan_hash,
+        schedule_waves=schedule_waves,
+        current_wave_index=current_wave_index,
+        completed_task_ids=completed_task_ids,
+    )
+
+
+def _decision(spec_dir: Path, *args: str):
+    before = (spec_dir / "state.json").read_bytes() if (spec_dir / "state.json").exists() else None
+    result = _run_lc("wave-decision", str(spec_dir), *args, cwd=spec_dir)
+    after = (spec_dir / "state.json").read_bytes() if (spec_dir / "state.json").exists() else None
+    assert after == before
+    return result
+
+
+def _decision_payload(spec_dir: Path, *args: str) -> dict:
+    result = _decision(spec_dir, *args, "--json")
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
+    return json.loads(result.stdout)
+
+
+def _plan_from_touches(items: list[tuple[str, str | None]]) -> str:
+    chunks = ["# Plan\n\n- **Status:** Executing\n\n"]
+    for task_id, touches in items:
+        chunks.append(f"### {task_id}: task {task_id}\n**Depends on:** none\n")
+        if touches is not None:
+            chunks.append(f"**Touches:** {touches}\n")
+        chunks.append("\n")
+    return "".join(chunks)
+
+
+# STUB: AC-0001 — the real CLI emits one read-only decision envelope
+def test_wave_decision_json_reports_scheduled_wave(git_repo):
+    plan = (
+        "# Plan\n\n- **Status:** Executing\n\n"
+        "### T1: a\n**Depends on:** none\n**Touches:** src/a/*.py\n\n"
+        "### T2: b\n**Depends on:** none\n**Touches:** src/b/*.py\n"
+    )
+    scheduled = _schedule(git_repo, plan)
+    assert scheduled.returncode == 0, scheduled.stderr
+    before = (git_repo / "state.json").read_bytes()
+
+    result = _run_lc("wave-decision", str(git_repo), "--json", cwd=git_repo)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["payload_version"] == 1
+    assert payload["wave"] == ["T1", "T2"]
+    assert payload["wave_disposition"] == "all-parallel-capable"
+    assert payload["cohort"] == ["T1", "T2"]
+    assert payload["admission_pending"] is True
+    assert (git_repo / "state.json").read_bytes() == before
+
+
+def test_wave_decision_uses_the_validated_schedule_snapshot(
+    git_repo, monkeypatch, capsys
+):
+    initial_plan = _plan_from_touches([("T1", "src/initial.py")])
+    _scheduled_fixture(git_repo, initial_plan, schedule_waves=[["T1"]])
+    initial_state = json.loads((git_repo / "state.json").read_text(encoding="utf-8"))
+
+    snapshot_plan = _plan_from_touches([
+        ("T2", "src/snapshot/a.py"),
+        ("T3", "src/snapshot/b.py"),
+    ])
+    snapshot_state = {
+        **initial_state,
+        "plan_hash": "1" * 64,
+        "schedule_waves": [["T2", "T3"]],
+        "current_wave_index": 0,
+    }
+    original_check = lc._g.check_schedule_current
+
+    def checked_snapshot(spec_dir, *, include_snapshot=False):
+        if include_snapshot:
+            return lc._g.GuardResult(
+                ok=True,
+                message="schedule check-current OK",
+                data={"state": snapshot_state, "plan_text": snapshot_plan},
+            )
+        return original_check(spec_dir)
+
+    monkeypatch.setattr(lc, "_resolve_spec_dir", lambda _raw: git_repo)
+    monkeypatch.setattr(lc, "read_state", lambda _spec_dir: initial_state)
+    monkeypatch.setattr(
+        lc._g,
+        "check_identity",
+        lambda _spec_dir, *, expect_run_id: lc._g.GuardResult(
+            ok=True, message="identity OK"
+        ),
+    )
+    monkeypatch.setattr(lc._g, "check_schedule_current", checked_snapshot)
+
+    result = lc.cmd_wave_decision(
+        SimpleNamespace(
+            spec_dir=str(git_repo),
+            wave=None,
+            force_sequential=[],
+            json=True,
+        )
+    )
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["wave"] == ["T2", "T3"]
+    assert payload["plan_hash"] == "1" * 64
+
+
+def test_schedule_guard_returns_the_hash_checked_snapshot(git_repo):
+    plan = _plan_from_touches([
+        ("T1", "src/a.py"),
+        ("T2", "src/b.py"),
+    ])
+    _scheduled_fixture(git_repo, plan)
+
+    result = lc._g.check_schedule_current(git_repo, include_snapshot=True)
+
+    assert result.ok, result.reason
+    assert result.data == {
+        "state": json.loads((git_repo / "state.json").read_text(encoding="utf-8")),
+        "plan_text": plan,
+    }
+
+
+@pytest.mark.parametrize("json_mode", [True, False])
+def test_wave_decision_late_state_read_refuses_state_unreadable(
+    git_repo, monkeypatch, capsys, json_mode
+):
+    plan = _plan_from_touches([("T1", "src/a.py"), ("T2", "src/b.py")])
+    _scheduled_fixture(git_repo, plan)
+    before = (git_repo / "state.json").read_bytes()
+    monkeypatch.setattr(lc, "_resolve_spec_dir", lambda _raw: git_repo)
+    monkeypatch.setattr(
+        lc._g,
+        "check_schedule_current",
+        lambda _spec_dir, *, include_snapshot=False: lc._g.GuardResult(
+            ok=False,
+            reason="state.json disappeared during schedule validation",
+            data={"failure_kind": "state-unreadable"},
+        ),
+    )
+
+    result = lc.cmd_wave_decision(
+        SimpleNamespace(
+            spec_dir=str(git_repo),
+            wave=None,
+            force_sequential=[],
+            json=json_mode,
+        )
+    )
+
+    captured = capsys.readouterr()
+    assert result == 1
+    if json_mode:
+        assert captured.err == ""
+        assert json.loads(captured.out) == {
+            "payload_version": 1,
+            "refusal": "state-unreadable",
+            "detail": "cohort state could not be read",
+        }
+    else:
+        assert captured.out == ""
+        assert "state.json disappeared during schedule validation" in captured.err
+    assert (git_repo / "state.json").read_bytes() == before
+
+
+def test_schedule_guard_classifies_state_read_failure(git_repo):
+    missing = git_repo / "late-state-missing"
+    missing.mkdir()
+
+    result = lc._g.check_schedule_current(missing, include_snapshot=True)
+
+    assert not result.ok
+    assert result.data == {"failure_kind": "state-unreadable"}
+
+
+def test_wave_decision_json_refusal_detail_is_public_safe(git_repo):
+    marker = "DO-NOT-ECHO"
+    outside = git_repo.parent / marker
+
+    result = _run_lc("wave-decision", str(outside), "--json", cwd=git_repo)
+
+    assert result.returncode == 1
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "payload_version": 1,
+        "refusal": "state-unreadable",
+        "detail": "cohort state could not be read",
+    }
+    assert marker not in result.stdout
+
+
+@pytest.mark.parametrize("width", [1, 2, 3, 4, 5])
+def test_wave_decision_pairs_match_combination_formula(git_repo, width):
+    items = [(f"T{i}", f"src/{i}/*.py") for i in range(1, width + 1)]
+    wave = [task_id for task_id, _touches in items]
+    _scheduled_fixture(git_repo, _plan_from_touches(items), schedule_waves=[wave])
+
+    payload = _decision_payload(git_repo)
+
+    assert len(payload["pairs"]) == width * (width - 1) // 2
+    assert [row["tasks"] for row in payload["pairs"]] == [
+        list(pair) for pair in itertools.combinations(wave, 2)
+    ]
+    assert all("disposition" not in row and "admission" not in row for row in payload["pairs"])
+
+
+def test_wave_decision_pair_relations_cover_disjoint_overlapping_unknown(git_repo):
+    plan = _plan_from_touches([
+        ("T1", "src/a/*"),
+        ("T2", "src/b/*"),
+        ("T3", "src/a/x.py"),
+        ("T4", None),
+    ])
+    _scheduled_fixture(git_repo, plan, schedule_waves=[["T1", "T2", "T3", "T4"]])
+
+    payload = _decision_payload(git_repo)
+
+    relations = {tuple(row["tasks"]): row["touches_relation"] for row in payload["pairs"]}
+    assert relations[("T1", "T2")] == "disjoint"
+    assert relations[("T1", "T3")] == "overlapping"
+    assert relations[("T1", "T4")] == "unknown"
+
+
+def test_wave_decision_reason_codes_accumulate_and_overlap_short_circuits(git_repo):
+    plan = _plan_from_touches([
+        ("T1", "src/a/*"),
+        ("T2", "src/a/x.py, src/a/y.py"),
+        ("T3", None),
+        ("T4", "db/migrations/0001.sql"),
+        ("T5", "src/e/*"),
+    ])
+    _scheduled_fixture(git_repo, plan, schedule_waves=[["T1", "T2", "T3", "T4", "T5"]])
+
+    payload = _decision_payload(git_repo, "--force-sequential", "T3")
+
+    by_id = {row["task_id"]: row for row in payload["tasks"]}
+    assert by_id["T1"]["disposition"] == "parallel-capable"
+    assert by_id["T2"]["reasons"] == [
+        {"code": "touches-overlap", "with": "T1", "globs": ["src/a/x.py", "src/a/*"]}
+    ]
+    assert by_id["T3"]["reasons"] == [
+        {"code": "touches-undeclared"},
+        {"code": "override-forced-sequential", "source": "cli"},
+    ]
+    assert by_id["T4"]["reasons"] == [
+        {"code": "danger-path-declared", "glob": "db/migrations/0001.sql"}
+    ]
+    assert payload["cohort"] == ["T1", "T5"]
+    assert payload["wave_disposition"] == "partially-parallel-capable"
+
+
+def test_wave_decision_bare_force_sequential_applies_to_whole_wave(git_repo):
+    plan = _plan_from_touches([("T1", "src/a/*"), ("T2", "src/b/*")])
+    _scheduled_fixture(git_repo, plan)
+
+    payload = _decision_payload(git_repo, "--force-sequential")
+
+    assert payload["cohort"] == []
+    assert payload["serialized"] == ["T1", "T2"]
+    for row in payload["tasks"]:
+        assert row["reasons"] == [{"code": "override-forced-sequential", "source": "cli"}]
+
+
+def test_wave_decision_human_mode_succeeds_for_forced_verdict(git_repo):
+    plan = _plan_from_touches([("T1", "src/a/*"), ("T2", "src/b/*")])
+    _scheduled_fixture(git_repo, plan)
+
+    result = _decision(git_repo, "--force-sequential", "T2")
+
+    assert result.returncode == 0, result.stderr
+    assert "wave_disposition:" in result.stdout
+    assert "T2: sequential" in result.stdout
+    assert result.stderr == ""
+
+
+def test_wave_decision_overlap_short_circuits_on_first_admitted_peer(git_repo):
+    plan = _plan_from_touches([
+        ("T1", "src/a/*"),
+        ("T2", "src/b/*"),
+        ("T3", "src/a/x.py, src/b/x.py"),
+    ])
+    _scheduled_fixture(git_repo, plan, schedule_waves=[["T1", "T2", "T3"]])
+
+    payload = _decision_payload(git_repo)
+
+    task = {row["task_id"]: row for row in payload["tasks"]}["T3"]
+    assert task["reasons"] == [
+        {"code": "touches-overlap", "with": "T1", "globs": ["src/a/x.py", "src/a/*"]}
+    ]
+
+
+def test_wave_decision_overlap_accumulates_after_unary_reason(git_repo):
+    plan = _plan_from_touches([
+        ("T1", "src/a/*"),
+        ("T2", "src/a/x.py"),
+    ])
+    _scheduled_fixture(git_repo, plan)
+
+    payload = _decision_payload(git_repo, "--force-sequential", "T2")
+
+    task = {row["task_id"]: row for row in payload["tasks"]}["T2"]
+    assert task["reasons"] == [
+        {"code": "override-forced-sequential", "source": "cli"},
+        {
+            "code": "touches-overlap",
+            "with": "T1",
+            "globs": ["src/a/x.py", "src/a/*"],
+        },
+    ]
+
+
+@pytest.mark.parametrize(
+    ("items", "expected_wave_disposition", "expected_cohort", "expected_serialized"),
+    [
+        ([("T1", "src/a/*")], "single-task", [], ["T1"]),
+        ([("T1", "src/a/*"), ("T2", "src/b/*")], "all-parallel-capable", ["T1", "T2"], []),
+        ([("T1", "src/a/*"), ("T2", "src/a/x.py"), ("T3", "src/b/*")], "partially-parallel-capable", ["T1", "T3"], ["T2"]),
+        ([("T1", None), ("T2", "db/migrations/0001.sql")], "all-sequential", [], ["T1", "T2"]),
+    ],
+)
+def test_wave_decision_disposition_shapes(
+    git_repo, items, expected_wave_disposition, expected_cohort, expected_serialized
+):
+    wave = [task_id for task_id, _touches in items]
+    _scheduled_fixture(git_repo, _plan_from_touches(items), schedule_waves=[wave])
+
+    payload = _decision_payload(git_repo)
+
+    assert payload["wave_disposition"] == expected_wave_disposition
+    assert payload["cohort"] == expected_cohort
+    assert payload["serialized"] == expected_serialized
+    assert len(payload["cohort"]) != 1
+
+
+def test_wave_decision_no_admitted_peer_reason(git_repo):
+    plan = _plan_from_touches([("T1", "src/a/*"), ("T2", None)])
+    _scheduled_fixture(git_repo, plan, schedule_waves=[["T1", "T2"]])
+
+    payload = _decision_payload(git_repo)
+
+    assert payload["cohort"] == []
+    assert payload["tasks"][0]["reasons"] == [{"code": "no-admitted-peer"}]
+    assert payload["tasks"][1]["reasons"] == [{"code": "touches-undeclared"}]
+
+
+def test_wave_decision_wave_argument_and_completed_subtraction(git_repo):
+    plan = _plan_from_touches([
+        ("T1", "src/a/*"),
+        ("T2", "src/b/*"),
+        ("T3", "src/c/*"),
+        ("T4", "src/d/*"),
+    ])
+    _scheduled_fixture(
+        git_repo,
+        plan,
+        schedule_waves=[["T1", "T2"], ["T3", "T4"]],
+        current_wave_index=1,
+        completed_task_ids=["T3"],
+    )
+
+    default_payload = _decision_payload(git_repo)
+    explicit_payload = _decision_payload(git_repo, "--wave", "0")
+
+    assert default_payload["wave_index"] == 1
+    assert default_payload["wave"] == ["T4"]
+    assert default_payload["wave_disposition"] == "single-task"
+    assert explicit_payload["wave_index"] == 0
+    assert explicit_payload["wave"] == ["T1", "T2"]
+
+
+def _assert_json_refusal(result: subprocess.CompletedProcess, code: str) -> dict:
+    assert result.returncode == 1
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["payload_version"] == 1
+    assert payload["refusal"] == code
+    assert payload["detail"] == _WAVE_DECISION_PUBLIC_REFUSAL_DETAILS[code]
+    assert 0 < len(payload["detail"]) <= 96
+    assert "admission_pending" not in payload
+    return payload
+
+
+def _assert_human_refusal(result: subprocess.CompletedProcess, code_or_detail: str) -> None:
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "loop-cohort: stop" in result.stderr
+    assert code_or_detail in result.stderr
+
+
+def test_wave_decision_json_refusals_cover_closed_vocabulary(git_repo, tmp_path):
+    cases: list[tuple[str, Path, str]] = []
+
+    bad_schema = git_repo / "bad-schema"
+    bad_schema.mkdir()
+    _write_plan(bad_schema, _plan_from_touches([("T1", "src/a/*")]))
+    _write_scheduled_state(bad_schema, schema_version=1)
+    cases.append(("unsupported-state-schema-version", bad_schema, "schema_version=1"))
+
+    missing_state = git_repo / "missing-state"
+    missing_state.mkdir()
+    cases.append(("state-unreadable", missing_state, "state.json"))
+
+    no_schedule = git_repo / "no-schedule"
+    no_schedule.mkdir()
+    _write_scheduled_state(no_schedule, schedule_waves=[])
+    cases.append(("no-schedule", no_schedule, "schedule_waves is absent or empty"))
+
+    malformed = git_repo / "malformed"
+    malformed.mkdir()
+    _write_scheduled_state(malformed, schedule_waves=[["T1"]], current_wave_index="zero")
+    cases.append(("state-malformed", malformed, "current_wave_index"))
+
+    malformed_waves = git_repo / "malformed-waves"
+    malformed_waves.mkdir()
+    _write_scheduled_state(malformed_waves, schedule_waves="T1")
+    cases.append(("state-malformed", malformed_waves, "schedule_waves"))
+
+    malformed_completed = git_repo / "malformed-completed"
+    malformed_completed.mkdir()
+    _write_scheduled_state(
+        malformed_completed,
+        schedule_waves=[["T1"]],
+        completed_task_ids="T1",
+    )
+    cases.append(("state-malformed", malformed_completed, "completed_task_ids"))
+
+    missing_run_id = git_repo / "missing-run-id"
+    missing_run_id.mkdir()
+    _write_scheduled_state(missing_run_id, schedule_waves=[["T1"]])
+    state = json.loads((missing_run_id / "state.json").read_text(encoding="utf-8"))
+    state.pop("run_id")
+    (missing_run_id / "state.json").write_text(
+        json.dumps(state, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+    cases.append(("state-malformed", missing_run_id, "run_id"))
+
+    empty_run_id = git_repo / "empty-run-id"
+    empty_run_id.mkdir()
+    _write_scheduled_state(empty_run_id, run_id="", schedule_waves=[["T1"]])
+    cases.append(("state-malformed", empty_run_id, "run_id"))
+
+    plan_missing = git_repo / "plan-missing"
+    plan_missing.mkdir()
+    _write_scheduled_state(plan_missing)
+    cases.append(("plan-missing", plan_missing, "plan.md not found"))
+
+    illegal_status = git_repo / "illegal-status"
+    illegal_status.mkdir()
+    plan_hash = _write_plan(illegal_status, "# Plan\n\n- **Status:** Drafting\n\n### T1\n**Depends on:** none\n**Touches:** src/a/*\n")
+    _write_scheduled_state(illegal_status, plan_hash=plan_hash, schedule_waves=[["T1"]])
+    cases.append(("plan-status-illegal", illegal_status, "Drafting"))
+
+    stale = git_repo / "stale"
+    stale.mkdir()
+    _write_plan(stale, _plan_from_touches([("T1", "src/a/*")]))
+    _write_scheduled_state(stale, plan_hash="1" * 64, schedule_waves=[["T1"]])
+    cases.append(("plan-hash-stale", stale, "plan.md no longer matches"))
+
+    out_of_range = git_repo / "out-of-range"
+    out_of_range.mkdir()
+    _scheduled_fixture(out_of_range, _plan_from_touches([("T1", "src/a/*")]), schedule_waves=[["T1"]])
+    cases.append(("wave-index-out-of-range", out_of_range, "wave_index=5"))
+
+    empty = git_repo / "empty"
+    empty.mkdir()
+    _scheduled_fixture(
+        empty,
+        _plan_from_touches([("T1", "src/a/*")]),
+        schedule_waves=[["T1"]],
+        completed_task_ids=["T1"],
+    )
+    cases.append(("empty-wave", empty, "selected wave has no unfinished tasks"))
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    cases.append(("state-unreadable", outside, str(outside)))
+
+    non_directory = git_repo / "not-a-directory"
+    non_directory.write_text("not a spec dir\n", encoding="utf-8")
+    cases.append(("state-unreadable", non_directory, "Not a directory"))
+
+    invalid_state = git_repo / "invalid-state"
+    invalid_state.mkdir()
+    (invalid_state / "state.json").write_text("{not json\n", encoding="utf-8")
+    cases.append(("state-unreadable", invalid_state, "state.json"))
+
+    unreadable_state = git_repo / "unreadable-state"
+    unreadable_state.mkdir()
+    (unreadable_state / "state.json").mkdir()
+    cases.append(("state-unreadable", unreadable_state, "state.json"))
+
+    for code, spec_dir, detail in cases:
+        args = ["--wave", "5"] if code == "wave-index-out-of-range" else []
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes() if state_path.is_file() else None
+        json_result = _run_lc("wave-decision", str(spec_dir), *args, "--json", cwd=git_repo)
+        _assert_json_refusal(json_result, code)
+        assert str(spec_dir) not in json_result.stdout
+        if detail != _WAVE_DECISION_PUBLIC_REFUSAL_DETAILS[code]:
+            assert detail not in json_result.stdout
+        human_result = _run_lc("wave-decision", str(spec_dir), *args, cwd=git_repo)
+        _assert_human_refusal(human_result, detail)
+        after = state_path.read_bytes() if state_path.is_file() else None
+        assert after == before
+
+
+def test_wave_decision_state_malformed_folds_task_id_and_width_limits(git_repo):
+    plan = _plan_from_touches([("T1", "src/a/*")])
+
+    invalid_id = git_repo / "invalid-id"
+    invalid_id.mkdir()
+    _scheduled_fixture(invalid_id, plan, schedule_waves=[["T1", "BAD"]])
+    _assert_json_refusal(_decision(invalid_id, "--json"), "state-malformed")
+
+    overlong_id = git_repo / "overlong-id"
+    overlong_id.mkdir()
+    long_task = "T" + ("1" * 64)
+    _scheduled_fixture(overlong_id, plan, schedule_waves=[["T1", long_task]])
+    _assert_json_refusal(_decision(overlong_id, "--json"), "state-malformed")
+
+    duplicate_id = git_repo / "duplicate-id"
+    duplicate_id.mkdir()
+    _scheduled_fixture(duplicate_id, plan, schedule_waves=[["T1", "T1"]])
+    _assert_json_refusal(_decision(duplicate_id, "--json"), "state-malformed")
+
+    ok64 = git_repo / "ok64"
+    ok64.mkdir()
+    ids64 = [f"T{i}" for i in range(1, 65)]
+    _scheduled_fixture(ok64, _plan_from_touches([(task_id, f"src/{task_id}/*") for task_id in ids64]), schedule_waves=[ids64])
+    payload64 = _decision_payload(ok64)
+    assert len(payload64["pairs"]) == 2016
+    assert [row["tasks"] for row in payload64["pairs"]] == [
+        list(pair) for pair in itertools.combinations(ids64, 2)
+    ]
+
+    too_many = git_repo / "too-many"
+    too_many.mkdir()
+    ids65 = [f"T{i}" for i in range(1, 66)]
+    _scheduled_fixture(too_many, _plan_from_touches([(task_id, f"src/{task_id}/*") for task_id in ids65]), schedule_waves=[ids65])
+    _assert_json_refusal(_decision(too_many, "--json"), "state-malformed")
+
+
+def _touch_items(count: int, *, prefix: str = "src") -> str:
+    return ", ".join(f"{prefix}/g{i}.py" for i in range(count))
+
+
+def test_wave_decision_touches_per_task_limit_is_folded_to_plan_status_illegal(git_repo):
+    accepted = git_repo / "touches64"
+    accepted.mkdir()
+    _scheduled_fixture(
+        accepted,
+        _plan_from_touches([("T1", _touch_items(64)), ("T2", "other/x.py")]),
+    )
+    assert _decision(accepted, "--json").returncode == 0
+
+    refused = git_repo / "touches65"
+    refused.mkdir()
+    _scheduled_fixture(
+        refused,
+        _plan_from_touches([("T1", _touch_items(65)), ("T2", "other/x.py")]),
+    )
+
+    _assert_json_refusal(_decision(refused, "--json"), "plan-status-illegal")
+    _assert_human_refusal(_decision(refused), "maximum is 64")
+
+
+def test_wave_decision_touches_per_wave_limit_is_folded_to_plan_status_illegal(git_repo):
+    accepted = git_repo / "wave-touches256"
+    accepted.mkdir()
+    ids64 = [f"T{i}" for i in range(1, 65)]
+    _scheduled_fixture(
+        accepted,
+        _plan_from_touches([
+            (task_id, _touch_items(4, prefix=f"src/{task_id}"))
+            for task_id in ids64
+        ]),
+        schedule_waves=[ids64],
+    )
+    assert _decision(accepted, "--json").returncode == 0
+
+    refused = git_repo / "wave-touches257"
+    refused.mkdir()
+    ids = [f"T{i}" for i in range(1, 64)] + ["T64", "T65"]
+    items = [
+        (task_id, _touch_items(4, prefix=f"src/{task_id}"))
+        for task_id in ids[:-1]
+    ]
+    items.append(("T65", "extra/one.py"))
+    _scheduled_fixture(refused, _plan_from_touches(items), schedule_waves=[ids])
+
+    _assert_json_refusal(_decision(refused, "--json"), "state-malformed")
+
+    refused_total = git_repo / "wave-touches257-total"
+    refused_total.mkdir()
+    ids64_total = [f"T{i}" for i in range(1, 65)]
+    items_total = [
+        (task_id, _touch_items(4, prefix=f"src/{task_id}"))
+        for task_id in ids64_total
+    ]
+    items_total[-1] = ("T64", _touch_items(5, prefix="src/T64"))
+    _scheduled_fixture(refused_total, _plan_from_touches(items_total), schedule_waves=[ids64_total])
+    _assert_json_refusal(_decision(refused_total, "--json"), "plan-status-illegal")
+    _assert_human_refusal(_decision(refused_total), "maximum is 256")
+
+
+def test_wave_decision_touch_glob_length_limit_is_folded_to_plan_status_illegal(git_repo):
+    accepted = git_repo / "glob256"
+    accepted.mkdir()
+    glob256 = "a" * 253 + ".py"
+    _scheduled_fixture(accepted, _plan_from_touches([("T1", glob256), ("T2", "b.py")]))
+    assert _decision(accepted, "--json").returncode == 0
+
+    refused = git_repo / "glob257"
+    refused.mkdir()
+    glob257 = "a" * 254 + ".py"
+    _scheduled_fixture(refused, _plan_from_touches([("T1", glob257), ("T2", "b.py")]))
+
+    _assert_json_refusal(_decision(refused, "--json"), "plan-status-illegal")
+    _assert_human_refusal(_decision(refused), "longer than 256")
+
+
+def test_wave_decision_reuses_admission_relations_for_pair_rows(monkeypatch):
+    wave = ["T1", "T2", "T3", "T4"]
+    touches = {
+        task_id: [f"src/{task_id}/g{i}.py" for i in range(4)]
+        for task_id in wave
+    }
+    calls = 0
+    original = lc.globs_overlap
+
+    def counted(left: str, right: str) -> bool:
+        nonlocal calls
+        calls += 1
+        return original(left, right)
+
+    monkeypatch.setattr(lc, "globs_overlap", counted)
+
+    payload = lc._build_wave_decision(
+        state={"schema_version": 2, "run_id": "run", "plan_hash": "hash"},
+        touches=touches,
+        wave_index=0,
+        wave=wave,
+        force_sequential=None,
+    )
+
+    assert payload["wave_disposition"] == "all-parallel-capable"
+    assert calls == 6 * 4 * 4
+
+
+def test_wave_decision_path_confinement_folds_escape_to_state_unreadable(git_repo, tmp_path):
+    target = tmp_path / "outside-spec"
+    target.mkdir()
+    link = git_repo / "escape"
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+
+    absolute_result = _run_lc("wave-decision", str(target), "--json", cwd=git_repo)
+    dotdot_result = _run_lc("wave-decision", "subdir/../escape", "--json", cwd=git_repo)
+    symlink_result = _run_lc("wave-decision", str(link), "--json", cwd=git_repo)
+
+    _assert_json_refusal(absolute_result, "state-unreadable")
+    _assert_json_refusal(dotdot_result, "state-unreadable")
+    _assert_json_refusal(symlink_result, "state-unreadable")
+
+
+@pytest.mark.parametrize(
+    "resolution_failure",
+    [OSError("symlink loop at private path"), RuntimeError("symlink loop at private path")],
+)
+def test_wave_decision_resolution_failures_use_json_refusal(
+    monkeypatch, capsys, resolution_failure
+):
+    def fail_resolution(_raw):
+        raise resolution_failure
+
+    monkeypatch.setattr(lc, "_resolve_spec_dir", fail_resolution)
+    args = SimpleNamespace(spec_dir="loop", json=True)
+
+    assert lc.cmd_wave_decision(args) == 1
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) == {
+        "payload_version": 1,
+        "refusal": "state-unreadable",
+        "detail": _WAVE_DECISION_PUBLIC_REFUSAL_DETAILS["state-unreadable"],
+    }
+    assert captured.err == ""
+    assert "private path" not in captured.out
+
+
+def test_wave_decision_does_not_touch_dispatch_gate_or_write_paths():
+    source = LC_PATH.read_text(encoding="utf-8")
+    parser_slice = source.split("# dispatch-decision (disabled)", 1)[1].split("# auto-parallel", 1)[0]
+    assert "cmd_dispatch_decision" in parser_slice
+    assert "wave-decision" not in parser_slice
+    assert inspect.getsource(lc.cmd_dispatch_decision) == (
+        "def cmd_dispatch_decision(args: argparse.Namespace) -> int:\n"
+        "    return _disabled(\"dispatch-decision\")\n"
+    )
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    reachable = set()
+    pending = ["cmd_wave_decision"]
+    called_symbols = set()
+    string_constants = set()
+    while pending:
+        function_name = pending.pop()
+        if function_name in reachable:
+            continue
+        reachable.add(function_name)
+        for node in ast.walk(functions[function_name]):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    called_symbols.add(node.func.id)
+                    if node.func.id in functions:
+                        pending.append(node.func.id)
+                elif isinstance(node.func, ast.Attribute):
+                    called_symbols.add(node.func.attr)
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                string_constants.add(node.value)
+
+    forbidden_calls = {
+        "dispatch_decision",
+        "wave_is_disjoint",
+        "write_state_atomic",
+        "with_state_lock",
+        "cmd_worktree",
+    }
+    assert forbidden_calls.isdisjoint(called_symbols)
+    assert all("merge-tree" not in value for value in string_constants)
 
 
 def test_init_state_has_auto_parallel_false(git_repo):
@@ -676,7 +1478,7 @@ def test_init_state_has_auto_parallel_false(git_repo):
     run_id = str(uuid.uuid4())
     r = _run_lc("init", str(spec), "--run-id", run_id, cwd=git_repo)
     assert r.returncode == 0, r.stderr
-    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False
+    assert json.loads((spec / "state.json").read_text())["auto_parallel"] is False
 
 
 def test_auto_parallel_verb_flips_both_ways(git_repo):
@@ -1071,7 +1873,7 @@ def _lifecycle_fixture(tmp_path: Path) -> str:
 
 
 def _state_of(tmp_path: Path) -> dict:
-    return _json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
+    return json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
 
 
 def test_schedule_creates_the_receipts_container_when_absent(git_repo):

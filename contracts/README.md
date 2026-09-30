@@ -40,6 +40,7 @@ disagree, `contracts/` is authoritative.
 | `REGISTRY.md` | Backward spec pointers for contracts whose format carries no `x-spec` key | no |
 | `jsonschema/knowledge-captured-observation.schema.json` | Captured project-knowledge observation envelope | yes |
 | `jsonschema/loop-run-event.schema.json` | One `.loop-run/events.jsonl` line the work-loop engine writes per FSM transition | no |
+| `jsonschema/loop-cohort-wave-decision.schema.json` | Read-only pre-dispatch verdict and refusal envelopes emitted by `loop-cohort wave-decision` | no |
 | `jsonschema/delivery-lifecycle-record.schema.json` | Git-tracked delivery lifecycle record | no |
 | `jsonschema/normalized-intake.schema.json` | Transient normalized work-intake envelope | no |
 | `jsonschema/workspace-entry.schema.json` | Target structured `workspace.toml` entry | no |
