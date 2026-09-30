@@ -417,7 +417,7 @@
           {
             "enumeration_ordinal": 2,
             "stable_case_key": "57f195e95c86c86a305933b9cf84745dffa8de55e261d72bda5170315135920f",
-            "status": "admitted_normal_loop_open",
+            "status": "normal_loop_terminal",
             "controller_decision_timestamp": "2026-09-30T00:11:05Z",
             "identity_rederived": "The row was first written at 2026-09-30T00:08:28Z against an earlier spec/plan revision, then re-derived at the timestamp above when the contract-item alignment lint required identifier and verification-group corrections to spec.md and Owned by fields in plan.md. No reviewer had started and no measurement start had been launched, so this is a correction to the single open row rather than a second row: the earlier key 5f0a4da49cfb2905df68f23358386c0cc9fbd1fd667630ef8531178306e0bcb3 was never bound to a review and is retired unused. The enumeration ordinal is unchanged.",
             "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
@@ -444,7 +444,46 @@
               "wall_clock_timeout": "enforceable via a controller-owned subprocess timeout around the launch",
               "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless launch, verified by the controller on 2026-09-29; see case 1 for the measurement"
             },
-            "notes": "Admitted at the point the normal work-loop's pre-execute spec/plan review unit opens, before the first reviewer start. The accepted intent is a persisted repository artifact: ADR-0131 was authored during PLAN because the spec's Constrained by header cites it and a dangling citation would itself be a defect. No measurement start has been launched."
+            "notes_enumeration": "Admitted at the point the normal work-loop's pre-execute spec/plan review unit opens, before the first reviewer start. The accepted intent is a persisted repository artifact: ADR-0131 was authored during PLAN because the spec's Constrained by header cites it and a dangling citation would itself be a defect. No measurement start has been launched.",
+            "normal_loop_outcome": {
+              "terminated_at": "2026-09-30T01:05:00Z",
+              "terminal_reason": "contract decomposed at the owner's decision after four pre-EXECUTE review rounds failed to converge; no acceptance criterion was ever approved and no code was written against this contract",
+              "review_rounds": 4,
+              "raw_findings_by_round": {"round_1": 26, "round_2": 19, "round_3": 14, "round_4": 24},
+              "adversarial_raw_by_round": {"round_1": 14, "round_2": 10, "round_3": 7, "round_4": 14},
+              "shaping_raw_by_round": {"round_1": 12, "round_2": 9, "round_3": 7, "round_4": 10},
+              "adjudication_batches": 2,
+              "adjudicated_sustained": {"round_1": 10, "round_2": 8},
+              "adjudicated_refuted": {"round_1": 4, "round_2": 2},
+              "adjudicated_indeterminate": {"round_1": 0, "round_2": 0},
+              "rounds_not_adjudicated": [3, 4],
+              "rounds_not_adjudicated_reason": "round 3 reached the skill's surface-to-human threshold and was resolved by direct controller verification against the cited files; round 4 produced the decomposition decision and its findings were not repaired",
+              "repair_origin_findings_by_round": {"round_1": 0, "round_2": 6, "round_3": 12, "round_4": 4},
+              "new_carriers_discovered_by_round": {"round_2": 1, "round_3": 2, "round_4": 5},
+              "criteria_count_by_round": {"authored": 23, "after_round_1": 27, "after_round_2": 29, "after_round_3": 31},
+              "criteria_retired": 3,
+              "measured_true_extent": {"files": 25, "loci": 59, "method": "whitespace-normalized sweep for visual[ _-]target over packs, guides, web/src/content, tests and docs/design", "note": "a raw line-oriented grep of the same pattern returns 24 files and misses one carrier where the phrase wraps mid-line"}
+            },
+            "stopped_revision_artifacts": [
+              {"path": "docs/specs/visual-target-confirmation/spec.md", "sha256": "82e2c2cf0041695ee51b4d233e18d64eeb7eb0a923ce2524f61cf36c7b7e1e30"},
+              {"path": "docs/specs/visual-target-confirmation/plan.md", "sha256": "4bffb8076107af6f1be73c114700607af8a15f00aaa2982268bf271201137c6e"},
+              {"path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md", "sha256": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460"}
+            ],
+            "stopped_revision_note": "the exact revision both round-4 reviewers graded; no repair followed it, so the stopped revision and the round-4 reviewed revision are the same bytes",
+            "observed_normal_loop_cost": {
+              "reviewer_and_adjudicator_starts": 10,
+              "returned_subagent_tokens_total": 952547,
+              "returned_subagent_tokens_by_start": [89093, 110388, 92116, 102488, 104342, 81140, 73945, 81140, 109995, 107900],
+              "wall_time_seconds_total": 3163.9,
+              "measurement_overhead_starts": 0,
+              "attribution": "all ten starts are normal-loop review work, observed rather than study-added; no shadow or adjudication measurement start has been launched for this case",
+              "unavailable_fields": ["per-start input/output token split — the host returns one aggregate subagent token count per start, not the returned input and output counts the scorecard asks for"]
+            },
+            "successor_units": [
+              "direct-light, shipped: the inherit scope repair, experience-design 4.1.1 — light mode, so it forms no pre-execute review unit and is not a cohort candidate",
+              "docs/specs/visual-target-field/spec.md — full mode, a future candidate when its pre-execute review opens",
+              "visual-target-rung-precondition — not yet authored, a future candidate"
+            ]
           }
         ]
       },
