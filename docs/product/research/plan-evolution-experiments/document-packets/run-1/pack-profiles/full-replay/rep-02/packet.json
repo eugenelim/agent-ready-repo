@@ -1,0 +1,229 @@
+{
+  "commands": [],
+  "executable_attachments": [],
+  "forbidden_subject_actions": [
+    "tools",
+    "web",
+    "delegation",
+    "repository inspection",
+    "messaging",
+    "code execution",
+    "shell commands",
+    "external files",
+    "editing the subject"
+  ],
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "non_secret": true,
+  "policy_aperture": {
+    "aperture": "Review the complete current revision as if no earlier review exists.",
+    "changed_material_rule": "All visible document material is in aperture.",
+    "review_opportunities": [
+      1,
+      2,
+      3
+    ]
+  },
+  "policy_id": "full-replay",
+  "policy_label": "full replay on every revision",
+  "replication": 2,
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "alias": {
+        "type": "string"
+      },
+      "artifact_version_reviewed": {
+        "type": "string"
+      },
+      "changed_material_assessment": {
+        "maxLength": 500,
+        "type": "string"
+      },
+      "findings": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "affected_acceptance_atom_ids": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 1,
+              "type": "array"
+            },
+            "category": {
+              "enum": [
+                "missing-required-fact",
+                "incorrect-fact",
+                "scope-drift",
+                "unbounded-claim",
+                "contradiction",
+                "clarity",
+                "other"
+              ]
+            },
+            "changed_material_status": {
+              "enum": [
+                "unchanged-existing",
+                "new-or-changed",
+                "affected-invariant",
+                "not-applicable"
+              ]
+            },
+            "confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "finding_id": {
+              "maxLength": 40,
+              "type": "string"
+            },
+            "fingerprint": {
+              "maxLength": 120,
+              "type": "string"
+            },
+            "quote_or_location": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "rationale": {
+              "maxLength": 360,
+              "type": "string"
+            },
+            "severity": {
+              "enum": [
+                "critical",
+                "major",
+                "minor",
+                "note"
+              ]
+            }
+          },
+          "required": [
+            "finding_id",
+            "severity",
+            "category",
+            "quote_or_location",
+            "rationale",
+            "affected_acceptance_atom_ids",
+            "changed_material_status",
+            "confidence",
+            "fingerprint"
+          ],
+          "type": "object"
+        },
+        "maxItems": 10,
+        "type": "array"
+      },
+      "no_edit_confirmation": {
+        "const": true
+      },
+      "protocol_deviations": {
+        "items": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "maxItems": 8,
+        "type": "array"
+      },
+      "review_aperture": {
+        "maxLength": 220,
+        "type": "string"
+      }
+    },
+    "required": [
+      "alias",
+      "review_aperture",
+      "artifact_version_reviewed",
+      "findings",
+      "changed_material_assessment",
+      "no_edit_confirmation",
+      "protocol_deviations"
+    ],
+    "type": "object"
+  },
+  "review_subject": {
+    "acceptance_atoms": [
+      {
+        "id": "A1",
+        "text": "Catalogue-owned profiles must be listed by the CLI."
+      },
+      {
+        "id": "A2",
+        "text": "Profile install must dispatch ordered dependency batches."
+      },
+      {
+        "id": "A3",
+        "text": "Profile manifests must enforce scope and dependency completeness."
+      }
+    ],
+    "document_title": "Pack profile delivery note",
+    "revisions": [
+      {
+        "artifact_id": "pack-profiles-r1",
+        "delta_from_previous": {
+          "added_lines": [
+            "Pack profile delivery note - revision 1",
+            "",
+            "Audience: repository maintainers reviewing a proposed documentation change.",
+            "The CLI lists catalogue-owned profiles and installs each profile in ordered dependency batches. A profile manifest with an unknown dependency emits a warning and continues. Any listed profile is therefore safe to install."
+          ],
+          "basis": "initial-artifact",
+          "removed_lines": []
+        },
+        "document_text": "Pack profile delivery note - revision 1\n\nAudience: repository maintainers reviewing a proposed documentation change.\nThe CLI lists catalogue-owned profiles and installs each profile in ordered dependency batches. A profile manifest with an unknown dependency emits a warning and continues. Any listed profile is therefore safe to install.",
+        "revision": 1
+      },
+      {
+        "artifact_id": "pack-profiles-r2",
+        "delta_from_previous": {
+          "added_lines": [
+            "Pack profile delivery note - revision 2",
+            "The CLI lists catalogue-owned profiles and dispatches their dependency batches in order. Manifest scope is checked, but an incomplete dependency declaration is accepted with a warning. A successful dispatch proves the whole profile is complete."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "Pack profile delivery note - revision 1",
+            "The CLI lists catalogue-owned profiles and installs each profile in ordered dependency batches. A profile manifest with an unknown dependency emits a warning and continues. Any listed profile is therefore safe to install."
+          ]
+        },
+        "document_text": "Pack profile delivery note - revision 2\n\nAudience: repository maintainers reviewing a proposed documentation change.\nThe CLI lists catalogue-owned profiles and dispatches their dependency batches in order. Manifest scope is checked, but an incomplete dependency declaration is accepted with a warning. A successful dispatch proves the whole profile is complete.",
+        "revision": 2
+      },
+      {
+        "artifact_id": "pack-profiles-r3",
+        "delta_from_previous": {
+          "added_lines": [
+            "Pack profile delivery note - revision 3",
+            "Catalogue profiles remain visible through the CLI and install through ordered dependency batches. The final manifest check still allows missing dependencies when the named pack exists. The note claims this is safe for every future profile shape."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "Pack profile delivery note - revision 2",
+            "The CLI lists catalogue-owned profiles and dispatches their dependency batches in order. Manifest scope is checked, but an incomplete dependency declaration is accepted with a warning. A successful dispatch proves the whole profile is complete."
+          ]
+        },
+        "document_text": "Pack profile delivery note - revision 3\n\nAudience: repository maintainers reviewing a proposed documentation change.\nCatalogue profiles remain visible through the CLI and install through ordered dependency batches. The final manifest check still allows missing dependencies when the named pack exists. The note claims this is safe for every future profile shape.",
+        "revision": 3
+      }
+    ]
+  },
+  "run_id": "run-1",
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "synthetic": true,
+  "task_complexity": "complex",
+  "task_id": "pack-profiles",
+  "task_provenance": "pre-build",
+  "trajectory_id": "run-1:pack-profiles:p-full-replay:rep-2",
+  "worker_alias_prefix": "run1-reviewer-04-full-replay"
+}

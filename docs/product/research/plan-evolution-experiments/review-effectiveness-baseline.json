@@ -1,0 +1,1236 @@
+{
+  "schema_version": "review-effectiveness-baseline.v1",
+  "frozen_at": "2026-09-29",
+  "verification_mode": "goal-based source reconciliation, direct arithmetic, and manual finding-lineage review; no stub",
+  "model_process_starts_used_for_t14": 0,
+  "source_documents": [
+    {
+      "path": "docs/product/research/plan-evolution-experiments/review-churn-methodology.md",
+      "role": "prior frozen inclusion and scoring method"
+    },
+    {
+      "path": "docs/product/research/plan-evolution-experiments/review-churn-results.json",
+      "role": "Tier A, Tier B, and repository aggregate source values"
+    },
+    {
+      "path": "docs/product/research/plan-evolution-experiments/review-churn-evidence-report.md",
+      "role": "narrative interpretation and T13 boundary"
+    },
+    {
+      "path": "docs/product/research/review-loop-nonconvergence-survey.md",
+      "sha256_from_review_churn_results": "a349d64e89825c2b01e554a12b768fe2a5f9f42bc6bf5886023152231c8ff82c",
+      "role": "occasioning loop and repository-wide aggregate survey"
+    }
+  ],
+  "event_schema_fields": [
+    "event_id",
+    "evidence_class",
+    "case_id",
+    "source_refs",
+    "revision_identity",
+    "review_start_count",
+    "finding_count",
+    "strict_defect_clusters",
+    "durable_blockers_closed",
+    "protected_escapes",
+    "repair_origin_blockers",
+    "accepted_surface_reopenings",
+    "same_family_recurrences",
+    "same_revision_disagreement",
+    "appeal_reversal_or_indeterminate",
+    "prose_churn_events",
+    "prose_churn_denominator",
+    "review_cost",
+    "adjudication_cost",
+    "repair_cost",
+    "changed_accepted_surface",
+    "missingness"
+  ],
+  "tier_a_events": [
+    {
+      "event_id": "tier-a-plan-evolution-current",
+      "evidence_class": "tier_a",
+      "case_id": "plan-evolution-current",
+      "source_refs": [
+        {
+          "path": "docs/product/research/plan-evolution-experiments/review-churn-current-case.json",
+          "sha256": "3d7c5b98e593b2e02a9beac1b5da511d06f5fa2a4ccade2b1913f9a08a82d071"
+        }
+      ],
+      "revision_identity": {
+        "ordered_rounds": [1, 2, 3, 4, 5],
+        "note": "Round 6 reviewed later security and source-refresh amendments and is not counted as a duplicate closure round."
+      },
+      "review_start_count": 5,
+      "finding_count": 10,
+      "strict_defect_clusters": 9,
+      "durable_blockers_closed": null,
+      "protected_escapes": null,
+      "repair_origin_blockers": 3,
+      "accepted_surface_reopenings": null,
+      "same_family_recurrences": 4,
+      "same_revision_disagreement": null,
+      "appeal_reversal_or_indeterminate": null,
+      "prose_churn_events": null,
+      "prose_churn_denominator": null,
+      "review_cost": {"actions": 5, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "adjudication_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "repair_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "changed_accepted_surface": {"scope": null, "implementation": null, "tests": null, "protected_controls": null},
+      "missingness": [
+        "protected escapes unavailable: no retrospective shadow audit",
+        "durable blocker closure unavailable: strict clusters and clean report do not prove accepted-surface or protected-control closure lineage",
+        "accepted-surface reopening unavailable: accepted revision identity not retained for each finding",
+        "exact prose churn numerator and denominator unavailable: blocking-after-accepted-revision, unchanged accepted text, and no-new-evidence lineage not fully retained",
+        "appeal indeterminacy unavailable: retained indeterminate value is lineage-classification uncertainty",
+        "provider tokens, wall time, resolved model, and repair action counts unavailable"
+      ]
+    },
+    {
+      "event_id": "tier-a-credential-broker-contract",
+      "evidence_class": "tier_a",
+      "case_id": "credential-broker-contract",
+      "source_refs": [
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-1.md", "sha256": "6ecaaaccce6b1bb9c4a6cecf692779f77db98e2c98f747d6527da91d9ea3b705"},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-2.md", "sha256": "f337905c4a2dca6d7c04b03c8f76fd47afa19fa489215b05a20b30c6568f8709"},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-3.md", "sha256": "959c5e7103ca12af3297dcf3f321ec964bca8a480eab752da90711b4168b4419"},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-4.md", "sha256": "03b526781d834e10b6e9e4422109007b7b1cd7b73edce51bd02b6820a189cb00"},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-5.md", "sha256": "379774803dace36ed3bb23887bc150c4692ed4304b822829effc7c4667d7a895"}
+      ],
+      "revision_identity": {"ordered_rounds": [1, 2, 3, 4, 5]},
+      "review_start_count": 5,
+      "finding_count": 41,
+      "strict_defect_clusters": 31,
+      "durable_blockers_closed": null,
+      "protected_escapes": null,
+      "repair_origin_blockers": 0,
+      "repair_origin_upper_bound": 11,
+      "accepted_surface_reopenings": null,
+      "same_family_recurrences": 19,
+      "same_revision_disagreement": null,
+      "appeal_reversal_or_indeterminate": null,
+      "prose_churn_events": null,
+      "prose_churn_denominator": null,
+      "review_cost": {"actions": 5, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "adjudication_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "repair_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "changed_accepted_surface": {"scope": null, "implementation": null, "tests": null, "protected_controls": null},
+      "missingness": [
+        "repair origin mostly unresolved because intermediate diffs are missing",
+        "durable blocker closure unavailable: strict clusters and clean report do not prove accepted-surface or protected-control closure lineage",
+        "protected escapes unavailable: no retrospective shadow audit",
+        "exact prose churn numerator and denominator unavailable: blocking-after-accepted-revision and accepted-surface lineage not retained",
+        "appeal indeterminacy unavailable: no appeal or adjudication indeterminacy record retained",
+        "provider tokens, wall time, resolved model, and repair action counts unavailable"
+      ]
+    },
+    {
+      "event_id": "tier-a-portfolio-first-run-pilot-architect",
+      "evidence_class": "tier_a",
+      "case_id": "portfolio-first-run-pilot-architect",
+      "source_refs": [
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-1.md", "sha256": "722757eeab562dd460cc2f558c806a08421d93dc195eca2a23fac2e75608591d"},
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-2.md", "sha256": "aed69776582308c59ba458dc2b64ee727bfbb318bf20e89fa41021274d8ac74d"},
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-3.md", "sha256": "9b2f848120bef01c602adcde232b029c5ce9cfc3bc4933defe67443a48b5f727"},
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-4.md", "sha256": "a48fcd5bb1f40da6a314d250846b62041a08bfae4573de5bde97ed8603a94acd"}
+      ],
+      "revision_identity": {"ordered_rounds": [1, 2, 3, 4]},
+      "review_start_count": 4,
+      "finding_count": 19,
+      "strict_defect_clusters": 18,
+      "durable_blockers_closed": null,
+      "protected_escapes": null,
+      "repair_origin_blockers": 2,
+      "accepted_surface_reopenings": null,
+      "same_family_recurrences": 7,
+      "same_revision_disagreement": null,
+      "appeal_reversal_or_indeterminate": null,
+      "prose_churn_events": null,
+      "prose_churn_denominator": null,
+      "review_cost": {"actions": 4, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "adjudication_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "repair_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "changed_accepted_surface": {"scope": null, "implementation": null, "tests": null, "protected_controls": null},
+      "missingness": [
+        "durable closure unavailable: no retained clean closure round",
+        "protected escapes unavailable: no retrospective shadow audit",
+        "exact prose churn numerator and denominator unavailable: blocking-after-accepted-revision and accepted-surface lineage not retained",
+        "appeal indeterminacy unavailable: no appeal or adjudication indeterminacy record retained",
+        "provider tokens, wall time, resolved model, and repair action counts unavailable"
+      ]
+    },
+    {
+      "event_id": "tier-a-work-loop-review-verdicts-fresh-spec",
+      "evidence_class": "tier_a",
+      "case_id": "work-loop-review-verdicts-fresh-spec",
+      "source_refs": [
+        {"path": "docs/specs/work-loop-review-verdicts/notes/adversarial-review-spec-fresh-round-1.md", "sha256": "7224db10703310e3188fd498ca090b940e7139c5d20e0612b68c6b44f9e5a62c"},
+        {"path": "docs/specs/work-loop-review-verdicts/notes/adversarial-review-spec-fresh-round-2.md", "sha256": "0dfaf498bf34b155d50838795c9fc785be1c29dfa0cbcfc6b53070f919ddfcae"},
+        {"path": "docs/specs/work-loop-review-verdicts/notes/adversarial-review-spec-fresh-round-3.md", "sha256": "ab405c7e74ecab7f670dd4d07fdcffb466bc9be169f93309ba10551987ac850d"},
+        {"path": "docs/specs/work-loop-review-verdicts/notes/review-verdict-pending.md", "sha256": "60d47e6801fb6f7d157c33ab342742d90db931ee08c130fa2e11c6037dbb8645"}
+      ],
+      "revision_identity": {"ordered_rounds": [1, 2, 3]},
+      "review_start_count": 3,
+      "finding_count": 5,
+      "strict_defect_clusters": 5,
+      "durable_blockers_closed": null,
+      "protected_escapes": null,
+      "repair_origin_blockers": 0,
+      "accepted_surface_reopenings": null,
+      "same_family_recurrences": 2,
+      "same_revision_disagreement": {"refuted_findings": 1, "findings_with_disposition": 5},
+      "appeal_reversal_or_indeterminate": null,
+      "prose_churn_events": null,
+      "prose_churn_denominator": null,
+      "review_cost": {"actions": 3, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "adjudication_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "repair_cost": {"actions": null, "input_tokens": null, "output_tokens": null, "wall_time_seconds": null},
+      "changed_accepted_surface": {"scope": null, "implementation": null, "tests": null, "protected_controls": null},
+      "missingness": [
+        "protected escapes unavailable: no retrospective shadow audit",
+        "durable blocker closure unavailable: strict clusters and disposition record do not prove accepted-surface or protected-control closure lineage",
+        "exact prose churn numerator and denominator unavailable: blocking-after-accepted-revision and accepted-surface lineage not retained",
+        "appeal indeterminacy unavailable: the one refuted disposition is a same-revision disagreement/reversal observation, not an appeal-indeterminacy record",
+        "provider tokens, wall time, resolved model, and repair action counts unavailable"
+      ]
+    }
+  ],
+  "tier_a_scorecard": {
+    "review_starts": 17,
+    "raw_findings": 75,
+    "strict_defect_cluster_proxy": 63,
+    "durable_blocker_closure": {
+      "closed": null,
+      "denominator_with_closure_evidence": null,
+      "rate": null,
+      "missing_reason": "retained strict clusters and clean reports do not prove the new durable-blocker closure lineage"
+    },
+    "protected_escape_rate": {
+      "escapes": null,
+      "denominator": null,
+      "rate": null,
+      "missing_reason": "retrospective cases have no independent shadow audit"
+    },
+    "unique_durable_blockers_per_review_start": {
+      "aggregate": null,
+      "case_values": null,
+      "missing_reason": "strict clusters are recurrence/defect-cluster proxies, not directly supported durable blockers"
+    },
+    "repair_origin_blockers": {
+      "proven": 5,
+      "later_findings_denominator": 38,
+      "share_of_later_findings": 0.1316,
+      "all_findings_denominator": 75,
+      "share_of_all_findings": 0.0667
+    },
+    "accepted_surface_reopenings": {
+      "count": null,
+      "denominator": null,
+      "missing_reason": "accepted-surface state per finding is not retained"
+    },
+    "same_family_recurrence": {
+      "repeated": 12,
+      "same_invariant_distinct": 20,
+      "later_recurrence_family_findings": 32,
+      "later_findings_denominator": 38,
+      "share": 0.8421
+    },
+    "same_revision_reviewer_adjudicator_disagreement": {
+      "available_case": "work-loop-review-verdicts-fresh-spec",
+      "refuted_findings": 1,
+      "findings_with_disposition": 5,
+      "share": 0.2,
+      "missing_reason_for_other_cases": "same-revision disposition records not retained"
+    },
+    "appeal_reversal_or_indeterminacy": {
+      "appeal_indeterminate_findings": null,
+      "appeal_indeterminate_denominator": null,
+      "appeal_reversal_findings": null,
+      "appeal_reversal_denominator": null,
+      "missing_reason": "the retained indeterminate value is lineage-classification uncertainty, not appeal or adjudication indeterminacy; the one refuted disposition is reported under same-revision disagreement"
+    },
+    "prose_churn": {
+      "exact_events": null,
+      "denominator": null,
+      "events_per_review_start": null,
+      "missing_reason": "Tier A lacks proof that the 38 later findings were blocking findings after an accepted revision, and lacks complete accepted-text and no-new-evidence lineage",
+      "recurrence_proxy_not_pooled_as_prose_churn": {
+        "events": 32,
+        "denominator": 38,
+        "share": 0.8421,
+        "events_per_review_start": 1.8824
+      }
+    },
+    "observable_action_cost": {
+      "review_actions": 17,
+      "adjudication_actions": null,
+      "repair_actions": null,
+      "input_tokens": null,
+      "output_tokens": null,
+      "wall_time_seconds": null,
+      "missing_reason": "historical role/action telemetry is not retained beyond review rounds"
+    },
+    "cost_per_durable_blocker_closed": {
+      "review_actions_per_closed_blocker": null,
+      "adjudication_actions_per_closed_blocker": null,
+      "repair_actions_per_closed_blocker": null,
+      "tokens_per_closed_blocker": null,
+      "wall_time_per_closed_blocker": null,
+      "missing_reason": "durable blockers closed are unavailable retrospectively"
+    },
+    "findings_that_changed_scope_code_tests_or_protected_controls": {
+      "count": null,
+      "denominator": 75,
+      "missing_reason": "retained Tier A rows do not consistently preserve changed-surface categories"
+    }
+  },
+  "tier_b_aggregate_events": [
+    {
+      "event_id": "tier-b-install-to-ship-walkthrough",
+      "evidence_class": "tier_b_aggregate",
+      "case_id": "install-to-ship-walkthrough",
+      "source_refs": [
+        {
+          "path": "docs/knowledge/topics/a-review-round-whose-findings-are-mostly-prior-round-repairs-is-a-signal-to-cut.json",
+          "sha256": "4a48c44623b5b42a8559775a16fe64c15aae9c3fc9426a4556a56322cb98a04a"
+        }
+      ],
+      "trajectory": [26, 10, 8, 4, 1],
+      "raw_findings": 49,
+      "proven_repair_origin_in_rounds_2_3": 12,
+      "pooled_with_tier_a": false,
+      "missingness": ["raw round reports and finding-level accepted-surface lineage unavailable"]
+    },
+    {
+      "event_id": "tier-b-occasioning-nonconvergence-loop",
+      "evidence_class": "tier_b_aggregate",
+      "case_id": "occasioning-nonconvergence-loop",
+      "source_refs": [
+        {
+          "path": "docs/product/research/review-loop-nonconvergence-survey.md",
+          "sha256": "a349d64e89825c2b01e554a12b768fe2a5f9f42bc6bf5886023152231c8ff82c"
+        }
+      ],
+      "rounds": 15,
+      "sustained_findings": 30,
+      "proven_repair_origin": 9,
+      "findings_in_two_families": 18,
+      "last_eight_round_findings": 8,
+      "pooled_with_tier_a": false,
+      "missingness": ["complete raw transcript set unavailable", "whether round 20 would have been clean is unknowable"]
+    }
+  ],
+  "repository_aggregate_event": {
+    "event_id": "repository-aggregate-survey",
+    "evidence_class": "repository_aggregate",
+    "case_id": "repository-wide-survey",
+    "source_refs": [
+      {
+        "path": "docs/product/research/review-loop-nonconvergence-survey.md",
+        "sha256": "a349d64e89825c2b01e554a12b768fe2a5f9f42bc6bf5886023152231c8ff82c"
+      }
+    ],
+    "session_transcripts": 4300,
+    "merged_pull_requests": 1273,
+    "spec_plan_pairs": 431,
+    "numbered_acceptance_criteria": 4060,
+    "runs_with_review_artifacts": 112,
+    "runs_exceeding_five_review_ordinals": 50,
+    "plan_nonblank_line_unconsumed_share": 0.856,
+    "full_mode_spec_plan_only_finding_share": 0.51,
+    "light_mode_record_only_finding_share": 0.06,
+    "full_mode_acceptance_criterion_to_code_findings": 567,
+    "pooled_with_tier_a": false
+  },
+  "t13_methodological_negative_event": {
+    "event_id": "t13-methodological-negative",
+    "evidence_class": "t13_synthetic",
+    "case_id": "codex-headless-sol-loop-confirmation-r1",
+    "source_refs": [
+      {
+        "path": "docs/product/research/plan-evolution-experiments/review-churn-evidence-report.md",
+        "sha256": "8851f6d53ab0c526cb2627868b2af6d3bb053557aecd75baf5bcb6dc42828fdd"
+      }
+    ],
+    "terminal_starts": 95,
+    "start_cap": 96,
+    "unused_start": 1,
+    "review_rounds": 7,
+    "filed_findings_by_round": [4, 31, 41, 15, 41, 10, 48],
+    "filed_findings_total": 190,
+    "sustained_findings": 88,
+    "refuted_findings": 3,
+    "unadjudicated_findings": 99,
+    "natural_work_effectiveness_claim": false,
+    "reason": "Apparatus findings dominated: tautological checks, self-matching taxonomy tests, shape checks as property checks, fail-open carry behavior, stale byte bindings, and grader decisions on judgment surfaces."
+  },
+  "prospective_reserved_event": {
+    "event_id": "prospective-t15-reserved",
+    "evidence_class": "prospective_reserved",
+    "case_id": "release-record-v1-pending",
+    "process_starts": 0,
+    "eligibility": "requires independent review and owner approval of the release record before any prospective case is admitted",
+    "release_record": {
+      "version": "t15-prospective-natural-work-v1",
+      "frozen_at": "2026-09-29T19:29:16Z",
+      "mutable_release_state": {
+        "owner_status": "approved:d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+        "independent_review_status": "approved:d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+        "prospective_starts_authorized": true,
+        "admission_window_started_at": "2026-09-29T21:19:31Z",
+        "admission_window_ends_at": "2026-10-29T21:19:31Z",
+        "prospective_cases_admitted": 2,
+        "measurement_starts_used": 1,
+        "accepted_intent_renumbered_2026_09_30": {
+          "what": "The accepted intent moved from docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md to docs/adr/0132-..., because updating the delivery branch onto main found that main had independently taken ADR-0131 for a pip-audit governance decision.",
+          "content_changed": "yes, by one line: the H1 reads ADR-0132 instead of ADR-0131. The file's sha256 therefore moved from 23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460 to bf53b77898fc3f7655f208605bd67dcbbb1cf606d189bcaea85eeaee7f90de56.",
+          "why_the_recorded_digests_are_unchanged": "accepted_intent_digest on cases 2 and 3 records the bytes read at enumeration time, which is a historical fact that a later renumber cannot alter. Both stable case keys derive from that enumeration-time digest and are immutable once a reviewer has started, so they stand. Recomputing them against the new digest would produce different keys for the same cases and fail the duplicate-or-conflict rule.",
+          "what_was_updated": "only accepted_intent_path and case 2's stopped_revision_artifacts path, so a reader can still open the file. Every digest field is left as recorded.",
+          "consequence_for_a_future_measurement_start": "A prompt built from the accepted intent must use the current bytes and record the current digest alongside the enumeration-time one, exactly as case 2's stopped revision already does."
+        },
+        "prospective_cases_admitted_note": "cases 2 and 3. Case 1 remains candidate_enumerated: its normal loop never opened, so it is not admitted and does not consume an admission against the cap of 12.",
+        "measurement_starts_detail": {
+          "shadow_audit_starts_used": 1,
+          "shadow_audit_starts_max": 12,
+          "adjudication_starts_used": 0,
+          "adjudication_starts_max": 12,
+          "measurement_specific_starts_used": 1,
+          "measurement_specific_starts_max": 24
+        },
+        "cohort_observed_cumulative_after_start_1": {
+          "prompt_bytes": {
+            "used": 53388,
+            "max": 2880000
+          },
+          "returned_output_tokens": {
+            "used": 20753,
+            "max": 288000
+          },
+          "wall_clock_seconds": {
+            "used": 410.4,
+            "max": 86400
+          },
+          "returned_input_tokens": {
+            "reading_uncached_only": 18,
+            "reading_all_input_categories": 846918,
+            "max": 2880000
+          }
+        },
+        "returned_input_tokens_definition": {
+          "ruling": "all input categories count: uncached input, cache-read input, and cache-creation input are summed. For the first shadow start that is 18 + 780348 + 66552 = 846918.",
+          "decided_by": "controller, on the owner's instruction to proceed with the recommended reading, 2026-09-30",
+          "reasoning": "Cache-read tokens are input tokens the model processed; the discount is commercial, not computational. The normal-loop side of every comparison is a subagent aggregate that certainly includes cached content, so excluding cache reads on the measurement side alone would flatter the shadow against the baseline it is measured against — the exact comparison this study exists to make. The uncached-only reading is attractive only because it makes the cohort completable, and choosing a measurement definition because the honest one is inconvenient is the bias this contract bans in its selection rules.",
+          "consequence_accepted": "Under this ruling the frozen cohort ceiling of 2880000 returned input tokens supports roughly three shadow starts, while a complete pilot needs at least eight terminal cases. The study will therefore report incomplete under the contract's own incomplete_rule unless the ceiling is amended through the proper path. That is the contract working, not failing, and it is recorded rather than engineered around.",
+          "calibration_finding": "The frozen per-case ceiling of 240000 and cohort ceiling of 2880000 appear to have been set against an uncached-input assumption that a cache-warming host does not satisfy. This is a finding about the contract's calibration, not grounds to reinterpret the field. Two honest levers exist and neither requires redefining anything: amend the ceilings through the contract's own amendment path, or reduce per-start input by narrowing the shadow's read surface — the first start spent most of its 846918 tokens on 28 turns of repository reading, which a tighter tool allowlist or a smaller measurement root would cut.",
+          "not_retroactive": "The enforcement rule makes cumulative limits gate the next start, never a completed one. Start 1 stands as measured."
+        },
+        "cohort_input_budget_risk": "RESOLVED by returned_input_tokens_definition above: all input categories count. One shadow start used 846918 of the cohort ceiling of 2880000 — 29 percent — so the ceiling supports about three shadow starts against a minimum of eight terminal cases. The cohort proceeds and will report incomplete on that basis unless the ceiling is amended or per-start input is reduced.",
+        "protected_escape": "none observed",
+        "case_ledger": [
+          {
+            "enumeration_ordinal": 1,
+            "stable_case_key": "f9b30c4fb3078688dbc0a77acc3cfc4d3c6adfed31e60e1f825df7c4b3fe8890",
+            "status": "candidate_enumerated",
+            "controller_decision_timestamp": "2026-09-29T23:46:48Z",
+            "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+            "release_contract_verified": true,
+            "spec_path": "docs/specs/review-recurrence-family-key/spec.md",
+            "accepted_intent_path": "docs/adr/0104-light-mode-review-stops-on-divergence.md",
+            "accepted_intent_digest": "bcb768a9dc1a00978baedf7c1438957caf5639799fac333c626cc130c9333aef",
+            "reviewed_revision_digest": "1d3cb97f74152db8d5017db2f6f99fa35f225400482a4a0d63c609a361037c17",
+            "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
+            "reviewed_artifacts": [
+              {"path": "docs/specs/review-recurrence-family-key/spec.md", "sha256": "fe6ab262c06b411b92e2ba217d3eb9ecc4abc48108030ed029b7773a53241507"},
+              {"path": "docs/specs/review-recurrence-family-key/plan.md", "sha256": "f15a04b0f897af144deaada6fbb98402711c2d949118071f71e0bb5d1320d393"}
+            ],
+            "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; workspace-status canonical ready row, collection work.queue, initiative ini-002",
+            "base_commit": "c5429040ea3a438ac755d4f3dde3843126580999",
+            "delivery_worktree_branch": "eugenelim/review-recurrence-family-key",
+            "strata_recorded": {"new_spec_vs_amendment": "new_spec", "specialist_review_triggers": "not_yet_observed"},
+            "stopped_revision_digest": null,
+            "pre_launch_gate_evaluation": {
+              "privacy_screen": "not_yet_evaluated",
+              "least_privilege_profile_observable": "not_yet_evaluated",
+              "prompt_bytes_max": "enforceable; exact UTF-8 byte count of the serialized payload is computable before launch",
+              "input_tokens_preflight_upper_bound": "enforceable via the contract's conservative serialized-payload-bytes upper bound",
+              "wall_clock_timeout": "enforceable via a controller-owned subprocess timeout around the launch, as tools/plan_evolution_workbench/runner.py already does; note macOS ships no coreutils `timeout` binary, so the wrapper must be the Python subprocess timeout rather than a shell `timeout` prefix",
+              "requested_output_tokens": "enforceable via the CLAUDE_CODE_MAX_OUTPUT_TOKENS environment variable on a headless `claude -p` launch. Verified empirically by the controller on 2026-09-29: with the variable set to 64, the final model request returned 61 output tokens and the answer truncated at 30 of a requested 400 integers (26 result chars); with the variable unset and the same prompt, the single request returned 1239 output tokens and the complete 400 integers (1890 result chars). The parameter binds per model request, not per launch total: the capped run still returned 253 cumulative output tokens across iterations, 154 of them thinking tokens. This satisfies the frozen pre-launch control, which caps requested output tokens per request; cumulative returned output remains governed separately by the observed per-case and cohort limits."
+            },
+            "shadow_launch_mechanism_candidate": "headless `claude -p --output-format=json` under CLAUDE_CODE_MAX_OUTPUT_TOKENS with an explicit read-only tool allowlist, launched through a controller-owned subprocess timeout. Chosen because one mechanism makes all six pre-launch controls observable in the argv and environment, and because --output-format=json returns the usage.input_tokens and usage.output_tokens the scorecard requires. Not yet exercised.",
+            "notes": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated because the normal loop has not opened yet; the earlier hard_limit_unenforceable risk against requested_output_tokens is resolved and no longer blocks admission. The privacy screen and the least-privilege profile are evaluated at prompt-construction time before the shadow start, per the frozen timing rule. No measurement start has been launched."
+          },
+          {
+            "enumeration_ordinal": 2,
+            "stable_case_key": "57f195e95c86c86a305933b9cf84745dffa8de55e261d72bda5170315135920f",
+            "status": "shadow_terminal",
+            "controller_decision_timestamp": "2026-09-30T00:11:05Z",
+            "identity_rederived": "The row was first written at 2026-09-30T00:08:28Z against an earlier spec/plan revision, then re-derived at the timestamp above when the contract-item alignment lint required identifier and verification-group corrections to spec.md and Owned by fields in plan.md. No reviewer had started and no measurement start had been launched, so this is a correction to the single open row rather than a second row: the earlier key 5f0a4da49cfb2905df68f23358386c0cc9fbd1fd667630ef8531178306e0bcb3 was never bound to a review and is retired unused. The enumeration ordinal is unchanged.",
+            "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+            "release_contract_verified": true,
+            "spec_path": "docs/specs/visual-target-confirmation/spec.md",
+            "accepted_intent_path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md",
+            "accepted_intent_digest": "f3256db8062e1514fa7ed0ef7c29ec0500fce9b63fe6a49c394072fa511a9b60",
+            "reviewed_revision_digest": "34953cc0623d5dac4241dd864f969b157eddbe8c43ed5dae6467e394afc43c3b",
+            "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
+            "reviewed_artifacts": [
+              {"path": "docs/specs/visual-target-confirmation/spec.md", "sha256": "358c6128d4fa48996d65559fb8eb12a0dde2bc66b7c503fbc0ab55eede423a5f"},
+              {"path": "docs/specs/visual-target-confirmation/plan.md", "sha256": "da83cd31bf1f34296b531a3a091a5ad380a02013b501b42480169f21c87a9341"}
+            ],
+            "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; owner-supplied slice request admitted through work-intake as new work, not a workspace queue row",
+            "base_commit": "c5429040ea3a438ac755d4f3dde3843126580999",
+            "delivery_worktree_branch": "eugenelim/visual-target-confirmation",
+            "strata_recorded": {"new_spec_vs_amendment": "new_spec", "specialist_review_triggers": "not_yet_observed"},
+            "stopped_revision_digest": "103f84475f2bb0be62300c09478cf373bfd5071d830a81af44c9eb502909dc0d",
+            "stopped_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the stopped revision — deliberately the same two-artifact definition and order as reviewed_revision_digest, so the two are directly comparable. ADR-0131 is listed in stopped_revision_artifacts and its sha256 is carried separately at stopped_revision_accepted_intent_sha256 rather than folded into this digest, because a three-artifact digest would silently make the reviewed-versus-stopped comparison meaningless instead of false.",
+            "stopped_revision_accepted_intent_sha256": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460",
+            "stopped_revision_differs_from_reviewed_revision": true,
+            "stopped_revision_recovery": "Of the three stopped-revision artifacts, plan.md and ADR-0131 are byte-exact at delivery HEAD eaaa5039a. spec.md is not: archiving the contract rewrote its Status line and inserted a \"## Why this contract was decomposed\" section before \"## Outcome\". Those two edits are the only difference, and reversing them reproduces 82e2c2cf exactly. The controller regenerated and verified the reconstruction independently in its own session rather than relying on another session scratch copy; the reversal is self-checking, so a mismatch would have reported the assumption broken rather than admitting a wrong artifact. The reconstructed bytes are session scratch and are not a repository artifact; regenerate and re-assert the digest before shadow prompt construction.",
+            "normal_loop_report_provenance": {
+              "location": ".context/reviews/visual-target-confirmation/ in the delivery worktree; .context/ is gitignored, so these are durable working-tree artifacts, not repository artifacts",
+              "status": "all eight round reports are persisted",
+              "correction": "an earlier PROVENANCE.md stated three of six reports were unpersisted. That file was written before round 4 and understated the gap: five of eight were unpersisted. All five were recovered programmatically from session transcripts — the last assistant text block for rounds 2 and 3, and the SubagentHandback payload for round 4 — rather than transcribed or reconstructed from memory.",
+              "reports": [
+                {
+                  "round": 1,
+                  "role": "adversarial",
+                  "sha256": "76bc57e079b81f65a65cfed9c17918b8c8c4c86590ef45fb9d1e4aa7f82ab8d4",
+                  "bytes": 10485
+                },
+                {
+                  "round": 1,
+                  "role": "shaping",
+                  "sha256": "3eb4d7fd44c168a095642bdfc917f57e7ee88be3157a42c75c47124bd6f8b250",
+                  "bytes": 12538
+                },
+                {
+                  "round": 2,
+                  "role": "adversarial",
+                  "sha256": "27b7fd2e60a675bf2fea32e1ef5f4f289eae2bc73c80de12a44b61a54cf54f34",
+                  "bytes": 7488
+                },
+                {
+                  "round": 2,
+                  "role": "shaping",
+                  "sha256": "556d05fbcc2efeb045f7d5e68c9f1d602dbcbe81dc7dd73b44e9a1437a035fcf",
+                  "bytes": 12513
+                },
+                {
+                  "round": 3,
+                  "role": "adversarial",
+                  "sha256": "4507c3e4f17c63afbd7b9fd76d0b7974879ef92b3e49defa5422f3d8cd3064fd",
+                  "bytes": 4872
+                },
+                {
+                  "round": 3,
+                  "role": "shaping",
+                  "sha256": "4a29b65296b79fdf7b6d592329dc58d4c1065825ca0e0b6e22cba7fe7eb30144",
+                  "bytes": 12630
+                },
+                {
+                  "round": 4,
+                  "role": "adversarial",
+                  "sha256": "5bc93728427549346e259d1458437962c013c2955766b36f4ab2de3b083aad74",
+                  "bytes": 8409
+                },
+                {
+                  "round": 4,
+                  "role": "shaping",
+                  "sha256": "55f918403f764a3dae5bafe5764d1fd124a63689561c50dd8a435957406c1b28",
+                  "bytes": 18654
+                }
+              ],
+              "evidence_strength_caveat": "Rounds 3 and 4 were never adjudicated. Round 3 reached the skill's surface-to-human threshold and its findings were resolved by direct controller verification against the cited files; round 4 produced the decomposition decision and its findings were never repaired. Neither round may be presented as adjudicated, and neither round's raw findings may be used as a quality denominator."
+            },
+            "pre_launch_gate_evaluation": {
+              "privacy_screen": "evaluated at prompt-construction time before the shadow start, per the frozen timing rule",
+              "least_privilege_profile_observable": "to be bound at the shadow launch via an explicit read-only tool allowlist",
+              "prompt_bytes_max": "enforceable; exact UTF-8 byte count of the serialized payload is computable before launch",
+              "input_tokens_preflight_upper_bound": "enforceable via the contract's conservative serialized-payload-bytes upper bound",
+              "wall_clock_timeout": "enforceable via a controller-owned subprocess timeout around the launch",
+              "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless launch, verified by the controller on 2026-09-29; see case 1 for the measurement"
+            },
+            "notes_enumeration": "Admitted at the point the normal work-loop's pre-execute spec/plan review unit opens, before the first reviewer start. The accepted intent is a persisted repository artifact: ADR-0131 was authored during PLAN because the spec's Constrained by header cites it and a dangling citation would itself be a defect. No measurement start has been launched.",
+            "normal_loop_outcome": {
+              "terminated_at": "2026-09-30T01:05:00Z",
+              "terminal_reason": "contract decomposed at the owner's decision after four pre-EXECUTE review rounds failed to converge; no acceptance criterion was ever approved and no code was written against this contract",
+              "review_rounds": 4,
+              "raw_findings_by_round": {"round_1": 26, "round_2": 19, "round_3": 14, "round_4": 24},
+              "adversarial_raw_by_round": {"round_1": 14, "round_2": 10, "round_3": 7, "round_4": 14},
+              "shaping_raw_by_round": {"round_1": 12, "round_2": 9, "round_3": 7, "round_4": 10},
+              "adjudication_batches": 2,
+              "adjudicated_sustained": {"round_1": 10, "round_2": 8},
+              "adjudicated_refuted": {"round_1": 4, "round_2": 2},
+              "adjudicated_indeterminate": {"round_1": 0, "round_2": 0},
+              "rounds_not_adjudicated": [3, 4],
+              "rounds_not_adjudicated_reason": "round 3 reached the skill's surface-to-human threshold and was resolved by direct controller verification against the cited files; round 4 produced the decomposition decision and its findings were not repaired",
+              "repair_origin_findings_by_round": {"round_1": 0, "round_2": 6, "round_3": 12, "round_4": 4},
+              "new_carriers_discovered_by_round": {"round_2": 1, "round_3": 2, "round_4": 5},
+              "criteria_count_by_round": {"authored": 23, "after_round_1": 27, "after_round_2": 29, "after_round_3": 31},
+              "criteria_retired": 3,
+              "measured_true_extent": {"files": 25, "loci": 59, "method": "whitespace-normalized sweep for visual[ _-]target over packs, guides, web/src/content, tests and docs/design", "note": "a raw line-oriented grep of the same pattern returns 24 files and misses one carrier where the phrase wraps mid-line"}
+            },
+            "stopped_revision_artifacts": [
+              {"path": "docs/specs/visual-target-confirmation/spec.md", "sha256": "82e2c2cf0041695ee51b4d233e18d64eeb7eb0a923ce2524f61cf36c7b7e1e30"},
+              {"path": "docs/specs/visual-target-confirmation/plan.md", "sha256": "4bffb8076107af6f1be73c114700607af8a15f00aaa2982268bf271201137c6e"},
+              {"path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md", "sha256": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460"}
+            ],
+            "stopped_revision_note": "the exact revision both round-4 reviewers graded; no repair followed it, so the stopped revision and the round-4 reviewed revision are the same bytes",
+            "shadow_audit": {
+              "start_ordinal_in_cohort": 1,
+              "launched_at": "2026-09-30T03:42:19Z",
+              "completed_at": "2026-09-30T03:49:09Z",
+              "bound_revision": "the stopped revision, digest 103f84475f2bb0be62300c09478cf373bfd5071d830a81af44c9eb502909dc0d",
+              "cold": "The measurement root is a detached worktree at base commit c5429040ea3a438ac755d4f3dde3843126580999, where neither docs/specs/visual-target-confirmation/ nor ADR-0131 exists. The three stopped-revision artifacts were supplied inline in the prompt. This prevents the auditor reading the archived spec's Status line or its 'Why this contract was decomposed' section, either of which would disclose the outcome.",
+              "study_exposure": "none. The prompt reads as an ordinary spec/plan review brief and mentions no study, no prior round, no historical outcome and no prior reviewer behaviour.",
+              "launch_mechanism": "headless `claude -p --output-format=json` under CLAUDE_CODE_MAX_OUTPUT_TOKENS, read-only tool allowlist Read,Grep,Glob, controller-owned subprocess timeout",
+              "pre_launch_gates": {
+                "privacy_screen": "pass — the payload is repository spec/plan/ADR prose; an email, credential-assignment and URL-credential scan over the exact bytes returned no hit",
+                "least_privilege_profile_observable": "pass — argv and environment recorded at shadow-launch-observed.json before launch; writes, web, delegation, messaging, escalation and protected configuration are all absent from the allowlist",
+                "prompt_bytes": {
+                  "observed": 53388,
+                  "max": 120000,
+                  "result": "pass"
+                },
+                "input_tokens_preflight_upper_bound": {
+                  "observed": 53388,
+                  "max": 120000,
+                  "result": "pass",
+                  "method": "serialized payload bytes as the contract's conservative upper bound"
+                },
+                "requested_output_tokens": {
+                  "bound": 12000,
+                  "max": 12000,
+                  "result": "pass",
+                  "mechanism": "CLAUDE_CODE_MAX_OUTPUT_TOKENS; binds per model request"
+                },
+                "wall_clock_seconds_timeout": {
+                  "bound": 3600,
+                  "max": 3600,
+                  "result": "pass"
+                }
+              },
+              "post_run_observed_telemetry": {
+                "actual_returned_output_tokens": 20753,
+                "actual_returned_input_tokens_uncached": 18,
+                "cache_read_input_tokens": 780348,
+                "cache_creation_input_tokens": 66552,
+                "actual_wall_time_seconds": 410.4,
+                "num_turns": 28,
+                "note": "This mechanism returns the separated input and output counts the scorecard asks for. That is the field recorded unavailable for every subagent start on this case and on case 3, where the host returns one aggregate per start. The split is available for a headless launch and unavailable for a subagent start; do not carry the subagent limitation forward to this row."
+              },
+              "per_case_cumulative_after_this_start": {
+                "prompt_bytes": {
+                  "used": 53388,
+                  "max": 240000
+                },
+                "returned_output_tokens": {
+                  "used": 20753,
+                  "max": 24000,
+                  "note": "86 percent of the per-case ceiling consumed by one start"
+                },
+                "wall_clock_seconds": {
+                  "used": 410.4,
+                  "max": 7200
+                },
+                "returned_input_tokens": {
+                  "reading_uncached_only": 18,
+                  "reading_all_input_categories": 846918,
+                  "max": 240000,
+                  "status": "UNRESOLVED — the controller has not decided which reading the frozen scorecard's returned_input_tokens means, and is not estimating one. Under the all-categories reading this start alone exceeds the 240000 per-case ceiling; under the uncached-only reading it consumes almost none of it. The enforcement rule makes either reading non-retroactive: a completed start is not invalidated. The practical consequence for this case is nil, because the conditional adjudication batch is not triggered — the shadow claimed no blockers. The consequence for cohort planning is not nil; see cohort_input_budget_risk."
+                }
+              },
+              "raw_report": {
+                "path": ".context/reviews/visual-target-confirmation/shadow/case2-shadow-adversarial-raw.md",
+                "sha256": "a002d4d48d083b293d241eeb3ef7521d08024aea9de56277337100ddbfb25e6d",
+                "blockers": 0,
+                "concerns": 2,
+                "nits": 2
+              },
+              "adjudication_batch": "not triggered. Phase E admits at most one independent adjudication batch and only if the shadow claims blockers; it claimed none. No adjudication measurement start was launched.",
+              "interpretation_limits": "One start, one case. The shadow graded the stopped revision — the bytes after four rounds of repair — not the revision the normal loop first saw, so this is not a like-for-like contest with round 1. Raw finding counts are not a quality denominator here or anywhere in this study, `no blockers` is not a quality score, and no scalar effectiveness figure follows from this row. Rounds 3 and 4 of the normal loop were never adjudicated, so the normal-loop side of any comparison is itself partly unadjudicated."
+            },
+            "observed_normal_loop_cost": {
+              "reviewer_and_adjudicator_starts": 10,
+              "returned_subagent_tokens_total": 952547,
+              "returned_subagent_tokens_by_start": [89093, 110388, 92116, 102488, 104342, 81140, 73945, 81140, 109995, 107900],
+              "wall_time_seconds_total": 3163.9,
+              "measurement_overhead_starts": 0,
+              "attribution": "all ten starts are normal-loop review work, observed rather than study-added; no shadow or adjudication measurement start has been launched for this case",
+              "unavailable_fields": ["per-start input/output token split — the host returns one aggregate subagent token count per start, not the returned input and output counts the scorecard asks for"]
+            },
+            "successor_units": [
+              "direct-light, shipped: the inherit scope repair, experience-design 4.1.1 — light mode, so it forms no pre-execute review unit and is not a cohort candidate",
+              "docs/specs/visual-target-field/spec.md — full mode, a future candidate when its pre-execute review opens",
+              "visual-target-rung-precondition — not yet authored, a future candidate"
+            ]
+          },
+          {
+            "enumeration_ordinal": 3,
+            "stable_case_key": "937ac85de4b7c3d9337a9cc5defdfdcfbd06f14982c668f1e7b01fdbd71362b1",
+            "stable_case_key_derivation": "sha256 over the NUL-joined UTF-8 fields in the contract's stated order: release_contract_sha256, repository-relative spec path, accepted_intent_digest, reviewed_revision_digest, and the enumeration ordinal rendered as its decimal string. Recorded here because case 2's reviewed bytes were never committed, so its key cannot be recomputed from repository history to confirm the encoding by reproduction.",
+            "status": "admitted_normal_loop_open",
+            "controller_decision_timestamp": "2026-09-30T03:24:20Z",
+            "normal_loop_opened_at": "2026-09-30T03:28:24Z",
+            "normal_loop_run_id": "1adcfbc1-0d36-401b-9f3d-ebfc2493790a",
+            "normal_loop_engine_state_at_admission": "SPEC-PLAN-REVIEW, transition sequence 1, mode code",
+            "admission_note": "Admitted when the normal work-loop pre-execute spec/plan review unit opened, immediately before the first reviewer start. The bound spec/plan bytes are unchanged from enumeration, so no identity re-derivation was required. Round 1 dispatches the adversarial spec/plan reviewer; its brief carries no reference to this study, to prior reviewer behaviour, or to historical outcomes. No measurement start has been launched.",
+            "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+            "release_contract_verified": true,
+            "spec_path": "docs/specs/visual-target-field/spec.md",
+            "accepted_intent_path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md",
+            "accepted_intent_digest": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460",
+            "reviewed_revision_digest": "2e0b94cf753c08c861b105e9d4487d62d3f4a18616f31178e6711e230590f3b2",
+            "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
+            "reviewed_artifacts": [
+              {
+                "path": "docs/specs/visual-target-field/spec.md",
+                "sha256": "ffe34f64b5c82d158a0bfde1b6df1850a85432e6a6934e747c4124030b0d945c"
+              },
+              {
+                "path": "docs/specs/visual-target-field/plan.md",
+                "sha256": "53a7b00f732e97da3742439d937805a91ebf9b7d332ea3346f5044982ac380bf"
+              }
+            ],
+            "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; successor slice cut from the decomposed visual-target-confirmation contract, carried as owner-directed follow-on work rather than a workspace queue row",
+            "base_commit": "c5429040ea3a438ac755d4f3dde3843126580999",
+            "delivery_worktree_branch": "eugenelim/visual-target-confirmation",
+            "strata_recorded": {
+              "new_spec_vs_amendment": "new_spec",
+              "specialist_review_triggers": "not_yet_observed"
+            },
+            "stopped_revision_digest": null,
+            "pre_launch_gate_evaluation": {
+              "privacy_screen": "not_yet_evaluated",
+              "least_privilege_profile_observable": "not_yet_evaluated",
+              "prompt_bytes_max": "enforceable; exact UTF-8 byte count of the serialized payload is computable before launch",
+              "input_tokens_preflight_upper_bound": "enforceable via the contract's conservative serialized-payload-bytes upper bound",
+              "wall_clock_timeout": "enforceable via a controller-owned subprocess timeout around the launch",
+              "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless `claude -p` launch, per the control verified on 2026-09-29 and recorded on case 1's row"
+            },
+            "normal_loop_progress": {
+              "rounds_completed": 4,
+              "round_4": {
+                "reviewer_role": "adversarial",
+                "round_purpose": "confirmation pass after the owner-directed scope reduction, chosen by the controller because a narrowing leaves stale references",
+                "raw_findings": 13,
+                "raw_report_sha256": "bd6fe682ddf95cd6bc9bb499a4f6105d764a8ee37df7e29c436c9a0c93a3bd6d",
+                "adjudicated": true,
+                "adjudication_sha256": "9bd6ee53c1d269d613a5c7f843dc8cbeab1e8d15818973dff5747f237b31b6de",
+                "sustained": 11,
+                "refuted": 2,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 3,
+                  "concern": 4,
+                  "nit": 4
+                },
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  91242,
+                  84740
+                ],
+                "returned_subagent_tokens_total": 175982,
+                "wall_time_seconds_total": 504.7,
+                "repair_origin_findings": 3,
+                "repair_origin_note": "Three sustained findings originated in the controller's own scope-reduction edit. Two were the same mechanical failure: a scripted string replacement anchored on text an earlier round had already rewritten matched nothing and silently no-opped, leaving Outcome and the plan's Approach asserting the retired behaviour, including a start gate reading 'This contract does not start until that is answered' on a question the ruling had already answered. No gate caught it because both are prose sections no lint reads, and the controller reported the edit as landed and wrote the same false claim into the commit message and to the owner. The third was a genuine design conflict the narrowing created between AC-0006's sweep property and the inherited gating criteria.",
+                "controller_process_deviation": "The controller repaired the Outcome section before the adjudicator returned, which breaks the gateway rule that only sustained findings drive a revision. It had verified the defect directly and the surviving text was a live start gate, but the order was wrong and is recorded because this loop's behaviour is the measured object. The adjudicator independently sustained the finding, so no unadjudicated change stands.",
+                "adjudicator_corrected_the_reviewer": "On finding 12 the adjudicator corrected a factual detail of the reviewer's claim before sustaining it, and declined to carry one sub-claim of finding 8. On finding 3 it sustained on directly verified bytes while explicitly recording that it could not run the property and that the reviewer's count of 9 violating sentences was unverified by it.",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start"
+                ]
+              },
+              "convergence_signal_round_4": {
+                "sustained_by_round": {
+                  "round_1": 11,
+                  "round_2": 15,
+                  "round_3": 10,
+                  "round_4": 11
+                },
+                "raw_by_round": {
+                  "round_1": 13,
+                  "round_2": 16,
+                  "round_3": 11,
+                  "round_4": 13
+                },
+                "blockers_by_round": {
+                  "round_1": 6,
+                  "round_2": 4,
+                  "round_3": 3,
+                  "round_4": 3
+                },
+                "repair_origin_by_round": {
+                  "round_2": 2,
+                  "round_3": 2,
+                  "round_4": 3
+                },
+                "reading": "Round 4 is not a fifth iteration on the original contract. It is a confirmation pass the controller chose to run on a deliberately narrowed contract, and its blockers are residue of that narrowing rather than defects in the mechanism. The distinguishing evidence is that both round 3 and round 4 independently re-verified the prior rounds' repairs and found them holding. What the numbers do show honestly is that repair-origin findings rose every round, from 2 to 2 to 3, and in round 4 they were the majority of the blockers: the controller is now the main source of new defects in this contract, not the contract. That is a finding about the repairing agent, not about review effectiveness, and it must not be folded into an effectiveness reading.",
+                "case_2_contrast_still_holds": "Case 2's rounds each rediscovered carriers of an extent nobody had measured, and no round confirmed a prior round's repair. Case 3's rounds 3 and 4 each did."
+              },
+              "round_3": {
+                "reviewer_role": "adversarial",
+                "raw_findings": 11,
+                "raw_report_sha256": "e9a30640bb2f8e392a50c5217e1869c94ff8c5bdc73a2052a1bb273b00e75f84",
+                "raw_classification": "findings",
+                "adjudicated": true,
+                "adjudication_sha256": "9bd6ee53c1d269d613a5c7f843dc8cbeab1e8d15818973dff5747f237b31b6de",
+                "sustained": 10,
+                "refuted": 1,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 3,
+                  "advisory": 2,
+                  "concern": 3,
+                  "nit": 2
+                },
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  125591,
+                  93716
+                ],
+                "returned_subagent_tokens_total": 219307,
+                "wall_time_seconds_total": 942.7,
+                "repair_origin_findings": 2,
+                "repair_origin_note": "two sustained findings corrected round-2 work: the release test was placed in tests/conformance/, which forbids both a shipped-pack name and a docs/ reach, and the run-mode claim reasoned from the Make target to the workflow. The controller had also stated the run-mode claim to the owner outside the documents and corrected it to them.",
+                "reviewer_verified_clean_section": "Round 3 returned an explicit verified-clean section and a startability verdict. It independently re-ran the plan's stub validation record and confirmed it in both directions, confirmed the round-2 paragraph helper isolates each anchor uniquely against the real files and that no planned edit creates a second matching block, confirmed the carve-out ruling holds across every surface, confirmed the version baseline is observed rather than asserted, and confirmed no rejected predecessor mechanism has been re-imported.",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start"
+                ]
+              },
+              "convergence_signal_updated": {
+                "sustained_by_round": {
+                  "round_1": 11,
+                  "round_2": 15,
+                  "round_3": 10
+                },
+                "raw_by_round": {
+                  "round_1": 13,
+                  "round_2": 16,
+                  "round_3": 11
+                },
+                "blockers_by_round": {
+                  "round_1": 6,
+                  "round_2": 4,
+                  "round_3": 3
+                },
+                "reading": "Both counts fell in round 3 and blockers fell in each round. More informative than the counts: the three rounds attacked three distinct layers — what the criteria said, whether their verifications could fail, and whether those verifications can physically land and pass in this repository — and round 3 independently re-verified that the first two layers still hold rather than reopening them. That is the opposite of case 2, where each round rediscovered carriers the previous round had missed. This is recorded as a convergence signal and not as a quality measurement: counts are not a denominator here, and no effectiveness figure follows.",
+                "distinguishing_evidence_from_case_2": "Case 2's rounds each discovered new carriers of the same unmeasured extent (1, then 2, then 5). Case 3's rounds each moved to a different layer and did not reopen the prior one.",
+                "owner_decision_outstanding": "Round 3 surfaced an advisory finding that the slice moves rung resolution — an approved-but-unconfirmed target drops to direction-and-taxonomy — which the contract had claimed was downstream-invisible. Whether that may ship with the field-read half deferred is an owner decision. The spec records the contract as not starting until it is answered. No further review round is warranted on the contract's mechanics alone."
+              },
+              "owner_decision_2026_09_30": {
+                "question": "whether a slice that moves rung resolution may ship with the field-read half deferred",
+                "raised_by": "round 3 advisory finding 4, adjudication sustained",
+                "decision": "neither ship-as-is nor recombine: the three gating criteria move to the successor slice, which already changes the rung and migrates the carriers that explain it",
+                "effect_on_contract": "visual-target-field retired AC-0005 to AC-0007 through the spec template's Retired identifiers section and is now additive by construction; visual-target-rung-precondition inherited them as AC-0012 to AC-0014 with a new task T7",
+                "effect_on_case": "The contract narrowed after round 3 rather than after a non-converging unit. This is a scope change at the owner's decision, not a review failure, and it is recorded separately from the round counts so it is not read as a fifth round or as a second decomposition. The reviewed revision has changed, so any later measurement start against this case must bind the new revision digest.",
+                "contrast_with_case_2": "Case 2 was decomposed because four rounds could not converge on an unmeasured extent. Case 3 was narrowed because a converging review surfaced a specific, evidenced consequence and the owner chose where it should land. The two are different events and must not be pooled when reading the cohort."
+              },
+              "reviewed_revision_superseded": {
+                "note": "The enumeration-time reviewed_revision_digest 2e0b94cf753c08c861b105e9d4487d62d3f4a18616f31178e6711e230590f3b2 bound the round-1 bytes. Three repairs and one owner-directed narrowing have since changed spec.md and plan.md. The row keeps the enumeration-time digest, because the case key derives from it and the case key is immutable once a reviewer has started. A measurement start against this case must bind and record the then-current revision separately, exactly as case 2's stopped_revision_digest does."
+              },
+              "gate_entry_2026_09_30": {
+                "transition": "SPEC-PLAN-REVIEW -> reviewers-clean -> SPEC-HUMAN-GATE, sequence 8",
+                "event_name_is_not_the_verdict": "The engine's only edge to this gate is named `reviewers-clean`, and the reviewers were NOT clean. Round 4 returned 11 sustained findings; they were all repaired, but no review round has run against the repaired bytes. The event name is a fixed FSM label, not a claim, and the emitted review-verdict record carries state READY_WITH_RESIDUAL_RISK rather than READY so the event log is not the only account.",
+                "reason_for_entering_without_a_clean_round": "Owner instruction, given after the controller reported that repair-origin findings had risen every round (2, 2, 3) and were the majority of round 4's blockers, and recommended either one confirmation round or going straight to the gate. The owner chose the gate. This is an owner decision about where remaining risk is surfaced, not a controller judgement that the contract is clean.",
+                "residual_risk_carried_to_the_gate": [
+                  "no review round has seen the post-round-4 bytes",
+                  "three of round 4's sustained findings originated in the controller's own scope reduction, and the repair for them is itself unreviewed",
+                  "the AC-0006 / inherited-gating reconciliation is stated but has never been exercised by a reviewer or a run"
+                ],
+                "measurement_note": "The normal loop for this case terminates at the gate for review-cost purposes. Four rounds, eight observed starts, 739,853 returned subagent tokens, 3068.1 seconds. No measurement start was launched against this case."
+              },
+              "normal_loop_state": "SPEC-HUMAN-GATE, pending owner scope decision",
+              "round_2": {
+                "reviewer_role": "adversarial",
+                "raw_findings": 16,
+                "raw_report_sha256": "3dd9e6a9b025be388a23ac25a0740d1dd2a369ed4b27650c086be78119159a85",
+                "raw_classification": "findings",
+                "adjudicated": true,
+                "adjudication_sha256": "971882ba66163ba7e645ae6b428cbb9ffd7da765f1b5cc1c3c7b1e5b01da542b",
+                "sustained": 15,
+                "refuted": 1,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 4,
+                  "concern": 10,
+                  "nit": 1
+                },
+                "severity_adjusted_by_adjudicator": "one finding the reviewer filed as a blocker was sustained at concern, on the ground that the helper isolates the right unit against the current tree and the residual is a false-pass hole rather than a blocked start",
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  113705,
+                  85086
+                ],
+                "returned_subagent_tokens_total": 198791,
+                "wall_time_seconds_total": 1060.5,
+                "attribution": "both starts are normal-loop review work, observed rather than study-added",
+                "repair_origin_findings": 2,
+                "repair_origin_note": "two sustained findings were introduced by the round-1 repair itself: the sentence helper that bounded on '. ', and AC-0004 becoming a whole-file containment check that AC-0005's own edit would render unfailable",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start"
+                ]
+              },
+              "convergence_signal": {
+                "sustained_by_round": {
+                  "round_1": 11,
+                  "round_2": 15
+                },
+                "raw_by_round": {
+                  "round_1": 13,
+                  "round_2": 16
+                },
+                "reading": "Sustained findings rose between rounds. That is the shape that preceded case 2's decomposition, and it is recorded as a signal to watch rather than as a verdict: two rounds is not a trend, and the rounds differ in kind — round 1 attacked what the criteria said, round 2 attacked whether their verifications could fail. A deeper second layer is not the same as churn. Raw and sustained counts are recorded because the contract requires observed counts; neither is used as a quality denominator, and no effectiveness figure follows from them.",
+                "owner_informed": true
+              },
+              "round_1": {
+                "reviewer_role": "adversarial",
+                "raw_findings": 13,
+                "raw_report_sha256": "c8ff74797911e96ac5a4c7e623270194f9349a60ff6abe8495501c9a232efa54",
+                "raw_classification": "findings",
+                "adjudicated": true,
+                "adjudication_sha256": "b659a40dcee47938b79d0acbc89510d56ff7562c8bfceb6525ab5f4349cb2350",
+                "sustained": 11,
+                "refuted": 2,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 6,
+                  "concern": 4,
+                  "nit": 1
+                },
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  86837,
+                  58936
+                ],
+                "returned_subagent_tokens_total": 145773,
+                "wall_time_seconds_total": 560.2,
+                "attribution": "both starts are normal-loop review work, observed rather than study-added",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start, not the returned input and output counts the scorecard asks for"
+                ]
+              },
+              "revision_after_round_1": {
+                "revised_at": "2026-09-30T03:45Z",
+                "commit": "4826f2463",
+                "criteria_count_before": 10,
+                "criteria_count_after": 13,
+                "criteria_retired": 0,
+                "note": "All 11 sustained findings were acted on. The 2 refuted findings were not acted on: one asked the spec to restate a repository bump-classification rule as a criterion, the other objected to deliberate multi-homing of the closed value set. Recording the bump size in the plan's Approach is not a reversal of the first refutation — the adjudicator refuted a duty to carry it as an acceptance criterion, and T4 needs the target version to execute."
+              },
+              "measurement_starts_launched": 0
+            },
+            "notes_enumeration": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated until the normal work-loop's pre-execute review unit opens. The accepted intent is ADR-0131, the same persisted artifact case 2 cites; its digest differs from the one on case 2's row because the ADR was committed after case 2's enumeration-time read. The reviewed revision is committed and the delivery worktree is clean, so the bound bytes are stable; re-derive this row's identity if spec.md or plan.md changes before the first reviewer start. Full mode is the mode of record: the direction artifact is durable adopter state that older pack versions read during rollout, and the template is the published schema adopters author against. No measurement start has been launched."
+          }
+        ]
+      },
+      "release_contract_binding": {
+        "canonical_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+        "canonicalization": "UTF-8 JSON produced by: jq -cS '.prospective_reserved_event.release_record.immutable_contract' docs/product/research/plan-evolution-experiments/review-effectiveness-baseline.json",
+        "binding_scope": "immutable_contract only; excludes mutable_release_state, release_contract_binding, and source_baseline_digest",
+        "approval_rule": "independent review and owner approval must cite this canonical SHA-256 before prospective_starts_authorized can become true",
+        "case_admission_rule": "each candidate case must verify and cite this canonical SHA-256 before admission"
+      },
+      "source_baseline_digest": {
+        "path": "docs/product/research/plan-evolution-experiments/review-effectiveness-baseline.json",
+        "sha256_before_release_record": "17e16b75befa735e123784f88f2cc4792ac17cd36dd670942a56d635bc453c03",
+        "authority": "unverified provenance only; not approval authority and not a launch predicate"
+      },
+      "immutable_contract": {
+        "admission_rule": {
+          "scope": "consecutive full-mode pre-execute spec/plan review units in this repository",
+          "start_condition": "owner approval after independent review cites the canonical release-contract SHA-256",
+          "stop_condition": "12 admitted cases or 30 calendar days after admission starts, whichever comes first",
+          "complete_pilot_minimum_terminal_cases": 8,
+          "incomplete_rule": "report incomplete if fewer than 8 admitted cases reach terminal measurement",
+          "selection_ban": "do not select, defer, or exclude by model, requested or resolved route, finding count, severity count, outcome, predicted outcome, convenience, reviewer availability, or whether a case looks likely to help the study",
+          "strata_recorded_not_balanced": ["new_spec_vs_amendment", "specialist_review_triggers"]
+        },
+        "case_ledger_contract": {
+          "candidate_enumeration_source": "the normal work-loop supervisor's consecutive pre-execute full-mode spec/plan review admission points after owner approval",
+          "stable_case_key": "sha256 of immutable enumeration-time UTF-8 fields joined by NUL: canonical release-contract SHA-256, repository-relative spec path, accepted intent digest, reviewed revision digest, and consecutive candidate enumeration ordinal",
+          "statuses": [
+            "candidate_enumerated",
+            "excluded_before_launch",
+            "admitted_normal_loop_open",
+            "normal_loop_terminal",
+            "shadow_terminal",
+            "adjudication_terminal",
+            "measured_terminal",
+            "stopped_for_sustained_escape",
+            "invalid_duplicate_or_conflict"
+          ],
+          "single_writer": "the controller is the only writer; it appends or updates one case row with a temp file in the same directory, fsyncs where available, and atomically renames into place",
+          "recovery_rule": "after interruption, reload the last JSON-valid ledger, recompute row digests, and resume only from terminal rows or the single open row whose source digests still match",
+          "duplicate_conflict_rule": "same stable_case_key with different enumeration-time fields, candidate source, status transition, or row digest fails closed as invalid_duplicate_or_conflict; do not launch measurement starts",
+          "count_digest_reconciliation": "before every shadow start and every report, reconcile admitted, excluded, terminal, and open counts plus sorted row SHA-256 digests against the cohort summary"
+        },
+        "eligibility_requirements": [
+          "accepted intent",
+          "exact reviewed revision digest",
+          "exact stopped revision digest before shadow prompt construction",
+          "normal work-loop artifacts",
+          "repository-safe non-personal non-secret content",
+          "ability to retain the minimized event fields",
+          "verified canonical release-contract SHA-256"
+        ],
+        "exclusion_catalog": {
+          "decider": "controller",
+          "evidence_required": "each exclusion row records exclusion_code, controller_decision_timestamp, candidate source reference, evidence path or digest, and a non-secret rationale",
+          "ambiguous_or_in_flight": "keep as candidate_enumerated while the window is open; at window close, record excluded_before_launch with ambiguous_in_flight_at_window_close unless already admitted or terminal",
+          "closed_codes": [
+            "no_accepted_intent",
+            "not_full_mode_preexecute_spec_plan",
+            "missing_reviewed_revision_digest",
+            "missing_stopped_revision_digest",
+            "missing_normal_work_loop_artifacts",
+            "repository_unsafe_content",
+            "sensitive_material_detected",
+            "retention_not_allowed",
+            "duplicate_or_conflicting_case_key",
+            "ambiguous_in_flight_at_window_close",
+            "release_contract_digest_unverified",
+            "least_privilege_profile_unobservable",
+            "hard_limit_unenforceable"
+          ],
+          "selection_ban": "no exclusion may be based on model, requested or resolved route, finding count, severity count, outcome, predicted outcome, convenience, or whether the case helps the study"
+        },
+        "closure_envelope_schema": {
+          "reviewed_revision_binding": ["artifact_paths", "artifact_sha256_digests", "review_start_timestamp", "reviewed_surface_kind"],
+          "stopped_revision_binding": ["artifact_paths", "artifact_sha256_digests", "stop_timestamp", "stop_reason", "normal_loop_terminal_receipt_digest"],
+          "envelope_fields": [
+            "sustained_finding_ids",
+            "repair_artifact_paths",
+            "repair_artifact_sha256_digests",
+            "changed_bytes_or_sections",
+            "affected_dependencies",
+            "affected_acceptance_criteria",
+            "affected_tests_or_gates",
+            "protected_controls_touched",
+            "repair_origin_regression_checks",
+            "advisory_residue_ids"
+          ],
+          "binding_rule": "shadow and adjudication prompts may use only the exact stopped revision, envelope fields, and minimized provenance; if any digest changes, the case returns to candidate_enumerated or is excluded before launch"
+        },
+        "lineage_completeness_contract": {
+          "row_grain": "one required case row for every terminal admitted case, plus zero or more finding rows for findings emitted by normal review, closure review, shadow audit, or adjudication",
+          "case_row_required_fields": [
+            "case_key",
+            "contract_sha256",
+            "candidate_status",
+            "reviewed_revision_digest",
+            "stopped_revision_digest",
+            "closure_envelope_digest",
+            "normal_loop_terminal_status",
+            "shadow_audit_status",
+            "adjudication_status",
+            "zero_finding_or_clean_status",
+            "normal_loop_review_action_count",
+            "normal_loop_adjudication_action_count",
+            "normal_loop_repair_action_count",
+            "normal_loop_returned_input_tokens",
+            "normal_loop_returned_output_tokens",
+            "normal_loop_wall_time_seconds",
+            "measurement_returned_input_tokens",
+            "measurement_returned_output_tokens",
+            "measurement_wall_time_seconds"
+          ],
+          "finding_row_required_fields": [
+            "case_key",
+            "contract_sha256",
+            "finding_id",
+            "finding_source_role",
+            "finding_effective_severity",
+            "stable_requirement_or_evidence_ref",
+            "protected_class",
+            "new_external_evidence",
+            "accepted_surface_state",
+            "disposition",
+            "adjudication_result",
+            "repair_origin",
+            "closure_changed_requirement",
+            "closure_changed_implementation",
+            "closure_changed_test_or_gate",
+            "closure_changed_protected_control",
+            "same_family_key",
+            "prose_churn_flag",
+            "prose_churn_attributable_review_action_count",
+            "prose_churn_attributable_adjudication_action_count",
+            "prose_churn_attributable_repair_action_count",
+            "prose_churn_attributable_returned_input_tokens",
+            "prose_churn_attributable_returned_output_tokens",
+            "prose_churn_attributable_wall_time_seconds"
+          ],
+          "zero_finding_rule": "zero-finding, clean, and no-adjudication terminal cases still contribute the full case-row denominator; finding-row fields may be null_not_applicable only because no finding row exists or no adjudication was triggered",
+          "null_handling": {
+            "present_value": "counts complete",
+            "null_unknown": "included in denominator and counts incomplete because the controller expected the value but does not know it",
+            "null_unavailable": "included in denominator and counts incomplete because the tool or retained source did not expose it",
+            "null_not_applicable": "excluded from denominator with a required reason code"
+          },
+          "case_row_formula": "complete_case_row_fields / (case_row_required_fields - not_applicable_case_row_fields)",
+          "finding_row_formula": "complete_finding_row_fields / (finding_row_required_fields - not_applicable_finding_row_fields)",
+          "cohort_formula": "sum complete case-row and finding-row fields across terminal admitted cases / sum applicable case-row and finding-row fields across terminal admitted cases",
+          "effectiveness_threshold": "cohort_formula >= 0.80"
+        },
+        "cost_telemetry_sufficiency": {
+          "required_for_effectiveness_reading": [
+            "normal loop review/adjudication/repair actions",
+            "normal loop input tokens",
+            "normal loop output tokens",
+            "normal loop wall_time_seconds",
+            "shadow/adjudication measurement actions",
+            "shadow/adjudication measurement input tokens",
+            "shadow/adjudication measurement output tokens",
+            "shadow/adjudication measurement wall_time_seconds",
+            "prose-churn-attributable review actions for every prose_churn event",
+            "prose-churn-attributable adjudication actions for every prose_churn event",
+            "prose-churn-attributable repair actions for every prose_churn event",
+            "prose-churn-attributable returned input tokens for every prose_churn event",
+            "prose-churn-attributable returned output tokens for every prose_churn event",
+            "prose-churn-attributable wall_time_seconds for every prose_churn event"
+          ],
+          "sufficient_when": "at least 80% of terminal admitted cases have all required normal loop cost fields, 100% have all study-added shadow/adjudication cost fields, and every prose_churn event has complete attributable review/adjudication/repair action counts, returned input/output tokens, and wall_time_seconds",
+          "prose_churn_missing_rule": "if any prose_churn event has null_unknown or null_unavailable attributable actions, returned input/output tokens, or wall_time_seconds, prospective effectiveness is incomplete; null_not_applicable is allowed only for an untriggered adjudication or repair action with a reason code",
+          "otherwise": "report incomplete for cost effectiveness"
+        },
+        "role_model_policy": {
+          "normal_work": "use the installed work-loop role and model policy; no study override",
+          "shadow_audit": "one fresh cold adversarial-reviewer full-document shadow audit on the exact stopped revision",
+          "adjudication": "if the shadow audit claims blockers, at most one independent finding-adjudicator batch may run for that case",
+          "model_recording": "record requested and resolved models only when observable"
+        },
+        "process_budget": {
+          "normal_work_loop_starts": "observed, not study-added",
+          "shadow_audit_starts_max": 12,
+          "adjudication_starts_max": 12,
+          "measurement_specific_starts_max": 24
+        },
+        "hard_limits": {
+          "pre_launch_enforceable_controls": {
+            "prompt_bytes_max": 120000,
+            "prompt_bytes_mechanism": "count exact UTF-8 bytes of the serialized measurement payload before launch",
+            "requested_output_tokens_max": 12000,
+            "requested_output_tokens_mechanism": "bind to an exposed controller/provider request parameter; fail closed before launch if no such parameter is observable",
+            "input_tokens_preflight_upper_bound_max": 120000,
+            "input_tokens_preflight_mechanism": "use a controller-exposed tokenizer/count before launch, or a conservative upper bound of serialized payload bytes; fail closed if neither is available",
+            "wall_clock_seconds_timeout": 3600,
+            "wall_clock_mechanism": "controller-owned timeout around the measurement start"
+          },
+          "outside_measured_payload_authority": [
+            "hidden system tokens",
+            "provider-injected tokens",
+            "provider accounting fields the controller cannot observe before launch"
+          ],
+          "post_run_observed_telemetry": {
+            "actual_returned_input_tokens": "record when returned by the tool or provider; unavailable makes cost effectiveness incomplete where required",
+            "actual_returned_output_tokens": "record when returned by the tool or provider; unavailable makes cost effectiveness incomplete where required",
+            "actual_wall_time_seconds": "record from controller timestamps"
+          },
+          "per_case_observed_cumulative_limits": {
+            "prompt_bytes_max": 240000,
+            "returned_input_tokens_max": 240000,
+            "returned_output_tokens_max": 24000,
+            "wall_clock_seconds_max": 7200
+          },
+          "cohort_observed_cumulative_limits": {
+            "prompt_bytes_max": 2880000,
+            "returned_input_tokens_max": 2880000,
+            "returned_output_tokens_max": 288000,
+            "wall_clock_seconds_max": 86400
+          },
+          "enforcement_rule": "pre-launch controls gate the start before launch; per-case and cohort observed cumulative limits stop the next measurement start or next cohort admission and cannot retroactively gate a completed start"
+        },
+        "frozen_definitions": {
+          "gating_finding": "a finding with effective severity Blocker or Concern under the normal work-loop review policy",
+          "durable_blocker": "a finding independently sustained against a stable contract or direct evidence whose closure changes an accepted requirement, implementation, executable test, or protected control",
+          "protected_classes": [
+            "stable acceptance or contract failure",
+            "executable test or gate failure",
+            "security, privacy, or authority boundary failure",
+            "data loss or corruption risk",
+            "public interface break",
+            "unrecoverable operational failure"
+          ],
+          "protected_class_exclusion": "style, taste, unsupported prose preference, and advisory wording are not protected classes by themselves",
+          "accepted_revision_surface": "the exact revision and reviewed/stopped document surface bound by digest for the case",
+          "new_external_evidence": "evidence not available in the accepted revision, review record, or normal case artifacts before stop",
+          "repair_origin": "a finding proven absent before a repair and introduced by that repair",
+          "prose_churn": "a blocking finding against unchanged, previously accepted text with no new requirement, executable failure, protected risk, or external evidence",
+          "shadow_escape": "a shadow-audit blocker independently sustained on a stable requirement, executable failure, protected risk, or genuinely new external evidence after the normal loop stopped"
+        },
+        "broad_review_reopen_triggers": [
+          "contract or material scope change",
+          "trust-boundary change",
+          "base or merge drift",
+          "repair outside the closure envelope",
+          "evidence that the closure envelope omitted whole-change state",
+          "sustained shadow escape"
+        ],
+        "sufficiency_and_decision_rules": {
+          "safety_floor": "zero protected escapes",
+          "effectiveness_reading_requires": [
+            "at least 8 terminal admitted cases",
+            "at least 80% complete finding-lineage fields under the frozen denominator",
+            "cost telemetry sufficient under the frozen cost telemetry rule"
+          ],
+          "otherwise": "report incomplete",
+          "scalar_score": "none",
+          "retrospective_savings_claim": "do not claim savings against the retrospective baseline because historical tokens and wall time are missing",
+          "protected_escape_rule": "any sustained protected escape reopens delivery under normal safety rules, stops further cohort admission, and prevents an effectiveness recommendation",
+          "advisory_shadow_prose": "record in aggregate only; never return as repair work"
+        },
+        "scorecard_fields": [
+          "durable_blocker_closure",
+          "protected_escape_rate",
+          "unique_durable_blockers_per_review_start",
+          "repair_origin_rate",
+          "accepted_surface_reopen_rate",
+          "same_family_recurrence",
+          "reviewer_adjudicator_reversal_or_indeterminacy",
+          "prose_churn_numerator_denominator_and_per_start_rate",
+          "prose_churn_attributable_review_actions",
+          "prose_churn_attributable_adjudication_actions",
+          "prose_churn_attributable_repair_actions",
+          "prose_churn_attributable_input_tokens",
+          "prose_churn_attributable_output_tokens",
+          "prose_churn_attributable_wall_time_seconds",
+          "prose_churn_share_of_normal_loop_cost",
+          "observed_actions_tokens_time_per_durable_blocker",
+          "normal_operational_loop_cost",
+          "shadow_and_adjudication_measurement_overhead"
+        ],
+        "privacy_screen": {
+          "timing": "fail-closed before retaining a row and before building any shadow or adjudication prompt",
+          "screened_material": "case ledger rows, source paths, reviewed and stopped revisions, closure envelope, and prompt payloads",
+          "suspected_sensitive_representation": "digest, generic reason code, and quarantined/not-retained status only",
+          "model_use": "suspected sensitive material is not sent to a model"
+        },
+        "measurement_authority_profile": {
+          "inputs_allowed": "exact stopped-revision artifacts, release contract digest, minimized closure envelope, and non-secret case provenance",
+          "writes_allowed": false,
+          "web_network_allowed": false,
+          "delegation_allowed": false,
+          "external_messaging_allowed": false,
+          "approval_escalation_allowed": false,
+          "protected_configuration_access_allowed": false,
+          "observable_profile_required": true,
+          "fail_closed_rule": "if the controller cannot observe this least-privilege profile before a measurement start, exclude the case before launch"
+        },
+        "minimal_collection": [
+          "source paths and digests",
+          "categorical lineage",
+          "counts",
+          "timestamps and token metadata already returned by tools",
+          "revision digests"
+        ],
+        "not_retained": [
+          "raw chat or session transcripts",
+          "hidden reasoning",
+          "credentials",
+          "personal data",
+          "protected configuration",
+          "unrelated source bodies"
+        ]
+      }
+    }
+  }
+}

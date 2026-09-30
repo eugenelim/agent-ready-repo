@@ -1,0 +1,98 @@
+{
+  "schema_version": "review-churn-current-case.v1",
+  "captured_at": "2026-09-27",
+  "run_id": "f9820f7a-959c-4e25-b3af-712db602b313",
+  "subject": "plan-evolution pre-execution review",
+  "source_digests": {
+    "adversarial_round_1": "1a400d04d28edab1793cd75c854546943148497ff3675712d8e45bee33cdb9b3",
+    "adversarial_round_2": "956c3a8d8f1d660a1673018a28990e333fb8fcf929f79e6af17720e60c2852eb",
+    "adversarial_round_3": "4cea92a431b14271699f36f50771a1dddaff89b80f007a27594d9aebb7f2e201",
+    "adversarial_round_4": "41aed02c156528a8eb7a3d09efd671e008247572989dc7efe82bd1f1d2086d78",
+    "adversarial_round_5": "74b12980b87d0d6bc6a2bc7f5b51d18571074f7a3c4ec52969e3394d4c582e3c",
+    "adversarial_round_6": "74b12980b87d0d6bc6a2bc7f5b51d18571074f7a3c4ec52969e3394d4c582e3c",
+    "security_round_1": "f29e8ab1f2f2313321d0309f0c752cb792cee5c66bbaa3f18763f2623f8a9132",
+    "security_round_2": "74b12980b87d0d6bc6a2bc7f5b51d18571074f7a3c4ec52969e3394d4c582e3c"
+  },
+  "broad_invariant_families": [
+    {"id": "F1", "fingerprint": "canonical authored-source ownership", "strict_clusters": ["C01"]},
+    {"id": "F2", "fingerprint": "builder self-audit evidence reachability", "strict_clusters": ["C02"]},
+    {"id": "F3", "fingerprint": "allocation and release-gate authority", "strict_clusters": ["C03", "C07", "C09"]},
+    {"id": "F4", "fingerprint": "deterministic corpus admission", "strict_clusters": ["C04", "C06"]},
+    {"id": "F5", "fingerprint": "corpus-risk framing matches the admitted corpus", "strict_clusters": ["C05"]},
+    {"id": "F6", "fingerprint": "executable release-stub correctness", "strict_clusters": ["C08"]}
+  ],
+  "strict_clusters": [
+    {"id": "C01", "first_round": 1, "fingerprint": "generated projection named as canonical authoring source"},
+    {"id": "C02", "first_round": 1, "fingerprint": "builder self-audit control absent from the planned comparison"},
+    {"id": "C03", "first_round": 1, "fingerprint": "numeric allocations and ceilings have multiple owners"},
+    {"id": "C04", "first_round": 1, "fingerprint": "candidate admission remains cherry-pickable"},
+    {"id": "C05", "first_round": 1, "fingerprint": "four-task risk text contradicts the larger corpus"},
+    {"id": "C06", "first_round": 2, "fingerprint": "the newly frozen task-order rule and table disagree"},
+    {"id": "C07", "first_round": 3, "fingerprint": "the new canonical wave-release reference does not define releases"},
+    {"id": "C08", "first_round": 4, "fingerprint": "the exact contiguity stub cannot pass its strict zip"},
+    {"id": "C09", "first_round": 4, "fingerprint": "the new W3 schedule conflicts with the adaptive-reserve gate"}
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "verdict": "findings",
+      "findings": [
+        {"id": "R1-F1", "severity": "blocker", "cluster": "C01", "relation": "initial_new", "origin": "baseline", "disposition": "sustained"},
+        {"id": "R1-F2", "severity": "blocker", "cluster": "C02", "relation": "initial_new", "origin": "baseline", "disposition": "sustained"},
+        {"id": "R1-F3", "severity": "concern", "cluster": "C03", "relation": "initial_new", "origin": "baseline", "disposition": "sustained"},
+        {"id": "R1-F4", "severity": "concern", "cluster": "C04", "relation": "initial_new", "origin": "baseline", "disposition": "sustained"},
+        {"id": "R1-F5", "severity": "concern", "cluster": "C05", "relation": "initial_new", "origin": "baseline", "disposition": "sustained"}
+      ]
+    },
+    {
+      "round": 2,
+      "verdict": "findings",
+      "findings": [
+        {"id": "R2-F1", "severity": "blocker", "cluster": "C06", "relation": "same_invariant_distinct", "origin": "prior_round_repair", "disposition": "sustained"},
+        {"id": "R2-F2", "severity": "concern", "cluster": "C03", "relation": "repeated", "origin": "incomplete_closure", "disposition": "sustained"}
+      ]
+    },
+    {
+      "round": 3,
+      "verdict": "findings",
+      "findings": [
+        {"id": "R3-F1", "severity": "blocker", "cluster": "C07", "relation": "same_invariant_distinct", "origin": "prior_round_repair", "disposition": "sustained"}
+      ]
+    },
+    {
+      "round": 4,
+      "verdict": "findings",
+      "findings": [
+        {"id": "R4-F1", "severity": "blocker", "cluster": "C08", "relation": "indeterminate", "origin": "indeterminate", "disposition": "sustained"},
+        {"id": "R4-F2", "severity": "blocker", "cluster": "C09", "relation": "same_invariant_distinct", "origin": "prior_round_repair", "disposition": "sustained"}
+      ]
+    },
+    {"round": 5, "verdict": "clean", "findings": []},
+    {"round": 6, "verdict": "clean_after_intervening_amendments", "findings": []}
+  ],
+  "supplemental_security": {
+    "round_1_clusters": [
+      "worker least privilege",
+      "canonical path confinement",
+      "SSRF-safe resource handling",
+      "strict structured-input validation"
+    ],
+    "round_1_sustained": 4,
+    "round_2_verdict": "clean"
+  },
+  "classification": {
+    "independent_classifiers": 2,
+    "agreement": "exact on counts, clusters, later relations, and causal labels",
+    "raw_findings": 10,
+    "strict_clusters": 9,
+    "broad_invariant_families": 6,
+    "later_relations": {"repeated": 1, "same_invariant_distinct": 3, "new": 0, "indeterminate": 1},
+    "proven_repair_origin": 3
+  },
+  "limitations": [
+    "No per-round reviewed revision hash or subject digest survives.",
+    "The exact reviewed bytes between rounds cannot be reconstructed.",
+    "Model identity, prompt, provider tokens, and wall-clock telemetry are unavailable.",
+    "Round 4 C08 cannot be assigned to the original draft or a prior repair."
+  ]
+}

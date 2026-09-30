@@ -1,0 +1,142 @@
+{
+  "allocations": {
+    "batched_blind_adjudication": 24,
+    "holdout_plan_authors_and_builds": 18,
+    "run_0_calibration": 8,
+    "run_1_reviews": 144,
+    "run_6_planner_builder_pairs": 96,
+    "run_7_repairs": 72,
+    "run_7_reviews": 96,
+    "runs_2_5_shared_build_panel": 90,
+    "shared_initial_plan_authors": 18
+  },
+  "command_policy": {
+    "egress": "denied",
+    "environment": "explicit-secret-free",
+    "max_output_bytes": 64000,
+    "network": "denied",
+    "process_tree_cleanup": true,
+    "shell_free": true,
+    "terminal_on_unenforceable": "non-executed",
+    "timeout_seconds": 120
+  },
+  "holdout_release": false,
+  "maximum_used": 566,
+  "models": {
+    "frontier": "gpt-5.6-sol",
+    "standard": "gpt-5.6-luna"
+  },
+  "raw_artifact_policy": {
+    "max_bytes": 262144,
+    "privacy_screen": "digest-only-quarantine",
+    "retention_days": 30
+  },
+  "runs": {
+    "holdout": {
+      "replications": 3,
+      "selection_rule": "frozen-before-main-unblinding"
+    },
+    "run-0": {
+      "disposable_tasks": 2,
+      "forms": [
+        "separate-spec-plan",
+        "unified-contract",
+        "thin-plan",
+        "narrative-plan"
+      ]
+    },
+    "run-1": {
+      "max_review_starts": 3,
+      "policies": [
+        "full-replay",
+        "delta-affected",
+        "closure"
+      ],
+      "replications": 3
+    },
+    "run-6": {
+      "builder_routes": [
+        "standard-builder",
+        "frontier-builder"
+      ],
+      "planner_routes": [
+        "standard-planner",
+        "frontier-planner"
+      ],
+      "replications": 3
+    },
+    "run-7": {
+      "policies": [
+        "full-replay",
+        "delta-affected",
+        "closure"
+      ],
+      "repair_opportunities": 2,
+      "snapshots": 12
+    },
+    "runs-2-5": {
+      "build_arms": [
+        "baseline-cold-controlled-evolving-thin",
+        "run-2-frozen-thin",
+        "run-3-unified-contract",
+        "run-4-narrative-expanded",
+        "run-5-same-worker-plan-build"
+      ],
+      "replications": 3
+    }
+  },
+  "schema_version": 1,
+  "seed": "codex-collaboration-r1-v1",
+  "study_ceiling": 600,
+  "study_id": "codex-collaboration-r1",
+  "tasks": [
+    {
+      "complexity": "medium",
+      "id": "decision-record-ordinal-uniqueness",
+      "provenance": "pre-build",
+      "use": "main"
+    },
+    {
+      "complexity": "medium",
+      "id": "non-json-sso-guard",
+      "provenance": "reconstructed",
+      "use": "main"
+    },
+    {
+      "complexity": "medium",
+      "id": "atomic-write-symlink-hardening",
+      "provenance": "reconstructed",
+      "use": "main"
+    },
+    {
+      "complexity": "complex",
+      "id": "pack-profiles",
+      "provenance": "pre-build",
+      "use": "main"
+    },
+    {
+      "complexity": "complex",
+      "id": "catalogue-corporate-trust-store",
+      "provenance": "reconstructed",
+      "use": "main"
+    },
+    {
+      "complexity": "complex",
+      "id": "agentbundle-engine-stragglers",
+      "provenance": "reconstructed",
+      "use": "main"
+    },
+    {
+      "complexity": "medium",
+      "id": "work-loop-argless-resume",
+      "provenance": "pre-build",
+      "use": "holdout"
+    },
+    {
+      "complexity": "medium",
+      "id": "shared-lint-driver",
+      "provenance": "reconstructed",
+      "use": "holdout"
+    }
+  ]
+}

@@ -1,0 +1,778 @@
+{
+  "assignments": [
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-blue",
+      "canonical_form": "separate-spec-thin-plan",
+      "canonical_task_id": "doc-task-alpha",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:626bf9cbbaa6e4c8e8a605b4c083b252fcd9c8aeb5bd8138ca0cfcea92f9bd17",
+      "launch_position": 2,
+      "packet_digest": "sha256:e450dfeef242a3cdc77ccf0f0e15d086a1caf93bb9b1b328c8c91dcd22a427ff",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-001/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:46f2ce3069ed464464ea7be8334f0bd2df34ab0b35324f25cd73b9a38170d8c2",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-001-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-001.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 1,
+      "schema_errors": [],
+      "schema_status": "pass",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:001",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-alpha-D1",
+          "doc-task-alpha-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ]
+      },
+      "study_ordinal": 1,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "terminal_report_digest": "sha256:1cb86938aaddd0ad077c300a47ddefe0e98489204843e0e72ac22cdf6f812e60",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-001-terminal.json",
+      "terminal_status": "terminal-schema-valid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-blue",
+        "packet_atom_ids": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-001"
+    },
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-green",
+      "canonical_form": "unified-contract",
+      "canonical_task_id": "doc-task-alpha",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:3c085154e457ff4d92b4f401518bd21a8f6d60d9256521b4ef5309091003868d",
+      "launch_position": 3,
+      "packet_digest": "sha256:da6b3976ad84abe2dade239b469dc4b9ac2bc1941122c0d1f14fe20b7107e014",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-002/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:024ad3ead3b5538a1723e0d31cf3f1388decabbb4a3c4c3b1f58454adc70a117",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-002-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-002.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 2,
+      "schema_errors": [],
+      "schema_status": "pass",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:002",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-alpha-D1",
+          "doc-task-alpha-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ]
+      },
+      "study_ordinal": 2,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "terminal_report_digest": "sha256:79837ef6e2e244a679b312c9e9d5b024aab0b59c38ec731d27f35fe314398248",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-002-terminal.json",
+      "terminal_status": "terminal-schema-valid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-green",
+        "packet_atom_ids": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-002"
+    },
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-amber",
+      "canonical_form": "separate-spec-narrative-plan",
+      "canonical_task_id": "doc-task-alpha",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:ffd70dfefb5bdb4287d5c59312b932c49da3289fe07b11132390d690bdac14f2",
+      "launch_position": 1,
+      "packet_digest": "sha256:a20f76a5bb8c2dce1a3c09695e8bac5d854342adff195901aed09063c930d38f",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-003/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:4a94a0cc0aee622f3a1040b548c12ae96d45d66a8908af2dcc923e19ef21a50b",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-003-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-003.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 3,
+      "schema_errors": [],
+      "schema_status": "pass",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:003",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-alpha-D1",
+          "doc-task-alpha-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ]
+      },
+      "study_ordinal": 3,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "terminal_report_digest": "sha256:5709103420bb74a0bd3c580c8a1e7d705b48b71ae6d4acc4399f2d5e73c533c8",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-003-terminal.json",
+      "terminal_status": "terminal-schema-valid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-amber",
+        "packet_atom_ids": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-003"
+    },
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-slate",
+      "canonical_form": "separate-spec-controlled-evolving-thin-plan",
+      "canonical_task_id": "doc-task-alpha",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:b96bca39e4c478ecbed5df3358b93f8a39c52bba70760052611b29d02f4fe781",
+      "launch_position": 6,
+      "packet_digest": "sha256:03ca5b810865f49be431ba31420570241195e621f4ffadb3aca3dfcf0008c723",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-004/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:8838f13f57dda0e16019eab045d14900305e0684d0ed7181bde955b933ffea24",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-004-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-004.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 4,
+      "schema_errors": [],
+      "schema_status": "pass",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:004",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-alpha-D1",
+          "doc-task-alpha-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ]
+      },
+      "study_ordinal": 4,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-1",
+      "terminal": true,
+      "terminal_report_digest": "sha256:cf81575427a4f6c3bb4b552f2ef1b68ce2176539e2663c8b816ff0fb4d2dcdb4",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-004-terminal.json",
+      "terminal_status": "terminal-schema-valid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-slate",
+        "packet_atom_ids": [
+          "A1",
+          "A2",
+          "A3",
+          "A4",
+          "A5",
+          "A6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-004"
+    },
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-blue",
+      "canonical_form": "separate-spec-thin-plan",
+      "canonical_task_id": "doc-task-beta",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:340c3aa525f0f46190399ffdfab02ec519e208ca5d05e5d40653ab900789f9aa",
+      "launch_position": 5,
+      "packet_digest": "sha256:f4c11077f5d62fde12b1d122cfbd3c185541d700661ec2febf01ae05c9bd70ab",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-005/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:cc63ede7453416335dee9758b99089e2e52d8649fd4a4982ecd3ade03caa743a",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-005-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-005.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 5,
+      "schema_errors": [],
+      "schema_status": "pass",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:005",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-beta-D1",
+          "doc-task-beta-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ]
+      },
+      "study_ordinal": 5,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "terminal_report_digest": "sha256:12aa7ee8822d1b8c6b6903a259af14e2ca9efda5f702505790200c77f0f9e2d9",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-005-terminal.json",
+      "terminal_status": "terminal-schema-valid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-blue",
+        "packet_atom_ids": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-005"
+    },
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "subject-response-schema-invalid",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-green",
+      "canonical_form": "unified-contract",
+      "canonical_task_id": "doc-task-beta",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:35266db33b530d3fd0da687e2fd5cde0e296c14ee15a46a90727aad05637eebd",
+      "launch_position": 8,
+      "packet_digest": "sha256:d6f962f22bbf5f921bc54589891a0b05abc994a1f15caa3cd2ee79d6cfbe7c21",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-006/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:5240c74750afe466c9923cf5cfdf42fed0e01d73c22834bb6018cd3bc9e35b0f",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-006-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-006.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 6,
+      "schema_errors": [
+        "acceptance_mapping[0].status enum invalid",
+        "acceptance_mapping[1].status enum invalid",
+        "acceptance_mapping[2].status enum invalid",
+        "acceptance_mapping[3].status enum invalid",
+        "acceptance_mapping[4].status enum invalid",
+        "acceptance_mapping[5].status enum invalid",
+        "self_audit.semantic_drift_risk enum invalid",
+        "self_audit.scope_drift_risk enum invalid"
+      ],
+      "schema_status": "fail",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:006",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-beta-D1",
+          "doc-task-beta-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ]
+      },
+      "study_ordinal": 6,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "terminal_report_digest": "sha256:a076cfb924166ed80cca06219042ca78c9b08a3e75b188ce260f9bebe58e02c6",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-006-terminal.json",
+      "terminal_status": "terminal-schema-invalid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-green",
+        "packet_atom_ids": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-006"
+    },
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "subject-response-schema-invalid",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-amber",
+      "canonical_form": "separate-spec-narrative-plan",
+      "canonical_task_id": "doc-task-beta",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:a33acea1aed205d8ef996893219275e28f1da73a39b10aabe7f050e873292aa0",
+      "launch_position": 7,
+      "packet_digest": "sha256:774f89f06d9bf4d77bfc0e398158eed4c846286006c09a8dd623864dc9f3440d",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-007/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:6060b28635d68d5a2ac6d7fd1e97ca30012ce5c23b2e9ae14686ac60085da3b5",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-007-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-007.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 7,
+      "schema_errors": [
+        "task_summary must be a string",
+        "acceptance_mapping[0].status enum invalid",
+        "acceptance_mapping[1].status enum invalid",
+        "acceptance_mapping[2].status enum invalid",
+        "acceptance_mapping[3].status enum invalid",
+        "acceptance_mapping[4].status enum invalid",
+        "acceptance_mapping[5].status enum invalid",
+        "self_audit.semantic_drift_risk enum invalid",
+        "self_audit.scope_drift_risk enum invalid"
+      ],
+      "schema_status": "fail",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:007",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-beta-D1",
+          "doc-task-beta-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ]
+      },
+      "study_ordinal": 7,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "terminal_report_digest": "sha256:41d820abc3fb806fd7579fa60022b824bdb70c2396118162a2b2566b5db400a2",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-007-terminal.json",
+      "terminal_status": "terminal-schema-invalid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-amber",
+        "packet_atom_ids": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-007"
+    },
+    {
+      "all_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "artifact_alias": "artifact-slate",
+      "canonical_form": "separate-spec-controlled-evolving-thin-plan",
+      "canonical_task_id": "doc-task-beta",
+      "controller_protocol_deviations": [
+        "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+        "actual-transport-schema-detail-omission"
+      ],
+      "intended_prompt_digest": "sha256:6ee90fd99ca567a83a0c14ed7714bc4c9d7e2d0e312ce51ef74d9b13e08c7a84",
+      "launch_position": 4,
+      "packet_digest": "sha256:69b480bac4a1f1f8fd9c732ba74106350a292f963cea0005eb6c13c09ebda5ac",
+      "packet_path": "docs/product/research/plan-evolution-experiments/document-packets/run-0/slot-008/packet.json",
+      "parse_status": "pass",
+      "prepared_receipt_digest_before_update": "sha256:fecd2be98267b68b1062caf41e2676401385d553dfd4e5c08126ffd337261ea4",
+      "prepared_receipt_path": ".context/experiments/codex-collaboration-r1/run-0/receipts/slot-008-receipt.json",
+      "prompt_path": ".context/experiments/codex-collaboration-r1/run-0/prompts/slot-008.txt",
+      "requested_model": "gpt-5.6-luna",
+      "run_ordinal": 8,
+      "schema_errors": [],
+      "schema_status": "pass",
+      "served_model_identity": "unavailable",
+      "session_identity": "unavailable",
+      "slot_id": "run-0:008",
+      "starts": 1,
+      "static_grade": {
+        "planted_defects_addressed": [
+          "doc-task-beta-D1",
+          "doc-task-beta-D2"
+        ],
+        "planted_defects_unaddressed": [],
+        "protocol_deviations_self_reported": [],
+        "required_atoms_missing": [],
+        "required_atoms_present": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ]
+      },
+      "study_ordinal": 8,
+      "subject_protocol_deviations": [],
+      "task_alias": "disposable-2",
+      "terminal": true,
+      "terminal_report_digest": "sha256:3dfbfc76cf9d1d394b515ae017fc191d6e720d15d59209010f5cdeb337e7a37f",
+      "terminal_report_path": ".context/experiments/codex-collaboration-r1/run-0/terminal-reports/slot-008-terminal.json",
+      "terminal_status": "terminal-schema-valid",
+      "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+      "transport_equivalence_check": {
+        "actual_transport_equivalent_to_frozen_prompt": false,
+        "actual_transport_missing_exact_schema_details": true,
+        "actual_transport_reconstructable": false,
+        "controller_basis": "supervisor/controller record says compact dispatch was semantically equivalent for task atoms, treatment, schema bounds, and prohibitions, but omitted exact schema enum/type details and was not byte-identical to prompts/slot-*.txt",
+        "intended_prompt_contains_packet": true,
+        "packet_artifact_alias": "artifact-slate",
+        "packet_atom_ids": [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6"
+        ],
+        "packet_forbidden_actions": [
+          "tools",
+          "web",
+          "delegation",
+          "repository inspection",
+          "messaging",
+          "code execution",
+          "shell commands",
+          "external files"
+        ]
+      },
+      "worker_alias": "calibration-subject-008"
+    }
+  ],
+  "completed_at": "2026-09-28T00:00:00Z",
+  "controller_artifacts": {
+    "dispatch_manifest": ".context/experiments/codex-collaboration-r1/run-0/dispatch-manifest.json",
+    "dispatch_manifest_digest": "sha256:2661af803fd2e921a0a66dd55de46f2de07f959960ce28b975d5efccbac7b0a4",
+    "durable_report": "docs/product/research/plan-evolution-experiments/codex-collaboration-run-0-report.md",
+    "hidden_static_registry": ".context/experiments/codex-collaboration-r1/run-0/controller/hidden-static-registry.json",
+    "hidden_static_registry_digest": "sha256:b051b8f83b9e5d594634625b6ccdd4445796cf9e945f4b29ab51bd655db7f540"
+  },
+  "evidence_class": "non-inferential",
+  "frozen_gate": {
+    "consequence": "Run 0 fails closed. T9-T13 and holdout document collections remain closed. No rerun or repair is authorized from these outcomes.",
+    "failed_checks": [
+      {
+        "affected_slots": [
+          "run-0:001",
+          "run-0:002",
+          "run-0:003",
+          "run-0:004",
+          "run-0:005",
+          "run-0:006",
+          "run-0:007",
+          "run-0:008"
+        ],
+        "check": "frozen rendering gate",
+        "reason": "actual compact dispatch omitted exact response_schema enum/type details; frozen rendering gate fails closed",
+        "result": "fail"
+      },
+      {
+        "affected_slots": [
+          "run-0:006",
+          "run-0:007"
+        ],
+        "check": "subject response schema gate",
+        "reason": "slots run-0:006 and run-0:007 failed the frozen response schema; run-0:006 used non-enum status/risk prose, and run-0:007 also returned object-valued task_summary where a string is required",
+        "result": "fail"
+      }
+    ],
+    "passed_checks": [
+      "eight ordinals were reserved and ended terminal",
+      "all terminal reports are parseable JSON",
+      "no candidate, grading, regression, or repair code was supplied to subjects",
+      "tracked packets are synthetic and non-secret",
+      "intended prompt digests are preserved"
+    ],
+    "result": "fail"
+  },
+  "gate_decision": "run-0-not-released",
+  "instruction_isolation": {
+    "exposed_tool_limitation": true,
+    "label": "non-secret-bearing-input-only",
+    "shared_filesystem_limitation": true,
+    "subjects_were_instructed_not_to_use": [
+      "tools",
+      "web",
+      "delegation",
+      "repository inspection",
+      "messaging",
+      "code execution",
+      "shell commands",
+      "external files"
+    ],
+    "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use"
+  },
+  "model_and_telemetry": {
+    "requested_route": "gpt-5.6-luna",
+    "served_model_identity": "unavailable; requested route only",
+    "session_identity": "unavailable",
+    "token_usage": "unavailable",
+    "wall_clock": "unavailable from controller receipts"
+  },
+  "provider": "codex-collaboration",
+  "release_flags": {
+    "holdout": false,
+    "inferential_release": false,
+    "run_0_document_collection": false,
+    "run_1": false,
+    "run_6": false,
+    "run_7": false,
+    "runs_2_5": false
+  },
+  "run_id": "run-0",
+  "schema_version": 1,
+  "status": "failed-closed",
+  "study_id": "codex-collaboration-r1",
+  "task": "T8",
+  "terminal_accounting": {
+    "candidate_subprocess_starts": 0,
+    "inferential_slots_started": 0,
+    "later_collection_slots_released": 0,
+    "reserved_ordinals": 8,
+    "starts": 8,
+    "strict_json_parse_pass": 8,
+    "strict_schema_fail": 2,
+    "strict_schema_pass": 6,
+    "terminal_reports": 8,
+    "terminal_subjects": 8
+  },
+  "transport": {
+    "actual_dispatch_record": "actual compact dispatch bodies were not durably captured byte-for-byte by the controller",
+    "actual_vs_intended": "not byte-identical for all eight slots",
+    "controller_protocol_deviation": "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+    "intended_frozen_prompt_root": ".context/experiments/codex-collaboration-r1/run-0/prompts",
+    "schema_detail_omission": "compact transport omitted exact enum/type schema details",
+    "static_atom_equivalence": "not fully provable from durable actual dispatch bytes; controller record supports semantic task/treatment/prohibition equivalence but exact schema equivalence fails"
+  }
+}

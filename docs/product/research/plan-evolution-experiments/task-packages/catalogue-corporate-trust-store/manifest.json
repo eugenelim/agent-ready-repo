@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "package_id": "catalogue-corporate-trust-store",
+  "use": "main",
+  "complexity": "complex",
+  "provenance": "reconstructed",
+  "baseline_commit": "d1bc469d5c4a2ecf9678e52a35372410f2211e41",
+  "reference_commit": "76f37de963b2585c27e02372eebf1765c44061b0",
+  "worker_visible": {
+    "candidate_source": "git-free baseline snapshot, not produced because calibration stopped",
+    "acceptance_atoms": [
+      "system trust material is resolved before outbound catalogue fetch",
+      "missing trust bundle is diagnosed before network dial",
+      "fallback attempts preserve bounded diagnostics"
+    ],
+    "permitted_paths": [
+      "packages/agentbundle/agentbundle/catalogue.py",
+      "packages/agentbundle/agentbundle/system_trust.py",
+      "packages/agentbundle/tests/unit/test_catalogue_trust_fallback.py",
+      "packages/agentbundle/tests/unit/test_system_trust.py",
+      "packages/agentbundle/tests/integration/test_trust_fallback_tls.py"
+    ],
+    "prohibited_paths": [
+      "docs/product/research/plan-evolution-experiments/task-packages/**",
+      ".context/experiments/codex-collaboration-r1/**",
+      "docs/product/research/plan-evolution-experiments/codex-collaboration-evidence-index.json"
+    ],
+    "visible_regression_commands": [
+      "python3 -m pytest -p no:cacheprovider --import-mode=importlib -q packages/agentbundle/tests/unit/test_catalogue_trust_fallback.py packages/agentbundle/tests/unit/test_system_trust.py packages/agentbundle/tests/integration/test_trust_fallback_tls.py"
+    ]
+  },
+  "controller_only_oracle_recipe": {
+    "recipe_id": "trust-store-missing-bundle-before-dial",
+    "status": "resolved-not-executed",
+    "semantic_check": "inject a hidden pytest asset that points trust resolution at a missing corporate bundle and asserts failure occurs before the HTTP dialer is invoked",
+    "seeded_mutation": "move trust-bundle validation after the dial attempt in the grading clone and require the hidden assertion to fail",
+    "restore_check": "restore the reference file state and require the same hidden assertion to pass"
+  },
+  "calibration_status": "non-executed",
+  "stopped_reason": "AC-0007A subprocess confinement was unenforceable: sandbox-exec profile application exited 71 Operation not permitted, and current causal_runner validates policy labels only; filesystem, egress, and process-tree confinement are unobservable.",
+  "raw_retention": {
+    "secret_or_personal_bytes_retained": false,
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

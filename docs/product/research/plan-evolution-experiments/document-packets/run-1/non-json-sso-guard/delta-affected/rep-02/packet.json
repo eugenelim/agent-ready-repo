@@ -1,0 +1,229 @@
+{
+  "commands": [],
+  "executable_attachments": [],
+  "forbidden_subject_actions": [
+    "tools",
+    "web",
+    "delegation",
+    "repository inspection",
+    "messaging",
+    "code execution",
+    "shell commands",
+    "external files",
+    "editing the subject"
+  ],
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "non_secret": true,
+  "policy_aperture": {
+    "aperture": "Revision 1 is broad. Revisions 2 and 3 review changed material plus invariants affected by those changes.",
+    "changed_material_rule": "After revision 1, cite changed material status for each finding.",
+    "review_opportunities": [
+      1,
+      2,
+      3
+    ]
+  },
+  "policy_id": "delta-affected",
+  "policy_label": "broad first, then delta plus affected-invariant review",
+  "replication": 2,
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "alias": {
+        "type": "string"
+      },
+      "artifact_version_reviewed": {
+        "type": "string"
+      },
+      "changed_material_assessment": {
+        "maxLength": 500,
+        "type": "string"
+      },
+      "findings": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "affected_acceptance_atom_ids": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 1,
+              "type": "array"
+            },
+            "category": {
+              "enum": [
+                "missing-required-fact",
+                "incorrect-fact",
+                "scope-drift",
+                "unbounded-claim",
+                "contradiction",
+                "clarity",
+                "other"
+              ]
+            },
+            "changed_material_status": {
+              "enum": [
+                "unchanged-existing",
+                "new-or-changed",
+                "affected-invariant",
+                "not-applicable"
+              ]
+            },
+            "confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "finding_id": {
+              "maxLength": 40,
+              "type": "string"
+            },
+            "fingerprint": {
+              "maxLength": 120,
+              "type": "string"
+            },
+            "quote_or_location": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "rationale": {
+              "maxLength": 360,
+              "type": "string"
+            },
+            "severity": {
+              "enum": [
+                "critical",
+                "major",
+                "minor",
+                "note"
+              ]
+            }
+          },
+          "required": [
+            "finding_id",
+            "severity",
+            "category",
+            "quote_or_location",
+            "rationale",
+            "affected_acceptance_atom_ids",
+            "changed_material_status",
+            "confidence",
+            "fingerprint"
+          ],
+          "type": "object"
+        },
+        "maxItems": 10,
+        "type": "array"
+      },
+      "no_edit_confirmation": {
+        "const": true
+      },
+      "protocol_deviations": {
+        "items": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "maxItems": 8,
+        "type": "array"
+      },
+      "review_aperture": {
+        "maxLength": 220,
+        "type": "string"
+      }
+    },
+    "required": [
+      "alias",
+      "review_aperture",
+      "artifact_version_reviewed",
+      "findings",
+      "changed_material_assessment",
+      "no_edit_confirmation",
+      "protocol_deviations"
+    ],
+    "type": "object"
+  },
+  "review_subject": {
+    "acceptance_atoms": [
+      {
+        "id": "A1",
+        "text": "Jira read paths must detect non-JSON SSO or login responses."
+      },
+      {
+        "id": "A2",
+        "text": "Confluence read paths must detect non-JSON SSO or login responses."
+      },
+      {
+        "id": "A3",
+        "text": "Diagnostics must stay bounded and must not expose response bodies."
+      }
+    ],
+    "document_title": "Atlassian non-JSON read-path note",
+    "revisions": [
+      {
+        "artifact_id": "non-json-sso-guard-r1",
+        "delta_from_previous": {
+          "added_lines": [
+            "Atlassian non-JSON read-path note - revision 1",
+            "",
+            "Audience: repository maintainers reviewing a proposed documentation change.",
+            "Jira and Confluence read paths classify text/html login responses as non-JSON SSO failures. The diagnostic includes the first 2 KB of the response body to help operators identify the login page. That check covers every upstream authentication response."
+          ],
+          "basis": "initial-artifact",
+          "removed_lines": []
+        },
+        "document_text": "Atlassian non-JSON read-path note - revision 1\n\nAudience: repository maintainers reviewing a proposed documentation change.\nJira and Confluence read paths classify text/html login responses as non-JSON SSO failures. The diagnostic includes the first 2 KB of the response body to help operators identify the login page. That check covers every upstream authentication response.",
+        "revision": 1
+      },
+      {
+        "artifact_id": "non-json-sso-guard-r2",
+        "delta_from_previous": {
+          "added_lines": [
+            "Atlassian non-JSON read-path note - revision 2",
+            "Jira and Confluence now check content type and a leading HTML marker before JSON decoding. The bounded diagnostic retains a 4 KB response-body excerpt for troubleshooting. The two checks guarantee that every login response is detected."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "Atlassian non-JSON read-path note - revision 1",
+            "Jira and Confluence read paths classify text/html login responses as non-JSON SSO failures. The diagnostic includes the first 2 KB of the response body to help operators identify the login page. That check covers every upstream authentication response."
+          ]
+        },
+        "document_text": "Atlassian non-JSON read-path note - revision 2\n\nAudience: repository maintainers reviewing a proposed documentation change.\nJira and Confluence now check content type and a leading HTML marker before JSON decoding. The bounded diagnostic retains a 4 KB response-body excerpt for troubleshooting. The two checks guarantee that every login response is detected.",
+        "revision": 2
+      },
+      {
+        "artifact_id": "non-json-sso-guard-r3",
+        "delta_from_previous": {
+          "added_lines": [
+            "Atlassian non-JSON read-path note - revision 3",
+            "Jira and Confluence reject HTML content before JSON decoding and label the failure as SSO-related. The final diagnostic still includes a 512-byte response-body excerpt. The rule is declared safe for all future authentication intermediaries."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "Atlassian non-JSON read-path note - revision 2",
+            "Jira and Confluence now check content type and a leading HTML marker before JSON decoding. The bounded diagnostic retains a 4 KB response-body excerpt for troubleshooting. The two checks guarantee that every login response is detected."
+          ]
+        },
+        "document_text": "Atlassian non-JSON read-path note - revision 3\n\nAudience: repository maintainers reviewing a proposed documentation change.\nJira and Confluence reject HTML content before JSON decoding and label the failure as SSO-related. The final diagnostic still includes a 512-byte response-body excerpt. The rule is declared safe for all future authentication intermediaries.",
+        "revision": 3
+      }
+    ]
+  },
+  "run_id": "run-1",
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "synthetic": true,
+  "task_complexity": "medium",
+  "task_id": "non-json-sso-guard",
+  "task_provenance": "reconstructed",
+  "trajectory_id": "run-1:non-json-sso-guard:p-delta-affected:rep-2",
+  "worker_alias_prefix": "run1-reviewer-02-delta-affected"
+}

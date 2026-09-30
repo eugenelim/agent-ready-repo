@@ -1,0 +1,229 @@
+{
+  "commands": [],
+  "executable_attachments": [],
+  "forbidden_subject_actions": [
+    "tools",
+    "web",
+    "delegation",
+    "repository inspection",
+    "messaging",
+    "code execution",
+    "shell commands",
+    "external files",
+    "editing the subject"
+  ],
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "non_secret": true,
+  "policy_aperture": {
+    "aperture": "Revision 1 is broad. Revisions 2 and 3 review changed material plus invariants affected by those changes.",
+    "changed_material_rule": "After revision 1, cite changed material status for each finding.",
+    "review_opportunities": [
+      1,
+      2,
+      3
+    ]
+  },
+  "policy_id": "delta-affected",
+  "policy_label": "broad first, then delta plus affected-invariant review",
+  "replication": 1,
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "alias": {
+        "type": "string"
+      },
+      "artifact_version_reviewed": {
+        "type": "string"
+      },
+      "changed_material_assessment": {
+        "maxLength": 500,
+        "type": "string"
+      },
+      "findings": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "affected_acceptance_atom_ids": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 1,
+              "type": "array"
+            },
+            "category": {
+              "enum": [
+                "missing-required-fact",
+                "incorrect-fact",
+                "scope-drift",
+                "unbounded-claim",
+                "contradiction",
+                "clarity",
+                "other"
+              ]
+            },
+            "changed_material_status": {
+              "enum": [
+                "unchanged-existing",
+                "new-or-changed",
+                "affected-invariant",
+                "not-applicable"
+              ]
+            },
+            "confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "finding_id": {
+              "maxLength": 40,
+              "type": "string"
+            },
+            "fingerprint": {
+              "maxLength": 120,
+              "type": "string"
+            },
+            "quote_or_location": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "rationale": {
+              "maxLength": 360,
+              "type": "string"
+            },
+            "severity": {
+              "enum": [
+                "critical",
+                "major",
+                "minor",
+                "note"
+              ]
+            }
+          },
+          "required": [
+            "finding_id",
+            "severity",
+            "category",
+            "quote_or_location",
+            "rationale",
+            "affected_acceptance_atom_ids",
+            "changed_material_status",
+            "confidence",
+            "fingerprint"
+          ],
+          "type": "object"
+        },
+        "maxItems": 10,
+        "type": "array"
+      },
+      "no_edit_confirmation": {
+        "const": true
+      },
+      "protocol_deviations": {
+        "items": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "maxItems": 8,
+        "type": "array"
+      },
+      "review_aperture": {
+        "maxLength": 220,
+        "type": "string"
+      }
+    },
+    "required": [
+      "alias",
+      "review_aperture",
+      "artifact_version_reviewed",
+      "findings",
+      "changed_material_assessment",
+      "no_edit_confirmation",
+      "protocol_deviations"
+    ],
+    "type": "object"
+  },
+  "review_subject": {
+    "acceptance_atoms": [
+      {
+        "id": "A1",
+        "text": "Atomic write must reject symlink targets before replacement."
+      },
+      {
+        "id": "A2",
+        "text": "Atomic write must reject hard-linked targets before replacement."
+      },
+      {
+        "id": "A3",
+        "text": "Failed safety checks must leave the target and outside referent unchanged."
+      }
+    ],
+    "document_title": "Atomic write hardening note",
+    "revisions": [
+      {
+        "artifact_id": "atomic-write-symlink-hardening-r1",
+        "delta_from_previous": {
+          "added_lines": [
+            "Atomic write hardening note - revision 1",
+            "",
+            "Audience: repository maintainers reviewing a proposed documentation change.",
+            "Atomic write uses lstat and rejects a symlink target before replacement. A hard-linked target is logged, then replacement continues. Failure cleanup may unlink the selected path, while the operation is described as safe for every alias."
+          ],
+          "basis": "initial-artifact",
+          "removed_lines": []
+        },
+        "document_text": "Atomic write hardening note - revision 1\n\nAudience: repository maintainers reviewing a proposed documentation change.\nAtomic write uses lstat and rejects a symlink target before replacement. A hard-linked target is logged, then replacement continues. Failure cleanup may unlink the selected path, while the operation is described as safe for every alias.",
+        "revision": 1
+      },
+      {
+        "artifact_id": "atomic-write-symlink-hardening-r2",
+        "delta_from_previous": {
+          "added_lines": [
+            "Atomic write hardening note - revision 2",
+            "Atomic write rejects symlink targets and targets whose link count exceeds one. If validation fails, cleanup removes the selected target before discarding the temporary file. These checks prove every filesystem alias is protected."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "Atomic write hardening note - revision 1",
+            "Atomic write uses lstat and rejects a symlink target before replacement. A hard-linked target is logged, then replacement continues. Failure cleanup may unlink the selected path, while the operation is described as safe for every alias."
+          ]
+        },
+        "document_text": "Atomic write hardening note - revision 2\n\nAudience: repository maintainers reviewing a proposed documentation change.\nAtomic write rejects symlink targets and targets whose link count exceeds one. If validation fails, cleanup removes the selected target before discarding the temporary file. These checks prove every filesystem alias is protected.",
+        "revision": 2
+      },
+      {
+        "artifact_id": "atomic-write-symlink-hardening-r3",
+        "delta_from_previous": {
+          "added_lines": [
+            "Atomic write hardening note - revision 3",
+            "Atomic write checks symlink state and link count before replacement. Error recovery may retry replacement after a failed safety check, so the target or outside referent can change. The final note calls the operation safe on all filesystems."
+          ],
+          "basis": "exact-controller-line-diff",
+          "removed_lines": [
+            "Atomic write hardening note - revision 2",
+            "Atomic write rejects symlink targets and targets whose link count exceeds one. If validation fails, cleanup removes the selected target before discarding the temporary file. These checks prove every filesystem alias is protected."
+          ]
+        },
+        "document_text": "Atomic write hardening note - revision 3\n\nAudience: repository maintainers reviewing a proposed documentation change.\nAtomic write checks symlink state and link count before replacement. Error recovery may retry replacement after a failed safety check, so the target or outside referent can change. The final note calls the operation safe on all filesystems.",
+        "revision": 3
+      }
+    ]
+  },
+  "run_id": "run-1",
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "synthetic": true,
+  "task_complexity": "medium",
+  "task_id": "atomic-write-symlink-hardening",
+  "task_provenance": "reconstructed",
+  "trajectory_id": "run-1:atomic-write-symlink-hardening:p-delta-affected:rep-1",
+  "worker_alias_prefix": "run1-reviewer-03-delta-affected"
+}

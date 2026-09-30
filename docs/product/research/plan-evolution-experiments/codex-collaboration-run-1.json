@@ -1,0 +1,101 @@
+{
+  "accounting": {
+    "prepared_adjudication_prompts": 12,
+    "prepared_review_prompts": 144,
+    "starts": 2,
+    "terminals": 2
+  },
+  "artifact_roots": {
+    "adjudication_prompt_root": ".context/experiments/codex-collaboration-r1/run-1/adjudication-prompts",
+    "adjudication_prompt_template_root": ".context/experiments/codex-collaboration-r1/run-1/adjudication-prompt-templates",
+    "controller_root": ".context/experiments/codex-collaboration-r1/run-1/controller",
+    "packet_root": "docs/product/research/plan-evolution-experiments/document-packets/run-1",
+    "prompt_root": ".context/experiments/codex-collaboration-r1/run-1/prompts",
+    "receipt_root": ".context/experiments/codex-collaboration-r1/run-1/receipts"
+  },
+  "design": {
+    "batched_blind_adjudication_starts_reserved": 12,
+    "main_tasks": 6,
+    "maximum_review_starts": 144,
+    "policies": [
+      "full-replay",
+      "delta-affected",
+      "closure"
+    ],
+    "replications_per_task_policy": 3,
+    "review_starts_by_policy": {
+      "closure": 36,
+      "delta-affected": 54,
+      "full-replay": 54
+    },
+    "revisions_per_trajectory": 3,
+    "trajectories": 54
+  },
+  "dispatch_manifest": ".context/experiments/codex-collaboration-r1/run-1/dispatch-manifest.json",
+  "dispatch_manifest_digest": "sha256:9f9e705327f8b6be5a011153cb6b21886569398d1f4b7f50e58182f04fc717f7",
+  "document_collection_flag": false,
+  "evidence_class": "non-inferential",
+  "hidden_defect_registry": {
+    "digest": "sha256:4db4d81b6c082d1fd73a72472623d5137ea975512d8ca15db4c87b1e02121cd8",
+    "path": ".context/experiments/codex-collaboration-r1/run-1/controller/hidden-defect-registry.json",
+    "visibility": "controller-only; not included in subject prompts or dispatch rows"
+  },
+  "inferential_release_flag": false,
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "limitations": {
+    "exposed_tools": true,
+    "secure_confinement": "unavailable",
+    "served_model_identity": "unavailable",
+    "shared_filesystem": true,
+    "token_usage": "unavailable"
+  },
+  "prepared_at": "2026-09-28T15:37:06Z",
+  "progress": {
+    "completed_review_slots": [
+      "run-1-review:001",
+      "run-1-review:002"
+    ],
+    "controller_deviations": [
+      "controller UTC dispatch timestamps were not captured for the first two starts; their wall-clock values are unavailable",
+      "the collaboration dispatcher reached its two-child thread limit before slot 003 and no fresh parent thread was available"
+    ],
+    "remaining_review_slots_unstarted": 142,
+    "terminal_report_paths": [
+      ".context/experiments/codex-collaboration-r1/run-1/terminal-reports/run-1-review:001-terminal.json",
+      ".context/experiments/codex-collaboration-r1/run-1/terminal-reports/run-1-review:002-terminal.json"
+    ]
+  },
+  "release_profile": {
+    "digest": "sha256:db4006eb31839467407a8c0cf281307e7856b9a5fb716a9eb2fa692e48095fb5",
+    "path": ".context/experiments/codex-collaboration-r1/run-1/controller/release-profile.json"
+  },
+  "requested_model": "gpt-5.6-luna",
+  "resolved_model_identity": "unavailable",
+  "run_id": "run-1",
+  "schema_version": 1,
+  "scoring_rules": {
+    "digest": "sha256:94c0bd50d5773baa851657e72a8606495830801c04362e72f13e30f0d9a0f9ee",
+    "path": ".context/experiments/codex-collaboration-r1/run-1/controller/scoring-rules.json"
+  },
+  "status": "paused-controller-thread-limit-after-two-terminals",
+  "study_id": "codex-collaboration-r1",
+  "study_ordinals": {
+    "adjudication_reserved_range": [
+      161,
+      172
+    ],
+    "contiguous": true,
+    "review_start_range": [
+      17,
+      160
+    ],
+    "study_ceiling": 574
+  },
+  "task": "T9-preparation"
+}

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "package_id": "non-json-sso-guard",
+  "use": "main",
+  "complexity": "medium",
+  "provenance": "reconstructed",
+  "baseline_commit": "a3a8a0629bdb4e91938833d9b23c299881c63de3",
+  "reference_commit": "cc8e989ae4b6128e477a35034392f682ba95e6e8",
+  "worker_visible": {
+    "candidate_source": "git-free baseline snapshot, not produced because calibration stopped",
+    "acceptance_atoms": [
+      "Jira read paths detect non-JSON SSO or login responses",
+      "Confluence read paths detect non-JSON SSO or login responses",
+      "diagnostics stay bounded and do not expose response bodies"
+    ],
+    "permitted_paths": [
+      "packs/atlassian/**",
+      "docs/specs/nonjson-guard-all-read-paths/**"
+    ],
+    "prohibited_paths": [
+      "docs/product/research/plan-evolution-experiments/task-packages/**",
+      ".context/experiments/codex-collaboration-r1/**",
+      "docs/product/research/plan-evolution-experiments/codex-collaboration-evidence-index.json"
+    ],
+    "visible_regression_commands": [
+      "python3 -m pytest -p no:cacheprovider --import-mode=importlib -q packs/atlassian/tests/skills/jira/test_nonjson_guard_all_reads.py"
+    ]
+  },
+  "controller_only_oracle_recipe": {
+    "recipe_id": "non-json-jira-read-paths",
+    "status": "resolved-not-executed",
+    "semantic_check": "inject a hidden pytest asset that feeds HTML and text SSO responses through Jira and Confluence read helpers and asserts a typed non-JSON guard instead of JSON decoding or body leakage",
+    "seeded_mutation": "remove the content-type/body guard in the grading clone and require the hidden assertion to fail",
+    "restore_check": "restore the reference file state and require the same hidden assertion to pass"
+  },
+  "calibration_status": "non-executed",
+  "stopped_reason": "AC-0007A subprocess confinement was unenforceable: sandbox-exec profile application exited 71 Operation not permitted, and current causal_runner validates policy labels only; filesystem, egress, and process-tree confinement are unobservable.",
+  "raw_retention": {
+    "secret_or_personal_bytes_retained": false,
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

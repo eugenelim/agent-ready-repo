@@ -1,0 +1,147 @@
+{
+  "schema_version": "review-churn-results.v1",
+  "frozen_at": "2026-09-27",
+  "scope": "pre-execution spec, plan, and accepted-contract review",
+  "tier_a_cases": [
+    {
+      "id": "plan-evolution-current",
+      "source_retention": "session-local-normalized",
+      "rounds": [
+        {"round": 1, "raw": 5, "initial_new": 5, "repeated": 0, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 351, "bytes": 2868},
+        {"round": 2, "raw": 2, "initial_new": 0, "repeated": 1, "same_invariant_distinct": 1, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 1, "words": 163, "bytes": 1112},
+        {"round": 3, "raw": 1, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 1, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 1, "words": 93, "bytes": 664},
+        {"round": 4, "raw": 2, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 1, "later_new": 0, "indeterminate": 1, "proven_repair_origin": 1, "words": 134, "bytes": 1028},
+        {"round": 5, "raw": 0, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "clean": true, "words": 5, "bytes": 27},
+        {"round": 6, "raw": 0, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "clean": true, "words": 5, "bytes": 27}
+      ],
+      "raw_findings": 10,
+      "strict_clusters": 9,
+      "broad_invariant_families": 6,
+      "proven_repair_origin": 3,
+      "supplemental_security": {"rounds": 2, "raw_findings": 4, "clean_final_round": true},
+      "classification": "two independent Codex classifications agreed",
+      "sources": [
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/1-pre-execute-adversarial-reviewer-raw.md", "sha256": "1a400d04d28edab1793cd75c854546943148497ff3675712d8e45bee33cdb9b3", "required": false, "rounds": [1]},
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/2-pre-execute-adversarial-reviewer-raw.md", "sha256": "956c3a8d8f1d660a1673018a28990e333fb8fcf929f79e6af17720e60c2852eb", "required": false, "rounds": [2]},
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/3-pre-execute-adversarial-reviewer-raw.md", "sha256": "4cea92a431b14271699f36f50771a1dddaff89b80f007a27594d9aebb7f2e201", "required": false, "rounds": [3]},
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/4-pre-execute-adversarial-reviewer-raw.md", "sha256": "41aed02c156528a8eb7a3d09efd671e008247572989dc7efe82bd1f1d2086d78", "required": false, "rounds": [4]},
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/5-pre-execute-adversarial-reviewer-raw.md", "sha256": "74b12980b87d0d6bc6a2bc7f5b51d18571074f7a3c4ec52969e3394d4c582e3c", "required": false, "rounds": [5]},
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/6-pre-execute-adversarial-reviewer-raw.md", "sha256": "74b12980b87d0d6bc6a2bc7f5b51d18571074f7a3c4ec52969e3394d4c582e3c", "required": false, "rounds": [6]},
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/1-pre-execute-security-reviewer-raw.md", "sha256": "f29e8ab1f2f2313321d0309f0c752cb792cee5c66bbaa3f18763f2623f8a9132", "required": false, "rounds": [1]},
+        {"path": ".context/reviews/f9820f7a-959c-4e25-b3af-712db602b313/2-pre-execute-security-reviewer-raw.md", "sha256": "74b12980b87d0d6bc6a2bc7f5b51d18571074f7a3c4ec52969e3394d4c582e3c", "required": false, "rounds": [2]},
+        {"path": "docs/product/research/plan-evolution-experiments/review-churn-current-case.json", "sha256": "3d7c5b98e593b2e02a9beac1b5da511d06f5fa2a4ccade2b1913f9a08a82d071", "required": true, "rounds": [1, 2, 3, 4, 5, 6]}
+      ]
+    },
+    {
+      "id": "credential-broker-contract",
+      "source_retention": "durable",
+      "rounds": [
+        {"round": 1, "raw": 20, "initial_new": 20, "repeated": 0, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 657, "bytes": 5291},
+        {"round": 2, "raw": 14, "initial_new": 0, "repeated": 4, "same_invariant_distinct": 8, "later_new": 2, "indeterminate": 0, "proven_repair_origin": 0, "words": 285, "bytes": 2395},
+        {"round": 3, "raw": 6, "initial_new": 0, "repeated": 5, "same_invariant_distinct": 1, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 142, "bytes": 1293},
+        {"round": 4, "raw": 1, "initial_new": 0, "repeated": 1, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 69, "bytes": 536},
+        {"round": 5, "raw": 0, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "clean": true, "words": 155, "bytes": 923}
+      ],
+      "raw_findings": 41,
+      "strict_clusters": 31,
+      "broad_invariant_families": 22,
+      "proven_repair_origin": 0,
+      "possible_repair_origin_upper_bound": 11,
+      "classification": "two independent Codex classifications plus finding adjudication",
+      "sources": [
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-1.md", "sha256": "6ecaaaccce6b1bb9c4a6cecf692779f77db98e2c98f747d6527da91d9ea3b705", "required": true, "rounds": [1]},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-2.md", "sha256": "f337905c4a2dca6d7c04b03c8f76fd47afa19fa489215b05a20b30c6568f8709", "required": true, "rounds": [2]},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-3.md", "sha256": "959c5e7103ca12af3297dcf3f321ec964bca8a480eab752da90711b4168b4419", "required": true, "rounds": [3]},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-4.md", "sha256": "03b526781d834e10b6e9e4422109007b7b1cd7b73edce51bd02b6820a189cb00", "required": true, "rounds": [4]},
+        {"path": "docs/specs/credential-broker-contract/notes/review-round-5.md", "sha256": "379774803dace36ed3bb23887bc150c4692ed4304b822829effc7c4667d7a895", "required": true, "rounds": [5]}
+      ]
+    },
+    {
+      "id": "portfolio-first-run-pilot-architect",
+      "source_retention": "durable",
+      "rounds": [
+        {"round": 1, "raw": 9, "initial_new": 9, "repeated": 0, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 259, "bytes": 1964},
+        {"round": 2, "raw": 3, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 0, "later_new": 3, "indeterminate": 0, "proven_repair_origin": 0, "words": 118, "bytes": 898},
+        {"round": 3, "raw": 3, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 3, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 102, "bytes": 749},
+        {"round": 4, "raw": 4, "initial_new": 0, "repeated": 1, "same_invariant_distinct": 3, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 2, "words": 106, "bytes": 838}
+      ],
+      "raw_findings": 19,
+      "strict_clusters": 18,
+      "broad_invariant_families": 12,
+      "proven_repair_origin": 2,
+      "classification": "two independent Codex classifications plus finding adjudication",
+      "sources": [
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-1.md", "sha256": "722757eeab562dd460cc2f558c806a08421d93dc195eca2a23fac2e75608591d", "required": true, "rounds": [1]},
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-2.md", "sha256": "aed69776582308c59ba458dc2b64ee727bfbb318bf20e89fa41021274d8ac74d", "required": true, "rounds": [2]},
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-3.md", "sha256": "9b2f848120bef01c602adcde232b029c5ce9cfc3bc4933defe67443a48b5f727", "required": true, "rounds": [3]},
+        {"path": "docs/specs/portfolio-first-run-pilot-architect/notes/adversarial-review-4.md", "sha256": "a48fcd5bb1f40da6a314d250846b62041a08bfae4573de5bde97ed8603a94acd", "required": true, "rounds": [4]}
+      ]
+    },
+    {
+      "id": "work-loop-review-verdicts-fresh-spec",
+      "source_retention": "durable",
+      "rounds": [
+        {"round": 1, "raw": 3, "initial_new": 3, "repeated": 0, "same_invariant_distinct": 0, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 126, "bytes": 1002},
+        {"round": 2, "raw": 1, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 1, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 34, "bytes": 307},
+        {"round": 3, "raw": 1, "initial_new": 0, "repeated": 0, "same_invariant_distinct": 1, "later_new": 0, "indeterminate": 0, "proven_repair_origin": 0, "words": 34, "bytes": 300}
+      ],
+      "raw_findings": 5,
+      "strict_clusters": 5,
+      "broad_invariant_families": 3,
+      "proven_repair_origin": 0,
+      "dispositions": {"sustained_resolved": 4, "refuted": 1},
+      "classification": "two independent Codex classifications agreed",
+      "sources": [
+        {"path": "docs/specs/work-loop-review-verdicts/notes/adversarial-review-spec-fresh-round-1.md", "sha256": "7224db10703310e3188fd498ca090b940e7139c5d20e0612b68c6b44f9e5a62c", "required": true, "rounds": [1]},
+        {"path": "docs/specs/work-loop-review-verdicts/notes/adversarial-review-spec-fresh-round-2.md", "sha256": "0dfaf498bf34b155d50838795c9fc785be1c29dfa0cbcfc6b53070f919ddfcae", "required": true, "rounds": [2]},
+        {"path": "docs/specs/work-loop-review-verdicts/notes/adversarial-review-spec-fresh-round-3.md", "sha256": "ab405c7e74ecab7f670dd4d07fdcffb466bc9be169f93309ba10551987ac850d", "required": true, "rounds": [3]},
+        {"path": "docs/specs/work-loop-review-verdicts/notes/review-verdict-pending.md", "sha256": "60d47e6801fb6f7d157c33ab342742d90db931ee08c130fa2e11c6037dbb8645", "required": true, "rounds": [1, 2, 3]}
+      ]
+    }
+  ],
+  "tier_a_aggregate": {
+    "cases": 4,
+    "raw_findings": 75,
+    "initial_round_findings": 37,
+    "later_round_findings": 38,
+    "within_case_strict_clusters": 63,
+    "within_case_broad_invariant_families": 43,
+    "later_relations": {"repeated": 12, "same_invariant_distinct": 20, "new": 5, "indeterminate": 1},
+    "later_recurrence_family_findings": 32,
+    "later_recurrence_family_share": 0.8421,
+    "proven_repair_origin": 5,
+    "nonclean_report_words": 2673,
+    "later_report_words": 1280,
+    "nonclean_report_bytes": 21245,
+    "later_report_bytes": 10120
+  },
+  "tier_b_cases": [
+    {"id": "install-to-ship-walkthrough", "trajectory": [26, 10, 8, 4, 1], "raw_findings": 49, "proven_repair_origin_in_rounds_2_3": 12, "source": {"path": "docs/knowledge/topics/a-review-round-whose-findings-are-mostly-prior-round-repairs-is-a-signal-to-cut.json", "sha256": "4a48c44623b5b42a8559775a16fe64c15aae9c3fc9426a4556a56322cb98a04a", "required": true}},
+    {"id": "occasioning-nonconvergence-loop", "rounds": 15, "sustained_findings": 30, "proven_repair_origin": 9, "findings_in_two_families": 18, "last_eight_round_findings": 8, "source": {"path": "docs/product/research/review-loop-nonconvergence-survey.md", "sha256": "a349d64e89825c2b01e554a12b768fe2a5f9f42bc6bf5886023152231c8ff82c", "required": true}}
+  ],
+  "repository_aggregate_observations": {
+    "session_transcripts": 4300,
+    "merged_pull_requests": 1273,
+    "spec_plan_pairs": 431,
+    "numbered_acceptance_criteria": 4060,
+    "runs_with_review_artifacts": 112,
+    "runs_exceeding_five_review_ordinals": 50,
+    "plan_nonblank_line_unconsumed_share": 0.856,
+    "full_mode_spec_plan_only_finding_share": 0.51,
+    "light_mode_record_only_finding_share": 0.06,
+    "goal_vs_spec_plan_repair_rate_after_size_control": "no separable bucket; sign changed three times",
+    "full_mode_acceptance_criterion_to_code_findings": 567,
+    "source": {"path": "docs/product/research/review-loop-nonconvergence-survey.md", "sha256": "a349d64e89825c2b01e554a12b768fe2a5f9f42bc6bf5886023152231c8ff82c", "required": true}
+  },
+  "prior_experiment_sources": [
+    {"path": "docs/product/research/work-loop-review-economics-spike.md", "sha256": "eb4c5f6250f5f8c0e1fe306b989102a2d7fc8caf028ee67389c2110b6642f1e1", "required": true},
+    {"path": "docs/product/research/work-loop-focused-re-review-spike.md", "sha256": "315d00f5a72aadf60e753e2dcfab4d1824d25984e9f93bbe081fc0c2f294455b", "required": true}
+  ],
+  "unavailable_measures": [
+    "historical provider tokens for Tier A cases",
+    "historical wall-clock time for Tier A cases",
+    "exact model identity for Tier A cases",
+    "randomized one-file versus separate spec-and-plan packaging",
+    "stronger-model pre-execution versus stronger-model build allocation"
+  ]
+}

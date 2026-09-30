@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-headless-via-claude-runs2-5-r1",
+  "status": "complete-non-inferential",
+  "integration_status": "integrated-independent-summary",
+  "generated_at_utc": "2026-09-29T01:27:47.680385Z",
+  "provider": "codex-headless-via-claude",
+  "requested_model": "gpt-5.6-luna",
+  "served_model_identity": "unavailable",
+  "pooled_with_other_provider_blocks": false,
+  "design": {
+    "tasks": 6,
+    "replications_per_task": 3,
+    "matched_blocks": 18,
+    "arms": 5,
+    "construction_reservations": 90,
+    "unit_of_generalization": "task",
+    "inference_stance": "bounded descriptive case study",
+    "treatment_equivalence_proofs_passed": 18,
+    "treatment_equivalence_proofs_total": 18
+  },
+  "accounting": {
+    "reservations": 112,
+    "terminal_records": 112,
+    "calibration_reservations": 4,
+    "plan_author_reservations": 18,
+    "construction_reservations": 90,
+    "cli_process_starts": 123,
+    "controller_observed_model_starts": 108,
+    "continuations": 18,
+    "zero_model_start_failures_quarantined": 11,
+    "construction_rows_returned": 86,
+    "construction_rows_excluded_no_response": 4,
+    "tool_use_violations": 0,
+    "controller_wall_clock_seconds": 2593.94,
+    "all_stages_reconcile": true
+  },
+  "arms": {
+    "baseline_separate_amendable_cold": {
+      "n": 18,
+      "semantic_coverage_mean": 0.9889,
+      "decisions_correct_mean": 3.6111,
+      "input_tokens_mean": 23391.6111,
+      "output_tokens_mean": 1172.1111,
+      "raw_words_mean": 351.9444,
+      "wall_clock_seconds_mean": 25.9851,
+      "amendments_present": 18,
+      "amendments_valid": 17,
+      "conflicts_recorded_instead": 0
+    },
+    "frozen_separate_cold": {
+      "n": 17,
+      "semantic_coverage_mean": 1.0,
+      "decisions_correct_mean": 3.2353,
+      "input_tokens_mean": 23394.3529,
+      "output_tokens_mean": 1070.1765,
+      "raw_words_mean": 275.2941,
+      "wall_clock_seconds_mean": 24.5835,
+      "amendments_present": 0,
+      "conflicts_recorded_instead": 14
+    },
+    "unified_amendable_cold": {
+      "n": 17,
+      "semantic_coverage_mean": 0.9882,
+      "decisions_correct_mean": 3.4118,
+      "input_tokens_mean": 23384.0588,
+      "output_tokens_mean": 1101.7647,
+      "raw_words_mean": 336.5294,
+      "wall_clock_seconds_mean": 25.1841,
+      "amendments_present": 17,
+      "amendments_valid": 16,
+      "conflicts_recorded_instead": 0
+    },
+    "narrative_amendable_cold": {
+      "n": 16,
+      "semantic_coverage_mean": 0.9875,
+      "decisions_correct_mean": 3.0625,
+      "input_tokens_mean": 23755.1875,
+      "output_tokens_mean": 1166.875,
+      "raw_words_mean": 329.9375,
+      "wall_clock_seconds_mean": 26.4284,
+      "amendments_present": 16,
+      "amendments_valid": 16,
+      "conflicts_recorded_instead": 0,
+      "artifact_word_ratio_range": [1.475, 1.586],
+      "total_input_token_change_vs_baseline_percent": 1.55
+    },
+    "separate_amendable_same_worker": {
+      "n": 18,
+      "semantic_coverage_mean": 0.9778,
+      "decisions_correct_mean": 2.8333,
+      "input_tokens_mean": 50071.1667,
+      "output_tokens_mean": 1930.8333,
+      "raw_words_mean": 252.5556,
+      "wall_clock_seconds_mean": 22.7372,
+      "amendments_present": 18,
+      "amendments_valid": 16,
+      "conflicts_recorded_instead": 0
+    }
+  },
+  "matched_contrasts_vs_baseline": {
+    "frozen": {
+      "decisions_correct": -0.4166,
+      "contradictions": 0.1111,
+      "self_audit_false_positives": 0.2778,
+      "raw_words": -81.4445,
+      "output_tokens": -110.0278,
+      "wall_clock_seconds": -1.5987
+    },
+    "unified": {
+      "semantic_coverage": 0.0,
+      "acceptance_correct": 0.0,
+      "scope_additions": 0.0,
+      "decisions_correct": -0.25,
+      "raw_words": -19.6389,
+      "output_tokens": -83.1111,
+      "wall_clock_seconds": -1.0779
+    },
+    "narrative": {
+      "semantic_coverage": 0.0,
+      "acceptance_correct": 0.0,
+      "scope_additions": 0.0,
+      "decisions_correct": -0.6389,
+      "raw_words": -22.9167,
+      "output_tokens": -10.4166,
+      "wall_clock_seconds": 0.4207
+    },
+    "same_worker": {
+      "semantic_coverage": -0.0111,
+      "decisions_correct": -0.7778,
+      "decisions_correct_task_cluster_interval": [-1.6111, -0.1111],
+      "tasks_favouring_same_worker": 1,
+      "tasks_favouring_cold_baseline": 5,
+      "input_tokens": 26679.5556,
+      "output_tokens": 758.7222,
+      "raw_words": -99.3889,
+      "wall_clock_seconds": -3.2479
+    }
+  },
+  "continuity_sensitivity_excluding_contaminated_ordinal_78": {
+    "n": 17,
+    "semantic_coverage_mean": 0.9764705882,
+    "decisions_correct_mean": 2.7647058824,
+    "input_tokens_mean": 48820.7647058824,
+    "output_tokens_mean": 1918.3529411765,
+    "raw_words_mean": 253.3529411765,
+    "wall_clock_seconds_mean": 22.2957058824,
+    "amendments_present": 17,
+    "amendments_valid": 15
+  },
+  "decision_implications": [
+    "Lock outcomes, acceptance conditions, boundaries, and checks; allow controlled construction-plan amendments.",
+    "Do not require separate specification and plan files for quality on this evidence; a unified contract remains viable.",
+    "Prefer a fresh constructor carrying the current contract over resuming the plan-author session by default.",
+    "Do not generalize the narrative result to large-context verbosity because total input increased only 1.55 percent."
+  ],
+  "limitations": [
+    "Lexical coverage measures wording presence rather than reasoning quality and were near ceiling.",
+    "Only six task clusters were sampled; intervals are descriptive, not significance tests.",
+    "Four no-response cells left two matched blocks incomplete.",
+    "One continuity cell received a trivial transport probe; the reported sensitivity excludes it.",
+    "The narrative treatment added controller-generated meta-prose and changed total input by only 1.55 percent.",
+    "Served model identity was not observable.",
+    "Wall clock includes controller orchestration overhead.",
+    "The continuation and cold-start CLI invocation forms differed."
+  ],
+  "integrity": {
+    "source_handoff_json": ".context/codex-headless-runs2-5-result.json",
+    "source_handoff_json_digest": "sha256:b51fb1ac58489d81b10f1b3f69b676a93820b55cb0d31a12f4aee2e9e6e8a187",
+    "source_handoff_report": ".context/codex-headless-runs2-5-result.md",
+    "source_handoff_report_digest": "sha256:d6fb713b5f1f78a8e889947b6bd57d5a6b601d28081addf6f08bb4065b9bbad6",
+    "published_source_digests_verified": 14,
+    "published_source_digests_failed": 0,
+    "raw_artifacts_root": ".context/experiments/codex-headless-via-claude-runs2-5-r1"
+  }
+}

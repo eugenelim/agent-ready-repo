@@ -255,15 +255,18 @@ print-sast-config:
 # finding count. That self-test runs ONLY the custom rule, so it is not a
 # substitute for the registry rulesets — hence keeping the exclusion narrow.
 #
-# The last two entries are excluded for a different reason than the four above:
+# The last three entries are excluded for a different reason than the four above:
 # not a false positive, a per-rule TIMEOUT. ADR-0102 admits this vehicle and
 # fixes its required shape — a stated residual and a retirement trigger, both
 # below. Two interprocedural env→subprocess
-# taint rules exceed the default 5s/rule/file budget on one large,
-# subprocess-dense dev-CLI test file each — `dangerous-system-call-tainted-env-args`
-# on tools/test_workspace_status.py (3,422 lines) and
+# taint rules exceed the default 5s/rule/file budget on large,
+# subprocess-dense dev-CLI test files — `dangerous-system-call-tainted-env-args`
+# on tools/test_workspace_status.py (3,422 lines),
 # `dangerous-subprocess-use-tainted-env-args` on tools/test_workspace_status_cli.py
-# (3,817 lines). Those two timeouts are the only reason the scan exits non-zero
+# (3,817 lines), and BOTH rules on
+# tools/plan_evolution_workbench/test_runner.py (2,050 lines), which gate-sast
+# reported as `2 timeout diagnostic(s) across 1 file(s); 1-minute load average
+# 2.7 on 4 CPUs`. Those timeouts are the only reason the scan exits non-zero
 # under --strict on this tree. Every figure in this block was measured on semgrep
 # 1.175.0 — the floor tools/requirements-sast.txt pins and CI installs, not
 # whatever a laptop happens to carry; see the version preflight in sast-unleased.
@@ -317,8 +320,18 @@ print-sast-config:
 # pathological pairs reach it — but a masked interaction is not a fixed one.
 #
 # Retire once semgrep's taint engine stops timing out on these pairs, or once
-# either file is split below the per-rule budget. Still timing out as of 1.175.0,
-# nine releases after the behaviour was first seen, so this is not a transient.
+# any of the three files is split below the per-rule budget. Still timing out as
+# of 1.175.0, nine releases after the behaviour was first seen, so this is not a
+# transient.
+#
+# The third file was added 2026-09-30 and measured the way the gate's own message
+# asks for. It is load-sensitive, not a clean budget breach: the same recipe's
+# config against that file ALONE at --timeout 60 on a quiet machine exits 0 with
+# 0 findings and 0 errors in 27s wall (semgrep 1.175.0), so nothing detected is
+# being hidden — the same evidence shape the two files above carry. It reds in CI
+# under concurrent load. The file is a 2,050-line test module for the
+# plan-evolution workbench with nine subprocess/env references, which is the same
+# pathological shape as its two neighbours here.
 # `httpsconnection-detected` is an AUDIT rule, not a vulnerability detector: it
 # fires on any use of http.client.HTTPSConnection and says "the API has changed
 # across minor releases, make sure you use it securely". Its stated concern is
@@ -348,7 +361,8 @@ SEMGREP_EXCLUDE := \
 	--exclude-rule python.lang.security.audit.insecure-file-permissions.insecure-file-permissions \
 	--exclude-rule python.lang.security.audit.httpsconnection-detected.httpsconnection-detected \
 	--exclude "tools/test_workspace_status.py" \
-	--exclude "tools/test_workspace_status_cli.py"
+	--exclude "tools/test_workspace_status_cli.py" \
+	--exclude "tools/plan_evolution_workbench/test_runner.py"
 
 sast:
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) sast-unleased

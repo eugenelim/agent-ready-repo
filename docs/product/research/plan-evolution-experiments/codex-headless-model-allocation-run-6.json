@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-headless-via-claude-run6-r1",
+  "status": "complete-non-inferential",
+  "integration_status": "integrated-independent-summary",
+  "provider": "codex-headless-via-claude",
+  "claim_class": "requested routing and document quality; not served-model identity or build performance",
+  "requested_routes": {
+    "standard": "gpt-5.6-luna",
+    "stronger": "gpt-5.6-sol"
+  },
+  "reasoning_effort_requested": "medium",
+  "served_model_identity": "unavailable",
+  "pooled_with_other_provider_blocks": false,
+  "design": {
+    "tasks": 4,
+    "replications_per_task": 3,
+    "route_cells": 4,
+    "trajectories": 48,
+    "main_starts": 96,
+    "calibration_starts": 8,
+    "unit_of_generalization": "task",
+    "inference_stance": "bounded descriptive case study"
+  },
+  "answer": {
+    "allocation_advantage_established": false,
+    "default_policy": "Use the standard requested route at both stages for similarly bounded document work; escalate on observed uncertainty or failed checks.",
+    "forced_one_stronger_call_preference": "Constructor placement is the cheaper weak preference, not an accuracy finding.",
+    "reason": "The three separating intermediate measures disagree, whole-trajectory quality is flat, and every stronger-route policy costs more than all standard."
+  },
+  "cell_means": {
+    "standard_planner_standard_constructor": {
+      "n": 12,
+      "final_correct_decisions": 4.0,
+      "residual_severe_errors": 1.75,
+      "clean_throughout": 0.0,
+      "output_tokens": 3077.1667,
+      "summed_worker_seconds": 65.9645,
+      "visible_words": 953.4167
+    },
+    "stronger_planner_standard_constructor": {
+      "n": 12,
+      "final_correct_decisions": 3.9167,
+      "residual_severe_errors": 1.9167,
+      "clean_throughout": 0.0,
+      "output_tokens": 4230.9167,
+      "summed_worker_seconds": 91.9962,
+      "visible_words": 1204.4167
+    },
+    "standard_planner_stronger_constructor": {
+      "n": 12,
+      "final_correct_decisions": 3.8333,
+      "residual_severe_errors": 1.9167,
+      "clean_throughout": 0.0,
+      "output_tokens": 3687.5,
+      "summed_worker_seconds": 79.5032,
+      "visible_words": 1191.0833
+    },
+    "stronger_planner_stronger_constructor": {
+      "n": 12,
+      "final_correct_decisions": 3.8333,
+      "residual_severe_errors": 2.0,
+      "clean_throughout": 0.0,
+      "output_tokens": 5220.3333,
+      "summed_worker_seconds": 109.779,
+      "visible_words": 1425.5
+    }
+  },
+  "primary_equal_budget_contrast": {
+    "definition": "stronger planner plus standard constructor minus standard planner plus stronger constructor",
+    "matched_pairs": 12,
+    "task_clusters": 4,
+    "separating_intermediate_measures": {
+      "planner_incorrect_decisions": {
+        "mean_task_effect": 0.5833,
+        "task_cluster_interval": [0.0833, 1.3334],
+        "favours": "standard planner plus stronger constructor"
+      },
+      "planner_self_audit_false_positives": {
+        "mean_task_effect": -0.75,
+        "task_cluster_interval": [-0.9167, -0.6667],
+        "favours": "stronger planner plus standard constructor"
+      },
+      "constructor_decisions_complete": {
+        "mean_task_effect": 1.0834,
+        "task_cluster_interval": [0.1667, 1.6667],
+        "favours": "stronger planner plus standard constructor"
+      }
+    },
+    "whole_trajectory": {
+      "final_correct_decisions": {
+        "mean_task_effect": 0.0833,
+        "task_cluster_interval": [0.0, 0.25]
+      },
+      "residual_severe_errors": {
+        "mean_task_effect": 0.0,
+        "task_cluster_interval": [-0.25, 0.25]
+      },
+      "clean_throughout": {
+        "mean_task_effect": 0.0,
+        "task_cluster_interval": [0.0, 0.0]
+      },
+      "output_tokens": {
+        "mean_task_effect": 543.4167,
+        "task_cluster_interval": [168.9167, 868.0]
+      },
+      "summed_worker_seconds": {
+        "mean_task_effect": 12.493,
+        "task_cluster_interval": [2.5725, 19.9127]
+      }
+    }
+  },
+  "comparison_to_all_standard": {
+    "stronger_planner": {
+      "final_correct_decisions": -0.0833,
+      "residual_severe_errors": 0.1666,
+      "output_tokens": 1153.75,
+      "summed_worker_seconds": 26.0317
+    },
+    "stronger_constructor": {
+      "final_correct_decisions": -0.1667,
+      "residual_severe_errors": 0.1666,
+      "output_tokens": 610.3333,
+      "summed_worker_seconds": 13.5387
+    },
+    "both_stronger": {
+      "final_correct_decisions": -0.1667,
+      "residual_severe_errors": 0.25,
+      "output_tokens": 2143.1667,
+      "summed_worker_seconds": 43.8145
+    }
+  },
+  "measurement_limits": {
+    "planner_measures_with_no_variance": 17,
+    "constructor_measures_with_no_variance": 14,
+    "planner_semantic_coverage_rate": 0.996,
+    "constructor_semantic_coverage_rate": 0.996,
+    "planner_acceptable_decision_coverage_rate": 0.896,
+    "constructor_acceptable_decision_coverage_rate": 0.974,
+    "tasks": 4,
+    "clean_trajectories": 0,
+    "lexical_grading_limit": "Keyword presence does not establish reasoning correctness."
+  },
+  "accounting": {
+    "calibration_reservations": 8,
+    "calibration_starts": 8,
+    "calibration_terminals": 8,
+    "main_reservations": 96,
+    "main_starts": 96,
+    "main_observed_model_starts": 96,
+    "planner_terminals": 48,
+    "constructor_terminals": 48,
+    "stopped_constructor_cells": 0,
+    "tool_use_violations": 0,
+    "schema_parse_failures": 0,
+    "process_failures": 0,
+    "timeouts": 0,
+    "zero_model_start_quarantines": 0,
+    "response_repairs": 0,
+    "retries_after_model_start": 0,
+    "main_input_tokens": 2338949,
+    "main_output_tokens": 194591,
+    "main_summed_worker_seconds": 4166.92
+  },
+  "incidents": [
+    "Planner ordinal 28 dropped one trailing alias character; it was retained and affects no outcome measure."
+  ],
+  "amendments": {
+    "blinding": {
+      "timing": "after all planner starts and before the first constructor start",
+      "as_frozen_hits": 3,
+      "corrected_hits": 0,
+      "reason": "The bare adjective stronger produced false positives in ordinary technical prose."
+    },
+    "contradiction_void": {
+      "timing": "after all planner starts and before the first constructor start",
+      "payloads_carrying_own_input_marker": 18,
+      "blocks_with_voids": 7,
+      "distinct_void_markers": 3,
+      "cell_invariance": "Void sets use the union across four cells in each task-replication block."
+    }
+  },
+  "integrity": {
+    "source_handoff_json": ".context/codex-headless-run6-result.json",
+    "source_handoff_json_digest": "sha256:33290f99555398e0e377f5fe14a1a67d1d7e36f44908ae2c56471f7939ea37bf",
+    "source_handoff_report": ".context/codex-headless-run6-result.md",
+    "source_handoff_report_digest": "sha256:fe4da6c24f93b02ab4ff9f8b17711d6a893f4f1b53e384afe8fa0fb871bd74ab",
+    "frozen_digests_checked": 24,
+    "frozen_digests_matching_current_files": 22,
+    "frozen_digest_mismatches": {
+      "blinding.py": {
+        "frozen": "sha256:1c19f35e82847d921627f181566fc1943db8a700ae5fb74bccd358a8b0628c9f",
+        "current": "sha256:f56d30444ab22220f1339c2fef4de5c0e3c50518e14f40fa8e60f403a99b76f3"
+      },
+      "score.py": {
+        "frozen": "sha256:0b4e6662d1e1de00dd430575e4b984e4b523d570de56a3a17b9c1d80a67435a0",
+        "current": "sha256:6f066a2b1ccf650f75426fc1db1b3c6317e6299c4306903e9ee6b2692ef0b22f"
+      }
+    },
+    "amendment_record_digests": {
+      "blinding_amendment_001": "sha256:f37987ec759a35feea60796d7268d70c7fc0ff3f8fa1c492ea236af9cba1d12c",
+      "grading_amendment_001": "sha256:a786ac96276aafdb2ee1df6747dd70ceef5ba6c96302e173a58a5f012f8aadf4"
+    },
+    "derived_artifact_digests": {
+      "accounting": "sha256:ec51946ccabf320071b025c758f6fd45ab5fc575da0631a776fad5ef2be7b929",
+      "blinding_check": "sha256:be747247edd4fe0202828a34851c06a3f03ede96c03f2f0d9465bd941be94088",
+      "calibration_gate": "sha256:044718b21262c63ba0951834013600fd6b23c9b7f1554235a8c984e6a32833ac",
+      "contrasts": "sha256:2b3ae99f309509266fe94ed3ea80f40b1ec6e28c91ac82d3b8a175ebe81806c7",
+      "measures": "sha256:7ce26acb7f13f2d0abde50fa965e21860fc8617eafa47287c9075698741505f2",
+      "planner_index": "sha256:df7ed5d5f8c5c3e6dc1419eb088e9de9fe15b33e56381625e4384c8cc08f1316"
+    },
+    "source_integrity_assessment": "Usable non-inferential evidence with a disclosed mutation-proof gap: two amended tools lack before/after digest binding in the source amendment records."
+  },
+  "limitations": [
+    "Requested routes do not prove served model identity.",
+    "No implementation or build performance was measured.",
+    "Only four task clusters were sampled.",
+    "Most structural measures were at a ceiling or floor.",
+    "Lexical measures detect wording presence rather than reasoning quality.",
+    "Two amended tools lack before/after digest binding in the source receipt."
+  ]
+}

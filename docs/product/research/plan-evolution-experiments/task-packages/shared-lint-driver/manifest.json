@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "package_id": "shared-lint-driver",
+  "use": "holdout",
+  "complexity": "medium",
+  "provenance": "reconstructed",
+  "baseline_commit": "2f9451f02ac1ce90b6249526a46331d898cd0158",
+  "reference_commit": "f9c44559131b6773dbd357a5906aff65c34d6140",
+  "worker_visible": {
+    "candidate_source": "git-free baseline snapshot, not produced because calibration stopped",
+    "acceptance_atoms": [
+      "single-rule lint tools share the common file-walk and reporting driver",
+      "self-test harness keeps standalone lint cases executable",
+      "shared driver adoption does not drop existing lint coverage"
+    ],
+    "permitted_paths": [
+      "tools/lint_harness.py",
+      "tools/selftest_harness.py",
+      "tools/test_lint_harness.py",
+      "tools/lint-*.py",
+      "tools/test-lint-*.py",
+      "tools/test_lint_*.py"
+    ],
+    "prohibited_paths": [
+      "docs/product/research/plan-evolution-experiments/task-packages/**",
+      ".context/experiments/codex-collaboration-r1/**",
+      "docs/product/research/plan-evolution-experiments/codex-collaboration-evidence-index.json"
+    ],
+    "visible_regression_commands": [
+      "python3 -m pytest -p no:cacheprovider --import-mode=importlib -q tools/test_lint_harness.py"
+    ]
+  },
+  "controller_only_oracle_recipe": {
+    "recipe_id": "shared-lint-driver",
+    "status": "oracle-recipe-incomplete",
+    "semantic_check": "not frozen",
+    "seeded_mutation": "not frozen",
+    "restore_check": "not frozen"
+  },
+  "calibration_status": "non-executed",
+  "stopped_reason": "AC-0007A subprocess confinement was unenforceable: sandbox-exec profile application exited 71 Operation not permitted, and current causal_runner validates policy labels only; filesystem, egress, and process-tree confinement are unobservable.",
+  "raw_retention": {
+    "secret_or_personal_bytes_retained": false,
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

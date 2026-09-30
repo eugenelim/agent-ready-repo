@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "study_id": "codex-headless-via-claude-r1",
+  "status": "complete-non-inferential",
+  "integration_status": "integrated-provider-labelled",
+  "generated_at_utc": "2026-09-28T18:20:01.477714Z",
+  "claim_class": "non-inferential bounded case study",
+  "requested_model": "gpt-5.6-luna",
+  "served_model_identity": "unavailable",
+  "design": {
+    "tasks": 6,
+    "medium_tasks": 3,
+    "complex_tasks": 3,
+    "policies": [
+      "full-replay",
+      "delta-affected",
+      "closure"
+    ],
+    "replications_per_task_policy": 3,
+    "trajectories": 54,
+    "reviewer_starts": 144,
+    "blind_adjudicator_starts": 12,
+    "calibration_starts": 8,
+    "unit_of_generalization": "task"
+  },
+  "accounting": {
+    "calibration": {
+      "reservations": 8,
+      "model_starts": 8,
+      "terminals": 8,
+      "passed": 8
+    },
+    "reviewers": {
+      "reservations": 144,
+      "model_starts": 144,
+      "terminals": 144,
+      "process_failures": 0,
+      "tool_use_violations": 0,
+      "protocol_deviations": 0
+    },
+    "adjudicators": {
+      "reservations": 12,
+      "model_starts": 12,
+      "terminals": 12,
+      "process_failures": 0,
+      "tool_use_violations": 0
+    },
+    "zero_model_start_infrastructure_failures_quarantined": 1
+  },
+  "overall": {
+    "known_defect_recall": 0.625,
+    "precision": 0.9413,
+    "false_positive_rate": 0.0587,
+    "major_misses": 64,
+    "unique_findings": 335,
+    "unique_sustained_findings": 308,
+    "same_invariant_paraphrases": 49,
+    "unchanged_repeats": 0,
+    "reopened_absent_defects": 0,
+    "out_of_aperture_findings": 0,
+    "raw_words": 17527,
+    "churn_words": 831,
+    "input_tokens": 3270524,
+    "output_tokens": 77538,
+    "summed_cell_wall_clock_seconds": 2282.6
+  },
+  "by_policy": {
+    "closure": {
+      "starts": 36,
+      "known_defect_recall": 0.625,
+      "precision": 0.9574,
+      "false_positive_rate": 0.0426,
+      "major_misses": 12,
+      "raw_words": 4410,
+      "churn_words": 136,
+      "input_tokens": 817402,
+      "output_tokens": 18940,
+      "summed_cell_wall_clock_seconds": 567.77
+    },
+    "delta-affected": {
+      "starts": 54,
+      "known_defect_recall": 0.6111,
+      "precision": 0.9494,
+      "false_positive_rate": 0.0506,
+      "major_misses": 28,
+      "raw_words": 6764,
+      "churn_words": 308,
+      "input_tokens": 1227128,
+      "output_tokens": 30112,
+      "summed_cell_wall_clock_seconds": 873.25
+    },
+    "full-replay": {
+      "starts": 54,
+      "known_defect_recall": 0.6389,
+      "precision": 0.9225,
+      "false_positive_rate": 0.0775,
+      "major_misses": 24,
+      "raw_words": 6353,
+      "churn_words": 387,
+      "input_tokens": 1225994,
+      "output_tokens": 28486,
+      "summed_cell_wall_clock_seconds": 841.58
+    }
+  },
+  "independent_analysis": {
+    "method": "policy aggregates and matched task-replication contrasts recomputed from the fixed handoff; 20000 deterministic task-cluster bootstrap resamples with seed 20260928",
+    "closure_vs_full_replay": {
+      "recall_difference_percentage_points": -1.39,
+      "precision_difference_percentage_points": 3.49,
+      "review_start_change_percent": -33.3,
+      "input_token_change_percent": -33.3,
+      "output_token_change_percent": -33.5,
+      "raw_word_change_percent": -30.6,
+      "churn_word_change_percent": -64.9,
+      "summed_cell_wall_clock_change_percent": -32.5,
+      "recall_difference_task_cluster_bootstrap_95_percentage_points": [
+        -9.26,
+        4.17
+      ],
+      "five_point_noninferiority_observed": true,
+      "five_point_noninferiority_established_with_task_cluster_interval": false
+    },
+    "delta_affected_vs_full_replay": {
+      "recall_difference_percentage_points": -2.78,
+      "precision_difference_percentage_points": 2.69,
+      "review_start_change_percent": 0.0,
+      "input_token_change_percent": 0.1,
+      "output_token_change_percent": 5.7,
+      "raw_word_change_percent": 6.5,
+      "churn_word_change_percent": -20.4,
+      "summed_cell_wall_clock_change_percent": 3.8,
+      "recall_difference_task_cluster_bootstrap_95_percentage_points": [
+        -10.18,
+        3.7
+      ],
+      "five_point_noninferiority_observed": true,
+      "five_point_noninferiority_established_with_task_cluster_interval": false
+    },
+    "complexity_strata": {
+      "medium_task_mean_recall": 0.75,
+      "complex_task_mean_recall": 0.5,
+      "medium_task_mean_precision": 0.9745,
+      "complex_task_mean_precision": 0.9081,
+      "interpretation": "task complexity had a larger descriptive association with recall than review policy"
+    }
+  },
+  "adjudication": {
+    "candidate_statements": 86,
+    "sustained": 64,
+    "refuted": 21,
+    "indeterminate": 0,
+    "without_judgment": 4,
+    "without_judgment_treatment": "counted as not sustained; not imputed"
+  },
+  "decision": {
+    "preferred_policy_for_next_validation": "closure",
+    "reason": "largest efficiency gain with the smallest observed recall trade-off and higher precision",
+    "production_claim": "not established",
+    "next_validation": "add independent task clusters, especially complex tasks, and test closure on real evolving specs and plans"
+  },
+  "limitations": [
+    "six synthetic task clusters are insufficient to establish the five-point noninferiority margin",
+    "requested model identity was recorded but served model identity was not observable",
+    "workers had read-only repository visibility even though no tool call was observed",
+    "summed per-cell wall clock includes orchestration and is not elapsed makespan",
+    "four adjudication candidates received no judgment and were conservatively counted as not sustained",
+    "the run tests review-loop policy, not whether separate specs and plans improve outcomes"
+  ],
+  "evidence": {
+    "working_root": ".context/experiments/codex-headless-via-claude-r1",
+    "handoff_json": {
+      "path": ".context/codex-headless-run1-result.json",
+      "sha256": "231b40c25637ae702108a0a44a5f0761eb4a2b429473f5c5c080fc5b2a01e503"
+    },
+    "handoff_report": {
+      "path": ".context/codex-headless-run1-result.md",
+      "sha256": "febd51ddf5db0a37deb635c463a37ed787a97795d5625a5162b7380c758301c6"
+    },
+    "calibration_gate": {
+      "path": ".context/experiments/codex-headless-via-claude-r1/calibration/calibration-gate.json",
+      "sha256": "bcbb7a6a98b0396859a0ba9c90602861d2cf1b6c625adafbc0641a5afa896205"
+    },
+    "measures": {
+      "path": ".context/experiments/codex-headless-via-claude-r1/controller/measures.json",
+      "sha256": "cbdb0883d71971a903ab0c4751f190a281a87a933896b46564f3a38604139fca"
+    },
+    "adjudication_decisions": {
+      "path": ".context/experiments/codex-headless-via-claude-r1/adjudication/adjudication-decisions.json",
+      "sha256": "32e273a3d24b9f941f30580a8ae42562c1bc04ff57ebff84bbf0fb270ec66b71"
+    },
+    "blinding_check": {
+      "path": ".context/experiments/codex-headless-via-claude-r1/controller/blinding-check.json",
+      "sha256": "7e632601a52f45fa646227cf028a300053619249213a451775e2b1686ed488f1"
+    },
+    "launch_order": {
+      "path": ".context/experiments/codex-headless-via-claude-r1/run-1/launch-order.json",
+      "sha256": "44af1e803c264949273cea98da547c7b451d9794e7a984d828f081504835305b"
+    }
+  }
+}

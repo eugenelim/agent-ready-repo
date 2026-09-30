@@ -1,0 +1,91 @@
+{
+  "gate": "W1",
+  "gate_decision": "W2-unavailable",
+  "inputs": {
+    "calibration_results_digest": "sha256:c064be52f6ba7ca6bad4ccc82d6bac43a1b7f06927c51257e22c824ed3d92000",
+    "design_digest": "sha256:2af2430cfffd3779fbfd734cd59ea161166a1b00d97b33a30a09f3324155f01f",
+    "evidence_index_digest": "sha256:74a88f2a6e165c2102d80e4b22a23fc0e327eec02697e247ebba5fb1e7cae5e0"
+  },
+  "no_inferential_success_claim": true,
+  "observed": {
+    "admitted_tasks": 8,
+    "calibration_model_processes_started": 8,
+    "calibration_new_model_processes_started": 8,
+    "calibration_terminal_slots": 16,
+    "excluded_tasks": 4,
+    "inference_launch_permitted": false,
+    "inferential_processes_started": 0,
+    "instrument_loss_rate": 1.0,
+    "task_count": 12,
+    "terminal_calibration_reservations": 16
+  },
+  "plan_task": "T4",
+  "process_accounting": {
+    "t4_inferential_processes_started": 0,
+    "t4_model_processes_started": 0,
+    "t4_ordinals_reserved": 0
+  },
+  "release_w2": false,
+  "schema_version": 1,
+  "status": "complete",
+  "stop_reasons": [
+    "telemetry/instrument loss exceeds 5%",
+    "admitted task coverage is below 12"
+  ],
+  "thresholds": {
+    "instrument_loss_stop_above": 0.05,
+    "required_task_coverage": 12
+  },
+  "w1_core": {
+    "blocked_by_task": [
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "work-loop-argless-resume"
+      },
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "decision-record-ordinal-uniqueness"
+      },
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "non-json-sso-guard"
+      },
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "pack-profiles"
+      },
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "atomic-write-symlink-hardening"
+      },
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "catalogue-corporate-trust-store"
+      },
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "shared-lint-driver"
+      },
+      {
+        "blocked_would_be_reservations": 8,
+        "task_id": "agentbundle-engine-stragglers"
+      }
+    ],
+    "released_study_ordinals": [
+      1,
+      80
+    ],
+    "reservation_policy": "blocked-without-reservation",
+    "spent_terminal_ordinals": 16,
+    "terminal_state": "unavailable",
+    "would_be_inferential_ordinals": [
+      17,
+      80
+    ],
+    "would_be_inferential_reservations": 64
+  },
+  "w2": {
+    "availability": "unavailable",
+    "release_memo_digest": "not-issued"
+  }
+}
