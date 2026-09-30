@@ -20,9 +20,11 @@
 
 Additive within one pack. The field is written but not read, so nothing
 downstream changes and the slice cannot move a rung by accident. The producing
-surfaces are scoped in the same change as the field, because a field that
-exists while `converge` still records a binding claim for an unconfirmed target
-would put the artifact in a state the successor slice then has to interpret.
+surfaces — `converge`'s compositional-commitments write, `visualize`'s
+binding-boundaries instruction and `SKILL.md`'s output-contract entry — are
+**out of scope here**: gating them moves the `approved-visual-target` rung, so
+they were retired on 2026-09-30 and belong to the successor. T2 touches one
+instruction in `converge.md`, the disposition record, and nothing else.
 
 Nothing is gated on the field in this slice. `converge` records the
 disposition and every instruction keeps the condition it has today, so no rung
@@ -77,10 +79,12 @@ spec or this plan refers here rather than restating them.**
 Every criterion is an assertion over a shipped file's bytes, except AC-0008
 (the guidebook lint).
 
-The scoping criteria assert an exact literal **inside a bounded unit** — a
-paragraph block or a list item, as the spec's Testing Strategy defines them —
-read from the single file the criterion names, with the anchor's uniqueness in
-that file asserted rather than assumed. An earlier draft bounded on `". "` in
+AC-0004, the one criterion here that pins a literal, asserts it **inside a
+bounded unit** — a paragraph block, as the spec's Testing Strategy defines one
+— read from the single file the criterion names, with the anchor's uniqueness
+in that file asserted rather than assumed. The scoping criteria that shared
+this machinery left with AC-0005 to AC-0007; the successor restates it for
+them. An earlier draft bounded on `". "` in
 whitespace-normalized text; that admits any adjacent period-free heading or
 bullet into the unit, so a scoped heading above an unscoped instruction would
 pass. A whole-file substring check is worse still: it is the presence-check
@@ -97,7 +101,9 @@ plan approval without it.
   first pass failed on T1's block: a literal triple-backtick fence marker
   cannot survive inside a fenced code block. It is now built as `"`" * 3`,
   which compiles and keeps the plan's own fencing intact.
-- **Intended red:** each block appended to a disposable copy of
+- **Intended red (superseded by the 2026-09-30 re-validation below; kept
+  because it records the original proof).** Each block appended to a disposable
+  copy of
   `packs/experience-design/tests/skills/creative-direction/test_contract.py`,
   collected and run under pytest, then the copy removed; T4's block ran the
   same way under `tests/conformance/`. Result: **all five stub tests fail
@@ -119,7 +125,8 @@ plan approval without it.
   excerpt, AC-0004 on `converge`'s disposition block, AC-0013 on the eval
   harness, and AC-0009 on `4.1.1 does not exceed the slice-start baseline
   4.1.1`. The three gating assertions left with their criteria and are
-  re-validated in the successor's plan.
+  re-validated in the successor's plan. **This bullet is the current record**;
+  the bullets above it describe earlier states.
 - **Re-validated after the round-3 repair.** All four blocks compile; all five
   tests red for their own reason. AC-0012's fence selector was checked against
   the real guide: it finds exactly one ` ```markdown ` fence carrying
@@ -568,3 +575,19 @@ def test_release_surface_is_consistent() -> None:
   rung consequence in `Outcome`, `Rollout` and `Risks`, and raised the owner
   decision it implies. The refuted finding, on excerpt ordering, was not acted
   on: AC-0012 already reds in that case.
+- 2026-09-30: Narrowed on the owner's ruling, the largest revision this
+  contract has had. AC-0005, AC-0006 and AC-0007 were retired through the
+  spec's `Retired identifiers` section and inherited by
+  `visual-target-rung-precondition`, which renumbers them under its own
+  sequence — deliberately not cited here, because this spec's own AC-0012 and
+  AC-0013 mean different things and a bare number would resolve to the wrong
+  contract. Gating `converge`'s
+  compositional-commitments write moves the `approved-visual-target` rung —
+  that rung resolves from the recorded composition, not from the field — so it
+  belongs in the slice that migrates the carriers explaining it. T2 was
+  rescoped from four gating assertions to one disposition assertion, `Approach`
+  and `Outcome` were restated as additive, and `Risks` now carries the
+  intermediate state the narrowing accepts. Round 4 found that the first
+  attempt at this edit left `Outcome` and `Approach` asserting the retired
+  behaviour, including a start gate on a question the ruling had already
+  answered; both were rewritten and read back.

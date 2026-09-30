@@ -78,7 +78,19 @@ recorded here so a review round does not have to rediscover them.
    carriers. The ten non-Markdown carriers are covered by their own packs'
    suites, which assert over parsed structure rather than over sentences —
    AC-0011 holds them to that.
-3. *The cue set is narrower than English.* A carrier phrased with neither
+3. *A gated sentence must still name the field.* AC-0012 to AC-0014 gate three
+   sentences in `converge.md`, `visualize.md` and `SKILL.md`, and every one of
+   them refers to a visual target and carries a confirmation cue — so the
+   property applies to them like any other carrier, and each must contain the
+   literal `visual_target`. **Naming the field is not reading it.** `visualize`
+   can say that a target the human has confirmed is the one `converge` records
+   as `visual_target: confirmed` without `visualize` reading anything; the
+   sentence cites the disposition, the operation does not consult it. This is
+   the same distinction that makes the rung identifier a name rather than a
+   claim, in limit 1. Without this statement an implementer following
+   AC-0013's "not a field read" wording would write a sentence that reds
+   AC-0006 and discover the conflict only when T4 runs.
+4. *The cue set is narrower than English.* A carrier phrased with neither
    `confirm` nor `approved` — "a target the team has signed off", say — is
    outside the property. It narrows the gap; it does not close it. AC-0007
    keeps the cue set in one named constant so widening it is deliberate.
@@ -92,6 +104,7 @@ Markdown files**. That is the migration T3 owes.
 | --- | --- | --- | --- | --- |
 | Interface compatibility | `packs/frontend-engineering/.apm/skills/frontend-engineering/references/visual-observation.md` | eugenelim | The rung condition names the field | AC-0001 holds |
 | Behavioural invariant | `packs/frontend-engineering/tests/skills/frontend-engineering/` | eugenelim | The exclusive property is enforced over a re-run sweep | AC-0006, AC-0007 hold |
+| Producer instruction | `packs/experience-design/.apm/skills/creative-direction/references/converge.md`, `references/visualize.md`, `SKILL.md` | eugenelim | Each gated sentence names the confirmation condition and the field | AC-0012, AC-0013, AC-0014 hold |
 | Governance record | `docs/specs/frontend-visual-authority/spec.md` | eugenelim | Its `Status` names the superseded rule | AC-0008 holds |
 | Release history | both packs' `pack.toml`, their `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `docs/product/changelog.md` | eugenelim | Matching versions and release entries | AC-0009, AC-0010 hold |
 
@@ -201,14 +214,19 @@ Retention class: repository-durable.
   from a sentence unrelated to the gated write.
 - [ ] **AC-0013.** In `references/visualize.md`, the paragraph block containing
   the literal `record its identity and three boundaries` also contains the
-  literal `the human has confirmed`, and that anchor occurs exactly once in the
-  file. The condition is the confirmation determination that operation already
-  holds: `visualize` runs before `converge` writes the field, so a field-read
-  form would be wrong here even now that reading the field is permitted.
+  literals `the human has confirmed` **and** `visual_target: confirmed`, and
+  that anchor occurs exactly once in the file. Both, and they are not in
+  tension: the condition `visualize` acts on is the human confirmation it
+  already holds — it runs before `converge` writes the field, so it must not be
+  written as a field read — while naming the disposition `converge` will record
+  satisfies AC-0006, which requires the literal and not a read. See
+  § The mechanism, and its limits, limit 3.
 - [ ] **AC-0014.** In `creative-direction`'s `SKILL.md` — that file read
   directly, not a concatenation of the skill's files — the list item beginning
-  `- **Approved visual target**` contains the literal `the human has
-  confirmed`, and that item occurs exactly once in that file.
+  `- **Approved visual target**` contains the literals `the human has
+  confirmed` **and** `visual_target: confirmed`, and that item occurs exactly
+  once in that file. The second literal is AC-0006's requirement, not a gate on
+  a field read; see limit 3.
 - [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
   line names ADR-0131 and the superseded `Always do` rule about stating rung
   conditions as properties the pack defines.

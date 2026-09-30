@@ -95,6 +95,11 @@ plan approval without them.
   and the wrong reason.
 - **Isolation:** local, filesystem-confined to the repository and disposable
   scratch, no network. No isolation downgrade was needed.
+- **Cross-contract check.** T7's block was stacked after the predecessor's
+  blocks in one disposable module and `ruff check --select F811` was run over
+  the result: clean. That is the check that matters here, because T7 reuses
+  `_unique_paragraph` rather than redefining it, and a second definition in the
+  same module would fire F811 under T6's `make lint-ruff` gate.
 
 ## Durable-output map
 
@@ -102,6 +107,7 @@ plan approval without them.
 | --- | --- | --- |
 | Interface compatibility (the rung condition) | T2 | Literal assertions over `visual-observation.md` |
 | Behavioural invariant (the exclusive property) | T4 | The sweep test plus its mutation check |
+| Producer instruction (converge, visualize, SKILL.md) | T7 | Contract-suite assertions for AC-0012 to AC-0014 |
 | Governance record | T5 | Literal assertion over the superseded spec's `Status` |
 | Release history | T6 | `test_pack_metadata.py`, the moved pin, and the changelog entries |
 
@@ -232,7 +238,11 @@ def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
 - Respect the two whitespace-normalized sentence pins and the two pinned eval
   ids in `test_visual_authority_slice_two.py`.
 
-**Touches:** the carriers T1 measured, excluding those T2 owns
+**Touches:** the carriers T1 measured, excluding those T2 owns and excluding
+`converge.md`, `visualize.md` and `creative-direction`'s `SKILL.md`, which T7
+owns outright. Those three carry both a migration and a gate, and splitting
+them across two tasks is how the AC-0006 interaction goes unnoticed; T7 does
+both edits in one place.
 
 **Done when:** T4's property test is green over the full swept scope.
 
@@ -375,11 +385,9 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 **Stub** — add to `packs/experience-design/tests/skills/creative-direction/test_contract.py`:
 
 ```python
-def _unique_paragraph(path: Path, anchor: str) -> str:
-    """The one blank-line-delimited block carrying `anchor`, in this file only."""
-    blocks = [b for b in re.split(r"\n\s*\n", _read(path)) if anchor in b]
-    assert len(blocks) == 1, f"{anchor!r} must occur in exactly one block of {path.name}"
-    return " ".join(blocks[0].split())
+# `_unique_paragraph` is NOT defined here. `visual-target-field` is a hard
+# predecessor and adds it to this same module, so a second definition would
+# fire ruff F811 under T6's `make lint-ruff` gate. Reuse what it leaves.
 
 
 # STUB: AC-0012, AC-0013, AC-0014  (spec: visual-target-rung-precondition)
@@ -399,6 +407,7 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
         REFERENCE_ROOT / "visualize.md", "record its identity and three boundaries"
     )
     assert "the human has confirmed" in boundaries, "AC-0013"
+    assert "visual_target: confirmed" in boundaries, "AC-0013 (AC-0006 literal)"
 
     items = [
         block
@@ -406,7 +415,9 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
         if block.startswith("**Approved visual target**")
     ]
     assert len(items) == 1, "AC-0014: exactly one such list item in SKILL.md"
-    assert "the human has confirmed" in " ".join(items[0].split()), "AC-0014"
+    item = " ".join(items[0].split())
+    assert "the human has confirmed" in item, "AC-0014"
+    assert "visual_target: confirmed" in item, "AC-0014 (AC-0006 literal)"
 ```
 
 **Approach:**
@@ -419,7 +430,12 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
   two are instruction surfaces a producer follows, and leaving either ungated
   would have a producer forming a binding claim the writer then records.
 - `visualize`'s condition is the human confirmation it already holds, not a
-  field read: it runs before `converge` writes the field.
+  field read: it runs before `converge` writes the field. Its sentence still
+  names `visual_target: confirmed`, because AC-0006 requires the literal in
+  every gated carrier and naming the disposition is not consulting it. Write
+  the gate so both readings are obvious — "a target the human has confirmed,
+  which `converge` records as `visual_target: confirmed`" — rather than leaving
+  an implementer to reconcile the two criteria at T4.
 
 **Touches:** packs/experience-design/.apm/skills/creative-direction/references/converge.md, packs/experience-design/.apm/skills/creative-direction/references/visualize.md, packs/experience-design/.apm/skills/creative-direction/SKILL.md, packs/experience-design/tests/skills/creative-direction/test_contract.py
 
@@ -473,6 +489,15 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 ## Changelog
 
+- 2026-09-30: Revised after the predecessor's review round 4. Reconciled
+  AC-0006 with the inherited gating criteria: a gated sentence in `converge.md`,
+  `visualize.md` and `SKILL.md` carries the `visual_target` literal, because the
+  sweep property requires the literal and not a field read, and naming a
+  disposition is not consulting it. Without that statement an implementer
+  following AC-0013's "not a field read" wording would have written a sentence
+  that reds T4. Added the producing surfaces to both output tables, gave T7
+  sole ownership of its three carriers so T3 and T7 no longer overlap, and
+  stopped T7 redefining a helper the predecessor adds to the same module.
 - 2026-09-30: Inherited AC-0012, AC-0013 and AC-0014 from `visual-target-field`,
   which retired them as AC-0005 to AC-0007 on the owner's ruling. Gating
   `converge`'s compositional-commitments write moves the

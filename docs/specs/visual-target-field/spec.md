@@ -21,24 +21,23 @@
 
 A direction artifact records its visual target's disposition in one closed
 frontmatter field, `visual_target`, whose values are `none`, `unconfirmed` and
-`confirmed`. `creative-direction` writes that field.
+`confirmed`. `creative-direction` writes that field, and `converge`'s
+disposition instruction names all three values.
 
-One producer behaviour changes, and it reaches further than an earlier draft of
-this section claimed. Today `converge` writes compositional commitments
-whenever an approved visual target exists; after this slice it writes them only
-for a confirmed one.
+Nothing reads the field and nothing is gated on it. Every instruction in
+`converge.md`, `visualize.md` and `SKILL.md` keeps the condition it has today,
+so no rung resolves differently and no adopter's build changes. This slice is
+additive.
 
-**That does move a rung, inside this slice.** No consumer reads the *field* —
-that stays the successor's contract — but the live `approved-visual-target`
-rung resolves from the recorded composition, not from the field. An artifact
-whose target is approved but unconfirmed now has no composition to resolve and
-falls to `direction-and-taxonomy`. The earlier claim that nothing downstream
-resolves differently was false, and it was false in the direction that made the
-change look safer than it is.
-
-**Owner decision, not yet taken:** whether a slice that moves rung resolution
-may ship with the field-read half deferred to the successor. This contract does
-not start until that is answered.
+That was not always true of this contract, and the history is worth one
+sentence because it is why the slice looks the way it does: an earlier revision
+gated `converge`'s compositional-commitments write on a confirmed target, which
+moves the `approved-visual-target` rung — that rung resolves from the recorded
+composition, not from the field. The owner ruled on 2026-09-30 that the rung
+should move once, in the slice that migrates the carriers explaining it, so
+those three criteria were retired here and inherited by
+[`visual-target-rung-precondition`](../visual-target-rung-precondition/spec.md).
+See `Retired identifiers`.
 
 ## What Changes
 
@@ -100,17 +99,16 @@ Retention class: repository-durable.
 
 **The bounded unit, defined once.** Where a criterion below says *paragraph
 block*, it means one maximal run of consecutive non-blank source lines in the
-named file, taken from the file the criterion names and no other. Where it says
-*list item*, it means one `- ` item and its continuation lines. Both are units
+named file, taken from the file the criterion names and no other. It is a unit
 the Markdown itself delimits, so a verification can isolate exactly what the
-criterion describes. A period-delimited span of whitespace-normalized text is
+criterion describes. Only AC-0004 uses this form here; the *list item* unit
+this section also defined left with AC-0007 on 2026-09-30, and the successor
+spec defines both for itself rather than borrowing them. A period-delimited span of whitespace-normalized text is
 **not** a bounded unit: adjacent structure that carries no terminal period —
 a heading, a table cell, a bullet — joins it silently, which would let an
-unscoped instruction pass because a scoped heading sat above it. Each such
-criterion also requires its anchor to occur exactly once in the named file, so
-the verification cannot silently grade a different occurrence. After the
-2026-09-30 retirement only AC-0004 uses this form here; the successor spec uses
-it for the gating criteria.
+unscoped instruction pass because a scoped heading sat above it. The criterion
+also requires its anchor to occur exactly once in the named file, so the
+verification cannot silently grade a different occurrence.
 
 - **TDD — the template carries the state and its provenance (AC-0001, AC-0002,
   AC-0003, AC-0011).** The template's bytes parse; asserted from
@@ -223,8 +221,10 @@ it for the gating criteria.
 ## Follow-ons
 
 - eugenelim: [`visual-target-rung-precondition`](../visual-target-rung-precondition/spec.md)
-  — makes the `approved-visual-target` rung require the field and removes the
-  superseded prose reading from every carrier. Authored, Draft, and registered
+  — makes the `approved-visual-target` rung require the field, gates
+  `converge`, `visualize` and `SKILL.md` on a confirmed target under the three
+  criteria this spec retired on 2026-09-30, and removes the superseded prose
+  reading from every carrier. Authored, Draft, and registered
   under `workspace.toml [backlog].open` so the pointer resolves outside this
   document. That successor is the whole justification for shipping a field no
   consumer reads, so it may not rest on this spec's prose alone.
