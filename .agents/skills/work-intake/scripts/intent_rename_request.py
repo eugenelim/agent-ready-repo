@@ -345,7 +345,16 @@ def _liveness_refusal(text: str) -> str | None:
         if visible.startswith("## "):
             break
         if visible.strip():
-            if leading_content and visible.startswith("# "):
+            # The exemption is for an H1 *title*, so the heading marker must
+            # open the authored line. Testing the comment-stripped text alone
+            # would also exempt a line whose ``# `` only surfaces once a
+            # comment is removed — ``<!-- x --># Tombstone: …`` — which is a
+            # token-bearing non-field line, not a title, and must still refuse.
+            if (
+                leading_content
+                and line.lstrip().startswith("# ")
+                and visible.startswith("# ")
+            ):
                 leading_content = False
                 continue
             leading_content = False
