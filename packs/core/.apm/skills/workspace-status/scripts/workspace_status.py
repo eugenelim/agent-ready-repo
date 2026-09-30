@@ -11,6 +11,8 @@ Usage:
     python3 workspace_status.py repair-apply --root "<repo-root>" [--plan-file <path>]
     python3 workspace_status.py prune        --root "<repo-root>" \
         --select docs/specs/<slug> [--preview | --confirmation-file <path>]
+    python3 workspace_status.py retirement-candidates --root "<repo-root>" \
+        --run-date YYYY-MM-DD [--stale-after-days N]
     python3 workspace_status.py              --root "<repo-root>"   # compat alias for reconcile
 
 Output (stdout): deterministic UTF-8 JSON with schema_version = 1.
@@ -80,6 +82,8 @@ project_closeout_status: Any = None
 selected_membership_status: Any = None
 prune_preview: Any = None
 prune_execute: Any = None
+retirement_candidates_document: Any = None
+validate_retirement_document: Any = None
 
 # ── Load engine from the same scripts/ directory ──────────────────────────────
 
@@ -164,6 +168,28 @@ def _bind_engine() -> bool:
     return True
 
 
+def _bind_retirement_command() -> bool:
+    """Load the retirement command without loading the mutable engine surfaces."""
+    global retirement_candidates_document, validate_retirement_document
+    command_path = Path(__file__).with_name("workspace_status_retirement_command.py")
+    module_name = "workspace_status_retirement_command"
+    try:
+        command_mod = sys.modules.get(module_name)
+        if command_mod is None:
+            command_spec = importlib.util.spec_from_file_location(module_name, command_path)
+            if command_spec is None or command_spec.loader is None:
+                return False
+            command_mod = importlib.util.module_from_spec(command_spec)
+            sys.modules[module_name] = command_mod
+            command_spec.loader.exec_module(command_mod)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        return False
+    retirement_candidates_document = command_mod.retirement_candidates_document
+    validate_retirement_document = command_mod.validate_retirement_document
+    return True
+
+
 # ── Subcommand routing ────────────────────────────────────────────────────────
 
 _SUBCOMMANDS = frozenset({
@@ -175,6 +201,7 @@ _SUBCOMMANDS = frozenset({
     "repair-apply",
     "repair-rollback",
     "prune",
+    "retirement-candidates",
 })
 _DEFAULT_PLAN_FILE = ".workspace-repair-plan.json"
 _VALID_OPERATION_TYPES = frozenset({"queue-to-shipped", "queue-remove"})
@@ -2412,6 +2439,18 @@ def main(argv: list[str] | None = None) -> int:
             default=None,
             help="Confined JSON confirmation containing independent authorization",
         )
+    if subcommand == "retirement-candidates":
+        parser.add_argument(
+            "--run-date",
+            required=True,
+            help="Calendar date to use for deterministic age reporting (YYYY-MM-DD)",
+        )
+        parser.add_argument(
+            "--stale-after-days",
+            type=int,
+            default=30,
+            help="Recorded-change age threshold in days (default: 30)",
+        )
     migration_subcommand = subcommand in {
         "repair-plan", "repair-apply", "repair-rollback"
     }
@@ -2461,6 +2500,35 @@ def main(argv: list[str] | None = None) -> int:
             "reason": "empty_selection",
         })
         return 2
+
+    if subcommand == "retirement-candidates":
+        if not _bind_retirement_command():
+            print(
+                "workspace-status: retirement-candidates: command_load_failed",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            document = retirement_candidates_document(
+                root,
+                run_date=args.run_date,
+                stale_after_days=args.stale_after_days,
+            )
+            errors = validate_retirement_document(root, document)
+        except (OSError, RuntimeError, ValueError):
+            print(
+                "workspace-status: retirement-candidates: invalid_input",
+                file=sys.stderr,
+            )
+            return 2
+        if errors:
+            print(
+                "workspace-status: retirement-candidates: contract_invalid",
+                file=sys.stderr,
+            )
+            return 2
+        _emit(document)
+        return 0
 
     if not _bind_engine():
         if subcommand in {"status", "reconcile", "explain"}:

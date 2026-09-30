@@ -35,9 +35,10 @@ order: 4
 | `ux-writing` | A product to characterise | Where the product sits on its voice axes, and the words it prefers. | Optional |
 
 Prompts go into an AI agent session with this pack installed — the same session
-throughout. `<slug>` is the short kebab-case name for this piece of work, and it
-stays the same from the intent through to the brief, which is how the
-traceability lint follows one thread.
+throughout. In the paths below, `<slug>` is this piece of work's short
+kebab-case name, fixed at step 1 so every later artifact traces back to it; `<output_dir>` is where this repository keeps product artifacts — the
+agent asks when it is not configured, and tells you which path it wrote to.
+<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
@@ -53,7 +54,7 @@ Decompose this intent into deliverable slices, each traceable back to the parent
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
 
-> **Agent:** Done — I've written child intents, each naming its parent and the part of the outcome it carries to `docs/product/intents/<slug>.md`.
+> **Agent:** Done — I've recorded the decomposition on the parent intent. Each child re-enters at `frame-intent`, which writes its own intent file; at the leaf this hands on a delivery contract, or a coordinating brief when the outcome spans several specs.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
@@ -74,8 +75,8 @@ Decompose this intent into deliverable slices, each traceable back to the parent
 **Watch out for:** Technical layers are the easiest slices to write and the least useful to ship. Notice a slice whose completion no customer could observe.
 <!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
 
-**Where it lands:** `docs/product/intents/<slug>.md`.
-<!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
+**Where it lands:** for one shippable feature, a delivery contract handed on to `core`'s intake in session — this step writes no file for it. For an outcome spanning several specs or repositories, a coordinating brief at `docs/product/briefs/<slug>.md`, a fixed path because `core` has to find it. The decomposition itself is recorded on the parent intent at `<output_dir>/intents/<slug>.md`.
+<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
 
 **What it looks like:**
 <!-- rung: packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md -->
@@ -90,9 +91,10 @@ Decompose this intent into deliverable slices, each traceable back to the parent
 - **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
+- **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->
 - **De-risked:** <!-- optional: the ISO 8601 date the riskiest assumption was tested, or the literal `no`. Absent means nobody recorded it; `no` means someone decided against de-risking -->
 - **Shaping-reviewed:** <!-- optional: the ISO 8601 date a cold reviewer read this, or the literal `no` -->
-- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light. A `direct-light` terminus requires each item under ## Decomposition to state its requested outcome -->
+- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light | closed-empty. `closed-empty` means decomposition is deliberately complete with no child work; `direct-light` requires each item under ## Decomposition to state its requested outcome -->
 
 ## Outcome
 
@@ -120,7 +122,7 @@ Roll up this intent across the component repos it was sliced into.
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/align-value-stream/SKILL.md -->
 
-> **Agent:** Done — I've written a cross-component rollup with one row per component slice and its current state to `docs/product/rollups/<slug>.md`.
+> **Agent:** Done — I've written to `<output_dir>/rollups/<slug>.md` a cross-component rollup with one row per component slice and its current state.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/align-value-stream/SKILL.md -->
@@ -141,7 +143,7 @@ Roll up this intent across the component repos it was sliced into.
 **Watch out for:** This is a snapshot, not a tracker, and it looks identical to one. Notice undated rows — they are the ones most likely to be wrong.
 <!-- rung: packs/product-engineering/.apm/skills/align-value-stream/SKILL.md -->
 
-**Where it lands:** `docs/product/rollups/<slug>.md`.
+**Where it lands:** `<output_dir>/rollups/<slug>.md`.
 <!-- rung: packs/product-engineering/.apm/skills/align-value-stream/SKILL.md -->
 
 **What it looks like:**
@@ -239,7 +241,7 @@ references/voice-axes.md. -->
 
 Stage 4 of four, and the pack's last gate. After this the build loop owns the work.
 
-**Next:** [Write the contract](../../core/how-to/write-the-contract.md) — in the `core` guidebook. Each slice this step produced becomes one spec there, and the slice's slug becomes the spec directory's name.
+**Next:** [Write the contract](../../core/how-to/write-the-contract.md) — in the `core` guidebook. Each slice this step produced becomes one spec there. A slice that arrived through a delivery brief has that brief stamped on its spec as provenance; a spec authored directly carries no such stamp and stays valid.
 <!-- rung: authored -->
 
 **Go deeper:** [the `product-engineering` intent-fields reference](../reference/intent-fields-and-modes.md) — the fields, modes and projection profiles these skills read and write.

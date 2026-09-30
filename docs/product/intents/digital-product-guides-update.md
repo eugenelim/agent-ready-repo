@@ -49,6 +49,13 @@ Gate vocabulary is **not** stale here: `G0`/`G1.5`/`G2` appear at 16 lines
 across the guides, and `discovery-loop/SKILL.md` still uses them, so guide and
 skill agree. The conversion is pending on both sides, not half-done.
 
+## Boundary with `pack-guidebook-walkability`
+
+[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+owns static guidebooks for the five SOP packs. This intent keeps RFC-0071 M6's
+different chain, which includes `frontend-engineering`, plus the cross-pack
+intent indexes and end-to-end digital-product tutorial after M5 evaluation.
+
 ## Source
 
 - Mode: repo-origin

@@ -1,0 +1,234 @@
+# Advisory allowlist for the Python SCA leg of `make sast` (ADR-0131).
+#
+# Read by `tools/run-pip-audit-gate.py`. An advisory listed here is reported on
+# every run but does not block the gate.
+#
+# THIS FILE SHOULD NORMALLY BE EMPTY. It is not. It exists because Semgrep
+# declares `pyjwt[crypto]~=2.13.0`, which excludes the PyJWT 2.14.0 release that
+# fixes all ten advisories below. Nothing in this repository can reach 2.14.0
+# while that pin stands: a direct pin or a constraints entry produces an
+# unsatisfiable resolve, not a remediation. Semgrep 1.178.0 — the latest release
+# as of 2026-09-29 — still declares it.
+#
+# Add an entry ONLY when there is no available fix. A real remediation also
+# satisfies the org's Snyk Open Source scan, which no entry here can reach.
+#
+# Every entry needs all five fields. A missing or blank one is a tool error
+# (exit 2), not a silent pass: an allowlist that decays into an undocumented
+# mute list is worse than no allowlist.
+#
+#   id             — the advisory identifier as pip-audit reports it in `id`.
+#                    Aliases are NOT a match path: matching is on the primary id
+#                    only, so an entry cannot silently inherit a future advisory
+#                    that merely lists this one among its aliases.
+#   package        — the dependency the risk was accepted for, compared PEP 503
+#                    canonicalised against the report. An id alone does not say
+#                    which dependency was accepted.
+#   fixed_in       — the release that fixes it. Cross-checked against the
+#                    advisory's own reported `fix_versions` while the advisory
+#                    is still visible, so the copy cannot drift and an
+#                    unreachable value cannot permanently disable retirement.
+#   reason         — this advisory's trigger, and why this invocation cannot
+#                    reach it. Per advisory, not per group.
+#   unblocked_when — the concrete condition that retires this entry.
+#
+# HOW THIS RETIRES. When a Semgrep release permits PyJWT>=2.14.0, pip-audit
+# stops reporting these ids, the gate exits 2 naming each entry, and the entries
+# are removed. That is mechanical — it does not depend on anyone remembering.
+#
+# WHAT IS NOT MECHANICAL. The reachability argument in every `reason` below is a
+# human finding, verified on 2026-09-29 and recorded in ADR-0131 with the call
+# paths, the distributions, the versions and the command that reproduces it.
+# Nothing in this repository re-checks it. If you are adding or amending an
+# entry, re-verify it and update that record.
+
+# The vehicle's bound. An entry naming a package outside this list is a tool
+# error. Widening it is therefore a visible edit, reviewed on its own terms —
+# this repository has no CODEOWNERS file, so this is the available control.
+allowed_packages = ["pyjwt"]
+
+# The reachability premise every entry below relies on, stated once so each
+# `reason` can say which part of it carries that advisory. Two distributions in
+# the audited closure import PyJWT:
+#
+#   semgrep/mcp/utilities/token_verifier.py      jwt.PyJWKClient(...), jwt.decode(...)
+#   mcp/client/auth/extensions/client_credentials.py   jwt.encode(...)
+#
+# The semgrep call sites are constructed only by `make_token_verifier`, called
+# only from `setup_mcp_server` in semgrep/commands/mcp.py — the `semgrep mcp`
+# subcommand. The mcp call site runs only during private-key-JWT client
+# authentication against an OAuth token endpoint. `make sast` invokes
+# `run-semgrep-gate.py` with `--config` flags and source paths; it starts no MCP
+# server and performs no OAuth client authentication, so neither site executes.
+
+[[allow]]
+id       = "CVE-2026-102268"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+CRITICAL (CVSS v3.1 AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N) and the most serious of
+the ten, so it is argued on its own rather than folded into a list.
+`is_pem_format` in jwt/utils.py does not recognise every PEM representation the
+cryptography loader accepts, so a whitespace- or line-ending-mutated public-key
+PEM passed as a raw key slips past the HS/asymmetric confusion guard and
+`HMACAlgorithm.prepare_key` treats it as an HMAC secret. An attacker who knows
+the public key can then forge authenticated tokens.
+The trigger needs an application that mixes HMAC and asymmetric algorithms and
+accepts externally-influenced raw key bytes. Both PyJWT call sites in the
+audited closure fail that precondition, and for different reasons. semgrep's
+`jwt.decode` runs only inside the `semgrep mcp` OAuth server, which `make sast`
+never starts. mcp's `jwt.encode` does reach `prepare_key`, but its key is
+`self.signing_key`, the client's own configured private key, with the algorithm
+fixed by configuration — there is no attacker-supplied key to mutate — and it
+runs only during private-key-JWT client authentication, which a static-analysis
+scan does not perform.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102266"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+`HMACAlgorithm.from_jwk` uses the decoded key without applying `prepare_key`
+validation, so an `oct` JWK whose `k` is empty lets an attacker sign with the
+same zero-length key and carry arbitrary authenticated claims. The trigger is
+parsing any such JWK through `from_jwk` — via a JWK Set, or via a single
+`jwt.PyJWK`, or a direct call; the containing structure is not what matters.
+`make sast` parses no JWK in any form: semgrep's key-handling path belongs to
+the `semgrep mcp` server, and mcp's call site signs with a configured private
+key and reads no JWK at all.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102271"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+`HMACAlgorithm.prepare_key`'s asymmetric-key guard relies on textual PEM markers
+that DER encoding does not carry, so a DER public key supplied as the shared
+verification key is used as an HMAC secret and tokens can be forged by anyone
+holding the public key.
+Same precondition as CVE-2026-102268 and the same two answers: semgrep's
+verification path runs only under `semgrep mcp`, and mcp's `jwt.encode` passes
+its own configured signing key rather than an externally-supplied one.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102272"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+The raw-JWK detector in `HMACAlgorithm.prepare_key` does not normalise a UTF-8
+byte-order mark before testing for JSON, so a BOM-prefixed public JWK bypasses
+asymmetric-key detection and becomes the HMAC secret in a mixed-algorithm
+verification path.
+Requires a caller passing externally-influenced raw key bytes into a mixed
+HS/asymmetric verification. Neither call site does: semgrep's is behind
+`semgrep mcp`, and mcp's is a signing call with a configured key.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102273"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+The HMAC key guard recognises only top-level public JWK forms and misses
+container representations, so a public JWK container passed as the raw key is
+accepted as the HMAC secret and a token can be forged with arbitrary
+authenticated claims.
+Third variant of the same mixed-algorithm precondition, and unreachable for the
+same two reasons: no verification path executes outside `semgrep mcp`, and the
+one signing path uses a configured private key.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102267"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+This one needs no JWT at all, so the usual premise does not carry it. It fires
+on a JWKS *fetch*: `PyJWKClient` does not revalidate redirect destinations
+against the JWKS trust boundary, so an attacker-influenced redirect from a
+configured endpoint can substitute verification keys or disclose forwarded
+credentials.
+The narrower premise that does carry it: no `PyJWKClient` is ever constructed on
+this path. The only construction in the audited closure is
+`self._jwks_client = jwt.PyJWKClient(jwks_uri)` in
+semgrep/mcp/utilities/token_verifier.py, inside `IntrospectionTokenVerifier`,
+built only by `make_token_verifier`, called only from `setup_mcp_server`. mcp's
+call site constructs no client. `make sast` starts no MCP server, so no client
+exists and no JWKS URL is fetched or redirected.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-101917"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+Also needs no JWT. `get_signing_key_from_jwt` force-refreshes the JWKS on an
+unknown `kid` with no negative cache and no minimum refresh interval, so
+unauthenticated traffic using unknown or varying `kid` values amplifies outbound
+requests to the configured JWKS endpoint.
+Carried by the same narrower premise as CVE-2026-102267: no `PyJWKClient` is
+constructed on this path, so there is no client to refresh and no configured
+JWKS endpoint to amplify against. The amplification target would be an operator's
+own endpoint, which this invocation never configures.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102269"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+Signature-segment decoding accepts characters outside canonical Base64URL, so
+`base64url_decode` yields identical signature bytes for different serialisations
+and a raw-token revocation check can fail to recognise an equivalent modified
+token.
+Two independent reasons it cannot fire here. It requires decoding a compact JWS,
+which only semgrep's `jwt.decode` does and only under `semgrep mcp`. It also
+requires a raw-token revocation list for the mismatch to matter, and neither
+semgrep nor mcp maintains one — the consequence has no mechanism in this
+closure even if the decode ran.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102265"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+`PyJWS._load` in jwt/api_jws.py catches `ValueError` but not `RecursionError`,
+so a deeply nested token header reaching `json.loads` escapes the documented
+PyJWT error hierarchy and an unauthenticated malformed token becomes a
+request-level failure.
+Requires an attacker-supplied token reaching `jwt.decode`. `make sast` receives
+source paths and `--config` flags; it parses no token. The only decode in the
+closure is behind `semgrep mcp`, and its consequence — an HTTP 500 — presupposes
+a running server.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102274"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+`PyJWKSet` does not catch the plain `ValueError` that `RSAAlgorithm.from_jwk`
+raises for malformed RSA components, so one malformed member aborts construction
+of the entire set and an application can see authentication failures or a
+request-level denial of service.
+Requires constructing a `PyJWKSet` from a JWK Set. This invocation receives
+source paths and no JWK set, and no `PyJWKSet` is constructed on it: semgrep's
+is reached only through `PyJWKClient` under `semgrep mcp`, and mcp's signing path
+builds none.
+This is the advisory the previous bare `--ignore-vuln CVE-2026-102274` flag
+suppressed; its reasoning is preserved here rather than in a Makefile comment.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"

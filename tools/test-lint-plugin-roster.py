@@ -99,7 +99,7 @@ def main() -> int:
     # --- the publish workflow's push path allowlist ----------------------
     # Hand-built expectations again: deriving them from the production helper
     # would compare PUBLISHED against itself.
-    _check("the allowlist is the 15 published packs plus 12 job inputs",
+    _check("the allowlist is the 16 published packs plus 12 job inputs",
            lint.expected_paths() == frozenset({
                "packs/agent-skill-engineering/**",
                "packs/architect/**",
@@ -116,6 +116,7 @@ def main() -> int:
                "packs/product-documentation/**",
                "packs/product-engineering/**",
                "packs/product-strategy/**",
+               "packs/code-intelligence/**",
                "packs/*/pack.toml",
                "packs/*/.claude-plugin/plugin.json",
                "packages/agentbundle/**",

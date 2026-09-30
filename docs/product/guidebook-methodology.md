@@ -7,11 +7,12 @@ there, and the failure each one prevents.
 Every rule below earned its place by a reader failing without it, and the
 `Why it is here` column is the record of that — do not add a rule without one.
 
-The mechanically enforced half of this lives in
-[`guides/AGENTS.md`](../../guides/AGENTS.md) § The guidebook step contract and
-is checked by `tools/lint-guidebook-steps.py`. That file is normative; this one
-explains it and carries the parts no lint can decide. Where the two disagree,
-the contract wins and this page is stale.
+The mechanically enforced half lives in the normative
+[`guidebook step contract`](../guides/guidebook-step-contract.md) and is checked
+by `tools/lint-guidebook-steps.py`. [`guides/AGENTS.md`](../../guides/AGENTS.md)
+points guide authors to it. This page explains the contract and carries the
+parts no lint can decide. Where the two disagree, the contract wins and this
+page is stale.
 
 The evidence behind the obligations is in
 [`research/workflow-guidebooks-survey.md`](research/workflow-guidebooks-survey.md),
@@ -147,9 +148,9 @@ silent, that silence is the finding.
 
 Add a rule when a reader fails without it, and record the failure in the
 `Why it is here` column. Prefer making a rule mechanical: if a lint can decide
-it, move it to the contract in `guides/AGENTS.md` and leave only the reasoning
-here. A rule that stays here is one no check can settle — which is exactly the
-set a cold read owns.
+it, move it to `docs/guides/guidebook-step-contract.md` and leave only the
+reasoning here. A rule that stays here is one no check can settle — which is
+exactly the set a cold read owns.
 
 **Only a mechanically decidable finding blocks a wave of authoring.** A finding
 about the adequacy of prose is guidance, recorded and dispositioned. Severity is

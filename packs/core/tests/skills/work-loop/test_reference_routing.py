@@ -161,7 +161,7 @@ _RELOCATED_SEQUENCES = (
 # Narrow phrases, not a byte-pin: the surrounding wording stays editable.
 _LOAD_BEARING_QUALIFIERS = (
     ("**A spec-backed run** normally writes", "**A direct-light run**",
-     "if at least one reviewer produced a clean report"),
+     "with the clean-review payload on the engine transition"),
     ("10. **Full mode:** run the init pair", "11. **Run every fired",
      "the destructive reset pair"),
 )
@@ -196,8 +196,8 @@ def test_every_named_engine_section_exists_in_the_reference() -> None:
 def test_each_pointer_keeps_its_load_bearing_qualifier() -> None:
     """Unconditional prose in a pointer is how a relocated rule loses its edge.
 
-    Dropping "if at least one reviewer produced a clean report" makes recording
-    look mandatory when a run satisfied by deferred Nits must record nothing;
+    Dropping "with the clean-review payload on the engine transition" revives
+    the retired separate-record protocol and its crash window;
     widening "the destructive reset pair" to any reset gates unrelated work.
     Both shipped during this relocation and were caught only by review.
     """

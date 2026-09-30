@@ -152,21 +152,16 @@ existing review budget using the validated adjudication SHA-256 as the
 fingerprint:
 
 ```bash
-# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
-# N: a resuming session reads the same value from `loop-engine status`, so the
-# operation id it recomputes matches and the round is not written twice.
 # When the engine is in CODE-REVIEW (post-GATES): run wave reopen first.
 python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
     --expect-run-id <run-id>
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id> \
-    --operation-id <run-id>:<seq>
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> \
+    findings-remain --fingerprint <validated-adjudication-sha256>
 ```
 
-The transition must succeed before recording; the record must succeed before
-execution. A refused transition or exhausted retry budget stops with no record
-and no gate execution. Keep the original validated raw report path unchanged;
+The transition records the review effect before returning to implementation. A
+refused transition or exhausted retry budget stops with no review record and no
+gate execution. Keep the original validated raw report path unchanged;
 the preflight-derived paths are:
 
 ```text
@@ -254,26 +249,16 @@ require, and which does not show this change is incorrect or unsafe, is
 resolved against that intent and opens no repair round: it must not consume
 `findings-remain`, FIX, or retry capacity.
 
-For the sustained findings that remain, transition before recording so the
-retry guard sees the pre-increment count. **Do not record if the transition exits non-zero.** The
-transition carries the review-retry cap guard; `review record --fingerprint`
-carries its own cap as well, so the transition is the earlier of two. Issue them
-ungated and a refused transition still records, leaving the engine parked in
-`CODE-REVIEW` with the cohort a round ahead — a desync only a forbidden hand-edit
-reconciles. Run the transition, confirm it exited zero and read the `(seq=N)` it
-prints, then record with that N:
+For the sustained findings that remain in CODE-REVIEW, reopen the wave first,
+then pass the fingerprints on the engine transition itself. The transition
+carries the review-retry cap guard and the cohort review effect; if it refuses,
+no review round is recorded. Do not run a separate `loop-cohort review record`.
 
 ```bash
-# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
-# N: a resuming session reads the same value from `loop-engine status`, so the
-# operation id it recomputes matches and the round is not written twice.
-# When the engine is in CODE-REVIEW (post-GATES): run wave reopen first.
 python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
     --expect-run-id <run-id>
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run-id> \
-    --operation-id <run-id>:<seq>
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
+    --fingerprint <fp1> --fingerprint <fp2> ...
 ```
 
 Then FIX, run `loop-cohort check <spec-dir> --phase wave-exit`, fire

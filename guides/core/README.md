@@ -51,7 +51,7 @@ Learning-oriented, start-to-finish.
 Task-oriented recipes for a problem you already have.
 
 - [Plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md) — the loop itself, applied to a feature or change.
-- [Start or remember work without choosing a skill](how-to/start-or-remember-work.md) — route an ordinary request into the right artifact and workspace state.
+- [Start a software change](how-to/start-or-remember-work.md) — route an ordinary change into the shortest safe path to implementation.
 - [Fix a bug](how-to/bug-fix.md) — the diagnose-then-fix path, with a regression test as the receipt.
 - [Adapt a freshly-installed pack to your project](how-to/adapt-to-project.md) — tailor the defaults to your repo after install.
 - [Review a branch or PR you didn't write](how-to/review-someone-elses-pr.md) — point the reviewers at anyone's diff.

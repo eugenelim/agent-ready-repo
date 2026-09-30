@@ -244,9 +244,24 @@ class TestLifecycleFields:
         spec_dir = _make_spec_dir(repo)
         _engine_init(repo, spec_dir)
         _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+
+        # The waiver belongs to the registered CODE-REVIEW edge. Its twin
+        # SPEC-PLAN-REVIEW edge deliberately carries no cohort review effect
+        # and therefore accepts no review-effect payload.
+        engine_path = spec_dir / "engine-state.json"
+        engine_state = json.loads(engine_path.read_text())
+        engine_state["state"] = "CODE-REVIEW"
+        engine_path.write_text(json.dumps(engine_state))
+        cohort_path = spec_dir / "state.json"
+        cohort_state = json.loads(cohort_path.read_text())
+        cohort_state["plan_hash"] = le._guards().sha256_canonical_contract(
+            spec_dir / "plan.md"
+        )
+        cohort_path.write_text(json.dumps(cohort_state))
+
         r = _run(
             _LOOP_ENGINE, "transition", str(spec_dir), "findings-remain",
-            "--allow-retry-cap-override", cwd=repo,
+            "--fingerprint", "f" * 64, "--allow-retry-cap-override", cwd=repo,
         )
         assert r.returncode == 0, r.stderr
         assert self._events(repo)[1]["waived"] is True

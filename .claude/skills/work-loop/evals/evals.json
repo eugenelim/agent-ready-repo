@@ -37,14 +37,15 @@
     {
       "id": "phase1-sequential-wave-routing",
       "prompt": "You are running the work-loop in code mode (Phase 1). The schedule has 3 waves. Wave 0 is complete. What is the correct next action to advance to wave 1 and begin implementing it?",
-      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. That advance is not unconditional: it refuses a wave whose tasks are not accounted for, so wave 0's every task must already carry a `loop-cohort dispatch-receipt` record — `--receipt` or `--decline <reason>`. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
+      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0`. The engine guard validates that wave 0 is complete, then the registered transition effect advances the cohort wave pointer before the engine commits its own state. The transition refuses unless every task in wave 0 already carries a `loop-cohort dispatch-receipt` record — `--receipt` or `--decline <reason>`. Do not run a separate `loop-cohort wave advance`, and do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
       "assertions": [
         "Response mentions `loop-engine transition` with the `wave-passed` event",
-        "Response mentions `loop-cohort wave advance` with `--from-index` and `--expect-run-id`",
+        "Response says the registered `wave-passed` effect advances the cohort wave pointer",
+        "Response does NOT call `loop-cohort wave advance` separately",
         "Response does NOT invoke `worktree`, `dispatch-decision`, or `auto-parallel`",
         "Response follows the sequential path (one wave at a time)",
         "Response does NOT call `loop-cohort wave check` as a prerequisite (engine guard handles this)",
-        "Response states the accounting precondition: the advance refuses a wave whose tasks are not accounted for"
+        "Response states the accounting precondition: the transition refuses a wave whose tasks are not accounted for"
       ]
     },
     {
@@ -72,41 +73,39 @@
       ]
     },
     {
-      "id": "phase1-last-event-routing",
-      "prompt": "You resume a work-loop session and `loop-engine status` shows `last_event: 'wave-passed'` and `state: 'CODE-IMPLEMENTATION'`. What does this tell you and what is the correct next action?",
-      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` — replaying an advance that already landed is a no-op, but if it did not land this is the advancing branch, which refuses a wave whose tasks are not accounted for, so record any missing `dispatch-receipt` first; (3) then proceed to implement the tasks in the current (next) wave.",
+      "id": "durable-transition-wave-passed-replay",
+      "prompt": "You resume a work-loop session after `loop-engine transition <spec-dir> wave-passed --wave-index 0` was interrupted. `loop-engine status` still shows the pre-transition engine state, but cohort `state.json` may already contain the effect. What is the correct replay action?",
+      "expected_output": "Re-run the same `loop-engine transition <spec-dir> wave-passed --wave-index 0` command. Do not run `loop-cohort wave advance` separately. The engine recomputes the same transition id from the run id, persisted pre-transition sequence, event, and canonical args; `loop-cohort.py` classifies the last `transition_history` entry under the cohort lock, applies the effect only when absent, clears `pending_transition`, and then the engine writes engine-state last. The expected result is one wave advance, one matching history entry, and no duplicate cohort effect.",
       "assertions": [
-        "Response reads `last_event_context.completed_wave_index` to determine the completed wave",
-        "Response re-issues `wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` before proceeding",
-        "Response does not describe the advance as unconditionally safe to replay, and names the accounting precondition for the advancing branch",
-        "Response proceeds to implement the current wave's tasks after advancing",
-        "Response uses `last_event` as the routing signal, not re-deriving state from scratch"
+        "Response re-runs the same `loop-engine transition` command",
+        "Response does not run `loop-cohort wave advance` separately",
+        "Response names `transition_history` as the replay authority",
+        "Response states that the engine writes engine-state last",
+        "Response expects exactly one cohort effect after replay"
       ]
     },
     {
-      "id": "phase1-surface-ambiguous-review-record",
-      "prompt": "You ran the adversarial reviewer and got findings. You called `loop-cohort review record --fingerprint <fp>`. The process was interrupted mid-write (crash-window). You cannot tell whether the fingerprint was persisted. What is the correct action before issuing another `review record`?",
-      "expected_output": "Surface this ambiguous non-idempotent write to the human. Read `loop-cohort status --json` to check the current `finding_fingerprints` and `review_retry_count`. If uncertain, describe the ambiguity and ask the human to confirm before proceeding. Do not silently re-issue `review record` if the previous write's outcome is unknown. Name the minimum viable recovery rung: steer (redirect this session with the human's confirmation of the fingerprint state).",
+      "id": "durable-transition-findings-remain-replay",
+      "prompt": "You fired `loop-engine transition <spec-dir> findings-remain --fingerprint <fp>`. The process crashed after the cohort review effect may have landed but before engine-state advanced. What do you do?",
+      "expected_output": "Re-run the same `loop-engine transition` with the same fingerprint payload. Do not call `loop-cohort review record` separately and do not ask for manual replay authorization. On the CODE-REVIEW edge, the engine passes the transition id as the cohort review operation id, so replay either observes the matching last `transition_history` entry or records the review effect once under the same id before committing engine-state. A SPEC-PLAN-REVIEW `findings-remain` edge is different: it has no cohort review effect and stays payload-free.",
       "assertions": [
-        "Response surfaces the crash-window ambiguity to the human",
-        "Response reads `loop-cohort status --json` to inspect current fingerprint state",
-        "Response does not silently re-issue `review record` without checking",
-        "Response asks for or waits for human confirmation before proceeding",
-        "Response names the minimum viable recovery rung (steer)"
+        "Response re-runs the same engine transition with the same fingerprint",
+        "Response does not call `loop-cohort review record` separately",
+        "Response does not require manual replay authorization",
+        "Response states that the transition id is the review operation id",
+        "Response distinguishes CODE-REVIEW effects from SPEC-PLAN-REVIEW pre-execute transitions"
       ]
     },
     {
-      "id": "phase1-explicit-auth-clean-record-replay",
-      "prompt": "The adversarial reviewer returned exactly `Clean — ready to commit.` and you recorded it with `loop-cohort review record --direct-clean-file <raw-report-path> --expect-run-id $run_id`. The same clean signal was already recorded in the previous round. What must you do before replaying it, and how would the record form differ if clean came from adjudication?",
-      "expected_output": "Before replaying an already-recorded clean signal, obtain and record explicit human authorization. Replay the original form only: exact raw clean uses `review record --direct-clean-file <raw-report-path>`, replayed against the same persisted artifact and identified by `last_review_clean_source` in `state.json`; clean produced by adjudication uses `review record --report <adjudication-report-path> --adjudication`. Replaying either form distorts audit history by incrementing `review_round_count` a second time for the same signal and may overwrite one level of fingerprint audit history. Surface the situation, explain both impacts, require explicit confirmation, and name the minimum viable recovery rung: steer.",
+      "id": "durable-transition-reviewers-clean-replay",
+      "prompt": "A CODE-REVIEW `reviewers-clean` transition with `--direct-clean-file <raw-report-path>` crashed after the cohort review effect may have landed. The clean signal is the same as before. What must you do before replaying it, and how would the command differ if clean came from adjudication?",
+      "expected_output": "Re-run the same `loop-engine transition <spec-dir> reviewers-clean` command with the same clean evidence; no extra human replay authorization is required. Exact raw clean keeps `--direct-clean-file <raw-report-path>`, structural clean uses `--structural-clean-file`, adjudicated clean uses `--report <adjudication-report-path> --adjudication`, and an all-skipped clean requires explicit `--all-skipped`. The engine uses the transition id as the review operation id and records the review effect at most once before engine-state advances.",
       "assertions": [
-        "Response requires explicit human authorization before the replay",
-        "Response preserves `--direct-clean-file` for exact raw clean and `--report --adjudication` for adjudicated clean, and resolves which form to replay from `last_review_clean_source` rather than from artifact presence",
-        "Response explains the audit-history impact of a duplicate clean record",
-        "Response mentions the fingerprint audit history overwrite risk",
-        "Response does not silently re-issue either clean record form without authorization",
-        "Response surfaces the situation to the human with a clear description",
-        "Response names the minimum viable recovery rung (steer)"
+        "Response re-runs `loop-engine transition reviewers-clean` rather than a cohort verb",
+        "Response says no extra human replay authorization is required",
+        "Response preserves the clean evidence form on replay",
+        "Response requires explicit `--all-skipped` for an all-skipped clean result",
+        "Response states that the transition id is the review operation id"
       ]
     },
     {
@@ -647,15 +646,15 @@
       ]
     },
     {
-      "id": "review-record-operation-id-crash-window",
-      "prompt": "You fired `findings-remain`, then ran `loop-cohort review record --fingerprint <fp1> --fingerprint <fp2> --expect-run-id <run-id> --operation-id <run-id>:12`. The session died before you saw the result, so you do not know whether the write landed. You resume: `loop-engine status --json` reports `transition_sequence: 12` and `last_event: findings-remain`. What do you do?",
-      "expected_output": "Read `last_review_record_operation_id` from `loop-cohort status --json` and compare it with the id you would compute now, `<run-id>:12`. If they match, the round is already recorded — continue without recording again, and note that re-issuing the identical payload under that id would be a no-op anyway. If it is absent or different you cannot tell whether the round landed: an absent id also describes a round recorded before this field existed, so re-issuing would count it twice. Do not auto-reissue; surface to the human. Never mint a fresh operation id for the same round — that records a second round rather than replaying the first.",
+      "id": "durable-review-operation-id-crash-window",
+      "prompt": "You fired `loop-engine transition <spec-dir> findings-remain --fingerprint <fp1> --fingerprint <fp2>`. The session died before engine-state advanced, so you do not know whether the cohort review effect landed. What do you do?",
+      "expected_output": "Re-run the identical engine transition with the same fingerprints. Do not issue a separate `loop-cohort review record`, do not mint a new operation id, and do not ask a person to authorize replay. The registered CODE-REVIEW effect uses the transition id as the review operation id, and `loop-cohort.py` reclassifies from the last `transition_history` entry under the cohort lock before appending history or clearing the marker.",
       "assertions": [
-        "Response compares `last_review_record_operation_id` with the id recomputed from `transition_sequence`",
-        "Response treats a matching id as a completed write and does not record again",
-        "Response surfaces to the human when the id is absent or different rather than re-issuing",
-        "Response notes that an absent id also describes a round recorded before the field existed",
-        "Response does not mint a fresh operation id for the same round"
+        "Response re-runs the identical engine transition",
+        "Response does not issue a separate `loop-cohort review record`",
+        "Response does not mint a new operation id",
+        "Response does not ask for manual replay authorization",
+        "Response says the transition id is the review operation id"
       ]
     },
     {
@@ -1026,6 +1025,45 @@
       ]
     },
     {
+      "id": "base-freshness-skipped-continues-with-notice",
+      "prompt": "Before reading workspace.toml, `check-base-freshness.py` exits 0 and prints JSON: {\"status\":\"skipped\",\"message\":\"Base freshness was not verified; work may continue, and you may want to update the branch separately.\",\"target\":\"origin/main\"}. What do you do next?",
+      "expected_output": "Tell the user that base freshness was not verified and that they may want to update the branch separately, then continue the work-loop. Do not retry the remote operation, do not Surface or pause on the skipped result, and do not claim `HEAD` or the base is current.",
+      "assertions": [
+        "Response tells the user freshness was not verified",
+        "Response says the user may want to update the branch separately",
+        "Response continues the work-loop after the notice",
+        "Response does NOT retry the base-freshness check or remote Git operation",
+        "Response does NOT Surface, stop, or pause on `status: \"skipped\"`",
+        "Response does NOT claim `HEAD` or the base is current"
+      ]
+    },
+    {
+      "id": "base-freshness-writable-stale-stops-for-update-approval",
+      "prompt": "Before reading workspace.toml, `check-base-freshness.py` exits 1 and prints JSON: {\"status\":\"surface\",\"message\":\"branch is 2 commit(s) behind 'origin/main' — run: git rebase origin/main\",\"target\":\"origin/main\"}. What do you do next?",
+      "expected_output": "Stop the work-loop and Surface that the branch is stale relative to `origin/main`. Ask the user before running the supplied safe update path (`git rebase origin/main`), and do not continue until the branch is updated or the user gives different direction. Do not treat this as skipped, do not retry the freshness check, and do not run any rebase, merge, pull, or other history-changing operation without approval.",
+      "assertions": [
+        "Response stops the work-loop on `status: \"surface\"`",
+        "Response says the branch is stale relative to `origin/main`",
+        "Response asks before running the supplied update or rebase path",
+        "Response does NOT continue from the stale result",
+        "Response does NOT treat the stale result as `skipped`",
+        "Response does NOT run a history-changing operation without approval"
+      ]
+    },
+    {
+      "id": "base-freshness-unwritable-stale-stops-for-separate-update",
+      "prompt": "Before reading workspace.toml, `check-base-freshness.py` exits 1 and prints JSON: {\"status\":\"surface\",\"message\":\"branch is stale relative to 'origin/main', but this environment could not prepare the update because git metadata write was denied by local policy — ask the user to update the branch separately\",\"target\":\"origin/main\"}. What do you do next?",
+      "expected_output": "Stop the work-loop and Surface that the branch is stale relative to `origin/main`, but this environment cannot prepare the update because Git metadata writes are denied. Recommend that the user update the branch separately, then resume after the branch is current. Do not continue, do not downgrade this stale result to `skipped`, do not retry or bypass policy, and do not inspect credentials.",
+      "assertions": [
+        "Response stops the work-loop on `status: \"surface\"`",
+        "Response says the branch is stale relative to `origin/main`",
+        "Response says this environment cannot prepare the update",
+        "Response recommends that the user update the branch separately",
+        "Response does NOT continue or downgrade the result to `skipped`",
+        "Response does NOT retry, bypass policy, or inspect credentials"
+      ]
+    },
+    {
       "id": "repo-root-resolved-once-per-invocation",
       "prompt": "Do `loop-engine.py` and `loop-cohort.py` run `git rev-parse --show-toplevel` every time they need the repository root?",
       "expected_output": "No. Both tools' `_get_repo_root()` functions cache the resolved root per process working directory, so one invocation runs `git rev-parse` once however many times the root is needed. Only successful resolutions are cached: a failure re-runs `git` on the next call, and the working directory is part of the key so a process that changes directory gets the new directory's root rather than a stale one.",
@@ -1039,11 +1077,12 @@
     {
       "id": "transition-commits-against-the-state-it-read",
       "prompt": "Can a `loop-engine transition` commit against cohort state that changed after its guards ran?",
-      "expected_output": "No. `cmd_transition` fingerprints cohort `state.json` before its first cohort read and re-reads it under the cohort lock before committing, refusing when it moved. Every event takes the check except `contract-amendment`, which is exempt because its own effect writes cohort state, so its fingerprint always differs. The fingerprint is over the whole parsed state rather than selected fields, and it is read through the guard layer's exported bounded reader rather than a raw open.",
+      "expected_output": "No. `cmd_transition` fingerprints cohort `state.json` before its first cohort read and re-reads it under the cohort lock before committing, refusing when it moved. The exception is the registered cohort-effect edge being committed: `contract-amendment`, `wave-passed`, `gates-failed`, and the CODE-REVIEW `findings-remain`/`reviewers-clean` edges mutate cohort state through `loop-cohort.py` before the engine-state write, so they use the durable transition marker/history instead of the fingerprint comparison. SPEC-PLAN-REVIEW review transitions have no cohort effect and stay on the fingerprint rail. The fingerprint is over the whole parsed state rather than selected fields, and it is read through the guard layer's exported bounded reader rather than a raw open.",
       "assertions": [
         "Response says the fingerprint is captured before the transition's first cohort read",
         "Response says the re-read happens while the cohort lock is held",
-        "Response names `contract-amendment` as the only exempt event and says its own effect writes cohort state",
+        "Response names the registered effect edges as the fingerprint exception",
+        "Response distinguishes CODE-REVIEW review effects from SPEC-PLAN-REVIEW review transitions",
         "Response does not claim the check covers a selected subset of cohort fields",
         "Response does not claim `gates-clean` reads dispatch receipts"
       ]
@@ -1058,6 +1097,18 @@
         "Response explains that live dispatch records cause the refusal",
         "Response names all three guarded edges: gates-failed, findings-remain, and blocker-applied",
         "Response does not claim wave reopen is required before wave-passed or gates-clean"
+      ]
+    },
+    {
+      "id": "status-wave-dispatch-accounting",
+      "prompt": "A work-loop run has finished. Reading `loop-cohort status`, how do you tell a wave whose every task was declined from one whose every task was implemented, and what does that field NOT tell you?",
+      "expected_output": "Read `wave_dispatch_accounting`, not `dispatch_receipts_enforced`. The flag reports only whether the receipts container is present, so it reads the same for both waves. `wave_dispatch_accounting` carries one entry per wave in `schedule_waves`, each counting that wave's live receipts, live declines, superseded records and unaccounted task positions: an all-declined wave shows declines equal to its task count and receipts zero, an implemented wave the reverse. What it does not tell you: what any PAST wave exit saw. It reports the partition live at the time of the call, and `schedule` keeps only the records filed under the current partition digest, so after a repartition a completed wave's records are gone and that wave reports its tasks as unaccounted. Read it beside `current_wave_index` to separate a wave the run never reached from one it reached and left unaccounted.",
+      "assertions": [
+        "Response names `wave_dispatch_accounting` as the field to read",
+        "Response says `dispatch_receipts_enforced` reports container presence and reads the same for both waves",
+        "Response names the per-wave counts: live receipts, live declines, superseded records and unaccounted task positions",
+        "Response says the value reflects the live partition at the time of the call, not what any past wave exit saw",
+        "Response names `current_wave_index` as what separates a wave never reached from one reached and left unaccounted"
       ]
     }
   ]

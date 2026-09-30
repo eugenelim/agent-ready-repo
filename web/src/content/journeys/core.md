@@ -39,6 +39,9 @@ skills:
   - name: bug-fix
     description: "Diagnoses and fixes a bug with a targeted root-cause analysis before writing a line of code."
     humanTouches: 1
+  - name: explain-diff
+    description: "Turns a local diff, branch, commit, or pull-request representation into one offline HTML lesson designed for that change."
+    humanTouches: 0
   - name: contract-acquisition
     description: "Grounds agent code against an unfamiliar API or library contract before implementation — prevents guessed signatures."
     humanTouches: 0

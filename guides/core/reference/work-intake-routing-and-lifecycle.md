@@ -211,7 +211,7 @@ tracker access.
 forwards the same normalized request to `work-intake`; it does not keep an
 independent classifier or storage format. Use `work-intake` in new guidance.
 
-See [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md)
+See [Start a software change](../how-to/start-or-remember-work.md)
 for the common start procedure, or
 [Use work intake](../../_shared/how-to/use-work-intake.md) for an
 existing tracker-origin artifact.

@@ -127,3 +127,9 @@
 | 0123 | [Product changelog uses per-update sources and generated views](0123-product-changelog-per-update-sources-and-generated-views.md) | Accepted | 2026-09-22 |
 | 0124 | [The experience contract's frontend section is owned by `frontend-engineering`, not `core`](0124-experience-contract-frontend-section-owned-by-frontend-engineering.md) | Accepted | 2026-09-22 |
 | 0125 | [Durable transitions make four cohort mutations engine-invoked](0125-engine-invoked-cohort-mutations.md) | Accepted | 2026-09-25 |
+| 0126 | [Integration packs carry standalone value, and coupling lives in named bridge skills](0126-integration-packs-standalone-value-and-bridge-skills.md) | Accepted | 2026-09-24 |
+| 0127 | [What projects into a delivery system: a range from the tree's top down to a floor](0127-managed-unit-floor-and-projected-range.md) | Accepted | 2026-09-23 |
+| 0128 | [Project token values are resolved by routes inside `design-system`, not by a second skill](0128-design-system-one-skill-resolves-project-values.md) | Accepted | 2026-09-27 |
+| 0129 | [Intent filename retirement uses a tombstone file at the vacated name, not a global retired list](0129-tombstone-convention-for-retired-intent-filenames.md) | Accepted | 2026-09-28 |
+| 0130 | [The design-to-build handoff is conditional, and implementation never fills an upstream gap](0130-design-to-build-handoff-is-conditional-and-gap-routed.md) | Accepted | 2026-09-28 |
+| 0131 | [A pip-audit advisory suppression is a governed allowlist entry, and its retirement is enforced](0131-pip-audit-advisory-suppression-is-a-governed-allowlist-entry.md) | Accepted | 2026-09-29 |

@@ -17,9 +17,10 @@
 - **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
+- **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->
 - **De-risked:** <!-- optional: the ISO 8601 date the riskiest assumption was tested, or the literal `no`. Absent means nobody recorded it; `no` means someone decided against de-risking -->
 - **Shaping-reviewed:** <!-- optional: the ISO 8601 date a cold reviewer read this, or the literal `no` -->
-- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light. A `direct-light` terminus requires each item under ## Decomposition to state its requested outcome -->
+- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light | closed-empty. `closed-empty` means decomposition is deliberately complete with no child work; `direct-light` requires each item under ## Decomposition to state its requested outcome -->
 
 ## Outcome
 
@@ -50,6 +51,23 @@ prose above is still valid for quick framing. See
 - **Emotional job:** <how they want to feel during or after the job>
 - **Social job:** <how they want to be perceived by others>
 - **Struggling moment:** <where the current situation fails them>
+
+## Product-to-experience handoff
+
+<!-- Optional. Fill only for a capability or feature intent whose change creates
+or materially changes a human-facing digital surface, journey, interaction,
+content hierarchy, visible state, or what a surface must prove, explain, or
+allow. Omit for product-vision, product-strategy, backend-only, infrastructure,
+internal refactor, dependency, build, or other non-surface work. Derive these
+facts from this intent and, when present, the Digital Experience Contract's
+Product Engineering fields; do not choose experience or implementation
+decisions here. -->
+
+- **Affected journey or surface:** <what user journey or surface is materially affected>
+- **User outcome and first-success behavior:** <what the user can now accomplish, and the behavior that proves first success>
+- **Product mechanism or proof:** <the product-specific mechanism, object, rule, or proof the interface may expose>
+- **Evidence for user-visible claims:** <observed, supported, inferred, assumed, or unknown evidence behind claims a person may see>
+- **Constraints, prohibited claims, and material unknowns:** <what the experience must respect, must not claim, and still does not know>
 
 ## Product-vision fields
 

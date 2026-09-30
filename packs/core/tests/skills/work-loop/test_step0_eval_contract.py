@@ -77,3 +77,22 @@ def test_step0_evals_do_not_retain_superseded_messages() -> None:
     assert "Beginning on `docs/specs/my-feature/spec.md`" not in decoded
     assert "No active spec found — run `workspace-status`" not in decoded
     assert "Step 0 reads workspace.toml only to orient" not in decoded
+
+
+def test_base_freshness_skipped_eval_contract() -> None:
+    """The skipped freshness eval must distinguish unverified from current."""
+    evals = _evals_by_id()
+    entry = evals["base-freshness-skipped-continues-with-notice"]
+    expected = str(entry["expected_output"])
+    assertions = "\n".join(str(item) for item in entry["assertions"])
+    combined = expected + "\n" + assertions
+
+    assert "freshness was not verified" in combined
+    assert "update the branch separately" in combined
+    assert "continue the work-loop" in combined
+    assert "Do not retry" in expected
+    assert "does NOT retry" in assertions
+    assert "do not Surface or pause" in expected
+    assert "does NOT Surface, stop, or pause" in assertions
+    assert "do not claim `HEAD` or the base is current" in expected
+    assert "does NOT claim `HEAD` or the base is current" in assertions

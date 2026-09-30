@@ -18,9 +18,9 @@ This page gives one-line descriptions and the correct trigger for each.
 
 The entry point for all frontend work. Four modes — create (new surface),
 retrofit (improving existing), audit (review only), verify (run gates).
-Provides the design pre-flight (design handoff read, named aesthetic
-reference, genre routing, seed token block, state matrix), craft rules,
-GATES verification commands,
+Provides the design pre-flight (design handoff read, visual-authority
+precedence, genre routing, token-value resolution, state matrix), the
+render-observe-correct loop, craft rules, GATES verification commands,
 and evidence manifest format. Load this skill whenever a task's primary output
 is HTML, CSS, or JS.
 
@@ -41,8 +41,8 @@ Design and govern a three-tier CSS custom property token system
 light/dark theming, and DTCG-compatible source generation.
 
 **Load when:** the primary task is designing or auditing a token system —
-not seeding a token block for a single surface (the seed block in
-`frontend-engineering` step 2 covers that).
+not resolving token values for a single surface (`frontend-engineering`
+step 2 covers that, reading its fallback block from a reference).
 
 ### `a11y-engineering`
 
@@ -126,10 +126,11 @@ known exceptions, and the recommended next action.
 ### `frontend-reviewer`
 
 A **forked-context** reviewer for diffs whose primary output is HTML/CSS/JS. It
-reads the diff for five lenses and the **rendered page** for a sixth, so it is
-seeded with the surface's capture set and `inspection observations` alongside the
-diff, and can capture the adopter-named routes itself when the set it was given
-does not cover what the diff makes it suspicious of. It does not write to the
+reads across seven lenses — the diff for five, the **rendered page** for one,
+and the evidence manifest for one — so it is seeded with the surface's capture
+set and `inspection observations` alongside the diff, and can capture the
+adopter-named routes itself when the set it was given does not cover what the
+diff makes it suspicious of. It does not write to the
 repository under review.
 
 | Lens | What it checks |
@@ -140,11 +141,14 @@ repository under review.
 | WCAG 2.2 manual items | 2.5.8 Target Size (touch target ≥24×24 CSS px, or a named exception), AA; 2.4.13 Focus Appearance (ring size and contrast), AAA enhancement |
 | CWV regression signals | Synchronous scripts, unsized images, lazy LCP candidates, route chunk size increase >10KB |
 | Reader-visible layout failure | Read from the captures, not the diff: one element covering another, content cut off at the top of the content area at rest, content outside its container, a control too small to hit, text that cannot be read. Severity comes from the pack's finding-class table; where a failure fits more than one class, the most severe wins |
+| Visual authority | Read from the evidence manifest, not the diff: whether the recorded composition rung and value rung match what the diff actually implements |
 
-**Evidence per lens:** the diff confirms lenses 1-5; a capture confirms lens 6.
-A rendered-page failure is invisible in a diff by definition. Given neither
-captures nor routes, the reviewer reports lens 6 as a named skip rather than
-passing it on the diff alone.
+**Evidence per lens:** the diff confirms lenses 1-5; a capture confirms lens 6;
+the evidence manifest confirms lens 7. A rendered-page failure is invisible in a
+diff by definition, and a visual-authority claim is a record rather than a
+change, so neither is held to diff-confirmation. Given neither captures nor
+routes, the reviewer reports lens 6 as a named skip rather than passing it on the
+diff alone.
 
 **Not in scope:** spec/plan drift (adversarial-reviewer), testability
 (quality-engineer), aesthetic taste (experience-reviewer), security

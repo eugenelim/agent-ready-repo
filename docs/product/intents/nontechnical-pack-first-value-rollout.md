@@ -69,6 +69,13 @@ Two further constraints every Claude-apps slice inherits:
   any deviation as a defect against the owning spec rather than restating a
   policy here.
 
+## Boundary with `pack-guidebook-walkability`
+
+[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+owns walkable static guidebooks and makes no first-value claim. This capability
+keeps pack-specific first-value adoption slices, including their surface,
+safety, recovery, and evaluation evidence.
+
 ## Source
 
 - Mode: repo-origin

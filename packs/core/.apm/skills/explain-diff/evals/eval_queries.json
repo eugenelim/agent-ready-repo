@@ -1,0 +1,66 @@
+[
+  {
+    "query": "Explain this local diff as a self-contained HTML walkthrough for another engineer.",
+    "should_trigger": true
+  },
+  {
+    "query": "Turn the changes on my current branch into an offline explanation page with a short quiz.",
+    "should_trigger": true
+  },
+  {
+    "query": "Create a teaching artifact that explains how this commit works.",
+    "should_trigger": true
+  },
+  {
+    "query": "I have a pull request description and patch in the workspace. Make an HTML explainer for it.",
+    "should_trigger": true
+  },
+  {
+    "query": "Help me explain this code change to a teammate, including background, intuition, code, and quiz questions.",
+    "should_trigger": true
+  },
+  {
+    "query": "Generate an offline browser-readable explanation of the feature branch diff.",
+    "should_trigger": true
+  },
+  {
+    "query": "Take this patch file and produce a self-contained code-change explainer.",
+    "should_trigger": true
+  },
+  {
+    "query": "Make a learning page for this refactor so reviewers understand the moving parts.",
+    "should_trigger": true
+  },
+  {
+    "query": "Review this diff for bugs, missing tests, and security issues.",
+    "should_trigger": false
+  },
+  {
+    "query": "Fix the failing parser test caused by this branch.",
+    "should_trigger": false
+  },
+  {
+    "query": "Convert this Markdown guide into HTML.",
+    "should_trigger": false
+  },
+  {
+    "query": "Render this Mermaid diagram to a PNG.",
+    "should_trigger": false
+  },
+  {
+    "query": "Build a polished product UI for comparing two code snippets.",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a spec for a new pull request explanation feature.",
+    "should_trigger": false
+  },
+  {
+    "query": "Summarize the release notes from this changelog.",
+    "should_trigger": false
+  },
+  {
+    "query": "Open the generated HTML and visually QA the responsive layout.",
+    "should_trigger": false
+  }
+]

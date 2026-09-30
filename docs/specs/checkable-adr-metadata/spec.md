@@ -1,6 +1,6 @@
 # Spec: Checkable ADR metadata
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0102](../../rfc/0102-mechanically-checkable-adrs.md), [ADR-0027](../../adr/0027-adr-format-is-madr-aligned-but-lean.md), [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md)

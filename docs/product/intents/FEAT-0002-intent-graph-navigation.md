@@ -27,11 +27,14 @@ Inherits the parent's outcome, boundary, and exclusions. Within them, this child
 
 - the graph over the intent corpus, **derived from artifact headers on demand and never persisted**, and what it must expose: altitude, status, parent, related edges, direct features, and intents that carry no classification;
 - the **two surfaces over that one derivation**: a bounded query that returns identities, header facts, edges and paths but never artifact bodies, and a human view emitted on demand as a single self-contained file to a scratch location, leaving no repository footprint. The view is a consumer of the derivation, never a second source of truth;
-- the view's design route — `analytical-design` owns its structure and widget hierarchy, `interaction-design` its behaviour, and `frontend-engineering` the single-file build; `workspace-design` is the alternative owner if it proves to be a sustained-work surface rather than a read-and-act one;
+- the view's design route — `information-architecture` owns its structure and widget hierarchy through the analytical genre method, `interaction-design` its behaviour, and `frontend-engineering` the single-file build; the workspace genre method in `information-architecture` is the alternative route if it proves to be a sustained-work surface rather than a read-and-act one;
 - how a related-intent edge is recorded on the artifact and read into the view;
 - how an unclassified legacy intent is surfaced without inventing an altitude for it.
 
 It does not own identity or placement (`intent-identity-and-registration`), the downstream mapping to a brief or spec (`intent-delivery-traceability`), operational coordination state (`workspace-coordination-reorganization`), or rendering the graph into a tracker (`external-tracker-projection`). It does not decide the mechanism: no generator, format, or hosting surface is chosen at this altitude.
+
+
+**Inbound 2026-09-24 — a second consumer already builds part of this graph, and the convergence is recorded here because nothing re-reads that consumer's boundary when this intent is shaped.** [FEAT-0005](FEAT-0005-lifecycle-and-closure.md) § Boundary was amended that day to move eligibility computation into that child, because this intent is `Status: Draft` with `Decomposed:` absent and its closure check could not wait. That child may build an **in-memory descendant set** by inverting declared up-edges, bounded by three conditions that [FEAT-0005](FEAT-0005-lifecycle-and-closure.md) § Boundary states and owns. They are deliberately not reproduced here — read them there, because a copy would drift the moment that section is amended. Persistence, publication and any surface a second consumer reads remain this intent's, undiminished, and **no ordering edge runs in either direction**. When this capability lands, treat that child's per-decision resolution as a candidate consumer to absorb rather than a rival to leave standing — otherwise the repository keeps two independent edge-inversion implementations.
 
 ## Owner
 
@@ -84,7 +87,7 @@ They have different consumers and different shapes, and conflating them makes th
 - **The query** answers a bounded question and returns node identities, header facts, edges and paths, never bodies; the reader opens the artifact for detail. "Show me every in-flight capability" is a query, not a view.
 - **The human view** is a **single self-contained file, emitted on demand** to a scratch location rather than into the repository, so it leaves no tracked or untracked footprint and needs no second distribution surface. It is a consumer of the derivation and never a second source of truth.
 
-The view is a designed surface, not an incidental dump. Its structure and widget hierarchy route through `analytical-design`, which owns how a view carries a reader from a status signal to a diagnostic to an action; its interactive behaviour routes through `interaction-design`; and the single-file build is `frontend-engineering`'s, since its primary output is HTML, CSS and JS. If the view turns out to be a sustained-work surface rather than a read-and-act one, `workspace-design` is the alternative owner — the two skills' scopes overlap here and the call belongs to whoever shapes the view.
+The view is a designed surface, not an incidental dump. Its structure and widget hierarchy route through `information-architecture`'s analytical genre method, which owns how a view carries a reader from a status signal to a diagnostic to an action; its interactive behaviour routes through `interaction-design`; and the single-file build is `frontend-engineering`'s, since its primary output is HTML, CSS and JS. If the view turns out to be a sustained-work surface rather than a read-and-act one, the workspace genre method in `information-architecture` is the alternative route — the two methods' scopes overlap here and the call belongs to whoever shapes the view.
 
 ### Two hazards the implementation must respect
 

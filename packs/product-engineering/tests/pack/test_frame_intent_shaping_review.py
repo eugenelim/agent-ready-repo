@@ -8,11 +8,19 @@ from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
 SKILL_PATH = PACK_ROOT / ".apm/skills/frame-intent/SKILL.md"
+LAYOUT_REFERENCE_PATH = (
+    PACK_ROOT / ".apm/skills/frame-intent/references/agentbundle-layout.md"
+)
 
 
 def _skill_text() -> str:
     """Return the source skill contract."""
     return SKILL_PATH.read_text(encoding="utf-8")
+
+
+def _layout_reference_text() -> str:
+    """Return the shipped layout reference contract."""
+    return LAYOUT_REFERENCE_PATH.read_text(encoding="utf-8")
 
 
 def _flat(text: str) -> str:
@@ -133,3 +141,55 @@ def test_frame_intent_declares_exact_tools_and_boundaries() -> None:
         "filesystem_write",
         "filesystem_read_untrusted",
     )
+
+
+def test_frame_intent_distinguishes_output_dir_escape_verdicts() -> None:
+    text = _flat(
+        _section("Where the intent lives — config-driven, elicit when not configured")
+    )
+
+    assert (
+        "If resolution passed through a symlink that leaves the anchoring root" in text
+    )
+    assert (
+        "the repository root for repo-scope config, or the configured directory "
+        "for user-scope config"
+    ) in text
+    assert "refuse before writing" in text
+    assert "If the configured path carries a `..` segment, refuse before writing" in text
+    assert (
+        "If a repo-root-sourced absolute value resolves outside the repository by "
+        "the absolute path alone, with no symlink escape and no `..` segment"
+    ) in text
+    assert "disclose the resolved absolute realpath and ask the adopter to confirm" in text
+    assert "Being outside the repository is not itself a reason to refuse" in text
+    assert "A personal-scope destination is legitimate" in text
+    assert "the symlink and `..` refusals still apply" in text
+
+
+def test_frame_intent_layout_reference_matches_escape_verdicts() -> None:
+    text = _flat(_layout_reference_text())
+
+    assert "It then applies three distinct verdicts" in text
+    assert (
+        "A destination whose resolution passed through a symlink leaving its "
+        "anchoring root is refused before writing"
+    ) in text
+    assert (
+        "A destination whose configured path carries a `..` segment is refused "
+        "before writing"
+    ) in text
+    assert (
+        "A repo-root-sourced absolute value that resolves outside the repository "
+        "by the absolute path alone, with no symlink escape and no `..` segment"
+    ) in text
+    assert "discloses the resolved absolute realpath and asks" in text
+    assert "Being outside the repository is not itself a reason to refuse" in text
+    assert "A personal-scope destination is legitimate" in text
+
+
+def test_shipped_frame_intent_guidance_stays_portable() -> None:
+    shipped_text = f"{_skill_text()}\n{_layout_reference_text()}"
+
+    assert "ADR-" not in shipped_text
+    assert "AC-" not in shipped_text

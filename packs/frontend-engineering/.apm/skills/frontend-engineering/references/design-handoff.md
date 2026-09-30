@@ -82,6 +82,13 @@ adopter-writable file as the content it labels, so whoever can place the artifac
 can set it. It usefully separates a taxonomy from a direction doc; it establishes
 nothing about where the file came from or who wrote it.
 
+## Completed-read skips can carry a gap
+
+A resolved `direction/<slug>.md` beside a `tokens/<slug>.md` slot the completed
+read recorded as a named skip hands an upstream gap forward for any axis no
+incumbent system supplies. The skipped token slot is not permission to resolve
+those values from a lower rung.
+
 ## Which product an artifact belongs to cannot be decided mechanically
 
 Nothing in these artifacts discriminates one product from another. `slug` is
@@ -106,7 +113,8 @@ reporting success.
 
 Specifically, after a refusal: the rejected value is not repaired or normalized;
 no other slug, artifact, or output directory is substituted; the refusal is not
-downgraded to a skip; the canonical product-reference set is not consulted for any
+downgraded to a skip; no lower rung of the visual-authority precedence — the
+incumbent repository system, or a locally stated premise — is consulted for any
 slot; and nothing already extracted in the same read reaches the code-emitting
 step.
 
@@ -135,8 +143,9 @@ matching name verbatim, so two runs of one failure do not report it two ways:
 
 After any of them: do not repair or normalize the rejected value; do not
 substitute another slug, artifact or output directory; do not downgrade the
-refusal to a skip; do not consult the canonical product-reference set for any
-slot; and discard whatever the read already extracted, so a refusal on the third
+refusal to a skip; do not fall through to a lower rung of the visual-authority
+precedence, which `references/visual-observation.md` defines and which a refusal
+never reaches, for any slot; and discard whatever the read already extracted, so a refusal on the third
 artifact does not leave the first two feeding the emitted code.
 
 ## The limit of everything on this page

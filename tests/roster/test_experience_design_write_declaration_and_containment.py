@@ -117,3 +117,29 @@ def test_every_containment_copy_is_byte_identical() -> None:
     assert not differing, (
         f"containment.md differs from {copies[0].parents[1].name}'s copy in: {sorted(differing)}"
     )
+
+
+def test_every_editorial_quality_gates_copy_is_byte_identical() -> None:
+    """The editorial gates module is one body, like ``containment.md``.
+
+    Two skills need it — the surviving copy skill and ``information-architecture``
+    — and a skill installs standalone, so it cannot reach a sibling's
+    ``references/``. Duplication plus asserted equality is this pack's existing
+    answer to that, and it is the answer a spec chose here over the recorded
+    note that skill autonomy beat DRY at this scale.
+
+    Equality is between the copies rather than against a pinned digest, for the
+    same reason the containment assertion gives: a digest reddens on the next
+    legitimate edit and teaches the reader to update the constant.
+    """
+    copies = sorted(SKILLS.glob("*/references/editorial-quality-gates.md"))
+    assert len(copies) >= 2, (
+        f"only {len(copies)} editorial-quality-gates copies found — equality is vacuous"
+    )
+    bodies = {p: p.read_bytes() for p in copies}
+    reference = bodies[copies[0]]
+    differing = [p.parents[1].name for p, body in bodies.items() if body != reference]
+    assert not differing, (
+        "editorial-quality-gates.md differs from "
+        f"{copies[0].parents[1].name}'s copy in: {sorted(differing)}"
+    )

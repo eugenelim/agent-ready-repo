@@ -416,7 +416,7 @@ def readme_offered_genre_skills(readme_markdown: str) -> set[str]:
     Read from the em-dash-delimited route list inside the job's parenthetical,
     and matched on **any** backticked identifier rather than on a `-design`
     suffix. The suffix was the first shape of this reader and it was wrong:
-    `design-system-foundations` is a routable genre skill (`SKILL.md` § 1b) that
+    `design-system` is a routable genre skill (`SKILL.md` § 1b) that
     does not carry it, so a README offering that route was invisible here — the
     example guard would have red on a correct README and the routability guard
     would have passed over an unroutable name.

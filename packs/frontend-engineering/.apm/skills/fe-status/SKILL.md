@@ -45,9 +45,11 @@ Table — When presenting several items that share the same fields, render a Mar
 Read the following artifacts in the order listed. Stop when the summary
 is complete — this skill reads, it does not write.
 
-**1. Evidence manifest** — the 12-field record from the most recent
+**1. Evidence manifest** — the 13-field record from the most recent
 `frontend-engineering` gate run. If a manifest exists, locate:
 
+- `visual authority`: which rung supplied the visual decisions, and the
+  artifact or convention it named
 - `states`: which of the 18 states were tested in the last run
 - `inspection observations`: what the rendered-page inspection saw, plus its
   result state and verdict

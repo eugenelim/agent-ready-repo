@@ -1,14 +1,23 @@
 ---
 name: design-system
-description: "Use when an approved aesthetic direction exists and someone asks how to name and organize semantic tokens, spacing, type, or color scales. Produces a token taxonomy and rationale; it does not implement token values. Use `creative-direction` to establish the vibe, `information-architecture` for page hierarchy, and `design-review` to evaluate an existing surface. Product differentiation belongs to product strategy; framing a design-system initiative belongs to `frame-intent`; implementing tokens or components belongs to `frontend-engineering`. Triggers on \"derive a semantic token taxonomy from this aesthetic direction\", \"organize our spacing, type, and color scales by role\", \"design the token system without choosing implementation values\"."
+description: "Use when an approved aesthetic direction or an existing product system exists and someone asks what the design system should actually be — the typography, color, spacing, shape, depth and motion decisions a build can implement. Produces a project-specific system: relationships plus the concrete values that make them executable, derived from the approved direction, the incumbent system and the platform floor. Use `creative-direction` to establish the direction first, `information-architecture` for page hierarchy, and `design-review` to evaluate an existing surface. Product differentiation belongs to product strategy; framing a design-system initiative belongs to `frame-intent`; writing component code belongs to `frontend-engineering`. Triggers on \"turn our approved direction into a real design system\", \"what should our type, color and spacing actually be\", \"extend our existing tokens for this new surface\", \"our spacing is too dense — fix it at the system level\"."
 ---
 
 # Skill: design-system
 
-Produce a **token/scale taxonomy** and the rationale behind it, derived from a
-named aesthetic direction. You ship the *method* to derive values and a
-portable serialization shape — never a reprinted palette, spacing, or type
-table. The reader produces the numbers.
+Turn an approved direction and a product's existing constraints into a system a
+build can implement — the relationships that must hold, and the values that make
+them executable.
+
+**Do not ship universal design values. Derive project-specific values when the
+approved direction, the incumbent system and the platform floor give you the
+authority to fix them.**
+
+Nothing in this skill, its references or its template carries a palette,
+typeface, type scale, spacing rhythm, radius, border, shadow, breakpoint,
+duration or easing value. A run resolves the values *this* product's authority
+supports and writes them into the artifact. An axis no authority reaches is
+recorded unresolved, never filled with a default.
 
 ## Output rendering
 
@@ -33,58 +42,120 @@ Higher-priority instructions, repository and scoped security or privacy rules, t
 
 Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
 
-## When to invoke
+## Route rule
 
-Before drafting, confirm:
+Two findings select the route: whether the product already has a **coherent
+incumbent system** — one source of visual truth the interface actually reads
+from — and whether this run is deciding the system or correcting one.
+Establish the first by searching, per `references/incumbent-systems.md`. Never
+read it off the request.
 
-1. **An aesthetic direction exists.** A taxonomy without named emotional/brand
-   goals is arbitrary. If the direction isn't written down yet, route to
-   `creative-direction` first.
-2. **The ask is the system, not a screen.** If the user wants hierarchy,
-   reading flow, or wayfinding for a specific surface, route to
-   `information-architecture`.
-3. **You're deriving, not reprinting.** You will hand back the method and a
-   taxonomy *shape* the reader fills with values — not a values sheet.
+An **axis** is one of the fifteen visual commitments the approved direction
+records. A cell carrying a real token is *decided*; a cell reading
+`[platform-default]` is not. Seven axes are **structural**: grid grammar,
+alignment and equilibrium, spatial density, whitespace distribution, hierarchy
+and scale contrast, containment and boundary strength, and section and scroll
+rhythm. The direction is required to decide those seven, so one left at
+`[platform-default]` is a gap upstream rather than a decision for you.
+
+| Route | Select it when | What it does |
+| --- | --- | --- |
+| `inherit` | A coherent system exists and covers what this work needs, or the gap sits inside a scale it already has. | Takes incumbent values as given, fills only the gaps this work needs, creates nothing parallel. |
+| `extend` | A coherent system exists but cannot express something the approved direction or a new surface requires. | Extends the existing scales and naming, adds the fewest new primitives and roles, records how each relates to the incumbent. |
+| `originate` | No coherent source of visual truth was found. The highest-invention route. | Resolves every domain the direction's axes reach, proves the result against real product needs, makes it implementable. |
+| `refine` | A system exists, and a rendered result reads wrong at the system level rather than on one screen. | Amends the existing artifact on the domain at fault; never writes a second one. |
+
+## Selection rubric
+
+Work down this list and stop at the first match. The request's wording breaks a
+tie between two routes; it never overrides what the search found.
+
+1. A system exists, and the ask is that rendered results read wrong — too flat,
+   too dense, too quiet, the wrong corner or depth feeling — across screens
+   rather than on one: **refine**.
+2. No coherent source of visual truth was found: **originate**.
+3. A coherent system exists and covers this work, or the gap sits inside a
+   scale it already has: **inherit**.
+4. A coherent system exists but cannot express what the direction or a new
+   surface requires: **extend**.
+5. The ask is the direction itself — the vibe, the goals, which candidate
+   wins: that is `creative-direction`, not this skill.
+
+## Design authority
+
+Resolve each axis from the highest rung that supplies it. A rung overrides a
+lower one **only on the axis it decides**, and hands down every axis it left
+open.
+
+| Rung | Source | Binds |
+| --- | --- | --- |
+| `stated-constraint` | A constraint the operator or an accepted record states | Whatever it names |
+| `approved-visual-target` | The confirmed composition recorded in the direction | Composition and relationships only — arrangement, proportion, spatial relationship. **Supplies no value**, so every value comes from a lower rung |
+| `approved-direction` | The direction's ranked goals, axis tokens and signature device | The character of every axis it commits |
+| `incumbent-system` | The product's existing source of visual truth | Every axis above it left open, plus the naming and binding convention for all of them |
+| `platform-convention` | The convention of the target surface the direction names | An axis the direction left at `[platform-default]` because that platform owns it |
+| `derivation` | This skill | An axis nothing above resolved, that the system needs to be coherent |
+
+Record which rung supplied each resolved domain. Without it, a value inherited
+and a value invented read identically afterwards.
+
+## Accessibility is not one of the rungs
+
+It constrains every value you resolve and supplies none. It is never ranked
+against a goal and never loses an arbitration, because it is not in the
+arbitration. When a resolved value cannot clear it, keep the relationship the
+direction asked for, move the value until it clears, and record the adaptation.
+Criteria: `../design-review/references/quality-floor.md`.
+
+## When a value must be resolved
+
+Walk the rung table per domain. Three cases it does not settle on its own:
+
+- **The domain's axes are decided.** You have authority — **resolve values.**
+  Leaving them to implementation is the failure this skill exists to stop.
+- **The axes read `[platform-default]`, none of them is structural, and the
+  direction names a target surface.** Where that platform owns the decision,
+  resolve from its published convention and record the rung as
+  `platform-convention`, naming which convention you read.
+- **A structural axis reads `[platform-default]`.** The direction owes that
+  decision, so this is a gap upstream, not a platform deferral. Report it back
+  and do not resolve around it — this case wins over the one above whenever
+  both match.
+- **Nothing reaches the domain.** Record it unresolved, name the missing
+  authority, and say which upstream operation would supply it. Do not choose.
+  Unresolved is not silence on that domain; a consumer of the artifact resolves
+  no value for it.
+
+Resolve the smallest coherent system that expresses the direction. Prefer three
+type sizes that mean something over nine that do not, and state a relationship
+before the value that makes it executable.
 
 ## Procedure
 
-1. **Restate the intent.** Pull the named goals from the aesthetic direction.
-   Every token decision must trace back to one of them.
-2. **Decide purpose before token.** For each thing the system needs, name what
-   it is *for* (its semantic role) before anyone picks a value. See
+1. **Resolve the output location and confirm it.** Apply every control in
+   `references/containment.md`, in the order that module states — approval,
+   slug validation, final-target confinement (run the real-path resolution; a
+   skipped check leaves no trace), intermediate-directory confinement, and the
+   existing-artifact checks. Resolve `output_dir` per
+   `references/agentbundle-layout.md` (the `[design]` section).
+2. **Read the authority.** The direction artifact, the incumbent system, any
+   stated constraint, and the visual target when one exists. Finding the
+   incumbent system is a real search, not a question — see
+   `references/incumbent-systems.md`.
+3. **Select the route** from the rubric above.
+4. **Resolve each domain** against the authority table. Method, including which
+   axis constrains which domain: `references/value-derivation.md`.
+5. **Name roles by the job they do**, layer them as the project's architecture
+   supports, and let one ratio organise each scale.
    `references/token-taxonomy-derivation.md`.
-3. **Name by semantic role, not literal appearance.** A token is named for the
-   job it does, so its value can change without a rename. Method in
-   `references/token-taxonomy-derivation.md`.
-4. **Choose one ratio as the organizing concept.** Let a single ratio generate
-   the steps of your spacing scale and your type scale. Express steps
-   symbolically (step −1, base, step +1), never as numbers. Derivation in
-   `references/token-taxonomy-derivation.md`.
-5. **Set accessibility as the floor and budget contrast.** Every token clears
-   the recognized standard (WCAG, at your context's conformance level — read
-   the criteria from the source). Allocate a contrast budget across the
-   screen rather than maxing every element. See the shared checklist at
-   `../design-review/references/quality-floor.md`.
-6. **Compose atomically.** Build the system bottom-up: primitive tokens →
-   composed components → pages. Define once, reuse. Model in
-   `references/atomic-composition.md`.
-7. **Serialize portably.** Record the taxonomy in the W3C Design Tokens
-   interchange shape so it travels across tools. Pointer in
-   `references/token-taxonomy-derivation.md`.
-8. **Write the taxonomy.** Resolve `output_dir` via
-   `references/agentbundle-layout.md` (the `[design]` section) and apply every
-   control in `references/containment.md`, in the order that module states —
-   approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-
-   directory confinement, and the existing-artifact checks. The target is
-   `<output_dir>/tokens/<slug>.md`, where `<slug>` names the system this
-   taxonomy serves. When the target does not exist, copy
-   `assets/token-taxonomy-template.md` to it. Fill it with what steps 1–7
-   produced: the named goals each decision traces to, the primitive and
-   semantic layers, the roles and the job each does, the organizing ratio and
-   its symbolic steps for spacing and type, the accessibility floor and any
-   tension against it, the contrast budget, and the pointer to the interchange
-   file. The doc records the method and the symbolic shape; the resolved
-   numbers stay with the reader.
+6. **Prove it against real product needs** — the smallest set that exercises
+   every resolved domain at least once. A domain with no answer, or a
+   relationship that inverts under real content, is a finding.
+7. **Hold the floor** and record every adaptation it forced.
+8. **Write the artifact.** The target is `<output_dir>/tokens/<slug>.md`, where
+   `<slug>` names the system this serves. When the target does not exist, copy
+   `assets/token-taxonomy-template.md` to it. Fill it with what steps 2–7
+   produced. On `refine`, amend the existing artifact instead.
 
 ## Output
 
@@ -92,16 +163,51 @@ Before drafting, confirm:
 
 **Confinement:** `references/containment.md`
 
+## What the build needs from this artifact
+
+A completed artifact answers five questions without the reader having to make a
+design decision. Check each before finishing:
+
+- Which system is authoritative here?
+- Which values are already resolved?
+- Which relationships must survive implementation?
+- What may adapt responsively?
+- What is genuinely unresolved, and whose decision is it?
+
+A domain the direction reached and this artifact left blank becomes a coding
+agent's guess.
+
 ## Anti-patterns to refuse
 
-- **Reprinting a values table instead of deriving one.** A fixed palette,
-  spacing scale, or type scale with numbers is the thing this pack refuses to
-  ship. Hand back the method and a symbolic shape; the reader supplies values.
-- **Naming tokens by appearance.** A token named for how it looks today locks
-  the value into the name — rename hell the first time the direction shifts.
-- **Picking values before purpose.** A number with no named role is a guess
-  you'll relitigate. Decide what the token is *for* first.
-- **Treating accessibility as a later pass.** The floor is a constraint on
-  every token at derivation time, not a cleanup chore.
-- **Designing pages instead of systems.** One-off screens don't compose and
-  don't stay coherent as they grow. Build reusable elements.
+- **Empty taxonomy.** Naming token categories and leaving the decisions to
+  implementation. If an axis gave you authority, resolve it.
+- **Universal defaults.** Values that would arrive the same way for an unrelated
+  product. If your answer does not change when the direction changes, it came
+  from habit.
+- **Token proliferation.** Hundreds of primitives with no product need behind
+  them. Every token earns its place from the proving set.
+- **Direction drift.** A system that could belong to any product despite a
+  distinctive approved direction. Read the axis tokens again.
+- **Parallel system.** Building a second system beside a coherent incumbent one.
+  Inherit before extending; extend before replacing.
+- **Screenshot transcription.** Reporting a value as measured from a visual
+  target. Nothing here measures anything.
+- **Inaccessible fidelity.** Buying resemblance to a target with contrast,
+  focus, target size or motion safety. The floor is not purchasable.
+- **Implementation leakage.** Coupling the artifact to a framework, styling
+  language or pipeline the project does not require.
+- **Designing pages instead of systems.** One-off screens do not compose.
+  `references/atomic-composition.md`.
+
+## Conditional reference routing
+
+Load when the predicate fires; don't load speculatively.
+
+| Predicate | Reference |
+| --- | --- |
+| A route must resolve values, or a visual target is present | `references/value-derivation.md` |
+| Any route other than a confirmed-greenfield `originate` | `references/incumbent-systems.md` |
+| Naming roles, layering them, or setting a scale's ratio | `references/token-taxonomy-derivation.md` |
+| Deciding what belongs to a token and what to a component | `references/atomic-composition.md` |
+| Accessibility criteria or the quality floor | `../design-review/references/quality-floor.md` |
+| Writing, amending, or confining the artifact | `references/containment.md`, `references/agentbundle-layout.md` |

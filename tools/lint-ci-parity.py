@@ -496,6 +496,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest journey depth ladder and composition (experience composition)":
         LOCAL("test-after-build-check"),
+    "pytest adopter prose agrees with the shipped slice (frontend visual authority)":
+        LOCAL("test-after-build-check"),
     "pytest self-host recipe config (externalize-self-host-config)":
         LOCAL("test-after-build-check"),
     "pytest self-host fixture guard (windows-build-self-entry)":
@@ -580,6 +582,10 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
         LOCAL("test-after-build-check"),
+    "pytest creative-direction contract (pr-gate-suite-disposition)":
+        LOCAL("test-after-build-check"),
+    "pytest design-system contract (pr-gate-suite-disposition)":
+        LOCAL("test-after-build-check"),
     "pytest shared-test dedup guard (pr-gate-suite-disposition)":
         LOCAL("test-after-build-check"),
     "pytest pack-test compatibility class characterization (ADR-0101)":
@@ -645,6 +651,14 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest contract backward-traceability registry (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest repair-round predicate parity (spec contract vs shipped guard)":
+        LOCAL("test-after-build-check"),
+    "pytest spec-retirement candidate contract (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest spec-retirement candidate CLI (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest brief lifecycle single home (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest closure guide surface (roster-owned)":
         LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
@@ -885,6 +899,7 @@ _GATE_MAIN_CHECKS = (
     "pytest shared-libs projection retirement (credbroker T9)",
     "pytest shared state-coverage map (experience composition)",
     "pytest journey depth ladder and composition (experience composition)",
+    "pytest adopter prose agrees with the shipped slice (frontend visual authority)",
     "pytest self-host recipe config (externalize-self-host-config)",
     "pytest self-host fixture guard (windows-build-self-entry)",
     "pytest make-free gate chains (windows-build-gate-chain)",
@@ -910,6 +925,8 @@ _GATE_MAIN_CHECKS = (
     "pytest catalogue-test carve-out destinations (RFC-0082)",
     "pytest pack-test compatibility class characterization (ADR-0101)",
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)",
+    "pytest creative-direction contract (pr-gate-suite-disposition)",
+    "pytest design-system contract (pr-gate-suite-disposition)",
     "pytest shared-test dedup guard (pr-gate-suite-disposition)",
     "pytest user-libs vendored floor (credbroker-user-scope T3)",
     "pytest cursor adapter (cursor-full-parity)",
@@ -934,6 +951,10 @@ _GATE_MAIN_CHECKS = (
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
     "pytest repair-round predicate parity (spec contract vs shipped guard)",
+    "pytest spec-retirement candidate contract (roster-owned)",
+    "pytest spec-retirement candidate CLI (roster-owned)",
+    "pytest brief lifecycle single home (roster-owned)",
+    "pytest closure guide surface (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
@@ -1139,6 +1160,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
+    'packs/core/tests/skills/explain-diff/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
     'packs/core/tests/skills/intake-intent/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
@@ -1194,6 +1220,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest frontend-engineering pack "
             "suite (pr-gate-suite-disposition)"
         ),
+    'packs/experience-design/tests/skills/creative-direction/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest creative-direction contract "
+            "(pr-gate-suite-disposition)"
+        ),
+    'packs/experience-design/tests/skills/design-system/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest design-system contract "
+            "(pr-gate-suite-disposition)"
+        ),
     'packs/architect/tests/pack/':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
@@ -1219,6 +1255,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'packs/atlassian/tests/pack/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
     'packs/atlassian/tests/skills/jira/test_intake_policy.py':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
@@ -1230,6 +1271,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "so it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/flow-metrics/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira-epic-outcome-view/':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
@@ -1283,6 +1329,21 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the linear batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/code-intelligence/tests/pack/':
+        NO_PR_GATE(
+            "Pack manifest and surface-vocabulary suite. `make test` runs it; no pull-request "
+            "workflow names it, so it reaches CI only through the dispatch-only "
+            "test-corpus.yml. The vocabulary guard it carries is also enforced statically by "
+            "lint-pack-test-boundary, which every pull request does run."
+        ),
+    'packs/code-intelligence/tests/skills/code-intelligence/':
+        NO_PR_GATE(
+            "Pack skill suite. Its integration half executes the `wicked-estate` binary against "
+            "a real index and skips wholesale when that binary is absent, which is every "
+            "hosted runner — gating a pull request on a suite that cannot run there would "
+            "record a pass that proves nothing. `make test` runs it; the dispatch-only "
+            "test-corpus.yml is its CI route."
         ),
     'packs/converters/tests/skills/markdown-to-html/':
         PR_GATED(

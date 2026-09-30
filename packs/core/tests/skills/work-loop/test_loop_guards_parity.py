@@ -89,9 +89,41 @@ def goldens() -> dict:
     return {row["key"]: row for row in data["rows"]}
 
 
+_CURRENT_STREAM_CHANGE_REASONS = frozenset({"cohort-schema-2"})
+
+_CURRENT_STREAM_CHANGES = {
+    "identity/ok": {
+        "reason": "cohort-schema-2",
+        "stdout": "loop-cohort: run_id=<RUN_ID_1> schema_version=2",
+        "stderr": "",
+    },
+    "identity/ok-json": {
+        "reason": "cohort-schema-2",
+        "stdout": '{"run_id": "<RUN_ID_1>", "schema_version": 2}',
+        "stderr": "",
+    },
+    "identity/unsupported-schema": {
+        "reason": "cohort-schema-2",
+        "stdout": "",
+        "stderr": (
+            "loop-cohort: stop — identity: unsupported schema_version=99 (expected 2); "
+            "run `loop-cohort reset` then `loop-engine reset`"
+        ),
+    },
+    "check/unsupported-schema-non-implement": {
+        "reason": "cohort-schema-2",
+        "stdout": "",
+        "stderr": (
+            "loop-cohort: stop — check: unsupported schema_version=99 (expected 2); "
+            "run `loop-cohort reset` then `loop-engine reset`"
+        ),
+    },
+}
+
+
 def _state(**over) -> dict:
     st = {
-        "schema_version": 1, "run_id": RID, "feature": "fixture",
+        "schema_version": 2, "run_id": RID, "feature": "fixture",
         "plan_review_status": "pending",
         "approved_spec_hash": None, "approved_plan_hash": None, "plan_hash": None,
         "schedule_waves": [], "current_wave_index": 0,
@@ -99,6 +131,7 @@ def _state(**over) -> dict:
         "review_retry_count": 0, "finding_fingerprints": [],
         "previous_finding_fingerprints": [],
         "max_implementation_retries": 5, "max_review_retries": 5,
+        "pending_transition": None, "transition_history": [],
     }
     st.update(over)
     return st
@@ -419,14 +452,15 @@ def test_api_and_cli_agree(key, kwargs, api, tool, argv, guards, goldens, git_re
     if "after" not in golden:
         # Behaviour-preserving row: the streams must match byte-for-byte after
         # normalization. This is the assertion a substring check would have let slip.
-        assert gs.normalize(err, spec_dir=spec_dir) == golden["before"]["stderr"], (
+        expected_streams = _CURRENT_STREAM_CHANGES.get(key, golden["before"])
+        assert gs.normalize(err, spec_dir=spec_dir) == expected_streams["stderr"], (
             f"{key}: stderr drifted from the pre-change capture.\n"
-            f"  golden: {golden['before']['stderr']!r}\n"
+            f"  golden: {expected_streams['stderr']!r}\n"
             f"  actual: {gs.normalize(err, spec_dir=spec_dir)!r}"
         )
-        assert gs.normalize(out, spec_dir=spec_dir) == golden["before"]["stdout"], (
+        assert gs.normalize(out, spec_dir=spec_dir) == expected_streams["stdout"], (
             f"{key}: stdout drifted from the pre-change capture.\n"
-            f"  golden: {golden['before']['stdout']!r}\n"
+            f"  golden: {expected_streams['stdout']!r}\n"
             f"  actual: {gs.normalize(out, spec_dir=spec_dir)!r}"
         )
 
@@ -435,6 +469,32 @@ def test_api_and_cli_agree(key, kwargs, api, tool, argv, guards, goldens, git_re
         assert err.strip(), f"{key}: refusal with an empty stderr"
         assert len(err.strip().split("\n")) == 1, f"{key}: stderr is not one line"
         assert "Traceback" not in err, f"{key}: traceback instead of a refusal"
+
+
+def test_current_stream_change_lane_is_closed_and_fully_consumed(goldens) -> None:
+    """Same-verdict stream changes live outside frozen `before` and verdict-flip `after`."""
+    expected_keys = {
+        "identity/ok",
+        "identity/ok-json",
+        "identity/unsupported-schema",
+        "check/unsupported-schema-non-implement",
+    }
+    assert set(_CURRENT_STREAM_CHANGES) == expected_keys
+    assert set(_CURRENT_STREAM_CHANGES) <= set(goldens)
+    observed_reasons: set[str] = set()
+    for key, streams in _CURRENT_STREAM_CHANGES.items():
+        assert streams["reason"] in _CURRENT_STREAM_CHANGE_REASONS
+        observed_reasons.add(streams["reason"])
+        assert "after" not in goldens[key]
+        assert "change_reason" not in goldens[key]
+        assert {
+            "stdout": streams["stdout"],
+            "stderr": streams["stderr"],
+        } != {
+            "stdout": goldens[key]["before"]["stdout"],
+            "stderr": goldens[key]["before"]["stderr"],
+        }
+    assert observed_reasons == _CURRENT_STREAM_CHANGE_REASONS
 
 
 def test_the_table_covers_every_guard(goldens) -> None:

@@ -102,6 +102,7 @@ __all__ = [
     "wave_is_well_formed",
     "unaccounted_wave_tasks",
     "superseded_wave_tasks",
+    "wave_accounting_summary",
     "bounded_id_list",
     # the six read-only guards
     "check_identity",
@@ -117,7 +118,8 @@ TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 # Each standalone CLI retains a local declaration so its schema validation gains no
 # new load dependency. The alignment test keeps these declarations and the template
 # on one schema version.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+RESET_PAIR_ORDER = "run `loop-cohort reset` then `loop-engine reset`"
 
 
 # ── result type ───────────────────────────────────────────────────────────
@@ -895,7 +897,7 @@ def validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> str | None
     if sv != SCHEMA_VERSION:
         return (
             f"{verb}: unsupported schema_version={_scalar(sv)} "
-            f"(expected {SCHEMA_VERSION}); run reset pair"
+            f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
         )
     stored = state.get("run_id")
     if stored != expect_run_id:
@@ -1045,7 +1047,7 @@ def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
             ok=False,
             reason=(
                 f"identity: unsupported schema_version={_scalar(sv)} "
-                f"(expected {SCHEMA_VERSION})"
+                f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
             ),
         )
     stored = state.get("run_id")
@@ -1432,6 +1434,61 @@ def unaccounted_wave_tasks(state: dict, wave_index: int) -> list[str]:
     return [task for task in wave if not accounts_for_task(held.get(task))]
 
 
+def wave_accounting_summary(state: dict, wave_index: int) -> dict | None:
+    """Count one wave's dispatch records, or None when its accounting is undefined.
+
+    Returns None exactly when `unaccounted_wave_tasks`'s precondition fails —
+    container key absent, `schedule_waves` not a list, index out of range, or the
+    wave malformed. That block is restated here rather than derived, because the
+    predicate returns an empty list both for a precondition violation and for a
+    fully accounted wave and so cannot distinguish them. `test_wave_accounting_walk.py`
+    is the control: for every generated state it requires an absent summary to
+    coincide with the predicate reporting nothing outstanding, so the two
+    statements cannot disagree about which states are violations.
+
+    Every figure is counted once per POSITION in the wave, on the predicate's own
+    basis. A key-based count over the container subtree would diverge from it on a
+    wave listing one identifier twice and on a container key naming a task the
+    wave does not list, and `receipts + declines + unaccounted == tasks` would then
+    fail on a correct implementation.
+
+    `receipts` and `declines` count only records `accounts_for_task` admits, so a
+    superseded record falls to `unaccounted` and to neither. Classifying on `kind`
+    alone would count it twice; `superseded` is read through the same predicate
+    rather than by truthiness, because the declared check is `is not True`.
+    """
+    if RECEIPTS_KEY not in state:
+        return None
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not 0 <= wave_index < len(waves):
+        return None
+    wave = waves[wave_index]
+    if not wave_is_well_formed(wave):
+        return None
+
+    held = state.get(RECEIPTS_KEY)
+    for key in (partition_digest(waves), str(wave_index)):
+        held = held.get(key) if isinstance(held, dict) else None
+    records = held if isinstance(held, dict) else {}
+
+    receipts = declines = 0
+    for task in wave:
+        value = records.get(task)
+        if not accounts_for_task(value):
+            continue
+        if value.get("kind") == RECEIPT_KIND:
+            receipts += 1
+        else:
+            declines += 1
+    return {
+        "tasks": len(wave),
+        "receipts": receipts,
+        "declines": declines,
+        "superseded": len(superseded_wave_tasks(state, wave_index)),
+        "unaccounted": len(unaccounted_wave_tasks(state, wave_index)),
+    }
+
+
 def bounded_id_list(ids: list) -> str:
     """Whole identifiers from a state-derived list, bounded and honest about it.
 
@@ -1489,7 +1546,7 @@ def _wave_exit_verdict(state: dict) -> GuardResult:
             reason=(
                 f"wave exit: schedule_waves is malformed ({_scalar(waves)}); "
                 "expected a non-empty list of waves — run schedule to persist a "
-                "partition, or if amendment_pending is set, complete the amendment "
+                "partition, or if pending_transition is set, complete the amendment "
                 "with approve-plan and then schedule"
             ),
         )
@@ -1652,7 +1709,7 @@ def check_phase(spec_dir: Path, *, phase: str,
             ok=False,
             reason=(
                 f"check: unsupported schema_version={_scalar(sv)} "
-                f"(expected {SCHEMA_VERSION}); run reset pair"
+                f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
             ),
         )
 

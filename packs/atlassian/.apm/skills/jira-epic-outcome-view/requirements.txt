@@ -1,0 +1,9 @@
+# jira-epic-outcome-view has no pip dependencies -- stdlib only.
+#
+# The view composes two sibling skills as subprocesses and does its own
+# grouping with dict and list. Nothing here needs a numeric stack: no
+# distribution is computed at any depth, so every figure is a count.
+#
+# This file exists to satisfy the kit-installer contract, which expects
+# every shipped skill to declare its pip surface. An empty
+# requirements.txt is the canonical way to say "no pip deps".

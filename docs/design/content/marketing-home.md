@@ -156,7 +156,7 @@ Two hard constraints on how these are produced:
   than substituting an example. If any of the three cannot be shown, say so in
   place of it.
 
-`conversion-design` decides how many of the three fit the band.
+`information-architecture` with the marketing reference decides how many of the three fit the band.
 
 ## CTAs
 
@@ -221,7 +221,7 @@ outcome this engagement exists to move past.
 
 `communication_mode: product-copy`, so: `copy-direction` next for per-surface copy
 voice and register grounding, referencing the brand register once
-`tone-of-voice` has produced one. `conversion-design` reads this mode and runs
+`tone-of-voice` has produced one. `information-architecture` with the marketing reference reads this mode and runs
 its editorial quality gate. `user-flow` consumes the scroll sections as copy
 slots. `ux-writing` owns the strings, including the unfurl.
 
@@ -355,7 +355,7 @@ suspicion confirmed rather than answered.
   zone 10 should point at the tech site and stop. The journeys for both readers
   exist; the question is one of emphasis, not evidence.
 - Whether the two doors in zone 9 read as one choice or as a fork the reader
-  must evaluate before acting. `conversion-design` owns it.
+  must evaluate before acting. `information-architecture` with the marketing reference owns it.
 
 ---
 

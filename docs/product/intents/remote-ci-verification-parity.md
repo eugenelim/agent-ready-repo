@@ -4,6 +4,7 @@
 - **Status:** Accepted
 - **Level:** feature
 - **Owner:** eugenelim
+- **Outcome co-owner:** intent:native-platform-verification-coverage
 
 ## Outcome
 

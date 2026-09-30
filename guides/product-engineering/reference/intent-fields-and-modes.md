@@ -45,9 +45,10 @@ additions keep working.
 | `Kind` | constrained when present | `outcome` or `opportunity` — the rung this intent occupies on the opportunity-solution tree |
 | `Scale` | constrained when present | `app` or `business-unit` — resolved at intake (see Modes) |
 | `Maturity` | constrained when present | `greenfield` or `brownfield` — gates current-state inputs |
+| `Outcome co-owner` | constrained when present | a peer declaration in typed pointer form: one of `outcome`, `opportunity`, `capability`, or `intent`, followed by `:` and a non-empty target identity. The corpus lint resolves the target; this row only checks the one-artifact shape |
 | `De-risked` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no`. The basic form `20260922`, a week date, and an ordinal date are refused |
 | `Shaping-reviewed` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no` |
-| `Decomposed` | constrained when present | the literal `no`, or an ISO 8601 calendar date written `YYYY-MM-DD` followed by exactly one of `children`, `brief`, `spec`, `direct-light` |
+| `Decomposed` | constrained when present | the literal `no`, or an ISO 8601 calendar date written `YYYY-MM-DD` followed by exactly one of `children`, `brief`, `spec`, `direct-light`, `closed-empty` |
 | `Governed by` | unconstrained | the governing decision this intent answers to |
 | `Parent intent` | unconstrained | back-link to the intent this was decomposed from; omit at the top of the tree |
 | `Milestone` | unconstrained | where this sits in an implementation sequence |
@@ -107,6 +108,32 @@ These are sections, not preamble fields, and no tier above applies to them.
 | **Opportunity** | the solution-independent need (a job to be done) |
 | `Assumptions` | what must be true for the bet to pay off |
 | `Decomposition` | the children: lower-level intents, or a spec/slice at the leaf. When `Decomposed` ends in `direct-light`, each checkbox item here states its own requested outcome |
+
+## Tombstone files
+
+When an intent is renamed, the old filename is retired rather than deleted. A
+**tombstone file** is left at the vacated name so that the old ordinal is never
+reissued to a new intent.
+
+**Partition rule:** a file in `docs/product/intents/` is a tombstone if and only
+if its preamble carries a `Tombstone:` field. Every file in the directory is
+either a live intent or a tombstone; this single field is what decides which.
+
+A tombstone's preamble carries exactly three fields and no others:
+
+| Field | Value |
+| --- | --- |
+| `Slug` | The slug the retired file carried — unchanged from the original intent |
+| `Tombstone` | The retirement date, written as one ISO 8601 calendar date `YYYY-MM-DD` |
+| `Reissued as` or `Retired` | Exactly one of these two: `Reissued as` holds the repository-relative path to the renamed successor (under `docs/product/intents/`); `Retired` holds a single non-empty line describing why the intent was retired without a successor |
+
+Both pointer fields together, or neither, are refused.
+
+The tombstone file's **name** is the retired intent filename, unchanged — the
+same `<TYPE>-NNNN-<slug>.md` structure and `.md` extension. Changing the name in
+any way would break the ordinal reservation: a name outside the expected shape
+either fails every later admission in the directory, or frees the ordinal
+silently with no error. The correct name is the retired name, exactly as it was.
 
 ## Product-altitude fields (level-conditional)
 

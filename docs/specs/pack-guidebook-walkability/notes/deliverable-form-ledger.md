@@ -3,6 +3,12 @@
 T1a of pack-guidebook-walkability. Measured 2026-09-11 against
 `ec6b94f91`, over the 74 published skills of the five SOP packs.
 
+**Current-state note (2026-09-26):** the six genre registrations shown in the
+historical `experience-design` rows were later folded into
+`information-architecture`; the pack now publishes 14 skills. The rows and
+totals below remain unchanged because they are evidence measured at the named
+revision, not current routing guidance.
+
 **This exists because a wave was once ordered on a number that moved with its
 predicate.** An earlier draft of the plan called `product-strategy` the most
 expensive pack for the outline obligation on the strength of "zero stated
@@ -161,4 +167,3 @@ a source of truth to be compared against rather than invented.
 | `work-intake` | yes | **—** | 0 |
 | `work-loop` | yes | asset | 2 |
 | `workspace-status` | yes | fence | 6 |
-

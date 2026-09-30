@@ -17,7 +17,7 @@ Customers arrive without commitment; the journey ends at a conversion decision.
 | **Converting** | Takes the commitment action (signup, purchase, trial start) |
 | **Advocating** | Shares the experience; drives referral or social proof |
 
-**Design priority:** negative peaks cluster at the Evaluating stage (trust gaps, unclear pricing, unaddressed objections). The most-positive peak is typically at Conversion or the first moment of product value. `conversion-design` owns the surface design for this journey.
+**Design priority:** negative peaks cluster at the Evaluating stage (trust gaps, unclear pricing, unaddressed objections). The most-positive peak is typically at Conversion or the first moment of product value. `information-architecture` owns the surface design for this journey through its marketing genre route.
 
 ---
 
@@ -33,7 +33,7 @@ Customers arrive with a task or a concept to understand; success is defined by t
 | **Recurring reference** | Returns to look up specific details, parameters, or edge cases |
 | **Mastery** | Navigates with confidence; rarely needs the entry-level content |
 
-**Design priority:** negative peaks cluster at Discovering (wrong entry point, outdated content, broken search) and First value (tutorial fails mid-way, prerequisite unstated). `documentation-design` owns the surface design for this journey.
+**Design priority:** negative peaks cluster at Discovering (wrong entry point, outdated content, broken search) and First value (tutorial fails mid-way, prerequisite unstated). `information-architecture` owns the surface design for this journey through its documentation genre route.
 
 ---
 
@@ -49,7 +49,7 @@ Customers arrive to understand a topic; success is knowledge gained or perspecti
 | **Integrating** | Connects what they read to their existing knowledge or situation |
 | **Acting or sharing** | Takes a next step (action, share, deeper reading) |
 
-**Design priority:** negative peaks cluster at Committing (unclear value proposition in headline/deck) and Integrating (no "what's next" path after the content ends). `informational-design` owns the surface design for this journey.
+**Design priority:** negative peaks cluster at Committing (unclear value proposition in headline/deck) and Integrating (no "what's next" path after the content ends). `information-architecture` owns the surface design for this journey through its informational genre route.
 
 ---
 
@@ -66,7 +66,7 @@ Customers arrive to answer a business question and take action; success is a dec
 | **Acting** | Takes an action (assigns, escalates, exports, adjusts) |
 | **Verifying** | Confirms the action had the intended effect |
 
-**Design priority:** negative peaks cluster at Diagnosing (can't find the cause from the signal) and Acting (action affordance not visible from the diagnostic). `analytical-design` owns the surface design for this journey.
+**Design priority:** negative peaks cluster at Diagnosing (can't find the cause from the signal) and Acting (action affordance not visible from the diagnostic). `information-architecture` owns the surface design for this journey through its analytical genre route.
 
 ---
 
@@ -100,7 +100,7 @@ Customers arrive to find and select from a set of offerings; success is a confid
 | **Committing** | Selects a listing and initiates the transaction |
 | **Post-purchase** | Uses, reviews, or manages the purchased item |
 
-**Design priority:** negative peaks cluster at Evaluating listings (not enough qualification information on the card, or too much cognitive load in the detail page) and the transition to Committing (transaction flow loses marketplace context). `marketplace-design` owns the surface design for this journey.
+**Design priority:** negative peaks cluster at Evaluating listings (not enough qualification information on the card, or too much cognitive load in the detail page) and the transition to Committing (transaction flow loses marketplace context). `information-architecture` owns the surface design for this journey through its marketplace genre route.
 
 ---
 
@@ -116,4 +116,4 @@ Customers arrive to do complex, sustained professional work; success is meaningf
 | **Persisting** | Saves progress and exits gracefully; confirms work is safe |
 | **Collaborating** | Shares, hands off, or reviews with another person |
 
-**Design priority:** negative peaks cluster at Arriving (context loss — "where was I?") and Persisting (uncertainty about whether work was saved). `workspace-design` owns the surface design for this journey.
+**Design priority:** negative peaks cluster at Arriving (context loss — "where was I?") and Persisting (uncertainty about whether work was saved). `information-architecture` owns the surface design for this journey through its workspace genre route.

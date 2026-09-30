@@ -1,10 +1,11 @@
 # Plan: pack guidebook walkability
 
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 
 **Repository anchors:** `guides/AGENTS.md` (adopter-facing; frontmatter owned by
 `contracts/guide.schema.json`; `author-product-docs` for authoring),
+`docs/guides/guidebook-step-contract.md` (the normative maintainer contract),
 `packs/AGENTS.md` (why no pack source is touched), `web/AGENTS.md` (generated
 inputs, the prime-journey anchor), root `AGENTS.md` § Coding conventions (cut
 before adding; reuse before building). Analogous implementations:
@@ -43,6 +44,23 @@ Three mechanisms already exist and are reused rather than rebuilt:
 `journey:` frontmatter is **not** reused: `tools/build-site.py:908` strips it
 before writing and nothing reads it. Building on an inert field would look like
 reuse and behave like invention.
+
+### Controlled closeout amendment — 2026-09-28
+
+The owner ratified the delivered standalone, 16-obligation contract at
+`docs/guides/guidebook-step-contract.md`. That decision replaces T1's planned
+destination and the 12-obligation draft used when this plan was approved.
+`guides/AGENTS.md` is now the scoped pointer, while the standalone document is
+the runtime source read by the lint and its construction tests. The four added
+obligations are `what_changes`, `correction`, `go_deeper`, and `step_map`; the
+delivered `artifact_preview` also replaces the draft's outline-only form.
+
+The guidebook outcome itself did not require a pack-source change. The
+product-strategy citation repair bundled in the delivery commit is classified
+as a separate correction and is not used as completion evidence here. The
+closeout ledger records the current supported local gates and the merged
+delivery reference; it does not claim that the historical T9 command list ran
+under this session's unavailable Astro toolchain.
 
 ## Tasks
 
@@ -555,6 +573,12 @@ its count and runtime, plus the per-pack affordance before-and-after.
 
 ## Changelog
 
+- 2026-09-28 — **Owner ratification and closeout amendment.** Accepted the
+  delivered standalone 16-obligation contract, with `guides/AGENTS.md` as its
+  scoped pointer. The bundled product-strategy citation repair remains outside
+  this spec. T1's destination and the draft obligation set are superseded by
+  the controlled amendment above; implementation strategy and shipped guide
+  content are otherwise unchanged.
 - 2026-09-11 — Owner direction: the slice is the guidebook, not the
   cross-pack walk. Orientation exists; a usable guidebook does not.
 - 2026-09-11 — Owner direction: derive a consistent guidebook protocol from

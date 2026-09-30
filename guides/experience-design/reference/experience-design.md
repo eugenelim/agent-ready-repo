@@ -14,7 +14,7 @@ away. When frontmatter changes, update this page in the same change. For a
 task-oriented walkthrough, see [Thread a feature from journey to screens](../how-to/author-design-intent.md).
 :::
 
-The pack contains 20 pure-Markdown skills and one independent reviewer agent.
+The pack contains 12 pure-Markdown skills and one independent reviewer agent.
 It installs at user scope across every adapter declared by the pack manifest.
 
 ## Operating contract
@@ -52,19 +52,14 @@ syntax or fixed visual values.
 | Orient to existing design work | `experience-status` | Read-only status and next design skill | Not portfolio, shaping, or build status |
 | Create durable design arbitration rules | `design-principles` | Named principles with tests | Not product positioning or component rules |
 | Name a visual direction | `creative-direction` | Ranked aesthetic goals | Not market positioning or visual implementation |
-| Derive token names and scales | `design-system` | Token taxonomy and rationale | Not token implementation |
+| Resolve the design system | `design-system` | Relationships plus the values that make them buildable | Not component code |
 | Organize hierarchy and wayfinding | `information-architecture` | IA and layout reasoning | Not markup or styles |
 | Specify behavior within a screen | `interaction-design` | Behavioral and state specification | Not component code or UI strings |
 | Critique an existing design | `design-review` | Severity-rated findings | Not code review or new design creation |
-| Decide a surface's message and structure | `content-design` | Content brief | Not brand register, copy goals, or UI strings |
-| Set copy goals for one acquisition surface | `copy-direction` | Copy-direction record | Not brand register, content structure, or UI strings |
-| Define the cross-surface brand register | `tone-of-voice` | Brand-register document | Not one surface's copy direction or UI strings |
-| Structure a marketing or acquisition surface | `conversion-design` | Conversion-surface specification | Not go-to-market strategy, final copy, or page code |
-| Structure docs, help, or API reference | `documentation-design` | Docs IA and navigation specification | Not docs strategy, technical authoring, or site code |
-| Structure a dashboard or reporting view | `analytical-design` | Analytical IA and widget hierarchy | Not metric strategy or chart implementation |
-| Structure an editorial reading surface | `informational-design` | Typography and reading-flow specification | Not editorial strategy, article writing, or template code |
-| Structure marketplace discovery and choice | `marketplace-design` | Catalogue and transaction-bridge IA | Not marketplace strategy or implementation |
-| Structure sustained professional work | `workspace-design` | Workspace-surface specification | Not feature scope, implementation, or UI strings |
+| Decide a surface's message and structure | `content-design` (message and narrative structure) | Content brief | Not UI strings |
+| Set copy goals for one acquisition surface | `content-design` (per-surface acquisition copy goals) | Copy-direction record | Not UI strings |
+| Define the cross-surface brand register | `content-design` (brand-level register) | Brand-register document | Not one surface's copy direction or UI strings |
+| Structure a surface by genre | `information-architecture` | Genre-fit IA and layout reasoning | Not product strategy, final copy, or implementation |
 
 ## Connective and operational skills
 
@@ -146,7 +141,7 @@ through the `[design]` layout contract below.
 
 **Routes away:** target segments and product positioning, choosing or scoping a
 bet, and encoding rules in components. Use `creative-direction` for visual
-goals, `design-system` for token taxonomy, and `design-review` for critique.
+goals, `design-system` to resolve the system, and `design-review` for critique.
 
 ### `creative-direction`
 
@@ -164,11 +159,15 @@ critique.
 
 ### `design-system`
 
-**Use when:** “Derive semantic spacing, type, and color token names from our
-approved direction.”
+**Use when:** “Turn our approved direction into a design system we can
+actually build.”
 
-**Returns:** a semantic token/scale taxonomy and its rationale. It names and
-organizes the system but does not implement token values.
+**Returns:** a project-specific design system — the relationships that must
+survive implementation, and the values that make them buildable.
+
+It resolves each domain from the highest-ranked authority that reaches it, and
+records which one that was. A domain no authority reaches is recorded
+unresolved rather than chosen. It does not write component code.
 
 **Routes away:** product differentiation, design-system initiative shaping, and
 token or component implementation. Use `creative-direction` to establish the
@@ -210,15 +209,17 @@ approved aesthetic reference.
 
 **Routes away:** product-strategy review, bet selection/framing, and code or
 implementation review. Use `creative-direction` to create a direction,
-`information-architecture` to design hierarchy, and `design-system` to derive
-tokens.
+`information-architecture` to design hierarchy, and `design-system` to resolve
+the system.
 
 ## Content and copy
 
-The copy path has four owners in sequence: `tone-of-voice` defines the brand
-register; `content-design` decides what the surface communicates and how it is
-structured; `copy-direction` sets acquisition-surface copy goals; `ux-writing`
-in product engineering writes product UI strings.
+The copy path has two owners. `content-design` covers three of the four steps,
+one per mode: the brand-level register mode defines the brand register, the
+message and narrative structure mode decides what the surface communicates and
+how it is structured, and the per-surface acquisition copy goals mode sets
+acquisition-surface copy goals. `ux-writing` in product engineering writes
+product UI strings.
 
 ### `content-design`
 
@@ -233,7 +234,7 @@ including the message, audience, form, order, objective, and
 or content-system implementation. It does not own brand register,
 acquisition-surface copy goals, or product UI strings.
 
-### `copy-direction`
+### `content-design` — per-surface acquisition copy goals mode
 
 **Use when:** “Name the copy goals for this pricing-page hero before anyone
 writes the lines.”
@@ -242,10 +243,10 @@ writes the lines.”
 surface. Writes `<output_dir>/copy/<surface-slug>.md`.
 
 **Routes away:** product/growth strategy, acquisition-bet framing, and surface
-implementation. It may reference `tone-of-voice`, runs after `content-design`,
-and does not own `ux-writing`'s product UI strings.
+implementation. It may reference the brand register, runs after the message and
+narrative structure mode, and does not own `ux-writing`'s product UI strings.
 
-### `tone-of-voice`
+### `content-design` — brand-level register mode
 
 **Use when:** “Our teams sound inconsistent; define the brand voice every
 channel should share.”
@@ -254,89 +255,28 @@ channel should share.”
 arbitration rules. Writes `<output_dir>/copy/brand-register.md`.
 
 **Routes away:** organization-level product/content strategy, initiative
-shaping, and copy implementation. It anchors but does not replace
-`content-design`, `copy-direction`, or `ux-writing`.
+shaping, and copy implementation. It anchors but does not replace the other two
+modes or `ux-writing`.
 
 ## Surface genres
 
 Declare the chosen genre once in the per-screen brief's `surface-genre:` field.
-The matching skill applies that genre's method without replacing the connective
-or craft skills.
+`information-architecture` applies the matching method for marketing,
+documentation, analytical, informational, marketplace, or workspace surfaces
+without replacing the connective or behavior skills. A `transactional-journey`
+brief routes to `interaction-design`'s wizard-and-stepper patterns instead. When
+a brief declares no genre the skill elicits one rather than falling back to a
+generic method — the genre is what supplies the structural vocabulary.
 
-### `conversion-design`
+Use it when a screen needs genre-fit structure: an acquisition page's offer
+story, a help center's navigation, a monitoring view's business questions, an
+editorial page's reading flow, a catalogue's choice architecture, or a
+professional workspace's context model.
 
-**Use when:** “Structure a pricing page so a qualified visitor understands the
-offer and can act.”
-
-**Returns:** information architecture and structural specifications for a
-marketing or acquisition surface, including its above-fold and scroll story.
-
-**Routes away:** go-to-market strategy, acquisition-initiative shaping, final
-copy, and page implementation. Use `content-design` for message hierarchy,
-`copy-direction` for copy goals, and the flow/interaction skills for product UI.
-
-### `documentation-design`
-
-**Use when:** “Design the help center so new users reach the right task guide
-quickly.”
-
-**Returns:** content-type, information-architecture, navigation-at-scale, and
-first-value specifications for docs, help, or API-reference surfaces.
-
-**Routes away:** organization-level documentation strategy, docs-platform
-shaping, technical content authoring, and site/theme implementation. Use
-`conversion-design` for marketing and `informational-design` for editorial
-reading.
-
-### `analytical-design`
-
-**Use when:** “Design a monitoring view that helps operators spot a problem and
-decide what to do.”
-
-**Returns:** domain-model-first analytical information architecture, business
-questions, role-aware views, and widget hierarchy. Individual chart code is not
-the output.
-
-**Routes away:** metric/outcome strategy, analytics-product shaping, and chart
-or data-binding implementation. Use `interaction-design` for component behavior
-and `workspace-design` for sustained-work tools.
-
-### `informational-design`
-
-**Use when:** “Design a long-form article template that stays readable through
-dense material.”
-
-**Returns:** typography, hierarchy, editorial grid, reading flow, and the next-
-content path for an informational surface.
-
-**Routes away:** editorial/product strategy, publishing-product shaping,
-article writing, and template implementation. Use `documentation-design` for
-task/reference systems and `conversion-design` for acquisition pages.
-
-### `marketplace-design`
-
-**Use when:** “Design catalogue filters and comparison views that help buyers
-choose between listings.”
-
-**Returns:** search, filter, listing, comparison, detail, and transaction-bridge
-information architecture for a multi-party exchange.
-
-**Routes away:** marketplace strategy, bet framing/sizing, implementation of
-search/transactions, and listing copy. Use `conversion-design` for a
-single-product marketing page and `workspace-design` for an internal tool.
-
-### `workspace-design`
-
-**Use when:** “Design a collaborative workspace that preserves context across
-sessions and interruptions.”
-
-**Returns:** a workspace-surface specification covering context persistence,
-collaboration state, ambient attention, interruption handling, agentic patterns,
-and session arcs.
-
-**Routes away:** product strategy, feature appetite/scope, workspace
-implementation, and UI-string authoring. Use `analytical-design` for dashboards,
-`marketplace-design` for exchange surfaces, and `ux-writing` for UI strings.
+It returns hierarchy, reading flow, navigation, wayfinding, and the
+genre-specific structure needed before behavior design. It routes away from
+product strategy, content strategy, copywriting, feature appetite, component
+implementation, and UI-string authoring.
 
 ## Independent reviewer
 

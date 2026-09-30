@@ -4,6 +4,7 @@
 - **Received:** 2026-08-17
 - **Owner:** Platform Core (`ini-002`)
 - **Status:** Shipped
+- **Cut-closed:** 2026-08-25 All nine slices confirmed Shipped; see § Spec map.
 
 ## Outcome
 

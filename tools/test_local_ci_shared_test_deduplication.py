@@ -131,9 +131,20 @@ CORE_COLLECTIONS = {
     # test_terminated_brief_child_scope (6 arms, one per Withdrawn/Cancelled
     # crossing with a child's Approved/Implementing/Shipped state). Nothing else
     # was removed, and the surviving 15 keep their original relative order.
+    # Re-pinned 2026-09-26 for the brief-lifecycle contract: 28 -> 70.
+    # Dispositioned against `origin/main` before re-pinning, as the note above
+    # requires: 42 additions, 0 removals, no rename, and the original 28 keep
+    # their relative order. The additions are the lint-side half of that
+    # contract -- the `Cut-closed:` declaration and its refusals, the bounded
+    # preamble reader asserted through the lint's own entry point for all three
+    # fields it reads (the three parametrized `ac0007` families, 17 arms), the
+    # Spec-map comment-awareness rules, and the heading-whitespace cases. A
+    # count-only comparison would have missed that nothing was removed, which
+    # is the half that matters here: this change routes existing reads through
+    # a new module, so a silently dropped assertion is the failure to look for.
     SHARED_TESTS[1]: (
-        28,
-        "f2e8743d576e63b9a7cf0ce39167f8742ec0f272237bf898e79701041a421d40",
+        70,
+        "0e0161b9415c15412fcb85d69fc42c0f62920e9215e297c76ed9152a3ce193e5",
     ),
     # Re-pinned 2026-09-10: 45 -> 48, same change as SHARED_TESTS[0]. A passing
     # traceability run now withholds its per-item detail lines, and three
@@ -143,9 +154,21 @@ CORE_COLLECTIONS = {
     # which fails if a new `out.append` uses a different indent and so would
     # otherwise be unsuppressible. Dispositioned by the same AST diff: three
     # additions, no removal, no rename.
+    # Re-pinned 2026-09-26 for the intent closure declarations: 63 -> 72.
+    # Dispositioned against `origin/main` before re-pinning, as the note above
+    # requires: 9 additions, 0 removals, no rename, and the surviving 63 keep
+    # their relative order. Seven are the `Outcome co-owner:` criteria read
+    # through the lint's own entry point and through its helper — unresolved
+    # and self-referential peers, the no-new-edges control, and the
+    # comment-visibility cases — and two are the arms of
+    # `test_sidecar_outcome_co_owner_refuses_invalid_peer`, which carried no
+    # `ids=` when it was written, so the ID requirement fired before the count
+    # could and this check was red for the whole branch. The arms are named
+    # `unresolved-peer` and `self-reference` rather than left to pytest's
+    # generated indices, which renumber silently when an arm is inserted.
     SHARED_TESTS[2]: (
-        63,
-        "1a9d10be9aaaff85df11c343fb4925d54d59bd94b69868cec31e8a5c4fa6f34e",
+        72,
+        "1a21a5123506da2ea40f146556477a9148e06f08753f0e7b1bc43d1f0cbf0624",
     ),
 }
 
@@ -798,11 +821,130 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # over: the pre-rebase values (`8e084d8d…`/`c79d92dc…`) were computed over a
 # Makefile without the two `lint:css` lines, so keeping either side of the
 # conflict would have pinned a plan no invocation produces.
+# Bumped 2026-09-25 for the jira-epic-outcome-view pack suite, which adds one
+# `run-test-suite` line so the new skill's criteria are enforced on every pull
+# request rather than only under the dispatch-only test-corpus.yml.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added line and zero
+# removed or reordered — `$(PYTHON) -m pytest
+# packs/atlassian/tests/skills/jira-epic-outcome-view/ -q`, placed immediately
+# after the flow-metrics line it sits beside in build-check.yml's carve-out
+# step. It is a new process, so every plan index after it shifts by one and
+# both digests move for one added line. The root/tool process counts hold at
+# 15/14: the line is a pack suite, not a root or tools group, so
+# `_root_tool_pytest_groups` sees no change and EXPECTED_ROOT_TOOL_PATHS is
+# untouched. Every other case in this file passed against the edited Makefile;
+# only the two digests reddened.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` (e8e49c6b7) with `19f809d1…` and `b2a286f2…` still in
+# place returns an empty error list — checked by expanding that Makefile text
+# through the same function in this worktree — so this supersedes live values
+# rather than a pin that had already gone stale.
+# Bumped 2026-09-26 for the atlassian pack-level suite, which adds one
+# `run-test-suite` line so the pack's bridge-skill declaration is asserted on
+# every pull request rather than only under the dispatch-only test-corpus.yml.
+# (1) Sole cause: the Makefile change in this commit is one added line and zero
+# removed or reordered — `$(PYTHON) -m pytest packs/atlassian/tests/pack/ -q`,
+# placed at the head of the atlassian batch, immediately after the `import
+# httpx` precondition. It is a new process, so every plan index after it shifts
+# by one and both digests move for one added line. The root/tool process counts
+# hold at 15/14: the line is a pack suite, not a root or tools group, so
+# `_root_tool_pytest_groups` sees no change and EXPECTED_ROOT_TOOL_PATHS is
+# untouched. `_effective_composition_errors` over the edited Makefile returned
+# exactly two errors — the two plan-digest drifts — and nothing else.
+# (2) Prior pins were current: `_effective_composition_errors` over this
+# branch's pre-edit Makefile, with `c72bca08…` and `8ee87c7f…` still in place,
+# returns an empty error list — checked by expanding that saved Makefile text
+# through the same function — so this supersedes live values rather than a pin
+# that had already gone stale. The baseline is `origin/main` (e8e49c6b7) plus
+# the jira-epic-outcome-view line the entry above added on this branch, which
+# is the state this change builds on; against bare `origin/main:Makefile` the
+# superseded pins drift on both plans, and that drift is that unmerged line,
+# not staleness.
+# Re-pinned 2026-09-27 for the core pack's explain-diff skill suite, which adds
+# one `run-test-suite` line. The suite existed with no runner naming it, so
+# `lint-pack-test-boundary` refused it; wiring it here is what moves the plan.
+# (1) Sole cause: this commit's Makefile change is one added line and zero
+# removed or reordered — `$(PYTHON) -m pytest
+# packs/core/tests/skills/explain-diff/ -q`, in the core batch after
+# `contract-acquisition`. Expanding `origin/main:Makefile` and this worktree's
+# Makefile through `_effective_composition_errors`' own path gives standalone
+# 68 -> 69 and composed 67 -> 68 lines, with exactly one line differing in each,
+# inserted at index 24 and appearing once; deleting it from the new plan
+# reproduces the baseline element for element, so nothing else moved, was
+# reordered, or was dropped. It is a pack suite, not a root or tools group, so
+# `_root_tool_pytest_groups` and EXPECTED_ROOT_TOOL_PATHS are untouched.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `b0da72f5…` and `8f9294bb…` still in place returns
+# an empty error list — expanded through the same function in this worktree — so
+# this supersedes live values rather than a pin that had already gone stale. The
+# baseline is bare `origin/main`, which this branch is merged up to and whose
+# Makefile differs from this worktree's by the single line above and nothing
+# else.
+# Re-pinned 2026-09-27 for the experience-design pack's creative-direction
+# contract suite, which adds one `run-test-suite` line. Same shape as the
+# explain-diff re-pin it supersedes: the suite existed with no runner naming
+# it, so `lint-pack-test-boundary`'s `every-suite-dir-has-a-runner` refused it,
+# and wiring it here is what moves the plan.
+# (1) Sole cause: this commit's Makefile change is one added line and zero
+# removed or reordered — `$(PYTHON) -m pytest
+# packs/experience-design/tests/skills/creative-direction/ -q`, after the
+# `frontend-engineering` pack line. Expanding this worktree's Makefile through
+# `_effective_composition_errors`' own path gives standalone 69 -> 70 and
+# composed 68 -> 69 lines, with the new line appearing exactly once at index 36
+# in each; deleting it from the new plan recomputes
+# `3bd4c26d…` and `c4325088…` — the superseded pins — element for element, so
+# nothing else moved, was reordered, or was dropped. It is a pack suite, not a
+# root or tools group, so `_root_tool_pytest_groups` and
+# EXPECTED_ROOT_TOOL_PATHS are untouched.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `3bd4c26d…` and `c4325088…` still in place returns
+# an empty error list, so this supersedes live values rather than a pin that had
+# already gone stale. The baseline is bare `origin/main`, which this branch is
+# rebased onto and whose Makefile differs from this worktree's by the single
+# line above and nothing else.
+# Bumped 2026-09-28 for spec/design-system-values, which appends one
+# `run-test-suite` line so the new `design-system` contract suite gates a PR
+# rather than only `make test`.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added line and none
+# removed or reordered — `$(PYTHON) -m pytest
+# packs/experience-design/tests/skills/design-system/ -q`, placed immediately
+# after the `creative-direction` line it mirrors. It is a new pytest process
+# rather than a lengthened batch line, so it takes a plan index and shifts
+# every entry after it, which is why both whole digests move for one line.
+# `EXPECTED_ROOT_TOOL_PATHS` is untouched: the suite is a pack path, not a root
+# tool path, so `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `e1190720a9…` and `4de3f063de…` still in place
+# returns an empty error list, so this supersedes live values rather than a pin
+# that had already gone stale.
+# Bumped 2026-09-29 for the `code-intelligence` pack, which appends two
+# `run-test-suite` lines so `lint-pack-test-boundary`'s
+# `every-suite-dir-has-a-runner` accepts its two new suites.
+# (1) Sole cause: `git diff origin/main -- Makefile` is three added lines and
+# none removed or reordered — `$(PYTHON) -m pytest
+# packs/code-intelligence/tests/pack/ -q` and `$(PYTHON) -m pytest
+# packs/code-intelligence/tests/skills/code-intelligence/ -q`, plus a two-line
+# comment recording why the second skips on a hosted runner. A comment takes no
+# plan index, so the two pytest lines are the whole movement: each is a new
+# process rather than a lengthened batch line, so both take an index and shift
+# every entry after them, which is why both whole digests move. They land at
+# plan indices 52 and 53 in each plan (standalone 71 -> 73, composed 70 -> 72),
+# and deleting exactly those two from the new plans recomputes `2cc99768…` and
+# `c42d6c84…` — the superseded pins — element for element, so nothing else
+# moved, was reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is
+# untouched: both are pack paths, not root tool paths, so
+# `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `2cc99768…` and `c42d6c84…` still in place
+# returns an empty error list, so this supersedes live values rather than a pin
+# that had already gone stale. The baseline is bare `origin/main`, which this
+# branch is rebased onto and whose Makefile differs from this worktree's by the
+# three lines above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "19f809d1d16c1932ef48f942314756ca53bfe5adadb887161a4809da279fbf18"
+    "d5ce59c02638aa0c8e8c08234c5b020813f992681d52a298b1886faa11ea3b1e"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "b2a286f2776b34313a35b91aefa2ec4668471cfe4c779cd4f661b9a685449078"
+    "74e76e144715a853d8bb2a9caab4a54ce1bb89a30d035cfdc3494d8cdb899696"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -835,9 +977,31 @@ MAKE_BASELINE_DIGESTS = {
     # recomputed from `2b1574e19~1` and matched exactly — so this supersedes a
     # live pin, not a stale one, and the move is confined to the one line that
     # commit deliberately added.
-    "sast-unleased": "9b2decb9e6baf12f75074c508590272b3052fa0a367a437bab290c2bca6e3dff",
+    # Bumped 2026-09-29 (second time that day) for ADR-0131: the direct SAST
+    # manifest moved from a bare `@pip-audit … --ignore-vuln CVE-2026-102274`
+    # to `tools/run-pip-audit-gate.py`, preceded by its self-test, because
+    # Semgrep's pyjwt~=2.13.0 pin grew the accepted set from one advisory to
+    # ten and a flag cannot carry a reason or fail when it expires.
+    # Re-pinned again within the same change after post-gates review: the
+    # recipe comment claiming requirements-sast.txt "remains on its direct,
+    # suppression-bearing invocation" was falsified by this very change and had
+    # to be restated. Recomputed again at that point: `sast-unleased` was the
+    # SOLE surface to move, SAST_CONFIG included.
+    # Verified before the first bump the way this file requires: all eight
+    # extracted surfaces were recomputed from this worktree, and exactly two moved —
+    # `sast-unleased` and `SAST_CONFIG`, the two this change deliberately
+    # edits. SAST_DIRS, SEMGREP_EXCLUDE, build-check-unleased, sast,
+    # gate_verdict and gate_verdict_calls all reproduced byte-identically
+    # against their existing pins, so these supersede live values rather than
+    # stale ones.
+    "sast-unleased": "5dc180a4520410be831f0eea269571e33d2cbc6419bf76ed6c113d7224a383be",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
-    "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
+    # Bumped 2026-09-29 for ADR-0131, in the same change and verified in the
+    # same sweep as `sast-unleased` above: `tools/pip-audit-allowlist.toml`
+    # joins the list for the reason the variable's own comment already gives
+    # its npm sibling — an added suppression must be validated by the gate it
+    # loosens. One added path, nothing removed or reordered.
+    "SAST_CONFIG": "64ea3aee1b4f57506e7346dedbbab8b57821fb11676b86c98a7bcf51beb66d56",
     # Bumped 2026-09-13 for the httpsconnection-detected exclusion. Verified
     # before the bump through `_approved_make_surfaces` itself rather than by
     # hand: SEMGREP_EXCLUDE was the SOLE surface to move, by exactly one added

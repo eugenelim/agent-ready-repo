@@ -392,6 +392,34 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 15,
+      "prompt": "which specs are retirement candidates",
+      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py retirement-candidates --root <root>) and reports the projection from its JSON output. It reports the capability as read-only: being listed authorizes nothing, a human selects, and the separately confirmed prune executes. For each candidate it surfaces the blockers holding it back, and for a candidate with none it says so rather than implying the tool has cleared it for deletion. Where the run could not read a piece of evidence it surfaces the refusal and the candidates whose eligibility that withholds, rather than reporting a shorter list as a cleaner one.",
+      "assertions": [
+        "Invokes the backend subcommand rather than scanning docs/specs or recomputing eligibility itself",
+        "Reports blockers per candidate rather than a bare eligible/ineligible verdict",
+        "States that eligibility authorizes no deletion and that selection and the prune stay separate",
+        "Surfaces any refusal and the candidates it suppresses instead of silently omitting them",
+        "Does not present the reported age as a thirty-day cooling verdict"
+      ],
+      "files": [
+        "evals/files/workspace.toml"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "retirement-candidates"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:",
+          "cooling",
+          "review_on",
+          "completed_on"
+        ]
+      }
     }
   ]
 }

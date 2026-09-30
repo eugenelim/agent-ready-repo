@@ -3,16 +3,99 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Derive the token/scale taxonomy from the user's named aesthetic direction.",
-      "expected_output": "A token/scale taxonomy and the rationale behind it, derived from the named direction — every token decision tracing back to one of the goals. Tokens are named by SEMANTIC ROLE (the job they do), not by literal appearance, so a value can change without a rename. A single ratio is chosen as the organizing concept and generates the spacing and type scales, with steps expressed SYMBOLICALLY (step −1, base, step +1) rather than as numbers. Accessibility is a derivation-time floor that points to the recognized standard (WCAG, at the context's conformance level) rather than reprinting a contrast ratio, and a contrast budget is allocated across the screen. The system composes atomically (primitive tokens → composed components → pages) and is serialized in the W3C Design Tokens interchange shape. It hands back the METHOD and a symbolic taxonomy shape — never a reprinted palette, spacing, or type table with literal values. The artifact is written to the layout-resolved target <output_dir>/tokens/<slug>.md with type: token-taxonomy frontmatter, and the approved output_dir, the file that value was read from, and the composed target are stated to the operator before the write.",
+      "prompt": "We have a coherent design system already — one token source the interface reads from, roles named by job. I need to add a settings panel to this product. Our approved direction still fits. Give me the design system for the new surface.",
+      "expected_output": "A mature incumbent system is found and inherited. The run locates the source of visual truth the interface actually reads from, judges it coherent, and takes the inherit route. It takes the incumbent values as given and does not restate them as new decisions. It identifies only the gaps the settings panel actually needs, not every gap the system has, and fills those by extending the incumbent scale at the incumbent naming. It creates no parallel system, renames no incumbent token for tidiness, and reaches for no fallback or category-default value anywhere. The artifact records the route as inherit, names the incumbent source, and separates retained from extended parts.",
       "assertions": [
-        "Traces token decisions back to the named creative-direction goals",
-        "Names tokens by semantic role, not by literal appearance",
-        "Organizes scales by a single ratio-as-concept with steps expressed symbolically, not as numeric values",
-        "Treats accessibility as a derivation-time floor and points to WCAG rather than reprinting a contrast ratio",
-        "Composes atomically (primitives → components → pages) and serializes in the W3C Design Tokens interchange shape",
-        "Ships the method and a symbolic taxonomy shape — does NOT reprint a values table (no hex, no px/rem numbers)",
-        "Writes the artifact to the layout-resolved target <output_dir>/tokens/<slug>.md with type: token-taxonomy frontmatter, having surfaced the approved output_dir, the file it was read from, and the composed target before writing"
+        "Searches for and names the incumbent source of visual truth before deciding anything",
+        "Takes the inherit route and records it, rather than deriving a fresh system",
+        "Fills only the gaps the current work needs, not every gap in the incumbent system",
+        "Creates no parallel system and renames no incumbent token",
+        "Uses no generic fallback value for anything the incumbent system already resolves",
+        "Records retained and extended parts separately"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Here is our approved creative direction with concrete visual commitments across the axis sheet. There is no existing product and no existing design system. Build the design system.",
+      "expected_output": "A greenfield distinctive direction is originated into a real, project-specific system. The run takes the originate route and resolves each domain the direction's axes reach: typography, color, spacing and rhythm, shape and containment, depth, motion, and graphic language where the direction made it systematic. Each domain carries the relationship first and then the resolved value that makes it executable, and each traces to a named goal or axis. No domain the direction reached is left as a reader-decides placeholder or a prompt for whoever writes the code. The resolved system visibly corresponds to the direction — a reader comparing the axis tokens against the values can see the correspondence. The system is checked against a proving set of real product needs before the artifact is written, and the artifact records the rung that supplied each resolved domain.",
+      "assertions": [
+        "Takes the originate route and resolves a project-specific system rather than a taxonomy shape",
+        "Resolves concrete values for every domain the direction's axes reached",
+        "Leaves no reader-decides placeholder for a core visual property the direction reached",
+        "States each relationship before the resolved value that makes it executable",
+        "The resolved values visibly correspond to the direction's axis tokens rather than to a category default",
+        "Checks the system against a proving set of real product needs and records that set",
+        "Records the rung that supplied each resolved domain"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The direction records an approved visual target — a composition we confirmed. Derive the design system from it and the direction.",
+      "expected_output": "An approved visual target is read for relationships, never for values. The run derives reusable system-level properties from it: relative scale between elements, density, hierarchy, containment behaviour, depth, spacing character, color relationships, and any recurrent graphic language. It turns each into a relationship and then resolves the relationship into a value from the direction and the platform. It never reports a value as measured from the target, because nothing in the run measures anything — there is no image analysis, no pixel sampling and no extraction step. It does not merely describe the image back. Where a relationship cannot be inferred reliably, it makes a coherent project-specific choice from the approved direction and says that is what it did.",
+      "assertions": [
+        "Derives reusable relationships — relative scale, density, hierarchy, containment, depth, spacing character — rather than describing the image",
+        "Reports no value as measured from the target and claims no measurement it did not perform",
+        "Treats the target as binding on composition and relationships only, taking every value from a lower rung",
+        "Where a relationship cannot be inferred, makes a coherent choice from the direction and labels it as such"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our approved direction explicitly rejects the generic rounded-card look every competitor has. Derive the design system.",
+      "expected_output": "A rejected category default stays rejected through value resolution. The run reads the containment, form, material-and-depth and ornament axes as decided commitments and resolves against them, so the system does not acquire rounded corners, a card treatment, a shadow recipe or a soft neutral palette by habit. Containment is resolved from what the direction actually committed, including the possibility that most of the surface is uncontained and only an interactive working region becomes a bounded panel. Depth is resolved as flat where the direction is flat, and a flat system with no elevation level is recorded as complete rather than unfinished. The artifact records the prohibited treatments explicitly so a build does not reach for them.",
+      "assertions": [
+        "Resolves containment, shape, depth and color from the direction's axis tokens rather than from category habit",
+        "Produces no automatic radius, shadow, card or elevation treatment the direction did not commit",
+        "Records a flat system as complete when the direction is flat, rather than adding elevation levels",
+        "Records the explicitly prohibited treatments in the artifact"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "We have an established design system, and the new approved direction conflicts with part of it — the hierarchy and containment commitments are incompatible with what we ship today. Work out the system.",
+      "expected_output": "A brownfield conflict is surfaced and resolved with the smallest intentional change. The run identifies exactly which axes conflict rather than declaring the incumbent system obsolete. It changes only the axes the approved direction actually commits, and the incumbent system keeps every axis the direction left open, including its naming and binding convention. The artifact separates retained, extended and replaced parts, and each replacement names what it was and which approved commitment required the change. No second system is created, and nothing is renamed for tidiness. A change with nothing in the retained group is treated as a replacement rather than an extension.",
+      "assertions": [
+        "Identifies the specific conflicting axes instead of replacing the incumbent system wholesale",
+        "Changes only the axes the approved direction commits, handing every untouched axis down to the incumbent system",
+        "Separates retained, extended and replaced parts, naming the commitment behind each replacement",
+        "Preserves the incumbent naming and binding convention",
+        "Creates no parallel system"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Build us a complete visual system for this product. There is no existing design system and no approved visual direction yet.",
+      "expected_output": "Insufficient authority is surfaced rather than filled. The run does not fabricate a fully opinionated brand system and present it as though it were approved. It records which domains it cannot resolve, names the authority that is missing for each, and says which upstream operation would supply it — routing the direction question to creative-direction rather than answering it. Where a stated project constraint or a named target surface does supply authority for a domain, that domain is resolved and the rung recorded, so the result is bounded rather than empty. An axis left at the platform-default token because the named platform genuinely owns the decision is resolved from that platform's convention and is not reported unresolved. A structural axis left at that token is reported back as a gap in the direction.",
+      "assertions": [
+        "Does not fabricate an opinionated brand system or present unapproved choices as approved",
+        "Records each unresolved domain with the authority that is missing and who resolves it",
+        "Routes the missing direction upstream rather than inventing a creative premise",
+        "Still resolves the domains a stated constraint or a named platform convention does reach, and records those rungs",
+        "Distinguishes a platform-owned decision from an undecided one rather than calling both unresolved"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "The approved visual target's colors do not clear the contrast our product requires. Derive the color system.",
+      "expected_output": "An accessibility conflict is resolved in favour of the floor, with the direction's intent preserved. The run keeps the relationship the direction asked for — a quiet, low-contrast surface stays quiet — and moves the value until it clears the standard at the conformance level the context requires, reading the threshold from the standard rather than from memory. It does not copy the target's colors through, and it does not weaken the requirement to match the target. The adaptation is recorded: what the direction asked for, what the floor required, and what was resolved instead. Accessibility is treated as a constraint on every resolved value rather than as a goal ranked against the direction, so it does not appear as a trade-off that could have gone the other way.",
+      "assertions": [
+        "Preserves the intended relationship while moving the value to clear the floor",
+        "Derives compliant values rather than copying the target's colors through",
+        "Records the adaptation — what was asked, what the floor required, what was resolved",
+        "Treats the floor as non-rankable rather than as a trade-off against a goal",
+        "Reads the threshold from the recognized standard rather than reprinting one"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "The approved direction resolves color and spacing, but it leaves typography and motion undecided. Build the token taxonomy without inventing those domains.",
+      "expected_output": "The run resolves only the domains the approved direction reaches and records typography and motion in the unresolved decisions table. Each unresolved row keeps Who resolves it beside Operation that supplies it: typography lists the design owner beside the creative-direction converge operation, and motion lists the design owner beside the creative-direction converge operation. The expected artifact treats those owner and operation values as routing data, not as values to execute. The consumer resolves no value for an unresolved domain, and the output does not fill the gap with a fallback, incumbent habit, platform habit, or local premise.",
+      "assertions": [
+        "Records each unresolved domain in the unresolved decisions table",
+        "Places Who resolves it beside Operation that supplies it for every unresolved row",
+        "Routes unresolved domains to the supplying operation rather than inventing values",
+        "States that the consumer resolves no value for unresolved domains",
+        "Does not fill unresolved domains from fallback, incumbent habit, platform habit, or a local premise"
       ]
     }
   ]

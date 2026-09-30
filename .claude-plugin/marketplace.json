@@ -82,7 +82,34 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.9.3"
+      "version": "0.10.1"
+    },
+    {
+      "author": {
+        "email": "eugenelim@users.noreply.github.com",
+        "name": "eugenelim"
+      },
+      "category": "code-intelligence",
+      "description": "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing \u2014 answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses.",
+      "displayName": "Code intelligence",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "code-graph",
+        "blast-radius",
+        "static-analysis",
+        "call-graph",
+        "impact-analysis"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "code-intelligence",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "source": {
+        "path": "code-intelligence",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
+      },
+      "version": "0.1.0"
     },
     {
       "author": {
@@ -214,7 +241,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "2.0.9"
+      "version": "4.1.0"
     },
     {
       "author": {
@@ -267,7 +294,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.3.2"
+      "version": "0.4.0"
     },
     {
       "author": {
@@ -373,7 +400,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.13.18"
+      "version": "0.13.22"
     },
     {
       "author": {

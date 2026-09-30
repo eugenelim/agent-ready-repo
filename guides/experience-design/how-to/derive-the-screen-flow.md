@@ -30,8 +30,8 @@ order: 2
 | Skill | Needs | What it produces | Needed? |
 | --- | --- | --- | --- |
 | `content-design` | The surface and its audience | A content brief: what the surface says, to whom, in what form. | Required |
-| `tone-of-voice` | Voice-of-customer evidence, if you have it | The cross-surface voice all per-surface copy decisions reference. | Optional |
-| `copy-direction` | The content brief; the brand register if it exists | Ranked copy goals and arbitration rules for one marketing surface. | Optional |
+| `content-design` (brand-level register) | Voice-of-customer evidence, if you have it | The cross-surface voice all per-surface copy decisions reference. | Optional |
+| `content-design` (per-surface copy goals) | The content brief; the brand register if it exists | Ranked copy goals and arbitration rules for one marketing surface. | Optional |
 | `user-flow` | The journey map from step 1 | The screen inventory, the state each screen handles, and the transitions. | Required |
 
 Prompts go into an AI agent session with this pack installed — the same session
@@ -112,44 +112,44 @@ date: <YYYY-MM-DD>
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
-## Run `tone-of-voice` — the brand copy register
+## Run `content-design` in its brand-level register mode
 
 **You type:**
-<!-- rung: tone-of-voice SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 ```
 Name the brand-level copy register for this product.
 ```
 
 **Agent returns:**
-<!-- rung: tone-of-voice SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 > **Agent:** Done — I've written a brand register with ranked copy goals, referents, and arbitration rules to `<output_dir>/copy/brand-register.md`.
 
 **You push back:**
-<!-- rung: tone-of-voice SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
-> **You:** You made the register specific to the setup screen. Rewrite it as a cross-surface brand register and leave setup choices to `copy-direction`.
+> **You:** You made the register specific to the setup screen. Rewrite it as a cross-surface brand register and leave setup choices to the per-surface acquisition copy goals mode.
 >
 > **Agent:** I removed per-surface decisions and kept the shared register.
 
 **Output varies** with the brand, readers, voice-of-customer evidence, and stable referents.
-<!-- rung: tone-of-voice SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **No decision gate at this step.**
 <!-- rung: JOURNEY stage 2 -->
 
 **Check (testable):** Put two plausible copy choices in conflict and ask which ranked goal wins; this surfaces an unranked register that cannot arbitrate.
-<!-- rung: tone-of-voice SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **Watch out for:** Without voice-of-customer evidence, general-pattern goals can read like validated brand truth. Notice the “directional” marker, challenge those lines first, and supply reader language when available.
-<!-- rung: tone-of-voice SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **Where it lands:** `<output_dir>/copy/brand-register.md`, with `<output_dir>` replaced for this project.
-<!-- rung: tone-of-voice SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **What it looks like:**
-<!-- rung: packs/experience-design/.apm/skills/tone-of-voice/assets/tone-of-voice-template.md -->
+<!-- rung: packs/experience-design/.apm/skills/content-design/assets/tone-of-voice-template.md -->
 
 ```markdown
 ---
@@ -162,11 +162,12 @@ date: <YYYY-MM-DD>
 # Brand register: <brand or product name>
 
 <!--
-  Written by the `tone-of-voice` skill. Fill the angle-bracket prompts and
+  Written by `content-design` in its brand-level register mode. Fill the angle-bracket prompts and
   delete this comment. This doc names the brand-level copy register — the
   cross-surface copy personality that all per-surface copy decisions reference.
   It holds NO finished copy, formula tables, or per-surface direction strings.
-  Per-surface copy direction lives in copy/<surface-slug>.md (copy-direction skill).
+  Per-surface copy direction lives in copy/<surface-slug>.md, written by the
+  per-surface acquisition copy goals mode.
   Keep this doc short enough that a writer picks up the brand register in two minutes.
 -->
 
@@ -182,44 +183,44 @@ date: <YYYY-MM-DD>
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
-## Run `copy-direction` — copy goals for one surface
+## Run `content-design` in its per-surface acquisition copy goals mode
 
 **You type:**
-<!-- rung: copy-direction SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 ```
 Name the ranked copy goals for this account-setup surface.
 ```
 
 **Agent returns:**
-<!-- rung: copy-direction SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 > **Agent:** Done — I've written ranked per-surface copy goals, stable referents, and arbitration rules to `<output_dir>/copy/<slug>.md`.
 
 **You push back:**
-<!-- rung: copy-direction SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 > **You:** You wrote a headline instead of direction. Remove the finished copy and state the goal, its referent, and what wins when goals conflict.
 >
 > **Agent:** I replaced the line with a ranked rule the later writing can apply.
 
 **Output varies** with the surface, reader language, and available brand register.
-<!-- rung: copy-direction SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **No decision gate at this step.**
 <!-- rung: JOURNEY stage 2 -->
 
 **Check (grounded):** Ask what reader language or stable referent supports each goal; this surfaces preferences presented as direction.
-<!-- rung: copy-direction SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **Watch out for:** Goals can sound authoritative while resting on a general copy pattern. Notice goals with no cited reader language, precedent quality, or standard; argue with those first and replace them with grounded referents.
-<!-- rung: copy-direction SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **Where it lands:** `<output_dir>/copy/<slug>.md`.
-<!-- rung: copy-direction SKILL.md -->
+<!-- rung: content-design SKILL.md -->
 
 **What it looks like:**
-<!-- rung: packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md -->
+<!-- rung: packs/experience-design/.apm/skills/content-design/assets/copy-direction-template.md -->
 
 ```markdown
 ---
@@ -231,7 +232,7 @@ date: <YYYY-MM-DD>
 # Copy direction: <surface name>
 
 <!--
-  Written by the `copy-direction` skill. Fill the angle-bracket prompts and
+  Written by `content-design` in its per-surface acquisition copy goals mode. Fill the angle-bracket prompts and
   delete this comment. This doc names *copy direction* for one specific surface —
   the goals and arbitration rules that steer every copy choice here. It holds NO
   finished copy, formula tables, or pre-written strings. Keep it short enough
@@ -258,7 +259,7 @@ date: <YYYY-MM-DD>
 <!-- rung: JOURNEY stage 2 -->
 
 ```
-Turn the approved journey into screens, transitions, failure routes, and one brief per screen.
+Turn the journey into screens, transitions, failure routes, and one brief per screen.
 ```
 
 **Agent returns:**
@@ -276,7 +277,7 @@ Turn the approved journey into screens, transitions, failure routes, and one bri
 **Output varies** with the journey, surface, navigation model, and genre.
 <!-- rung: user-flow SKILL.md -->
 
-**No decision gate at this step.**
+**You decide:** The pack's `approve-journey` gate closes here. You approve the journey and the screen list derived from it as one thing, because the check that earns the gate is whether every screen traces to a moment in the journey — and that check needs both halves in front of you. Removing a screen the journey does not imply, or sending the journey back because a screen exposed a missing moment, are both outcomes of this gate. What it makes safe is everything after it: the screen list is the contract the rest of the design work is built on.
 <!-- rung: JOURNEY stage 2 -->
 
 **Check (observable):** Walk every action, including one failure, to a named screen or state; this surfaces dead ends, orphan screens, and missing recovery routes.
@@ -322,7 +323,7 @@ surface-genre: <marketing | documentation | informational | analytical | transac
 
 ## Where this leads
 
-**Done with this step:** You can move on when every action, including at least one failure, reaches a named screen or state, and every screen has a brief.
+**Done with this step:** You can move on when every action, including at least one failure, reaches a named screen or state, every screen has a brief, and you have approved the journey and this screen list together.
 <!-- rung: authored -->
 
 Stage 2 of five. The briefs produced here are what every later step reads.

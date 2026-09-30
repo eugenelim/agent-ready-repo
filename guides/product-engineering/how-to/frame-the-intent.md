@@ -33,13 +33,19 @@ order: 1
 | `frame-intent` | A problem worth solving | A level-tagged statement of the outcome and the opportunity behind it. | Required |
 | `frame-domain` | An approved intent | The real-world activity the product sits in, and the MVP boundary. | Optional |
 | `frame-situation` | An approved intent | What is true now, and what is forcing a change. | Optional |
-| `lean-canvas` | An approved intent | Problem, solution, metrics and unfair advantage on one page. | Optional |
-| `discovery-loop` | An approved intent | The loop itself — the plan tree, the lens roster, and the gates. | Optional |
+| `lean-canvas` | An approved intent | The initiative's five core boxes on one page. | Optional |
+| `discovery-loop` | An approved intent | The loop itself — the plan tree, the lens roster, the gates, and the initiative directory holding them. | Optional |
 
 Prompts go into an AI agent session with this pack installed — the same session
-throughout. `<slug>` is the short kebab-case name for this piece of work, and it
-stays the same from the intent through to the brief, which is how the
-traceability lint follows one thread.
+throughout. In the paths below, `<slug>` is this piece of work's short
+kebab-case name, fixed at step 1 so every later artifact traces back to it; `<initiative>` is the discovery initiative's kebab-case directory slug;
+`<ini-slug>` is the initiative slug a Lean Canvas asks you for, such as
+`ini-002`; `<output_dir>` is where this repository keeps product
+artifacts, and the agent asks when it is not configured; `<discovery_dir>` is
+where the discovery loop keeps its initiative directories, defaulting to
+`docs/discovery/`. The agent tells you which path it wrote to.
+<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
@@ -55,7 +61,7 @@ Frame this as a product intent: our onboarding drops half of new accounts before
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
 
-> **Agent:** Done — I've written an intent naming the outcome, its level, and the opportunity behind it to `docs/product/intents/<slug>.md`.
+> **Agent:** Done — I've written to `<output_dir>/intents/<slug>.md` an intent naming the outcome, its level, and the opportunity behind it.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
@@ -76,7 +82,7 @@ Frame this as a product intent: our onboarding drops half of new accounts before
 **Watch out for:** An intent that names a solution reads as decisive and forecloses discovery before it starts. Notice an outcome you could implement directly — that is a solution wearing an outcome's clothes.
 <!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
 
-**Where it lands:** `docs/product/intents/<slug>.md`.
+**Where it lands:** `<output_dir>/intents/<slug>.md`.
 <!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
 
 **What it looks like:**
@@ -92,9 +98,10 @@ Frame this as a product intent: our onboarding drops half of new accounts before
 - **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
+- **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->
 - **De-risked:** <!-- optional: the ISO 8601 date the riskiest assumption was tested, or the literal `no`. Absent means nobody recorded it; `no` means someone decided against de-risking -->
 - **Shaping-reviewed:** <!-- optional: the ISO 8601 date a cold reviewer read this, or the literal `no` -->
-- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light. A `direct-light` terminus requires each item under ## Decomposition to state its requested outcome -->
+- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light | closed-empty. `closed-empty` means decomposition is deliberately complete with no child work; `direct-light` requires each item under ## Decomposition to state its requested outcome -->
 
 ## Outcome
 
@@ -122,7 +129,7 @@ Frame the domain for this intent — what is the real-world activity, and where 
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/frame-domain/SKILL.md -->
 
-> **Agent:** Done — I've written a domain framing of the real-world activity, with an explicit scope boundary to `docs/discovery/<initiative>/domain-framing.md`.
+> **Agent:** Done — I've written to `<discovery_dir>/<initiative>/` a domain framing of the real-world activity, in `domain-framing.md`, with its MVP scope boundary in `scope-boundary.md`.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/frame-domain/SKILL.md -->
@@ -143,31 +150,32 @@ Frame the domain for this intent — what is the real-world activity, and where 
 **Watch out for:** A confident domain model can describe the software rather than the work. Notice entities that only exist because the current product has a screen for them.
 <!-- rung: packs/product-engineering/.apm/skills/frame-domain/SKILL.md -->
 
-**Where it lands:** `docs/discovery/<initiative>/domain-framing.md`.
+**Where it lands:** `<discovery_dir>/<initiative>/domain-framing.md`, with `scope-boundary.md` beside it.
 <!-- rung: packs/product-engineering/.apm/skills/frame-domain/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/frame-domain/examples/example-assistant.md -->
 
 ```markdown
 ---
 type: domain-framing
+initiative: example-assistant
+brownfield: false
 ---
-# Domain framing — <initiative>
 
-## The real-world activity
+# Domain framing — example-assistant
 
-<What practitioners actually do, in their words, independent of our product.>
-
-## Entities and their relationships
-
-## Scope boundary
-
-- **In:** <what the MVP covers>
-- **Out:** <what it does not, and why it stays out>
+## Real-world activity
+- **How the activity is really done.** It runs on a cadence/horizon (e.g.
+  weekly); the high-deliberation slice is a subset — the MVP anchors on that
+  slice, not everything. The plan is **not followed exactly**: substitutions,
+  skips, carry-overs. "Planned" and "actually done" diverge, so the plan must be
+  editable and "mark what you did" is a first-class action. Carry-over is
+  first-class (do once, benefit twice) and affects both next-cycle planning and
+  resource decrement. Quantities scale to the owner's context.
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*An excerpt of the example the skill ships. Best practice, the naive-design failure modes, any current-system notes and the residual assumptions follow in the same shape, with the MVP boundary in `scope-boundary.md` beside it.*
 
 ## Run `frame-situation` — the current state
 
@@ -181,7 +189,7 @@ Frame the current situation — what is true today, and what is forcing this to 
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/frame-situation/SKILL.md -->
 
-> **Agent:** Done — I've written an account of the current situation and the forces making it untenable. Nothing was written to disk.
+> **Agent:** Done — I've written to `<output_dir>/shaping/<slug>/situation-framing.md` an account of the current situation and the forces making it untenable.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/frame-situation/SKILL.md -->
@@ -202,21 +210,34 @@ Frame the current situation — what is true today, and what is forcing this to 
 **Watch out for:** A situation with no timing argument justifies doing this whenever, which means never. Notice framing that would have read identically two years ago.
 <!-- rung: packs/product-engineering/.apm/skills/frame-situation/SKILL.md -->
 
-**Writes no artifact.** It reports in the agent session and does not change files.
+**Where it lands:** `<output_dir>/shaping/<slug>/situation-framing.md`.
 <!-- rung: packs/product-engineering/.apm/skills/frame-situation/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/frame-situation/examples/signal-to-finding.md -->
 
 ```markdown
-Situation — <initiative>
+---
+type: situation-framing
+slug: agent-skill-discovery-gap
+signal: "Three hand-rolled skill discovery mechanisms found; no standard emerging; growing coordination overhead"
+finding-type: gap
+date: 2026-07-20
+shaping-entry: identify-opportunities
+---
 
-What is true today: <current state>
-What changed recently: <the force making this urgent now>
-What it costs to leave alone: <consequence>
+## Signal
+Engineering reported that every team hand-rolls its own agent skill discovery
+mechanism — three implementations found across two squads, no standard emerging.
+Symptoms: onboarding friction, duplicate maintenance, subtle incompatibilities.
+
+## Finding
+**Type:** gap · **Rationale:** A convergence gap — the org is spending
+custom-build budget where a shared standard would serve it better. The problem
+is confirmed; the solution space is open.
 ```
 
-*Section shape only. This skill reports in the session rather than writing a file — confirm the shape against what you get back.*
+*An excerpt of the example the skill ships. The Wardley assessment, recommended entry point and `workspace.toml` suggestion continue below it.*
 
 ## Run `lean-canvas` — the one-page bet
 
@@ -230,14 +251,14 @@ Draft the lean canvas for this initiative.
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/lean-canvas/SKILL.md -->
 
-> **Agent:** Done — I've written a lean canvas with the problem, the solution sketch, the key metrics and the unfair advantage to `docs/product/initiatives/<ini-slug>.md`.
+> **Agent:** Done — I've written to `docs/product/initiatives/<ini-slug>.md` a lean canvas with the problem, the unique value proposition, the solution sketch, the customer segments and the key metrics.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/lean-canvas/SKILL.md -->
 
-> **You:** The unfair advantage is our team. Name something a competitor could not copy in a quarter, or leave it empty.
+> **You:** The customer segment is "engineering teams". Name the specific segment whose problem this solves first, or mark it `TBD` with the reason.
 >
-> **Agent:** I emptied the unfair advantage and noted that it is unestablished, rather than filling it with something copyable.
+> **Agent:** I narrowed it to the segment whose problem the canvas actually describes, and marked the rest `TBD` with the reason rather than guessing.
 
 **Output varies** with how much is known and how many boxes can be answered honestly.
 <!-- rung: packs/product-engineering/.apm/skills/lean-canvas/SKILL.md -->
@@ -248,33 +269,35 @@ Draft the lean canvas for this initiative.
 **Check (testable):** Ask which box would change first if the riskiest assumption were wrong; this surfaces a canvas filled in for completeness.
 <!-- rung: packs/product-engineering/.apm/skills/lean-canvas/SKILL.md -->
 
-**Watch out for:** Nine boxes invite nine answers. An honestly empty box is more useful than a plausible one — notice any box you could not defend to a sceptic.
+**Watch out for:** Five boxes invite five answers. An honest `TBD` with its reason is more useful than a plausible guess — notice any box you could not defend to a sceptic.
 <!-- rung: packs/product-engineering/.apm/skills/lean-canvas/SKILL.md -->
 
 **Where it lands:** `docs/product/initiatives/<ini-slug>.md`.
 <!-- rung: packs/product-engineering/.apm/skills/lean-canvas/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/lean-canvas/examples/ini-003-ai-developer-brief.md -->
 
 ```markdown
----
-type: initiative
----
-# <initiative>
+# Initiative: AI-Assisted Developer Workflows
 
-## Problem
-## Existing alternatives
-## Solution
-## Key metrics
-## Unique value proposition
-## Unfair advantage
-## Channels
-## Customer segments
-## Cost structure / Revenue streams
+- **ID:** `INI-003`
+- **Name:** AI-Assisted Developer Workflows
+- **Status:** Active
+- **Appetite:** 2–3 quarters
+- **Owner:** engineering-lead
+- **workspace.toml section:** `["ini-003"]` in `workspace.toml`
+
+## Outcome
+
+Engineers across all product squads spend less time on routine code-review
+coordination and first-pass code quality triage. By end of initiative, the
+median PR cycle time for non-urgent changes drops by 30%, and first-pass
+review coverage reaches 100% of opened PRs — with AI-generated review comments
+serving as the first filter before human reviewers engage.
 ```
 
-*Section shape only, following the Lean Canvas (Maurya, adapted from the Business Model Canvas). An honestly empty box is the point — confirm the shape against what you get back.*
+*An excerpt of the example the skill ships. Simple mode's five boxes — problem, unique value proposition, solution, customer segments and key metrics — follow under Value Proposition.*
 
 ## Run `discovery-loop` — run the whole loop
 
@@ -288,7 +311,7 @@ Run the discovery loop for this intent.
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/SKILL.md -->
 
-> **Agent:** Done — I've written the discovery loop scaffolded — the plan tree, the roster of lenses, and the gates it will pause at. Nothing was written to disk.
+> **Agent:** Done — I've scaffolded the discovery loop under `<discovery_dir>/<initiative>/`: the plan tree, the roster of lenses, and the gates it will pause at.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/SKILL.md -->
@@ -309,23 +332,42 @@ Run the discovery loop for this intent.
 **Watch out for:** The loop can appear to run while its state file is absent, which loses the traceability the gates depend on. Notice progress reported with no plan tree behind it.
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/SKILL.md -->
 
-**Writes no artifact.** It reports in the agent session and does not change files.
-<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/SKILL.md -->
+**Where it lands:** `<discovery_dir>/<initiative>/` — the initiative directory, holding the loop's `_state/` working files and its durable artifacts.
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/assets/plan-tree.md -->
 
-```markdown
-Discovery loop — <initiative>
-
-Phase: <phase>
-Plan tree: `_state/plan-tree.json`
-Lenses run: <n of m>
-
-Next gate: <gate id> — needs <what>
+```json
+{
+  "initiative": "<initiative-slug>",
+  "schema_version": "0.1",
+  "root_id": "intent:vision",
+  "sub_idea_index": {
+    "open": [],
+    "parked": [],
+    "done": []
+  },
+  "nodes": [
+    {
+      "id": "intent:vision",
+      "type": "intent",
+      "altitude": "product-vision",
+      "parent_id": null,
+      "lifecycle": "draft",
+      "validation_status": "hypothesis",
+      "round": 0,
+      "round_cap": 12,
+      "cost_spent": 0.0,
+      "candidates": [],
+      "selection": null,
+      "validation_hook": null
+    }
+  ]
+}
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*The plan-tree template the loop copies per initiative. Each node carries its altitude, lifecycle and validation status, which is how the loop keeps `converged` and `validated` separate.*
 
 ## Where this leads
 
@@ -334,7 +376,7 @@ Next gate: <gate id> — needs <what>
 `frame-domain` grounds its real-world-activity half by wrapping `desk-research` in applied mode, so you do not run that yourself. If the domain is unfamiliar, the [`desk-research` guidebook](../../desk-research/how-to/scope-the-question.md) is the same evidence pass run deliberately, and its output is a better input than an inline one.
 <!-- rung: authored -->
 
-Stage 1 of four, and the pack's first gate. The slug set here follows the work to the end — through decomposition, into the spec directory the `core` guidebook creates, and out again at closeout.
+Stage 1 of four, and the pack's first gate. The slug set here follows the work through decomposition and into the spec the `core` guidebook writes. A spec reached through a delivery brief carries that brief stamped on it; one authored directly carries no such stamp and stays valid. Either way the link is the stamp, not the directory name.
 
 If this intent arrived from [Route it to work](../../product-strategy/how-to/route-it-to-work.md) in the `product-strategy` guidebook, it is already a queued gap entry: reuse its slug rather than minting a new one, or the thread breaks at the pack boundary.
 

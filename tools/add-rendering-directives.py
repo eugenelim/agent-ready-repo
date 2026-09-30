@@ -221,20 +221,13 @@ SKILLS: dict[str, list[str]] = {
     "process-mapping":              ["table", "mermaid"],
     "service-blueprint":            ["table", "status-list"],
     "journey-mapping":              ["table"],
-    "analytical-design":            ["table"],
-    "conversion-design":            ["table"],
-    "documentation-design":         ["table"],
-    "marketplace-design":           ["table"],
-    "workspace-design":             ["table"],
-    "information-architecture":     ["table"],
+    "information-architecture":     ["table", "narrative"],
     # experience-design (additional severity-list producers)
     "design-review":                ["severity-list"],
     "devils-advocate":              ["severity-list"],
     # experience-design (additional)
     "design-principles":            ["narrative", "key-value"],
-    "informational-design":         ["table", "narrative"],
-    "content-design":               ["table", "key-value"],
-    "tone-of-voice":                ["key-value", "narrative"],
+    "content-design":               ["table", "key-value", "narrative"],
     "design-system":                ["narrative"],
     "creative-direction":           ["key-value", "narrative"],
     # contracts

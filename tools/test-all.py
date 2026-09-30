@@ -106,6 +106,7 @@ TESTS: list[tuple[str, list[str]]] = [
     ("lint-knowledge", [sys.executable, "-m", "pytest", "-q",
                         "tests/roster/test_work_loop_lint_knowledge.py"]),
     ("audit-npm", [sys.executable, "tools/test-audit-npm.py"]),
+    ("run-pip-audit-gate", [sys.executable, "tools/test-run-pip-audit-gate.py"]),
     # Fast cases only. Its --e2e flag runs two full bandit scans and is for the
     # human touching a suppression, not for this umbrella.
     ("compare-bandit-suppressions",

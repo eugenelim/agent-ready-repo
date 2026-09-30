@@ -65,7 +65,7 @@ that owns changing facts. It does not repeat lifecycle status.
 | S3 frontend truth-up | The current artifacts no longer contain the listed stale claims or literal eval paths; the 16-case `test_public_claims_match_shipped_behaviour.py` suite pins the README, five-gate procedure, CWV boundary, example output, and notification-panel route | Remove |
 | S5 XD half | [`aesthetic-style-direction`](../../specs/aesthetic-style-direction/spec.md) contains the direction sheet, fifteen axes, counterfactual gate, and divergence audit | Remove the XD half; route only the frontend half below |
 | S4, S5 frontend half, and S6/S7 | The named motion primitives, cross-build fingerprinting rules, modern primitives, and pack-local runnable inspection harness remain absent | Route outside this brief to the frontend-craft and rendered-evidence candidates below |
-| S8a reference deduplication | Re-measurement remains 31 files / 24 hashes: containment 5/1; layout 12/9; editorial gates 3/3; interrogation 3/3; four other pairs 2/2 | Route outside this brief to reference reconciliation below |
+| S8a reference deduplication | Re-measured 2026-09-27 after the copy fold: 19 files / 11 hashes across four families — containment 5/1; layout 10/7; editorial gates 2/1; interrogation 2/2. The four other pairs left the inventory entirely | Route outside this brief to reference reconciliation below |
 | S9 post-launch marketing | Conversion measurement operations, pricing-specific doctrine, experimentation, and SEO remain outside RFC-0071 | Route to [`growth-strategy-pack-charter`](../intents/growth-strategy-pack-charter.md) |
 | Floating site work | `StatStrip` is absent; the homepage receives `/now/` through shared navigation; the docs palette is intentionally self-contained, so token divergence and a web-only `--ds-focus-ring` are not sync defects | Remove; reopen only on a demonstrated emitted-site failure |
 
@@ -78,7 +78,7 @@ intent. None affects this brief's coverage or closure.
 | --- | --- | --- |
 | `frontend-experience-craft-completion` | S4 motion/emotion; the frontend half of S5 anti-sameness/composition; absent modern CSS and native-platform primitives from S6 | Decide whether these gaps produce one user outcome or need separate motion, composition, and platform-capability intents |
 | `frontend-rendered-evidence-runtime` | The raw browser snippet without a pack-local runnable harness, plus the authority needed for an independent experience reviewer to inspect rendered output | Decide whether a portable harness can improve execution without adding a required browser dependency or weakening the named-skip path |
-| `experience-design-reference-reconciliation` | S8a's eight duplicate-basename families | Reconcile meaning, not filenames: only identical semantics should share a source; the 31/24 measurement rules out a mechanical dedup sweep |
+| `experience-design-reference-reconciliation` | S8a's four duplicate-basename families | Reconcile meaning, not filenames: only identical semantics should share a source; the 19/11 measurement rules out a mechanical dedup sweep |
 
 S9 already has an owner in
 [`growth-strategy-pack-charter`](../intents/growth-strategy-pack-charter.md).

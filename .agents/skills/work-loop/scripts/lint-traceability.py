@@ -188,6 +188,69 @@ _COMPONENT_RE = field_re("Component")
 # Container-embedded entry markers (journey actions, blueprint services).
 _ACTION_RE = field_re("Action")
 _SERVICE_RE = field_re("Service")
+_OUTCOME_CO_OWNER_FIELD = "Outcome co-owner"
+
+
+def _visible_intent_preamble(text: str) -> str:
+    """Return visible intent text before its first visible level-two heading.
+
+    The work-loop skill is projected independently, so its traceability command
+    keeps this small visibility reader self-contained. Field extraction still
+    uses ``field_re`` below; this function only removes closed and unclosed HTML
+    comment regions and bounds the text those existing matchers may inspect.
+    """
+    visible_lines: list[str] = []
+    inside_comment = False
+    for line in text.splitlines():
+        visible: list[str] = []
+        remainder = line
+        while remainder:
+            if inside_comment:
+                close = remainder.find("-->")
+                if close == -1:
+                    remainder = ""
+                    continue
+                remainder = remainder[close + 3:]
+                inside_comment = False
+                continue
+
+            open_at = remainder.find("<!--")
+            if open_at == -1:
+                visible.append(remainder)
+                break
+            visible.append(remainder[:open_at])
+            remainder = remainder[open_at + 4:]
+            close = remainder.find("-->")
+            if close == -1:
+                inside_comment = True
+                break
+            remainder = remainder[close + 3:]
+
+        visible_line = "".join(visible)
+        if visible_line.startswith("## "):
+            break
+        visible_lines.append(visible_line)
+    return "\n".join(visible_lines)
+
+
+def _intent_preamble_field(text: str, label: str) -> str | None:
+    """Return one exact visible intent-preamble value.
+
+    Peer declarations resolve against canonical ids, so preserve internal
+    whitespace instead of applying the token normalization used by graph
+    pointers. Comment hiding happens before matching; one pair of wrapping
+    backticks is presentation markup rather than part of the declared id.
+    """
+    pattern = field_re(label)
+    for line in _visible_intent_preamble(text).splitlines():
+        match = pattern.search(line)
+        if not match:
+            continue
+        value = match.group(1).strip()
+        if len(value) >= 2 and value.startswith("`") and value.endswith("`"):
+            value = value[1:-1].strip()
+        return None if _is_placeholder(value) else value
+    return None
 
 
 def _is_placeholder(value: str) -> bool:
@@ -612,6 +675,64 @@ def recognize_intents(base: Path, root: Path, g: Graph,
         g.add(iid, "intent")
         found[iid] = p
     return found
+
+
+def outcome_co_owner_findings(
+    declarations: dict[str, str], intent_ids: set[str]
+) -> list[str]:
+    """Report co-owner declarations that do not name a different intent artifact.
+
+    ``declarations`` maps each source canonical intent id to its visible
+    ``Outcome co-owner:`` value. Resolution is deliberately not graph wiring: a
+    peer declaration validates against the already-derived intent id registry
+    and never calls ``Graph.add_edge``.
+    """
+    findings: list[str] = []
+    for source, target in sorted(declarations.items()):
+        if target == source:
+            findings.append(
+                f"{source}: Outcome co-owner self-reference names itself ({target})"
+            )
+        elif target not in intent_ids:
+            findings.append(
+                f"{source}: Outcome co-owner names unresolved target {target}"
+            )
+    return findings
+
+
+def _outcome_co_owner_declarations(intent_paths: dict[str, Path]) -> dict[str, str]:
+    declarations: dict[str, str] = {}
+    for intent_id, path in sorted(intent_paths.items()):
+        text = _read(path) or ""
+        value = _intent_preamble_field(text, _OUTCOME_CO_OWNER_FIELD)
+        if value:
+            declarations[intent_id] = value
+    return declarations
+
+
+def _sidecar_outcome_co_owner_findings(root: Path, layout: dict) -> list[str]:
+    """Validate on-disk co-owner peers while a sidecar owns graph structure.
+
+    A sidecar replaces structural node and edge derivation, but it does not
+    replace the intent artifacts that declare peer ownership. Build only the
+    canonical intent-id registry needed for peer validation; keep the result
+    separate from the authoritative graph so the declaration cannot add an
+    edge or alter sidecar drift semantics.
+    """
+    base, _ = resolve_base("outcome", root, layout)
+    if base is None:
+        return []
+
+    registry = Graph()
+    ladder_paths = recognize_ladder(base, root, registry)
+    intent_paths = recognize_intents(
+        base, root, registry, claimed=set(ladder_paths.values())
+    )
+    artifact_paths = {**ladder_paths, **intent_paths}
+    return outcome_co_owner_findings(
+        _outcome_co_owner_declarations(artifact_paths),
+        set(artifact_paths),
+    )
 
 
 def recognize_entries(base: Path, root: Path, g: Graph, kind: str,
@@ -1125,6 +1246,13 @@ def build_standalone(root: Path, layout: dict, g: Graph,
         recognize_entries(bases["service"], root, g, "service", _SERVICE_RE)
 
     local_ids = set(g.nodes)
+    intent_artifact_paths = {**ladder_paths, **intent_paths}
+    g.dangling.extend(
+        outcome_co_owner_findings(
+            _outcome_co_owner_declarations(intent_artifact_paths),
+            set(intent_artifact_paths),
+        )
+    )
 
     # Edge: spec → component (forward `Component:` on a spec, reverse-indexed so
     # the producer is the spec and the consumer is the component) — one edge per
@@ -1274,6 +1402,7 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
         # Resolve any cross-repo edge endpoint against the rollup so a federated
         # sidecar's external leaf is a reachability terminus, not a dangling edge.
         resolve_sidecar_endpoints(g, rollup)
+        g.dangling.extend(_sidecar_outcome_co_owner_findings(root, layout))
 
     # No chain anchor at all → no-op clean (the lint-brief-coverage no-brief
     # precedent). The anchor is a *discovery-side* artifact — a sidecar, a

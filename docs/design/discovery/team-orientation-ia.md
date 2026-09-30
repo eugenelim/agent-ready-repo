@@ -22,19 +22,18 @@ Reasoning and structure only. No layout, no markup, no values.
 
 | Surface | Genre | This pass | Needs its own pass |
 | --- | --- | --- | --- |
-| Marketing home `/` | marketing | sitemap, scroll order, wayfinding | above-fold contract → `conversion-design` |
-| Documentation guides | documentation | nav model, job grouping, migration | Diátaxis type map, TTFV → `documentation-design` |
+| Marketing home `/` | marketing | sitemap, scroll order, wayfinding | above-fold contract → `information-architecture` marketing reference |
+| Documentation guides | documentation | nav model, job grouping, migration | Diátaxis type map, TTFV → `information-architecture` documentation reference |
 | Catalogue, journeys, `/now/` | mixed | no | yes — out of engagement scope |
 
 **An ordering conflict, stated rather than worked around.** This skill's step 1
-routes by genre and requires reading `conversion-design` output before designing
-marketing hierarchy, and `documentation-design` output before documentation
-hierarchy. The standard enterprise packet puts both of those in Design, *after*
-IA in Define. I have resolved it by splitting ownership rather than reordering
-the packet: this document owns the **sitemap, navigation tree, and wayfinding**;
-the two genre skills own the **above-fold contract, scroll-story zone
-specification, Diátaxis type map, and first-value targets**. Nothing here decides
-what the hero says. Recorded as Gap H.
+routes by genre and requires loading the marketing and documentation references
+before designing their hierarchies. The standard enterprise packet puts those
+genre decisions in Design, *after* IA in Define. I have resolved it by splitting
+ownership rather than reordering the packet: this document owns the **sitemap,
+navigation tree, and wayfinding**; the genre references own the **above-fold
+contract, scroll-story zone specification, Diátaxis type map, and first-value
+targets**. Nothing here decides what the hero says. Recorded as Gap H.
 
 ## Success metrics, named before hierarchy
 
@@ -82,7 +81,7 @@ the eye.
 
 **Corrected after cold review.** An earlier draft argued the Z from a sparseness
 the above-fold contract contradicts. The real inventory is the canvas plus the
-six-element contract `conversion-design` specifies — headline, subheadline,
+six-element contract the marketing reference specifies — headline, subheadline,
 primary action, transitional action, proof signal, friction microcopy — so
 **seven elements, two of them actions**, not "one canvas, one line, one action".
 
@@ -97,7 +96,7 @@ subordinate to it.
 seven further elements does not fit above a laptop fold. So the canvas's
 above-fold height is a constraint, not a free variable, and it must be stated as
 design intent so the "two things complete in five seconds" requirement is
-testable. Owed to `conversion-design`; recorded here because it is an IA
+testable. Owed to the marketing reference; recorded here because it is an IA
 consequence.
 
 Layer-cake below: the page is strongly sectioned with distinct headings, and
@@ -112,7 +111,7 @@ Z nor F; it is a traced path.
 ## Scroll order
 
 Eleven zones, each with one job. Zone count and any merging is
-`conversion-design`'s call; the *order* and each zone's *job* are IA's.
+the marketing reference's call; the *order* and each zone's *job* are IA's.
 
 | # | Zone | Single job | Band | Change |
 | --- | --- | --- | --- | --- |
@@ -447,10 +446,10 @@ chrome — which it already does.
 
 # Handoff
 
-**To `conversion-design`:** zones and order are fixed above; the above-fold
+**To `information-architecture` with the marketing reference:** zones and order are fixed above; the above-fold
 contract, the three checkable proofs' content, and any zone merging are yours.
 
-**To `documentation-design`:** the Diátaxis type map, the first-value target per
+**To `information-architecture` with the documentation reference:** the Diátaxis type map, the first-value target per
 content type, and the P1 on-ramp split. The nav model above is the frame.
 
 **To `interaction-design`:** the canvas's six states, and the emphasis-only rule.
@@ -465,7 +464,6 @@ not the documentation job groups; that is a separate seven-name axis.
 taxonomy into `site.toml`.
 
 **Recorded as Gap H:** `information-architecture` declares a hard read-first
-dependency on `conversion-design` and `documentation-design` output, which the
-standard enterprise packet order places downstream of it. Either the skill's
-dependency or the packet order is wrong; the split used here is a workaround, not
-a resolution.
+dependency on genre-reference decisions that the standard enterprise packet order
+places downstream of it. Either the skill's dependency or the packet order is
+wrong; the split used here is a workaround, not a resolution.

@@ -124,7 +124,7 @@ other two — this section is the only place the choice is stated.
    outside-in lens is a three-tier JTBD job map
    (see `references/jtbd-job-categories.md`). Elicit all four dimensions and
    write the user's answers into the intent's Opportunity sub-fields before
-   continuing to step 6:
+   applying the situational handoff gate below and continuing to step 6:
 
    - **Functional job:** what the user is trying to accomplish — the core task
      or outcome, independent of any product or solution.
@@ -154,6 +154,42 @@ other two — this section is the only place the choice is stated.
    `de-risk-intent` (to test the riskiest assumption) or, once it survives,
    `decompose-intent` (to break it down). See
    `examples/feature-intent-to-brief.md` for a worked app-scale walk-through.
+
+## Situational product-to-experience handoff
+
+After the Opportunity is framed, apply this gate before adding any
+Product-to-experience handoff. Offer or emit the handoff only when `Level:` is
+`capability` or `feature` and the intended change has a material surface effect:
+it creates a human-facing digital surface; materially changes a user journey,
+interaction, content hierarchy, or visible state; or changes what a surface must
+prove, explain, or allow a person to do.
+
+Skip the handoff for backend-only work, infrastructure, internal refactors,
+dependency changes, build work, and any other intent with no material surface
+effect. `product-vision` and `product-strategy` intents do not offer or emit the
+handoff, even when they mention a surface; those altitudes carry durable
+audience, wedge, differentiation, and evidence context without becoming screen
+or design briefs.
+
+When the gate passes, fill only the optional `## Product-to-experience handoff`
+section in the intent template. Derive each line from the intent and, when
+present, the Digital Experience Contract's Product Engineering fields:
+
+- affected journey or surface;
+- user outcome and first-success behavior;
+- product mechanism or proof the interface may expose;
+- evidence available for user-visible claims;
+- constraints, prohibited claims, and material unknowns.
+
+The handoff is Product Engineering-owned ordinary Markdown. Experience Design
+may read it when installed, but it may not rewrite Product Engineering fields or
+the Digital Experience Contract's Product Engineering section. If Experience
+Design is not installed, frame-intent still completes the same intent-authoring
+flow; it must not invoke, install, require, or probe for any downstream pack.
+
+The handoff must not select engagement mode, visual direction, typography,
+color, layout, motion, first-viewport composition, a signature interaction, or
+an implementation approach. Leave those decisions downstream.
 
 ## Optional Core shaping-review augmentation
 
@@ -251,10 +287,21 @@ never blesses a `..`-bearing value as in-tree. Then **surface the resolved
 absolute path to the adopter before creating the intent file** — the first write
 is always preceded by the path you are about to write under.
 
-**A repo-root-sourced `output_dir` that resolves outside the repo tree** — or whose
-resolution required following a symlink out of the intended root — is
-**untrusted-origin**: confirm the resolved absolute path with the adopter before
-writing.
+Classify the resolved destination before any write:
+
+- If resolution passed through a symlink that leaves the anchoring root — the
+  repository root for repo-scope config, or the configured directory for
+  user-scope config — refuse before writing.
+- If the configured path carries a `..` segment, refuse before writing.
+- If a repo-root-sourced absolute value resolves outside the repository by the
+  absolute path alone, with no symlink escape and no `..` segment, treat it as
+  **untrusted-origin**: disclose the resolved absolute realpath and ask the
+  adopter to confirm before writing.
+
+Being outside the repository is not itself a reason to refuse. A personal-scope
+destination is legitimate when its resolved absolute realpath is disclosed first;
+the symlink and `..` refusals still apply within that destination's own anchoring
+root.
 
 **Output shape — file-per-slug, not a per-topic folder.** Intent files live
 directly under `<output_dir>/intents/<slug>.md`. A per-topic folder is deliberately

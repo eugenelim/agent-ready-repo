@@ -1,6 +1,6 @@
 [pack]
 name = "atlassian"
-version = "0.9.3"
+version = "0.10.1"
 description = "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back."
 readme = "README.md"
 display_name = "Atlassian"
@@ -10,6 +10,22 @@ keywords = ["jira", "confluence", "flow-metrics", "jira-align"]
 
 [pack.adapter-contract]
 version = "0.8"
+
+# Bridge skills — the skills in this pack that may reach the delivery machinery
+# of a host repository: its intent tree, its delivery briefs, its workspace
+# configuration file, or its work-intake route. Every other skill here returns
+# value to a team that has installed nothing but this pack.
+#
+# This list is the contract. The `-brief-intake` and `-refresh` naming is only
+# a convention, so read the list rather than inferring membership from a name.
+# An omitted list means the pack ships no bridge skills.
+[pack.metadata]
+bridge-skills = [
+  "jira-align-brief-intake",
+  "jira-align-refresh",
+  "jira-brief-intake",
+  "jira-refresh",
+]
 
 # Every credentialed skill in this pack resolves its credential through the
 # broker layer: the `credbroker` library for the token path, and
@@ -42,7 +58,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # fires — no Atlassian credentials are needed to measure these (Tier-A only;
 # behavior testing of a backend skill is future-Tier-B-RFC scope, see the spec).
 [pack.evals]
-skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", "jira-refresh", "jira-align-refresh", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report", "jira-story-triage", "jira-team-status"]
+skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", "jira-refresh", "jira-align-refresh", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report", "jira-story-triage", "jira-team-status", "jira-epic-outcome-view"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

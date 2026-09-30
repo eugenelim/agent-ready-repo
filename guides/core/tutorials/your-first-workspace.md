@@ -157,7 +157,7 @@ authority. The workspace entry keeps a short current/next summary and hard
 dependencies only. Because the item is not independently shippable yet, no
 processor is dispatched.
 
-For more on how intake routes items, see [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
+For more on how intake routes items, see [Start a software change](../how-to/start-or-remember-work.md).
 
 ## Step 6 — Let `work-loop` finish
 
@@ -201,6 +201,6 @@ updated queue that identifies the next ready item. Start the next session with
 
 - To orient faster at future session starts: [How to orient at the start of a session](../how-to/orient-at-session-start.md).
 - To understand the two-room model behind the queue: [The two-room model](../explanation/two-room-model.md).
-- To remember future items mid-session: [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
+- To remember future items mid-session: [Use work intake](../../_shared/how-to/use-work-intake.md).
 - To close a finished delivery without losing its lasting context: [Close work without losing lasting context](../how-to/close-and-disposition-work.md).
 - To start the next spec: run `workspace-status`, then `work-loop docs/specs/<next-slug>/`.

@@ -319,6 +319,20 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-traceability",
             ".claude", "skills", "work-loop", "scripts", "lint-traceability.py",
         ),
+        # The closure check decides verdicts on terminality, whose defining
+        # homes sit in sibling skills it may not import. It carries projections
+        # instead, and these two steps are what keep them honest: the pack test
+        # over fixtures, then the parity check against the live corpus. Without
+        # the second, a projection silently outlives the upstream it copied.
+        _pytest_step(
+            "test-closure-terminality",
+            "packs", "core", "tests", "skills", "close-work",
+            "test_closure_terminality.py",
+        ),
+        _script_step(
+            "check-closure-terminality-parity",
+            "tools", "check_closure_terminality_parity.py",
+        ),
         _script_step(
             "test-workspace-status",
             "tools", "test_workspace_status.py",

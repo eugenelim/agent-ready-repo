@@ -19,19 +19,13 @@ contract:
     - approve-journey
     - approve-aesthetic-direction
     - review-experience-designs
-whatChanges: "After installing experience-design, every design task runs a fixed thread: journey-mapping to anchor user outcomes, user-flow to derive the screen inventory, a craft sequence (creative-direction → design-system → information-architecture → interaction-design) to design each screen, and an independent experience-reviewer pass that reads design artifacts cold. The quality floor — handle-all-states, WCAG 2.2 AA, reduced-motion — is non-negotiable at every step. You decide at three gates: the journey and screen list, the aesthetic direction, and the post-review pass before design feeds the build loop. experience-status orients to the thread at the start of any session."
+whatChanges: "After installing experience-design, every design task runs a thread: journey-mapping anchors user outcomes, user-flow derives the screen inventory, creative-direction sets the aesthetic constraint, design-system runs when its condition requires it — when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs — then information-architecture and interaction-design design each screen, and an independent experience-reviewer pass reads design artifacts cold. information-architecture selects a genre method when the brief declares a surface genre. The quality floor — handle-all-states, WCAG 2.2 AA, reduced-motion — is non-negotiable at every step. You decide at three gates: the journey and screen list, the aesthetic direction, and the post-review pass before design feeds the build loop. experience-status orients to the thread at the start of any session."
 skills:
   - name: journey-mapping
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
     humanTouches: 1
   - name: content-design
-    description: "Produces a content brief for a surface — what it should say, for whom, in what form, and to what objective — before any wireframe or screen flow starts."
-    humanTouches: 0
-  - name: tone-of-voice
-    description: "Names the brand-level copy register — the cross-surface voice and copy personality that all per-surface copy decisions reference."
-    humanTouches: 0
-  - name: copy-direction
-    description: "Names the copy direction for a specific marketing or acquisition surface — ranked copy goals grounded in stable referents, plus arbitration rules for that surface."
+    description: "The copy layer in three modes: a content brief for a surface, per-surface acquisition copy goals, or the brand-level register every per-surface goal references."
     humanTouches: 0
   - name: user-flow
     description: "Derives the screen inventory and flow from the customer journey — what screens exist, what state each handles, what the transitions are."
@@ -49,28 +43,10 @@ skills:
     description: "Establishes the visual direction for a surface — named emotional and brand goals grounded in stable referents — as the aesthetic reference all subsequent screens must satisfy."
     humanTouches: 1
   - name: design-system
-    description: "Derives the design token set from the creative direction — the primitive and semantic tokens that carry the design into code."
+    description: "Resolves the design system from the creative direction and whatever system the product already has — the relationships that must hold and the values that make them buildable."
     humanTouches: 0
   - name: information-architecture
-    description: "Designs the layout zones and information hierarchy for a screen, given its per-screen brief."
-    humanTouches: 0
-  - name: analytical-design
-    description: "Produces a structural specification for an analytical surface — dashboard IA, widget hierarchy, and role-based view architecture — from business questions and domain model."
-    humanTouches: 0
-  - name: conversion-design
-    description: "Produces a structural specification for a marketing surface — above-fold contract, scroll story, and social-proof architecture — from content brief and design principles."
-    humanTouches: 0
-  - name: documentation-design
-    description: "Produces a structural specification for a documentation surface — content hierarchy, navigation strategy, and TTFV architecture — from Diátaxis content typing and reading goal."
-    humanTouches: 0
-  - name: informational-design
-    description: "Produces a structural specification for an informational surface — typographic hierarchy, reading-pattern calibration, and editorial grid — from editorial structure and reading goal."
-    humanTouches: 0
-  - name: marketplace-design
-    description: "Produces a structural specification for a marketplace surface — listing card IA, filter and facet architecture, and transaction bridge — from buyer journey and listing object model."
-    humanTouches: 0
-  - name: workspace-design
-    description: "Produces a structural specification for a workspace surface — context-persistence architecture, attention zone layout, and interrupt design — from session arc and collaboration model."
+    description: "Designs the layout zones and information hierarchy for a screen, selecting the analytical, marketing, documentation, informational, marketplace, or workspace genre method when the brief declares one."
     humanTouches: 0
   - name: interaction-design
     description: "Designs the interactive behaviors for a screen — states, transitions, feedback patterns — against WCAG 2.2 AA."
@@ -98,15 +74,16 @@ humanGates:
   - id: approve-aesthetic-direction
     globalGate: null
     label: "Approve the aesthetic direction"
-    trigger: "After creative-direction and optionally design-system complete"
+    trigger: "After creative-direction, and after design-system when its condition requires it"
     duration: "5–10 minutes"
     whatToCheck:
       - "Does the aesthetic direction name a specific visual character — not just 'clean and modern'?"
       - "Are the contrast ratios in the token set verified at WCAG 2.2 AA minimum?"
       - "Is the palette constrained to a small number of semantic roles — does adding a new color require a decision?"
-      - "Are the tokens derived from the aesthetic direction, not borrowed from a generic design system?"
-    whatGoodLooksLike: "A named aesthetic reference with a token set that derives directly from it, passes the contrast floor, and could be handed to a developer without ambiguity."
-    whatBadLooksLike: "An aesthetic direction that could apply to any product, or a token set that introduces hardcoded values outside the semantic token system."
+      - "Are the values derived from the aesthetic direction, not borrowed from a generic design system?"
+      - "Is every domain the direction reached actually resolved, rather than left for whoever writes the code?"
+    whatGoodLooksLike: "A named aesthetic reference with a resolved system that derives directly from it, passes the contrast floor, records which authority supplied each decision, and could be handed to a developer without ambiguity."
+    whatBadLooksLike: "An aesthetic direction that could apply to any product, a system that names categories and leaves the visual decisions to implementation, or one that introduces hardcoded values outside the semantic roles."
     consequence: "The aesthetic direction is the constraint every subsequent screen must satisfy. Approving a vague direction means screens drift with no shared reference to hold them together — and the experience-reviewer will flag every screen for the same missing constraint."
   - id: review-experience-designs
     globalGate: null
@@ -137,15 +114,13 @@ relatedJourneys:
 |----------|--------------|---------|
 | `experience-status` | Orient — where the design thread is, what's next | Optional |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains | Required |
-| `content-design` | Set surface intent — what this screen says and for whom | Required |
-| `tone-of-voice` | Set the brand-level copy register — cross-surface copy personality all per-surface goals reference | Optional |
-| `copy-direction` | Name per-surface copy goals — voice, register, arbitration rules for a specific marketing surface | Optional |
+| `content-design` | Set surface intent — what this screen says and for whom, plus per-surface copy goals and the brand register in its other two modes | Required |
 | `user-flow` | Build the screen inventory with per-screen state briefs | Required |
 | `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
-| `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |
+| `design-system` | Resolve the system's relationships and values from the direction and the incumbent system | Conditional |
 | `information-architecture` | Decide what goes where on each screen and how users stay oriented | Required |
 | `interaction-design` | Design states, feedback, and animation per screen | Required |
-| `experience-reviewer` | Independent cold review — forked context, read-only | Required |
+| `experience-reviewer` | Independent cold review — forked context, read-only. A reviewer agent the design thread dispatches, described here rather than run like the skills above | Required |
 
 ---
 
@@ -161,12 +136,10 @@ journey-mapping
   Stage 1  Aware          finds product, expectations vague
   Stage 2  First-session  blank state, no direction, high drop-off
   Stage 3  Value          first export, relief, converts
-
-Approve the journey and screen list? ›
 ```
 
-- **You decide:** approve the journey map before screens are derived from it — a one-sentence redirect here saves a full design cycle.
-- **Output:** an approved journey map with key failure modes and a derived screen list.
+- **You decide:** read the journey and redirect it now — a one-sentence correction here is cheaper than one after screens exist. The `approve-journey` gate itself covers the journey *and* the screens derived from it, so it closes at the end of step 2.
+- **Output:** a journey map with the outcome, the key failure modes, and the peak, dip, and end moments marked. Screens are derived next, by `user-flow`.
 - **State:** draft
 
 #### The minimal viable thread
@@ -229,16 +202,21 @@ user-flow
 
   /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
   States per screen: loading · empty · error · success · content · partial · disabled
+
+Approve the journey and screen list? ›
 ```
 
-- **Output:** a screen inventory with per-screen briefs, ready for the craft sequence.
+- **You decide:** the `approve-journey` gate closes here — you approve the journey and the screen list together, because the check that earns it is whether every screen traces to a moment in the journey.
+- **Output:** an approved screen inventory with per-screen briefs, ready for the craft sequence.
 - **State:** draft
 
 ---
 
 ### 3. Establish design intent
 
-Type `creative-direction` to anchor the visual direction in persona, precedent, and platform conventions. Type `design-system` to derive the token taxonomy from it.
+Type `creative-direction` to anchor the visual direction in persona, precedent, and platform conventions. Type `design-system` to resolve that direction into a buildable system.
+
+`design-system` is conditional: run it when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs.
 
 ```text
 creative-direction
@@ -252,14 +230,15 @@ Approve the aesthetic direction? ›
 ```
 
 - **You decide:** approve the direction before screens are designed — a vague direction ("clean and modern") is a rejection.
-- **Output:** a named aesthetic direction with a derived token taxonomy.
+- **Output:** a named aesthetic direction and a resolved design system derived from it.
 - **State:** draft
 
 ---
 
 ### 4. Design each screen
 
-Type `information-architecture` (or a genre-direct skill for dashboards, marketing, docs, or marketplace surfaces), then `interaction-design` per screen.
+Type `information-architecture`; when the brief declares a surface genre, it
+loads that genre's method. Then type `interaction-design` per screen.
 
 ```text
 interaction-design [/onboarding/welcome]
@@ -276,10 +255,10 @@ interaction-design [/onboarding/welcome]
 
 ### 5. Review independently
 
-Type `experience-reviewer`. It reads your design artifacts cold — no authoring context — and returns findings across handle-all-states, WCAG 2.2 AA, aesthetic fit, and cross-screen coherence.
+Ask for an independent review of the finished design set. The `experience-reviewer` agent is dispatched to do it — a reviewer role rather than a skill you type. It reads your design artifacts cold, with no authoring context, and returns findings across handle-all-states, accessibility, aesthetic fit, and cross-screen coherence.
 
 ```text
-experience-reviewer
+independent review — findings returned in session
 
   Blocker  Welcome screen: empty state not designed
   Concern  Connect screen: error text has no recovery action
@@ -302,5 +281,10 @@ configured to write to.
 | Per-screen brief | `screens/<slug>/<screen>.md` | `user-flow`, enriched by `interaction-design` |
 | Token taxonomy | `tokens/<slug>.md` | `design-system` |
 
-A slot no artifact fills is not an error: the frontend pre-flight falls back to
-its own canonical reference for that slot and records which one it used.
+A slot no artifact fills is not an error: the frontend pre-flight resolves that
+axis from a lower rung of its visual-authority precedence and records which rung
+supplied it.
+
+Exception: a resolved direction beside a named-skipped token taxonomy, with no
+incumbent system supplying the axis, holds and routes that axis upstream.
+Ordinary genuinely open axes may still resolve from lower rungs.

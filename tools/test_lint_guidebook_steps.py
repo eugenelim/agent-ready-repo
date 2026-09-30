@@ -44,6 +44,34 @@ NORMATIVE = re.compile(r"every guidebook step must carry every obligation", re.I
 JUDGEMENT_HEADING = "### Judgement kinds"
 VOCABULARY_HEADING = "### Prohibited vocabulary"
 
+OWNERSHIP_LEDGER = (
+    REPO_ROOT
+    / "docs"
+    / "specs"
+    / "pack-guidebook-walkability"
+    / "notes"
+    / "ownership-consolidation.md"
+)
+SIBLING_SPECS = {
+    slug: REPO_ROOT / "docs" / "specs" / slug
+    for slug in (
+        "guide-invocation-outcome-coverage",
+        "tutorial-worked-examples",
+        "how-to-sample-output-coverage",
+    )
+}
+FIVE_PACK_PREFIXES = tuple(
+    f"{root}/{pack}/"
+    for root in ("guides", "packs")
+    for pack in (
+        "desk-research",
+        "product-strategy",
+        "experience-design",
+        "product-engineering",
+        "core",
+    )
+)
+
 
 def _contract_section() -> str:
     """The contract body, or "" when its title is absent."""
@@ -78,6 +106,19 @@ def prohibited_terms() -> tuple[str, ...]:
     return lint_guidebook_steps.prohibited_terms_from_contract(
         CONTRACT.read_text(encoding="utf-8")
     )
+
+
+def _markdown_section(text: str, heading: str) -> str:
+    """Return one Markdown section body, stopping at the next peer heading."""
+    marker = f"## {heading}"
+    assert marker in text, f"missing section: {heading}"
+    return text.split(marker, 1)[1].split("\n## ", 1)[0]
+
+
+def _repository_paths(text: str) -> set[str]:
+    """Return exact guide or pack paths from backticked Markdown spans."""
+    candidates = re.findall(r"`((?:guides|packs)/[^`*\n]+)`", text)
+    return {path for path in candidates if path.startswith(FIVE_PACK_PREFIXES)}
 
 
 # --------------------------------------------------------------------------
@@ -124,6 +165,52 @@ def test_ac0001_the_contract_declares_its_prohibited_vocabulary() -> None:
         f"the contract carries no {VOCABULARY_HEADING!r} terms, so AC-0009, "
         "AC-0013 and AC-0020 have nothing lexical to scan for"
     )
+
+
+def test_ac0012_every_sibling_target_has_one_reciprocal_disposition() -> None:
+    """The accepted universe, consolidation ledger, and sibling records agree."""
+    accepted_by_sibling: dict[str, set[str]] = {}
+    for slug, spec_dir in SIBLING_SPECS.items():
+        accepted_by_sibling[slug] = _repository_paths(
+            (spec_dir / "notes" / "accepted-base.md").read_text(encoding="utf-8")
+        )
+
+    all_entries = [
+        path for paths in accepted_by_sibling.values() for path in paths
+    ]
+    assert len(all_entries) == len(set(all_entries)), (
+        "one accepted-base path belongs to more than one sibling; ownership "
+        "must be resolved before the complement rule can account for it once"
+    )
+    accepted_universe = set(all_entries)
+
+    ledger_text = OWNERSHIP_LEDGER.read_text(encoding="utf-8")
+    ledger_section = _markdown_section(
+        ledger_text, "Machine-checkable disposition"
+    )
+    ledger_taken = _repository_paths(ledger_section)
+
+    reciprocal_taken: set[str] = set()
+    for slug, spec_dir in SIBLING_SPECS.items():
+        spec_text = (spec_dir / "spec.md").read_text(encoding="utf-8")
+        boundary = _markdown_section(
+            spec_text, "Boundary with `pack-guidebook-walkability`"
+        )
+        taken_here = _repository_paths(boundary)
+        assert taken_here <= accepted_by_sibling[slug], (
+            f"{slug} transfers a path outside its accepted base: "
+            f"{sorted(taken_here - accepted_by_sibling[slug])}"
+        )
+        assert "retains every" in " ".join(boundary.split()), (
+            f"{slug} does not disposition the complement of its transferred paths"
+        )
+        reciprocal_taken.update(taken_here)
+
+    assert ledger_taken == reciprocal_taken
+    assert ledger_taken <= accepted_universe
+    retained = accepted_universe - ledger_taken
+    assert ledger_taken.isdisjoint(retained)
+    assert ledger_taken | retained == accepted_universe
 
 
 # --------------------------------------------------------------------------

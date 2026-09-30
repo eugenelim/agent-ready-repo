@@ -211,7 +211,7 @@ def test_identity_wrong_schema_version(tmp: Path) -> None:
     write_state(spec_dir, {"schema_version": 99, "run_id": "abc"})
     rc, _, err = run_cohort("identity", str(spec_dir))
     if rc == 0:
-        fail(name, "expected non-zero when schema_version != 1")
+        fail(name, f"expected non-zero when schema_version != {_mod.SCHEMA_VERSION}")
     elif "schema_version" not in err:
         fail(name, f"expected 'schema_version' in stderr; got: {err!r}")
     else:
@@ -221,7 +221,7 @@ def test_identity_wrong_schema_version(tmp: Path) -> None:
 def test_identity_run_id_mismatch(tmp: Path) -> None:
     name = "identity-run-id-mismatch"
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": "aaa"})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": "aaa"})
     rc, _, err = run_cohort("identity", str(spec_dir), "--expect-run-id", "bbb")
     if rc == 0:
         fail(name, "expected non-zero on run_id mismatch")
@@ -235,7 +235,7 @@ def test_identity_success(tmp: Path) -> None:
     name = "identity-success"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id})
     rc, _, _ = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
     if rc != 0:
         fail(name, "expected exit 0 on matching run_id")
@@ -247,7 +247,7 @@ def test_identity_json(tmp: Path) -> None:
     name = "identity-json"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id})
     rc, out, _ = run_cohort("identity", str(spec_dir), "--json")
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
@@ -283,8 +283,11 @@ def test_init_creates_state(tmp: Path) -> None:
         fail(name, f"run_id mismatch: {state.get('run_id')!r} != {run_id!r}")
     elif state.get("feature") != name:
         fail(name, f"feature mismatch: {state.get('feature')!r} != {name!r}")
-    elif state.get("schema_version") != 1:
-        fail(name, f"schema_version expected 1, got {state.get('schema_version')!r}")
+    elif state.get("schema_version") != _mod.SCHEMA_VERSION:
+        fail(
+            name,
+            f"schema_version expected {_mod.SCHEMA_VERSION}, got {state.get('schema_version')!r}",
+        )
     else:
         ok(name)
 
@@ -293,7 +296,7 @@ def test_init_refuses_if_state_exists(tmp: Path) -> None:
     name = "init-refuses-if-state-exists"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id})
     rc, _, err = run_cohort("init", str(spec_dir), "--run-id", run_id)
     if rc == 0:
         fail(name, "expected non-zero exit when state.json already exists")
@@ -320,12 +323,14 @@ def test_init_phase1_field_set(tmp: Path) -> None:
         "review_round_count", "review_retry_count", "max_review_retries",
         "finding_fingerprints", "previous_finding_fingerprints",
         "auto_parallel", "last_commit_sha", "worktrees",
+        "pending_transition", "transition_history",
     }
     # Phase-2 fields must be absent
     phase2_absent = {
         "token_budget_used_pct", "token_budget_cap_pct",
         "consecutive_same_error_count", "consecutive_same_error_threshold",
         "last_error_fingerprint", "iteration_count", "max_iterations",
+        "amendment_pending", "amendment_history",
     }
     missing = required - set(state.keys())
     present_phase2 = phase2_absent & set(state.keys())
@@ -337,6 +342,10 @@ def test_init_phase1_field_set(tmp: Path) -> None:
         fail(name, "approved_spec_hash should be null at init")
     elif state.get("schedule_waves") != []:
         fail(name, "schedule_waves should be [] at init")
+    elif state.get("pending_transition") is not None:
+        fail(name, "pending_transition should be null at init")
+    elif state.get("transition_history") != []:
+        fail(name, "transition_history should be [] at init")
     else:
         ok(name)
 
@@ -382,7 +391,7 @@ def test_status_rejects_symlinked_cohort_state(tmp: Path) -> None:
     outside = tmp / f"{name}-outside.json"
     outside.write_text(
         json.dumps({
-            "schema_version": 1,
+            "schema_version": _mod.SCHEMA_VERSION,
             "run_id": str(uuid.uuid4()),
             "feature": sentinel,
         }),
@@ -412,7 +421,7 @@ def test_cohort_state_reader_rejects_identity_change(
     path = spec_dir / "state.json"
     path.write_text(
         json.dumps({
-            "schema_version": 1,
+            "schema_version": _mod.SCHEMA_VERSION,
             "run_id": str(uuid.uuid4()),
             "feature": sentinel,
         }),
@@ -917,7 +926,7 @@ def test_schedule_help_states_canonical_plan_path() -> None:
 def test_disabled_worktree(tmp: Path) -> None:
     name = "disabled-worktree"
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": "x", "worktrees": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": "x", "worktrees": []})
     path = spec_dir / "state.json"
     before = path.read_bytes()
     rc, _, err = run_cohort("worktree", "add", str(spec_dir))
@@ -946,7 +955,7 @@ def test_disabled_dispatch_decision(tmp: Path) -> None:
 def test_disabled_auto_parallel(tmp: Path) -> None:
     name = "disabled-auto-parallel"
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": "x"})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": "x"})
     path = spec_dir / "state.json"
     before = path.read_bytes()
     rc, _, err = run_cohort("auto-parallel", str(spec_dir))
@@ -971,7 +980,7 @@ def test_check_phase_implement_stub(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     # Write a minimal Phase-1 state — no token-budget or same-error fields
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "plan_review_status": "approved",
         "implementation_retry_count": 0, "max_implementation_retries": 5,
     })
@@ -988,7 +997,7 @@ def test_check_phase_implement_no_phase2_fields(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     # State WITHOUT any Phase-2 fields — stub should still exit 0
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id})
     rc, _, _ = run_cohort("check", str(spec_dir), "--phase", "implement")
     if rc != 0:
         fail(name, "check --phase implement failed when Phase-2 fields are absent")
@@ -1001,7 +1010,7 @@ def test_check_phase_gates_failed_cap(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "implementation_retry_count": 5,
         "max_implementation_retries": 5,
     })
@@ -1019,7 +1028,7 @@ def test_check_phase_gates_failed_under_cap(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "implementation_retry_count": 4,
         "max_implementation_retries": 5,
     })
@@ -1035,7 +1044,7 @@ def test_check_phase_review_cap(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_retry_count": 5,
         "max_review_retries": 5,
     })
@@ -1052,7 +1061,7 @@ def test_check_phase_review_cap(tmp: Path) -> None:
 def _make_scheduled_state(spec_dir: Path, run_id: str, n_waves: int = 3) -> dict:
     waves = [[f"T{i + 1}"] for i in range(n_waves)]
     state = {
-        "schema_version": 1,
+        "schema_version": _mod.SCHEMA_VERSION,
         "run_id": run_id,
         "plan_review_status": "approved",
         "schedule_waves": waves,
@@ -1156,7 +1165,7 @@ def test_wave_advance_refuses_empty_schedule(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": [], "current_wave_index": 0,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": [], "current_wave_index": 0,
     })
     rc, _, _ = run_cohort(
         "wave", "advance", str(spec_dir), "--from-index", "0", "--expect-run-id", run_id
@@ -1253,7 +1262,7 @@ def test_record_attempt_increments(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "implementation_retry_count": 0, "max_implementation_retries": 5,
         "last_record_attempt_cycle_id": None,
     })
@@ -1279,7 +1288,7 @@ def test_record_attempt_idempotent(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "implementation_retry_count": 0, "max_implementation_retries": 5,
         "last_record_attempt_cycle_id": None,
     })
@@ -1305,7 +1314,7 @@ def test_record_attempt_new_cycle_increments(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "implementation_retry_count": 0, "max_implementation_retries": 5,
         "last_record_attempt_cycle_id": None,
     })
@@ -1327,7 +1336,7 @@ def test_record_attempt_run_id_prefix_mismatch(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "implementation_retry_count": 0, "max_implementation_retries": 5,
         "last_record_attempt_cycle_id": None,
     })
@@ -1351,7 +1360,7 @@ def test_record_attempt_invalid_sequence_suffix(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "implementation_retry_count": 0, "max_implementation_retries": 5,
         "last_record_attempt_cycle_id": None,
     })
@@ -1396,7 +1405,7 @@ def test_review_inspect_clean(tmp: Path) -> None:
     name = "review-inspect-clean"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "clean.md"
     report.write_text(CLEAN_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
@@ -1416,7 +1425,7 @@ def test_review_inspect_findings(tmp: Path) -> None:
     name = "review-inspect-findings"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "findings.md"
     report.write_text(SAMPLE_FINDINGS_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
@@ -1436,7 +1445,7 @@ def test_review_inspect_invalid_absent(tmp: Path) -> None:
     name = "review-inspect-invalid-absent"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "finding_fingerprints": []})
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir),
                             "--report", str(tmp / "nonexistent.md"), "--json")
     if rc != 0:
@@ -1454,7 +1463,7 @@ def test_review_inspect_invalid_no_clean_no_findings(tmp: Path) -> None:
     name = "review-inspect-invalid-empty"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "empty.md"
     report.write_text(EMPTY_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
@@ -1476,7 +1485,7 @@ def test_review_inspect_stasis(tmp: Path) -> None:
     # Prime the state with known fingerprints
     fps = sorted(set(parse_findings(SAMPLE_FINDINGS_REPORT)))
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "finding_fingerprints": fps,
     })
     report = tmp / "stasis.md"
@@ -1497,7 +1506,7 @@ def test_review_inspect_empty_vs_empty_not_stasis(tmp: Path) -> None:
     name = "review-inspect-empty-not-stasis"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "clean2.md"
     report.write_text(CLEAN_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
@@ -1516,7 +1525,7 @@ def test_review_inspect_findings_precedence(tmp: Path) -> None:
     name = "review-inspect-findings-precedence"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "finding_fingerprints": []})
     mixed = SAMPLE_FINDINGS_REPORT + f"\n{CLEAN_SUBSTRING}\n"
     report = tmp / "mixed.md"
     report.write_text(mixed, encoding="utf-8")
@@ -1540,7 +1549,7 @@ def test_review_record_fingerprint_increments_both_counters(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
@@ -1566,7 +1575,7 @@ def test_review_record_report_increments_only_round(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 0, "review_retry_count": 2, "max_review_retries": 5,
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
@@ -1593,7 +1602,7 @@ def test_review_record_report_rejects_non_clean(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
@@ -1618,7 +1627,7 @@ def test_review_record_fingerprint_canonicalization(tmp: Path) -> None:
 
     # Call 1: duplicated h1
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
@@ -1631,7 +1640,7 @@ def test_review_record_fingerprint_canonicalization(tmp: Path) -> None:
     run_cohort("reset", str(spec_dir))
     run_cohort("init", str(spec_dir), "--run-id", run_id)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
@@ -1655,7 +1664,7 @@ def test_review_record_fingerprint_invalid_format(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
@@ -1680,7 +1689,7 @@ def test_review_record_all_skipped(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 2, "review_retry_count": 1, "max_review_retries": 5,
         "finding_fingerprints": ["a" * 40], "previous_finding_fingerprints": [],
     })
@@ -1705,7 +1714,7 @@ def test_review_record_run_id_mismatch(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
@@ -1722,6 +1731,34 @@ def test_review_record_run_id_mismatch(tmp: Path) -> None:
         ok(name)
 
 
+def test_review_record_operation_id_rejects_durable_transition_hash(tmp: Path) -> None:
+    name = "review-record-operation-id-rejects-durable-transition-hash"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
+        "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
+        "finding_fingerprints": [], "previous_finding_fingerprints": [],
+    })
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, _, err = run_cohort(
+        "review", "record", str(spec_dir),
+        "--fingerprint", "aa" * 20,
+        "--expect-run-id", run_id,
+        "--operation-id", "7" * 64,
+    )
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected durable transition hash to be refused by the public CLI")
+    elif "<expect-run-id>:<decimal-sequence>" not in err:
+        fail(name, f"expected existing operation-id grammar diagnostic; got {err!r}")
+    elif before != after:
+        fail(name, "state.json mutated despite operation-id grammar refusal")
+    else:
+        ok(name)
+
+
 def test_review_record_clean_resets_fingerprint_baseline(tmp: Path) -> None:
     """After clean review, a subsequent inspect of the same findings is not stasis."""
     name = "review-record-clean-resets-baseline"
@@ -1729,7 +1766,7 @@ def test_review_record_clean_resets_fingerprint_baseline(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     fps = sorted(set(parse_findings(SAMPLE_FINDINGS_REPORT)))
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "review_round_count": 1, "review_retry_count": 1, "max_review_retries": 5,
         "finding_fingerprints": fps, "previous_finding_fingerprints": [],
     })
@@ -1920,7 +1957,7 @@ def test_raw_refusal_reasons_are_closed_and_reachable(tmp: Path) -> None:
 
 
 def test_clean_source_replay_forms_are_exhaustive(tmp: Path) -> None:
-    """Resumption must map each persisted clean source to its own command form.
+    """Resumption must preserve every clean form in the replayed engine payload.
 
     Scoped to the `reviewers-clean` table row. A file-wide search passes while
     that row is removed, reordered, or mis-mapped, as long as the strings survive
@@ -1940,9 +1977,14 @@ def test_clean_source_replay_forms_are_exhaustive(tmp: Path) -> None:
         return
     row = rows[0]
     required = (
-        '`"direct-clean"` → `--direct-clean-file <raw-path>`',
-        '`"structural-clean"` → `--structural-clean-file <raw-path>`',
-        '`"report"` → `--report <adjudication-path> --adjudication`',
+        "re-issue the same `loop-engine transition ... reviewers-clean` payload",
+        "`--all-skipped`",
+        "`--direct-clean-file`",
+        "`--structural-clean-file`",
+        "`--report --adjudication`",
+        "the transition id is also the review operation id",
+        "no human authorization gate is needed for a matching replay",
+        "Do not run `loop-cohort review record` separately",
     )
     missing = [form for form in required if form not in row]
     if missing:
@@ -2020,7 +2062,7 @@ def test_classify_report_ship_it_clean(tmp: Path) -> None:
     name = "classify-report-ship-it-clean"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    write_state(spec_dir, {"schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "ship_it.md"
     report.write_text("## Verdict\nSHIP IT\n\n## What's working\nAll good.\n", encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
@@ -2035,7 +2077,7 @@ def test_classify_report_ship_it_clean(tmp: Path) -> None:
 
 
 def test_validate_run_id_rejects_wrong_schema(tmp: Path) -> None:
-    """_validate_run_id rejects state with schema_version != 1 before checking run_id."""
+    """_validate_run_id rejects wrong schema_version before checking run_id."""
     name = "validate-run-id-rejects-wrong-schema"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -2050,7 +2092,7 @@ def test_validate_run_id_rejects_wrong_schema(tmp: Path) -> None:
                           "--fingerprint", "a" * 40, "--expect-run-id", run_id)
     after = path.read_bytes()
     if rc == 0:
-        fail(name, "expected non-zero when schema_version != 1")
+        fail(name, f"expected non-zero when schema_version != {_mod.SCHEMA_VERSION}")
     elif before != after:
         fail(name, "state.json mutated despite wrong schema_version")
     else:
@@ -3160,7 +3202,7 @@ def _receipts_state(
 ) -> dict:
     """A scheduled state carrying the receipts container `init` now writes."""
     state = {
-        "schema_version": 1,
+        "schema_version": _mod.SCHEMA_VERSION,
         "run_id": run_id,
         "plan_review_status": "approved",
         "schedule_waves": [["T1", "T2"], ["T3"]] if waves is None else waves,
@@ -3326,7 +3368,7 @@ def test_dispatch_receipt_index_validation_rejects_a_boolean() -> None:
     """
     name = "dispatch-receipt-index-boolean"
     state = {
-        "schema_version": 1, "run_id": "r", "schedule_waves": [["T1"]],
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": "r", "schedule_waves": [["T1"]],
         "current_wave_index": 0, _RECEIPTS_KEY: {},
     }
     updated, reason = _mod.plan_dispatch_receipt(
@@ -3698,7 +3740,7 @@ def test_wave_exit_cli_verdict_per_row(tmp: Path, row: str) -> None:
     spec_dir = make_spec_dir(tmp, name)
     if over is not None:
         state = {
-            "schema_version": 1, "run_id": str(uuid.uuid4()),
+            "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
             "schedule_waves": _WAVES, "current_wave_index": 0, _RECEIPTS_KEY: {},
         }
         for key, value in over.items():
@@ -3731,7 +3773,7 @@ def test_wave_exit_cli_refusal_names_no_accounted_task(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     waves = [["T1", "T2", "T3"], ["T4"]]
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": str(uuid.uuid4()),
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
         "schedule_waves": waves, "current_wave_index": 0,
         _RECEIPTS_KEY: _receipts_container(waves, 0, ["T1", "T2"]),
     })
@@ -3757,7 +3799,7 @@ def test_a_record_written_by_the_verb_is_counted_by_the_guard(tmp: Path) -> None
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "schedule_waves": [["T1"], ["T2"]], "current_wave_index": 0,
         _RECEIPTS_KEY: {},
     })
@@ -3787,7 +3829,7 @@ def test_status_reports_whether_receipts_are_enforced(tmp: Path, present: bool) 
     name = f"status-receipts-enforced-{present}"
     spec_dir = make_spec_dir(tmp, name)
     state = {
-        "schema_version": 1, "run_id": str(uuid.uuid4()),
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
         "schedule_waves": _WAVES, "current_wave_index": 0,
     }
     if present:
@@ -3813,7 +3855,7 @@ def test_status_reports_whether_receipts_are_enforced(tmp: Path, present: bool) 
 
 def _advance_state(spec_dir: Path, run_id: str, **over) -> None:
     state = {
-        "schema_version": 1, "run_id": run_id, "plan_review_status": "approved",
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "plan_review_status": "approved",
         "schedule_waves": _WAVES, "current_wave_index": 0,
         _RECEIPTS_KEY: _receipts_container(_WAVES, 0, ["T1", "T2"]),
     }
@@ -4085,24 +4127,25 @@ def test_wave_advance_does_not_carry_a_long_state_value_whole(tmp: Path) -> None
 
 def _wave_exit_state(**over) -> dict:
     state = {
-        "schema_version": 1, "run_id": str(uuid.uuid4()),
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
         "schedule_waves": _WAVES, "current_wave_index": 0,
     }
     state.update(over)
     return state
 
 
-def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
+def test_status_tells_a_declined_wave_from_an_implemented_one(
     tmp: Path,
 ) -> None:
-    """Differential: two waves alike but for the record kind, one reported value.
+    """Differential: two waves alike but for the record kind, two reported values.
 
     A decline is accounting, not an exemption, so both waves exit accounted for.
-    Asserted as a DIFFERENCE rather than as the literal `True`, because `True`
-    is also what an implemented wave reports — a row pinning that constant stays
-    green when the two stop being alike, which is the whole claim.
+    `dispatch_receipts_enforced` is asserted EQUAL across both arms — it reflects
+    container presence, not the accounting detail, so both states carry the same
+    value. `wave_dispatch_accounting` is asserted DIFFERENT — it reflects the
+    actual record kind so a declined wave must read apart from an implemented one.
     """
-    name = "status-conflates-decline-with-receipt"
+    name = "status-tells-decline-from-receipt"
     fixtures = {
         "receipt": {"kind": _mod.RECEIPT_KIND},
         "decline": {"kind": _mod.DECLINE_KIND,
@@ -4117,6 +4160,7 @@ def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
         fail(name, "both fixtures carry the same kind — no decline is exercised")
         return
     seen = {}
+    seen_accounting = {}
     for kind, record in fixtures.items():
         spec_dir = make_spec_dir(tmp, f"{name}-{kind}")
         write_state(spec_dir, _wave_exit_state(
@@ -4140,9 +4184,82 @@ def test_status_cannot_tell_a_declined_wave_from_an_implemented_one(
         if "dispatch_receipts_enforced" not in payload:
             fail(name, "status no longer reports dispatch_receipts_enforced")
             return
+        if "wave_dispatch_accounting" not in payload:
+            fail(name, "status no longer reports wave_dispatch_accounting")
+            return
         seen[kind] = payload["dispatch_receipts_enforced"]
+        seen_accounting[kind] = payload["wave_dispatch_accounting"]
     if seen["receipt"] != seen["decline"]:
-        fail(name, f"status now distinguishes them: {seen!r}")
+        fail(name, f"dispatch_receipts_enforced now distinguishes them: {seen!r}")
+        return
+    if seen_accounting["receipt"] == seen_accounting["decline"]:
+        fail(name, f"wave_dispatch_accounting does not distinguish them: {seen_accounting!r}")
+    else:
+        ok(name)
+
+
+def test_status_wave_dispatch_accounting_shape(tmp: Path) -> None:
+    """Payload shape: wave_dispatch_accounting on both output surfaces (AC-0008).
+
+    Length equals len(schedule_waves) when that is a list; [] when it is not.
+    Present in both the default text output and the --json output.
+    """
+    name = "status-wave-dispatch-accounting-shape"
+    run_id = str(uuid.uuid4())
+
+    # List case: length must equal len(schedule_waves).
+    waves = _WAVES  # [["T1", "T2"], ["T3"]]
+    spec_dir = make_spec_dir(tmp, f"{name}-list")
+    write_state(spec_dir, {
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
+        "schedule_waves": waves, "current_wave_index": 0,
+        _RECEIPTS_KEY: {},
+    })
+    rc, out, err = run_cohort("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"status refused: {err.strip()!r}")
+        return
+    payload = json.loads(out)
+    if "wave_dispatch_accounting" not in payload:
+        fail(name, "--json output lacks wave_dispatch_accounting")
+        return
+    if len(payload["wave_dispatch_accounting"]) != len(waves):
+        fail(name, (
+            f"--json length {len(payload['wave_dispatch_accounting'])} "
+            f"!= len(schedule_waves) {len(waves)}"
+        ))
+        return
+    rc, out, err = run_cohort("status", str(spec_dir))
+    if rc != 0:
+        fail(name, f"default status refused: {err.strip()!r}")
+        return
+    if "wave_dispatch_accounting" not in out:
+        fail(name, f"default output lacks wave_dispatch_accounting; got {out.strip()!r}")
+        return
+
+    # Non-list case: `schedule_waves` PRESENT and not a list. An absent key is
+    # not sufficient — `state.get("schedule_waves", [])` defaults to `[]`, so the
+    # comprehension is empty and the assertion below passes with the isinstance
+    # guard deleted. A string is Sized, so without the guard it would yield one
+    # null entry per character; with it, [].
+    spec_dir2 = make_spec_dir(tmp, f"{name}-nonlist")
+    write_state(spec_dir2, {
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
+        "schedule_waves": "abc", _RECEIPTS_KEY: {},
+    })
+    rc, out, err = run_cohort("status", str(spec_dir2), "--json")
+    if rc != 0:
+        fail(name, f"status refused absent schedule_waves: {err.strip()!r}")
+        return
+    payload2 = json.loads(out)
+    if "wave_dispatch_accounting" not in payload2:
+        fail(name, "--json output lacks wave_dispatch_accounting for non-list waves")
+        return
+    if payload2["wave_dispatch_accounting"] != []:
+        fail(name, (
+            f"wave_dispatch_accounting should be [] for non-list schedule_waves; "
+            f"got {payload2['wave_dispatch_accounting']!r}"
+        ))
     else:
         ok(name)
 
@@ -4225,7 +4342,7 @@ def test_wave_reopen_cli_verdict_per_row(tmp: Path, row: str) -> None:
     over, expect_rc, on_stderr = _WAVE_REOPEN_CLI_ROWS[row]
     spec_dir = make_spec_dir(tmp, name)
     state = {
-        "schema_version": 1, "run_id": str(uuid.uuid4()),
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": str(uuid.uuid4()),
         "schedule_waves": _WAVES, "current_wave_index": 0, _RECEIPTS_KEY: {},
     }
     for key, value in over.items():
@@ -4287,7 +4404,7 @@ def test_wave_reopen_marks_only_the_live_digest_and_current_wave(tmp: Path) -> N
     live_digest = _mod.partition_digest(waves)
     stale_digest = _mod.partition_digest([["T1"], ["T2"], ["T3"]])
     before_state = {
-        "schema_version": 1, "run_id": run_id, "plan_review_status": "approved",
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "plan_review_status": "approved",
         "schedule_waves": waves, "current_wave_index": 0,
         _RECEIPTS_KEY: {
             live_digest: {
@@ -4351,7 +4468,7 @@ def test_wave_reopen_preserves_record_count_and_validity(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     container = _receipts_container(_WAVES, 0, ["T1", "T2"])
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": _WAVES,
         "current_wave_index": 0, _RECEIPTS_KEY: container,
     })
     before_leaves = _leaf_positions(container)
@@ -4386,7 +4503,7 @@ def test_wave_reopen_then_wave_exit_refuses_and_names_tasks(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     waves = [["T1", "T2"]]
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": waves,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": waves,
         "current_wave_index": 0,
         _RECEIPTS_KEY: _receipts_container(waves, 0, ["T1", "T2"]),
     })
@@ -4408,7 +4525,7 @@ def test_wave_reopen_twice_is_idempotent(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": _WAVES,
         "current_wave_index": 0,
         _RECEIPTS_KEY: _receipts_container(_WAVES, 0, ["T1", "T2"]),
     })
@@ -4433,7 +4550,7 @@ def test_wave_reopen_then_fresh_receipt_accounts_again(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     waves = [["T1"]]
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": waves,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": waves,
         "current_wave_index": 0,
         _RECEIPTS_KEY: _receipts_container(waves, 0, ["T1"]),
     })
@@ -4465,7 +4582,7 @@ def test_wave_reopen_refuses_run_id_mismatch(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": _WAVES,
         "current_wave_index": 0, _RECEIPTS_KEY: {},
     })
     _refuses_without_writing(
@@ -4486,7 +4603,7 @@ def test_wave_reopen_refuses_a_malformed_partition(
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": waves,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": waves,
         "current_wave_index": 0, _RECEIPTS_KEY: {},
     })
     _refuses_without_writing(
@@ -4509,7 +4626,7 @@ def test_wave_reopen_refuses_a_pointer_not_an_index(
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": _WAVES,
         "current_wave_index": stored, _RECEIPTS_KEY: {},
     })
     _refuses_without_writing(
@@ -4527,7 +4644,7 @@ def test_wave_reopen_refuses_a_malformed_container(
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id, "schedule_waves": _WAVES,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id, "schedule_waves": _WAVES,
         "current_wave_index": 0, _RECEIPTS_KEY: container,
     })
     _refuses_without_writing(
@@ -4577,14 +4694,14 @@ def test_wave_exit_refusal_distinguishes_superseded_from_absent(tmp: Path) -> No
         }}
     }
     write_state(spec_dir_sup, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "schedule_waves": waves, "current_wave_index": 0,
         _RECEIPTS_KEY: superseded_container,
     })
 
     # Absent case: T1 has no record at all.
     write_state(spec_dir_abs, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "schedule_waves": waves, "current_wave_index": 0,
         _RECEIPTS_KEY: {},
     })
@@ -4660,12 +4777,12 @@ def test_wave_advance_refuses_a_wholly_superseded_wave(tmp: Path) -> None:
         record={"kind": _mod.RECEIPT_KIND, _SUPERSEDED: True},
     )
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "schedule_waves": waves, "current_wave_index": 0,
         _RECEIPTS_KEY: container,
     })
     state = {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "schedule_waves": waves, "current_wave_index": 0,
         _RECEIPTS_KEY: container,
     }
@@ -4727,7 +4844,7 @@ def test_wave_reopen_check_leaves_state_json_byte_identical(tmp: Path) -> None:
         record={"kind": _mod.RECEIPT_KIND, _SUPERSEDED: True},
     )
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "schedule_waves": _WAVES, "current_wave_index": 0,
         _RECEIPTS_KEY: container,
     })
@@ -4756,7 +4873,7 @@ def test_wave_reopen_reports_the_wave_and_the_count_it_superseded(tmp: Path) -> 
     spec_dir = make_spec_dir(tmp, name)
     run_id = str(uuid.uuid4())
     write_state(spec_dir, {
-        "schema_version": 1, "run_id": run_id,
+        "schema_version": _mod.SCHEMA_VERSION, "run_id": run_id,
         "schedule_waves": _WAVES, "current_wave_index": 0,
         _RECEIPTS_KEY: _receipts_container(_WAVES, 0, ["T1", "T2"]),
     })

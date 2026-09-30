@@ -57,6 +57,9 @@ skills:
   - name: flow-metrics
     description: "Compute DORA and Flow Framework metrics (cycle time, lead time, throughput, WIP, flow efficiency) from Jira changelogs. Read-only."
     humanTouches: 1
+  - name: jira-epic-outcome-view
+    description: "Group a project's work by Epic and render each Epic's delivery reading beside the outcome the team recorded in Jira. Where no outcome is recorded it says so and asks for one, returning the team's own words as paste-ready text. Read-only; composes flow-metrics and jira, and leaves no file behind."
+    humanTouches: 1
   - name: confluence-crawler
     description: "Crawl a Confluence space and convert pages to clean Markdown with frontmatter. Read-only."
     humanTouches: 0

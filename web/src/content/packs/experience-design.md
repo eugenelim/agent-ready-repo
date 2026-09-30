@@ -6,8 +6,6 @@ tagline: "The design/UX seat for product teams."
 skills:
   - creative-direction
   - content-design
-  - copy-direction
-  - tone-of-voice
   - design-review
   - design-system
   - information-architecture
@@ -18,12 +16,6 @@ skills:
   - interaction-design
   - experience-status
   - design-principles
-  - analytical-design
-  - conversion-design
-  - documentation-design
-  - informational-design
-  - marketplace-design
-  - workspace-design
 installCommand: "agentbundle install --pack experience-design --scope user"
 docsUrl: /docs/guides/experience-design/
 journeyUrl: /journeys/experience-design/
@@ -44,7 +36,7 @@ result is a connected set of screen-level decisions that can survive a handoff.
 
 ## Set the creative and content direction
 
-Name the visual direction and token taxonomy. Decide the surface's message,
+Name the visual direction and resolve the design system. Decide the surface's message,
 brand register, and acquisition-copy goals, then critique the rendered design
 against the shared quality floor. Copy routes by altitude: brand register →
 surface message and structure → acquisition-surface copy goals → product UI
@@ -52,9 +44,9 @@ strings.
 
 ## Design for the surface you actually have
 
-Choose the matching method for a marketing page, documentation system,
-dashboard, editorial page, marketplace, or sustained-work workspace instead of
-applying one generic page recipe.
+Use `information-architecture` to choose the matching method for a marketing
+page, documentation system, dashboard, editorial page, marketplace, or
+sustained-work workspace instead of applying one generic page recipe.
 
 ## Know when to leave this pack
 
@@ -66,4 +58,4 @@ applying one generic page recipe.
   components, data bindings, or build evidence.
 
 A forked-context `experience-reviewer` supplies the independent design pass; it
-is an agent, not a twenty-first skill.
+is an agent, not a thirteenth skill.

@@ -230,7 +230,7 @@ SAST_DIRS := tools packs packages tests
 # written to check it. `tools/npm-audit-allowlist.toml` is genuine config: an
 # added suppression must be validated by the gate it loosens, exactly like a
 # widened bandit.yaml exclusion.
-SAST_CONFIG := bandit.yaml .snyk Makefile tools/audit-requirements.py tools/npm-audit-allowlist.toml docs-site/package-lock.json web/package-lock.json .github/workflows/build-check.yml .github/workflows/codeql.yml
+SAST_CONFIG := bandit.yaml .snyk Makefile tools/audit-requirements.py tools/npm-audit-allowlist.toml tools/pip-audit-allowlist.toml docs-site/package-lock.json web/package-lock.json .github/workflows/build-check.yml .github/workflows/codeql.yml
 
 # Single source of truth for the SAST scan scope + config surface.
 # build-check.yml's SAST-relevance detection reads these (`make -s
@@ -382,8 +382,9 @@ sast-unleased:
 	# happened yet. Every skip is printed. See tools/audit-requirements.py.
 	python3 tools/audit-requirements.py $$(find packs -name requirements.txt | sort)
 	# Discover tools/requirements*.txt in the auditor so a new CI manifest is
-	# covered at once; requirements-sast.txt remains on its direct, suppression-
-	# bearing invocation below.
+	# covered at once; requirements-sast.txt is excluded here because it has its
+	# own invocation below, behind tools/run-pip-audit-gate.py, which carries the
+	# accepted-advisory allowlist (ADR-0131).
 	python3 tools/audit-requirements.py --tools-manifests
 	# Audit the PEP 517 backends that execute during package builds. Extract the
 	# declarations from pyproject.toml itself so the SCA input cannot drift.
@@ -394,23 +395,22 @@ sast-unleased:
 	# input fails closed if the optional dependency declaration changes.
 	python3 tools/audit-requirements.py --optional-group lint \
 		packages/agentbundle/pyproject.toml
-	# No suppressions. This leg carried four `--ignore-vuln` flags for semgrep's
-	# mcp/click transitive pins until semgrep 1.174 shipped mcp==1.29.0 and
-	# click~=8.4.2, clearing them. The removed flags named CVE ids while
-	# pip-audit now reports the same three advisories under PYSEC ids; OSV
-	# records them as aliases, one to one -- CVE-2026-52870/PYSEC-2026-3481,
-	# CVE-2026-52869/PYSEC-2026-3482, CVE-2026-59950/PYSEC-2026-3483 -- so the
-	# suppressions retired are exactly the advisories measured as cleared.
+	# The direct SAST manifest audits behind a wrapper, not a bare pip-audit with
+	# `--ignore-vuln` flags (ADR-0131). Semgrep declares `pyjwt[crypto]~=2.13.0`,
+	# excluding the PyJWT 2.14.0 that fixes ten advisories, so this leg carries
+	# accepted risk — and an acceptance needs a reason, a retirement condition,
+	# and a way to FAIL when it has outlived its cause. Those live in
+	# tools/pip-audit-allowlist.toml; the wrapper enforces them.
 	# Note what this command does and does not see: pip-audit RESOLVES the
 	# requirements file, so it always audits the newest version the range allows
 	# and would read clean even at the old `semgrep>=1.166` floor. It says
 	# nothing about the semgrep actually installed on this machine — that is what
-	# requirements-sast.txt's floor is for, and why the floor moved with this
-	# change rather than being left behind.
-	# A new suppression here needs a written diagnosis and a recorded unblock
-	# condition, the discipline that retired the last four.
-	@echo "pip-audit -r tools/requirements-sast.txt"
-	@pip-audit -r tools/requirements-sast.txt
+	# requirements-sast.txt's floor is for.
+	# Self-test first, for the reason the two SCA legs above give: a live audit
+	# against a healthy feed is silent both when the gate works and when it has
+	# been broken into a no-op.
+	python3 tools/test-run-pip-audit-gate.py
+	python3 tools/run-pip-audit-gate.py tools/requirements-sast.txt
 	# Both shipped packages declare dependencies=[]; their optional extras are
 	# the only third-party code either can pull, so audit those explicitly.
 	# Mirror packages/credbroker/pyproject.toml [crypto] and
@@ -602,6 +602,7 @@ $(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/capture-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/close-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/contract-acquisition/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/explain-diff/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/intake-intent/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
@@ -613,6 +614,8 @@ $(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
 $(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 $(PYTHON) -m pytest packs/product-documentation/tests/ -q
 $(PYTHON) -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q
+$(PYTHON) -m pytest packs/experience-design/tests/skills/creative-direction/ -q
+$(PYTHON) -m pytest packs/experience-design/tests/skills/design-system/ -q
 $(PYTHON) -m pytest \
 	packs/architect/tests/pack/ \
 	packs/architect/tests/skills/architect-assess/ \
@@ -620,9 +623,11 @@ $(PYTHON) -m pytest \
 	packs/architect/tests/skills/architect-review/ -q
 $(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 $(PYTHON) -c "import httpx"
+$(PYTHON) -m pytest packs/atlassian/tests/pack/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
 $(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
@@ -635,6 +640,10 @@ $(PYTHON) -m pytest \
 $(PYTHON) -m pytest \
 	packs/linear/tests/skills/linear/ \
 	packs/linear/tests/skills/linear-brief-intake/ -q
+$(PYTHON) -m pytest packs/code-intelligence/tests/pack/ -q
+# Skips wholesale when the `wicked-estate` binary is absent, which is the
+# normal CI state — the suite executes the real CLI against a real index.
+$(PYTHON) -m pytest packs/code-intelligence/tests/skills/code-intelligence/ -q
 $(PYTHON) -m pytest --import-mode=importlib \
 	packs/converters/tests/skills/markdown-to-html/ \
 	packs/converters/tests/skills/mermaid-renderer/ -q

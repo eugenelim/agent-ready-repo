@@ -408,12 +408,77 @@
     {
       "id": "corpus-lint-refuses-cancelled-without-accepted-record",
       "prompt": "This intent has Status: Cancelled but no Accepted: record. The corpus lint refused it. What does the author owe and why?",
-      "expected_output": "A Cancelled intent requires an Accepted: record, because it was ratified before the decision to cancel was taken. Without the record the corpus lint reports the Accepted field with a message like 'status `Cancelled` requires an `Accepted:` record'. The author must add `- **Accepted:** YYYY-MM-DD <who ratified it>` to show the bet reached Accepted before it was cancelled. A Fulfilled: record must not be added — Cancelled did not deliver.",
+      "expected_output": "A Cancelled intent requires an Accepted: record, because it was ratified before the decision to cancel was taken. Without the record the corpus lint reports the Accepted field with a message like 'status `Cancelled` requires an `Accepted:` record'. The author must add `- **Accepted:** YYYY-MM-DD <who ratified it>` to show the bet reached Accepted before it was cancelled. A Fulfilled: record must not be added \u2014 Cancelled did not deliver.",
       "assertions": [
         "Requires Accepted: but explicitly forbids Fulfilled:",
         "Names the Accepted field as the one the corpus lint reports",
         "States that Cancelled means the bet was ratified, then cancelled, not that it delivered",
         "Does not accept a bare date as a valid Accepted: value"
+      ]
+    },
+    {
+      "id": "commented-outcome-co-owner-is-absent",
+      "prompt": "The intent preamble contains `Outcome co-owner: intent:missing-peer` inside an HTML comment. Explain how the checks treat it.",
+      "expected_output": "The commented line is absent preamble data. The preamble reader ignores closed and unclosed HTML comment regions before it recognizes fields or the first visible body heading, so the hidden co-owner neither satisfies the field nor produces an unresolved-target finding. If the peer was intended, move the line out of the comment and keep the typed pointer form.",
+      "assertions": [
+        "Treats the commented declaration as absent rather than malformed",
+        "Emits no unresolved co-owner finding for the hidden value",
+        "Explains that visible placement in the preamble is required",
+        "Does not read body prose or comments to supply the declaration"
+      ]
+    },
+    {
+      "id": "malformed-outcome-co-owner-is-refused",
+      "prompt": "The corpus lint reports `Outcome co-owner` on an intent whose value is `peer-intent`. Explain the repair.",
+      "expected_output": "`Outcome co-owner` is optional, but when present its value is constrained to a typed pointer: `outcome:<target>`, `opportunity:<target>`, `capability:<target>`, or `intent:<target>`. A bare slug such as `peer-intent` is refused. Repair it by writing the live peer's canonical typed identity, such as `intent:peer-intent`, or delete the optional field if no peer exists.",
+      "assertions": [
+        "Names the `Outcome co-owner` field as constrained when present",
+        "Refuses a bare slug value",
+        "Offers only the allowed typed pointer forms",
+        "Does not make the field required"
+      ]
+    },
+    {
+      "id": "closed-empty-is-a-decomposed-terminus",
+      "prompt": "An intent carries `Decomposed: 2026-09-24 closed-empty` and no checkbox items under `## Decomposition`. Explain whether this is valid.",
+      "expected_output": "`2026-09-24 closed-empty` is a valid `Decomposed:` value: an ISO 8601 date followed by exactly one terminus. It records a completed decomposition that deliberately has no child work, so it needs no checkbox item under `## Decomposition`. It is distinct from the literal `no`, which records a decision not to decompose.",
+      "assertions": [
+        "Accepts `closed-empty` only as a dated Decomposed terminus",
+        "Keeps the literal `no` distinct from closed-empty",
+        "Does not require direct-light checkbox items for closed-empty",
+        "Does not create a separate closed-empty field"
+      ]
+    },
+    {
+      "id": "rename-request-validates-or-refuses-with-one-token",
+      "prompt": "Validate a request to rename docs/product/intents/FEAT-0002-old-name.md into the CAP namespace.",
+      "expected_output": "The agent resolves the repository root from git rather than the working directory, confines the source path to docs/product/intents/, establishes that the source is a live intent rather than a tombstone, checks the target token against the allocator's recognized set, and returns either the resolved request or one fixed refusal token naming the part at fault. It writes nothing.",
+      "assertions": [
+        "Resolves the repository root by rule, not from the caller's working directory",
+        "Returns one fixed refusal token rather than free-text prose",
+        "Refuses a source that is already a tombstone instead of renaming it",
+        "Writes nothing; validation answers a question and leaves the tree untouched"
+      ]
+    },
+    {
+      "id": "damaged-tombstone-marker-refuses-rather-than-reading-live",
+      "prompt": "The intent I want to rename has a damaged Tombstone: line in its preamble.",
+      "expected_output": "The agent refuses with the fixed unreadable-source token rather than treating the file as a live intent. Liveness is established, never inferred from a missing field: a preamble line bearing the tombstone token that does not parse as that field, or a successor-pointer field parsing while the tombstone field does not, each refuse. An ordinary intent carrying a title and annotation lines still passes.",
+      "assertions": [
+        "Refuses rather than reading the damaged file as a live intent",
+        "Does not infer liveness from the absence of a parsed field",
+        "Still accepts an ordinary intent whose preamble carries a title and annotations"
+      ]
+    },
+    {
+      "id": "tombstone-carries-three-fields-and-a-caller-supplied-date",
+      "prompt": "Write the tombstone for an intent being reissued under a new number.",
+      "expected_output": "The agent writes exactly three preamble fields \u2014 the retired artifact's slug unchanged, the retirement date the caller supplied as one ISO 8601 calendar date, and the successor path \u2014 and refuses a successor path that is absolute or resolves outside docs/product/intents/. It never reads a clock, so an operation spanning midnight writes the date it started with.",
+      "assertions": [
+        "Carries exactly three fields and refuses a fourth",
+        "Uses the caller-supplied date rather than sampling one from a clock",
+        "Refuses a successor path resolving outside the intents directory",
+        "Refuses both pointer fields together, and refuses neither"
       ]
     }
   ]

@@ -184,6 +184,18 @@ def test_defaults_is_bound_eagerly_and_populated_lazily(g) -> None:
     assert set(g.DEFAULTS) == {"max_implementation_retries", "max_review_retries"}
 
 
+def test_initial_cohort_state_asset_uses_schema_two_transition_fields(g) -> None:
+    template = json.loads(
+        (SCRIPTS.parent / "assets" / "state.json").read_text(encoding="utf-8")
+    )
+
+    assert template["schema_version"] == g.SCHEMA_VERSION == 2
+    assert template["pending_transition"] is None
+    assert template["transition_history"] == []
+    assert "amendment_pending" not in template
+    assert "amendment_history" not in template
+
+
 def test_module_is_not_registered_in_sys_modules() -> None:
     """Unregistered, matching `_statelock.py`.
 
@@ -493,7 +505,9 @@ def test_guards_print_nothing(g, spec, tmp_path: Path) -> None:
         digest = g.sha256_canonical_contract(art)
         token = g.read_md_status(art)
         legal = g.assert_status_legal("probe", art)
-        run_id = g.validate_run_id({"schema_version": 1, "run_id": "a"}, "a", verb="probe")
+        run_id = g.validate_run_id(
+            {"schema_version": g.SCHEMA_VERSION, "run_id": "a"}, "a", verb="probe"
+        )
         verdicts = {
             "check_identity": g.check_identity(d, expect_run_id="run-1"),
             "check_plan_current": g.check_plan_current(d, require_schedule=True),
@@ -901,7 +915,9 @@ def test_an_external_scalar_is_bounded_in_a_reason(g, tmp_path: Path) -> None:
     """
     huge = "A" * 100_000
     reason = g.validate_run_id(
-        {"schema_version": 1, "run_id": huge}, "expected-id", verb="approve-plan"
+        {"schema_version": g.SCHEMA_VERSION, "run_id": huge},
+        "expected-id",
+        verb="approve-plan",
     )
     assert reason is not None
     assert len(reason) < 500 and len(reason.splitlines()) == 1
@@ -916,7 +932,8 @@ def test_an_external_scalar_is_bounded_in_a_reason(g, tmp_path: Path) -> None:
     d = tmp_path / "spec"
     d.mkdir()
     (d / "state.json").write_text(
-        json.dumps({"schema_version": 1, "run_id": huge}), encoding="utf-8")
+            json.dumps({"schema_version": g.SCHEMA_VERSION, "run_id": huge}),
+            encoding="utf-8")
     verdict = g_mod.check_identity(d, expect_run_id="expected-id")
     assert verdict.ok is False
     assert len(verdict.reason) < 500, (
@@ -927,7 +944,8 @@ def test_an_external_scalar_is_bounded_in_a_reason(g, tmp_path: Path) -> None:
 
     # And its SUCCESS message, which is the site the first `_scalar` audit missed.
     (d / "state.json").write_text(
-        json.dumps({"schema_version": 1, "run_id": huge}), encoding="utf-8")
+        json.dumps({"schema_version": g.SCHEMA_VERSION, "run_id": huge}),
+        encoding="utf-8")
     ok_verdict = g_mod.check_identity(d, expect_run_id=huge)
     assert ok_verdict.ok is True
     assert len(ok_verdict.message) < 500, (
@@ -947,7 +965,8 @@ def test_a_control_character_cannot_reach_a_reason_or_message(g, tmp_path: Path)
     d = tmp_path / "spec"
     d.mkdir()
     (d / "state.json").write_text(
-        json.dumps({"schema_version": 1, "run_id": evil}), encoding="utf-8")
+            json.dumps({"schema_version": g.SCHEMA_VERSION, "run_id": evil}),
+            encoding="utf-8")
 
     refusal = g.check_identity(d, expect_run_id="other")
     success = g.check_identity(d, expect_run_id=evil)
@@ -1009,7 +1028,7 @@ def _cohort_fixture(root: Path, *, approved: bool) -> Path:
     )
     zero = "0" * 64
     state = {
-        "schema_version": 1, "run_id": RUN_ID, "feature": "ac12",
+        "schema_version": 2, "run_id": RUN_ID, "feature": "ac12",
         "plan_review_status": "approved" if approved else "pending",
         "approved_spec_hash": zero, "approved_plan_hash": zero, "plan_hash": zero,
         "schedule_waves": [["T1"]], "current_wave_index": 0,
@@ -1897,7 +1916,7 @@ PLAN_MD = "# Plan\n\n- **Status:** {s}\n\n## T1 First\n\n**Depends on:** none\n"
 
 def cohort_state(**over) -> dict:
     st = {
-        "schema_version": 1, "run_id": "run-1", "feature": "f",
+        "schema_version": 2, "run_id": "run-1", "feature": "f",
         "plan_review_status": "pending",
         "approved_spec_hash": None, "approved_plan_hash": None, "plan_hash": None,
         "schedule_waves": [], "current_wave_index": 0,
@@ -1936,10 +1955,21 @@ def spec(g, tmp_path: Path):
 
 # ── check_identity ─────────────────────────────────────────────────────────
 
+def test_validate_run_id_schema_refusal_names_reset_order(g) -> None:
+    reason = g.validate_run_id(
+        {"schema_version": 99, "run_id": "run-1"},
+        "run-1",
+        verb="probe",
+    )
+
+    assert reason is not None
+    assert "run `loop-cohort reset` then `loop-engine reset`" in reason
+
+
 def test_check_identity_branches(g, spec) -> None:
     d = spec()
     ok = g.check_identity(d, expect_run_id="run-1")
-    assert ok.ok and ok.data == {"run_id": "run-1", "schema_version": 1}
+    assert ok.ok and ok.data == {"run_id": "run-1", "schema_version": g.SCHEMA_VERSION}
 
     bad = g.check_identity(d, expect_run_id="other")
     assert not bad.ok and "run_id mismatch" in bad.reason
@@ -1947,7 +1977,9 @@ def test_check_identity_branches(g, spec) -> None:
     # expect_run_id=None means "just tell me", which the CLI allows.
     assert g.check_identity(d, expect_run_id=None).ok
 
-    assert not g.check_identity(spec(schema_version=99), expect_run_id="run-1").ok
+    wrong_schema = g.check_identity(spec(schema_version=99), expect_run_id="run-1")
+    assert not wrong_schema.ok
+    assert "run `loop-cohort reset` then `loop-engine reset`" in wrong_schema.reason
     assert not g.check_identity(spec(no_state=True), expect_run_id="run-1").ok
 
 
@@ -2049,7 +2081,9 @@ def test_check_phase_reads_state_even_for_implement(g, spec) -> None:
     # ...but `implement` still skips schema validation, so a pre-Phase-1 state file
     # does not break the hook — that asymmetry is deliberate and load-bearing.
     assert g.check_phase(spec(schema_version=99), phase="implement").ok
-    assert not g.check_phase(spec(schema_version=99), phase="review").ok
+    wrong_schema = g.check_phase(spec(schema_version=99), phase="review")
+    assert not wrong_schema.ok
+    assert "run `loop-cohort reset` then `loop-engine reset`" in wrong_schema.reason
 
 
 def test_check_phase_retry_caps(g, spec) -> None:
@@ -2075,8 +2109,13 @@ def test_check_phase_review_cap_override(g, spec) -> None:
                          allow_review_retry_cap_override=True).ok
 
     # It waives the cap, not the state checks that precede it.
-    assert not g.check_phase(spec(schema_version=99), phase="review",
-                             allow_review_retry_cap_override=True).ok
+    wrong_schema = g.check_phase(
+        spec(schema_version=99),
+        phase="review",
+        allow_review_retry_cap_override=True,
+    )
+    assert not wrong_schema.ok
+    assert "run `loop-cohort reset` then `loop-engine reset`" in wrong_schema.reason
     r = g.check_phase(spec(review_retry_count="abc"), phase="review",
                       allow_review_retry_cap_override=True)
     assert not r.ok and "review_retry_count" in r.reason
@@ -2354,6 +2393,9 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         # helper listing tasks whose records are superseded (not absent)
         "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
         "unaccounted_breakdown",
+        # the per-wave count summary the status report reads, derived from the
+        # two helpers above rather than from a second reading of the container
+        "wave_accounting_summary",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
@@ -3007,6 +3049,9 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
         # helper listing tasks whose records are superseded (not absent)
         "SUPERSEDED_KEY", "accounts_for_task", "superseded_wave_tasks",
         "unaccounted_breakdown",
+        # the per-wave count summary the status report reads, derived from the
+        # two helpers above rather than from a second reading of the container
+        "wave_accounting_summary",
     }
     guards = load_guards()
     missing = sorted(n for n in names if not hasattr(guards, n))
@@ -3020,7 +3065,7 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
     # and its sibling consumer already called it. The check below rejects a
     # re-declaration by name; it could not see a restated body, so this pins the
     # call instead — the property that actually keeps the copies from drifting.
-    for consumer in ("plan_dispatch_receipt", "cmd_wave_advance"):
+    for consumer in ("plan_dispatch_receipt", "_advance_wave_state"):
         fn = next(
             (n for n in _ast.walk(tree)
              if isinstance(n, _ast.FunctionDef) and n.name == consumer),

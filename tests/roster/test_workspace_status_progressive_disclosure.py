@@ -44,11 +44,13 @@ MODES = ("status", "reconcile", "explain", "mutate")
 # holds the skill at the warning threshold rather than at the error one.
 BODY_LINE_CEILING = 500
 
-# AC-0008. Recorded at base commit 8ef829ab7947d7212dd814aa64af69fcfec6e764.
-# This delivery moves prose; it changes no backend behaviour.
+# AC-0008. Recorded at base commit 8ef829ab7947d7212dd814aa64af69fcfec6e764, and
+# re-pinned for `workspace_status.py` when the retirement-candidates subcommand was
+# wired into the dispatcher. That edit is deliberate and owns this digest, as the
+# assertion message instructs; the other three scripts still hold their base bytes.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "b07efea9132f1ddfeab8ce81554c65633d8fac3f5065fdeba31e40a0ef6d7484",
+        "1422ac7e2b5527baadcd898a0f6a9d1ad5ae56e53b16433e8e2b0e2bfa13751b",
     "workspace_status_engine.py":
         "68c16e98439c24a7e50f10ef4eb9d9c60f3e0594367a2492f479755c93ca91f3",
     "workspace_status_prune.py":

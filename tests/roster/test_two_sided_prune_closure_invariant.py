@@ -1552,16 +1552,56 @@ def test_pack_delivery_contract_is_complete_and_version_increased(workspace_stat
             cwd=REPO_ROOT, capture_output=True, text=True, check=True,
         ).stdout
         base_version = re.search(r'^version = "([^"]+)"', base_core, re.M).group(1)
-        if base_version != core_version:
-            # A bump landed: it must be exactly the next patch, since this pack
-            # reserves minor for new primitives and major for removals.
-            b_major, b_minor, b_patch = (int(p) for p in base_version.split("."))
-            assert core_version == f"{b_major}.{b_minor}.{b_patch + 1}", (
-                base_version,
-                core_version,
+        primitive_roots = (
+            "adapter-root-bins",
+            "agents",
+            "commands",
+            "hook-wiring",
+            "hooks",
+            "kiro-ide-hooks",
+            "shared-libs",
+            "skills",
+            "user-libs",
+        )
+        base_primitives: set[str] = set()
+        current_primitives: set[str] = set()
+        for primitive_root in primitive_roots:
+            relative = f"packs/core/.apm/{primitive_root}"
+            listing = subprocess.run(
+                ["git", "ls-tree", "--name-only", f"{base}:{relative}"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
             )
-            # And the core-led changelog entry must name that exact version.
-            assert f"## [core][{core_version}]" in changelog, core_version
+            if listing.returncode == 0:
+                base_primitives.update(
+                    f"{primitive_root}/{name}"
+                    for name in listing.stdout.splitlines()
+                    if name
+                )
+            current_root = REPO_ROOT / relative
+            if current_root.is_dir():
+                current_primitives.update(
+                    f"{primitive_root}/{entry.name}"
+                    for entry in current_root.iterdir()
+                    if entry.name != "__pycache__"
+                )
+
+        major, minor, patch = (int(part) for part in base_version.split("."))
+        if base_primitives - current_primitives:
+            expected_version = f"{major + 1}.0.0"
+        elif current_primitives - base_primitives:
+            expected_version = f"{major}.{minor + 1}.0"
+        else:
+            expected_version = f"{major}.{minor}.{patch + 1}"
+        # A shallow checkout or fork without origin/main deliberately falls
+        # back to HEAD above. There is no independent baseline in that case,
+        # so preserve the pre-existing no-assert behavior for the bump itself.
+        if base == "HEAD":
+            expected_version = core_version
+        assert core_version == expected_version, (base_version, core_version)
+        assert f"## [core][{core_version}]" in changelog, core_version
     assert any("prune" in path.read_text(encoding="utf-8") for path in evals if path.is_file())
     assert "prune" in changelog.lower() and workspace_status_eval_contract.exists()
 

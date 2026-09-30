@@ -79,6 +79,13 @@ third.
   condition; the band and its derivation stay with
   `agent-authoring-input-quality.md`.
 
+## Boundary with `pack-guidebook-walkability`
+
+[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+states a reader-facing prerequisite and skip cost inside a static guide step.
+This brief keeps the machine-checked consumer-side question at a handoff:
+whether the receiving stage can work from the artifact it was given.
+
 ## Constraints / Appetite
 
 The gate half is mechanical by construction and does not wait on the activation

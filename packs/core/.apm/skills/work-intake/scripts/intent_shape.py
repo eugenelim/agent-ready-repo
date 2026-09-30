@@ -38,12 +38,13 @@ comment trails the closing backtick. Stripping backticks first no-ops on that
 shape, because the line does not end in a backtick, and every later rule then
 judges a value that is still quoted.
 
-The preamble is a **bounded region**, not a pattern: the run of lines before the
-first ``## `` heading. A ``- **Status:**`` line can sit inside a de-risk record
-body, where its value is a probe's narrative, and a bolded
+The preamble is a **bounded region**, not a pattern: the run of visible lines
+before the first ``## `` heading. A ``- **Status:**`` line can sit inside a
+de-risk record body, where its value is a probe's narrative, and a bolded
 ``- **Authority:**`` line can sit inside ``## Source``, where it is an owner
 attribution rather than the governance pointer the preamble field holds. A
-whole-file pattern match corrupts both.
+whole-file pattern match corrupts both. HTML comment regions are not visible
+preamble content, and an unclosed region hides the remainder.
 
 A field name absent from the table is accepted. That is what keeps
 ``Milestone:`` and any future organic field passing while the six retired names
@@ -60,8 +61,8 @@ from typing import Callable, Iterable
 
 # ── The field table ───────────────────────────────────────────────────────────
 # Four tiers: required, constrained-when-present, unconstrained, retired.
-# `Level` is required and carries no value rule: ADR-0033 D2 keeps its set open
-# and states that a lint cannot enforce a closed one.
+# `Level` is required and carries no value rule: its vocabulary stays open, so
+# this per-artifact lint must not enforce a closed set.
 
 REQUIRED_FIELDS: tuple[str, ...] = ("Owner", "Slug", "Level", "Status")
 
@@ -109,6 +110,14 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
     "brief",
     "spec",
     "direct-light",
+    "closed-empty",
+)
+
+OUTCOME_CO_OWNER_KINDS: tuple[str, ...] = (
+    "outcome",
+    "opportunity",
+    "capability",
+    "intent",
 )
 
 # ── Lifecycle refusal registry ───────────────────────────────────────────────
@@ -177,17 +186,48 @@ def normalize_value(raw: str) -> str:
     return value
 
 
+def _visible_line_outside_comments(line: str, inside_comment: bool) -> tuple[str, bool]:
+    """Return the line text outside HTML comments and the next comment state."""
+    visible: list[str] = []
+    remainder = line
+    while remainder:
+        if inside_comment:
+            close = remainder.find("-->")
+            if close == -1:
+                return "", True
+            remainder = remainder[close + 3:]
+            inside_comment = False
+            continue
+
+        open_at = remainder.find("<!--")
+        if open_at == -1:
+            visible.append(remainder)
+            break
+        visible.append(remainder[:open_at])
+        remainder = remainder[open_at + 4:]
+        close = remainder.find("-->")
+        if close == -1:
+            inside_comment = True
+            break
+        remainder = remainder[close + 3:]
+
+    return "".join(visible), inside_comment
+
+
 def read_preamble(text: str) -> list[tuple[str, str]]:
     """Return the preamble's ``(field name, normalized value)`` pairs in order.
 
-    Reads only the run of lines before the first ``## `` heading, so a
-    field-shaped line in the body is neither returned nor judged.
+    Reads only the run of visible lines before the first ``## `` heading, so a
+    field-shaped line in the body or inside an HTML comment region is neither
+    returned nor judged.
     """
     pairs: list[tuple[str, str]] = []
+    inside_comment = False
     for line in text.splitlines():
-        if line.startswith(_HEADING):
+        visible, inside_comment = _visible_line_outside_comments(line, inside_comment)
+        if visible.startswith(_HEADING):
             break
-        match = _FIELD_LINE.match(line)
+        match = _FIELD_LINE.match(visible)
         if match:
             pairs.append((match.group(1).strip(), normalize_value(match.group(2))))
     return pairs
@@ -319,6 +359,15 @@ def _check_decomposed(value: str) -> str | None:
     return None
 
 
+def _check_outcome_co_owner(value: str) -> str | None:
+    """Require a typed intent pointer while leaving target identity open."""
+    kind, separator, target = value.partition(":")
+    if separator and kind in OUTCOME_CO_OWNER_KINDS and target.strip():
+        return None
+    permitted = ", ".join(f"{kind}:<target>" for kind in OUTCOME_CO_OWNER_KINDS)
+    return f"value {value!r} is not one of {permitted}"
+
+
 VALUE_RULES: dict[str, Callable[[str], str | None]] = {
     "Status": _check_status,
     "Accepted": _check_dated_evidence,
@@ -326,6 +375,7 @@ VALUE_RULES: dict[str, Callable[[str], str | None]] = {
     "De-risked": _check_date_or_no,
     "Shaping-reviewed": _check_date_or_no,
     "Decomposed": _check_decomposed,
+    "Outcome co-owner": _check_outcome_co_owner,
     **{field: _closed_vocabulary_rule(field) for field in CLOSED_VOCABULARIES},
 }
 

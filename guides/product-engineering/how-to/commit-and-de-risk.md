@@ -36,9 +36,14 @@ order: 3
 | `map-capabilities` | A placed bet | The capabilities the bet requires, and which exist today. | Optional |
 
 Prompts go into an AI agent session with this pack installed — the same session
-throughout. `<slug>` is the short kebab-case name for this piece of work, and it
-stays the same from the intent through to the brief, which is how the
-traceability lint follows one thread.
+throughout. In the paths below, `<slug>` is this piece of work's short
+kebab-case name, fixed at step 1 so every later artifact traces back to it; `<initiative>` is the discovery initiative's kebab-case directory slug; `<output_dir>` is
+where this repository keeps product artifacts, and the agent asks when it is
+not configured; `<discovery_dir>` is where the discovery loop keeps its
+initiative directories, defaulting to `docs/discovery/`. The agent tells you
+which path it wrote to.
+<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
@@ -54,7 +59,7 @@ Place the bet on this candidate — what are we committing to, and what would te
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/place-bet/SKILL.md -->
 
-> **Agent:** Done — I've written the bet, the assumptions it rests on, and the signal that would falsify it. Nothing was written to disk.
+> **Agent:** Done — I've written to `<output_dir>/shaping/<slug>/bet.md` the bet, the assumptions it rests on, and the signal that would falsify it.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/place-bet/SKILL.md -->
@@ -75,27 +80,39 @@ Place the bet on this candidate — what are we committing to, and what would te
 **Watch out for:** A bet with only success metrics cannot be lost, only extended. Notice the absence of a stopping signal — that absence is the finding.
 <!-- rung: packs/product-engineering/.apm/skills/place-bet/SKILL.md -->
 
-**Writes no artifact.** It reports in the agent session and does not change files.
+**Where it lands:** `<output_dir>/shaping/<slug>/bet.md`.
 <!-- rung: packs/product-engineering/.apm/skills/place-bet/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/place-bet/examples/placing-a-bet.md -->
 
 ```markdown
-Bet — <candidate>
+---
+type: bet
+slug: batch-export-v2
+date: 2026-07-21
+option: Direct download with streaming
+option-source: docs/product/shaping/batch-export-v2/solution-options.md
+confidence: high
+appetite: 3 weeks
+---
 
-## What we are committing to
+# Bet: batch-export-v2
 
-## Assumptions this rests on
+## Option chosen
+Direct download with streaming — the user initiates export and receives the
+file immediately via the browser, served from the CDN.
 
-- <assumption>
+## Rationale
+Provides immediate, user-controlled export with the lowest ops overhead.
+Email delivery (Option A) adds async complexity the UX doesn't need; an
+API-first approach (Option C) over-engineers for current usage patterns
+(95th-percentile export size is under 50 MB; no downstream consumers
+requiring webhooks have been identified).
 
-## What would tell us we were wrong
-
-- <falsifying signal>, observed by <when>
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*An excerpt of the example the skill ships. Risks accepted, assumptions, the kill condition, the next step and the `workspace.toml` transition continue below it.*
 
 ## Run `de-risk-intent` — attack the assumptions
 
@@ -109,7 +126,7 @@ De-risk this bet — what are the riskiest assumptions, and how would we test ea
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
 
-> **Agent:** Done — I've written the assumptions ranked by risk, each with a test that would resolve it. Nothing was written to disk.
+> **Agent:** Done — I've ranked the assumptions by risk, each with a test that would resolve it, and carried the validation hook onto the intent.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
@@ -130,21 +147,21 @@ De-risk this bet — what are the riskiest assumptions, and how would we test ea
 **Watch out for:** Assumptions get ranked by how easy they are to test rather than by risk, which puts the dangerous one last. Notice a ranking that matches test cost exactly.
 <!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
 
-**Writes no artifact.** It reports in the agent session and does not change files.
+**Where it lands:** `<output_dir>/intents/<slug>.md` — no new file; the verdict and a `validation_hook` go back onto the intent.
+<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
 <!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
 
-```markdown
-Risk register — <bet>
-
-| Assumption | Risk if wrong | Cost to test | Test |
-| --- | --- | --- | --- |
-| <assumption> | <high> | <low> | <how> |
+```
+validation_hook:
+  assumption: <the riskiest assumption, restated>
+  kill_condition: <the predeclared line, in the test's own currency>
+  activity: <the real-world activity that confirms or enriches it>
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*The validation hook the skill carries onto the intent. The kill condition is stated in the test's own currency, so the result settles the bet rather than inviting another round of argument.*
 
 ## Run `plan-validation` — how we will find out
 
@@ -158,7 +175,7 @@ Plan the validation — what do we test first, and what result changes our mind?
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/plan-validation/SKILL.md -->
 
-> **Agent:** Done — I've written a validation sequence naming what each test would settle and what result would change the decision. Nothing was written to disk.
+> **Agent:** Done — I've written a validation sequence naming what each test would settle and what result would change the decision into the loop's `validation-plan` slot.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/plan-validation/SKILL.md -->
@@ -179,23 +196,22 @@ Plan the validation — what do we test first, and what result changes our mind?
 **Watch out for:** A test whose outcomes both lead to the same action is not a test. Notice any step with no branching consequence.
 <!-- rung: packs/product-engineering/.apm/skills/plan-validation/SKILL.md -->
 
-**Writes no artifact.** It reports in the agent session and does not change files.
+**Where it lands:** `<discovery_dir>/<initiative>/_state/` — the `validation-plan` slot, plus a `validation_status` and `validation_hook` on each plan-tree node.
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 <!-- rung: packs/product-engineering/.apm/skills/plan-validation/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/sidecar-schema.md -->
 
 ```markdown
-Validation plan — <bet>
-
-## Test 1: <what it settles>
-
-- **Method:** <how>
-- **If it holds:** <decision>
-- **If it does not:** <decision>
+- **`validation-plan`** — the assumption → kill-condition → real-world-activity
+  ledger `plan-validation` produces. Each entry `{assumption, kill_condition,
+  activity, validation_status}` where `validation_status ∈ hypothesis →
+  validating → validated | refuted`. This makes *converged ≠ validated* a
+  **structural property** of the workspace.
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*The slot's declared shape. Each entry pairs an assumption with the condition that would kill it and the activity that settles it, and `validation_status` is what keeps converged and validated apart.*
 
 ## Run `map-capabilities` — what we must be able to do
 
@@ -209,7 +225,7 @@ Map the capabilities this bet requires, and mark which ones we already have.
 **Agent returns:**
 <!-- rung: packs/product-engineering/.apm/skills/map-capabilities/SKILL.md -->
 
-> **Agent:** Done — I've written a capability map with each capability's current state to `docs/discovery/<initiative>/capability-map.md`.
+> **Agent:** Done — I've written a capability map with each capability's current state to `<output_dir>/shaping/<slug>/capability-map.md`.
 
 **You push back:**
 <!-- rung: packs/product-engineering/.apm/skills/map-capabilities/SKILL.md -->
@@ -230,7 +246,7 @@ Map the capabilities this bet requires, and mark which ones we already have.
 **Watch out for:** "Partial" is where uncertainty hides. Notice a map with no absent capabilities — the bet would not be a bet if we could already do all of it.
 <!-- rung: packs/product-engineering/.apm/skills/map-capabilities/SKILL.md -->
 
-**Where it lands:** `docs/discovery/<initiative>/capability-map.md`.
+**Where it lands:** `<output_dir>/shaping/<slug>/capability-map.md`.
 <!-- rung: packs/product-engineering/.apm/skills/map-capabilities/SKILL.md -->
 
 **What it looks like:**

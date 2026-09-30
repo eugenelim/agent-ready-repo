@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Every shipped recording statement supplies a recomputable operation id.
+"""Every remaining direct recording statement supplies a recomputable operation id.
 
 Two properties, both about the shipped instructions rather than the writer:
 
 1. Every `review record` command statement passes `--operation-id`. Without it the
    decidability the writer provides is unreachable, because nothing on disk names
    the round.
-2. Every recording statement is guarded against a refused transition. The
-   transition carries the retry-cap guard and the recording does not, so a
-   recording that runs after a refused transition increments past the cap.
+2. Every direct recording statement is guarded against a refused transition.
+   Registered CODE-REVIEW effects are applied by the engine transition instead
+   and must not be restored here as separate recording statements.
 
 A *command statement* is a line naming the cohort script together with the
 `review record` verb, extended through trailing-backslash continuations. A prose
@@ -72,7 +72,7 @@ class ShippedRecordingStatements(unittest.TestCase):
         # Guards the check above against silently passing on zero statements, which
         # is how a renamed script or a changed quoting style would hide a gap.
         total = sum(len(_statements(path)) for path in _sources())
-        self.assertGreaterEqual(total, 7, "expected at least the seven shipped statements")
+        self.assertEqual(total, 1, "expected the one pre-EXECUTE direct statement")
 
     def test_every_recording_is_guarded_against_a_refused_transition(self) -> None:
         """A recording must not be reachable after a transition that refused.
@@ -128,31 +128,17 @@ class ShippedRecordingStatements(unittest.TestCase):
         ]
         self.assertTrue(carrying, "no eval exercises a recording that carries an operation id")
 
-    def test_the_two_pre_existing_crash_window_cases_survive(self) -> None:
-        """Presence is not enough: their expectations are what the rail fences.
-
-        Pinning the id alone would let both `expected_output` blocks be rewritten
-        wholesale while the check stayed green, which is how the retained replay
-        policy would drift away from what the rows still promise.
-        """
+    def test_the_registered_effect_crash_window_case_survives(self) -> None:
+        """Pin the engine-owned replay case and the behavior its id represents."""
         evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
         cases = {case["id"]: case for case in evals["evals"]}
-        for case_id, required in (
-            ("phase1-surface-ambiguous-review-record",
-             ("Surface", "loop-cohort status --json")),
-            ("phase1-explicit-auth-clean-record-replay",
-             ("explicit human authorization", "--direct-clean-file", "--adjudication")),
+        case_id = "durable-review-operation-id-crash-window"
+        self.assertIn(case_id, cases)
+        expected = cases[case_id]["expected_output"]
+        self.assertTrue(expected.strip(), f"{case_id} has an empty expected_output")
+        for phrase in (
+            "Re-run the identical engine transition",
+            "Do not issue a separate `loop-cohort review record`",
+            "transition id as the review operation id",
         ):
-            self.assertIn(case_id, cases)
-            expected = cases[case_id]["expected_output"]
-            # Against expected_output alone: several of these phrases also appear
-            # in `assertions`, so searching the concatenation would let the whole
-            # expected_output be blanked while the check stayed green.
-            self.assertTrue(expected.strip(), f"{case_id} has an empty expected_output")
-            for phrase in required:
-                self.assertIn(phrase, expected, f"{case_id} lost {phrase!r}")
-
-    def test_the_added_case_is_pinned_by_id(self) -> None:
-        evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
-        ids = {case["id"] for case in evals["evals"]}
-        self.assertIn("review-record-operation-id-crash-window", ids)
+            self.assertIn(phrase, expected, f"{case_id} lost {phrase!r}")

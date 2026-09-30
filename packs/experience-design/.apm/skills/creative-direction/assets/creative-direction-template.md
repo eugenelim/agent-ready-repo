@@ -5,6 +5,11 @@ slug: "<kebab-case-slug — the surface or product this direction serves>"
 # platform standards ground each goal below.
 surface: "<responsive-web | iOS | Android | cross-platform>"
 date: "<YYYY-MM-DD>"
+# status: `converge` writes `proposed` when it captures a direction the human
+# has not yet confirmed — including a choice recorded as delegated — and
+# `selected` once a human confirms. The `inherit` route writes no doc, so
+# there is no `inherited` value.
+status: "<proposed | selected>"
 ---
 
 # Aesthetic direction: <surface or product name>
@@ -27,6 +32,69 @@ date: "<YYYY-MM-DD>"
 1. <dominant goal — e.g. "Quiet confidence">
 2. <goal>
 3. <goal>
+
+## Engagement mode
+
+<!-- Engagement mode is the visitor posture. Surface genre is the kind of
+     surface being designed; neither overwrites the other. Choose one primary
+     mode: persuade, operate, read, or experience. Add a secondary mode only
+     when a distinct user job justifies it. -->
+
+**Primary mode:** <persuade | operate | read | experience>
+
+**Secondary mode:** <none, or one mode plus the distinct user job that earns it>
+
+**Surface genre:** <surface family, kept separate from engagement mode>
+
+## Product-specific visual thesis
+
+<!-- Ground the direction in this product, not the category. A thesis that could
+     be relabeled for a category peer without changing evidence or choices has
+     not passed the specificity check. -->
+
+**Audience's situation:** <what the audience is trying to do or decide>
+
+**Distinctive mechanism:** <what the product does differently, visibly, or structurally>
+
+**Honest proof:** <real proof the surface can show; use "none yet" rather than inventing claims>
+
+## First-viewport thesis
+
+<!-- This is not a hero layout template. State what the opening viewport must
+     make clear, what evidence or mechanism it exposes, and which primary
+     action or continuation it supports. -->
+
+**Opening clarity:** <what someone understands first>
+
+**Exposed evidence or mechanism:** <what concrete proof or mechanism is visible>
+
+**Primary action or continuation:** <the next action, scroll, read, or exploration path>
+
+## Approved visual target
+
+<!-- Optional. If no target exists, write "none" and continue. If one exists,
+     record its identity and boundaries. -->
+
+**Target:** <none, reference image, comp, existing surface, or other target>
+
+**Binding:** <composition, proportion, spatial relationship, or "none">
+
+**Illustrative:** <qualities that inform but do not bind>
+
+**May adapt responsively:** <what changes across viewport or platform states>
+
+## Evidence and assets
+
+<!-- Keep real material separate from placeholders. Record provenance for every
+     sourced or generated visual asset proposed by this direction. -->
+
+**Available evidence:** <facts, workflows, states, or proof available now>
+
+**Available assets:** <real product media, brand assets, diagrams, or references available now>
+
+**Placeholders:** <unknown or not-yet-sourced material>
+
+**Asset provenance:** <source or generated method; what each asset may and may not prove>
 
 ## What each goal means
 
@@ -78,6 +146,20 @@ date: "<YYYY-MM-DD>"
 | Image treatment | `[photographic]` `[illustrative]` `[abstract]` `[none]` `[platform-default]` | `[platform-default]` <how images are cropped; how they are toned> |
 | Motion character | `[still]` `[productive]` `[expressive]` `[platform-default]` | `[platform-default]` <how far things move; relative duration; continuous or discrete> |
 
+## Signature device
+
+<!-- The single visual decision that makes this direction recognisable.
+     Recorded by `converge`; `refine` may not move it. -->
+
+**Signature device:** <the one decision a viewer would name if asked what makes this look like itself>
+
+## Signature interaction
+
+<!-- Name an interaction only when it materially expresses the product or helps
+     someone understand or operate it. Decorative motion does not qualify. -->
+
+**Signature interaction:** <earned interaction and what it expresses or enables, or `none`>
+
 ## Counterfactual check
 
 <!-- Name a comparator brief, work it through, and compare. Any part of this
@@ -116,3 +198,30 @@ Resolved trade-offs:
 - <open question — e.g. "How do we read as premium while clearing the
   contrast floor?">
 - <missing grounding — e.g. "Persona not yet fully defined; sketch recorded inline; full persona work deferred.">
+
+## Borrowed discipline
+
+<!-- Recorded by `converge`. Name one discipline taken from a rejected
+     candidate, or state explicitly that none was taken. A discipline is
+     a mechanism or structural approach — not a visual value — that the
+     rejected candidate handled better than the selected direction did. -->
+
+**Donor candidate:** <which rejected candidate this discipline came from, or "none">
+
+**Discipline taken:** <the mechanism or structural approach borrowed from the donor, or "none">
+
+## Compositional commitments
+
+<!-- Recorded by `converge` for the selected direction, when an approved visual target exists. These
+     commitments bind composition only. They do not bind colour, type,
+     spacing, or motion values — those remain for `design-system` to derive. -->
+
+<describe the compositional commitments the approved visual target establishes>
+
+## Refinement amendment
+
+<!-- Recorded by `refine` each time an axis moves. Add one row per axis that
+     changed. Axes not listed here are unchanged from the direction sheet. -->
+
+| Axis | From | To | Why |
+| --- | --- | --- | --- |

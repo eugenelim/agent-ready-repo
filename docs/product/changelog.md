@@ -64,6 +64,386 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.5] — 2026-09-29
+
+### Highlights
+
+- Work-loop can now prove a current branch is fresh before it tries to write Git metadata. If the branch is stale, it still stops: environments that can prepare the update ask before updating, and locked-down environments tell you to refresh the branch separately.
+
+### Fixed
+
+- The base-freshness check now advertises the configured remote target first and returns current branches as ready without requiring a metadata-writing fetch.
+- Stale branches remain blocking even when Git metadata writes are denied, with separate messages for update-capable and user-refresh-only environments.
+
+## [core][2.27.4] — 2026-09-29
+
+### Highlights
+
+- Renaming an intent no longer risks silently handing its old number to a different intent later. A retired filename now leaves a tombstone behind, and the number allocator counts tombstones alongside live intents, so a retired number stays out of circulation for as long as its tombstone stands.
+
+### Added
+
+- A rename-request validator in `work-intake`. It answers one question — is this a well-formed request to rename a live intent — and returns either the resolved request or one fixed refusal token naming what was wrong. It refuses a source that is missing, outside the intents directory, not a regular file, unreadable, already a tombstone, unregistered, or carrying an uncommitted change; an unparseable or ambiguous registry; an unrecognized target token; and an unresolvable repository root.
+- A tombstone reader and writer in `work-intake`. A tombstone carries the retired artifact's slug unchanged, the retirement date as one ISO 8601 calendar date, and exactly one of a successor path or a retirement note. Bad values are refused rather than written: a malformed date, a successor path outside the intents directory, an empty note, both pointer fields, or neither.
+- The retirement date is supplied by the caller rather than read from a clock, so an operation running across midnight writes the date it started with rather than two different dates.
+
+### Changed
+
+- The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
+
+## [code-intelligence][0.1.0] — 2026-09-29
+
+### Highlights
+
+- Ask what is actually true about a codebase before changing it. Index the repository once, then ask what calls a symbol, what a change would break, or how the system is organised — answered from a resolved call graph rather than a text search.
+- Answers carry the index's own limits. The unresolved-reference count, the truncated-row count, and the traversal horizon are reported rather than rounded away, so a blast radius reads as a floor instead of a total.
+
+### Added
+
+- The `code-intelligence` skill: five reusable investigation patterns, a capability map from tool-neutral intent to the exact command, evidence and provenance handling, and a fourteen-point assessment of what the provider does and does not expose.
+- Two forked-context subagents: `code-investigator` for evidence-driven investigation, and `impact-analyst` for structured change-impact analysis. Both are workflow-neutral and read-only.
+- Graceful degradation. Without an index the skill falls back to ordinary repository search and labels it as such; it never presents a text search as a blast radius, lineage, or provenance.
+
+## [frontend-engineering][0.4.0] — 2026-09-29
+
+### Highlights
+
+- Frontend builds now stop on upstream design gaps instead of filling them from a fallback, local premise, or category habit. When a resolved direction is missing the needed taxonomy, or a taxonomy records a domain as unresolved, the run holds only that axis and routes it back to the recorded owner or operation.
+- Standalone visual work now has a clear admission rule: it is allowed only when there is no applicable design artifact, no incumbent system, and no upstream authority left to complete. That keeps greenfield work moving without turning unfinished design decisions into implementation choices.
+
+### Changed
+
+- The visual-authority eval corpus now grades upstream-gap routing, unresolved-domain handling, and the three standalone admission conditions.
+- The pack and Claude plugin metadata now publish Frontend Engineering `0.4.0`.
+
+## [experience-design][4.1.0] — 2026-09-29
+
+### Highlights
+
+- Design artifacts now tell downstream builders who owns every unresolved domain and which operation supplies it, so “unresolved” routes work back upstream instead of inviting a consumer to invent a value.
+- The design thread now makes `design-system` conditional, not merely optional. Run it when a direction exists and neither a completed design system nor a coherent incumbent system supplies every concrete value the surface needs; skip it when an incumbent system already covers the work.
+
+### Changed
+
+- The design-system eval corpus now grades unresolved-domain records that place the supplying operation beside the owner and require consumers to resolve no value for those domains.
+- The pack and Claude plugin metadata now publish Experience Design `4.1.0`.
+
+## [product-engineering][0.13.22] — 2026-09-29
+
+### Highlights
+
+- `frame-intent` now refuses a configured destination before writing when resolving it follows a symlink out of its anchoring root. An ordinary absolute destination outside the repository still asks first, and a personal-scope destination remains legitimate.
+
+### Changed
+
+- Split output-directory escapes into three explicit verdicts in both the `frame-intent` workflow and its layout reference: refuse symlink escapes, refuse paths containing `..`, and ask before using absolute-only paths that resolve outside the repository.
+
+## [core][2.27.3] — 2026-09-28
+
+### Highlights
+
+- **`loop-cohort status` now shows what each wave's dispatch records actually say.** A wave whose every task was declined used to read exactly like one whose every task was implemented; both reported the same single flag. The new per-wave counts separate receipts, declines, superseded records and unaccounted tasks, so someone reading a finished run can tell which waves were implemented and which were not.
+
+### Added
+
+- `wave_dispatch_accounting` in `loop-cohort status`, in both the default and `--json` output: one entry per scheduled wave, or `null` for a wave whose accounting is undefined. Counts are taken once per task position, so a wave listing one identifier twice counts it twice and a receipts key naming a task outside the wave counts for nothing. The value reflects the partition live at the time of the call, not what any past wave exit saw.
+
+## [core][2.27.2] — 2026-09-27
+
+### Highlights
+
+- Ask the agent to explain a diff, branch, commit, or pull request and you get back one self-contained offline HTML lesson — background, intuition, a code walkthrough, and a five-question quiz — written for that specific change rather than poured into a shared template. The agent reports the exact file path it wrote.
+
+### Added
+
+- `explain-diff` skill. It traces the changed code and nearby tests, designs the lesson, and publishes it through a bundled standard-library publisher that needs no network access and no third-party dependency.
+- The publisher writes a dated, collision-resistant file under the operating system's temporary directory by default, and writes elsewhere only to an output root the user approves. It redacts secrets, tokens, email addresses, private hostnames, personal names, and user-home paths from the page while preserving the code path being taught.
+- `work-intake` routes explanation requests to `explain-diff`, keeping them separate from correctness review, bug fixing, and document conversion.
+
+## [core][2.27.1] — 2026-09-27
+
+### Highlights
+
+- **Interrupted work-loop transitions now replay without separate cohort repair commands.** The five registered cohort-effect transitions apply their effects through `loop-cohort.py`, record one durable transition identity, and safely resume without double-advancing a wave, double-counting a retry, or duplicating a review round.
+
+### Changed
+
+- Cohort state moves to schema 2 with `pending_transition` and a unified, oldest-first-truncated `transition_history`; engine state remains schema 1. Runs crossing this boundary must use the authorized `loop-cohort reset` then `loop-engine reset` recovery pair.
+
+## [frontend-engineering][0.3.5] — 2026-09-28
+
+### Highlights
+
+- The guides now describe the pre-flight the pack actually ships. The design-handoff how-to states the four-rung precedence in order and says what happens when a slot is empty; the tutorial walks the rung an adopter without a design tree actually uses, working from a stated premise rather than copying a named product.
+- Where your token taxonomy already resolved a value, the build now uses that value as given instead of re-deriving its own. Re-deriving a number the design step already decided is how a surface drifts from the direction it was supposed to inherit; what the taxonomy left as a relationship, or recorded as unresolved, is still the build's work to settle.
+- You can now see what the frontend reviewer actually checks. Its reference page documents all seven lenses, including the visual-authority lens, and says what evidence confirms each one — the diff for five, a rendered capture for one, the evidence manifest for the last.
+
+### Changed
+
+- The tutorial's worked example is re-based onto the standalone fallback rung. Its brief states a visual premise in the pack's own words, and the step that used to pick an aesthetic reference now resolves visual authority and records the rung it landed on. The seed-token step is now token-value resolution. It starts from the fallback block the reference ships, replaces the placeholder accent as that reference instructs, and accounts for every value it changes or adds relative to that block — so a reader can tell an inherited number from a decided one.
+- The journey's implementation sequence describes visual-authority resolution and the render-observe-correct loop instead of an aesthetic reference and a seed token block. The acceptance gate asks for `visual authority` in the manifest, and the review gate names the visual-authority lens.
+- Both guide manifest examples carry the `visual authority` field, so an example no longer shows a manifest shorter than the field list it documents.
+- Where the token taxonomy resolved a value, the build now uses it as given rather than re-deriving it. Re-deriving a value the design step already decided is how a surface drifts from its direction; what the taxonomy left as a relationship, or recorded unresolved, is still the run's work.
+
+### Fixed
+
+- Adopter guidance that described a fallback the previous release deleted. The `experience-design` journey, its depth how-to and its README each said the frontend pre-flight falls back to its own canonical reference for an unfilled slot. It does not: the slot resolves from a lower rung, and the run records which. The frontend design-handoff how-to carried the same claim.
+- The `frontend-engineering` reference page described the reviewer as reading five lenses and the rendered page for a sixth, which stopped being true when the seventh lens shipped.
+
+## [experience-design][4.0.3] — 2026-09-28
+
+### Highlights
+
+- **`design-system` now decides your product's visual system instead of handing you an empty table of token names.** It resolves typography, color, spacing, shape, depth and motion. Each decision records the authority behind it, so you can tell an inherited value from a derived one at a glance.
+- **A system you already have is inherited, not replaced.** The skill finds the source of visual truth your interface actually reads from and judges whether it is coherent. It fills only the gaps your current work needs, keeps your naming conventions, and will not build a second system beside your first.
+- **Nothing in the pack carries a palette, typeface, scale, radius, shadow or easing value.** Your product's values come from your direction and your existing system, so two unrelated products no longer end up looking the same.
+
+### Added
+
+- Four routes with a selection rubric that picks one before any reference loads, so the choice is readable on a small model.
+- A six-rung design-authority precedence — a stated constraint, an approved visual target, the approved direction, the incumbent system, the named platform's convention, then the skill's own derivation. A rung overrides a lower one only on the axis it decides. The approved visual target binds composition and relationships and supplies no value, matching what the direction writer and the frontend build already say.
+- A map from each of the fifteen direction axes to the one system domain it constrains, so every resolved value is traceable to the commitment that authorised it.
+- A rule for the two things `[platform-default]` means upstream. Where your named target surface genuinely owns a decision, the value resolves from that platform's convention. Where nobody decided, the domain is recorded unresolved with the missing authority named — never filled with a guess.
+- A proving set: the smallest group of real product needs that exercises every resolved domain, checked before the artifact is written and recorded in it. Token tables that look tidy and fail on contact with real content are the thing this catches.
+- Two references — value derivation and incumbent systems — loaded only by the route that needs them.
+- Seven evaluation cases: a mature incumbent system, a greenfield distinctive direction, a visual target, a rejected category default, a brownfield conflict, insufficient authority, and an accessibility conflict.
+
+### Changed
+
+- The artifact records authority, the relationships implementation must preserve, explicitly prohibited treatments, the proving set, accessibility adaptations, how the values bind to whatever architecture you already use, what changed against an incumbent system, and only genuinely unresolved decisions. Its address and `type: token-taxonomy` identity are unchanged, so anything already reading it keeps working.
+- Accessibility is now stated as a floor that constrains every resolved value and supplies none. It is not ranked against a goal, because it is not in the arbitration. A value that cannot clear it is adapted, and the adaptation is recorded rather than made silently.
+- The pack's "no values, ever" invariant is now "no universal values, ever" — it binds what the pack carries, not what a run writes for you.
+- The Experience Design guide and pack documentation describe the resolved artifact.
+- The pack and Claude plugin metadata now publish Experience Design `4.0.3`.
+
+## [frontend-engineering][0.3.4] — 2026-09-27
+
+### Highlights
+
+- When your team has already agreed a visual direction, the frontend build now inherits it instead of quietly picking a different look. The skill resolves visual authority from the design artifacts your repository already points at, falls back to the visual system you already have, and only invents a premise when a surface is genuinely greenfield. It no longer names a product as an aesthetic anchor.
+- Significant visual work is now looked at while it is being built. The agent renders a representative state, compares it against the direction it inherited, corrects once where the difference is material, and renders again to check — then goes on to the usual gates. The loop is bounded: a further pass happens only if you ask.
+
+### Added
+
+- A four-rung visual-authority precedence — an approved visual target, then the direction and token taxonomy, then the incumbent system, then a stated local premise — with each rung naming what it binds and which rung it falls to. A lower rung never overrides a higher one.
+- A statement of what visual authority never controls: product behaviour, accessibility, content correctness, data and state, security, established component contracts, and platform constraints. Where a visual decision fights the accessibility floor, the floor wins.
+- A `visual authority` field in the evidence manifest, recording which rung supplied the visual decisions and the artifact or convention it named. A run that used the fallback records that explicitly.
+- A seventh lens in `frontend-reviewer`, testing the manifest's visual-authority claims against the diff. It scores no aesthetics and re-runs no design work.
+- Six evaluation cases covering the approved-target, direction-only, brownfield, standalone, non-visual and no-browser paths.
+
+### Changed
+
+- The named-aesthetic-reference step is now visual-authority resolution. The canonical product-reference table is gone, along with every pointer to it. A product name was always a poor instrument for this: it carries whatever the model associates with that product today, which is why so much generated work converges on the same look. **If you relied on it, two routes give you back the determinism.** Write a direction artifact under your design output directory and the build inherits it; or state the qualities you want in-session — the density, the voice, the restraint — and the run records that as `local-premise`. Naming a product as shorthand for qualities still works in conversation; what changed is that the skill no longer reaches for one on your behalf.
+- The seed token block moved out of the always-loaded skill into a fallback reference, read only when no taxonomy and no incumbent system supply values.
+- Print and slide guidance — the page box, colour-adjust and page-break rules — moved to its own reference, loaded whenever the output targets a PPT slide or PDF export, whatever supplied the token values.
+
+### Fixed
+
+- A run could previously record a completed visual check without any capture behind it, because nothing connected the claim to the evidence. A claim with no capture is now rejected, and where no browser is reachable the run names the missing capability and claims nothing.
+
+### Known gap
+
+- The pack's journey page and its guide tree still describe the previous pre-flight — a named aesthetic reference and a seed token block. The skill is the current behaviour; those pages land in the next patch.
+
+## [experience-design][4.0.2] — 2026-09-27
+
+### Highlights
+
+- `creative-direction` now turns product context into a buildable visual contract, not just a mood statement: it records the engagement mode, product-specific visual thesis, first-viewport thesis, honest evidence and asset status, and optional visual-target boundaries without requiring Product Engineering, Frontend Engineering, a comp, browser control, or image analysis.
+
+### Changed
+
+- The Experience Design guide now describes the direct-answer and optional-artifact inputs `creative-direction` accepts, plus the product-specific output fields adopters should expect.
+- The pack and Claude plugin metadata now publish Experience Design `4.0.2`.
+
+## [experience-design][4.0.1] — 2026-09-27
+
+### Highlights
+
+- **The first approval now happens where you can actually make it.** The journey approval covers the journey *and* the screens derived from it, so it comes after the screen flow exists rather than before. The check that earns it — does every screen trace to a moment in the journey — needs both halves in front of you.
+- **The adopter guide opens with the work, not the roster.** The `experience-design` guide front door now answers "I have an experience to design — how do I get from the user's outcome to reviewed design intent?" It leads with one ordinary-language request, the stage sequence, the three decisions that are yours, what you end up holding, and which downstream pack consumes each artifact. The skill reference is still there, one level down.
+
+### Fixed
+
+- `JOURNEY.md` no longer claims `journey-mapping` produces a screen list. It produces the journey; `user-flow` derives the screens, and the skill refuses a journey with one stage per screen. The gate contract in that file was already correct about when the approval falls; only its walkthrough disagreed.
+- `JOURNEY.md` describes `experience-reviewer` as a dispatched reviewer role rather than presenting it as a skill to run, matching how the guide already described it.
+
+## [product-engineering][0.13.21] — 2026-09-27
+
+### Highlights
+
+- **Feature and capability intents can now carry product facts for downstream experience work only when a surface is materially affected.** The optional handoff names the affected journey or surface, first-success behavior, product proof, claim evidence, constraints, prohibited claims, and unknowns while backend-only work and product-level framing stay unchanged.
+
+### Changed
+
+- `frame-intent` adds an optional Product-to-experience handoff block for qualifying capability and feature intents, keeps it as Product Engineering-owned Markdown, and does not require or invoke any downstream pack.
+- The feature-intent how-to names when the optional handoff appears and where Product Engineering stops.
+
+## [core][2.27.0] — 2026-09-27
+
+### Highlights
+
+- Ask the agent to explain a diff, branch, commit, or pull request and you get back one self-contained offline HTML lesson — background, intuition, a code walkthrough, and a five-question quiz — written for that specific change rather than poured into a shared template. The agent reports the exact file path it wrote.
+
+### Added
+
+- `explain-diff` skill. It traces the changed code and nearby tests, designs the lesson, and publishes it through a bundled standard-library publisher that needs no network access and no third-party dependency.
+- The publisher writes a dated, collision-resistant file under the operating system's temporary directory by default, and writes elsewhere only to an output root the user approves. It redacts secrets, tokens, email addresses, private hostnames, personal names, and user-home paths from the page while preserving the code path being taught.
+- `work-intake` routes explanation requests to `explain-diff`, keeping them separate from correctness review, bug fixing, and document conversion.
+
+## [core][2.26.46] — 2026-09-26
+
+### Highlights
+
+- **Base freshness can now be unverified without stopping every work-loop.** When network access, authentication, timeouts, or enterprise Git-metadata policy prevent the check from completing, the loop tells you freshness was not verified and continues so you can update the branch separately. A proven stale base or unsafe repository state still stops the run.
+
+### Changed
+
+- `work-loop` treats classified base-freshness capability gaps as a skipped check, while keeping confirmed stale bases, missing targets, unsafe local state, and unclassified Git failures blocking.
+
+## [experience-design][4.0.0] — 2026-09-27
+
+### Highlights
+
+- **The copy layer is now one skill with three modes.** `content-design` covers message and narrative structure, per-surface acquisition copy goals, and the brand-level register. You pick a task, not a registration — the skill selects the mode from your request. The `copy-direction` and `tone-of-voice` skills are removed.
+- **Nothing you have already written moves.** All three artifacts keep their paths and their `type:` values: `content/<slug>.md`, `copy/<surface-slug>.md`, and the reserved `copy/brand-register.md`, which still carries `scope: brand-level` beside its `type:`. An existing document needs no migration.
+- **Shared copy references were reconciled rather than merged.** Six references that shared a name across the folded skills disagreed; each was resolved deliberately, and the two whose variants differed only by scope are now one body with a named scope parameter that binds per mode.
+
+### Changed
+
+- Folded `copy-direction` and `tone-of-voice` into `content-design`, which now runs in three named modes with a selection rubric that needs no reference loaded.
+- `editorial-quality-gates.md` is one canonical body held byte-identical across the two skills that need it, replacing a recorded decision to let per-skill copies drift.
+- `ux-writing` in the `product-engineering` pack keeps its scope; its pointers to the removed skills now name the surviving modes.
+
+### Removed
+
+- The `copy-direction` and `tone-of-voice` skills. **After upgrading an existing installation, remove the `copy-direction` and `tone-of-voice` skill directories from that installation's skills directory.** Whole-pack `agentbundle upgrade` does not prune paths the new pack no longer declares, so leaving them in place would keep their stale `SKILL.md` registrations active and a copy task could still route to a skill this pack no longer ships.
+
+## [product-engineering][0.13.20] — 2026-09-27
+
+### Changed
+
+- `ux-writing`'s scope boundary, onboarding tri-point, and brand-register migration prompt now name `content-design`'s modes instead of the two removed `experience-design` skills. The skill's own behaviour, its artifact markers, and the copy it writes are unchanged.
+- `close-work` now checks whether each intent ancestor above a closing artifact can itself close. When any artifact reaches a terminal state, the skill evaluates each intent ancestor and returns one of three verdicts — **refuse**, **not-eligible**, or **eligible** — with named grounds, and presents an evidence packet before any status is written. On a confirmed eligible transition, a closure record is written to the intent carrying the date, decider, and evidence reviewed.
+
+### Added
+
+- Closure eligibility check in the § Closeout procedure: fires on each intent ancestor when any artifact reaches a terminal state; returns refuse (missing precondition), not-eligible (live descendants named), or eligible (all-terminal closure, evidence packet presented); writes a closure record on confirmed eligible transitions; never sets a status itself.
+- `closure_index.py` and `closure_terminality.py` script seams implementing terminus-driven descendant discovery, confined reads, verdict types, an evidence packet, and a per-decision index discarded by scope.
+
+## [core][2.26.45] — 2026-09-26
+
+### Highlights
+
+- Intent preambles can now say an outcome is shared with another intent by adding `Outcome co-owner:` as a typed peer pointer. The corpus and traceability checks reject malformed, missing-target, and self-referential peers without turning the peer into a parent or delivery edge.
+- `Decomposed:` can now record a finished childless decomposition with `YYYY-MM-DD closed-empty`. It stays distinct from the literal `no`, so an author can tell "we deliberately closed this with no child work" from "we decided not to decompose."
+
+### Changed
+
+- `work-intake` ignores preamble-shaped lines inside HTML comments before it recognizes fields or the first visible body heading. A hidden `Outcome co-owner:` line is absent, not malformed or unresolved.
+- `Outcome co-owner:` is constrained when present to `outcome:<target>`, `opportunity:<target>`, `capability:<target>`, or `intent:<target>`, and traceability resolves the value against another live intent identity without adding graph edges.
+- `Decomposed:` accepts `closed-empty` as a dated terminus. The `direct-light` checkbox-item rule remains exclusive to `direct-light`.
+
+## [product-engineering][0.13.19] — 2026-09-26
+
+### Highlights
+
+- The intent template and product-engineering how-tos now show both closure declarations authors can copy: optional `Outcome co-owner:` for a shared outcome, and `closed-empty` for a decomposition that is complete with no child work.
+
+### Changed
+
+- `frame-intent`'s template seeds `Outcome co-owner:` as an optional comment-only field, so it is absent until an author writes a typed peer pointer.
+- The frame and handoff how-tos list `closed-empty` beside the existing `Decomposed:` termini, and the refused-intent guide shows how to repair malformed, unresolved, self-referential, and comment-hidden co-owner declarations.
+
+## [core][2.26.44] — 2026-09-26
+
+### Highlights
+
+- **A `Shipped` brief now requires a `Cut-closed:` declaration.** When you close a brief as `Shipped`, add a `Cut-closed:` preamble field recording that no further slices are coming: an ISO 8601 date then evidence, as in `2026-08-25 All nine slices are Shipped.` It must sit above the brief's first `## ` heading; written below one it reads as absent. The coverage lint also refuses a `Draft` brief that carries the field, and every other state may carry it or omit it.
+- **A brief that passed the coverage lint yesterday can fail today**, so this is a gate change to plan for rather than a new option to adopt. Any repository holding a `Status: Shipped` brief without the new field fails until it is backfilled — run it from your repository root as `python3 <skill>/scripts/lint-brief-coverage.py --root .` before your pipeline does — it resolves `docs/product/briefs` beneath the root you pass, so pointing it at the briefs directory itself finds nothing and exits 0.
+- **A brief's states and legal moves are now documented once**, so the reference guide and the lint cannot disagree about which transitions are legal or what each status requires of its children.
+
+### Changed
+
+- `lint-brief-coverage.py` now reads `Status:`, `Slug:`, and `Cut-closed:` through a bounded preamble reader that stops at the first uncommented `## ` heading and ignores fields inside HTML comments. A field placed below a section heading or inside a comment is no longer read.
+- A `Shipped` brief without a `Cut-closed:` record is refused with exit 1. The field must be an ISO 8601 date (`YYYY-MM-DD`) followed by non-empty evidence text.
+- A `Draft` brief with a `Cut-closed:` record is refused with exit 1 (a material edit reopens the cut).
+- The brief status vocabulary, child-execution-evidence predicate, and transition table are now the sole property of `brief_shape.py`. `lint-brief-coverage.py` defines none of them.
+
+## [core][2.26.43] — 2026-09-25
+
+### Highlights
+
+- `workspace-status` can now tell you which delivery contracts are retirement
+  candidates. It reads the repository, reports every blocker holding each
+  candidate back, and names the migration obligations a candidate must discharge
+  before its container can go. Being listed authorizes nothing: a human selects,
+  and the separately confirmed prune executes.
+- Evidence the run could not read withholds eligibility rather than passing
+  silently. Each blocker declares the input corpus its absence rests on, and a
+  refusal naming any member of that corpus suppresses every candidate that
+  blocker is evaluated over — including candidates carrying no blocker of their
+  own, which are reported rather than dropped. A shorter list never means a
+  cleaner one.
+- Ages come from recorded change history and are labelled as such. They are not
+  the thirty-day cooling clock, which runs from a delivery-completion event this
+  capability does not read, so the report is a triage signal rather than a
+  disposition.
+
+### Added
+
+- `retirement-candidates`, a read-only subcommand that writes nothing and
+  succeeds against a read-only checkout.
+- `contracts/jsonschema/spec-retirement-candidates.schema.json`, which owns the
+  emitted document's field set, its twelve blocker codes and its twelve refusal
+  codes.
+
+## [experience-design][3.0.0] — 2026-09-26
+
+### Highlights
+
+- `information-architecture` now owns the surface-genre routing that previously required six separate registrations: `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, and `workspace-design`.
+- The removed registrations' methods now live as genre references under `information-architecture`, so adopters should update direct skill references and invocations to call `information-architecture` with the relevant `surface-genre:` value.
+
+### Changed
+
+- Folded the six genre-specific design registrations into `information-architecture` while preserving their methods as routed references.
+- Kept `interaction-design` as the destination for transactional journeys.
+- After upgrading an existing installation, remove the retired `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, and `workspace-design` skill directories from that installation's skills directory. Whole-pack `agentbundle upgrade` does not prune paths that the new pack no longer declares, so leaving them in place would keep their stale `SKILL.md` registrations active.
+
+## [frontend-engineering][0.3.3] — 2026-09-26
+
+### Highlights
+
+- Frontend pre-flight now routes every `surface-genre:` value through the consolidated `information-architecture` handoff when `experience-design` is co-installed, with `interaction-design` still owning transactional journeys.
+- The design-system handoff now names the shipped `design-system` skill slug, and `experience-design` `>=3.0.0` is the recommended floor for the genre-aware route.
+
+### Fixed
+
+- Repaired the frontend genre-routing table for the experience-design fold.
+- Corrected the design-system slug in the handoff path.
+- Raised the recommended `experience-design` co-install floor to `>=3.0.0`.
+
+## [atlassian][0.10.1] — 2026-09-26
+
+### Highlights
+
+- **You can now see what each Jira Epic delivered beside what that work was meant to change, in one read-only view.** Ask for a project's Epics and their outcomes: the view groups the project's work by Epic, counts delivery from the `flow-metrics` skill's own per-issue rows, and renders each Epic's recorded outcome next to it. It writes nothing to Jira and leaves no file behind.
+- **An Epic with no recorded outcome says so, and asks you for one.** Instead of a blank row, the view states plainly that nothing is recorded and names the one place to write it — the block under an `Outcome` heading in the Epic's description. Hand your answer back with `--outcome EPIC-KEY=<text>` and your exact words come back as text you paste into Jira yourself, so the outcome stays something your team said.
+- **A `flow-metrics` run can now touch the on-disk cache not at all.** The new `--inert-cache` mode performs no cache read, write, directory creation or stale-temporary-file cleanup, which `--no-cache` still did. It is off by default, so every existing `flow-metrics` run behaves exactly as before.
+
+### Added
+
+- `jira-epic-outcome-view`: a read-only Jira skill that groups a project's work by Epic and renders each Epic's delivery reading beside its recorded outcome. Throughput and work in flight are counts over `flow-metrics`' own per-issue rows, never a recomputation, so no duration or percentile is reported. Work whose parent chain never reaches an in-scope Epic is rendered in a named unattributed group with the reason, rather than dropped.
+- A repeatable `--outcome EPIC-KEY=<text>` argument on that skill turns a team's stated outcome into paste-ready text naming the fixed location to paste it into. A key outside the queried scope, or the same key passed twice, is refused with exit 2 naming the key; `EPIC-KEY=` with no text is a decline and renders the prompt.
+- `--inert-cache` on `flow-metrics`, a default-off mode under which no cache operation of any kind occurs.
+- `[pack.metadata].bridge-skills` in the pack manifest declares which of this pack's skills may reach a host repository's delivery machinery. Every skill outside that list returns value to a team that has installed nothing but this pack.
+
+### Changed
+
+- The Epic outcome view reads its outcome from one fixed, documented location — the block under a top-level `Outcome` heading in the Epic's description — in both description shapes Jira returns: the structured document from Cloud and plain or wiki text from Server and Data Center. The location is not configurable per invocation.
+- Every reading the view renders states the moment it was taken, and the delivery reading and the Jira read state their two moments separately rather than implying one snapshot. Every run also discloses that it covers only the work the calling credential can browse.
+
 ## [core][2.26.42] — 2026-09-24
 
 ### Highlights
@@ -73,6 +453,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `loop-cohort wave reopen <spec-dir> --expect-run-id <id>` marks every dispatch record for the current wave superseded. The records stay on disk; recording a fresh assertion for any task makes that task account again. The three edges that require a reopen before re-entering implementation are `gates-failed` from code verification, `findings-remain` from code review, and `blocker-applied` from the code human gate.
+
+## [experience-design][2.0.10] — 2026-09-25
+
+### Highlights
+
+- The `creative-direction` skill now exposes five named operations — `frame`, `explore`, `visualize`, `converge`, and `refine` — each with a dedicated reference, so craft detail loads only when the operation needs it.
+- A route rule (`inherit`, `extend`, `originate`) selects how much invention the work warrants; `inherit` runs no divergence and no visual step when a direction already exists for the surface.
+- Divergence generation in `explore` draws referents from the audience's own world — publications, instruments, maps, architecture, packaging, signage — rather than from other software products, so candidate directions stop converging on the category default.
+- The visual step in `visualize` is capability-gated: it defaults to a text schematic in any harness that cannot produce images, with a named skip rather than a blocker, and produces a rendered comp only on the `originate` route when the harness supports it.
+- Asking to refine an existing direction now reaches the skill and amends the document in place, instead of starting a second direction for the same surface.
 
 ## [core][2.26.41] — 2026-09-24
 

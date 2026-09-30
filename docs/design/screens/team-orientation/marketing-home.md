@@ -119,7 +119,7 @@ Eleven such strings render today.
   build conviction and must not agitate a second problem.
 - **Scroll story:** this screen is the whole story. Zone assignment is in
   `docs/design/discovery/team-orientation-ia.md` — eleven zones, each with one
-  job. `conversion-design` owns any merging.
+  job. `information-architecture` with the marketing reference owns any merging.
 - **IC-first check:** the copy must lead with the reader's recognized problem
   before naming the product. The current hero fails this and it is finding 5 in
   the heuristic baseline.
