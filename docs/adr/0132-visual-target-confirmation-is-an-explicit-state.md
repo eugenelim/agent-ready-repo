@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-29
 - **Areas:** experience, packaging
-- **Reversibility:** medium
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
 - **Supersedes in part:** none
@@ -121,6 +121,13 @@ confirmation explicitly.
 
 Neutral: the `status` field is unchanged, so nothing that reads it moves.
 
+**Revisit if:** (1) an adopter corpus accumulates enough recorded confirmations
+that reverting would strand deliberate human input rather than merely restoring
+inference — which is what makes this decision's reversibility low; or (2) a
+consumer other than the `approved-visual-target` rung needs to read the field,
+because a second reader turns a one-rung precondition into a shared schema and
+the closed value set would then need its own compatibility rule.
+
 ## Alternatives considered
 
 **Widen the `status` enum to carry target confirmation.** Rejected: it
@@ -142,6 +149,14 @@ fields than this one, so migration is its own project and the absent-field rule
 makes it unnecessary for correctness.
 
 ## Confirmation
+
+- **Mode:** enforced for the field and the producing surfaces; `none` residual
+  on the prose-inference half, because no mechanical check can prove a human
+  read a sentence rather than a field.
+- **Signal:** the assertions below. They red on a renamed field, a changed value
+  set, an ungated producing surface, a rung condition that stops naming the
+  field, or a superseded prose reading left in a carrier.
+- **Owner:** eugenelim.
 
 The `frontend-engineering` pack's visual-authority suite asserts the rung's
 `requires` cell names `visual_target: confirmed`, and that the new rule table's
