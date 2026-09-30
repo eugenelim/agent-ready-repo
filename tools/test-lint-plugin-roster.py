@@ -116,7 +116,7 @@ def main() -> int:
                "packs/product-documentation/**",
                "packs/product-engineering/**",
                "packs/product-strategy/**",
-               "packs/wicked-estate/**",
+               "packs/code-intelligence/**",
                "packs/*/pack.toml",
                "packs/*/.claude-plugin/plugin.json",
                "packages/agentbundle/**",

@@ -89,6 +89,33 @@
         "email": "eugenelim@users.noreply.github.com",
         "name": "eugenelim"
       },
+      "category": "code-intelligence",
+      "description": "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing \u2014 answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses.",
+      "displayName": "Code intelligence",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "code-graph",
+        "blast-radius",
+        "static-analysis",
+        "call-graph",
+        "impact-analysis"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "code-intelligence",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "source": {
+        "path": "code-intelligence",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
+      },
+      "version": "0.1.0"
+    },
+    {
+      "author": {
+        "email": "eugenelim@users.noreply.github.com",
+        "name": "eugenelim"
+      },
       "category": "api-design",
       "description": "Write the OpenAPI or AsyncAPI contract before anyone writes a handler.",
       "displayName": "Contracts",
@@ -401,33 +428,6 @@
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.2.7"
-    },
-    {
-      "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
-      },
-      "category": "code-intelligence",
-      "description": "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing \u2014 answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses.",
-      "displayName": "Wicked Estate code intelligence",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "code-graph",
-        "blast-radius",
-        "static-analysis",
-        "call-graph",
-        "impact-analysis"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "wicked-estate",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "path": "wicked-estate",
-        "ref": "claude-plugins-dist",
-        "source": "git-subdir",
-        "url": "https://github.com/eugenelim/agent-ready-repo.git"
-      },
-      "version": "0.1.0"
     }
   ]
 }

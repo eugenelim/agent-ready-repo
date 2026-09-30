@@ -917,13 +917,13 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `e1190720a9…` and `4de3f063de…` still in place
 # returns an empty error list, so this supersedes live values rather than a pin
 # that had already gone stale.
-# Bumped 2026-09-29 for the `wicked-estate` pack, which appends two
+# Bumped 2026-09-29 for the `code-intelligence` pack, which appends two
 # `run-test-suite` lines so `lint-pack-test-boundary`'s
 # `every-suite-dir-has-a-runner` accepts its two new suites.
 # (1) Sole cause: `git diff origin/main -- Makefile` is three added lines and
 # none removed or reordered — `$(PYTHON) -m pytest
-# packs/wicked-estate/tests/pack/ -q` and `$(PYTHON) -m pytest
-# packs/wicked-estate/tests/skills/code-intelligence/ -q`, plus a two-line
+# packs/code-intelligence/tests/pack/ -q` and `$(PYTHON) -m pytest
+# packs/code-intelligence/tests/skills/code-intelligence/ -q`, plus a two-line
 # comment recording why the second skips on a hosted runner. A comment takes no
 # plan index, so the two pytest lines are the whole movement: each is a new
 # process rather than a lengthened batch line, so both take an index and shift
@@ -941,10 +941,10 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # branch is rebased onto and whose Makefile differs from this worktree's by the
 # three lines above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "bf970632e653365722547d85fe25c18886bb5a92bd7de93ced72a907fc7bbafa"
+    "d5ce59c02638aa0c8e8c08234c5b020813f992681d52a298b1886faa11ea3b1e"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "32e04ee010ee27c25e2619ec6d972d24383e9baf73a2909054660397786be7f6"
+    "74e76e144715a853d8bb2a9caab4a54ce1bb89a30d035cfdc3494d8cdb899696"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

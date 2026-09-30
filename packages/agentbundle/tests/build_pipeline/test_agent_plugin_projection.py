@@ -270,7 +270,7 @@ def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
         "frontend-engineering": ["agent"],
         "product-engineering": ["agent"],
         "release-engineering": ["agent"],
-        "wicked-estate": ["agent"],
+        "code-intelligence": ["agent"],
     }
 
 
@@ -1195,6 +1195,6 @@ def test_default_build_emits_complete_agent_plugin_roster(
         '["agent"]',
         'agent-plugin: pack "release-engineering" excluded by dropped primitives '
         '["agent"]',
-        'agent-plugin: pack "wicked-estate" excluded by dropped primitives '
+        'agent-plugin: pack "code-intelligence" excluded by dropped primitives '
         '["agent"]',
     }

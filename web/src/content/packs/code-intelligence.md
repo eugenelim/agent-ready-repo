@@ -1,11 +1,11 @@
 ---
-name: Wicked Estate code intelligence
+name: Code intelligence
 pluginInstallable: true
 scope: repo
 tagline: "Ask what calls this and what breaks if I change it — from a real call graph."
 skills:
   - code-intelligence
-installCommand: "agentbundle install --pack wicked-estate"
+installCommand: "agentbundle install --pack code-intelligence"
 docsUrl: /docs/guides/
 ---
 

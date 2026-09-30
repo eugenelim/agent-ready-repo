@@ -49,12 +49,27 @@
     {
       "id": 5,
       "prompt": "For our COBOL-to-services migration, which programs should go in wave one? CALCINT has 61 dependents and 14 unresolved call sites.",
-      "expected_output": "A workflow-neutral answer that supplies dependency weight, coupling, and completeness evidence, and declines to assign migration waves, phases, cutover order, or readiness — routing that decision back to the migration workflow.",
+      "expected_output": "A workflow-neutral answer that supplies dependency weight, coupling, and completeness evidence, and declines to assign migration waves, phases, cutover order, or readiness \u2014 routing that decision back to the migration workflow.",
       "assertions": [
         "Reports dependency weight and the 14 unresolved call sites as raising true weight above 61",
         "Does not assign a migration wave, phase, cutover order, or readiness verdict",
         "States that sequencing belongs to the migration workflow rather than to this skill",
         "Does not propose creating a MIGRATES_TO relationship or any migration state in the graph"
+      ]
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative code-intelligence task that produces a user-facing findings handoff. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, completeness counts, and exact errors.",
+      "expected_output": "The findings handoff leads with the useful outcome and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or the index's own completeness counts. Routine tool calls have no optional assistant narration between them. The final handoff states what was verified against source and what remains unestablished, and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome rather than the sequence of commands run",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, completeness counts, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with what was verified and what is unestablished, and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
       ]
     }
   ]

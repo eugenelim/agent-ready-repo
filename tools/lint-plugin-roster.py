@@ -77,7 +77,7 @@ PUBLISHED = frozenset({
     # teaches an agent to query a code graph is stack-general and useful to
     # someone working across several indexed repositories, even though the
     # index it reads is per-repository.
-    "wicked-estate",
+    "code-intelligence",
 })
 
 

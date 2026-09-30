@@ -640,10 +640,10 @@ $(PYTHON) -m pytest \
 $(PYTHON) -m pytest \
 	packs/linear/tests/skills/linear/ \
 	packs/linear/tests/skills/linear-brief-intake/ -q
-$(PYTHON) -m pytest packs/wicked-estate/tests/pack/ -q
+$(PYTHON) -m pytest packs/code-intelligence/tests/pack/ -q
 # Skips wholesale when the `wicked-estate` binary is absent, which is the
 # normal CI state — the suite executes the real CLI against a real index.
-$(PYTHON) -m pytest packs/wicked-estate/tests/skills/code-intelligence/ -q
+$(PYTHON) -m pytest packs/code-intelligence/tests/skills/code-intelligence/ -q
 $(PYTHON) -m pytest --import-mode=importlib \
 	packs/converters/tests/skills/markdown-to-html/ \
 	packs/converters/tests/skills/mermaid-renderer/ -q
