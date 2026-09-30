@@ -379,8 +379,38 @@
         "prospective_starts_authorized": true,
         "admission_window_started_at": "2026-09-29T21:19:31Z",
         "admission_window_ends_at": "2026-10-29T21:19:31Z",
-        "prospective_cases_admitted": 1,
-        "measurement_starts_used": 0,
+        "prospective_cases_admitted": 2,
+        "measurement_starts_used": 1,
+        "prospective_cases_admitted_note": "cases 2 and 3. Case 1 remains candidate_enumerated: its normal loop never opened, so it is not admitted and does not consume an admission against the cap of 12.",
+        "measurement_starts_detail": {
+          "shadow_audit_starts_used": 1,
+          "shadow_audit_starts_max": 12,
+          "adjudication_starts_used": 0,
+          "adjudication_starts_max": 12,
+          "measurement_specific_starts_used": 1,
+          "measurement_specific_starts_max": 24
+        },
+        "cohort_observed_cumulative_after_start_1": {
+          "prompt_bytes": {
+            "used": 53388,
+            "max": 2880000
+          },
+          "returned_output_tokens": {
+            "used": 20753,
+            "max": 288000
+          },
+          "wall_clock_seconds": {
+            "used": 410.4,
+            "max": 86400
+          },
+          "returned_input_tokens": {
+            "reading_uncached_only": 18,
+            "reading_all_input_categories": 846918,
+            "max": 2880000
+          }
+        },
+        "cohort_input_budget_risk": "Under the all-input-categories reading, one shadow start consumed 846918 of the cohort's 2880000 returned-input-token ceiling — 29 percent. At that rate the ceiling supports about three shadow starts, while a complete pilot needs at least eight terminal cases. Under the uncached-only reading the ceiling is effectively unconstrained. The two readings therefore differ on whether this study can complete at all, which makes the definition an owner decision rather than a bookkeeping detail. No value is estimated and no reading is assumed; the cohort proceeds and this note stands until the owner rules.",
+        "protected_escape": "none observed",
         "case_ledger": [
           {
             "enumeration_ordinal": 1,
@@ -417,7 +447,7 @@
           {
             "enumeration_ordinal": 2,
             "stable_case_key": "57f195e95c86c86a305933b9cf84745dffa8de55e261d72bda5170315135920f",
-            "status": "normal_loop_terminal",
+            "status": "shadow_terminal",
             "controller_decision_timestamp": "2026-09-30T00:11:05Z",
             "identity_rederived": "The row was first written at 2026-09-30T00:08:28Z against an earlier spec/plan revision, then re-derived at the timestamp above when the contract-item alignment lint required identifier and verification-group corrections to spec.md and Owned by fields in plan.md. No reviewer had started and no measurement start had been launched, so this is a correction to the single open row rather than a second row: the earlier key 5f0a4da49cfb2905df68f23358386c0cc9fbd1fd667630ef8531178306e0bcb3 was never bound to a review and is retired unused. The enumeration ordinal is unchanged.",
             "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
@@ -530,6 +560,80 @@
               {"path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md", "sha256": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460"}
             ],
             "stopped_revision_note": "the exact revision both round-4 reviewers graded; no repair followed it, so the stopped revision and the round-4 reviewed revision are the same bytes",
+            "shadow_audit": {
+              "start_ordinal_in_cohort": 1,
+              "launched_at": "2026-09-30T03:42:19Z",
+              "completed_at": "2026-09-30T03:49:09Z",
+              "bound_revision": "the stopped revision, digest 103f84475f2bb0be62300c09478cf373bfd5071d830a81af44c9eb502909dc0d",
+              "cold": "The measurement root is a detached worktree at base commit c5429040ea3a438ac755d4f3dde3843126580999, where neither docs/specs/visual-target-confirmation/ nor ADR-0131 exists. The three stopped-revision artifacts were supplied inline in the prompt. This prevents the auditor reading the archived spec's Status line or its 'Why this contract was decomposed' section, either of which would disclose the outcome.",
+              "study_exposure": "none. The prompt reads as an ordinary spec/plan review brief and mentions no study, no prior round, no historical outcome and no prior reviewer behaviour.",
+              "launch_mechanism": "headless `claude -p --output-format=json` under CLAUDE_CODE_MAX_OUTPUT_TOKENS, read-only tool allowlist Read,Grep,Glob, controller-owned subprocess timeout",
+              "pre_launch_gates": {
+                "privacy_screen": "pass — the payload is repository spec/plan/ADR prose; an email, credential-assignment and URL-credential scan over the exact bytes returned no hit",
+                "least_privilege_profile_observable": "pass — argv and environment recorded at shadow-launch-observed.json before launch; writes, web, delegation, messaging, escalation and protected configuration are all absent from the allowlist",
+                "prompt_bytes": {
+                  "observed": 53388,
+                  "max": 120000,
+                  "result": "pass"
+                },
+                "input_tokens_preflight_upper_bound": {
+                  "observed": 53388,
+                  "max": 120000,
+                  "result": "pass",
+                  "method": "serialized payload bytes as the contract's conservative upper bound"
+                },
+                "requested_output_tokens": {
+                  "bound": 12000,
+                  "max": 12000,
+                  "result": "pass",
+                  "mechanism": "CLAUDE_CODE_MAX_OUTPUT_TOKENS; binds per model request"
+                },
+                "wall_clock_seconds_timeout": {
+                  "bound": 3600,
+                  "max": 3600,
+                  "result": "pass"
+                }
+              },
+              "post_run_observed_telemetry": {
+                "actual_returned_output_tokens": 20753,
+                "actual_returned_input_tokens_uncached": 18,
+                "cache_read_input_tokens": 780348,
+                "cache_creation_input_tokens": 66552,
+                "actual_wall_time_seconds": 410.4,
+                "num_turns": 28,
+                "note": "This mechanism returns the separated input and output counts the scorecard asks for. That is the field recorded unavailable for every subagent start on this case and on case 3, where the host returns one aggregate per start. The split is available for a headless launch and unavailable for a subagent start; do not carry the subagent limitation forward to this row."
+              },
+              "per_case_cumulative_after_this_start": {
+                "prompt_bytes": {
+                  "used": 53388,
+                  "max": 240000
+                },
+                "returned_output_tokens": {
+                  "used": 20753,
+                  "max": 24000,
+                  "note": "86 percent of the per-case ceiling consumed by one start"
+                },
+                "wall_clock_seconds": {
+                  "used": 410.4,
+                  "max": 7200
+                },
+                "returned_input_tokens": {
+                  "reading_uncached_only": 18,
+                  "reading_all_input_categories": 846918,
+                  "max": 240000,
+                  "status": "UNRESOLVED — the controller has not decided which reading the frozen scorecard's returned_input_tokens means, and is not estimating one. Under the all-categories reading this start alone exceeds the 240000 per-case ceiling; under the uncached-only reading it consumes almost none of it. The enforcement rule makes either reading non-retroactive: a completed start is not invalidated. The practical consequence for this case is nil, because the conditional adjudication batch is not triggered — the shadow claimed no blockers. The consequence for cohort planning is not nil; see cohort_input_budget_risk."
+                }
+              },
+              "raw_report": {
+                "path": ".context/reviews/visual-target-confirmation/shadow/case2-shadow-adversarial-raw.md",
+                "sha256": "a002d4d48d083b293d241eeb3ef7521d08024aea9de56277337100ddbfb25e6d",
+                "blockers": 0,
+                "concerns": 2,
+                "nits": 2
+              },
+              "adjudication_batch": "not triggered. Phase E admits at most one independent adjudication batch and only if the shadow claims blockers; it claimed none. No adjudication measurement start was launched.",
+              "interpretation_limits": "One start, one case. The shadow graded the stopped revision — the bytes after four rounds of repair — not the revision the normal loop first saw, so this is not a like-for-like contest with round 1. Raw finding counts are not a quality denominator here or anywhere in this study, `no blockers` is not a quality score, and no scalar effectiveness figure follows from this row. Rounds 3 and 4 of the normal loop were never adjudicated, so the normal-loop side of any comparison is itself partly unadjudicated."
+            },
             "observed_normal_loop_cost": {
               "reviewer_and_adjudicator_starts": 10,
               "returned_subagent_tokens_total": 952547,
