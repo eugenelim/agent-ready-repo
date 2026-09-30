@@ -701,7 +701,58 @@
               "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless `claude -p` launch, per the control verified on 2026-09-29 and recorded on case 1's row"
             },
             "normal_loop_progress": {
-              "rounds_completed": 2,
+              "rounds_completed": 3,
+              "round_3": {
+                "reviewer_role": "adversarial",
+                "raw_findings": 11,
+                "raw_report_sha256": "e9a30640bb2f8e392a50c5217e1869c94ff8c5bdc73a2052a1bb273b00e75f84",
+                "raw_classification": "findings",
+                "adjudicated": true,
+                "adjudication_sha256": "9bd6ee53c1d269d613a5c7f843dc8cbeab1e8d15818973dff5747f237b31b6de",
+                "sustained": 10,
+                "refuted": 1,
+                "indeterminate": 0,
+                "sustained_by_severity": {
+                  "blocker": 3,
+                  "advisory": 2,
+                  "concern": 3,
+                  "nit": 2
+                },
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [
+                  125591,
+                  93716
+                ],
+                "returned_subagent_tokens_total": 219307,
+                "wall_time_seconds_total": 942.7,
+                "repair_origin_findings": 2,
+                "repair_origin_note": "two sustained findings corrected round-2 work: the release test was placed in tests/conformance/, which forbids both a shipped-pack name and a docs/ reach, and the run-mode claim reasoned from the Make target to the workflow. The controller had also stated the run-mode claim to the owner outside the documents and corrected it to them.",
+                "reviewer_verified_clean_section": "Round 3 returned an explicit verified-clean section and a startability verdict. It independently re-ran the plan's stub validation record and confirmed it in both directions, confirmed the round-2 paragraph helper isolates each anchor uniquely against the real files and that no planned edit creates a second matching block, confirmed the carve-out ruling holds across every surface, confirmed the version baseline is observed rather than asserted, and confirmed no rejected predecessor mechanism has been re-imported.",
+                "unavailable_fields": [
+                  "per-start input/output token split — the host returns one aggregate subagent token count per start"
+                ]
+              },
+              "convergence_signal_updated": {
+                "sustained_by_round": {
+                  "round_1": 11,
+                  "round_2": 15,
+                  "round_3": 10
+                },
+                "raw_by_round": {
+                  "round_1": 13,
+                  "round_2": 16,
+                  "round_3": 11
+                },
+                "blockers_by_round": {
+                  "round_1": 6,
+                  "round_2": 4,
+                  "round_3": 3
+                },
+                "reading": "Both counts fell in round 3 and blockers fell in each round. More informative than the counts: the three rounds attacked three distinct layers — what the criteria said, whether their verifications could fail, and whether those verifications can physically land and pass in this repository — and round 3 independently re-verified that the first two layers still hold rather than reopening them. That is the opposite of case 2, where each round rediscovered carriers the previous round had missed. This is recorded as a convergence signal and not as a quality measurement: counts are not a denominator here, and no effectiveness figure follows.",
+                "distinguishing_evidence_from_case_2": "Case 2's rounds each discovered new carriers of the same unmeasured extent (1, then 2, then 5). Case 3's rounds each moved to a different layer and did not reopen the prior one.",
+                "owner_decision_outstanding": "Round 3 surfaced an advisory finding that the slice moves rung resolution — an approved-but-unconfirmed target drops to direction-and-taxonomy — which the contract had claimed was downstream-invisible. Whether that may ship with the field-read half deferred is an owner decision. The spec records the contract as not starting until it is answered. No further review round is warranted on the contract's mechanics alone."
+              },
+              "normal_loop_state": "awaiting owner decision before SPEC-HUMAN-GATE",
               "round_2": {
                 "reviewer_role": "adversarial",
                 "raw_findings": 16,
