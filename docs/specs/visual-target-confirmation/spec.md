@@ -3,7 +3,7 @@
 - **Status:** Archived (decomposed 2026-09-29 into `creative-direction-inherit-scope`, `visual-target-field` and `visual-target-rung-precondition`; not approved, not implemented) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0131; [ADR-0130](../../adr/0130-design-to-build-handoff-is-conditional-and-gap-routed.md); [ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md); [`design-to-build-value-handoff`](../design-to-build-value-handoff/spec.md); [`frontend-visual-authority`](../frontend-visual-authority/spec.md); [`design-system-values`](../design-system-values/spec.md)
+- **Constrained by:** ADR-0132; [ADR-0130](../../adr/0130-design-to-build-handoff-is-conditional-and-gap-routed.md); [ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md); [`design-to-build-value-handoff`](../design-to-build-value-handoff/spec.md); [`frontend-visual-authority`](../frontend-visual-authority/spec.md); [`design-system-values`](../design-system-values/spec.md)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none — the crossing artifact is a pack-declared adopter path, not a `contracts/` record.
@@ -85,7 +85,7 @@ cannot bind composition from the rung below either.
 
 | Semantic role | Destination | Owner | Evidence | Closeout condition |
 | --- | --- | --- | --- | --- |
-| Decision rationale | `docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md` | eugenelim | The ADR states the decision and its alternatives | ADR is Accepted and cited by this spec |
+| Decision rationale | `docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md` | eugenelim | The ADR states the decision and its alternatives | ADR is Accepted and cited by this spec |
 | Interface compatibility | `packs/experience-design/.apm/skills/creative-direction/assets/creative-direction-template.md` | eugenelim | The template carries the field and its closed set | Contract test asserts the field and values |
 | Current product truth | `guides/frontend-engineering/how-to/read-the-design-handoff.md` | eugenelim | The guide states the field and the absent-field reading | Roster test asserts the guide surface |
 | Interface compatibility | `docs/specs/frontend-visual-authority/spec.md` | eugenelim | Its `Status` field carries the supersession annotation | AC-0027 holds |
@@ -238,7 +238,7 @@ in this repository, readable by any reviewer, worktree, or CI job.
   `**Binding:**` and `**Confirmation record:**` lines, and contains the literal
   `bind nothing on their own`.
 - [ ] **AC-0027.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
-  field names all three superseded parts — ADR-0130's body budget, and ADR-0131's
+  field names all three superseded parts — ADR-0130's body budget, and ADR-0132's
   of both the `requires` value `recorded-human-confirmation` and the Always-do
   rule that a rung condition is a property the pack defines rather than an
   upstream template's value — and contains no whitespace-normalized match for

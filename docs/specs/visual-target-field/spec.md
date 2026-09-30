@@ -3,7 +3,7 @@
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0131](../../adr/0131-visual-target-confirmation-is-an-explicit-state.md)
+- **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md)
 - **Brief:** none
 - **Discovery:** [`visual-target-confirmation/notes/carrier-inventory.md`](../visual-target-confirmation/notes/carrier-inventory.md)
 - **Contract:** none
@@ -69,7 +69,7 @@ Retention class: repository-durable.
 - Use the exact field name `visual_target` and the exact values `none`,
   `unconfirmed` and `confirmed`.
 - Treat an absent `visual_target` as `unconfirmed`. That is the fail-closed
-  default ADR-0131 fixes.
+  default ADR-0132 fixes.
 - Re-derive the guide's template excerpt in the same change as any template
   edit.
 
@@ -86,7 +86,7 @@ Retention class: repository-durable.
   all: `converge` records the disposition and no instruction anywhere is
   conditioned on it. The carve-out that previously admitted `converge` gating
   its own write is no longer exercised here, and the three criteria that
-  relied on it moved to the successor. ADR-0131's statement that the
+  relied on it moved to the successor. ADR-0132's statement that the
   `creative-direction` suite asserts `converge` gates compositional
   commitments on the confirmed reading is satisfied by that successor, not by
   this slice.
@@ -175,7 +175,7 @@ verification cannot silently grade a different occurrence.
   and `visual_target: confirmed` — and that anchor occurs exactly once in the
   file. All three, because that block today records the no-target case as the
   bare word `none`; leaving it unwritten as a field value would make it read
-  as `unconfirmed` under the absent-field rule, which is not what ADR-0131
+  as `unconfirmed` under the absent-field rule, which is not what ADR-0132
   fixes. The bounded unit matters even now that this slice adds no other
   `visual_target` literal to the file: the successor adds several, and a
   whole-file containment check written here would stop being able to fail the

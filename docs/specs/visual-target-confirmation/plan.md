@@ -71,7 +71,7 @@ missing bump observable: the conformance test asserts only that `pack.toml` and
 
 | Durable output | Task | Evidence |
 | --- | --- | --- |
-| Decision rationale (ADR-0131) | T2 | The ADR file, Accepted, cited by the spec header |
+| Decision rationale (ADR-0132) | T2 | The ADR file, Accepted, cited by the spec header |
 | Interface compatibility (the template) | T3 | Contract test over the template's frontmatter, body and comments |
 | Interface compatibility (the frozen spec) | T11 | The annotation asserted by AC-0027 |
 | Current product truth (the guide) | T7 | Roster test over the guide file |
@@ -185,7 +185,7 @@ ceiling. Adds no new dependency.
 **Done when:** the verification ledger records the reader set, the green roster
 run, and whether either journey page became a T7 surface.
 
-### T2: ADR-0131 records the decision
+### T2: ADR-0132 records the decision
 
 **Depends on:** none
 
@@ -193,7 +193,7 @@ run, and whether either journey page became a T7 surface.
 - `no stub (goal-based check)`. `python3 .claude/skills/new-adr/scripts/index-records.py docs/adr`
   regenerates the index with the new record present.
 
-**Done when:** `docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md`
+**Done when:** `docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md`
 exists, is Accepted, and the ADR index lists it. *(Met during PLAN.)*
 
 ### T3: The direction template carries the field, its gate, and its provenance
@@ -418,7 +418,7 @@ holds for both packs.
 
 **Tests:**
 - Assertion over `docs/specs/frontend-visual-authority/spec.md`'s `Status` field:
-  it carries a supersession annotation naming ADR-0131 and the superseded
+  it carries a supersession annotation naming ADR-0132 and the superseded
   `requires` value `recorded-human-confirmation`. Verifies AC-0027.
 
 **Approach:**
@@ -470,7 +470,7 @@ reports no violation.
   criteria now work over a closed set of surfaces, with the retired-reading set
   derived from a recorded sweep rather than guessed. Also recorded the
   contract-tier Always-do rule in the frozen spec that keying the rung on an
-  upstream-produced value reverses, which AC-0027 now annotates and ADR-0131
+  upstream-produced value reverses, which AC-0027 now annotates and ADR-0132
   now justifies.
 - 2026-09-29: Revised from pre-EXECUTE review round 2 — eight sustained findings
   and the verified shaping set. Added two retired-phrase sweeps, because every

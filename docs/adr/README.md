@@ -132,4 +132,5 @@
 | 0128 | [Project token values are resolved by routes inside `design-system`, not by a second skill](0128-design-system-one-skill-resolves-project-values.md) | Accepted | 2026-09-27 |
 | 0129 | [Intent filename retirement uses a tombstone file at the vacated name, not a global retired list](0129-tombstone-convention-for-retired-intent-filenames.md) | Accepted | 2026-09-28 |
 | 0130 | [The design-to-build handoff is conditional, and implementation never fills an upstream gap](0130-design-to-build-handoff-is-conditional-and-gap-routed.md) | Accepted | 2026-09-28 |
-| 0131 | [Visual-target confirmation is an explicit state, and selection never implies it](0131-visual-target-confirmation-is-an-explicit-state.md) | Accepted | 2026-09-29 |
+| 0131 | [A pip-audit advisory suppression is a governed allowlist entry, and its retirement is enforced](0131-pip-audit-advisory-suppression-is-a-governed-allowlist-entry.md) | Accepted | 2026-09-29 |
+| 0132 | [Visual-target confirmation is an explicit state, and selection never implies it](0132-visual-target-confirmation-is-an-explicit-state.md) | Accepted | 2026-09-29 |

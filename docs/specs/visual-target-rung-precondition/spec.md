@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0131](../../adr/0131-visual-target-confirmation-is-an-explicit-state.md);
+- **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md);
   [`visual-target-field`](../visual-target-field/spec.md) must ship first, because
   this contract reads a field that slice writes.
 - **Brief:** none
@@ -39,7 +39,7 @@ advance keeps it gone.
   on 2026-09-30 and handed here, because the first of them moves this very
   rung.
 - `docs/specs/frontend-visual-authority/spec.md`'s `Status` records that
-  ADR-0131 supersedes one of its contract-tier `Always do` rules.
+  ADR-0132 supersedes one of its contract-tier `Always do` rules.
 - `test_visual_authority_release.py`'s version pin moves with this delivery's
   own bump.
 
@@ -228,7 +228,7 @@ Retention class: repository-durable.
   once in that file. The second literal is AC-0006's requirement, not a gate on
   a field read; see limit 3.
 - [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
-  line names ADR-0131 and the superseded `Always do` rule about stating rung
+  line names ADR-0132 and the superseded `Always do` rule about stating rung
   conditions as properties the pack defines.
 - [ ] **AC-0009.** `packs/frontend-engineering` and `packs/experience-design`
   each carry matching versions across `pack.toml`,

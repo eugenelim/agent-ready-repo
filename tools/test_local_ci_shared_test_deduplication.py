@@ -917,11 +917,34 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `e1190720a9…` and `4de3f063de…` still in place
 # returns an empty error list, so this supersedes live values rather than a pin
 # that had already gone stale.
+# Bumped 2026-09-29 for the `code-intelligence` pack, which appends two
+# `run-test-suite` lines so `lint-pack-test-boundary`'s
+# `every-suite-dir-has-a-runner` accepts its two new suites.
+# (1) Sole cause: `git diff origin/main -- Makefile` is three added lines and
+# none removed or reordered — `$(PYTHON) -m pytest
+# packs/code-intelligence/tests/pack/ -q` and `$(PYTHON) -m pytest
+# packs/code-intelligence/tests/skills/code-intelligence/ -q`, plus a two-line
+# comment recording why the second skips on a hosted runner. A comment takes no
+# plan index, so the two pytest lines are the whole movement: each is a new
+# process rather than a lengthened batch line, so both take an index and shift
+# every entry after them, which is why both whole digests move. They land at
+# plan indices 52 and 53 in each plan (standalone 71 -> 73, composed 70 -> 72),
+# and deleting exactly those two from the new plans recomputes `2cc99768…` and
+# `c42d6c84…` — the superseded pins — element for element, so nothing else
+# moved, was reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is
+# untouched: both are pack paths, not root tool paths, so
+# `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `2cc99768…` and `c42d6c84…` still in place
+# returns an empty error list, so this supersedes live values rather than a pin
+# that had already gone stale. The baseline is bare `origin/main`, which this
+# branch is rebased onto and whose Makefile differs from this worktree's by the
+# three lines above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "2cc997687b4418796004a92cfa6de6e910ec971ac0de5481b44c4da5685ad297"
+    "d5ce59c02638aa0c8e8c08234c5b020813f992681d52a298b1886faa11ea3b1e"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "c42d6c84fad994c4c225f343005ed50c25c2425f483e2b6ca18abf825b9972ff"
+    "74e76e144715a853d8bb2a9caab4a54ce1bb89a30d035cfdc3494d8cdb899696"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -954,13 +977,31 @@ MAKE_BASELINE_DIGESTS = {
     # recomputed from `2b1574e19~1` and matched exactly — so this supersedes a
     # live pin, not a stale one, and the move is confined to the one line that
     # commit deliberately added.
-    # Bumped 2026-09-29 for the one-advisory PyJWT exception forced by
-    # Semgrep's pyjwt~=2.13.0 dependency. The Makefile records the bounded
-    # exposure and removes the exception once Semgrep permits PyJWT>=2.14.0;
-    # the other seven extracted surfaces reproduced byte-identically in CI.
-    "sast-unleased": "332e0a2dec9aac3f91c31a6400a2040c419621b1e9b2e046918898ba81616aa7",
+    # Bumped 2026-09-29 (second time that day) for ADR-0131: the direct SAST
+    # manifest moved from a bare `@pip-audit … --ignore-vuln CVE-2026-102274`
+    # to `tools/run-pip-audit-gate.py`, preceded by its self-test, because
+    # Semgrep's pyjwt~=2.13.0 pin grew the accepted set from one advisory to
+    # ten and a flag cannot carry a reason or fail when it expires.
+    # Re-pinned again within the same change after post-gates review: the
+    # recipe comment claiming requirements-sast.txt "remains on its direct,
+    # suppression-bearing invocation" was falsified by this very change and had
+    # to be restated. Recomputed again at that point: `sast-unleased` was the
+    # SOLE surface to move, SAST_CONFIG included.
+    # Verified before the first bump the way this file requires: all eight
+    # extracted surfaces were recomputed from this worktree, and exactly two moved —
+    # `sast-unleased` and `SAST_CONFIG`, the two this change deliberately
+    # edits. SAST_DIRS, SEMGREP_EXCLUDE, build-check-unleased, sast,
+    # gate_verdict and gate_verdict_calls all reproduced byte-identically
+    # against their existing pins, so these supersede live values rather than
+    # stale ones.
+    "sast-unleased": "5dc180a4520410be831f0eea269571e33d2cbc6419bf76ed6c113d7224a383be",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
-    "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
+    # Bumped 2026-09-29 for ADR-0131, in the same change and verified in the
+    # same sweep as `sast-unleased` above: `tools/pip-audit-allowlist.toml`
+    # joins the list for the reason the variable's own comment already gives
+    # its npm sibling — an added suppression must be validated by the gate it
+    # loosens. One added path, nothing removed or reordered.
+    "SAST_CONFIG": "64ea3aee1b4f57506e7346dedbbab8b57821fb11676b86c98a7bcf51beb66d56",
     # Bumped 2026-09-13 for the httpsconnection-detected exclusion. Verified
     # before the bump through `_approved_make_surfaces` itself rather than by
     # hand: SEMGREP_EXCLUDE was the SOLE surface to move, by exactly one added

@@ -1,4 +1,4 @@
-# ADR-0131: Visual-target confirmation is an explicit state, and selection never implies it
+# ADR-0132: Visual-target confirmation is an explicit state, and selection never implies it
 
 - **Status:** Accepted
 - **Date:** 2026-09-29

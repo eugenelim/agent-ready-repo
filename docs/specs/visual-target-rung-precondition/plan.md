@@ -35,7 +35,7 @@ its own scope by sweeping the roots at run time.
 `Always do` rule: "State rung conditions as properties this pack defines. A
 frontmatter value only an upstream template produces is an illustration, never
 the condition itself." This contract does exactly what that rule forbids, and
-ADR-0131 reverses it deliberately and records why. The reversal is not a licence
+ADR-0132 reverses it deliberately and records why. The reversal is not a licence
 to ignore the rule quietly: T5 annotates the superseded spec's `Status` so a
 reader of that spec meets the reversal where the rule lives.
 
@@ -345,7 +345,7 @@ def test_the_sweep_actually_reaches_the_known_carriers() -> None:
 **Depends on:** T2
 
 **Tests:**
-- Contract test: the superseded spec's `Status` names ADR-0131 and the
+- Contract test: the superseded spec's `Status` names ADR-0132 and the
   superseded `Always do` rule. Verifies AC-0008.
 
 **Stub** — add to the same precedence test file:
@@ -367,7 +367,7 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 **Approach:**
 - The existing `Status` reads `Shipped (superseded in part by ADR-0130 —
   960-line body budget; everything else stands)`. "Everything else stands" is
-  no longer true once this contract lands, so the annotation both adds ADR-0131
+  no longer true once this contract lands, so the annotation both adds ADR-0132
   and removes that clause.
 
 **Touches:** docs/specs/frontend-visual-authority/spec.md, packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_precedence.py

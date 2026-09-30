@@ -164,7 +164,7 @@ adopter writing an artifact today records the disposition deliberately, and
 AC-0011 holds the comment to it.
 
 The `**Confirmation record:**` placeholder offers the confirmation's date and
-where it was recorded, per ADR-0131. It deliberately does not offer a "who",
+where it was recorded, per ADR-0132. It deliberately does not offer a "who",
 because the spec's `Never do` rail forbids a person's name, handle or contact
 detail there and a placeholder that asks for one invites the breach.
 
