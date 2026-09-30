@@ -1,0 +1,71 @@
+[pack]
+name = "code-intelligence"
+version = "0.1.0"
+description = "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing — answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses."
+readme = "README.md"
+display_name = "Code intelligence"
+license = "Apache-2.0 OR MIT"
+categories = ["code-intelligence", "analysis"]
+keywords = ["code-graph", "blast-radius", "static-analysis", "call-graph", "impact-analysis"]
+
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo", "user"]  # The index is per-repository, but the skill teaching an agent
+                                   # how to query one is stack-general and installs fine at user
+                                   # scope for someone who works across several indexed repos.
+
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "core"
+version = "^2.0"
+
+# Wicked Estate ships two Rust binaries from crates.io. `wicked-estate` is the CLI this pack
+# drives and is the only hard requirement. `wicked-estate-mcp` is the MCP server; it is optional
+# because the CLI covers every capability this pack's primary patterns need, and the MCP surface
+# advertises 29 tool schemas that stay resident in the agent's context for the whole session.
+# Four capabilities exist only over MCP — see references/capability-map.md.
+[[pack.runtime-dependencies]]
+ecosystem = "cargo"
+package = "wicked-estate"
+version = ">=0.16"
+optional = false
+skills = ["code-intelligence"]
+install = "cargo install wicked-estate --version 0.16.7 --locked"
+note = "Provides the `wicked-estate` binary. Tier-2 dependency: scripts/estate_preflight.py detects it first and installs only on explicit consent, and only when cargo is already present. Pinned to an exact version, not a range, per the three-tier policy. Deviation on record: the policy's named managers are uv/npm/pipx/brew; cargo is used because upstream publishes only to crates.io and ships no release binaries, and `cargo install` compiles from source so the consent prompt states the time cost. The pack reads an index the adopter builds with `wicked-estate index <path>`; it never writes to the graph."
+
+[[pack.runtime-dependencies]]
+ecosystem = "cargo"
+package = "wicked-estate-mcp"
+version = ">=0.16"
+optional = true
+skills = ["code-intelligence"]
+install = "cargo install wicked-estate-mcp --version 0.16.7 --locked"
+note = "Optional structured provider. Register it only when the session needs Lineage, RulesInventory/rules.recall, or the memory/knowledge domains, which have no CLI verb. Registering it makes 29 tool schemas resident in the agent's context for the whole session, so it is off by default."
+
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/mikeparcewski/wicked-estate"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
+
+[pack.evals]
+skills = ["code-intelligence"]
+
+# Technical audience; the one prerequisite an adopter cannot skip is a built index.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = ["core pack installed", "wicked-estate binary in PATH", "an index built with `wicked-estate index <path>`"]
+starter-task     = "Ask what breaks if you change a function you are about to edit."
+starter-prompt   = "What is the blast radius of changing the request handler in this repo?"
+expected-result  = "A list of resolved dependents with file:line, plus the count of call sites the indexer could not bind — stated as a completeness limit rather than hidden."
+next-action      = "Inspect the highest-risk dependents with `wicked-estate source`."
+verification     = "python scripts/estate_preflight.py --check"
+recovery         = "Exit 2 means the binary is absent — run `cargo install wicked-estate --version 0.16.7 --locked`. Exit 3 means no index — run `wicked-estate index .` from the repository root."
+writes-to-repo   = false
