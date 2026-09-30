@@ -463,10 +463,11 @@
     {
       "id": "damaged-tombstone-marker-refuses-rather-than-reading-live",
       "prompt": "The intent I want to rename has a damaged Tombstone: line in its preamble.",
-      "expected_output": "The agent refuses with the fixed unreadable-source token rather than treating the file as a live intent. Liveness is established, never inferred from a missing field: a preamble line bearing the tombstone token that does not parse as that field, or a successor-pointer field parsing while the tombstone field does not, each refuse. An ordinary intent carrying a title and annotation lines still passes.",
+      "expected_output": "The agent refuses with the fixed unreadable-source token rather than treating the file as a live intent. Liveness is established, never inferred from a missing field: a preamble line bearing the tombstone token that does not parse as that field, or a successor-pointer field parsing while the tombstone field does not, each refuse. A single leading H1 title may contain the token; other ordinary title and annotation lines still pass.",
       "assertions": [
         "Refuses rather than reading the damaged file as a live intent",
         "Does not infer liveness from the absence of a parsed field",
+        "Exempts the token only when it appears in the single leading H1 title",
         "Still accepts an ordinary intent whose preamble carries a title and annotations"
       ]
     },
