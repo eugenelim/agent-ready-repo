@@ -602,6 +602,11 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The consumer half of the decomposed visual-target contract. Registered here
+  # because `visual-target-field` ships a frontmatter field that nothing reads,
+  # and this successor is the whole justification for that: a follow-on recorded
+  # only in the deferring spec's prose has no pointer a reader can resolve.
+  {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-target-field/spec.md"}]},
   # The rename validator refuses a live intent whose H1 title contains the
   # word "tombstone": the approved liveness rule refuses any unparsed preamble
   # line bearing the token, and a title never parses as a field. A false
