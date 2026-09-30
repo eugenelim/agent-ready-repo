@@ -14,6 +14,7 @@ Exit codes are the contract the skill branches on:
     3  index-absent     binary present, but no graph database was found
     4  version-below    binary present but older than the required floor
     5  install-failed   `--install` ran and the binary is still unresolvable
+    6  override-refused `WICKED_ESTATE_DB` resolves outside the repository
 
 `--install` implements the Tier-2 ladder: detect, gate on explicit consent,
 install a pinned version with no sudo, then re-verify rather than trusting that
@@ -61,6 +62,7 @@ EXIT_BINARY_ABSENT = 2
 EXIT_INDEX_ABSENT = 3
 EXIT_VERSION_BELOW = 4
 EXIT_INSTALL_FAILED = 5
+EXIT_OVERRIDE_REFUSED = 6
 
 _VERSION_RE = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?")
 
@@ -95,6 +97,14 @@ def read_version(binary: str) -> tuple[int, ...] | None:
     if match is None:
         return None
     return tuple(int(part) for part in match.groups(default="0"))
+
+
+class OverrideRefused(Exception):
+    """`WICKED_ESTATE_DB` resolved outside the repository root."""
+
+    def __init__(self, raw: str) -> None:
+        super().__init__(raw)
+        self.raw = raw
 
 
 def _safe_override_path(raw: str, base: Path) -> Path | None:
@@ -137,9 +147,16 @@ def resolve_db(explicit: str | None, root: Path) -> Path:
     """
     if explicit:
         return Path(explicit).expanduser()
-    from_env = _safe_override_path(os.environ.get(DB_ENV_VAR, ""), root)
-    if from_env is not None:
-        return from_env
+    raw = os.environ.get(DB_ENV_VAR, "").strip()
+    if raw:
+        confined = _safe_override_path(raw, root)
+        if confined is None:
+            # Refused, not absent. Falling through to the default here would
+            # report `index-absent` for a graph that exists and that the CLI
+            # itself would happily read, and would tell the caller to rebuild
+            # it at a path they did not choose.
+            raise OverrideRefused(raw)
+        return confined
     return root / DEFAULT_DB_RELPATH
 
 
@@ -190,7 +207,20 @@ def build_report(*, root: Path, explicit_db: str | None) -> tuple[int, dict[str,
         }
 
     version = read_version(binary)
-    db = resolve_db(explicit_db, root)
+    try:
+        db = resolve_db(explicit_db, root)
+    except OverrideRefused as refused:
+        return EXIT_OVERRIDE_REFUSED, {
+            "status": "override-refused",
+            "binary": binary,
+            "version": ".".join(str(p) for p in version) if version else None,
+            "override": refused.raw,
+            "remediation": (
+                f"{DB_ENV_VAR} resolves outside {root}. Pass --db "
+                f"{refused.raw} explicitly, or move the graph inside the "
+                "repository."
+            ),
+        }
     report: dict[str, object] = {
         "binary": binary,
         "version": ".".join(str(p) for p in version) if version else None,

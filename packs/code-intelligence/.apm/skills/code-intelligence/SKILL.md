@@ -77,7 +77,16 @@ On exit 2, 3, or 4 you may still answer using your own repository tools, but you
 must say so — see [Degrading without the graph](#degrading-without-the-graph).
 
 The index is read from `.wicked-estate/graph.db` by default, so `--db` is
-usually unnecessary. `WICKED_ESTATE_DB` overrides the default.
+usually unnecessary. `WICKED_ESTATE_DB` overrides it, but only to a path
+inside the repository — an override resolving outside is refused with exit 6
+rather than silently ignored, and the fix it names is to pass `--db`
+explicitly.
+
+**Indexing writes into the working tree.** `wicked-estate index .` creates
+`.wicked-estate/graph.db`, a multi-hundred-megabyte file. Before running it,
+check `.wicked-estate/` is ignored by version control and offer to add it if
+not — leaving it untracked-but-visible dirties every status check, and
+committing it is worse.
 
 ## The core loop
 
@@ -95,7 +104,8 @@ early as the objective allows.
    picked and why, or ask.
 
 2. **Retrieve.** `resolve --json` already gave you kind, file, and line. For the
-   signature use `wicked-estate source --symbols <id> --signatures-only`, and
+   signature use `wicked-estate source --symbols <id> --json --signatures-only`
+   (**`--json` is required** — without it every selector is silently ignored), and
    for annotations `wicked-estate annotations --symbol <id> --json`.
    `wicked-estate nodes` has no symbol filter and returns the whole graph — it
    is an inventory verb, never a lookup.

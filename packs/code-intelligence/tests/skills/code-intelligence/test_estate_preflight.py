@@ -94,17 +94,25 @@ def test_default_db_path_is_used_when_nothing_overrides(monkeypatch, tmp_path) -
     assert preflight.resolve_db(None, tmp_path) == tmp_path / ".wicked-estate" / "graph.db"
 
 
-@pytest.mark.parametrize(
-    "hostile",
-    ["../../etc/passwd", "/etc/passwd", "~/.ssh/id_rsa", "  ", ""],
-)
+@pytest.mark.parametrize("hostile", ["../../etc/passwd", "/etc/passwd", "~/.ssh/id_rsa"])
 def test_env_override_outside_the_root_is_refused(monkeypatch, tmp_path, hostile) -> None:
     """CWE-22 / CWE-73: an ambient env var must not steer this at any file.
 
-    Refusal falls back to the trusted default rather than erroring, so a stray
-    value degrades instead of blocking the workflow.
+    The refusal is raised rather than swallowed. An earlier version fell back
+    to the default path, which reported `index-absent` for a graph that
+    exists and told the caller to rebuild it somewhere else — a wrong answer
+    dressed as a missing index. Live-running the pack against a real
+    out-of-repo graph is what surfaced it.
     """
     monkeypatch.setenv(preflight.DB_ENV_VAR, hostile)
+    with pytest.raises(preflight.OverrideRefused):
+        preflight.resolve_db(None, tmp_path)
+
+
+@pytest.mark.parametrize("blank", ["  ", ""])
+def test_blank_env_override_falls_back_to_the_default(monkeypatch, tmp_path, blank) -> None:
+    """An unset-in-effect variable is not a refusal."""
+    monkeypatch.setenv(preflight.DB_ENV_VAR, blank)
     assert preflight.resolve_db(None, tmp_path) == tmp_path / ".wicked-estate" / "graph.db"
 
 
@@ -115,7 +123,30 @@ def test_env_override_escaping_via_symlink_is_refused(monkeypatch, tmp_path) -> 
     inside_link = tmp_path / "looks-local.db"
     inside_link.symlink_to(outside)
     monkeypatch.setenv(preflight.DB_ENV_VAR, str(inside_link))
-    assert preflight.resolve_db(None, tmp_path) == tmp_path / ".wicked-estate" / "graph.db"
+    with pytest.raises(preflight.OverrideRefused):
+        preflight.resolve_db(None, tmp_path)
+
+
+def test_refused_override_reports_exit_six_and_names_the_fix(monkeypatch, tmp_path) -> None:
+    """The refusal must be actionable, not indistinguishable from no index."""
+    monkeypatch.setattr(preflight, "find_binary", lambda: "/usr/bin/wicked-estate")
+    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 16, 7))
+    monkeypatch.setenv(preflight.DB_ENV_VAR, "/etc/passwd")
+    code, report = preflight.build_report(root=tmp_path, explicit_db=None)
+    assert code == preflight.EXIT_OVERRIDE_REFUSED
+    assert report["status"] == "override-refused"
+    assert "--db" in report["remediation"]
+
+
+def test_explicit_db_bypasses_confinement(monkeypatch, tmp_path) -> None:
+    """`--db` is a direct instruction from the caller, so it is trusted.
+
+    This is the escape hatch the refusal message points at; if it were also
+    confined, the remediation would be a dead end.
+    """
+    monkeypatch.setenv(preflight.DB_ENV_VAR, "/etc/passwd")
+    outside = tmp_path.parent / "chosen.db"
+    assert preflight.resolve_db(str(outside), tmp_path) == outside
 
 
 def test_env_override_inside_the_root_is_honoured(monkeypatch, tmp_path) -> None:

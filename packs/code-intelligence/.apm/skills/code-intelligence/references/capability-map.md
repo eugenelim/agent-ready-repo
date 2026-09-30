@@ -29,7 +29,7 @@ then `WICKED_ESTATE_DB`, then `.wicked-estate/graph.db`.
 | Inventory nodes by kind or annotation | `wicked-estate nodes [--kind K] [--annotated-with K[=V]] --json` | Per node: `symbol_id`, `name`, `kind`, `file`, `line`, `signature`, `annotation_summary {count, by_type, has_advisory}`, and up to 20 `annotations[]`. **There is no symbol filter** — `--kind` and `--annotated-with` are the only narrowing options, and an unfiltered call returns the whole graph (61,182 rows on a mid-size repository). Never use this to look up one symbol. |
 | Add requirement and rule fields | `wicked-estate nodes --json --semantics` | Adds `requirement`, `requirement_validated`, `rule_confidence`, and distinct `out_edges[]` per node. This is a **whole-graph export** that costs an extra semantics read and edge fetch *per node*; scope it with `--kind` or accept the cost deliberately. |
 | Fetch source | `wicked-estate source <name> --json` | The exact source slice for matching symbols, with `file:line` provenance. |
-| Fetch source in bulk | `wicked-estate source --symbols <ids> \| --file <path> \| --cluster <id>` | Same, for a symbol set. Precedence is `--symbols` > `--cluster` > `--file` > `<name>`. Bound it with `--signatures-only`, `--max-total-chars N`, `--max-node-chars N`. |
+| Fetch source in bulk | `wicked-estate source --symbols <ids> \| --file <path> \| --cluster <id>` **with `--json`** | `{nodes[], summary}` for the selected set. **`--json` is mandatory:** `source` has two code paths, and the text path ignores every selector and `--signatures-only`, silently falling back to a name search. `--symbols` without a positional name errors; with one, the name wins. Under `--json`, precedence is `--symbols` > `--cluster` > `--file` > `<name>`, and `--signatures-only`, `--max-total-chars N`, `--max-node-chars N` all apply. |
 | Semantic search | `wicked-estate semantic "<query>"` | Embedding-ranked symbol matches. **Requires the index to have been built with `--embeddings`**; otherwise unavailable. |
 
 MCP equivalents: `SearchEntity` (name search, ranked, `limit` ≤ 100),
@@ -89,7 +89,7 @@ which one you used; they are not interchangeable.
 | Intent | CLI | Returns |
 | --- | --- | --- |
 | Hotspots / load-bearing symbols | `wicked-estate rank` | The global top symbols by PageRank over `Calls` + `Imports`, as text, **capped at 25** (fewer on a smaller graph). **Ignores `--json`, and takes no seed or filter** — so it cannot rank a supplied set such as a blast radius. |
-| Architectural communities | `wicked-estate clusters [<min-size>] [--json] [--resolution <γ>] [--hierarchical] [--package-bias <f>]` | Louvain communities over `Calls` + `Imports`. `γ > 1.0` yields smaller, tighter clusters. |
+| Architectural communities | `wicked-estate clusters [<min-size>] [--json] [--resolution <γ>] [--hierarchical] [--package-bias <f>]` | Louvain communities over `Calls` + `Imports`. `--json` is a **list of lists of symbol IDs** — no member counts, no ranking, no dominant-file rollup. MCP `Communities` returns those summaries; the CLI does not. `γ > 1.0` yields smaller, tighter clusters. The list index is the `<id>` that `source --cluster` takes. |
 | Semantic clustering | `wicked-estate clusters --weight semantic [--k <n> \| --eps <d> --min-pts <n>]` | Embedding-based clustering. Requires an `--embeddings` index. |
 | Bounded task context | `wicked-estate context <name> --budget <chars> --json` | Neighbours of up to 20 full-text seed matches, scored by **fixed edge weights, not PageRank**, packed into the character budget. Each row is `{file, kind, line, name}` — note there is no `symbol_id`. |
 
@@ -129,7 +129,7 @@ result, not a contradiction. Do not run the write to make the read succeed.
 | --- | --- | --- |
 | Read the evidence envelope | `wicked-estate annotations <name> [--type T] --json` | An **array** of `{symbol, annotations[]}` — one entry per name match. Only the `--symbol <id>` form returns a single object. Each annotation carries `key`, `value`, `type`, `confidence`, `provenance`, `author`, `ts`, and `advisory`. There is **no `last_verified` field in the JSON**; `ts` is the timestamp you get. |
 | Find stale evidence | `wicked-estate stale-annotations <cutoff-unix-seconds> --json` | An array of `{symbol, annotation}` pairs older than the cutoff. The cutoff is **Unix seconds** — a date string is rejected with a usage error. Never-verified rows are always stale. |
-| Graph identity and size | `wicked-estate stats` | Node and edge counts by kind, plus git provenance when the repository was indexed from a checkout, plus the per-repository registry in a multi-repo graph. |
+| Graph identity and size | `wicked-estate stats` | Node and edge counts by kind, a **graph-wide `unresolved` total**, database size, git provenance when indexed from a checkout, and the per-repository registry in a multi-repo graph. It is also the only reliable place to see the `STALENESS:` line. |
 | Symbol fingerprint | `wicked-estate fingerprint <name>` | A stable hex fingerprint for the symbol, for detecting change across revisions. |
 | What changed since a revision | `wicked-estate changed-since <sha> --json` | Symbols in files changed since that git SHA. |
 | Index freshness | `wicked-estate stats`, or any non-`--json` read | `STALENESS: N commit(s) in '<label>' since last index`. **Only five subcommands print it** — `query`, `blast-radius`, `stats`, `clusters`, `context` — and `blast-radius` suppresses it under `--json` so machine output stays one document. The `--json` calls this skill teaches therefore never show it: get freshness from a bare `wicked-estate stats`. |
@@ -148,6 +148,7 @@ from the other.
 | Output cut | `truncated_dependents` (rows dropped) | `truncated` (boolean) plus `total` | The list is a prefix. |
 | Traversal depth cap | **none — unreported** | `depth` per dependent, `depth` request parameter | See below. |
 | Index freshness | `STALENESS:` line, five commands only | not surfaced | The graph describes an older revision. |
+| Source-bundle cut | `summary.truncated_count` with `requested` / `returned` | n/a | `source --json` reports how many of the selected symbols it actually returned within `budget`. A large `--cluster` easily exceeds it. |
 
 **The unreported one matters most.** The CLI hardcodes its blast-radius
 traversal to **depth 12**. Dependents further away are dropped, and they are

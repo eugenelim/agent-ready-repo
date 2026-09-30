@@ -60,7 +60,8 @@ Follow the analyze-change-impact pattern in the `code-intelligence` skill's
    your dependents**. Either use MCP `BlastRadius`'s
    `summary.top_by_pagerank`, which does, or select by judgement and say the
    selection was yours rather than a ranking. Then
-   `wicked-estate source --symbols <ids> --json`.
+   `wicked-estate source --symbols <ids> --json`. Keep `--json`: the text
+   path ignores `--symbols` and re-runs a name search instead.
 
 6. **Validate each claimed breakage against source.** For every dependent you
    call out, confirm from its code that it uses the part being changed. A

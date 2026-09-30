@@ -25,7 +25,7 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    line. For the signature, go straight to the symbol:
 
    ```bash
-   wicked-estate source --symbols <symbol_id> --signatures-only
+   wicked-estate source --symbols <symbol_id> --json --signatures-only
    ```
 
    Do **not** reach for `wicked-estate nodes` here. It has no symbol filter —
@@ -44,6 +44,10 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    ```bash
    wicked-estate source OrderService --json
    ```
+
+   `--json` is not optional here. The text path ignores every selector and
+   falls back to a name search, so dropping it silently returns the wrong
+   symbol when the name is ambiguous.
 
    For a large type, start with `--signatures-only` and pull full bodies only
    for the members that matter.
@@ -65,7 +69,8 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    dependency closure.
 
 6. **Find the supporting material, where the question warrants it.** Tests and
-   configuration via `wicked-estate source --file <path>` on neighbouring files;
+   configuration via `wicked-estate source --file <path> --json` on
+   neighbouring files;
    requirements via `wicked-estate by-requirement`; rules via MCP
    `RulesInventory`.
 
@@ -147,7 +152,7 @@ caveat is stated, and each claimed breakage is grounded in source.
    when you only have a description **and** the index carries embeddings.
 
 2. **Follow what the behaviour actually flows through.** Calls via
-   `graph-view --focus`; configuration via `source --file`; rules via MCP
+   `graph-view --focus`; configuration via `source --file <path> --json`; rules via MCP
    `RulesInventory` and `TraverseGraph` with `edge_kinds: ["invoked_by"]`.
 
 3. **Gather evidence incrementally.** One hop, read, decide whether the next hop
@@ -193,7 +198,7 @@ result; report it rather than closing the gap with a guess.
 4. **Read representative source per cluster.**
 
    ```bash
-   wicked-estate source --cluster <id> --signatures-only
+   wicked-estate source --cluster <id> --json --signatures-only
    ```
 
 5. **Separate structure from interpretation.** This is the discipline that

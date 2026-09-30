@@ -53,7 +53,8 @@ Wicked Estate never learns that any of them exist.
 You need the CLI and an index.
 
 ```bash
-cargo install wicked-estate --version '^0.16' --locked
+cargo install wicked-estate --version 0.16.7 --locked
+echo '.wicked-estate/' >> .gitignore   # the index is large and local
 wicked-estate index .
 ```
 

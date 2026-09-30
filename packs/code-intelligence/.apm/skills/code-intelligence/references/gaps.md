@@ -52,6 +52,14 @@ fetches one symbol by stable ID including its doc comment.
 `wicked-estate source` with single, `--symbols`, `--file`, or `--cluster`
 selectors and character bounds. MCP `FetchContent` for one symbol.
 
+*Caveat, and it is a trap:* `source` has **two code paths**. The text path
+requires a positional `<name>` and silently ignores `--symbols`, `--cluster`,
+`--file`, and `--signatures-only`. Only the `--json` path honours them.
+`--symbols` with no positional errors with `usage: wicked-estate source
+<name>`; `--symbols` *with* a positional is accepted and then ignored, so an
+ambiguous name returns every match while appearing to have been pinned to one.
+Always pass `--json` with a selector.
+
 *Caveat:* content is only available when it was stored at index time.
 `FetchContent` returns `found=false` rather than erroring in that case, which is
 easy to misread as "the symbol does not exist". It means "no stored content".
@@ -248,3 +256,9 @@ required, and this pack works within all of them.
     warning line plus a stats block.
 11. **`--help` is not a complete command inventory.** `graph-view`,
     `by-requirement`, and `semantics` are dispatched but undocumented there.
+12. **`source`'s selectors silently no-op without `--json`.** The help text
+    documents a precedence (`--symbols` > `--cluster` > `--file` > `<name>`)
+    that only holds on the JSON path. On the text path the selectors are
+    ignored rather than rejected, so the command returns a plausible wrong
+    answer instead of an error — the worst available failure mode for an agent
+    that cannot see it went wrong.

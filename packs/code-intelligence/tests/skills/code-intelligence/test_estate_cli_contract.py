@@ -315,3 +315,48 @@ def test_every_allowlisted_cli_verb_is_accepted_by_the_binary(graph: Path) -> No
     assert not unrecognised, (
         f"allowlisted verbs the binary does not recognise: {unrecognised}"
     )
+
+
+# ── the `source` selector trap ─────────────────────────────────────────────
+
+
+def test_source_selectors_require_json(graph: Path, known_symbol: dict) -> None:
+    """`--symbols` narrows only on the JSON path; the text path ignores it.
+
+    Found by running the pack's own documented Pattern 1 against a real index:
+    the text form returned every name match while appearing to be pinned to
+    one symbol. The references now require `--json` with any selector, and
+    this is what holds them to it.
+    """
+    # `handle` is defined twice in the fixture, so a working selector narrows
+    # two matches to one.
+    both = json.loads(run("resolve", "handle", "--json", db=graph).stdout)
+    assert len(both) == 2
+    one_id = both[0]["symbol_id"]
+
+    bundle = json.loads(
+        run("source", "--symbols", one_id, "--json", db=graph).stdout
+    )
+    assert len(bundle["nodes"]) == 1, "--json path must honour --symbols"
+
+    # Text path: the selector alone is refused outright.
+    assert run("source", "--symbols", one_id, db=graph).returncode != 0
+
+
+def test_signatures_only_requires_json(graph: Path, known_symbol: dict) -> None:
+    """`--signatures-only` drops `source` and keeps `signature`."""
+    bundle = json.loads(
+        run(
+            "source", "--symbols", known_symbol["symbol_id"],
+            "--json", "--signatures-only", db=graph,
+        ).stdout
+    )
+    assert bundle["nodes"], "fixture symbol produced no node"
+    trimmed = bundle["nodes"][0]
+    assert trimmed["source"] is None
+    assert trimmed["signature"], "the signature must survive the trim"
+
+    with_body = json.loads(
+        run("source", "--symbols", known_symbol["symbol_id"], "--json", db=graph).stdout
+    )
+    assert with_body["nodes"][0]["source"]

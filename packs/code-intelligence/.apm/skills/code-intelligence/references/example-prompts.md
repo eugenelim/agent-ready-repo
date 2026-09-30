@@ -84,7 +84,7 @@ wicked-estate stats
 wicked-estate clusters --json
 wicked-estate rank
 wicked-estate entrypoints --json
-wicked-estate source --cluster 3 --signatures-only
+wicked-estate source --cluster 3 --json --signatures-only
 ```
 
 **A good answer looks like:**
