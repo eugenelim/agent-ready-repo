@@ -435,7 +435,67 @@
             "base_commit": "c5429040ea3a438ac755d4f3dde3843126580999",
             "delivery_worktree_branch": "eugenelim/visual-target-confirmation",
             "strata_recorded": {"new_spec_vs_amendment": "new_spec", "specialist_review_triggers": "not_yet_observed"},
-            "stopped_revision_digest": null,
+            "stopped_revision_digest": "103f84475f2bb0be62300c09478cf373bfd5071d830a81af44c9eb502909dc0d",
+            "stopped_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the stopped revision — deliberately the same two-artifact definition and order as reviewed_revision_digest, so the two are directly comparable. ADR-0131 is listed in stopped_revision_artifacts and its sha256 is carried separately at stopped_revision_accepted_intent_sha256 rather than folded into this digest, because a three-artifact digest would silently make the reviewed-versus-stopped comparison meaningless instead of false.",
+            "stopped_revision_accepted_intent_sha256": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460",
+            "stopped_revision_differs_from_reviewed_revision": true,
+            "stopped_revision_recovery": "Of the three stopped-revision artifacts, plan.md and ADR-0131 are byte-exact at delivery HEAD eaaa5039a. spec.md is not: archiving the contract rewrote its Status line and inserted a \"## Why this contract was decomposed\" section before \"## Outcome\". Those two edits are the only difference, and reversing them reproduces 82e2c2cf exactly. The controller regenerated and verified the reconstruction independently in its own session rather than relying on another session scratch copy; the reversal is self-checking, so a mismatch would have reported the assumption broken rather than admitting a wrong artifact. The reconstructed bytes are session scratch and are not a repository artifact; regenerate and re-assert the digest before shadow prompt construction.",
+            "normal_loop_report_provenance": {
+              "location": ".context/reviews/visual-target-confirmation/ in the delivery worktree; .context/ is gitignored, so these are durable working-tree artifacts, not repository artifacts",
+              "status": "all eight round reports are persisted",
+              "correction": "an earlier PROVENANCE.md stated three of six reports were unpersisted. That file was written before round 4 and understated the gap: five of eight were unpersisted. All five were recovered programmatically from session transcripts — the last assistant text block for rounds 2 and 3, and the SubagentHandback payload for round 4 — rather than transcribed or reconstructed from memory.",
+              "reports": [
+                {
+                  "round": 1,
+                  "role": "adversarial",
+                  "sha256": "76bc57e079b81f65a65cfed9c17918b8c8c4c86590ef45fb9d1e4aa7f82ab8d4",
+                  "bytes": 10485
+                },
+                {
+                  "round": 1,
+                  "role": "shaping",
+                  "sha256": "3eb4d7fd44c168a095642bdfc917f57e7ee88be3157a42c75c47124bd6f8b250",
+                  "bytes": 12538
+                },
+                {
+                  "round": 2,
+                  "role": "adversarial",
+                  "sha256": "27b7fd2e60a675bf2fea32e1ef5f4f289eae2bc73c80de12a44b61a54cf54f34",
+                  "bytes": 7488
+                },
+                {
+                  "round": 2,
+                  "role": "shaping",
+                  "sha256": "556d05fbcc2efeb045f7d5e68c9f1d602dbcbe81dc7dd73b44e9a1437a035fcf",
+                  "bytes": 12513
+                },
+                {
+                  "round": 3,
+                  "role": "adversarial",
+                  "sha256": "4507c3e4f17c63afbd7b9fd76d0b7974879ef92b3e49defa5422f3d8cd3064fd",
+                  "bytes": 4872
+                },
+                {
+                  "round": 3,
+                  "role": "shaping",
+                  "sha256": "4a29b65296b79fdf7b6d592329dc58d4c1065825ca0e0b6e22cba7fe7eb30144",
+                  "bytes": 12630
+                },
+                {
+                  "round": 4,
+                  "role": "adversarial",
+                  "sha256": "5bc93728427549346e259d1458437962c013c2955766b36f4ab2de3b083aad74",
+                  "bytes": 8409
+                },
+                {
+                  "round": 4,
+                  "role": "shaping",
+                  "sha256": "55f918403f764a3dae5bafe5764d1fd124a63689561c50dd8a435957406c1b28",
+                  "bytes": 18654
+                }
+              ],
+              "evidence_strength_caveat": "Rounds 3 and 4 were never adjudicated. Round 3 reached the skill's surface-to-human threshold and its findings were resolved by direct controller verification against the cited files; round 4 produced the decomposition decision and its findings were never repaired. Neither round may be presented as adjudicated, and neither round's raw findings may be used as a quality denominator."
+            },
             "pre_launch_gate_evaluation": {
               "privacy_screen": "evaluated at prompt-construction time before the shadow start, per the frozen timing rule",
               "least_privilege_profile_observable": "to be bound at the shadow launch via an explicit read-only tool allowlist",
