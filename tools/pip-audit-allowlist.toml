@@ -232,3 +232,27 @@ This is the advisory the previous bare `--ignore-vuln CVE-2026-102274` flag
 suppressed; its reasoning is preserved here rather than in a Makefile comment.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
+
+[[allow]]
+id       = "CVE-2026-102270"
+package  = "pyjwt"
+fixed_in = "2.14.0"
+reason   = """
+Re-DoS in `is_pem_format`: the lazy `.+?` quantifier rescans the whole input for
+each `-----BEGIN ...-----` line when no matching `----- END` line follows, so
+input built only of BEGIN lines costs O(N^2) CPU. Denial of service only; it
+forges nothing and discloses nothing.
+Same function and same two call sites as CVE-2026-102268, and the same
+precondition fails. A Re-DoS needs attacker-influenced PEM bytes to reach
+`is_pem_format`: semgrep's `jwt.decode` runs only inside the `semgrep mcp`
+OAuth server, which `make sast` never starts, and mcp's `jwt.encode` passes
+`self.signing_key` — the client's own configured private key — so no
+externally-supplied key material is scanned.
+ADDED 2026-09-30, after the other ten. This id was not visible in the feed when
+they were written on 2026-09-29; the batch runs 102265-102274 and this was the
+one gap. Its reachability argument is INHERITED from the 2026-09-29 finding for
+CVE-2026-102268 rather than independently re-verified: the call sites and the
+failing precondition are identical, and only the consequence differs. If that
+finding is ever revised, this entry is revised with it.
+"""
+unblocked_when = "Semgrep permits PyJWT>=2.14.0"
