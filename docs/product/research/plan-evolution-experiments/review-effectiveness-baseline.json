@@ -381,6 +381,13 @@
         "admission_window_ends_at": "2026-10-29T21:19:31Z",
         "prospective_cases_admitted": 2,
         "measurement_starts_used": 1,
+        "accepted_intent_renumbered_2026_09_30": {
+          "what": "The accepted intent moved from docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md to docs/adr/0132-..., because updating the delivery branch onto main found that main had independently taken ADR-0131 for a pip-audit governance decision.",
+          "content_changed": "yes, by one line: the H1 reads ADR-0132 instead of ADR-0131. The file's sha256 therefore moved from 23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460 to bf53b77898fc3f7655f208605bd67dcbbb1cf606d189bcaea85eeaee7f90de56.",
+          "why_the_recorded_digests_are_unchanged": "accepted_intent_digest on cases 2 and 3 records the bytes read at enumeration time, which is a historical fact that a later renumber cannot alter. Both stable case keys derive from that enumeration-time digest and are immutable once a reviewer has started, so they stand. Recomputing them against the new digest would produce different keys for the same cases and fail the duplicate-or-conflict rule.",
+          "what_was_updated": "only accepted_intent_path and case 2's stopped_revision_artifacts path, so a reader can still open the file. Every digest field is left as recorded.",
+          "consequence_for_a_future_measurement_start": "A prompt built from the accepted intent must use the current bytes and record the current digest alongside the enumeration-time one, exactly as case 2's stopped revision already does."
+        },
         "prospective_cases_admitted_note": "cases 2 and 3. Case 1 remains candidate_enumerated: its normal loop never opened, so it is not admitted and does not consume an admission against the cap of 12.",
         "measurement_starts_detail": {
           "shadow_audit_starts_used": 1,
@@ -461,7 +468,7 @@
             "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
             "release_contract_verified": true,
             "spec_path": "docs/specs/visual-target-confirmation/spec.md",
-            "accepted_intent_path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md",
+            "accepted_intent_path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md",
             "accepted_intent_digest": "f3256db8062e1514fa7ed0ef7c29ec0500fce9b63fe6a49c394072fa511a9b60",
             "reviewed_revision_digest": "34953cc0623d5dac4241dd864f969b157eddbe8c43ed5dae6467e394afc43c3b",
             "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
@@ -565,7 +572,7 @@
             "stopped_revision_artifacts": [
               {"path": "docs/specs/visual-target-confirmation/spec.md", "sha256": "82e2c2cf0041695ee51b4d233e18d64eeb7eb0a923ce2524f61cf36c7b7e1e30"},
               {"path": "docs/specs/visual-target-confirmation/plan.md", "sha256": "4bffb8076107af6f1be73c114700607af8a15f00aaa2982268bf271201137c6e"},
-              {"path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md", "sha256": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460"}
+              {"path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md", "sha256": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460"}
             ],
             "stopped_revision_note": "the exact revision both round-4 reviewers graded; no repair followed it, so the stopped revision and the round-4 reviewed revision are the same bytes",
             "shadow_audit": {
@@ -670,7 +677,7 @@
             "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
             "release_contract_verified": true,
             "spec_path": "docs/specs/visual-target-field/spec.md",
-            "accepted_intent_path": "docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md",
+            "accepted_intent_path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md",
             "accepted_intent_digest": "23749bdc7532d5937f3658a656ac66a49fbe544060a9c84efe8762ecf5adb460",
             "reviewed_revision_digest": "2e0b94cf753c08c861b105e9d4487d62d3f4a18616f31178e6711e230590f3b2",
             "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
