@@ -27,8 +27,13 @@ would put the artifact in a state the successor slice then has to interpret.
 One producer behaviour changes: `converge` currently writes compositional
 commitments whenever a target exists, and afterwards writes them only for a
 confirmed one. That is the change the release entry's `### Highlights`
-subsection is owed for. Nothing downstream changes, because no consumer reads
-the field.
+subsection is owed for.
+
+It also moves a rung. The `approved-visual-target` rung resolves from the
+recorded composition rather than from the field, so an artifact with an
+approved-but-unconfirmed target drops to `direction-and-taxonomy` as soon as
+this slice lands. Whether that is acceptable with the field-read half deferred
+is an owner decision the spec's `Outcome` records as outstanding.
 
 The scope on each producing surface is worded as a condition on the producer's
 own act of writing, never as a read of the field by a second party. The one
@@ -110,6 +115,14 @@ plan approval without it.
 - **Coverage tally:** 13 criteria — 11 covered by stubs, 2
   `no stub (goal-based check)` (AC-0008 the guidebook lint; the manual
   start-of-work baseline half of AC-0009). 0 uncovered.
+- **Re-validated after the round-3 repair.** All four blocks compile; all five
+  tests red for their own reason. AC-0012's fence selector was checked against
+  the real guide: it finds exactly one ` ```markdown ` fence carrying
+  `type: creative-direction`, that fence is the template excerpt ending at
+  `**May adapt responsively:**`, and it lacks the field today — so the test now
+  reds because the material is absent rather than because it was reading the
+  design-principles block. `python tools/lint-conformance-portability.py
+  --root .` exits zero with the release test in `tests/roster/`.
 
 ## Durable-output map
 
@@ -118,7 +131,7 @@ plan approval without it.
 | Interface compatibility (the template) | T1 | Contract-suite assertions |
 | Current product truth (the guide excerpt) | T1 | `lint-guidebook-steps.py` exit zero plus AC-0012 |
 | Behavioural coverage (the eval harness) | T3 | Contract-suite assertion over the harness JSON |
-| Release history | T4 | `tests/conformance/test_pack_metadata.py`, the recorded baseline check, and the changelog entry |
+| Release history | T4 | `tests/roster/test_visual_target_release_surface.py`, which reads all three version sites and the changelog; plus the recorded slice-start baseline. `tests/conformance/test_pack_metadata.py` is not evidence for AC-0009 or AC-0010: it compares `pack.toml` to `plugin.json` only, never a marketplace version and never the changelog |
 
 ## Design (LLD)
 
@@ -193,14 +206,25 @@ TICKS = "`" * 3  # written this way so the literal survives a fenced code block
 FENCE = TICKS + "markdown"
 
 
-def _fenced_excerpt(text: str) -> str:
-    """The guide's reproduced-template block, not the file around it."""
-    after = text.split(FENCE, 1)[1]
-    return after.split(TICKS, 1)[0]
+def _template_fence(text: str) -> str:
+    """The one markdown fence reproducing the creative-direction template.
+
+    Selected by a property, not by ordinal: this guide carries three such
+    fences and the first is a design-principles block.
+    """
+    bodies = [part.split(TICKS, 1)[0] for part in text.split(FENCE)[1:]]
+    matching = [b for b in bodies if "type: creative-direction" in b]
+    assert len(matching) == 1, "AC-0012: exactly one creative-direction fence"
+    return matching[0]
 
 
-# STUB: AC-0001, AC-0002, AC-0003, AC-0011
+# STUB: AC-0001, AC-0002, AC-0003, AC-0011  (spec: visual-target-field)
 def test_template_carries_the_visual_target_disposition() -> None:
+    """visual-target-field AC-0001, AC-0002, AC-0003, AC-0011.
+
+    This module also carries creative-direction-modes criteria under
+    overlapping numbers, so every AC reference here names its spec.
+    """
     template = _read(TEMPLATE)
     frontmatter = template.split("---", 2)[1]
     assert re.search(
@@ -216,11 +240,10 @@ def test_template_carries_the_visual_target_disposition() -> None:
         if line.startswith("**Confirmation record:**")
     ]
     assert len(record_lines) == 1, "AC-0002: exactly one confirmation-record line"
-    assert re.fullmatch(
-        r"\*\*Confirmation record:\*\* <[^<>]*date[^<>]*> — "
-        r"<[^<>]*(where|record|location)[^<>]*>",
-        " ".join(record_lines[0].split()),
-    ), "AC-0002: two slots, a date and a location, and no third"
+    assert " ".join(record_lines[0].split()) == (
+        "**Confirmation record:** <YYYY-MM-DD> — "
+        "<where the confirmation was recorded>"
+    ), "AC-0002: the placeholder is pinned exactly, leaving no slot for a person"
 
     comment = section.split("-->", 1)[0]
     assert "visual_target" in comment, "AC-0003"
@@ -230,8 +253,9 @@ def test_template_carries_the_visual_target_disposition() -> None:
     assert "unconfirmed" in comment and "absent" in comment.lower(), "AC-0011"
 
 
-# STUB: AC-0012
+# STUB: AC-0012  (spec: visual-target-field)
 def test_guide_excerpt_carries_the_new_template_material() -> None:
+    """visual-target-field AC-0012."""
     guide = _read(
         PACK_ROOT.parents[1]
         / "guides"
@@ -239,7 +263,7 @@ def test_guide_excerpt_carries_the_new_template_material() -> None:
         / "how-to"
         / "establish-design-intent.md"
     )
-    excerpt = _fenced_excerpt(guide)
+    excerpt = _template_fence(guide)
     assert "visual_target" in excerpt, "AC-0012: inside the fence, not the file"
     assert "**Confirmation record:**" in excerpt, "AC-0012"
 ```
@@ -276,16 +300,18 @@ def _unique_paragraph(path: Path, anchor: str) -> str:
     return " ".join(blocks[0].split())
 
 
-# STUB: AC-0004, AC-0005, AC-0006, AC-0007
+# STUB: AC-0004, AC-0005, AC-0006, AC-0007  (spec: visual-target-field)
 def test_producing_surfaces_are_scoped_to_a_confirmed_target() -> None:
+    """visual-target-field AC-0004 through AC-0007."""
     disposition = _unique_paragraph(
         REFERENCE_ROOT / "converge.md", "Record the approved visual target disposition"
     )
-    assert "visual_target: confirmed" in disposition, "AC-0004"
-    assert "visual_target: unconfirmed" in disposition, "AC-0004"
+    for value in ("none", "unconfirmed", "confirmed"):
+        assert f"visual_target: {value}" in disposition, f"AC-0004: {value}"
 
     commitments = _unique_paragraph(
-        REFERENCE_ROOT / "converge.md", "compositional commitments into the doc"
+        REFERENCE_ROOT / "converge.md",
+        "write the selected direction's compositional commitments",
     )
     assert "visual_target: confirmed" in commitments, "AC-0005"
 
@@ -308,6 +334,11 @@ def test_producing_surfaces_are_scoped_to_a_confirmed_target() -> None:
 - `_unique_paragraph` reads the file the criterion names. It does not use
   `_skill_text()`, which concatenates eight files, so a match cannot come from
   a neighbour.
+- Split `converge.md`'s five-sentence capture paragraph so the compositional-
+  commitments instruction is its own blank-line-delimited block. Without that
+  split AC-0005's unit spans the target path, the template copy, the
+  `visualize` handoff and the fill list, and the literal could satisfy the
+  criterion from a sentence unrelated to the gated write.
 
 **Touches:** packs/experience-design/.apm/skills/creative-direction/references/converge.md, packs/experience-design/.apm/skills/creative-direction/references/visualize.md, packs/experience-design/.apm/skills/creative-direction/SKILL.md, packs/experience-design/tests/skills/creative-direction/test_contract.py
 
@@ -324,8 +355,9 @@ def test_producing_surfaces_are_scoped_to_a_confirmed_target() -> None:
 **Stub** — add to the same file:
 
 ```python
-# STUB: AC-0013
+# STUB: AC-0013  (spec: visual-target-field)
 def test_eval_harness_asserts_a_visual_target_disposition() -> None:
+    """visual-target-field AC-0013."""
     evals, _ = _eval_payloads()
     values = ("visual_target: none", "visual_target: unconfirmed", "visual_target: confirmed")
     carrying = [
@@ -363,15 +395,19 @@ def test_eval_harness_asserts_a_visual_target_disposition() -> None:
 - `no stub (goal-based check)` — the start-of-work half of AC-0009, recorded in
   § Version baseline and target above.
 
-**Stub** — new file `tests/conformance/test_visual_target_release_surface.py`:
+**Stub** — new file `tests/roster/test_visual_target_release_surface.py`:
 
 ```python
 """AC-0009 and AC-0010 for the experience-design visual-target release.
 
-Lives in tests/conformance/ because a pack suite may not read the changelog or
-the root marketplace manifest. Run mode: `make test` and the dispatch-only
-test-corpus workflow — NOT `make build-check`, which is what a PR runs. A green
-PR says nothing about these two criteria.
+Lives in tests/roster/ and not tests/conformance/: a conformance test may name
+no shipped pack and may not reach docs/, and this one must do both.
+tools/lint-conformance-portability.py enforces that on every pull request.
+tests/AGENTS.md names tests/roster/ as the repository-level home.
+
+Run mode: build-check.yml triggers on pull_request and its carve-out step runs
+`python -m pytest tests/ -q`, so the PR gate runs this. No corpus dispatch is
+needed.
 """
 
 from __future__ import annotations
@@ -381,7 +417,7 @@ import re
 import tomllib
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/roster/ -> repo root
 PACK = REPO_ROOT / "packs" / "experience-design"
 BASELINE = "4.1.1"
 
@@ -390,8 +426,9 @@ def _tuple(version: str) -> tuple[int, ...]:
     return tuple(int(part) for part in version.split("."))
 
 
-# STUB: AC-0009, AC-0010
+# STUB: AC-0009, AC-0010  (spec: visual-target-field)
 def test_release_surface_is_consistent() -> None:
+    """visual-target-field AC-0009 and AC-0010."""
     pack = tomllib.loads((PACK / "pack.toml").read_text(encoding="utf-8"))
     version = pack["pack"]["version"]
     plugin = json.loads(
@@ -416,11 +453,24 @@ def test_release_surface_is_consistent() -> None:
         encoding="utf-8"
     )
     heading = f"## [experience-design][{version}]"
-    assert heading in changelog, f"AC-0010: no free-standing entry for {version}"
-    body = changelog.split(heading, 1)[1].split("\n## ", 1)[0]
+    starts = [
+        line for line in changelog.splitlines() if line.startswith(heading)
+    ]
+    assert len(starts) == 1, (
+        f"AC-0010: expected exactly one free-standing '## ' entry for {version}. "
+        "A substring test would also accept a '### ' entry nested under "
+        "[Unreleased], which never publishes."
+    )
+    body = changelog.split("\n" + heading, 1)[1].split("\n## ", 1)[0]
     assert "### Highlights" in body, "AC-0010: entry carries no Highlights"
     highlights = body.split("### Highlights", 1)[1].split("\n### ", 1)[0]
-    assert "visual_target" in highlights, "AC-0010: Highlights do not name the field"
+    bullets = [
+        line for line in highlights.splitlines() if line.strip().startswith("- ")
+    ]
+    assert any("visual_target" in bullet for bullet in bullets), (
+        "AC-0010: no Highlights bullet names visual_target. The /now/ projection "
+        "extracts only bullets, so a paragraph is dropped silently."
+    )
 ```
 
 **Approach:**
@@ -435,23 +485,42 @@ def test_release_surface_is_consistent() -> None:
   nothing else in that pipeline.
 - The change alters what a producer does, so a `### Highlights` subsection is
   owed.
-- Dispatch `test-corpus.yml` before approving the release; the PR gate does not
-  run this test.
+- Placing a file in `tests/roster/` obliges three further edits, per
+  `tests/AGENTS.md` § *Roster steps are named and placed by hand*: a step in
+  `.github/workflows/build-check.yml` naming the file, placed **above** the bulk
+  `pytest tests/ -q` step so the failure is attributed to the named target
+  rather than the broad one; a matching `STEP_DISPOSITION` entry of
+  `LOCAL("test-after-build-check")` in `tools/lint-ci-parity.py`; and a
+  `.workspace-prune-protected.toml` entry only if the test names a
+  `docs/specs/<slug>` path literal — this one does not, so that third edit is
+  not owed.
+- Run `ruff check .` afterwards: the repository lint targets do not cover
+  orphaned imports left by a moved test.
 
-**Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md, tests/conformance/test_visual_target_release_surface.py
+**Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md, tests/roster/test_visual_target_release_surface.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
 
-**Done when:** `make lint-ruff lint-mypy` is green, and `python3 -m pytest tests/conformance/test_pack_metadata.py tests/conformance/test_visual_target_release_surface.py -q` is green.
+**Done when:** `make lint-ruff lint-mypy` and `ruff check .` are green; `python3 -m pytest tests/conformance/test_pack_metadata.py tests/roster/test_visual_target_release_surface.py -q` is green; and `python tools/lint-conformance-portability.py --root .` and `python tools/lint-ci-parity.py` both exit zero, which is what proves the file sits in a tree whose rules admit it.
 
 ## Rollout
 
-- **Delivery:** one PR. Reversible by reverting it; no migration, because no
-  consumer reads the field yet.
+- **Delivery:** one PR, and only after the owner answers the rung question in
+  the spec's `Outcome`. Reversible by reverting it. No data migration is
+  needed, but "no migration because no consumer reads the field" — the reason
+  an earlier draft gave — is not the true reason: the rung moves on newly
+  written artifacts. Existing artifacts are unaffected, because `converge`
+  rewrites nothing it did not just author.
 - **Infrastructure:** none.
 - **External-system integration:** none.
 - **Deployment sequencing:** T1, then T2, then T3, then T4.
 
 ## Risks
 
+- **A rung drops before the successor ships.** An artifact whose target is
+  approved but never confirmed stops carrying compositional commitments, so the
+  `approved-visual-target` rung stops resolving for it and authority falls to
+  `direction-and-taxonomy`. That is a real behaviour change for adopters who
+  never recorded a confirmation, and it lands with this slice rather than with
+  the successor. It is the subject of the outstanding owner decision.
 - An adopter who writes the field expecting it to bind composition will find it
   does not until the successor slice ships. The template comment states the
   field's meaning; it cannot state a downstream behaviour that does not exist
@@ -493,3 +562,25 @@ def test_release_surface_is_consistent() -> None:
   `workspace.toml`. Made § Version baseline and target the single home for both
   version values. The one refuted finding, on AC-0003's `bind nothing on their
   own` referent, was not acted on.
+- 2026-09-30: Revised after pre-EXECUTE review round 3 (10 sustained findings,
+  1 refuted). Two were corrections of round-2 work. The release test moved from
+  `tests/conformance/` to `tests/roster/`: a conformance test may name no
+  shipped pack and may not reach `docs/`, and this one must do both, so the
+  stated reason for the old location was inverted and the file would have red
+  the PR gate on first push. T4 now carries the two roster obligations it owes
+  and records why the third does not apply. Corrected the run-mode claim, which
+  reasoned from the Make target to the workflow: `build-check.yml` triggers on
+  `pull_request` and runs `pytest tests/ -q` directly, so the PR gate does
+  cover AC-0009 and AC-0010 and no corpus dispatch is needed. Replaced
+  AC-0012's fence-ordinal selection, which read the guide's design-principles
+  block and could never have gone green, with selection by the
+  `type: creative-direction` property. Replaced AC-0002's regex, which passed
+  `<who recorded it>` on `record`, with exact equality on the placeholder text,
+  and stopped the criterion claiming to enforce the runtime half of the rail.
+  Tightened AC-0005's anchor and split the paragraph in T2 so the unit is the
+  gated write. Anchored AC-0010 at line start and required a Highlights bullet,
+  since the projection drops paragraphs. Added `visual_target: none` to
+  AC-0004. Qualified every AC reference in the shared test module. Recorded the
+  rung consequence in `Outcome`, `Rollout` and `Risks`, and raised the owner
+  decision it implies. The refuted finding, on excerpt ordering, was not acted
+  on: AC-0012 already reds in that case.

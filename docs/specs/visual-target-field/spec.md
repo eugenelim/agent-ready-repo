@@ -24,11 +24,22 @@ frontmatter field, `visual_target`, whose values are `none`, `unconfirmed` and
 `confirmed`. `creative-direction` writes that field, and writes a target's binding claim and
 its compositional commitments only where a human has confirmed the target.
 
-One producer behaviour does change, and the release entry rests on it: today
-`converge` writes compositional commitments whenever an approved visual target
-exists, and after this slice it writes them only for a confirmed one. What does
-**not** change is downstream: no consumer reads the field, so no rung moves and
-nothing an adopter's build resolves differently.
+One producer behaviour changes, and it reaches further than an earlier draft of
+this section claimed. Today `converge` writes compositional commitments
+whenever an approved visual target exists; after this slice it writes them only
+for a confirmed one.
+
+**That does move a rung, inside this slice.** No consumer reads the *field* —
+that stays the successor's contract — but the live `approved-visual-target`
+rung resolves from the recorded composition, not from the field. An artifact
+whose target is approved but unconfirmed now has no composition to resolve and
+falls to `direction-and-taxonomy`. The earlier claim that nothing downstream
+resolves differently was false, and it was false in the direction that made the
+change look safer than it is.
+
+**Owner decision, not yet taken:** whether a slice that moves rung resolution
+may ship with the field-read half deferred to the successor. This contract does
+not start until that is answered.
 
 ## What Changes
 
@@ -125,42 +136,63 @@ the verification cannot silently grade a different occurrence.
   `plugin.json` agreement and nothing else — it never compares a marketplace
   version and never opens the changelog. AC-0009's third site and AC-0010 are
   therefore covered by one new construction test at
-  `tests/conformance/test_visual_target_release_surface.py`, which reads all
-  three version sites and the changelog bytes.
-  **Run mode, stated because it is not the PR gate:** `make build-check` is what
-  every PR runs, and it does not run `make test`. This test runs under
-  `make test` and the dispatch-only `test-corpus.yml`. Treat a green PR as
-  saying nothing about AC-0009 or AC-0010, and dispatch the corpus run before
-  approving the release. The start-of-work baseline stays a recorded manual
-  check; the post-bump end state is what the new test observes.
+  `tests/roster/test_visual_target_release_surface.py`, which reads all three
+  version sites and the changelog bytes. It lives in `tests/roster/` and not
+  `tests/conformance/` because `tools/lint-conformance-portability.py` — which
+  also runs on every PR — rejects a conformance test that names a shipped pack
+  or reaches `docs/`, and this test must do both. `tests/AGENTS.md` names
+  `tests/roster/` as the repository-level home.
+  **Run mode, read from the workflow rather than the Make target.** An earlier
+  revision claimed a green PR said nothing about these two criteria. That was
+  wrong, and the error is worth naming so it is not repeated: `make
+  build-check` genuinely does not invoke `make test`, but
+  `.github/workflows/build-check.yml` triggers on `pull_request` and its
+  carve-out step runs `python -m pytest tests/ -q` directly, which collects
+  everything under `tests/`. The PR gate therefore does run this test, and no
+  corpus dispatch is needed before approving the release. The start-of-work
+  baseline stays a recorded manual check; the post-bump end state is what the
+  new test observes.
 
 ## Acceptance Criteria
 
 - [ ] **AC-0001.** `creative-direction-template.md`'s frontmatter carries a
   `visual_target` key whose placeholder enumerates exactly `none`,
   `unconfirmed` and `confirmed`.
-- [ ] **AC-0002.** That template's `## Approved visual target` section carries a
-  `**Confirmation record:**` line whose placeholder offers exactly two slots
-  and no third: a date slot and a location slot, each written as a single
-  angle-bracket prompt. The line matches
-  `^\*\*Confirmation record:\*\* <[^<>]*date[^<>]*> — <[^<>]*(where|record|location)[^<>]*>$`
-  after whitespace normalization. Pinning the *shape* rather than banning word
-  tokens is deliberate: a denylist of `who`, `name`, `handle`, `email` passes
-  `<approver>`, `<signed off by>` and `<role and initials>`, each of which
-  invites exactly the person-identifying content the `Never do` rail forbids,
-  while a two-slot shape leaves no place to put one.
+- [ ] **AC-0002.** That template's `## Approved visual target` section carries
+  exactly one `**Confirmation record:**` line, and after whitespace
+  normalization that line is exactly:
+  `**Confirmation record:** <YYYY-MM-DD> — <where the confirmation was recorded>`
+  Equality, not a shape. Two weaker mechanisms were tried and both failed to
+  decide the property: a denylist of `who`, `name`, `handle`, `email` passes
+  `<approver>` and `<signed off by>`, and a two-slot regex with free text
+  around a keyword passes `<who recorded it>` on `record` and
+  `<approver name, where recorded>` on `where`. A criterion that claims to
+  exclude person-identifying placeholders must actually decide it, and pinning
+  the exact placeholder text is the only form here that does. The `Never do`
+  rail at the top of this spec still governs what a producer writes *into* the
+  record at runtime; that half is review-enforced, and this criterion does not
+  claim otherwise.
 - [ ] **AC-0003.** That section's comment contains the literal `visual_target`,
   names the `**Target:**`, `**Binding:**` and `**Confirmation record:**` lines,
   and contains the literal `bind nothing on their own`.
 - [ ] **AC-0004.** In `references/converge.md`, the paragraph block containing
-  the literal `Record the approved visual target disposition` contains both
-  `visual_target: confirmed` and `visual_target: unconfirmed`, and that anchor
-  occurs exactly once in the file. A whole-file containment check does not
+  the literal `Record the approved visual target disposition` contains all
+  three closed values — `visual_target: none`, `visual_target: unconfirmed`
+  and `visual_target: confirmed` — and that anchor occurs exactly once in the
+  file. All three, because that block today records the no-target case as the
+  bare word `none`; leaving it unwritten as a field value would make it read
+  as `unconfirmed` under the absent-field rule, which is not what ADR-0131
+  fixes. A whole-file containment check does not
   satisfy this criterion: once AC-0005's edit puts `visual_target: confirmed`
   anywhere in `converge.md`, a file-level check can no longer fail.
 - [ ] **AC-0005.** In `references/converge.md`, the paragraph block containing
-  the literal `compositional commitments into the doc` also contains the literal
-  `visual_target: confirmed`, and that anchor occurs exactly once in the file.
+  the literal `write the selected direction's compositional commitments` also
+  contains the literal `visual_target: confirmed`, and that anchor occurs
+  exactly once in the file. T2 splits that instruction into its own
+  blank-line-delimited block: today it sits inside a five-sentence paragraph
+  covering the target path, the template copy, the `visualize` handoff and the
+  fill list, so the literal could satisfy the criterion from a sentence with
+  nothing to do with the gated write.
   The field-literal form is correct here and not a rail crossing: `converge` is
   the operation that writes the field, so this is its own internal ordering,
   per the ruling in `Never do`.
@@ -184,19 +216,27 @@ the verification cannot silently grade a different occurrence.
   no bump at all. All three sites are observed after the bump by the new
   conformance test, because `test_pack_metadata.py` never compares a
   marketplace version.
-- [ ] **AC-0010.** `docs/product/changelog.md` carries a free-standing `##`
-  release entry for that version, with a `### Highlights` subsection, whose
-  body names the `visual_target` field, asserted by the new conformance test
-  reading the changelog bytes. The existing `4.1.1` entry does not satisfy this:
-  its Highlights describe the `frame`/`inherit` scoping fix.
+- [ ] **AC-0010.** `docs/product/changelog.md` carries a release entry for that
+  version whose heading begins at the start of a line at exactly `## ` — a
+  substring test cannot tell that from a `### ` entry nested under
+  `[Unreleased]`, which the release pipeline records as never publishing — with
+  a `### Highlights` subsection in which a `-` bullet names the `visual_target`
+  field. The bullet form is load-bearing: the `/now/` projection extracts only
+  bullets, so a paragraph is dropped silently. Asserted by the new roster test
+  reading the changelog bytes. The existing `4.1.1` entry does not satisfy
+  this: its Highlights describe the `frame`/`inherit` scoping fix.
 - [ ] **AC-0011.** That section's comment states that an absent `visual_target`
   reads `unconfirmed`.
-- [ ] **AC-0012.** Within the fenced excerpt block of
-  `guides/experience-design/how-to/establish-design-intent.md` — the fence that
-  reproduces the template, not the file at large — both the `visual_target`
-  frontmatter key and the `**Confirmation record:**` line are present. Scoping
-  to the fence is the point: the guide discusses the template in prose outside
-  it, so a whole-file check passes while the excerpt stays untouched.
+- [ ] **AC-0012.** Within one fenced block of
+  `guides/experience-design/how-to/establish-design-intent.md` — selected as
+  the single ` ```markdown ` fence whose body contains the line
+  `type: creative-direction`, and asserted to be the only such fence — both the
+  `visual_target` frontmatter key and the `**Confirmation record:**` line are
+  present. Selecting by that property rather than by fence ordinal is the
+  point: the guide carries three ` ```markdown ` fences, and the first is a
+  design-principles block that no edit in this slice ever makes carry the
+  field. Scoping to the fence at all is what a whole-file check cannot do,
+  since the guide discusses the template in prose outside it.
 - [ ] **AC-0013.** In `packs/experience-design/.apm/skills/creative-direction/evals/evals.json`,
   at least one case carries an entry in its own `assertions` list naming one of
   the three `visual_target` values as the disposition the run must write. A
