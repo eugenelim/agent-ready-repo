@@ -2240,6 +2240,44 @@ def test_review_invalid_json_emits_empty_families(tmp: Path) -> None:
     assert json.loads(out)["families"] == []
 
 
+@pytest.mark.parametrize(
+    ("label", "report_text", "stored", "decoy", "expected"),
+    [
+        ("findings-stored-matches", SAMPLE_FINDINGS_REPORT, "current", "other", True),
+        ("findings-decoy-matches", SAMPLE_FINDINGS_REPORT, "other", "current", False),
+        ("clean-stored-nonempty", CLEAN_REPORT, "other", "current", False),
+        ("clean-stored-empty", CLEAN_REPORT, "empty", "other", False),
+    ],
+)
+def test_matches_previous_round_reads_finding_fingerprints_not_previous(
+    tmp: Path, label: str, report_text: str, stored: str, decoy: str, expected: bool
+) -> None:
+    """AC-0011: the comparison reads `finding_fingerprints`, never the decoy key.
+
+    `previous_finding_fingerprints` is a separate documented key. Each case gives
+    it a value that would flip the result if the comparison read it, so a
+    regression that consults it, even only as a fallback, reds a row.
+    """
+    current = sorted(set(parse_findings(SAMPLE_FINDINGS_REPORT)))
+    values = {"current": current, "other": ["0" * 64], "empty": []}
+    spec_dir = make_spec_dir(tmp, f"ac-0011-{label}")
+    write_state(spec_dir, {
+        "schema_version": _mod.SCHEMA_VERSION,
+        "run_id": str(uuid.uuid4()),
+        "finding_fingerprints": values[stored],
+        "previous_finding_fingerprints": values[decoy],
+    })
+    report = tmp / f"{label}.md"
+    report.write_text(report_text, encoding="utf-8")
+    rc, out, _ = run_cohort(
+        "review", "inspect", str(spec_dir), "--report", str(report), "--json"
+    )
+    assert rc == 0
+    payload = json.loads(out)
+    assert payload["classification"] == ("findings" if report_text is SAMPLE_FINDINGS_REPORT else "clean")
+    assert payload["matches_previous_round"] is expected
+
+
 def test_review_raw_classify_json_field_set_is_unchanged(tmp: Path) -> None:
     """raw-classify keeps its deliberately closed payload contract."""
     report = tmp / "raw.md"
