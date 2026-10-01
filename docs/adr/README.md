@@ -135,3 +135,7 @@
 | 0131 | [A pip-audit advisory suppression is a governed allowlist entry, and its retirement is enforced](0131-pip-audit-advisory-suppression-is-a-governed-allowlist-entry.md) | Accepted | 2026-09-29 |
 | 0132 | [Visual-target confirmation is an explicit state, and selection never implies it](0132-visual-target-confirmation-is-an-explicit-state.md) | Accepted | 2026-09-29 |
 | 0133 | [An advisory with no published fix is acceptable, and it retires on the first fix rather than on a version floor](0133-an-unfixed-advisory-is-acceptable-and-retires-on-the-first-fix.md) | Accepted | 2026-09-30 |
+| 0134 | [Catalogue authentication resolves through credbroker](0134-catalogue-auth-resolves-through-credbroker.md) | Accepted | 2026-09-30 |
+| 0135 | [Catalogue `.netrc` uses exact machine matches](0135-catalogue-netrc-uses-exact-machine-matches.md) | Accepted | 2026-09-30 |
+| 0136 | [Catalogue JFrog authentication delegates to JFrog CLI](0136-catalogue-jfrog-auth-delegates-to-jfrog-cli.md) | Accepted | 2026-09-30 |
+| 0137 | [Catalogue authentication selects one provider without fallback](0137-catalogue-auth-selects-one-provider-without-fallback.md) | Accepted | 2026-09-30 |

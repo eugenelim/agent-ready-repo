@@ -220,7 +220,7 @@ project-key = "INFRA"
 | Local path | Used as-is |
 | `git+https://<host>/<owner>/<repo>[@<ref>]` | GitHub archive tarball, extracted to tempdir — no git subprocess |
 | `catalogue+https://<url>` | Enterprise: SHA-256-verified tarball, origin-locked redirects, member-by-member extraction |
-| `archive+https://<url>` | Same without the origin lock |
+| `archive+https://<url>` | Pinned archive fetched with the same HTTPS transport and same-origin redirect lock, without a channel descriptor |
 
 All fetches use `urllib.request` only. SSH URIs are not supported.
 
