@@ -21,10 +21,12 @@ available — one amendment cutting both claims; one amendment restating the
 AC-0011 justification instead of cutting it; or amending AC-0011 alone and
 deferring the AC-0004 nit with its citation. The owner selected the first.
 
-The owner was also told, before work began, that `completed_task_ids` holds only
-T1 to T3, so the post-amendment reschedule re-emits T4 and T5 as unfinished and
-their receipts and wave transitions must be recorded again. That cost is
-bookkeeping: both tasks' code is already written, gated and green.
+The owner was also told, before work began, that the reschedule re-emits
+unfinished tasks and their receipts and wave transitions must be recorded again,
+and that the cost is bookkeeping because the code is already written, gated and
+green. Measured during the transition rather than assumed: the amendment treats
+T4 as completed and requires an evidence binding for it, so only T5 is
+re-emitted.
 
 ## Reason: two sustained findings in the post-gates review
 
@@ -102,3 +104,13 @@ and started dropping or narrowing claims.
 | T1 | `f69606cfb` |
 | T2 | `2e0348b39` |
 | T3 | `15188c387` |
+| T4 | `31011ff57` |
+
+T4 is bound to its repair commit rather than to its original release commit
+`774f9e5ae`, because `774f9e5ae` is the state in which T4 was committed but
+**not met**: the first amendment rewrote its `Done when` so it could not pass
+while two shipped artifacts stood non-conforming. `31011ff57` is the commit in
+which all five conditions hold.
+
+T5 carries no binding here. Its wave was reopened for this repair round, so the
+amendment does not treat it as completed, and the reschedule will emit it.
