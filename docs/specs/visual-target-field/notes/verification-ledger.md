@@ -153,9 +153,9 @@ and EXECUTE phases. Two mutations are recorded below.
   superseded assertion `"unconfirmed" in comment and "absent" in comment.lower()`
   evaluated to `True` (passes), while the replacement contiguous-phrase assertion
   evaluated to `False` (fails). Verified by direct evaluation in Python against
-  the mutated template. This contrast is the reason for the replacement: the
-  co-occurrence form reduces to whether `absent` appears anywhere once
-  `unconfirmed` is guaranteed by AC-0001.
+  the mutated template. Those two evaluated outcomes are the whole of what this
+  proof records; the reason the replacement was adopted is stated in the spec's
+  AC-0011 and is not restated here, so this record cannot drift from it.
 - **Restoration:** edited the template back to `An absent \`visual_target\` reads
   as \`unconfirmed\`, so record it deliberately rather than leaving it off.`
   directly (no `git checkout`, `git reset`, or `git stash`).

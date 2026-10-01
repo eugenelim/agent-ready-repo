@@ -49,9 +49,14 @@ replacement itself are both sound, verified independently twice.
   enumeration, and **no criterion pins it**: AC-0003 requires only the literal
   `visual_target`, the three line labels, and `bind nothing on their own`.
 
-The sentence was carried in three places, one of them a shipped assertion
+The sentence was carried in four places, one of them a shipped assertion
 message a future author would read as a general rule about comment-scoped
-checks.
+checks. The fourth — the AC-0011 mutation proof's Contrast bullet in
+`verification-ledger.md` — was missed by the sweep this amendment performed and
+was found by the next pre-EXECUTE pass; it is struck in the follow-up revision
+recorded in the plan's Changelog. The count is corrected here rather than left
+at three, because a governance record that understates its own sweep invites the
+next author to trust an enumeration that is short.
 
 ### Sustained nit: AC-0004's uniqueness clause is not what its assertion decides
 
@@ -74,8 +79,10 @@ and started dropping or narrowing claims.
    criterion to whether `absent` appears anywhere, and that a comment reading
    "an absent target means `none`" would pass while contradicting the
    fail-closed default — and drops the misattribution to AC-0001. The same cut
-   is applied to the two other carriers: the plan's T5 stub block and the
-   shipped assertion message, which stay byte-identical to each other.
+   is applied to the other carriers: the plan's T5 stub block and the shipped
+   assertion message, which stay byte-identical to each other, and — in the
+   follow-up revision, after this amendment's sweep missed it — the AC-0011
+   mutation proof's Contrast bullet in `verification-ledger.md`.
 2. **AC-0004's claim is narrowed to what its assertion decides**: the anchor
    occurs in exactly one paragraph block of the named file. Narrowing rather
    than strengthening the assertion, for two reasons. The weaker property still

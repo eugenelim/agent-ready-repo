@@ -633,6 +633,30 @@ artifacts standing.
 
 **Depends on:** T4
 
+**Landed state, 2026-10-01. Read this before acting on anything below.** T5's
+work is **already done and committed**, at `d712528e5` plus the assertion-message
+correction in the second amendment's follow-up revision. The roster module
+exists at `tests/roster/test_visual_target_guide_excerpt.py` and is
+byte-identical to its stub block; `_template_fence`, `TICKS` and `FENCE` are
+gone from the pack suite; the AC-0011 assertion is replaced in place; the
+`build-check.yml` step and both `tools/lint-ci-parity.py` axes carry the roster
+entry; and **both mutation proofs are recorded in full** at
+[`notes/verification-ledger.md`](notes/verification-ledger.md) § *T5 mutation
+proofs*. Every condition in `Done when` below was measured satisfied on the
+current tree.
+
+T5 is re-emitted by the post-amendment reschedule only because
+`completed_task_ids` records T1 to T4 and not T5, which the second amendment
+could not change. **The remaining obligation is to re-verify the `Done when`
+conditions, not to re-perform the work.** The prose below is kept as the
+contract that governs the task and as the record of how it was done; its
+imperative voice describes work already performed. In particular **do not re-run
+the two mutations.** They edit the shipped template and the shipped guide, the
+AC-0011 mutation propagates into a second byte-pinned file through the
+guidebook-lint coupling, and `mutation-proof.md` permits no `git checkout`,
+`reset` or `stash` to undo it — so a redundant re-performance risks shipped
+artifacts for evidence that already exists.
+
 Added by the 2026-10-01 amendment. T1's plan section is pinned, so these two
 corrections to its assertions arrive as a new task rather than as edits to it.
 The edge is on T4, not T1: both tasks write
@@ -651,7 +675,7 @@ already completed. T1's content dependency is satisfied by its completion.
   AC-0001, AC-0002 and AC-0003 assertions unchanged; only the final AC-0011
   line is replaced, by the block below.
 
-**Stub** — new file `tests/roster/test_visual_target_guide_excerpt.py`:
+**Stub** — `tests/roster/test_visual_target_guide_excerpt.py`, new when this task was written and now landed byte-identically:
 
 ```python
 """AC-0012 for the experience-design visual-target field.
@@ -734,7 +758,8 @@ def test_visual_target_guide_excerpt() -> None:
     )
 ```
 
-**Approach:**
+**Approach** — as performed; see the landed-state note above before repeating
+any step:
 - Move the AC-0012 assertion out of
   `packs/experience-design/tests/skills/creative-direction/test_contract.py`
   and into the new roster module above, deleting `_template_fence`, `TICKS` and
@@ -784,14 +809,16 @@ to the Lifecycle red* in
 [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md).
 
 The substitution is now granted at both phases, and nothing further is waived.
-The ledger entries stay owed: the ruling permits the substitution rather than
-performing it, so T5 is not met until both mutation proofs are recorded in the
-verification ledger with the full field set `mutation-proof.md` § *Proof record*
-requires. Record for each of the two assertions, in the verification
-ledger, the complete field set `mutation-proof.md` § *Proof record* requires —
-cited rather than restated here so the list cannot drift short of it, and noting
-that `Catching test` is load-bearing for AC-0011, whose assertion is one line
-inside a four-criterion test function. Two mutations are owed:
+The ruling permits the substitution rather than performing it, so T5 was not met
+until both mutation proofs were recorded in the verification ledger with the full
+field set `mutation-proof.md` § *Proof record* requires. **Both are now
+recorded** — see § *T5 mutation proofs* in
+[`notes/verification-ledger.md`](notes/verification-ledger.md) — each carrying
+that complete field set, cited rather than restated here so the list cannot
+drift short of it, and including `Catching test`, which is load-bearing for
+AC-0011 because its assertion is one line inside a four-criterion test function.
+The two mutations the proofs record, retained here as the specification those
+proofs had to meet and **not as work to repeat**:
 
 - **AC-0012** — in the guide's fenced excerpt only, delete the single
   `visual_target: "<none | unconfirmed | confirmed>"` line. Expected red:
@@ -1108,8 +1135,12 @@ inside a four-criterion test function. Two mutations are owed:
   enumeration" — false, because AC-0001 pins the frontmatter placeholder while
   the assertion reads only the section comment, whose own enumeration no
   criterion pins. The entailment is deleted rather than restated, in all three
-  carriers it occupied: this spec, T5's stub block, and the shipped assertion
-  message, with the last two kept byte-identical. AC-0004's "exactly once in the
+  carriers that sweep reached: this spec, T5's stub block, and the shipped
+  assertion message, with the last two kept byte-identical. A fourth carrier
+  existed and was missed — the AC-0011 mutation proof's Contrast bullet in
+  `notes/verification-ledger.md` — found by the next pre-EXECUTE pass and struck
+  in the revision recorded below. The enumeration is corrected rather than left
+  reading as exhaustive. AC-0004's "exactly once in the
   file" clause is narrowed to the one-paragraph-block property its assertion
   actually decides, rather than strengthening the assertion, which was shipped
   under pinned T2 and would have needed a new dependency-ordered task. The
@@ -1138,7 +1169,31 @@ inside a four-criterion test function. Two mutations are owed:
   the engine was still in `SPEC-PLAN-REVIEW`; `findings-remain` was fired
   afterwards, because the first attempt was refused for carrying a fingerprint
   payload that edge does not accept and the edit had already been applied in the
-  same step. Recorded rather than corrected, for the same reason the first
-  amendment recorded round 3's identical slip: firing the pair in the documented
-  order afterwards would assert a sequence that did not happen. Nothing is
-  miscounted — pre-EXECUTE results do not call `review record`.
+  same step. What happened, stated plainly rather than justified: the edit came
+  first, `findings-remain` fired after it at seq 38, `spec-ready` at seq 39, and
+  the original ordering cannot now be reconstructed. The earlier reason given
+  here — that firing the pair afterwards would assert a sequence that did not
+  happen — was wrong, because the pair *was* fired afterwards. This is also not
+  identical to round 3's slip, which the first amendment records as a pair never
+  fired at all; here the pair fired, only out of order. Nothing is miscounted:
+  `review_retry_count` is 2 at both seq 38 and seq 39, and pre-EXECUTE results
+  do not call `review record`.
+- 2026-10-01: Repaired the three sustained findings from the next pre-EXECUTE
+  pass (3 raw, 3 sustained, 0 refuted). **A fourth carrier of the deleted
+  AC-0001 entailment survived** in the AC-0011 mutation proof's Contrast bullet
+  in `notes/verification-ledger.md`, which the second amendment's sweep missed:
+  unlike the two carriers a prior round refuted, that one asserted the
+  attribution in the present tense as the standing reason the replacement exists,
+  in a committed artifact named in T5's own `Touches` and required by its
+  `Done when`. The bullet now records only the two evaluated outcomes and points
+  at AC-0011 for the reason, so the proof cannot drift from the criterion. The
+  carrier count is corrected from three to four in both governance records that
+  claimed a complete sweep. **T5's body is restated to the landed state**: its
+  work is committed, both mutation proofs are recorded, and the remaining
+  obligation is to re-verify `Done when` rather than re-perform it. That matters
+  for safety, not tidiness — the reschedule re-emits T5 because
+  `completed_task_ids` stops at T4, and the previous text would have directed an
+  implementer to re-run two mutations that edit the shipped template and guide,
+  one of them propagating into a second byte-pinned file, with no `git checkout`,
+  `reset` or `stash` permitted to undo it. The nit is closed by replacing the
+  process-deviation entry's wrong reason with what the event log shows.
