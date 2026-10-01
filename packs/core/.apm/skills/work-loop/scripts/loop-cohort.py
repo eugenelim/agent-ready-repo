@@ -3061,8 +3061,22 @@ STRICT_SUSTAINED_FINDING_LINE_RE = re.compile(
 )
 
 
-def parse_findings(report_text: str) -> list[str]:
-    """Return SHA-256 fingerprints for findings in a reviewer report.
+_STABLE_TITLE_SEVERITY_RE = re.compile(
+    r"^\[(?:blocker|concern|major|minor|nit)\]\s*", re.IGNORECASE
+)
+
+
+def stable_title(title: str) -> str:
+    """Return a finding title without its ordinal or severity tag."""
+    unwrapped = title.strip()
+    if unwrapped.startswith("**") and unwrapped.endswith("**"):
+        unwrapped = unwrapped[2:-2]
+    without_ordinal = re.sub(r"^\d+\.\s*", "", unwrapped)
+    return _STABLE_TITLE_SEVERITY_RE.sub("", without_ordinal)
+
+
+def parse_finding_identities(report_text: str) -> tuple[list[str], list[str]]:
+    """Return fingerprint and family digests for findings in a reviewer report.
 
     Algorithm pinned by the work-loop SKILL §REVIEW:
         sha256("<file>|<line>|<title>")
@@ -3076,6 +3090,19 @@ def parse_findings(report_text: str) -> list[str]:
     - experience-reviewer:  **title.** Where: loc. (location; key uses loc|0|title)
     """
     fingerprints: list[str] = []
+    families: list[str] = []
+
+    def add_finding(location: str, line_number: str, title: str) -> None:
+        """Append both identities for one parsed finding."""
+        fingerprint_preimage = f"{location}|{line_number}|{title}"
+        family_preimage = f"{location}|{stable_title(title)}"
+        fingerprints.append(
+            hashlib.sha256(fingerprint_preimage.encode("utf-8")).hexdigest()
+        )
+        families.append(
+            hashlib.sha256(family_preimage.encode("utf-8")).hexdigest()
+        )
+
     for raw in report_text.splitlines():
         line = raw.strip()
         if not line.startswith("**"):
@@ -3091,20 +3118,14 @@ def parse_findings(report_text: str) -> list[str]:
             line_match = re.match(r"\d+", rest)
             if not line_match:
                 continue
-            key = f"{file_part}|{line_match.group(0)}|{title}"
-            fingerprints.append(
-                hashlib.sha256(key.encode("utf-8")).hexdigest()
-            )
+            add_finding(file_part, line_match.group(0), title)
             continue
         # Try Where: <location> (experience-reviewer)
         m = FINDING_LINE_RE_WHERE.match(line)
         if m:
             title = m.group("title").strip()
             location = m.group("location").strip()
-            key = f"{location}|0|{title}"
-            fingerprints.append(
-                hashlib.sha256(key.encode("utf-8")).hexdigest()
-            )
+            add_finding(location, "0", title)
             continue
         # Try unquoted file:line (frontend-reviewer)
         m = FINDING_LINE_RE_UNQUOTED.match(line)
@@ -3115,11 +3136,13 @@ def parse_findings(report_text: str) -> list[str]:
             line_match = re.match(r"\d+", rest)
             if not line_match:
                 continue
-            key = f"{file_part}|{line_match.group(0)}|{title}"
-            fingerprints.append(
-                hashlib.sha256(key.encode("utf-8")).hexdigest()
-            )
-    return fingerprints
+            add_finding(file_part, line_match.group(0), title)
+    return fingerprints, families
+
+
+def parse_findings(report_text: str) -> list[str]:
+    """Return SHA-256 fingerprints while preserving the legacy parser API."""
+    return parse_finding_identities(report_text)[0]
 
 
 def _is_strict_actionable_result(actionable: str) -> bool:
@@ -3150,6 +3173,7 @@ def _invalid(reason: str) -> dict:
     return {
         "classification": "invalid",
         "fingerprints": [],
+        "families": [],
         "matches_previous_round": False,
         "reason": reason,
     }
@@ -3393,7 +3417,7 @@ def _classify_report(
     if refusal is not None:
         return _invalid(refusal)
 
-    fps = parse_findings(actionable_text)
+    fps, families = parse_finding_identities(actionable_text)
     if require_adjudication:
         has_clean = actionable_text == CLEAN_SUBSTRING
     else:
@@ -3421,6 +3445,7 @@ def _classify_report(
     return {
         "classification": classification,
         "fingerprints": canonical_fps,
+        "families": sorted(set(families)),
         "matches_previous_round": matches_prev,
     }
 
