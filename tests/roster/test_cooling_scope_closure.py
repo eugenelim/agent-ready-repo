@@ -537,7 +537,14 @@ def test_ac12_wave6_residual_assertion_is_replaced() -> None:
 
 
 def test_ac13_wave6_roster_name_set_is_unchanged() -> None:
-    """AC13: the Wave 6 roster changes by only the residual-test rename."""
+    """AC13: no test function is added to or removed from the Wave 6 roster.
+
+    The digest moved once since AC13 was written, on 2026-09-30, when two
+    Wave 6 names were corrected to match the behaviour they assert. The count
+    is still 67, so what AC13 bounds -- that nothing was added or removed --
+    holds; only two names changed, and the bound is re-struck around them so
+    the next unplanned addition or removal still fails here.
+    """
     text = (
         ROOT / "tests/roster/test_status_projection_and_context_exclusion.py"
     ).read_text(encoding="utf-8")
@@ -545,8 +552,9 @@ def test_ac13_wave6_roster_name_set_is_unchanged() -> None:
         match.group(1) for match in re.finditer(r"^def (test_\w+)", text, re.M)
     )
 
+    assert len(names) == 67, "a test function was added or removed"
     assert hashlib.sha256("\n".join(names).encode()).hexdigest() == (
-        "6fff3ededf8da2f1899dd9ea7560867abdec728dc4e139b861559097f103b637"
+        "25e0c473827b00afb828485f279189e8d0805060c85ef7ff0be97429eeea5eaa"
     )
 
 
