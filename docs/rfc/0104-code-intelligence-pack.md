@@ -461,3 +461,25 @@ the adopter prefers to install the binary themselves.
 - **Upstream issues** for the provider gaps, filed against
   `mikeparcewski/wicked-estate` after re-verification against its current
   release. Not a catalogue artifact, and not blocking.
+
+## Errata
+
+Append-only. A later entry supersedes an earlier one by being later.
+
+### 2026-09-30 — Q1 and Q2 answered
+
+Both open questions are closed by the approver.
+
+**Q1 — the registration surfaces stay prose.** No lint is built. The table in
+this RFC is the record a future pack author reads; nothing will redden when a
+surface is missed. The cost is known and accepted: this pack found all of them
+as failing CI, and the next pack may too.
+
+**Q2 — the pack gets a guide home and a journey.** Delivered alongside this
+entry: `guides/code-intelligence/` with a README, tutorial, how-to and
+reference, plus `packs/code-intelligence/JOURNEY.md`. The pack's `docsUrl`
+moves from the generic guides index to its own home, and `journeyUrl` is
+populated for the first time.
+
+This entry answers the questions; it does not reopen any decision. D1 through
+D5 stand as accepted.
