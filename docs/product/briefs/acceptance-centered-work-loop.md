@@ -3,7 +3,7 @@
 - **Slug:** `acceptance-centered-work-loop`
 - **Received:** 2026-09-30
 - **Owner:** Platform Core
-- **Status:** Draft
+- **Status:** Ready
 - **Cut-closed:** <!-- Set only after the final slice cut and its evidence are confirmed. -->
 - **Source / provenance:** Repository architecture set rooted at [`docs/architecture/acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md), including its authority-migration and runtime-crosswalk children, at Git revision `61624180b808f9adca70eab2ed2305adee645ce9`. That revision passed baseline compatibility review at its recorded pin and the repository design-reviewer with no findings.
 
