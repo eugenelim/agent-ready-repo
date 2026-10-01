@@ -234,6 +234,11 @@ python '<skill-dir>/scripts/loop-cohort.py' review classify \
 Never substitute stateful inspect in light mode, omit `--adjudication` in
 full mode, or pass `--report <raw-report-path>`.
 
+Classification payloads include `families`, a SHA-256 hex digest for every
+parsed finding. Its preimage is `<location>|<stable-title>`, where the stable
+title removes the enclosing bold markers, leading ordinal, and a leading
+bracketed severity tag. Nothing consumes it yet.
+
 ## Route and record
 
 | Result | Route |
