@@ -257,15 +257,18 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 2. **Select light or full mode** (see [Select: light or full mode](#select-light-or-full-mode)). With an existing spec, retain its spec/plan lifecycle, workspace reconciliation, and governing authority. Without one, select direct-light only after its decision record establishes every eligibility conjunct; otherwise invoke `new-spec`. Full mode requires complete ACs and Testing Strategy. Do not recreate or replace an adequate existing spec.
 3. Use the existing plan's task list when a plan exists. For direct-light, use the bounded active-session task and verification plan; do not create a sibling plan.
 4. Use extended thinking for architecturally significant work.
-5. Write the **assumption trio** — which files you'll touch, what tests demonstrate "done", what you are *not* changing. Below the trio, **name what you were tempted to add and declined** (one line each: temptation + the `Cut before adding` rung in `AGENTS.md` that killed it + reason). Naming the rung is what grades the declination against the ladder rather than against an ad-hoc reason; where no rung covers the decline — an explicit requirement or a trust-boundary control forbids it — state that reason in the rung's place rather than fitting a rung to it. Non-trivial tasks always have something to name; common patterns: new abstractions, structural choices, new dependencies, defensive scaffolding, hypothetical configurability.
+5. Write the **assumption trio** — which files you'll touch, what tests demonstrate "done", what you are *not* changing. Below the trio, **record a declined architectural addition only when it materially affects scope or design**. Each record names the addition, the `Cut before adding` rung in `AGENTS.md` that killed it, and the reason; where no rung covers the decline — an explicit requirement or a trust-boundary control forbids it — state that reason in the rung's place rather than fitting a rung to it. Do not record routine alternatives merely to prove that declination happened; an empty register is valid when no declined architectural addition materially affected scope or design.
 
-   - **Size the tail.** For a plan task predicted above 2,000 reviewable
-     behavior and test lines, declare its expected review shape and act on it:
-     mechanically uniform WIDE work is not split and must carry
-     reproducibility proof; MIXED and
-     DEEP work is decomposed into dependency-ordered layers, each independently
-     reviewable and leaving the repository working. Ambiguous shape is DEEP.
-     Use the task graph to name the boundaries; do not invent tasks to make PRs.
+   - **Shape the review unit.** Ask: **can this unit be independently
+     understood, verified, or reviewed?** If yes, proceed. If not, split it
+     into dependency-ordered units that each leave the repository working, or
+     establish a transformation/reproducibility proof for mechanically uniform
+     WIDE work. Declare the unit's expected review shape and act on it, keeping
+     the classification: WIDE work may carry that proof; MIXED and DEEP work
+     normally split; ambiguous shape is DEEP. About
+     2,000 reviewable behavior and test lines is a heuristic that prompts this
+     check, never a gate or an automatic split. Use the task graph to name the
+     boundaries; do not invent tasks to make PRs.
 6. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)). The `new-spec` assumptions step owns claim routing, under the anchor `load-bearing-claim-routing`.
 7. **Pick the verification mode for each task** before writing code:
    - **TDD** — compressible invariant (pure functions, state machines, protocols). When a spec and plan exist, record ACs + Testing Strategy and exact stub code in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
@@ -741,12 +744,13 @@ runs after the loop closes, under [Capture](#capture).
   - Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only, and only when the spec's whole change surface is high-risk): same select-or-note rule.
   - The resolve-vs-surface disposition record exists: every REVIEW Blocker and Concern is resolved, and every unacted Nit is deferred with its citation.
   - One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
-  - **Tail-triage check completed.** Inspect raw diff lines, material volume,
+  - **Review-shape check completed.** Inspect raw diff lines, material volume,
     and reviewable behavior and test lines for each intended PR or stack layer.
-    Above 2,000 reviewable behavior and test lines, record review shape. WIDE
-    work links its source artifact, transformation invariant, command, zero-diff
-    re-run, tests, sampled review, and rollback; MIXED and DEEP work links its
-    dependency-ordered boundaries.
+    Apply PLAN step 5's independence question and its size heuristic; this
+    checklist restates neither. Record the review shape and its consequence.
+    WIDE work links its source artifact, transformation invariant, command,
+    zero-diff re-run, tests, sampled review, and rollback; MIXED and DEEP work
+    links its dependency-ordered boundaries.
 
 - [ ] **Artifacts consistent.**
   - **Implementation completion only (code mode and direct-light):** the
@@ -828,7 +832,7 @@ For unattended execution, load [Unattended-loop eligibility](references/unattend
 ## Anti-patterns
 
 - **Skipping PLAN because "the task is small."** If truly small, the plan is one sentence — write it anyway. The discipline is the point.
-- **Declaring an empty declined-pattern register on a non-trivial task.** Something was always tempting. Empty means you weren't looking, not that there was nothing to find.
+- **Turning routine alternatives into a declined-addition register.** Record a declined architectural addition only when it materially affects scope or design, on the terms PLAN step 5 states.
 - **Skipping pre-EXECUTE review on a structural change.** The four structural triggers exist because over-engineering is most expensive to undo at that stage.
 - **Writing code before deciding how it'll be verified.** Every task picks its verification mode during PLAN; TDD tasks have the test before the production code.
 - **Editing the test until it passes.** Fix the code. If the test is wrong, fix it in a separate commit with justification.
