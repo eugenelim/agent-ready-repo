@@ -1,0 +1,104 @@
+# Second contract amendment record — 2026-10-01, post-gates
+
+This note is the durable authority and reason reference for the **second**
+`contract-amendment` transition on run `1adcfbc1-0d36-401b-9f3d-ebfc2493790a`.
+It is separate from
+[`amendment-2026-10-01.md`](amendment-2026-10-01.md), which records the first
+amendment and four scoped owner rulings and stays in force unchanged. A second
+record exists rather than an appended section so each amendment's authority and
+reason references resolve to exactly one place.
+
+It exists for the same structural reason the first one does: the session-local
+review artifacts under `.context/reviews/` are gitignored and cannot serve as a
+stable reference.
+
+## Owner authority
+
+The scope owner authorized this amendment on 2026-10-01, in session, after being
+shown three things: the two sustained findings below, the measured fact that
+both repairs move the pinned canonical spec hash, and the three options
+available — one amendment cutting both claims; one amendment restating the
+AC-0011 justification instead of cutting it; or amending AC-0011 alone and
+deferring the AC-0004 nit with its citation. The owner selected the first.
+
+The owner was also told, before work began, that `completed_task_ids` holds only
+T1 to T3, so the post-amendment reschedule re-emits T4 and T5 as unfinished and
+their receipts and wave transitions must be recorded again. That cost is
+bookkeeping: both tasks' code is already written, gated and green.
+
+## Reason: two sustained findings in the post-gates review
+
+The post-gates review ran `adversarial-reviewer` and `experience-reviewer`, both
+warranted. The experience review sustained nothing of twelve findings. The
+adversarial review sustained two of three.
+
+### Sustained concern: AC-0011's cannot-fail justification names the wrong guarantee
+
+AC-0011's rationale asserted that the superseded co-occurrence assertion could
+not fail because "the comment already carries `unconfirmed` in AC-0001's
+closed-set enumeration". That entailment is false on the bytes, and the defect
+is in the justification only — the decision to replace the assertion and the
+replacement itself are both sound, verified independently twice.
+
+- AC-0001 pins the enumeration in the template's **frontmatter**.
+- The assertion's `comment` is scoped to the `## Approved visual target` section
+  comment, via `section.split("-->", 1)[0]`. That span excludes the frontmatter.
+- What actually carries `unconfirmed` inside the comment is the comment's own
+  enumeration, and **no criterion pins it**: AC-0003 requires only the literal
+  `visual_target`, the three line labels, and `bind nothing on their own`.
+
+The sentence was carried in three places, one of them a shipped assertion
+message a future author would read as a general rule about comment-scoped
+checks.
+
+### Sustained nit: AC-0004's uniqueness clause is not what its assertion decides
+
+AC-0004 required the anchor to occur "exactly once in the file", while the
+shipped assertion decides `len(blocks) == 1` over blank-line-delimited blocks.
+Two occurrences inside one block pass, so the criterion's words forbid a state
+its own verification cannot detect.
+
+## What this amendment does
+
+It cuts, rather than explains. That choice is deliberate and is grounded in this
+run's own measured history: across the rounds run under the first amendment the
+sustained count fell 6, 9, 10, 3, 2, 1, 0, and every sustained finding in rounds
+2 through 6 was a defect in the previous round's repair rather than in the work
+being governed. The trend turned only when repairs stopped adding obligations
+and started dropping or narrowing claims.
+
+1. **AC-0011's false entailment is deleted, not restated.** The rationale keeps
+   the part that is true and decidable — that the co-occurrence form reduces the
+   criterion to whether `absent` appears anywhere, and that a comment reading
+   "an absent target means `none`" would pass while contradicting the
+   fail-closed default — and drops the misattribution to AC-0001. The same cut
+   is applied to the two other carriers: the plan's T5 stub block and the
+   shipped assertion message, which stay byte-identical to each other.
+2. **AC-0004's claim is narrowed to what its assertion decides**: the anchor
+   occurs in exactly one paragraph block of the named file. Narrowing rather
+   than strengthening the assertion, for two reasons. The weaker property still
+   meets the criterion's own stated purpose, that the verification cannot
+   silently grade a different occurrence. And the assertion was shipped under
+   T2, whose plan section is pinned, so changing it would be a new
+   dependency-ordered task rather than an edit.
+
+## What this amendment does not change
+
+- No acceptance criterion is removed or renumbered, and no outcome is narrowed
+  beyond AC-0004's uniqueness scope stated above.
+- The four scoped rulings in the first amendment record stay in force, including
+  the intended-red waiver and its extension to the Lifecycle red.
+- T1, T2 and T3's plan sections stay pinned and unedited.
+- The refuted findings are not acted on. The guide-caption advisory stays
+  deferred, already recorded in two committed files
+  (`amendment-2026-10-01.md` and `plan.md`'s Changelog), and the experience
+  review's twelve refusals stand, three of which defer to the registered
+  successor spec `visual-target-rung-precondition`.
+
+## Completed-task evidence bindings
+
+| Task | Stable evidence reference |
+| --- | --- |
+| T1 | `f69606cfb` |
+| T2 | `2e0348b39` |
+| T3 | `15188c387` |
