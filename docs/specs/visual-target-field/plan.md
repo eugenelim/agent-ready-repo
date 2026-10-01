@@ -151,9 +151,14 @@ plan approval without it.
     observation recorded in § *Version baseline and target*. 0 uncovered. This
     supersedes the "8 covered by stubs, 2 goal-based" tally above, which counted
     AC-0012 under its old home and predates T5.
-  - **Compile pass, by block, because the two were validated differently.** The
-    roster module block compiles under `python -m py_compile` from disposable
-    scratch outside the repository test tree. The AC-0011 block is a
+  - **Compile pass, by block, because they were validated differently.**
+    Measured 2026-10-01 against the blocks as they now stand, after T4's block
+    lost its unused `import re`: all six stored blocks pass. T4's roster module
+    and T5's roster module each compile standalone under `python -m py_compile`
+    from disposable scratch outside the repository test tree, exit 0; T1's,
+    T2's and T3's blocks compile the same way. This record covers every stored
+    block, superseding the round-3 four-block record above, which predates T4's
+    edit. The AC-0011 block is a
     function-body fragment replacing one assertion, so it does not compile
     standalone — `py_compile` on it exits non-zero with
     `IndentationError: unexpected indent`. Its syntax was validated by splicing
@@ -748,12 +753,32 @@ def test_visual_target_guide_excerpt() -> None:
 **Verification: mutation proof, not red-then-green.** Both assertions are green
 on first run against the current tree — the template comment already carries the
 pinned phrase, and the guide's `type: creative-direction` fence already carries
-both markers, because T1 put them there. The intended red that
-`tdd-stubs.md` requires is therefore unobtainable, and an assertion accepted on
-a first green carries no evidence it can fail at all. Use
-[`mutation-proof.md`](../../../.claude/skills/work-loop/references/mutation-proof.md)
-instead, which is the repository's declared instrument for a test whose property
-is already present. Record for each of the two assertions, in the verification
+both markers, because T1 put them there. An assertion accepted on a first
+green carries no evidence it can fail at all, so non-vacuity is shown by
+[`mutation-proof.md`](../../../.claude/skills/work-loop/references/mutation-proof.md),
+the repository's declared instrument for a test whose property is already
+present.
+
+**What is granted, and what is not.** The owner's waiver covers
+`tdd-stubs.md` § *Validate*'s intended-red requirement at **plan approval**, for
+these two blocks, and nothing further. § *Lifecycle* separately requires EXECUTE
+to materialize the approved block, verify byte identity, **and prove the intended
+red**, and `work-loop/SKILL.md` repeats that for the full-mode engine after
+`CODE-IMPLEMENTATION`. That EXECUTE-time red is unobtainable for the same reason
+the plan-approval one is, and **whether the mutation proof may stand in for it is
+not decided by the current grant.** An earlier revision of this section claimed
+the substitution without phase qualification, which claimed more than the waiver
+gives; that overreach is removed here rather than argued.
+
+**Open decision, owed before T5 is marked met — owner: eugenelim.** Whether
+§ *Lifecycle*'s EXECUTE-time intended red is waived for these two blocks on the
+same reason, or whether T5 must satisfy it some other way. It is not
+dischargeable by the plan-approval waiver, and T5 may not be marked met while it
+stands open. In substance the evidence already exists — T5's `Done when`
+requires both in-tree mutation proofs in the verification ledger, and a mutation
+performs the same function the intended red does, namely showing the assertion
+detects removal of the property it names. What is missing is only the authority
+to substitute it, which is the owner's to give. Record for each of the two assertions, in the verification
 ledger, the complete field set `mutation-proof.md` § *Proof record* requires —
 cited rather than restated here so the list cannot drift short of it, and noting
 that `Catching test` is load-bearing for AC-0011, whose assertion is one line
@@ -1000,3 +1025,23 @@ inside a four-criterion test function. Two mutations are owed:
   one of which — "AC-0012 keeps its wording" — had become false. One finding was
   refuted: holding the Highlights rails in both Approach and `Done when` is a
   structure preference, not a defect, since the two are differently decidable.
+- 2026-10-01: Revised after the fifth pre-EXECUTE pass — the first with no
+  blockers (1 concern, 1 nit, both sustained, none refuted). That pass also
+  reproduced independently every claim the intended-red waiver rests on: both
+  mutation reds, the superseded-assertion contrast, the per-block compile
+  results, and the guidebook lint returning to zero after restoration by
+  editing. The concern was an overreach of this plan's own making: § *Verification*
+  claimed the mutation proof substitutes for the intended red without phase
+  qualification, while the waiver grants that only at plan approval and
+  `tdd-stubs.md` § *Lifecycle* imposes an EXECUTE-time red separately. The plan
+  also contradicted itself, repeating the plan-approval-only limit in one place
+  and exceeding it in another. Adjudication ruled that removing an overreach
+  needs no grant, so the claim is narrowed here rather than argued, and the
+  residue is recorded at the T5 seam as a named open decision owed before T5 is
+  marked met: whether § *Lifecycle*'s EXECUTE-time red is waived on the same
+  reason. Adjudication also established that the in-tree mutation proofs supply
+  that non-vacuity evidence in substance, so what remains is an authority
+  statement, not more evidence work. The nit is closed by extending the compile
+  record to every stored block, measured as they now stand after T4's block lost
+  its unused `import re`; the round-3 four-block record it supersedes predated
+  that edit.
