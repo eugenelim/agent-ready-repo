@@ -64,6 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.10] — 2026-10-01
+
+### Added
+
+- Added a position-free `families` key to review-classification payloads for future recurrence work. The key is emitted but has no consumer, state, comparison, or verdict effect.
+
 ## [core][2.27.9] — 2026-10-01
 
 ### Highlights

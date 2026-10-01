@@ -1250,6 +1250,15 @@ def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
         assert role in text
 
 
+def test_family_key_reference_names_its_preimage_and_unconsumed_status() -> None:
+    """Keep the emitted family key from being mistaken for a live signal."""
+    reference = flat(FINDING_ADJUDICATION.read_text(encoding="utf-8"))
+
+    assert "Classification payloads include `families`" in reference
+    assert "Its preimage is `<location>|<stable-title>`" in reference
+    assert "Nothing consumes it yet." in reference
+
+
 def test_review_artifact_configures_utf8_before_output() -> None:
     """Keep portable stream encoding ahead of every validator print path."""
     text = VALIDATOR.read_text(encoding="utf-8")
