@@ -1619,6 +1619,36 @@ describe.skipIf(!docsBuilt || !webBuilt)('install-to-ship walkthrough', () => {
  * describe below: a source check that silently skips when the site has not been
  * built would be a control that cannot fail.
  */
+/**
+ * The whole-site scans have a memory budget, and until now it lived only in a
+ * comment. That comment said "~217 built pages"; the tree reached 272 and a CI
+ * worker died with SIGABRT on Node's default heap, while the same run passed
+ * locally — so nothing announced the drift for 55 pages.
+ *
+ * This is the tripwire that comment needed. It is not a precise limit: the
+ * ceiling is set below where the configured 6GB fork heap
+ * (web/vitest.config.ts) is expected to fail, so growth trips a named
+ * assertion first rather than an out-of-memory abort nobody can read.
+ *
+ * When it fires, raising both numbers is the cheap answer once. The better one
+ * is sharding these scans across workers, because every raise buys less than
+ * the last.
+ */
+const DOCS_PAGE_BUDGET = 330;
+
+describe('whole-site scan budget', () => {
+  it('stays under the page count the configured worker heap was sized for', () => {
+    if (!docsBuilt) return expect(docsPages.length).toBe(0);
+    expect(
+      docsPages.length,
+      `${docsPages.length} docs pages exceeds the ${DOCS_PAGE_BUDGET}-page budget these ` +
+        'scans were sized for. Raise DOCS_PAGE_BUDGET and the ' +
+        '--max-old-space-size in web/vitest.config.ts together, or shard the ' +
+        'whole-site scans — do not raise one without the other.'
+    ).toBeLessThanOrEqual(DOCS_PAGE_BUDGET);
+  });
+});
+
 describe('desk-research pack link integrity', () => {
   const PACK = join(REPO_ROOT, 'guides/desk-research');
 
