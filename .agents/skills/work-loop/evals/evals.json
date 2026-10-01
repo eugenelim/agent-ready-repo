@@ -1150,7 +1150,7 @@
     {
       "id": "event-line-budgets-report-the-enforced-cap",
       "prompt": "A work-loop run's `state.json` records no `max_review_retries`. Its latest `events.jsonl` line shows `budgets.max_review_retries` and `budgets.review_retry_count`. What do the two values mean, and is the run uncapped?",
-      "expected_output": "The run is not uncapped. An absent cap is enforced at the guard layer's default, and the event line reports that same enforced value, so `budgets.max_review_retries` shows the default (5) rather than null. The two fields resolve differently on purpose: a cap is always enforced and so is never genuinely absent, while a retry count that nothing has recorded reports null, which is how a consumer tells \"not recorded\" from zero.",
+      "expected_output": "The run is not uncapped. An absent cap is enforced at the guard layer's default, and the event line reports that same enforced value, so `budgets.max_review_retries` shows the default (5) rather than null. The two fields resolve differently on purpose: an absent cap is still enforced at the default, so it is never genuinely absent (only a malformed cap, which the guard refuses, reports null), while a retry count that nothing has recorded reports null, which is how a consumer tells \"not recorded\" from zero.",
       "assertions": [
         "Response says the run is not uncapped",
         "Response says `budgets.max_review_retries` reports the enforced default rather than null",
