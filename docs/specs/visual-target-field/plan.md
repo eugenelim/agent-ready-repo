@@ -1,7 +1,7 @@
 # Plan: visual-target field
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule,
   § Security and authoring rules (the eval-harness obligation) and
   § Self-hosting projection; `packs/AGENTS.local.md` § Marketplace and release
@@ -1221,3 +1221,21 @@ proofs had to meet and **not as work to repeat**:
   being governed, including a fourth carrier of a deleted entailment and T5 task
   text that would have directed an implementer to re-run two mutations against
   shipped byte-pinned files. Both are repaired.
+- 2026-10-01: **Build-strategy gate passed on the amended contract. `eugenelim`
+  approved the plan.** Same clean adjudicated verdict; the plan is the artifact
+  the verdict pass spent most of its reading on, and it verified the landed-state
+  banner against the tree rather than taking it on trust. Approved with these
+  conditions carried into execution rather than waived.
+  T5 is re-emitted by the reschedule because `completed_task_ids` records T1 to
+  T4 only, which neither amendment could change — `begin_contract_amendment`
+  derives completion as the prior set plus `schedule_waves[:current_wave_index]`
+  with no caller-supplied addition. T5's work is nonetheless committed and its
+  `Done when` was measured satisfied, so its remaining obligation is
+  re-verification, and the task's own banner says so. **Do not re-run the two
+  mutations**: they edit the shipped template and guide, the AC-0011 one
+  propagates into a second byte-pinned file through the guidebook-lint coupling,
+  and `mutation-proof.md` permits no `git checkout`, `reset` or `stash` to undo
+  it.
+  T1 through T4's sections stay pinned and evidence-bound, verified immediately
+  before this approval by `validate_completed_task_sections`, which returns no
+  refusal. Both T5 stub blocks remain byte-identical to the shipped files.
