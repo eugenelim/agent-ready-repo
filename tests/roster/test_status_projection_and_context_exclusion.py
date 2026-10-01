@@ -1968,7 +1968,7 @@ def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engi
     ], "a declared empty value is an answer, not unknown scope"
 
 
-def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> None:
+def test_cooled_parentless_child_scope_closure_is_pinned(tmp_path, engine) -> None:
     """ADR-0110 closes the gap this case was written to pin.
 
     The child still names its brief in the artifact body only, so the link is
@@ -1978,11 +1978,9 @@ def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> N
     the entry a maintainer can edit rather than the brief they cannot.
 
     The pinning worked as intended -- closing the gap had to change this test
-    deliberately, which is what happened. The function name is retained because
-    AC17 of `cooling-brief-child-scope-closure` pins it, to prove the case was
-    updated rather than deleted; it now pins the closure rather than the gap,
-    and that name/body mismatch is recorded in that spec's
-    `notes/follow-ons.md`.
+    deliberately, which is what happened. The function name was corrected to
+    match the body; frozen AC17 remains a historical record that the three
+    Wave-6 cases were updated rather than deleted.
     """
     root = tmp_path
     _brief_body(root, status="Shipped")
@@ -2020,7 +2018,7 @@ def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> N
     ], "the brief dependency was not refused"
 
 
-def test_unrelated_cooled_spec_does_not_affect_different_initiative_brief(
+def test_unrelated_cooled_spec_affects_different_initiative_brief(
     tmp_path, engine
 ) -> None:
     """ADR-0110: the unknown-scope floor crosses initiative boundaries.
@@ -2036,10 +2034,9 @@ def test_unrelated_cooled_spec_does_not_affect_different_initiative_brief(
     Killing mutation: scope the refusal to the cooled entry's own initiative --
     the ini-002 dependant dispatches and the cross-initiative floor is lost.
 
-    The function name is retained because AC17 of
-    `cooling-brief-child-scope-closure` pins it, to prove the case was updated
-    rather than deleted. The name now contradicts the body; that mismatch is
-    recorded in that spec's `notes/follow-ons.md`.
+    The function name was corrected to match the body; frozen AC17 remains a
+    historical record that the three Wave-6 cases were updated rather than
+    deleted.
     """
     root = tmp_path
     _brief_body(root, status="Shipped")
