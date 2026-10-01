@@ -97,6 +97,7 @@ ready     = [
   {path = "docs/product/briefs/repository-grounding-preservation.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make Core recognize shared-substrate changes, derive bounded disposable consumer maps, and require preservation evidence without adapt-to-project, code intelligence, Pi, or whole-repository ingestion", needs = []},
 ]
 draft     = [
+  {path = "docs/product/briefs/acceptance-centered-work-loop.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/architecture/acceptance-centered-work-loop.md", revision = "61624180b808f9adca70eab2ed2305adee645ce9"}, summary = "Replace workflow-engine authority with an acceptance-centered, runtime-neutral work loop through eight independently shippable slices", needs = []},
   # Logged to shape 2026-09-03 out of universal-implementer-dispatch U1 delivery:
   # eight structural facts were learned by failing a gate. Derived-vs-accreted is
   # the unmade decision; the owner ruled out a hand-maintained index.
