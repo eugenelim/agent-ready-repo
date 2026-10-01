@@ -1,7 +1,7 @@
 # Plan: visual-target field
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule,
   § Security and authoring rules (the eval-harness obligation) and
   § Self-hosting projection; `packs/AGENTS.local.md` § Marketplace and release
@@ -728,8 +728,9 @@ def test_visual_target_guide_excerpt() -> None:
     ), (
         "AC-0011: the comment must state the absent-field reading as one "
         "contiguous phrase. Testing for `unconfirmed` beside the word `absent` "
-        "cannot fail: AC-0001's closed-set enumeration already guarantees "
-        "`unconfirmed`, so that form reduces to whether `absent` appears at all."
+        "reduces the criterion to whether `absent` appears at all, so a comment "
+        "stating that an absent target means `none` would pass while "
+        "contradicting the fail-closed default."
     )
 ```
 
@@ -1099,3 +1100,21 @@ inside a four-criterion test function. Two mutations are owed:
   introduced the pack test that reaches above its own pack, so the branch
   cannot go green until T5's relocation lands. T1, T2 and T3's sections are
   pinned and were verified byte-identical immediately before this approval.
+- 2026-10-01: **Second contract amendment, post-gates.** The post-gates review
+  sustained two findings that both sit inside the pinned canonical spec hash,
+  measured rather than assumed, so the controlled `contract-amendment` path
+  applied. AC-0011's rationale had asserted the superseded assertion "cannot
+  fail" because the comment carries `unconfirmed` "in AC-0001's closed-set
+  enumeration" — false, because AC-0001 pins the frontmatter placeholder while
+  the assertion reads only the section comment, whose own enumeration no
+  criterion pins. The entailment is deleted rather than restated, in all three
+  carriers it occupied: this spec, T5's stub block, and the shipped assertion
+  message, with the last two kept byte-identical. AC-0004's "exactly once in the
+  file" clause is narrowed to the one-paragraph-block property its assertion
+  actually decides, rather than strengthening the assertion, which was shipped
+  under pinned T2 and would have needed a new dependency-ordered task. The
+  authority, reason, the deadlock that interrupted the transition and the
+  authorized one-field state repair that recovered it are recorded in
+  [`notes/amendment-2026-10-01-post-gates.md`](notes/amendment-2026-10-01-post-gates.md).
+  T1 through T4 are pinned and evidence-bound; only T5 is re-emitted. The
+  experience review's twelve findings were all refuted and none is acted on.

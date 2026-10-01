@@ -1,6 +1,6 @@
 # Spec: visual-target field
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md)
@@ -107,7 +107,7 @@ spec defines both for itself rather than borrowing them. A period-delimited span
 **not** a bounded unit: adjacent structure that carries no terminal period —
 a heading, a table cell, a bullet — joins it silently, which would let an
 unscoped instruction pass because a scoped heading sat above it. The criterion
-also requires its anchor to occur exactly once in the named file, so the
+also requires its anchor to occur in exactly one paragraph block of the
 verification cannot silently grade a different occurrence.
 
 - **TDD — the template carries the state and its provenance (AC-0001, AC-0002,
@@ -193,8 +193,8 @@ verification cannot silently grade a different occurrence.
 - [ ] **AC-0004.** In `references/converge.md`, the paragraph block containing
   the literal `Record the approved visual target disposition` contains all
   three closed values — `visual_target: none`, `visual_target: unconfirmed`
-  and `visual_target: confirmed` — and that anchor occurs exactly once in the
-  file. All three, because that block today records the no-target case as the
+  and `visual_target: confirmed` — and that anchor occurs in exactly one
+  paragraph block of that file. All three, because that block today records the no-target case as the
   bare word `none`; leaving it unwritten as a field value would make it read
   as `unconfirmed` under the absent-field rule, which is not what ADR-0132
   fixes. The bounded unit matters even now that this slice adds no other
@@ -240,11 +240,10 @@ verification cannot silently grade a different occurrence.
   ```
 
   The phrase is
-  pinned because the co-occurrence form does not decide the criterion: the
-  comment already carries `unconfirmed` in AC-0001's closed-set enumeration, so
-  testing for that word beside the word `absent` reduces the criterion to
-  whether `absent` appears anywhere, and a comment reading "an absent target
-  means `none`" would pass while stating the opposite of the fail-closed default
+  pinned because the co-occurrence form does not decide the criterion: testing for
+  `unconfirmed` beside the word `absent` reduces the criterion to whether
+  `absent` appears anywhere, so a comment reading "an absent target means
+  `none`" would pass while stating the opposite of the fail-closed default
   ADR-0132 fixes.
 - [ ] **AC-0012.** Within one fenced block of
   `guides/experience-design/how-to/establish-design-intent.md` — selected as

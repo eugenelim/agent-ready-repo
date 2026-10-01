@@ -333,8 +333,9 @@ def test_template_carries_the_visual_target_disposition() -> None:
     ), (
         "AC-0011: the comment must state the absent-field reading as one "
         "contiguous phrase. Testing for `unconfirmed` beside the word `absent` "
-        "cannot fail: AC-0001's closed-set enumeration already guarantees "
-        "`unconfirmed`, so that form reduces to whether `absent` appears at all."
+        "reduces the criterion to whether `absent` appears at all, so a comment "
+        "stating that an absent target means `none` would pass while "
+        "contradicting the fail-closed default."
     )
 
 
