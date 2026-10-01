@@ -19,6 +19,8 @@ Verb surface
     loop-cohort plan check-current <spec-dir> [--require-schedule]
     loop-cohort schedule <spec-dir> --expect-run-id <uuid>
     loop-cohort schedule check-current <spec-dir>
+    loop-cohort wave-decision <spec-dir> [--wave <n>]
+                               [--force-sequential [<task-id>]] [--json]
     loop-cohort record-attempt <spec-dir> --phase implement
                                --cycle-id <run_id>:<seq> --expect-run-id <uuid>
     loop-cohort dispatch-receipt <spec-dir> --task <task-id> --wave-index <n>
@@ -1864,10 +1866,13 @@ def detect_forward_refs(ordered, deps):
     ]
 
 
-# ── auto-classification helpers (kept; dispatch-decision verb disabled) ───
+# ── dispatch-classification helpers (dispatch-decision verb disabled) ────
 
 SAFE_CATEGORIES = frozenset({"cannot-collide", "typed-group-b", "textual-loud"})
 
+# Shared by the post-write classifier and the pre-dispatch wave-decision
+# screen. A regex change moves both decisions and needs review against both
+# test surfaces.
 _DANGER_PATH_RE = re.compile(
     r"(^|/)(poetry\.lock|package-lock\.json|Cargo\.lock|go\.sum|uv\.lock"
     r"|yarn\.lock|requirements\.txt|pyproject\.toml|package\.json|__init__\.py"
@@ -2008,6 +2013,355 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(f"loop-cohort status for {spec_dir.name}:")
         for k, v in result.items():
             print(f"  {k}: {v!r}")
+    return 0
+
+
+# ── wave-decision (read-only pre-dispatch screen) ─────────────────────────
+
+MAX_WAVE_DECISION_TASKS = 64
+MAX_WAVE_DECISION_TASK_ID_LENGTH = 64
+MAX_WAVE_DECISION_TOUCHES_PER_TASK = 64
+MAX_WAVE_DECISION_TOUCHES_PER_WAVE = 256
+MAX_WAVE_DECISION_TOUCH_GLOB_LENGTH = 256
+WAVE_DECISION_REFUSAL_DETAILS = {
+    "unsupported-state-schema-version": "cohort state schema is unsupported",
+    "state-unreadable": "cohort state could not be read",
+    "no-schedule": "cohort has no scheduled wave",
+    "state-malformed": "cohort state is malformed",
+    "plan-missing": "scheduled plan could not be found",
+    "plan-status-illegal": "scheduled plan status is illegal",
+    "plan-hash-stale": "scheduled plan hash is stale",
+    "wave-index-out-of-range": "requested wave index is out of range",
+    "empty-wave": "selected wave has no unfinished work",
+}
+
+
+def _emit_wave_refusal(args: argparse.Namespace, code: str, detail: str) -> int:
+    """Render this verb's deliberate JSON refusal envelope or human refusal."""
+    if args.json:
+        print(json.dumps({
+            "payload_version": 1,
+            "refusal": code,
+            "detail": WAVE_DECISION_REFUSAL_DETAILS[code],
+        }))
+        return 1
+    return stop(f"wave-decision: {code}: {detail}")
+
+
+def _wave_state_malformed(reason: str) -> tuple[str, str]:
+    return "state-malformed", reason
+
+
+def _valid_wave_task_id(task_id: object) -> bool:
+    return (
+        isinstance(task_id, str)
+        and len(task_id) <= MAX_WAVE_DECISION_TASK_ID_LENGTH
+        and _TASK_ID_RE.fullmatch(task_id) is not None
+    )
+
+
+def _normalise_wave_state(
+    state: dict, wave_arg: int | None
+) -> tuple[dict, tuple[str, str] | None]:
+    run_id = state.get("run_id")
+    if not isinstance(run_id, str) or run_id == "":
+        return {}, _wave_state_malformed("run_id must be a non-empty string")
+
+    waves = state.get("schedule_waves")
+    if "schedule_waves" not in state or waves == []:
+        return {}, ("no-schedule", "schedule_waves is absent or empty")
+    if not isinstance(waves, list):
+        return {}, _wave_state_malformed("schedule_waves must be a list")
+    for index, wave in enumerate(waves):
+        if not isinstance(wave, list) or any(not isinstance(task_id, str) for task_id in wave):
+            return {}, _wave_state_malformed(
+                f"schedule_waves[{index}] must be a list of task IDs"
+            )
+
+    completed = state.get("completed_task_ids", [])
+    if not isinstance(completed, list) or any(
+        not isinstance(task_id, str) for task_id in completed
+    ):
+        return {}, _wave_state_malformed("completed_task_ids must be a list of task IDs")
+
+    current = state.get("current_wave_index", 0)
+    if wave_arg is None:
+        if isinstance(current, bool) or not isinstance(current, int) or current < 0:
+            return {}, _wave_state_malformed(
+                "current_wave_index must be a non-negative integer"
+            )
+        wave_index = current
+    else:
+        wave_index = wave_arg
+    if wave_index < 0 or wave_index >= len(waves):
+        return {}, (
+            "wave-index-out-of-range",
+            f"wave_index={wave_index} is outside schedule_waves length {len(waves)}",
+        )
+
+    completed_set = set(completed)
+    wave = [task_id for task_id in waves[wave_index] if task_id not in completed_set]
+    if not wave:
+        return {}, ("empty-wave", "selected wave has no unfinished tasks")
+    if len(wave) != len(set(wave)):
+        return {}, _wave_state_malformed("unfinished wave contains duplicate task ID(s)")
+    bad_ids = [task_id for task_id in wave if not _valid_wave_task_id(task_id)]
+    if bad_ids:
+        return {}, _wave_state_malformed(
+            "unfinished wave contains invalid task ID(s): " + bounded_id_list(bad_ids)
+        )
+    if len(wave) > MAX_WAVE_DECISION_TASKS:
+        return {}, _wave_state_malformed(
+            f"unfinished wave has {len(wave)} tasks; maximum is {MAX_WAVE_DECISION_TASKS}"
+        )
+
+    return {
+        "wave_index": wave_index,
+        "wave": wave,
+    }, None
+
+
+def _validated_wave_touches(
+    plan_text: str, wave: list[str]
+) -> tuple[dict[str, list[str]], tuple[str, str] | None]:
+    """Return selected-wave effective touches after enforcing public budgets."""
+    parsed = parse_touches_by_task(plan_text)
+    touches = {task_id: sorted(parsed.get(task_id, set())) for task_id in wave}
+    total = 0
+    for task_id, globs in touches.items():
+        if len(globs) > MAX_WAVE_DECISION_TOUCHES_PER_TASK:
+            return {}, (
+                "plan-status-illegal",
+                (
+                    f"{task_id} declares {len(globs)} effective Touches globs; "
+                    f"maximum is {MAX_WAVE_DECISION_TOUCHES_PER_TASK}"
+                ),
+            )
+        for glob in globs:
+            if len(glob) > MAX_WAVE_DECISION_TOUCH_GLOB_LENGTH:
+                return {}, (
+                    "plan-status-illegal",
+                    (
+                        f"{task_id} declares an effective Touches glob longer than "
+                        f"{MAX_WAVE_DECISION_TOUCH_GLOB_LENGTH} characters"
+                    ),
+                )
+        total += len(globs)
+    if total > MAX_WAVE_DECISION_TOUCHES_PER_WAVE:
+        return {}, (
+            "plan-status-illegal",
+            (
+                f"selected wave declares {total} effective Touches globs; "
+                f"maximum is {MAX_WAVE_DECISION_TOUCHES_PER_WAVE}"
+            ),
+        )
+    return touches, None
+
+
+def _pair_relation(left: list[str], right: list[str]) -> str:
+    if not left or not right:
+        return "unknown"
+    if any(globs_overlap(a, b) for a in left for b in right):
+        return "overlapping"
+    return "disjoint"
+
+
+def _build_wave_decision(
+    *,
+    state: dict,
+    touches: dict[str, list[str]],
+    wave_index: int,
+    wave: list[str],
+    force_sequential: str | None,
+) -> dict:
+    force_all = force_sequential == "__all__"
+    admitted: list[str] = []
+    task_rows: list[dict] = []
+    # Admission and pair presentation need the same relation. Cache admission's
+    # work so the approved wave-wide touch budget bounds each task pair once.
+    pair_relations: dict[tuple[str, str], str] = {}
+
+    for task_id in wave:
+        task_globs = touches[task_id]
+        reasons: list[dict] = []
+        if not task_globs:
+            reasons.append({"code": "touches-undeclared"})
+        for glob in task_globs:
+            if _DANGER_PATH_RE.search(glob):
+                reasons.append({"code": "danger-path-declared", "glob": glob})
+        if force_all or force_sequential == task_id:
+            reasons.append({"code": "override-forced-sequential", "source": "cli"})
+
+        overlap_reason = None
+        for admitted_task in admitted:
+            pair_key = (admitted_task, task_id)
+            for glob in task_globs:
+                for admitted_glob in touches[admitted_task]:
+                    if globs_overlap(glob, admitted_glob):
+                        overlap_reason = {
+                            "code": "touches-overlap",
+                            "with": admitted_task,
+                            "globs": [glob, admitted_glob],
+                        }
+                        break
+                if overlap_reason is not None:
+                    break
+            if not task_globs or not touches[admitted_task]:
+                pair_relations[pair_key] = "unknown"
+            elif overlap_reason is not None:
+                pair_relations[pair_key] = "overlapping"
+            else:
+                pair_relations[pair_key] = "disjoint"
+            if overlap_reason is not None:
+                break
+        if overlap_reason is not None:
+            reasons.append(overlap_reason)
+        if not reasons:
+            admitted.append(task_id)
+
+        task_rows.append(
+            {
+                "task_id": task_id,
+                "touches": task_globs,
+                "disposition": "sequential" if reasons else "parallel-capable",
+                "reasons": reasons,
+            }
+        )
+
+    if len(admitted) < 2:
+        admitted_set = set(admitted)
+        for row in task_rows:
+            if row["task_id"] in admitted_set:
+                row["reasons"].append({"code": "no-admitted-peer"})
+                row["disposition"] = "sequential"
+        cohort: list[str] = []
+    else:
+        cohort = admitted
+
+    cohort_set = set(cohort)
+    serialized = [task_id for task_id in wave if task_id not in cohort_set]
+    if len(wave) == 1:
+        wave_disposition = "single-task"
+    elif len(cohort) == len(wave):
+        wave_disposition = "all-parallel-capable"
+    elif not cohort:
+        wave_disposition = "all-sequential"
+    else:
+        wave_disposition = "partially-parallel-capable"
+
+    pairs = []
+    for i, left in enumerate(wave):
+        for right in wave[i + 1:]:
+            relation = pair_relations.get((left, right))
+            if relation is None:
+                relation = _pair_relation(touches[left], touches[right])
+            pairs.append({
+                "tasks": [left, right],
+                "touches_relation": relation,
+            })
+
+    return {
+        "schema_version": state.get("schema_version"),
+        "payload_version": 1,
+        "run_id": state.get("run_id"),
+        "plan_hash": state.get("plan_hash"),
+        "wave_index": wave_index,
+        "wave": wave,
+        "wave_disposition": wave_disposition,
+        "cohort": cohort,
+        "serialized": serialized,
+        "admission_pending": True,
+        "tasks": task_rows,
+        "pairs": pairs,
+    }
+
+
+def _render_wave_decision_human(payload: dict) -> None:
+    print(f"loop-cohort wave-decision for wave {payload['wave_index']}:")
+    print(f"  wave_disposition: {payload['wave_disposition']}")
+    print(f"  admission_pending: {payload['admission_pending']}")
+    print(f"  cohort: {', '.join(payload['cohort']) if payload['cohort'] else '(none)'}")
+    print(
+        "  serialized: "
+        + (", ".join(payload["serialized"]) if payload["serialized"] else "(none)")
+    )
+    for row in payload["tasks"]:
+        reason_codes = [reason["code"] for reason in row["reasons"]]
+        suffix = f" reasons={','.join(reason_codes)}" if reason_codes else ""
+        print(f"  {row['task_id']}: {row['disposition']}{suffix}")
+
+
+def cmd_wave_decision(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except (OSError, RuntimeError, ValueError) as exc:
+        return _emit_wave_refusal(args, "state-unreadable", str(exc))
+
+    identity = _g.check_identity(spec_dir, expect_run_id=None)
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return _emit_wave_refusal(args, "state-unreadable", str(exc))
+    if not identity.ok:
+        code = (
+            "unsupported-state-schema-version"
+            if state.get("schema_version") != SCHEMA_VERSION
+            else "state-unreadable"
+        )
+        return _emit_wave_refusal(args, code, identity.reason)
+
+    normalised, refusal = _normalise_wave_state(state, args.wave)
+    if refusal is not None:
+        code, detail = refusal
+        return _emit_wave_refusal(args, code, detail)
+
+    schedule_current = _g.check_schedule_current(spec_dir, include_snapshot=True)
+    if not schedule_current.ok:
+        failure_kind = (schedule_current.data or {}).get("failure_kind")
+        code = {
+            "state-unreadable": "state-unreadable",
+            "plan-missing": "plan-missing",
+            "plan-status-illegal": "plan-status-illegal",
+            "plan-hash-stale": "plan-hash-stale",
+        }.get(failure_kind, "plan-status-illegal")
+        return _emit_wave_refusal(args, code, schedule_current.reason)
+
+    snapshot = schedule_current.data or {}
+    snapshot_state = snapshot.get("state")
+    plan_text = snapshot.get("plan_text")
+    if not isinstance(snapshot_state, dict) or not isinstance(plan_text, str):
+        return _emit_wave_refusal(
+            args,
+            "state-unreadable",
+            "schedule check-current returned no validated snapshot",
+        )
+    if snapshot_state.get("schema_version") != SCHEMA_VERSION:
+        return _emit_wave_refusal(
+            args,
+            "unsupported-state-schema-version",
+            "validated snapshot has an unsupported schema version",
+        )
+    normalised, refusal = _normalise_wave_state(snapshot_state, args.wave)
+    if refusal is not None:
+        code, detail = refusal
+        return _emit_wave_refusal(args, code, detail)
+
+    touches, touches_refusal = _validated_wave_touches(plan_text, normalised["wave"])
+    if touches_refusal is not None:
+        code, detail = touches_refusal
+        return _emit_wave_refusal(args, code, detail)
+
+    payload = _build_wave_decision(
+        state=snapshot_state,
+        touches=touches,
+        wave_index=normalised["wave_index"],
+        wave=normalised["wave"],
+        force_sequential=args.force_sequential,
+    )
+    if args.json:
+        print(json.dumps(payload))
+    else:
+        _render_wave_decision_human(payload)
     return 0
 
 
@@ -3598,6 +3952,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="path to plan.md (must be <spec-dir>/plan.md)",
     )
     sp_sched.set_defaults(func=cmd_schedule)
+
+    # wave-decision
+    sp = sub.add_parser(
+        "wave-decision",
+        help="read-only: pre-dispatch task admission screen for one scheduled wave",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument(
+        "--wave",
+        type=int,
+        default=None,
+        help="schedule_waves index; defaults to current_wave_index",
+    )
+    sp.add_argument(
+        "--force-sequential",
+        nargs="?",
+        const="__all__",
+        default=None,
+        metavar="<task-id>",
+        help="screen every task, or one named task, as sequential for this verdict",
+    )
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_wave_decision)
 
     # record-attempt
     sp = sub.add_parser(

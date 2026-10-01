@@ -198,6 +198,18 @@ jobs:
       # build/, so this is the only job in the repo where they can run — and
       # without them the tech-site-polish-batch defects regress silently.
       - name: Assert rendered-output invariants
+        # The whole-site scans parse every built page, and the corpus grows
+        # with the site. At 272 docs pages a worker died with SIGABRT on the
+        # runner's default ~4GB heap while the same run passed on a developer
+        # machine, which has more headroom. NODE_OPTIONS is the mechanism that
+        # reaches the worker: `poolOptions.forks.execArgv` in
+        # web/vitest.config.ts is silently ignored — setting it to 160MB does
+        # not fail the suite, while this does, which is how the inert form was
+        # caught. web/src/test/rendered-output.test.ts asserts a page budget
+        # below where this heap is expected to fail, so growth trips a named
+        # assertion rather than an unreadable abort; raise both together.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: npm test --prefix web
 
       # spec/site-browser-quality-gate. The deterministic browser subset: the

@@ -1,6 +1,6 @@
 # Durable transitions and within-wave parallelism
 
-**STATUS: §§ 1 and 2 implemented; §§ 3 and 4 planned.**
+**STATUS: §§ 1, 2, and 4 implemented; § 3 planned.**
 
 This document states decisions and their costs. Shipped behaviour the baseline
 records is cited from [`loop-infrastructure.md`](loop-infrastructure.md);
@@ -395,7 +395,7 @@ written is a claim about work that does not exist yet.
 
 | Gate | When | Reads | Says | Status |
 | --- | --- | --- | --- | --- |
-| `wave-decision` (§ 4) | before dispatch | `plan.md` `Touches:`, cohort state | `parallel-capable` / `sequential` | planned; screen only |
+| `wave-decision` (§ 4) | before dispatch | `plan.md` `Touches:`, cohort state | `parallel-capable` / `sequential` | Owner-approved; screen only |
 | `dispatch_decision()` | after the writes | category names and a merge-tree verdict, both passed in | `parallel` / `serial` | ADR-0005 D3 + D4; inert |
 
 The second row is inert in both directions, which § 3 states for the predicate
@@ -478,8 +478,26 @@ which is the screen-as-greenlight misread this section exists to prevent.
 Admission is a property of a task, and only `tasks` reports it.
 
 A wave of *n* tasks emits *n(n−1)/2* pair rows. The corpus reports a median max
-wave width of 2 but no measured maximum, so the bound is the width the plan
-actually declares rather than anything the corpus fixes.
+wave width of 2 but no measured maximum. The Owner-approved implementation
+limit is 64 unfinished tasks, or 2,016 pair rows: a wider remaining wave refuses
+as `state-malformed` before pair construction. This 2026-09-29 amendment bounds
+the quadratic stdout and agent-context cost without adding a tenth refusal code.
+Every selected task ID must also match the existing plan grammar
+`T[0-9]+[a-z]?` and be at most 64 characters; an invalid or longer ID refuses
+as `state-malformed` before the quadratic expansion. Task IDs in the selected
+unfinished wave must be unique for the same reason: duplicate rows would make a
+success payload violate its own schema, so duplicates refuse as
+`state-malformed` before construction.
+
+The same 2026-09-29 amendment bounds the other multiplicative input. Effective
+`Touches:` means the de-duplicated glob set the existing parser returns for a
+task. A selected task may contribute at most 64 effective globs, the selected
+wave at most 256 effective globs in total, and an effective glob may contain at
+most 256 characters. A breach refuses as `plan-status-illegal` before danger
+classification, overlap checks, admission, or pair construction. These are
+plan-input failures, not new refusal kinds. The current corpus maxima were 34,
+34, and 163 respectively; with the 64-task limit, the aggregate cap limits the
+comparison loop to 32,256 potential glob comparisons.
 
 Explanation lives on the pair because no task overlaps on its own: it overlaps a
 named peer. A `touches-overlap` reason therefore names both, as
@@ -580,10 +598,13 @@ gate still has to admit it.
 A `sequential` verdict is a decision and exits 0. Exiting non-zero means the
 verb declined to decide at all. **Under `--json`** a refusal uses the same
 channel as a verdict: `{"payload_version": 1, "refusal": "<code>", "detail":
-"<guard reason>"}` to stdout, exit 1. Without `--json` it is a `stop()` line on
-stderr, exit 1. The code is the contract; the prose is not. Emitting the codes
-only as stderr text would reproduce the indistinguishable-refusal defect this
-vocabulary exists to fix.
+"<fixed public-safe message>"}` to stdout, exit 1. The message is selected by
+code from a closed table, capped at 96 characters, and never contains raw guard
+text, caller-controlled paths, or exception prose. Without `--json` it is a
+`stop()` line on stderr, exit 1, and that human path keeps the richer diagnostic
+that explains the specific guard failure. The code is the contract; the prose is
+not. Emitting the codes only as stderr text would reproduce the
+indistinguishable-refusal defect this vocabulary exists to fix.
 
 **That stdout refusal is a new convention, not the shipped one.** No current
 verb emits a refusal on stdout — `cmd_status` refuses through `stop()` to
@@ -597,11 +618,11 @@ deciders is the defect this section is repairing rather than repeating.
 | Code | Decided by |
 | --- | --- |
 | `unsupported-state-schema-version` | `check_identity`, which the verb calls first — `check_schedule_current` does not inspect `schema_version` |
-| `state-unreadable` | `_state_or_reason`, reached through that same first `check_identity` call. It also covers a missing or non-directory spec path, which `_require_spec_dir` refuses on the same edge — folded into one code by choice, not necessity |
+| `state-unreadable` | `_resolve_spec_dir` when the caller's path fails repository confinement, then `_state_or_reason` reached through the first `check_identity` call. It also covers a missing or non-directory spec path, which `_require_spec_dir` refuses on the same edge — folded into one code by choice, not necessity |
 | `no-schedule` | the verb, before calling the guard: `schedule_waves` absent or empty |
-| `state-malformed` | the verb, before indexing: `schedule_waves` present but not a list of task-ID lists, `completed_task_ids` not a list, or `current_wave_index` not a non-negative integer. The guard layer already refuses the first shape on its own paths with `schedule_waves is malformed` and `schedule_waves[i] is malformed`; this verb must refuse all three, because it defaults `--wave` from the pointer, indexes the wave, and subtracts the completed set before any guard it calls would reach them |
+| `state-malformed` | the verb, before pair construction: `run_id` is not a non-empty string; `schedule_waves` is present but not a list of task-ID lists; `completed_task_ids` is not a list; `current_wave_index` is not a non-negative integer; a selected unfinished task ID is duplicated or does not match `T[0-9]+[a-z]?` within 64 characters; or the selected wave has more than 64 unfinished tasks after completed-task subtraction. The guard layer already refuses the schedule shape on its own paths with `schedule_waves is malformed` and `schedule_waves[i] is malformed`; this verb must refuse the whole success-envelope state shape because it would otherwise emit schema-invalid output or repeat attacker-sized input quadratically before any later guard reached it |
 | `plan-missing` | `check_schedule_current` — no `plan.md` at the spec directory |
-| `plan-status-illegal` | every `assert_status_legal` refusal reached through that guard — which includes a `plan.md` that cannot be read at all, folded in by the same choice |
+| `plan-status-illegal` | every `assert_status_legal` refusal reached through that guard — which includes a `plan.md` that cannot be read at all — plus an effective `Touches:` set exceeding 64 globs for one selected task, 256 globs across the selected wave, or 256 characters for one glob. All are folded into one authored-plan-input code by choice |
 | `plan-hash-stale` | `check_schedule_current`'s hash comparison |
 | `wave-index-out-of-range` | the verb, against `schedule_waves` |
 | `empty-wave` | the verb, after subtracting `completed_task_ids` |
@@ -630,8 +651,10 @@ vocabulary exists to repair.
 
 The verb passes no `expect_run_id` to `check_identity`, so that guard's
 run-ID-mismatch exit is unreachable here and the closed set needs no code for
-it. The `run_id` in the payload is echoed from state, never checked against an
-argument.
+it. The `run_id` in the payload is echoed from state rather than compared with
+an argument, but the verb still requires it to be a non-empty string so every
+success payload satisfies the public schema; malformed identity state folds
+into `state-malformed`.
 
 `empty-wave` is the shipped predicate's empty-list defect, which answers
 `parallel` for an empty category list: a wave with nothing left in it is
@@ -647,9 +670,13 @@ on disk, and the `plan_hash` it echoes is the scheduled baseline read from
 state, not a hash it recomputes. It reads the scheduled plan, never the approved
 one.
 
-Both reads go through the guard layer's exported `read_state` and the bundled
-bounded reader, as every other verb's do. Holding no lock lowers the cost of a
-bad read; it does not lower the requirement.
+Before either read, `_resolve_spec_dir` resolves the caller's path and confines
+it to the current repository, including symlink resolution. Absolute paths
+outside the repository, `..` components, and symlink or reparse-point escapes
+fold into `state-unreadable`, the existing spec-path refusal. Both reads then go
+through the guard layer's exported `read_state` and the bundled bounded reader,
+as every other verb's do. Holding no lock lowers the cost of a bad read; it does
+not lower the requirement.
 
 The verb takes no cohort lock, because it writes nothing. Its answer is a
 snapshot and is advisory the moment it is printed; § 2 serialises a transition
@@ -687,11 +714,11 @@ what it is declining to do.
 | Refusal channel under `--json` | same file | first verb to emit a refusal on stdout; every shipped verb refuses to stderr through `stop()`, including under `--json` |
 | `_DANGER_PATH_RE` | same file | gains a second consumer — a change to it now moves the post-write classifier *and* the pre-dispatch screen |
 | AC5, screen-only | `docs/specs/supervisor-predict-disjointness/spec.md` | holds unamended, and for a narrower reason than it first appears: AC5 pins that the **`schedule`** prediction path "shares **no function call** with the gate path", so it constrains `cmd_schedule` and does not reach a new verb at all. That the verb also calls neither named function is true but is not what preserves AC5 |
-| *Ask first* — "letting the prediction influence the parallel greenlight in any way … needs Owner sign-off" | same spec | § 4 **is** that request, and the sign-off is owed before implementation |
+| *Ask first* — "letting the prediction influence the parallel greenlight in any way … needs Owner sign-off" | same spec | § 4 **is** that request; the Owner approved it on 2026-09-29, then approved the repository-confinement, 64-task, 64-character task-ID, 64-glob-per-task, 256-glob-per-wave, and 256-character-glob safety amendments the same day; `docs/specs/loop-cohort-wave-decision/` carries delivery |
 
-The last row is the one that gates the work. The shipped spec anticipated
-exactly this move and reserved it to the Owner, so § 4 is a proposal to that
-Owner rather than a decision already taken.
+The last row gated implementation. The shipped spec anticipated exactly this
+move and reserved it to the Owner; approval on 2026-09-29 cleared that gate for
+the contract in this section and no broader parallel-execution decision.
 
 ## Verification and risk
 
@@ -728,15 +755,11 @@ append-only for meaning-preserving clarifications.
   engine write to `state.json`.
 - **D8** and **D5** are deferrals a new decision would lift. Each needs a record
   that supersedes ADR-0061 in part.
-- **D5 and § 4** — writing § 4 needs no record, as a design that ships nothing.
-  Implementing it turns on the row in § Open questions. D5 itself defers "parallel-wave
-  orchestration" without naming verbs; it is ADR-0061's *Modes in scope* field
-  that lists `worktree`, `dispatch-decision` and `auto-parallel` as the deferred
-  set. § 4's verb is not in that list and is not orchestration, which is the
-  reading that would put it outside the deferral entirely. If instead the field
-  is read as enumerating a category the new verb joins, implementing it needs a
-  record superseding ADR-0061 in part on D5. This document takes neither
-  reading; the Open questions row is where it is decided.
+- **D5 and § 4** — the Owner's 2026-09-29 approval settles the applicability
+  question for this delivery: the read-only § 4 verb is not parallel-wave
+  orchestration and remains outside D5's deferred set. It dispatches nothing,
+  cannot satisfy ADR-0005, and does not lift or supersede ADR-0061 D5. Enabling
+  concurrent execution remains a separate decision.
 - **ADR-0005 D7 and the worktree layout** — RFC-0015's 2026-09-25 measurement
   erratum records the nested-worktree destruction path and deliberately binds no
   layout constraint, because doing so would narrow D7. A constraint requiring
@@ -750,8 +773,6 @@ append-only for meaning-preserving clarifications.
 | Whether the measured nesting hazard reopens RFC-0015 open question 2, whose substrate choice is already resolved as delegate-to-driver | RFC-0015 approver |
 | Whether task-cutting guidance belongs in the plan template | `new-spec` owner |
 | Where the read-only width report lives — `schedule --dry-run` or a `new-spec` lint | `new-spec` owner |
-| Whether enabling a read-only § 4 verb falls inside D5's deferral of parallel-wave *orchestration*, given that the verb list naming `dispatch-decision` sits in ADR-0061's *Modes in scope* field rather than in D5 | loop-infrastructure owner |
-| Whether the § 4 screen may influence the parallel greenlight at all — the *Ask first* clause `supervisor-predict-disjointness` reserved | that spec's Owner |
 
 ## Evidence
 

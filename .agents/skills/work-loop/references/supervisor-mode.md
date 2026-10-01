@@ -5,6 +5,10 @@
 > fan-out path in this document is unavailable until Phase 2. Run tasks
 > sequentially; use `loop-cohort schedule <spec-dir> --expect-run-id "$run_id"` for
 > topological order.
+>
+> `wave-decision` is different: it is a Phase-1 read-only screen. It reports
+> candidates and reasons before dispatch, but it dispatches nothing and does not
+> lift the concurrent-execution deferral.
 
 **Default is sequential implementer dispatch.** Supervisor mode computes the
 plan's full `Depends on:` DAG (`loop-cohort schedule <spec-dir>`) and, when an
@@ -22,6 +26,21 @@ edge nor reported as unknown.
 This file owns the **opt-in parallel-write path** only. It is entered
 deliberately — never automatically — and only for a wave that clears the
 **dispatch gate**, which has two halves checked at two points:
+
+- **Candidate screen — before dispatch.** Run `loop-cohort wave-decision
+  <spec-dir> --json` to classify the unfinished tasks in the current scheduled
+  wave; pass `--wave <n>` for another wave or `--force-sequential [<task-id>]`
+  to refuse one task, with the bare flag refusing the whole wave. A verdict
+  says `parallel-capable` or `sequential`, never `parallel`, and every verdict
+  carries `"admission_pending": true`. Admission is task-level: pair rows report
+  only `disjoint`, `overlapping`, or `unknown` and carry no disposition. A
+  JSON-mode refusal is the deliberate exception to the other verbs' channel:
+  it exits 1 with a versioned refusal object on stdout whose `detail` is a
+  fixed public-safe message selected by refusal code, not raw guard prose; human
+  mode uses `stop()` on stderr and keeps the richer guard diagnostic. The verb
+  is read-only and never satisfies either half of the dispatch gate below.
+  `_DANGER_PATH_RE` is shared by this screen and the post-write classifier, so
+  changing it moves both decisions and needs review against both test sets.
 
 - **Category half — auto-derived from the diff.** You **don't hand-classify**:
   omit `--category` and `dispatch-decision` derives each task's category from
