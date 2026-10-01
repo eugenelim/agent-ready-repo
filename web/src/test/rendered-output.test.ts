@@ -1626,9 +1626,10 @@ describe.skipIf(!docsBuilt || !webBuilt)('install-to-ship walkthrough', () => {
  * locally — so nothing announced the drift for 55 pages.
  *
  * This is the tripwire that comment needed. It is not a precise limit: the
- * ceiling is set below where the configured 6GB fork heap
- * (web/vitest.config.ts) is expected to fail, so growth trips a named
- * assertion first rather than an out-of-memory abort nobody can read.
+ * ceiling is set below where the 6GB heap the CI step grants
+ * (NODE_OPTIONS in .github/workflows/pages.yml) is expected to fail, so
+ * growth trips a named assertion first rather than an out-of-memory abort
+ * nobody can read.
  *
  * When it fires, raising both numbers is the cheap answer once. The better one
  * is sharding these scans across workers, because every raise buys less than
