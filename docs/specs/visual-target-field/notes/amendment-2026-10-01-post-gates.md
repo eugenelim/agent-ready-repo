@@ -97,6 +97,42 @@ and started dropping or narrowing claims.
   review's twelve refusals stand, three of which defer to the registered
   successor spec `visual-target-rung-precondition`.
 
+## Authorized state repair, recorded because it broke a standing rule
+
+The first `contract-amendment` call deadlocked the transition, and recovering it
+required one hand edit to `state.json` — a file the standing instruction says
+never to hand-edit. The owner authorized that edit on 2026-10-01 after being
+shown the deadlock and the three available routes: clear the one field; run
+`loop-cohort reset`, which unlinks `state.json` outright and would have voided
+this run's identity, pins, evidence and review counters; or stop and leave the
+branch unshippable with a sustained Concern that cannot be deferred.
+
+What deadlocked, exactly. `contract-amendment` writes its `pending_transition`
+marker before it validates that every completed task has an evidence binding.
+The first call supplied bindings for T1 to T3 — the contents of
+`completed_task_ids` — and refused with `completed task has no evidence
+binding: T4`, because the amendment also treats every task in
+`schedule_waves[:current_wave_index]` as completed, which with
+`current_wave_index` at 1 is T4. The marker persisted with the three-task
+argument set. Reissuing the identical command, which is the only recovery the
+lifecycle reference documents, failed the same way; reissuing with `T4=` added
+refused with `pending transition conflicts with this sequence`, because the
+marker's argument identity is compared at the same `pre_transition_sequence`.
+The state could not be moved to match the marker either: `wave advance` only
+increments `current_wave_index`, and `wave reopen` targets the current wave.
+
+The edit. `pending_transition` was set to `null`. Nothing else changed, and that
+was proved rather than asserted: the SHA-256 of the whole state with
+`pending_transition` removed is `c2f76383919b31d15691…` both before and after
+the write. `run_id` stayed `1adcfbc1-0d36-401b-9f3d-ebfc2493790a`, and the T1 to
+T3 section pins and evidence bindings were unchanged. The pre-edit file was kept
+outside the repository for the duration of the recovery. The amendment then
+fired with T4 bound to `31011ff57`.
+
+This grant is narrow. It authorizes clearing one field on this run, on this
+date, to recover this deadlock. It is not a licence to edit cohort state, and a
+future deadlock needs its own ruling.
+
 ## Completed-task evidence bindings
 
 | Task | Stable evidence reference |
