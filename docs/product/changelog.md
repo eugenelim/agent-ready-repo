@@ -98,6 +98,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The capability reference now states maturity per provider surface: the command-line surface is validated against a real index, and the MCP surface is read from upstream's published schemas and has never been run here. Claims from the two are no longer presented alike.
 - The gap analysis names which of its findings were observed by running the tool, which were read from upstream's schemas, and which were read from its source because the tool does not report them.
 
+## [experience-design][4.1.2] — 2026-09-30
+
+### Highlights
+
+- Direction artifacts now carry a `visual_target` frontmatter key recording the visual target disposition over the closed set `none | unconfirmed | confirmed`. `converge` records the disposition when writing compositional commitments. Nothing reads the field and nothing is gated on it; this is an additive schema change adopters author against.
+
 ## [experience-design][4.1.1] — 2026-09-29
 
 ### Highlights
