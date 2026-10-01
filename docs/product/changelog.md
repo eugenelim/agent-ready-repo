@@ -64,6 +64,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.9] — 2026-10-01
+
+### Highlights
+
+- Work planning now records only declined architectural additions that materially affect scope or design, and sizes review units by whether they can be independently understood, verified, or reviewed.
+
+### Changed
+
+- Review shape remains explicit, while roughly 2,000 reviewable behavior and test lines is now a heuristic for extra scrutiny rather than a threshold.
+- A review unit that cannot be independently understood, verified, or reviewed is split into dependency-ordered units, or carries a transformation/reproducibility proof when it is mechanically uniform WIDE work.
+
 ## [core][2.27.8] — 2026-10-01
 
 ### Fixed

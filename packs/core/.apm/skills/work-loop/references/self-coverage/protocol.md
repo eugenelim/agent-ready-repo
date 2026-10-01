@@ -14,8 +14,8 @@ skip; where a harness offers structural enforcement, use it but never depend on 
 Most steps overlap passes the loop already runs; two checks and one refusal item
 are net-new. In order:
 
-1. **Pre-mortem hook** — *existing (PLAN):* the assumption trio + declined-pattern
-   register.
+1. **Pre-mortem hook** — *existing (PLAN):* the assumption trio, plus any declined
+   architectural addition that materially affects scope or design.
 2. **Conditional domain-grounding** — *net-new (PLAN):* only when the build rests on
    an ungrounded load-bearing domain claim, ground it before EXECUTE; otherwise it
    degrades to "the spec already grounds this." Distinct from the EXECUTE

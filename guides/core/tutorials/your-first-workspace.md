@@ -109,9 +109,10 @@ The skill reads `spec.md` and `plan.md`, orients to the task wave, and enters PL
 
 - Which files it will touch.
 - What tests will demonstrate "done" for each task.
-- What it is *not* changing — the declined-pattern register.
+- What it is *not* changing.
+- Any declined architectural addition that materially affects scope or design.
 
-**You should see:** a PLAN block with the task wave, the verification modes, and the declined patterns named. The loop then proceeds to EXECUTE task by task.
+**You should see:** a PLAN block with the task wave, verification modes, and review shape. A declined architectural addition appears only when it materially affects scope or design. The loop then proceeds to EXECUTE task by task.
 
 Let the loop run. After each wave, it runs gates (lint, typecheck, tests). When all gates pass, it routes to adversarial review.
 
