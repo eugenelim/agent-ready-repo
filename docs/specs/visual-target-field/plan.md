@@ -1072,3 +1072,17 @@ inside a four-criterion test function. Two mutations are owed:
   than reconciled by adding a second statement: the record now states the one
   extended scope and cites the ruling that grants it. The two
   verification-ledger entries stay owed, worded as before.
+- 2026-10-01: **Scope gate passed. `eugenelim` approved the spec.** The seventh
+  pre-EXECUTE pass returned no blockers and no concerns, and its one nit was
+  refuted on adjudication as a presentation preference no record or authority
+  decides, giving a clean adjudicated verdict (`## Main-loop result` reads
+  `Clean — ready to commit.`, refuted 1, indeterminate 0). Residual risk
+  recorded with the approval: the sustained-finding count fell 6, 9, 10, 3, 2,
+  1, 0 across the rounds run under the amendment, and the trend only turned
+  when repairs stopped adding obligations to the contract and started dropping
+  or narrowing claims instead. Rounds 2 through 6 each sustained findings that
+  were defects in the previous round's repair rather than in the work governed,
+  so the clean verdict rests on a contract that stopped moving, not on a
+  contract that was never wrong. Nothing in the spec changed between the
+  approval given earlier today and this entry; the repair since then was
+  confined to `plan.md`.
