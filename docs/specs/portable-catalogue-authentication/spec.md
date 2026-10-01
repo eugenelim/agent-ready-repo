@@ -1,0 +1,108 @@
+# Spec: Portable catalogue authentication
+
+- **Status:** Approved
+- **Owner:** eugenelim
+- **Plan:** [`plan.md`](plan.md)
+- **Constrained by:** [ADR-0134](../../adr/0134-catalogue-auth-resolves-through-credbroker.md), [ADR-0135](../../adr/0135-catalogue-netrc-uses-exact-machine-matches.md), [ADR-0136](../../adr/0136-catalogue-jfrog-auth-delegates-to-jfrog-cli.md), [ADR-0137](../../adr/0137-catalogue-auth-selects-one-provider-without-fallback.md)
+- **Contract:** none
+- **Shape:** integration
+
+> **Spec contract:** this document defines what "done" means. The implementing
+> PR must match this spec, or update it. Verification must be derivable from it.
+>
+> **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
+> `Acceptance Criteria` are what a completion gate reads, and an amendment
+> changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
+> `Assumptions` are working material: they orient a reader and an author corrects
+> them in place as the work teaches, without an amendment and without a review
+> round. A review finding against working material is advisory — it cannot
+> block, because nothing gates the text it cites.
+
+## Outcome
+
+Catalogue users can install protected HTTPS catalogues with their existing
+bearer, JFrog CLI, or exact-machine `.netrc` setup, while public sources still
+work without credential setup. Skills remain independent of AgentBundle, and
+no catalogue path copies vendor credentials into AgentBundle state or output.
+
+## What Changes
+
+- Target-bound HTTP access resolution becomes a public `credbroker` library surface — `packages/credbroker/`.
+- HTTPS catalogue acquisition moves behind one provider-bound fetch session — `packages/agentbundle/agentbundle/catalogue_fetch/` and `https_catalogue.py`.
+- AgentBundle declares a compatible `credbroker` dependency while the credential-brokers user-library floor remains independently deployable — package metadata and projection tests.
+- Exact-machine `.netrc` and JFrog CLI delegation join the existing bearer and anonymous HTTPS paths — resolver and fetch-provider modules.
+- Current architecture, package design, setup guidance, troubleshooting guidance, and release records describe the portable authentication behavior — established documentation and changelog surfaces.
+
+## Durable Outputs
+
+| Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
+| --- | --- | --- | --- | --- | --- |
+| Durable behavior contract | The feature changes authentication and failure behavior across package boundaries. | `docs/specs/portable-catalogue-authentication/spec.md` | eugenelim | Approved criteria, review records, and final verification ledger | Every accepted criterion is checked before `Shipped`. |
+| Implementation strategy | Five dependent slices need one pinned build and test strategy. | `docs/specs/portable-catalogue-authentication/plan.md` | eugenelim | Approved task graph and validated TDD stubs | The approved baseline accounts for every task and durable output. |
+| Decision rationale | The grounded JFrog compatibility floor corrects ADR-0136 D8 without reopening its delegation decision. | `docs/adr/0136-catalogue-jfrog-auth-delegates-to-jfrog-cli.md` | AgentBundle maintainers | Primary JFrog command documentation and architecture review | D8 names a floor that supports both `jf api` and JSON profile discovery. |
+| Current architecture and ownership | The new AgentBundle-to-`credbroker` edge and provider boundary change current structure. | `docs/architecture/portable-catalogue-authentication.md`; `docs/architecture/credentials.md` | Architecture workflow | Architecture and security review plus boundary tests | Both documents agree with the shipped dependency and credential edges. |
+| Package truth and compatibility | Both published packages gain or consume public behavior. | `packages/agentbundle/DESIGN.md`; both package manifests, version sources, READMEs, and CHANGELOGs | Package maintainers | Isolated-install, co-location, public-surface, build, and version tests | Published metadata, design, versions, and release notes agree with tested artifacts. |
+| User setup and troubleshooting | Enterprise catalogue users need provider selection, setup, and failure guidance. | `guides/_shared/how-to/configure-catalogue-enterprise-distribution.md`; `guides/_shared/reference/agentbundle.md`; `docs/guides/how-to/enterprise-app-store.md` | Guide maintainers | Documentation build and examples checked against integration fixtures | Public and maintainer guidance no longer states bearer-only support and exposes no credential material. |
+| Credential-broker maintainer guidance | Skill authors need the package-independence and co-location rules. | `guides/credential-brokers/how-to/add-a-credentialed-skill.md` | Credential-brokers maintainers | Isolated-skill and co-location test evidence | Guidance distinguishes skill-runtime use from AgentBundle's required dependency. |
+
+## Agent Rules
+
+### Always do
+
+- Resolve access once against the initial normalized HTTPS URL and reuse that target-bound result for the descriptor and archive, as required by ADR-0137 D1, D7, and D8.
+- Preserve descriptor validation, digest verification, provenance, safe extraction, resource limits, proxy behavior, corporate-CA behavior, and the direct HTTP socket-inactivity bound when routing acquisition through the facade.
+- Test isolated AgentBundle, isolated credential-aware skill, ordinary-skill, and co-located user-library deployment shapes before changing either package's compatibility claims.
+- Bound and sanitize every subprocess stream and diagnostic before it crosses from a credential or vendor boundary into AgentBundle-visible output.
+
+### Ask first
+
+- Ask the spec owner before changing provider order, unavailable-versus-broken classification, target binding, or the no-fallback rule governed by ADR-0137.
+- Ask package maintainers before widening `credbroker>=0.7,<0.8`, changing the supported co-location window, or changing either package's public compatibility promise.
+- Ask architecture and security reviewers before adding another credential source, helper executable, credential store, redirect policy, or outbound transport.
+
+### Never do
+
+- Never emit credentials, derived authorization values, usernames, JFrog server identifiers, discovery payloads, `.netrc` contents, or credential-bearing URLs through stdout, stderr, logs, exceptions, receipts, provenance, state, or agent-visible output.
+- Never read JFrog credential fields or vendor credential files, pass JFrog credentials to AgentBundle, invoke a shell, or accept an unbound endpoint for delegated acquisition.
+- Never make a skill import, invoke, discover, or otherwise depend on AgentBundle.
+- Never fall through to a lower provider after a configured provider is broken or after the selected provider fails.
+- Never add catalogue credentials to `catalogue.toml`, AgentBundle user configuration, organization defaults, install state, provenance, receipts, or a new AgentBundle credential store.
+- Never route local-path or Git-backed catalogue sources through the HTTP resolver.
+
+## Testing Strategy
+
+- **TDD, unit (AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014):** The published resolver result types, provider-state matrix, `.netrc` rules, JFrog discovery, endpoint confinement, resource bounds, and redaction have compact input/output invariants and run with controlled environments and subprocess fixtures.
+- **TDD, package and integration (AC-0001, AC-0002, AC-0003, AC-0015, AC-0016, AC-0017):** Isolated wheels, user-library projection, import precedence, the fetch-session facade, unchanged catalogue safety behavior, and non-HTTP source routing cross package or transport boundaries.
+- **Goal-based checks over built artifacts (AC-0018):** The built packages and real AgentBundle CLI run through anonymous, `.netrc`, and JFrog paths. The JFrog leg uses a compatible official CLI with a disposable profile and loopback service; it uses no customer system or real credential.
+- **Goal-based documentation checks (AC-0019):** The documentation build and bounded searches reject stale bearer-only claims and credential-bearing examples.
+- **Stub accounting:** T1–T5 each carry one exact pytest stub block in `plan.md`; all TDD task families are covered, with no `no stub` disposition.
+
+## Acceptance Criteria
+
+- [ ] **AC-0001.** Installing the built AgentBundle wheel into an empty Python 3.11 environment installs `credbroker>=0.7,<0.8`, and imports resolve from that environment rather than the repository checkout.
+- [ ] **AC-0002.** A representative credential-aware skill imports and uses the supported `credbroker` public surface in an environment where AgentBundle is absent; a representative ordinary skill imports in an environment where both packages are absent.
+- [ ] **AC-0003.** When a compatible installed `credbroker` 0.7 and a vendored 0.6 user-library floor are co-located, normal import precedence selects 0.7 and every public 0.6 skill-facing symbol remains available with compatible call behavior.
+- [ ] **AC-0004.** `credbroker.resolve_http_access(target_url, *, env)` returns exactly one public immutable result variant—`BearerHttpAccess`, `JfrogCliHttpAccess`, `NetrcHttpAccess`, or `AnonymousHttpAccess`—or raises `HttpAccessError` with a stable non-secret `provider` and `code`; the function, error, and four result variants are the six new names exported from `credbroker`.
+- [ ] **AC-0005.** For the existing bearer and anonymous fixture corpus, acquisition through the fetch-session facade produces the same accepted bytes, redirects, errors, and provenance as the baseline path.
+- [ ] **AC-0006.** For every availability combination in the closed provider set, resolution selects the first available provider in ADR-0137 D2 order and performs no catalogue network request during discovery.
+- [ ] **AC-0007.** Each configured-but-broken condition in ADR-0137 D4 raises `HttpAccessError` for that provider before any lower provider is evaluated, while each unavailable condition in ADR-0137 D3 permits the next provider.
+- [ ] **AC-0008.** One resolution result is reused for a descriptor and its resolved archive; an authentication, HTTP, subprocess, timeout, redirect, size, or output failure after selection produces one terminal error and zero lower-provider attempts.
+- [ ] **AC-0009.** `.netrc` resolution accepts only the standard user file and the exact-machine lookup sequence in ADR-0135 D1–D4, including default-port, non-default-port, host fallback, missing match, `default`-only, incomplete, malformed, and unsafe-permission fixtures.
+- [ ] **AC-0010.** Bearer and `.netrc` authorization are sent only to their normalized HTTPS origin, survive a same-origin HTTPS redirect, and are withheld when a redirect changes origin or scheme.
+- [ ] **AC-0011.** JFrog discovery uses one bounded JSON profile query, selects the unique longest exact-origin segment prefix or a still-valid explicit server choice, rejects the topology and ambiguity cases in ADR-0136 D2–D5, and rejects JFrog CLI versions below 2.105.0.
+- [ ] **AC-0012.** Before `jf api` starts, each delegated URL is proven to be beneath the pinned Artifactory base and its endpoint is derived beneath the pinned platform base; user information, query strings, fragments, dot-segment ambiguity, encoded separators, backslashes, control characters, and endpoint escape produce zero fetch subprocesses.
+- [ ] **AC-0013.** JFrog discovery, version probing, and at most two fetch subprocesses terminate at 10, 5, and 30 seconds respectively, never exceed a 75-second aggregate subprocess budget, use closed stdin and list-form arguments without a shell, and terminate the child before removing partial output.
+- [ ] **AC-0014.** Version-probe stdout and stderr first fail when either exceeds 8 KiB; discovery stdout first fails above 1 MiB; discovery and each `jf api` stderr first fail above 64 KiB; descriptor output first fails above 1 MiB; and archive output first fails above 256 MiB. Every over-limit path terminates and reaps the child before parsing or diagnostic emission, removes partial output, and emits only the applicable stable non-secret failure code.
+- [ ] **AC-0015.** Canary credentials and credential-derived values are absent from request URLs, subprocess arguments, captured or emitted stdout and stderr, logs, exception text, install state, provenance, receipts, and agent-visible output for every success, rejection, timeout, and hostile-child fixture. Non-secret JFrog profile metadata may occur only in bounded captured discovery stdout, and the selected non-secret server ID may occur only there and as the value of the bounded `jf api --server-id` argument; neither may reach AgentBundle-visible output or persisted state. Diagnostics may retain only the stable non-secret provider class and failure code required by AC-0004.
+- [ ] **AC-0016.** Existing HTTPS descriptor validation, digest verification, safe extraction, archive-member and expanded-size limits, proxy handling, corporate-CA handling, and the 30-second direct HTTP socket-inactivity bound pass unchanged through the new facade.
+- [ ] **AC-0017.** Public HTTPS sources complete anonymously without credential setup, while local-path and Git-backed sources execute their existing transports without importing or calling HTTP access resolution.
+- [ ] **AC-0018.** The installed, built AgentBundle CLI completes representative descriptor and archive acquisition through anonymous, exact-machine `.netrc`, and compatible JFrog CLI paths against disposable local fixtures, with no repository import shadowing, customer system, or real credential.
+- [ ] **AC-0019.** The established AgentBundle and credential-broker guides build successfully and describe provider setup, precedence, terminal failures, JFrog CLI 2.105.0, package independence, and troubleshooting without a bearer-only claim or credential-bearing example.
+
+## Follow-ons
+
+None. Generic provider plugins, browser login, daemons, shared services, non-HTTPS source authentication, publisher credentials, and split-origin JFrog topologies remain outside this feature.
+
+## Assumptions
+
+None. The owner confirmed the integration shape, Python-library contract classification, five-task scope, and JFrog CLI 2.105.0 compatibility floor on 2026-10-01.
