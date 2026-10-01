@@ -3061,8 +3061,12 @@ STRICT_SUSTAINED_FINDING_LINE_RE = re.compile(
 )
 
 
+# Closed on purpose: the three-bucket scheme, the major/minor pair, and the
+# CRITICAL/HIGH/MEDIUM/LOW scheme the reviewer agents map onto on request.
+# Stripping any bracketed text would also strip a reviewer-assigned finding id.
 _STABLE_TITLE_SEVERITY_RE = re.compile(
-    r"^\[(?:blocker|concern|major|minor|nit)\]\s*", re.IGNORECASE
+    r"^\[(?:blocker|concern|nit|major|minor|critical|high|medium|low)\]\s*",
+    re.IGNORECASE,
 )
 
 
@@ -3384,8 +3388,8 @@ def _classify_report(
 ) -> dict:
     """Classify a reviewer report. Exits 0 for all report-content outcomes.
 
-    Returns a dict with keys: classification, fingerprints, families,
-    matches_previous_round.
+    Every return carries classification, fingerprints, families, and
+    matches_previous_round; an ``invalid`` return also carries reason.
     """
     # Bounded read, reached from `cmd_review_record`, which holds the state lock — so a
     # reviewer report that is a FIFO or an arbitrarily large file would otherwise block
