@@ -3384,7 +3384,8 @@ def _classify_report(
 ) -> dict:
     """Classify a reviewer report. Exits 0 for all report-content outcomes.
 
-    Returns a dict with keys: classification, fingerprints, matches_previous_round.
+    Returns a dict with keys: classification, fingerprints, families,
+    matches_previous_round.
     """
     # Bounded read, reached from `cmd_review_record`, which holds the state lock — so a
     # reviewer report that is a FIFO or an arbitrarily large file would otherwise block
