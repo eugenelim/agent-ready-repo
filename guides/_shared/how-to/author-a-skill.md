@@ -139,7 +139,7 @@ A skill may install a dependency for the user **only** when all of these hold:
 
 - the install is a **single, deterministic command**;
 - it needs **no sudo / root**;
-- it uses a package manager the user **demonstrably already has** — `uv`, `npm`, `pipx`, or `brew` *if detected* (detect the manager itself first; don't assume it).
+- it uses a package manager the user **demonstrably already has** — for example `uv`, `npm`, `pipx`, `brew`, or `cargo`, *if detected* (detect the manager itself first; don't assume it). The criterion is the detection, not membership of this list; a manager not named here still qualifies when the skill detects it and refuses without it.
 
 When you install, the pattern is always **detect → install → re-verify**, and you **pin the version** — never assume the install succeeded:
 

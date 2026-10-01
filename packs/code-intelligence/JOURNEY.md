@@ -67,3 +67,45 @@ commands that write to the graph are named, and each one asks first.
 What it will not do is guess. If the index cannot answer — and the pack ships a
 fourteen-point assessment of exactly what it cannot — you are told so, with what
 it can tell you instead.
+
+## The journey
+
+> What breaks if I change the request handler?
+
+### 1. Get an index
+
+- **You provide:** a repository, and `cargo` on your `PATH`.
+- **Agent does:** checks for the binary and an existing index, and reports
+  which is missing rather than guessing.
+- **You decide:** approve building the index, which writes a few hundred
+  megabytes into the working tree, and confirm `.wicked-estate/` is ignored.
+- **Output:** a graph of the repository, with its node, edge and file counts.
+- **State:** confirmed-write
+
+### 2. Resolve what you asked about
+
+- **You provide:** a symbol, module, or behaviour, in ordinary language.
+- **Agent does:** resolves the name to stable symbol IDs and reports every
+  match with its file and line.
+- **You decide:** which symbol you meant, when the name is ambiguous.
+- **Output:** one chosen symbol, with the choice's reason stated.
+- **State:** read-only
+
+### 3. Gather the evidence
+
+- **Agent does:** selects the investigation pattern the question calls for,
+  reads source before concluding, expands one hop at a time, and stops when the
+  question is answered rather than when the graph is exhausted.
+- **Output:** the findings, separating what the graph showed from what was
+  verified against source.
+- **State:** read-only
+
+### 4. Read the limits with the answer
+
+- **Agent does:** reports the index's own completeness — references it could
+  not bind, output it truncated, the revision it describes — and names what it
+  could not establish.
+- **You decide:** whether the evidence is enough for your purpose, or a
+  narrower question is needed.
+- **Output:** an answer you can act on, bounded by what the index can support.
+- **State:** read-only
