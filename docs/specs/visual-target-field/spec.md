@@ -1,6 +1,6 @@
 # Spec: visual-target field
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md)
@@ -170,10 +170,10 @@ file, so the verification cannot silently grade a different occurrence.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `creative-direction-template.md`'s frontmatter carries a
+- [x] **AC-0001.** `creative-direction-template.md`'s frontmatter carries a
   `visual_target` key whose placeholder enumerates exactly `none`,
   `unconfirmed` and `confirmed`.
-- [ ] **AC-0002.** That template's `## Approved visual target` section carries
+- [x] **AC-0002.** That template's `## Approved visual target` section carries
   exactly one `**Confirmation record:**` line, and after whitespace
   normalization that line is exactly:
   `**Confirmation record:** <YYYY-MM-DD> — <where the confirmation was recorded>`
@@ -187,10 +187,10 @@ file, so the verification cannot silently grade a different occurrence.
   rail at the top of this spec still governs what a producer writes *into* the
   record at runtime; that half is review-enforced, and this criterion does not
   claim otherwise.
-- [ ] **AC-0003.** That section's comment contains the literal `visual_target`,
+- [x] **AC-0003.** That section's comment contains the literal `visual_target`,
   names the `**Target:**`, `**Binding:**` and `**Confirmation record:**` lines,
   and contains the literal `bind nothing on their own`.
-- [ ] **AC-0004.** In `references/converge.md`, the paragraph block containing
+- [x] **AC-0004.** In `references/converge.md`, the paragraph block containing
   the literal `Record the approved visual target disposition` contains all
   three closed values — `visual_target: none`, `visual_target: unconfirmed`
   and `visual_target: confirmed` — and that anchor occurs in exactly one
@@ -201,9 +201,9 @@ file, so the verification cannot silently grade a different occurrence.
   `visual_target` literal to the file: the successor adds several, and a
   whole-file containment check written here would stop being able to fail the
   moment that slice lands.
-- [ ] **AC-0008.** `python3 tools/lint-guidebook-steps.py guides/experience-design`
+- [x] **AC-0008.** `python3 tools/lint-guidebook-steps.py guides/experience-design`
   exits zero.
-- [ ] **AC-0009.** `packs/experience-design/pack.toml`, its
+- [x] **AC-0009.** `packs/experience-design/pack.toml`, its
   `.claude-plugin/plugin.json`, and its entry in `.claude-plugin/marketplace.json`
   carry the same version, strictly greater than the recorded slice-start
   baseline in the plan's `Version baseline and target`. Comparing against
@@ -214,7 +214,7 @@ file, so the verification cannot silently grade a different occurrence.
   conformance-owned: `tools/lint-conformance-portability.py` rejects a
   conformance test that names a shipped pack or reaches `docs/`, and this one
   must do both.
-- [ ] **AC-0010.** `docs/product/changelog.md` carries a release entry for the
+- [x] **AC-0010.** `docs/product/changelog.md` carries a release entry for the
   version this slice released — the target recorded in the plan's § *Version
   baseline and target*, not whatever version `pack.toml` carries when the test
   later runs — whose heading begins at the start of a line at exactly `## ` — a
@@ -231,7 +231,7 @@ file, so the verification cannot silently grade a different occurrence.
   next unrelated `experience-design` bump, for an author who never touched this
   field. AC-0009's three-site agreement keeps reading the live version, because
   that claim must stay live.
-- [ ] **AC-0011.** That section's comment states that an absent `visual_target`
+- [x] **AC-0011.** That section's comment states that an absent `visual_target`
   reads `unconfirmed`. After whitespace normalization the comment contains this
   phrase, verbatim and as one contiguous run:
 
@@ -245,7 +245,7 @@ file, so the verification cannot silently grade a different occurrence.
   `absent` appears anywhere, so a comment reading "an absent target means
   `none`" would pass while stating the opposite of the fail-closed default
   ADR-0132 fixes.
-- [ ] **AC-0012.** Within one fenced block of
+- [x] **AC-0012.** Within one fenced block of
   `guides/experience-design/how-to/establish-design-intent.md` — selected as
   the single ` ```markdown ` fence whose body contains the line
   `type: creative-direction`, and asserted to be the only such fence — both the
@@ -270,7 +270,7 @@ file, so the verification cannot silently grade a different occurrence.
   design-principles block that no edit in this slice ever makes carry the
   field. Scoping to the fence at all is what a whole-file check cannot do,
   since the guide discusses the template in prose outside it.
-- [ ] **AC-0013.** In `packs/experience-design/.apm/skills/creative-direction/evals/evals.json`,
+- [x] **AC-0013.** In `packs/experience-design/.apm/skills/creative-direction/evals/evals.json`,
   at least one case carries an entry in its own `assertions` list naming one of
   the three `visual_target` values as the disposition the run must write. A
   substring check over the concatenated harness does not satisfy this: it passes
