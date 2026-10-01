@@ -1,7 +1,7 @@
 # Plan: PyJWT advisory id re-key
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0131 (a suppression is a governed allowlist entry)
   and ADR-0133 (an unfixed advisory retires on the first fix) govern the entry
   shape. `tools/run-pip-audit-gate.py:391` is the matching rule this delivery
@@ -302,3 +302,4 @@ description carries the evidence AC4 names, and AC8's reading is recorded.
 ## Changelog
 
 - 2026-10-01 — Drafted.
+- 2026-10-01 — Shipped in PR #1484 (`e512ca462`).
