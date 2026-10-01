@@ -293,3 +293,69 @@ def test_the_frame_operation_excludes_inherit_from_the_interrogation() -> None:
             f"the interrogation instruction does not name `inherit`: {sentence!r}. "
             "The route table says `inherit` runs no fresh interrogation."
         )
+
+
+TICKS = "`" * 3  # written this way so the literal survives a fenced code block
+FENCE = TICKS + "markdown"
+
+
+def _template_fence(text: str) -> str:
+    """The one markdown fence reproducing the creative-direction template.
+
+    Selected by a property, not by ordinal: this guide carries three such
+    fences and the first is a design-principles block.
+    """
+    bodies = [part.split(TICKS, 1)[0] for part in text.split(FENCE)[1:]]
+    matching = [b for b in bodies if "type: creative-direction" in b]
+    assert len(matching) == 1, "AC-0012: exactly one creative-direction fence"
+    return matching[0]
+
+
+# STUB: AC-0001, AC-0002, AC-0003, AC-0011  (spec: visual-target-field)
+def test_template_carries_the_visual_target_disposition() -> None:
+    """visual-target-field AC-0001, AC-0002, AC-0003, AC-0011.
+
+    This module also carries creative-direction-modes criteria under
+    overlapping numbers, so every AC reference here names its spec.
+    """
+    template = _read(TEMPLATE)
+    frontmatter = template.split("---", 2)[1]
+    assert re.search(
+        r'^visual_target:\s*"<none \| unconfirmed \| confirmed>"\s*$',
+        frontmatter,
+        re.M,
+    ), "AC-0001: frontmatter must carry visual_target over the closed set"
+
+    section = template.split("## Approved visual target", 1)[1].split("\n## ", 1)[0]
+    record_lines = [
+        line
+        for line in section.splitlines()
+        if line.startswith("**Confirmation record:**")
+    ]
+    assert len(record_lines) == 1, "AC-0002: exactly one confirmation-record line"
+    assert " ".join(record_lines[0].split()) == (
+        "**Confirmation record:** <YYYY-MM-DD> — "
+        "<where the confirmation was recorded>"
+    ), "AC-0002: the placeholder is pinned exactly, leaving no slot for a person"
+
+    comment = section.split("-->", 1)[0]
+    assert "visual_target" in comment, "AC-0003"
+    for label in ("**Target:**", "**Binding:**", "**Confirmation record:**"):
+        assert label in comment, "AC-0003"
+    assert "bind nothing on their own" in comment, "AC-0003"
+    assert "unconfirmed" in comment and "absent" in comment.lower(), "AC-0011"
+
+
+# STUB: AC-0012  (spec: visual-target-field)
+def test_guide_excerpt_carries_the_new_template_material() -> None:
+    """visual-target-field AC-0012."""
+    guide = _read(
+        PACK_ROOT.parents[1]
+        / "guides"
+        / "experience-design"
+        / "how-to"
+        / "establish-design-intent.md"
+    )
+    excerpt = _template_fence(guide)
+    assert "visual_target" in excerpt, "AC-0012: inside the fence, not the file"
+    assert "**Confirmation record:**" in excerpt, "AC-0012"
