@@ -105,7 +105,7 @@ Establishes the brief from the felt vibe. What it sets: audience and ranked JTBD
 
 Map each distinct reader type, write one JTBD sentence per type, and rank them (primary, secondary). Feed the ranked map into the interrogation. Carry the map into `converge`'s capture as the Persona referent for each named goal; on `inherit`, which reaches no writer, hold it in the session.
 
-Run the interrogation: open from the felt vibe, probe the emotions, associations, and brand attributes behind it, and converge on a short set of named goals. Sharpen each against its opposite.
+Run the interrogation on `extend` and `originate`, never on `inherit`: open from the felt vibe, probe the emotions, associations, and brand attributes behind it, and converge on a short set of named goals. Sharpen each against its opposite. On `inherit`, scope the new element against the existing direction's goals and axis commitments instead.
 
 **References:** `references/audience-jtbd.md`, `references/interrogation-sequence.md`, `references/refusals.md`
 

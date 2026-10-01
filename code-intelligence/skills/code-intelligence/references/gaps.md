@@ -4,10 +4,35 @@ Fourteen capabilities a general code-intelligence provider could offer,
 assessed against what Wicked Estate 0.16 actually exposes. This exists so the
 skill can say "that is not available" with a reason instead of improvising.
 
-Verdicts were checked by running Wicked Estate 0.16.7 against a real
-repository — 65,807 nodes, 104,113 edges, 4,625 files — and reading the actual
-output, not by reading source alone. Where a claim below names a field or a
-count, it was observed.
+**Three provenances, and the difference matters.** The rule below classifies
+every claim in this document; a few rows repeat their provenance inline where
+it would otherwise be easy to misread, but the rule governs whether or not a
+row says so. References to "capability N" below mean the numbered capability
+sections, not the findings list near the end.
+
+1. **Executed.** Run against a real repository with Wicked Estate **0.16.7** —
+   65,807 nodes, 104,113 edges, 4,625 files — and the output read. Most CLI
+   rows are this.
+2. **Schema-derived.** Read from upstream's registered tool names and frozen
+   conformance schemas. **Every MCP row is this. The MCP server has never been
+   run here.**
+3. **Source-read.** A property no run could show, because the CLI does not
+   emit it or the fixture could not reach it. On the CLI side this covers the
+   depth-12 traversal cap (point 12); the model-level statements that every
+   edge carries confidence, provenance and `resolved_by` (capabilities 10 and 11),
+   which those same points say the CLI never prints; and the behaviour of
+   `semantic` and of `correspond`'s vector fusion (capabilities 2 and 9), both of
+   which need an `--embeddings` index the fixture does not build.
+
+Where a row's provenance is not obvious from this rule, it says so inline.
+
+A schema-derived claim is weaker than an executed one, and this document
+credits MCP with capabilities the CLI lacks. Treat those as upstream's
+documented intent. The warning is not hypothetical. Three CLI claims taken from upstream's help
+text and docs were wrong when finally run: `source`'s selectors, `rank`'s row
+count, and the `annotations` payload shape. Upstream prose about the CLI is a
+fourth, weakest origin — it is not listed below because no surviving claim
+rests on it; every one that did has been executed or removed.
 
 Each point carries one of five verdicts:
 
@@ -64,7 +89,7 @@ Always pass `--json` with a selector.
 `FetchContent` returns `found=false` rather than erroring in that case, which is
 easy to misread as "the symbol does not exist". It means "no stored content".
 
-## 5. Traverse — **Partial on CLI, Direct on MCP**
+## 5. Traverse — **Partial on CLI, Direct on MCP (schema-derived)**
 
 MCP `TraverseGraph` is a genuine bounded walk: direction, depth to 16,
 `edge_kinds` filtering, node cap, and per-node depth in the response.
@@ -91,7 +116,7 @@ only one that reports its own incompleteness numerically.
 
 The two surfaces differ substantially, and the MCP form is the richer one:
 
-| | CLI `blast-radius --json` | MCP `BlastRadius` |
+| | CLI `blast-radius --json` (executed) | MCP `BlastRadius` (schema-derived) |
 | --- | --- | --- |
 | Per-dependent depth | no | **yes** |
 | Confidence envelope | no | **yes** — `{min, avg, edge_count}` |
@@ -102,6 +127,9 @@ The two surfaces differ substantially, and the MCP form is the richer one:
 
 *Caveat, CLI only:* the result is a flat list with no depth, so direct and
 transitive impact cannot be separated from the CLI alone.
+
+*Caveat, MCP only:* the MCP column is schema-derived. The richer response is
+what upstream documents; nothing here has observed it.
 
 ## 8. Context — **Direct**
 
@@ -137,7 +165,7 @@ A second, smaller correction: the annotation JSON carries `ts`, not
 `last_verified`. The human-readable `stale-annotations` text mentions a
 verification date; the machine payload does not.
 
-## 11. Confidence — **Partial on CLI, Direct on MCP**
+## 11. Confidence — **Partial on CLI, Direct on MCP (schema-derived)**
 
 Confidence is on every edge by construction and on every annotation as a field.
 `nodes --json --semantics` exposes `rule_confidence` per node.
@@ -208,13 +236,13 @@ by assuming `--help` is exhaustive.
 | 2 | Search | Direct (semantic is conditional) |
 | 3 | Retrieve | Direct |
 | 4 | Source / content | Direct |
-| 5 | Traverse | Partial on CLI, Direct on MCP |
+| 5 | Traverse | Partial on CLI, Direct on MCP (schema-derived) |
 | 6 | Paths | **Absent** |
 | 7 | Impact | Direct |
 | 8 | Context | Direct |
 | 9 | Compare | Partial |
 | 10 | Provenance / evidence | Partial — in the model, absent from CLI output |
-| 11 | Confidence | Partial on CLI, Direct on MCP |
+| 11 | Confidence | Partial on CLI, Direct on MCP (schema-derived) |
 | 12 | Completeness | Partial — depth cap unreported |
 | 13 | Snapshot / revision identity | Partial |
 | 14 | Capability discovery | Partial |
