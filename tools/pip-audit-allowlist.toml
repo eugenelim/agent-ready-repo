@@ -13,8 +13,8 @@
 # produces an unsatisfiable resolve, not a remediation. Semgrep 1.178.0 — the
 # latest release as of 2026-09-29 — still declares it.
 #
-# The thirteenth, CVE-2026-103001, is NOT a pin problem. No PyJWT release fixes
-# it in any version, so no Semgrep bump can clear it. It carries
+# The thirteenth, CVE-2026-103001 (now PYSEC-2026-4146), is NOT a pin problem.
+# No PyJWT release fixes it in any version, so no Semgrep bump can clear it. It carries
 # `fixed_in = "none"` under ADR-0133 and retires on a different trigger.
 #
 # Add an entry ONLY when there is no available fix. A real remediation also
@@ -47,11 +47,18 @@
 #                    reach it. Per advisory, not per group.
 #   unblocked_when — the concrete condition that retires this entry.
 #
+# RE-KEYED 2026-10-01. Every entry below is now keyed on the identifier
+# pip-audit reports for it, re-keyed from its CVE identifier after the feed
+# began publishing these advisories under new primary ids. Each entry's CVE
+# is the `# alias:` comment above it, and the records that cite these
+# advisories by CVE -- ADR-0131, ADR-0133, the spec -- are unchanged.
+#
 # HOW THIS RETIRES. Each entry names its own `unblocked_when`, and as of
 # 2026-09-30 the batch no longer shares ONE condition: eleven entries retire when
-# a Semgrep release permits PyJWT>=2.14.0, CVE-2026-101918 needs >=2.15.0, and
-# CVE-2026-103001 does not retire on a Semgrep bump at all — it is unfixed
-# upstream, so it clears only when PyJWT first ships a fix for it.
+# a Semgrep release permits PyJWT>=2.14.0, CVE-2026-101918 (now
+# PYSEC-2026-4141) needs >=2.15.0, and CVE-2026-103001 (now PYSEC-2026-4146)
+# does not retire on a Semgrep bump at all — it is unfixed upstream, so it
+# clears only when PyJWT first ships a fix for it.
 # Whichever release arrives, pip-audit stops reporting the ids it fixes, the gate
 # exits 2 naming each newly-retired entry, and those entries are removed. That
 # much is mechanical — it does not depend on anyone remembering. What is NOT
@@ -84,8 +91,9 @@ allowed_packages = ["pyjwt"]
 # `run-semgrep-gate.py` with `--config` flags and source paths; it starts no MCP
 # server and performs no OAuth client authentication, so neither site executes.
 
+# alias: CVE-2026-102268
 [[allow]]
-id       = "CVE-2026-102268"
+id       = "PYSEC-2026-4145"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -108,8 +116,9 @@ scan does not perform.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102266
 [[allow]]
-id       = "CVE-2026-102266"
+id       = "PYSEC-2026-4143"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -124,8 +133,9 @@ key and reads no JWK at all.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102271
 [[allow]]
-id       = "CVE-2026-102271"
+id       = "PYSEC-2026-4149"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -139,8 +149,9 @@ its own configured signing key rather than an externally-supplied one.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102272
 [[allow]]
-id       = "CVE-2026-102272"
+id       = "PYSEC-2026-4150"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -154,8 +165,9 @@ HS/asymmetric verification. Neither call site does: semgrep's is behind
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102273
 [[allow]]
-id       = "CVE-2026-102273"
+id       = "PYSEC-2026-4151"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -169,8 +181,9 @@ one signing path uses a configured private key.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102267
 [[allow]]
-id       = "CVE-2026-102267"
+id       = "PYSEC-2026-4144"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -189,8 +202,9 @@ exists and no JWKS URL is fetched or redirected.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-101917
 [[allow]]
-id       = "CVE-2026-101917"
+id       = "PYSEC-2026-4140"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -205,8 +219,9 @@ own endpoint, which this invocation never configures.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102269
 [[allow]]
-id       = "CVE-2026-102269"
+id       = "PYSEC-2026-4147"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -222,8 +237,9 @@ closure even if the decode ran.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102265
 [[allow]]
-id       = "CVE-2026-102265"
+id       = "PYSEC-2026-4142"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -238,8 +254,9 @@ a running server.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102274
 [[allow]]
-id       = "CVE-2026-102274"
+id       = "PYSEC-2026-4152"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -256,8 +273,9 @@ suppressed; its reasoning is preserved here rather than in a Makefile comment.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-102270
 [[allow]]
-id       = "CVE-2026-102270"
+id       = "PYSEC-2026-4148"
 package  = "pyjwt"
 fixed_in = "2.14.0"
 reason   = """
@@ -280,8 +298,9 @@ finding is ever revised, this entry is revised with it.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.14.0"
 
+# alias: CVE-2026-101918
 [[allow]]
-id       = "CVE-2026-101918"
+id       = "PYSEC-2026-4141"
 package  = "pyjwt"
 fixed_in = "2.15.0"
 reason   = """
@@ -292,7 +311,7 @@ raise `RecursionError`, which escapes as an undocumented exception type rather
 than `DecodeError` or any `PyJWTError`. Availability and error-contract only; it
 forges nothing and discloses nothing.
 Reached only through `PyJWKClient`, which is the same entry point
-CVE-2026-102274's entry already dispositions: it is constructed only under
+PYSEC-2026-4152's entry already dispositions: it is constructed only under
 `semgrep mcp`, which `make sast` never starts, and mcp's signing path builds
 none.
 ADDED 2026-09-30, after the other eleven, and it is the SECOND advisory to
@@ -307,8 +326,9 @@ it while it is still live.
 """
 unblocked_when = "Semgrep permits PyJWT>=2.15.0"
 
+# alias: CVE-2026-103001
 [[allow]]
-id       = "CVE-2026-103001"
+id       = "PYSEC-2026-4146"
 package  = "pyjwt"
 fixed_in = "none"
 reason   = """

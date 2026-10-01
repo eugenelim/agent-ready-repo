@@ -1,6 +1,17 @@
 # Dev-time dependencies for tools/ — the artifact and skill-spec
 # linters parse YAML frontmatter via PyYAML. CI installs from this file;
 # contributors run `pip install -r tools/requirements.txt` once.
+ruff==0.16.10  # The lint gate's version is load-bearing, not incidental:
+               # `make lint-ruff` runs `python -m ruff` against whatever is in
+               # the active interpreter, so an unpinned ruff lets local and CI
+               # run different linters and CI reds on code that passed locally.
+               # 0.16.0 added UP052 (context-manager-iterator), which is how
+               # that gap was found. Declared here rather than pinned inline in
+               # build-check.yml for the same audit-reach reason as httpx below,
+               # and it holds because the "Install tools requirements" step runs
+               # before "Install ruff + mypy", whose bare `pip install ruff`
+               # then finds the pin already satisfied and leaves it in place.
+               # mypy is still unpinned there and has the same latent gap.
 pyyaml>=6.0
 jsonschema>=4.0  # guide frontmatter validation (validate_guides.py)
 tomlkit==0.15.1  # workspace-status repair-apply (comment-preserving TOML write)

@@ -14,7 +14,7 @@ import shutil
 import stat
 import tempfile
 import unicodedata
-from collections.abc import Iterator
+from collections.abc import Generator
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
@@ -1051,7 +1051,7 @@ def normalize_direct_source(
     classification: DirectClassification,
     *,
     parent: Path | None = None,
-) -> Iterator[DirectNormalization]:
+) -> Generator[DirectNormalization, None, None]:
     """Materialise the canonical `skills/<leaf>/` tree for an admitted source.
 
     Two properties carry the criteria and are worth stating, because both are
