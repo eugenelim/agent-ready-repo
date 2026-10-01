@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0133 D6
 - **Related:** ADR-0017 (D8 — pip-audit is the SCA gate), ADR-0083 (the npm
   advisory allowlist this mirrors), ADR-0084 (a quiet scanner becomes a gate
   through a wrapper with a self-test), ADR-0102 (the sibling Semgrep exclusion

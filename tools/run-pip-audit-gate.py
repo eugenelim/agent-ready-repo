@@ -68,6 +68,22 @@ _RELEASE = re.compile(r"^\d+(\.\d+)*$")
 
 REQUIRED_FIELDS = ("id", "package", "fixed_in", "reason", "unblocked_when")
 
+# The one `fixed_in` value that is not a release. An advisory can be published
+# with no fix in any version, and D6's cross-check cannot run against an empty
+# `fix_versions`: there is nothing to compare. Before this sentinel existed the
+# only expressible entries were ones the feed could corroborate, so an unfixed
+# advisory could be neither remediated nor accepted and parked the gate at
+# exit 2 -- a verdict that reads as "the gate is broken" when the truth is
+# "upstream has shipped no fix".
+#
+# It does not weaken D6, it relocates the trigger. A normal entry retires when
+# the resolved version reaches `fixed_in`. An unfixed entry retires the moment
+# the feed publishes ANY fix version, because that is the event that turns the
+# acceptance into an available remediation -- see `_check_unfixed`. Both
+# directions are enforced, so the sentinel cannot be used to mute an advisory
+# that upstream has since fixed.
+UNFIXED = "none"
+
 # Compared case-insensitively against each env key: urllib's proxy lookup
 # case-folds, so a mixed-case spelling is honoured just as the canonical one is.
 TRANSPORT_NAMES = frozenset({
@@ -387,11 +403,27 @@ def evaluate(report: dict, allowlist: dict, floor: frozenset[str]) -> Verdict:
             published = advisory.get("fix_versions") or []
             decisions = [versions_equal(item["fixed_in"], each) for each in published]
             listed = ", ".join(published) or "none"
-            if not published:
+            if item["fixed_in"].strip().lower() == UNFIXED:
+                # The sentinel's own cross-check, and the mirror image of D6's.
+                # A normal entry is wrong when the feed does not recognise its
+                # `fixed_in`; an unfixed entry is wrong the moment the feed
+                # recognises any fix at all.
+                if published:
+                    problems.append(
+                        f"allowlist entry {item['id']}: declared fixed_in "
+                        f"{UNFIXED!r}, but the advisory now publishes a fix "
+                        f"({listed}). The acceptance rested on there being no "
+                        f"remediation, and there now is one. {ACTION_HOLD} -- "
+                        f"set fixed_in to the real release and re-verify, or "
+                        f"remediate and remove the entry."
+                    )
+            elif not published:
                 problems.append(
                     f"allowlist entry {item['id']}: the advisory publishes no fix "
                     f"versions, so fixed_in {item['fixed_in']!r} cannot be checked "
-                    f"against the feed. This is a feed condition, not an entry error."
+                    f"against the feed. This is a feed condition, not an entry error. "
+                    f"If upstream has shipped no fix, say so explicitly with "
+                    f"fixed_in = {UNFIXED!r}."
                 )
             elif any(decision is True for decision in decisions):
                 pass
@@ -432,6 +464,20 @@ def evaluate(report: dict, allowlist: dict, floor: frozenset[str]) -> Verdict:
             )
             continue
         resolved_version = str(dependency.get("version", ""))
+        if item["fixed_in"].strip().lower() == UNFIXED:
+            # No release to compare against, so the usual "did the fix arrive?"
+            # question is unanswerable here. An unfixed advisory going quiet is
+            # a withdrawal or a degraded feed, never an arriving remediation --
+            # the one reading that must NOT reach ACTION_REMOVE.
+            problems.append(
+                f"allowlist entry {item['id']}: the advisory is no longer reported, but "
+                f"it was accepted as unfixed (fixed_in {UNFIXED!r}), so its disappearance "
+                f"cannot mean the fix landed. A withdrawn advisory and a degraded feed "
+                f"look exactly like this. {ACTION_HOLD} -- confirm against the feed; if "
+                f"it was withdrawn, removing the entry is a maintainer decision recorded "
+                f"in ADR-0131."
+            )
+            continue
         reached = version_at_least(resolved_version, item["fixed_in"])
         if reached is None:
             problems.append(
