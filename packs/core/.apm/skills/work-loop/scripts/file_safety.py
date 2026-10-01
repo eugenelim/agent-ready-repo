@@ -7,7 +7,7 @@ import stat
 from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
-from typing import BinaryIO, Iterator, Literal, NamedTuple, overload
+from typing import BinaryIO, Generator, Literal, NamedTuple, overload
 
 
 class UnsafeContentError(ValueError):
@@ -282,7 +282,7 @@ def _supports_descriptor_walk() -> bool:
 @contextmanager
 def _open_confined_parent(
     root: Path, path: Path, *, relative: str
-) -> Iterator[tuple[int | None, str]]:
+) -> Generator[tuple[int | None, str], None, None]:
     """Hold the target's parent open without following path components."""
     try:
         relative_path = path.relative_to(root)
@@ -352,7 +352,7 @@ def _open_confined_regular_file(
     path: Path,
     *,
     max_bytes: int | None = None,
-) -> Iterator[BinaryIO]:
+) -> Generator[BinaryIO, None, None]:
     """Open *path* only when it is a bounded, confined regular file.
 
     The link count is checked both before and after opening so a hard-linked

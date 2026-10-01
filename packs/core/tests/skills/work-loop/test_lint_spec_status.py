@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 import types
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -76,7 +76,7 @@ def run_lint(
 
 
 @contextmanager
-def best_effort_tempdir() -> Iterator[str]:
+def best_effort_tempdir() -> Generator[str, None, None]:
     """Yield a new-test tempdir despite this sandbox's rmdir restriction."""
     tmp = tempfile.mkdtemp()
     try:
