@@ -380,3 +380,23 @@ def test_converge_records_the_disposition() -> None:
     )
     for value in ("none", "unconfirmed", "confirmed"):
         assert f"visual_target: {value}" in disposition, f"AC-0004: {value}"
+
+
+# STUB: AC-0013  (spec: visual-target-field)
+def test_eval_harness_asserts_a_visual_target_disposition() -> None:
+    """visual-target-field AC-0013."""
+    evals, _ = _eval_payloads()
+    values = ("visual_target: none", "visual_target: unconfirmed", "visual_target: confirmed")
+    carrying = [
+        case["id"]
+        for case in evals["evals"]
+        if any(
+            value in assertion
+            for assertion in case.get("assertions", [])
+            for value in values
+        )
+    ]
+    assert carrying, (
+        "AC-0013: no eval case asserts a visual_target disposition. A mention in "
+        "a prompt, an expected_output or a trigger query does not satisfy this."
+    )
