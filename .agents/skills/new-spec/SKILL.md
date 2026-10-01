@@ -462,13 +462,16 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    - Map tasks and construction tests to the spec's Durable outputs so the
      implementation can hand `close-work` planned output evidence instead of a
      second requirements record.
-   - Break the work into plan tasks small enough for one PR. Above 2,000
-     reviewable behavior and test lines, declare the task's review shape and
-     act on it: mechanically uniform WIDE work is not split but carries
-     reproducibility proof;
-     MIXED and DEEP work decomposes into dependency-ordered layers, each
-     independently reviewable and leaving the repository working. Ambiguous
-     shape is DEEP.
+   - Break the work into plan tasks small enough for one PR. Then shape each
+     review unit by asking: **can this unit be independently
+     understood, verified, or reviewed?** If yes, proceed. If not, split it
+     into dependency-ordered units that each leave the repository working, or
+     establish a transformation/reproducibility proof for mechanically uniform
+     WIDE work. Declare the task's expected review shape in the plan and act on
+     it, keeping the classification: WIDE work may carry that proof; MIXED and
+     DEEP work normally split; ambiguous shape is DEEP. About
+     2,000 reviewable behavior and test lines is a heuristic that prompts this
+     check, never a gate or an automatic split.
    - Carry **construction tests** per task — `Tests:` leads each task,
      designed up front. "We'll test it" is not a strategy.
    - Write a task's `Approach:` only when it carries a decision `Tests:` and
@@ -494,12 +497,11 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      that criterion.
 
    Push back hard on these plan-stage failure modes (mirror of step 4):
-   - **Task too big.** "Implement the feature" is not a task; "add the
-     validation function for X" is. Each task should be small enough for one
-     PR and one context window. Above 2,000 reviewable behavior and test
-     lines, the plan states the task's review shape and its consequence:
-     mechanically uniform WIDE carries reproducibility proof, MIXED and DEEP decompose into working
-     layers, ambiguous is DEEP.
+   - **Review unit has no independent proof.** "Implement the feature" is not
+     a task; "add the validation function for X" is. Each task should be small
+     enough for one PR and one context window. Apply the independence question,
+     the size heuristic, and the review-shape consequence the plan bullet above
+     states, rather than a second statement of them.
    - **`Depends on:` omitted.** Every task must state `Depends on:`
      explicitly — prior task IDs or `none`. Don't let authors lean on
      task order to imply dependency; that hides serial-by-default

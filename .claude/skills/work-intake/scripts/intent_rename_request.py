@@ -330,15 +330,34 @@ def _liveness_refusal(text: str) -> str | None:
     # a ``Slug`` whose value is ``tombstone-migration`` or a field whose value
     # mentions tombstones in prose does not trigger this check. A visible line
     # that mentions ``tombstone`` but does NOT parse as any well-formed field
-    # is a damaged marker — refuse rather than reading it as prose. H1 titles
-    # are not exempt: an H1 bearing the token requires a separate owner decision.
+    # is a damaged marker — refuse rather than reading it as prose. A single
+    # leading H1 title is exempt, so a live intent may name tombstone work in
+    # its own title; only the first title is exempt, because a later one is
+    # ordinary preamble. The accepted trade-off is that a tombstone marker
+    # hand-damaged into an H1 heading is not caught here — reaching that state
+    # requires editing a written marker into a heading, which no writer emits.
     inside_comment = False
+    leading_content = True
     for line in text.splitlines():
         visible, inside_comment = _shape._visible_line_outside_comments(  # type: ignore[attr-defined]
             line, inside_comment
         )
         if visible.startswith("## "):
             break
+        if visible.strip():
+            # The exemption is for an H1 *title*, so the heading marker must
+            # open the authored line. Testing the comment-stripped text alone
+            # would also exempt a line whose ``# `` only surfaces once a
+            # comment is removed — ``<!-- x --># Tombstone: …`` — which is a
+            # token-bearing non-field line, not a title, and must still refuse.
+            if (
+                leading_content
+                and line.lstrip().startswith("# ")
+                and visible.startswith("# ")
+            ):
+                leading_content = False
+                continue
+            leading_content = False
         if "tombstone" not in visible.lower():
             continue
         # The line mentions ``tombstone``. Exempt it if it parses as any

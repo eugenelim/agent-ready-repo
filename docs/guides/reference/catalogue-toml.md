@@ -19,7 +19,7 @@ description = "One sentence."  # shown in agentbundle show output
 [catalogue]
 display-name = "My Catalogue"        # human-readable name for UIs
 homepage     = "https://example.com" # project home page URL
-maintainers  = [{ name = "Alice", email = "alice@example.com" }]
+maintainers  = [{ name = "Platform Team", email = "platform@example.test" }]
 keywords     = ["security", "platform"]
 ```
 
@@ -75,18 +75,26 @@ Top-level options for the `agentbundle` distribution channel.
 
 ### `[distribution.agentbundle.artifactory]`
 
-Configures the Artifactory org bootstrap. When present and `enabled = true`, `agentbundle catalogue sync-defaults --write` bakes these coordinates into `_data/install-defaults.toml` so that developers who install your wheel resolve the catalogue from Artifactory automatically — no per-developer `config set source` step.
+Configures the Artifactory org bootstrap. When present and `enabled = true`, `agentbundle catalogue sync-defaults --write` bakes these coordinates into `_data/install-defaults.toml` so that developers who install your wheel resolve the catalogue URL from Artifactory automatically — no per-developer `config set source` step. Authentication remains separate, as described below.
 
 ```toml
 [distribution.agentbundle.artifactory]
 enabled    = true
-base-url   = "https://artifactory.example.com"
+base-url   = "https://artifactory.example.test/artifactory"
 repository = "agentbundle-catalogues"
-bundle     = "engineering"
+bundle     = "platform"
 channel    = "stable"
 ```
 
-All five fields are required when `enabled = true`. No credentials go in this file — authenticate via [`AGENTBUNDLE_HTTP_BEARER_TOKEN`](../../guides/_shared/reference/agentbundle.md#environment-variables).
+All five fields are required when `enabled = true`. This table contains only
+distribution coordinates. The schema rejects unknown fields, and the URL
+validator rejects user information and credential query parameters.
+
+No credentials go in this file or the generated defaults. AgentBundle's HTTPS
+catalogue client currently authenticates only through an
+Artifactory-issued token injected as `AGENTBUNDLE_HTTP_BEARER_TOKEN`. It does
+not reuse JFrog CLI, Pip, uv, `.netrc`, keyring, or browser-login credentials.
+See the [public setup guide](../../../guides/_shared/how-to/configure-catalogue-enterprise-distribution.md#keep-the-three-credential-paths-separate).
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -96,7 +104,7 @@ All five fields are required when `enabled = true`. No credentials go in this fi
 | `bundle` | string | Catalogue bundle name. Must match `[A-Za-z0-9._-]+`. |
 | `channel` | string | Channel name (e.g. `stable`, `preview`). Must match `[A-Za-z0-9._-]+`. |
 
-See [Configure a catalogue for enterprise distribution](../../guides/_shared/how-to/configure-catalogue-enterprise-distribution.md) for the step-by-step setup guide.
+See [Publish and use a protected enterprise catalogue](../../../guides/_shared/how-to/configure-catalogue-enterprise-distribution.md) for the step-by-step setup guide.
 
 ## Valid values
 
@@ -123,16 +131,16 @@ See [Configure a catalogue for enterprise distribution](../../guides/_shared/how
 
 ```toml
 [catalogue]
-name         = "acme-platform"
+name         = "internal-platform"
 version      = "2.3.1"
-description  = "ACME platform packs — security, compliance, and delivery tooling."
-display-name = "ACME Platform Catalogue"
-homepage     = "https://intranet.acme.example/dev/agentbundle"
-maintainers  = [{ name = "Platform Engineering", email = "pe@acme.example" }]
+description  = "Internal platform packs for security, compliance, and delivery."
+display-name = "Internal Platform Catalogue"
+homepage     = "https://intranet.example.test/agentbundle"
+maintainers  = [{ name = "Platform Team", email = "platform@example.test" }]
 keywords     = ["security", "compliance", "ci"]
 
 [catalogue.channels]
-stable  = "https://registry.acme.example/agentbundle/stable.json"
+stable  = "https://registry.example.test/agentbundle/stable.json"
 
 [catalogue.install-defaults]
 packs    = ["core", "security-baseline"]
@@ -144,8 +152,8 @@ required = ["LICENSE-APACHE", "LICENSE-MIT"]
 
 [distribution.agentbundle.artifactory]
 enabled    = false
-base-url   = "https://artifactory.example.com"
+base-url   = "https://artifactory.example.test/artifactory"
 repository = "agentbundle-catalogues"
-bundle     = "acme-platform"
+bundle     = "internal-platform"
 channel    = "stable"
 ```

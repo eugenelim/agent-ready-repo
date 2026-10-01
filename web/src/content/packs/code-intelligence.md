@@ -6,7 +6,8 @@ tagline: "Ask what calls this and what breaks if I change it — from a real cal
 skills:
   - code-intelligence
 installCommand: "agentbundle install --pack code-intelligence"
-docsUrl: /docs/guides/
+docsUrl: /docs/guides/code-intelligence/
+journeyUrl: /journeys/code-intelligence/
 ---
 
 Index a repository with [Wicked Estate](https://github.com/mikeparcewski/wicked-estate), then ask an agent what depends on a symbol, how a subsystem is organised, or what a change would touch. Answers come from resolved call and import edges, and they carry the index's own limits — the call sites it could not bind, the rows it truncated, the revision it was built from. Two subagents run the same discipline in a forked context: `code-investigator` for evidence-driven investigation, `impact-analyst` for change-impact analysis. Requires the `wicked-estate` CLI and an index you build; it never writes to the graph without asking.

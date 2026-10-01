@@ -23,7 +23,7 @@ import sys
 import tempfile
 import unittest
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from pathlib import Path
 from types import ModuleType
 from typing import Protocol
@@ -2957,7 +2957,7 @@ class _ShardRecordingExecutor:
 
 
 @contextlib.contextmanager
-def _shard_outside_a_shard() -> Iterator[None]:
+def _shard_outside_a_shard() -> Generator[None, None, None]:
     """Run a `main()` case as if not already inside a shard.
 
     These tests are themselves part of the roster, so under

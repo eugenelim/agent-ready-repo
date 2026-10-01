@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/jsonschema/loop-cohort-wave-decision.schema.json",
+  "title": "loop-cohort wave-decision result",
+  "description": "A read-only pre-dispatch verdict or refusal for one scheduled cohort wave.",
+  "x-spec": ["docs/specs/loop-cohort-wave-decision/"],
+  "x-max-total-touches": 256,
+  "oneOf": [
+    {"$ref": "#/$defs/verdict"},
+    {"$ref": "#/$defs/refusal"}
+  ],
+  "$defs": {
+    "taskId": {
+      "type": "string",
+      "pattern": "^T[0-9]+[a-z]?$",
+      "maxLength": 64
+    },
+    "glob": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "reason": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code"],
+          "properties": {
+            "code": {"const": "touches-undeclared"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "glob"],
+          "properties": {
+            "code": {"const": "danger-path-declared"},
+            "glob": {"$ref": "#/$defs/glob"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "source"],
+          "properties": {
+            "code": {"const": "override-forced-sequential"},
+            "source": {"const": "cli"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "with", "globs"],
+          "properties": {
+            "code": {"const": "touches-overlap"},
+            "with": {"$ref": "#/$defs/taskId"},
+            "globs": {
+              "type": "array",
+              "prefixItems": [
+                {"$ref": "#/$defs/glob"},
+                {"$ref": "#/$defs/glob"}
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code"],
+          "properties": {
+            "code": {"const": "no-admitted-peer"}
+          }
+        }
+      ]
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "touches", "disposition", "reasons"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/taskId"},
+        "touches": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/glob"},
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "disposition": {
+          "enum": ["parallel-capable", "sequential"]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/reason"}
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tasks", "touches_relation"],
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "prefixItems": [
+            {"$ref": "#/$defs/taskId"},
+            {"$ref": "#/$defs/taskId"}
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "touches_relation": {
+          "enum": ["disjoint", "overlapping", "unknown"]
+        }
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "payload_version",
+        "run_id",
+        "plan_hash",
+        "wave_index",
+        "wave",
+        "wave_disposition",
+        "cohort",
+        "serialized",
+        "admission_pending",
+        "tasks",
+        "pairs"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "minimum": 1},
+        "payload_version": {"const": 1},
+        "run_id": {"type": "string", "minLength": 1},
+        "plan_hash": {"type": "string", "minLength": 1},
+        "wave_index": {"type": "integer", "minimum": 0},
+        "wave": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/taskId"},
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true
+        },
+        "wave_disposition": {
+          "enum": [
+            "single-task",
+            "all-parallel-capable",
+            "all-sequential",
+            "partially-parallel-capable"
+          ]
+        },
+        "cohort": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/taskId"},
+          "uniqueItems": true,
+          "maxItems": 64,
+          "not": {"minItems": 1, "maxItems": 1}
+        },
+        "serialized": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/taskId"},
+          "maxItems": 64,
+          "uniqueItems": true
+        },
+        "admission_pending": {"const": true},
+        "tasks": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/task"},
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "pairs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/pair"},
+          "maxItems": 2016
+        }
+      }
+    },
+    "refusal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payload_version", "refusal", "detail"],
+      "properties": {
+        "payload_version": {"const": 1},
+        "refusal": {
+          "enum": [
+            "unsupported-state-schema-version",
+            "state-unreadable",
+            "no-schedule",
+            "state-malformed",
+            "plan-missing",
+            "plan-status-illegal",
+            "plan-hash-stale",
+            "wave-index-out-of-range",
+            "empty-wave"
+          ]
+        },
+        "detail": {"type": "string", "minLength": 1, "maxLength": 96}
+      }
+    }
+  }
+}

@@ -767,15 +767,27 @@
       ]
     },
     {
-      "id": "register-declination-names-the-rung-that-killed-it",
-      "prompt": "You are at the work-loop PLAN step for a request to add a `--format {table,json}` option to an existing CLI subcommand. You are writing the register of what you were tempted to add and declined. One temptation is a `--format csv` option nobody asked for. Another is a hand-written argument validator that `argparse`'s own `choices=` already provides. A third is printing a new literal string directly, which you decline because an accepted requirement says every user-facing string must pass through the localisation catalogue. How is each line written?",
-      "expected_output": "Each line carries the temptation, the `Cut before adding` rung in `AGENTS.md` that killed it, and the reason. The unrequested `--format csv` is killed by the not-genuinely-needed rung. The hand-written validator is killed by the standard-library rung, since `argparse` already provides `choices=`. The third decline is covered by no rung at all: an accepted requirement forbids it, so state that requirement in the rung's place rather than fitting a rung to it. Naming the rung is what grades the declination against the ladder instead of against an ad-hoc reason.",
+      "id": "declined-additions-record-only-material-architecture",
+      "prompt": "You are at the work-loop PLAN step for a request to add a `--format {table,json}` option to an existing CLI subcommand. You considered an unrequested `--format csv` value, a hand-written validator that duplicates `argparse`'s `choices=`, and a new formatting-adapter layer that would move output ownership across modules. You decline all three. What do you record below the assumption trio?",
+      "expected_output": "Record only the declined formatting-adapter layer, and only because that architectural addition materially affects scope or design. Name the addition, the `Cut before adding` rung that killed it, and the reason. Do not record the unrequested value or duplicate validator merely to prove that alternatives were considered: they are routine implementation options, not architectural additions with a material scope or design effect. If no declined architectural addition met that test, an empty register would be valid.",
       "assertions": [
-        "Response names a `Cut before adding` rung for each temptation a rung covers",
-        "Response kills the unrequested option with the not-genuinely-needed rung",
-        "Response kills the hand-written validator with the standard-library rung",
-        "Response states the accepted requirement in the rung's place for the decline no rung covers",
-        "Response does not fit a rung to a decline no rung explains"
+        "Response records the formatting-adapter layer because it is an architectural addition with a material scope or design effect",
+        "Response does not record the unrequested format value merely because it was considered",
+        "Response does not record the duplicate validator merely because it was considered",
+        "Response names the applicable Cut before adding rung and reason for the material architectural decline",
+        "Response says an empty register is valid when no declined architectural addition materially affects scope or design"
+      ]
+    },
+    {
+      "id": "review-shape-uses-independence-before-size",
+      "prompt": "A planned unit is estimated at 2,400 reviewable behavior and test lines. Its generated changes are mechanically uniform, the source artifact and transformation command are named, a zero-diff re-run and rollback exist, and a reviewer can understand, verify, and review the unit independently. Must the plan split it because it exceeds 2,000 lines? State the rule and the review-shape consequence.",
+      "expected_output": "No. First ask whether the unit can be independently understood, verified, or reviewed. It can, so it may proceed as one WIDE review unit with the transformation/reproducibility proof: source artifact, invariant, command, zero-diff re-run, tests, sampled review, and rollback. About 2,000 reviewable behavior and test lines is a heuristic that prompts extra scrutiny, never a gate or automatic split. If the unit could not be independently understood, verified, or reviewed, split it into dependency-ordered working units or establish the transformation/reproducibility proof.",
+      "assertions": [
+        "Response asks whether the unit can be independently understood, verified, or reviewed before using size",
+        "Response allows the independently reviewable WIDE unit to proceed with reproducibility proof",
+        "Response treats about 2,000 lines as a heuristic rather than a threshold or gate",
+        "Response requires a unit that fails the independence question to split or establish transformation/reproducibility proof",
+        "Response keeps the WIDE review-shape classification"
       ]
     },
     {
@@ -1072,6 +1084,19 @@
         "Response says the resolved root is cached per process working directory",
         "Response says a failed resolution is not cached and re-runs `git`",
         "Response does not claim the cache is shared across different working directories"
+      ]
+    },
+    {
+      "id": "wave-decision-screen-is-not-dispatch-admission",
+      "prompt": "`loop-cohort wave-decision --json` reports two tasks as `parallel-capable`, includes pair rows marked `disjoint`, and another run refuses with a JSON object on stdout. May I dispatch the capable tasks concurrently from that output, and does the refusal carry `admission_pending`?",
+      "expected_output": "No. `wave-decision` is a read-only pre-dispatch screen. `parallel-capable` means the task is a candidate whose admission is still pending; every verdict envelope carries `admission_pending: true`, and the populated-branch post-write gate still owns any later greenlight for concurrent execution. Pair rows never admit tasks and carry only `disjoint`, `overlapping`, or `unknown`; admission is reported only on task rows. A refusal envelope is not a verdict, so it has `payload_version`, `refusal`, and public-safe `detail`, but no `admission_pending` field.",
+      "assertions": [
+        "Response says `parallel-capable` is pending rather than a dispatch authorization",
+        "Response says the populated-branch post-write gate still owns the greenlight",
+        "Response says pair rows do not admit tasks",
+        "Response says pair rows carry only the touches relation values",
+        "Response says verdict envelopes carry `admission_pending: true`",
+        "Response says refusal envelopes have no `admission_pending` field"
       ]
     },
     {

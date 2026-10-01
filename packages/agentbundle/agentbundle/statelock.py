@@ -25,7 +25,7 @@ import stat
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Iterator
+from typing import TYPE_CHECKING, Callable, Generator
 
 if TYPE_CHECKING:
     from agentbundle.config import State
@@ -124,7 +124,7 @@ def state_lock(
     timeout: float = 10.0,
     stale_after: float = 60.0,
     poll: float = 0.05,
-) -> Iterator[Path]:
+) -> Generator[Path, None, None]:
     """Hold an exclusive lock for *state_path* for the duration of the block.
 
     The lock is a sibling file ``<state_path>.lock`` created with

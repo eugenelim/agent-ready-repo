@@ -29,7 +29,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Generator, Mapping, Sequence
 
 if __package__:
     from . import managed_child
@@ -358,7 +358,7 @@ def coordination_lock(
     name: str,
     *,
     acquisition_budget_seconds: float | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Hold the short-lived shared decision lock around read-and-publish."""
     if Path(name).name != name or not name.endswith(".lock"):
         raise ClaimStoreUnavailable("coordination lock name is not safe")

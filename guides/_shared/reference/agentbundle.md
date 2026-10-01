@@ -17,6 +17,10 @@ The three operations a fresh PyPI user actually performs, plus the built-in help
 python -m pip install agentbundle
 ```
 
+When the wheel is hosted in an internal PyPI repository, Pip, uv, Poetry, or
+the selected package client owns authentication. Its `.netrc`, keyring, or
+login state is not reused when AgentBundle later reads a protected catalogue.
+
 To install from a clone instead — for repo contributors or for users on an offline / corporate network — see [`../how-to/install-agentbundle-from-clone.md`](../how-to/install-agentbundle-from-clone.md).
 
 After install, every subcommand is reachable via `agentbundle <verb>` or `python -m agentbundle <verb>`. `agentbundle --help` lists the full set.
@@ -93,13 +97,16 @@ agentbundle config set <key> <value>      # validate and write
 agentbundle config unset <key>            # remove (deletes file if empty)
 ```
 
-Today the only registered key is `adapter`. Future keys would be added by the framework; the command surface stays the same.
+The registered keys are `adapter` and `source`. `source` overrides every
+organization default, so use it only when a user needs a different catalogue.
+Future keys would be added by the framework; the command surface stays the
+same.
 
 ### Example
 
 ```bash
 $ agentbundle config path
-/Users/alice/Library/Application Support/agentbundle/config.toml
+/Users/username/Library/Application Support/agentbundle/config.toml
 
 $ agentbundle config get adapter
 adapter	claude-code	(builtin)
@@ -170,13 +177,35 @@ Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4 (the org Artifactory boot
 
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
-| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Bearer token sent as `Authorization: Bearer <token>` on `catalogue+https://` and `archive+https://` requests. **Secret — do not log or persist to version control.** Example: `AGENTBUNDLE_HTTP_BEARER_TOKEN=<token> agentbundle install --pack core` |
+| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Artifactory-issued bearer or access token sent as an `Authorization` header on `catalogue+https://` and `archive+https://` requests. **Secret: inject it through an organization-managed launcher or process environment. Do not log it or persist it to version control.** This is currently the only authentication source used by the HTTPS catalogue client. |
 | `AGENTBUNDLE_CA_BUNDLE` | unset | Absolute path to a PEM CA bundle for TLS verification, honoured on every catalogue source form. Raises `CatalogueError` if the path does not exist — including on `git+https://`, where the variable was previously ignored. **Semantics differ by source form:** on `git+https://` the bundle is *added* to the default trust store; on `catalogue+https://` and `archive+https://` it *replaces* it, which pins verification to your own authority. Example: `AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem agentbundle install --pack core` |
 | `SSL_CERT_FILE`, `SSL_CERT_DIR`, `REQUESTS_CA_BUNDLE` | unset | Standard OpenSSL-family trust-store paths, honoured on `git+https://` sources only — the `catalogue+https://` and `archive+https://` paths read `AGENTBUNDLE_CA_BUNDLE` alone. Precedence is `AGENTBUNDLE_CA_BUNDLE`, then `SSL_CERT_FILE`, then `REQUESTS_CA_BUNDLE`; anchors are added to the default store, never substituted for it. A stale `REQUESTS_CA_BUNDLE` is ignored harmlessly. A stale `SSL_CERT_FILE` or `SSL_CERT_DIR` is **not** recoverable: OpenSSL resolves its default paths from those variables, so a bad value leaves the trust store empty and every fetch fails verification. Unset them rather than pointing them at a missing file. |
 | `AGENTBUNDLE_NO_SYSTEM_TRUST` | unset | When set to any non-empty value, disables the operating-system trust fallback described in [Corporate networks](#corporate-networks) below. The underlying verification error is still reported, with the troubleshooting guidance appended. |
 | `AGENTBUNDLE_NO_REMOTE` | unset | When set to any non-empty value, skips Layer 3 (org Artifactory bootstrap) and Layer 4 (editable-install detection), falling through to Layer 5. Use on hosts that cannot reach Artifactory, or in CI pipelines that resolve a local catalogue. Example: `AGENTBUNDLE_NO_REMOTE=1 agentbundle install --pack core /path/to/local-catalogue` |
 | `HTTPS_PROXY` | unset | Proxy URL for outbound HTTPS requests. Read automatically by Python's `urllib.request.ProxyHandler`; no `agentbundle`-specific wiring needed. Example: `HTTPS_PROXY=http://proxy.example.com:3128 agentbundle install --pack core` |
 | `NO_PROXY` | unset | Comma-separated list of hostnames that bypass the HTTPS proxy. Read automatically by Python's `urllib.request.ProxyHandler`. Example: `NO_PROXY=internal.example.com,localhost` |
+
+### Protected catalogue authentication
+
+AgentBundle performs catalogue HTTPS requests itself. It does not reuse any of
+these credential sources:
+
+- a JFrog CLI profile created by `jf login` or `jf config add`;
+- Pip, uv, Poetry, `.pypirc`, or `.netrc` authentication;
+- an operating-system keyring or the repository's credential broker;
+- an SSO, SAML, OAuth, or MFA browser session.
+
+An organization default selects the catalogue URL but does not authenticate
+the request. For protected catalogues, the supported path today is for a
+managed shell, launcher, or endpoint policy to inject
+`AGENTBUNDLE_HTTP_BEARER_TOKEN` into the AgentBundle process. This is a managed
+workaround and a second credential injection surface, not transparent reuse of
+an existing Artifactory login.
+
+Installing the AgentBundle wheel is separate. The Python package client may
+reuse its own organization-managed credentials for an Artifactory PyPI
+repository, but those credentials are not automatically available to the
+catalogue HTTPS client.
 
 ## Corporate networks
 

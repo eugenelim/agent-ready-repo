@@ -10,7 +10,7 @@ import secrets
 import shutil
 import stat
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Literal
@@ -129,7 +129,7 @@ def ensure_directory_no_follow(base: Path, relative: Path) -> None:
 
 
 @contextmanager
-def open_directory_no_follow(base: Path, relative: Path) -> Iterator[int | None]:
+def open_directory_no_follow(base: Path, relative: Path) -> Generator[int | None, None, None]:
     """Hold ``base/relative`` open while refusing symlink components.
 
     POSIX callers receive a directory descriptor suitable for ``dir_fd`` APIs.

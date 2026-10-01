@@ -1634,8 +1634,24 @@ _WORK_LOOP_CONTRACT_HASH = (
 # workspace.toml queue/active/shipped, and the engine states its own boundary
 # at workspace_status_engine.py:4859 ("Its finish checklist only sets spec.md
 # Status: Shipped").
+# Re-pinned 2026-10-01 for the review-shape check: the finish checklist's
+# "Tail-triage check completed" bullet is now "Review-shape check completed".
+# It no longer states its own size condition; it defers to PLAN step 5's
+# independence question and size heuristic, where about 2,000 reviewable
+# behavior and test lines is a heuristic for extra scrutiny rather than a
+# threshold. The WIDE/MIXED/DEEP evidence lists it links are unchanged.
+# Reviewed as the pin requires, and the engine needs no edit: the bullet
+# writes no spec.md field,
+# mutates no workspace.toml array, and adds no invariant the engine evaluates
+# - the engine carries no reference to tail triage, review shape, or a line
+# threshold, and states its own boundary at
+# workspace_status_engine.py:4987 ("Its finish checklist only sets spec.md
+# Status: Shipped"). Ownership is unchanged: work-loop still writes spec.md
+# `Status: Shipped`, workspace-status still owns workspace.toml
+# queue/active/shipped. The status vocabulary, the deferral-anchor
+# requirement, and the doc-drift bullet's listed invariants are all untouched.
 _WORK_LOOP_FINISH_HASH = (
-    "4b67a944dd1aeae78ed3894b998b209d014332240638c6d8273b8b580821035a"
+    "b7f2d6b13e179a1e0b2c9899c192530f7f513bb6ff94a058bf4a2c131cce6f4f"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

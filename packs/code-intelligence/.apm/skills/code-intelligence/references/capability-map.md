@@ -4,10 +4,25 @@ Every row names a command or tool that exists in Wicked Estate 0.16 and says
 what it actually returns. Nothing here is aspirational. If an intent has no row,
 the capability does not exist — see [`gaps.md`](gaps.md).
 
+**Maturity differs by surface, and so does the evidence behind these rows.**
+
+| Surface | Maturity | Evidence |
+| --- | --- | --- |
+| CLI | **validated** | Exercised end-to-end against a real index. 20 tests pin the returned shapes for `resolve`, `blast-radius`, `nodes`, `rank`, `annotations`, `stale-annotations`, `context`, `source` and `stats`; every other verb is checked for acceptance, not for its return shape |
+| MCP | **contract-complete** | Read from upstream's registered tool names and conformance schemas. **Never executed here** |
+
+Where a row describes MCP behaviour, it states what upstream documents, not
+what this pack has observed. Prefer the CLI where both can answer.
+
+Two CLI facts here are also not observed, and are marked where they appear:
+the dispatch-arm count below, and the row count in the `nodes` warning. Both
+were read from upstream's source and a one-off manual index respectively.
+
 Two surfaces ship, and they are not the same size.
 
 - **The CLI** (`wicked-estate`) accepts 34 subcommand names across 33 dispatch
-  arms (`rank` and `hotspots` are one arm with two names). It is the default
+  arms — `rank` and `hotspots` are one arm with two names, a fact read from
+  upstream's dispatch table rather than observed. It is the default
   provider for this skill: it costs no resident context, and it covers several
   capabilities the MCP server does not expose at all.
 - **The MCP server** (`wicked-estate-mcp`) advertises 29 tools across an estate
@@ -26,7 +41,7 @@ then `WICKED_ESTATE_DB`, then `.wicked-estate/graph.db`.
 | --- | --- | --- |
 | Resolve a name to a stable ID | `wicked-estate resolve <name> [--file F] [--kind K] --json` | `[{symbol_id, name, kind, file, line}]`. Use this first — names are not unique. |
 | Search for a symbol | `wicked-estate query <name>` | Human-readable match list: kind, name, `file:line`. **No `--json`.** Use `resolve --json` when you need to parse. |
-| Inventory nodes by kind or annotation | `wicked-estate nodes [--kind K] [--annotated-with K[=V]] --json` | Per node: `symbol_id`, `name`, `kind`, `file`, `line`, `signature`, `annotation_summary {count, by_type, has_advisory}`, and up to 20 `annotations[]`. **There is no symbol filter** — `--kind` and `--annotated-with` are the only narrowing options, and an unfiltered call returns the whole graph (61,182 rows on a mid-size repository). Never use this to look up one symbol. |
+| Inventory nodes by kind or annotation | `wicked-estate nodes [--kind K] [--annotated-with K[=V]] --json` | Per node: `symbol_id`, `name`, `kind`, `file`, `line`, `signature`, `annotation_summary {count, by_type, has_advisory}`, and up to 20 `annotations[]`. **There is no symbol filter** — `--kind` and `--annotated-with` are the only narrowing options, and an unfiltered call returns the whole graph (61,182 rows on one manual index of this repository, 2026-09-30). Never use this to look up one symbol. |
 | Add requirement and rule fields | `wicked-estate nodes --json --semantics` | Adds `requirement`, `requirement_validated`, `rule_confidence`, and distinct `out_edges[]` per node. This is a **whole-graph export** that costs an extra semantics read and edge fetch *per node*; scope it with `--kind` or accept the cost deliberately. |
 | Fetch source | `wicked-estate source <name> --json` | The exact source slice for matching symbols, with `file:line` provenance. |
 | Fetch source in bulk | `wicked-estate source --symbols <ids> \| --file <path> \| --cluster <id>` **with `--json`** | `{nodes[], summary}` for the selected set. **`--json` is mandatory:** `source` has two code paths, and the text path ignores every selector and `--signatures-only`, silently falling back to a name search. `--symbols` without a positional name errors; with one, the name wins. Under `--json`, precedence is `--symbols` > `--cluster` > `--file` > `<name>`, and `--signatures-only`, `--max-total-chars N`, `--max-node-chars N` all apply. |

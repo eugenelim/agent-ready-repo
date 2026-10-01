@@ -51,7 +51,7 @@ import subprocess
 import sys
 import tempfile
 import uuid
-from collections.abc import Iterator
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -102,7 +102,7 @@ _SYNTHETIC_ENV = {
 
 
 @contextlib.contextmanager
-def git_session() -> Iterator[dict[str, str]]:
+def git_session() -> Generator[dict[str, str], None, None]:
     """Yield a git environment whose writes land in a throwaway object store.
 
     `hash-object -w`, `commit-tree` and `merge-tree --write-tree` all write

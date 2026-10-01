@@ -64,6 +64,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.9] — 2026-10-01
+
+### Highlights
+
+- Work planning now records only declined architectural additions that materially affect scope or design, and sizes review units by whether they can be independently understood, verified, or reviewed.
+
+### Changed
+
+- Review shape remains explicit, while roughly 2,000 reviewable behavior and test lines is now a heuristic for extra scrutiny rather than a threshold.
+- A review unit that cannot be independently understood, verified, or reviewed is split into dependency-ordered units, or carries a transformation/reproducibility proof when it is mechanically uniform WIDE work.
+
+## [core][2.27.8] — 2026-10-01
+
+### Fixed
+
+- The pack's filesystem-confinement and state-lock scripts carry corrected
+  context-manager return annotations — `Generator` where `Iterator` was
+  written. No behaviour changes and no interface moves. The same correction
+  reaches `agentbundle`, which bundles `file_safety.py` byte-identically.
+
+## [core][2.27.7] — 2026-10-01
+
+### Highlights
+
+- Renaming a live intent whose title mentions tombstones now works. The rename validator reads a document title as a title rather than as a damaged retirement marker, so an intent called something like "Tombstone migration plan" is no longer refused. Nothing that should be refused now passes.
+
+### Fixed
+
+- The intent rename validator's damaged-marker scan skips a single leading H1 title. A token-bearing line that parses as no field still refuses, a later heading still refuses, and a successor-pointer field without a retirement marker still refuses.
+
+## [core][2.27.6] — 2026-09-30
+
+### Highlights
+
+- **Work-loop can now explain a scheduled wave before dispatch without authorizing concurrent writes.** `loop-cohort wave-decision --json` reports unfinished tasks as `parallel-capable` or `sequential`, includes pairwise `Touches:` relations, and returns fixed public-safe JSON refusal envelopes while leaving ADR-0005's post-write gate and ADR-0061 D5 unchanged.
+
+### Added
+
+- Added the read-only `loop-cohort wave-decision` screen for scheduled cohorts. It reports task-level admission candidates, pair-level `disjoint` / `overlapping` / `unknown` relations, and `admission_pending: true` on verdicts.
+- Added a versioned JSON contract for `wave-decision` verdict and refusal envelopes, including stdout JSON refusals under `--json` with bounded public-safe `detail` messages.
+
+### Changed
+
+- Supervisor guidance now separates the pre-dispatch `wave-decision` screen from the existing post-write `dispatch-decision` gate and names `_DANGER_PATH_RE` as shared by both consumers.
+
+## [governance-extras][0.11.3] — 2026-09-30
+
+### Highlights
+
+- The governance-index template and its how-to guide no longer promise that `generate-iac` will fill in missing domain rows for you. It never did: it offers to create an index when you have none, and it reads the one you already have. Both places now say so, and the guide tells you to add the row yourself.
+
+### Fixed
+
+- Removed the claim that `generate-iac` "adds any missing domain rows" from the seed manifest, and the claim that it adds all eight IaC domains "automatically" from the governance-index how-to.
+
 ## [core][2.27.5] — 2026-09-29
 
 ### Highlights
@@ -74,6 +129,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The base-freshness check now advertises the configured remote target first and returns current branches as ready without requiring a metadata-writing fetch.
 - Stale branches remain blocking even when Git metadata writes are denied, with separate messages for update-capable and user-refresh-only environments.
+
+## [architect][0.15.15] — 2026-09-30
+
+### Highlights
+
+- Well-architected reviews now route data/ML, GenAI/agentic, and serverless workloads only through their supported reference material.
+
+### Changed
+
+- Removed the unsupported SaaS workload-class lens claim from the architect review rubric.
 
 ## [core][2.27.4] — 2026-09-29
 
@@ -90,6 +155,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
+
+## [code-intelligence][0.1.2] — 2026-09-30
+
+### Added
+
+- A guide home at `guides/code-intelligence/`: what the pack is for, a first-session tutorial that ends with reading the completeness numbers rather than just the answer, a how-to covering the five investigation patterns, and a reference for the command surface and its gaps.
+- A pack journey describing the outcome — find out what is actually true about a codebase before changing it — with the two decisions it asks of you: which symbol was meant when a name is ambiguous, and whether to build the index, which writes into your working tree.
+
+## [code-intelligence][0.1.1] — 2026-09-30
+
+### Changed
+
+- The capability reference now states maturity per provider surface: the command-line surface is validated against a real index, and the MCP surface is read from upstream's published schemas and has never been run here. Claims from the two are no longer presented alike.
+- The gap analysis names which of its findings were observed by running the tool, which were read from upstream's schemas, and which were read from its source because the tool does not report them.
 
 ## [experience-design][4.1.1] — 2026-09-29
 

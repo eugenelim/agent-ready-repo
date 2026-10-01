@@ -656,6 +656,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest spec-retirement candidate CLI (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest loop-cohort wave-decision contract (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
@@ -953,6 +955,7 @@ _GATE_MAIN_CHECKS = (
     "pytest repair-round predicate parity (spec contract vs shipped guard)",
     "pytest spec-retirement candidate contract (roster-owned)",
     "pytest spec-retirement candidate CLI (roster-owned)",
+    "pytest loop-cohort wave-decision contract (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest closure guide surface (roster-owned)",
     "pytest decision-record index generator (roster-owned)",

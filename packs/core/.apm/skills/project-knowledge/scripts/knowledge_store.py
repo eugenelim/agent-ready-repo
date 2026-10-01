@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Generator, Iterator, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -405,7 +405,7 @@ def hold_writer_lock(
     *,
     timeout: float = 10.0,
     stale_after: float = 300.0,
-) -> Iterator[Path]:
+) -> Generator[Path, None, None]:
     target = _lock_target(repo_root)
     try:
         with STATELOCK.exclusive(target, timeout=timeout, stale_after=stale_after) as lock:
@@ -3649,7 +3649,9 @@ def enquire_worktree(repo_root: Path | str, _question: dict[str, Any]) -> dict[s
 
 
 @contextlib.contextmanager
-def begin_distill(repo_root: Path | str, *, lock_timeout: float = 10.0) -> Iterator[Path]:
+def begin_distill(
+    repo_root: Path | str, *, lock_timeout: float = 10.0
+) -> Generator[Path, None, None]:
     with hold_writer_lock(repo_root, timeout=lock_timeout) as lock:
         yield lock
 

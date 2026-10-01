@@ -30,7 +30,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from types import FrameType
-from typing import Any, Callable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Generator, Mapping, Sequence
 
 # Imported two ways, so both must work: as a script (`python3
 # tools/repo/frontend_runtime.py`, where sys.path[0] is tools/repo) and as
@@ -201,7 +201,7 @@ def _pid_is_alive(pid: int) -> bool:
 
 
 @contextlib.contextmanager
-def _port_coordination_lock(lease_dir: Path, port: int) -> Iterator[None]:
+def _port_coordination_lock(lease_dir: Path, port: int) -> Generator[None, None, None]:
     """Serialize stale inspection and reclamation for one port across processes."""
     path = lease_dir / f"preview-{port}.lock"
     with path.open("a+b") as handle:
@@ -427,7 +427,7 @@ _run_child = managed_child.run_child
 
 
 @contextlib.contextmanager
-def _release_lease_on_signals(lease: PortLease) -> Iterator[None]:
+def _release_lease_on_signals(lease: PortLease) -> Generator[None, None, None]:
     """Cover the short setup/teardown windows around the signal-aware child."""
     previous_handlers: dict[int, SignalHandler] = {}
 

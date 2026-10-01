@@ -368,6 +368,51 @@ def main() -> int:
     check("27 reports it as an internal error, not a manifest error",
           "internal error" in text and "RuntimeError" in text, text)
 
+    # 28. The `fixed_in = "none"` sentinel: accepting an advisory upstream has
+    #     not fixed. The risk it introduces is a permanent mute, so every case
+    #     below exists to prove the entry still has a live retirement trigger.
+    unfixed = [entry(id="CVE-2026-103001", fixed_in=gate.UNFIXED,
+                     unblocked_when="PyJWT publishes any release fixing it")]
+    nofix = [vuln(vid="CVE-2026-103001", fix=())]
+
+    code, msg = run(gate, report([dep(vulns=nofix)]), allowlist(unfixed))
+    check("28a unfixed entry against an unfixed advisory exits 0", code == 0, f"got {code}: {msg}")
+    check("28a reports it as accepted with its retirement condition",
+          "CVE-2026-103001" in msg and "retires when" in msg, msg)
+
+    # The mirror of D6. A normal entry is wrong when the feed does not know its
+    # fixed_in; this one is wrong as soon as the feed knows ANY fix.
+    fixed_now = [vuln(vid="CVE-2026-103001", fix=("2.16.0",))]
+    code, msg = run(gate, report([dep(vulns=fixed_now)]), allowlist(unfixed))
+    check("28b a fix appearing retires the sentinel, exit 2", code == 2, f"got {code}: {msg}")
+    check("28b names the published fix and the entry", "2.16.0" in msg and "CVE-2026-103001" in msg, msg)
+    check("28b holds rather than telling anyone to delete the acceptance",
+          gate.ACTION_HOLD in msg and gate.ACTION_REMOVE not in msg, msg)
+
+    # The advisory going quiet is a withdrawal or a degraded feed. With no
+    # release to compare against it can never be an arriving remediation, so
+    # this must not reach the one branch that says "remove this entry".
+    code, msg = run(gate, report([dep(vulns=[])]), allowlist(unfixed))
+    check("28c an unfixed advisory going absent exits 2", code == 2, f"got {code}: {msg}")
+    check("28c refuses to read absence as the fix landing",
+          "cannot mean the fix landed" in msg, msg)
+    check("28c holds rather than retiring it",
+          gate.ACTION_HOLD in msg and gate.ACTION_REMOVE not in msg, msg)
+
+    # A real release string must keep its old meaning: the sentinel is opt-in,
+    # never inferred from an empty feed.
+    code, msg = run(gate, report([dep(vulns=nofix)]), allowlist([entry(id="CVE-2026-103001")]))
+    check("28d a release-valued entry still exits 2 on an empty feed", code == 2, f"got {code}: {msg}")
+    check("28d points the maintainer at the sentinel",
+          "feed condition" in msg and gate.UNFIXED in msg, msg)
+
+    # Spelling robustness: the TOML is hand-edited, so the sentinel is matched
+    # case- and whitespace-insensitively rather than by exact bytes.
+    for spelling in ("None", " none "):
+        code, _ = run(gate, report([dep(vulns=nofix)]),
+                      allowlist([entry(id="CVE-2026-103001", fixed_in=spelling)]))
+        check(f"28e sentinel spelled {spelling!r} is honoured", code == 0, f"got {code}")
+
     print(f"test-run-pip-audit-gate: {_PASSES} passed, {len(_FAILURES)} failed")
     for failure in _FAILURES:
         print(f"  FAIL {failure}", file=sys.stderr)

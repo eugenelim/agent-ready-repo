@@ -1,6 +1,6 @@
 [pack]
 name = "code-intelligence"
-version = "0.1.0"
+version = "0.1.2"
 description = "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing — answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses."
 readme = "README.md"
 display_name = "Code intelligence"
@@ -34,7 +34,7 @@ version = ">=0.16"
 optional = false
 skills = ["code-intelligence"]
 install = "cargo install wicked-estate --version 0.16.7 --locked"
-note = "Provides the `wicked-estate` binary. Tier-2 dependency: scripts/estate_preflight.py detects it first and installs only on explicit consent, and only when cargo is already present. Pinned to an exact version, not a range, per the three-tier policy. Deviation on record: the policy's named managers are uv/npm/pipx/brew; cargo is used because upstream publishes only to crates.io and ships no release binaries, and `cargo install` compiles from source so the consent prompt states the time cost. The pack reads an index the adopter builds with `wicked-estate index <path>`; it never writes to the graph."
+note = "Provides the `wicked-estate` binary. Tier-2 dependency: scripts/estate_preflight.py detects it first and installs only on explicit consent, and only when cargo is already present. Pinned to an exact version, not a range, per the three-tier policy. The policy's Tier-2 criterion is a manager the user demonstrably already has, detected first; cargo is detected before use and the install refuses without it. Upstream publishes only to crates.io and ships no release binaries, and `cargo install` compiles from source, so the consent prompt states the time cost. The pack reads an index the adopter builds with `wicked-estate index <path>`; it never writes to the graph."
 
 [[pack.runtime-dependencies]]
 ecosystem = "cargo"

@@ -41,6 +41,8 @@ value adopters never saw.
 
 | Journey | Legacy value | Internal ID | Adopter-facing label |
 | --- | --- | --- | --- |
+| `code-intelligence` | `none` | `confirm-ambiguous-symbol` | Confirm which symbol you meant |
+| `code-intelligence` | `none` | `approve-index-build` | Approve building the index |
 | `core` | `G-plan` | `approve-plan` | Approve the plan |
 | `core` | `G-pr` | `merge-reviewed-change` | Merge the reviewed change |
 | `product-engineering` | `G0` | `approve-intent` | Approve the intent |

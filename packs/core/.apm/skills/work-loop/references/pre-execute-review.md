@@ -183,9 +183,10 @@ bundled `spec.md` template — primarily `Never do` for hard structural rules an
 the plan must honour. If that section is empty, that's the finding to surface
 first — an empty one is a spec-stage gap, **not** a fallback cue.
 Only when the spec carries neither heading (an unmigrated template, say)
-fall back, in order, to: the PLAN step's **declined-pattern register**, and the
-effective repository guidance's approval and action rules (when installed
-elsewhere, follow the adopter's own headings and mapped sources).
+fall back, in order, to: any declined architectural addition PLAN recorded
+because it materially affects scope or design, and the effective repository
+guidance's approval and action rules (when installed elsewhere, follow the
+adopter's own headings and mapped sources).
 
 Apply a focused repository-idiom delta only when the plan introduces a
 load-bearing structural mechanism: a module or component boundary, framework

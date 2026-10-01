@@ -9,12 +9,12 @@ It is skipped when `wicked-estate` is absent, so it self-declares as unrun
 rather than passing vacuously. To run it:
 
     cargo install wicked-estate --version 0.16.7 --locked
-    pytest packs/wicked-estate/tests/skills/code-intelligence/
+    pytest packs/code-intelligence/tests/skills/code-intelligence/
 
-The index is built once per session into a temp directory from this
-repository's own `packages/` tree — a real Python codebase, small enough to
-index in seconds. Every probe runs against a **copy** of that graph, so a verb
-that mutates cannot corrupt the shared fixture.
+The index is built once per session into a temp directory from a purpose-built
+three-file micro-repository, so assertions stay deterministic as this
+repository changes. Every probe runs against a **copy** of that graph, so a
+verb that mutates cannot corrupt the shared fixture.
 """
 
 from __future__ import annotations
