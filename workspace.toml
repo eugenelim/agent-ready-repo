@@ -477,7 +477,7 @@ shipped = [
   # spec for ADR-0123. The delivery spec is a Follow-on in this spec rather
   # than a slice of it, because its thresholds come from this run's figures.
   {path = "docs/specs/changelog-fragment-assembly-spike/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0123-product-changelog-per-update-sources-and-generated-views.md"}, summary = "Measure merge independence, deterministic assembly, /now/ parity and site-build cost for the per-update changelog design before its delivery contract pins a threshold", needs = []},
-  # Shipped 2026-10-01 as core 2.27.8. Classification payloads now carry a
+  # Shipped 2026-10-01 as core 2.27.10. Classification payloads now carry a
   # position-free `families` key beside `fingerprints`; nothing stores or
   # compares it yet. Severity normalisation is a closed list so a
   # reviewer-assigned bracketed id survives.
