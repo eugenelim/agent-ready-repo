@@ -1197,3 +1197,27 @@ proofs had to meet and **not as work to repeat**:
   one of them propagating into a second byte-pinned file, with no `git checkout`,
   `reset` or `stash` permitted to undo it. The nit is closed by replacing the
   process-deviation entry's wrong reason with what the event log shows.
+- 2026-10-01: **Scope gate passed on the amended contract. `eugenelim` approved
+  the spec.** The verdict pass returned no blockers and no concerns; its single
+  nit was refuted on adjudication, giving a clean adjudicated verdict
+  (`## Main-loop result` reads `Clean — ready to commit.`, refuted 1,
+  indeterminate 0). The nit had claimed the plan's AC-0011 mutation bullet
+  conflicts with the repaired ledger over where the replacement's reason lives;
+  adjudication found `mutation-proof.md` § *Proof record* neither requires nor
+  forbids a reason statement, so no rule decides between the two framings, and
+  the controller's prior characterisation of the clause as an active footgun is
+  withdrawn on the record.
+  Authorization chain for this approval, stated because the contract changed
+  after the owner's first one: the owner approved spec and plan on 2026-10-01;
+  the second amendment then changed the contract, and the owner chose that
+  amendment's content directly — cut both claims rather than restate — and
+  directed the loop to continue through the gates afterwards. This approval is
+  therefore of a contract the owner specified, not of a contract that changed
+  under a stale approval.
+  Residual risk recorded with it: the sustained-finding count across every round
+  run under both amendments reads 6, 9, 10, 3, 2, 1, 0 pre-EXECUTE, then 2 at
+  post-gates, then 1, 3 and 0 after the second amendment. The last three rounds
+  found staleness the amendment path left behind rather than defects in the work
+  being governed, including a fourth carrier of a deleted entailment and T5 task
+  text that would have directed an implementer to re-run two mutations against
+  shipped byte-pinned files. Both are repaired.
