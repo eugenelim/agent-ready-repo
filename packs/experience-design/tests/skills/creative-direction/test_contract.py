@@ -295,22 +295,6 @@ def test_the_frame_operation_excludes_inherit_from_the_interrogation() -> None:
         )
 
 
-TICKS = "`" * 3  # written this way so the literal survives a fenced code block
-FENCE = TICKS + "markdown"
-
-
-def _template_fence(text: str) -> str:
-    """The one markdown fence reproducing the creative-direction template.
-
-    Selected by a property, not by ordinal: this guide carries three such
-    fences and the first is a design-principles block.
-    """
-    bodies = [part.split(TICKS, 1)[0] for part in text.split(FENCE)[1:]]
-    matching = [b for b in bodies if "type: creative-direction" in b]
-    assert len(matching) == 1, "AC-0012: exactly one creative-direction fence"
-    return matching[0]
-
-
 # STUB: AC-0001, AC-0002, AC-0003, AC-0011  (spec: visual-target-field)
 def test_template_carries_the_visual_target_disposition() -> None:
     """visual-target-field AC-0001, AC-0002, AC-0003, AC-0011.
@@ -343,22 +327,15 @@ def test_template_carries_the_visual_target_disposition() -> None:
     for label in ("**Target:**", "**Binding:**", "**Confirmation record:**"):
         assert label in comment, "AC-0003"
     assert "bind nothing on their own" in comment, "AC-0003"
-    assert "unconfirmed" in comment and "absent" in comment.lower(), "AC-0011"
-
-
-# STUB: AC-0012  (spec: visual-target-field)
-def test_guide_excerpt_carries_the_new_template_material() -> None:
-    """visual-target-field AC-0012."""
-    guide = _read(
-        PACK_ROOT.parents[1]
-        / "guides"
-        / "experience-design"
-        / "how-to"
-        / "establish-design-intent.md"
+    normalized_comment = " ".join(comment.split())
+    assert (
+        "An absent `visual_target` reads as `unconfirmed`" in normalized_comment
+    ), (
+        "AC-0011: the comment must state the absent-field reading as one "
+        "contiguous phrase. Testing for `unconfirmed` beside the word `absent` "
+        "cannot fail: AC-0001's closed-set enumeration already guarantees "
+        "`unconfirmed`, so that form reduces to whether `absent` appears at all."
     )
-    excerpt = _template_fence(guide)
-    assert "visual_target" in excerpt, "AC-0012: inside the fence, not the file"
-    assert "**Confirmation record:**" in excerpt, "AC-0012"
 
 
 def _unique_paragraph(path: Path, anchor: str) -> str:

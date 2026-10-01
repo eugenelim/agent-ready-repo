@@ -83,3 +83,86 @@ it.
 
 Every exit code above was read from the command's own status, not from its
 output tail.
+
+## T5 mutation proofs
+
+Date: 2026-10-01
+
+Both assertions are green on first run because T1 already committed the material
+they check. The owner's waiver (recorded in `notes/amendment-2026-10-01.md`)
+permits a mutation proof to stand in for the intended red at both plan-approval
+and EXECUTE phases. Two mutations are recorded below.
+
+### AC-0012 mutation proof
+
+- **Invariant:** `visual_target: "<none | unconfirmed | confirmed>"` appears
+  exactly once as a line (after `rstrip`) inside the `type: creative-direction`
+  fenced excerpt of
+  `guides/experience-design/how-to/establish-design-intent.md`.
+- **Catching test:** `tests/roster/test_visual_target_guide_excerpt.py::test_visual_target_guide_excerpt`
+- **Exact mutation:** deleted the single line
+  `visual_target: "<none | unconfirmed | confirmed>"` from the guide's fenced
+  excerpt only (line 153 of `establish-design-intent.md`). The fence still
+  carried `visual_target` three times (in the comment) and the `RECORD_LINE`
+  intact, so the mutation falsifies the key-line sub-property without deleting
+  the whole construct.
+- **Expected failure:** `test_visual_target_guide_excerpt` fails on the
+  `KEY_LINE` count assertion (`assert 0 == 1`).
+- **Observed failure:** `FAILED tests/roster/test_visual_target_guide_excerpt.py::test_visual_target_guide_excerpt` —
+  `AssertionError: AC-0012: 'visual_target: "<none | unconfirmed | confirmed>"'
+  must appear exactly once in the template fence. … assert 0 == 1`. The
+  `RECORD_LINE` check passed; only the `KEY_LINE` count failed, confirming the
+  assertion decides the key's presence independently.
+
+  *Controller correction, 2026-10-01.* The implementer's record of this proof
+  stated "Exit code 0 (pytest itself exited 0, failure was in the assertion)".
+  That is false and self-contradictory against the `FAILED` line beside it:
+  pytest exits 1 when a test fails, confirmed by a control run on a deliberately
+  failing test. The claim is struck rather than replaced, because the mutated
+  run's process exit code was not separately measured and § *Proof record* does
+  not require it — `Observed failure` is carried by the assertion text above.
+- **Restoration:** added the deleted line back by editing the guide file directly
+  (no `git checkout`, `git reset`, or `git stash`). Confirmed
+  `python3 tools/lint-guidebook-steps.py guides/experience-design` exits 0
+  and `test_visual_target_guide_excerpt` passes.
+
+### AC-0011 mutation proof
+
+- **Invariant:** the `## Approved visual target` section comment in
+  `packs/experience-design/.apm/skills/creative-direction/assets/creative-direction-template.md`
+  contains the contiguous phrase `An absent \`visual_target\` reads as \`unconfirmed\``
+  (after whitespace normalisation).
+- **Catching test:** `packs/experience-design/tests/skills/creative-direction/test_contract.py::test_template_carries_the_visual_target_disposition`
+  — specifically the `normalized_comment` assertion that replaced the old
+  AC-0011 line. `Catching test` is load-bearing here because this assertion is
+  one of four criterion checks inside the same function.
+- **Exact mutation:** in the template only, changed
+  `An absent \`visual_target\` reads as` to
+  `When \`visual_target\` is absent from the frontmatter, it is treated as` —
+  the reworded sentence still contains both `absent` and `unconfirmed` but not
+  as the pinned contiguous run. The guide was **not** re-derived while the
+  mutation stood, as required by the plan.
+- **Expected failure:** `test_template_carries_the_visual_target_disposition`
+  fails on the replaced AC-0011 assertion.
+- **Observed failure:** `FAILED packs/experience-design/tests/skills/creative-direction/test_contract.py::test_template_carries_the_visual_target_disposition` —
+  `AssertionError: AC-0011: the comment must state the absent-field reading as
+  one contiguous phrase. … assert 'An absent \`visual_target\` reads as
+  \`unconfirmed\`' in '… When \`visual_target\` is absent from the frontmatter,
+  it is treated as \`unconfirmed\`, …'`.
+- **Contrast (the superseded co-occurrence form):** under this same mutation, the
+  superseded assertion `"unconfirmed" in comment and "absent" in comment.lower()`
+  evaluated to `True` (passes), while the replacement contiguous-phrase assertion
+  evaluated to `False` (fails). Verified by direct evaluation in Python against
+  the mutated template. This contrast is the reason for the replacement: the
+  co-occurrence form reduces to whether `absent` appears anywhere once
+  `unconfirmed` is guaranteed by AC-0001.
+- **Restoration:** edited the template back to `An absent \`visual_target\` reads
+  as \`unconfirmed\`, so record it deliberately rather than leaving it off.`
+  directly (no `git checkout`, `git reset`, or `git stash`).
+  `test_template_carries_the_visual_target_disposition` passes after restoration.
+  The guidebook lint was expected to red during the mutation (the comment is
+  reproduced verbatim in the guide); it was not re-run during the mutation and
+  returns to green after restoration.
+
+Every exit code above was read from the command's own status, not from its
+output tail.
