@@ -707,7 +707,7 @@ open = [
   # Also record why no gate caught it: `tools/check-rendered-site-links.py`
   # audits an emitted HTML tree, and the journeys route was not in the audited
   # build. Unblocks now; nothing depends on it.
-  { slug = "journey-bodies-cannot-link-to-a-guide-page", source = "knowledge-distill/2026-09-24", summary = "packs/core/JOURNEY.md:300 is a live 404 on the published site because sync_pack_journeys copies journey bodies verbatim and a Markdown body link is not base-qualified the way docsUrl is; it is the only guide link across 20 JOURNEY.md files, so packs have no working way to link a guide page, and the rendered-site link audit did not cover the journeys route" },
+  { slug = "journey-bodies-cannot-link-to-a-guide-page", source = "knowledge-distill/2026-09-24", summary = "packs/core/JOURNEY.md:303 links ../../docs/guides/core/how-to/run-headless-session/, which resolves to no file (the guide is guides/core/how-to/run-headless-session.md), and is a live 404 on the published site because sync_pack_journeys copies journey bodies verbatim and a Markdown body link is not base-qualified the way docsUrl is; it is the only guide link across 14 JOURNEY.md files, so packs have no working way to link a guide page, and the rendered-site link audit did not cover the journeys route" },
 
   # No gate resolves relative Markdown links repository-wide. The knowledge
   # topic `no-gate-resolves-relative-markdown-links` recorded this and it is
@@ -728,7 +728,7 @@ open = [
   # and a gate that exempts them enforces almost nothing. Decide the domain
   # (which trees, and what happens to a frozen record carrying a stale link)
   # before writing the check. Unblocks now.
-  { slug = "no-repository-wide-relative-markdown-link-gate", source = "knowledge-distill/2026-09-24", summary = "388 broken relative Markdown links across 92 files with no gate resolving them; the adopter-facing seed subset is separately gated and deferred, so the open work is deciding the domain for the internal corpus, where a gate over frozen specs would red on records nobody may edit" },
+  { slug = "no-repository-wide-relative-markdown-link-gate", source = "knowledge-distill/2026-09-24", summary = "369 broken relative Markdown links across 88 authored files (re-measured 2026-10-01, test fixtures and projected copies excluded; 125 of them across 64 files sit in docs/specs, docs/adr and docs/rfc) with no gate resolving them; the adopter-facing seed subset is separately gated and deferred, so the open work is deciding the domain for the internal corpus, where a gate over frozen specs would red on records nobody may edit" },
 
   # Retired 2026-09-24: three shape entries whose shaping had already produced
   # a Shipped spec, so the shaping they asked for was done. The intents stay on
@@ -2075,29 +2075,22 @@ open = [
   # ride the next real distill run, which is how the two Class C drops in
   # `ecba88748` (#1351) landed.
   #
-  # Re-measured 2026-09-23, superseding every count above; the drift this entry
-  # predicts is visible in the movement. Of 98 topics (93 active, 5 retired), 35
-  # pin at least one source and 41 of those pins are stale, spread over 28
-  # topics: 24 active, of which 20 carry a stale OWNING pin, and 4 retired
-  # (Class A, correctly no action). No pin names a missing file, so Class B
-  # stays done. No topic is `needs_review`, so active here means lifecycle
-  # `active` exactly.
+  # Measured 2026-10-01 by tools/lint-knowledge-freshness.py, superseding every
+  # earlier count. Of 100 topics (95 active, 5 retired), 69 pins are examined
+  # and 42 are stale across 29 topics: 25 active, 21 of them with a stale
+  # OWNING pin, and 4 retired (Class A, correctly no action). 17 of the 42 are
+  # supporting_sources pins, which read_freshness_source cannot see; 4 topics
+  # are stale through supporting pins alone. No pin names a missing file, so
+  # Class B stays done.
   #
-  # Re-measured 2026-09-24 after a full distill run: 41 stale pins across 28
-  # topics, 20 of them active with a stale OWNING pin -- identical to the
-  # 2026-09-23 counts, so nothing drifted and nothing cleared. What DID change
-  # is the fallback route. The "ride the next real distill run" option recorded
-  # above is now SPENT: all three pending captures were dispositioned on
-  # 2026-09-24 (one promoted to a new topic, two routed), each on its own
-  # subject. Riding one to clear an unrelated topic's pin was refused for the
-  # reason this entry already gives -- it writes a producer, a gate and an
-  # evidence digest for an edit that is not that observation. The journal now
-  # holds zero pending captures, so the route has no vehicle until a new
-  # capture arrives, and the topic count is 99 (94 active). Do not plan the
-  # next attempt around riding a distill run; the unblock conditions stated
-  # above (a capture-free maintenance mutation that rebuilds the map, or moving
-  # the freshness contract off byte digests) are the only live ones.
-  { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 41 of those pins are stale across 28 topics, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; the recorded drop-the-pin disposition is capable but not affordable, because the skill registers exactly one committed-topic write path and it costs one pending captured observation per topic, of which three remain against 20 active topics with a stale owning pin" },
+  # Detection now exists and is not wired: tools/lint-knowledge-freshness.py
+  # (PR #1481) exits 1 on this corpus, and --max-stale N tolerates a declared
+  # baseline. Wiring it as a required gate is a full-mode spec, and that spec
+  # cannot ratchet the baseline down until one of the unblock conditions above
+  # holds. The ride-a-distill-run route stays spent: the journal holds zero
+  # pending captures after the 2026-10-01 run promoted its only one on its own
+  # subject.
+  { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "42 of 69 pinned source digests are stale across 29 of 100 knowledge topics, 21 of them active topics with a stale owning pin; tools/lint-knowledge-freshness.py now detects it but no gate runs it, and the baseline cannot ratchet down because re-pinning costs one pending captured observation per topic and none remain, so wiring needs a capture-free maintenance mutation or a freshness contract off byte digests first" },
 
   # Found 2026-09-17 by the pre-EXECUTE review of
   # docs/specs/wave-complete-dispatch-receipts. The entry below is a limit that

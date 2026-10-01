@@ -821,6 +821,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "829169eb3ffacaec3d7510f62acf71e3cef911fc"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-27T10:36:09Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-user-invoked-skills-release-and-manual-qa-duties-belong-in-the-spec-contract.json",
+      "scopes": [
+        "packs/product-engineering",
+        "docs/specs"
+      ],
+      "title": "A user-invoked skill's release and manual-QA duties belong in the spec contract",
+      "topic_key": "a-user-invoked-skills-release-and-manual-qa-duties-belong-in-the-spec-contract"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "45363aba8c08b450f4b26a49f48169d07d446e53"
       },
       "competency_facets": [
