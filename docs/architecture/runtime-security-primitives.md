@@ -110,11 +110,13 @@ links, and recheck identity. This design reuses those controls and adds atomic
 mutation, capability issuance, process confinement, containment attestations,
 and the optional effect broker.
 
-Same-process Pi, Claude Code, Codex, and tmux adapters remain trusted code. An
-untrusted adapter or child runs only through a verified host sandbox or
-restricted security principal; the sequential adapter refuses it when the host
-cannot supply that enforcement. The effect broker grants selected outward
-effects but never substitutes for OS containment.
+Same-process adapters—including a separately installed Pi extension, Claude
+Code, Codex, and tmux integrations—remain trusted code. An untrusted adapter or
+child runs only through a verified host sandbox or restricted security
+principal; the sequential adapter refuses it when the host cannot supply that
+enforcement. The effect broker grants selected outward effects but never
+substitutes for OS containment. Core security code imports no runtime-specific
+adapter package.
 
 Untrusted grants deny writes to `.git`, protected integration refs, and
 delivery-control paths. A broker may expose bounded read-only Git queries, but

@@ -11,14 +11,16 @@ neutral contracts owned by the execution supervisor.
 
 This document maps runtime mechanisms, not product equivalence. The
 [execution supervisor](work-loop-execution-supervisor.md) owns the contracts;
-no runtime named here owns acceptance meaning or becomes mandatory.
+no runtime named here owns acceptance meaning or becomes mandatory. Pi is a
+reference decomposition and optional compatibility target: Core does not
+import, bundle, install, select by default, or depend on Pi.
 
 ## 2. Pi Reference Decomposition
 
 | Pi package or surface | Architectural lesson | Agent-ready-repo mapping | Adoption |
 | --- | --- | --- | --- |
 | `pi-ai` | Providers sit below loops | Runtime capability | Retain the seam, not the API |
-| `pi-agent-core` | Tool and event loop is separable | Agent extension | First native adapter pattern |
+| `pi-agent-core` | Tool and event loop is separable | External agent extension consuming the neutral protocol | Compatibility target; no bundled adapter or Core dependency |
 | `pi-coding-agent` | Interfaces share mechanics | Supervisor transports | Pattern only |
 | Extensions and resources | Executable modules stay outside core policy | Extensions and skills | Procedure outside policy |
 | Sessions and `pi-durable` | Conversation is not product truth; durability is optional | Journal adapter | Attempts, never acceptance proof |
@@ -55,6 +57,7 @@ The named sources are [Pi packages](https://github.com/earendil-works/pi#all-pac
 | Session loss cannot erase acceptance facts | Sessions and journals contain only repairable mechanical state |
 | Missing runtime capabilities degrade safely | The selector chooses the sequential floor or refuses before dispatch |
 | Provider-specific APIs do not enter skill policy | Typed requests and results terminate at the adapter boundary |
+| Optional compatibility cannot become a critical-path dependency | Pi conformance runs from a separately installed environment; supervisor cutover, result integration, parallelism, and legacy removal pass with Pi absent |
 
 ## 5. Verification authority
 
