@@ -94,3 +94,39 @@ therefore arrive as a new dependency-ordered task rather than edits.
 
 T4's release work is committed as `774f9e5ae`; it was the current wave rather
 than a completed one, so its plan section remains amendable.
+
+## Supplementary owner ruling — 2026-10-01, narrowing two added clauses
+
+The § *What this amendment does not change* statement above was written before
+the amendment had been reviewed. It said no acceptance criterion is removed or
+weakened, and at that point none was.
+
+The amendment's own pre-EXECUTE review then sustained findings across two
+rounds, and the repair answered several of them by **adding** obligations: a
+byte-identity completion check, a recorded manual register check, and two
+prescribed mutations. The third round's findings were largely defects in those
+additions. Adjudication of that round recorded explicitly that the
+`Cut before adding` answer — narrowing or dropping the added clauses rather
+than specifying them further — was unavailable to the repair, because the
+statement above forbade it, and that taking it needed a fresh owner ruling.
+
+**The owner gave that ruling on 2026-10-01:** repair the shipped changelog
+bullet as a one-time correction, and drop the standing criteria the repair had
+added to AC-0010. The register and conditional-framing clauses added to AC-0010
+are removed. The sustained round-1 copy findings are answered by fixing the
+bullet, not by carrying a criterion a completion gate cannot decide.
+
+Scope of this ruling, stated narrowly so it is not read as a general licence:
+
+- It removes only the two prose clauses the post-amendment repair itself added
+  to AC-0010. No criterion that existed when the amendment fired is removed,
+  weakened, or renumbered, and the outcome is not narrowed.
+- AC-0010's released-version clause stays. That clause answers a separate
+  sustained finding and is decided by the stub.
+- The bullet's two defects remain required repairs. Adjudication distinguished
+  them from the dropped criteria: a one-time repair condition on an
+  already-shipped artifact adds no standing criterion, so T4's completion
+  condition must still fail while either defect stands.
+- AC-0012's assertion is tightened rather than relaxed, so that a single-line
+  mutation can falsify it. Strengthening a criterion is not what the statement
+  above forbids.

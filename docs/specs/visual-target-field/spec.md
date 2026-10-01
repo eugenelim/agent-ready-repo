@@ -231,10 +231,6 @@ verification cannot silently grade a different occurrence.
   next unrelated `experience-design` bump, for an author who never touched this
   field. AC-0009's three-site agreement keeps reading the live version, because
   that claim must stay live.
-  The bullet is also adopter copy, so `changelog.md`'s own header governs its
-  register, and it may not state or imply that recording the disposition is
-  conditional on anything: `converge` records it unconditionally, and the
-  no-target case is precisely the one a conditional reading would drop.
 - [ ] **AC-0011.** That section's comment states that an absent `visual_target`
   reads `unconfirmed`. After whitespace normalization the comment contains this
   phrase, verbatim and as one contiguous run:
@@ -255,7 +251,22 @@ verification cannot silently grade a different occurrence.
   the single ` ```markdown ` fence whose body contains the line
   `type: creative-direction`, and asserted to be the only such fence — both the
   `visual_target` frontmatter key and the `**Confirmation record:**` line are
-  present. Selecting by that property rather than by fence ordinal is the
+  present **as their pinned forms, each occurring exactly once in that fence**:
+
+  ```text
+  visual_target: "<none | unconfirmed | confirmed>"
+  **Confirmation record:** <YYYY-MM-DD> — <where the confirmation was recorded>
+  ```
+
+  The pinned forms are what the criterion decides, not the bare words. The
+  words alone do not decide it: the fence carries `visual_target` four times
+  and `**Confirmation record:**` twice, because the section comment discusses
+  both, so a containment check over either word passes on an excerpt that
+  reproduces the comment and omits the key and the record line — which is the
+  precise regression this criterion exists to catch, an excerpt not re-derived
+  after a template edit. Pinning the two lines also makes the criterion
+  falsifiable by a single-line change, which is what lets its assertion be
+  proven non-vacuous when the material is already present. Selecting by that property rather than by fence ordinal is the
   point: the guide carries three ` ```markdown ` fences, and the first is a
   design-principles block that no edit in this slice ever makes carry the
   field. Scoping to the fence at all is what a whole-file check cannot do,

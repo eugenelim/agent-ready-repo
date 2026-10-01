@@ -76,10 +76,15 @@ spec or this plan refers here rather than restating them.**
 
 ## Construction tests
 
-Every criterion is an assertion over a shipped file's bytes, except AC-0008
-(the guidebook lint).
+Every criterion is an assertion over a shipped file's bytes, with three
+exceptions: AC-0008 is the guidebook lint one-liner; AC-0009's start-of-work
+baseline is a recorded observation, carried in § *Version baseline and target*;
+and T4 carries one recorded manual check over the shipped changelog bullet,
+which is a one-time repair condition rather than a criterion — the 2026-10-01
+supplementary owner ruling kept it out of the acceptance criteria for that
+reason.
 
-AC-0004, the one criterion here that pins a literal, asserts it **inside a
+AC-0004 and AC-0012 pin literals. AC-0004 asserts its literal **inside a
 bounded unit** — a paragraph block, as the spec's Testing Strategy defines one
 — read from the single file the criterion names, with the anchor's uniqueness
 in that file asserted rather than assumed. The scoping criteria that shared
@@ -150,11 +155,22 @@ plan approval without it.
     disposable scratch outside the repository test tree.
   - **Intended red: unobtainable for both T5 blocks, by construction.** T1 has
     already landed the template phrase and the guide excerpt material, so each
-    assertion is green on first run. `tdd-stubs.md` asks for the red because it
-    is what proves an assertion can fail; where no red exists the proof
-    obligation is discharged by the mutation proof recorded in T5's
-    § *Verification*, not waived. The two mutations and their observed reds
-    belong in the verification ledger before T5 is met.
+    assertion is green on first run.
+    **Recorded deviation.** `tdd-stubs.md` § *Validate* fails closed at plan
+    approval without a recorded intended red, and admits no third disposition
+    beside `stub: true` and `no stub (implementation-discovered)`. Neither fits:
+    the assertions are authored and compilable, so they are not
+    implementation-discovered, and the red cannot be obtained because the
+    property they assert is already present in the tree T1 shipped. This plan
+    therefore departs from § *Validate*'s red requirement for these two blocks
+    only, under the 2026-10-01 amendment authority recorded at
+    [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md). The
+    reason the departure is safe is that the obligation the red discharges —
+    evidence the assertion can fail — is met instead by the mutation proof in
+    T5's § *Verification*, which `mutation-proof.md` declares the instrument
+    for exactly this case, and T5's `Done when` gates on that ledger entry. The
+    departure is from the red requirement and nothing else in § *Validate*: the
+    compile pass above is recorded as that section requires.
   - **Isolation:** local, filesystem-confined to the repository and disposable
     scratch, no network use. No isolation downgrade was needed.
 
@@ -163,7 +179,7 @@ plan approval without it.
 | Durable output | Task | Evidence |
 | --- | --- | --- |
 | Interface compatibility (the template) | T1 | Contract-suite assertions |
-| Current product truth (the guide excerpt) | T1 | `lint-guidebook-steps.py` exit zero plus AC-0012 |
+| Current product truth (the guide excerpt) | T1 for the excerpt edit; T5 for AC-0012's assertion | `lint-guidebook-steps.py` exit zero (T1) plus AC-0012, asserted from T5's `tests/roster/` module after the 2026-10-01 amendment moved it out of the pack contract suite |
 | Behavioural coverage (the eval harness) | T3 | Contract-suite assertion over the harness JSON |
 | Release history | T4 | `tests/roster/test_visual_target_release_surface.py`, which reads all three version sites and the changelog; plus the recorded slice-start baseline. `tests/conformance/test_pack_metadata.py` is not evidence for AC-0009 or AC-0010: it compares `pack.toml` to `plugin.json` only, never a marketplace version and never the changelog |
 
@@ -426,7 +442,6 @@ needed.
 from __future__ import annotations
 
 import json
-import re
 import tomllib
 from pathlib import Path
 
@@ -531,6 +546,8 @@ def test_release_surface_is_consistent() -> None:
   `_GATE_MAIN_CHECKS` tuple. `tests/AGENTS.md` documents only the first; a step
   named in one axis alone is still a violation, which `_step_disposition` is
   written to preserve.
+- Run `ruff check .` afterwards: the repository lint targets do not cover
+  orphaned imports left by a moved test.
 
 #### Repair state for this task after the 2026-10-01 amendment
 
@@ -549,8 +566,6 @@ re-run:
    instruction does not have and reads as the gating this slice forbids. It is
    also schema-led where `changelog.md`'s header requires outcome-led user
    register.
-- Run `ruff check .` afterwards: the repository lint targets do not cover
-  orphaned imports left by a moved test.
 
 **Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md, tests/roster/test_visual_target_release_surface.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
 
@@ -564,14 +579,23 @@ artifacts standing.
    in this task section, per `tdd-stubs.md` § *Lifecycle*. This is what fails
    while the committed file still derives its changelog heading from the live
    `version` rather than from `RELEASE`.
-2. **The Highlights bullet carries no conditional framing.** The
-   `## [experience-design][4.1.2]` entry's Highlights bullet does not contain
-   the string `when writing compositional commitments`, states no other
-   condition on recording the disposition, still names `visual_target` in a `-`
-   bullet, and still says plainly that nothing reads the field and nothing is
-   gated on it. Verified by reading the bullet and recording the observation in
-   the verification ledger; no lint reads prose register, so this half is a
-   recorded manual check rather than a gate.
+2. **Both defects named in the repair-state list above are repaired.** The
+   `## [experience-design][4.1.2]` entry's Highlights bullet (a) does not
+   contain the string `when writing compositional commitments` and states no
+   other condition on recording the disposition, and (b) leads with what an
+   adopter can now do rather than with the artifact mechanism, and does not
+   close in contributor register — the two things `changelog.md`'s header
+   requires of a highlight. It still names `visual_target` in a `-` bullet and
+   still says plainly that nothing reads the field and nothing is gated on it.
+   Verified by reading the bullet against that header and recording the
+   observation in the verification ledger; no lint reads prose register, so
+   this is a recorded manual check rather than a gate.
+   This is a one-time repair condition on an already-shipped artifact, not a
+   standing criterion: the 2026-10-01 supplementary owner ruling removed the
+   equivalent clauses from AC-0010 precisely so the contract does not carry an
+   obligation a completion gate cannot decide. Both halves stay here because
+   both were sustained findings, and a repair condition that omits one would
+   let T4 pass with that defect standing.
 3. `make lint-ruff lint-mypy` and `ruff check .` are green.
 4. `python3 -m pytest tests/conformance/test_pack_metadata.py tests/roster/test_visual_target_release_surface.py -q` is green.
 5. `python3 tools/lint-conformance-portability.py --root .` and `python3 tools/lint-ci-parity.py` both exit zero, which is what proves the file sits in a tree whose rules admit it.
@@ -641,12 +665,27 @@ def _template_fence(text: str) -> str:
     return matching[0]
 
 
+KEY_LINE = 'visual_target: "<none | unconfirmed | confirmed>"'
+RECORD_LINE = (
+    "**Confirmation record:** <YYYY-MM-DD> — "
+    "<where the confirmation was recorded>"
+)
+
+
 # STUB: AC-0012  (spec: visual-target-field)
 def test_visual_target_guide_excerpt() -> None:
     """visual-target-field AC-0012."""
     excerpt = _template_fence(GUIDE.read_text(encoding="utf-8"))
-    assert "visual_target" in excerpt, "AC-0012: inside the fence, not the file"
-    assert "**Confirmation record:**" in excerpt, "AC-0012"
+    lines = [line.rstrip() for line in excerpt.split("\n")]
+    for pinned in (KEY_LINE, RECORD_LINE):
+        assert lines.count(pinned) == 1, (
+            f"AC-0012: {pinned!r} must appear exactly once in the template "
+            "fence. Containment over the bare words does not decide this: the "
+            "fence carries `visual_target` four times and "
+            "`**Confirmation record:**` twice, because the section comment "
+            "discusses both, so a word check passes on an excerpt that "
+            "reproduces the comment and omits the key and the record line."
+        )
 ```
 
 **Stub** — replaces the final AC-0011 assertion inside
@@ -695,19 +734,36 @@ a first green carries no evidence it can fail at all. Use
 [`mutation-proof.md`](../../../.claude/skills/work-loop/references/mutation-proof.md)
 instead, which is the repository's declared instrument for a test whose property
 is already present. Record for each of the two assertions, in the verification
-ledger: the invariant, the exact mutation applied, the expected failure, the
-observed failure, and restoration of the mutated bytes by editing. Two mutations
-are owed:
+ledger, the complete field set `mutation-proof.md` § *Proof record* requires —
+cited rather than restated here so the list cannot drift short of it, and noting
+that `Catching test` is load-bearing for AC-0011, whose assertion is one line
+inside a four-criterion test function. Two mutations are owed:
 
-- AC-0012 — remove the `visual_target` line from the guide's fenced excerpt;
-  the roster assertion must red. Restore, and confirm
-  `tools/lint-guidebook-steps.py guides/experience-design` is green again, since
-  that excerpt is byte-pinned to the template.
-- AC-0011 — reword the template comment's absent-field sentence so it still
-  contains both `absent` and `unconfirmed` but no longer as the pinned
-  contiguous run. The new assertion must red where the replaced one would have
-  passed; that contrast is the whole point of the replacement, so record both
-  outcomes. Restore, and re-derive the guide excerpt in the same edit.
+- **AC-0012** — in the guide's fenced excerpt only, delete the single
+  `visual_target: "<none | unconfirmed | confirmed>"` line. Expected red:
+  `test_visual_target_guide_excerpt`, on the `KEY_LINE` count assertion.
+  This falsifies the pinned sub-property rather than deleting the construct:
+  the fence still carries `visual_target` three times and the record line
+  intact, so the mutation proves the assertion decides the key's presence and
+  not merely that the word appears somewhere. A whole-fence deletion would
+  prove nothing about that sub-property. **Confined to the guide.** Restore by
+  re-deriving the excerpt from the template, then confirm
+  `tools/lint-guidebook-steps.py guides/experience-design` is green again.
+- **AC-0011** — in the template only, reword the section comment's
+  absent-field sentence so it still contains both `absent` and `unconfirmed`
+  but no longer as the pinned contiguous run. Expected red:
+  `test_template_carries_the_visual_target_disposition`, on the replaced
+  AC-0011 assertion. Record that the superseded co-occurrence form would have
+  stayed green under this same mutation; that contrast is the whole reason for
+  the replacement, so both outcomes belong in the ledger.
+  **Confined to the template. Do not re-derive the guide excerpt while the
+  mutation stands** — the comment is reproduced verbatim in the guide and
+  coupled by the guidebook lint, so re-deriving under mutation would write the
+  mutation into a second shipped byte-pinned file. The lint is expected to red
+  during the mutation, which is the coupling working. Restore by editing the
+  template back, which returns the lint to green and leaves restoration a
+  one-file operation; `mutation-proof.md` permits no `git checkout`, `reset` or
+  `stash` here.
 
 **Touches:** packs/experience-design/tests/skills/creative-direction/test_contract.py, tests/roster/test_visual_target_guide_excerpt.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py, docs/specs/visual-target-field/notes/verification-ledger.md
 
@@ -870,3 +926,31 @@ are owed:
   than deriving the version in the test is what the amendment authority
   requires; and AC-0011's prose wording cannot mislead, because the criterion
   pins the exact phrase in its own fenced block.
+- 2026-10-01: Revised after the third pre-EXECUTE pass (10 sustained, 0
+  refuted). Every finding was a defect in the previous repair, and the shape of
+  the previous repair is the finding behind the finding: it answered sustained
+  findings by adding obligations, and the additions then needed verification of
+  their own. Two blockers were measured, not argued. T4's approved stub carried
+  `import re` unused, so `Done when`'s byte-identity condition and its
+  `ruff check .` condition could not both hold — the same unused import the T4
+  implementer had already removed from the real file and reported, pinned back
+  in by a stub nobody re-read. AC-0012's prescribed mutation left its assertion
+  green, because the fence carries `visual_target` four times and
+  `**Confirmation record:**` twice; the answer was to tighten the criterion to
+  its two pinned lines, each occurring exactly once, which both strengthens
+  AC-0012 and makes it falsifiable by one line. The third blocker was resolved
+  by narrowing rather than specifying: under a supplementary owner ruling
+  recorded in [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md),
+  the register and conditional-framing clauses the previous repair added to
+  AC-0010 are removed, and the shipped bullet's two defects stay as a one-time
+  repair condition in T4's `Done when`, which adjudication distinguished from a
+  standing criterion. T5's `stub: true` with an unobtainable red is now a
+  recorded deviation from `tdd-stubs.md` § *Validate* under that authority
+  rather than an assertion that the obligation was discharged. The AC-0011
+  mutation is confined to the template and explicitly forbids re-deriving the
+  guide while the mutation stands, so restoration touches one file. The
+  mutation field list now cites `mutation-proof.md` § *Proof record* instead of
+  restating it short of `Catching test`. Three structural corrections: the
+  orphaned `ruff check .` bullet returned to T4's Approach, the durable-output
+  map now attributes AC-0012's assertion to T5, and the construction-tests
+  preamble states its three real exceptions.
