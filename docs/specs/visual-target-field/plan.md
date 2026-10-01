@@ -1239,25 +1239,3 @@ proofs had to meet and **not as work to repeat**:
   T1 through T4's sections stay pinned and evidence-bound, verified immediately
   before this approval by `validate_completed_task_sections`, which returns no
   refusal. Both T5 stub blocks remain byte-identical to the shipped files.
-- 2026-10-01: **Shipped.** All ten live acceptance criteria are checked, each
-  against an existing verification artifact of its declared mode, re-measured
-  green on the current tree by the post-gates review: `pytest tests/ -q` 1958
-  passed, the two visual-target roster modules and the pack contract suite
-  green, and every placement and guidebook lint at exit 0. That review recomputed
-  `sha256_canonical_contract` for both artifacts and found them equal to the
-  stored `approved_spec_hash` and `approved_plan_hash`, so the approved contract
-  is the shipped contract.
-  Two nits were raised and neither is acted on. The first — that the ledger's
-  binding argument names only the mutation subjects — was refuted: no authority
-  requires the test-side statement, the catching predicate is byte-identical to
-  the one the proof records, and the ledger already names the message-only edit
-  at `4e1c351c7` nine lines above. The second — missing `Spec:` trailers — is
-  deferred with its citation to
-  [`notes/ruling-2026-10-01-spec-trailer.md`](notes/ruling-2026-10-01-spec-trailer.md),
-  because adjudication returned `ADJUDICATION-INDETERMINATE` and the owner ruled
-  rather than a further pass clearing it.
-  `experience-reviewer` is a **named skip**, not a silent one: its four surfaces
-  are byte-identical to the state it already passed, verified by hashing the
-  `4.1.2` changelog entry at both points (`8a40dd2a…` each time) and confirming
-  the only intervening commit to touch `changelog.md` was main's `e512ca462`.
-
