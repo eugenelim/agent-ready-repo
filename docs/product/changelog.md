@@ -64,6 +64,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.6] — 2026-09-30
+
+### Highlights
+
+- **Work-loop can now explain a scheduled wave before dispatch without authorizing concurrent writes.** `loop-cohort wave-decision --json` reports unfinished tasks as `parallel-capable` or `sequential`, includes pairwise `Touches:` relations, and returns fixed public-safe JSON refusal envelopes while leaving ADR-0005's post-write gate and ADR-0061 D5 unchanged.
+
+### Added
+
+- Added the read-only `loop-cohort wave-decision` screen for scheduled cohorts. It reports task-level admission candidates, pair-level `disjoint` / `overlapping` / `unknown` relations, and `admission_pending: true` on verdicts.
+- Added a versioned JSON contract for `wave-decision` verdict and refusal envelopes, including stdout JSON refusals under `--json` with bounded public-safe `detail` messages.
+
+### Changed
+
+- Supervisor guidance now separates the pre-dispatch `wave-decision` screen from the existing post-write `dispatch-decision` gate and names `_DANGER_PATH_RE` as shared by both consumers.
+
 ## [core][2.27.5] — 2026-09-29
 
 ### Highlights

@@ -1075,6 +1075,19 @@
       ]
     },
     {
+      "id": "wave-decision-screen-is-not-dispatch-admission",
+      "prompt": "`loop-cohort wave-decision --json` reports two tasks as `parallel-capable`, includes pair rows marked `disjoint`, and another run refuses with a JSON object on stdout. May I dispatch the capable tasks concurrently from that output, and does the refusal carry `admission_pending`?",
+      "expected_output": "No. `wave-decision` is a read-only pre-dispatch screen. `parallel-capable` means the task is a candidate whose admission is still pending; every verdict envelope carries `admission_pending: true`, and the populated-branch post-write gate still owns any later greenlight for concurrent execution. Pair rows never admit tasks and carry only `disjoint`, `overlapping`, or `unknown`; admission is reported only on task rows. A refusal envelope is not a verdict, so it has `payload_version`, `refusal`, and public-safe `detail`, but no `admission_pending` field.",
+      "assertions": [
+        "Response says `parallel-capable` is pending rather than a dispatch authorization",
+        "Response says the populated-branch post-write gate still owns the greenlight",
+        "Response says pair rows do not admit tasks",
+        "Response says pair rows carry only the touches relation values",
+        "Response says verdict envelopes carry `admission_pending: true`",
+        "Response says refusal envelopes have no `admission_pending` field"
+      ]
+    },
+    {
       "id": "transition-commits-against-the-state-it-read",
       "prompt": "Can a `loop-engine transition` commit against cohort state that changed after its guards ran?",
       "expected_output": "No. `cmd_transition` fingerprints cohort `state.json` before its first cohort read and re-reads it under the cohort lock before committing, refusing when it moved. The exception is the registered cohort-effect edge being committed: `contract-amendment`, `wave-passed`, `gates-failed`, and the CODE-REVIEW `findings-remain`/`reviewers-clean` edges mutate cohort state through `loop-cohort.py` before the engine-state write, so they use the durable transition marker/history instead of the fingerprint comparison. SPEC-PLAN-REVIEW review transitions have no cohort effect and stay on the fingerprint rail. The fingerprint is over the whole parsed state rather than selected fields, and it is read through the guard layer's exported bounded reader rather than a raw open.",

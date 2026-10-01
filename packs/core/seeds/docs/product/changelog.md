@@ -20,6 +20,21 @@ when that matches its release model.
 
 -->
 
+## [core][2.27.6] — 2026-09-30
+
+### Highlights
+
+- **Work-loop can now explain a scheduled wave before dispatch without authorizing concurrent writes.** `loop-cohort wave-decision --json` reports unfinished tasks as `parallel-capable` or `sequential`, includes pairwise `Touches:` relations, and returns fixed public-safe JSON refusal envelopes while leaving the populated-branch post-write gate authoritative and concurrent wave execution disabled.
+
+### Added
+
+- Added the read-only `loop-cohort wave-decision` screen for scheduled cohorts. It reports task-level admission candidates, pair-level `disjoint` / `overlapping` / `unknown` relations, and `admission_pending: true` on verdicts.
+- Added a versioned JSON contract for `wave-decision` verdict and refusal envelopes, including stdout JSON refusals under `--json` with bounded public-safe `detail` messages.
+
+### Changed
+
+- Supervisor guidance now separates the pre-dispatch `wave-decision` screen from the existing post-write `dispatch-decision` gate and names `_DANGER_PATH_RE` as shared by both consumers.
+
 ## [core][2.27.1] — 2026-09-27
 
 ### Highlights

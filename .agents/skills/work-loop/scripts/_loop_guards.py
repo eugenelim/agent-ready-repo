@@ -866,14 +866,22 @@ def sha256_canonical_contract(path: Path) -> str:
     both of which hold the cohort state lock. Converting here means every caller
     inherits the fix rather than each having to remember it.
     """
+    return _sha256_canonical_text(
+        read_managed_text(path, path.name),
+        artifact_name=path.name,
+    )
+
+
+def _sha256_canonical_text(text: str, *, artifact_name: str) -> str:
+    """Hash already-read contract text without reopening its artifact."""
     try:
         canonical = canonical_contract(
-            read_managed_text(path, path.name),
-            ac_section_only=(path.name != "plan.md"),
+            text,
+            ac_section_only=(artifact_name != "plan.md"),
         )
     except ImportError as exc:
         raise ValueError(
-            f"{path.name}: canonical status parser unavailable: {exc}"
+            f"{artifact_name}: canonical status parser unavailable: {exc}"
         ) from exc
     return _sha256_bytes(canonical.encode("utf-8"))
 
@@ -1155,21 +1163,44 @@ def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> Gua
 
 
 @contained
-def check_schedule_current(spec_dir: Path) -> GuardResult:
-    """The scheduled plan is still the plan on disk."""
+def check_schedule_current(
+    spec_dir: Path, *, include_snapshot: bool = False
+) -> GuardResult:
+    """Validate and optionally return the exact scheduled state/plan snapshot."""
     state, reason = _state_or_reason(spec_dir)
     if reason is not None:
-        return GuardResult(ok=False, reason=reason)
+        return GuardResult(
+            ok=False,
+            reason=reason,
+            data={"failure_kind": "state-unreadable"},
+        )
     plan_path = spec_dir / "plan.md"
     if not plan_path.exists():
         return GuardResult(
             ok=False,
             reason=f"schedule check-current: plan.md not found at {plan_path}",
+            data={"failure_kind": "plan-missing"},
         )
-    legality = assert_status_legal("schedule check-current", plan_path)
-    if legality is not None:
-        return GuardResult(ok=False, reason=legality)
-    current = sha256_canonical_contract(plan_path)
+    try:
+        plan_text = read_managed_text(plan_path, plan_path.name)
+        token = _lint_spec_status().parse_status(plan_text)
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
+        return GuardResult(
+            ok=False,
+            reason=f"schedule check-current: cannot read plan.md: {exc}",
+            data={"failure_kind": "plan-status-illegal"},
+        )
+    allowed = _LEGAL_AFTER_APPROVAL[plan_path.name]
+    if token and token not in allowed:
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"schedule check-current: plan.md Status is {_scalar(token)}; "
+                f"expected one of {list(allowed)} after approval"
+            ),
+            data={"failure_kind": "plan-status-illegal"},
+        )
+    current = _sha256_canonical_text(plan_text, artifact_name=plan_path.name)
     stored = state.get("plan_hash")
     if stored != current:
         return GuardResult(
@@ -1179,9 +1210,13 @@ def check_schedule_current(spec_dir: Path) -> GuardResult:
                 "baseline — " + _BOTH_CAUSES
                 + f" (stored={_scalar(stored)} current={current!r})"
             ),
+            data={"failure_kind": "plan-hash-stale"},
         )
+    data = {"state": state, "plan_text": plan_text} if include_snapshot else None
     return GuardResult(
-        ok=True, message=f"schedule check-current OK for {spec_dir.name}"
+        ok=True,
+        message=f"schedule check-current OK for {spec_dir.name}",
+        data=data,
     )
 
 
