@@ -1,6 +1,6 @@
 # Spec: PyJWT advisory id re-key
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0131, ADR-0133
@@ -140,35 +140,35 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `python3 tools/run-pip-audit-gate.py tools/requirements-sast.txt`
+- [x] **AC1.** `python3 tools/run-pip-audit-gate.py tools/requirements-sast.txt`
       exits 0.
-- [ ] **AC2.** Each `[[allow]]` entry's `reason` is byte-identical to the
+- [x] **AC2.** Each `[[allow]]` entry's `reason` is byte-identical to the
       base-revision entry carrying the same CVE, except in the entry whose alias
       comment names `CVE-2026-101918`, where the single reference to
       `CVE-2026-102274` is replaced by the `id` of the entry aliased
       `CVE-2026-102274`.
-- [ ] **AC3.** Each `[[allow]]` line is immediately preceded by a line
+- [x] **AC3.** Each `[[allow]]` line is immediately preceded by a line
       matching `# alias: CVE-<digits>-<digits>`, and that CVE is the sole
       `CVE-` alias that the advisory record the PyPI Advisory Database
       publishes for that entry's `id` lists.
-- [ ] **AC4.** The pull-request description carries the verifier's source and
+- [x] **AC4.** The pull-request description carries the verifier's source and
       its complete output, including the run date and one line per entry naming
       that entry's `id`, the CVE its comment names, and the fix version the
       advisory record reports.
-- [ ] **AC5.** Each `[[allow]]` entry's `package`, `fixed_in` and
+- [x] **AC5.** Each `[[allow]]` entry's `package`, `fixed_in` and
       `unblocked_when` are byte-identical to the entry carrying the same CVE at
       base revision `2372e9851`, which is the base revision this spec means
       wherever it names one.
-- [ ] **AC6.** Above the first `# alias:` comment in
+- [x] **AC6.** Above the first `# alias:` comment in
       `tools/pip-audit-allowlist.toml` — an advisory identifier being any
       `CVE-` or `PYSEC-` token, and no other prefix — every `PYSEC-` token
       equals the `id` of
       an `[[allow]]` entry, and every `CVE-` token is followed, within the
       region, by at least one further advisory identifier, the first of which
       is the `id` of the entry whose alias comment names that CVE.
-- [ ] **AC7.** `tools/pip-audit-allowlist.toml` declares exactly thirteen
+- [x] **AC7.** `tools/pip-audit-allowlist.toml` declares exactly thirteen
       `[[allow]]` entries.
-- [ ] **AC8.** Above the first `# alias:` comment, a sentence states that the entries'
+- [x] **AC8.** Above the first `# alias:` comment, a sentence states that the entries'
       `id` values changed from the CVE identifiers to the identifiers pip-audit
       now reports, and carries an ISO date no earlier than 2026-10-01. The
       sentence sits inside AC6's region, so it names no bare advisory
@@ -176,8 +176,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       no entry's `id`. "Every entry below is now keyed on the identifier
       pip-audit reports for it, re-keyed from its CVE identifier on
       2026-10-01." satisfies both.
-- [ ] **AC9.** `python3 tools/test-run-pip-audit-gate.py` exits 0.
-- [ ] **AC10.** On the pull request, the `gate-sast` check and the
+- [x] **AC9.** `python3 tools/test-run-pip-audit-gate.py` exits 0.
+- [x] **AC10.** On the pull request, the `gate-sast` check and the
       `make build-check` aggregator both conclude successfully.
 
 ## Follow-ons
