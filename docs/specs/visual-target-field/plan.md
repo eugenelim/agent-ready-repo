@@ -151,26 +151,46 @@ plan approval without it.
     observation recorded in § *Version baseline and target*. 0 uncovered. This
     supersedes the "8 covered by stubs, 2 goal-based" tally above, which counted
     AC-0012 under its old home and predates T5.
-  - **Compile pass:** T5's two blocks compile under `python -m py_compile` from
-    disposable scratch outside the repository test tree.
+  - **Compile pass, by block, because the two were validated differently.** The
+    roster module block compiles under `python -m py_compile` from disposable
+    scratch outside the repository test tree. The AC-0011 block is a
+    function-body fragment replacing one assertion, so it does not compile
+    standalone — `py_compile` on it exits non-zero with
+    `IndentationError: unexpected indent`. Its syntax was validated by splicing
+    it into a disposable copy of its host module
+    (`packs/experience-design/tests/skills/creative-direction/test_contract.py`),
+    which then compiled clean. Recorded this way because an earlier revision
+    claimed a bare `py_compile` pass for both blocks, which was not what was
+    run.
   - **Intended red: unobtainable for both T5 blocks, by construction.** T1 has
     already landed the template phrase and the guide excerpt material, so each
     assertion is green on first run.
-    **Recorded deviation.** `tdd-stubs.md` § *Validate* fails closed at plan
-    approval without a recorded intended red, and admits no third disposition
-    beside `stub: true` and `no stub (implementation-discovered)`. Neither fits:
-    the assertions are authored and compilable, so they are not
-    implementation-discovered, and the red cannot be obtained because the
-    property they assert is already present in the tree T1 shipped. This plan
-    therefore departs from § *Validate*'s red requirement for these two blocks
-    only, under the 2026-10-01 amendment authority recorded at
-    [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md). The
-    reason the departure is safe is that the obligation the red discharges —
-    evidence the assertion can fail — is met instead by the mutation proof in
-    T5's § *Verification*, which `mutation-proof.md` declares the instrument
-    for exactly this case, and T5's `Done when` gates on that ledger entry. The
-    departure is from the red requirement and nothing else in § *Validate*: the
-    compile pass above is recorded as that section requires.
+    **Owner-granted waiver, not a self-declared deviation.** `tdd-stubs.md`
+    § *Validate* fails closed at plan approval without a recorded intended red,
+    and admits no third disposition beside `stub: true` and
+    `no stub (implementation-discovered)`. Neither fits: the assertions are
+    authored and compilable, so they are not implementation-discovered, and the
+    red cannot be obtained because the property they assert is already present
+    in the tree T1 committed at `f69606cfb`.
+
+    An earlier revision asserted a departure "under the 2026-10-01 amendment
+    authority" — a grant that authority did not contain. Review sustained that
+    as a blocker and adjudication returned `ADJUDICATION-INDETERMINATE` on the
+    question behind it, because neither `tdd-stubs.md` nor `mutation-proof.md`
+    decides whether a PLAN-time mutation red satisfies the non-vacuity
+    requirement. The owner ruled on that question rather than the plan
+    reinterpreting it: see § *Supplementary owner ruling — 2026-10-01, a scoped
+    intended-red waiver for T5* in
+    [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md), which
+    waives the intended-red requirement for these two blocks only and records
+    the measured substitute evidence.
+
+    Both prescribed mutations were applied in throwaway worktrees and observed
+    red; the AC-0011 mutation additionally shows the superseded co-occurrence
+    assertion staying green where the replacement fails. The waiver is from the
+    red requirement and nothing else in § *Validate*: the compile pass above is
+    recorded as that section requires. The EXECUTE-time ledger entry T5's
+    `Done when` gates on is still owed — the waiver concerns plan approval only.
   - **Isolation:** local, filesystem-confined to the repository and disposable
     scratch, no network use. No isolation downgrade was needed.
 
@@ -954,3 +974,29 @@ inside a four-criterion test function. Two mutations are owed:
   orphaned `ruff check .` bullet returned to T4's Approach, the durable-output
   map now attributes AC-0012's assertion to T5, and the construction-tests
   preamble states its three real exceptions.
+- 2026-10-01: Revised after the fourth pre-EXECUTE pass. Its adjudication
+  returned `ADJUDICATION-INDETERMINATE` and classified `invalid`
+  (`indeterminate-present`), which is a fail-closed stop, so no revision was
+  made from that round until the owner decided the question behind it. The
+  blocker was that this plan asserted a `tdd-stubs.md` § *Validate* departure
+  "under the 2026-10-01 amendment authority" — a grant that authority did not
+  contain. The question behind it, which neither `tdd-stubs.md` nor
+  `mutation-proof.md` decides, was whether a mutation red obtained at PLAN time
+  satisfies the non-vacuity requirement. The owner ruled on 2026-10-01 to record
+  an explicit scoped waiver rather than reinterpret "intended red" to admit
+  evidence already in hand, which would have set a precedent for every future
+  stub whose asserted property is already present. That waiver, its reason, and
+  its scope limit are recorded in
+  [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md); this plan now
+  cites it instead of claiming a grant. Both prescribed mutations were measured
+  in throwaway worktrees and observed red, and the AC-0011 mutation additionally
+  shows the superseded co-occurrence assertion staying green where the
+  replacement fails — the evidence that the replacement was worth making. The
+  compile record is now stated per block: the roster module compiles standalone,
+  while the AC-0011 fragment does not and was validated by splicing into a
+  disposable copy of its host module. An earlier revision claimed a bare
+  `py_compile` pass for both, which was not what was run. The amendment note's
+  § *What this amendment does not change* now marks its two superseded claims,
+  one of which — "AC-0012 keeps its wording" — had become false. One finding was
+  refuted: holding the Highlights rails in both Approach and `Done when` is a
+  structure preference, not a defect, since the two are differently decidable.

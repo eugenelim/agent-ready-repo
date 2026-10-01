@@ -75,10 +75,27 @@ Sustained, by the surface each one changes:
 
 ## What this amendment does not change
 
+**This section states the position when the amendment fired. Two of its claims
+were later superseded by the supplementary rulings below; read it with those.**
+
 No acceptance criterion is removed, weakened, or renumbered, and the outcome is
 not narrowed. AC-0012 keeps its wording; only the Testing Strategy sentence
 naming where it is asserted changes. The slice stays additive: nothing reads the
 field and nothing is gated on it.
+
+Superseded, in order:
+
+- *"No acceptance criterion is removed"* — the first supplementary ruling
+  removed the two prose clauses the post-amendment repair itself had added to
+  AC-0010. No criterion predating the amendment was touched.
+- *"AC-0012 keeps its wording"* — no longer true. AC-0012 was later **tightened**
+  under that same ruling: it now pins two lines and requires each to occur
+  exactly once in the selected fence, which is what makes it falsifiable by a
+  single-line mutation. Strengthening a criterion is not what the paragraph
+  above forbids, but the sentence as written is stale and a reader stopping here
+  would take a false statement about the current spec.
+
+The additive claim and the no-narrowing claim both still hold.
 
 ## Completed-task evidence bindings
 
@@ -152,3 +169,66 @@ were already revised by then.
 The round itself is fully evidenced: the raw report, the adjudication, and
 their digests are in the session review directory, and the plan's Changelog
 carries what changed and why.
+
+## Supplementary owner ruling — 2026-10-01, a scoped intended-red waiver for T5
+
+The fourth pre-EXECUTE pass sustained a blocker against the plan for citing this
+note as authority for departing from `tdd-stubs.md` § *Validate*'s intended-red
+requirement. The citation was wrong: nothing above granted that. Adjudication of
+that pass returned `ADJUDICATION-INDETERMINATE` on the question behind it —
+whether a mutation red obtained at PLAN time satisfies § *Validate*'s
+non-vacuity requirement, or whether only an unmutated red does — and recorded
+that neither `tdd-stubs.md` nor `mutation-proof.md` decides it. That is an owner
+question, so it stopped there.
+
+**The owner ruled on 2026-10-01: record an explicit waiver rather than reinterpret
+the requirement.** The reasoning preferred naming the departure over redefining
+"intended red" to admit evidence already in hand, which would have set a
+precedent for every future stub whose asserted property is already present.
+
+### What is waived
+
+§ *Validate*'s requirement of a recorded **intended red** against the unmutated
+tree, for **T5's two stub blocks only**. Nothing else in § *Validate* is waived:
+the syntax/compile pass is recorded as that section requires, and the two legal
+dispositions remain the only ones this plan uses.
+
+### Why the red cannot exist
+
+Both T5 assertions check material T1 already shipped and committed
+(`f69606cfb`): the template carries the pinned absent-field phrase, and the
+guide's `type: creative-direction` fence carries both pinned lines. An
+assertion over an already-satisfied property is green on first run. Obtaining a
+red would mean removing shipped content, which is not a draft-stub state but a
+regression.
+
+### The substitute evidence, measured 2026-10-01
+
+Both prescribed mutations were applied in throwaway git worktrees cut from
+`HEAD`, with the real tree left untouched and no `git checkout`, `reset` or
+`stash` used. Observed:
+
+| Assertion | Unmutated | Under its prescribed mutation |
+| --- | --- | --- |
+| AC-0012, roster module | green | **red** on the `KEY_LINE` exactly-once assertion |
+| AC-0011, replaced assertion in the contract suite | green | **red** on the pinned-phrase assertion |
+
+The AC-0011 mutation also establishes the stronger claim, which is the whole
+reason that assertion was replaced: with the comment still carrying both
+`absent` and `unconfirmed` but no longer as the pinned contiguous run, the
+**superseded** co-occurrence assertion still passes while the **replacement**
+fails. The replacement therefore catches a defect the old form could not.
+
+The AC-0011 block is a function-body fragment and does not compile standalone;
+its syntax was validated by splicing it into a disposable copy of its host
+module, which then compiled clean. The plan's § *Stub validation record* states
+it that way rather than claiming a bare `py_compile` pass.
+
+### Scope limit
+
+This waiver covers T5's two blocks in this spec. It is not a general licence,
+does not reach any other task or spec, and does not decide the open question of
+whether a PLAN-time mutation red satisfies § *Validate* in general — that
+question remains undecided, and a future task needing the same relief needs its
+own ruling. The EXECUTE-time ledger entry T5's `Done when` gates on is still
+owed; this waiver concerns plan approval only.
