@@ -69,7 +69,7 @@
     },
     "budgets": {
       "type": "object",
-      "description": "A copy of the cohort retry counters as they stood one transition ago; loop-cohort owns them and moves them afterwards.",
+      "description": "The cohort retry counters as they stood one transition ago, copied (loop-cohort owns them and moves them afterwards), and the retry caps: the guard's default when state.json records none, the recorded value when it is a non-negative integer, and null when it is malformed, which the guard refuses.",
       "properties": {
         "implementation_retry_count": {"type": ["integer", "null"], "minimum": 0},
         "max_implementation_retries": {"type": ["integer", "null"], "minimum": 0},

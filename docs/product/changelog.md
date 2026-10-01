@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.11] — 2026-10-01
+
+### Highlights
+
+- A work-loop run whose `state.json` records no retry cap now shows the default cap of 5 on its event line, instead of no cap at all. The run was always held to 5, so a dashboard or alert watching how close it is to being refused was reading nothing where it should have read 5. A malformed cap, which the guard refuses, still reports `null`, and so does a retry count nothing has recorded; the key is always present, which is how a consumer tells "not recorded" from zero.
+
+### Fixed
+
+- `loop-engine`'s `budgets` snapshot resolves `max_implementation_retries` and `max_review_retries` through the same default-resolution helper the guard layer enforces them with, so an absent cap reports the default the guard enforces. A malformed cap still reports `null`, and the two retry counters keep their existing absent-when-unrecorded behaviour.
+
 ## [core][2.27.10] — 2026-10-01
 
 ### Added
