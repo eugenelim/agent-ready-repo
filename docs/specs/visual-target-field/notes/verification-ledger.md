@@ -166,3 +166,39 @@ and EXECUTE phases. Two mutations are recorded below.
 
 Every exit code above was read from the command's own status, not from its
 output tail.
+
+## T5 re-verification after the second amendment
+
+Date: 2026-10-01
+
+The second amendment cleared the approval and schedule baseline, and the
+reschedule re-emitted T5 because `completed_task_ids` records T1 to T4 only —
+`begin_contract_amendment` derives completion as the prior set plus
+`schedule_waves[:current_wave_index]`, with no caller-supplied addition, so
+neither amendment could add T5. T5's work was already committed at `d712528e5`,
+with the assertion-message correction at `4e1c351c7`.
+
+**The mutations were deliberately not re-run.** Both proofs were already
+recorded in full above. Re-performing them would edit the shipped template and
+the shipped guide, the AC-0011 mutation propagates into a second byte-pinned
+file through the guidebook-lint coupling, and `mutation-proof.md` permits no
+`git checkout`, `reset` or `stash` to undo it — so re-running them would risk
+shipped artifacts to re-derive evidence that already exists and still binds. The
+mutation subjects are byte-unchanged since `f69606cfb`, so the recorded proofs
+bind to the current bytes.
+
+Every `Done when` condition re-measured on the current tree, each read from its
+own exit code:
+
+- `python3 tools/test-lint-pack-test-boundary.py` — exit 0. This is the gate the
+  first amendment existed to clear; it exited 1 before T5.
+- Byte identity — the materialized `tests/roster/test_visual_target_guide_excerpt.py`
+  equals its stub block, and T5's AC-0011 fragment appears verbatim inside the
+  shipped `test_contract.py`.
+- `python3 -m pytest packs/experience-design/tests/skills/creative-direction tests/roster/test_visual_target_guide_excerpt.py -q` — exit 0, `12 passed in 0.26s`.
+- `make lint-ruff lint-mypy` — exit 0. `ruff check .` — exit 0.
+- `python3 tools/lint-ci-parity.py` — exit 0. `python3 tools/lint-conformance-portability.py --root .` — exit 0.
+- Both mutation proofs carry the complete field set `mutation-proof.md`
+  § *Proof record* requires: Invariant, Catching test, Exact mutation, Expected
+  failure, Observed failure, each present twice, plus Restoration.
+
