@@ -130,6 +130,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The base-freshness check now advertises the configured remote target first and returns current branches as ready without requiring a metadata-writing fetch.
 - Stale branches remain blocking even when Git metadata writes are denied, with separate messages for update-capable and user-refresh-only environments.
 
+## [architect][0.15.15] — 2026-09-30
+
+### Highlights
+
+- Well-architected reviews now route data/ML, GenAI/agentic, and serverless workloads only through their supported reference material.
+
+### Changed
+
+- Removed the unsupported SaaS workload-class lens claim from the architect review rubric.
+
 ## [core][2.27.4] — 2026-09-29
 
 ### Highlights
