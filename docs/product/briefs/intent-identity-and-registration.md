@@ -154,7 +154,7 @@ These constrain or explain delivery. They do not affect coverage or closure roll
 
 ## Spec map
 
-Seven slices. The Status column is auto-derived from each spec; it is not hand-edited.
+Eight slices. The Status column is auto-derived from each spec; it is not hand-edited.
 
 **Sequencing, as planning guidance rather than blocking edges.** `typed-intent-ordinal-allocator` goes first, and
 `intent-renumber-and-reissue` follows it. Nothing gates the allocator on a resolved folder.
@@ -173,6 +173,7 @@ slice in this brief. It is a blocking dependency of `intent-lifecycle-and-closur
 | `typed-intent-ordinal-allocator` | <auto> |
 | `intent-reference-grammar-migration` | <auto> |
 | `intent-renumber-and-reissue` | <auto> |
+| `intent-rename-transaction` | <auto> |
 | `intent-preamble-lifecycle-records` | <auto> |
 | `intent-preamble-closure-declarations` | <auto> |
 
@@ -181,6 +182,12 @@ slice in this brief. It is a blocking dependency of `intent-lifecycle-and-closur
 The map is confirmed and its slices are dispatchable. A later material change to
 it needs a fresh revision-bound review and explicit owner confirmation before
 they are again.
+
+**Eighth slice cut 2026-09-29 by eugenelim**, on explicit confirmation after
+the slice's measurement-led plan, ADR-0134, adversarial review and security
+review were complete. `intent-rename-transaction` delivers the retire-and-issue
+operation whose request and tombstone contracts shipped in
+`intent-renumber-and-reissue`.
 
 **Sixth slice cut 2026-09-23 by eugenelim**, on an explicit confirmation distinct
 from the 2026-09-20 Ready confirmation, as the post-Ready slice path requires.

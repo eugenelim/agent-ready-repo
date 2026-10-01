@@ -64,6 +64,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.14] — 2026-10-03
+
+### Highlights
+
+- Installed Core can now rename an intent as a recoverable retire-and-issue operation. The old path becomes a tombstone, the successor receives a fresh target-token ordinal, citations and `workspace.toml` move with it, and an interrupted run can be driven forward or back.
+
+### Added
+
+- `work-intake` now ships `intent_rename.py` with installed `rename`, `recover`, and `resolve` commands for operators.
+- Product Engineering now includes a how-to for renaming an intent and recovering an interrupted rename.
+
+### Changed
+
+- `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
+- The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
+
 ## [core][2.27.13] — 2026-10-02
 
 ### Fixed

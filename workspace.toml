@@ -2146,18 +2146,6 @@ open = [
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
-  # Slice 9 of `intent-identity-and-registration`, cut from
-  # `intent-renumber-and-reissue` on 2026-09-28 and Draft. It takes that slice's
-  # transaction: twelve criteria, the staging-and-recovery design, and the
-  # operator surface. The cut was evidence-driven -- a spec-stage security pass
-  # sustained ten findings against the transaction, four against the repairs to
-  # those, and six against the repairs to those, while the sibling's request and
-  # tombstone contracts took none. Registered in `backlog.open` because it is a
-  # Draft spec and that is the only initiative-free collection admitting one;
-  # it moves to ini-010's work queue when its spec is approved, as its sibling
-  # did. `needs` carries the blocking edge: its tombstone writing rests on the
-  # ADR that sibling's T4 produces.
-  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-renumber-and-reissue/spec.md"}] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make a feature intent's mapping to its independently shippable spec, or to a delivery brief and its child specs, visible from the intent side; needs its own de-risk before decomposition", needs = [] },
@@ -2371,6 +2359,12 @@ backlog = [
 queue   = [
 ]
 active  = [
+  # The final slice of `intent-identity-and-registration`, implementing from
+  # 2026-09-30 after its measurement-led plan, ADR-0134, adversarial review and
+  # security review were complete. It delivers the retire-and-issue transaction
+  # over the request and tombstone contracts shipped by
+  # `intent-renumber-and-reissue`.
+  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-renumber-and-reissue/spec.md"}] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
