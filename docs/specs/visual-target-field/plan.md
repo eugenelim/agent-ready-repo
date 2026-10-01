@@ -1,7 +1,7 @@
 # Plan: visual-target field
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule,
   § Security and authoring rules (the eval-harness obligation) and
   § Self-hosting projection; `packs/AGENTS.local.md` § Marketplace and release
@@ -410,7 +410,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/roster/ -> repo root
 PACK = REPO_ROOT / "packs" / "experience-design"
+# Both literals are derived from plan.md § Version baseline and target, which is
+# their single home. BASELINE is what AC-0009 measures the bump against.
 BASELINE = "4.1.1"
+# RELEASE pins the one entry this slice authored. The changelog half must NOT
+# read the live pack version: changelog entries describe one release each, so a
+# later unrelated experience-design bump would red this permanently installed
+# test for an author who never touched this field. The three-site version
+# agreement below keeps reading the live version, because that claim must stay
+# live. Same split as tests/roster/test_wave4_durable_outputs_and_release.py.
+RELEASE = "4.1.2"
 
 
 def _tuple(version: str) -> tuple[int, ...]:
@@ -443,12 +452,12 @@ def test_release_surface_is_consistent() -> None:
     changelog = (REPO_ROOT / "docs" / "product" / "changelog.md").read_text(
         encoding="utf-8"
     )
-    heading = f"## [experience-design][{version}]"
+    heading = f"## [experience-design][{RELEASE}]"
     starts = [
         line for line in changelog.splitlines() if line.startswith(heading)
     ]
     assert len(starts) == 1, (
-        f"AC-0010: expected exactly one free-standing '## ' entry for {version}. "
+        f"AC-0010: expected exactly one free-standing '## ' entry for {RELEASE}. "
         "A substring test would also accept a '### ' entry nested under "
         "[Unreleased], which never publishes."
     )
@@ -476,6 +485,16 @@ def test_release_surface_is_consistent() -> None:
   nothing else in that pipeline.
 - The change alters what a producer does, so a `### Highlights` subsection is
   owed.
+- **The Highlights bullet is adopter copy, and `changelog.md`'s own header
+  governs it: "Rewrite for users, not contributors" and "Outcome, not
+  activity."** Lead with what an adopter can now do, not with the artifact
+  mechanism, and do not close in contributor register. Two accuracy rails bind
+  it: the bullet must not state or imply that recording the disposition is
+  conditional on anything — `converge` records it unconditionally, and the
+  no-target case is exactly the one a conditional reading would drop — and it
+  must keep saying plainly that nothing reads the field and nothing is gated on
+  it. It must still name `visual_target` in a `-` bullet under
+  `### Highlights`, because the `/now/` projection extracts only bullets.
 - Placing a file in `tests/roster/` obliges three further edits, per
   `tests/AGENTS.md` § *Roster steps are named and placed by hand*: a step in
   `.github/workflows/build-check.yml` naming the file, placed **above** the bulk
@@ -492,6 +511,47 @@ def test_release_surface_is_consistent() -> None:
 
 **Done when:** `make lint-ruff lint-mypy` and `ruff check .` are green; `python3 -m pytest tests/conformance/test_pack_metadata.py tests/roster/test_visual_target_release_surface.py -q` is green; and `python tools/lint-conformance-portability.py --root .` and `python tools/lint-ci-parity.py` both exit zero, which is what proves the file sits in a tree whose rules admit it.
 
+### T5: AC-0012 is asserted from a tree that may read the guide, and AC-0011 is decided
+
+**Depends on:** T1
+
+Added by the 2026-10-01 amendment. T1's plan section is pinned, so these two
+corrections to its assertions arrive as a new task rather than as edits to it.
+
+**Tests:**
+- `test_guide_excerpt_carries_the_new_template_material` — AC-0012 — relocated,
+  not newly authored
+- `test_template_carries_the_visual_target_disposition` — AC-0011 — one
+  assertion replaced in place
+
+**Approach:**
+- Move `test_guide_excerpt_carries_the_new_template_material`, with the
+  `_template_fence` helper and the `TICKS`/`FENCE` constants it needs, out of
+  `packs/experience-design/tests/skills/creative-direction/test_contract.py`
+  and into a new `tests/roster/test_visual_target_guide_excerpt.py` anchored at
+  `Path(__file__).resolve().parents[2]`. A pack test may not read above its own
+  pack, and AC-0012 is a claim about a file in `guides/`; the spec's Testing
+  Strategy records why the original home could never have satisfied both.
+- Placing a file in `tests/roster/` obliges the two edits `tests/AGENTS.md`
+  names: a step in `.github/workflows/build-check.yml` naming the file, placed
+  **above** the bulk `pytest tests/ -q` step, and a matching `STEP_DISPOSITION`
+  entry of `LOCAL("test-after-build-check")` in `tools/lint-ci-parity.py`.
+  That lint feeds two axes and refuses a step missing from either, so the step
+  name also joins the `_GATE_MAIN_CHECKS` tuple. The third obligation, a
+  `.workspace-prune-protected.toml` entry, is owed only when the test names a
+  `docs/specs/<slug>` literal; this one does not.
+- Replace AC-0011's assertion in the contract suite. The co-occurrence form
+  cannot fail, because `unconfirmed` is already guaranteed by AC-0001's
+  closed-set enumeration; assert instead that the whitespace-normalized comment
+  contains the phrase AC-0011 now pins as one contiguous run. AC-0001, AC-0002,
+  AC-0003 and AC-0011 stay in the contract suite, which reads only the template.
+- Run `ruff check .` afterwards: moving a test orphans the imports only it used,
+  and the repository lint targets do not cover that.
+
+**Touches:** packs/experience-design/tests/skills/creative-direction/test_contract.py, tests/roster/test_visual_target_guide_excerpt.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
+
+**Done when:** `python3 tools/test-lint-pack-test-boundary.py` exits zero — the gate that caught this, and the one that proves the boundary violation is gone; `python3 -m pytest packs/experience-design/tests/skills/creative-direction tests/roster/test_visual_target_guide_excerpt.py -q` is green; `make lint-ruff lint-mypy` and `ruff check .` are green; and `python3 tools/lint-ci-parity.py` and `python3 tools/lint-conformance-portability.py --root .` both exit zero. The AC-0011 replacement is proven non-vacuous by the same red-then-green method the other stubs used.
+
 ## Rollout
 
 - **Delivery:** one PR. Reversible by reverting it. No migration, and this
@@ -499,7 +559,9 @@ def test_release_surface_is_consistent() -> None:
   differently for any artifact, new or existing.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** T1, then T2, then T3, then T4. This slice must
+- **Deployment sequencing:** T1, then T2, then T3, then T4, then T5. T1 to T3
+  landed before the 2026-10-01 amendment and are preserved as met; T5 corrects
+  two of T1's assertions without editing its pinned section. This slice must
   land before `visual-target-rung-precondition`, which reads the field it
   writes.
 
@@ -591,3 +653,28 @@ def test_release_surface_is_consistent() -> None:
   attempt at this edit left `Outcome` and `Approach` asserting the retired
   behaviour, including a start gate on a question the ruling had already
   answered; both were rewritten and read back.
+- 2026-10-01: **Controlled contract amendment** under owner authority, recorded
+  at [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md);
+  amendment id `6a558bc592327e241ae36110641e6e6cb17cae181c259deadc90e18672da7896`.
+  T1 to T4 had been implemented and gated when post-gates review round 1
+  sustained 6 of 20 raw findings across two reviewers. Two were blockers in the
+  accepted contract rather than in the work: the spec's Testing Strategy
+  required AC-0012 as a contract-suite assertion, which cannot be satisfied
+  because deciding AC-0012 means reading a guide outside the pack and
+  `tools/lint-pack-test-boundary.py` forbids that — measured red, and the docs
+  workflow runs it on every pull request touching these paths; and T4's stub
+  bound the `visual_target` changelog claim to whatever version `pack.toml`
+  carries, so the next unrelated bump would red a permanently installed test.
+  Four pre-EXECUTE rounds had missed both, and the first is the same class of
+  boundary error round 3 caught for T4's own placement. The Testing Strategy now
+  places AC-0012's assertion in `tests/roster/` and records why the original home
+  was unsatisfiable; AC-0011 now pins its phrase as one contiguous run, because
+  the co-occurrence form could not fail; T4's stub pins only the changelog half
+  to the literal release and keeps the three-site agreement reading the live
+  version; and T4's approach now carries the register and accuracy rails
+  `changelog.md`'s header imposes on a Highlights bullet. T1 to T3 are preserved
+  as completed with their commits bound as evidence, so the two corrections to
+  T1's assertions arrive as new task T5 rather than as edits to its pinned
+  section. No acceptance criterion was removed, weakened, or renumbered, and the
+  outcome is not narrowed. One advisory finding, on the guide caption's
+  unconditional placeholder sentence, was deferred rather than acted on.

@@ -1,6 +1,6 @@
 # Spec: visual-target field
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md)
@@ -121,10 +121,23 @@ verification cannot silently grade a different occurrence.
 - **Goal-based check — the pinned excerpt still matches and carries the new
   material (AC-0008, AC-0012).**
   `python3 tools/lint-guidebook-steps.py guides/experience-design` is the
-  one-liner for AC-0008; AC-0012 is a contract-suite assertion scoped to the
+  one-liner for AC-0008; AC-0012 is asserted separately and scoped to the
   guide's fenced excerpt block, because the lint proves only that *some*
   contiguous run matches and the guide discusses the template in prose outside
   the fence.
+  **AC-0012's assertion lives in `tests/roster/`, not in the pack contract
+  suite.** An earlier revision of this section called it a contract-suite
+  assertion, and that was not satisfiable: deciding AC-0012 means reading
+  `guides/experience-design/how-to/establish-design-intent.md`, which sits
+  outside `packs/experience-design/`, and `tools/lint-pack-test-boundary.py`
+  rejects a pack test that reads above its own pack — a lint
+  `.github/workflows/docs.yml` runs on every pull request touching `packs/**`,
+  `guides/**` or `docs/**`. The two requirements could not both hold, so the
+  criterion kept its wording and the assertion moved. `tests/AGENTS.md` names
+  `tests/roster/` as the repository-level home for exactly this reach, anchored
+  at `Path(__file__).resolve().parents[2]`. AC-0001, AC-0002, AC-0003 and
+  AC-0011 stay in the contract suite: they read only the template, which is
+  inside the pack.
 - **Goal-based check — the release surface stays consistent (AC-0009,
   AC-0010).** `tests/conformance/test_pack_metadata.py` covers `pack.toml` to
   `plugin.json` agreement and nothing else — it never compares a marketplace
@@ -200,7 +213,20 @@ verification cannot silently grade a different occurrence.
   reading the changelog bytes. The existing `4.1.1` entry does not satisfy
   this: its Highlights describe the `frame`/`inherit` scoping fix.
 - [ ] **AC-0011.** That section's comment states that an absent `visual_target`
-  reads `unconfirmed`.
+  reads `unconfirmed`. After whitespace normalization the comment contains this
+  phrase, verbatim and as one contiguous run:
+
+  ```text
+  An absent `visual_target` reads as `unconfirmed`
+  ```
+
+  The phrase is
+  pinned because the co-occurrence form does not decide the criterion: the
+  comment already carries `unconfirmed` in AC-0001's closed-set enumeration, so
+  testing for that word beside the word `absent` reduces the criterion to
+  whether `absent` appears anywhere, and a comment reading "an absent target
+  means `none`" would pass while stating the opposite of the fail-closed default
+  ADR-0132 fixes.
 - [ ] **AC-0012.** Within one fenced block of
   `guides/experience-design/how-to/establish-design-intent.md` — selected as
   the single ` ```markdown ` fence whose body contains the line
