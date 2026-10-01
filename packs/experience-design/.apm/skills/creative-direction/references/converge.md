@@ -53,8 +53,12 @@ Record the first-viewport thesis: what the opening viewport makes clear, what
 concrete evidence or mechanism it exposes, and which primary action or
 continuation it supports. Do not reduce this to a hero layout template.
 
-Record the approved visual target disposition: `none`, or the named target with
-what is binding, what is illustrative, and what may adapt responsively.
+Record the approved visual target disposition into the `visual_target` frontmatter
+key: set `visual_target: none` when no visual target exists; set
+`visual_target: unconfirmed` when a target is recorded but has not yet been
+confirmed by a human; set `visual_target: confirmed` once a human has confirmed
+it. Whenever a target exists, name it and state what is binding, what is
+illustrative, and what may adapt responsively.
 
 Record available evidence, available assets, placeholders, and provenance for
 any sourced or generated visual assets proposed by the direction.

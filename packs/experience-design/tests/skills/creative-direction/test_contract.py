@@ -359,3 +359,24 @@ def test_guide_excerpt_carries_the_new_template_material() -> None:
     excerpt = _template_fence(guide)
     assert "visual_target" in excerpt, "AC-0012: inside the fence, not the file"
     assert "**Confirmation record:**" in excerpt, "AC-0012"
+
+
+def _unique_paragraph(path: Path, anchor: str) -> str:
+    """The one blank-line-delimited block carrying `anchor`, in this file only.
+
+    Bounding on markdown's own delimiter rather than on ". " keeps an adjacent
+    period-free heading, bullet or table cell out of the unit.
+    """
+    blocks = [b for b in re.split(r"\n\s*\n", _read(path)) if anchor in b]
+    assert len(blocks) == 1, f"{anchor!r} must occur in exactly one block of {path.name}"
+    return " ".join(blocks[0].split())
+
+
+# STUB: AC-0004  (spec: visual-target-field)
+def test_converge_records_the_disposition() -> None:
+    """visual-target-field AC-0004."""
+    disposition = _unique_paragraph(
+        REFERENCE_ROOT / "converge.md", "Record the approved visual target disposition"
+    )
+    for value in ("none", "unconfirmed", "confirmed"):
+        assert f"visual_target: {value}" in disposition, f"AC-0004: {value}"
