@@ -102,9 +102,9 @@ Three rules govern the shape.
    line, in `budgets` — see the next rule.
 - **`budgets` copies the counters and reports the enforced caps.** `loop-cohort`
   owns the retry counters and changes them in a later step, so the line shows
-  where they stood one round ago. The two caps are the values the guard
-  enforces: the default when `state.json` records none, so a capped run never
-  reads as uncapped. A count nothing has recorded is still `null`. The pack's `state-schema.md` spells out what follows from that.
+  where they stood one round ago. An absent cap reports the default the
+  guard enforces, so a capped run never reads as uncapped. A malformed cap, which
+  the guard refuses, reports `null`, as does a count nothing has recorded. The pack's `state-schema.md` spells out what follows from that.
   Those limits change what the numbers mean; they are not small print.
 
 The line is **always written**. There is no switch. The file is local and
