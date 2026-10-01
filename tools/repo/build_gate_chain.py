@@ -402,6 +402,18 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-plugin-roster",
             "tools", "lint-plugin-roster.py",
         ),
+        # RFC-0104 committed a pack to a named maintainer and recorded that
+        # nothing mechanical held it to one. These two make the first of its
+        # three gates checkable; maturity scope and the archiving path stay
+        # human-reviewed because neither has a form a lint can judge.
+        _script_step(
+            "test-lint-pack-maintainers",
+            "tools", "test-lint-pack-maintainers.py",
+        ),
+        _script_step(
+            "lint-pack-maintainers",
+            "tools", "lint-pack-maintainers.py",
+        ),
         # The publish script's three refusals are the only runtime check
         # between `git push` and a public marketplace — the publish job has no
         # `needs:` on this one.

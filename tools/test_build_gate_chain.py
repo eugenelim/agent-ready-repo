@@ -861,6 +861,9 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-plugin-membership.py",
     "tools/test-lint-plugin-roster.py",
     "tools/lint-plugin-roster.py",
+    # RFC-0104's maintainer gate, self-test first.
+    "tools/test-lint-pack-maintainers.py",
+    "tools/lint-pack-maintainers.py",
     "tools/test-publish-claude-plugins.py",
     "tools/test-lint-claude-plugin-publish-control.py",
     "tools/lint-claude-plugin-publish-control.py",

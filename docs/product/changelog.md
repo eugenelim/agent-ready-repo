@@ -126,6 +126,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
+## [code-intelligence][0.1.2] — 2026-09-30
+
+### Added
+
+- A guide home at `guides/code-intelligence/`: what the pack is for, a first-session tutorial that ends with reading the completeness numbers rather than just the answer, a how-to covering the five investigation patterns, and a reference for the command surface and its gaps.
+- A pack journey describing the outcome — find out what is actually true about a codebase before changing it — with the two decisions it asks of you: which symbol was meant when a name is ambiguous, and whether to build the index, which writes into your working tree.
+
 ## [code-intelligence][0.1.1] — 2026-09-30
 
 ### Changed

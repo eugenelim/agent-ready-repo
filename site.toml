@@ -56,6 +56,10 @@ dir = "core"
 label = "The Build Loop (core)"
 
 [[guide_groups]]
+dir = "code-intelligence"
+label = "Code Intelligence"
+
+[[guide_groups]]
 dir = "product-strategy"
 label = "Product Strategy"
 
