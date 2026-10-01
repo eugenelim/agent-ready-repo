@@ -19,6 +19,12 @@ contract:
   decisionGateIds:
     - confirm-ambiguous-symbol
     - approve-index-build
+typicalSession:
+  agentTurns: "3–8"
+  humanTouches: 2
+  wallClockMinutes: "5–20"
+docsUrl: /docs/guides/code-intelligence/
+packUrl: /packs/code-intelligence/
 humanGates:
   - id: confirm-ambiguous-symbol
     globalGate: null
