@@ -52,3 +52,20 @@ workspace-mcp's event bridge reads loop-engine transitions from `.loop-run/event
 **Database table (SQLite, etc.).** loop-engine writes transitions to a local SQLite database; workspace-mcp polls the table. Delivers queryable history and indexed lookup. Rejected because it adds a runtime dependency (or a significant stdlib workaround), is overkill for the append-only, single-consumer, ephemeral event stream that workspace-mcp needs, and requires schema management that events.jsonl avoids entirely.
 
 **Shared in-process queue (if loop-engine were a library).** If loop-engine were imported as a Python library rather than invoked as a CLI, it could post directly to a thread-safe queue that workspace-mcp drains. Rejected because converting loop-engine to a library would require reimplementing its CLI surface as a programmatic API, changing the primary interface that the work-loop skill's step commands rely on.
+
+## Errata
+
+**2026-09-30 Erratum — event lines carry extensible metadata.** The decision is
+unchanged and this erratum takes none. It records that two statements have
+drifted from what ships, so a reader who lands mid-file does not take either as
+current.
+
+- *"Each appended line contains `{"seq", "run_id", "spec", "from", "event", "to", "at"}`"*
+  — each event record carries those seven fixed identity fields, plus
+  `"schema": 1` and lifecycle fields supplied by `_lifecycle_fields(...)`.
+- *"Each event line carries `seq`, `run_id`, `spec`, `from`, `event`, `to`, and
+  `at`"* — those seven field names, order, and values are fixed for existing
+  readers, while additional metadata may be present. The replay path does not
+  retro-stamp `schema` onto legacy records.
+
+The body above is left as written. Approver: eugenelim.
