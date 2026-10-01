@@ -194,8 +194,12 @@ plan approval without it.
     red; the AC-0011 mutation additionally shows the superseded co-occurrence
     assertion staying green where the replacement fails. The waiver is from the
     red requirement and nothing else in § *Validate*: the compile pass above is
-    recorded as that section requires. The EXECUTE-time ledger entry T5's
-    `Done when` gates on is still owed — the waiver concerns plan approval only.
+    recorded as that section requires. The owner later extended the waiver to
+    § *Lifecycle*'s EXECUTE-time red for the same two blocks, on the same
+    reason: see § *Supplementary owner ruling — 2026-10-01, the waiver extends
+    to the Lifecycle red* in the same note. It therefore covers both phases and
+    nothing further. The EXECUTE-time ledger entry T5's `Done when` gates on is
+    still owed; the ruling permits the substitution, it does not perform it.
   - **Isolation:** local, filesystem-confined to the repository and disposable
     scratch, no network use. No isolation downgrade was needed.
 
@@ -1059,3 +1063,12 @@ inside a four-criterion test function. Two mutations are owed:
   substitution is now granted at both phases and nothing further is waived; the
   two verification-ledger entries stay owed, because the ruling permits the
   substitution rather than performing it.
+- 2026-10-01: The § *Stub validation record* bullet that declares itself the
+  current record still closed "the waiver concerns plan approval only", which
+  the extension recorded above had already superseded, so the plan asserted two
+  scopes in two places with no cross-reference between them. A reader stopping
+  at the current record would have concluded an unobtainable EXECUTE-time red
+  was still required for T5's two blocks. The stale clause is removed rather
+  than reconciled by adding a second statement: the record now states the one
+  extended scope and cites the ruling that grants it. The two
+  verification-ledger entries stay owed, worded as before.
