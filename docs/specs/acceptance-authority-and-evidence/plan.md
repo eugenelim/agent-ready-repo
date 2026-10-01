@@ -1,8 +1,8 @@
 # Plan: Acceptance authority and evidence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
-- **Repository anchors:** `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/runtime-security-primitives.md`, `docs/architecture/delivery-content-safety.md`; analogous implementations `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` and `packs/core/.apm/skills/close-work/scripts/file_safety.py`; tests `packs/core/tests/skills/work-loop/test_loop_cohort.py` and `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`. Deviation: the reviewed security design names `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` as a source, while `packages/agentbundle/agentbundle/build/self_host.py` and `packs/AGENTS.local.md` identify it as a generated destination; implementation edits the pack-owned source and regenerates the package copy.
+- **Status:** Drafting
+- **Repository anchors:** `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/runtime-security-primitives.md`, `docs/architecture/delivery-content-safety.md`; analogous implementations `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` and `packs/core/.apm/skills/close-work/scripts/file_safety.py`; tests `packs/core/tests/skills/work-loop/test_loop_cohort.py` and `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`. Deviation: the reviewed security design names `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` as a source, while `packages/agentbundle/agentbundle/build/self_host.py` and `packs/AGENTS.local.md` identify it as a generated destination; this slice leaves `file_safety.py` and every copy unchanged and builds new confined-mutation primitives beside the `work-loop` skill's local copy (owner decision, 2026-10-01). Placement deviation: the Draft architecture names `packages/agentbundle/agentbundle/work_supervisor/` and `catalogue_tooling/` modules; this slice instead implements every service as a work-loop skill script, per the brief's script packaging pattern and its non-goal against a mandatory `agentbundle` runtime (owner decision, 2026-10-01). T9b updates those architecture pages to match.
 
 > **Plan contract:** this is the current implementation strategy. Initial review
 > checks strategy, safety constraints, dependencies, and scope alignment; it
@@ -34,19 +34,19 @@ The whole slice cannot be understood, verified, or reviewed as one unit, and its
 - ADR-0061 and ADR-0125 keep the current engine and cohort writers authoritative. Slice 1 adds callable services but cannot transfer procedure ownership or widen the engine's effect registry.
 - ADR-0005 keeps execution sequential by default and preserves its existing parallel-write gates. This slice adds no parallel admission or protected-ref product authority.
 - [`work-loop-authority-migration.md`](../../architecture/work-loop-authority-migration.md) requires an accepted superseding governance record before any current authority is retired; implementation alone cannot satisfy that gate.
-- `contracts/delivery/` is the canonical schema source. Package, pack, and generated copies are projections with explicit parity checks.
+- `contracts/delivery/` is the canonical schema source. No delivery schema is read at runtime: the standard-library scripts validate records in code, and the JSON Schemas are test-time contracts. So no schema copy ships in the Core pack, and the T1 suite asserts that no delivery schema copy exists outside `contracts/delivery/`.
 - Runtime code uses the Python standard library. The existing test toolchain may validate JSON Schema; this slice adds no runtime dependency.
-- Package code uses list-form process execution, explicit UTF-8, portable temporary paths, and platform-skipped link or execute-bit tests where the host cannot supply the capability.
-- Core pack and package changes carry their required version updates, evals, generated projections, release record, and `Engine-Change-RFC:` commit footer.
-- No accepted RFC yet covers this engine change, and `packs/AGENTS.local.md` allows `n/a` only for non-engine changes. T0 obtains an accepted engine-scoped RFC before any task writes under `packages/agentbundle/`; every such commit cites it in its `Engine-Change-RFC:` trailer.
-- The supported adapter set for this slice is the sequential reference runtime plus the Core compatibility adapter. The package declares that set in one place, and the conformance suites refuse to run against an empty or single-member declaration, so AC-0007 and AC-0013 always compare at least two adapters.
+- Script code uses list-form process execution, explicit UTF-8, portable temporary paths, and platform-skipped link or execute-bit tests where the host cannot supply the capability.
+- Every Slice 1 service is a self-contained standard-library module in `packs/core/.apm/skills/work-loop/scripts/`, beside `loop-engine.py` and `loop-cohort.py`, and reaches users through `make build-self` projections. No Slice 1 service code goes under `packages/agentbundle/`, and the skill gains no runtime dependency on `agentbundle` or any other package (owner decision, 2026-10-01). Security primitives import the skill's local byte-identical `file_safety.py` copy and leave it, and every other copy, unchanged.
+- Core pack changes carry their version updates, evals, generated projections, and release record. No file under `packages/agentbundle/` changes in this slice, so no commit needs an `Engine-Change-RFC:` trailer; T9a confirms the package tree is unchanged against the base.
+- The supported adapter set for this slice is the sequential reference runtime plus the Core compatibility adapter. The work-loop scripts declare that set in one place, and the conformance suites refuse to run against an empty or single-member declaration, so AC-0007 and AC-0013 always compare at least two adapters.
 - "The CI reference worker" in AC-0018 and AC-0019 means a GitHub-hosted `ubuntu-latest` runner in a dispatch-only benchmark workflow. GitHub dispatches a `workflow_dispatch` workflow only once its file is on the default branch, so T4 adds the workflow `.github/workflows/benchmark-acceptance.yml` and it merges to `main` before T9a needs its evidence (owner decision); T7 extends it with the cold-rehydration benchmark, and T9a dispatches it with `--ref` on its own branch. The committed harness fixes the timed-run count and warm-up policy, and the workflow retains its output.
 
 ## Construction tests
 
 **Integration tests:**
 
-- A frozen approved-artifact corpus drives legacy canonicalization, atomic import, reverse read, protected-change classification, legacy subject projection, verdict parity, and cache-deletion rehydration across the package and Core compatibility adapter.
+- A frozen approved-artifact corpus drives legacy canonicalization, atomic import, reverse read, protected-change classification, legacy subject projection, verdict parity, and cache-deletion rehydration across the script services and the Core compatibility adapter.
 - A shared adversarial corpus drives filesystem, process, capability, containment, control-plane forgery, content-safety, and inert-consumption conformance through every supported adapter.
 - Crash injection covers every approval and evidence transaction boundary, then restarts from only durable bytes and compares the complete semantic record set and verdict.
 - Cross-platform fixtures cover POSIX links, Windows reparse/junction behavior where available, process-tree termination, executable identity replacement, bounded output, and unsupported-capability refusal.
@@ -57,10 +57,10 @@ The whole slice cannot be understood, verified, or reviewed as one unit, and its
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Canonical delivery contracts, registry, and declared projections | T1, T9b | Schema, registry, and source-to-projection parity suites | `contracts/README.md` and `contracts/REGISTRY.md` name every shipped record and owner; all projections match. |
+| Canonical delivery contracts and registry | T1, T9b | Schema, registry, and no-copy suites | `contracts/README.md` and `contracts/REGISTRY.md` name every shipped record and owner; no delivery schema copy exists outside `contracts/delivery/`. |
 | Current architecture and authority migration | T8, T9b | Compatibility and missing-governance refusal suites | Architecture pages describe callable shadow services, current authority, reversal, and future cutover gates. |
 | Maintainer parity, recovery, and reversal procedure | T5, T6, T7, T8, T9a, T9b | Import, restart, cache-deletion, reverse-read, and end-to-end commands | `docs/architecture/loop-infrastructure.md` names the commands and expected results without relying on this plan. |
-| Package, Core, and architect release history and versions | T9b | Package tests, pack evals, build-self, version parity, and changelog lint | Package, Core, and architect versions are released together when required, and `docs/product/changelog.md` records the outcome. |
+| Core release history and versions | T9b | Pack tests, pack evals, build-self, version parity, and changelog lint | The Core version is released when required, and `docs/product/changelog.md` records the outcome. |
 
 ## Design (LLD)
 
@@ -84,7 +84,7 @@ Owning approvals, initial-plan reviews, evidence transactions, and security even
 
 Owned by: T2, T3a, T3b, T3c, T4, T5, T6, T7, T8
 
-The package exposes in-process Python ports for subject projection, reviewed-envelope derivation, spec-policy approval and initial-review import and lookup, protected-change classification, evidence append and replay, acceptance evaluation, capability issue/intersection, confined file and process operations, containment launch, effect brokering, auditing, and content-safety decisions. The exact Python symbols are implementation-discovered from the smallest cohesive package boundary; the JSON contracts and tests define behavior before those symbols freeze. Traces to AC-0001 through AC-0017. Owned by T2-T8.
+The work-loop skill scripts expose in-process Python ports (importable standard-library modules) for subject projection, reviewed-envelope derivation, spec-policy approval and initial-review import and lookup, protected-change classification, evidence append and replay, acceptance evaluation, capability issue/intersection, confined file and process operations, containment launch, effect brokering, auditing, and content-safety decisions. The exact Python symbols are implementation-discovered from the smallest cohesive set of script modules; the JSON contracts and tests define behavior before those symbols freeze. Traces to AC-0001 through AC-0017. Owned by T2-T8.
 
 The Core compatibility adapter translates existing engine events and approved pins into typed calls, dual-emits old and new facts, and treats every target result as shadow data. It changes no public `work-loop` invocation. Traces to AC-0001, AC-0002, AC-0007, AC-0016, AC-0017. Owned by T5, T8.
 
@@ -93,9 +93,10 @@ The Core compatibility adapter translates existing engine events and approved pi
 Owned by: T1, T2, T3a, T3b, T3c, T4, T5, T6, T7, T8
 
 - `contracts/delivery/` owns portable record shape and identity.
-- `catalogue_tooling` owns reusable content, capability, filesystem, process, and audit primitives. The existing pack-owned `file_safety.py` remains the authoring source for its generated package projection.
-- A new package-internal `work_supervisor` boundary owns acceptance projection/evaluation, approvals, evidence, containment, brokering, and legacy compatibility services; it does not schedule work in this slice.
+- Security primitive modules in `packs/core/.apm/skills/work-loop/scripts/` own reusable content-safety, capability, process, and audit mechanics. They build on the skill's local copy of the pack-owned `file_safety.py`, whose authoring source `packs/core/.apm/skills/close-work/scripts/file_safety.py` stays unchanged.
+- Acceptance service modules in the same scripts directory own acceptance projection/evaluation, approvals, evidence, containment, brokering, and legacy compatibility services; they do not schedule work in this slice.
 - The Core `work-loop` source owns delivery policy and the compatibility caller; generated adapter projections remain build outputs.
+- Nothing in this slice imports from `agentbundle`.
 
 Traces to AC-0001 through AC-0017. Owned by T1-T8.
 
@@ -133,39 +134,23 @@ Derived indexes may accelerate evaluation but deleting them must not change the 
 
 Owned by: T1, T8, T9b
 
-Runtime code remains standard-library-only and integrates with Git through the existing acknowledged legacy result boundary. Test-only schema validation reuses the installed repository toolchain. Package and Core source changes flow through the existing self-host projection, package version, pack version, and release mechanisms. Traces to AC-0001, AC-0005, AC-0016. Owned by T1, T8, T9b.
+Runtime code remains standard-library-only and integrates with Git through the existing acknowledged legacy result boundary. Test-only schema validation reuses the installed repository toolchain. Core pack source changes flow through the existing self-host projection, pack version, and release mechanisms; the scripts import nothing from `agentbundle`. Traces to AC-0001, AC-0005, AC-0016. Owned by T1, T8, T9b.
 
 ## Tasks
 
-### T0: An accepted engine-scoped RFC authorizes the package changes
+### T1: Canonical delivery schemas and ownership checks pass
 
 **Depends on:** none
 
-**Review shape:** DEEP — one governance review unit; no split.
-
-**Touches:** `docs/rfc/` (one new RFC through the `new-rfc` skill), `docs/rfc/README.md` if it indexes RFCs
-
-**Tests:**
-
-- Mode: goal-based check.
-- Stub: `no stub (goal-based check)`.
-- The RFC proposes the Slice 1 engine change this spec and plan describe. It changes no Acceptance Criterion, scope, non-goal, or other protected field of this spec; a conflict routes back to this spec's owner.
-
-**Done when:** the RFC records owner acceptance (`Status: Accepted`), and its number is the value every later `Engine-Change-RFC:` trailer cites.
-
-### T1: Canonical delivery schemas and ownership checks pass
-
-**Depends on:** T0
-
 **Review shape:** DEEP — one review unit: the schema bundle and its registry and parity checks are understood and verified together; no split.
 
-**Touches:** `contracts/delivery/**`, `contracts/README.md`, `contracts/REGISTRY.md`, package contract projections, schema and parity tests, and, per `tests/AGENTS.md`, a named roster step for the new `tests/roster/` file in `.github/workflows/build-check.yml` with its `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`
+**Touches:** `contracts/delivery/**`, `contracts/README.md`, `contracts/REGISTRY.md`, schema and registry tests, and, per `tests/AGENTS.md`, a named roster step for the new `tests/roster/` file in `.github/workflows/build-check.yml` with its `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`
 
 **Tests:**
 
 - Mode: TDD.
-- AC-0001 through AC-0017, AC-0020, AC-0021: a contract suite validates every delivery schema against JSON Schema 2020-12, rejects unknown or incomplete authority-shaped records, verifies stable identity examples, and checks every declared package/pack projection against the canonical source.
-- AC-0001 through AC-0017, AC-0020, AC-0021: registry coverage compares the discovered canonical schema set with `contracts/README.md`, `contracts/REGISTRY.md`, and the build manifest so an unregistered schema or undeclared copy fails.
+- AC-0001 through AC-0017, AC-0020, AC-0021: a contract suite validates every delivery schema against JSON Schema 2020-12, rejects unknown or incomplete authority-shaped records, verifies stable identity examples, and asserts that no copy of a delivery schema exists outside `contracts/delivery/`.
+- AC-0001 through AC-0017, AC-0020, AC-0021: registry coverage compares the discovered canonical schema set with `contracts/README.md` and `contracts/REGISTRY.md` so an unregistered schema fails.
 - `test_delivery_contract_bundle_contains_valid_schemas` (AC-0003 — a missing or invalid bundle leaves the `reviewed-execution-envelope.v1` record that AC-0003 names undefined; it also guards the interface-compatibility durable output), `stub: true`; materialize at `tests/roster/test_delivery_contract_bundle.py` only after `CODE-IMPLEMENTATION`:
 
 ```python
@@ -190,7 +175,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 - PLAN handoff validation, re-run on 2026-10-01 for the revised stub against the pre-implementation tree from disposable scratch (stub at a scratch `tests/roster/` path, `contracts/` linked to the repository's, pytest started outside the repository): `python3 -m py_compile` passed; bounded `pytest -q` earned the intended red with one failure at `assert schemas` because the canonical `contracts/delivery/` bundle was not yet implemented. The validation created no repository test file; EXECUTE must materialize these exact fenced bytes before making the test green.
 
-**Done when:** the T1 contract, registry, and projection suites pass from canonical source bytes.
+**Done when:** the T1 contract and registry suites, including the no-copy-outside-`contracts/delivery/` assertion, pass from canonical source bytes.
 
 ### T2: Content-safety decisions conform at every semantic boundary
 
@@ -198,12 +183,12 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** `docs/architecture/delivery-content-safety.md`, package content-safety source, its tests, contract projections, Core compatibility consumers
+**Touches:** `docs/architecture/delivery-content-safety.md`, the work-loop script content-safety module, its tests, Core compatibility consumers
 
 **Tests:**
 
 - Mode: TDD through integration tests.
-- Stub: `no stub (implementation-discovered)` — select the package callable only after the contract suite proves the policy, decision, and inert-data record shapes; the seam must accept a named profile and bytes and return a typed decision without persistence.
+- Stub: `no stub (implementation-discovered)` — select the script callable only after the contract suite proves the policy, decision, and inert-data record shapes; the seam must accept a named profile and bytes and return a typed decision without persistence.
 - AC-0014: discover every Slice 1 durable semantic writer and replay boundary, assert the architecture profile matrix covers the same set including `initial-plan-review.v1`, parameterize each boundary over the shared credential, personal-data, control-character, encoding, executable-structure, unknown-field, and edge-plus-one size corpus, and compare normalized decisions; a missing or unknown profile refuses append and replay without durable payload bytes.
 - AC-0015: instrument persistence and diagnostics to prove rejected payload bytes, excerpts, and content-derived hashes are absent, then drive accepted adversarial prose through every consumer and assert that it cannot select tools, actions, paths, or authority.
 
@@ -213,19 +198,19 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Depends on:** T1, T2
 
-**Review shape:** DEEP — one review unit; the hand-maintained copies are byte-identical replicas checked by their pins, not separate review material; no split.
+**Review shape:** DEEP — one review unit; no split.
 
-**Touches:** `packs/core/.apm/skills/close-work/scripts/file_safety.py`, generated package projection, the three hand-maintained byte-identical copies (`packs/core/.apm/skills/work-intake/scripts/file_safety.py`, `packs/core/.apm/skills/work-loop/scripts/file_safety.py`, `packs/architect/.apm/skills/architect-design/scripts/file_safety.py`) kept in sync with the source, capability and security-event source, unit and projection tests
+**Touches:** the work-loop script confined-mutation, capability, and security-event modules built on the skill's local `file_safety.py` copy (left unchanged), unit tests
 
 **Tests:**
 
 - Mode: TDD.
-- Stub: `no stub (implementation-discovered)` — extend the pack-owned confinement source and choose the smallest package capability/audit modules whose public values can be mirrored without creating a second security implementation.
+- Stub: `no stub (implementation-discovered)` — build on the local confinement copy without changing it, and choose the smallest work-loop script mutation, capability, and audit modules that avoid creating a second implementation of what `file_safety.py` already provides.
 - AC-0010: property tests generate parent and requested grants and assert every child field is an intersection, with omitted network and child fields denying all.
 - AC-0011: adversarial fixtures cover absolute and dot-segment paths, links, reparse points, multiple links, special files, identity replacement, bounds, interrupted staging, and atomic replacement while preserving the prior bytes on refusal.
 - AC-0010, AC-0011, AC-0020, AC-0021: semantic-append and security-event tests assert named writer authority, stable reason codes, redacted metadata without request payloads, and durable audit before acknowledgment when the sink is available; when it is unavailable, tests require a stable redacted denial code, no effect success or protected-data persistence, and no durable-event claim.
 
-**Done when:** the T3a capability, file-boundary, race, atomicity, audit, and source/projection parity suites pass, and every hand-maintained copy stays byte-identical to the source.
+**Done when:** the T3a capability, file-boundary, race, atomicity, and audit suites pass, and `file_safety.py` and every copy are byte-unchanged.
 
 ### T3b: Safe-process invariants pass across supported hosts
 
@@ -233,12 +218,12 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** package process-safety source, unit tests, platform fixtures, contract projections
+**Touches:** the work-loop script process-safety module, unit tests, platform fixtures
 
 **Tests:**
 
 - Mode: TDD through operating-system integration tests.
-- Stub: `no stub (implementation-discovered)` — choose the process callable after probing the existing package process helpers; the contract fixes inputs and refusals, not a symbol or class hierarchy.
+- Stub: `no stub (implementation-discovered)` — choose the process callable after probing the existing repository process helpers; the contract fixes inputs and refusals, not a symbol or class hierarchy.
 - AC-0012: fixtures vary executable identity, argv values, current directory, environment, stdin, timeout, output volume, encoding, child trees, and redaction matches; each invalid or breached case proves no durable success and no surviving child.
 - AC-0021: with an available sink, every process allow and policy denial emits its redacted event before acknowledgment; an unavailable audit path launches no process, retains no protected input or output, returns a stable redacted denial code, and makes no durable-event claim.
 - AC-0012: platform-capability fixtures skip only when the host cannot supply the asserted primitive and require the runtime capability declaration to refuse unsupported guarantees.
@@ -251,14 +236,14 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** package containment and broker source, adapter conformance fixtures, Core capability wiring
+**Touches:** the work-loop script containment and broker modules, adapter conformance fixtures, Core capability wiring
 
 **Tests:**
 
 - Mode: TDD through end-to-end security conformance.
 - Stub: `no stub (implementation-discovered)` — select the launcher and broker ports only after each supported host reports which containment axes it can attest; no same-process wrapper may claim OS isolation.
 - AC-0010: compare every launcher attestation with its grant and refuse any broader root, read mode, network, child, or resource allowance.
-- AC-0013: run direct-syscall, Git metadata, protected-ref, delivery-control, broker-bypass, privilege-amplification, and unsupported-host fixtures through every adapter; all forgery writes remain absent.
+- AC-0013: run direct-syscall, Git metadata, protected-ref, delivery-control, broker-bypass, privilege-amplification, and unsupported-host fixtures through every adapter; the delivery-control fixtures read the set of `work-loop` skill copies from `contracts/adapter.toml` for the Core pack's declared surfaces, and attempt writes to the pack source, each such copy, and each runtime-read schema or policy file; all forgery writes remain absent.
 - AC-0020, AC-0021: attempt broker and security-event appends with missing, expired, and mismatched producer capabilities and with unavailable audit storage; available-sink policy denials persist their redacted event before acknowledgment, while unavailable-sink attempts expose no partial record or effect, return a stable redacted denial code without a durable-event claim, and remain denied on retry.
 
 **Done when:** the T3c containment, broker, delegation, and cross-adapter forgery suites pass with zero bypass effects.
@@ -269,7 +254,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; the benchmark workflow is small, and its posture checks verify it alone; no split.
 
-**Touches:** package acceptance source, pure unit/property tests, benchmark fixtures, `.github/workflows/benchmark-acceptance.yml`, the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`, a new posture test `tools/test-benchmark-acceptance-workflow.py` on `tools/posture_harness.py`, its gate-chain wiring in `tools/repo/build_gate_chain.py` with the matching `EXPECTED_SCRIPT_STEPS` pin in `tools/test_build_gate_chain.py`, the workflow's `WORKFLOW_SCOPE` classification in `tools/lint-ci-parity.py`, the workflow fleet table and §3.1 posture-test inventory in `docs/architecture/verification-graph.md`, and any other pin, roster, or inventory that registering a new workflow and gate-chain step obliges
+**Touches:** the work-loop script acceptance modules, pure unit/property tests, benchmark fixtures, `.github/workflows/benchmark-acceptance.yml`, the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`, a new posture test `tools/test-benchmark-acceptance-workflow.py` on `tools/posture_harness.py`, its gate-chain wiring in `tools/repo/build_gate_chain.py` with the matching `EXPECTED_SCRIPT_STEPS` pin in `tools/test_build_gate_chain.py`, the workflow's `WORKFLOW_SCOPE` classification in `tools/lint-ci-parity.py`, the workflow fleet table and §3.1 posture-test inventory in `docs/architecture/verification-graph.md`, and any other pin, roster, or inventory that registering a new workflow and gate-chain step obliges
 
 **Tests:**
 
@@ -290,7 +275,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** package approval/envelope/initial-review/import/change-classification/reverse-read source, frozen legacy corpus, Core compatibility adapter, integration tests
+**Touches:** the work-loop script approval/envelope/initial-review/import/change-classification/reverse-read modules, frozen legacy corpus, Core compatibility adapter, integration tests
 
 **Tests:**
 
@@ -310,7 +295,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** package subject-source and projection source, Git/worktree fixtures, compatibility tests
+**Touches:** the work-loop script subject-source and projection modules, Git/worktree fixtures, compatibility tests
 
 **Tests:**
 
@@ -328,7 +313,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** package evidence-store source, crash harness, index and benchmark tests, and the cold-rehydration job in `.github/workflows/benchmark-acceptance.yml` with any matching posture-test update
+**Touches:** the work-loop script evidence-store module, crash harness, index and benchmark tests, and the cold-rehydration job in `.github/workflows/benchmark-acceptance.yml` with any matching posture-test update
 
 **Tests:**
 
@@ -347,7 +332,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** Core work-loop source and scripts, package compatibility facade, pack evals, engine/cohort regression tests
+**Touches:** Core work-loop source and scripts, the script compatibility facade, pack evals, engine/cohort regression tests
 
 **Tests:**
 
@@ -371,7 +356,8 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 - Mode: goal-based check through repository gates and real compatibility invocations.
 - Stub: `no stub (goal-based check)`.
-- AC-0001 through AC-0021: run the frozen import, subject, verdict, recovery, reversal, security, content-safety, authorized-append, audit-failure, and cross-adapter corpora against the built package and projected Core pack.
+- AC-0001 through AC-0021: run the frozen import, subject, verdict, recovery, reversal, security, content-safety, authorized-append, audit-failure, and cross-adapter corpora against the projected Core pack (`make build-self` output).
+- Clean-environment fence: run the projected work-loop scripts' compatibility path in an environment where `agentbundle` is not importable, after first proving it is not importable there, and assert the path completes. A static check asserts every runtime module in the projected `work-loop` skill imports only the Python standard library or its own sibling modules; an optional import inside an `ImportError` guard that falls back to standard-library behavior is allowed, as in the existing `lint-spec-status.py` `tomli` fallback. A diff against the base asserts no file under `packages/agentbundle/` changed.
 - AC-0018, AC-0019: dispatch the benchmark workflow on GitHub-hosted `ubuntu-latest` with `--ref` on the T9a branch, and retain the measured p95 evaluation and cold-rehydration outputs with the run's commit SHA.
 - Real invocation: run the unchanged documented `work-loop` happy path through the compatibility caller and record the command, exit status, derived verdict, and confirmation that legacy authority made the decision.
 
@@ -383,13 +369,13 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; its version and changelog edits are mechanical bookkeeping for the documented change; no split.
 
-**Touches:** architecture pages, maintainer procedure, contract registry, package/Core/architect versions and changelog, generated projections
+**Touches:** architecture pages, maintainer procedure, contract registry, Core versions and changelog, generated projections
 
 **Tests:**
 
 - Mode: goal-based check through repository gates.
 - Stub: `no stub (goal-based check)`.
-- Durable outputs: run package tests, touched Core pack evals, source/projection parity, catalogue lint/verify, build-self zero-diff rerun, spec/brief/status lints, and documentation link checks.
+- Durable outputs: run Core pack tests, touched Core pack evals, source/projection parity, catalogue lint/verify, build-self zero-diff rerun, spec/brief/status lints, and documentation link checks.
 
 **Done when:** the T9b repository gates pass, durable outputs describe current state, and release versions align.
 
@@ -398,18 +384,18 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - **Delivery:** contracts and readers land before writers. Each target writer runs behind the current compatibility path and produces shadow facts until parity and recovery evidence are clean. Initial review records its envelope and authorized terminal intent but creates no task projection; Slice 4 will own approval-free in-envelope reprojection. Rollback disables target calls and reads the retained legacy state; it does not delete new semantic facts.
 - **Infrastructure:** no daemon, external service, database, queue, cloud resource, secret, or mandatory sandbox product is introduced. Untrusted execution activates only where the host supplies verified containment; otherwise it refuses.
 - **External-system integration:** none. Git and the local operating system remain the only runtime integrations.
-- **Deployment sequencing:** the T0 RFC precedes every package change; T1 contracts precede every reader; T2 and T3 security controls precede semantic writers and untrusted execution; T4 precedes stores; T5-T7 precede compatibility calls; T8 parity precedes documentation and release closure. No authority cutover occurs in this rollout, and no working-plan revision becomes an approval record.
+- **Deployment sequencing:** T1 contracts precede every reader; T2 and T3 security controls precede semantic writers and untrusted execution; T4 precedes stores; T5-T7 precede compatibility calls; T8 parity precedes documentation and release closure. No authority cutover occurs in this rollout, and no working-plan revision becomes an approval record.
 
 ## Risks
 
 - A broad service layer could recreate the workflow engine under new names. Pure evaluators, typed ports, and the prohibition on stored phase/task completion keep procedure out of this slice.
 - Canonicalization drift could make existing approved work unimportable. The frozen corpus compares current and target digests before any decision is published.
 - Mutable planning could cross product or security intent unnoticed. Protected-boundary fixtures cover every AC-0003 field and terminal intent, return the owning amendment or review route, and prove that in-envelope task guidance is classified as outside approval authority without dispatching or mutating task state.
-- A generated security helper could be edited at the wrong layer and disappear on rebuild. T3a changes the pack-owned source and pins the generated package projection.
+- The shared confinement helper could drift if Slice 1 edited it, because its package copies are generated. This slice leaves `file_safety.py` and every copy unchanged and builds new mutation primitives beside the local copy.
 - Host-specific containment could be overstated. Capability declarations and attestations refuse guarantees a host cannot prove, and untrusted code has no same-process fallback.
 - Content scanning cannot detect every natural-language instruction or personal identifier. Schema allowlists, producer classification, reject-unknown behavior, and inert consumption remain the hard boundary.
 - Append-log volume could miss the latency targets. Derived indexes may optimize reads, but the cold benchmark deletes them and the evaluator never treats them as authority.
-- Package and Core projections could ship at different revisions. T1/T9b parity gates, coupled versions, and the release record keep the bundle aligned.
+- Contract source and Core pack projections could ship at different revisions. T1/T9b parity gates, coupled versions, and the release record keep the bundle aligned.
 
 ## Changelog
 
@@ -446,6 +432,46 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
   completely.
 - 2026-10-01: spec approved by owner (code-mode run, terminal intent `code`)
 - 2026-10-01: plan approved by owner (code-mode run)
+- 2026-10-01: controlled contract amendment from `CODE-IMPLEMENTATION`
+  before any task completed. Owner decision: every Slice 1 service is a
+  self-contained work-loop skill script, not code under
+  `packages/agentbundle/`, per the brief's script packaging pattern and its
+  non-goal against a mandatory `agentbundle` runtime. T0 and the draft
+  RFC-0105 are dropped; generated-copy-only package commits use
+  `Engine-Change-RFC: n/a — generated projection`. Spec Agent Rules and the
+  Release history durable output changed to match. T9a adds a
+  clean-environment fence. Spec and plan return to Draft/Drafting for fresh
+  review and approval.
+- 2026-10-01: round-6 review revisions. Owner decisions: T3a leaves
+  `file_safety.py` and every copy unchanged and builds new confined-mutation
+  primitives beside the work-loop skill's local copy, so no file under
+  `packages/agentbundle/` changes and no `Engine-Change-RFC:` trailer is
+  needed; AC-0013 names the work-loop skill's own runtime (pack source,
+  generated copies, runtime-read schemas and policy) as delivery-control
+  paths. Protected spec fields changed in this amendment overall: Agent
+  Rules (two Always-do rules and one Never-do rule), AC-0013, Testing
+  Strategy (release line), and Durable Outputs (Interface compatibility
+  applicability; Release history narrowed to the Core pack, since no
+  architect copy changes). T9a's fence now covers every non-standard-library
+  import and the unchanged package tree.
+- 2026-10-01: round-7 review revisions. Owner decisions: the Never-do
+  rule and T9a check allow an `ImportError`-guarded optional import with a
+  standard-library fallback; AC-0013's protected copies are every
+  `work-loop` projection `contracts/adapter.toml` declares for the Core
+  pack's surfaces; the Current architecture closeout adds that no listed
+  page places a Slice 1 service under `packages/agentbundle/`; later-slice
+  pages keep their placement until their own specs adopt this decision, and
+  the brief is not edited here because sibling specs pin its byte revision. No delivery
+  schema is read at runtime, so no schema copy ships in the Core pack.
+- 2026-10-01: round-8 review revisions. The Never-do rule now names Python
+  imports only (running `git` or reading the skill's own `assets/` is not an
+  import); the Interface compatibility and Release history rows drop the
+  projection clauses the no-runtime-schema decision removed; T1, T2, T3b,
+  and the durable-output map drop leftover projection wording. Owner kept
+  the round-7 AC-0013 set and import allowance unchanged.
+- 2026-10-01: round-9 shaping correction: the Maintainer procedure owner
+  is Core maintainers, since no Slice 1 command or service is
+  `agentbundle`-owned.
 
 <!-- Approval entries are added only at their human gates.
 
