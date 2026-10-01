@@ -382,6 +382,17 @@
       ]
     },
     {
+      "id": "review-family-key-is-emitted-but-unconsumed",
+      "prompt": "A review classification payload now includes `families` beside `fingerprints`. May work-loop use the family value to stop a recurring review finding or store it for the next round?",
+      "expected_output": "No. `families` is an emitted SHA-256 key whose preimage is `<location>|<stable-title>`, without the finding's positional line or title prefix. Nothing consumes it yet. Work-loop keeps the existing fingerprint for within-round handling and does not store, compare, count, gate, or stop on families.",
+      "assertions": [
+        "Response names `families` as an emitted classification-payload key",
+        "Response gives the position-free `<location>|<stable-title>` preimage",
+        "Response states literally that nothing consumes it yet",
+        "Response does not store, compare, count, gate, or stop on families"
+      ]
+    },
+    {
       "id": "review-verdict-blocker-ignores-positive-score",
       "prompt": "A full review has an unresolved accepted Blocker. Every required gate passed, and a downstream dashboard scored the change 98/100. What review-verdict state is emitted?",
       "expected_output": "Emit BLOCKED. Preserve the Blocker and gate evidence, keep non_authoritative_score as JSON null, and leave the downstream 98/100 score outside the record as non-authoritative telemetry. A score cannot compensate for an unresolved blocker.",

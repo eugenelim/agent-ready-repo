@@ -38,6 +38,8 @@ _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 
 parse_findings = _mod.parse_findings
+parse_finding_identities = _mod.parse_finding_identities
+stable_title = _mod.stable_title
 canonical_contract = _mod.canonical_contract
 sha256_canonical_contract = _mod.sha256_canonical_contract
 CLEAN_SUBSTRING = _mod.CLEAN_SUBSTRING
@@ -2055,6 +2057,260 @@ def test_parse_findings_specialist_formats(tmp: Path) -> None:
         fail(name, f"experience-reviewer fingerprint mismatch: {fps_exp[0]!r} != {exp_fp!r}")
         return
     ok(name)
+
+
+@pytest.mark.parametrize(
+    (
+        "criterion",
+        "left_location",
+        "left_line",
+        "left_title",
+        "right_location",
+        "right_line",
+        "right_title",
+        "same_family",
+    ),
+    [
+        (
+            "AC-0001",
+            "src/widget.py",
+            10,
+            "**1. [major] Missing guard.**",
+            "src/widget.py",
+            99,
+            "**1. [major] Missing guard.**",
+            True,
+        ),
+        (
+            "AC-0002",
+            "src/widget.py",
+            10,
+            "**1. [major] Missing guard.**",
+            "src/widget.py",
+            10,
+            "**2. [major] Missing guard.**",
+            True,
+        ),
+        (
+            "AC-0003",
+            "src/widget.py",
+            10,
+            "**1. [major] Missing guard.**",
+            "src/widget.py",
+            10,
+            "**1. [minor] Missing guard.**",
+            True,
+        ),
+        (
+            "AC-0003-four-tier",
+            "src/widget.py",
+            10,
+            "**1. [HIGH] Missing guard.**",
+            "src/widget.py",
+            10,
+            "**1. [LOW] Missing guard.**",
+            True,
+        ),
+        (
+            "AC-0003-cross-scheme",
+            "src/widget.py",
+            10,
+            "**1. [Concern] Missing guard.**",
+            "src/widget.py",
+            10,
+            "**1. [MEDIUM] Missing guard.**",
+            True,
+        ),
+        (
+            "AC-0004",
+            "src/widget.py",
+            10,
+            "**1. [major] Missing guard.**",
+            "src/widget.py",
+            10,
+            "**1. [major] Missing validation.**",
+            False,
+        ),
+        (
+            "AC-0005",
+            "src/widget.py",
+            10,
+            "**1. [major] Missing guard.**",
+            "src/other.py",
+            10,
+            "**1. [major] Missing guard.**",
+            False,
+        ),
+    ],
+)
+def test_family_stable_title_normalisation(
+    criterion: str,
+    left_location: str,
+    left_line: int,
+    left_title: str,
+    right_location: str,
+    right_line: int,
+    right_title: str,
+    same_family: bool,
+) -> None:
+    """Family identity removes only position-bearing title prefixes."""
+    left = (
+        f"{left_title} `{left_location}:{left_line}`. Detail. Fix: repair.\n"
+    )
+    right = (
+        f"{right_title} `{right_location}:{right_line}`. Detail. Fix: repair.\n"
+    )
+    _, left_families = parse_finding_identities(left)
+    _, right_families = parse_finding_identities(right)
+
+    assert len(left_families) == 1, criterion
+    assert len(right_families) == 1, criterion
+    assert (left_families[0] == right_families[0]) is same_family, criterion
+
+
+def test_stable_title_preserves_reviewer_assigned_finding_id() -> None:
+    """A bracketed reviewer id is content, not a removable severity tag."""
+    assert (
+        stable_title("**12. [major] [finding-42] Missing guard.**")
+        == "[finding-42] Missing guard."
+    )
+
+
+@pytest.mark.parametrize(
+    ("reviewer_format", "report"),
+    [
+        (
+            "backtick citation",
+            "**1. [major] Missing guard.** `src/widget.py:10`. "
+            "Detail. Fix: repair.\n",
+        ),
+        (
+            "unquoted file line",
+            "**1. [major] Missing guard.** src/widget.py:10. "
+            "Detail. Fix: repair.\n",
+        ),
+        (
+            "Where location",
+            "**1. [major] Missing guard.** Where: Widget panel. "
+            "Detail. Fix: repair.\n",
+        ),
+    ],
+)
+def test_each_reviewer_format_emits_a_family(
+    reviewer_format: str, report: str
+) -> None:
+    """Every parser branch emits one family beside each fingerprint."""
+    fingerprints, families = parse_finding_identities(report)
+    assert len(fingerprints) == 1, reviewer_format
+    assert len(families) == 1, reviewer_format
+
+
+def test_review_inspect_json_emits_families(tmp: Path) -> None:
+    """The stateful inspect payload emits families beside fingerprints."""
+    name = "review-inspect-json-emits-families"
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": _mod.SCHEMA_VERSION,
+        "run_id": str(uuid.uuid4()),
+        "finding_fingerprints": [],
+    })
+    report = tmp / "findings.md"
+    report.write_text(SAMPLE_FINDINGS_REPORT, encoding="utf-8")
+    rc, out, _ = run_cohort(
+        "review", "inspect", str(spec_dir), "--report", str(report), "--json"
+    )
+    assert rc == 0
+    data = json.loads(out)
+    assert len(data["families"]) == len(data["fingerprints"])
+
+
+def test_review_classify_json_emits_families(tmp: Path) -> None:
+    """The state-free classify payload emits families beside fingerprints."""
+    report = tmp / "adjudication.md"
+    report.write_text(
+        "## Main-loop result\n"
+        "**1. [major] Missing guard.** `src/widget.py:10`. "
+        "Detail. Fix: repair.\n\n"
+        "## Refuted audit\nNone.\n\n## Indeterminate audit\nNone.\n",
+        encoding="utf-8",
+    )
+    rc, out, _ = run_cohort(
+        "review", "classify", "--report", str(report), "--json"
+    )
+    assert rc == 0
+    data = json.loads(out)
+    assert len(data["families"]) == len(data["fingerprints"])
+
+
+def test_review_invalid_json_emits_empty_families(tmp: Path) -> None:
+    """The independent invalid payload carries an empty family list."""
+    name = "review-invalid-json-emits-empty-families"
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": _mod.SCHEMA_VERSION,
+        "run_id": str(uuid.uuid4()),
+        "finding_fingerprints": [],
+    })
+    report = tmp / "invalid.md"
+    report.write_text(EMPTY_REPORT, encoding="utf-8")
+    rc, out, _ = run_cohort(
+        "review", "inspect", str(spec_dir), "--report", str(report), "--json"
+    )
+    assert rc == 0
+    assert json.loads(out)["families"] == []
+
+
+@pytest.mark.parametrize(
+    ("label", "report_text", "stored", "decoy", "expected"),
+    [
+        ("findings-stored-matches", SAMPLE_FINDINGS_REPORT, "current", "other", True),
+        ("findings-decoy-matches", SAMPLE_FINDINGS_REPORT, "other", "current", False),
+        ("clean-stored-nonempty", CLEAN_REPORT, "other", "current", False),
+        ("clean-stored-empty", CLEAN_REPORT, "empty", "other", False),
+    ],
+)
+def test_matches_previous_round_reads_finding_fingerprints_not_previous(
+    tmp: Path, label: str, report_text: str, stored: str, decoy: str, expected: bool
+) -> None:
+    """AC-0011: the comparison reads `finding_fingerprints`, never the decoy key.
+
+    `previous_finding_fingerprints` is a separate documented key. Each case gives
+    it a value that would flip the result if the comparison read it, so a
+    regression that consults it, even only as a fallback, reds a row.
+    """
+    current = sorted(set(parse_findings(SAMPLE_FINDINGS_REPORT)))
+    values = {"current": current, "other": ["0" * 64], "empty": []}
+    spec_dir = make_spec_dir(tmp, f"ac-0011-{label}")
+    write_state(spec_dir, {
+        "schema_version": _mod.SCHEMA_VERSION,
+        "run_id": str(uuid.uuid4()),
+        "finding_fingerprints": values[stored],
+        "previous_finding_fingerprints": values[decoy],
+    })
+    report = tmp / f"{label}.md"
+    report.write_text(report_text, encoding="utf-8")
+    rc, out, _ = run_cohort(
+        "review", "inspect", str(spec_dir), "--report", str(report), "--json"
+    )
+    assert rc == 0
+    payload = json.loads(out)
+    assert payload["classification"] == ("findings" if report_text is SAMPLE_FINDINGS_REPORT else "clean")
+    assert payload["matches_previous_round"] is expected
+
+
+def test_review_raw_classify_json_field_set_is_unchanged(tmp: Path) -> None:
+    """raw-classify keeps its deliberately closed payload contract."""
+    report = tmp / "raw.md"
+    report.write_text(CLEAN_REPORT, encoding="utf-8")
+    rc, out, _ = run_cohort(
+        "review", "raw-classify", "--report", str(report), "--json"
+    )
+    assert rc == 0
+    assert set(json.loads(out)) == {
+        "classification",
+        "finding_count",
+        "not_checked_present",
+    }
 
 
 def test_classify_report_ship_it_clean(tmp: Path) -> None:
