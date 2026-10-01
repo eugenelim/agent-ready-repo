@@ -125,8 +125,7 @@ plan approval without it.
   excerpt, AC-0004 on `converge`'s disposition block, AC-0013 on the eval
   harness, and AC-0009 on `4.1.1 does not exceed the slice-start baseline
   4.1.1`. The three gating assertions left with their criteria and are
-  re-validated in the successor's plan. **This bullet is the current record**;
-  the bullets above it describe earlier states.
+  re-validated in the successor's plan.
 - **Re-validated after the round-3 repair.** All four blocks compile; all five
   tests red for their own reason. AC-0012's fence selector was checked against
   the real guide: it finds exactly one ` ```markdown ` fence carrying
@@ -135,6 +134,29 @@ plan approval without it.
   reds because the material is absent rather than because it was reading the
   design-principles block. `python tools/lint-conformance-portability.py
   --root .` exits zero with the release test in `tests/roster/`.
+- **Re-opened by the 2026-10-01 amendment. This bullet is the current record;
+  every bullet above it describes an earlier state.** The amendment adds T5 and
+  changes which module asserts AC-0012, so the dispositions and the tally are
+  restated here over the post-amendment assertion set.
+  - **Dispositions, 11 obligations over 10 live criteria.** `stub: true` for
+    AC-0001/AC-0002/AC-0003 and AC-0011 (T1, with AC-0011's assertion replaced
+    by T5), AC-0004 (T2), AC-0013 (T3), AC-0009 and AC-0010 (T4), and AC-0012
+    (T5's new roster module). `no stub (goal-based check)` for AC-0008, the
+    guidebook lint one-liner, and for AC-0009's start-of-work baseline
+    observation recorded in § *Version baseline and target*. 0 uncovered. This
+    supersedes the "8 covered by stubs, 2 goal-based" tally above, which counted
+    AC-0012 under its old home and predates T5.
+  - **Compile pass:** T5's two blocks compile under `python -m py_compile` from
+    disposable scratch outside the repository test tree.
+  - **Intended red: unobtainable for both T5 blocks, by construction.** T1 has
+    already landed the template phrase and the guide excerpt material, so each
+    assertion is green on first run. `tdd-stubs.md` asks for the red because it
+    is what proves an assertion can fail; where no red exists the proof
+    obligation is discharged by the mutation proof recorded in T5's
+    § *Verification*, not waived. The two mutations and their observed reds
+    belong in the verification ledger before T5 is met.
+  - **Isolation:** local, filesystem-confined to the repository and disposable
+    scratch, no network use. No isolation downgrade was needed.
 
 ## Durable-output map
 
@@ -504,33 +526,151 @@ def test_release_surface_is_consistent() -> None:
   `.workspace-prune-protected.toml` entry only if the test names a
   `docs/specs/<slug>` path literal — this one does not, so that third edit is
   not owed.
+  **`lint-ci-parity.py` feeds two axes and refuses a step missing from either,**
+  so the step name goes in both `_LOCAL_STEP_DISPOSITION` and the
+  `_GATE_MAIN_CHECKS` tuple. `tests/AGENTS.md` documents only the first; a step
+  named in one axis alone is still a violation, which `_step_disposition` is
+  written to preserve.
+
+#### Repair state for this task after the 2026-10-01 amendment
+
+Two artifacts T4 already committed are **currently non-conforming** and T4 is
+not met until both are repaired. Neither is caught by the checks T4's original
+`Done when` names, which is why they are called out here rather than left to a
+re-run:
+
+1. `tests/roster/test_visual_target_release_surface.py` builds its changelog
+   heading from the live `version` instead of the `RELEASE` literal this plan
+   now pins. The committed file predates the amended stub above.
+2. The `## [experience-design][4.1.2]` Highlights bullet in
+   `docs/product/changelog.md` states that `converge` records the disposition
+   "when writing compositional commitments". `converge` records it
+   unconditionally, so the published sentence describes a condition the shipped
+   instruction does not have and reads as the gating this slice forbids. It is
+   also schema-led where `changelog.md`'s header requires outcome-led user
+   register.
 - Run `ruff check .` afterwards: the repository lint targets do not cover
   orphaned imports left by a moved test.
 
 **Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md, tests/roster/test_visual_target_release_surface.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
 
-**Done when:** `make lint-ruff lint-mypy` and `ruff check .` are green; `python3 -m pytest tests/conformance/test_pack_metadata.py tests/roster/test_visual_target_release_surface.py -q` is green; and `python tools/lint-conformance-portability.py --root .` and `python tools/lint-ci-parity.py` both exit zero, which is what proves the file sits in a tree whose rules admit it.
+**Done when:** all five hold. The first two were added by the 2026-10-01
+amendment because the other three are green against the unrepaired tree, so
+without them an implementer could report T4 met with both non-conforming
+artifacts standing.
+
+1. **Byte identity against the approved stub.** The materialized
+   `tests/roster/test_visual_target_release_surface.py` matches the stub block
+   in this task section, per `tdd-stubs.md` § *Lifecycle*. This is what fails
+   while the committed file still derives its changelog heading from the live
+   `version` rather than from `RELEASE`.
+2. **The Highlights bullet carries no conditional framing.** The
+   `## [experience-design][4.1.2]` entry's Highlights bullet does not contain
+   the string `when writing compositional commitments`, states no other
+   condition on recording the disposition, still names `visual_target` in a `-`
+   bullet, and still says plainly that nothing reads the field and nothing is
+   gated on it. Verified by reading the bullet and recording the observation in
+   the verification ledger; no lint reads prose register, so this half is a
+   recorded manual check rather than a gate.
+3. `make lint-ruff lint-mypy` and `ruff check .` are green.
+4. `python3 -m pytest tests/conformance/test_pack_metadata.py tests/roster/test_visual_target_release_surface.py -q` is green.
+5. `python3 tools/lint-conformance-portability.py --root .` and `python3 tools/lint-ci-parity.py` both exit zero, which is what proves the file sits in a tree whose rules admit it.
 
 ### T5: AC-0012 is asserted from a tree that may read the guide, and AC-0011 is decided
 
-**Depends on:** T1
+**Depends on:** T4
 
 Added by the 2026-10-01 amendment. T1's plan section is pinned, so these two
 corrections to its assertions arrive as a new task rather than as edits to it.
+The edge is on T4, not T1: both tasks write
+`.github/workflows/build-check.yml` and `tools/lint-ci-parity.py`, and
+declaring T1 would let the scheduler place T4 and T5 in one wave, since T1 is
+already completed. T1's content dependency is satisfied by its completion.
 
 **Tests:**
-- `test_guide_excerpt_carries_the_new_template_material` — AC-0012 — relocated,
-  not newly authored
-- `test_template_carries_the_visual_target_disposition` — AC-0011 — one
-  assertion replaced in place
+- `test_visual_target_guide_excerpt` — AC-0012 — `stub: true`. The assertion
+  moves out of the pack contract suite into a new `tests/roster/` module. It is
+  not a pure relocation: the new module authors its own root anchor and
+  file-read mechanism, because `_read` and `PACK_ROOT` live in the pack suite
+  and do not exist under `tests/roster/`.
+- `test_template_carries_the_visual_target_disposition` — AC-0011 —
+  `stub: true` for the replaced assertion only. The surrounding test keeps its
+  AC-0001, AC-0002 and AC-0003 assertions unchanged; only the final AC-0011
+  line is replaced, by the block below.
+
+**Stub** — new file `tests/roster/test_visual_target_guide_excerpt.py`:
+
+```python
+"""AC-0012 for the experience-design visual-target field.
+
+Lives in tests/roster/ and not in the pack contract suite: AC-0012 is a claim
+about guides/experience-design/how-to/establish-design-intent.md, and
+tools/lint-pack-test-boundary.py forbids a pack test from reading above its own
+pack. The spec's Testing Strategy records why the original home could not
+satisfy both. tests/AGENTS.md names tests/roster/ as the repository-level home.
+
+Run mode: build-check.yml triggers on pull_request and its carve-out step runs
+`python -m pytest tests/ -q`, so the PR gate runs this.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/roster/ -> repo root
+GUIDE = (
+    REPO_ROOT
+    / "guides"
+    / "experience-design"
+    / "how-to"
+    / "establish-design-intent.md"
+)
+TICKS = "`" * 3  # written this way so the literal survives a fenced code block
+FENCE = TICKS + "markdown"
+
+
+def _template_fence(text: str) -> str:
+    """The one markdown fence reproducing the creative-direction template.
+
+    Selected by a property, not by ordinal: this guide carries three such
+    fences and the first is a design-principles block.
+    """
+    bodies = [part.split(TICKS, 1)[0] for part in text.split(FENCE)[1:]]
+    matching = [b for b in bodies if "type: creative-direction" in b]
+    assert len(matching) == 1, "AC-0012: exactly one creative-direction fence"
+    return matching[0]
+
+
+# STUB: AC-0012  (spec: visual-target-field)
+def test_visual_target_guide_excerpt() -> None:
+    """visual-target-field AC-0012."""
+    excerpt = _template_fence(GUIDE.read_text(encoding="utf-8"))
+    assert "visual_target" in excerpt, "AC-0012: inside the fence, not the file"
+    assert "**Confirmation record:**" in excerpt, "AC-0012"
+```
+
+**Stub** — replaces the final AC-0011 assertion inside
+`test_template_carries_the_visual_target_disposition` in
+`packs/experience-design/tests/skills/creative-direction/test_contract.py`:
+
+```python
+    normalized_comment = " ".join(comment.split())
+    assert (
+        "An absent `visual_target` reads as `unconfirmed`" in normalized_comment
+    ), (
+        "AC-0011: the comment must state the absent-field reading as one "
+        "contiguous phrase. Testing for `unconfirmed` beside the word `absent` "
+        "cannot fail: AC-0001's closed-set enumeration already guarantees "
+        "`unconfirmed`, so that form reduces to whether `absent` appears at all."
+    )
+```
 
 **Approach:**
-- Move `test_guide_excerpt_carries_the_new_template_material`, with the
-  `_template_fence` helper and the `TICKS`/`FENCE` constants it needs, out of
+- Move the AC-0012 assertion out of
   `packs/experience-design/tests/skills/creative-direction/test_contract.py`
-  and into a new `tests/roster/test_visual_target_guide_excerpt.py` anchored at
-  `Path(__file__).resolve().parents[2]`. A pack test may not read above its own
-  pack, and AC-0012 is a claim about a file in `guides/`; the spec's Testing
+  and into the new roster module above, deleting `_template_fence`, `TICKS` and
+  `FENCE` from the pack suite along with it. A pack test may not read above its
+  own pack, and AC-0012 is a claim about a file in `guides/`; the spec's Testing
   Strategy records why the original home could never have satisfied both.
 - Placing a file in `tests/roster/` obliges the two edits `tests/AGENTS.md`
   names: a step in `.github/workflows/build-check.yml` naming the file, placed
@@ -540,17 +680,38 @@ corrections to its assertions arrive as a new task rather than as edits to it.
   name also joins the `_GATE_MAIN_CHECKS` tuple. The third obligation, a
   `.workspace-prune-protected.toml` entry, is owed only when the test names a
   `docs/specs/<slug>` literal; this one does not.
-- Replace AC-0011's assertion in the contract suite. The co-occurrence form
-  cannot fail, because `unconfirmed` is already guaranteed by AC-0001's
-  closed-set enumeration; assert instead that the whitespace-normalized comment
-  contains the phrase AC-0011 now pins as one contiguous run. AC-0001, AC-0002,
-  AC-0003 and AC-0011 stay in the contract suite, which reads only the template.
+- Replace AC-0011's assertion in the contract suite with the block above.
+  AC-0001, AC-0002, AC-0003 and AC-0011 stay in the contract suite, which reads
+  only the template.
 - Run `ruff check .` afterwards: moving a test orphans the imports only it used,
   and the repository lint targets do not cover that.
 
-**Touches:** packs/experience-design/tests/skills/creative-direction/test_contract.py, tests/roster/test_visual_target_guide_excerpt.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
+**Verification: mutation proof, not red-then-green.** Both assertions are green
+on first run against the current tree — the template comment already carries the
+pinned phrase, and the guide's `type: creative-direction` fence already carries
+both markers, because T1 put them there. The intended red that
+`tdd-stubs.md` requires is therefore unobtainable, and an assertion accepted on
+a first green carries no evidence it can fail at all. Use
+[`mutation-proof.md`](../../../.claude/skills/work-loop/references/mutation-proof.md)
+instead, which is the repository's declared instrument for a test whose property
+is already present. Record for each of the two assertions, in the verification
+ledger: the invariant, the exact mutation applied, the expected failure, the
+observed failure, and restoration of the mutated bytes by editing. Two mutations
+are owed:
 
-**Done when:** `python3 tools/test-lint-pack-test-boundary.py` exits zero — the gate that caught this, and the one that proves the boundary violation is gone; `python3 -m pytest packs/experience-design/tests/skills/creative-direction tests/roster/test_visual_target_guide_excerpt.py -q` is green; `make lint-ruff lint-mypy` and `ruff check .` are green; and `python3 tools/lint-ci-parity.py` and `python3 tools/lint-conformance-portability.py --root .` both exit zero. The AC-0011 replacement is proven non-vacuous by the same red-then-green method the other stubs used.
+- AC-0012 — remove the `visual_target` line from the guide's fenced excerpt;
+  the roster assertion must red. Restore, and confirm
+  `tools/lint-guidebook-steps.py guides/experience-design` is green again, since
+  that excerpt is byte-pinned to the template.
+- AC-0011 — reword the template comment's absent-field sentence so it still
+  contains both `absent` and `unconfirmed` but no longer as the pinned
+  contiguous run. The new assertion must red where the replaced one would have
+  passed; that contrast is the whole point of the replacement, so record both
+  outcomes. Restore, and re-derive the guide excerpt in the same edit.
+
+**Touches:** packs/experience-design/tests/skills/creative-direction/test_contract.py, tests/roster/test_visual_target_guide_excerpt.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py, docs/specs/visual-target-field/notes/verification-ledger.md
+
+**Done when:** `python3 tools/test-lint-pack-test-boundary.py` exits zero — the gate that caught this, and the one that proves the boundary violation is gone; the materialized roster module matches the stub block above byte for byte; `python3 -m pytest packs/experience-design/tests/skills/creative-direction tests/roster/test_visual_target_guide_excerpt.py -q` is green; `make lint-ruff lint-mypy` and `ruff check .` are green; `python3 tools/lint-ci-parity.py` and `python3 tools/lint-conformance-portability.py --root .` both exit zero; and the verification ledger records both mutation proofs above with observed reds and restoration.
 
 ## Rollout
 
@@ -678,3 +839,34 @@ corrections to its assertions arrive as a new task rather than as edits to it.
   section. No acceptance criterion was removed, weakened, or renumbered, and the
   outcome is not narrowed. One advisory finding, on the guide caption's
   unconditional placeholder sentence, was deferred rather than acted on.
+- 2026-10-01: Revised after the post-amendment pre-EXECUTE review (9 sustained
+  of 11 raw, 2 refuted). Every sustained finding was a defect in the amendment
+  itself rather than in the work it governs, which is the third time in this
+  delivery that repair work was the defect source. Four were blockers. T4's
+  `Done when` was green against the unrepaired tree, so a re-dispatched
+  implementer could have reported it met with both non-conforming artifacts
+  standing; it now leads with a byte-identity check against the approved stub
+  and a recorded check that the Highlights bullet carries no conditional
+  framing, and T4 names those two artifacts as currently non-conforming. T5
+  claimed proof by red-then-green, which is unobtainable because T1 already
+  landed the material both assertions look for; it now carries a mutation proof
+  with two named mutations, their expected reds, and restoration, per
+  `mutation-proof.md`. T5 had no admitted stub disposition and no code for the
+  new roster module; both blocks are now present, compiled, and recorded. T5's
+  relocation claim was untrue — `_read` and `PACK_ROOT` do not exist under
+  `tests/roster/` — so the module authors its own root anchor and read
+  mechanism and the "nothing newly authored" claim is gone. Three concerns:
+  AC-0009 named a conformance test that cannot own it, AC-0010 measured the
+  live version where its verification pins the released one, and two Testing
+  Strategy bullets declared goal-based mode for criteria the plan stubs — the
+  mode declaration is normative, since only a TDD-mode criterion is stubbed.
+  Two nits: T5's dependency edge moved to T4 so the scheduler cannot place two
+  tasks that write the same workflow and parity files in one wave, and T4 now
+  names both `lint-ci-parity.py` axes. The stub validation record was re-opened
+  with a current-state bullet and a disposition tally over 11 obligations; the
+  stale "this bullet is the current record" claim two bullets up was removed.
+  The two refusals were not acted on: the test's version literals are already
+  recorded as derived from the single home, and pinning the criterion rather
+  than deriving the version in the test is what the amendment authority
+  requires; and AC-0011's prose wording cannot mislead, because the criterion
+  pins the exact phrase in its own fenced block.

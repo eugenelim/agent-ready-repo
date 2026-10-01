@@ -118,10 +118,13 @@ verification cannot silently grade a different occurrence.
   the criterion names.
 - **TDD — the eval harness covers the field (AC-0013).** Asserted over a named
   case's `assertions` entries in the harness, not over a concatenated corpus.
-- **Goal-based check — the pinned excerpt still matches and carries the new
-  material (AC-0008, AC-0012).**
+- **Goal-based check — the pinned excerpt still matches (AC-0008). TDD — the
+  excerpt carries the new material (AC-0012).** The two criteria share a
+  surface but not a verification mode, and the mode declaration here is
+  normative: only a TDD-mode criterion is stubbed.
   `python3 tools/lint-guidebook-steps.py guides/experience-design` is the
-  one-liner for AC-0008; AC-0012 is asserted separately and scoped to the
+  goal-based one-liner for AC-0008, which writes no test file; AC-0012 is a
+  stubbed pytest assertion, scoped to the
   guide's fenced excerpt block, because the lint proves only that *some*
   contiguous run matches and the guide discusses the template in prose outside
   the fence.
@@ -138,8 +141,13 @@ verification cannot silently grade a different occurrence.
   at `Path(__file__).resolve().parents[2]`. AC-0001, AC-0002, AC-0003 and
   AC-0011 stay in the contract suite: they read only the template, which is
   inside the pack.
-- **Goal-based check — the release surface stays consistent (AC-0009,
-  AC-0010).** `tests/conformance/test_pack_metadata.py` covers `pack.toml` to
+- **TDD — the release surface stays consistent (AC-0009, AC-0010), with one
+  goal-based half.** Both criteria are decided by a stubbed pytest assertion.
+  The single goal-based element is AC-0009's start-of-work baseline
+  observation, recorded in the plan's § *Version baseline and target* and
+  carried there as `no stub (goal-based check)`; everything else here writes a
+  test file and is stubbed accordingly.
+  `tests/conformance/test_pack_metadata.py` covers `pack.toml` to
   `plugin.json` agreement and nothing else — it never compares a marketplace
   version and never opens the changelog. AC-0009's third site and AC-0010 are
   therefore covered by one new construction test at
@@ -200,11 +208,16 @@ verification cannot silently grade a different occurrence.
   carry the same version, strictly greater than the recorded slice-start
   baseline in the plan's `Version baseline and target`. Comparing against
   `origin/main` would pass on the sibling slice's bump and let this slice ship
-  no bump at all. All three sites are observed after the bump by the new
-  conformance test, because `test_pack_metadata.py` never compares a
-  marketplace version.
-- [ ] **AC-0010.** `docs/product/changelog.md` carries a release entry for that
-  version whose heading begins at the start of a line at exactly `## ` — a
+  no bump at all. All three sites are observed after the bump by the new roster
+  test named in § *Testing Strategy*, because `test_pack_metadata.py` never
+  compares a marketplace version. The test is roster-owned, not
+  conformance-owned: `tools/lint-conformance-portability.py` rejects a
+  conformance test that names a shipped pack or reaches `docs/`, and this one
+  must do both.
+- [ ] **AC-0010.** `docs/product/changelog.md` carries a release entry for the
+  version this slice released — the target recorded in the plan's § *Version
+  baseline and target*, not whatever version `pack.toml` carries when the test
+  later runs — whose heading begins at the start of a line at exactly `## ` — a
   substring test cannot tell that from a `### ` entry nested under
   `[Unreleased]`, which the release pipeline records as never publishing — with
   a `### Highlights` subsection in which a `-` bullet names the `visual_target`
@@ -212,6 +225,16 @@ verification cannot silently grade a different occurrence.
   bullets, so a paragraph is dropped silently. Asserted by the new roster test
   reading the changelog bytes. The existing `4.1.1` entry does not satisfy
   this: its Highlights describe the `frame`/`inherit` scoping fix.
+  The criterion names the released version rather than the live one because a
+  changelog entry describes one release: binding this claim to whatever version
+  `pack.toml` currently carries would red a permanently installed test on the
+  next unrelated `experience-design` bump, for an author who never touched this
+  field. AC-0009's three-site agreement keeps reading the live version, because
+  that claim must stay live.
+  The bullet is also adopter copy, so `changelog.md`'s own header governs its
+  register, and it may not state or imply that recording the disposition is
+  conditional on anything: `converge` records it unconditionally, and the
+  no-target case is precisely the one a conditional reading would drop.
 - [ ] **AC-0011.** That section's comment states that an absent `visual_target`
   reads `unconfirmed`. After whitespace normalization the comment contains this
   phrase, verbatim and as one contiguous run:
