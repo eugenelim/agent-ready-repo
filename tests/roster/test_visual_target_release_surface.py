@@ -18,7 +18,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/roster/ -> repo root
 PACK = REPO_ROOT / "packs" / "experience-design"
+# Both literals are derived from plan.md § Version baseline and target, which is
+# their single home. BASELINE is what AC-0009 measures the bump against.
 BASELINE = "4.1.1"
+# RELEASE pins the one entry this slice authored. The changelog half must NOT
+# read the live pack version: changelog entries describe one release each, so a
+# later unrelated experience-design bump would red this permanently installed
+# test for an author who never touched this field. The three-site version
+# agreement below keeps reading the live version, because that claim must stay
+# live. Same split as tests/roster/test_wave4_durable_outputs_and_release.py.
+RELEASE = "4.1.2"
 
 
 def _tuple(version: str) -> tuple[int, ...]:
@@ -51,12 +60,12 @@ def test_release_surface_is_consistent() -> None:
     changelog = (REPO_ROOT / "docs" / "product" / "changelog.md").read_text(
         encoding="utf-8"
     )
-    heading = f"## [experience-design][{version}]"
+    heading = f"## [experience-design][{RELEASE}]"
     starts = [
         line for line in changelog.splitlines() if line.startswith(heading)
     ]
     assert len(starts) == 1, (
-        f"AC-0010: expected exactly one free-standing '## ' entry for {version}. "
+        f"AC-0010: expected exactly one free-standing '## ' entry for {RELEASE}. "
         "A substring test would also accept a '### ' entry nested under "
         "[Unreleased], which never publishes."
     )

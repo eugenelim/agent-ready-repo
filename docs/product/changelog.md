@@ -144,7 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- Direction artifacts now carry a `visual_target` frontmatter key recording the visual target disposition over the closed set `none | unconfirmed | confirmed`. `converge` records the disposition when writing compositional commitments. Nothing reads the field and nothing is gated on it; this is an additive schema change adopters author against.
+- You can now record whether a direction's visual target was ever confirmed, and tell that apart from never having asked. A `visual_target` key on the direction artifact holds one of `none`, `unconfirmed`, or `confirmed`, and `converge` writes it every time it runs, so the answer is there without you remembering to add it. Nothing reads the field and nothing is gated on it: it is a record you can act on when you want to, and ignore when you do not.
 
 ## [experience-design][4.1.1] — 2026-09-29
 
