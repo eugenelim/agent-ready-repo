@@ -64,6 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+### Changed
+
+- `agentbundle`'s bundled filesystem-confinement helper carries corrected
+  context-manager return annotations. No behaviour changes and no interface
+  moves; the entry exists because the file ships in the package, and the
+  release-impact gate asks for one whenever packaged bytes change.
+
 ## [core][2.27.7] — 2026-10-01
 
 ### Highlights
