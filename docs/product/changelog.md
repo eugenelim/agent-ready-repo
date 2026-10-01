@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- A work-loop run whose `state.json` records no retry cap now shows the default cap of 5 on its event line, instead of no cap at all. The run was always held to 5, so a dashboard or alert watching how close it is to being refused was reading nothing where it should have read 5. A malformed cap, which the guard refuses, still reports as absent, and so does a retry count nothing has recorded, which is how a consumer tells "not recorded" from zero.
+- A work-loop run whose `state.json` records no retry cap now shows the default cap of 5 on its event line, instead of no cap at all. The run was always held to 5, so a dashboard or alert watching how close it is to being refused was reading nothing where it should have read 5. A malformed cap, which the guard refuses, still reports `null`, and so does a retry count nothing has recorded; the key is always present, which is how a consumer tells "not recorded" from zero.
 
 ### Fixed
 
