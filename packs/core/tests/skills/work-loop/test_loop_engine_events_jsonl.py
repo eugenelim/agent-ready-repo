@@ -286,6 +286,20 @@ class TestLifecycleFields:
         assert event["to"] == "SPEC-HUMAN-GATE"
         assert event["budgets"]["review_retry_count"] is None
 
+    def test_absent_caps_report_the_enforced_defaults_but_counts_stay_absent(
+        self, tmp_path: pytest.TempDir
+    ) -> None:
+        """Caps use the guard defaults; absent counters retain their distinct meaning."""
+        (tmp_path / "state.json").write_text("{}")
+        snapshot = le._budget_snapshot(tmp_path)
+        guards = le._guards()
+        assert snapshot["implementation_retry_count"] is None
+        assert snapshot["review_retry_count"] is None
+        assert snapshot["max_implementation_retries"] == guards.DEFAULTS[
+            "max_implementation_retries"
+        ]
+        assert snapshot["max_review_retries"] == guards.DEFAULTS["max_review_retries"]
+
 
 class TestPhaseDurationArithmetic:
     """`_phase_duration_s` directly — an end-to-end run cannot reach these branches.
