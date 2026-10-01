@@ -30,7 +30,7 @@ import os
 import re
 import subprocess
 import time
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -458,7 +458,7 @@ class SpawnLog:
 
 
 @contextlib.contextmanager
-def recording_spawns(monkeypatch) -> Iterator[SpawnLog]:
+def recording_spawns(monkeypatch) -> Generator[SpawnLog, None, None]:
     """Record every subprocess started *in this process* during the block.
 
     `subprocess.run` builds its child through the module-global `Popen`, so

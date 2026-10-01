@@ -64,6 +64,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.8] — 2026-10-01
+
+### Fixed
+
+- The pack's filesystem-confinement and state-lock scripts carry corrected
+  context-manager return annotations — `Generator` where `Iterator` was
+  written. No behaviour changes and no interface moves. The same correction
+  reaches `agentbundle`, which bundles `file_safety.py` byte-identically.
+
 ## [core][2.27.7] — 2026-10-01
 
 ### Highlights
