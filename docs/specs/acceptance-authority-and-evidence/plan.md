@@ -1,7 +1,7 @@
 # Plan: Acceptance authority and evidence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/runtime-security-primitives.md`, `docs/architecture/delivery-content-safety.md`; analogous implementations `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` and `packs/core/.apm/skills/close-work/scripts/file_safety.py`; tests `packs/core/tests/skills/work-loop/test_loop_cohort.py` and `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`. Deviation: the reviewed security design names `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` as a source, while `packages/agentbundle/agentbundle/build/self_host.py` and `packs/AGENTS.local.md` identify it as a generated destination; implementation edits the pack-owned source and regenerates the package copy.
 
 > **Plan contract:** this is the current implementation strategy. Initial review
@@ -444,6 +444,8 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
   step pin, the verification-graph workflow and posture-test inventory, and
   the general obligation to register a new workflow and gate-chain step
   completely.
+- 2026-10-01: spec approved by owner (code-mode run, terminal intent `code`)
+- 2026-10-01: plan approved by owner (code-mode run)
 
 <!-- Approval entries are added only at their human gates.
 
