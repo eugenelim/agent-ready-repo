@@ -72,6 +72,21 @@ line changed.
 `test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone` remains
 unchanged: its declared `none` parent still leaves an unrelated brief alone.
 
+**What this cost, and the lesson worth keeping.** AC17's purpose was to prove
+the three cases were *updated rather than deleted*. It could have been written
+against the count of cases, or their docstrings' subject. Pinning an identifier
+instead made the identifier immutable, which is not what the criterion was for.
+
+`cooling-scope-closure`'s AC13 is the same mistake one step further on: it
+bounds the module's name set by SHA-256, so the rename above changed a digest
+that no search for the names could find. It surfaced in CI rather than in
+review, because a digest names nothing a reader can grep. The bound was
+re-struck around the corrected names and now asserts the count of 67 directly,
+so the next unplanned addition or removal still fails and says which it was.
+
+A criterion that pins an identifier, or a digest over a set of them, freezes
+the name rather than the property it was written to protect. Pin the property.
+
 
 ## `pack-scripts-cite-internal-governance-records` — RESOLVED in this delivery
 
