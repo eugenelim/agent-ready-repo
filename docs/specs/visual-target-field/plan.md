@@ -1,7 +1,7 @@
 # Plan: visual-target field
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule,
   § Security and authoring rules (the eval-harness obligation) and
   § Self-hosting projection; `packs/AGENTS.local.md` § Marketplace and release
@@ -1086,3 +1086,16 @@ inside a four-criterion test function. Two mutations are owed:
   contract that was never wrong. Nothing in the spec changed between the
   approval given earlier today and this entry; the repair since then was
   confined to `plan.md`.
+- 2026-10-01: **Build-strategy gate passed. `eugenelim` approved the plan.**
+  The same clean adjudicated verdict covers the plan, which is the artifact the
+  seventh pass spent most of its reading on. Approved with three conditions
+  already recorded above and carried into execution rather than waived: T4 is
+  committed but not met, and its `Done when` cannot pass until the roster test
+  matches the approved stub byte for byte and the `4.1.2` changelog bullet is
+  rewritten in outcome-led user register; T5's intended red is unobtainable at
+  both phases and stands on the owner's scoped waiver plus two mutation proofs
+  that are still owed as verification-ledger entries; and the boundary lint
+  `tools/test-lint-pack-test-boundary.py` reds on this branch today, because T1
+  introduced the pack test that reaches above its own pack, so the branch
+  cannot go green until T5's relocation lands. T1, T2 and T3's sections are
+  pinned and were verified byte-identical immediately before this approval.
