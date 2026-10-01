@@ -140,10 +140,12 @@ budget therefore goes quiet rather than saying why it stopped, so to a reader
 of this log alone that case is indistinguishable from a stall. Check the cohort
 state when a run ends without a terminal transition.
 
-**`budgets` and the guard can disagree.** The guard resolves an absent or
-non-integer cap to its own default and enforces that; this snapshot reports
-only what `state.json` actually holds, using `null` for anything it cannot
-read. A line may therefore show no cap for a run the guard is about to refuse.
+**The caps are the enforced values.** The guard resolves an absent cap to its
+default and enforces it, and the snapshot resolves it the same way, so a line
+never shows no cap for a capped run. A cap `state.json` holds in a form the
+guard refuses (negative, boolean, or not an integer) reports `null`. A retry
+count that nothing has recorded also reports `null`, which is how a consumer
+tells "not recorded" from zero.
 
 Two properties consumers depend on. A field that cannot be determined is
 `null` and is still present, because a key that disappears reads as zero to
