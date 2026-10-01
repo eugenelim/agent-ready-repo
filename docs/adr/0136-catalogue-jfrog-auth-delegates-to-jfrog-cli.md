@@ -67,7 +67,9 @@ profile's Artifactory base before delegation.
   encoded path separators, backslashes, and control characters in a candidate
   URL will be rejected before any JFrog request.
 - **D8:** After a profile matches, a bounded `jf --version` probe must report
-  JFrog CLI 2.100.0 or later. An incompatible version or unsupported topology
+  JFrog CLI 2.105.0 or later. This is the first documented version that supports
+  both `jf api` and the `jf config show --format=json` discovery contract. An
+  incompatible version or unsupported topology
   fails the acquisition and does not fall through to `.netrc` or anonymous
   access.
 - **D9:** Subprocess limits will be 10 seconds for discovery, 5 seconds for the

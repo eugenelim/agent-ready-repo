@@ -408,7 +408,10 @@ pre-implementation security review then own the executable contract.
 The JFrog spike must verify the installed CLI version, discovery JSON, platform
 and Artifactory base fields, binary stdout, endpoint mapping, exit codes, and
 process termination. Current JFrog documentation states that `jf api` requires
-[JFrog CLI 2.100.0 or later](https://docs.jfrog.com/integrations/docs/use-api-endpoints-via-cli).
+[JFrog CLI 2.100.0 or later](https://docs.jfrog.com/integrations/docs/use-api-endpoints-via-cli)
+and that the required [`--format` output option is available from JFrog CLI
+2.105.0](https://docs.jfrog.com/integrations/docs/jfrog-cli-command-reference).
+The combined discovery and fetch contract therefore requires 2.105.0 or later.
 
 Diagnostics may name the non-secret provider class (`bearer`, `jfrog`,
 `.netrc`, or `anonymous`) and a stable failure code. They must not render a
