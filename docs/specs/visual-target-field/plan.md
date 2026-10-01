@@ -770,15 +770,19 @@ not decided by the current grant.** An earlier revision of this section claimed
 the substitution without phase qualification, which claimed more than the waiver
 gives; that overreach is removed here rather than argued.
 
-**Open decision, owed before T5 is marked met — owner: eugenelim.** Whether
-§ *Lifecycle*'s EXECUTE-time intended red is waived for these two blocks on the
-same reason, or whether T5 must satisfy it some other way. It is not
-dischargeable by the plan-approval waiver, and T5 may not be marked met while it
-stands open. In substance the evidence already exists — T5's `Done when`
-requires both in-tree mutation proofs in the verification ledger, and a mutation
-performs the same function the intended red does, namely showing the assertion
-detects removal of the property it names. What is missing is only the authority
-to substitute it, which is the owner's to give. Record for each of the two assertions, in the verification
+**Resolved, 2026-10-01.** The owner extended the waiver to cover
+§ *Lifecycle*'s EXECUTE-time intended red for these same two blocks, on the same
+reason: the red is unobtainable at either phase because T1 already committed the
+material both assertions check, and reaching `CODE-IMPLEMENTATION` does not
+change that. See § *Supplementary owner ruling — 2026-10-01, the waiver extends
+to the Lifecycle red* in
+[`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md).
+
+The substitution is now granted at both phases, and nothing further is waived.
+The ledger entries stay owed: the ruling permits the substitution rather than
+performing it, so T5 is not met until both mutation proofs are recorded in the
+verification ledger with the full field set `mutation-proof.md` § *Proof record*
+requires. Record for each of the two assertions, in the verification
 ledger, the complete field set `mutation-proof.md` § *Proof record* requires —
 cited rather than restated here so the list cannot drift short of it, and noting
 that `Catching test` is load-bearing for AC-0011, whose assertion is one line
@@ -1045,3 +1049,13 @@ inside a four-criterion test function. Two mutations are owed:
   record to every stored block, measured as they now stand after T4's block lost
   its unused `import re`; the round-3 four-block record it supersedes predated
   that edit.
+- 2026-10-01: The open § *Lifecycle* decision recorded above is resolved. The
+  owner extended the intended-red waiver to cover § *Lifecycle*'s EXECUTE-time
+  red for the same two T5 blocks, on the same reason — the red is unobtainable
+  at either phase because T1 already committed the material both assertions
+  check, and reaching `CODE-IMPLEMENTATION` does not change that. The extension
+  and its scope limit are recorded in
+  [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md). The
+  substitution is now granted at both phases and nothing further is waived; the
+  two verification-ledger entries stay owed, because the ruling permits the
+  substitution rather than performing it.

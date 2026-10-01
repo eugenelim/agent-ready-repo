@@ -232,3 +232,47 @@ whether a PLAN-time mutation red satisfies § *Validate* in general — that
 question remains undecided, and a future task needing the same relief needs its
 own ruling. The EXECUTE-time ledger entry T5's `Done when` gates on is still
 owed; this waiver concerns plan approval only.
+
+## Supplementary owner ruling — 2026-10-01, the waiver extends to the Lifecycle red
+
+The waiver above closed with "this waiver concerns plan approval only". The
+fifth pre-EXECUTE pass sustained a concern against that limit: the plan's
+substitution claim reached EXECUTE, where `tdd-stubs.md` § *Lifecycle*
+separately requires "materialize the approved block unchanged at the real test
+path, verify byte identity, **and prove the intended red**" — a requirement
+`work-loop/SKILL.md` repeats for the full-mode engine after
+`CODE-IMPLEMENTATION`. The overreach was removed from the plan under the
+adjudicated ruling that removing an overreach needs no grant, leaving the
+underlying question open.
+
+**The owner ruled on 2026-10-01: extend the waiver to cover § *Lifecycle*'s
+EXECUTE-time intended red, for the same two T5 blocks, on the same reason.**
+
+### Why the same reason holds one phase later
+
+The EXECUTE-time red is unobtainable for exactly the cause that makes the
+plan-approval one unobtainable: both assertions check material T1 already
+committed at `f69606cfb`. Obtaining a literal red at EXECUTE would mean
+deleting shipped template or guide content, which is a regression rather than a
+draft-stub state. Nothing about reaching `CODE-IMPLEMENTATION` changes that.
+
+### The substitute, and why it discharges the obligation
+
+T5's `Done when` requires both prescribed mutation proofs, performed in-tree and
+recorded in the verification ledger with the complete field set
+`mutation-proof.md` § *Proof record* requires. Adjudication of the fifth pass
+established that this supplies the EXECUTE-time non-vacuity evidence **in
+substance**: a mutation shows the assertion detects removal of the property it
+names, which is the same function the intended red performs. What that
+adjudication found missing was only the authority to substitute it. This ruling
+supplies that authority and nothing else.
+
+### Scope limit
+
+Unchanged in kind from the waiver it extends. It covers T5's two blocks in this
+spec, at plan approval and at EXECUTE. It is not a general licence, reaches no
+other task or spec, and does not decide whether a mutation proof satisfies
+§ *Validate* or § *Lifecycle* in general — that question stays open, and a
+future task needing the same relief needs its own ruling. The ledger entries
+remain owed: this ruling permits the substitution, it does not perform it, and
+T5 is not met until both proofs are recorded.
