@@ -130,3 +130,25 @@ Scope of this ruling, stated narrowly so it is not read as a general licence:
 - AC-0012's assertion is tightened rather than relaxed, so that a single-line
   mutation can falsify it. Strengthening a criterion is not what the statement
   above forbids.
+
+## Recorded process deviation — round 3's revision order
+
+Rounds 1 and 2 of the pre-EXECUTE review followed the documented sequence: fire
+`findings-remain` from `SPEC-PLAN-REVIEW` to `SPEC-PLAN-DRAFTING`, revise, then
+fire `spec-ready` back to `SPEC-PLAN-REVIEW`.
+
+Round 3's revision was made while the run was still in `SPEC-PLAN-REVIEW`, and
+the transition pair was not fired. The run therefore shows two
+`findings-remain`/`spec-ready` pairs for three revision rounds.
+
+Nothing is miscounted by it: a pre-EXECUTE result does not call
+`review record`, so `review_round_count` and `review_retry_count` were never
+the counters tracking these rounds, and the end state —
+`SPEC-PLAN-REVIEW` with revised artifacts — is the state the next reviewer pass
+requires. The deviation is recorded rather than corrected because firing the
+pair afterwards would assert a sequence that did not occur, and the artifacts
+were already revised by then.
+
+The round itself is fully evidenced: the raw report, the adjudication, and
+their digests are in the session review directory, and the plan's Changelog
+carries what changed and why.
