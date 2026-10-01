@@ -1,7 +1,7 @@
 # Plan: Acceptance authority and evidence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/runtime-security-primitives.md`, `docs/architecture/delivery-content-safety.md`; analogous implementations `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` and `packs/core/.apm/skills/close-work/scripts/file_safety.py`; tests `packs/core/tests/skills/work-loop/test_loop_cohort.py` and `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`. Deviation: the reviewed security design names `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` as a source, while `packages/agentbundle/agentbundle/build/self_host.py` and `packs/AGENTS.local.md` identify it as a generated destination; implementation edits the pack-owned source and regenerates the package copy.
 
 > **Plan contract:** this is the current implementation strategy. Initial review
@@ -13,6 +13,12 @@
 > follows its owning amendment or risk gate and then receives fresh initial
 > review before a later-slice task projector may resume.
 >
+> **In force for this Slice 1 run:** that approval-free task revision is target
+> behavior that Slice 4 delivers; it is not yet in force. The current engine runs
+> this delivery, so any change to plan substance after `approve-plan` follows the
+> current engine's re-plan and approval rule. Lifecycle bookkeeping (status
+> tokens and checkboxes) is exempt, as the engine already normalizes it.
+>
 > **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
 > completion gate reads. `Design`, `Approach`, `Grounding` and `Risks` are
 > working material before approval.
@@ -21,7 +27,7 @@
 
 Build the slice as dependency-ordered layers: canonical contracts first; shared content and security primitives second; pure acceptance logic third; approval, subject, and evidence persistence fourth; compatibility wiring and integrated conformance last. Each layer is additive and keeps the current engine authoritative, so it can land as an independently reviewable pull request and reverse by disabling the compatibility caller rather than deleting semantic facts.
 
-The expected change exceeds 2,000 reviewable behavior and test lines and is **DEEP**, not mechanically uniform. Tasks T1 through T9 are the review boundaries; each leaves the repository working, and no layer begins before its contract and security dependencies are green.
+The whole slice cannot be understood, verified, or reviewed as one unit, and its shape is **DEEP**, not mechanically uniform, so it splits. Each plan task is one review unit that can be understood, verified, and reviewed on its own; each leaves the repository working, and no layer begins before its contract and security dependencies are green.
 
 ## Constraints
 
@@ -32,6 +38,9 @@ The expected change exceeds 2,000 reviewable behavior and test lines and is **DE
 - Runtime code uses the Python standard library. The existing test toolchain may validate JSON Schema; this slice adds no runtime dependency.
 - Package code uses list-form process execution, explicit UTF-8, portable temporary paths, and platform-skipped link or execute-bit tests where the host cannot supply the capability.
 - Core pack and package changes carry their required version updates, evals, generated projections, release record, and `Engine-Change-RFC:` commit footer.
+- No accepted RFC yet covers this engine change, and `packs/AGENTS.local.md` allows `n/a` only for non-engine changes. T0 obtains an accepted engine-scoped RFC before any task writes under `packages/agentbundle/`; every such commit cites it in its `Engine-Change-RFC:` trailer.
+- The supported adapter set for this slice is the sequential reference runtime plus the Core compatibility adapter. The package declares that set in one place, and the conformance suites refuse to run against an empty or single-member declaration, so AC-0007 and AC-0013 always compare at least two adapters.
+- "The CI reference worker" in AC-0018 and AC-0019 means a GitHub-hosted `ubuntu-latest` runner in a dispatch-only benchmark workflow. GitHub dispatches a `workflow_dispatch` workflow only once its file is on the default branch, so T4 adds the workflow `.github/workflows/benchmark-acceptance.yml` and it merges to `main` before T9a needs its evidence (owner decision); T7 extends it with the cold-rehydration benchmark, and T9a dispatches it with `--ref` on its own branch. The committed harness fixes the timed-run count and warm-up policy, and the workflow retains its output.
 
 ## Construction tests
 
@@ -48,10 +57,10 @@ The expected change exceeds 2,000 reviewable behavior and test lines and is **DE
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Canonical delivery contracts, registry, and declared projections | T1, T9 | Schema, registry, and source-to-projection parity suites | `contracts/README.md` and `contracts/REGISTRY.md` name every shipped record and owner; all projections match. |
-| Current architecture and authority migration | T8, T9 | Compatibility and missing-governance refusal suites | Architecture pages describe callable shadow services, current authority, reversal, and future cutover gates. |
-| Maintainer parity, recovery, and reversal procedure | T5-T9 | Import, restart, cache-deletion, reverse-read, and end-to-end commands | `docs/architecture/loop-infrastructure.md` names the commands and expected results without relying on this plan. |
-| Package/Core release history and versions | T9 | Package tests, pack evals, build-self, version parity, and changelog lint | Package and Core versions are released together when required, and `docs/product/changelog.md` records the outcome. |
+| Canonical delivery contracts, registry, and declared projections | T1, T9b | Schema, registry, and source-to-projection parity suites | `contracts/README.md` and `contracts/REGISTRY.md` name every shipped record and owner; all projections match. |
+| Current architecture and authority migration | T8, T9b | Compatibility and missing-governance refusal suites | Architecture pages describe callable shadow services, current authority, reversal, and future cutover gates. |
+| Maintainer parity, recovery, and reversal procedure | T5, T6, T7, T8, T9a, T9b | Import, restart, cache-deletion, reverse-read, and end-to-end commands | `docs/architecture/loop-infrastructure.md` names the commands and expected results without relying on this plan. |
+| Package, Core, and architect release history and versions | T9b | Package tests, pack evals, build-self, version parity, and changelog lint | Package, Core, and architect versions are released together when required, and `docs/product/changelog.md` records the outcome. |
 
 ## Design (LLD)
 
@@ -116,41 +125,61 @@ Unknown schema majors, missing or conflicting envelope references, ambiguous or 
 
 ### Quality attributes (NFRs)
 
-Owned by: T4, T7, T9
+Owned by: T4, T7, T9a
 
-Derived indexes may accelerate evaluation but deleting them must not change the verdict. The committed benchmark harness measures evaluator latency and cold rehydration on the CI reference worker against the fixed AC-0018 and AC-0019 corpus and clocks. Traces to AC-0007, AC-0008, AC-0018, AC-0019. Owned by T4, T7, T9.
+Derived indexes may accelerate evaluation but deleting them must not change the verdict. The committed benchmark harness measures evaluator latency and cold rehydration on the CI reference worker against the fixed AC-0018 and AC-0019 corpus and clocks. Traces to AC-0007, AC-0008, AC-0018, AC-0019. Owned by T4, T7, T9a.
 
 ### Dependencies & integration
 
-Owned by: T1, T8, T9
+Owned by: T1, T8, T9b
 
-Runtime code remains standard-library-only and integrates with Git through the existing acknowledged legacy result boundary. Test-only schema validation reuses the installed repository toolchain. Package and Core source changes flow through the existing self-host projection, package version, pack version, and release mechanisms. Traces to AC-0001, AC-0005, AC-0016. Owned by T1, T8, T9.
+Runtime code remains standard-library-only and integrates with Git through the existing acknowledged legacy result boundary. Test-only schema validation reuses the installed repository toolchain. Package and Core source changes flow through the existing self-host projection, package version, pack version, and release mechanisms. Traces to AC-0001, AC-0005, AC-0016. Owned by T1, T8, T9b.
 
 ## Tasks
 
-### T1: Canonical delivery schemas and ownership checks pass
+### T0: An accepted engine-scoped RFC authorizes the package changes
 
 **Depends on:** none
 
-**Touches:** `contracts/delivery/**`, `contracts/README.md`, `contracts/REGISTRY.md`, package contract projections, schema and parity tests
+**Review shape:** DEEP — one governance review unit; no split.
+
+**Touches:** `docs/rfc/` (one new RFC through the `new-rfc` skill), `docs/rfc/README.md` if it indexes RFCs
+
+**Tests:**
+
+- Mode: goal-based check.
+- Stub: `no stub (goal-based check)`.
+- The RFC proposes the Slice 1 engine change this spec and plan describe. It changes no Acceptance Criterion, scope, non-goal, or other protected field of this spec; a conflict routes back to this spec's owner.
+
+**Done when:** the RFC records owner acceptance (`Status: Accepted`), and its number is the value every later `Engine-Change-RFC:` trailer cites.
+
+### T1: Canonical delivery schemas and ownership checks pass
+
+**Depends on:** T0
+
+**Review shape:** DEEP — one review unit: the schema bundle and its registry and parity checks are understood and verified together; no split.
+
+**Touches:** `contracts/delivery/**`, `contracts/README.md`, `contracts/REGISTRY.md`, package contract projections, schema and parity tests, and, per `tests/AGENTS.md`, a named roster step for the new `tests/roster/` file in `.github/workflows/build-check.yml` with its `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`
 
 **Tests:**
 
 - Mode: TDD.
 - AC-0001 through AC-0017, AC-0020, AC-0021: a contract suite validates every delivery schema against JSON Schema 2020-12, rejects unknown or incomplete authority-shaped records, verifies stable identity examples, and checks every declared package/pack projection against the canonical source.
 - AC-0001 through AC-0017, AC-0020, AC-0021: registry coverage compares the discovered canonical schema set with `contracts/README.md`, `contracts/REGISTRY.md`, and the build manifest so an unregistered schema or undeclared copy fails.
-- `test_delivery_contract_bundle_contains_valid_schemas` (AC-0001), `stub: true`; materialize at `tests/roster/test_delivery_contract_bundle.py` only after `CODE-IMPLEMENTATION`:
+- `test_delivery_contract_bundle_contains_valid_schemas` (AC-0003 — a missing or invalid bundle leaves the `reviewed-execution-envelope.v1` record that AC-0003 names undefined; it also guards the interface-compatibility durable output), `stub: true`; materialize at `tests/roster/test_delivery_contract_bundle.py` only after `CODE-IMPLEMENTATION`:
 
 ```python
-# STUB: AC-0001 — canonical delivery contract bundle is present and schema-valid
+# STUB: AC-0003 — canonical delivery contract bundle is present and schema-valid
 import json
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def test_delivery_contract_bundle_contains_valid_schemas() -> None:
-    delivery_root = Path.cwd() / "contracts" / "delivery"
+    delivery_root = REPO_ROOT / "contracts" / "delivery"
     schemas = sorted(delivery_root.glob("*.schema.json"))
     assert schemas, "the canonical delivery contract bundle is missing"
     for schema_path in schemas:
@@ -159,13 +188,15 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
         )
 ```
 
-- PLAN handoff validation, run against the pre-implementation tree from disposable scratch: `python3 -m py_compile` passed; bounded `pytest -q` earned the intended red with one failure at `assert schemas` because the canonical `contracts/delivery/` bundle was not yet implemented. The validation created no repository test file; EXECUTE must materialize these exact fenced bytes before making the test green.
+- PLAN handoff validation, re-run on 2026-10-01 for the revised stub against the pre-implementation tree from disposable scratch (stub at a scratch `tests/roster/` path, `contracts/` linked to the repository's, pytest started outside the repository): `python3 -m py_compile` passed; bounded `pytest -q` earned the intended red with one failure at `assert schemas` because the canonical `contracts/delivery/` bundle was not yet implemented. The validation created no repository test file; EXECUTE must materialize these exact fenced bytes before making the test green.
 
 **Done when:** the T1 contract, registry, and projection suites pass from canonical source bytes.
 
 ### T2: Content-safety decisions conform at every semantic boundary
 
 **Depends on:** T1
+
+**Review shape:** DEEP — one review unit; no split.
 
 **Touches:** `docs/architecture/delivery-content-safety.md`, package content-safety source, its tests, contract projections, Core compatibility consumers
 
@@ -182,7 +213,9 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Depends on:** T1, T2
 
-**Touches:** `packs/core/.apm/skills/close-work/scripts/file_safety.py`, generated package projection, capability and security-event source, unit and projection tests
+**Review shape:** DEEP — one review unit; the hand-maintained copies are byte-identical replicas checked by their pins, not separate review material; no split.
+
+**Touches:** `packs/core/.apm/skills/close-work/scripts/file_safety.py`, generated package projection, the three hand-maintained byte-identical copies (`packs/core/.apm/skills/work-intake/scripts/file_safety.py`, `packs/core/.apm/skills/work-loop/scripts/file_safety.py`, `packs/architect/.apm/skills/architect-design/scripts/file_safety.py`) kept in sync with the source, capability and security-event source, unit and projection tests
 
 **Tests:**
 
@@ -192,11 +225,13 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - AC-0011: adversarial fixtures cover absolute and dot-segment paths, links, reparse points, multiple links, special files, identity replacement, bounds, interrupted staging, and atomic replacement while preserving the prior bytes on refusal.
 - AC-0010, AC-0011, AC-0020, AC-0021: semantic-append and security-event tests assert named writer authority, stable reason codes, redacted metadata without request payloads, and durable audit before acknowledgment when the sink is available; when it is unavailable, tests require a stable redacted denial code, no effect success or protected-data persistence, and no durable-event claim.
 
-**Done when:** the T3a capability, file-boundary, race, atomicity, audit, and source/projection parity suites pass.
+**Done when:** the T3a capability, file-boundary, race, atomicity, audit, and source/projection parity suites pass, and every hand-maintained copy stays byte-identical to the source.
 
 ### T3b: Safe-process invariants pass across supported hosts
 
 **Depends on:** T1, T3a
+
+**Review shape:** DEEP — one review unit; no split.
 
 **Touches:** package process-safety source, unit tests, platform fixtures, contract projections
 
@@ -214,6 +249,8 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Depends on:** T3a, T3b
 
+**Review shape:** DEEP — one review unit; no split.
+
 **Touches:** package containment and broker source, adapter conformance fixtures, Core capability wiring
 
 **Tests:**
@@ -230,7 +267,9 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Depends on:** T1, T2
 
-**Touches:** package acceptance source, pure unit/property tests, benchmark fixtures
+**Review shape:** DEEP — one review unit; the benchmark workflow is small, and its posture checks verify it alone; no split.
+
+**Touches:** package acceptance source, pure unit/property tests, benchmark fixtures, `.github/workflows/benchmark-acceptance.yml`, the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`, a new posture test `tools/test-benchmark-acceptance-workflow.py` on `tools/posture_harness.py`, its gate-chain wiring in `tools/repo/build_gate_chain.py` with the matching `EXPECTED_SCRIPT_STEPS` pin in `tools/test_build_gate_chain.py`, the workflow's `WORKFLOW_SCOPE` classification in `tools/lint-ci-parity.py`, the workflow fleet table and §3.1 posture-test inventory in `docs/architecture/verification-graph.md`, and any other pin, roster, or inventory that registering a new workflow and gate-chain step obliges
 
 **Tests:**
 
@@ -241,12 +280,15 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - AC-0007: truth-table and permutation tests compare every verdict across equivalent normalized record sets and adapter labels, including empty mechanical state.
 - AC-0009: mutation tests change each exact-subject and path-set freshness input independently, assert staleness at the first mismatch, and assert missing or incomplete read attestation selects exact-subject.
 - AC-0018: the committed benchmark measures p95 evaluator latency from call entry to full verdict return for the fixed corpus.
+- Benchmark workflow posture, following `.github/workflows/test-corpus.yml`: no `inputs:`, top-level `permissions: contents: read`, `persist-credentials: false` on checkout, SHA-pinned `uses:`, per-run concurrency, a bounded `timeout-minutes`, and an uploaded artifact limited to the named benchmark result files plus the run's commit SHA. The workflow joins the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`. The posture test `tools/test-benchmark-acceptance-workflow.py` follows the repository's `tools/posture_harness.py` idiom (for example `tools/test-pack-evals-workflow.py`) and runs in the build gate chain; its mutation matrix fails when the `permissions:` floor, the `WORKFLOWS` roster entry, checkout `persist-credentials: false`, the absence of `inputs:`, the timeout, or the artifact path limit is removed. `tools/lint-ci-parity.py` classifies the new workflow in `WORKFLOW_SCOPE`.
 
-**Done when:** the T4 projector, truth-table, freshness, determinism, and evaluator benchmark suites pass.
+**Done when:** the T4 projector, truth-table, freshness, determinism, and evaluator benchmark suites pass, the benchmark workflow posture checks pass, and the workflow is merged to `main` before T9a dispatches it.
 
 ### T5: Policy import, reviewed envelope, initial plan review, change classification, and reverse-read suites pass
 
-**Depends on:** T1, T2, T4
+**Depends on:** T1, T2, T3a, T4
+
+**Review shape:** DEEP — one review unit; no split.
 
 **Touches:** package approval/envelope/initial-review/import/change-classification/reverse-read source, frozen legacy corpus, Core compatibility adapter, integration tests
 
@@ -258,13 +300,15 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - AC-0002, AC-0014: derive the reviewed envelope, apply the named content-safety profiles, inject failure before, between, and after the spec-policy approval and envelope-bound initial-plan review, then restart and assert exactly zero or two visible records; malformed inputs, digest mismatch, envelope mismatch, wrong terminal intent, and a missing or unknown writer or replay profile publish zero.
 - AC-0020: attempt both import appends with missing, expired, mismatched, and out-of-scope writer authority, including retry under the same record identity; every case exposes zero records.
 - AC-0003, AC-0004: vary task order, decomposition, sequence, test shape, and local method independently and assert classification needs no approval while the envelope fingerprint and terminal intent remain fixed and no task, cancellation, or dispatch state is written; vary each protected approval reference or terminal intent and assert classification names the owning amendment, review, or risk route.
-- AC-0017: during dual-read, reconstruct the original approved pair; after cutover, require an authority-switch decision before producing a legacy compatibility snapshot of the current within-envelope plan, and assert a lossy or boundary-crossing downgrade refuses without deleting semantic facts.
+- AC-0017: during dual-read, reconstruct the original approved pair. Post-cutover behavior runs under a synthetic accepted authority-switch decision fixture, because this slice enables no real cutover: with the decision present, a within-envelope legacy compatibility snapshot is produced that grants no target authority and deletes no semantic facts; without it, the snapshot refuses; a lossy or boundary-crossing projection refuses.
 
 **Done when:** the T5 canonicalization, envelope derivation, atomic import, initial-review, mutation-classification, protected-change refusal, restart, and reverse-reader suites pass without implementing Slice 4 task reprojection.
 
 ### T6: Legacy subject projection matches the acknowledged product boundary
 
 **Depends on:** T1, T3a, T4
+
+**Review shape:** DEEP — one review unit; no split.
 
 **Touches:** package subject-source and projection source, Git/worktree fixtures, compatibility tests
 
@@ -282,7 +326,9 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Depends on:** T1, T2, T4, T6
 
-**Touches:** package evidence-store source, crash harness, index and benchmark tests
+**Review shape:** DEEP — one review unit; no split.
+
+**Touches:** package evidence-store source, crash harness, index and benchmark tests, and the cold-rehydration job in `.github/workflows/benchmark-acceptance.yml` with any matching posture-test update
 
 **Tests:**
 
@@ -299,6 +345,8 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Depends on:** T3c, T5, T6, T7
 
+**Review shape:** DEEP — one review unit; no split.
+
 **Touches:** Core work-loop source and scripts, package compatibility facade, pack evals, engine/cohort regression tests
 
 **Tests:**
@@ -311,29 +359,46 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Done when:** the T8 compatibility, cache-deletion, public-command, authority, and reversal gates pass with no unexplained parity difference.
 
-### T9: Integrated conformance, durable documentation, and release closure pass
+### T9a: Integrated conformance and benchmark evidence pass
 
-**Depends on:** T1-T8
+**Depends on:** T1, T2, T3a, T3b, T3c, T4, T5, T6, T7, T8
 
-**Touches:** cross-adapter conformance suites, architecture pages, contract registry, package/Core versions and changelog, generated projections
+**Review shape:** DEEP — one review unit of integrated evidence; no split.
+
+**Touches:** cross-adapter conformance suites, benchmark harness extensions
 
 **Tests:**
 
 - Mode: goal-based check through repository gates and real compatibility invocations.
 - Stub: `no stub (goal-based check)`.
 - AC-0001 through AC-0021: run the frozen import, subject, verdict, recovery, reversal, security, content-safety, authorized-append, audit-failure, and cross-adapter corpora against the built package and projected Core pack.
-- AC-0018, AC-0019: run the committed CI-reference benchmarks and retain the measured p95 evaluation and cold-rehydration outputs.
-- Durable outputs: run package tests, touched Core pack evals, source/projection parity, catalogue lint/verify, build-self zero-diff rerun, spec/brief/status lints, and documentation link checks.
+- AC-0018, AC-0019: dispatch the benchmark workflow on GitHub-hosted `ubuntu-latest` with `--ref` on the T9a branch, and retain the measured p95 evaluation and cold-rehydration outputs with the run's commit SHA.
 - Real invocation: run the unchanged documented `work-loop` happy path through the compatibility caller and record the command, exit status, derived verdict, and confirmation that legacy authority made the decision.
 
-**Done when:** the T9 conformance and repository gates pass, durable outputs describe current state, release versions align, and the real invocation preserves legacy authority.
+**Done when:** the T9a conformance and repository gates pass, the retained benchmark run meets AC-0018 and AC-0019, and the real invocation preserves legacy authority.
+
+### T9b: Durable documentation and release closure pass
+
+**Depends on:** T9a
+
+**Review shape:** DEEP — one review unit; its version and changelog edits are mechanical bookkeeping for the documented change; no split.
+
+**Touches:** architecture pages, maintainer procedure, contract registry, package/Core/architect versions and changelog, generated projections
+
+**Tests:**
+
+- Mode: goal-based check through repository gates.
+- Stub: `no stub (goal-based check)`.
+- Durable outputs: run package tests, touched Core pack evals, source/projection parity, catalogue lint/verify, build-self zero-diff rerun, spec/brief/status lints, and documentation link checks.
+
+**Done when:** the T9b repository gates pass, durable outputs describe current state, and release versions align.
 
 ## Rollout
 
 - **Delivery:** contracts and readers land before writers. Each target writer runs behind the current compatibility path and produces shadow facts until parity and recovery evidence are clean. Initial review records its envelope and authorized terminal intent but creates no task projection; Slice 4 will own approval-free in-envelope reprojection. Rollback disables target calls and reads the retained legacy state; it does not delete new semantic facts.
 - **Infrastructure:** no daemon, external service, database, queue, cloud resource, secret, or mandatory sandbox product is introduced. Untrusted execution activates only where the host supplies verified containment; otherwise it refuses.
 - **External-system integration:** none. Git and the local operating system remain the only runtime integrations.
-- **Deployment sequencing:** T1 contracts precede every reader; T2 and T3 security controls precede semantic writers and untrusted execution; T4 precedes stores; T5-T7 precede compatibility calls; T8 parity precedes documentation and release closure. No authority cutover occurs in this rollout, and no working-plan revision becomes an approval record.
+- **Deployment sequencing:** the T0 RFC precedes every package change; T1 contracts precede every reader; T2 and T3 security controls precede semantic writers and untrusted execution; T4 precedes stores; T5-T7 precede compatibility calls; T8 parity precedes documentation and release closure. No authority cutover occurs in this rollout, and no working-plan revision becomes an approval record.
 
 ## Risks
 
@@ -344,7 +409,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - Host-specific containment could be overstated. Capability declarations and attestations refuse guarantees a host cannot prove, and untrusted code has no same-process fallback.
 - Content scanning cannot detect every natural-language instruction or personal identifier. Schema allowlists, producer classification, reject-unknown behavior, and inert consumption remain the hard boundary.
 - Append-log volume could miss the latency targets. Derived indexes may optimize reads, but the cold benchmark deletes them and the evaluator never treats them as authority.
-- Package and Core projections could ship at different revisions. T1/T9 parity gates, coupled versions, and the release record keep the bundle aligned.
+- Package and Core projections could ship at different revisions. T1/T9b parity gates, coupled versions, and the release record keep the bundle aligned.
 
 ## Changelog
 
@@ -352,6 +417,33 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - 2026-10-01: plan approved by owner as the initial strategy, safety,
   dependency, scope-alignment, and terminal-intent review; tasks remain mutable
   inside that reviewed envelope.
+- 2026-10-01: terminal intent amended from `spec-plan` to `code` on owner
+  request to implement Slice 1. No other protected field changed. The spec
+  `Brief:` pointer lost its stray backticks so workspace provenance resolves.
+  The approvals above stay as history; this amendment needs fresh spec and
+  plan review and fresh human approval of both.
+- 2026-10-01: round-1 review revisions. Terminal intent now names the slice
+  boundary, not task IDs. Added T0 (accepted engine-scoped RFC, owner
+  decision), T5's T3a dependency, the in-force re-plan rule, the
+  hand-maintained `file_safety.py` copies, the supported adapter set, the
+  synthetic authority-switch fixture, the benchmark host (owner decision:
+  dispatch-only `ubuntu-latest`), and a cwd-independent T1 stub. Owner
+  approved adding the architect pack release files to the spec's Release
+  history durable output, the only other protected-field change.
+- 2026-10-01: round-2 review revisions. Owner decision: T4 adds the
+  dispatch-only benchmark workflow and merges it to `main` before T9a
+  dispatches it. T4 states and regression-checks the workflow's
+  least-privilege posture. Every task declares its review shape, and T9
+  splits into T9a (integrated evidence) and T9b (documentation and release
+  closure). The T1 stub marker names AC-0003.
+- 2026-10-01: round-3 review revisions. T4 names the benchmark workflow,
+  its `posture_harness` posture test, gate-chain wiring, and `WORKFLOW_SCOPE`
+  classification. T1 lists its roster step and parity disposition. T7 lists
+  the cold-rehydration job it adds to the benchmark workflow.
+- 2026-10-01: round-4 review revisions. T4 Touches adds the gate-chain
+  step pin, the verification-graph workflow and posture-test inventory, and
+  the general obligation to register a new workflow and gate-chain step
+  completely.
 
 <!-- Approval entries are added only at their human gates.
 

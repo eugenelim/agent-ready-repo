@@ -1,10 +1,10 @@
 # Spec: Acceptance authority and evidence
 
-- **Status:** Approved
+- **Status:** Draft
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0005, ADR-0061, ADR-0125
-- **Brief:** `brief:acceptance-centered-work-loop`
+- **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none
 - **Contract:** `contracts/delivery/` (planned canonical delivery-contract bundle)
 - **Shape:** mixed
@@ -55,7 +55,7 @@ Operational task reprojection and cancellation belong to Slice 4.
 | Current architecture | The callable service boundary changes the system's current component and authority map. | `ARCHITECTURE.md`, `docs/architecture/loop-infrastructure.md`, `docs/architecture/loop-contract.md`, `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/runtime-security-primitives.md`, and `docs/architecture/delivery-content-safety.md` | Platform Core | Architecture review plus links to contracts, implementation, and conformance suites | The documents describe the callable shadow services, retain the current engine's authority, and preserve the reversal and governance gates. |
 | Authority migration | The implementation must not imply that code deployment supersedes accepted workflow decisions. | `docs/architecture/work-loop-authority-migration.md` | Architecture-governance owner | Missing-governance refusal and reverse-reader tests | No existing authority is retired, and every future cutover still requires its named accepted governance record. |
 | Maintainer procedure | Maintainers need one current route to parity, recovery, and reversal checks; adopters receive no new invocation in this slice. | `docs/architecture/loop-infrastructure.md` and implementation-owned test commands | Core and `agentbundle` maintainers | Commands exercise import, rehydration, reversal, and cross-adapter conformance | A maintainer can run the documented checks without reading this frozen delivery record. |
-| Release history | Package and Core pack behavior changes ship through their existing release owners. | `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, and `docs/product/changelog.md` | Package and Core pack release maintainers | Version-parity checks, build-self output, package tests, pack evals, and an outcome-led changelog entry | Released package and pack versions contain matching contracts and implementations, and the changelog names the maintainer-visible result. |
+| Release history | Package, Core pack, and architect pack behavior changes ship through their existing release owners; the architect pack releases because it carries a byte-identical `file_safety.py` copy. | `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `packs/architect/pack.toml`, `packs/architect/.claude-plugin/plugin.json`, and `docs/product/changelog.md` | Package, Core pack, and architect pack release maintainers | Version-parity checks, build-self output, package tests, pack evals, and an outcome-led changelog entry | Released package and pack versions contain matching contracts and implementations, and the changelog names the maintainer-visible result. |
 
 ## Agent Rules
 
@@ -128,9 +128,8 @@ none — the parent brief owns later delivery slices, and this spec does not cre
 
 ## Terminal Intent
 
-`spec-plan` — stop after the spec and initial plan review are accepted. This
-slice creates no repository implementation or test artifact and dispatches no
-implementation task.
+`code` — after approval, implement the Slice 1 boundary in Scope and
+Non-goals until every Acceptance Criterion is satisfied.
 
 ## Accepted Risk
 
