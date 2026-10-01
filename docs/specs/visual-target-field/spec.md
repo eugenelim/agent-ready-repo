@@ -107,8 +107,8 @@ spec defines both for itself rather than borrowing them. A period-delimited span
 **not** a bounded unit: adjacent structure that carries no terminal period —
 a heading, a table cell, a bullet — joins it silently, which would let an
 unscoped instruction pass because a scoped heading sat above it. The criterion
-also requires its anchor to occur in exactly one paragraph block of the
-verification cannot silently grade a different occurrence.
+also requires its anchor to occur in exactly one paragraph block of the named
+file, so the verification cannot silently grade a different occurrence.
 
 - **TDD — the template carries the state and its provenance (AC-0001, AC-0002,
   AC-0003, AC-0011).** The template's bytes parse; asserted from

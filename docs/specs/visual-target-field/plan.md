@@ -1118,3 +1118,27 @@ inside a four-criterion test function. Two mutations are owed:
   [`notes/amendment-2026-10-01-post-gates.md`](notes/amendment-2026-10-01-post-gates.md).
   T1 through T4 are pinned and evidence-bound; only T5 is re-emitted. The
   experience review's twelve findings were all refuted and none is acted on.
+- 2026-10-01: Repaired the one sustained finding from the pre-EXECUTE pass on
+  the amended contract (1 blocker, 2 concerns and 1 nit raw; 1 sustained, 3
+  refuted). The AC-0004 narrowing in the previous revision had been applied with
+  an unanchored string replacement that excised `named file, so the`, fusing two
+  clauses in § *Testing Strategy* into "...in exactly one paragraph block of the
+  verification cannot silently grade a different occurrence." The clause is
+  restored so the sentence states the one-paragraph-block property in the named
+  file and the reason it matters. Adjudication narrowed the reviewer's secondary
+  claim and that narrowing is kept here rather than the reviewer's wider one:
+  the purpose words survived inside the fused tail, and the spec's file-scoping
+  property survives independently at three other sites, so what was lost was
+  this sentence's legibility and its own scoping words, not a contract property.
+  The three refusals stand — the surviving AC-0011 rationale is the part the
+  second amendment deliberately kept, both alleged residual carriers are dated
+  historical narration rather than live claims, and an over-width line no linter
+  enforces is not a defect.
+- 2026-10-01: **Recorded process deviation.** This repair edit was made while
+  the engine was still in `SPEC-PLAN-REVIEW`; `findings-remain` was fired
+  afterwards, because the first attempt was refused for carrying a fingerprint
+  payload that edge does not accept and the edit had already been applied in the
+  same step. Recorded rather than corrected, for the same reason the first
+  amendment recorded round 3's identical slip: firing the pair in the documented
+  order afterwards would assert a sequence that did not happen. Nothing is
+  miscounted — pre-EXECUTE results do not call `review record`.
