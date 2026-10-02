@@ -39,7 +39,7 @@ NUM_RECEIPTS: int = 100_000
 
 # ── Path anchor ───────────────────────────────────────────────────────────────
 
-_SCRIPTS = Path(__file__).resolve().parent
+_SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
 
 
 # ── Module loader ─────────────────────────────────────────────────────────────

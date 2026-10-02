@@ -1,7 +1,7 @@
 """AC-0018 benchmark harness: evaluator latency for 1,000 criteria × 100,000 receipts.
 
 Runs the committed entry point
-``packs/core/.apm/skills/work-loop/scripts/_acceptance_benchmark.py``
+``acceptance_benchmark_harness.py`` beside this test
 with a ``tmp_path`` output path so no result file lands in the source tree.
 
 AC-0018 asserts that p95 evaluation latency is within 2 seconds across
@@ -64,7 +64,7 @@ def test_evaluator_p95_latency_benchmark(
     result file lands in the source tree.  Verifies the result JSON structure
     and asserts the AC-0018 p95 bound.
     """
-    bm = _load_module("acc_bm_wrapper", SCRIPTS / "_acceptance_benchmark.py")
+    bm = _load_module("acc_bm_wrapper", Path(__file__).resolve().parent / "acceptance_benchmark_harness.py")
 
     output_path = tmp_path / "benchmark-acceptance-result.json"
     exit_code = bm.main(["--output", str(output_path)])
