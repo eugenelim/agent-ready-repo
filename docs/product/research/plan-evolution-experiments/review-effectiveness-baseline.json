@@ -1067,8 +1067,8 @@
               "selection_ban_observed": "Admission was not decided by host, model, expected finding count, expected outcome, convenience, or whether the case would help the study. Full mode means a pre-execute spec/plan review unit, which is the frozen admission scope, so the case is eligible and no exclusion code in the closed catalog applies."
             },
             "normal_loop_progress": {
-              "rounds_completed": 1,
-              "normal_loop_state": "SPEC-PLAN-REVIEW, round 1 adjudicated, 11 sustained findings await revision",
+              "rounds_completed": 2,
+              "normal_loop_state": "SPEC-PLAN-REVIEW, round 2 adjudicated, 8 sustained findings await revision",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1107,6 +1107,47 @@
                 "wall_time_seconds_total": 1261.87,
                 "attribution": "all four starts are normal-loop review work, observed rather than study-added",
                 "wall_clock_now_available": "This run records per-start wall clock, which every case-3 round had to leave null_unavailable. The figure comes from the host's task-completion notification (duration_ms) and was present there all along; case 3's gap was a controller omission, not a tool limitation. It is not reconstructed for case 3, whose notifications are gone.",
+                "unavailable_fields": ["per-start input/output token split - the host returns one aggregate subagent token count per start"]
+              },
+              "revision_after_round_1": {
+                "commit": "bdcee36fa",
+                "acted_on": "all 11 sustained findings; the refuted finding changed nothing",
+                "shape": "The repair ADDED a task (T8) and a criterion (AC-0015) rather than cutting. Round 2's result is the direct measurement of what that cost."
+              },
+              "round_2": {
+                "reviewer_role": "adversarial",
+                "stage": "pre-execute",
+                "round_purpose": "verdict pass over the round-1 delta d881e66b8..bdcee36fa",
+                "raw_findings": 8,
+                "raw_report_sha256": "df166613570763b29e06478fc181c429c11fd159ccbf1b67f5ecc5250fc2e793",
+                "raw_report_bytes": 11274,
+                "raw_classification": "findings",
+                "not_checked_footer_present": false,
+                "adjudicated": true,
+                "adjudication_sha256": "333db9cae52265d16e325684f7ea8f32b67c4c5eecd9bde16bc528fac30268c2",
+                "adjudication_bytes": 8002,
+                "adjudication_classification": "findings",
+                "adjudication_attempts": 1,
+                "adjudication_attempt_note": "Valid on the first attempt. The controller added the envelope grammar to the adjudicator's brief after round 1 cost three attempts over it. That is a briefing fix, not a verdict influence: the brief states the recording classifier's shape rules and says nothing about what to sustain.",
+                "sustained": 8,
+                "refuted": 0,
+                "indeterminate": 0,
+                "sustained_by_severity": {"blocker": 2, "concern": 5, "nit": 1},
+                "fingerprints": 8,
+                "families": 8,
+                "matches_previous_round": false,
+                "repair_origin_findings": 7,
+                "repair_origin_note": "Seven of the eight sustained findings are defects in round 1's repair rather than in the work being governed: #1 T4's new Done-when recreated the circular closure round 1 had just removed, inverted; #3 the newly added AC-0015 was never given a Testing Strategy entry; #4 the new NON_MARKDOWN_CARRIER_FLOOR self-inflates because T4's own module becomes a carrier the moment it lands; #5 the newly added T8's Done-when omits the prune registration T8 owns; #6 the rewritten Stub validation record asserts boundary evidence that cannot vary with the relocation it claims to verify; #7 the narrowed AC-0005's in-reach clause has no artifact; #8 the plan's durable-output map was not updated with the spec's new row. #2 is mixed: AC-0011's `own pack's suite` wording predates round 1, but the controller's T1 re-measurement is what added the three roster-resident carriers that have no owning pack.",
+                "controller_self_inflicted_evidence_defect": "#6 is the sharpest. Round 1 faulted the Stub validation record for asserting evidence it did not hold. The controller rewrote that record one round later and put a different unheld evidence claim in it, then repeated the claim in the commit body at bdcee36fa and to the owner in chat as `verified rather than argued`. tools/test-lint-pack-test-boundary.py is the lint's synthetic fixture self-test and the lint walks packs/ only, so its output is invariant to whether tests/roster/ holds the new modules. The relocation conclusion is independently correct; the evidence cited for it was the wrong instrument.",
+                "reviewer_reproduced_every_measured_count": "14 firing sentences across 12 Markdown files; the 24/7/14 three-row table; the 14-to-19 widening; 12 non-Markdown carriers as 4 eval payloads and 8 py modules; 27 carrier files and 105 loci at a 15/12 split; 5 segmentation artefacts. Every cited line number was checked byte by byte and held. The adjudicator independently re-derived the non-Markdown set by content search and also reached 12. So the measurements are now agreed across three independent derivations; what keeps failing is the contract machinery built around them.",
+                "adjudicator_execution_note": "The adjudicator read statically and ran nothing, and says so on finding #6. The reviewer did run commands, including the boundary lint and lint-generated-path-ownership.",
+                "controller_disclosure": "Both artifacts were transcribed through the controller, as in round 1, because this host returns subagent output as a message. Each was persisted before classification and only de-indented.",
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [114542, 63478],
+                "returned_subagent_tokens_total": 178020,
+                "wall_time_seconds_by_start": [969.944, 151.174],
+                "wall_time_seconds_total": 1121.118,
+                "attribution": "both starts are normal-loop review work, observed rather than study-added",
                 "unavailable_fields": ["per-start input/output token split - the host returns one aggregate subagent token count per start"]
               },
               "measurement_starts_launched": 0
