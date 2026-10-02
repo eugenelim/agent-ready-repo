@@ -48,11 +48,11 @@ npm run build --prefix docs-site
   `.mermaid-diagram[data-mermaid]` — so keep at least one fence in the
   published corpus, or the plugin becomes unverifiable again.
 - Under an agent, `astro dev` forks a detached server and returns at once, recorded in `.astro/` — so the server
-  § Build tells you to start is not the process you launched. Astro 7.3.4 excepts Windows, and `--ignore-lock` on any
-  platform, which stay in the foreground; agent detection still forces JSON output everywhere, so on Windows you get
-  the JSON and a server that never returns. A *live* orphan blocks the next start on *any* port, and deleting the
-  record frees nothing; stop it: `npm exec --prefix docs-site -- astro dev stop --root docs-site`. `--root` is
-  load-bearing — astro resolves the project from the working directory, not `--prefix`, which reports nothing running.
+  § Build tells you to start is not the process you launched. Two carve-outs stay foreground: `--ignore-lock` on any
+  platform (astro 7.3.3) and Windows (7.3.4). Agent detection still forces JSON everywhere, so either one gets the
+  JSON and a server that never returns. A *live* orphan blocks the next start on *any* port, and deleting the record
+  frees nothing; stop it: `npm exec --prefix docs-site -- astro dev stop --root docs-site`. `--root` is load-bearing —
+  astro resolves the project from the working directory, not `--prefix`; omit `--root` and the command falsely reports nothing running.
 - After a Starlight upgrade, re-verify integration contracts against the vendored
   components. 0.42 swapped `<starlight-menu-button>` and its `aria-expanded` for
   the native popover API, silently breaking `PageFrame.astro`'s CSS reveal and
