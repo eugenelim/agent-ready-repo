@@ -40,3 +40,14 @@ the job log, and writes results only under a temporary path. T9a records the
 dispatched run's head commit SHA with the passing benchmark tests. The earlier
 benchmark job, posture test, single-roster exception, and ADR draft were
 dropped before commit.
+
+T9a also confirms that `.github/workflows/test-corpus.yml` at the dispatched
+run's head commit SHA is byte-identical to the default branch's copy. A
+mismatch voids the benchmark evidence until the changed workflow passes the
+CI security scanners. This replaces the round-12 scan-to-dispatch check and
+carries a deferred round-13 security Nit.
+
+T9a writes the dispatched run's ID, head commit SHA, the shard that ran the
+work-loop pack suite, and the printed AC-0018 p95 and AC-0019 cold-rehydration
+figures into this ledger, because the job log expires under the repository's
+log-retention setting (deferred round-13 adversarial Nit).
