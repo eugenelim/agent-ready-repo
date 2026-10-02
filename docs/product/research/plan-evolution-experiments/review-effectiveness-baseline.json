@@ -1364,6 +1364,19 @@
                 "wall_time_seconds": 296.264,
                 "attribution": "normal-loop implementer work, observed rather than study-added"
               },
+              "configuration_held_constant_2026_10_02": {
+                "question_raised_by": "owner, mid-wave-2, asking whether Codex workers would save a lot of tokens",
+                "availability": "Codex CLI is installed and usable at /opt/homebrew/bin/codex, version 0.159.3. Availability was checked rather than assumed before answering.",
+                "decision": "declined; the installed configuration is held for the remainder of case 4",
+                "decided_by": "owner, after the controller set out the cost and the contract position",
+                "grounds": [
+                  "role_model_policy.normal_work in the frozen contract reads `use the installed work-loop role and model policy; no study override`, and case 4's normal loop is the measured object",
+                  "references/model-selection.md pins implementer to sonnet and states that changing a subagent's model is a behaviour change requiring a PR note, not a configuration tweak",
+                  "pre-execute-review.md admits Codex only inside a projected read-only sandbox with the active managed permission profile inspected; that gate is written for read-only roles and does not cover an implementer, which needs write access"
+                ],
+                "what_the_saving_would_have_been": "Implementer starts cost 64,754, 61,560 and 74,730 returned subagent tokens. Those are the subagent's consumption, not the controller's context, so the shift would have been roughly 270,000 tokens across the four implementer tasks remaining and would barely have changed controller context usage. The controller said so rather than letting `saves tokens` stand unqualified.",
+                "why_this_is_recorded": "A configuration held constant deliberately reads differently in a measurement record from one held constant by inattention. Case 4's cost series is a single configuration end to end, and this row is the evidence for that rather than an assumption a later reader has to make."
+              },
               "spec_gate_2026_10_02": {
                 "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
                 "gate_question": "Does this spec define the right thing to build?",
