@@ -468,6 +468,84 @@ The T5 module does not contain `visual[ _-]target` and is not a carrier.
 
 ---
 
+## T3: Migrate the restating carriers
+
+**Date:** 2026-10-02
+**Method:** Direct file edits in the worktree.
+- Markdown loci: hand-edited each of the 11 remaining violation sentences.
+- AC-0005 loci: hand-migrated the two loci outside the property.
+- AC-0011 eval harness: updated assertion text in three eval JSON files.
+- AC-0011 tests: added `test_the_rung_resolution_eval_assertions_name_the_field`
+  to `test_visual_authority_precedence.py`; added
+  `test_the_visual_target_eval_case_assertion_names_the_field` to
+  `test_design_system_contract.py`.
+
+### Property test result
+
+`python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -q`:
+**2 passed** in 5.36s. Exit 0. Down from 11 violations at T3 start.
+
+### Pack suite result
+
+`python3 -m pytest packs/frontend-engineering/tests/skills/frontend-engineering packs/experience-design/tests -q`:
+**487 passed** in 2.98s. Exit 0.
+
+### AC-0005 observations
+
+AC-0005 defines loci that carry a visual-target reference with a confirmation
+cue but lie outside all four mechanisms — no property enforcement, no guide
+test, no eval test, no test module assertion. Two such loci were migrated by
+hand:
+
+**AC-0005 locus 1 — `packs/experience-design/.apm/skills/design-system/SKILL.md`,
+Procedure step 2.**
+
+Before: `and the visual target when one exists.`
+After: `and the \`visual_target: confirmed\` target when one exists.`
+
+This sentence is inside Procedure step 2 ("Read the authority"). It fires the
+property's cue test (cue `approved` from the rung table row that collapses with
+it), but the word `exists` is not a confirmation cue — the cue fires from the
+collapsed sentence, not from this sentence on its own. Migrated here rather
+than left, because the sentence is describing a confirmed target and naming the
+field is the correct documentation.
+
+**AC-0005 locus 2 — `guides/frontend-engineering/how-to/read-the-design-handoff.md`,
+rung 1 "You are here if" sentence.**
+
+Before: `**You are here if** the artifact says somewhere that the composition
+was approved or signed off, rather than merely proposed or picked.`
+After: `**You are here if** the direction's \`visual_target\` field is
+\`confirmed\`, recording that the composition was signed off.`
+
+This sentence's only trigger cue is `approved`, which NAME_FORMS strips (it
+is part of `approved visual target`). After stripping both name forms, no
+confirmation cue remains, so the property does not fire on it. Migrated here
+because the sentence is the guide's definition of the rung condition, and the
+correct definition is the field value, not a prose description that predates
+the field.
+
+### Run-on locus cost
+
+The first violation sentence in
+`guides/experience-design/how-to/establish-design-intent.md` is a
+segmentation artefact: whitespace normalization collapses a run of text
+beginning at `confirm the shape against what you get back.*` and ending at
+`and any approved visual target.` — which is inside a copy-paste user prompt
+in a fenced code block. The normalizer does not strip code blocks before
+splitting, so the prompt text lands in the same "sentence."
+
+The migration adds `(visual_target: confirmed)` inside the prompt code block.
+This satisfies the property (the collapsed sentence now contains the literal),
+but the phrase appears inside a prompt that gives no instruction about the
+field — it records the user asking the agent about the target without stating
+a condition. A reader of the prompt sees the field name as additional context,
+not as a requirement. This cost is the minimum unavoidable consequence of the
+segmentation artefact: the literal must appear somewhere in the collapsed
+sentence, and the only editable surface is the prompt text.
+
+---
+
 ## Execution observation — limit 4's reasoning is superseded by the gate it describes
 
 Recorded 2026-10-02 by the controller, during verification of T7. This is an

@@ -77,7 +77,7 @@
       "prompt": "The adopter's design tree holds a direction artifact for this surface that records a human-confirmed composition, and a token taxonomy. Build the page.",
       "expected_output": "The run resolves visual authority to the approved-visual-target rung and says so. It takes composition — arrangement, proportion, spatial relationships — from the confirmed composition, and takes colour, type, spacing and motion values from the taxonomy — using each value it resolved as given — rather than from the target. It chooses no product as an aesthetic anchor and seeds no parallel token system. It renders a representative state, observes the result against the inherited intent, corrects once where divergence is material, and renders once more to verify. The evidence manifest records which rung was used, what was rendered, whether a material correction was needed, and anything unverified.",
       "assertions": [
-        "Resolves authority to approved-visual-target and records it",
+        "Resolves authority to approved-visual-target (direction carries `visual_target: confirmed`) and records it",
         "Takes composition from the target and values from the taxonomy, not the reverse",
         "Names no product as an aesthetic anchor",
         "Renders and observes during implementation, not only at the gates",
@@ -91,7 +91,7 @@
       "expected_output": "The run resolves to the direction-and-taxonomy rung, not approved-visual-target, and records that the direction carried no recorded confirmation. It implements the direction's concrete commitments — ranked goals, axis commitments, the signature element — and the taxonomy's roles, scales and resolved values. It does not independently choose a canonical product aesthetic, and it observes the rendered result against those commitments rather than against a composition it does not have.",
       "assertions": [
         "Resolves to direction-and-taxonomy rather than the top rung",
-        "Records that no human confirmation was present",
+        "Records that the direction does not carry `visual_target: confirmed`",
         "Implements the direction's concrete commitments",
         "Chooses no product aesthetic of its own",
         "Observes the rendered result against the commitments"

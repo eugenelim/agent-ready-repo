@@ -6,11 +6,13 @@ a rule moves `references/visual-observation.md` and not this file.
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
 from frontend_engineering_visual_authority_rules import (
     OBSERVATION,
+    PACK_ROOT,
     THIS_SKILL_AND_AGENTS,
     WHOLE_EXPORT_TREE,
     observation_rows,
@@ -21,6 +23,8 @@ from frontend_engineering_visual_authority_rules import (
     rule_table_headings,
     shipped_files,
 )
+
+EVALS = PACK_ROOT / ".apm" / "skills" / "frontend-engineering" / "evals" / "evals.json"
 
 RUNGS = [
     "approved-visual-target",
@@ -212,3 +216,24 @@ def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
     assert "visual_target: confirmed" in row, "AC-0001"
     for identifier in UPSTREAM_IDENTIFIERS:
         assert identifier not in text, f"AC-0002: {identifier}"
+
+
+def test_the_rung_resolution_eval_assertions_name_the_field() -> None:
+    """AC-0011: eval assertions that assert the approved-visual-target rung's
+    precondition must name the field, checked over the parsed assertions list.
+
+    The approved-target case resolves because the direction carries
+    `visual_target: confirmed`; the direction-only case records that it does
+    not. Both must name the field so a grader can tell which predicate fired.
+    """
+    cases = {c["id"]: c for c in json.loads(EVALS.read_text(encoding="utf-8"))["evals"]}
+    approved = " ".join(cases["visual-authority-approved-target"]["assertions"])
+    assert "visual_target: confirmed" in approved, (
+        "AC-0011: visual-authority-approved-target assertions do not name "
+        "`visual_target: confirmed`"
+    )
+    direction_only = " ".join(cases["visual-authority-direction-only"]["assertions"])
+    assert "visual_target: confirmed" in direction_only, (
+        "AC-0011: visual-authority-direction-only assertions do not name "
+        "`visual_target: confirmed`"
+    )
