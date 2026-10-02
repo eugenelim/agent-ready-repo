@@ -4,7 +4,12 @@
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule,
   § Security and authoring rules (the eval-harness obligation) and
-  § Self-hosting projection; `packs/AGENTS.local.md` § Landing changes;
+  § Self-hosting projection; the **root** `AGENTS.local.md` § Landing changes
+  (`AGENTS.local.md:49-60`, "Never pass `FORCE=1` from automation") — **not**
+  `packs/AGENTS.local.md`, which has no section of that name and whose line 29
+  instructs the opposite; `tests/AGENTS.md` § A repository-level assertion
+  cannot live in a package test tree, and § Roster steps are named and placed by
+  hand;
   `docs/specs/frontend-visual-authority/spec.md:80` (the contract-tier
   `Always do` rule this contract supersedes);
   `packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_precedence.py:41`
@@ -84,39 +89,48 @@ remove it — so the test is proved able to fail before it is trusted.
 Required by `tdd-stubs.md` § *Validate* and § *Record*, which fail closed at
 plan approval without them.
 
-Re-validated 2026-10-02 after the amendment, against the tree
-`visual-target-field` left. Every result below is from that run.
+**Re-run from scratch 2026-10-02 after round 1**, because round 1 proved the
+previous record false: two blocks reddened on `NameError`, not on their
+criteria, and `py_compile` cannot tell those apart. Every result below is from
+that re-run, against the tree `visual-target-field` left.
 
 - **Compile pass:** `python -m py_compile` over each of the four blocks, run
   from disposable scratch outside the repository test tree. Result: **all four
   compile.**
-- **Intended red:** appended to a disposable copy of the owning test modules,
-  collected and run under pytest, then removed. Result: **red**, including T7's
-  inherited gating assertions and T2's rung-condition assertion, each on its
-  own criterion. T7 reds on AC-0012, and its failure message confirms why T7
-  must split the block first: the anchor sits inside a paragraph running from
-  `The target is <output_dir>/direction/<slug>.md` to `the open questions`.
-- **T4's property reds at exactly 14 violations**, matching the extent § The
-  mechanism records. That agreement is the point of running it: a sweep whose
-  red count disagrees with the measured migration is measuring something else.
-  T4's second test — the 27-carrier floor — **passes**, so the sweep is reaching
-  the tree rather than finding nothing. The mutation check in T4's Approach is
-  still owed at execution time; it proves the property reds on a *newly
-  introduced* violation, which a standing red does not.
-- **A defect this run caught.** The first validation red was 23, not 14,
-  because the block swept every file and only its docstring said Markdown. It
-  pulled in both packs' eval payloads, three test modules, and — decisively —
-  its own docstring, which explains the mechanism and therefore violated it.
-  The block now filters to `.md` in the property test, leaving the floor test
-  counting `.md`, `.json` and `.py` as the carrier-reach guard it is meant to
-  be. Limit 2 was already in the spec; the stub did not implement it.
+- **Intended red, each on its own criterion** — this is the claim round 1
+  falsified, so each is named with the assertion it reddened on:
+
+  | Block | Placement | Red on |
+  | --- | --- | --- |
+  | T2 | appended to the pack's `test_visual_authority_precedence.py` | `AssertionError: AC-0001` |
+  | T4 | new `tests/roster/test_visual_target_exclusive_property.py` | the property, **14 violations** |
+  | T5 | new `tests/roster/test_visual_authority_supersession.py` | `AssertionError: AC-0008: Status does not name ADR-0132` |
+  | T7 | appended to `creative-direction/test_contract.py` | `AssertionError: AC-0012` |
+
+  T4's 14 agrees with the extent § *The mechanism* records. That agreement is
+  the point of running it: a red count disagreeing with the measured migration
+  is measuring something else.
+- **T4's second test passes**, reaching 12 non-Markdown carriers against its
+  floor of 12. It is the guard against a sweep that finds nothing, and it must
+  pass while the property reds.
+- **Boundary lint, with both new roster modules present in the tree:**
+  `python3 tools/test-lint-pack-test-boundary.py` → **ok — 154 cases passed**,
+  exit 0. This is the gate that refused the original placement; the relocation
+  is verified against it rather than argued.
 - **Isolation:** local, filesystem-confined to the repository and disposable
-  scratch, no network. No isolation downgrade was needed.
-- **Cross-contract check.** T7's block was stacked after the predecessor's
-  blocks in one disposable module and `ruff check --select F811` was run over
-  the result: clean. That is the check that matters here, because T7 reuses
-  `_unique_paragraph` rather than redefining it, and a second definition in the
-  same module would fire F811 under T6's `make lint-ruff` gate.
+  scratch, no network. Each block was removed and the tree confirmed clean
+  (`git status --porcelain` showing only the two spec files) after every run.
+- **Cross-contract check.** T7's block was appended to the module the
+  predecessor leaves `_unique_paragraph` in, and `ruff check --select F811` over
+  the result is clean. That is the check that matters: T7 reuses the helper
+  rather than redefining it, and a second definition would fire F811 under T6's
+  `make lint-ruff` gate. Verified again on the re-run.
+
+**What is still owed, and is not evidence yet.** T4's mutation check — a
+*newly introduced* violation must red the property, and the property must green
+again when it is removed. A standing red over an unmigrated tree does not prove
+that. T4's Approach carries it and the verification ledger records both
+observations at execution time.
 
 ## Durable-output map
 
@@ -168,9 +182,10 @@ Owned by: T6
 
 Sequenced after `visual-target-field`. Both packs bump, because carriers in
 each change. `marketplace.json` is generated: commit first, then run plain
-`make build-self`. `packs/AGENTS.local.md` § Landing changes forbids passing
+`make build-self`. The **root** `AGENTS.local.md:49-60` forbids passing
 `FORCE=1` from automation, and committing first removes the reason to reach for
-it.
+it. `packs/AGENTS.local.md:29` says "Run `FORCE=1 make build-self`"; that is the
+interactive maintainer path, and the root rule governs here.
 
 ## Tasks
 
@@ -217,7 +232,11 @@ it.
 
 ```python
 def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
-    text = read(VISUAL_OBSERVATION)
+    # OBSERVATION, not VISUAL_OBSERVATION: this module imports the former from
+    # frontend_engineering_visual_authority_rules. The latter is defined only in
+    # the sibling test_visual_authority_slice_two.py and would raise NameError
+    # here — a red indistinguishable from a criterion failure.
+    text = read(OBSERVATION)
     row = next(
         line
         for line in text.splitlines()
@@ -239,17 +258,27 @@ def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
 
 ### T3: Migrate the restating carriers
 
-**Depends on:** T2
+**Depends on:** T2, T4
+
+T4 now runs **before** T3, not after. The first draft had T4 `Depends on: T3`
+while T3's `Done when` was "T4's property test is green", so the artifact that
+closed T3 did not exist when T3 closed. The property is the migration's
+instrument; it lands first, reds over the unmigrated tree, and goes green as T3
+walks the loci it names.
 
 **Tests:**
 - AC-0004 is covered through the T4 property rather than by per-file
   assertions, because a per-file assertion is the closed surface set this
   contract is forbidden to retry.
-- Contract test: each of the twelve non-Markdown carriers names the field where it
-  asserts the rung's precondition, checked over parsed structure — the eval
-  payloads' `assertions` entries and the test modules' rung constants — and one
-  guard asserts the count of non-Markdown carriers the sweep reaches has not
-  fallen. Verifies AC-0011.
+- `no stub (goal-based check)` for AC-0005: its two loci lie outside every
+  mechanism in this contract, so each is a recorded manual observation in
+  `notes/verification-ledger.md`, not an assertion. Naming two loci a
+  measurement found is not the forbidden closed surface set — the property
+  still computes its own scope, and these are its measured complement.
+- Contract test: each of the twelve non-Markdown carriers names the field where
+  it asserts the rung's precondition, checked over parsed structure — the eval
+  payloads' `assertions` entries and the test modules' rung constants.
+  Verifies AC-0011's per-pack half; T4 carries its guard half.
 
 **Approach:**
 - The measured migration is **14 sentences across 12 Markdown files**, plus
@@ -261,10 +290,25 @@ def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
   precondition to name the field. Both packs' eval harnesses are carriers and
   are updated here, which also discharges `packs/AGENTS.md`'s eval-harness
   obligation for both packs.
-- **Four of T3's eleven are segmentation artefacts**, per the spec's limit 3:
-  `design-system/SKILL.md`'s two tables and the `**Route:**` comment block in
-  `token-taxonomy-template.md` and `establish-design-intent.md`. Migrate them;
-  do not add table or comment awareness to the property to exempt them.
+- **Five of the fourteen are segmentation artefacts**, per the spec's limit 3 —
+  `design-system/SKILL.md`'s two tables, the `**Route:**` comment block in
+  `token-taxonomy-template.md` and `establish-design-intent.md`, and a second
+  `establish-design-intent.md` run-on starting `confirm the shape against what
+  you get back.*`, whose `.*` defeats the sentence splitter. Migrate all five;
+  do not add table or comment awareness to the property to exempt them. The
+  run-on is the worst of them: its only available migration names the field
+  inside a copy-paste user prompt that states no condition. Record that in the
+  verification ledger as a known cost rather than letting a later round
+  rediscover it as a defect.
+- **Two AC-0005 loci are migrated by hand**, because no mechanism here reaches
+  them. In `guides/frontend-engineering/how-to/read-the-design-handoff.md`,
+  `**You are here if** the artifact says somewhere that the composition was
+  approved or signed off, rather than merely proposed or picked.` carries no
+  target reference at all. In
+  `packs/experience-design/.apm/skills/design-system/SKILL.md`,
+  `the visual target when one exists` has only the cue `exists`, outside the
+  confirmation-cue set. Both are the superseded reading stated plainly. Record
+  each as a named observation in the verification ledger.
 - Respect the two whitespace-normalized sentence pins and the two pinned eval
   ids in `test_visual_authority_slice_two.py`.
 
@@ -274,26 +318,43 @@ owns outright. Those three carry both a migration and a gate, and splitting
 them across two tasks is how the AC-0006 interaction goes unnoticed; T7 does
 both edits in one place.
 
-**Done when:** T4's property test is green over the full swept scope.
+**Done when:** `python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -q` is green, and the verification ledger records the two AC-0005 observations and the run-on locus cost.
 
 ### T4: The exclusive property is enforced, and proved able to fail
 
-**Depends on:** T3
+**Depends on:** T1
+
+**Where it lives, and why it moved.** `tests/roster/`, not the pack suite the
+first draft named. The sweep reads `packs/`, `guides/`, `web/src/content/`,
+`tests/` and `docs/design/`, and `tests/AGENTS.md` § *A repository-level
+assertion cannot live in a package test tree* forbids a pack test reading above
+its own pack — `tools/lint-pack-test-boundary.py` check 8 enforces it on both
+`parents[5]` and `REPO_ROOT / root`. That file names `tests/roster/` as the home
+for a repository-level assertion and fixes its anchor at `parents[2]`. Landing
+there carries the registration obligations T8 discharges.
 
 **Tests:**
-- Contract test: the sweep property holds. Verifies AC-0005, AC-0006.
-- Contract test: the cue set is one named constant and the docstring records
-  the property's limit. Verifies AC-0007.
+- Contract test: the sweep property holds. Verifies AC-0006.
+- Contract test: the cue set and the stripped name forms are named constants and
+  the docstring records both exclusions. Verifies AC-0007.
+- Contract test: the count of **non-Markdown** carriers the sweep reaches has
+  not fallen. Verifies AC-0011's guard half. It counts that subset, not the
+  aggregate: an aggregate floor stays green while every non-Markdown carrier
+  disappears and Markdown ones replace them.
 - `no stub (goal-based check)`: the mutation check — the test reds against a
   scratch copy carrying one violating sentence, and greens again once removed.
 
-**Stub** — new file `packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_target_exclusive_property.py`:
+AC-0005 is **not** verified here. Its two loci lie outside the property by
+measurement, and the spec routes them to the verification ledger as recorded
+manual observations under T3.
+
+**Stub** — new file `tests/roster/test_visual_target_exclusive_property.py`:
 
 ```python
 """The rung's precondition names the field wherever it is stated.
 
-Positive exclusive property: within the swept scope, every sentence that
-refers to a visual target and states a confirmation or approval condition
+Positive exclusive property: within the swept Markdown scope, every sentence
+that refers to a visual target and states a confirmation or approval condition
 also contains the literal `visual_target`.
 
 The two tests read different text, deliberately. A name is not a cue — both
@@ -307,6 +368,9 @@ Two limits, stated so they are not rediscovered. A carrier that states the
 condition using none of CONFIRMATION_CUES is outside this property, and so is
 one whose only cue came from a stripped name. Widening either constant is a
 deliberate edit, gated Ask-first by the owning spec.
+
+This module lives in tests/roster/ because the sweep reads above any one pack;
+tools/lint-pack-test-boundary.py refuses that from a pack suite.
 """
 
 from __future__ import annotations
@@ -314,13 +378,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SWEEP_ROOTS = ("packs", "guides", "web/src/content", "tests", "docs/design")
 TARGET = re.compile(r"visual[ _-]target", re.I)
 NAME_FORMS = re.compile(r"approved[ -]visual[ -]target", re.I)
 CONFIRMATION_CUES = ("confirm", "approved")
 SKIP_DIRS = {"__pycache__", "node_modules", ".git"}
-KNOWN_CARRIER_FLOOR = 27
+NON_MARKDOWN_CARRIER_FLOOR = 12
 
 
 def _sentences(text: str) -> list[str]:
@@ -335,6 +399,14 @@ def _swept_files() -> list[Path]:
                 continue
             found.append(path)
     return found
+
+
+def _carries_target(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    return TARGET.search(" ".join(text.split())) is not None
 
 
 def test_every_confirmation_sentence_names_the_field() -> None:
@@ -367,53 +439,82 @@ def test_every_confirmation_sentence_names_the_field() -> None:
     assert not violations, "AC-0006: " + "\n".join(violations)
 
 
-def test_the_sweep_actually_reaches_the_known_carriers() -> None:
-    """A sweep that finds nothing passes for the wrong reason."""
+def test_the_non_markdown_carrier_count_has_not_fallen() -> None:
+    """A sweep that finds nothing passes for the wrong reason.
+
+    Counts the non-Markdown subset specifically. An aggregate floor over
+    .md/.json/.py stays green while every non-Markdown carrier disappears and
+    Markdown ones replace it, which is the shrinkage AC-0011 exists to catch.
+    """
     reached = sum(
         1
         for path in _swept_files()
-        if path.suffix in {".md", ".json", ".py"}
-        and TARGET.search(" ".join(path.read_text(encoding="utf-8", errors="ignore").split()))
+        if path.suffix in {".json", ".py"} and _carries_target(path)
     )
-    assert reached >= KNOWN_CARRIER_FLOOR, (
-        f"AC-0006: sweep reached only {reached} carriers, "
-        f"floor is {KNOWN_CARRIER_FLOOR} (measured 2026-10-02)"
+    assert reached >= NON_MARKDOWN_CARRIER_FLOOR, (
+        f"AC-0011: sweep reached only {reached} non-Markdown carriers, "
+        f"floor is {NON_MARKDOWN_CARRIER_FLOOR} (measured 2026-10-02)"
     )
 ```
 
 **Approach:**
 - Run the mutation check before trusting the test: add one violating sentence
   to a scratch copy of a carrier, confirm red, remove it, confirm green. Record
-  both observations in the verification ledger.
-- The second test is the guard against the sweep silently reaching nothing; it
-  is why the property is trustworthy rather than merely present.
+  both observations in the verification ledger. A standing red does not prove
+  the property reds on a *newly introduced* violation; the mutation check does.
+- The second test is the guard against the sweep silently reaching nothing.
 
-**Touches:** packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_target_exclusive_property.py
+**Touches:** tests/roster/test_visual_target_exclusive_property.py
 
-**Done when:** both tests are green and the mutation check is recorded.
+**Done when:** both tests are green over the migrated tree and the mutation
+check is recorded in the verification ledger.
 
 ### T5: The superseded rule is annotated where it lives
 
 **Depends on:** T2
 
+**Where it lives.** `tests/roster/`, for the same boundary reason as T4: the
+assertion reads `docs/specs/frontend-visual-authority/spec.md`, and no pack test
+may reach above its own pack. The first draft appended it to the pack's
+precedence module and dereferenced `REPO_ROOT`, which that module does not
+define — the block raised `NameError` rather than failing on AC-0008, and the
+recorded intended-red evidence for AC-0008 was false.
+
+Unlike T4's module, this one **names a `docs/specs/<slug>` literal**, so it owes
+a `.workspace-prune-protected.toml` entry. T8 carries it. The entry is not
+present today: `docs/specs/frontend-visual-authority` is absent from that file,
+verified 2026-10-02.
+
 **Tests:**
 - Contract test: the superseded spec's `Status` names ADR-0132 and the
   superseded `Always do` rule. Verifies AC-0008.
 
-**Stub** — add to the same precedence test file:
+**Stub** — new file `tests/roster/test_visual_authority_supersession.py`:
 
 ```python
+"""ADR-0132 supersedes a contract-tier rule in a Shipped spec.
+
+Lives in tests/roster/ because it reads docs/specs/, which
+tools/lint-pack-test-boundary.py forbids a pack test from reaching.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SUPERSEDED_SPEC = REPO_ROOT / "docs/specs/frontend-visual-authority/spec.md"
+
+
 def test_the_superseded_rung_condition_rule_is_annotated() -> None:
     status = next(
         line
-        for line in (REPO_ROOT / "docs/specs/frontend-visual-authority/spec.md")
-        .read_text(encoding="utf-8")
-        .splitlines()
+        for line in SUPERSEDED_SPEC.read_text(encoding="utf-8").splitlines()
         if line.startswith("- **Status:**")
     )
     flat = " ".join(status.split()).lower()
-    assert "adr-0132" in flat, "AC-0008"
-    assert "rung condition" in flat, "AC-0008"
+    assert "adr-0132" in flat, "AC-0008: Status does not name ADR-0132"
+    assert "rung condition" in flat, "AC-0008: Status does not name the rule"
 ```
 
 **Approach:**
@@ -421,10 +522,45 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
   960-line body budget; everything else stands)`. "Everything else stands" is
   no longer true once this contract lands, so the annotation both adds ADR-0132
   and removes that clause.
+- Prove the intended red from this placement, not from the pack suite: a
+  `NameError` and a criterion failure are both reds, and only one of them is
+  evidence.
 
-**Touches:** docs/specs/frontend-visual-authority/spec.md, packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_precedence.py
+**Touches:** docs/specs/frontend-visual-authority/spec.md, tests/roster/test_visual_authority_supersession.py
 
-**Done when:** the precedence suite is green.
+**Done when:** `python3 -m pytest tests/roster/test_visual_authority_supersession.py -q` is green and `python3 tools/test-lint-pack-test-boundary.py` is clean.
+
+### T8: Register both roster modules in CI
+
+**Depends on:** T4, T5
+
+**Tests:**
+- `no stub (goal-based check)`. `python3 tools/lint-ci-parity.py --root .`
+  exits 0, and the construction test that re-derives
+  `.workspace-prune-protected.toml` from the roster tests' literal spec paths
+  is green. Verifies AC-0015.
+
+**Approach:**
+- For each of the two new modules, add a step to
+  `.github/workflows/build-check.yml` naming the file, **above** the bulk
+  `pytest tests/ -q` carve-out step, carrying the
+  `if: "!cancelled() && steps.python.conclusion == 'success'"` guard every
+  roster step carries. Placement decides attribution, not execution.
+- Add each step name to **both** axes of `tools/lint-ci-parity.py` with
+  `LOCAL("test-after-build-check")`: `_LOCAL_STEP_DISPOSITION` (line 341) and
+  the `_GATE_MAIN_CHECKS` tuple (line 895). `tests/AGENTS.md` documents only
+  the first; a step named in one axis alone is still a violation. The
+  predecessor slice registered its two roster tests on both — lines 665, 667
+  and 965, 966 — and that is the shape to copy.
+- Add `docs/specs/frontend-visual-authority` to
+  `.workspace-prune-protected.toml` for T5's module only. T4's module names no
+  spec path and owes no entry.
+- Run `ruff check .` afterwards. Moving a test out of a pack suite orphans the
+  imports only it used, and the repository lint targets do not cover that.
+
+**Touches:** .github/workflows/build-check.yml, tools/lint-ci-parity.py, .workspace-prune-protected.toml
+
+**Done when:** `python3 tools/lint-ci-parity.py --root .` exits 0 and `ruff check .` is clean.
 
 ### T7: The producing surfaces are gated on a confirmed target
 
@@ -502,7 +638,7 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 ### T6: The release surface is consistent
 
-**Depends on:** T2, T3, T4, T5, T7
+**Depends on:** T2, T3, T4, T5, T7, T8
 
 **Tests:**
 - `no stub (goal-based check)`. `tests/conformance/test_pack_metadata.py`
@@ -528,8 +664,9 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
   reverting it.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** T1, T2, then T3, T5 and T7 in any order, then T4,
-  then T6.
+- **Deployment sequencing:** T1, T2, then T4 (the property lands red), then T3
+  (the migration turns it green), with T5 and T7 in any order alongside, then T8
+  to register the two roster modules, then T6.
 
 ## Risks
 
@@ -548,6 +685,42 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 ## Changelog
 
+- 2026-10-02 (round 1): Revised from eleven sustained findings. The round found
+  one thing the contract could not survive and several it could not verify.
+  **The enforcing test could not live where the contract put it.** A pack test
+  may not read above its own pack, `tools/lint-pack-test-boundary.py` check 8
+  enforces it, and T4's sweep reads five repository roots. T4 and AC-0008's
+  assertion both move to `tests/roster/` anchored at `parents[2]`, which
+  `tests/AGENTS.md` names as the home for a repository-level assertion. That
+  placement carries three registration obligations, so **T8 and AC-0015 are
+  new** — a named build-check step above the bulk step, a `STEP_DISPOSITION`
+  entry on *both* axes of `lint-ci-parity.py`, and a
+  `.workspace-prune-protected.toml` entry for T5's module only, which is the
+  one naming a `docs/specs/<slug>` literal.
+  **Two stubs reddened on `NameError`, not on their criteria.** T2 called
+  `read(VISUAL_OBSERVATION)` where its module exports `OBSERVATION`; T5
+  dereferenced a `REPO_ROOT` the pack defines nowhere. `py_compile` cannot see
+  either, so the previous Stub validation record asserted evidence it did not
+  have. The record is re-run from scratch and now names the assertion each
+  block reds on.
+  **T3 could not close.** Its `Done when` was T4's test going green while T4
+  depended on T3. T4 now runs first: the property lands red and T3's migration
+  turns it green.
+  **AC-0005 had nothing that could decide it**, and the owner narrowed it
+  rather than widening the cue set. Adding `exists` and `present` was measured —
+  14 sentences to 19, three of the five additions stating no condition — and
+  declined. AC-0005 now asserts over the sentences AC-0006 reaches and names
+  its two outside loci for hand migration.
+  **Two counts were wrong.** The segmentation-artefact class is five, not four;
+  `establish-design-intent.md` carries two, the second a run-on whose `.*`
+  defeats the splitter. And limit 3 still carried a pre-amendment "seven"
+  beside the amended "fourteen".
+  **One citation pointed at a file that says the opposite.** The no-`FORCE=1`
+  rule is in the root `AGENTS.local.md:49-60`; `packs/AGENTS.local.md` has no
+  § Landing changes and its line 29 instructs `FORCE=1 make build-self`.
+  Finding #12 was refuted and nothing was changed for it: `NAME_FORMS` matches
+  the two forms AC-0006 names, and `approved_visual_target` occurs nowhere in
+  the repository.
 - 2026-10-02: Revised after T1's re-measurement against the tree
   `visual-target-field` left, before any reviewer started. Three changes, each
   from a measurement rather than a reading.
