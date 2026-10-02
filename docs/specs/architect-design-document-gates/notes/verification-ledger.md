@@ -390,7 +390,7 @@ Two files are committed at `testdata/`:
 `precheck-defects.md` (the planted-defect variant, AC-0049). Both are
 authored from `assets/subsystem-design.md` and describe the layer-5
 enterprise-telemetry-endpoint-default subsystem
-`docs/product/intents/catalogue-level-telemetry-endpoint-default.md` frames.
+`docs/product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md` frames.
 
 **Reference document, measured.** `check_document_architecture.py`'s own
 `count_words`, loaded the same way `test_gate_text.py` and

@@ -586,7 +586,7 @@ that task.
   subsystem design for layer 5 of the telemetry endpoint cascade —
   `catalogue.toml` `[pack-defaults.core]` baked into
   `_data/install-defaults.toml`, the one layer of the five in
-  `docs/product/intents/catalogue-level-telemetry-endpoint-default.md`
+  `docs/product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md`
   § Future state that no component can currently read. Layers 1-4 shipped with
   `telemetry-sender-owns-its-configuration`; `loop-telemetry-export` is
   Shipped and `jsonl-otlp-exporter` is Approved, so the exporter works and an

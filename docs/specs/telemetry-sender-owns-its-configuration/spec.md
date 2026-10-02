@@ -96,7 +96,7 @@ AC-0041 to relocate it should stop: there is nothing to move.
 | Current product truth | Applicable — the PyPI README advertises the retired resolver | `packages/agentbundle/README-pypi.md` | spec owner | AC-0004 green | No live surface references the retired module |
 | Interface compatibility — the sender's published description | Applicable — the sender gains a flag and changes flag semantics, and its README is what PyPI shows | `packages/jsonl-otlp-exporter/README-pypi.md`, its `CHANGELOG.md`, its `pyproject.toml` | spec owner | Option table and four-source precedence list name `--user-config`; version bumped | Published prose matches the shipped flag set, and the behaviour change is named |
 | Release history | Applicable — a public module is removed from a released distribution | `packages/agentbundle/CHANGELOG.md`, `docs/product/changelog.md` | spec owner | Entry naming the removal under the bumped version | `pyproject.toml` and `version.py` agree, and the changelog names the removal |
-| Decision rationale | Applicable — a live shaping question is answered by this delivery | `docs/product/intents/loop-telemetry-contract-corrections.md` | repository maintainers | The undeliverable-setting question recorded as answered, with AC-0031's half explicitly untouched | The intent states which of its two questions this delivery closed and which remains |
+| Decision rationale | Applicable — a live shaping question is answered by this delivery | `docs/product/intents/FEAT-0016-loop-telemetry-contract-corrections.md` | repository maintainers | The undeliverable-setting question recorded as answered, with AC-0031's half explicitly untouched | The intent states which of its two questions this delivery closed and which remains |
 | Reusable learning | Applicable — every new control needs mutation proof before it is trusted | `docs/specs/telemetry-sender-owns-its-configuration/notes/verification-ledger.md` | spec owner | Per-control mutation record: the mutation, the observed red, the suite | Every control added by this delivery has a recorded failing mutation |
 | Operations | Not applicable | — | — | — | — |
 | Maintainer procedure | Not applicable — no new maintainer step; the existing release and roster procedures cover it | — | — | — | — |
@@ -216,7 +216,7 @@ this delivery introduced; the two it already reports — `profile.py:65` and
 ## Follow-ons
 
 - AgentBundle distribution maintainers:
-  [`docs/product/intents/catalogue-level-telemetry-endpoint-default.md`](../../product/intents/catalogue-level-telemetry-endpoint-default.md)
+  [`docs/product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md`](../../product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md)
   — let an enterprise operator bake a telemetry endpoint once in its catalogue so
   every user installing the core pack exports to it with no setup. That runs
   through RFC-0101's pack-defaults cascade, not the `[telemetry]` resolution this
@@ -230,7 +230,7 @@ this delivery introduced; the two it already reports — `profile.py:65` and
   enterprise default means installing does begin sending.
 
 - repository maintainers:
-  [`docs/product/intents/loop-telemetry-contract-corrections.md`](../../product/intents/loop-telemetry-contract-corrections.md)
+  [`docs/product/intents/FEAT-0016-loop-telemetry-contract-corrections.md`](../../product/intents/FEAT-0016-loop-telemetry-contract-corrections.md)
   — AC-0031's four-of-six gate enumeration remains open. This delivery answers
   only that intent's second question, by giving the undeliverable-setting refusal
   a criterion in the sender's contract.
@@ -243,7 +243,7 @@ this delivery introduced; the two it already reports — `profile.py:65` and
   telemetry_layout` returns `guides/core/how-to/export-loop-telemetry.md:133,167`,
   `packages/agentbundle/README-pypi.md:41`,
   `packages/agentbundle/CHANGELOG.md:35`, `docs/product/changelog.md:187`,
-  `docs/product/intents/loop-telemetry-contract-corrections.md:23`, and
+  `docs/product/intents/FEAT-0016-loop-telemetry-contract-corrections.md:23`, and
   `packages/agentbundle/tests/unit/test_telemetry_layout.py:13`)
 - Technical: no install-time, catalogue or schema path reads a `[telemetry]`
   table. `agentbundle-layout.toml` is read by 84 `.py` files, but for other
@@ -321,4 +321,4 @@ this delivery introduced; the two it already reports — `profile.py:65` and
   and needs no additional configuration source here. This is why the chain stops
   at two files: a scope outranking `--config` would have had to be specified now
   (source: user confirmation 2026-09-16, recorded in
-  [`catalogue-level-telemetry-endpoint-default`](../../product/intents/catalogue-level-telemetry-endpoint-default.md))
+  [`catalogue-level-telemetry-endpoint-default`](../../product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md))
