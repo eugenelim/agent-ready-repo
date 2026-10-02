@@ -1,6 +1,6 @@
 # Spec: Acceptance authority and evidence
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0005, ADR-0061, ADR-0125
