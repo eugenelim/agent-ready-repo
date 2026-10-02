@@ -1421,6 +1421,15 @@
                 "wall_time_seconds": 473.573,
                 "attribution": "normal-loop implementer work, observed rather than study-added"
               },
+              "release_baselines_observed_before_t6": {
+                "read_by": "controller, directly from the tree, before T6 was dispatched",
+                "read_at": "2026-10-02, at delivery branch commit 13e3b7aa9",
+                "why_before": "AC-0009 requires each new version to exceed the version its branch carried when the slice began. Once T6 bumps, the tree no longer shows what that was. An independent pre-bump reading is the only thing that lets the criterion be checked after the fact rather than taken from the implementer's own account of what it found.",
+                "frontend_engineering": {"pack_toml": "0.4.0", "plugin_json": "0.4.0", "marketplace_json": "0.4.0"},
+                "experience_design": {"pack_toml": "4.1.2", "plugin_json": "4.1.2", "marketplace_json": "4.1.2"},
+                "release_pin_before": "packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py:89 asserts version == \"0.4.0\" by equality, with a message saying a later delivery moves the pin with its own bump. This contract is that delivery.",
+                "expected_bump": "patch for both packs, per packs/AGENTS.md § Version bump rule: patch for changed content, minor for new primitives, major for removals. This contract rewords shipped instructions and adds tests; it publishes no new skill, subagent, command or hook."
+              },
               "spec_gate_2026_10_02": {
                 "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
                 "gate_question": "Does this spec define the right thing to build?",
