@@ -368,15 +368,22 @@ Retention class: repository-durable.
   once in that file. The second literal is this criterion's own requirement,
   not AC-0006's and not a gate on a field read; see limit 4.
 - [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
-  line names ADR-0132, names **both** parts this contract supersedes, and no
-  longer carries the clause that contradicts them. The two parts are the
-  `Always do` rule at that spec's line 80 about stating rung conditions as
-  properties the pack defines, and its **AC-0003a**, which pins the Requires
-  cell to `recorded-human-confirmation` — the criterion T2's edit falsifies. The
-  stale clause is `everything else stands`, true under ADR-0130 alone and false
-  once this ships. **The criterion covers that one `Status` line and nothing
-  else**: annotating the governance record is this contract's business, editing
-  another spec's criteria list is not.
+  line carries a **second, appended** supersession clause in the documented
+  form — `(superseded in part by ADR-0132 — <what changed>; everything else
+  stands)` — naming **both** parts this contract supersedes: the `Always do`
+  rule at that spec's line 80 about stating rung conditions as properties the
+  pack defines, and its **AC-0003a**, which pins the Requires cell to
+  `recorded-human-confirmation` and which T2's edit falsifies. **The existing
+  ADR-0130 clause is left exactly as it stands, trailing phrase included.**
+  `everything else stands` is scoped per clause, not globally:
+  `.claude/skills/new-spec/references/spec-and-plan-contract.md:328` ends every
+  clause with it, and `docs/specs/sast-sca-tooling/spec.md:3` carries two
+  parentheticals that each do, as does `frontend-experience-composition`'s with
+  three. An earlier draft of this criterion required the phrase's removal; that
+  would have edited the annotation of a decision this contract has nothing to do
+  with. **The criterion covers that one `Status` line and nothing else**:
+  annotating the governance record is this contract's business, editing another
+  spec's criteria list is not.
 - [ ] **AC-0009.** `packs/frontend-engineering` and `packs/experience-design`
   each carry matching versions across `pack.toml`,
   `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, each

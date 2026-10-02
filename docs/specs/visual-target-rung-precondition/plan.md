@@ -557,17 +557,25 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
     assert "adr-0132" in flat, "AC-0008: Status does not name ADR-0132"
     assert "rung condition" in flat, "AC-0008: Status does not name the rule"
     assert "ac-0003a" in flat, "AC-0008: Status does not name the superseded criterion"
-    # The clause must be gone, not merely joined by a newer one: this contract
-    # supersedes a second part of that spec, so "everything else stands" is
-    # false the moment it ships.
-    assert "everything else stands" not in flat, "AC-0008: stale clause survives"
+    # Appended, not edited in place. `everything else stands` is scoped per
+    # clause, so the ADR-0130 clause keeps its own and the ADR-0132 clause ends
+    # with its own; two occurrences is the documented two-supersession form.
+    assert flat.count("everything else stands") == 2, (
+        "AC-0008: expected one trailing phrase per supersession clause"
+    )
+    assert flat.index("adr-0130") < flat.index("adr-0132"), (
+        "AC-0008: the ADR-0132 clause must be appended after the ADR-0130 one"
+    )
 ```
 
 **Approach:**
 - The existing `Status` reads `Shipped (superseded in part by ADR-0130 —
-  960-line body budget; everything else stands)`. "Everything else stands" is
-  no longer true once this contract lands, so the annotation both adds ADR-0132
-  and removes that clause.
+  960-line body budget; everything else stands)`. **Append** a second clause in
+  the same form for ADR-0132 and leave the first untouched. The trailing phrase
+  is scoped to its own clause — `spec-and-plan-contract.md:328` ends every
+  clause with it, and two shipped specs carry it twice and three times
+  respectively — so removing it from the ADR-0130 clause would edit another
+  decision's annotation, not this one's.
 - Prove the intended red from this placement, not from the pack suite: a
   `NameError` and a criterion failure are both reds, and only one of them is
   evidence.
@@ -753,7 +761,7 @@ T6 bumps.
   carried in one constant so widening it is deliberate. It is a smaller risk
   than the three mechanisms this contract replaces, each of which assumed the
   author already knew the full extent.
-- **Body budget.** `SKILL.md` has five lines of headroom. If T2's rewording
+- **Body budget.** `SKILL.md` has four lines of headroom (964 of 968, measured; see § Constraints). If T2's rewording
   needs more, stop and ask rather than raising `BODY_BUDGET`, which a Shipped
   spec owns.
 - **The sweep test is repository-wide and will be read by every later change.**
@@ -763,6 +771,32 @@ T6 bumps.
 
 ## Changelog
 
+- 2026-10-02 (round 5): Revised from two sustained findings, both against the
+  round-4 repair, neither a Blocker. The round-4 repairs were otherwise checked
+  and found sound — the AC-0008 widening stays inside the one `Status` line,
+  AC-0003a's enforcing artifact is the assertion T2 already owns rewriting so
+  the widening creates no unowned red, T6's added suite run does reach the
+  release module, and T8's bullet and `Done when` now agree.
+  **The headroom figure had a third home.** Round 4 corrected `plan.md:82` and
+  `spec.md:225` and left the `Risks` bullet reading five lines. Corrected, and
+  it now cites § Constraints rather than restating the measurement, so a future
+  correction has one number to change and one pointer. **The round-4 entry
+  below says "both documents" were corrected; that was wrong when written** —
+  there were three sites, not two. It is annotated here rather than rewritten.
+  **AC-0008 instructed an edit to another decision's annotation.** It required
+  `everything else stands` to be absent from `frontend-visual-authority`'s
+  `Status`, on the premise that the phrase is globally scoped and falsified by
+  this contract. The premise is false: `spec-and-plan-contract.md:328` ends
+  **every** supersession clause with it, and the repository's multi-supersession
+  records scope it per clause — `sast-sca-tooling/spec.md:3` carries two
+  parentheticals each ending with it, `frontend-experience-composition`'s
+  carries three. Deleting it from the ADR-0130 clause would have edited the
+  annotation of a decision this contract has nothing to do with, and would have
+  left the new ADR-0132 clause off-form. AC-0008 now requires a second clause
+  **appended** in the documented form, with the first left exactly as it stands.
+  T5's stub asserts the shape rather than an absence: two occurrences of the
+  trailing phrase, one per clause, with the ADR-0132 clause after the ADR-0130
+  one.
 - 2026-10-02 (round 4): Revised from four sustained findings — three Concerns
   and a Nit, **no Blockers**, and the reviewer's verdict was that the contract
   is startable. The round-3 repairs held: it found no new defect in T2's
