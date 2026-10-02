@@ -523,11 +523,15 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 
 ["ini-003".work]
 active  = [
-    {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed, gate converge, visualize and creative-direction SKILL.md on a confirmed target under the three criteria visual-target-field retired on 2026-09-30, and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-target-field/spec.md"}]},
 ]
 queue   = [
 ]
 shipped = [
+  # Shipped 2026-10-02. Makes the approved-visual-target rung resolve only on
+  # `visual_target: confirmed`, migrating every carrier that restated the
+  # superseded prose reading and enforcing it with a repository-level property
+  # over a re-run sweep. Seven pre-EXECUTE review rounds and three post-gates.
+  {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed, gate converge, visualize and creative-direction SKILL.md on a confirmed target under the three criteria visual-target-field retired on 2026-09-30, and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-target-field/spec.md"}]},
     {path = "docs/specs/xd-copy-router/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/experience-design-skill-consolidation.md"}, summary = "Fold content-design, copy-direction and tone-of-voice into one copy-layer skill with three modes, reconciling six drifted shared references", needs = [{type = "local", kind = "spec", path = "docs/specs/xd-genre-router/spec.md"}]},
     {path = "docs/specs/xd-genre-router/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/experience-design-skill-consolidation.md"}, summary = "Fold six genre skills and information-architecture into one genre-aware skill and repair frontend-engineering's genre routing", needs = [{type = "local", kind = "spec", path = "docs/specs/creative-direction-modes/spec.md"}]},
     {path = "docs/specs/creative-direction-modes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give creative-direction five operations, divergence generation, and a capability-gated visual step, with a smaller always-loaded body; standalone, no brief", needs = []},

@@ -1,6 +1,6 @@
 # Spec: visual-target rung precondition
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md);
@@ -281,20 +281,20 @@ Retention class: repository-durable.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** In `references/visual-observation.md`, the precedence-table
+- [x] **AC-0001.** In `references/visual-observation.md`, the precedence-table
   row whose first cell is `approved-visual-target` contains the literal
   `visual_target: confirmed` in its condition cell.
-- [ ] **AC-0002.** That file contains none of the literals `experience-design`,
+- [x] **AC-0002.** That file contains none of the literals `experience-design`,
   `creative-direction`, `design-system`.
-- [ ] **AC-0003.** In `frontend-engineering`'s `SKILL.md`, the sentence naming
+- [x] **AC-0003.** In `frontend-engineering`'s `SKILL.md`, the sentence naming
   what the `approved-visual-target` rung requires contains the literal
   `visual_target: confirmed`.
-- [ ] **AC-0004.** `packs/frontend-engineering/.apm/agents/frontend-reviewer.md`
+- [x] **AC-0004.** `packs/frontend-engineering/.apm/agents/frontend-reviewer.md`
   and `guides/frontend-engineering/how-to/read-the-design-handoff.md` each
   contain the literal `visual_target` wherever they state the rung's
   precondition, verified by the AC-0006 property rather than by a per-file
   assertion.
-- [ ] **AC-0005.** **Two loci state the superseded presence reading and lie
+- [x] **AC-0005.** **Two loci state the superseded presence reading and lie
   outside every mechanism in this contract. Both are migrated by hand under T3,
   named here so the criterion is decidable rather than open-ended:**
   `guides/frontend-engineering/how-to/read-the-design-handoff.md`'s
@@ -316,7 +316,7 @@ Retention class: repository-durable.
   sentence and settles nothing about what that sentence claims — so it was
   dropped rather than given new machinery. AC-0005 is now exactly the two loci
   above. See § The mechanism, and its limit, limit 1.
-- [ ] **AC-0006.** A construction test enforces the positive exclusive property:
+- [x] **AC-0006.** A construction test enforces the positive exclusive property:
   over a whitespace-normalized sweep of the Markdown files under `packs/`,
   `guides/`, `web/src/content/`, `tests/` and `docs/design/`, every sentence
   matching `visual[ _-]target` **in its unstripped text** that also contains a
@@ -325,11 +325,11 @@ Retention class: repository-durable.
   the literal `visual_target`. The two tests read different text, deliberately:
   see § The mechanism, and its limit, limit 1. The scope is computed by the test
   at run time from those roots; no file list is embedded.
-- [ ] **AC-0007.** That test names its confirmation-cue set and its stripped
+- [x] **AC-0007.** That test names its confirmation-cue set and its stripped
   name forms explicitly in module-level constants, and its docstring records
   both exclusions: a carrier stating the condition with no cue from that set is
   outside the property, and so is one whose only cue came from a stripped name.
-- [ ] **AC-0011.** Every non-Markdown carrier **that asserts the rung's
+- [x] **AC-0011.** Every non-Markdown carrier **that asserts the rung's
   precondition** names the field where it does so, verified by the suite that
   owns it over parsed structure rather than by the sentence property.
   **This criterion states no count, deliberately.** Three successive drafts
@@ -344,14 +344,14 @@ Retention class: repository-durable.
   A second construction test asserts that the count of non-Markdown carriers
   the sweep reaches has not silently fallen. That count is mechanical and is
   the only number this criterion relies on.
-- [ ] **AC-0012.** In `packs/experience-design/.apm/skills/creative-direction/references/converge.md`,
+- [x] **AC-0012.** In `packs/experience-design/.apm/skills/creative-direction/references/converge.md`,
   the paragraph block containing the literal `write the selected direction's
   compositional commitments` also contains the literal `visual_target:
   confirmed`, and that anchor occurs exactly once in the file. T7 splits that
   instruction into its own blank-line-delimited block first: today it sits
   inside a five-sentence paragraph, so the literal could satisfy the criterion
   from a sentence unrelated to the gated write.
-- [ ] **AC-0013.** In `references/visualize.md`, the paragraph block containing
+- [x] **AC-0013.** In `references/visualize.md`, the paragraph block containing
   the literal `record its identity and three boundaries` also contains the
   literals `the human has confirmed` **and** `visual_target: confirmed`, and
   that anchor occurs exactly once in the file. Both, and they are not in
@@ -361,13 +361,13 @@ Retention class: repository-durable.
   is a citation, not a read. This criterion requires that literal in its own
   right; AC-0006 does not reach this sentence. See § The mechanism, and its
   limit, limit 4.
-- [ ] **AC-0014.** In `creative-direction`'s `SKILL.md` — that file read
+- [x] **AC-0014.** In `creative-direction`'s `SKILL.md` — that file read
   directly, not a concatenation of the skill's files — the list item beginning
   `- **Approved visual target**` contains the literals `the human has
   confirmed` **and** `visual_target: confirmed`, and that item occurs exactly
   once in that file. The second literal is this criterion's own requirement,
   not AC-0006's and not a gate on a field read; see limit 4.
-- [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
+- [x] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
   line carries a **second, appended** supersession clause in the documented
   form — `(superseded in part by ADR-0132 — <what changed>; everything else
   stands)` — naming **both** parts this contract supersedes: the `Always do`
@@ -385,13 +385,13 @@ Retention class: repository-durable.
   with. **The criterion covers that one `Status` line and nothing else**:
   annotating the governance record is this contract's business, editing another
   spec's criteria list is not.
-- [ ] **AC-0009.** `packs/frontend-engineering` and `packs/experience-design`
+- [x] **AC-0009.** `packs/frontend-engineering` and `packs/experience-design`
   each carry matching versions across `pack.toml`,
   `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, each
   strictly greater than the version its branch carried when this slice began,
   and `test_visual_authority_release.py`'s pin equals the new
   `frontend-engineering` version.
-- [ ] **AC-0010.** `docs/product/changelog.md` carries a free-standing `##`
+- [x] **AC-0010.** `docs/product/changelog.md` carries a free-standing `##`
   release entry for each new version, each with a `### Highlights` subsection
   naming the rung precondition.
 
