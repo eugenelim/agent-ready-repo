@@ -406,6 +406,68 @@ is no longer a violation. The remaining 11 are T3's migration.
 > **Approved visual target** — optional. When present and the human has confirmed it (`visual_target: confirmed`), identify the target, what is binding, what is illustrative, and what may adapt responsively.
 
 
+## T5: The superseded rule is annotated where it lives
+
+**Date:** 2026-10-02
+**Method:** Extracted T5 stub byte-identically from plan.md fenced `python` block.
+Wrote to `tests/roster/test_visual_authority_supersession.py`. Read-back compared
+byte-for-byte: **BYTE IDENTITY VERIFIED** (1408 bytes, sha256 `c169733ae84cb416`,
+`stub_from_plan == written` is `True`).
+
+### Intended red — before Status annotation
+
+`python3 -m pytest tests/roster/test_visual_authority_supersession.py -q` reds with:
+
+```
+AssertionError: AC-0008: Status does not name ADR-0132
+```
+
+Agrees with the plan's stated intended red (`AssertionError: AC-0008: Status does
+not name ADR-0132`).
+
+### Status line annotation
+
+Appended a second supersession clause to `docs/specs/frontend-visual-authority/spec.md`
+line 3 — one physical line, left end to right end unchanged except the insertion before
+the comment marker.
+
+**Full Status line as written:**
+
+```
+- **Status:** Shipped (superseded in part by ADR-0130 — 960-line body budget; everything else stands) (superseded in part by ADR-0132 — rung condition (Always do, line 80) and AC-0003a; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+```
+
+All five stub assertions verified manually against the lowercased, whitespace-normalized line:
+
+| Assertion | Value | Passes |
+| --- | --- | --- |
+| `"adr-0132" in flat` | present | yes |
+| `"rung condition" in flat` | present | yes |
+| `"ac-0003a" in flat` | present | yes |
+| `flat.count("everything else stands") == 2` | 2 | yes |
+| `flat.index("adr-0130") < flat.index("adr-0132")` | ADR-0130 is first | yes |
+
+### Property violation count
+
+`python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -q` reds with
+**11 violations** — unchanged from post-T7. T5 touches no swept Markdown carrier,
+so the count does not change.
+
+### Non-Markdown carrier count
+
+`test_the_non_markdown_carrier_count_has_not_fallen` passes with 12 carriers.
+The T5 module does not contain `visual[ _-]target` and is not a carrier.
+
+### Gate results
+
+- `make lint-ruff lint-mypy`: **All checks passed** / **Success: no issues found
+  in 149 source files**. Exit 0.
+- `python3 tools/test-lint-pack-test-boundary.py`: **ok — 154 cases passed**. Exit 0.
+- `python3 -m pytest tests/roster/test_visual_authority_supersession.py -q`:
+  **1 passed** in 0.26s. Exit 0.
+
+---
+
 ## Execution observation — limit 4's reasoning is superseded by the gate it describes
 
 Recorded 2026-10-02 by the controller, during verification of T7. This is an

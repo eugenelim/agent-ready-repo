@@ -1,6 +1,6 @@
 # Spec: frontend-visual-authority
 
-- **Status:** Shipped (superseded in part by ADR-0130 — 960-line body budget; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by ADR-0130 — 960-line body budget; everything else stands) (superseded in part by ADR-0132 — rung condition (Always do, line 80) and AC-0003a; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** `docs/specs/design-system-values/spec.md` — this spec must
