@@ -64,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [frontend-engineering][0.4.1] — 2026-10-02
+
+### Highlights
+
+- The `approved-visual-target` rung now resolves only when the direction artifact carries `visual_target: confirmed`. An approved target whose confirmation was never recorded no longer satisfies the rung; the distinction is in the artifact, not in a reviewer's memory.
+
+## [experience-design][4.1.3] — 2026-10-02
+
+### Highlights
+
+- `converge`, `visualize`, and `creative-direction` are now gated on a confirmed visual target: they act on the target only when `visual_target: confirmed` appears in the direction artifact. A target that exists but was never confirmed stays outside the gate until the confirmation is recorded.
+
 ## [core][2.27.11] — 2026-10-01
 
 ### Highlights
