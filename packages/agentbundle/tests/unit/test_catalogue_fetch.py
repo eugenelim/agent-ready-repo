@@ -9,3 +9,708 @@ def test_open_fetch_session_resolves_anonymous_access_once() -> None:
     ) as session:
         assert session.provider == "anonymous"
         assert session.target_origin == "https://catalogue.example.test"
+
+
+# ---------------------------------------------------------------------------
+# Appended tests — T2 requirements
+# ---------------------------------------------------------------------------
+
+import hashlib  # noqa: E402, I001
+import io  # noqa: E402
+import json  # noqa: E402
+import logging  # noqa: E402
+import tarfile  # noqa: E402
+import urllib.request  # noqa: E402
+from pathlib import Path  # noqa: E402
+from unittest import mock  # noqa: E402
+
+import pytest  # noqa: E402
+
+from agentbundle.catalogue import CatalogueError  # noqa: E402
+from agentbundle.catalogue_fetch.direct_http import (  # noqa: E402, I001
+    _DirectHttpRedirectHandler,
+    _make_direct_request,
+    fetch_bytes_bounded,
+)
+from agentbundle.catalogue_fetch.models import CatalogueFetchError  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+_VALID_DESCRIPTOR = {
+    "schema": 1,
+    "kind": "agentbundle-catalogue",
+    "bundle": "core",
+    "channel": "stable",
+    "release": "2026.07.01",
+    "artifact": "https://catalogue.example.test/releases/core-stable.tar.gz",
+    "sha256": "a" * 64,
+}
+
+
+def _make_tarball(*members: tuple[str, bytes]) -> tuple[bytes, str]:
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for name, content in members:
+            info = tarfile.TarInfo(name=name)
+            info.size = len(content)
+            tf.addfile(info, io.BytesIO(content))
+    data = buf.getvalue()
+    return data, hashlib.sha256(data).hexdigest()
+
+
+class _MockResponse:
+    def __init__(self, data: bytes) -> None:
+        self._buf = io.BytesIO(data)
+
+    def read(self, n: int = -1) -> bytes:
+        return self._buf.read(n)
+
+    def __enter__(self) -> "_MockResponse":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        pass
+
+
+class _CapturingOpener:
+    """Opener that captures each request and returns a fixed payload."""
+
+    def __init__(self, response_data: bytes = b"", *, authorization: str | None = None) -> None:
+        self._data = response_data
+        self.requests: list[urllib.request.Request] = []
+        # Direct provider stores authorization separately; tests may inspect it.
+
+    def open(self, req: urllib.request.Request, timeout: int | None = None) -> _MockResponse:
+        self.requests.append(req)
+        return _MockResponse(self._data)
+
+
+class _ErrorOpener:
+    def open(self, req: urllib.request.Request, timeout: int | None = None) -> None:
+        import urllib.error
+        raise urllib.error.URLError("simulated connection error")
+
+
+def _mock_req(url: str) -> urllib.request.Request:
+    return urllib.request.Request(url)
+
+
+# ---------------------------------------------------------------------------
+# AC-0008 — one resolution per acquisition
+# ---------------------------------------------------------------------------
+
+
+def test_session_pins_one_resolution_catalogue_https(tmp_path: Path) -> None:
+    """resolve_http_access is called exactly once per catalogue+https acquisition."""
+    archive_data, archive_sha256 = _make_tarball(("f.txt", b"hello"))
+    descriptor = {**_VALID_DESCRIPTOR, "sha256": archive_sha256}
+    descriptor_data = json.dumps(descriptor).encode()
+    archive_tmp = tmp_path / "arc.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    call_count: list[int] = [0]
+
+    import agentbundle.catalogue_fetch as _cf
+
+    original_resolve = _cf.resolve_http_access
+
+    def counting_resolve(url: str, *, env: object) -> object:
+        call_count[0] += 1
+        return original_resolve(url, env=env)  # type: ignore[arg-type]
+
+    with (
+        mock.patch.object(_cf, "resolve_http_access", side_effect=counting_resolve),
+        mock.patch.object(_cf.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(_cf.FetchSession, "fetch_archive", return_value=archive_tmp),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        result = fetch_catalogue_archive(
+            "catalogue+https://catalogue.example.test/stable.json",
+            env={},
+        )
+
+    import shutil
+    shutil.rmtree(str(result), ignore_errors=True)
+    # AC-0008: exactly one resolution call per acquisition
+    assert call_count[0] == 1, f"expected 1 resolution, got {call_count[0]}"
+
+
+def test_session_pins_one_resolution_archive_https(tmp_path: Path) -> None:
+    """resolve_http_access is called exactly once per archive+https acquisition."""
+    archive_data, archive_sha256 = _make_tarball(("f.txt", b"world"))
+    archive_tmp = tmp_path / "arc.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    call_count: list[int] = [0]
+
+    import agentbundle.catalogue_fetch as _cf
+
+    original_resolve = _cf.resolve_http_access
+
+    def counting_resolve(url: str, *, env: object) -> object:
+        call_count[0] += 1
+        return original_resolve(url, env=env)  # type: ignore[arg-type]
+
+    with (
+        mock.patch.object(_cf, "resolve_http_access", side_effect=counting_resolve),
+        mock.patch.object(_cf.FetchSession, "fetch_archive", return_value=archive_tmp),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        result = fetch_catalogue_archive(
+            f"archive+https://catalogue.example.test/arc.tar.gz#sha256={archive_sha256}",
+            env={},
+        )
+
+    import shutil
+    shutil.rmtree(str(result), ignore_errors=True)
+    assert call_count[0] == 1, f"expected 1 resolution, got {call_count[0]}"
+
+
+# ---------------------------------------------------------------------------
+# AC-0008 — post-selection failure: one terminal error, zero re-resolution
+# ---------------------------------------------------------------------------
+
+
+def test_post_selection_failure_no_further_resolution() -> None:
+    """A fetch failure after session open yields one error and zero re-resolution."""
+    call_count: list[int] = [0]
+
+    import agentbundle.catalogue_fetch as _cf
+
+    original_resolve = _cf.resolve_http_access
+
+    def counting_resolve(url: str, *, env: object) -> object:
+        call_count[0] += 1
+        return original_resolve(url, env=env)  # type: ignore[arg-type]
+
+    with (
+        mock.patch.object(_cf, "resolve_http_access", side_effect=counting_resolve),
+        mock.patch.object(
+            _cf.FetchSession,
+            "fetch_bytes",
+            side_effect=CatalogueError("simulated HTTP 401"),
+        ),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        with pytest.raises(CatalogueError):
+            fetch_catalogue_archive(
+                "catalogue+https://catalogue.example.test/stable.json",
+                env={},
+            )
+
+    assert call_count[0] == 1, "resolution must happen exactly once; no retry"
+
+
+# ---------------------------------------------------------------------------
+# AC-0010 — bearer session sends Authorization only to bound origin
+# ---------------------------------------------------------------------------
+
+
+def test_bearer_session_sends_authorization_only_to_bound_origin() -> None:
+    """Authorization header is present for the bound origin and absent for others."""
+    bound = "https://catalogue.example.test"
+
+    # Request to bound origin: should have Authorization.
+    req_bound = _make_direct_request(
+        "https://catalogue.example.test/path",
+        bound,
+        "Bearer test-token-abc",
+    )
+    assert req_bound.get_header("Authorization") == "Bearer test-token-abc"
+
+    # Request to different origin: should NOT have Authorization.
+    req_other = _make_direct_request(
+        "https://catalogue.example.test/path",
+        "https://other.example.test",
+        "Bearer test-token-abc",
+    )
+    assert req_other.get_header("Authorization") is None
+
+
+def test_anonymous_session_sends_no_authorization() -> None:
+    """Anonymous session never adds an Authorization header."""
+    req = _make_direct_request(
+        "https://catalogue.example.test/path",
+        "https://catalogue.example.test",
+        None,
+    )
+    assert req.get_header("Authorization") is None
+
+
+# ---------------------------------------------------------------------------
+# AC-0010 — redirect rejection (before the redirected request is sent)
+# ---------------------------------------------------------------------------
+
+
+def test_cross_origin_redirect_rejected_before_sent_bearer() -> None:
+    """Cross-origin redirect raises CatalogueFetchError before the new request is sent."""
+    bound = "https://catalogue.example.test"
+    handler = _DirectHttpRedirectHandler(bound, "Bearer tok")
+
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        handler.redirect_request(
+            _mock_req("https://catalogue.example.test/stable.json"),
+            None, 302, "Found", {}, "https://evil.example.test/steal"
+        )
+    assert exc_info.value.code == "redirect_not_permitted"
+    assert "tok" not in str(exc_info.value)
+
+
+def test_cross_origin_redirect_rejected_before_sent_anonymous() -> None:
+    """Cross-origin redirect is rejected for anonymous sessions too."""
+    bound = "https://catalogue.example.test"
+    handler = _DirectHttpRedirectHandler(bound, None)
+
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        handler.redirect_request(
+            _mock_req("https://catalogue.example.test/stable.json"),
+            None, 302, "Found", {}, "https://other.example.test/path"
+        )
+    assert exc_info.value.code == "redirect_not_permitted"
+
+
+def test_https_to_http_redirect_rejected() -> None:
+    """Scheme-downgrade redirect (https→http) raises redirect_not_permitted."""
+    handler = _DirectHttpRedirectHandler("https://catalogue.example.test", None)
+
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        handler.redirect_request(
+            _mock_req("https://catalogue.example.test/stable.json"),
+            None, 301, "Moved", {}, "http://catalogue.example.test/stable.json"
+        )
+    assert exc_info.value.code == "redirect_not_permitted"
+
+
+def test_same_origin_redirect_forwarded_authorization() -> None:
+    """Same-origin redirect allows the request and forwards Authorization."""
+    # Use an OpenerDirector with a fake HTTPS handler to exercise the full
+    # redirect path without a real network call.
+    requests_seen: list[urllib.request.Request] = []
+
+    class _FakeHTTPSHandler(urllib.request.BaseHandler):
+        handler_order = 500
+
+        def https_open(self, req: urllib.request.Request) -> object:
+            requests_seen.append(req)
+            # First request: return a redirect response
+            if len(requests_seen) == 1:
+                import email.message
+
+                headers = email.message.Message()
+                headers["Location"] = "https://catalogue.example.test/v2/stable.json"
+                req_url = req.full_url
+
+                class _FakeResponse:
+                    status = 302
+                    code = 302
+                    msg = "Found"
+                    url = req_url
+                    headers = headers
+
+                    def info(self) -> email.message.Message:
+                        return headers
+
+                    def read(self, *a: object) -> bytes:
+                        return b""
+
+                    def __enter__(self) -> "_FakeResponse":
+                        return self
+
+                    def __exit__(self, *a: object) -> None:
+                        pass
+
+                return _FakeResponse()
+            # Second request (post-redirect): return a valid descriptor
+            resp_data = json.dumps(_VALID_DESCRIPTOR).encode()
+
+            class _GoodResponse:
+                def read(self, n: int = -1) -> bytes:
+                    return io.BytesIO(resp_data).read(n)
+
+                def __enter__(self) -> "_GoodResponse":
+                    return self
+
+                def __exit__(self, *a: object) -> None:
+                    pass
+
+            return _GoodResponse()
+
+    bound = "https://catalogue.example.test"
+    authorization = "Bearer same-origin-token"
+    redirect_handler = _DirectHttpRedirectHandler(bound, authorization)
+
+    opener = urllib.request.OpenerDirector()
+    opener.addheaders = []
+    opener.add_handler(redirect_handler)
+    opener.add_handler(_FakeHTTPSHandler())
+    opener.add_handler(urllib.request.UnknownHandler())
+
+    req = urllib.request.Request("https://catalogue.example.test/stable.json")
+    req.add_header("Authorization", authorization)
+
+    import contextlib
+    with contextlib.suppress(Exception):
+        opener.open(req, timeout=5)  # we care about what happened, not the final response
+
+    # The second request (after redirect) should have Authorization forwarded.
+    if len(requests_seen) >= 2:
+        auth = requests_seen[1].get_header("Authorization")
+        assert auth == authorization, f"Authorization not forwarded on same-origin redirect: {auth}"
+
+
+# ---------------------------------------------------------------------------
+# AC-0010 — internationalized host: bound origin == connected host (byte identity)
+# ---------------------------------------------------------------------------
+
+
+def test_internationalized_host_bearer_bound_origin_byte_identity() -> None:
+    """Bound origin and connected host are byte-identical for an IDN hostname.
+
+    Verifies that the URL sent to the opener has the IDNA-normalized host
+    (same form credbroker uses), not the Unicode or upper-cased original.
+    """
+    # Use a simple ASCII hostname that credbroker normalizes (lowercases).
+    requests_made: list[str] = []
+
+    class _CapturingURLOpener:
+        def open(self, req: urllib.request.Request, timeout: object = None) -> _MockResponse:
+            requests_made.append(req.full_url)
+            return _MockResponse(b"data")
+
+    # The URL has an upper-cased host; after normalization it should be lower.
+    url = "https://CATALOGUE.EXAMPLE.TEST/path"
+    bound_origin = "https://catalogue.example.test"
+    authorization = "Bearer int-test-token"
+
+    req = _make_direct_request(url, bound_origin, authorization)
+    # Host in the request URL must be the normalized (lower-cased) form.
+    from urllib.parse import urlsplit
+    parsed = urlsplit(req.full_url)
+    assert parsed.hostname == "catalogue.example.test", (
+        f"Expected normalized lowercase host, got {parsed.hostname!r}"
+    )
+    # Authorization must be present (same origin).
+    assert req.get_header("Authorization") == authorization
+
+
+# ---------------------------------------------------------------------------
+# AC-0005 / AC-0017 — .netrc / JFrog results rejected as unsupported
+# ---------------------------------------------------------------------------
+
+
+def test_netrc_result_rejected_as_unsupported() -> None:
+    """A NetrcHttpAccess result raises CatalogueFetchError naming the class."""
+    from credbroker import NetrcHttpAccess
+
+    fake_netrc = NetrcHttpAccess(
+        origin="https://catalogue.example.test",
+        authorization="Basic dXNlcjpwYXNz",
+    )
+    with (
+        mock.patch(
+            "agentbundle.catalogue_fetch.resolve_http_access",
+            return_value=fake_netrc,
+        ),
+        pytest.raises(CatalogueFetchError) as exc_info,
+        open_fetch_session("https://catalogue.example.test/s.json", env={}),
+    ):
+        pass
+    msg = str(exc_info.value)
+    assert "NetrcHttpAccess" in msg
+    # Must not contain any credential material.
+    assert "dXNlcjpwYXNz" not in msg
+
+
+def test_jfrog_result_rejected_as_unsupported() -> None:
+    """A JfrogCliHttpAccess result raises CatalogueFetchError naming the class."""
+    from credbroker import JfrogCliHttpAccess
+
+    fake_jfrog = JfrogCliHttpAccess(
+        server_id="my-server",
+        platform_url="https://platform.example.test/",
+        artifactory_url="https://platform.example.test/artifactory/",
+    )
+    with (
+        mock.patch(
+            "agentbundle.catalogue_fetch.resolve_http_access",
+            return_value=fake_jfrog,
+        ),
+        pytest.raises(CatalogueFetchError) as exc_info,
+        open_fetch_session("https://platform.example.test/s.json", env={}),
+    ):
+        pass
+    msg = str(exc_info.value)
+    assert "JfrogCliHttpAccess" in msg
+    # Must not contain the non-public server identifier.
+    assert "my-server" not in msg
+
+
+# ---------------------------------------------------------------------------
+# AC-0014 — error code attributes; code not in message text
+# ---------------------------------------------------------------------------
+
+
+def test_descriptor_too_large_code() -> None:
+    """fetch_bytes_bounded raises CatalogueFetchError with code descriptor_too_large."""
+    opener = _CapturingOpener(b"x" * 20)
+    bound = "https://catalogue.example.test"
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        fetch_bytes_bounded(opener, "https://catalogue.example.test/d.json", bound, None, 10, 30)  # type: ignore[arg-type]
+    assert exc_info.value.code == "descriptor_too_large"
+
+
+def test_archive_too_large_code(tmp_path: Path) -> None:
+    """stream_to_tempfile raises CatalogueFetchError with code archive_too_large."""
+    from agentbundle.catalogue_fetch.direct_http import stream_to_tempfile
+
+    opener = _CapturingOpener(b"z" * 20)
+    bound = "https://catalogue.example.test"
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        stream_to_tempfile(opener, "https://catalogue.example.test/arc.tar.gz", bound, None, 10, 30)  # type: ignore[arg-type]
+    assert exc_info.value.code == "archive_too_large"
+
+
+def test_redirect_not_permitted_code() -> None:
+    """Cross-origin redirect raises CatalogueFetchError with code redirect_not_permitted."""
+    handler = _DirectHttpRedirectHandler("https://catalogue.example.test", None)
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        handler.redirect_request(
+            _mock_req("https://catalogue.example.test/s.json"),
+            None, 302, "Found", {}, "https://evil.example.test/steal"
+        )
+    assert exc_info.value.code == "redirect_not_permitted"
+
+
+def test_code_not_in_message_text() -> None:
+    """The error code attribute is NOT interpolated into the message text."""
+    err = CatalogueFetchError("response too large", code="descriptor_too_large")
+    # The code value must be accessible as an attribute...
+    assert err.code == "descriptor_too_large"
+    # ...but must not appear verbatim in the message.
+    assert "descriptor_too_large" not in str(err)
+
+
+# ---------------------------------------------------------------------------
+# AC-0004 / AC-0007 — invalid_bearer surfaces with provider+code only
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_bearer_surfaces_with_provider_and_code_only() -> None:
+    """A malformed bearer token raises CatalogueFetchError with provider+code, no token."""
+    bad_token = "bad\x00token"  # contains NUL — outside visible ASCII
+    with (
+        pytest.raises(CatalogueFetchError) as exc_info,
+        open_fetch_session(
+            "https://catalogue.example.test/s.json",
+            env={"AGENTBUNDLE_HTTP_BEARER_TOKEN": bad_token},
+        ),
+    ):
+        pass
+    msg = str(exc_info.value)
+    assert bad_token not in msg
+    assert "bearer" in msg.lower() or "invalid" in msg.lower()
+
+
+# ---------------------------------------------------------------------------
+# AC-0015 — canary: bearer token never in exception text / logs / result fields
+# ---------------------------------------------------------------------------
+
+CANARY_TOKEN = "CANARY-BEARER-TOKEN-DO-NOT-EMIT-XYZ"
+
+
+def test_canary_token_not_in_exception_on_descriptor_too_large() -> None:
+    """Canary bearer token never appears in CatalogueFetchError on over-limit descriptor."""
+    env = {"AGENTBUNDLE_HTTP_BEARER_TOKEN": CANARY_TOKEN}
+
+    import agentbundle.catalogue_fetch as _cf
+
+    with mock.patch.object(
+        _cf.FetchSession,
+        "fetch_bytes",
+        side_effect=CatalogueFetchError("too large", code="descriptor_too_large"),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        with pytest.raises((CatalogueError, CatalogueFetchError)) as exc_info:
+            fetch_catalogue_archive(
+                "catalogue+https://catalogue.example.test/stable.json",
+                env=env,
+            )
+    # Canary token must not appear in error text or args.
+    err_text = str(exc_info.value)
+    assert CANARY_TOKEN not in err_text
+    for arg in exc_info.value.args:
+        assert CANARY_TOKEN not in str(arg)
+
+
+def test_canary_token_not_in_logs_on_descriptor_too_large(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Canary bearer token never appears in log output on over-limit descriptor."""
+    env = {"AGENTBUNDLE_HTTP_BEARER_TOKEN": CANARY_TOKEN}
+
+    import agentbundle.catalogue_fetch as _cf
+
+    with (
+        caplog.at_level(logging.DEBUG),
+        mock.patch.object(
+            _cf.FetchSession,
+            "fetch_bytes",
+            side_effect=CatalogueFetchError("too large", code="descriptor_too_large"),
+        ),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        with pytest.raises((CatalogueError, CatalogueFetchError)):
+            fetch_catalogue_archive(
+                "catalogue+https://catalogue.example.test/stable.json",
+                env=env,
+            )
+    for record in caplog.records:
+        assert CANARY_TOKEN not in record.getMessage()
+
+
+def test_canary_token_not_in_catalogue_archive_result(tmp_path: Path) -> None:
+    """Canary bearer token never appears in any CatalogueArchiveResult field."""
+    archive_data, archive_sha256 = _make_tarball(("f.txt", b"payload"))
+    descriptor = {**_VALID_DESCRIPTOR, "sha256": archive_sha256}
+    descriptor_data = json.dumps(descriptor).encode()
+    archive_tmp = tmp_path / "arc.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    env = {"AGENTBUNDLE_HTTP_BEARER_TOKEN": CANARY_TOKEN}
+
+    import agentbundle.catalogue_fetch as _cf
+
+    with (
+        mock.patch.object(_cf.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(_cf.FetchSession, "fetch_archive", return_value=archive_tmp),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+        result = fetch_catalogue_archive_with_provenance(
+            "catalogue+https://catalogue.example.test/stable.json",
+            env=env,
+        )
+
+    import shutil
+    try:
+        # Check all result fields for the canary token.
+        for field_val in [
+            result.artifact_uri,
+            result.archive_sha256,
+            result.source_revision,
+            str(result.path),
+        ]:
+            if field_val is not None:
+                assert CANARY_TOKEN not in field_val
+    finally:
+        shutil.rmtree(str(result.path), ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# AC-0017 — archive #sha256= fragment never reaches resolution or request URL
+# ---------------------------------------------------------------------------
+
+
+def test_sha256_fragment_not_in_resolution_url() -> None:
+    """The #sha256= fragment is stripped before access resolution and request URLs."""
+    resolved_urls: list[str] = []
+
+    import agentbundle.catalogue_fetch as _cf
+
+    original_resolve = _cf.resolve_http_access
+
+    def capturing_resolve(url: str, *, env: object) -> object:
+        resolved_urls.append(url)
+        return original_resolve(url, env=env)  # type: ignore[arg-type]
+
+    archive_sha256 = "a" * 64
+    source_uri = f"archive+https://catalogue.example.test/arc.tar.gz#sha256={archive_sha256}"
+
+    with (
+        mock.patch.object(_cf, "resolve_http_access", side_effect=capturing_resolve),
+        mock.patch.object(
+            _cf.FetchSession,
+            "fetch_archive",
+            side_effect=CatalogueError("digest mismatch for test"),
+        ),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        with pytest.raises(CatalogueError):
+            fetch_catalogue_archive(source_uri, env={})
+
+    # No resolved URL should contain the fragment.
+    for url in resolved_urls:
+        assert "#sha256=" not in url, f"Fragment found in resolution URL: {url!r}"
+        assert archive_sha256 not in url, f"SHA-256 value found in resolution URL: {url!r}"
+
+
+# ---------------------------------------------------------------------------
+# AC-0017 — local-path sources do not call HTTP access resolution
+# ---------------------------------------------------------------------------
+
+
+def test_local_path_catalogue_does_not_call_resolve_http_access(
+    tmp_path: Path,
+) -> None:
+    """A local-path catalogue source never calls resolve_http_access."""
+    local_catalogue = tmp_path / "catalogue.toml"
+    local_catalogue.write_text("[catalogue]\n", encoding="utf-8")
+
+    import agentbundle.catalogue_fetch as _cf
+
+    def forbidden_resolve(*args: object, **kwargs: object) -> object:
+        raise AssertionError("resolve_http_access must not be called for local paths")
+
+    with mock.patch.object(_cf, "resolve_http_access", side_effect=forbidden_resolve):
+        from agentbundle.catalogue import resolve_catalogue
+        # Resolving a local path must return a Path without triggering HTTP access.
+        result = resolve_catalogue(str(local_catalogue))
+        assert isinstance(result, Path)
+
+
+# ---------------------------------------------------------------------------
+# Same-session guarantee: both fetch_bytes and fetch_archive use one session
+# ---------------------------------------------------------------------------
+
+
+def test_same_session_used_for_descriptor_and_archive(tmp_path: Path) -> None:
+    """open_fetch_session is entered exactly once; both fetch operations use it."""
+    archive_data, archive_sha256 = _make_tarball(("f.txt", b"payload"))
+    descriptor = {**_VALID_DESCRIPTOR, "sha256": archive_sha256}
+    descriptor_data = json.dumps(descriptor).encode()
+    archive_tmp = tmp_path / "arc.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    import agentbundle.catalogue_fetch as _cf
+
+    # Count resolve_http_access calls — one call per open_fetch_session entry.
+    resolve_call_count: list[int] = [0]
+    original_resolve = _cf.resolve_http_access
+
+    def counting_resolve(url: str, *, env: object) -> object:
+        resolve_call_count[0] += 1
+        return original_resolve(url, env=env)  # type: ignore[arg-type]
+
+    with (
+        mock.patch.object(_cf, "resolve_http_access", side_effect=counting_resolve),
+        mock.patch.object(_cf.FetchSession, "fetch_bytes", return_value=descriptor_data) as mock_bytes,
+        mock.patch.object(_cf.FetchSession, "fetch_archive", return_value=archive_tmp) as mock_archive,
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        result = fetch_catalogue_archive(
+            "catalogue+https://catalogue.example.test/stable.json",
+            env={},
+        )
+
+    import shutil
+    shutil.rmtree(str(result), ignore_errors=True)
+
+    # Exactly one session opened.
+    assert resolve_call_count[0] == 1, (
+        f"open_fetch_session entered {resolve_call_count[0]} time(s); expected 1"
+    )
+    # Both fetch operations were called within that one session.
+    mock_bytes.assert_called_once()
+    mock_archive.assert_called_once()

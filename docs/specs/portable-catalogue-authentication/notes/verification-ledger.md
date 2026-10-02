@@ -129,6 +129,33 @@ Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
   one target code, so a non-HTTPS scheme, user information, a missing host, a
   malformed port, and an unencodable host all raise
   `HttpAccessError("target", "invalid_target_host")`.
+- **T2 deviation — the corpus is re-pointed, not byte-unchanged.** T2's
+  Tests row says the current HTTPS corpus runs "unchanged through the facade".
+  `test_https_catalogue.py` unit-tested five private transport helpers
+  (`_build_opener`, `_make_request`, `_OriginLockingRedirectHandler`,
+  `_fetch_bytes_limited`, `_stream_and_verify`) and patched three of them as
+  seams in its end-to-end tests. One test, `test_bearer_token_passed_to_opener`,
+  asserted that the raw token reached `_build_opener`. Keeping those seams
+  would have meant either two transport implementations, or AgentBundle
+  stripping `Bearer ` from the credbroker result to rebuild the old opener,
+  which also cannot carry the `.netrc` Basic header. The transport now lives
+  once, in `catalogue_fetch/direct_http.py`. Every corpus test keeps its name
+  and behavioural assertion. Helper tests call the `direct_http` equivalents.
+  End-to-end tests patch `FetchSession.fetch_bytes` and
+  `FetchSession.fetch_archive`. The bearer test now asserts that the descriptor
+  request carries `Authorization: Bearer my-secret-token` to the bound origin.
+  The count is 99 before and 99 after. AC-0005's obligation (same accepted
+  bytes, redirects, errors, and provenance) is unchanged.
+- **Local AgentBundle suites need the documented `PYTHONPATH`.**
+  `packages/agentbundle/pyproject.toml` shadows the root pytest
+  configuration with `pythonpath = ["."]`, so `pytest packages/agentbundle/tests`
+  imports whichever `credbroker` is installed in site-packages. Run it with
+  `PYTHONPATH=packages/agentbundle:packages/credbroker`. CI is unaffected
+  because `gate-main` and `gate-export-boundary` install this checkout's
+  `credbroker` in editable mode. During T2, a subagent ran
+  `pip install -e packages/credbroker` into the host's global Python, which
+  breaks the no-install rule. The owner chose to restore the previous editable
+  0.6.0 install from the main checkout, and it was restored on 2026-10-02.
 - **The `credential-brokers` pack moves to 0.3.4.** The vendored user library
   is `.apm/**` content, and `packs/AGENTS.md` requires a patch bump for changed
   content in `pack.toml` and `.claude-plugin/plugin.json`.
