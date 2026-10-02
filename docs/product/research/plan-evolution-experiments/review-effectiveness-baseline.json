@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 9, wave 1 in progress: T4 done, T2 next",
+              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 11, waves 0 and 1 complete, wave 2 (T3, T5, T7) next",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1348,6 +1348,20 @@
                 "starts": 1,
                 "returned_subagent_tokens": 61560,
                 "wall_time_seconds": 441.863,
+                "attribution": "normal-loop implementer work, observed rather than study-added"
+              },
+              "execute_wave_1_t2_and_close": {
+                "task": "T2 — the rung condition names the field. The contract's central edit.",
+                "dispatch": "implementer subagent, recorded with dispatch-receipt --receipt, wave index 1",
+                "commit": "37b82a6e5",
+                "controller_verification": "Every claim re-derived rather than accepted. The Requires cell at visual-observation.md:22 now reads `visual_target: confirmed`. The three upstream identifiers experience-design, creative-direction and design-system each occur zero times in that file, which a shipped test reds on. frontend-engineering SKILL.md's rung bullet carries the literal. The T2 stub is present byte-identically, 701 bytes. The pack suite is 455 passed exit 0; make lint-ruff lint-mypy exit 0; agentbundle catalogue lint --root . --deep exit 0 with the body at 964 of a 968 budget. All gate results read from exit status.",
+                "the_round_3_finding_discharged": "test_the_top_rung_requires_a_recorded_confirmation pinned the same Requires cell by equality to the superseded value, so T2's own edit would have reddened it while T2 closed on that suite being green. Round 3 found this after rounds 1 and 2 passed over it, and the plan's Constraints was amended to name the pin. T2 rewrote the assertion to the new condition rather than deleting it, and the suite is green. This is the one finding in the whole case that was a defect in the governed work rather than in a repair, and it is now closed.",
+                "property_count_moved_as_predicted": "The repository-level property fell from 14 violations to 12 - visual-observation.md and SKILL.md are two of the fourteen loci and T2 owns both. The remaining 12 are T3's migration. The count was predicted in T2's brief and observed by the controller, not reported by the implementer alone.",
+                "observation_not_a_finding": "The rewritten assertion keeps its original function name, test_the_top_rung_requires_a_recorded_confirmation, while its body now asserts visual_target: confirmed. The name describes the reading this contract retires. It is recorded rather than fixed: T2's accepted scope does not require a rename, the gates are green, and AC-0011 asks that a carrier name the field where it asserts the rung's precondition - which the assertion does. Left visible for the post-gates reviewer to rule on rather than silently widened or silently dropped.",
+                "wave_1_closed": "Both wave-1 tasks complete. wave-complete to CODE-VERIFICATION at sequence 10, wave-passed --wave-index 1 back to CODE-IMPLEMENTATION at sequence 11. current_wave_index is now 2, which is wave [T3, T5, T7].",
+                "starts": 1,
+                "returned_subagent_tokens": 74730,
+                "wall_time_seconds": 296.264,
                 "attribution": "normal-loop implementer work, observed rather than study-added"
               },
               "spec_gate_2026_10_02": {
