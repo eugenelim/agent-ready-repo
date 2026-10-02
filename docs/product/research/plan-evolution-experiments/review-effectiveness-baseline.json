@@ -1067,8 +1067,8 @@
               "selection_ban_observed": "Admission was not decided by host, model, expected finding count, expected outcome, convenience, or whether the case would help the study. Full mode means a pre-execute spec/plan review unit, which is the frozen admission scope, so the case is eligible and no exclusion code in the closed catalog applies."
             },
             "normal_loop_progress": {
-              "rounds_completed": 6,
-              "normal_loop_state": "SPEC-PLAN-REVIEW, round 6 revised at c16682bb7, round 7 pending for the clean verdict",
+              "rounds_completed": 7,
+              "normal_loop_state": "SPEC-HUMAN-GATE, transition sequence 4, awaiting the owner scope decision",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1257,6 +1257,52 @@
                 "wall_time_seconds_total": 136.65,
                 "attribution": "both starts are normal-loop review work, observed rather than study-added",
                 "unavailable_fields": ["per-start input/output token split - the host returns one aggregate subagent token count per start"]
+              },
+              "round_7": {
+                "reviewer_role": "adversarial",
+                "stage": "pre-execute",
+                "round_purpose": "verdict pass over the round-6 delta 3b66985d1..c16682bb7, a two-sentence deletion",
+                "raw_findings": 0,
+                "raw_report_sha256": "496778140eb32d28c66834d90f6ce740e1e06345f9a34f0ec24a8310a08b9e61",
+                "raw_report_bytes": 26,
+                "raw_classification": "clean",
+                "clean_form": "direct clean. The persisted artifact is byte-exact to the sentinel `Clean - ready to commit.` with no trailing newline; the controller verified byte equality against the UTF-8 encoding of the sentinel before recording. No adjudicator was dispatched, which is correct: raw-classify clean skips that dispatch, and the artifact itself was still persisted and validated first.",
+                "not_checked_footer_present": false,
+                "adjudicated": false,
+                "adjudication_not_dispatched_reason": "null_not_applicable - a byte-exact direct-clean raw report skips adjudication by the gateway rule.",
+                "sustained": 0,
+                "refuted": 0,
+                "indeterminate": 0,
+                "verdict": "CLEAN",
+                "starts": 1,
+                "returned_subagent_tokens_by_start": [30486],
+                "returned_subagent_tokens_total": 30486,
+                "wall_time_seconds_by_start": [77.476],
+                "wall_time_seconds_total": 77.476,
+                "attribution": "normal-loop review work, observed rather than study-added",
+                "unavailable_fields": ["per-start input/output token split - the host returns one aggregate subagent token count per start"]
+              },
+              "pre_execute_review_closed": {
+                "closed_at": "2026-10-02",
+                "rounds": 7,
+                "sustained_by_round": [11, 8, 6, 4, 2, 1, 0],
+                "blockers_by_round": [7, 2, 3, 0, 0, 0, 0],
+                "concerns_by_round": [3, 5, 3, 3, 1, 0, 0],
+                "nits_by_round": [1, 1, 0, 1, 1, 1, 0],
+                "refuted_by_round": [1, 0, 0, 0, 0, 0, 0],
+                "indeterminate_by_round": [0, 0, 0, 0, 0, 0, 0],
+                "repair_origin_by_round": [null, 7, 4, 2, 2, 1, 0],
+                "transition": "reviewers-clean fired from SPEC-PLAN-REVIEW at transition_sequence 4; engine now SPEC-HUMAN-GATE with gate_question `Does this spec define the right thing to build?`. No payload was passed: that flag pair is rejected from SPEC-PLAN-REVIEW and required only from CODE-REVIEW.",
+                "observed_pre_execute_cost": {
+                  "starts": 15,
+                  "returned_subagent_tokens": 1142006,
+                  "wall_time_seconds": 4106.4,
+                  "completeness": "Every round carries per-start token and wall-clock figures. This is the first case in the cohort with complete normal-loop cost telemetry for its whole pre-EXECUTE phase.",
+                  "unavailable": "per-start input/output token split only - the host returns one aggregate per start"
+                },
+                "reading": "Sustained fell monotonically across all seven rounds and reached a byte-exact direct clean. Blockers stopped after round 3. The honest caveat is that this is one case and the series is not a quality measurement: counts are not a denominator here, and no effectiveness figure follows from them. What the series does show, and what the cohort should carry forward, is the repair-origin fraction: 7 of 8, then 4 of 6, 2 of 4, 2 of 2, 1 of 1. The repairing agent remained the dominant source of new findings for the whole middle of the case, exactly as T16, T17 and T18 recorded on case 3.",
+                "what_review_caught_that_was_not_repair_origin": "Two findings across seven rounds were defects in the governed work rather than in a repair, both in round 3. The consequential one: test_visual_authority_precedence.py:75-79 pins the approved-visual-target row's Requires cell by equality to `recorded-human-confirmation`, which is the exact cell AC-0001 rewrites - so the contract's central edit would have reddened a shipped assertion while the task making it closed on that suite being green. Rounds 1 and 2 passed over it. That single finding is the clearest instance in this case of review finding something a cold read of the contract alone would not have surfaced, and it is recorded as an observation, not scored.",
+                "controller_failure_mode": "Five instances across the case of a controller record asserting more than its evidence supports, plus a sixth caught by the controller in a commit message before push. Named here because the shape is consistent: a number or an instrument whose scope was not checked before the claim was made. The instances were the stub validation record twice, the boundary-lint self-test claim, a both-documents completeness claim, and a file-occurrence count restated as a count of Status clauses. Record it; do not score it."
               },
               "revision_after_round_6": {
                 "commit": "c16682bb7",
