@@ -1032,9 +1032,19 @@
               "cause": "the 2026-10-02 contract amendment at d881e66b8, which corrected the property's cue test, AC-0011's carrier count and two stub defects. No reviewer had started, so this is authoring on a Draft contract, not a revision driven by a finding.",
               "not_a_duplicate": "the superseded key never reached a status beyond candidate_enumerated and launched no measurement start, so this is one row re-derived in its permitted window, not a second row under the duplicate_conflict_rule."
             },
-            "status": "admitted_normal_loop_open",
-            "controller_decision_timestamp": "2026-10-02T02:15:25Z",
+            "status": "normal_loop_terminal",
+            "controller_decision_timestamp": "2026-10-02T15:30:00Z",
             "normal_loop_opened_at": "2026-10-02T02:15:25Z",
+            "normal_loop_terminal_at": "2026-10-02T15:28:47Z",
+            "normal_loop_terminal_receipt": {
+              "engine_state": "DONE",
+              "transition_sequence": 22,
+              "last_event": "done",
+              "delivered_as": "PR #1492, squash-merged to origin/main as 73960b9f0",
+              "ci": "37 success, 1 skipped, 0 failures on the pull request",
+              "branch_retention": "eugenelim/visual-target-rung-precondition must NOT be deleted. The research record cites branch commits 13e3b7aa9, 0a8242f2f, 79b91f4a3, d16a0ef95 and ad31daa8f, and the squash merge means those SHAs exist only on the branch. Verified present on the remote after the merge. Same constraint as case 3's branch, for the same reason.",
+              "completion_evidence": "14 of 14 acceptance criteria checked, each confirmed against a passing artifact; tests/roster/ plus tests/conformance/ 1956 passed 6 skipped 0 failed; both packs 488 passed; seven linters exit 0; spec Shipped, plan Done, register in ini-003 work.shipped; branch current with main; tree clean."
+            },
             "normal_loop_run_id": "c531c3bf-2aea-490e-9730-450f706eea9a",
             "normal_loop_engine_state_at_admission": "SPEC-PLAN-REVIEW, transition sequence 1, mode code",
             "admission_note": "Admitted when the normal work-loop pre-execute spec/plan review unit opened, immediately before the first reviewer start. loop-cohort plan check-current returned plan_review_status: pending, the expected pre-review signal. Round 1 dispatches the adversarial spec/plan reviewer; its brief carries no reference to this study, to prior reviewer behaviour, or to historical outcomes. No measurement start has been launched.",
@@ -1068,7 +1078,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-REVIEW, sequence 20, post-gates rounds 1-2 adjudicated and repaired, round 3 pending",
+              "normal_loop_state": "DONE at transition sequence 22",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
