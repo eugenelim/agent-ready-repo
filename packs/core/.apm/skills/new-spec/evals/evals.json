@@ -234,6 +234,41 @@
         "Keeps semantic ownership coverage as a pre-review walk question rather than a lint verdict",
         "Rejects a reverse obligation requiring T7 to cite an LLD decision"
       ]
+    },
+    {
+      "id": "shared-substrate-change-expands-preservation-proof",
+      "prompt": "Draft the spec and plan for adding synthetic value nodes to the supplied repository graph fixture. The proposed feature test proves only that a synthetic value can be created. Determine what existing behavior must be preserved before review by inspecting the supplied files. Work from the repository itself; neither adapt-to-project nor a code-intelligence pack is installed.",
+      "files": [
+        "evals/files/shared-graph-model.py",
+        "evals/files/shared-graph-consumers.py",
+        "evals/files/shared-graph-builders.py",
+        "evals/files/shared-graph-lifecycle.py",
+        "evals/files/shared-graph-public.rs"
+      ],
+      "expected_output": "Treat the new node kind as a change to a shared substrate, not as an isolated entity addition. Before review, use bounded repository-native reads and searches to identify each distinct consumer class: generic resolution and selection, default search and presentation, ranking or traversal, full and incremental construction, invalidation, lifecycle cleanup, and supported public compatibility. Turn the old behavior each class must preserve into accepted criteria with an allowed delta and an oracle that can fail: ordinary calls must not resolve to synthetic values, default queries must exclude them unless requested, full and incremental builds must be semantically equivalent, a small edit must stay within its accepted invalidation bound, values must remain contained and removable through production lifecycle paths, and supported external construction or destructuring must still compile. The consumer map stays disposable plan evidence rather than accepted scope. Feature-only creation tests are insufficient. Optional indexing may accelerate discovery but cannot weaken or replace these obligations.",
+      "assertions": [
+        "Recognizes the new graph member as a shared-substrate change rather than an isolated feature",
+        "Derives a bounded consumer map covering resolution, defaults, ranking or traversal, alternate builders, invalidation, lifecycle, and public compatibility",
+        "Turns existing behavior into accepted preservation criteria with an allowed delta and a falsifiable oracle",
+        "Requires distinct evidence for ordinary-call isolation, default exclusion, full/incremental equivalence, bounded invalidation, lifecycle removal, and supported external compilation",
+        "Keeps the consumer map disposable and rejects feature-only creation tests as sufficient evidence",
+        "Uses repository-native evidence without requiring adapt-to-project or code intelligence"
+      ]
+    },
+    {
+      "id": "isolated-private-change-does-not-expand-preservation-proof",
+      "prompt": "Draft a spec and plan for refactoring the private helper in the supplied fixture. Determine from the supplied files whether this should trigger a shared-substrate preservation expansion. Neither adapt-to-project nor a code-intelligence pack is installed.",
+      "files": [
+        "evals/files/isolated_helper.py",
+        "evals/files/test_isolated_helper.py"
+      ],
+      "expected_output": "No. Use the ordinary repository anchors and tests needed for the local refactor, but do not invent a cross-repository consumer map or a preservation matrix when no shared substrate or generic consumer path changes. Confirm the stated boundary with bounded repository-native evidence, preserve the helper's accepted local behavior, and stop. The absence of adapt-to-project or code intelligence does not change that decision and does not justify broader ceremony.",
+      "assertions": [
+        "Does not trigger the shared-substrate expansion for the bounded private refactor",
+        "Uses normal local repository anchors and tests instead of inventing a consumer map or preservation matrix",
+        "Confirms the isolation boundary with bounded repository-native evidence",
+        "Does not require adapt-to-project or code intelligence"
+      ]
     }
   ]
 }

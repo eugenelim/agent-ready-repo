@@ -677,7 +677,7 @@ content. This contract publishes no new skill, subagent, command or hook.
 
 ### The release pin
 
-`packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py:89`
+`packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py:90`
 moved from `"0.4.0"` to `"0.4.1"`, and its docstring now names this delivery.
 Moved **with** the bump in the same change, as the pin's own message requires.
 
@@ -687,7 +687,7 @@ Moved **with** the bump in the same change, as the pin's own message requires.
 | --- | ---: | --- |
 | `make lint-ruff lint-mypy` | 0 | clean |
 | `pytest tests/conformance/test_pack_metadata.py -q` | 0 | 49 passed |
-| `pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q` | 0 | 456 passed |
+| `pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q` | 0 | 457 passed |
 
 The third is the one that matters for AC-0009. It was added to T6's closure at
 review round 4, because neither of the other two reaches
@@ -759,3 +759,30 @@ smallest change that restores what AC-0011 states, and it adds no mechanism.
 **The plan is not edited.** It is immutable in substance after approval, and its
 stub records the value that was correct when the plan was approved. This entry is
 the record that the shipped value supersedes it, and why.
+
+
+## Correction — two recorded numbers, after post-gates round 2
+
+Recorded 2026-10-02 by the controller.
+
+**The third `Done when` count read 456 and the command returns 457.** The table
+above now records 457. The cause is this delivery's own repair: commit
+`79b91f4a3` added `test_the_skill_rung_bullet_names_the_confirmed_field` to the
+swept directory *in the same change that wrote the table*, so the number was
+stale the moment it was written. Measured: `457 passed` at HEAD, and
+`456 passed, 1 deselected` with that one assertion deselected, which fixes the
+delta at exactly that test.
+
+The adjudicator could not settle this from reads and said so — a grep of test
+functions cannot establish a collected total, because parametrization expands
+it. It declared the finding indeterminate and named the missing input. The
+controller supplied the run; that is not a second adjudication pass.
+
+**The release-pin anchor read `:89` and the asserted literal is on `:90`.**
+Line 89 is `version = _pack()["pack"]["version"]`; line 90 carries
+`assert version == "0.4.1"`. Corrected above.
+
+Both are unpinned observations and no gate reads either, which is why both were
+graded Nit rather than blocking. They are corrected anyway: a verification
+ledger whose numbers do not reproduce is weaker evidence than one that says
+less.
