@@ -379,7 +379,7 @@
         "prospective_starts_authorized": true,
         "admission_window_started_at": "2026-09-29T21:19:31Z",
         "admission_window_ends_at": "2026-10-29T21:19:31Z",
-        "prospective_cases_admitted": 2,
+        "prospective_cases_admitted": 3,
         "measurement_starts_used": 1,
         "accepted_intent_renumbered_2026_09_30": {
           "what": "The accepted intent moved from docs/adr/0131-visual-target-confirmation-is-an-explicit-state.md to docs/adr/0132-..., because updating the delivery branch onto main found that main had independently taken ADR-0131 for a pip-audit governance decision.",
@@ -388,7 +388,7 @@
           "what_was_updated": "only accepted_intent_path and case 2's stopped_revision_artifacts path, so a reader can still open the file. Every digest field is left as recorded.",
           "consequence_for_a_future_measurement_start": "A prompt built from the accepted intent must use the current bytes and record the current digest alongside the enumeration-time one, exactly as case 2's stopped revision already does."
         },
-        "prospective_cases_admitted_note": "cases 2 and 3. Case 1 remains candidate_enumerated: its normal loop never opened, so it is not admitted and does not consume an admission against the cap of 12.",
+        "prospective_cases_admitted_note": "cases 2, 3 and 4, against the cap of 12. Case 1's row still reads candidate_enumerated and is not counted here. That row is known stale and is NOT repaired in this edit: docs/specs/review-recurrence-family-key/spec.md is Shipped on origin/main via #1483, its reviewed-revision digests no longer match the row, and its worktree was never used, so its normal loop ran outside controller observation. The controller surfaced this on 2026-10-02 and the owner deferred it; what status that row should take, and whether the case counts as an admission, are open and need an owner ruling. Recorded here rather than resolved, because guessing either answer would assert an authority no record contains.",
         "measurement_starts_detail": {
           "shadow_audit_starts_used": 1,
           "shadow_audit_starts_max": 12,
@@ -1022,24 +1022,37 @@
           },
           {
             "enumeration_ordinal": 4,
-            "stable_case_key": "a4b01acd2832639a2aa5b8c8581616cf74cb93b9acda9e4a00726c1993ce6295",
-            "stable_case_key_derivation": "sha256 over the NUL-joined UTF-8 fields in the contract's stated order: release_contract_sha256, repository-relative spec path, accepted_intent_digest, reviewed_revision_digest, and the enumeration ordinal rendered as its decimal string. Reproducible from repository history: all three source files are committed at base 1fe78b32a.",
-            "status": "candidate_enumerated",
-            "controller_decision_timestamp": "2026-10-02T01:46:18Z",
+            "stable_case_key": "98a2931a7268d83fef58ef64825d69d0ac145badfd8f0a17ee284bdec12c498d",
+            "stable_case_key_derivation": "sha256 over the NUL-joined UTF-8 fields in the contract's stated order: release_contract_sha256, repository-relative spec path, accepted_intent_digest, reviewed_revision_digest, and the enumeration ordinal rendered as its decimal string. Reproducible from repository history: all three source files are committed at d881e66b8.",
+            "identity_rederived": {
+              "at": "2026-10-02T02:15:25Z",
+              "reason": "spec.md and plan.md changed between enumeration and the first reviewer start, so the enumeration-time key no longer binds the bytes the reviewer will read. The case-ledger contract requires re-derivation in exactly this window; after a reviewer has started the key is immutable.",
+              "superseded_case_key": "a4b01acd2832639a2aa5b8c8581616cf74cb93b9acda9e4a00726c1993ce6295",
+              "superseded_reviewed_revision_digest": "fee65a3520512811b365d3288da03b852491a7a6d2661c6a2e660a3d203e451a",
+              "cause": "the 2026-10-02 contract amendment at d881e66b8, which corrected the property's cue test, AC-0011's carrier count and two stub defects. No reviewer had started, so this is authoring on a Draft contract, not a revision driven by a finding.",
+              "not_a_duplicate": "the superseded key never reached a status beyond candidate_enumerated and launched no measurement start, so this is one row re-derived in its permitted window, not a second row under the duplicate_conflict_rule."
+            },
+            "status": "admitted_normal_loop_open",
+            "controller_decision_timestamp": "2026-10-02T02:15:25Z",
+            "normal_loop_opened_at": "2026-10-02T02:15:25Z",
+            "normal_loop_run_id": "c531c3bf-2aea-490e-9730-450f706eea9a",
+            "normal_loop_engine_state_at_admission": "SPEC-PLAN-REVIEW, transition sequence 1, mode code",
+            "admission_note": "Admitted when the normal work-loop pre-execute spec/plan review unit opened, immediately before the first reviewer start. loop-cohort plan check-current returned plan_review_status: pending, the expected pre-review signal. Round 1 dispatches the adversarial spec/plan reviewer; its brief carries no reference to this study, to prior reviewer behaviour, or to historical outcomes. No measurement start has been launched.",
             "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
             "release_contract_verified": true,
             "spec_path": "docs/specs/visual-target-rung-precondition/spec.md",
             "accepted_intent_path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md",
             "accepted_intent_digest": "183528b98134479d7cd07352195379e83062eeeb7fb2345d3865c4287cf3a678",
             "accepted_intent_digest_note": "Differs from case 3's recorded digest for the same ADR because the ADR was edited after case 3's enumeration-time read. The digest binds the bytes this case was enumerated against, not the artifact's identity.",
-            "reviewed_revision_digest": "fee65a3520512811b365d3288da03b852491a7a6d2661c6a2e660a3d203e451a",
+            "reviewed_revision_digest": "8f605ea1c93747857ac3b0fd2967287f1b2fa9d639dbceb822a3d693b3ff3308",
             "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
             "reviewed_artifacts": [
-              {"path": "docs/specs/visual-target-rung-precondition/spec.md", "sha256": "ab967155bdbfeaaa0aa28d3ab65525048035d411e57555742bd2a135cbaa2683"},
-              {"path": "docs/specs/visual-target-rung-precondition/plan.md", "sha256": "c035fd924fbffed020e57801918a626b3abbd78fe29b5bb097e0b6ec98f2c94e"}
+              {"path": "docs/specs/visual-target-rung-precondition/spec.md", "sha256": "1e4c296d2fc69f66d43a5c06ffbe4296ec78ade8494b77d7baffefcd2c2ce754"},
+              {"path": "docs/specs/visual-target-rung-precondition/plan.md", "sha256": "82755d934c2de80988efa38935e33ec6165f86c826e616da441a547c2cc625f4"}
             ],
             "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; registered in workspace.toml [backlog].open with a local spec need on docs/specs/visual-target-field/spec.md, and named as the successor in that spec's Follow-ons",
             "base_commit": "1fe78b32a65f3154874fb119dbd2b62fad24b7b9",
+            "reviewed_revision_commit": "d881e66b8c33949e2d58211f56493a8087c1aa6e",
             "delivery_worktree_branch": "eugenelim/visual-target-rung-precondition",
             "strata_recorded": {"new_spec_vs_amendment": "new_spec", "specialist_review_triggers": "not_yet_observed"},
             "stopped_revision_digest": null,
