@@ -404,3 +404,42 @@ is no longer a violation. The remaining 11 are T3's migration.
 
 **AC-0014 (`SKILL.md`, list item beginning `**Approved visual target**`):**
 > **Approved visual target** — optional. When present and the human has confirmed it (`visual_target: confirmed`), identify the target, what is binding, what is illustrative, and what may adapt responsively.
+
+
+## Execution observation — limit 4's reasoning is superseded by the gate it describes
+
+Recorded 2026-10-02 by the controller, during verification of T7. This is an
+execution observation, not a plan error: no operative requirement is affected
+and nothing in the contract is unsatisfiable.
+
+The spec's limit 4 says a gated sentence is outside the AC-0006 property, and
+gives `converge.md` as its worked example: `When an approved visual target
+exists, write the selected direction's compositional commitments` strips to
+`When an exists, write ...`, which carries no confirmation cue.
+
+That reasoning was correct for the sentence **before** T7 gated it. After
+gating, the sentence reads:
+
+> When an approved visual target exists — `visual_target: confirmed` — write the
+> selected direction's compositional commitments into the doc here.
+
+The inserted literal contains the word `confirmed`, which is a member of
+`CONFIRMATION_CUES`. So the stripped text now reads `When an exists —
+`visual_target: confirmed` — write ...` and **does** carry a cue. The sentence
+therefore fires the property — and passes it, because it contains
+`visual_target`.
+
+**Limit 4's conclusion still holds.** The literal is required by AC-0012 in its
+own right and not as a consequence of AC-0006; that is what the limit exists to
+establish, and the gate criteria do not depend on the sentence being out of
+scope. What is superseded is only the worked example's claim about the
+post-gate text.
+
+The outcome is strictly better than the limit anticipated: the gated sentence
+is now inside the property and compliant, so the property guards it against a
+later edit that removes the literal.
+
+**The implementer reported the opposite** — that the sentence remains outside
+the property per limit 4 — in its `Out of scope observed` note. The controller
+re-derived the strip by hand and found it fires. Recorded because the report
+was wrong on a checkable point and the record should not carry the error.
