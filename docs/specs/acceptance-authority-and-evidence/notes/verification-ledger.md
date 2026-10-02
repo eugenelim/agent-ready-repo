@@ -28,3 +28,20 @@ implementations that validate against the canonical contracts".
 
 Shipping input schemas to the agent is deferred to the first slice that
 accepts agent-written structured payloads.
+
+## T9a dispatch evidence (recorded 2026-10-01)
+
+T9a's benchmark evidence is admissible only when the dispatched run's head
+commit SHA equals the SHA on which the `test-corpus.yml` posture test,
+`actionlint`, and both `zizmor` passes ran. Use the CI-pinned `zizmor`
+version from `tools/requirements-ci-security-locked.txt`. A mismatch voids
+the evidence and requires a rescan. This follows a round-12 security Nit that
+was deferred rather than written into the pinned plan.
+
+## One benchmark entry point (build-time guidance, 2026-10-01)
+
+T4 creates one committed benchmark entry point, and the `test-corpus.yml`
+benchmark job runs it with a fixed command. T7 adds the cold-rehydration
+benchmark inside that same entry point. The job command, the single declared
+exception, the ADR, and the claim sites T4 writes then stay true when T7
+lands. T4 writes those sites to describe both benchmarks.
