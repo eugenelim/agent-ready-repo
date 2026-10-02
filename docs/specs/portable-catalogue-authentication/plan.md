@@ -37,7 +37,7 @@ boundaries without real credentials or customer systems.
 **Integration tests:**
 
 - From `tests/roster/test_portable_catalogue_authentication_packaging.py`: build both wheels, install them into clean Python 3.11 environments, and prove the dependency, import-origin, isolated-skill, ordinary-skill, and co-location matrices for AC-0001–AC-0003.
-- From that same roster module: run the installed AgentBundle CLI against loopback descriptor and archive fixtures for anonymous and exact `.netrc` paths, and for the JFrog path when a compatible official CLI is available, for AC-0018.
+- From that same roster module: run the installed AgentBundle CLI against loopback descriptor and archive fixtures for anonymous and exact `.netrc` paths, for AC-0018. Its JFrog path runs in a disposable Linux container holding the built wheels and a compatible official CLI located through a test-only environment variable, with the disposable loopback CA supplied through `SSL_CERT_FILE`; outside such a container the JFrog case skips with that stated reason, and AC-0018 is not checked until the container run passes.
 - Run an AST boundary test over the packaged AgentBundle source to prove that credential-source reads stay in `credbroker` and only `catalogue_fetch/jfrog_cli.py` invokes `jf api` for AC-0015.
 
 **Manual verification:** none. JFrog command behavior is captured by a repeatable real-executable contract test, not a manual login or customer-system check.
@@ -47,7 +47,7 @@ boundaries without real credentials or customer systems.
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | Behavior contract and strategy — this directory | T1–T5 | Task-mapped tests and verification ledger | Approved baseline, checked ACs, and frozen closeout state |
-| Corrected JFrog decision — `docs/adr/0136-catalogue-jfrog-auth-delegates-to-jfrog-cli.md` | none — already met on this branch | Official command documentation plus real-CLI test | D8 and every current architecture reference already name 2.105.0; T4 verifies, and edits neither file |
+| Corrected JFrog decision — `docs/adr/0136-catalogue-jfrog-auth-delegates-to-jfrog-cli.md` | none — already met on this branch | Official command documentation plus real-CLI test | D8 and every current architecture reference already name 2.105.0; T4 verifies D8 and edits no ADR, and its architecture edits concern only the appended-newline rule |
 | Current architecture — both credential architecture documents | T1, T2, T4, T5 | Import-boundary, provider, and security tests | Architecture review reports no stale dependency or credential edge |
 | AgentBundle package truth — DESIGN, manifest, version, README, CHANGELOG | T2, T5 | Wheel install, version, and built-CLI tests | Built artifact metadata and current docs agree |
 | `credbroker` package truth — manifest, version, README, CHANGELOG | T1, T3, T4, T5 | Public-surface, compatibility, and resolver tests | Built artifact exposes the approved 0.7 surface |
@@ -168,9 +168,11 @@ never passes `jf api --timeout`: on expiry that flag exits 0 with a truncated
 body, so the adapter's own deadline and kill remain the only timeout control.
 `jf api` appends one `0x0a` to stdout when the response body does not already
 end in one. The descriptor and archive stdout readers therefore admit their cap
-plus that one byte, as AC-0014 states, and https_catalogue.py verifies a JFrog archive's
-digest against the exact bytes and then against the bytes with one trailing
-`0x0a` removed, as AC-0016 states. Exit status 0 is the only success signal;
+plus that one byte and remove it when stdout reaches that length, so no more than
+the cap is ever accepted, as AC-0014 states. https_catalogue.py verifies a JFrog
+archive's digest against the admitted bytes and then against those bytes with one
+trailing `0x0a` removed, and extracts only the candidate that matched, as AC-0016
+states. ADR-0136 D10's limits therefore hold unchanged on the accepted bytes. Exit status 0 is the only success signal;
 stderr, which carries an HTTP status line and the full request URL, is bounded
 and never emitted. Each reader enforces the per-stream cap and failure
 ordering defined once in AC-0014. The exact argument order and official CLI
@@ -340,7 +342,7 @@ def test_netrc_exact_host_returns_origin_bound_access(
 
 - `test_jfrog_longest_profile_returns_pinned_binding` (AC-0011), `stub: true`.
 - Add selection, explicit-ID, topology, host-normalization (including an internationalized profile and target spelled differently, which must still match), refused-image on both branches (explicit server requested, so terminal; no explicit server, so unavailable and the anonymous path still completes), endpoint-escape, version, timeout, aggregate-budget, cleanup, hostile-stderr, and no-fallback fixture matrices. For every stream cap defined in AC-0014, exercise exact-boundary and first-byte-over-limit cases and assert terminate/reap happens before parsing or diagnostics and partial files are absent (AC-0007, AC-0008, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015).
-- Cover the appended newline for the descriptor and archive `jf api` stdout readers: a body ending in `0x0a`, a body not ending in it, an empty body, the exact cap, the cap plus one byte ending in `0x0a` (accepted), the cap plus one byte ending in another byte (rejected), and the cap plus two bytes (rejected). Cover the archive digest on the exact bytes, on the trimmed bytes, and on a mismatch of both candidates, and prove a direct request never trims (AC-0014, AC-0016).
+- Cover the appended newline for the descriptor and archive `jf api` stdout readers: a body ending in `0x0a`, a body not ending in it, an empty body, the exact cap, the cap plus one byte ending in `0x0a` (accepted), the cap plus one byte ending in another byte (rejected), and the cap plus two bytes (rejected); assert that no more than the cap reaches parsing, digest acceptance, or extraction in every accepted case. Cover the archive digest on the exact bytes, on the trimmed bytes, and on a mismatch of both candidates; assert that the file handed to extraction is byte-identical to the candidate that matched; and prove a direct request never trims (AC-0014, AC-0016).
 - Run a compatible official CLI against a disposable profile and loopback service in a disposable Linux container, with the loopback CA supplied through `SSL_CERT_FILE` and the executable located through a test-only environment variable; reject the adapter design if its arguments, output, or termination behavior differs from the contract this task row and the verification ledger record (AC-0018).
 - Record the acquired build's exact version in the verification ledger and state both discoveries against that build rather than against 2.105.0 generically. First, whether that build leaves descendants holding the output pipe after the direct child is killed; AC-0013 scopes termination to the direct child, and a positive result takes the controlled-amendment path to process-group and job-object termination. Second, whether `jf config show --format=json` is present in that build. A build at or above the floor that carries the flag corroborates ADR-0136 D8 without proving 2.105.0 is the earliest such version, which is the conservative direction and needs no further action; a build that lacks it falsifies D8 and sends AC-0011's "rejects JFrog CLI versions below 2.105.0" and ADR-0136 D8 through controlled amendment to the floor the evidence supports. Acquiring exactly 2.105.0 settles the floor outright and is preferred where the vendor still publishes it.
 - Stub validation: Python compilation passes; collection is intentionally red because `JfrogCliHttpAccess` is not yet exported.
@@ -401,7 +403,7 @@ def test_jfrog_longest_profile_returns_pinned_binding(
     assert result.artifactory_url.endswith("/artifactory/catalogues/")
 ```
 
-**Approach:** `credbroker` owns non-secret discovery and version validation; AgentBundle owns endpoint conversion and bounded `jf api` execution. ADR-0136 D8 and the architecture reference already name 2.105.0 on this branch, so that correction is met and T4 edits neither file.
+**Approach:** `credbroker` owns non-secret discovery and version validation; AgentBundle owns endpoint conversion and bounded `jf api` execution. ADR-0136 D8 and the architecture reference already name 2.105.0 on this branch, so that correction is met and T4 edits no ADR. T4 does update `docs/architecture/portable-catalogue-authentication.md`: the delta-table row that gives descriptor, digest, provenance, and extraction "no new provider-specific rules", the JFrog CLI delta's stdout caps, and the limits row, so that each states the JFrog-leg appended-newline rule and that the accepted bytes stay within the 1 MiB and 256 MiB limits.
 
 **Done when:** the validated stub is materialized unchanged, all subprocess and confinement matrices pass, and the compatible real CLI proves the final argument order, streamed bytes, exit mapping, timeout termination, and cleanup without a real credential.
 
@@ -422,7 +424,7 @@ def test_jfrog_longest_profile_returns_pinned_binding(
 - `no stub (goal-based)`. Once T4 lands, the facade accepts all four providers, so T5 introduces no behavioural seam a stub could drive red; T5 is verified by the built-artifact and documentation checks below.
 - Run the complete provider-state matrix and descriptor/archive reuse tests through installed packages (AC-0005, AC-0006, AC-0007, AC-0008, AC-0015, AC-0016, AC-0017).
 - Build documentation and reject the old bearer-only limitation, missing 2.105.0 setup, and credential-like examples in the changed guide regions (AC-0019).
-- Run all touched package suites and local lint gates. Wheel inspection, the isolated and co-located package checks, and the built-CLI loopback scenarios run from `tests/roster/test_portable_catalogue_authentication_packaging.py`, because each builds artifacts or reads the repository tree (AC-0001, AC-0002, AC-0003, AC-0018).
+- Run all touched package suites and local lint gates. Wheel inspection, the isolated and co-located package checks, and the built-CLI loopback scenarios run from `tests/roster/test_portable_catalogue_authentication_packaging.py`, because each builds artifacts or reads the repository tree (AC-0001, AC-0002, AC-0003, AC-0018). The built-CLI JFrog scenario runs that module inside a disposable Linux container with the built wheels, a compatible official CLI located through a test-only environment variable, and the disposable loopback CA supplied through `SSL_CERT_FILE`, as AC-0018 requires.
 - The roster module's CI registration is T1's, not T5's; T5 adds cases to the module T1 already registered.
 - Verify the landing commit carries the exact `Engine-Change-RFC:` footer defined in Constraints.
 - Stub validation: not applicable. T2's Approach scopes AgentBundle's rejection of the `.netrc` and JFrog variants to "until T3 and T4 land", so every provider the facade exposes is already accepted when T5 begins. A T5 stub asserting provider acceptance would pass on arrival, and one asserting bearer precedence is already covered by T1's configured-broken matrix — neither could earn an honest red.
