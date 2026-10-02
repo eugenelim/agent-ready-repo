@@ -1,7 +1,7 @@
 # Plan: visual-target field
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule,
   § Security and authoring rules (the eval-harness obligation) and
   § Self-hosting projection; `packs/AGENTS.local.md` § Marketplace and release
@@ -76,10 +76,15 @@ spec or this plan refers here rather than restating them.**
 
 ## Construction tests
 
-Every criterion is an assertion over a shipped file's bytes, except AC-0008
-(the guidebook lint).
+Every criterion is an assertion over a shipped file's bytes, with three
+exceptions: AC-0008 is the guidebook lint one-liner; AC-0009's start-of-work
+baseline is a recorded observation, carried in § *Version baseline and target*;
+and T4 carries one recorded manual check over the shipped changelog bullet,
+which is a one-time repair condition rather than a criterion — the 2026-10-01
+supplementary owner ruling kept it out of the acceptance criteria for that
+reason.
 
-AC-0004, the one criterion here that pins a literal, asserts it **inside a
+AC-0004 and AC-0012 pin literals. AC-0004 asserts its literal **inside a
 bounded unit** — a paragraph block, as the spec's Testing Strategy defines one
 — read from the single file the criterion names, with the anchor's uniqueness
 in that file asserted rather than assumed. The scoping criteria that shared
@@ -125,8 +130,7 @@ plan approval without it.
   excerpt, AC-0004 on `converge`'s disposition block, AC-0013 on the eval
   harness, and AC-0009 on `4.1.1 does not exceed the slice-start baseline
   4.1.1`. The three gating assertions left with their criteria and are
-  re-validated in the successor's plan. **This bullet is the current record**;
-  the bullets above it describe earlier states.
+  re-validated in the successor's plan.
 - **Re-validated after the round-3 repair.** All four blocks compile; all five
   tests red for their own reason. AC-0012's fence selector was checked against
   the real guide: it finds exactly one ` ```markdown ` fence carrying
@@ -135,13 +139,76 @@ plan approval without it.
   reds because the material is absent rather than because it was reading the
   design-principles block. `python tools/lint-conformance-portability.py
   --root .` exits zero with the release test in `tests/roster/`.
+- **Re-opened by the 2026-10-01 amendment. This bullet is the current record;
+  every bullet above it describes an earlier state.** The amendment adds T5 and
+  changes which module asserts AC-0012, so the dispositions and the tally are
+  restated here over the post-amendment assertion set.
+  - **Dispositions, 11 obligations over 10 live criteria.** `stub: true` for
+    AC-0001/AC-0002/AC-0003 and AC-0011 (T1, with AC-0011's assertion replaced
+    by T5), AC-0004 (T2), AC-0013 (T3), AC-0009 and AC-0010 (T4), and AC-0012
+    (T5's new roster module). `no stub (goal-based check)` for AC-0008, the
+    guidebook lint one-liner, and for AC-0009's start-of-work baseline
+    observation recorded in § *Version baseline and target*. 0 uncovered. This
+    supersedes the "8 covered by stubs, 2 goal-based" tally above, which counted
+    AC-0012 under its old home and predates T5.
+  - **Compile pass, by block, because they were validated differently.**
+    Measured 2026-10-01 against the blocks as they now stand, after T4's block
+    lost its unused `import re`: all six stored blocks pass. T4's roster module
+    and T5's roster module each compile standalone under `python -m py_compile`
+    from disposable scratch outside the repository test tree, exit 0; T1's,
+    T2's and T3's blocks compile the same way. This record covers every stored
+    block, superseding the round-3 four-block record above, which predates T4's
+    edit. The AC-0011 block is a
+    function-body fragment replacing one assertion, so it does not compile
+    standalone — `py_compile` on it exits non-zero with
+    `IndentationError: unexpected indent`. Its syntax was validated by splicing
+    it into a disposable copy of its host module
+    (`packs/experience-design/tests/skills/creative-direction/test_contract.py`),
+    which then compiled clean. Recorded this way because an earlier revision
+    claimed a bare `py_compile` pass for both blocks, which was not what was
+    run.
+  - **Intended red: unobtainable for both T5 blocks, by construction.** T1 has
+    already landed the template phrase and the guide excerpt material, so each
+    assertion is green on first run.
+    **Owner-granted waiver, not a self-declared deviation.** `tdd-stubs.md`
+    § *Validate* fails closed at plan approval without a recorded intended red,
+    and admits no third disposition beside `stub: true` and
+    `no stub (implementation-discovered)`. Neither fits: the assertions are
+    authored and compilable, so they are not implementation-discovered, and the
+    red cannot be obtained because the property they assert is already present
+    in the tree T1 committed at `f69606cfb`.
+
+    An earlier revision asserted a departure "under the 2026-10-01 amendment
+    authority" — a grant that authority did not contain. Review sustained that
+    as a blocker and adjudication returned `ADJUDICATION-INDETERMINATE` on the
+    question behind it, because neither `tdd-stubs.md` nor `mutation-proof.md`
+    decides whether a PLAN-time mutation red satisfies the non-vacuity
+    requirement. The owner ruled on that question rather than the plan
+    reinterpreting it: see § *Supplementary owner ruling — 2026-10-01, a scoped
+    intended-red waiver for T5* in
+    [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md), which
+    waives the intended-red requirement for these two blocks only and records
+    the measured substitute evidence.
+
+    Both prescribed mutations were applied in throwaway worktrees and observed
+    red; the AC-0011 mutation additionally shows the superseded co-occurrence
+    assertion staying green where the replacement fails. The waiver is from the
+    red requirement and nothing else in § *Validate*: the compile pass above is
+    recorded as that section requires. The owner later extended the waiver to
+    § *Lifecycle*'s EXECUTE-time red for the same two blocks, on the same
+    reason: see § *Supplementary owner ruling — 2026-10-01, the waiver extends
+    to the Lifecycle red* in the same note. It therefore covers both phases and
+    nothing further. The EXECUTE-time ledger entry T5's `Done when` gates on is
+    still owed; the ruling permits the substitution, it does not perform it.
+  - **Isolation:** local, filesystem-confined to the repository and disposable
+    scratch, no network use. No isolation downgrade was needed.
 
 ## Durable-output map
 
 | Durable output | Task | Evidence |
 | --- | --- | --- |
 | Interface compatibility (the template) | T1 | Contract-suite assertions |
-| Current product truth (the guide excerpt) | T1 | `lint-guidebook-steps.py` exit zero plus AC-0012 |
+| Current product truth (the guide excerpt) | T1 for the excerpt edit; T5 for AC-0012's assertion | `lint-guidebook-steps.py` exit zero (T1) plus AC-0012, asserted from T5's `tests/roster/` module after the 2026-10-01 amendment moved it out of the pack contract suite |
 | Behavioural coverage (the eval harness) | T3 | Contract-suite assertion over the harness JSON |
 | Release history | T4 | `tests/roster/test_visual_target_release_surface.py`, which reads all three version sites and the changelog; plus the recorded slice-start baseline. `tests/conformance/test_pack_metadata.py` is not evidence for AC-0009 or AC-0010: it compares `pack.toml` to `plugin.json` only, never a marketplace version and never the changelog |
 
@@ -404,13 +471,21 @@ needed.
 from __future__ import annotations
 
 import json
-import re
 import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/roster/ -> repo root
 PACK = REPO_ROOT / "packs" / "experience-design"
+# Both literals are derived from plan.md § Version baseline and target, which is
+# their single home. BASELINE is what AC-0009 measures the bump against.
 BASELINE = "4.1.1"
+# RELEASE pins the one entry this slice authored. The changelog half must NOT
+# read the live pack version: changelog entries describe one release each, so a
+# later unrelated experience-design bump would red this permanently installed
+# test for an author who never touched this field. The three-site version
+# agreement below keeps reading the live version, because that claim must stay
+# live. Same split as tests/roster/test_wave4_durable_outputs_and_release.py.
+RELEASE = "4.1.2"
 
 
 def _tuple(version: str) -> tuple[int, ...]:
@@ -443,12 +518,12 @@ def test_release_surface_is_consistent() -> None:
     changelog = (REPO_ROOT / "docs" / "product" / "changelog.md").read_text(
         encoding="utf-8"
     )
-    heading = f"## [experience-design][{version}]"
+    heading = f"## [experience-design][{RELEASE}]"
     starts = [
         line for line in changelog.splitlines() if line.startswith(heading)
     ]
     assert len(starts) == 1, (
-        f"AC-0010: expected exactly one free-standing '## ' entry for {version}. "
+        f"AC-0010: expected exactly one free-standing '## ' entry for {RELEASE}. "
         "A substring test would also accept a '### ' entry nested under "
         "[Unreleased], which never publishes."
     )
@@ -476,6 +551,16 @@ def test_release_surface_is_consistent() -> None:
   nothing else in that pipeline.
 - The change alters what a producer does, so a `### Highlights` subsection is
   owed.
+- **The Highlights bullet is adopter copy, and `changelog.md`'s own header
+  governs it: "Rewrite for users, not contributors" and "Outcome, not
+  activity."** Lead with what an adopter can now do, not with the artifact
+  mechanism, and do not close in contributor register. Two accuracy rails bind
+  it: the bullet must not state or imply that recording the disposition is
+  conditional on anything — `converge` records it unconditionally, and the
+  no-target case is exactly the one a conditional reading would drop — and it
+  must keep saying plainly that nothing reads the field and nothing is gated on
+  it. It must still name `visual_target` in a `-` bullet under
+  `### Highlights`, because the `/now/` projection extracts only bullets.
 - Placing a file in `tests/roster/` obliges three further edits, per
   `tests/AGENTS.md` § *Roster steps are named and placed by hand*: a step in
   `.github/workflows/build-check.yml` naming the file, placed **above** the bulk
@@ -485,12 +570,285 @@ def test_release_surface_is_consistent() -> None:
   `.workspace-prune-protected.toml` entry only if the test names a
   `docs/specs/<slug>` path literal — this one does not, so that third edit is
   not owed.
+  **`lint-ci-parity.py` feeds two axes and refuses a step missing from either,**
+  so the step name goes in both `_LOCAL_STEP_DISPOSITION` and the
+  `_GATE_MAIN_CHECKS` tuple. `tests/AGENTS.md` documents only the first; a step
+  named in one axis alone is still a violation, which `_step_disposition` is
+  written to preserve.
 - Run `ruff check .` afterwards: the repository lint targets do not cover
   orphaned imports left by a moved test.
 
+#### Repair state for this task after the 2026-10-01 amendment
+
+Two artifacts T4 already committed are **currently non-conforming** and T4 is
+not met until both are repaired. Neither is caught by the checks T4's original
+`Done when` names, which is why they are called out here rather than left to a
+re-run:
+
+1. `tests/roster/test_visual_target_release_surface.py` builds its changelog
+   heading from the live `version` instead of the `RELEASE` literal this plan
+   now pins. The committed file predates the amended stub above.
+2. The `## [experience-design][4.1.2]` Highlights bullet in
+   `docs/product/changelog.md` states that `converge` records the disposition
+   "when writing compositional commitments". `converge` records it
+   unconditionally, so the published sentence describes a condition the shipped
+   instruction does not have and reads as the gating this slice forbids. It is
+   also schema-led where `changelog.md`'s header requires outcome-led user
+   register.
+
 **Touches:** packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md, tests/roster/test_visual_target_release_surface.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
 
-**Done when:** `make lint-ruff lint-mypy` and `ruff check .` are green; `python3 -m pytest tests/conformance/test_pack_metadata.py tests/roster/test_visual_target_release_surface.py -q` is green; and `python tools/lint-conformance-portability.py --root .` and `python tools/lint-ci-parity.py` both exit zero, which is what proves the file sits in a tree whose rules admit it.
+**Done when:** all five hold. The first two were added by the 2026-10-01
+amendment because the other three are green against the unrepaired tree, so
+without them an implementer could report T4 met with both non-conforming
+artifacts standing.
+
+1. **Byte identity against the approved stub.** The materialized
+   `tests/roster/test_visual_target_release_surface.py` matches the stub block
+   in this task section, per `tdd-stubs.md` § *Lifecycle*. This is what fails
+   while the committed file still derives its changelog heading from the live
+   `version` rather than from `RELEASE`.
+2. **Both defects named in the repair-state list above are repaired.** The
+   `## [experience-design][4.1.2]` entry's Highlights bullet (a) does not
+   contain the string `when writing compositional commitments` and states no
+   other condition on recording the disposition, and (b) leads with what an
+   adopter can now do rather than with the artifact mechanism, and does not
+   close in contributor register — the two things `changelog.md`'s header
+   requires of a highlight. It still names `visual_target` in a `-` bullet and
+   still says plainly that nothing reads the field and nothing is gated on it.
+   Verified by reading the bullet against that header and recording the
+   observation in the verification ledger; no lint reads prose register, so
+   this is a recorded manual check rather than a gate.
+   This is a one-time repair condition on an already-shipped artifact, not a
+   standing criterion: the 2026-10-01 supplementary owner ruling removed the
+   equivalent clauses from AC-0010 precisely so the contract does not carry an
+   obligation a completion gate cannot decide. Both halves stay here because
+   both were sustained findings, and a repair condition that omits one would
+   let T4 pass with that defect standing.
+3. `make lint-ruff lint-mypy` and `ruff check .` are green.
+4. `python3 -m pytest tests/conformance/test_pack_metadata.py tests/roster/test_visual_target_release_surface.py -q` is green.
+5. `python3 tools/lint-conformance-portability.py --root .` and `python3 tools/lint-ci-parity.py` both exit zero, which is what proves the file sits in a tree whose rules admit it.
+
+### T5: AC-0012 is asserted from a tree that may read the guide, and AC-0011 is decided
+
+**Depends on:** T4
+
+**Landed state, 2026-10-01. Read this before acting on anything below.** T5's
+work is **already done and committed**, at `d712528e5` plus the assertion-message
+correction in the second amendment's follow-up revision. The roster module
+exists at `tests/roster/test_visual_target_guide_excerpt.py` and is
+byte-identical to its stub block; `_template_fence`, `TICKS` and `FENCE` are
+gone from the pack suite; the AC-0011 assertion is replaced in place; the
+`build-check.yml` step and both `tools/lint-ci-parity.py` axes carry the roster
+entry; and **both mutation proofs are recorded in full** at
+[`notes/verification-ledger.md`](notes/verification-ledger.md) § *T5 mutation
+proofs*. Every condition in `Done when` below was measured satisfied on the
+current tree.
+
+T5 is re-emitted by the post-amendment reschedule only because
+`completed_task_ids` records T1 to T4 and not T5, which the second amendment
+could not change. **The remaining obligation is to re-verify the `Done when`
+conditions, not to re-perform the work.** The prose below is kept as the
+contract that governs the task and as the record of how it was done; its
+imperative voice describes work already performed. In particular **do not re-run
+the two mutations.** They edit the shipped template and the shipped guide, the
+AC-0011 mutation propagates into a second byte-pinned file through the
+guidebook-lint coupling, and `mutation-proof.md` permits no `git checkout`,
+`reset` or `stash` to undo it — so a redundant re-performance risks shipped
+artifacts for evidence that already exists.
+
+Added by the 2026-10-01 amendment. T1's plan section is pinned, so these two
+corrections to its assertions arrive as a new task rather than as edits to it.
+The edge is on T4, not T1: both tasks write
+`.github/workflows/build-check.yml` and `tools/lint-ci-parity.py`, and
+declaring T1 would let the scheduler place T4 and T5 in one wave, since T1 is
+already completed. T1's content dependency is satisfied by its completion.
+
+**Tests:**
+- `test_visual_target_guide_excerpt` — AC-0012 — `stub: true`. The assertion
+  moves out of the pack contract suite into a new `tests/roster/` module. It is
+  not a pure relocation: the new module authors its own root anchor and
+  file-read mechanism, because `_read` and `PACK_ROOT` live in the pack suite
+  and do not exist under `tests/roster/`.
+- `test_template_carries_the_visual_target_disposition` — AC-0011 —
+  `stub: true` for the replaced assertion only. The surrounding test keeps its
+  AC-0001, AC-0002 and AC-0003 assertions unchanged; only the final AC-0011
+  line is replaced, by the block below.
+
+**Stub** — `tests/roster/test_visual_target_guide_excerpt.py`, new when this task was written and now landed byte-identically:
+
+```python
+"""AC-0012 for the experience-design visual-target field.
+
+Lives in tests/roster/ and not in the pack contract suite: AC-0012 is a claim
+about guides/experience-design/how-to/establish-design-intent.md, and
+tools/lint-pack-test-boundary.py forbids a pack test from reading above its own
+pack. The spec's Testing Strategy records why the original home could not
+satisfy both. tests/AGENTS.md names tests/roster/ as the repository-level home.
+
+Run mode: build-check.yml triggers on pull_request and its carve-out step runs
+`python -m pytest tests/ -q`, so the PR gate runs this.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/roster/ -> repo root
+GUIDE = (
+    REPO_ROOT
+    / "guides"
+    / "experience-design"
+    / "how-to"
+    / "establish-design-intent.md"
+)
+TICKS = "`" * 3  # written this way so the literal survives a fenced code block
+FENCE = TICKS + "markdown"
+
+
+def _template_fence(text: str) -> str:
+    """The one markdown fence reproducing the creative-direction template.
+
+    Selected by a property, not by ordinal: this guide carries three such
+    fences and the first is a design-principles block.
+    """
+    bodies = [part.split(TICKS, 1)[0] for part in text.split(FENCE)[1:]]
+    matching = [b for b in bodies if "type: creative-direction" in b]
+    assert len(matching) == 1, "AC-0012: exactly one creative-direction fence"
+    return matching[0]
+
+
+KEY_LINE = 'visual_target: "<none | unconfirmed | confirmed>"'
+RECORD_LINE = (
+    "**Confirmation record:** <YYYY-MM-DD> — "
+    "<where the confirmation was recorded>"
+)
+
+
+# STUB: AC-0012  (spec: visual-target-field)
+def test_visual_target_guide_excerpt() -> None:
+    """visual-target-field AC-0012."""
+    excerpt = _template_fence(GUIDE.read_text(encoding="utf-8"))
+    lines = [line.rstrip() for line in excerpt.split("\n")]
+    for pinned in (KEY_LINE, RECORD_LINE):
+        assert lines.count(pinned) == 1, (
+            f"AC-0012: {pinned!r} must appear exactly once in the template "
+            "fence. Containment over the bare words does not decide this: the "
+            "fence carries `visual_target` four times and "
+            "`**Confirmation record:**` twice, because the section comment "
+            "discusses both, so a word check passes on an excerpt that "
+            "reproduces the comment and omits the key and the record line."
+        )
+```
+
+**Stub** — replaces the final AC-0011 assertion inside
+`test_template_carries_the_visual_target_disposition` in
+`packs/experience-design/tests/skills/creative-direction/test_contract.py`:
+
+```python
+    normalized_comment = " ".join(comment.split())
+    assert (
+        "An absent `visual_target` reads as `unconfirmed`" in normalized_comment
+    ), (
+        "AC-0011: the comment must state the absent-field reading as one "
+        "contiguous phrase. Testing for `unconfirmed` beside the word `absent` "
+        "reduces the criterion to whether `absent` appears at all, so a comment "
+        "stating that an absent target means `none` would pass while "
+        "contradicting the fail-closed default."
+    )
+```
+
+**Approach** — as performed; see the landed-state note above before repeating
+any step:
+- Move the AC-0012 assertion out of
+  `packs/experience-design/tests/skills/creative-direction/test_contract.py`
+  and into the new roster module above, deleting `_template_fence`, `TICKS` and
+  `FENCE` from the pack suite along with it. A pack test may not read above its
+  own pack, and AC-0012 is a claim about a file in `guides/`; the spec's Testing
+  Strategy records why the original home could never have satisfied both.
+- Placing a file in `tests/roster/` obliges the two edits `tests/AGENTS.md`
+  names: a step in `.github/workflows/build-check.yml` naming the file, placed
+  **above** the bulk `pytest tests/ -q` step, and a matching `STEP_DISPOSITION`
+  entry of `LOCAL("test-after-build-check")` in `tools/lint-ci-parity.py`.
+  That lint feeds two axes and refuses a step missing from either, so the step
+  name also joins the `_GATE_MAIN_CHECKS` tuple. The third obligation, a
+  `.workspace-prune-protected.toml` entry, is owed only when the test names a
+  `docs/specs/<slug>` literal; this one does not.
+- Replace AC-0011's assertion in the contract suite with the block above.
+  AC-0001, AC-0002, AC-0003 and AC-0011 stay in the contract suite, which reads
+  only the template.
+- Run `ruff check .` afterwards: moving a test orphans the imports only it used,
+  and the repository lint targets do not cover that.
+
+**Verification: mutation proof, not red-then-green.** Both assertions are green
+on first run against the current tree — the template comment already carries the
+pinned phrase, and the guide's `type: creative-direction` fence already carries
+both markers, because T1 put them there. An assertion accepted on a first
+green carries no evidence it can fail at all, so non-vacuity is shown by
+[`mutation-proof.md`](../../../.claude/skills/work-loop/references/mutation-proof.md),
+the repository's declared instrument for a test whose property is already
+present.
+
+**What is granted, and what is not.** The owner's waiver covers
+`tdd-stubs.md` § *Validate*'s intended-red requirement at **plan approval**, for
+these two blocks, and nothing further. § *Lifecycle* separately requires EXECUTE
+to materialize the approved block, verify byte identity, **and prove the intended
+red**, and `work-loop/SKILL.md` repeats that for the full-mode engine after
+`CODE-IMPLEMENTATION`. That EXECUTE-time red is unobtainable for the same reason
+the plan-approval one is, and **whether the mutation proof may stand in for it is
+not decided by the current grant.** An earlier revision of this section claimed
+the substitution without phase qualification, which claimed more than the waiver
+gives; that overreach is removed here rather than argued.
+
+**Resolved, 2026-10-01.** The owner extended the waiver to cover
+§ *Lifecycle*'s EXECUTE-time intended red for these same two blocks, on the same
+reason: the red is unobtainable at either phase because T1 already committed the
+material both assertions check, and reaching `CODE-IMPLEMENTATION` does not
+change that. See § *Supplementary owner ruling — 2026-10-01, the waiver extends
+to the Lifecycle red* in
+[`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md).
+
+The substitution is now granted at both phases, and nothing further is waived.
+The ruling permits the substitution rather than performing it, so T5 was not met
+until both mutation proofs were recorded in the verification ledger with the full
+field set `mutation-proof.md` § *Proof record* requires. **Both are now
+recorded** — see § *T5 mutation proofs* in
+[`notes/verification-ledger.md`](notes/verification-ledger.md) — each carrying
+that complete field set, cited rather than restated here so the list cannot
+drift short of it, and including `Catching test`, which is load-bearing for
+AC-0011 because its assertion is one line inside a four-criterion test function.
+The two mutations the proofs record, retained here as the specification those
+proofs had to meet and **not as work to repeat**:
+
+- **AC-0012** — in the guide's fenced excerpt only, delete the single
+  `visual_target: "<none | unconfirmed | confirmed>"` line. Expected red:
+  `test_visual_target_guide_excerpt`, on the `KEY_LINE` count assertion.
+  This falsifies the pinned sub-property rather than deleting the construct:
+  the fence still carries `visual_target` three times and the record line
+  intact, so the mutation proves the assertion decides the key's presence and
+  not merely that the word appears somewhere. A whole-fence deletion would
+  prove nothing about that sub-property. **Confined to the guide.** Restore by
+  re-deriving the excerpt from the template, then confirm
+  `tools/lint-guidebook-steps.py guides/experience-design` is green again.
+- **AC-0011** — in the template only, reword the section comment's
+  absent-field sentence so it still contains both `absent` and `unconfirmed`
+  but no longer as the pinned contiguous run. Expected red:
+  `test_template_carries_the_visual_target_disposition`, on the replaced
+  AC-0011 assertion. Record that the superseded co-occurrence form would have
+  stayed green under this same mutation; that contrast is the whole reason for
+  the replacement, so both outcomes belong in the ledger.
+  **Confined to the template. Do not re-derive the guide excerpt while the
+  mutation stands** — the comment is reproduced verbatim in the guide and
+  coupled by the guidebook lint, so re-deriving under mutation would write the
+  mutation into a second shipped byte-pinned file. The lint is expected to red
+  during the mutation, which is the coupling working. Restore by editing the
+  template back, which returns the lint to green and leaves restoration a
+  one-file operation; `mutation-proof.md` permits no `git checkout`, `reset` or
+  `stash` here.
+
+**Touches:** packs/experience-design/tests/skills/creative-direction/test_contract.py, tests/roster/test_visual_target_guide_excerpt.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py, docs/specs/visual-target-field/notes/verification-ledger.md
+
+**Done when:** `python3 tools/test-lint-pack-test-boundary.py` exits zero — the gate that caught this, and the one that proves the boundary violation is gone; the materialized roster module matches the stub block above byte for byte; `python3 -m pytest packs/experience-design/tests/skills/creative-direction tests/roster/test_visual_target_guide_excerpt.py -q` is green; `make lint-ruff lint-mypy` and `ruff check .` are green; `python3 tools/lint-ci-parity.py` and `python3 tools/lint-conformance-portability.py --root .` both exit zero; and the verification ledger records both mutation proofs above with observed reds and restoration.
 
 ## Rollout
 
@@ -499,7 +857,9 @@ def test_release_surface_is_consistent() -> None:
   differently for any artifact, new or existing.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** T1, then T2, then T3, then T4. This slice must
+- **Deployment sequencing:** T1, then T2, then T3, then T4, then T5. T1 to T3
+  landed before the 2026-10-01 amendment and are preserved as met; T5 corrects
+  two of T1's assertions without editing its pinned section. This slice must
   land before `visual-target-rung-precondition`, which reads the field it
   writes.
 
@@ -591,3 +951,291 @@ def test_release_surface_is_consistent() -> None:
   attempt at this edit left `Outcome` and `Approach` asserting the retired
   behaviour, including a start gate on a question the ruling had already
   answered; both were rewritten and read back.
+- 2026-10-01: **Controlled contract amendment** under owner authority, recorded
+  at [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md);
+  amendment id `6a558bc592327e241ae36110641e6e6cb17cae181c259deadc90e18672da7896`.
+  T1 to T4 had been implemented and gated when post-gates review round 1
+  sustained 6 of 20 raw findings across two reviewers. Two were blockers in the
+  accepted contract rather than in the work: the spec's Testing Strategy
+  required AC-0012 as a contract-suite assertion, which cannot be satisfied
+  because deciding AC-0012 means reading a guide outside the pack and
+  `tools/lint-pack-test-boundary.py` forbids that — measured red, and the docs
+  workflow runs it on every pull request touching these paths; and T4's stub
+  bound the `visual_target` changelog claim to whatever version `pack.toml`
+  carries, so the next unrelated bump would red a permanently installed test.
+  Four pre-EXECUTE rounds had missed both, and the first is the same class of
+  boundary error round 3 caught for T4's own placement. The Testing Strategy now
+  places AC-0012's assertion in `tests/roster/` and records why the original home
+  was unsatisfiable; AC-0011 now pins its phrase as one contiguous run, because
+  the co-occurrence form could not fail; T4's stub pins only the changelog half
+  to the literal release and keeps the three-site agreement reading the live
+  version; and T4's approach now carries the register and accuracy rails
+  `changelog.md`'s header imposes on a Highlights bullet. T1 to T3 are preserved
+  as completed with their commits bound as evidence, so the two corrections to
+  T1's assertions arrive as new task T5 rather than as edits to its pinned
+  section. No acceptance criterion was removed, weakened, or renumbered, and the
+  outcome is not narrowed. One advisory finding, on the guide caption's
+  unconditional placeholder sentence, was deferred rather than acted on.
+- 2026-10-01: Revised after the post-amendment pre-EXECUTE review (9 sustained
+  of 11 raw, 2 refuted). Every sustained finding was a defect in the amendment
+  itself rather than in the work it governs, which is the third time in this
+  delivery that repair work was the defect source. Four were blockers. T4's
+  `Done when` was green against the unrepaired tree, so a re-dispatched
+  implementer could have reported it met with both non-conforming artifacts
+  standing; it now leads with a byte-identity check against the approved stub
+  and a recorded check that the Highlights bullet carries no conditional
+  framing, and T4 names those two artifacts as currently non-conforming. T5
+  claimed proof by red-then-green, which is unobtainable because T1 already
+  landed the material both assertions look for; it now carries a mutation proof
+  with two named mutations, their expected reds, and restoration, per
+  `mutation-proof.md`. T5 had no admitted stub disposition and no code for the
+  new roster module; both blocks are now present, compiled, and recorded. T5's
+  relocation claim was untrue — `_read` and `PACK_ROOT` do not exist under
+  `tests/roster/` — so the module authors its own root anchor and read
+  mechanism and the "nothing newly authored" claim is gone. Three concerns:
+  AC-0009 named a conformance test that cannot own it, AC-0010 measured the
+  live version where its verification pins the released one, and two Testing
+  Strategy bullets declared goal-based mode for criteria the plan stubs — the
+  mode declaration is normative, since only a TDD-mode criterion is stubbed.
+  Two nits: T5's dependency edge moved to T4 so the scheduler cannot place two
+  tasks that write the same workflow and parity files in one wave, and T4 now
+  names both `lint-ci-parity.py` axes. The stub validation record was re-opened
+  with a current-state bullet and a disposition tally over 11 obligations; the
+  stale "this bullet is the current record" claim two bullets up was removed.
+  The two refusals were not acted on: the test's version literals are already
+  recorded as derived from the single home, and pinning the criterion rather
+  than deriving the version in the test is what the amendment authority
+  requires; and AC-0011's prose wording cannot mislead, because the criterion
+  pins the exact phrase in its own fenced block.
+- 2026-10-01: Revised after the third pre-EXECUTE pass (10 sustained, 0
+  refuted). Every finding was a defect in the previous repair, and the shape of
+  the previous repair is the finding behind the finding: it answered sustained
+  findings by adding obligations, and the additions then needed verification of
+  their own. Two blockers were measured, not argued. T4's approved stub carried
+  `import re` unused, so `Done when`'s byte-identity condition and its
+  `ruff check .` condition could not both hold — the same unused import the T4
+  implementer had already removed from the real file and reported, pinned back
+  in by a stub nobody re-read. AC-0012's prescribed mutation left its assertion
+  green, because the fence carries `visual_target` four times and
+  `**Confirmation record:**` twice; the answer was to tighten the criterion to
+  its two pinned lines, each occurring exactly once, which both strengthens
+  AC-0012 and makes it falsifiable by one line. The third blocker was resolved
+  by narrowing rather than specifying: under a supplementary owner ruling
+  recorded in [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md),
+  the register and conditional-framing clauses the previous repair added to
+  AC-0010 are removed, and the shipped bullet's two defects stay as a one-time
+  repair condition in T4's `Done when`, which adjudication distinguished from a
+  standing criterion. T5's `stub: true` with an unobtainable red is now a
+  recorded deviation from `tdd-stubs.md` § *Validate* under that authority
+  rather than an assertion that the obligation was discharged. The AC-0011
+  mutation is confined to the template and explicitly forbids re-deriving the
+  guide while the mutation stands, so restoration touches one file. The
+  mutation field list now cites `mutation-proof.md` § *Proof record* instead of
+  restating it short of `Catching test`. Three structural corrections: the
+  orphaned `ruff check .` bullet returned to T4's Approach, the durable-output
+  map now attributes AC-0012's assertion to T5, and the construction-tests
+  preamble states its three real exceptions.
+- 2026-10-01: Revised after the fourth pre-EXECUTE pass. Its adjudication
+  returned `ADJUDICATION-INDETERMINATE` and classified `invalid`
+  (`indeterminate-present`), which is a fail-closed stop, so no revision was
+  made from that round until the owner decided the question behind it. The
+  blocker was that this plan asserted a `tdd-stubs.md` § *Validate* departure
+  "under the 2026-10-01 amendment authority" — a grant that authority did not
+  contain. The question behind it, which neither `tdd-stubs.md` nor
+  `mutation-proof.md` decides, was whether a mutation red obtained at PLAN time
+  satisfies the non-vacuity requirement. The owner ruled on 2026-10-01 to record
+  an explicit scoped waiver rather than reinterpret "intended red" to admit
+  evidence already in hand, which would have set a precedent for every future
+  stub whose asserted property is already present. That waiver, its reason, and
+  its scope limit are recorded in
+  [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md); this plan now
+  cites it instead of claiming a grant. Both prescribed mutations were measured
+  in throwaway worktrees and observed red, and the AC-0011 mutation additionally
+  shows the superseded co-occurrence assertion staying green where the
+  replacement fails — the evidence that the replacement was worth making. The
+  compile record is now stated per block: the roster module compiles standalone,
+  while the AC-0011 fragment does not and was validated by splicing into a
+  disposable copy of its host module. An earlier revision claimed a bare
+  `py_compile` pass for both, which was not what was run. The amendment note's
+  § *What this amendment does not change* now marks its two superseded claims,
+  one of which — "AC-0012 keeps its wording" — had become false. One finding was
+  refuted: holding the Highlights rails in both Approach and `Done when` is a
+  structure preference, not a defect, since the two are differently decidable.
+- 2026-10-01: Revised after the fifth pre-EXECUTE pass — the first with no
+  blockers (1 concern, 1 nit, both sustained, none refuted). That pass also
+  reproduced independently every claim the intended-red waiver rests on: both
+  mutation reds, the superseded-assertion contrast, the per-block compile
+  results, and the guidebook lint returning to zero after restoration by
+  editing. The concern was an overreach of this plan's own making: § *Verification*
+  claimed the mutation proof substitutes for the intended red without phase
+  qualification, while the waiver grants that only at plan approval and
+  `tdd-stubs.md` § *Lifecycle* imposes an EXECUTE-time red separately. The plan
+  also contradicted itself, repeating the plan-approval-only limit in one place
+  and exceeding it in another. Adjudication ruled that removing an overreach
+  needs no grant, so the claim is narrowed here rather than argued, and the
+  residue is recorded at the T5 seam as a named open decision owed before T5 is
+  marked met: whether § *Lifecycle*'s EXECUTE-time red is waived on the same
+  reason. Adjudication also established that the in-tree mutation proofs supply
+  that non-vacuity evidence in substance, so what remains is an authority
+  statement, not more evidence work. The nit is closed by extending the compile
+  record to every stored block, measured as they now stand after T4's block lost
+  its unused `import re`; the round-3 four-block record it supersedes predated
+  that edit.
+- 2026-10-01: The open § *Lifecycle* decision recorded above is resolved. The
+  owner extended the intended-red waiver to cover § *Lifecycle*'s EXECUTE-time
+  red for the same two T5 blocks, on the same reason — the red is unobtainable
+  at either phase because T1 already committed the material both assertions
+  check, and reaching `CODE-IMPLEMENTATION` does not change that. The extension
+  and its scope limit are recorded in
+  [`notes/amendment-2026-10-01.md`](notes/amendment-2026-10-01.md). The
+  substitution is now granted at both phases and nothing further is waived; the
+  two verification-ledger entries stay owed, because the ruling permits the
+  substitution rather than performing it.
+- 2026-10-01: The § *Stub validation record* bullet that declares itself the
+  current record still closed "the waiver concerns plan approval only", which
+  the extension recorded above had already superseded, so the plan asserted two
+  scopes in two places with no cross-reference between them. A reader stopping
+  at the current record would have concluded an unobtainable EXECUTE-time red
+  was still required for T5's two blocks. The stale clause is removed rather
+  than reconciled by adding a second statement: the record now states the one
+  extended scope and cites the ruling that grants it. The two
+  verification-ledger entries stay owed, worded as before.
+- 2026-10-01: **Scope gate passed. `eugenelim` approved the spec.** The seventh
+  pre-EXECUTE pass returned no blockers and no concerns, and its one nit was
+  refuted on adjudication as a presentation preference no record or authority
+  decides, giving a clean adjudicated verdict (`## Main-loop result` reads
+  `Clean — ready to commit.`, refuted 1, indeterminate 0). Residual risk
+  recorded with the approval: the sustained-finding count fell 6, 9, 10, 3, 2,
+  1, 0 across the rounds run under the amendment, and the trend only turned
+  when repairs stopped adding obligations to the contract and started dropping
+  or narrowing claims instead. Rounds 2 through 6 each sustained findings that
+  were defects in the previous round's repair rather than in the work governed,
+  so the clean verdict rests on a contract that stopped moving, not on a
+  contract that was never wrong. Nothing in the spec changed between the
+  approval given earlier today and this entry; the repair since then was
+  confined to `plan.md`.
+- 2026-10-01: **Build-strategy gate passed. `eugenelim` approved the plan.**
+  The same clean adjudicated verdict covers the plan, which is the artifact the
+  seventh pass spent most of its reading on. Approved with three conditions
+  already recorded above and carried into execution rather than waived: T4 is
+  committed but not met, and its `Done when` cannot pass until the roster test
+  matches the approved stub byte for byte and the `4.1.2` changelog bullet is
+  rewritten in outcome-led user register; T5's intended red is unobtainable at
+  both phases and stands on the owner's scoped waiver plus two mutation proofs
+  that are still owed as verification-ledger entries; and the boundary lint
+  `tools/test-lint-pack-test-boundary.py` reds on this branch today, because T1
+  introduced the pack test that reaches above its own pack, so the branch
+  cannot go green until T5's relocation lands. T1, T2 and T3's sections are
+  pinned and were verified byte-identical immediately before this approval.
+- 2026-10-01: **Second contract amendment, post-gates.** The post-gates review
+  sustained two findings that both sit inside the pinned canonical spec hash,
+  measured rather than assumed, so the controlled `contract-amendment` path
+  applied. AC-0011's rationale had asserted the superseded assertion "cannot
+  fail" because the comment carries `unconfirmed` "in AC-0001's closed-set
+  enumeration" — false, because AC-0001 pins the frontmatter placeholder while
+  the assertion reads only the section comment, whose own enumeration no
+  criterion pins. The entailment is deleted rather than restated, in all three
+  carriers that sweep reached: this spec, T5's stub block, and the shipped
+  assertion message, with the last two kept byte-identical. A fourth carrier
+  existed and was missed — the AC-0011 mutation proof's Contrast bullet in
+  `notes/verification-ledger.md` — found by the next pre-EXECUTE pass and struck
+  in the revision recorded below. The enumeration is corrected rather than left
+  reading as exhaustive. AC-0004's "exactly once in the
+  file" clause is narrowed to the one-paragraph-block property its assertion
+  actually decides, rather than strengthening the assertion, which was shipped
+  under pinned T2 and would have needed a new dependency-ordered task. The
+  authority, reason, the deadlock that interrupted the transition and the
+  authorized one-field state repair that recovered it are recorded in
+  [`notes/amendment-2026-10-01-post-gates.md`](notes/amendment-2026-10-01-post-gates.md).
+  T1 through T4 are pinned and evidence-bound; only T5 is re-emitted. The
+  experience review's twelve findings were all refuted and none is acted on.
+- 2026-10-01: Repaired the one sustained finding from the pre-EXECUTE pass on
+  the amended contract (1 blocker, 2 concerns and 1 nit raw; 1 sustained, 3
+  refuted). The AC-0004 narrowing in the previous revision had been applied with
+  an unanchored string replacement that excised `named file, so the`, fusing two
+  clauses in § *Testing Strategy* into "...in exactly one paragraph block of the
+  verification cannot silently grade a different occurrence." The clause is
+  restored so the sentence states the one-paragraph-block property in the named
+  file and the reason it matters. Adjudication narrowed the reviewer's secondary
+  claim and that narrowing is kept here rather than the reviewer's wider one:
+  the purpose words survived inside the fused tail, and the spec's file-scoping
+  property survives independently at three other sites, so what was lost was
+  this sentence's legibility and its own scoping words, not a contract property.
+  The three refusals stand — the surviving AC-0011 rationale is the part the
+  second amendment deliberately kept, both alleged residual carriers are dated
+  historical narration rather than live claims, and an over-width line no linter
+  enforces is not a defect.
+- 2026-10-01: **Recorded process deviation.** This repair edit was made while
+  the engine was still in `SPEC-PLAN-REVIEW`; `findings-remain` was fired
+  afterwards, because the first attempt was refused for carrying a fingerprint
+  payload that edge does not accept and the edit had already been applied in the
+  same step. What happened, stated plainly rather than justified: the edit came
+  first, `findings-remain` fired after it at seq 38, `spec-ready` at seq 39, and
+  the original ordering cannot now be reconstructed. The earlier reason given
+  here — that firing the pair afterwards would assert a sequence that did not
+  happen — was wrong, because the pair *was* fired afterwards. This is also not
+  identical to round 3's slip, which the first amendment records as a pair never
+  fired at all; here the pair fired, only out of order. Nothing is miscounted:
+  `review_retry_count` is 2 at both seq 38 and seq 39, and pre-EXECUTE results
+  do not call `review record`.
+- 2026-10-01: Repaired the three sustained findings from the next pre-EXECUTE
+  pass (3 raw, 3 sustained, 0 refuted). **A fourth carrier of the deleted
+  AC-0001 entailment survived** in the AC-0011 mutation proof's Contrast bullet
+  in `notes/verification-ledger.md`, which the second amendment's sweep missed:
+  unlike the two carriers a prior round refuted, that one asserted the
+  attribution in the present tense as the standing reason the replacement exists,
+  in a committed artifact named in T5's own `Touches` and required by its
+  `Done when`. The bullet now records only the two evaluated outcomes and points
+  at AC-0011 for the reason, so the proof cannot drift from the criterion. The
+  carrier count is corrected from three to four in both governance records that
+  claimed a complete sweep. **T5's body is restated to the landed state**: its
+  work is committed, both mutation proofs are recorded, and the remaining
+  obligation is to re-verify `Done when` rather than re-perform it. That matters
+  for safety, not tidiness — the reschedule re-emits T5 because
+  `completed_task_ids` stops at T4, and the previous text would have directed an
+  implementer to re-run two mutations that edit the shipped template and guide,
+  one of them propagating into a second byte-pinned file, with no `git checkout`,
+  `reset` or `stash` permitted to undo it. The nit is closed by replacing the
+  process-deviation entry's wrong reason with what the event log shows.
+- 2026-10-01: **Scope gate passed on the amended contract. `eugenelim` approved
+  the spec.** The verdict pass returned no blockers and no concerns; its single
+  nit was refuted on adjudication, giving a clean adjudicated verdict
+  (`## Main-loop result` reads `Clean — ready to commit.`, refuted 1,
+  indeterminate 0). The nit had claimed the plan's AC-0011 mutation bullet
+  conflicts with the repaired ledger over where the replacement's reason lives;
+  adjudication found `mutation-proof.md` § *Proof record* neither requires nor
+  forbids a reason statement, so no rule decides between the two framings, and
+  the controller's prior characterisation of the clause as an active footgun is
+  withdrawn on the record.
+  Authorization chain for this approval, stated because the contract changed
+  after the owner's first one: the owner approved spec and plan on 2026-10-01;
+  the second amendment then changed the contract, and the owner chose that
+  amendment's content directly — cut both claims rather than restate — and
+  directed the loop to continue through the gates afterwards. This approval is
+  therefore of a contract the owner specified, not of a contract that changed
+  under a stale approval.
+  Residual risk recorded with it: the sustained-finding count across every round
+  run under both amendments reads 6, 9, 10, 3, 2, 1, 0 pre-EXECUTE, then 2 at
+  post-gates, then 1, 3 and 0 after the second amendment. The last three rounds
+  found staleness the amendment path left behind rather than defects in the work
+  being governed, including a fourth carrier of a deleted entailment and T5 task
+  text that would have directed an implementer to re-run two mutations against
+  shipped byte-pinned files. Both are repaired.
+- 2026-10-01: **Build-strategy gate passed on the amended contract. `eugenelim`
+  approved the plan.** Same clean adjudicated verdict; the plan is the artifact
+  the verdict pass spent most of its reading on, and it verified the landed-state
+  banner against the tree rather than taking it on trust. Approved with these
+  conditions carried into execution rather than waived.
+  T5 is re-emitted by the reschedule because `completed_task_ids` records T1 to
+  T4 only, which neither amendment could change — `begin_contract_amendment`
+  derives completion as the prior set plus `schedule_waves[:current_wave_index]`
+  with no caller-supplied addition. T5's work is nonetheless committed and its
+  `Done when` was measured satisfied, so its remaining obligation is
+  re-verification, and the task's own banner says so. **Do not re-run the two
+  mutations**: they edit the shipped template and guide, the AC-0011 one
+  propagates into a second byte-pinned file through the guidebook-lint coupling,
+  and `mutation-proof.md` permits no `git checkout`, `reset` or `stash` to undo
+  it.
+  T1 through T4's sections stay pinned and evidence-bound, verified immediately
+  before this approval by `validate_completed_task_sections`, which returns no
+  refusal. Both T5 stub blocks remain byte-identical to the shipped files.

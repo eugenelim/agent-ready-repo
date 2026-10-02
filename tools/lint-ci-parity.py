@@ -662,6 +662,10 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest visual-target guide excerpt (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest visual-target release surface (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -958,6 +962,8 @@ _GATE_MAIN_CHECKS = (
     "pytest loop-cohort wave-decision contract (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest closure guide surface (roster-owned)",
+    "pytest visual-target guide excerpt (roster-owned)",
+    "pytest visual-target release surface (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",

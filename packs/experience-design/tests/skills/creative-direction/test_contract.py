@@ -293,3 +293,88 @@ def test_the_frame_operation_excludes_inherit_from_the_interrogation() -> None:
             f"the interrogation instruction does not name `inherit`: {sentence!r}. "
             "The route table says `inherit` runs no fresh interrogation."
         )
+
+
+# STUB: AC-0001, AC-0002, AC-0003, AC-0011  (spec: visual-target-field)
+def test_template_carries_the_visual_target_disposition() -> None:
+    """visual-target-field AC-0001, AC-0002, AC-0003, AC-0011.
+
+    This module also carries creative-direction-modes criteria under
+    overlapping numbers, so every AC reference here names its spec.
+    """
+    template = _read(TEMPLATE)
+    frontmatter = template.split("---", 2)[1]
+    assert re.search(
+        r'^visual_target:\s*"<none \| unconfirmed \| confirmed>"\s*$',
+        frontmatter,
+        re.M,
+    ), "AC-0001: frontmatter must carry visual_target over the closed set"
+
+    section = template.split("## Approved visual target", 1)[1].split("\n## ", 1)[0]
+    record_lines = [
+        line
+        for line in section.splitlines()
+        if line.startswith("**Confirmation record:**")
+    ]
+    assert len(record_lines) == 1, "AC-0002: exactly one confirmation-record line"
+    assert " ".join(record_lines[0].split()) == (
+        "**Confirmation record:** <YYYY-MM-DD> — "
+        "<where the confirmation was recorded>"
+    ), "AC-0002: the placeholder is pinned exactly, leaving no slot for a person"
+
+    comment = section.split("-->", 1)[0]
+    assert "visual_target" in comment, "AC-0003"
+    for label in ("**Target:**", "**Binding:**", "**Confirmation record:**"):
+        assert label in comment, "AC-0003"
+    assert "bind nothing on their own" in comment, "AC-0003"
+    normalized_comment = " ".join(comment.split())
+    assert (
+        "An absent `visual_target` reads as `unconfirmed`" in normalized_comment
+    ), (
+        "AC-0011: the comment must state the absent-field reading as one "
+        "contiguous phrase. Testing for `unconfirmed` beside the word `absent` "
+        "reduces the criterion to whether `absent` appears at all, so a comment "
+        "stating that an absent target means `none` would pass while "
+        "contradicting the fail-closed default."
+    )
+
+
+def _unique_paragraph(path: Path, anchor: str) -> str:
+    """The one blank-line-delimited block carrying `anchor`, in this file only.
+
+    Bounding on markdown's own delimiter rather than on ". " keeps an adjacent
+    period-free heading, bullet or table cell out of the unit.
+    """
+    blocks = [b for b in re.split(r"\n\s*\n", _read(path)) if anchor in b]
+    assert len(blocks) == 1, f"{anchor!r} must occur in exactly one block of {path.name}"
+    return " ".join(blocks[0].split())
+
+
+# STUB: AC-0004  (spec: visual-target-field)
+def test_converge_records_the_disposition() -> None:
+    """visual-target-field AC-0004."""
+    disposition = _unique_paragraph(
+        REFERENCE_ROOT / "converge.md", "Record the approved visual target disposition"
+    )
+    for value in ("none", "unconfirmed", "confirmed"):
+        assert f"visual_target: {value}" in disposition, f"AC-0004: {value}"
+
+
+# STUB: AC-0013  (spec: visual-target-field)
+def test_eval_harness_asserts_a_visual_target_disposition() -> None:
+    """visual-target-field AC-0013."""
+    evals, _ = _eval_payloads()
+    values = ("visual_target: none", "visual_target: unconfirmed", "visual_target: confirmed")
+    carrying = [
+        case["id"]
+        for case in evals["evals"]
+        if any(
+            value in assertion
+            for assertion in case.get("assertions", [])
+            for value in values
+        )
+    ]
+    assert carrying, (
+        "AC-0013: no eval case asserts a visual_target disposition. A mention in "
+        "a prompt, an expected_output or a trigger query does not satisfy this."
+    )
