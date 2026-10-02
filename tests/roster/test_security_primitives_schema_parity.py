@@ -68,7 +68,13 @@ def _load_script(name: str, path: Path) -> ModuleType:
             f"cannot create import spec for {path}"
         )
         mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        # Register temporarily so Python 3.13 dataclasses._is_type can
+        # resolve the module's __dict__ via sys.modules during exec_module.
+        sys.modules[name] = mod
+        try:
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        finally:
+            sys.modules.pop(name, None)
         return mod
     finally:
         sys.dont_write_bytecode = previous
@@ -377,3 +383,83 @@ class TestSecurityEventSchemaParity:
         ok, code = se.validate_event_dict(bad)
         assert not ok, "validate_event_dict must refuse out-of-enum outcome"
         assert code == "denied-invalid-enum"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# safe-process.v1
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_SAFE_PROCESS_SCHEMA_PATH = _CONTRACTS / "safe-process.v1.schema.json"
+
+# A minimal valid safe-process.v1 record for schema-parity tests.
+# Uses a placeholder executable path; schema validation does not
+# resolve the path on disk.
+_VALID_SAFE_PROCESS: dict = {
+    "schema_version": 1,
+    "executable": "/usr/bin/python3",
+    "executable_identity": "a" * 64,
+    "argv": [],
+    "grant_id": "grant-parity-001",
+    "cwd": "/tmp",
+    "environment_allowlist": [],
+    "stdin_mode": "closed",
+    "process_tree_timeout_s": 10,
+    "output_bound_bytes": 65536,
+}
+
+
+@pytest.fixture(scope="module")
+def process_safety() -> ModuleType:
+    """_process_safety.py loaded by path."""
+    return _load_script("ps_roster", _SCRIPTS / "_process_safety.py")
+
+
+class TestSafeProcessSchemaParity:
+    """Parity between _process_safety.py and safe-process.v1.schema.json."""
+
+    def test_well_formed_spec_satisfies_canonical_schema(
+        self, process_safety: ModuleType
+    ) -> None:
+        """A valid safe-process.v1 record satisfies the canonical schema and
+        validate_process_spec_dict."""
+        schema = _load_schema(_SAFE_PROCESS_SCHEMA_PATH)
+        _jsonschema_validate(_VALID_SAFE_PROCESS, schema, label="safe-process.v1")
+        ok, code = process_safety.validate_process_spec_dict(_VALID_SAFE_PROCESS)
+        assert ok, f"validate_process_spec_dict rejected a valid record: {code}"
+        assert code == "ok"
+
+    def test_validate_refuses_unknown_schema_version(
+        self, process_safety: ModuleType
+    ) -> None:
+        """validate_process_spec_dict refuses schema_version=99 (unknown major)."""
+        bad = {**_VALID_SAFE_PROCESS, "schema_version": 99}
+        ok, code = process_safety.validate_process_spec_dict(bad)
+        assert not ok, "must refuse unknown schema_version"
+        assert code == "denied-unknown-schema-version"
+
+    def test_validate_refuses_missing_required_field(
+        self, process_safety: ModuleType
+    ) -> None:
+        """validate_process_spec_dict refuses a record missing 'cwd'."""
+        bad = {k: v for k, v in _VALID_SAFE_PROCESS.items() if k != "cwd"}
+        ok, code = process_safety.validate_process_spec_dict(bad)
+        assert not ok, "must refuse missing required field"
+        assert code == "denied-missing-required-field"
+
+    def test_validate_refuses_unknown_authority_field(
+        self, process_safety: ModuleType
+    ) -> None:
+        """validate_process_spec_dict refuses an unknown authority-shaped field."""
+        bad = {**_VALID_SAFE_PROCESS, "inject_escalation": "admin"}
+        ok, code = process_safety.validate_process_spec_dict(bad)
+        assert not ok, "must refuse unknown authority-shaped field"
+        assert code == "denied-unknown-authority-field"
+
+    def test_validate_refuses_out_of_enum_stdin_mode(
+        self, process_safety: ModuleType
+    ) -> None:
+        """validate_process_spec_dict refuses stdin_mode outside the declared enum."""
+        bad = {**_VALID_SAFE_PROCESS, "stdin_mode": "shell"}
+        ok, code = process_safety.validate_process_spec_dict(bad)
+        assert not ok, "must refuse stdin_mode outside enum"
+        assert code == "denied-invalid-stdin-mode"
