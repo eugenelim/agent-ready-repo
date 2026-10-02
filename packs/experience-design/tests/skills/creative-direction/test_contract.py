@@ -378,3 +378,38 @@ def test_eval_harness_asserts_a_visual_target_disposition() -> None:
         "AC-0013: no eval case asserts a visual_target disposition. A mention in "
         "a prompt, an expected_output or a trigger query does not satisfy this."
     )
+
+
+# `_unique_paragraph` is NOT defined here. `visual-target-field` is a hard
+# predecessor and adds it to this same module, so a second definition would
+# fire ruff F811 under T6's `make lint-ruff` gate. Reuse what it leaves.
+
+
+# STUB: AC-0012, AC-0013, AC-0014  (spec: visual-target-rung-precondition)
+def test_producing_surfaces_are_gated_on_confirmation() -> None:
+    """visual-target-rung-precondition AC-0012 through AC-0014.
+
+    This module also carries other specs' criteria under overlapping numbers,
+    so every AC reference here names its spec.
+    """
+    commitments = _unique_paragraph(
+        REFERENCE_ROOT / "converge.md",
+        "write the selected direction's compositional commitments",
+    )
+    assert "visual_target: confirmed" in commitments, "AC-0012"
+
+    boundaries = _unique_paragraph(
+        REFERENCE_ROOT / "visualize.md", "record its identity and three boundaries"
+    )
+    assert "the human has confirmed" in boundaries, "AC-0013"
+    assert "visual_target: confirmed" in boundaries, "AC-0013 (own requirement)"
+
+    items = [
+        block
+        for block in _read(SKILL).split("\n- ")[1:]
+        if block.startswith("**Approved visual target**")
+    ]
+    assert len(items) == 1, "AC-0014: exactly one such list item in SKILL.md"
+    item = " ".join(items[0].split())
+    assert "the human has confirmed" in item, "AC-0014"
+    assert "visual_target: confirmed" in item, "AC-0014 (own requirement)"

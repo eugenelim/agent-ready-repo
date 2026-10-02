@@ -316,3 +316,91 @@ used): violation count = **14**. Test failed on AC-0006 with the original
 **Conclusion:** the property is proved able to fail on a newly introduced
 violation. Both before/after counts were observed and match the expected
 values.
+
+---
+
+## T7: The producing surfaces are gated on a confirmed target
+
+**Date:** 2026-10-02
+**Method:** Direct file edits in the worktree, followed by running
+`python3 -m pytest packs/experience-design/tests/skills/creative-direction -q`.
+
+### Edits made
+
+1. `packs/experience-design/.apm/skills/creative-direction/references/converge.md`
+   — Split the five-sentence `## Capture the doc` paragraph into two
+   blank-line-delimited blocks. The first block (sentences 1–2) handles the
+   target path and template copy. The second block (sentences 3–5, now gated)
+   adds `visual_target: confirmed` to `When an approved visual target exists`
+   so the anchor `write the selected direction's compositional commitments`
+   appears in a block that contains the literal. Verifies AC-0012.
+
+2. `packs/experience-design/.apm/skills/creative-direction/references/visualize.md`
+   — Two edits in this file:
+   a. **Migration (AC-0006 violation #7, now #5 in the post-T2 tree):** Added
+      `, recorded by \`converge\` as \`visual_target: confirmed\`` to the
+      `**Approved visual target**` sentence in `## The three representations`,
+      making it compliant with AC-0006. This reduces the property's violation
+      count from 12 to 11.
+   b. **Gate (AC-0013):** Changed `When a target exists, record its identity and
+      three boundaries` to `When a target the human has confirmed — which
+      \`converge\` records as \`visual_target: confirmed\` — exists, record its
+      identity and three boundaries`. The paragraph block now contains both
+      `the human has confirmed` and `visual_target: confirmed`. The condition
+      is the human confirmation `visualize` already holds — it runs before
+      `converge` writes the field — and naming the disposition is not
+      consulting it.
+
+3. `packs/experience-design/.apm/skills/creative-direction/SKILL.md`
+   — Changed the `- **Approved visual target**` list item in the Output contract
+   from `When present, identify the target` to `When present and the human has
+   confirmed it (\`visual_target: confirmed\`), identify the target`. The item
+   now contains both `the human has confirmed` and `visual_target: confirmed`.
+   Verifies AC-0014.
+
+4. `packs/experience-design/tests/skills/creative-direction/test_contract.py`
+   — Appended the T7 stub `test_producing_surfaces_are_gated_on_confirmation`
+   byte-identically from the plan's fenced block.
+
+### Byte identity
+
+T7 stub appended byte-for-byte: **BYTE IDENTITY VERIFIED** (1440 bytes,
+sha256 `5edd651895126bb4`, `stub_from_plan == appended` is `True`).
+
+### Gate results
+
+- `python3 -m pytest packs/experience-design/tests/skills/creative-direction -q`:
+  **12 passed** in 0.32s. Exit 0.
+- `make lint-ruff lint-mypy`: **All checks passed** / **Success: no issues
+  found in 149 source files**. Exit 0.
+- `ruff check --select F811 packs/experience-design/tests/skills/creative-direction/test_contract.py`:
+  **All checks passed.** Exit 0. No F811 fired — `_unique_paragraph` is
+  not redefined.
+
+### Property violation count
+
+`python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -q`
+reds with **11 violations** after T7's edits, down from 12 before them. The
+one locus T7 migrates (`visualize.md`'s `**Approved visual target**` sentence)
+is no longer a violation. The remaining 11 are T3's migration.
+
+**The three gated sentences are outside AC-0006** (spec limit 4):
+- `converge.md`'s `When an approved visual target exists — \`visual_target: confirmed\` — write...`
+  strips to `When an exists — \`visual_target: confirmed\` — write...`, carrying
+  no cue after NAME_FORMS removal. Outside the property.
+- `visualize.md`'s `When a target the human has confirmed — which \`converge\` records as \`visual_target: confirmed\` — exists, record...`
+  retains the cue `confirmed` (not from a name form) and contains `visual_target`.
+  Fires the property and is compliant.
+- `SKILL.md`'s `When present and the human has confirmed it (\`visual_target: confirmed\`), identify...`
+  retains the cue `confirmed` and contains `visual_target`. Fires and is compliant.
+
+### The three gated sentences as written
+
+**AC-0012 (`converge.md`, block containing `write the selected direction's compositional commitments`):**
+> When an approved visual target exists — `visual_target: confirmed` — write the selected direction's compositional commitments into the doc here.
+
+**AC-0013 (`visualize.md`, block containing `record its identity and three boundaries`):**
+> When a target the human has confirmed — which `converge` records as `visual_target: confirmed` — exists, record its identity and three boundaries: what is binding, what is illustrative, and what may adapt responsively.
+
+**AC-0014 (`SKILL.md`, list item beginning `**Approved visual target**`):**
+> **Approved visual target** — optional. When present and the human has confirmed it (`visual_target: confirmed`), identify the target, what is binding, what is illustrative, and what may adapt responsively.
