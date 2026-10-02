@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 11, waves 0 and 1 complete, wave 2 (T3, T5, T7) next",
+              "normal_loop_state": "CODE-IMPLEMENTATION, sequence 11, wave 2 in progress: T7 and T5 done, T3 last",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1376,6 +1376,21 @@
                 ],
                 "what_the_saving_would_have_been": "Implementer starts cost 64,754, 61,560 and 74,730 returned subagent tokens. Those are the subagent's consumption, not the controller's context, so the shift would have been roughly 270,000 tokens across the four implementer tasks remaining and would barely have changed controller context usage. The controller said so rather than letting `saves tokens` stand unqualified.",
                 "why_this_is_recorded": "A configuration held constant deliberately reads differently in a measurement record from one held constant by inattention. Case 4's cost series is a single configuration end to end, and this row is the evidence for that rather than an assumption a later reader has to make."
+              },
+              "execute_wave_2_t7_and_t5": {
+                "tasks": "T7 then T5; T3 runs last because its closure needs the property green across every locus the other two leave behind",
+                "commits": ["c0519b866 (T7)", "6ae85886c (controller observation)", "2a3b1848d (T5)"],
+                "t7_verification": "Stub test run and green - it, not the prose, is the authority on AC-0012 to AC-0014. Stub byte-identical at 1441 bytes. All three anchors occur exactly once, which each criterion requires. creative-direction suite 12 passed exit 0, lint exit 0, ruff F811 exit 0 confirming _unique_paragraph was reused rather than redefined. Property fell 12 to 11 as the brief predicted.",
+                "t7_report_was_wrong_on_a_checkable_point": "The implementer's Out of scope note claimed converge.md's gated sentence stays outside the AC-0006 property per limit 4. The controller re-derived the strip by hand: after NAME_FORMS removes `approved visual target`, the inserted literal `visual_target: confirmed` leaves the word `confirmed` behind, which is itself a member of CONFIRMATION_CUES. The sentence fires and passes. Recorded as an execution observation at 6ae85886c, not a plan error - limit 4's conclusion holds, only its worked example's claim about the post-gate text is superseded, and the outcome is better than the limit anticipated because the property now guards that sentence against a later edit stripping the literal.",
+                "t5_verification": "Stub byte-identical at 1408 bytes and carries no sweep pattern, so it does not become a carrier. Status line is one physical line at 275 characters, which the stub's startswith read requires. The ADR-0130 clause is byte-identical before and after - checked against HEAD~1 - so the append did not edit another decision's annotation, which is exactly what round 5's finding was about. All five stub assertions hold and the test is green. Property still 11, guard still 12.",
+                "gate_results": "lint exit 0; test-lint-pack-test-boundary exit 0 at 154 cases; lint-spec-status clean across the two changed specs; test_conventions_retirement 75 passed, which matters because it is the one roster module that parses a supersession clause and the doubled clause is new to it. A roster subset run gave 378 passed with exactly one failure, test_every_confirmation_sentence_names_the_field, which is the intended red until T3 migrates the remaining eleven loci.",
+                "minor_observation": "The appended clause cites `Always do, line 80` by line number. The stub pins only the literals `rung condition` and `ac-0003a`, so the number is decorative, and frontend-visual-authority is Shipped and frozen so it is stable in practice. Noted rather than changed.",
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [87225, 68398],
+                "returned_subagent_tokens_total": 155623,
+                "wall_time_seconds_by_start": [443.918, 454.245],
+                "wall_time_seconds_total": 898.163,
+                "attribution": "normal-loop implementer work, observed rather than study-added"
               },
               "spec_gate_2026_10_02": {
                 "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
