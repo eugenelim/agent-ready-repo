@@ -64,6 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.12] — 2026-10-01
+
+### Added
+
+- Added paired `new-spec` behavior evaluations for a shared repository substrate and an isolated private refactor, plus a `work-loop` case that rejects feature-only evidence for accepted preservation properties. The cases measure future authoring and completion behavior without making optional repository-grounding tools mandatory.
+
 ## [core][2.27.11] — 2026-10-01
 
 ### Highlights

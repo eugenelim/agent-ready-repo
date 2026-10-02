@@ -94,6 +94,7 @@ executing = [
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
 ready     = [
+  {path = "docs/product/briefs/repository-grounding-preservation.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make Core recognize shared-substrate changes, derive bounded disposable consumer maps, and require preservation evidence without adapt-to-project, code intelligence, Pi, or whole-repository ingestion", needs = []},
 ]
 draft     = [
   # Logged to shape 2026-09-03 out of universal-implementer-dispatch U1 delivery:
