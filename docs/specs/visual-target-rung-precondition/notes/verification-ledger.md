@@ -710,6 +710,22 @@ load-bearing rather than cosmetic: `docs/product/AGENTS.md` records that the
 `/now/` projection extracts only bullets and drops a paragraph silently. The
 projection tests were run — 17 passed — rather than the form being judged by eye.
 
+### Dispatch receipt, and who applied the repair
+
+T6 was dispatched to an implementer subagent and is recorded `--receipt`. The
+post-gates repair to its changelog bullet was applied by the **controller**, not
+by an implementer, and the receipt vocabulary has no value for that — it admits
+only `--receipt`, or `--decline` with `no-implementer-installed` or
+`human-directed`. Following the owner's ruling of 2026-10-01 on the same
+situation, the receipt records the dispatch and this ledger records the
+authorship. The same holds for the three other post-gates repairs, which touched
+T2's and T4's surfaces: all four were controller-applied from sustained findings.
+
+`loop-cohort wave reopen` superseded T6's original receipt when the review
+findings reopened wave 4, so the receipt was re-recorded afterwards. That is the
+verb working as designed: a reopened wave has no live record until one is
+re-asserted, and `wave-complete` refuses until it is.
+
 The `experience-design` bullet was rewritten after post-gates review: its first
 form said the three producing surfaces "act on the target only when
 `visual_target: confirmed` appears in the direction artifact", which casts
