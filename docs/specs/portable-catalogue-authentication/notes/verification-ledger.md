@@ -10,6 +10,7 @@ execution observed against them.
 | --- | --- | --- | --- | --- |
 | T1 | `test_resolve_http_access_returns_public_anonymous_variant` | `packages/credbroker/tests/unit/test_http_access.py` | `cmp` against the plan block: identical | Collection error: `ImportError: cannot import name 'AnonymousHttpAccess' from 'credbroker'` |
 | T2 | `test_open_fetch_session_resolves_anonymous_access_once` | `packages/agentbundle/tests/unit/test_catalogue_fetch.py` | `cmp` against the plan block: identical | Collection error: `ModuleNotFoundError: No module named 'agentbundle.catalogue_fetch'` |
+| T3 | `test_netrc_exact_host_returns_origin_bound_access` | `packages/credbroker/tests/unit/test_http_access_netrc.py` | `cmp` against the plan block: identical | Assertion failure, not the planned collection error: `isinstance(AnonymousHttpAccess(origin='https://catalogue.example.test'), NetrcHttpAccess)` is `False` |
 
 ## Real JFrog CLI contract (T4 grounding, 2026-10-02)
 
@@ -111,6 +112,14 @@ Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
   container, where a loopback CA is trusted without touching the host.
 
 ## Discoveries
+
+- **The T3 and T4 stubs earn a behavioural red, not a collection red.** The
+  plan names each stub's intended red as `NetrcHttpAccess` (T3) or
+  `JfrogCliHttpAccess` (T4) "not exported". T1's approved Done-when requires
+  all six names, including all four result variants, so that import succeeds
+  once T1 lands. Each stub still fails for the reason it exists to prove: the
+  resolver returns `AnonymousHttpAccess` because the provider is a placeholder.
+  The ledger records the observed red for each.
 
 - **ASCII-only lowercasing is observably equivalent to `str.lower()` here.**
   The T1 resolver now lowercases only ASCII before the IDNA codec and reads the
