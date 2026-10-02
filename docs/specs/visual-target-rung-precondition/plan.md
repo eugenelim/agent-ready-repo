@@ -84,15 +84,32 @@ remove it — so the test is proved able to fail before it is trusted.
 Required by `tdd-stubs.md` § *Validate* and § *Record*, which fail closed at
 plan approval without them.
 
+Re-validated 2026-10-02 after the amendment, against the tree
+`visual-target-field` left. Every result below is from that run.
+
 - **Compile pass:** `python -m py_compile` over each of the four blocks, run
   from disposable scratch outside the repository test tree. Result: **all four
   compile.**
 - **Intended red:** appended to a disposable copy of the owning test modules,
   collected and run under pytest, then removed. Result: **red**, including T7's
   inherited gating assertions and T2's rung-condition assertion, each on its
-  own criterion. The sweep test in T4 is validated separately by its own
-  mutation check, because a sweep that finds nothing passes for both the right
-  and the wrong reason.
+  own criterion. T7 reds on AC-0012, and its failure message confirms why T7
+  must split the block first: the anchor sits inside a paragraph running from
+  `The target is <output_dir>/direction/<slug>.md` to `the open questions`.
+- **T4's property reds at exactly 14 violations**, matching the extent § The
+  mechanism records. That agreement is the point of running it: a sweep whose
+  red count disagrees with the measured migration is measuring something else.
+  T4's second test — the 27-carrier floor — **passes**, so the sweep is reaching
+  the tree rather than finding nothing. The mutation check in T4's Approach is
+  still owed at execution time; it proves the property reds on a *newly
+  introduced* violation, which a standing red does not.
+- **A defect this run caught.** The first validation red was 23, not 14,
+  because the block swept every file and only its docstring said Markdown. It
+  pulled in both packs' eval payloads, three test modules, and — decisively —
+  its own docstring, which explains the mechanism and therefore violated it.
+  The block now filters to `.md` in the property test, leaving the floor test
+  counting `.md`, `.json` and `.py` as the carrier-reach guard it is meant to
+  be. Limit 2 was already in the spec; the stub did not implement it.
 - **Isolation:** local, filesystem-confined to the repository and disposable
   scratch, no network. No isolation downgrade was needed.
 - **Cross-contract check.** T7's block was stacked after the predecessor's
@@ -170,9 +187,15 @@ it.
 - Sweep `packs/`, `guides/`, `web/src/content/`, `tests/` and `docs/design/`
   for `visual[ _-]target` with whitespace normalized before matching.
 - The extent at authoring was re-measured on 2026-09-30 and agreed exactly with
-  the inventory: 25 files, 59 loci, same file set. Record any difference found
-  at execution time as a discovery in the verification ledger; a new carrier is
-  expected behaviour for this contract, not a failure.
+  the inventory: 25 files, 59 loci, same file set. **Re-measured 2026-10-02
+  against the tree `visual-target-field` left: 27 files, 105 loci, 15 Markdown
+  and 12 non-Markdown carriers.** The two new non-Markdown carriers are that
+  slice's own roster tests, `tests/roster/test_visual_target_guide_excerpt.py`
+  and `tests/roster/test_visual_target_release_surface.py`. The loci jump is
+  that slice's additions to the template, the guide excerpt, `converge.md` and
+  both packs' eval payloads. This is the expected discovery, and it moved
+  AC-0011's stated count from ten to twelve. Record any further difference found
+  at execution time as a discovery in the verification ledger.
 
 **Touches:** docs/specs/visual-target-rung-precondition/ (the ledger only)
 
@@ -222,19 +245,26 @@ def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
 - AC-0004 is covered through the T4 property rather than by per-file
   assertions, because a per-file assertion is the closed surface set this
   contract is forbidden to retry.
-- Contract test: each of the ten non-Markdown carriers names the field where it
+- Contract test: each of the twelve non-Markdown carriers names the field where it
   asserts the rung's precondition, checked over parsed structure — the eval
   payloads' `assertions` entries and the test modules' rung constants — and one
   guard asserts the count of non-Markdown carriers the sweep reaches has not
   fallen. Verifies AC-0011.
 
 **Approach:**
-- The measured migration is **29 sentences across 15 Markdown files**, plus ten
-  non-Markdown carriers. Both figures come from running the property against
-  this tree on 2026-09-30, not from reading the inventory. Walk them and reword
-  each statement of the rung's precondition to name the field. Both packs' eval harnesses are carriers and
+- The measured migration is **14 sentences across 12 Markdown files**, plus
+  twelve non-Markdown carriers. Both figures come from running the amended
+  property against this tree on 2026-10-02, not from reading the inventory.
+  T3 owns eleven of the fourteen: T2 owns the two authoritative statements in
+  `visual-observation.md` and `frontend-engineering`'s `SKILL.md`, and T7 owns
+  the one in `visualize.md`. Walk them and reword each statement of the rung's
+  precondition to name the field. Both packs' eval harnesses are carriers and
   are updated here, which also discharges `packs/AGENTS.md`'s eval-harness
   obligation for both packs.
+- **Four of T3's eleven are segmentation artefacts**, per the spec's limit 3:
+  `design-system/SKILL.md`'s two tables and the `**Route:**` comment block in
+  `token-taxonomy-template.md` and `establish-design-intent.md`. Migrate them;
+  do not add table or comment awareness to the property to exempt them.
 - Respect the two whitespace-normalized sentence pins and the two pinned eval
   ids in `test_visual_authority_slice_two.py`.
 
@@ -266,9 +296,17 @@ Positive exclusive property: within the swept scope, every sentence that
 refers to a visual target and states a confirmation or approval condition
 also contains the literal `visual_target`.
 
-Limit, stated so it is not rediscovered: a carrier that states the condition
-using none of CONFIRMATION_CUES is outside this property. Widening the set is
-a deliberate edit, gated Ask-first by the owning spec.
+The two tests read different text, deliberately. A name is not a cue — both
+`approved-visual-target` and the spaced `approved visual target` carry the word
+`approved` as part of what the thing is called — so NAME_FORMS is stripped
+before the cue test. A name is still a reference, so the target test reads the
+unstripped sentence. Stripping it from both would exempt every carrier that
+names the rung and then states its condition, which is most of the migration.
+
+Two limits, stated so they are not rediscovered. A carrier that states the
+condition using none of CONFIRMATION_CUES is outside this property, and so is
+one whose only cue came from a stripped name. Widening either constant is a
+deliberate edit, gated Ask-first by the owning spec.
 """
 
 from __future__ import annotations
@@ -279,8 +317,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[5]
 SWEEP_ROOTS = ("packs", "guides", "web/src/content", "tests", "docs/design")
 TARGET = re.compile(r"visual[ _-]target", re.I)
+NAME_FORMS = re.compile(r"approved[ -]visual[ -]target", re.I)
 CONFIRMATION_CUES = ("confirm", "approved")
 SKIP_DIRS = {"__pycache__", "node_modules", ".git"}
+KNOWN_CARRIER_FLOOR = 27
 
 
 def _sentences(text: str) -> list[str]:
@@ -300,6 +340,12 @@ def _swept_files() -> list[Path]:
 def test_every_confirmation_sentence_names_the_field() -> None:
     violations = []
     for path in _swept_files():
+        # Limit 2: segmentation is meaningless outside prose. In JSON and
+        # Python a whole file is one "sentence" — including this module's own
+        # docstring, which explains the mechanism and would violate it.
+        # AC-0011 covers the non-Markdown carriers over parsed structure.
+        if path.suffix != ".md":
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -307,9 +353,12 @@ def test_every_confirmation_sentence_names_the_field() -> None:
         if not TARGET.search(" ".join(text.split())):
             continue
         for sentence in _sentences(text):
+            # Reference test: the sentence as written.
             if not TARGET.search(sentence):
                 continue
-            if not any(cue in sentence.lower() for cue in CONFIRMATION_CUES):
+            # Cue test: name forms removed, so a name supplies no cue.
+            cue_source = NAME_FORMS.sub("", sentence).lower()
+            if not any(cue in cue_source for cue in CONFIRMATION_CUES):
                 continue
             if "visual_target" not in sentence:
                 violations.append(
@@ -326,7 +375,10 @@ def test_the_sweep_actually_reaches_the_known_carriers() -> None:
         if path.suffix in {".md", ".json", ".py"}
         and TARGET.search(" ".join(path.read_text(encoding="utf-8", errors="ignore").split()))
     )
-    assert reached >= 25, f"AC-0006: sweep reached only {reached} carriers"
+    assert reached >= KNOWN_CARRIER_FLOOR, (
+        f"AC-0006: sweep reached only {reached} carriers, "
+        f"floor is {KNOWN_CARRIER_FLOOR} (measured 2026-10-02)"
+    )
 ```
 
 **Approach:**
@@ -360,7 +412,7 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
         if line.startswith("- **Status:**")
     )
     flat = " ".join(status.split()).lower()
-    assert "adr-0131" in flat, "AC-0008"
+    assert "adr-0132" in flat, "AC-0008"
     assert "rung condition" in flat, "AC-0008"
 ```
 
@@ -407,7 +459,7 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
         REFERENCE_ROOT / "visualize.md", "record its identity and three boundaries"
     )
     assert "the human has confirmed" in boundaries, "AC-0013"
-    assert "visual_target: confirmed" in boundaries, "AC-0013 (AC-0006 literal)"
+    assert "visual_target: confirmed" in boundaries, "AC-0013 (own requirement)"
 
     items = [
         block
@@ -417,7 +469,7 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
     assert len(items) == 1, "AC-0014: exactly one such list item in SKILL.md"
     item = " ".join(items[0].split())
     assert "the human has confirmed" in item, "AC-0014"
-    assert "visual_target: confirmed" in item, "AC-0014 (AC-0006 literal)"
+    assert "visual_target: confirmed" in item, "AC-0014 (own requirement)"
 ```
 
 **Approach:**
@@ -431,11 +483,18 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
   would have a producer forming a binding claim the writer then records.
 - `visualize`'s condition is the human confirmation it already holds, not a
   field read: it runs before `converge` writes the field. Its sentence still
-  names `visual_target: confirmed`, because AC-0006 requires the literal in
-  every gated carrier and naming the disposition is not consulting it. Write
-  the gate so both readings are obvious — "a target the human has confirmed,
-  which `converge` records as `visual_target: confirmed`" — rather than leaving
-  an implementer to reconcile the two criteria at T4.
+  names `visual_target: confirmed`, because AC-0013 requires that literal in
+  its own right and naming the disposition is not consulting it. Write the gate
+  so both readings are obvious — "a target the human has confirmed, which
+  `converge` records as `visual_target: confirmed`" — rather than leaving an
+  implementer to work out why both literals are there.
+- **The gated sentences are outside AC-0006 after the 2026-10-02 amendment.**
+  `converge.md`'s `When an approved visual target exists, write ...` strips to
+  `When an exists, write ...`, which carries no cue. That reconciliation is no
+  longer load-bearing; the three criteria stand on their own. `visualize.md`
+  carries a *separate* in-scope sentence — `**Approved visual target** — a
+  composition the human has confirmed ...` — which T7 migrates along with the
+  gate, because T7 owns that file outright.
 
 **Touches:** packs/experience-design/.apm/skills/creative-direction/references/converge.md, packs/experience-design/.apm/skills/creative-direction/references/visualize.md, packs/experience-design/.apm/skills/creative-direction/SKILL.md, packs/experience-design/tests/skills/creative-direction/test_contract.py
 
@@ -489,6 +548,30 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 ## Changelog
 
+- 2026-10-02: Revised after T1's re-measurement against the tree
+  `visual-target-field` left, before any reviewer started. Three changes, each
+  from a measurement rather than a reading.
+  (1) **The property's cue test now strips the artefact's name.** `approved
+  visual target` carries `approved` as part of what the thing is called, so
+  every mention supplied its own cue: 24 sentences fired, and 17 of them stated
+  no condition. The cue test now runs on the sentence with both name forms
+  removed. The reference test still runs on the unstripped sentence, because
+  stripping it from both dropped the two carriers AC-0004 names — including
+  `read-the-design-handoff.md`, the most explicit surviving statement of the
+  reading ADR-0132 retires. Measured: 24 → 7 → **14** across the three
+  variants. The owner chose the narrowing on 2026-10-02 and the asymmetry
+  follows from the measurement that narrowing alone lost AC-0004.
+  (2) **AC-0011's count moved from ten to twelve**, four eval payloads and
+  eight test modules. The two new ones are `visual-target-field`'s own roster
+  tests. Extent is now 27 files and 105 loci, from 25 and 59.
+  (3) **T5's stub asserted `adr-0131`** where AC-0008 and T5's own Approach say
+  ADR-0132. Stubs materialize byte-identically, so this would have shipped a
+  test green against the wrong record.
+  Limit 3 is new and records a fourth measured class: a Markdown table or HTML
+  comment block carries no terminal period, so normalization joins unrelated
+  rows into one sentence. Four of the fourteen are that class. They are
+  migrated, not exempted — a structural parser is machinery four loci do not
+  justify.
 - 2026-09-30: Revised after the predecessor's review round 4. Reconciled
   AC-0006 with the inherited gating criteria: a gated sentence in `converge.md`,
   `visualize.md` and `SKILL.md` carries the `visual_target` literal, because the

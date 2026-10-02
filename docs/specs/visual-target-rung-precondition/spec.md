@@ -62,41 +62,90 @@ the condition however worded rather than matching a retired phrase. It is
 closed over undiscovered carriers, because the scope is produced by re-running
 the sweep at test time rather than by listing files.
 
-**Three limits, each measured rather than assumed.** A trial run of the
-property against this repository on 2026-09-30 produced all three; they are
-recorded here so a review round does not have to rediscover them.
+**Five limits, each measured rather than assumed.** Trial runs against this
+repository on 2026-09-30 and 2026-10-02 produced all five; they are recorded
+here so a review round does not have to rediscover them.
 
-1. *The rung's own name is not a claim about it.* `approved-visual-target` is a
-   rung identifier and contains both a target reference and the word
-   `approved`, so an unrefined property fires on every list of rung names,
-   including tuples inside test files. The property strips that identifier
-   before testing for a cue. Stripping a name is not the same as exempting a
-   file.
+1. *Neither the rung's name nor the artefact's name is a claim about it.*
+   `approved-visual-target` is a rung identifier and contains both a target
+   reference and the word `approved`, so an unrefined property fires on every
+   list of rung names, including tuples inside test files. The spaced noun
+   phrase `approved visual target` has the same defect for a different reason:
+   `approved` is part of what the artefact is called, not an assertion that
+   anything was approved, so every mention of it supplies its own cue.
+
+   **A name is not a cue, but it is still a reference.** The property therefore
+   strips both forms **for the cue test only**, and tests the target reference
+   against the unstripped sentence. The asymmetry is the whole of this limit.
+   Stripping a name is not the same as exempting a file — and stripping it from
+   both tests would exempt the carriers that name the rung by its identifier and
+   then state its condition, which is most of what this contract exists to
+   migrate.
+
+   **Measured 2026-10-02**, against the tree `visual-target-field` left:
+
+   | Cue test | Reference test | Sentences in scope |
+   | --- | --- | ---: |
+   | identifier stripped | same stripped text | 24 |
+   | both names stripped | same stripped text | 7 |
+   | both names stripped | **unstripped sentence** | **14** |
+
+   The first row is too wide: 17 of its 24 state no condition at all, and
+   `Absence of an approved visual target is not a blocker.` is representative.
+   Requiring the literal there would name a field for no reason in instructions
+   adopters read. The second row is too narrow by the same measurement: it drops
+   both carriers AC-0004 names, including
+   `guides/frontend-engineering/how-to/read-the-design-handoff.md`, whose
+   `You are here if the artifact says somewhere that the composition was
+   approved or signed off` is the most explicit surviving statement of the
+   reading ADR-0132 retires. The third row is the one this contract uses.
 2. *Sentence segmentation is meaningless outside prose.* In JSON and Python a
    whole file is one "sentence", so the property would demand the field inside
    eval payloads and module docstrings. The property therefore covers Markdown
-   carriers. The ten non-Markdown carriers are covered by their own packs'
+   carriers. The twelve non-Markdown carriers are covered by their own packs'
    suites, which assert over parsed structure rather than over sentences —
    AC-0011 holds them to that.
-3. *A gated sentence must still name the field.* AC-0012 to AC-0014 gate three
-   sentences in `converge.md`, `visualize.md` and `SKILL.md`, and every one of
-   them refers to a visual target and carries a confirmation cue — so the
-   property applies to them like any other carrier, and each must contain the
-   literal `visual_target`. **Naming the field is not reading it.** `visualize`
-   can say that a target the human has confirmed is the one `converge` records
-   as `visual_target: confirmed` without `visualize` reading anything; the
-   sentence cites the disposition, the operation does not consult it. This is
-   the same distinction that makes the rung identifier a name rather than a
-   claim, in limit 1. Without this statement an implementer following
-   AC-0013's "not a field read" wording would write a sentence that reds
-   AC-0006 and discover the conflict only when T4 runs.
-4. *The cue set is narrower than English.* A carrier phrased with neither
-   `confirm` nor `approved` — "a target the team has signed off", say — is
-   outside the property. It narrows the gap; it does not close it. AC-0007
-   keeps the cue set in one named constant so widening it is deliberate.
+3. *Segmentation is unreliable inside Markdown too, and the property accepts
+   that cost.* A table and an HTML comment block carry no terminal period, so
+   whitespace normalization collapses each into one "sentence" that joins
+   unrelated rows or bullets. Three of the seven firing loci are this class:
+   `design-system/SKILL.md`'s two tables, and the `**Route:**` comment block in
+   `token-taxonomy-template.md` and `establish-design-intent.md`. In each the
+   target reference and the cue come from different rows or bullets. Four of the
+   fourteen firing loci are this class. **T3 migrates them rather than exempting
+   them**, because a structural parser is machinery this contract does not need
+   for four loci, and because naming the field in a template's
+   `**Visual target:**` bullet is correct on its own terms. Do not add table or
+   comment awareness to the property to avoid them.
+4. *A gated sentence is outside the property, and names the field anyway.*
+   AC-0012 to AC-0014 gate three sentences in `converge.md`, `visualize.md` and
+   `SKILL.md`. Under limit 1 those sentences strip to nothing that carries a
+   cue, so AC-0006 does not reach them: `converge.md`'s `When an approved visual
+   target exists, write the selected direction's compositional commitments`
+   becomes `When an exists, write ...`. Their `visual_target: confirmed`
+   literal is therefore a plain requirement of AC-0012 to AC-0014, **not** a
+   consequence of AC-0006, and those criteria state it in their own right.
+   **Naming the field is still not reading it.** `visualize` can say that a
+   target the human has confirmed is the one `converge` records as
+   `visual_target: confirmed` without `visualize` reading anything; the sentence
+   cites the disposition, the operation does not consult it.
+5. *The cue set is narrower than English, and limit 1 narrows it further.* A
+   carrier phrased with neither `confirm` nor `approved` — "a target the team
+   has signed off", say — is outside the property. So, now, is a condition
+   whose only cue was the artefact's own name: `when an approved visual target
+   exists` is no longer caught. Both narrow the gap; neither closes it. This
+   cost was accepted deliberately on 2026-10-02 against requiring the literal in
+   17 sentences that state no condition. AC-0007 keeps the cue set in one named
+   constant so widening it is deliberate.
 
-Against the current tree the property identifies **29 sentences across 15
-Markdown files**. That is the migration T3 owes.
+Against the current tree the property identifies **14 sentences across 12
+Markdown files**. That is the migration T2, T3 and T7 owe between them: two of
+the fourteen are the authoritative statements T2 owns, in
+`visual-observation.md`'s precedence row and `frontend-engineering`'s
+`SKILL.md`; one is in `visualize.md`, which T7 owns outright; the rest are T3's.
+Two more are the same sentence in `packs/frontend-engineering/JOURNEY.md` and
+its projection at `web/src/content/journeys/frontend-engineering.md`, so the
+distinct texts number thirteen.
 
 ## Durable Outputs
 
@@ -115,8 +164,10 @@ Retention class: repository-durable.
 ### Always do
 
 - Re-run the carrier sweep as part of the change, and again at test time. The
-  measured extent at authoring is 25 files and 59 loci; treat any difference as
-  a discovery, not a failure.
+  extent measured on 2026-10-02, against the tree `visual-target-field` left,
+  is 27 files and 105 loci — 15 Markdown and 12 non-Markdown carriers. It was
+  25 files and 59 loci at authoring on 2026-09-30; that slice is what moved it.
+  Treat any further difference as a discovery, not a failure.
 - Normalize whitespace before sweeping. A raw line-oriented grep misses
   `frontend-reviewer.md`, where the phrase wraps mid-line.
 - Keep `visual-observation.md` free of the literals `experience-design`,
@@ -192,15 +243,18 @@ Retention class: repository-durable.
 - [ ] **AC-0006.** A construction test enforces the positive exclusive property:
   over a whitespace-normalized sweep of the Markdown files under `packs/`,
   `guides/`, `web/src/content/`, `tests/` and `docs/design/`, every sentence
-  matching `visual[ _-]target` that also contains a confirmation cue — after
-  the rung identifier `approved-visual-target` is stripped from the sentence —
-  contains the literal `visual_target`. The scope is computed by the test at
-  run time from those roots; no file list is embedded.
-- [ ] **AC-0007.** That test names its confirmation-cue set explicitly in one
-  module-level constant, and its docstring records that a carrier stating the
-  condition with no cue from that set is outside the property.
-- [ ] **AC-0011.** The ten non-Markdown carriers — the four eval payloads and
-  six test modules the sweep reports — name the field where they assert the
+  matching `visual[ _-]target` **in its unstripped text** that also contains a
+  confirmation cue **after both the rung identifier `approved-visual-target`
+  and the spaced noun phrase `approved visual target` are stripped** contains
+  the literal `visual_target`. The two tests read different text, deliberately:
+  see § The mechanism, and its limit, limit 1. The scope is computed by the test
+  at run time from those roots; no file list is embedded.
+- [ ] **AC-0007.** That test names its confirmation-cue set and its stripped
+  name forms explicitly in module-level constants, and its docstring records
+  both exclusions: a carrier stating the condition with no cue from that set is
+  outside the property, and so is one whose only cue came from a stripped name.
+- [ ] **AC-0011.** The twelve non-Markdown carriers — the four eval payloads and
+  eight test modules the sweep reports — name the field where they assert the
   rung's precondition, each verified by its own pack's suite over parsed
   structure rather than by the sentence property, and a second construction
   test asserts that the count of non-Markdown carriers the sweep reaches has
@@ -219,14 +273,15 @@ Retention class: repository-durable.
   tension: the condition `visualize` acts on is the human confirmation it
   already holds — it runs before `converge` writes the field, so it must not be
   written as a field read — while naming the disposition `converge` will record
-  satisfies AC-0006, which requires the literal and not a read. See
-  § The mechanism, and its limits, limit 3.
+  is a citation, not a read. This criterion requires that literal in its own
+  right; AC-0006 does not reach this sentence. See § The mechanism, and its
+  limit, limit 4.
 - [ ] **AC-0014.** In `creative-direction`'s `SKILL.md` — that file read
   directly, not a concatenation of the skill's files — the list item beginning
   `- **Approved visual target**` contains the literals `the human has
   confirmed` **and** `visual_target: confirmed`, and that item occurs exactly
-  once in that file. The second literal is AC-0006's requirement, not a gate on
-  a field read; see limit 3.
+  once in that file. The second literal is this criterion's own requirement,
+  not AC-0006's and not a gate on a field read; see limit 4.
 - [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
   line names ADR-0132 and the superseded `Always do` rule about stating rung
   conditions as properties the pack defines.
