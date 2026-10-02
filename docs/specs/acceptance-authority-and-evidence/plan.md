@@ -1,7 +1,7 @@
 # Plan: Acceptance authority and evidence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/runtime-security-primitives.md`, `docs/architecture/delivery-content-safety.md`; analogous implementations `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` and `packs/core/.apm/skills/close-work/scripts/file_safety.py`; tests `packs/core/tests/skills/work-loop/test_loop_cohort.py` and `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`. Deviation: the reviewed security design names `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` as a source, while `packages/agentbundle/agentbundle/build/self_host.py` and `packs/AGENTS.local.md` identify it as a generated destination; this slice leaves `file_safety.py` and every copy unchanged and builds new confined-mutation primitives beside the `work-loop` skill's local copy (owner decision, 2026-10-01). Placement deviation: the Draft architecture names `packages/agentbundle/agentbundle/work_supervisor/` and `catalogue_tooling/` modules; this slice instead implements every service as a work-loop skill script, per the brief's script packaging pattern and its non-goal against a mandatory `agentbundle` runtime (owner decision, 2026-10-01). T9b updates those architecture pages to match.
 
 > **Plan contract:** this is the current implementation strategy. Initial review
@@ -40,7 +40,7 @@ The whole slice cannot be understood, verified, or reviewed as one unit, and its
 - Every Slice 1 service is a self-contained standard-library module in `packs/core/.apm/skills/work-loop/scripts/`, beside `loop-engine.py` and `loop-cohort.py`, and reaches users through `make build-self` projections. No Slice 1 service code goes under `packages/agentbundle/`, and the skill gains no runtime dependency on `agentbundle` or any other package (owner decision, 2026-10-01). Security primitives import the skill's local byte-identical `file_safety.py` copy and leave it, and every other copy, unchanged.
 - Core pack changes carry their version updates, evals, generated projections, and release record. No file under `packages/agentbundle/` changes in this slice, so no commit needs an `Engine-Change-RFC:` trailer; T9a confirms the package tree is unchanged against the base.
 - The supported adapter set for this slice is the sequential reference runtime plus the Core compatibility adapter. The work-loop scripts declare that set in one place, and the conformance suites refuse to run against an empty or single-member declaration, so AC-0007 and AC-0013 always compare at least two adapters.
-- "The CI reference worker" in AC-0018 and AC-0019 means a GitHub-hosted `ubuntu-latest` runner in a dispatch-only benchmark workflow. GitHub dispatches a `workflow_dispatch` workflow only once its file is on the default branch, so T4 adds the workflow `.github/workflows/benchmark-acceptance.yml` and it merges to `main` before T9a needs its evidence (owner decision); T7 extends it with the cold-rehydration benchmark, and T9a dispatches it with `--ref` on its own branch. The committed harness fixes the timed-run count and warm-up policy, and the workflow retains its output.
+- "The CI reference worker" in AC-0018 and AC-0019 means a GitHub-hosted `ubuntu-latest` runner in a benchmark job inside the existing dispatch-only `.github/workflows/test-corpus.yml`. No pull request opens before this spec ships (owner decision), and GitHub dispatches a `workflow_dispatch` workflow only when its file is on the default branch; `test-corpus.yml` already is, and a dispatch with `--ref <branch>` runs that branch's version of the file. That job is a declared, separately pinned exception to the single-roster rule that `docs/specs/test-corpus-sharding/spec.md` set for this workflow (owner decision, recorded in an ADR in T4). T4 adds the evaluator benchmark job, T7 adds the cold-rehydration benchmark, and T9a dispatches `gh workflow run test-corpus.yml --ref <branch>` after confirming with the owner. The committed harness fixes the timed-run count and warm-up policy, and the job retains its output.
 
 ## Construction tests
 
@@ -252,9 +252,9 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Depends on:** T1, T2
 
-**Review shape:** DEEP — one review unit; the benchmark workflow is small, and its posture checks verify it alone; no split.
+**Review shape:** DEEP — one review unit; the benchmark job is small, and its posture test verifies it alone; no split.
 
-**Touches:** the work-loop script acceptance modules, pure unit/property tests, benchmark fixtures, `.github/workflows/benchmark-acceptance.yml`, the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`, a new posture test `tools/test-benchmark-acceptance-workflow.py` on `tools/posture_harness.py`, its gate-chain wiring in `tools/repo/build_gate_chain.py` with the matching `EXPECTED_SCRIPT_STEPS` pin in `tools/test_build_gate_chain.py`, the workflow's `WORKFLOW_SCOPE` classification in `tools/lint-ci-parity.py`, the workflow fleet table and §3.1 posture-test inventory in `docs/architecture/verification-graph.md`, and any other pin, roster, or inventory that registering a new workflow and gate-chain step obliges
+**Touches:** the work-loop script acceptance modules, pure unit/property tests, benchmark fixtures, the benchmark job and header in `.github/workflows/test-corpus.yml`; an ADR (through the `new-adr` skill) recording the benchmark job as the one declared exception to `test-corpus-sharding`'s single-roster rule; the declared exception and its separate pin in `tools/test_local_ci_shared_test_deduplication.py`; the `test-corpus.yml` `WORKFLOW_SCOPE` reason in `tools/lint-ci-parity.py`; the root `AGENTS.md` command line that describes `test-corpus.yml`; §3.1 and §4.1 of `docs/architecture/verification-graph.md`; the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`; a new posture test `tools/test-test-corpus-workflow.py` on `tools/posture_harness.py`; its gate-chain wiring in `tools/repo/build_gate_chain.py` with the matching `EXPECTED_SCRIPT_STEPS` pin in `tools/test_build_gate_chain.py`; and any other pin, roster, or inventory that registering a gate-chain step or changing a workflow obliges
 
 **Tests:**
 
@@ -265,9 +265,9 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - AC-0007: truth-table and permutation tests compare every verdict across equivalent normalized record sets and adapter labels, including empty mechanical state.
 - AC-0009: mutation tests change each exact-subject and path-set freshness input independently, assert staleness at the first mismatch, and assert missing or incomplete read attestation selects exact-subject.
 - AC-0018: the committed benchmark measures p95 evaluator latency from call entry to full verdict return for the fixed corpus.
-- Benchmark workflow posture, following `.github/workflows/test-corpus.yml`: no `inputs:`, top-level `permissions: contents: read`, `persist-credentials: false` on checkout, SHA-pinned `uses:`, per-run concurrency, a bounded `timeout-minutes`, and an uploaded artifact limited to the named benchmark result files plus the run's commit SHA. The workflow joins the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`. The posture test `tools/test-benchmark-acceptance-workflow.py` follows the repository's `tools/posture_harness.py` idiom (for example `tools/test-pack-evals-workflow.py`) and runs in the build gate chain; its mutation matrix fails when the `permissions:` floor, the `WORKFLOWS` roster entry, checkout `persist-credentials: false`, the absence of `inputs:`, the timeout, or the artifact path limit is removed. `tools/lint-ci-parity.py` classifies the new workflow in `WORKFLOW_SCOPE`.
+- Benchmark job posture: `test-corpus.yml` keeps its existing posture (`workflow_dispatch` only with no `inputs:`, top-level `permissions: contents: read`, per-run concurrency), and the new job adds `persist-credentials: false` on checkout, SHA-pinned `uses:`, a bounded `timeout-minutes`, `runs-on: ubuntu-latest`, and an uploaded artifact limited to the named benchmark result files plus the run's commit SHA. The workflow joins the `WORKFLOWS` roster in `tools/check-zizmor-excessive-permissions.py`. The posture test `tools/test-test-corpus-workflow.py` follows the repository's `tools/posture_harness.py` idiom (for example `tools/test-pack-evals-workflow.py`) and runs in the build gate chain; its mutation matrix fails when the `permissions:` floor, the `WORKFLOWS` roster entry, checkout `persist-credentials: false`, the absence of `inputs:`, a job timeout, or the artifact path limit is removed, and when a trigger other than `workflow_dispatch`, a job-level `permissions:` block, a `runs-on` other than `ubuntu-latest`, or a `secrets.` reference is added. The single-roster test keeps passing because it names the benchmark job as its only declared exception, and that exception is pinned to the job's exact command.
 
-**Done when:** the T4 projector, truth-table, freshness, determinism, and evaluator benchmark suites pass, the benchmark workflow posture checks pass, and the workflow is merged to `main` before T9a dispatches it.
+**Done when:** the T4 projector, truth-table, freshness, determinism, and evaluator benchmark suites pass, and the `test-corpus.yml` posture test passes.
 
 ### T5: Policy import, reviewed envelope, initial plan review, change classification, and reverse-read suites pass
 
@@ -313,7 +313,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 
 **Review shape:** DEEP — one review unit; no split.
 
-**Touches:** the work-loop script evidence-store module, crash harness, index and benchmark tests, and the cold-rehydration job in `.github/workflows/benchmark-acceptance.yml` with any matching posture-test update
+**Touches:** the work-loop script evidence-store module, crash harness, index and benchmark tests, and the cold-rehydration benchmark in `.github/workflows/test-corpus.yml` with any matching posture-test update
 
 **Tests:**
 
@@ -358,7 +358,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 - Stub: `no stub (goal-based check)`.
 - AC-0001 through AC-0021: run the frozen import, subject, verdict, recovery, reversal, security, content-safety, authorized-append, audit-failure, and cross-adapter corpora against the projected Core pack (`make build-self` output).
 - Clean-environment fence: run the projected work-loop scripts' compatibility path in an environment where `agentbundle` is not importable, after first proving it is not importable there, and assert the path completes. A static check asserts every runtime module in the projected `work-loop` skill imports only the Python standard library or its own sibling modules; an optional import inside an `ImportError` guard that falls back to standard-library behavior is allowed, as in the existing `lint-spec-status.py` `tomli` fallback. A diff against the base asserts no file under `packages/agentbundle/` changed.
-- AC-0018, AC-0019: dispatch the benchmark workflow on GitHub-hosted `ubuntu-latest` with `--ref` on the T9a branch, and retain the measured p95 evaluation and cold-rehydration outputs with the run's commit SHA.
+- AC-0018, AC-0019: before dispatch, run the `test-corpus.yml` posture test, `actionlint`, and both `zizmor` passes on the exact commit to be dispatched and record their results, because `ci-security.yml` does not run without a pull request; then, after owner confirmation, dispatch `gh workflow run test-corpus.yml --ref <branch>` on GitHub-hosted `ubuntu-latest`, and retain the measured p95 evaluation and cold-rehydration outputs with the run's commit SHA.
 - Real invocation: run the unchanged documented `work-loop` happy path through the compatibility caller and record the command, exit status, derived verdict, and confirmation that legacy authority made the decision.
 
 **Done when:** the T9a conformance and repository gates pass, the retained benchmark run meets AC-0018 and AC-0019, and the real invocation preserves legacy authority.
@@ -474,6 +474,22 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
   `agentbundle`-owned.
 - 2026-10-01: spec approved by owner (amended contract: work-loop skill scripts placement)
 - 2026-10-01: plan approved by owner (amended contract)
+- 2026-10-01: controlled contract amendment from `CODE-IMPLEMENTATION` with
+  T1 and T2 completed. Owner decision: no pull request opens before this
+  spec ships, so a new workflow could never reach `main` for T9a to
+  dispatch. The benchmarks become a job in the existing dispatch-only
+  `test-corpus.yml`, dispatched with `--ref` on this branch after owner
+  confirmation; T4 adds a posture test for that workflow. T3a's work is
+  committed and is re-accounted when its wave is rescheduled. Spec text is
+  unchanged; both files return to Draft/Drafting for re-approval.
+- 2026-10-01: round-11 review revisions. Owner decision: the benchmark job
+  is a declared, separately pinned exception to `test-corpus-sharding`'s
+  single-roster rule, recorded in an ADR in T4 with every claim site it
+  touches. The posture test also fails on an added trigger, a job-level
+  `permissions:` block, a non-`ubuntu-latest` runner, or a `secrets.`
+  reference, and T9a runs the posture test and the workflow scanners on the
+  exact dispatched commit first, since `ci-security.yml` needs a pull
+  request.
 
 <!-- Approval entries are added only at their human gates.
 
