@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/evidence-supersession.v1.schema.json",
+  "title": "evidence-supersession.v1",
+  "description": "Evidence supersession from a named evidence authority or review bridge through the evidence port. Only the review bridge supersedes a review-failure receipt, when its source report or assessment ceases to be current. Missing authority, provenance, or matching subject rejects the record. Core policy owners approve authority rules; additive reasons remain optional; unknown major versions block supersession.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "supersession_id",
+    "superseded_receipt_ids",
+    "authority",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Core policy owners approve authority rules; unknown major versions block supersession."
+    },
+    "supersession_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for this supersession record."
+    },
+    "superseded_receipt_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1},
+      "description": "Ordered list of evidence-receipt.v1 identifiers this supersession withdraws."
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "role"],
+      "description": "Named authority permitted to issue this supersession.",
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authority identity (no real names, emails, or personal identifiers in repository artifacts)."
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authority role (e.g., evidence-authority, review-bridge)."
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason_code"],
+      "description": "Provenance explaining why these receipts are superseded.",
+      "properties": {
+        "reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable reason code for the supersession."
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional reference to the source report or assessment that ceased to be current."
+        }
+      }
+    }
+  }
+}

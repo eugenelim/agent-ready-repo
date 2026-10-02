@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/confined-file.v1.schema.json",
+  "title": "confined-file.v1",
+  "description": "Confined file reference used by the path and mutation primitives. Resolved target stays inside its canonical root. Unsafe or changed identity refuses. Security maintainers approve changes; additive bounds may only tighten through a new grant; unknown versions refuse.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/runtime-security-primitives.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "canonical_root",
+    "relative_path"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Additive bounds may only tighten through a new grant; unknown versions refuse."
+    },
+    "canonical_root": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical (absolute, non-link, confirmed) root directory. The resolved path must remain inside this root."
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Repository-relative path from the canonical root. Must not be absolute or contain traversal segments."
+    }
+  }
+}
