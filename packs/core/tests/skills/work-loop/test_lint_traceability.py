@@ -1239,6 +1239,33 @@ def test_ordinal_prefixed_intent_filename_uses_slug_field_not_stem() -> None:
                f"no id may contain the ordinal: {g.nodes!r}")
 
 
+def test_tombstone_keeps_slug_without_duplicating_reissued_intent() -> None:
+    """A tombstone keeps its retired `Slug:`; only the reissued record becomes
+    the `intent:` node, so the pair is not a duplicate id. A body-level
+    `Tombstone:` line does not retire a live intent."""
+    spec = importlib.util.spec_from_file_location("_trace_intent_tombstone_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "route.md",
+              "- **Slug:** `route`\n- **Tombstone:** 2026-01-01\n"
+              "- **Reissued as:** docs/product/intents/FEAT-0001-route.md\n")
+        write(base / "FEAT-0001-route.md", "# I\n\n- **Slug:** `route`\n")
+        write(base / "live.md",
+              "# I\n\n- **Slug:** `live`\n\n## Notes\n\n- **Tombstone:** quoted\n")
+
+        g = mod.Graph()
+        found = mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(found.get("intent:route") == base / "FEAT-0001-route.md",
+               f"the reissued record owns the slug, not the tombstone: {found!r}")
+        expect("intent:live" in found,
+               f"a body-level Tombstone: line must not retire a live intent: {found!r}")
+
+
 def test_intent_file_without_slug_is_reported() -> None:
     """AC-0014: an intent file carrying no `Slug:` field is reported."""
     spec = importlib.util.spec_from_file_location(

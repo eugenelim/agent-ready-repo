@@ -178,6 +178,7 @@ _STATUS_RE = field_re("Status")
 _SLUG_RE = field_re("Slug")
 _KIND_RE = field_re("Kind")
 _LEVEL_RE = field_re("Level")
+_TOMBSTONE_RE = field_re("Tombstone")
 _TYPE_RE = field_re("Type")
 # Spec producer (up-edge) pointers: the adjacent `Contract:`, and the discovery
 # anchors `Discovery:`/`Brief:`/`Parent intent:` (the layer-skip shortcut when
@@ -637,6 +638,16 @@ def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
     return found
 
 
+def _is_tombstone(text: str) -> bool:
+    """True when the preamble (text before the first `## ` heading) carries a
+    `Tombstone:` field. A tombstone keeps its retired `Slug:` so old links
+    resolve, but it names no live intent; deriving a node from it would collide
+    with the reissued record that carries the same slug. A `Tombstone:` line in
+    the body does not retire a live intent."""
+    preamble = re.split(r"^## ", text, maxsplit=1, flags=re.MULTILINE)[0]
+    return _TOMBSTONE_RE.search(preamble) is not None
+
+
 def recognize_intents(base: Path, root: Path, g: Graph,
                       claimed: set[Path]) -> dict[str, Path]:
     """File-backed `intent` nodes: `<intents-base>/*.md` that no ladder rung
@@ -663,6 +674,8 @@ def recognize_intents(base: Path, root: Path, g: Graph,
             continue
         text = _read(p)
         if text is None:
+            continue
+        if _is_tombstone(text):
             continue
         slug = _first(text, _SLUG_RE)
         if not slug:

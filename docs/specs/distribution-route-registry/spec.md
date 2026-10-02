@@ -9,7 +9,7 @@
   - [`distribution-route-contract`](../distribution-route-contract/spec.md) (Shipped)
   - [`portable-agent-plugin-projection`](../portable-agent-plugin-projection/spec.md) (Shipped)
 - **Brief:** brief:distribution-routes-programme
-- **Intent:** docs/product/intents/distribution-route-registry.md
+- **Intent:** docs/product/intents/FEAT-0019-distribution-route-registry.md
 - **Discovery:** none
 - **Contract:** `contracts/distribution-routes.toml` (read; not modified)
 - **Shape:** mixed
@@ -224,11 +224,11 @@ Out of scope by decision, not deferred at implementation time.
   reach the production resolver while the schema is closed. Opening it also removes 33
   single-value pins per route that four of the eight shipped refusals rest on, which
   carries its own confinement and compatibility obligations. Owner: eugenelim; tracked
-  by `docs/product/intents/distribution-route-set-opening.md`. It lands before Phase 3.
+  by `docs/product/intents/FEAT-0020-distribution-route-set-opening.md`. It lands before Phase 3.
 - **Canonical primitive source paths** (`build/main.py:101` and the skill skip at
   `:495`) map a primitive to its authoring source, which is primitive ownership rather
   than route dispatch. Owner: eugenelim; tracked by
-  `docs/product/intents/canonical-mcp-install-parity.md`.
+  `docs/product/intents/FEAT-0021-canonical-mcp-install-parity.md`.
 
 ## Assumptions
 
