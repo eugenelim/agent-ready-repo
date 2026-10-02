@@ -62,7 +62,7 @@ The core pack ships seven tightly-coupled artifacts plus the documents they all 
 
 - **`AGENTS.md`** — the project's agent context, loaded first by every skill, every subagent, every reviewer. It carries the non-negotiables ("touch only what you're asked to touch"), the source-of-truth table, the check-before-acting rules. If a subagent skips it, the review is wrong.
 - **the `work-loop` skill and the core guides** — the *why* behind `AGENTS.md`. The verification-mode taxonomy (TDD / goal-based / visual-manual), the loop-iteration cap, the model-selection table, the rationale for every rule. AGENTS.md cites it for anything that needs a paragraph.
-- **The `new-spec` skill** — drafts `docs/specs/<feature>/spec.md` + `plan.md`. Mandates assumption-surfacing **before** any spec body is written, mandates a Boundaries section with at least one structural `Never do`, mandates per-task `Tests:` before `Approach:`. The spec is the contract; the plan is the strategy.
+- **The `new-spec` skill** — drafts `docs/specs/<feature>/spec.md` + `plan.md`. Mandates assumption-surfacing **before** any spec body is written, mandates an Agent Rules section with at least one structural `Never do`, mandates per-task `Tests:` before `Approach:`. The spec is the contract; the plan is the strategy.
 - **The `work-loop` skill** — the plan → execute → gates → review → fix loop. Tracks state in `state.json` (gitignored, session-scratch), enforces an iteration cap, reports when a round's findings repeat, and gates EXECUTE on plan-approval after a pre-EXECUTE adversarial review.
 - **Shaping review** — `new-spec` uses the internal `shaping-reviewer` before construction begins to test the contract's scope and observability. It is distinct from the later code-review lenses, which now own disjoint concerns: adversarial checks delivery drift and contract conformance, security owns every threat finding, and quality owns test strength and maintenance cost. A reviewer that spots another lens's concern says so in its own lens rather than emitting that lens's finding.
 - **The reviewer subagents** —
@@ -95,7 +95,7 @@ And a depth skill the loop reaches for by surface: **`frontend-engineering`** is
 A feature lifecycle, end to end, with the parts named:
 
 1. **User asks for X.** "Add webhook retries with exponential backoff."
-2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Boundaries (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`. For TDD tasks, the exact code in that `Tests:` section is a planning proof: PLAN compiles and exercises it from disposable scratch without adding a repository test file.
+2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Agent Rules (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`. For TDD tasks, the exact code in that `Tests:` section is a planning proof: PLAN compiles and exercises it from disposable scratch without adding a repository test file.
 3. **`shaping-reviewer`** reads the draft contract cold before plan approval;
    then `adversarial-reviewer` reads the complete spec + plan for construction
    risk. A structurally clean spec-review report closes review mechanically;
@@ -106,7 +106,7 @@ A feature lifecycle, end to end, with the parts named:
    what it proves and a relevant blind spot. Two passes is normal; three means a
    structural problem and the agent surfaces.
 4. **`work-loop`** initializes `state.json` via its bundled tool, then gates EXECUTE on `plan_review_status = approved`.
-5. **EXECUTE.** After the engine enters `CODE-IMPLEMENTATION`, the agent materializes each approved TDD block unchanged at its real test path, verifies byte identity, and then runs red, green, refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Boundaries section + the PLAN-step's declined-pattern register keep new abstractions from sneaking in.
+5. **EXECUTE.** After the engine enters `CODE-IMPLEMENTATION`, the agent materializes each approved TDD block unchanged at its real test path, verifies byte identity, and then runs red, green, refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Agent Rules section constrains structure; PLAN also records a declined architectural addition when it materially affects scope or design.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.
 7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` +
    `AGENTS.md` + `spec.md`. Each report is persisted, then classified:
@@ -123,7 +123,7 @@ A feature lifecycle, end to end, with the parts named:
    advisory: the iteration cap is what bounds the loop.
 10. **Capture.** Each scratch note from this session's DECIDE passes routes to a destination. Capture owns the two that outlive the loop: a generalisable note feeds a skill, ADR, or pattern note through the `project-knowledge` seam, and a defect blocked on a decision, an instrument, elapsed time, or a dependency is captured as a work item. The two same-session routes — shipping a defect now as a ride-along, or making it the session's next reviewed unit — belong to the DECIDE pass instead, because that is a point the loop reaches while both are still open. Capture sits after closeout rather than inside it: the loop is complete once its five finish assertions hold, and routing the notes is the next thing you do, not a condition of being done.
 
-The pieces are tightly coupled by design. `adversarial-reviewer` loads `AGENTS.md` first because skipping it makes the review wrong. `new-spec` writes Boundaries because the reviewer measures plans against Boundaries before falling back to the declined-pattern register. The work-loop's prose gates EXECUTE on `plan_review_status = approved`, and that field is set by the reviewer-pass step rather than by the implementing agent — so the discipline holds when the loop is followed and only when it is.
+The pieces are tightly coupled by design. `adversarial-reviewer` loads `AGENTS.md` first because skipping it makes the review wrong. `new-spec` writes Agent Rules because the reviewer measures plans against that section — `Boundaries` is only its pre-rename name. Only an unmigrated spec carrying neither heading falls back to a declined architectural addition that materially affects scope or design, then to effective repository guidance. The work-loop's prose gates EXECUTE on `plan_review_status = approved`, and that field is set by the reviewer-pass step rather than by the implementing agent — so the discipline holds when the loop is followed and only when it is.
 
 ## Why this beats vibe-coding
 
@@ -132,7 +132,7 @@ Vibe-coding is the null alternative: the agent reads the prompt, writes code, de
 | Vibe-coding failure | What core pack does instead |
 | --- | --- |
 | Agent declares victory when it *feels* done. | Mechanical gates (lint, typecheck, tests) plus a separate-process adversarial reviewer. "Feel" is not a termination criterion. |
-| Scope creeps mid-implementation — new abstraction here, defensive wrapper there. | Spec Boundaries + the PLAN-step's declined-pattern register. The reviewer flags any addition not named in either as drift. |
+| Scope creeps mid-implementation — new abstraction here, defensive wrapper there. | Spec Agent Rules or Boundaries. An unmigrated spec with neither heading falls back to any material declined architectural addition recorded at PLAN. |
 | Edge cases live outside the prompt. | Spec Objective is precise enough to derive tests from; Testing Strategy pairs each user-visible outcome with a verification mode. |
 | Agent retries the same broken approach. | The iteration cap bounds the loop; repeated findings are surfaced to a human. |
 | Convention drift across PRs. | `AGENTS.md` loaded first by every subagent. Repo rules can't be forgotten. |
@@ -171,7 +171,7 @@ Spec Kit's spec-driven loop terminates at `/implement` — there's no state-mach
 | Adversarial review of the diff against the spec | — | ✓ |
 | Mechanical iteration cap | — | ✓ |
 | Works outside Kiro | — (IDE-coupled) | ✓ (every supported harness) |
-| Boundaries-driven scope control | — | ✓ (structural `Never do` + declined-pattern register) |
+| Boundaries-driven scope control | — | ✓ (structural `Never do`; material declined architectural additions are the legacy fallback) |
 | Hook into editor lifecycle events | ✓ (native to Kiro) | represented as `kiro-ide-hook`; the primitive isn't declared in `adapter.toml` v0.5 yet |
 
 Kiro's "do" mode is one-shot per task: if the generated code is wrong, the user re-prompts. The core pack's loop iterates *within* the task — failing gates send you back to FIX, reviewer findings send you back to FIX, and the iteration cap sends you to a human. The user isn't the retry loop; the tool is.

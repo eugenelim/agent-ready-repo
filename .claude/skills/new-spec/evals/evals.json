@@ -212,6 +212,18 @@
       ]
     },
     {
+      "id": "plan-review-unit-uses-shape-before-size",
+      "prompt": "You are drafting a plan task expected to change about 2,300 reviewable behavior and test lines. The work is MIXED: one generated mapping is mechanically uniform, while the validation and migration behavior require different reasoning and tests. How do you decide whether this remains one task?",
+      "expected_output": "Ask first whether the whole unit can be independently understood, verified, or reviewed. About 2,000 reviewable behavior and test lines is only a heuristic that prompts this check, not a threshold or automatic split. Because the MIXED unit does not share one independent proof, split it into dependency-ordered working units for the generated mapping, validation, and migration behavior. Keep review shape explicit. A mechanically uniform WIDE unit could instead remain intact when a transformation/reproducibility proof makes it independently understandable, verifiable, and reviewable.",
+      "assertions": [
+        "Uses independent understanding, verification, or review as the primary decision",
+        "Treats about 2,000 reviewable lines as a heuristic rather than a gate",
+        "Splits the MIXED work into dependency-ordered working units",
+        "Keeps review shape explicit",
+        "Allows mechanically uniform WIDE work to remain intact when transformation/reproducibility proof supplies independent proof"
+      ]
+    },
+    {
       "id": "lld-ownership-traces-downward-with-declared-field-lint",
       "prompt": "A plan's `## Design (LLD)` subsection names an interface and says `Owned by: T2, T4a`; another body-bearing LLD subsection omits `Owned by:`. Task headings define T2, T4a, and T7, but T7 cites no LLD decision. Explain the pre-review walk and what lint-contract-item-alignment.py decides. Does T7 need to cite a design decision before review can proceed?",
       "expected_output": "The pre-review walk traverses from every LLD interface, type, symbol, or ownership decision down to an owning task. It repairs the body-bearing LLD subsection that omits `Owned by:`. Because the plan uses the field, lint-contract-item-alignment.py checks declared-field integrity: each body-bearing LLD subsection names at least one task ID and every named ID has a task heading. The lint does not decide whether every semantic design decision has an owner; that remains the walk's review question. T7 needs no LLD citation: there is no reverse task-to-design obligation.",

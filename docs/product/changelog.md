@@ -64,6 +64,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.11] — 2026-10-01
+
+### Highlights
+
+- A work-loop run whose `state.json` records no retry cap now shows the default cap of 5 on its event line, instead of no cap at all. The run was always held to 5, so a dashboard or alert watching how close it is to being refused was reading nothing where it should have read 5. A malformed cap, which the guard refuses, still reports `null`, and so does a retry count nothing has recorded; the key is always present, which is how a consumer tells "not recorded" from zero.
+
+### Fixed
+
+- `loop-engine`'s `budgets` snapshot resolves `max_implementation_retries` and `max_review_retries` through the same default-resolution helper the guard layer enforces them with, so an absent cap reports the default the guard enforces. A malformed cap still reports `null`, and the two retry counters keep their existing absent-when-unrecorded behaviour.
+
+## [core][2.27.10] — 2026-10-01
+
+### Added
+
+- Added a position-free `families` key to review-classification payloads for future recurrence work. The key is emitted but has no consumer, state, comparison, or verdict effect.
+
+## [core][2.27.9] — 2026-10-01
+
+### Highlights
+
+- Work planning now records only declined architectural additions that materially affect scope or design, and sizes review units by whether they can be independently understood, verified, or reviewed.
+
+### Changed
+
+- Review shape remains explicit, while roughly 2,000 reviewable behavior and test lines is now a heuristic for extra scrutiny rather than a threshold.
+- A review unit that cannot be independently understood, verified, or reviewed is split into dependency-ordered units, or carries a transformation/reproducibility proof when it is mechanically uniform WIDE work.
+
 ## [core][2.27.8] — 2026-10-01
 
 ### Fixed
@@ -118,6 +145,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The base-freshness check now advertises the configured remote target first and returns current branches as ready without requiring a metadata-writing fetch.
 - Stale branches remain blocking even when Git metadata writes are denied, with separate messages for update-capable and user-refresh-only environments.
+
+## [architect][0.15.15] — 2026-09-30
+
+### Highlights
+
+- Well-architected reviews now route data/ML, GenAI/agentic, and serverless workloads only through their supported reference material.
+
+### Changed
+
+- Removed the unsupported SaaS workload-class lens claim from the architect review rubric.
 
 ## [core][2.27.4] — 2026-09-29
 

@@ -1,6 +1,6 @@
 # Spec: review-recurrence-family-key
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0104](../../adr/0104-light-mode-review-stops-on-divergence.md)
@@ -122,41 +122,41 @@ have, which is what makes them checkable without restating it.
 
 ### Family key
 
-- [ ] **AC-0001.** Two findings sharing a cited location and a stable title, and
+- [x] **AC-0001.** Two findings sharing a cited location and a stable title, and
   differing only in cited line, produce the same family.
-- [ ] **AC-0002.** Two findings sharing a cited location and a stable title, and
+- [x] **AC-0002.** Two findings sharing a cited location and a stable title, and
   differing only in leading ordinal, produce the same family.
-- [ ] **AC-0003.** Two findings sharing a cited location and a stable title, and
+- [x] **AC-0003.** Two findings sharing a cited location and a stable title, and
   differing only in bracketed severity tag, produce the same family.
-- [ ] **AC-0004.** Two findings differing in stable title produce different
+- [x] **AC-0004.** Two findings differing in stable title produce different
   families.
-- [ ] **AC-0005.** Two findings differing in cited location produce different
+- [x] **AC-0005.** Two findings differing in cited location produce different
   families.
-- [ ] **AC-0006.** Each of the three reviewer formats the finding parser accepts
+- [x] **AC-0006.** Each of the three reviewer formats the finding parser accepts
   produces a family for every finding it produces a fingerprint for.
 
 ### Payload
 
-- [ ] **AC-0007.** The family key is present on each of the three classification
+- [x] **AC-0007.** The family key is present on each of the three classification
   payloads — the one `review inspect --json` emits, the one
   `review classify --json` emits, and the one returned for a report classified
   `invalid` — and is an empty list on the `invalid` payload. The first two are
   distinct call sites through one emitter; only the `invalid` return is a
   separate builder, so the third case is the one that can fail alone.
-- [ ] **AC-0008.** `review raw-classify`'s field set is unchanged.
+- [x] **AC-0008.** `review raw-classify`'s field set is unchanged.
 
 ### Documentation
 
-- [ ] **AC-0009.** `references/finding-adjudication.md` names the family key and
+- [x] **AC-0009.** `references/finding-adjudication.md` names the family key and
   its preimage, and states that nothing consumes it yet, so a reader cannot
   mistake it for a signal already in use.
-- [ ] **AC-0010.** `docs/architecture/loop-contract.md` states that identity
+- [x] **AC-0010.** `docs/architecture/loop-contract.md` states that identity
   within a review round is keyed with position and recurrence across rounds is
   keyed without it.
 
 ### Compatibility
 
-- [ ] **AC-0011.** For the `findings` and `clean` classifications,
+- [x] **AC-0011.** For the `findings` and `clean` classifications,
   `matches_previous_round` remains a function of the round's canonical
   fingerprint set and the `finding_fingerprints` value the classifier reads —
   not `previous_finding_fingerprints`, which is a separate documented key the

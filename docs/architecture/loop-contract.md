@@ -80,6 +80,11 @@ matrix](../product/research/item-id-management-comparison-matrix.md):
   repository collided on one such counter — the released pack version — twice in
   a single day.
 
+Review findings carry two identities for the same reason. Within a review
+round, finding identity is keyed with position. Recurrence across review rounds
+is keyed without it. A repair moves the cited line, and retiring a finding
+renumbers the survivors.
+
 ## 4. Change detection
 
 > **STATUS: PLANNED**, for the *per-item* mechanism this section describes.

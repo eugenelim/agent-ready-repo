@@ -234,6 +234,14 @@ python '<skill-dir>/scripts/loop-cohort.py' review classify \
 Never substitute stateful inspect in light mode, omit `--adjudication` in
 full mode, or pass `--report <raw-report-path>`.
 
+Classification payloads include `families`: the sorted, de-duplicated set of
+SHA-256 hex digests over the parsed findings, in the same canonical form as
+`fingerprints`. Its preimage is `<location>|<stable-title>`, where the stable
+title removes the enclosing bold markers, leading ordinal, and a leading
+bracketed severity tag. Two findings that differ only in line, ordinal, or
+severity share one family, so the list is not aligned with `fingerprints`
+entry for entry. Nothing consumes it yet.
+
 ## Route and record
 
 | Result | Route |
