@@ -1,8 +1,8 @@
 """Roster test: Slice 1 acceptance records satisfy the canonical schemas.
 
 For every record the Slice 1 acceptance scripts build or accept
-(reviewed-execution-envelope.v1, acceptance-property.v1, acceptance-verdict.v1)
-this suite:
+(reviewed-execution-envelope.v1, acceptance-property.v1, acceptance-verdict.v1,
+approval-record.v1, initial-plan-review.v1) this suite:
 
 1. Loads each schema from ``contracts/delivery/`` and validates a record
    produced by the script against it using jsonschema Draft202012Validator,
@@ -22,7 +22,8 @@ test before any Slice 1 writer task begins.
 
 Parity rule (verification-ledger.md §Script-versus-schema parity): every task
 that adds a module building or accepting delivery records carries parity tests.
-This file satisfies that obligation for T4's ``_acceptance.py``.
+This file satisfies that obligation for T4's ``_acceptance.py`` and T5's
+``_policy_import.py``.
 """
 
 from __future__ import annotations
@@ -345,4 +346,265 @@ class TestVerdictSchemaParity:
         }
         ok, code = acceptance.validate_verdict_dict(bad)
         assert not ok, "validate_verdict_dict must refuse out-of-enum verdict"
+        assert code == "denied-invalid-enum"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# T5: approval-record.v1 and initial-plan-review.v1
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Parity rule: T5's _policy_import.py builds approval-record.v1 and
+# initial-plan-review.v1 records.  These classes verify:
+#   (1) emitted records satisfy contracts/delivery/ schemas, and
+#   (2) validate_*_dict() refuses each class of invalid input with stable codes.
+
+_APPROVAL_SCHEMA_PATH = _CONTRACTS / "approval-record.v1.schema.json"
+_INITIAL_REVIEW_SCHEMA_PATH = _CONTRACTS / "initial-plan-review.v1.schema.json"
+
+
+@pytest.fixture(scope="module")
+def policy_import() -> ModuleType:
+    """_policy_import.py loaded by path."""
+    return _load_script("pi_roster", _SCRIPTS / "_policy_import.py")
+
+
+@pytest.fixture(scope="module")
+def security_capability() -> ModuleType:
+    """_security_capability.py loaded by path."""
+    return _load_script("sc_roster", _SCRIPTS / "_security_capability.py")
+
+
+def _make_issuer_and_grant_roster(sc: ModuleType) -> tuple:
+    """Return a valid (issuer, grant) pair for roster import tests."""
+    issuer = sc.CapabilityIssuer()
+    grant = issuer.issue_root_grant(
+        roots=["delivery"],
+        operations=["append", "write"],
+        trust_class="trusted",
+        writes_allowed_roots=["delivery"],
+        control_denies=[],
+    )
+    return issuer, grant
+
+
+def _null_sink_roster(event: object) -> None:
+    """No-op audit sink for roster tests."""
+
+
+_VALID_REFS_ROSTER = {
+    "spec_policy": "approval:spec-policy:v1",
+    "scope_and_non_goals": "approval:scope:v1",
+    "authority_and_security": "approval:authority:v1",
+    "public_contracts": "approval:contracts:v1",
+    "durable_outputs": "approval:outputs:v1",
+    "accepted_risk": "approval:risk:v1",
+}
+
+
+@pytest.fixture(scope="module")
+def _imported_records(
+    policy_import: ModuleType,
+    security_capability: ModuleType,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> tuple[dict, dict]:
+    """Run import_policy once and return (approval_record, initial_plan_review)."""
+    tmp = tmp_path_factory.mktemp("roster_import")
+    spec_path = tmp / "spec.md"
+    plan_path = tmp / "plan.md"
+    spec_path.write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n- [ ] AC-0001.\n",
+        encoding="utf-8",
+    )
+    plan_path.write_text(
+        "# Plan\n\n- **Status:** Approved\n\n## Tasks\n\n### T1: Task\n\n- [ ] Done\n",
+        encoding="utf-8",
+    )
+    store = policy_import.ImportStore()
+    issuer, grant = _make_issuer_and_grant_roster(security_capability)
+    approval, review = policy_import.import_policy(
+        spec_path=spec_path,
+        plan_path=plan_path,
+        refs=_VALID_REFS_ROSTER,
+        terminal_intent="code",
+        writer_grant=grant,
+        issuer=issuer,
+        audit_sink=_null_sink_roster,
+        store=store,
+        approval_identity="platform-core-maintainer",
+        approval_role="spec-policy-owner",
+        reviewer_identity="platform-core-maintainer",
+        reviewer_role="plan-review-authority",
+    )
+    return approval, review
+
+
+class TestApprovalRecordSchemaParity:
+    """Parity between _policy_import.py and approval-record.v1.schema.json."""
+
+    def test_emitted_approval_satisfies_canonical_schema(
+        self,
+        _imported_records: tuple[dict, dict],
+    ) -> None:
+        """import_policy() approval output satisfies contracts/delivery/approval-record.v1.schema.json."""
+        schema = _load_schema(_APPROVAL_SCHEMA_PATH)
+        approval, _ = _imported_records
+        _jsonschema_validate(approval, schema, label="approval-record.v1")
+
+    def test_validate_refuses_unknown_schema_version(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_approval_dict refuses an out-of-enum schema_version (unknown major)."""
+        bad = {
+            "schema_version": 99,
+            "approval_id": "appr-001",
+            "authority": {"identity": "core", "role": "spec-policy-owner"},
+            "decision_scope": "spec-policy",
+            "base": {"manifest_ref": "sha256:abc"},
+            "lineage": {"spec_ref": "docs/specs/test/spec.md"},
+            "spec_policy_fingerprint": "sha256:def",
+            "decision": "approved",
+            "timestamp": "2026-10-01T00:00:00Z",
+        }
+        ok, code = policy_import.validate_approval_dict(bad)
+        assert not ok, "validate_approval_dict must refuse unknown schema_version"
+        assert code == "denied-unknown-schema-version"
+
+    def test_validate_refuses_missing_required_field(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_approval_dict refuses a record missing a required field (approval_id)."""
+        bad = {
+            "schema_version": 1,
+            # approval_id omitted
+            "authority": {"identity": "core", "role": "spec-policy-owner"},
+            "decision_scope": "spec-policy",
+            "base": {"manifest_ref": "sha256:abc"},
+            "lineage": {"spec_ref": "docs/specs/test/spec.md"},
+            "spec_policy_fingerprint": "sha256:def",
+            "decision": "approved",
+            "timestamp": "2026-10-01T00:00:00Z",
+        }
+        ok, code = policy_import.validate_approval_dict(bad)
+        assert not ok, "validate_approval_dict must refuse missing required field"
+        assert code == "denied-missing-required-field"
+
+    def test_validate_refuses_unknown_authority_field(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_approval_dict refuses an unknown authority-shaped field."""
+        bad = {
+            "schema_version": 1,
+            "approval_id": "appr-001",
+            "authority": {"identity": "core", "role": "spec-policy-owner"},
+            "decision_scope": "spec-policy",
+            "base": {"manifest_ref": "sha256:abc"},
+            "lineage": {"spec_ref": "docs/specs/test/spec.md"},
+            "spec_policy_fingerprint": "sha256:def",
+            "decision": "approved",
+            "timestamp": "2026-10-01T00:00:00Z",
+            "inject_escalation": "bypass",
+        }
+        ok, code = policy_import.validate_approval_dict(bad)
+        assert not ok, "validate_approval_dict must refuse unknown authority-shaped field"
+        assert code == "denied-unknown-authority-field"
+
+    def test_validate_refuses_out_of_enum_decision(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_approval_dict refuses a decision value outside the enum."""
+        bad = {
+            "schema_version": 1,
+            "approval_id": "appr-001",
+            "authority": {"identity": "core", "role": "spec-policy-owner"},
+            "decision_scope": "spec-policy",
+            "base": {"manifest_ref": "sha256:abc"},
+            "lineage": {"spec_ref": "docs/specs/test/spec.md"},
+            "spec_policy_fingerprint": "sha256:def",
+            "decision": "rejected",  # not in enum {approved, superseded}
+            "timestamp": "2026-10-01T00:00:00Z",
+        }
+        ok, code = policy_import.validate_approval_dict(bad)
+        assert not ok, "validate_approval_dict must refuse out-of-enum decision"
+        assert code == "denied-invalid-enum"
+
+
+class TestInitialReviewSchemaParity:
+    """Parity between _policy_import.py and initial-plan-review.v1.schema.json."""
+
+    def test_emitted_review_satisfies_canonical_schema(
+        self,
+        _imported_records: tuple[dict, dict],
+    ) -> None:
+        """import_policy() review output satisfies contracts/delivery/initial-plan-review.v1.schema.json."""
+        schema = _load_schema(_INITIAL_REVIEW_SCHEMA_PATH)
+        _, review = _imported_records
+        _jsonschema_validate(review, schema, label="initial-plan-review.v1")
+
+    def test_validate_refuses_unknown_schema_version(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_initial_review_dict refuses an out-of-enum schema_version (unknown major)."""
+        bad = {
+            "schema_version": 99,
+            "review_id": "rev-001",
+            "envelope_fingerprint": "fp-abc",
+            "plan_hash": "sha256:def",
+            "authorized_terminal_intent": "code",
+            "reviewer": {"identity": "core", "role": "plan-review-authority"},
+            "decision": "accepted",
+        }
+        ok, code = policy_import.validate_initial_review_dict(bad)
+        assert not ok, "validate_initial_review_dict must refuse unknown schema_version"
+        assert code == "denied-unknown-schema-version"
+
+    def test_validate_refuses_missing_required_field(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_initial_review_dict refuses a record missing a required field (review_id)."""
+        bad = {
+            "schema_version": 1,
+            # review_id omitted
+            "envelope_fingerprint": "fp-abc",
+            "plan_hash": "sha256:def",
+            "authorized_terminal_intent": "code",
+            "reviewer": {"identity": "core", "role": "plan-review-authority"},
+            "decision": "accepted",
+        }
+        ok, code = policy_import.validate_initial_review_dict(bad)
+        assert not ok, "validate_initial_review_dict must refuse missing required field"
+        assert code == "denied-missing-required-field"
+
+    def test_validate_refuses_unknown_authority_field(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_initial_review_dict refuses an unknown authority-shaped field."""
+        bad = {
+            "schema_version": 1,
+            "review_id": "rev-001",
+            "envelope_fingerprint": "fp-abc",
+            "plan_hash": "sha256:def",
+            "authorized_terminal_intent": "code",
+            "reviewer": {"identity": "core", "role": "plan-review-authority"},
+            "decision": "accepted",
+            "inject_authority": "bypass",
+        }
+        ok, code = policy_import.validate_initial_review_dict(bad)
+        assert not ok, "validate_initial_review_dict must refuse unknown authority-shaped field"
+        assert code == "denied-unknown-authority-field"
+
+    def test_validate_refuses_out_of_enum_decision(
+        self, policy_import: ModuleType
+    ) -> None:
+        """validate_initial_review_dict refuses a decision value outside the enum."""
+        bad = {
+            "schema_version": 1,
+            "review_id": "rev-001",
+            "envelope_fingerprint": "fp-abc",
+            "plan_hash": "sha256:def",
+            "authorized_terminal_intent": "code",
+            "reviewer": {"identity": "core", "role": "plan-review-authority"},
+            "decision": "pending",  # not "accepted"
+        }
+        ok, code = policy_import.validate_initial_review_dict(bad)
+        assert not ok, "validate_initial_review_dict must refuse out-of-enum decision"
         assert code == "denied-invalid-enum"
