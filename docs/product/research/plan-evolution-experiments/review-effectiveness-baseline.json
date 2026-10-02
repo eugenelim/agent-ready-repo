@@ -388,7 +388,15 @@
           "what_was_updated": "only accepted_intent_path and case 2's stopped_revision_artifacts path, so a reader can still open the file. Every digest field is left as recorded.",
           "consequence_for_a_future_measurement_start": "A prompt built from the accepted intent must use the current bytes and record the current digest alongside the enumeration-time one, exactly as case 2's stopped revision already does."
         },
-        "prospective_cases_admitted_note": "cases 2, 3 and 4, against the cap of 12. Case 1's row still reads candidate_enumerated and is not counted here. That row is known stale and is NOT repaired in this edit: docs/specs/review-recurrence-family-key/spec.md is Shipped on origin/main via #1483, its reviewed-revision digests no longer match the row, and its worktree was never used, so its normal loop ran outside controller observation. The controller surfaced this on 2026-10-02 and the owner deferred it; what status that row should take, and whether the case counts as an admission, are open and need an owner ruling. Recorded here rather than resolved, because guessing either answer would assert an authority no record contains.",
+        "prospective_cases_admitted_note": "cases 2, 3 and 4, against the cap of 12. Case 1 is excluded_before_launch as of 2026-10-02 with closed code missing_normal_work_loop_artifacts and is not counted here; the controller surfaced the staleness on 2026-10-02 and the owner ruled the same day. Its row carries the evidence and the selection-ban check. The exclusion consumed no admission slot and no measurement start, so the stop condition is unchanged.",
+        "cohort_counts_2026_10_02": {
+          "candidate_enumerated": 0,
+          "excluded_before_launch": 1,
+          "admitted": 3,
+          "by_status": {"normal_loop_terminal": 2, "shadow_terminal": 1, "measured_terminal": 0},
+          "reconciliation_note": "4 ledger rows: ordinal 1 excluded_before_launch, ordinal 2 shadow_terminal, ordinals 3 and 4 normal_loop_terminal. Admitted counts ordinals 2, 3 and 4 against the cap of 12. The window closes 2026-10-29T21:19:31Z.",
+          "open_question_what_counts_as_a_terminal_admitted_case": "The controller is NOT asserting a terminal count here, because the contract admits two readings and the difference is large. sufficiency_and_decision_rules.effectiveness_reading_requires says 'at least 8 terminal admitted cases'; admission_rule.incomplete_rule says 'fewer than 8 admitted cases reach terminal measurement'. The frozen status list carries a distinct measured_terminal alongside normal_loop_terminal, shadow_terminal and adjudication_terminal, which reads as though terminal measurement means measured_terminal specifically. Under that reading 0 of 8 are met, not 2 of 8, and no case in the cohort has ever reached it. Under the looser reading that any terminal-prefixed status counts, 3 of 8 are met. Prior handovers recorded 'two are terminal', which matches neither reading exactly. This is an interpretation of frozen contract text and therefore not the controller's to settle: it needs the owner and independent review, and it is a material input to the scope decision because it changes the remaining distance to a reading from 5 cases to 8."
+        },
         "measurement_starts_detail": {
           "shadow_audit_starts_used": 1,
           "shadow_audit_starts_max": 12,
@@ -442,7 +450,7 @@
           {
             "enumeration_ordinal": 1,
             "stable_case_key": "f9b30c4fb3078688dbc0a77acc3cfc4d3c6adfed31e60e1f825df7c4b3fe8890",
-            "status": "candidate_enumerated",
+            "status": "excluded_before_launch",
             "controller_decision_timestamp": "2026-09-29T23:46:48Z",
             "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
             "release_contract_verified": true,
@@ -469,7 +477,23 @@
               "requested_output_tokens": "enforceable via the CLAUDE_CODE_MAX_OUTPUT_TOKENS environment variable on a headless `claude -p` launch. Verified empirically by the controller on 2026-09-29: with the variable set to 64, the final model request returned 61 output tokens and the answer truncated at 30 of a requested 400 integers (26 result chars); with the variable unset and the same prompt, the single request returned 1239 output tokens and the complete 400 integers (1890 result chars). The parameter binds per model request, not per launch total: the capped run still returned 253 cumulative output tokens across iterations, 154 of them thinking tokens. This satisfies the frozen pre-launch control, which caps requested output tokens per request; cumulative returned output remains governed separately by the observed per-case and cohort limits."
             },
             "shadow_launch_mechanism_candidate": "headless `claude -p --output-format=json` under CLAUDE_CODE_MAX_OUTPUT_TOKENS with an explicit read-only tool allowlist, launched through a controller-owned subprocess timeout. Chosen because one mechanism makes all six pre-launch controls observable in the argv and environment, and because --output-format=json returns the usage.input_tokens and usage.output_tokens the scorecard requires. Not yet exercised.",
-            "notes": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated because the normal loop has not opened yet; the earlier hard_limit_unenforceable risk against requested_output_tokens is resolved and no longer blocks admission. The privacy screen and the least-privilege profile are evaluated at prompt-construction time before the shadow start, per the frozen timing rule. No measurement start has been launched."
+            "exclusion": {
+              "exclusion_code": "missing_normal_work_loop_artifacts",
+              "controller_decision_timestamp": "2026-10-02T17:41:16Z",
+              "decided_by": "controller, on an explicit owner ruling of 2026-10-02; the exclusion_catalog names the controller as decider, so the owner ruling confirms rather than supplies the authority",
+              "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; workspace-status canonical ready row, collection work.queue, initiative ini-002",
+              "evidence": [
+                {"claim": "the enumerated delivery worktree was never used: eugenelim/review-recurrence-family-key is 0 commits ahead of its base, with no engine state and no review artifacts", "evidence_ref": "branch eugenelim/review-recurrence-family-key at base_commit c5429040ea3a438ac755d4f3dde3843126580999", "verified": "2026-10-02"},
+                {"claim": "the spec shipped outside controller observation, on a different branch", "evidence_ref": "origin/eugenelim/review-recurrence-family-key-run41 at 9749d68bfbe888b5f6b980ce05787bca7586da0e, merged to origin/main via PR #1483; spec.md reads Status: Shipped on origin/main", "verified": "2026-10-02"},
+                {"claim": "no per-round review artifacts exist for this spec on the branch that carried the work: git ls-tree over docs/specs/review-recurrence-family-key/ on run41 returns exactly plan.md and spec.md, while sibling specs on that same branch carry notes/review-round-*.md", "evidence_ref": "origin/eugenelim/review-recurrence-family-key-run41, trees docs/specs/review-recurrence-family-key/ and docs/specs/architect-assessment/notes/", "verified": "2026-10-02"},
+                {"claim": "the enumerated reviewed-revision digests no longer match the shipped artifacts, so the enumerated revision is not the revision that was reviewed through to ship", "evidence_ref": "origin/main spec.md sha256 14efcf4bf78e71236199e4efa2c09fe0bd429f898d52a0993b304e680809fda0 against enumerated fe6ab262c06b411b92e2ba217d3eb9ecc4abc48108030ed029b7773a53241507; plan.md 9afda0aba442ae9af9cbe849d9a9ae26ebf7d11ea10b7d719902bc48963567e2 against enumerated f15a04b0f897af144deaada6fbb98402711c2d949118071f71e0bb5d1320d393", "verified": "2026-10-02"}
+              ],
+              "rationale": "The normal loop for this candidate ran outside controller observation and left no artifacts from which the contract's required measurements could be read. Recoverable from git history: the commit sequence, every spec and plan revision, and the reviewed and stopped revision digests. Not recoverable: returned input and output tokens, wall clock, round count, raw, sustained, refuted and indeterminate splits, adjudication results, repair-origin attribution, and all 24 finding-row fields. The contract requires those, and estimating a missing measurement value is barred, so the row cannot be completed and cannot reach a terminal measured status.",
+              "selection_ban_check": "This exclusion rests only on absent artifacts. It is not based on model, requested or resolved route, finding count, severity count, outcome, predicted outcome, convenience, or whether the case helps the study. The spec in fact shipped successfully, which under the ban is irrelevant either way.",
+              "stop_condition_effect": "none. The candidate was never admitted, so it holds no admission slot and the stop condition of 12 admitted cases or the 2026-10-29T21:19:31Z window close is unchanged. Admitted remains 3 of 12. The effectiveness reading still requires 8 terminal admitted cases, so this exclusion is a reason admission continues rather than closes.",
+              "measurement_starts_consumed": 0
+            },
+            "notes": "Enumerated before the first reviewer start, per the case-ledger contract. Excluded before launch on 2026-10-02; see the exclusion record above. No measurement start was ever launched, and the pre-launch gate evaluation below is retained as enumerated, unevaluated, because the privacy screen and least-privilege profile are evaluated at prompt-construction time and that point was never reached."
           },
           {
             "enumeration_ordinal": 2,
