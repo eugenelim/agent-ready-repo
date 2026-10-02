@@ -1067,8 +1067,8 @@
               "selection_ban_observed": "Admission was not decided by host, model, expected finding count, expected outcome, convenience, or whether the case would help the study. Full mode means a pre-execute spec/plan review unit, which is the frozen admission scope, so the case is eligible and no exclusion code in the closed catalog applies."
             },
             "normal_loop_progress": {
-              "rounds_completed": 5,
-              "normal_loop_state": "SPEC-PLAN-REVIEW, round 5 revised at 3b66985d1, round 6 pending for the clean verdict",
+              "rounds_completed": 6,
+              "normal_loop_state": "SPEC-PLAN-REVIEW, round 6 revised at c16682bb7, round 7 pending for the clean verdict",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1222,6 +1222,47 @@
                 "wall_time_seconds_total": 218.507,
                 "attribution": "both starts are normal-loop review work, observed rather than study-added",
                 "unavailable_fields": ["per-start input/output token split - the host returns one aggregate subagent token count per start"]
+              },
+              "round_6": {
+                "reviewer_role": "adversarial",
+                "stage": "pre-execute",
+                "round_purpose": "verdict pass over the round-5 delta 91d7ea9a9..3b66985d1",
+                "raw_findings": 1,
+                "raw_report_sha256": "72cb9db7bc6c747dcb73d81d2da3cebde2addf4a8790adae3be4a0d806389c4b",
+                "raw_report_bytes": 3463,
+                "raw_classification": "findings",
+                "not_checked_footer_present": false,
+                "adjudicated": true,
+                "adjudication_sha256": "cc8fc246370a6d7acdb10618919fa50cb55a1d4804f458390526ffe4ef5e8dbc",
+                "adjudication_bytes": 2054,
+                "adjudication_classification": "findings",
+                "adjudication_attempts": 1,
+                "sustained": 1,
+                "refuted": 0,
+                "indeterminate": 0,
+                "sustained_by_severity": {"blocker": 0, "concern": 0, "nit": 1},
+                "fingerprints": 1,
+                "families": 1,
+                "matches_previous_round": false,
+                "repair_origin_findings": 1,
+                "nit_adjudicated_not_deferred": "A Nit-only report is normally deferred rather than adjudicated. This one was adjudicated because the thread intended to mutate - the claim is false and had to go - and because reviewers-clean has no severity awareness, so a deferred Nit would block that gate as hard as a Blocker.",
+                "repair_origin_note": "The single finding is a false claim the round-5 repair introduced. That revision cited frontend-experience-composition as carrying three supersession clauses. Its Status line carries one; the other two occurrences of the trailing phrase are inside grep -qE patterns in that spec's AC-0004 and AC-0005. A scan of every Status line under docs/specs puts the maximum at two, so sast-sca-tooling is the only doubled record in the repository.",
+                "controller_failure_mode_fifth_instance": "This is the fifth occasion in this case where a controller record asserted more than its evidence supports, and the sharpest: it was introduced while repairing a finding about exactly that. The mechanism was specific - the controller ran `grep -c` over a file, obtained 3, and restated a file-occurrence count as a count of Status clauses, in both contract documents and to the owner. The earlier four were the stub validation record twice, the boundary-lint claim, and the both-documents completeness claim. The common shape is a number or an instrument whose scope was not checked before the claim was made.",
+                "round_5_repairs_held": "The reviewer checked T5's five stub assertions against the live Status line and AC-0008's end state and found them satisfiable by, and only by, that end state; the ordering assertion sound because adr-0130 occurs only in the existing clause and adr-0132 only in the appended one; and - a check the controller had not thought to make - that no markdown line-length gate exists, so the lengthened one-line Status will not need a wrap that would break the stub's single-line read. The headroom figure is consistent in all four places stated as current.",
+                "controller_disclosure": "Both artifacts transcribed through the controller, persisted before classification, de-indented only.",
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [34458, 29357],
+                "returned_subagent_tokens_total": 63815,
+                "wall_time_seconds_by_start": [90.431, 46.219],
+                "wall_time_seconds_total": 136.65,
+                "attribution": "both starts are normal-loop review work, observed rather than study-added",
+                "unavailable_fields": ["per-start input/output token split - the host returns one aggregate subagent token count per start"]
+              },
+              "revision_after_round_6": {
+                "commit": "c16682bb7",
+                "acted_on": "the one sustained Nit, with the adjudicator's scoped fix: delete the false example from both sites, leave AC-0008's requirement and its two surviving supports untouched.",
+                "shape": "Deletion of one false clause in each document. No criterion, task, stub or closure predicate changed.",
+                "transition_note": "Fired from SPEC-PLAN-REVIEW, same recorded deviation; the engine remains at transition_sequence 3."
               },
               "revision_after_round_5": {
                 "commit": "3b66985d1",
