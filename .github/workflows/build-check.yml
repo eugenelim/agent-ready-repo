@@ -722,6 +722,16 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_content_safety_boundary_matrix.py
 
+      # The Slice 1 security-primitive schema parity test reads three modules
+      # from packs/core/.apm/.../scripts/ and three schemas from
+      # contracts/delivery/ — both paths are above the pack tree, so
+      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the
+      # carve-out step below whose `pytest tests/ -q` also collects it, so
+      # that a failure is attributed to this named step.
+      - name: pytest security-primitives schema parity (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_security_primitives_schema_parity.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

@@ -676,6 +676,14 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # Slice 1 writer boundaries and profiles; must run before any writer task.
     "pytest content-safety boundary matrix (roster-owned)":
         LOCAL("test-after-build-check"),
+    # Slice 1 security-primitive schema parity: validates that records emitted
+    # by _security_capability.py, _confined_mutation.py, and _security_events.py
+    # satisfy their canonical contracts/delivery/ schemas, and that each module's
+    # own validate_*_dict() refuses four classes of invalid input with stable
+    # denial codes.  LOCAL("test-after-build-check") is correct: that target's
+    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    "pytest security-primitives schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -978,6 +986,7 @@ _GATE_MAIN_CHECKS = (
     "pytest visual-authority supersession (roster-owned)",
     "pytest delivery contract bundle (roster-owned)",
     "pytest content-safety boundary matrix (roster-owned)",
+    "pytest security-primitives schema parity (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
