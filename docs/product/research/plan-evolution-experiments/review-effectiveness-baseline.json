@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 9, wave 0 (T1) complete, wave 1 (T2, T4) next",
+              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 9, wave 1 in progress: T4 done, T2 next",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1333,6 +1333,21 @@
                 "starts": 1,
                 "returned_subagent_tokens": 64754,
                 "wall_time_seconds": 372.418,
+                "attribution": "normal-loop implementer work, observed rather than study-added"
+              },
+              "execute_wave_1_t4": {
+                "task": "T4 — the exclusive property is enforced, and proved able to fail",
+                "dispatch": "implementer subagent, recorded with loop-cohort dispatch-receipt --receipt, wave index 1",
+                "commits": ["f166ddfab (implementer)", "0e5617542 (controller re-verification and a correction)"],
+                "ordering_decision": "T4 was dispatched before T2 although both sit in wave 1. T4's Done when requires the property to red over the UNMIGRATED tree at the expected count, and T2 migrates two of the fourteen loci. Running T2 first would have left T4 observing 12 with no way to distinguish a correct observation from a broken sweep. The wave permits either order; the controller chose this one and records why.",
+                "controller_verification": "Every T4 observation was re-run by the controller rather than accepted from the report. All reproduced: stub byte-identical to the plan's approved block at 4553 bytes sha256 6fde81db9e5c6f7f; property reds at 14 violations across 12 Markdown files over the unmigrated tree; guard passes at 12 non-Markdown carriers with the module self-excluded; mutation 14 to 15 to 14 with the new locus named in the failure output.",
+                "the_mutation_check_is_now_discharged": "This was the residual recorded against the owner's spec approval and the thing EXECUTE owed first. It is now performed and recorded twice - once by the implementer, once independently by the controller. What it establishes is bounded and the ledger says so: the property reds on a newly introduced violation and greens when it is removed, which a standing red cannot show. It does not establish that the property catches every form a violating sentence could take; the spec's limits 1, 3 and 5 record the forms it is known not to reach.",
+                "defect_found_in_the_implementer_record": "The verification ledger recorded the materialized stub as 4545 bytes. It is 4553. The byte-identity claim was correct and independently re-verified; the count beside it was wrong by eight. Corrected in place with an attributed note. This is the same defect class the review rounds faulted five times in the controller's own records, now observed once in an implementer's.",
+                "controller_residue_caught": "During the controller's own mutation run, removing the appended sentence left an extra trailing newline, leaving the carrier one byte from its pre-mutation state. Caught by diff and restored from a pre-mutation copy. No git checkout, reset or stash was used at any point, per mutation-proof.md.",
+                "gates": "make lint-ruff lint-mypy exit 0; tools/test-lint-pack-test-boundary.py exit 0, ok 154 cases passed; lint-spec-status clean. All read from exit status.",
+                "starts": 1,
+                "returned_subagent_tokens": 61560,
+                "wall_time_seconds": 441.863,
                 "attribution": "normal-loop implementer work, observed rather than study-added"
               },
               "spec_gate_2026_10_02": {
