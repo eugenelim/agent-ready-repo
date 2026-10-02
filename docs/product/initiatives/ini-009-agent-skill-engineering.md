@@ -17,7 +17,9 @@ Authors and agent loops can use one portable, progressively disclosed engineerin
 
 - A portable `agent-skill-engineering` pack with author/update and review/optimize workflows.
 - A governed same-pack OKF corpus and non-self-discovering provider router.
-- Portable capability floors plus retrieval-dated profiles for Claude Code, Codex, GitHub Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI, and Google Antigravity.
+- Portable capability floors plus one retrieval-dated Claude Code reference
+  profile, with the profile lifecycle and roll-up available for later runtime
+  profiles contributed as open extensions.
 - Python/pytest and TypeScript/Node script and evaluation topics.
 - A census-backed catalogue of current pack skill patterns, including knowledge providers, progressive authoring modes, orientation/workspace resumption, and result-presentation usability.
 - Skill-, pack-, skill/evaluation-CI-, worktree-, and shared-host execution economics.
@@ -43,7 +45,7 @@ Authors and agent loops can use one portable, progressively disclosed engineerin
 | Languages and evaluation | Shared script/eval contracts with separate Python/pytest and TypeScript/Node depth | Shaping |
 | Execution economics | Measurement-led optimization across local scripts, packs, skill/evaluation CI, worktrees, and shared hosts | Shaping |
 | Security and authentication isolation | Treat inputs as untrusted, preserve least authority, and keep raw credentials outside model context | Shaping |
-| Runtime composition | Common floors and retrieval-dated enterprise runtime profiles for subagents, hooks, and plugins | Shaping |
+| Runtime composition | Common floors and one retrieval-dated Claude Code reference profile for subagents, hooks, and plugins, with later profiles open to extension | Shaping |
 | Consumer integration | Optional work-loop, architect-design, and future provider-mediated retrieval | Shaping |
 | Repository adaptation | Self-host, guide and guidance migration, catalogue-curation reduction, tooling rationale consolidation | Shaping |
 | Evidence and maintenance | Promotion thresholds, provenance, revalidation, pilots, and backlog closeout | Shaping |
@@ -79,6 +81,29 @@ every open→closed move to record its artifact, evidence, owner review, and dat
 whoever performed the move. Both duties apply to the entries below. Recorded
 variances:
 
+- **2026-10-01 — `security-checklists-okf-router-regression` closed with its
+  resolving change and regression guard linked.** Commit
+  `18fa688951f833db118975fc72773a21b5d197ac` restored the hand-authored
+  boundary-to-module routing authority and moved the generated OKF projection to
+  the `security-checklists-reference` sibling. The former canonical backlog
+  register recorded the item as closed until commit
+  `f84829a620c8e8a0235e01d661ef885563ac7468` migrated closed register history
+  into owning artifacts. Evidence remains live in
+  `tests/roster/test_security_checklists_okf_projection.py`: it pins all eleven
+  boundary routes, the hand-authored router contract, the generated sibling and
+  manifest ownership; its five tests passed on 2026-10-01. **Owner review:** a
+  repository maintainer confirmed this closure on 2026-10-01. The regression
+  lesson is therefore already present in the router tests, and the item stays
+  closed.
+- **2026-10-01 — `pre-existing-skill-spec-lint-warnings` closed as a historical
+  migration baseline.** The item recorded 65 non-blocking `CAT-S003` and
+  `CAT-S004` findings observed on 2026-08-24. Commit
+  `e6456814b565fae90554d7f164ff212838b152b3` independently rechecked the premise,
+  recorded `make lint-packs` clean with the original baseline at zero, and retired
+  the item as shipped on 2026-09-03. **Owner review:** a repository maintainer
+  confirmed this closure on 2026-10-01. Later warnings are new observations and
+  do not reopen this dated baseline; any current warning-removal outcome needs a
+  new measurement and owner rather than reuse of this identifier.
 - **2026-08-27 — `okf-index-title-interpolation-unescaped` and
   `okf012-nondeterminism-guard-untested` closed ahead of Slice 0.** D7 listed both as
   prerequisites to promote into the corpus/router foundation spec.

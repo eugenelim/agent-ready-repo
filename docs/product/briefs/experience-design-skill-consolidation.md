@@ -66,7 +66,7 @@ design method is removed; what disappears is the registration, not the document.
 - Renaming the pack, changing the `surface-genre` taxonomy, or changing any
   output artifact's path or `type:`.
 - Pack-wide reference deduplication beyond what the copy fold needs. See
-  [What this takes from the sibling brief](#what-this-takes-from-the-sibling-brief)
+  [What this takes from the doctrine inventory](#what-this-takes-from-the-doctrine-inventory)
   for the exact boundary — it is narrower than "leave S8a alone" and the
   difference matters.
 
@@ -172,12 +172,13 @@ The decisive evidence is drift: five same-named references, none identical, plus
 a sixth pair under two names. S2 gives the shared method one copy and keeps three
 distinct output artifacts.
 
-## What this takes from the sibling brief
+## What this takes from the doctrine inventory
 
-[`digital-experience-doctrine-completion`](digital-experience-doctrine-completion.md)
-owns pack-wide reference deduplication as its S8a candidate, decomposed there as
-eight families. This brief does **not** defer all of it, and saying so plainly
-matters because nothing re-reads prose that records an obligation.
+The Digital Experience Doctrine inventory measured pack-wide reference
+duplication as eight families. Its capability intent now retains the durable
+boundary after the obsolete coordination brief was removed. This brief does
+**not** defer all of the reference work, and saying so plainly matters because
+nothing re-reads prose that records an obligation.
 
 S2 executes two of those families:
 
@@ -200,15 +201,15 @@ directories removes two `agentbundle-layout.md` copies, taking that family from
 12 copies to 10, with its hash count measured at delivery. Three further
 families — `copy-arbitration`, `copy-grounding`, `plain-language-floor` — exist
 only in the two folded skills and drop to one copy each, leaving the duplicate
-set entirely. Eight families become five. The remaining families stay outside this brief — though not with the
-sibling either. `digital-experience-doctrine-completion` routes S8a **out** of
-itself to an intake candidate named `experience-design-reference-reconciliation`,
-which has no admitted intent yet, so those families are currently unowned.
+set entirely. Eight families become five. The remaining families stay outside
+this brief and outside the Digital Experience Doctrine capability boundary.
+They need fresh intake under the candidate name
+`experience-design-reference-reconciliation`; no admitted intent owns them yet.
 
-S2 carries an acceptance criterion to amend that brief's own re-check and
-Adjacent-work rows with post-fold counts, because `docs/product/AGENTS.md` is
-explicit that an obligation on a sibling is discharged by changing the sibling's
-cell — nothing re-reads the prose that recorded it.
+S2 carried an acceptance criterion to refresh the then-live doctrine inventory
+with post-fold counts. The current count and route are retained here and in the
+capability intent, so deleting the obsolete coordination brief loses no live
+obligation.
 
 ## Assumptions / Risks
 
@@ -334,6 +335,32 @@ Both also oblige bumps in `frontend-engineering` and, for S2,
 `product-engineering`. Why the order cannot change is in
 [Constraints / Appetite](#constraints--appetite).
 
+## Completion check — 2026-10-01
+
+The structural outcomes landed: `pack.toml` registers twelve skills, the
+frontend pre-flight routes all seven declared surface genres, and the two
+mapped specs own the method-preservation, reference-reconciliation, release,
+and reciprocal sibling-brief evidence.
+
+One success metric is still unmet as written. This brief requires each fold's
+Tier-A activation pass rate to be no worse after the fold on both positive and
+negative queries. The two mapped specs instead record an owner-accepted,
+single-sample Codex classification proxy. Each explicitly says that the proxy
+is not a Claude `Skill` activation event and does not establish production
+activation rates, repeated-sampling stability, recall, or false-positive rates.
+
+Closeout therefore needs one of two independently reviewed resolutions: obtain
+the Tier-A evidence the brief promises, or amend the success metric to the
+bounded proxy the delivery actually used. A fully materialized Spec map does
+not settle that semantic mismatch by itself.
+
+The 2026-10-01
+[adapter pressure test](../research/digital-experience-doctrine-current-standards-survey.md)
+strengthens that gap: Agent Skills standardizes the package shape, not identical
+activation or runtime behavior across hosts. Cross-host doctrine evaluation
+belongs to the M5 feature intent, while this brief still owes the narrower
+activation evidence or an explicit metric amendment for the folds it delivered.
+
 ## Governance references
 
 - [RFC-0066](../../rfc/0066-experience-pack-surface-genre-and-skill-uplift.md) —
@@ -345,8 +372,7 @@ Both also oblige bumps in `frontend-engineering` and, for S2,
   that reservation.
 - [RFC-0071](../../rfc/0071-digital-experience-doctrine.md) — carries the skill
   inventory in operative text, an ordering dependency naming `copy-direction`,
-  and a boundary statement S2 reverses. Takes its own erratum. Also the governing
-  authority of the sibling brief, so amending it here is a cross-brief act.
+  and a boundary statement S2 reverses. Takes its own erratum.
 - RFC-0055 D2 — the two-layer errata structure all three must adopt.
 - [RFC-0050](../../rfc/0050-the-experience-pack.md) — the founding skill chain.
 - [RFC-0033](../../rfc/0033-design-craft-pack.md) and ADR-0024 — framework
@@ -359,7 +385,8 @@ Both also oblige bumps in `frontend-engineering` and, for S2,
   — the measurements, their methods, the fold criterion, the skills assessed and
   kept, and the activation experiment. Its prior-art section is labelled
   unverifiable and carries nothing this brief relies on.
-- [`digital-experience-doctrine-completion`](digital-experience-doctrine-completion.md)
-  — owns the remaining reference-deduplication families.
+- [Digital Experience Doctrine](../intents/digital-experience-doctrine.md)
+  — keeps pack-local reference reconciliation outside the capability boundary
+  and routes it to fresh intake.
 - The design corpus under `docs/design/`, read as field evidence for the
   composition problem.
