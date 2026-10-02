@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-IMPLEMENTATION, sequence 15, waves 0-3 complete, wave 4 (T6, final) next",
+              "normal_loop_state": "CODE-REVIEW, transition sequence 17, all 5 waves complete, full gate set green, post-gates review next",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1429,6 +1429,41 @@
                 "experience_design": {"pack_toml": "4.1.2", "plugin_json": "4.1.2", "marketplace_json": "4.1.2"},
                 "release_pin_before": "packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py:89 asserts version == \"0.4.0\" by equality, with a message saying a later delivery moves the pin with its own bump. This contract is that delivery.",
                 "expected_bump": "patch for both packs, per packs/AGENTS.md § Version bump rule: patch for changed content, minor for new primitives, major for removals. This contract rewords shipped instructions and adds tests; it publishes no new skill, subagent, command or hook."
+              },
+              "execute_wave_4_t6_and_gates": {
+                "task": "T6 — the release surface is consistent. Final task of the contract.",
+                "commits": ["e1e79fe06 (bumps, pin, changelog)", "fcf32862a (regenerated marketplace.json)"],
+                "bump": "frontend-engineering 0.4.0 to 0.4.1 and experience-design 4.1.2 to 4.1.3, patch for both. Controller verified all six version sites agree per pack and each exceeds the baseline it recorded independently before dispatch.",
+                "the_projection_was_actually_refreshed": "This is the trap a previous session paid four red CI gates for. make build-self ran without FORCE=1 and marketplace.json changed by exactly two insertions and two deletions - the two version strings and nothing else. The controller checked the committed diff rather than accepting the report's claim that it had been regenerated.",
+                "pin_moved_not_deleted": "test_visual_authority_release.py:89 now asserts 0.4.1, and its docstring names this delivery. The pin was the subject of round 4's finding 3: T6's closure did not reach the module it edits, so AC-0009's pin clause had no predicate after the bump. The repaired closure runs the frontend-engineering pack suite after bumping, and it is green at 456 passed - so the clause now has a predicate and the predicate passed.",
+                "changelog": "Both free-standing `##` release entries carry a `### Highlights` subsection with exactly one `-` bullet each, naming visual_target. The bullet form is load-bearing: docs/product/AGENTS.md records that the /now/ projection extracts only bullets and drops a paragraph silently. The controller ran the projection tests - 17 passed - rather than reasoning that the form looked right.",
+                "full_gate_set_all_exit_0": [
+                  "make lint-ruff lint-mypy",
+                  "ruff check .",
+                  "tools/test-lint-pack-test-boundary.py",
+                  "tools/lint-ci-parity.py --root .",
+                  "tools/lint-conformance-portability.py --root .",
+                  "tools/lint-generated-path-ownership.py --root .",
+                  "tools/lint-guidebook-steps.py guides/experience-design",
+                  "tools/lint-guidebook-steps.py guides/frontend-engineering",
+                  "lint-spec-status --root . (clean, 2 specs changed)",
+                  "the two new roster modules, the prune invariant, both packs' suites and test_pack_metadata together: 586 passed"
+                ],
+                "transitions": "wave-complete to CODE-VERIFICATION at sequence 16, then gates-clean to CODE-REVIEW at sequence 17. The final wave fires gates-clean rather than wave-passed; loop-cohort wave check --expect last confirmed wave 4 is the last of five before the transition.",
+                "starts": 1,
+                "returned_subagent_tokens": 67327,
+                "wall_time_seconds": 314.029,
+                "attribution": "normal-loop implementer work, observed rather than study-added"
+              },
+              "execute_phase_closed": {
+                "closed_at": "2026-10-02",
+                "waves": 5,
+                "tasks": 8,
+                "dispatch_receipts": "one --receipt per task, eight in total; every task was implemented by an implementer subagent and none was declined",
+                "observed_execute_cost": {"starts": 8, "returned_subagent_tokens": 549639, "wall_time_seconds": 4389.0},
+                "observed_case_cost_to_date": {"starts": 23, "returned_subagent_tokens": 1691645, "wall_time_seconds": 8495.4, "note": "15 pre-EXECUTE review starts plus 8 implementer starts. Complete per-start token and wall-clock figures throughout, which no earlier case in this cohort has."},
+                "implementer_report_quality": "Four of the eight reports carried a checkable claim that was wrong while the underlying work was sound: T4's byte count off by eight, T7's byte count off by one and its limit-4 inference inverted, T3's report thinner than its brief asked plus a deviation misattributed to a brief that said no such thing. T8 and T6 were complete and accurate after the controller named the omission explicitly in the brief. Recorded as a fact about the reporting agents, not folded into any effectiveness reading.",
+                "controller_errors_in_execute": "Two. The mutation-restore left an extra trailing newline in a carrier, caught by diff and restored from a pre-mutation copy. The T8 placement check counted sixteen comment lines as executable bulk runs and produced a false negative against correct work, caught by re-deriving with comments excluded. Both are the same shape as the five pre-EXECUTE instances: a number or a search whose scope was not checked before a conclusion."
               },
               "spec_gate_2026_10_02": {
                 "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
