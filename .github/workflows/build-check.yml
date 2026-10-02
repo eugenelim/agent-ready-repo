@@ -683,6 +683,16 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_target_release_surface.py
 
+      # portable-catalogue-authentication: credbroker 0.7 wheel build,
+      # isolated-install, co-location, and packaging tests. These read packs/
+      # and build wheels, so they cannot live in the sdist package suite.
+      # Placed ABOVE the bulk tests/ step for named failure attribution; the
+      # bulk step also collects this module, so both steps reach it, but only
+      # this one attributes a failure by name.
+      - name: pytest portable-catalogue-authentication packaging (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_portable_catalogue_authentication_packaging.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
