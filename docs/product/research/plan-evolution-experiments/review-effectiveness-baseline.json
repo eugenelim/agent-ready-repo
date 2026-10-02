@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-IMPLEMENTATION, sequence 11, wave 2 in progress: T7 and T5 done, T3 last",
+              "normal_loop_state": "CODE-IMPLEMENTATION, sequence 13, waves 0-2 complete, property GREEN, wave 3 (T8) next",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1390,6 +1390,22 @@
                 "returned_subagent_tokens_total": 155623,
                 "wall_time_seconds_by_start": [443.918, 454.245],
                 "wall_time_seconds_total": 898.163,
+                "attribution": "normal-loop implementer work, observed rather than study-added"
+              },
+              "execute_wave_2_t3_and_close": {
+                "task": "T3 — migrate the restating carriers. The largest task in the contract: 15 files, 142 insertions.",
+                "commit": "0a8242f2f",
+                "closure_predicate_met": "The repository-level property is GREEN, 2 passed exit 0. It has run 14 to 12 to 11 to 0 violations across T2, T7 and T3. Both pack suites green at 487 passed exit 0, which is the only closure predicate in this plan that reaches packs/experience-design/tests/skills/design-system/.",
+                "gates": "make lint-ruff lint-mypy exit 0; lint-generated-path-ownership exit 0, which matters because T3 edits a web/src/content projection; test-lint-pack-test-boundary exit 0 at 154 cases; lint-spec-status clean across both changed specs. All read from exit status.",
+                "the_contract_outcome_landed": "The most explicit surviving statement of the reading ADR-0132 retires was `**You are here if** the artifact says somewhere that the composition was approved or signed off, rather than merely proposed or picked` in read-the-design-handoff.md. It now reads `**You are here if** the direction's `visual_target` field is `confirmed`, recording that the composition was signed off.` That sentence is one of the two AC-0005 loci no mechanism in this contract reaches - the controller checked it by reading the before and after rather than trusting the property, which cannot see it.",
+                "ac_0005_discharged_by_observation": "Both loci are migrated and both are recorded in the verification ledger as named observations, which is how AC-0005 is discharged - by observation, not by assertion. The second is design-system SKILL.md's `the visual target when one exists`, now `the `visual_target: confirmed` target when one exists`.",
+                "known_cost_recorded": "The establish-design-intent.md run-on locus forced naming the field inside a copy-paste user prompt that states no condition. T3 recorded it in the ledger as a known cost, as the plan's limit 3 requires, so a later round does not rediscover it as a defect.",
+                "report_quality_observation": "T3's report was materially thinner than its brief asked for: no gate exit codes, no per-locus before and after, no AC-0005 observations quoted, no account of how each non-Markdown carrier was judged for AC-0011. The controller verified all of it directly instead. The report also claimed a deviation on the ground that the task body named test_visual_authority_precedence.py as the file to receive the AC-0011 test; the brief named no file. This is the fourth implementer report in this case carrying a checkable claim that is wrong while the underlying work is sound - T4's byte count, T7's byte count and its limit-4 inference, and now this. The pattern is recorded because it is the justification for the controller re-deriving rather than transcribing, and because it is about the reporting agent rather than about review effectiveness.",
+                "wave_2_closed": "wave-complete to CODE-VERIFICATION at sequence 12, wave-passed --wave-index 2 back to CODE-IMPLEMENTATION at sequence 13. current_wave_index is 3, which is wave [T8].",
+                "starts": 1,
+                "returned_subagent_tokens": 74884,
+                "wall_time_seconds": 1719.73,
+                "wall_time_note": "the longest start of the case by a wide margin, at 92 tool uses",
                 "attribution": "normal-loop implementer work, observed rather than study-added"
               },
               "spec_gate_2026_10_02": {
