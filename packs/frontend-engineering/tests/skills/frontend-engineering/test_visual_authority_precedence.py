@@ -75,7 +75,7 @@ def test_every_rung_carries_a_requires_and_a_falls_to_cell() -> None:
 def test_the_top_rung_requires_a_recorded_confirmation() -> None:
     assert rule("Authority precedence", "approved-visual-target") is not None
     assert observation_table("Authority precedence")["approved-visual-target"][2] == (
-        "recorded-human-confirmation"
+        "visual_target: confirmed"
     )
 
 
@@ -196,3 +196,19 @@ def test_the_terminal_rung_carries_a_mechanism_not_a_reference_list() -> None:
         "is how the obvious escape routes got used up"
     )
     assert "never a product" in rung
+
+
+def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
+    # OBSERVATION, not VISUAL_OBSERVATION: this module imports the former from
+    # frontend_engineering_visual_authority_rules. The latter is defined only in
+    # the sibling test_visual_authority_slice_two.py and would raise NameError
+    # here — a red indistinguishable from a criterion failure.
+    text = read(OBSERVATION)
+    row = next(
+        line
+        for line in text.splitlines()
+        if line.strip().startswith("| approved-visual-target")
+    )
+    assert "visual_target: confirmed" in row, "AC-0001"
+    for identifier in UPSTREAM_IDENTIFIERS:
+        assert identifier not in text, f"AC-0002: {identifier}"

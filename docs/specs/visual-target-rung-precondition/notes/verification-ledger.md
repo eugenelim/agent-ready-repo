@@ -234,6 +234,53 @@ The 14 violation loci (file paths):
 **Result: PASSED.** The sweep reached **12** non-Markdown carriers
 (excluding the module itself). Floor is `NON_MARKDOWN_CARRIER_FLOOR = 12`.
 
+---
+
+## T2: The rung condition names the field
+
+**Date:** 2026-10-02
+**Method:** Direct file edits in the worktree, followed by running
+`python3 -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q`
+and `python3 -m agentbundle catalogue lint --root . --deep`.
+
+### Edits made
+
+1. `packs/frontend-engineering/.apm/skills/frontend-engineering/references/visual-observation.md`
+   — changed the `approved-visual-target` row's Requires cell from
+   `recorded-human-confirmation` to `visual_target: confirmed`.
+
+2. `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md`
+   — reworded line 152 from "records a human-confirmed composition" to
+   "carries `visual_target: confirmed`". Body line count: **964 of 968** (unchanged).
+
+3. `packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_precedence.py`
+   — rewrote the equality assertion in `test_the_top_rung_requires_a_recorded_confirmation`
+   from `"recorded-human-confirmation"` to `"visual_target: confirmed"`.
+   — appended `test_the_top_rung_requires_a_confirmed_visual_target` (T2 stub,
+   699 bytes, byte-identity verified against the plan's fenced block).
+
+### Byte identity
+
+The T2 stub was extracted from the plan's fenced `python` block and compared
+byte-for-byte against the appended function in the test file: **BYTE IDENTITY
+VERIFIED** (699 bytes, exact match, `stub_from_plan == appended` is `True`).
+
+### Gate results
+
+- `python3 -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q`:
+  **455 passed** in 1.62s. Exit 0.
+- `python3 -m agentbundle catalogue lint --root . --deep`: **ok: 73 finding(s)**.
+  Exit 0. Frontend-engineering body at `got 964`, within `BODY_BUDGET = 968`.
+- `make lint-ruff lint-mypy`: **All checks passed** / **Success: no issues found
+  in 149 source files**. Exit 0.
+
+### Property test violation count
+
+`python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -q`
+reds with **12 violations** after T2's edits, down from 14 before them. The two
+loci T2 owns (`visual-observation.md` and `frontend-engineering`'s `SKILL.md`)
+are no longer violations. The remaining 12 are T3's migration.
+
 ### Mutation check
 
 **Invariant:** Every Markdown sentence containing a visual-target reference
