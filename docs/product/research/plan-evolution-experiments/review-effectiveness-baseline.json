@@ -1114,6 +1114,14 @@
                 "acted_on": "all 11 sustained findings; the refuted finding changed nothing",
                 "shape": "The repair ADDED a task (T8) and a criterion (AC-0015) rather than cutting. Round 2's result is the direct measurement of what that cost."
               },
+              "revision_after_round_2": {
+                "commit": "840190b31",
+                "acted_on": "all 8 sustained findings; there were no refuted or indeterminate findings to leave alone",
+                "shape": "The repair CUT where round 1's ADDED. One acceptance criterion removed (AC-0015), one clause removed (AC-0005's in-reach half), one criterion narrowed to nine of twelve subjects (AC-0011), one Durable Outputs row removed, one false evidence claim retracted. Nothing was added. Criteria went from 15 to 14. The inversion was deliberate, taken because round 2 measured that round 1's additions produced seven of its eight findings.",
+                "controller_process_deviation": "The revision was made in SPEC-PLAN-REVIEW without firing findings-remain first. The engine remains at transition_sequence 3 with last_event spec-ready, and the attempt to fire spec-ready after committing was correctly refused as an illegal transition from that state. Recorded rather than corrected: firing findings-remain and spec-ready now would assert a drafting excursion that did not happen. This is the same deviation case 3 recorded at its round 3, handled the same way. Nothing is miscounted - pre-EXECUTE results do not call review record - and round 3 dispatches from SPEC-PLAN-REVIEW, which is the state a review round runs in.",
+                "retraction": "The controller stated to the owner in chat, and wrote into the plan and into commit bdcee36fa, that the relocation was verified by running tools/test-lint-pack-test-boundary.py. Round 2 finding 6 established that claim is unsupportable: that script is the lint's synthetic fixture self-test and the lint walks packs/ only, so its output cannot vary with where these modules live. Retracted in the plan at 840190b31 and here. The relocation conclusion itself stands on the lint's rule.",
+                "verification_of_the_cut": "Four stub blocks compile; the property reds at exactly 14 violations; the non-Markdown guard passes at 12 with the enforcing module present, where it would have read 13 unexcluded - measured both ways; parse_plan accepts eight tasks with an acyclic graph; lint-spec-status is clean."
+              },
               "round_2": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
