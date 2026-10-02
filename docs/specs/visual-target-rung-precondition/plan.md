@@ -79,8 +79,11 @@ time rather than trusting this sentence.
 - `test_visual_authority_release.py` pins `frontend-engineering`'s `pack.toml`
   version by equality. Its own message says a later delivery moves the pin with
   its own bump, so T6 moves it — it is not a value to change on its own.
-- `frontend-engineering`'s `SKILL.md` body is 963 lines against
-  `BODY_BUDGET = 968`. Five lines of headroom. Prefer editing sentences in
+- `frontend-engineering`'s `SKILL.md` body is **964** lines against
+  `BODY_BUDGET = 968`. **Four** lines of headroom. Measured 2026-10-02 by
+  running the suite's own derivation, `skill_body_lines()` in
+  `frontend_engineering_visual_authority_rules.py:67`; the figure carried from
+  authoring said 963 and five, wrong in the unsafe direction. Prefer editing sentences in
   place over adding them; if the change needs more, that is an Ask-first bar,
   not a budget to raise.
 - No new dependency, module boundary, or top-level directory.
@@ -553,6 +556,11 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
     flat = " ".join(status.split()).lower()
     assert "adr-0132" in flat, "AC-0008: Status does not name ADR-0132"
     assert "rung condition" in flat, "AC-0008: Status does not name the rule"
+    assert "ac-0003a" in flat, "AC-0008: Status does not name the superseded criterion"
+    # The clause must be gone, not merely joined by a newer one: this contract
+    # supersedes a second part of that spec, so "everything else stands" is
+    # false the moment it ships.
+    assert "everything else stands" not in flat, "AC-0008: stale clause survives"
 ```
 
 **Approach:**
@@ -573,13 +581,18 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 **Depends on:** T4, T5
 
 **Tests:**
-- `no stub (goal-based check)`. `python3 tools/lint-ci-parity.py --root .`
-  exits 0, and `tests/roster/test_two_sided_prune_closure_invariant.py` — which
-  re-derives `.workspace-prune-protected.toml` from the roster tests' literal
-  spec paths — is green. **Verifies no acceptance criterion.** The round-1
-  repair added AC-0015 for this and round 2 found it shipped with no Testing
-  Strategy entry; the obligation is `tests/AGENTS.md`'s and two repository gates
-  already enforce it, so the task stands and the criterion is cut.
+- `no stub (goal-based check)`, closing on the four conditions in `Done when`.
+  **Verifies no acceptance criterion.** `tests/AGENTS.md` owns the three roster
+  registrations. Two are gated — the prune entry by
+  `test_two_sided_prune_closure_invariant.py`, the `STEP_DISPOSITION` entry by
+  `lint-ci-parity.py` **for a step that already exists**. The third, the named
+  build-check step itself, is gated by nothing:
+  `tools/test_build_gate_chain.py:283-285` states that deleting a step together
+  with its disposition row passes the parity gate in both directions. T8's
+  condition 1 is the only check for it, which is why this task closes on four
+  conditions and not on two commands. The round-1 repair added AC-0015 here and
+  round 2 found it shipped with no Testing Strategy entry; a closure predicate
+  was what was missing, not a criterion.
 
 **Approach:**
 - For each of the two new modules, add a step to
@@ -714,7 +727,14 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 **Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, packs/experience-design/pack.toml, packs/experience-design/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md, packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py
 
-**Done when:** `make lint-ruff lint-mypy` and `tests/conformance/test_pack_metadata.py` are green.
+**Done when:** `make lint-ruff lint-mypy` is green;
+`python3 -m pytest tests/conformance/test_pack_metadata.py -q` is green; and
+`python3 -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q`
+is green **after the bump**. That last one is what gives AC-0009's pin clause a
+predicate: `test_visual_authority_release.py:89` pins the version by equality,
+`test_pack_metadata.py` never reads that module, and no lint can see a wrong pin
+value — so without it the only runs of that suite are T2's and T3's, both before
+T6 bumps.
 
 ## Rollout
 
@@ -743,6 +763,39 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 ## Changelog
 
+- 2026-10-02 (round 4): Revised from four sustained findings — three Concerns
+  and a Nit, **no Blockers**, and the reviewer's verdict was that the contract
+  is startable. The round-3 repairs held: it found no new defect in T2's
+  ownership of the equality pin or in T8's four-condition closure, the first
+  time a repair has survived the following round intact.
+  **T8 stated its verification twice and differently.** Its `Tests` bullet still
+  carried the round-2 two-gates premise that the spec and T8's own `Done when`
+  now contradict. Round 3 fixed one surface and left the other; the bullet now
+  states which two obligations are gated, which one is not, and why that makes
+  four conditions rather than two commands.
+  **AC-0008 could close on a self-contradicting `Status`.** T5's Approach said
+  to remove `everything else stands`, but neither the criterion nor its stub
+  asserted the removal, and neither reached the second part this contract
+  supersedes — that spec's own AC-0003a, which pins the Requires cell to
+  `recorded-human-confirmation` and which T2's edit falsifies. AC-0008 now names
+  both superseded parts and requires the stale clause gone, and the stub asserts
+  all three. The criterion covers that one `Status` line and says so: annotating
+  the governance record is this contract's business, editing another spec's
+  criteria list is not.
+  **T6's closure did not reach the module T6 edits.** It moves
+  `test_visual_authority_release.py`'s equality pin while closing only on lint
+  and `test_pack_metadata.py`, which never reads that module — so AC-0009's pin
+  clause had no predicate after the bump. T6 now runs the `frontend-engineering`
+  pack suite after bumping.
+  **The body-budget headroom was wrong in the unsafe direction.** Both documents
+  said 963 of 968 lines and five lines of headroom. Running the suite's own
+  `skill_body_lines()` returns **964** — four lines. The figure carried through
+  from authoring across three revisions unchecked.
+  The adjudicator narrowed one finding: the T6 half sustained, the T3 half did
+  not. `test_frontend_visual_authority_adopter_prose.py` does read
+  `guides/frontend-engineering`, but its assertions there are presence-and-order
+  checks a field-naming migration preserves, no red was demonstrated, and CI
+  runs the bulk suite. T3's closure is unchanged.
 - 2026-10-02 (round 3): Revised from six sustained findings. The headline one
   is **not** a defect in any repair: `test_visual_authority_precedence.py:75-79`
   pins the rung's Requires cell by equality to `recorded-human-confirmation`,

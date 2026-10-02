@@ -222,7 +222,9 @@ Retention class: repository-durable.
 
 - Before raising `BODY_BUDGET` in `test_visual_authority_entrypoint.py`. The
   budget is owned by the Shipped `design-to-build-value-handoff` spec, and the
-  body stands at 963 of 968 lines.
+  body stands at **964 of 968** lines — four lines of headroom, measured
+  2026-10-02 by running `skill_body_lines()`. The 963 carried from authoring was
+  wrong in the unsafe direction.
 - Before widening or narrowing the confirmation-cue set in AC-0007.
 - Before changing the `visual_target` value vocabulary, which
   `visual-target-field` owns.
@@ -366,8 +368,15 @@ Retention class: repository-durable.
   once in that file. The second literal is this criterion's own requirement,
   not AC-0006's and not a gate on a field read; see limit 4.
 - [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
-  line names ADR-0132 and the superseded `Always do` rule about stating rung
-  conditions as properties the pack defines.
+  line names ADR-0132, names **both** parts this contract supersedes, and no
+  longer carries the clause that contradicts them. The two parts are the
+  `Always do` rule at that spec's line 80 about stating rung conditions as
+  properties the pack defines, and its **AC-0003a**, which pins the Requires
+  cell to `recorded-human-confirmation` — the criterion T2's edit falsifies. The
+  stale clause is `everything else stands`, true under ADR-0130 alone and false
+  once this ships. **The criterion covers that one `Status` line and nothing
+  else**: annotating the governance record is this contract's business, editing
+  another spec's criteria list is not.
 - [ ] **AC-0009.** `packs/frontend-engineering` and `packs/experience-design`
   each carry matching versions across `pack.toml`,
   `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, each
