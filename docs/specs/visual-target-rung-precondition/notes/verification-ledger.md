@@ -546,6 +546,67 @@ sentence, and the only editable surface is the prompt text.
 
 ---
 
+## T8: Register both roster modules in CI
+
+**Date:** 2026-10-02
+**Method:** Direct edits to `.github/workflows/build-check.yml`,
+`tools/lint-ci-parity.py`, and `.workspace-prune-protected.toml`, followed by
+running the four `Done when` conditions.
+
+### Step placement (condition 1)
+
+Both new steps were inserted between the `pytest visual-target release surface
+(roster-owned)` step (line 684) and the bulk `pytest catalogue-test carve-out
+destinations (RFC-0082)` step.
+
+| Step name | Line | Bulk step line | Above bulk? |
+| --- | ---: | ---: | --- |
+| `pytest visual-target exclusive property (roster-owned)` | 692 | 706 | yes |
+| `pytest visual-authority supersession (roster-owned)` | 702 | 706 | yes |
+
+Verified by `grep -n` on the modified file; both 692 and 702 are numerically
+less than 706.
+
+### Disposition entries (condition 2)
+
+Entries added on both axes of `tools/lint-ci-parity.py`:
+
+| Axis | Step name | Line |
+| --- | --- | ---: |
+| `_LOCAL_STEP_DISPOSITION` | `pytest visual-target exclusive property (roster-owned)` | 669 |
+| `_LOCAL_STEP_DISPOSITION` | `pytest visual-authority supersession (roster-owned)` | 671 |
+| `_GATE_MAIN_CHECKS` | `pytest visual-target exclusive property (roster-owned)` | 971 |
+| `_GATE_MAIN_CHECKS` | `pytest visual-authority supersession (roster-owned)` | 972 |
+
+### Prune entry (condition 3)
+
+Added `"docs/specs/frontend-visual-authority"` to `.workspace-prune-protected.toml`
+between `docs/specs/foo-bar` and `docs/specs/group` (alphabetical order).
+`test_visual_target_exclusive_property.py` names no `docs/specs/<slug>` literal
+and owes no entry.
+
+### Gate results (condition 4)
+
+| Command | Result | Exit code |
+| --- | --- | --- |
+| `python3 tools/lint-ci-parity.py --root .` | ok — 125 step(s), all dispositioned | 0 |
+| `python3 -m pytest tests/roster/test_two_sided_prune_closure_invariant.py -q` | 47 passed in 9.41s | 0 |
+| `ruff check .` | All checks passed | 0 |
+| `make lint-ruff lint-mypy` | All checks passed / no issues in 149 source files | 0 |
+
+### git status
+
+`git status --porcelain` shows only the three files T8 may touch:
+- `M .github/workflows/build-check.yml`
+- `M .workspace-prune-protected.toml`
+- `M tools/lint-ci-parity.py`
+
+The verification ledger itself is under
+`docs/specs/visual-target-rung-precondition/notes/verification-ledger.md`, also
+a T8 touch.
+
+---
+
 ## Execution observation — limit 4's reasoning is superseded by the gate it describes
 
 Recorded 2026-10-02 by the controller, during verification of T7. This is an

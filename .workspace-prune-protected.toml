@@ -57,6 +57,7 @@ protected = [
   "docs/specs/file",
   "docs/specs/foo",
   "docs/specs/foo-bar",
+  "docs/specs/frontend-visual-authority",
   "docs/specs/group",
   "docs/specs/identity",
   "docs/specs/index-table-generation",
