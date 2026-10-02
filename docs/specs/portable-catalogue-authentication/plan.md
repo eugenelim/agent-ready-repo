@@ -1,7 +1,7 @@
 # Plan: Portable catalogue authentication
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** [`docs/architecture/portable-catalogue-authentication.md`](../../architecture/portable-catalogue-authentication.md) and [`docs/architecture/credentials.md`](../../architecture/credentials.md); [`packages/agentbundle/agentbundle/https_catalogue.py`](../../../packages/agentbundle/agentbundle/https_catalogue.py) and [`packages/agentbundle/agentbundle/build/user_libs.py`](../../../packages/agentbundle/agentbundle/build/user_libs.py); [`packages/agentbundle/tests/unit/test_https_catalogue.py`](../../../packages/agentbundle/tests/unit/test_https_catalogue.py), [`packages/agentbundle/tests/build_pipeline/test_user_libs_projection.py`](../../../packages/agentbundle/tests/build_pipeline/test_user_libs_projection.py), and [`packages/credbroker/tests/unit/test_public_surface.py`](../../../packages/credbroker/tests/unit/test_public_surface.py). Named uncertainty: the exact `jf api` argument order and binary-stream behavior remain a real-CLI test obligation against JFrog CLI 2.105.0 or later.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -87,22 +87,26 @@ diagnostics, exception text, logs, persisted state, provenance and receipts
 rather than over the capture buffer, which is bounded and sanitized before it
 becomes AgentBundle-visible. The
 list is `PATH`; `HOME` on POSIX and `SystemRoot`, `USERPROFILE`, `HOMEDRIVE`,
-`HOMEPATH`, `PATHEXT` on Windows; `JFROG_CLI_HOME_DIR`; and `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`
-with their lowercase spellings.
+`HOMEPATH`, `PATHEXT` on Windows; `JFROG_CLI_HOME_DIR`; `SSL_CERT_FILE` and
+`SSL_CERT_DIR`; and `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` with their lowercase
+spellings.
 
-Three of those entries are deliberate and each has a reason the vendor
-documentation supplies. `JFROG_CLI_HOME_DIR` is carried because `jf` locates
+Four of those entries are deliberate, and each has a reason the vendor
+documentation or the real-CLI contract test supplies. `JFROG_CLI_HOME_DIR` is carried because `jf` locates
 its server profile through it or through `HOME`; dropping it would turn a
 relocated-but-valid profile into a no-match, which ADR-0137 D3 treats as
 *unavailable*, silently downgrading a protected fetch to anonymous. The proxy
 variables are carried because JFrog documents `jf` as honouring them, and
 AC-0016 obliges proxy behaviour to survive; the lowercase spellings are
 carried because the CLI is a Go program and `net/http` reads them even though
-JFrog documents only the uppercase forms. `SSL_CERT_FILE`, `SSL_CERT_DIR`, and
-`REQUESTS_CA_BUNDLE` are deliberately *not* carried: no environment variable
-configures a CA for `jf`, which reads trust anchors only from PEM files under
-its own `security/certs/` directory, so carrying them would widen the boundary
-for no effect. The in-process direct-HTTP path is unaffected by any of this,
+JFrog documents only the uppercase forms. `SSL_CERT_FILE` and `SSL_CERT_DIR`
+are carried because `jf api` ignores the CLI's own `security/certs/` trust
+store and, on Linux, reads trust anchors from these two Go variables, so a
+corporate CA reaches the delegated leg only through them; the verification
+ledger records the real-CLI evidence. On macOS, `jf api` trusts only the system
+keychain, which is a stated residual. Both variables hold file paths, not
+secrets. `REQUESTS_CA_BUNDLE` stays dropped, because it is a Python `requests`
+convention that no Go program reads. The in-process direct-HTTP path is unaffected by any of this,
 because it is not a child process and keeps its existing proxy and CA handling.
 
 `jf` is resolved to an absolute path by searching the allowlisted `PATH` with
@@ -159,7 +163,16 @@ The JFrog adapter uses list-form subprocess arguments, closed stdin, a controlle
 working directory, monotonic deadline accounting, terminate-then-kill cleanup
 bounded inside the call's own deadline, and a temporary archive file removed on
 every failure. The reap always runs against an already-terminated process, which
-is what lets AC-0014's mandatory reap and AC-0013's deadline coexist. Each reader enforces the per-stream cap and failure
+is what lets AC-0014's mandatory reap and AC-0013's deadline coexist. The adapter
+never passes `jf api --timeout`: on expiry that flag exits 0 with a truncated
+body, so the adapter's own deadline and kill remain the only timeout control.
+`jf api` appends one `0x0a` to stdout when the response body does not already
+end in one. The descriptor and archive stdout readers therefore admit their cap
+plus that one byte, as AC-0014 states, and https_catalogue.py verifies a JFrog archive's
+digest against the exact bytes and then against the bytes with one trailing
+`0x0a` removed, as AC-0016 states. Exit status 0 is the only success signal;
+stderr, which carries an HTTP status line and the full request URL, is bounded
+and never emitted. Each reader enforces the per-stream cap and failure
 ordering defined once in AC-0014. The exact argument order and official CLI
 behavior are accepted only when the real-CLI contract test passes on version
 2.105.0 or later; failure of that test is the kill condition for the adapter
@@ -315,19 +328,20 @@ def test_netrc_exact_host_returns_origin_bound_access(
 
 **Depends on:** T2
 
-**Touches:** `packages/credbroker/credbroker/_http_access.py`, `packages/credbroker/tests/unit/test_http_access_jfrog.py`, `packages/agentbundle/agentbundle/catalogue_fetch/jfrog_cli.py`, `packages/agentbundle/tests/unit/test_catalogue_fetch_jfrog.py`, `packages/agentbundle/tests/integration/test_jfrog_cli_contract.py`
+**Touches:** `packages/credbroker/credbroker/_http_access.py`, `packages/credbroker/tests/unit/test_http_access_jfrog.py`, `packages/agentbundle/agentbundle/catalogue_fetch/jfrog_cli.py`, `packages/agentbundle/agentbundle/catalogue_fetch/__init__.py`, `packages/agentbundle/agentbundle/https_catalogue.py`, `packages/agentbundle/tests/unit/test_catalogue_fetch_jfrog.py`, `packages/agentbundle/tests/integration/test_jfrog_cli_contract.py`, `docs/architecture/portable-catalogue-authentication.md`
 
 **Verification mode:** TDD unit, bounded subprocess integration, and real-executable contract check.
 
 **Spec mapping:** AC-0007, AC-0008, AC-0011–AC-0015, AC-0018.
 
-**Grounding:** Official JFrog documentation fixes `jf config show --format=json`, `jf api <endpoint> --server-id=<id>`, `--timeout`, and the 2.105.0 floor needed by JSON output. The local `jf` executable is absent. T4 acquires an official JFrog CLI 2.105.0 or later through `contract-acquisition`, from the vendor's published release for the host platform, into a disposable session-local directory that is never committed and never added to the user's `PATH`; `.github/workflows/publish-catalogue.yml` already installs the same CLI and is the existing repository seam. The contract check runs as `packages/agentbundle/tests/integration/test_jfrog_cli_contract.py`, pointed at that executable through a test-only environment variable and skipped with a stated reason when it is unset. If one bounded supported acquisition attempt cannot obtain or execute a compatible CLI, T4 surfaces the AC-0018 blocker and the minimum recovery action rather than weakening confinement, substituting a mock argv assertion, or declaring the task complete. Final argument order and binary stdout stay subject to the named real-CLI kill condition.
+**Grounding:** Official JFrog documentation fixes `jf config show --format=json`, `jf api <endpoint> --server-id=<id>`, and the 2.105.0 floor needed by JSON output. The real-CLI contract probe recorded in `notes/verification-ledger.md` grounds the rest against JFrog CLI 2.105.0: `jf api --server-id=<id> -- <endpoint>` delimits an option-like endpoint as a path; exit status 0 means a 2xx response and 1 means any other; stdout gains one trailing `0x0a` when the body lacks one; `--timeout` truncates silently with exit status 0; `jf api` ignores `security/certs/` and, on Linux, trusts `SSL_CERT_FILE`; and no descendant process holds the output pipe after the direct child is killed. The local `jf` executable is absent. T4 acquires an official JFrog CLI 2.105.0 or later through `contract-acquisition`, from the vendor's published release for the host platform, into a disposable session-local directory that is never committed and never added to the user's `PATH`; `.github/workflows/publish-catalogue.yml` already installs the same CLI and is the existing repository seam. The contract check runs as `packages/agentbundle/tests/integration/test_jfrog_cli_contract.py`, pointed at that executable through a test-only environment variable and skipped with a stated reason when it is unset. If one bounded supported acquisition attempt cannot obtain or execute a compatible CLI, T4 surfaces the AC-0018 blocker and the minimum recovery action rather than weakening confinement, substituting a mock argv assertion, or declaring the task complete. Final argument order and binary stdout stay subject to the named real-CLI kill condition.
 
 **Tests:**
 
 - `test_jfrog_longest_profile_returns_pinned_binding` (AC-0011), `stub: true`.
 - Add selection, explicit-ID, topology, host-normalization (including an internationalized profile and target spelled differently, which must still match), refused-image on both branches (explicit server requested, so terminal; no explicit server, so unavailable and the anonymous path still completes), endpoint-escape, version, timeout, aggregate-budget, cleanup, hostile-stderr, and no-fallback fixture matrices. For every stream cap defined in AC-0014, exercise exact-boundary and first-byte-over-limit cases and assert terminate/reap happens before parsing or diagnostics and partial files are absent (AC-0007, AC-0008, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015).
-- Run a compatible official CLI against a disposable profile and loopback service; reject the adapter design if its arguments, output, or termination behavior differs from the planned contract (AC-0018).
+- Cover the appended newline for the descriptor and archive `jf api` stdout readers: a body ending in `0x0a`, a body not ending in it, an empty body, the exact cap, the cap plus one byte ending in `0x0a` (accepted), the cap plus one byte ending in another byte (rejected), and the cap plus two bytes (rejected). Cover the archive digest on the exact bytes, on the trimmed bytes, and on a mismatch of both candidates, and prove a direct request never trims (AC-0014, AC-0016).
+- Run a compatible official CLI against a disposable profile and loopback service in a disposable Linux container, with the loopback CA supplied through `SSL_CERT_FILE` and the executable located through a test-only environment variable; reject the adapter design if its arguments, output, or termination behavior differs from the contract this task row and the verification ledger record (AC-0018).
 - Record the acquired build's exact version in the verification ledger and state both discoveries against that build rather than against 2.105.0 generically. First, whether that build leaves descendants holding the output pipe after the direct child is killed; AC-0013 scopes termination to the direct child, and a positive result takes the controlled-amendment path to process-group and job-object termination. Second, whether `jf config show --format=json` is present in that build. A build at or above the floor that carries the flag corroborates ADR-0136 D8 without proving 2.105.0 is the earliest such version, which is the conservative direction and needs no further action; a build that lacks it falsifies D8 and sends AC-0011's "rejects JFrog CLI versions below 2.105.0" and ADR-0136 D8 through controlled amendment to the floor the evidence supports. Acquiring exactly 2.105.0 settles the floor outright and is preferred where the vendor still publishes it.
 - Stub validation: Python compilation passes; collection is intentionally red because `JfrogCliHttpAccess` is not yet exported.
 
@@ -395,7 +409,7 @@ def test_jfrog_longest_profile_returns_pinned_binding(
 
 **Depends on:** T3, T4
 
-**Touches:** `packages/agentbundle/agentbundle/https_catalogue.py`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/tests/integration/test_portable_catalogue_authentication.py`, `tests/roster/test_portable_catalogue_authentication_packaging.py`, `packages/agentbundle/DESIGN.md`, `packages/*/{README.md,README-pypi.md,CHANGELOG.md}`, `docs/architecture/credentials.md`, `guides/_shared/how-to/configure-catalogue-enterprise-distribution.md`, `guides/_shared/reference/agentbundle.md`, `docs/guides/how-to/enterprise-app-store.md`, `guides/credential-brokers/how-to/add-a-credentialed-skill.md`
+**Touches:** `packages/agentbundle/agentbundle/https_catalogue.py`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/tests/integration/test_portable_catalogue_authentication.py`, `tests/roster/test_portable_catalogue_authentication_packaging.py`, `packages/agentbundle/DESIGN.md`, `packages/*/{README.md,README-pypi.md,CHANGELOG.md}`, `docs/architecture/credentials.md`, `guides/_shared/how-to/configure-catalogue-enterprise-distribution.md`, `guides/_shared/reference/agentbundle.md`, `docs/guides/how-to/enterprise-app-store.md`, `guides/credential-brokers/how-to/add-a-credentialed-skill.md`, `docs/product/changelog.md`
 
 **Verification mode:** goal-based built-artifact and documentation checks. T5 owns no red-first family; the provider behaviour it exercises was delivered by T2–T4 and is re-run here through installed packages as regression evidence.
 
@@ -427,7 +441,9 @@ def test_jfrog_longest_profile_returns_pinned_binding(
 ## Risks
 
 - JFrog CLI output or termination behavior may differ across supported platforms. The real-executable contract test is the kill condition; a mismatch returns T4 to design rather than weakening confinement. The CLI is acquired through `contract-acquisition` into a disposable session-local directory, and an acquisition that fails after one bounded supported attempt surfaces the AC-0018 blocker rather than degrading the check to a mock argv assertion.
-- ADR-0136 D8's 2.105.0 floor rests on the claim that `--format` arrived in that version. JFrog's 2.105.0 release notes do not mention it, so the floor is cited but unconfirmed; if the flag landed earlier the floor is merely conservative, and if later D8 is wrong. T4's real-CLI test settles it before any AC-0018 evidence is claimed.
+- ADR-0136 D8's 2.105.0 floor is corroborated: the official 2.105.0 build carries `jf config show --format=json`, as the verification ledger records.
+- `jf api` stdout is not byte-faithful, and the appended-newline rule rests on observed vendor behaviour that JFrog does not document. If a later JFrog release stops appending the byte, exact matching still succeeds first; if it changes stdout in any other way, the digest check fails closed.
+- A private CA reaches `jf api` only through `SSL_CERT_FILE` or `SSL_CERT_DIR` on Linux and only through the system keychain on macOS. A user whose CA lives only in `security/certs/` sees a terminal `jfrog_fetch_failed`, not a fallback.
 - A required AgentBundle dependency can be shadowed by the repository checkout or vendored user-library floor. Clean-wheel import-origin and co-location tests make each environment visible.
 - Moving mature HTTPS code behind a facade can change redirects, proxies, CA handling, or error mapping. The existing test corpus remains the compatibility oracle and runs before the new providers activate.
 - Sanitization may miss a child-process or exception channel. Canary tests cover each user-visible and persisted channel, and the security review checks the trust boundary separately.
@@ -444,3 +460,4 @@ def test_jfrog_longest_profile_returns_pinned_binding(
 - 2026-10-01: second consolidated amendment under run 4bf9c822 from 9 further adjudicated findings, walking each changed criterion against its sibling criteria and ADR decisions; T5 reclassified goal-based; awaiting re-approval
 - 2026-10-01: spec re-approved by eugenelim after the run-4bf9c822 amendment cycle — 8 pre-EXECUTE review rounds, 31 adjudicated sustained findings repaired, both mandatory reviewers closing with no unresolved Blocker or Concern
 - 2026-10-01: plan re-approved by eugenelim; baseline sealed under run 4bf9c822
+- 2026-10-02: controlled amendment under run 4bf9c822 for T4, from real-CLI Discoveries 5–7 and owner decisions OD-1 (digest-checked trim on the JFrog leg) and OD-2 (carry `SSL_CERT_FILE` and `SSL_CERT_DIR`), recorded in `notes/verification-ledger.md`; T5 also gains the product changelog it owes; awaiting re-approval
