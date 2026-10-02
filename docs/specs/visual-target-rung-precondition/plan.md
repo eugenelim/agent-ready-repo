@@ -771,6 +771,26 @@ T6 bumps.
 
 ## Changelog
 
+- 2026-10-02: **Spec approved at the scope gate by eugenelim.** The question
+  that gate asks is whether this spec defines the right thing to build, and the
+  approval answers that one — not whether the plan is the right way to build it,
+  which is the next gate's.
+  Entered on a clean verdict, not a waiver. Round 7's pre-EXECUTE pass returned
+  the direct-clean sentinel byte-exact; the sustained series across seven rounds
+  was 11, 8, 6, 4, 2, 1, 0 with no blocker after round 3, one finding refuted in
+  the whole phase and none indeterminate.
+  **Residual carried into the gate**, so the approval is not read as a claim of
+  completeness:
+  (1) T4's mutation check is still owed and is not evidence yet — a standing red
+  over an unmigrated tree does not prove the property reds on a *newly
+  introduced* violation, and until that runs the sweep is trusted on its
+  construction rather than on a demonstration that it can fail;
+  (2) four of the seven rounds found that the preceding repair was itself
+  defective, so the contract's late stability rests on repairs that have been
+  reviewed once each, not several times;
+  (3) one obligation this contract carries — the named build-check step above
+  the bulk step — is enforced by nothing in the repository, and T8's condition 1
+  is the only thing that will check it.
 - 2026-10-02 (round 6): One sustained finding, a Nit, and no Blocker or
   Concern. The round-5 repairs were checked and held: T5's five stub assertions
   are satisfiable by, and only by, the end state AC-0008 describes, the ordering
