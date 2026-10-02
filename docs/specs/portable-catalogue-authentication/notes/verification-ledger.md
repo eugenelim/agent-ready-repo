@@ -9,6 +9,7 @@ execution observed against them.
 | Task | Stub test | Materialized at | Byte identity | Observed red |
 | --- | --- | --- | --- | --- |
 | T1 | `test_resolve_http_access_returns_public_anonymous_variant` | `packages/credbroker/tests/unit/test_http_access.py` | `cmp` against the plan block: identical | Collection error: `ImportError: cannot import name 'AnonymousHttpAccess' from 'credbroker'` |
+| T2 | `test_open_fetch_session_resolves_anonymous_access_once` | `packages/agentbundle/tests/unit/test_catalogue_fetch.py` | `cmp` against the plan block: identical | Collection error: `ModuleNotFoundError: No module named 'agentbundle.catalogue_fetch'` |
 
 ## Real JFrog CLI contract (T4 grounding, 2026-10-02)
 
