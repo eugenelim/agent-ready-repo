@@ -45,7 +45,10 @@ input.
   today. It is kept for the next re-resolution: `allowScripts` reviews the exact pair
   `fsevents@2.3.3`, and when 2.3.4 ships, `~2.3.3` takes it and fails that gate.
 - Under an agent, `astro dev` and `astro preview` fork a detached server and return at once with
-  JSON output. The corollary is the reason this gets closed as "works for me": a human running the
+  JSON output — except on Windows, and except under `--ignore-lock` on any platform, which astro 7.3.4
+  narrowed to the foreground. Agent detection still forces JSON output everywhere, so a Windows agent
+  gets the JSON and a server that never returns; pass `--background` there to ask for a forked one.
+  The corollary is the reason this gets closed as "works for me": a human running the
   identical command in the identical worktree will **not** reproduce it, because the fork is keyed
   on agent detection rather than on anything about the command or the tree. Report it with that
   stated, or the first reply is a screenshot of it working. The gate is insulated
