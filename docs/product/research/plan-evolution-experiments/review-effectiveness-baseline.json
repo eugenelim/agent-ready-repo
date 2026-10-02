@@ -1492,6 +1492,22 @@
                 "returned_subagent_tokens": 878758,
                 "attribution": "all normal-loop review and adjudication work, observed rather than study-added"
               },
+              "experience_reviewer_marginal_contribution_case_4": {
+                "observation": "On this case the experience-reviewer produced ZERO unique sustained findings. It raised 14 raw findings across two rounds; one was sustained; and that same defect was independently found by the adversarial-reviewer, whose finding #7 the adjudicator refused as a duplicate of it. So every defect the experience pass contributed to the repair was also reachable without it.",
+                "raw_by_round": [13, 1],
+                "sustained_by_round": [1, 0],
+                "refuted_by_round": [12, 1],
+                "unique_sustained": 0,
+                "observed_cost": {
+                  "starts": 5,
+                  "returned_subagent_tokens": 272260,
+                  "breakdown": "round 1 review 68,465; round 1 re-emission after an invalid classification 75,280; round 1 adjudication 64,231; round 2 review 37,942; round 2 adjudication 26,342",
+                  "note": "the re-emission start bought no finding - the first report used markdown ordered-list markers the classifier does not parse"
+                },
+                "why_the_refusals_went_the_way_they_did": "Of the 13 refusals, 4 broke on authority (no rule required the change), 5 on consequence (no reader misled), 2 on existing handling (the spec's own limits had already accepted the cost by name), and 2 on observation (the claim was contradicted by the cited file). Two asked for changes that would have reopened settled contract decisions, and one asked for a re-wrap against a wrap convention the repository does not have.",
+                "what_this_is_and_is_not": "This is one case, one reviewer role, under a specific diff whose adopter-facing surface was instruction prose rather than a rendered interface. It is NOT an effectiveness reading and NOT a judgement that the role lacks value in general - the contract bars both and 3 admitted cases cannot support either. It is recorded because the owner observed it unprompted after the second round, the controller confirmed it from the ledger rather than from impression, and a role whose only sustained finding was independently found by the mandatory reviewer is exactly the kind of fact the cohort exists to accumulate.",
+                "what_would_change_the_reading": "A diff whose primary output is a rendered surface rather than instruction prose; or a case where the adversarial reviewer does not independently reach the same defect. Neither is present here. Do not generalise from one case, and do not select or exclude a future case to test this - the selection ban covers that."
+              },
               "spec_gate_2026_10_02": {
                 "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
                 "gate_question": "Does this spec define the right thing to build?",
