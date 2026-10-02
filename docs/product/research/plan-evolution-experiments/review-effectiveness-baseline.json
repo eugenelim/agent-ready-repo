@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 7, both gates passed, 5 waves scheduled",
+              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 9, wave 0 (T1) complete, wave 1 (T2, T4) next",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1318,6 +1318,22 @@
                 },
                 "measurement_note": "Neither gate consumed a reviewer start. The pre-EXECUTE phase closed at 15 starts and the figure does not move here.",
                 "execute_owes_first": "T4's mutation check. It is the one piece of verification the plan asserts and has not performed, and until it runs the sweep is trusted on its construction rather than on a demonstration that it can fail."
+              },
+              "execute_wave_0": {
+                "task": "T1 — re-measure the carrier extent",
+                "dispatch": "implementer subagent, one task, recorded with loop-cohort dispatch-receipt --receipt",
+                "commit": "b7fa05bde",
+                "touched": ["docs/specs/visual-target-rung-precondition/notes/verification-ledger.md (created)", "docs/specs/visual-target-rung-precondition/spec.md (status token only)"],
+                "implementer_claim": "27 files, 105 loci, 15 Markdown, 12 non-Markdown, 14 AC-0006 violations across 12 files, all agreeing with the plan",
+                "controller_verification": "Re-measured independently with the controller's own script rather than accepting the report, per the standing rule not to take a subagent's report at face value. Every figure reproduced exactly: files 27, loci 105, markdown 15, non-markdown 12, firing sentences 21, violations 14, files with violations 12, compliant 7. The commit touches only the two files T1 is permitted to touch and the tree is clean.",
+                "discovery_recorded": "The implementer separated two numbers the plan had conflated in one figure: the property fires on 21 sentences, of which 7 already contain visual_target and are compliant, leaving 14 violations. The plan's 14 is the violation count, not the firing count. Both are now in the verification ledger. This is a clarification of an existing measurement, not a change to it.",
+                "gates": "make lint-ruff lint-mypy exit 0, read from the exit status rather than the tail - the controller's first invocation lost the status through a pipeline and was re-run to read it properly. lint-spec-status clean. No test or typecheck applies; T1 changed no code.",
+                "transitions": "wave-complete to CODE-VERIFICATION at sequence 8, wave-passed --wave-index 0 back to CODE-IMPLEMENTATION at sequence 9. current_wave_index is now 1.",
+                "completed_task_evidence_note": "state.json carries no evidence pin for T1 and none is owed. There is no loop-cohort verb that records one; completion derives from schedule_waves[:current_wave_index]. Case 3's pins exist because the amendment path writes them, and this run has had no amendment.",
+                "starts": 1,
+                "returned_subagent_tokens": 64754,
+                "wall_time_seconds": 372.418,
+                "attribution": "normal-loop implementer work, observed rather than study-added"
               },
               "spec_gate_2026_10_02": {
                 "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
