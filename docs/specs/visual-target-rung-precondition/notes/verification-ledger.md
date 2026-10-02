@@ -148,6 +148,87 @@ confirmed by this measurement.
 
 ### Discoveries
 
-None. All three measured figures (27 files / 105 loci / 15+12 split; 14
+None. All three measured figures (27 files / 105 loci; 15+12 split; 14
 violations / 12 files; 12 non-Markdown carriers) agree exactly with the plan's
 stated inventory. No further discovery is recorded.
+
+---
+
+## T4: The exclusive property is enforced, and proved able to fail
+
+**Date:** 2026-10-02
+**Method:** `python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -v`
+run from the worktree root. Mutation check performed by editing
+`guides/frontend-engineering/tutorials/scaffold-a-component.md` in place
+(no `git checkout`, `git reset`, or `git stash` used).
+
+### Byte-identity verification
+
+The stub block was extracted from the plan's T4 fenced `python` block by
+script and written to
+`tests/roster/test_visual_target_exclusive_property.py`. Read-back
+compared byte-for-byte against the extracted block: **BYTE IDENTITY
+VERIFIED** (4545 bytes, no difference).
+
+### Intended red — `test_every_confirmation_sentence_names_the_field`
+
+**Result: FAILED** with **14 violations** across 12 Markdown files. Agrees
+with the plan's stated count.
+
+The 14 violation loci (file paths):
+
+1. `packs/frontend-engineering/JOURNEY.md`
+2. `packs/frontend-engineering/.apm/agents/frontend-reviewer.md`
+3. `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md`
+4. `packs/frontend-engineering/.apm/skills/frontend-engineering/references/visual-observation.md`
+5. `packs/experience-design/.apm/skills/design-system/SKILL.md` (first sentence — rung table row)
+6. `packs/experience-design/.apm/skills/design-system/SKILL.md` (second sentence — routing table row)
+7. `packs/experience-design/.apm/skills/creative-direction/references/visualize.md`
+8. `packs/experience-design/.apm/skills/design-system/references/value-derivation.md`
+9. `packs/experience-design/.apm/skills/design-system/assets/token-taxonomy-template.md`
+10. `guides/frontend-engineering/how-to/read-the-design-handoff.md`
+11. `guides/frontend-engineering/tutorials/scaffold-a-component.md`
+12. `guides/experience-design/how-to/establish-design-intent.md` (first sentence — run-on)
+13. `guides/experience-design/how-to/establish-design-intent.md` (second sentence — Route block)
+14. `web/src/content/journeys/frontend-engineering.md`
+
+### Guard passes — `test_the_non_markdown_carrier_count_has_not_fallen`
+
+**Result: PASSED.** The sweep reached **12** non-Markdown carriers
+(excluding the module itself). Floor is `NON_MARKDOWN_CARRIER_FLOOR = 12`.
+
+### Mutation check
+
+**Invariant:** Every Markdown sentence containing a visual-target reference
+and a confirmation cue must also contain `visual_target`.
+
+**Catching test:** `test_every_confirmation_sentence_names_the_field`
+(AC-0006).
+
+**Exact mutation:** appended the following sentence to
+`guides/frontend-engineering/tutorials/scaffold-a-component.md`:
+
+> An approved visual target must be confirmed before proceeding to
+> implementation.
+
+This sentence fires both the reference test (`visual target` present) and the
+cue test (after `NAME_FORMS` strips `approved visual target`, the remainder
+contains `confirmed`), but does not contain `visual_target`.
+
+**Before mutation:** violation count = **14**
+
+**After adding mutation:** violation count = **15**. The new locus was named
+in the failure output:
+
+```
+guides/frontend-engineering/tutorials/scaffold-a-component.md:
+  An approved visual target must be confirmed before proceeding to implementation.
+```
+
+**After removing mutation** (by editing the file back — no git commands
+used): violation count = **14**. Test failed on AC-0006 with the original
+14 violations, guard passed with 12 non-Markdown carriers.
+
+**Conclusion:** the property is proved able to fail on a newly introduced
+violation. Both before/after counts were observed and match the expected
+values.
