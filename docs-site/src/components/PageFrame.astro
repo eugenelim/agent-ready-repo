@@ -66,10 +66,27 @@ if (!productLabel) {
         </nav>
         <MobileMenuToggle />
         <script>
-          // Follows Starlight 0.42's own PageFrame, which moved this menu to the
-          // popover API, and contributes the same focus trapping and resize-close.
+          // Tracks Starlight 0.42's move of this menu to the popover API, and
+          // contributes the same focus trapping, plus a resize-close.
           // Overriding PageFrame means Starlight's copy never renders, so its
           // `sl-sidebar-pane` definition never runs — this is the only one on the page.
+          //
+          // The resize path deliberately diverges as of Starlight 0.42.1. Upstream
+          // now drops the attribute outright on desktop (`this.popover =
+          // desktopMediaQuery.matches ? null : 'auto'`, re-run on every breakpoint
+          // change) because its pane is `auto` and only the mobile menu needs it.
+          // That route is closed here: this pane must stay `popover="manual"` for the
+          // light-dismiss reason given at the attribute below, and nulling it on
+          // desktop would discard that. `hidePopover()` on the same breakpoint change
+          // is the manual-popover equivalent, and desktop visibility does not depend
+          // on it either way: the `display: block` rule below wins on cascade ORIGIN,
+          // author-normal over UA-normal, and not on specificity — the UA's
+          // `[popover]:not(:popover-open)` is the more specific selector, and
+          // `.sidebar-pane` would lose a specificity contest. So do not try to shore
+          // this up by raising specificity or adding a layer: per § Action-changing
+          // traps in AGENTS.md, layering a `docs-site` rule silently drops
+          // `:focus-visible` `outline-offset` 3px→2px and no gate catches it.
+          // Do not "re-sync" with upstream without re-reading the attribute comment.
           class StarlightSidebarPane extends HTMLElement {
             constructor() {
               super();
