@@ -684,6 +684,14 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # run-test-suite includes pytest tests/ -q, which discovers this roster file.
     "pytest security-primitives schema parity (roster-owned)":
         LOCAL("test-after-build-check"),
+    # T6 delivery-subject schema parity: validates that records emitted by
+    # _subject_projection.project_delivery_subject() satisfy
+    # contracts/delivery/delivery-subject.v1.schema.json, and that
+    # validate_subject_dict() refuses four classes of invalid input with stable
+    # denial codes.  LOCAL("test-after-build-check") is correct: that target's
+    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    "pytest delivery-subject schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
     # Slice 1 T4 acceptance schema parity: validates that records emitted by
     # _acceptance.py satisfy their canonical contracts/delivery/ schemas, and
     # that each validate_*_dict() refuses four classes of invalid input with
@@ -995,6 +1003,7 @@ _GATE_MAIN_CHECKS = (
     "pytest delivery contract bundle (roster-owned)",
     "pytest content-safety boundary matrix (roster-owned)",
     "pytest security-primitives schema parity (roster-owned)",
+    "pytest delivery-subject schema parity (roster-owned)",
     "pytest acceptance schema parity (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
