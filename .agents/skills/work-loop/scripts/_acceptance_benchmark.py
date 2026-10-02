@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+"""Committed benchmark harness for the acceptance evaluator (AC-0018, AC-0019).
+
+AC-0018 measures evaluator latency for a fixed corpus: 1,000 approved criteria
+and 100,000 admitted evidence records, with a fixed timed-run count
+(TIMED_RUNS=100) and warm-up policy (WARMUP_RUNS=5).
+
+AC-0019 (cold-rehydration) is measured by a placeholder function below; a
+later task implements it without changing this script's command interface.
+
+Invoke with:
+
+    python _acceptance_benchmark.py --output <path>
+
+The caller receives a JSON result file at the given path; writes nothing to the
+working tree.
+
+Standard-library-only; no dependencies beyond Python itself.
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import os
+import stat
+import sys
+import time
+from pathlib import Path
+from types import ModuleType
+
+# ── Constants (fixed by this committed harness) ───────────────────────────────
+
+WARMUP_RUNS: int = 5
+TIMED_RUNS: int = 100
+NUM_CRITERIA: int = 1_000
+NUM_RECEIPTS: int = 100_000
+
+# ── Path anchor ───────────────────────────────────────────────────────────────
+
+_SCRIPTS = Path(__file__).resolve().parent
+
+
+# ── Module loader ─────────────────────────────────────────────────────────────
+
+
+def _load_module(name: str, path: Path) -> ModuleType:
+    """Load a script module without registering it in sys.modules."""
+    info = os.lstat(path)
+    assert stat.S_ISREG(info.st_mode), f"not a regular file: {path}"
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(name, str(path))
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        return mod
+    finally:
+        sys.dont_write_bytecode = prev
+
+
+# ── Corpus builders ───────────────────────────────────────────────────────────
+
+
+def _build_corpus(
+    num_criteria: int,
+    num_receipts: int,
+    current_fp: str = "fp-benchmark-current",
+) -> tuple[list[dict], dict[str, list[dict]]]:
+    """Build a synthetic benchmark corpus of criteria and receipts.
+
+    Returns (criteria, receipts_by_criterion_id) where criteria is a list of
+    acceptance-property.v1 records and receipts_by_criterion_id maps
+    property_id → list of evidence-receipt.v1 records.
+
+    Receipts are distributed uniformly across criteria. Each receipt is fresh
+    and satisfies its criterion, yielding ``supported`` verdicts.
+    """
+    criteria: list[dict] = []
+    receipts_by_id: dict[str, list[dict]] = {}
+
+    for i in range(num_criteria):
+        pid = f"prop-{i:04d}"
+        criteria.append({
+            "schema_version": 1,
+            "property_id": pid,
+            "spec_ref": "docs/specs/benchmark/spec.md",
+            "authority_ref": f"approval:spec-policy:v{i % 10 + 1}",
+            "subject_selector": {
+                "paths_or_artifacts": [f"src/module_{i % 100}/"],
+                "fingerprint_algorithm": "sha256",
+            },
+            "required_observations": [
+                {
+                    "term": "test-run",
+                    "observation_type": "test-result",
+                    "producer_class": "ci-runner",
+                    "outcomes": ["passed"],
+                }
+            ],
+            "freshness_scope": "exact-subject",
+            "satisfaction_rule": {"expression": "all"},
+            "contradiction_rule": {"expression": "none"},
+            "policy_version": "v1",
+        })
+        receipts_by_id[pid] = []
+
+    for j in range(num_receipts):
+        crit_idx = j % num_criteria
+        pid = f"prop-{crit_idx:04d}"
+        receipts_by_id[pid].append({
+            "schema_version": 1,
+            "receipt_id": f"r-{j:06d}",
+            "acceptance_fingerprint": current_fp,
+            "lineage": {"criterion_ref": pid},
+            "selector": {"term": "test-run"},
+            "freshness_mode": "exact-subject",
+            "observation": {"type": "test-result"},
+            "outcome": "passed",
+            "producer": {"class": "ci-runner", "identity": "runner-generic"},
+        })
+
+    return criteria, receipts_by_id
+
+
+def _run_full_evaluation(
+    acc: ModuleType,
+    criteria: list[dict],
+    receipts_by_id: dict[str, list[dict]],
+    current_fp: str = "fp-benchmark-current",
+) -> list[dict]:
+    """Evaluate all criteria and return all verdict records.
+
+    This is the timed unit: from call entry to full verdict return.
+    """
+    verdicts: list[dict] = []
+    for prop in criteria:
+        pid = prop["property_id"]
+        receipts = receipts_by_id.get(pid, [])
+        v = acc.evaluate_verdict(
+            property_record=prop,
+            receipts=receipts,
+            current_acceptance_fingerprint=current_fp,
+            adapter="sequential-reference",
+        )
+        verdicts.append(v)
+    return verdicts
+
+
+# ── Evaluator benchmark (AC-0018) ─────────────────────────────────────────────
+
+
+def run_evaluator_benchmark(acc: ModuleType) -> dict:
+    """Measure AC-0018: p95 evaluator latency for the fixed corpus.
+
+    Returns a result dict with p50, p95, and per-run measurements.
+    """
+    current_fp = "fp-benchmark-current"
+    criteria, receipts_by_id = _build_corpus(NUM_CRITERIA, NUM_RECEIPTS, current_fp)
+
+    assert len(criteria) == NUM_CRITERIA
+    total_receipts = sum(len(v) for v in receipts_by_id.values())
+    assert total_receipts == NUM_RECEIPTS
+
+    # Warm-up (results discarded)
+    for _ in range(WARMUP_RUNS):
+        _run_full_evaluation(acc, criteria, receipts_by_id, current_fp)
+
+    # Timed runs
+    durations: list[float] = []
+    for _ in range(TIMED_RUNS):
+        t0 = time.perf_counter()
+        verdicts = _run_full_evaluation(acc, criteria, receipts_by_id, current_fp)
+        t1 = time.perf_counter()
+        durations.append(t1 - t0)
+
+    sorted_durations = sorted(durations)
+    p95_index = int(0.95 * TIMED_RUNS) - 1  # 0-based index for 95th of 100
+    p95_seconds = sorted_durations[p95_index]
+    p50_seconds = sorted_durations[TIMED_RUNS // 2]
+
+    # Verify verdicts are well-formed
+    assert len(verdicts) == NUM_CRITERIA
+    for v in verdicts:
+        assert v["verdict"] in ("unapproved", "contradicted", "supported", "insufficient")
+
+    return {
+        "benchmark": "evaluator",
+        "num_criteria": NUM_CRITERIA,
+        "num_receipts": NUM_RECEIPTS,
+        "warmup_runs": WARMUP_RUNS,
+        "timed_runs": TIMED_RUNS,
+        "p95_seconds": p95_seconds,
+        "p50_seconds": p50_seconds,
+        "min_seconds": sorted_durations[0],
+        "max_seconds": sorted_durations[-1],
+    }
+
+
+# ── Cold-rehydration benchmark (AC-0019, placeholder) ─────────────────────────
+
+
+def run_cold_rehydration(acc: ModuleType) -> dict | None:
+    """Placeholder for the AC-0019 cold-rehydration benchmark.
+
+    A later task implements this function. Returning None omits the
+    ``cold_rehydration`` key from the result without changing the CLI interface.
+    """
+    return None
+
+
+# ── Entry point ───────────────────────────────────────────────────────────────
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run all benchmarks and write the combined result to --output.
+
+    Writes nothing to the working tree; the caller is responsible for the
+    output path.
+    """
+    parser = argparse.ArgumentParser(
+        description="Acceptance evaluator benchmark (AC-0018, AC-0019)"
+    )
+    parser.add_argument(
+        "--output",
+        required=True,
+        metavar="PATH",
+        help="Path to write the JSON benchmark result",
+    )
+    args = parser.parse_args(argv)
+    output_path = Path(args.output)
+
+    # Reconfigure streams to UTF-8 as required for any .apm/ script that writes.
+    sys.stdout.reconfigure(encoding="utf-8", errors="strict")  # type: ignore[attr-defined]
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[attr-defined]
+
+    acc = _load_module("acc_benchmark_ep", _SCRIPTS / "_acceptance.py")
+
+    evaluator_result = run_evaluator_benchmark(acc)
+
+    cold_result = run_cold_rehydration(acc)
+
+    result: dict = {
+        "harness": "acceptance_benchmark",
+        "commit_sha": os.environ.get("GITHUB_SHA", "unknown"),
+        "evaluator": evaluator_result,
+    }
+    if cold_result is not None:
+        result["cold_rehydration"] = cold_result
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
+
+    print(
+        f"AC-0018 evaluator benchmark:\n"
+        f"  corpus:     {NUM_CRITERIA} criteria × {NUM_RECEIPTS} receipts\n"
+        f"  warm-up:    {WARMUP_RUNS} runs (discarded)\n"
+        f"  timed runs: {TIMED_RUNS}\n"
+        f"  p95:        {evaluator_result['p95_seconds'] * 1000:.1f} ms\n"
+        f"  p50:        {evaluator_result['p50_seconds'] * 1000:.1f} ms\n"
+        f"  result:     {output_path}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

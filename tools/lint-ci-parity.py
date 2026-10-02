@@ -684,6 +684,14 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # run-test-suite includes pytest tests/ -q, which discovers this roster file.
     "pytest security-primitives schema parity (roster-owned)":
         LOCAL("test-after-build-check"),
+    # Slice 1 T4 acceptance schema parity: validates that records emitted by
+    # _acceptance.py satisfy their canonical contracts/delivery/ schemas, and
+    # that each validate_*_dict() refuses four classes of invalid input with
+    # stable denial codes.  LOCAL("test-after-build-check") is correct: that
+    # target's run-test-suite includes pytest tests/ -q, which discovers this
+    # roster file.
+    "pytest acceptance schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -987,6 +995,7 @@ _GATE_MAIN_CHECKS = (
     "pytest delivery contract bundle (roster-owned)",
     "pytest content-safety boundary matrix (roster-owned)",
     "pytest security-primitives schema parity (roster-owned)",
+    "pytest acceptance schema parity (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
