@@ -1,7 +1,7 @@
 # Plan: Portable catalogue authentication
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** [`docs/architecture/portable-catalogue-authentication.md`](../../architecture/portable-catalogue-authentication.md) and [`docs/architecture/credentials.md`](../../architecture/credentials.md); [`packages/agentbundle/agentbundle/https_catalogue.py`](../../../packages/agentbundle/agentbundle/https_catalogue.py) and [`packages/agentbundle/agentbundle/build/user_libs.py`](../../../packages/agentbundle/agentbundle/build/user_libs.py); [`packages/agentbundle/tests/unit/test_https_catalogue.py`](../../../packages/agentbundle/tests/unit/test_https_catalogue.py), [`packages/agentbundle/tests/build_pipeline/test_user_libs_projection.py`](../../../packages/agentbundle/tests/build_pipeline/test_user_libs_projection.py), and [`packages/credbroker/tests/unit/test_public_surface.py`](../../../packages/credbroker/tests/unit/test_public_surface.py). Named uncertainty: the exact `jf api` argument order and binary-stream behavior remain a real-CLI test obligation against JFrog CLI 2.105.0 or later.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -463,3 +463,5 @@ def test_jfrog_longest_profile_returns_pinned_binding(
 - 2026-10-01: spec re-approved by eugenelim after the run-4bf9c822 amendment cycle — 8 pre-EXECUTE review rounds, 31 adjudicated sustained findings repaired, both mandatory reviewers closing with no unresolved Blocker or Concern
 - 2026-10-01: plan re-approved by eugenelim; baseline sealed under run 4bf9c822
 - 2026-10-02: controlled amendment under run 4bf9c822 for T4, from real-CLI Discoveries 5–7 and owner decisions OD-1 (digest-checked trim on the JFrog leg) and OD-2 (carry `SSL_CERT_FILE` and `SSL_CERT_DIR`), recorded in `notes/verification-ledger.md`; T5 also gains the product changelog it owes; awaiting re-approval
+- 2026-10-02: spec re-approved by eugenelim after the T4 amendment — pre-EXECUTE rounds 9–11, 5 adjudicated sustained findings repaired, both mandatory reviewers closing clean
+- 2026-10-02: plan re-approved by eugenelim; baseline re-sealed under run 4bf9c822 with T1 and T2 preserved as completed

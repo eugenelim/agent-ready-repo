@@ -1,6 +1,6 @@
 # Spec: Portable catalogue authentication
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0134](../../adr/0134-catalogue-auth-resolves-through-credbroker.md), [ADR-0135](../../adr/0135-catalogue-netrc-uses-exact-machine-matches.md), [ADR-0136](../../adr/0136-catalogue-jfrog-auth-delegates-to-jfrog-cli.md), [ADR-0137](../../adr/0137-catalogue-auth-selects-one-provider-without-fallback.md)
