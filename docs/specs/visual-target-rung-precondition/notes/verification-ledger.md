@@ -168,7 +168,44 @@ The stub block was extracted from the plan's T4 fenced `python` block by
 script and written to
 `tests/roster/test_visual_target_exclusive_property.py`. Read-back
 compared byte-for-byte against the extracted block: **BYTE IDENTITY
-VERIFIED** (4545 bytes, no difference).
+VERIFIED** (4553 bytes, no difference).
+
+> **Correction, controller, 2026-10-02.** This record first read 4545
+> bytes. The file is 4553. The identity claim itself was correct and was
+> re-verified independently by the controller against the plan's block —
+> both 4553 bytes, sha256 `6fde81db9e5c6f7f…` — but the byte count
+> recorded beside it was wrong by eight. Corrected rather than left,
+> because a wrong number inside a byte-identity claim is the same defect
+> class this contract's review rounds faulted five times.
+
+### Controller re-verification of T4, 2026-10-02
+
+The controller re-ran every T4 observation independently rather than
+accepting the implementer's report, per the standing rule that a subagent's
+report is not evidence.
+
+| Observation | Implementer | Controller | Agrees |
+| --- | --- | --- | --- |
+| Stub byte identity vs the plan's block | verified | verified, 4553 bytes, sha256 `6fde81db9e5c6f7f…` | yes |
+| Property reds, unmigrated tree | 14 violations | 14 violations | yes |
+| Guard passes | 12 non-Markdown carriers | 12, test green | yes |
+| Mutation: before | 14 | 14 | yes |
+| Mutation: after adding one violating sentence | 15 | 15, new locus named in the failure output | yes |
+| Mutation: after removing it | 14 | 14 | yes |
+
+The controller used the same carrier and an equivalent sentence, restored it
+to a byte-identical pre-mutation state, and confirmed `git status
+--porcelain` empty afterwards. One residue was caught and fixed during that
+restore: removing the appended sentence left an extra trailing newline, so
+the carrier was restored from a pre-mutation copy rather than left one byte
+different.
+
+**What the mutation check establishes, and what it does not.** It shows the
+property reds on a *newly introduced* violation and greens again when that
+violation is removed — which a standing red over an unmigrated tree cannot
+show. It does not establish that the property catches every form a violating
+sentence could take; the spec's limits 1, 3 and 5 record the forms it is
+known not to reach.
 
 ### Intended red — `test_every_confirmation_sentence_names_the_field`
 
