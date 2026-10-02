@@ -672,6 +672,10 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest delivery contract bundle (roster-owned)":
         LOCAL("test-after-build-check"),
+    # AC-0014 Slice 1 guard: asserts code registry and doc matrix agree on
+    # Slice 1 writer boundaries and profiles; must run before any writer task.
+    "pytest content-safety boundary matrix (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -973,6 +977,7 @@ _GATE_MAIN_CHECKS = (
     "pytest visual-target exclusive property (roster-owned)",
     "pytest visual-authority supersession (roster-owned)",
     "pytest delivery contract bundle (roster-owned)",
+    "pytest content-safety boundary matrix (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",

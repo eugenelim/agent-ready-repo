@@ -115,6 +115,25 @@ append. Any new writer is closed structured-only until this matrix names a
 profile; readers refuse or quarantine an unnamed profile. Cross-boundary
 conformance covers every row.
 
+The Slice 1 writer boundary registry is the single declared source that every
+Slice 1 durable semantic writer and replay boundary must use. T5 and T7 writers
+are forward-registered here; a writer in a later task that is not listed here
+must add its entry to both this table and the code registry before first use.
+The pack-side registry at
+`packs/core/.apm/skills/work-loop/scripts/_content_safety.py`
+(`SLICE_1_WRITER_BOUNDARIES`) and this table are kept in agreement by the
+roster test `tests/roster/test_content_safety_boundary_matrix.py`.
+
+| Slice 1 writer boundaries | Required profile |
+| --- | --- |
+| `initial-plan-review.v1` | Structured control |
+| `approval-record.v1` | Structured control |
+| `reviewed-execution-envelope.v1` | Structured control |
+| `security-event.v1` | Structured control |
+| `semantic-evidence-transaction.v1` | Structured control |
+| `evidence-receipt.v1` | Evidence embedded record |
+| `evidence-supersession.v1` | Evidence embedded record |
+
 The delivery observation projector also applies the Knowledge observation
 profile, but it is not a semantic writer. Its decision is ephemeral: delivery
 persists no safety receipt, acknowledgement, or capture state. Only the
