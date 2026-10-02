@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0092; ADR-0090; ADR-0021; ADR-0072
 - **Brief:** brief:distribution-routes-programme
-- **Discovery:** `docs/product/intents/portable-agent-plugin-projection.md`
+- **Discovery:** `docs/product/intents/FEAT-0018-portable-agent-plugin-projection.md`
 - **Contract:** `contracts/distribution-routes.toml`; `contracts/distribution-routes.schema.json`; `contracts/agent-plugin-extension-namespaces.toml`; `contracts/agent-plugin-extension-namespaces.schema.json`; `contracts/vendor/agent-plugins/1.0.0/plugin.schema.json`; `contracts/vendor/agent-plugins/1.0.0/mcp.schema.json`; `contracts/vendor/agent-plugins/1.0.0/LICENSE.md`; `contracts/vendor/agent-plugins/1.0.0/PROVENANCE.md`
 - **Shape:** integration
 

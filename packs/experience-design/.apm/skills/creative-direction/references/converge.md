@@ -53,8 +53,12 @@ Record the first-viewport thesis: what the opening viewport makes clear, what
 concrete evidence or mechanism it exposes, and which primary action or
 continuation it supports. Do not reduce this to a hero layout template.
 
-Record the approved visual target disposition: `none`, or the named target with
-what is binding, what is illustrative, and what may adapt responsively.
+Record the approved visual target disposition into the `visual_target` frontmatter
+key: set `visual_target: none` when no visual target exists; set
+`visual_target: unconfirmed` when a target is recorded but has not yet been
+confirmed by a human; set `visual_target: confirmed` once a human has confirmed
+it. Whenever a target exists, name it and state what is binding, what is
+illustrative, and what may adapt responsively.
 
 Record available evidence, available assets, placeholders, and provenance for
 any sourced or generated visual assets proposed by the direction.
@@ -77,7 +81,9 @@ Resolve `output_dir` by reading `references/agentbundle-layout.md`, then apply e
 4. **Intermediate-directory confinement** — re-establish confinement at each intermediate directory as it is created.
 5. **Existing-artifact checks** — check type, surface a matching type to the user, and confirm product belonging when `output_dir` came from user-profile configuration.
 
-The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it. When an approved visual target exists, write the selected direction's compositional commitments into the doc here. `visualize` forms them and writes nothing itself, and on `originate` it may have produced one per candidate: only the selected direction's reaches the doc, the rest are discarded with their candidates. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
+The target is `<output_dir>/direction/<slug>.md`. When the target does not exist, copy `assets/creative-direction-template.md` to it.
+
+When an approved visual target exists — `visual_target: confirmed` — write the selected direction's compositional commitments into the doc here. `visualize` forms them and writes nothing itself, and on `originate` it may have produced one per candidate: only the selected direction's reaches the doc, the rest are discarded with their candidates. Fill it with: the surface, the ranked goals with their referents, what each goal means and what would violate it, the dominant goal, and the open questions — including any the floor hold above raised.
 
 ## Signature device
 

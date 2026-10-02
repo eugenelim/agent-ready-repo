@@ -1,6 +1,6 @@
 # Spec: visual-target field
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md)
@@ -107,8 +107,8 @@ spec defines both for itself rather than borrowing them. A period-delimited span
 **not** a bounded unit: adjacent structure that carries no terminal period —
 a heading, a table cell, a bullet — joins it silently, which would let an
 unscoped instruction pass because a scoped heading sat above it. The criterion
-also requires its anchor to occur exactly once in the named file, so the
-verification cannot silently grade a different occurrence.
+also requires its anchor to occur in exactly one paragraph block of the named
+file, so the verification cannot silently grade a different occurrence.
 
 - **TDD — the template carries the state and its provenance (AC-0001, AC-0002,
   AC-0003, AC-0011).** The template's bytes parse; asserted from
@@ -118,15 +118,36 @@ verification cannot silently grade a different occurrence.
   the criterion names.
 - **TDD — the eval harness covers the field (AC-0013).** Asserted over a named
   case's `assertions` entries in the harness, not over a concatenated corpus.
-- **Goal-based check — the pinned excerpt still matches and carries the new
-  material (AC-0008, AC-0012).**
+- **Goal-based check — the pinned excerpt still matches (AC-0008). TDD — the
+  excerpt carries the new material (AC-0012).** The two criteria share a
+  surface but not a verification mode, and the mode declaration here is
+  normative: only a TDD-mode criterion is stubbed.
   `python3 tools/lint-guidebook-steps.py guides/experience-design` is the
-  one-liner for AC-0008; AC-0012 is a contract-suite assertion scoped to the
+  goal-based one-liner for AC-0008, which writes no test file; AC-0012 is a
+  stubbed pytest assertion, scoped to the
   guide's fenced excerpt block, because the lint proves only that *some*
   contiguous run matches and the guide discusses the template in prose outside
   the fence.
-- **Goal-based check — the release surface stays consistent (AC-0009,
-  AC-0010).** `tests/conformance/test_pack_metadata.py` covers `pack.toml` to
+  **AC-0012's assertion lives in `tests/roster/`, not in the pack contract
+  suite.** An earlier revision of this section called it a contract-suite
+  assertion, and that was not satisfiable: deciding AC-0012 means reading
+  `guides/experience-design/how-to/establish-design-intent.md`, which sits
+  outside `packs/experience-design/`, and `tools/lint-pack-test-boundary.py`
+  rejects a pack test that reads above its own pack — a lint
+  `.github/workflows/docs.yml` runs on every pull request touching `packs/**`,
+  `guides/**` or `docs/**`. The two requirements could not both hold, so the
+  criterion kept its wording and the assertion moved. `tests/AGENTS.md` names
+  `tests/roster/` as the repository-level home for exactly this reach, anchored
+  at `Path(__file__).resolve().parents[2]`. AC-0001, AC-0002, AC-0003 and
+  AC-0011 stay in the contract suite: they read only the template, which is
+  inside the pack.
+- **TDD — the release surface stays consistent (AC-0009, AC-0010), with one
+  goal-based half.** Both criteria are decided by a stubbed pytest assertion.
+  The single goal-based element is AC-0009's start-of-work baseline
+  observation, recorded in the plan's § *Version baseline and target* and
+  carried there as `no stub (goal-based check)`; everything else here writes a
+  test file and is stubbed accordingly.
+  `tests/conformance/test_pack_metadata.py` covers `pack.toml` to
   `plugin.json` agreement and nothing else — it never compares a marketplace
   version and never opens the changelog. AC-0009's third site and AC-0010 are
   therefore covered by one new construction test at
@@ -149,10 +170,10 @@ verification cannot silently grade a different occurrence.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `creative-direction-template.md`'s frontmatter carries a
+- [x] **AC-0001.** `creative-direction-template.md`'s frontmatter carries a
   `visual_target` key whose placeholder enumerates exactly `none`,
   `unconfirmed` and `confirmed`.
-- [ ] **AC-0002.** That template's `## Approved visual target` section carries
+- [x] **AC-0002.** That template's `## Approved visual target` section carries
   exactly one `**Confirmation record:**` line, and after whitespace
   normalization that line is exactly:
   `**Confirmation record:** <YYYY-MM-DD> — <where the confirmation was recorded>`
@@ -166,32 +187,37 @@ verification cannot silently grade a different occurrence.
   rail at the top of this spec still governs what a producer writes *into* the
   record at runtime; that half is review-enforced, and this criterion does not
   claim otherwise.
-- [ ] **AC-0003.** That section's comment contains the literal `visual_target`,
+- [x] **AC-0003.** That section's comment contains the literal `visual_target`,
   names the `**Target:**`, `**Binding:**` and `**Confirmation record:**` lines,
   and contains the literal `bind nothing on their own`.
-- [ ] **AC-0004.** In `references/converge.md`, the paragraph block containing
+- [x] **AC-0004.** In `references/converge.md`, the paragraph block containing
   the literal `Record the approved visual target disposition` contains all
   three closed values — `visual_target: none`, `visual_target: unconfirmed`
-  and `visual_target: confirmed` — and that anchor occurs exactly once in the
-  file. All three, because that block today records the no-target case as the
+  and `visual_target: confirmed` — and that anchor occurs in exactly one
+  paragraph block of that file. All three, because that block today records the no-target case as the
   bare word `none`; leaving it unwritten as a field value would make it read
   as `unconfirmed` under the absent-field rule, which is not what ADR-0132
   fixes. The bounded unit matters even now that this slice adds no other
   `visual_target` literal to the file: the successor adds several, and a
   whole-file containment check written here would stop being able to fail the
   moment that slice lands.
-- [ ] **AC-0008.** `python3 tools/lint-guidebook-steps.py guides/experience-design`
+- [x] **AC-0008.** `python3 tools/lint-guidebook-steps.py guides/experience-design`
   exits zero.
-- [ ] **AC-0009.** `packs/experience-design/pack.toml`, its
+- [x] **AC-0009.** `packs/experience-design/pack.toml`, its
   `.claude-plugin/plugin.json`, and its entry in `.claude-plugin/marketplace.json`
   carry the same version, strictly greater than the recorded slice-start
   baseline in the plan's `Version baseline and target`. Comparing against
   `origin/main` would pass on the sibling slice's bump and let this slice ship
-  no bump at all. All three sites are observed after the bump by the new
-  conformance test, because `test_pack_metadata.py` never compares a
-  marketplace version.
-- [ ] **AC-0010.** `docs/product/changelog.md` carries a release entry for that
-  version whose heading begins at the start of a line at exactly `## ` — a
+  no bump at all. All three sites are observed after the bump by the new roster
+  test named in § *Testing Strategy*, because `test_pack_metadata.py` never
+  compares a marketplace version. The test is roster-owned, not
+  conformance-owned: `tools/lint-conformance-portability.py` rejects a
+  conformance test that names a shipped pack or reaches `docs/`, and this one
+  must do both.
+- [x] **AC-0010.** `docs/product/changelog.md` carries a release entry for the
+  version this slice released — the target recorded in the plan's § *Version
+  baseline and target*, not whatever version `pack.toml` carries when the test
+  later runs — whose heading begins at the start of a line at exactly `## ` — a
   substring test cannot tell that from a `### ` entry nested under
   `[Unreleased]`, which the release pipeline records as never publishing — with
   a `### Highlights` subsection in which a `-` bullet names the `visual_target`
@@ -199,19 +225,52 @@ verification cannot silently grade a different occurrence.
   bullets, so a paragraph is dropped silently. Asserted by the new roster test
   reading the changelog bytes. The existing `4.1.1` entry does not satisfy
   this: its Highlights describe the `frame`/`inherit` scoping fix.
-- [ ] **AC-0011.** That section's comment states that an absent `visual_target`
-  reads `unconfirmed`.
-- [ ] **AC-0012.** Within one fenced block of
+  The criterion names the released version rather than the live one because a
+  changelog entry describes one release: binding this claim to whatever version
+  `pack.toml` currently carries would red a permanently installed test on the
+  next unrelated `experience-design` bump, for an author who never touched this
+  field. AC-0009's three-site agreement keeps reading the live version, because
+  that claim must stay live.
+- [x] **AC-0011.** That section's comment states that an absent `visual_target`
+  reads `unconfirmed`. After whitespace normalization the comment contains this
+  phrase, verbatim and as one contiguous run:
+
+  ```text
+  An absent `visual_target` reads as `unconfirmed`
+  ```
+
+  The phrase is
+  pinned because the co-occurrence form does not decide the criterion: testing for
+  `unconfirmed` beside the word `absent` reduces the criterion to whether
+  `absent` appears anywhere, so a comment reading "an absent target means
+  `none`" would pass while stating the opposite of the fail-closed default
+  ADR-0132 fixes.
+- [x] **AC-0012.** Within one fenced block of
   `guides/experience-design/how-to/establish-design-intent.md` — selected as
   the single ` ```markdown ` fence whose body contains the line
   `type: creative-direction`, and asserted to be the only such fence — both the
   `visual_target` frontmatter key and the `**Confirmation record:**` line are
-  present. Selecting by that property rather than by fence ordinal is the
+  present **as their pinned forms, each occurring exactly once in that fence**:
+
+  ```text
+  visual_target: "<none | unconfirmed | confirmed>"
+  **Confirmation record:** <YYYY-MM-DD> — <where the confirmation was recorded>
+  ```
+
+  The pinned forms are what the criterion decides, not the bare words. The
+  words alone do not decide it: the fence carries `visual_target` four times
+  and `**Confirmation record:**` twice, because the section comment discusses
+  both, so a containment check over either word passes on an excerpt that
+  reproduces the comment and omits the key and the record line — which is the
+  precise regression this criterion exists to catch, an excerpt not re-derived
+  after a template edit. Pinning the two lines also makes the criterion
+  falsifiable by a single-line change, which is what lets its assertion be
+  proven non-vacuous when the material is already present. Selecting by that property rather than by fence ordinal is the
   point: the guide carries three ` ```markdown ` fences, and the first is a
   design-principles block that no edit in this slice ever makes carry the
   field. Scoping to the fence at all is what a whole-file check cannot do,
   since the guide discusses the template in prose outside it.
-- [ ] **AC-0013.** In `packs/experience-design/.apm/skills/creative-direction/evals/evals.json`,
+- [x] **AC-0013.** In `packs/experience-design/.apm/skills/creative-direction/evals/evals.json`,
   at least one case carries an entry in its own `assertions` list naming one of
   the three `visual_target` values as the disposition the run must write. A
   substring check over the concatenated harness does not satisfy this: it passes

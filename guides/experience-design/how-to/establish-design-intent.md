@@ -99,7 +99,7 @@ Turn these journey pains and peak moments into three to five design principles.
 
 ```
 Set a visual direction for this surface from its audience, product mechanism,
-available proof, surface genre, and any approved visual target. We have direct
+available proof, surface genre, and any approved visual target (`visual_target: confirmed`). We have direct
 answers, not an upstream product brief.
 ```
 
@@ -146,6 +146,11 @@ date: "<YYYY-MM-DD>"
 # `selected` once a human confirms. The `inherit` route writes no doc, so
 # there is no `inherited` value.
 status: "<proposed | selected>"
+# visual_target: the disposition of this direction's approved visual target.
+# `none` means no target exists. `unconfirmed` means a target is recorded but
+# no human has confirmed it. `confirmed` means a human confirmed it, and the
+# confirmation record in the body says when and where.
+visual_target: "<none | unconfirmed | confirmed>"
 ---
 
 # Aesthetic direction: <surface or product name>
@@ -209,7 +214,16 @@ status: "<proposed | selected>"
 ## Approved visual target
 
 <!-- Optional. If no target exists, write "none" and continue. If one exists,
-     record its identity and boundaries. -->
+     record its identity and boundaries.
+
+     The frontmatter `visual_target` key is the canonical disposition, over
+     `none`, `unconfirmed` and `confirmed`. An absent `visual_target` reads as
+     `unconfirmed`, so record it deliberately rather than leaving it off.
+     The **Target:**, **Binding:**, **Illustrative:** and
+     **May adapt responsively:** lines are provenance for a human reader and
+     bind nothing on their own. Fill **Confirmation record:** only once a human
+     has confirmed the target, naming when and where that was recorded — never
+     a person's name, handle, or contact detail. -->
 
 **Target:** <none, reference image, comp, existing surface, or other target>
 
@@ -218,6 +232,8 @@ status: "<proposed | selected>"
 **Illustrative:** <qualities that inform but do not bind>
 
 **May adapt responsively:** <what changes across viewport or platform states>
+
+**Confirmation record:** <YYYY-MM-DD> — <where the confirmation was recorded>
 ```
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
@@ -403,7 +419,7 @@ date: "<YYYY-MM-DD>"
 - **Direction source:** <path or name of the approved direction, or "none">
 - **Incumbent source:** <the file or module the interface actually reads its
   visual values from, or "none found — searched <where>">
-- **Visual target:** <what it is and what it was read for, or "none". It binds
+- **Visual target:** <`visual_target: confirmed` — what it is and what it was read for, or "none". It binds
   composition and relationships; it supplies no value>
 - **Stated constraints:** <any constraint that arrived already decided, or "none">
 

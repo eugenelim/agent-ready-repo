@@ -64,6 +64,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.13] — 2026-10-02
+
+### Fixed
+
+- `lint-traceability` no longer reports a duplicate intent id when a retired intent leaves a tombstone. A tombstone keeps its old `Slug:` so existing links still resolve, and the reissued record carries the same slug; the lint now skips any intent file whose preamble carries a `Tombstone:` field, so only the reissued record becomes the `intent:` node.
+
+## [core][2.27.12] — 2026-10-01
+
+### Added
+
+- Added paired `new-spec` behavior evaluations for a shared repository substrate and an isolated private refactor, plus a `work-loop` case that rejects feature-only evidence for accepted preservation properties. The cases measure future authoring and completion behavior without making optional repository-grounding tools mandatory.
+
+## [frontend-engineering][0.4.1] — 2026-10-02
+
+### Highlights
+
+- The `approved-visual-target` rung now resolves only when the direction artifact carries `visual_target: confirmed`. An approved target whose confirmation was never recorded no longer satisfies the rung; the distinction is in the artifact, not in a reviewer's memory.
+
+## [experience-design][4.1.3] — 2026-10-02
+
+### Highlights
+
+- A visual target now binds composition only once a person confirms it and `converge` records `visual_target: confirmed` in the direction artifact. An unconfirmed target is still captured — `converge` records it as `visual_target: unconfirmed` — it just does not bind, and the rung that reads the field is downstream in `frontend-engineering`.
+
+## [core][2.27.11] — 2026-10-01
+
+### Highlights
+
+- A work-loop run whose `state.json` records no retry cap now shows the default cap of 5 on its event line, instead of no cap at all. The run was always held to 5, so a dashboard or alert watching how close it is to being refused was reading nothing where it should have read 5. A malformed cap, which the guard refuses, still reports `null`, and so does a retry count nothing has recorded; the key is always present, which is how a consumer tells "not recorded" from zero.
+
+### Fixed
+
+- `loop-engine`'s `budgets` snapshot resolves `max_implementation_retries` and `max_review_retries` through the same default-resolution helper the guard layer enforces them with, so an absent cap reports the default the guard enforces. A malformed cap still reports `null`, and the two retry counters keep their existing absent-when-unrecorded behaviour.
+
 ## [core][2.27.10] — 2026-10-01
 
 ### Added
@@ -175,6 +209,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The capability reference now states maturity per provider surface: the command-line surface is validated against a real index, and the MCP surface is read from upstream's published schemas and has never been run here. Claims from the two are no longer presented alike.
 - The gap analysis names which of its findings were observed by running the tool, which were read from upstream's schemas, and which were read from its source because the tool does not report them.
+
+## [experience-design][4.1.2] — 2026-09-30
+
+### Highlights
+
+- You can now record whether a direction's visual target was ever confirmed, and tell that apart from never having asked. A `visual_target` key on the direction artifact holds one of `none`, `unconfirmed`, or `confirmed`, and `converge` writes it every time it runs, so the answer is there without you remembering to add it. Nothing reads the field and nothing is gated on it: it is a record you can act on when you want to, and ignore when you do not.
 
 ## [experience-design][4.1.1] — 2026-09-29
 

@@ -61,12 +61,12 @@ highest rung that supplies it, and a rung silent on an axis hands that axis down
 Each rung below names the signal that puts you on it, so you can tell which one
 your situation lands on.
 
-1. **`approved-visual-target`** — your `direction/<slug>.md` records that a
-   person confirmed the composition: the arrangement of the page, not its
-   colours. **You are here if** the artifact says somewhere that the composition
-   was approved or signed off, rather than merely proposed or picked. It binds
-   composition only, so colour, type, spacing and motion always come from lower
-   down.
+1. **`approved-visual-target`** — your `direction/<slug>.md` carries
+   `visual_target: confirmed`, recording that a person confirmed the
+   composition: the arrangement of the page, not its colours. **You are here
+   if** the direction's `visual_target` field is `confirmed`, recording that the
+   composition was signed off. It binds composition only, so colour, type,
+   spacing and motion always come from lower down.
 2. **`direction-and-taxonomy`** — the direction's *aesthetic goals* (the ranked
    qualities it wants, like "calm" or "dense"), its *axis commitments* (where it
    sits on scales like restrained-to-expressive), and its *signature element*

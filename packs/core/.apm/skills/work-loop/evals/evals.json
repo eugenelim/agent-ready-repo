@@ -1146,6 +1146,29 @@
         "Response says the value reflects the live partition at the time of the call, not what any past wave exit saw",
         "Response names `current_wave_index` as what separates a wave never reached from one reached and left unaccounted"
       ]
+    },
+    {
+      "id": "event-line-budgets-report-the-enforced-cap",
+      "prompt": "A work-loop run's `state.json` records no `max_review_retries`. Its latest `events.jsonl` line shows `budgets.max_review_retries` and `budgets.review_retry_count`. What do the two values mean, and is the run uncapped?",
+      "expected_output": "The run is not uncapped. An absent cap is enforced at the guard layer's default, and the event line reports that same enforced value, so `budgets.max_review_retries` shows the default (5) rather than null. The two fields resolve differently on purpose: an absent cap is still enforced at the default, so it is never genuinely absent (only a malformed cap, which the guard refuses, reports null), while a retry count that nothing has recorded reports null, which is how a consumer tells \"not recorded\" from zero.",
+      "assertions": [
+        "Response says the run is not uncapped",
+        "Response says `budgets.max_review_retries` reports the enforced default rather than null",
+        "Response says an unrecorded retry count still reports null",
+        "Response explains that null for a count distinguishes \"not recorded\" from zero"
+      ]
+    },
+    {
+      "id": "shared-substrate-feature-tests-do-not-prove-preservation",
+      "prompt": "A shared repository graph now creates synthetic value nodes and its feature tests pass. The accepted preservation criteria also require ordinary calls to avoid synthetic targets, default search to exclude values, full and incremental builds to agree, a small edit to stay within its invalidation bound, delete and rebuild paths to remove values, and supported external construction of the public result type to compile. The evidence set contains only the feature creation tests. Can the work-loop report completion? Neither adapt-to-project nor code intelligence is installed.",
+      "expected_output": "No. Passing feature creation tests does not satisfy the accepted preservation criteria. The work-loop keeps the change incomplete until current, criterion-matched evidence covers ordinary-call isolation, default-search exclusion, full/incremental semantic equivalence, bounded invalidation, production lifecycle removal, and supported external compilation. Each claim needs an oracle that can fail independently of the new feature path; a tautological comparison or the existence of the created value is not conservation evidence. Repository-native tests and gates are sufficient, and the absence of adapt-to-project or code intelligence cannot lower the accepted evidence bar.",
+      "assertions": [
+        "Refuses to report completion from feature creation tests alone",
+        "Requires criterion-matched evidence for all six accepted preservation properties",
+        "Requires falsifiable evidence independent of the new feature path",
+        "Rejects tautological comparison or value existence as conservation evidence",
+        "Does not require adapt-to-project or code intelligence"
+      ]
     }
   ]
 }

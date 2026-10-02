@@ -517,3 +517,21 @@ def test_eval_corpus_records_operation_beside_each_unresolved_owner() -> None:
         "consumer resolves no value",
     ):
         assert phrase in case_text
+
+
+def test_the_visual_target_eval_case_assertion_names_the_field() -> None:
+    """AC-0011: the eval case that asserts use of a confirmed visual target names
+    the field in its assertions, checked over the parsed assertions list.
+
+    Eval case 3's prompt is specifically about a confirmed visual target; its
+    assertion about how the skill treats the target must name `visual_target`
+    so a grader can link the assertion to the precondition rather than to a
+    general description of target use.
+    """
+    evals, _queries = _eval_payloads()
+    cases = {c["id"]: c for c in evals.get("evals", [])}
+    assert 3 in cases, "eval case 3 is gone from the design-system eval corpus"
+    assertions_text = " ".join(cases[3]["assertions"])
+    assert "visual_target" in assertions_text, (
+        "AC-0011: eval case 3 assertions do not name the visual_target field"
+    )

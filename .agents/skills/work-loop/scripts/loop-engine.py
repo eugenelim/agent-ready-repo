@@ -282,11 +282,12 @@ def _phase_duration_s(phase_started_at: str | None, now: str) -> int | None:
 
 
 def _budget_snapshot(spec_dir: Path) -> dict:
-    """Copy the cohort retry counters and their caps, using None for anything absent.
+    """Copy retry counts when recorded and retry caps with enforced defaults.
 
     Always returns all keys. A consumer checking whether a run is near its cap
-    must be able to tell "not recorded" from "zero", and a key that silently
-    disappears reads as the latter.
+    must be able to tell an absent count from zero. Caps differ: an absent cap
+    still has the guard layer's enforced default, so reporting None would hide
+    the cap a consumer needs to assess.
     """
     snapshot: dict[str, int | None] = dict.fromkeys(_BUDGET_FIELDS)
     try:
@@ -294,7 +295,11 @@ def _budget_snapshot(spec_dir: Path) -> dict:
     except Exception:
         return snapshot
     for field in _BUDGET_FIELDS:
-        value = cohort.get(field)
+        if field.startswith("max_"):
+            guards = _guards()
+            value = guards.non_negative_int(cohort, field, guards.DEFAULTS[field])
+        else:
+            value = cohort.get(field)
         if isinstance(value, int) and not isinstance(value, bool):
             snapshot[field] = value
     return snapshot

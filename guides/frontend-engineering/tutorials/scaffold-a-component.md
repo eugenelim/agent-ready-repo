@@ -54,7 +54,7 @@ The skill loads. You are now in the PLAN phase.
 The pre-flight's first step (step 0) reads a design handoff when your repository
 configures one. This tutorial does not, so that step records its skip —
 `design handoff: no [design] section configured`. Visual authority then resolves
-down the precedence chain: no confirmed visual target, no direction or taxonomy,
+down the precedence chain: no visual target recorded as `visual_target: confirmed`, no direction or taxonomy,
 and — for this walkthrough — no incumbent system to extend. That lands on the
 terminal rung, `local-premise`, which is the rung an adopter without a design
 tree actually walks. If your team does keep design work in a configured
