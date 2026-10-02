@@ -64,6 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.13] — 2026-10-02
+
+### Fixed
+
+- `lint-traceability` no longer reports a duplicate intent id when a retired intent leaves a tombstone. A tombstone keeps its old `Slug:` so existing links still resolve, and the reissued record carries the same slug; the lint now skips any intent file whose preamble carries a `Tombstone:` field, so only the reissued record becomes the `intent:` node.
+
 ## [core][2.27.12] — 2026-10-01
 
 ### Added
