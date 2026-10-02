@@ -41,6 +41,13 @@ advance keeps it gone.
 - AC-0008's assertion moves to `tests/roster/` for the same reason — it reads a
   path under `docs/` — and, because it names a `docs/specs/<slug>` literal, owes
   a `.workspace-prune-protected.toml` entry that the property test does not.
+  Both modules' CI registration is T8's work, gated by the repository's own
+  `tools/lint-ci-parity.py` and
+  `tests/roster/test_two_sided_prune_closure_invariant.py`. **This contract
+  states no acceptance criterion for it**: restating an obligation two
+  repository gates already enforce adds something to verify without adding
+  verification, and the criterion that did so shipped without a Testing
+  Strategy entry of its own.
 - `converge`, `visualize` and `creative-direction`'s output contract are gated
   on a confirmed target — the three obligations `visual-target-field` retired
   on 2026-09-30 and handed here, because the first of them moves this very
@@ -184,7 +191,6 @@ distinct texts number thirteen.
 | Behavioural invariant | `tests/roster/` | eugenelim | The exclusive property is enforced over a re-run sweep | AC-0006, AC-0007 hold |
 | Producer instruction | `packs/experience-design/.apm/skills/creative-direction/references/converge.md`, `references/visualize.md`, `SKILL.md` | eugenelim | Each gated sentence names the confirmation condition and the field | AC-0012, AC-0013, AC-0014 hold |
 | Governance record | `docs/specs/frontend-visual-authority/spec.md`, asserted from `tests/roster/` | eugenelim | Its `Status` names the superseded rule | AC-0008 holds |
-| CI registration | `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`, `.workspace-prune-protected.toml` | eugenelim | Each new roster module is named above the bulk step, dispositioned on both axes, and prune-protected where it names a spec path | AC-0015 holds |
 | Release history | both packs' `pack.toml`, their `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `docs/product/changelog.md` | eugenelim | Matching versions and release entries | AC-0009, AC-0010 hold |
 
 Retention class: repository-durable.
@@ -234,9 +240,9 @@ Retention class: repository-durable.
 - **Recorded manual observation — the two loci outside the property (AC-0005).**
   AC-0006 cannot decide them and no other test in this contract does, so each is
   a named observation in the verification ledger rather than an assertion. The
-  criterion names both; naming two loci a measurement found is not the closed
-  surface set this contract may not retry, because the property still computes
-  its own scope and these are its measured complement.
+  criterion names both and covers nothing else; naming two loci a measurement
+  found is not the closed surface set this contract may not retry, because the
+  property still computes its own scope and these are its measured complement.
 - **TDD — the producing surfaces are gated (AC-0012, AC-0013, AC-0014).** Each
   asserts an exact literal inside a bounded unit — one blank-line-delimited
   paragraph block, or one list item — read from the single file the criterion
@@ -244,7 +250,9 @@ Retention class: repository-durable.
   assumed. A period-delimited span of normalized text is not a bounded unit:
   adjacent structure carrying no terminal period joins it silently.
 - **TDD — the non-Markdown carriers are covered (AC-0011).** Each pack's own
-  suite asserts over parsed structure; one construction test guards the
+  suite asserts over parsed structure, for the nine carriers that assert the
+  rung's precondition; the three roster-resident carriers are not subjects and
+  the criterion says why. One construction test guards the
   **non-Markdown** count against silent shrinkage. It must count that subset
   rather than the whole swept set — an aggregate floor stays green while every
   non-Markdown carrier disappears and Markdown ones replace it.
@@ -276,10 +284,9 @@ Retention class: repository-durable.
   contain the literal `visual_target` wherever they state the rung's
   precondition, verified by the AC-0006 property rather than by a per-file
   assertion.
-- [ ] **AC-0005.** Within the sentences AC-0006 reaches, no carrier states that
-  a visual target's *presence* alone resolves the rung. **Two loci lie outside
-  that reach and are migrated by hand under T3, named here so the criterion is
-  decidable rather than open-ended:**
+- [ ] **AC-0005.** **Two loci state the superseded presence reading and lie
+  outside every mechanism in this contract. Both are migrated by hand under T3,
+  named here so the criterion is decidable rather than open-ended:**
   `guides/frontend-engineering/how-to/read-the-design-handoff.md`'s
   `**You are here if** the artifact says somewhere that the composition was
   approved or signed off` (no target reference, so no row reaches it), and
@@ -287,13 +294,18 @@ Retention class: repository-durable.
   `the visual target when one exists` (its only cue is `exists`, outside the
   confirmation-cue set). Both are checked as recorded manual observations in the
   verification ledger, because no test in this contract decides them.
-  **This criterion was narrowed on 2026-10-02 rather than widened.** It
-  previously asserted over the whole swept scope on the literals `exists` and
+  **This criterion was narrowed twice on 2026-10-02, and never widened.** It
+  first asserted over the whole swept scope on the literals `exists` and
   `present`, which nothing in this contract checks — AC-0006's cue set is
   `confirm` and `approved`. Adding those two literals to the cue set was
   measured and declined: it moves the property from 14 sentences to 19, three of
   the five additions state no condition, and it still does not reach the
-  sign-off sentence. See § The mechanism, and its limit, limit 1.
+  sign-off sentence. It then carried a second clause asserting that no sentence
+  *within* AC-0006's reach states presence as sufficient. That clause had no
+  artifact either — AC-0006 requires the literal `visual_target` in a firing
+  sentence and settles nothing about what that sentence claims — so it was
+  dropped rather than given new machinery. AC-0005 is now exactly the two loci
+  above. See § The mechanism, and its limit, limit 1.
 - [ ] **AC-0006.** A construction test enforces the positive exclusive property:
   over a whitespace-normalized sweep of the Markdown files under `packs/`,
   `guides/`, `web/src/content/`, `tests/` and `docs/design/`, every sentence
@@ -307,12 +319,21 @@ Retention class: repository-durable.
   name forms explicitly in module-level constants, and its docstring records
   both exclusions: a carrier stating the condition with no cue from that set is
   outside the property, and so is one whose only cue came from a stripped name.
-- [ ] **AC-0011.** The twelve non-Markdown carriers — the four eval payloads and
-  eight test modules the sweep reports — name the field where they assert the
-  rung's precondition, each verified by its own pack's suite over parsed
-  structure rather than by the sentence property, and a second construction
-  test asserts that the count of non-Markdown carriers the sweep reaches has
-  not silently fallen.
+- [ ] **AC-0011.** Every non-Markdown carrier **that asserts the rung's
+  precondition** names the field where it does so, verified by its own pack's
+  suite over parsed structure rather than by the sentence property. Measured
+  2026-10-02 the sweep reaches twelve non-Markdown carriers and **nine are
+  subjects** — four eval payloads and five pack-resident test modules. The
+  three in `tests/roster/` are not, and the reason is stated rather than
+  assumed: `test_frontend_visual_authority_adopter_prose.py:226` carries only
+  the rung-order tuple, which limit 1 already holds is a name and not a claim
+  about the rung; `test_visual_target_guide_excerpt.py` and
+  `test_visual_target_release_surface.py` are `visual-target-field`'s own field
+  tests, which already contain the literal `visual_target` and assert nothing
+  about the rung's precondition. A carrier with no owning pack suite is
+  therefore not left without an artifact — it is not a subject.
+  A second construction test asserts that the count of non-Markdown carriers
+  the sweep reaches has not silently fallen.
 - [ ] **AC-0012.** In `packs/experience-design/.apm/skills/creative-direction/references/converge.md`,
   the paragraph block containing the literal `write the selected direction's
   compositional commitments` also contains the literal `visual_target:
@@ -336,16 +357,6 @@ Retention class: repository-durable.
   confirmed` **and** `visual_target: confirmed`, and that item occurs exactly
   once in that file. The second literal is this criterion's own requirement,
   not AC-0006's and not a gate on a field read; see limit 4.
-- [ ] **AC-0015.** Each new `tests/roster/` module carries its three
-  registrations: a step in `.github/workflows/build-check.yml` naming the file
-  and placed **above** the bulk `pytest tests/ -q` step; a matching
-  `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py` with the value
-  `LOCAL("test-after-build-check")`, present on **both** axes that file feeds —
-  `_LOCAL_STEP_DISPOSITION` and the `_GATE_MAIN_CHECKS` tuple, because a step
-  named in one alone is still a violation; and a
-  `.workspace-prune-protected.toml` entry for the AC-0008 module only, which
-  names a `docs/specs/<slug>` literal. The property module names no spec path
-  and owes no prune entry.
 - [ ] **AC-0008.** `docs/specs/frontend-visual-authority/spec.md`'s `Status`
   line names ADR-0132 and the superseded `Always do` rule about stating rung
   conditions as properties the pack defines.

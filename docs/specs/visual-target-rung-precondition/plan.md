@@ -111,12 +111,22 @@ that re-run, against the tree `visual-target-field` left.
   the point of running it: a red count disagreeing with the measured migration
   is measuring something else.
 - **T4's second test passes**, reaching 12 non-Markdown carriers against its
-  floor of 12. It is the guard against a sweep that finds nothing, and it must
+  floor of 12. The guard excludes its own module from the count: that module's
+  docstring says "visual target" and sits under a swept root, so without the
+  exclusion the sweep would reach 13 the moment the file lands and the floor
+  would absorb the loss of one genuine carrier. It is the guard against a sweep that finds nothing, and it must
   pass while the property reds.
-- **Boundary lint, with both new roster modules present in the tree:**
-  `python3 tools/test-lint-pack-test-boundary.py` → **ok — 154 cases passed**,
-  exit 0. This is the gate that refused the original placement; the relocation
-  is verified against it rather than argued.
+- **The relocation is a read of the lint's rule, not a verified run.** Stated
+  that way deliberately. `tools/lint-pack-test-boundary.py:92-93` walks `packs/`
+  only and `case_pack_tests_stay_in_pack` iterates pack inventories, so no run
+  of it — or of its fixture self-test `tools/test-lint-pack-test-boundary.py` —
+  varies with whether `tests/roster/` holds these modules. An earlier draft of
+  this record cited that self-test's `ok — 154 cases passed` as verification of
+  the placement; it establishes nothing about it, and that claim is retracted.
+  What the rule does establish is the original placement's refusal: check 8
+  rejects a pack test resolving a path above its own pack, which both
+  `parents[5]` and `REPO_ROOT / root` do, and its own remediation text at
+  `tools/lint-pack-test-boundary.py:1217` names the destinations.
 - **Isolation:** local, filesystem-confined to the repository and disposable
   scratch, no network. Each block was removed and the tree confirmed clean
   (`git status --porcelain` showing only the two spec files) after every run.
@@ -446,10 +456,16 @@ def test_the_non_markdown_carrier_count_has_not_fallen() -> None:
     .md/.json/.py stays green while every non-Markdown carrier disappears and
     Markdown ones replace it, which is the shrinkage AC-0011 exists to catch.
     """
+    this_module = Path(__file__).resolve()
     reached = sum(
         1
         for path in _swept_files()
-        if path.suffix in {".json", ".py"} and _carries_target(path)
+        # Exclude this module. Its own docstring says "visual target", so it
+        # becomes a carrier the moment it lands and would inflate the floor by
+        # one — letting a genuine carrier disappear with the guard still green.
+        if path.suffix in {".json", ".py"}
+        and path.resolve() != this_module
+        and _carries_target(path)
     )
     assert reached >= NON_MARKDOWN_CARRIER_FLOOR, (
         f"AC-0011: sweep reached only {reached} non-Markdown carriers, "
@@ -466,8 +482,11 @@ def test_the_non_markdown_carrier_count_has_not_fallen() -> None:
 
 **Touches:** tests/roster/test_visual_target_exclusive_property.py
 
-**Done when:** both tests are green over the migrated tree and the mutation
-check is recorded in the verification ledger.
+**Done when:** the module exists at that path; the property **reds** over the
+unmigrated tree at the expected violation count; the non-Markdown guard passes;
+and the mutation check is recorded in the verification ledger. Green over the
+migrated tree is T3's closure, not T4's — T3 depends on T4, so a T4 predicate
+naming T3's output cannot be satisfied.
 
 ### T5: The superseded rule is annotated where it lives
 
@@ -528,7 +547,7 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 
 **Touches:** docs/specs/frontend-visual-authority/spec.md, tests/roster/test_visual_authority_supersession.py
 
-**Done when:** `python3 -m pytest tests/roster/test_visual_authority_supersession.py -q` is green and `python3 tools/test-lint-pack-test-boundary.py` is clean.
+**Done when:** `python3 -m pytest tests/roster/test_visual_authority_supersession.py -q` is green.
 
 ### T8: Register both roster modules in CI
 
@@ -536,9 +555,12 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 
 **Tests:**
 - `no stub (goal-based check)`. `python3 tools/lint-ci-parity.py --root .`
-  exits 0, and the construction test that re-derives
-  `.workspace-prune-protected.toml` from the roster tests' literal spec paths
-  is green. Verifies AC-0015.
+  exits 0, and `tests/roster/test_two_sided_prune_closure_invariant.py` — which
+  re-derives `.workspace-prune-protected.toml` from the roster tests' literal
+  spec paths — is green. **Verifies no acceptance criterion.** The round-1
+  repair added AC-0015 for this and round 2 found it shipped with no Testing
+  Strategy entry; the obligation is `tests/AGENTS.md`'s and two repository gates
+  already enforce it, so the task stands and the criterion is cut.
 
 **Approach:**
 - For each of the two new modules, add a step to
@@ -560,7 +582,11 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 
 **Touches:** .github/workflows/build-check.yml, tools/lint-ci-parity.py, .workspace-prune-protected.toml
 
-**Done when:** `python3 tools/lint-ci-parity.py --root .` exits 0 and `ruff check .` is clean.
+**Done when:** `python3 tools/lint-ci-parity.py --root .` exits 0;
+`python3 -m pytest tests/roster/test_two_sided_prune_closure_invariant.py -q`
+is green, which is what re-derives `.workspace-prune-protected.toml` from the
+roster tests' literal spec paths — `lint-ci-parity.py` contains no occurrence of
+`prune` and does not check it; and `ruff check .` is clean.
 
 ### T7: The producing surfaces are gated on a confirmed target
 
@@ -685,6 +711,38 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 ## Changelog
 
+- 2026-10-02 (round 2): Revised from eight sustained findings, seven of which
+  were defects in round 1's own repair. **This revision cuts; round 1's added.**
+  Round 1 answered its findings by adding a task and a criterion, and round 2
+  measured what that cost: the new closure predicate recreated the deadlock
+  round 1 had just removed, inverted; the new criterion shipped with no Testing
+  Strategy entry; the new carrier floor self-inflated; the new task's closure
+  omitted the registration it owned.
+  **AC-0015 is cut**, and with it the spec's CI-registration output row and the
+  two-table mismatch that followed. The roster registrations are
+  `tests/AGENTS.md`'s obligation and `tools/lint-ci-parity.py` and
+  `tests/roster/test_two_sided_prune_closure_invariant.py` already enforce them.
+  T8 keeps the work; restating a gated obligation as a criterion added
+  something to verify without adding verification.
+  **AC-0005 loses its in-reach clause.** AC-0006 requires a literal and settles
+  nothing about what a sentence claims, so that clause had no artifact. Dropped
+  rather than given machinery; AC-0005 is now exactly its two named loci.
+  **AC-0011 narrows to carriers that actually assert the rung's precondition** —
+  nine of the twelve. The three in `tests/roster/` are not subjects, and the
+  criterion now says why rather than leaving them routed to a pack suite that
+  cannot own them: one carries only the rung-order tuple, which limit 1 already
+  holds is a name and not a claim, and the other two are `visual-target-field`'s
+  field tests, which already contain the literal and assert nothing about the
+  rung.
+  **A false evidence claim is retracted.** The Stub validation record cited
+  `tools/test-lint-pack-test-boundary.py`'s `ok — 154 cases passed` as verifying
+  the relocation. That script is the lint's fixture self-test and the lint walks
+  `packs/` only, so its result cannot vary with where these modules live. The
+  record now states the placement as a read of the lint's rule, which is what it
+  always was. This is the same defect round 1 faulted in the previous record,
+  committed again one round later in the record rewritten to fix it.
+  Two repairs are plain: T4's `Done when` now names only what T4 produces, and
+  T4's guard excludes its own module from the count it checks.
 - 2026-10-02 (round 1): Revised from eleven sustained findings. The round found
   one thing the contract could not survive and several it could not verify.
   **The enforcing test could not live where the contract put it.** A pack test
