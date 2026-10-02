@@ -644,3 +644,102 @@ later edit that removes the literal.
 the property per limit 4 — in its `Out of scope observed` note. The controller
 re-derived the strip by hand and found it fires. Recorded because the report
 was wrong on a checkable point and the record should not carry the error.
+
+
+## T6 — the release surface is consistent
+
+Recorded 2026-10-02 by the controller, after a post-gates review finding
+established that this task had no entry here. The observations below were taken
+at the time T6 ran; only their placement in this ledger was missing. AC-0009's
+evidence per the Testing Strategy is "a recorded baseline reading for each pack
+taken before the bump", and that is what the first table is.
+
+### Slice-start baselines, read before the bump
+
+Read directly from the tree at delivery commit `13e3b7aa9`, **before** T6 was
+dispatched, because once the bump lands the tree no longer shows what the branch
+carried when the slice began.
+
+| Pack | `pack.toml` | `plugin.json` | `marketplace.json` |
+| --- | --- | --- | --- |
+| `frontend-engineering` | 0.4.0 | 0.4.0 | 0.4.0 |
+| `experience-design` | 4.1.2 | 4.1.2 | 4.1.2 |
+
+### After the bump
+
+| Pack | `pack.toml` | `plugin.json` | `marketplace.json` |
+| --- | --- | --- | --- |
+| `frontend-engineering` | 0.4.1 | 0.4.1 | 0.4.1 |
+| `experience-design` | 4.1.3 | 4.1.3 | 4.1.3 |
+
+Patch for both, per `packs/AGENTS.md` § *Version bump rule*: patch for changed
+content. This contract publishes no new skill, subagent, command or hook.
+
+### The release pin
+
+`packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py:89`
+moved from `"0.4.0"` to `"0.4.1"`, and its docstring now names this delivery.
+Moved **with** the bump in the same change, as the pin's own message requires.
+
+### The three `Done when` runs, each read from its exit status
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `make lint-ruff lint-mypy` | 0 | clean |
+| `pytest tests/conformance/test_pack_metadata.py -q` | 0 | 49 passed |
+| `pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q` | 0 | 456 passed |
+
+The third is the one that matters for AC-0009. It was added to T6's closure at
+review round 4, because neither of the other two reaches
+`test_visual_authority_release.py` and no lint can see a wrong pin value — so
+without it the pin clause had no predicate after the bump.
+
+### The projection was regenerated, not assumed
+
+`make build-self` ran without `FORCE=1`, which the root `AGENTS.local.md:49-60`
+forbids from automation. `.claude-plugin/marketplace.json` then changed by
+exactly two insertions and two deletions — the two version strings and nothing
+else — verified from the committed diff rather than from the command's own
+report. A stale projection is the failure this check exists for.
+
+### The changelog
+
+Both entries carry a free-standing `##` heading, a `### Highlights`
+subsection, and one `-` bullet naming `visual_target`. The bullet form is
+load-bearing rather than cosmetic: `docs/product/AGENTS.md` records that the
+`/now/` projection extracts only bullets and drops a paragraph silently. The
+projection tests were run — 17 passed — rather than the form being judged by eye.
+
+The `experience-design` bullet was rewritten after post-gates review: its first
+form said the three producing surfaces "act on the target only when
+`visual_target: confirmed` appears in the direction artifact", which casts
+`converge` — the surface that *writes* the value — as a surface that reads it.
+AC-0013 forbids stating `visualize`'s condition as a field read. Both post-gates
+reviewers found the same sentence independently.
+
+## Execution observation — the T4 stub's floor diverges from the plan
+
+Recorded 2026-10-02 by the controller.
+
+`NON_MARKDOWN_CARRIER_FLOOR` reads **13** in
+`tests/roster/test_visual_target_exclusive_property.py`. The approved stub in
+`plan.md` carries **12**, so the shipped module no longer matches the stub it was
+materialized from byte-identically at EXECUTE.
+
+The divergence is a sustained post-gates finding, not drift. The floor is a
+measurement, and this slice's own work moved what it measures: T6's release-pin
+docstring put the phrase `visual-target rung precondition` into
+`test_visual_authority_release.py`, making it a swept carrier it was not on
+`origin/main`. Measured 2026-10-02: 14 non-Markdown carriers, 13 excluding the
+property module's self-exclusion. A floor of 12 left one carrier of slack, so
+AC-0011's only mechanical guard could have stayed green while a real carrier
+lost its reference.
+
+The adjudicator refused the reviewer's proposed mechanism — making the guard red
+per file "present at merge" — because that reinstates the closed surface set the
+spec's `Never do` forbids. Raising the floor to the measured count is the
+smallest change that restores what AC-0011 states, and it adds no mechanism.
+
+**The plan is not edited.** It is immutable in substance after approval, and its
+stub records the value that was correct when the plan was approved. This entry is
+the record that the shipped value supersedes it, and why.

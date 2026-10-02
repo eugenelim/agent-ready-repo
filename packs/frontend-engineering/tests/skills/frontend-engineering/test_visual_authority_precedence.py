@@ -13,6 +13,7 @@ import pytest
 from frontend_engineering_visual_authority_rules import (
     OBSERVATION,
     PACK_ROOT,
+    SKILL,
     THIS_SKILL_AND_AGENTS,
     WHOLE_EXPORT_TREE,
     observation_rows,
@@ -216,6 +217,29 @@ def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
     assert "visual_target: confirmed" in row, "AC-0001"
     for identifier in UPSTREAM_IDENTIFIERS:
         assert identifier not in text, f"AC-0002: {identifier}"
+
+
+def test_the_skill_rung_bullet_names_the_confirmed_field() -> None:
+    """AC-0003, in the mode and place the Testing Strategy declares.
+
+    A literal assertion over shipped bytes from the owning pack's test
+    directory. The roster property reaches this sentence incidentally, not by
+    design: a reword dropping both the confirmation cue and the field would
+    leave AC-0003 false with the property still green, because the property
+    only constrains sentences that carry a cue.
+
+    Bound to the rung-1 list item rather than to the file, so the literal
+    cannot satisfy the criterion from an unrelated sentence, and the item's
+    uniqueness is asserted rather than assumed.
+    """
+    text = " ".join(read(SKILL).split())
+    anchor = "1. **`approved-visual-target`**"
+    assert text.count(anchor) == 1, "AC-0003: the rung-1 item is not unique"
+    item = text[text.index(anchor) :]
+    item = item[: item.index("2. **`direction-and-taxonomy`**")]
+    assert "visual_target: confirmed" in item, (
+        "AC-0003: the rung-1 item does not name the confirmed field"
+    )
 
 
 def test_the_rung_resolution_eval_assertions_name_the_field() -> None:

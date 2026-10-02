@@ -74,7 +74,7 @@
     },
     {
       "id": "visual-authority-approved-target",
-      "prompt": "The adopter's design tree holds a direction artifact for this surface that records a human-confirmed composition, and a token taxonomy. Build the page.",
+      "prompt": "The adopter's design tree holds a direction artifact for this surface carrying `visual_target: confirmed`, and a token taxonomy. Build the page.",
       "expected_output": "The run resolves visual authority to the approved-visual-target rung and says so. It takes composition — arrangement, proportion, spatial relationships — from the confirmed composition, and takes colour, type, spacing and motion values from the taxonomy — using each value it resolved as given — rather than from the target. It chooses no product as an aesthetic anchor and seeds no parallel token system. It renders a representative state, observes the result against the inherited intent, corrects once where divergence is material, and renders once more to verify. The evidence manifest records which rung was used, what was rendered, whether a material correction was needed, and anything unverified.",
       "assertions": [
         "Resolves authority to approved-visual-target (direction carries `visual_target: confirmed`) and records it",

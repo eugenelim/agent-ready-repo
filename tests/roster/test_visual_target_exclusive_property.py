@@ -31,7 +31,7 @@ TARGET = re.compile(r"visual[ _-]target", re.I)
 NAME_FORMS = re.compile(r"approved[ -]visual[ -]target", re.I)
 CONFIRMATION_CUES = ("confirm", "approved")
 SKIP_DIRS = {"__pycache__", "node_modules", ".git"}
-NON_MARKDOWN_CARRIER_FLOOR = 12
+NON_MARKDOWN_CARRIER_FLOOR = 13
 
 
 def _sentences(text: str) -> list[str]:
@@ -92,6 +92,12 @@ def test_the_non_markdown_carrier_count_has_not_fallen() -> None:
     Counts the non-Markdown subset specifically. An aggregate floor over
     .md/.json/.py stays green while every non-Markdown carrier disappears and
     Markdown ones replace it, which is the shrinkage AC-0011 exists to catch.
+
+    The floor is a measurement, so it goes stale when the tree gains a carrier.
+    It read 12 until this slice's own release-pin docstring put the sweep phrase
+    into test_visual_authority_release.py, taking the count to 13 excluding this
+    module. Re-measure and raise it when that happens; do not add a per-file
+    check, which is the closed surface set the owning spec forbids.
     """
     this_module = Path(__file__).resolve()
     reached = sum(

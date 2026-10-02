@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- `converge`, `visualize`, and `creative-direction` are now gated on a confirmed visual target: they act on the target only when `visual_target: confirmed` appears in the direction artifact. A target that exists but was never confirmed stays outside the gate until the confirmation is recorded.
+- A visual target now binds composition only once a person confirms it and `converge` records `visual_target: confirmed` in the direction artifact. An unconfirmed target is still captured — `converge` records it as `visual_target: unconfirmed` — it just does not bind, and the rung that reads the field is downstream in `frontend-engineering`.
 
 ## [core][2.27.11] — 2026-10-01
 
