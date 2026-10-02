@@ -67,6 +67,15 @@ time rather than trusting this sentence.
   `frontend-engineering`'s `SKILL.md`, and pins an id plus the literal
   `resolved` in two eval cases. Reformatting those sentences is safe; rewording
   them is not.
+- **`test_visual_authority_precedence.py:75-79` pins the rung's Requires cell by
+  equality.** `test_the_top_rung_requires_a_recorded_confirmation` asserts
+  `observation_table("Authority precedence")["approved-visual-target"][2] ==
+  "recorded-human-confirmation"` — index 2 is the Requires column. That is the
+  exact cell AC-0001 rewrites, so **T2's own edit reds it**, and T2 closes on
+  that suite being green. T2 owns rewriting this assertion to the new condition
+  as part of the change. It is not a pin to work around: it is the shipped
+  statement of the rule this contract replaces, and leaving it would make the
+  pack assert both readings at once.
 - `test_visual_authority_release.py` pins `frontend-engineering`'s `pack.toml`
   version by equality. Its own message says a later delivery moves the pin with
   its own bump, so T6 moves it — it is not a value to change on its own.
@@ -89,16 +98,18 @@ remove it — so the test is proved able to fail before it is trusted.
 Required by `tdd-stubs.md` § *Validate* and § *Record*, which fail closed at
 plan approval without them.
 
-**Re-run from scratch 2026-10-02 after round 1**, because round 1 proved the
-previous record false: two blocks reddened on `NameError`, not on their
-criteria, and `py_compile` cannot tell those apart. Every result below is from
-that re-run, against the tree `visual-target-field` left.
+**Re-run from scratch after round 3, against the stub blocks as they now
+stand.** Every result below is from that run, and the record has been re-dated
+twice for the same reason: round 1 proved two blocks reddened on `NameError`
+rather than on their criteria, and round 3 proved this record was still
+reporting a carrier count that the code it attested could not have produced —
+the self-exclusion that yields 12 was added after the run being cited. A
+recorded result must be the result of the run it names, so the whole record is
+re-run rather than patched.
 
-- **Compile pass:** `python -m py_compile` over each of the four blocks, run
-  from disposable scratch outside the repository test tree. Result: **all four
-  compile.**
-- **Intended red, each on its own criterion** — this is the claim round 1
-  falsified, so each is named with the assertion it reddened on:
+- **Compile pass:** `python -m py_compile` over each of the four blocks, from
+  disposable scratch outside the repository test tree. **All four compile.**
+- **Intended red, each on its own criterion:**
 
   | Block | Placement | Red on |
   | --- | --- | --- |
@@ -110,12 +121,20 @@ that re-run, against the tree `visual-target-field` left.
   T4's 14 agrees with the extent § *The mechanism* records. That agreement is
   the point of running it: a red count disagreeing with the measured migration
   is measuring something else.
-- **T4's second test passes**, reaching 12 non-Markdown carriers against its
-  floor of 12. The guard excludes its own module from the count: that module's
-  docstring says "visual target" and sits under a swept root, so without the
-  exclusion the sweep would reach 13 the moment the file lands and the floor
-  would absorb the loss of one genuine carrier. It is the guard against a sweep that finds nothing, and it must
-  pass while the property reds.
+- **T4's guard passes, and the self-exclusion is measured both ways.** With
+  both new roster modules present in the tree, the sweep reaches **13**
+  non-Markdown carriers unexcluded and **12** with the enforcing module
+  excluded from its own count. The floor is 12. Without the exclusion the guard
+  would absorb the loss of one genuine carrier; this is the measurement that
+  establishes it, taken with the module actually on disk rather than reasoned
+  about.
+- **Cross-contract check.** T7's block appended to the module the predecessor
+  leaves `_unique_paragraph` in, then `ruff check --select F811` over the
+  result: **All checks passed.** T7 reuses the helper rather than redefining
+  it; a second definition would fire F811 under T6's `make lint-ruff` gate.
+- **Isolation:** local, filesystem-confined to the repository and disposable
+  scratch, no network. Each block was removed after its run and the tree
+  confirmed clean, showing only the two spec documents modified.
 - **The relocation is a read of the lint's rule, not a verified run.** Stated
   that way deliberately. `tools/lint-pack-test-boundary.py:92-93` walks `packs/`
   only and `case_pack_tests_stay_in_pack` iterates pack inventories, so no run
@@ -126,15 +145,7 @@ that re-run, against the tree `visual-target-field` left.
   What the rule does establish is the original placement's refusal: check 8
   rejects a pack test resolving a path above its own pack, which both
   `parents[5]` and `REPO_ROOT / root` do, and its own remediation text at
-  `tools/lint-pack-test-boundary.py:1217` names the destinations.
-- **Isolation:** local, filesystem-confined to the repository and disposable
-  scratch, no network. Each block was removed and the tree confirmed clean
-  (`git status --porcelain` showing only the two spec files) after every run.
-- **Cross-contract check.** T7's block was appended to the module the
-  predecessor leaves `_unique_paragraph` in, and `ruff check --select F811` over
-  the result is clean. That is the check that matters: T7 reuses the helper
-  rather than redefining it, and a second definition would fire F811 under T6's
-  `make lint-ruff` gate. Verified again on the re-run.
+  `tools/lint-pack-test-boundary.py:1215-1218` names the destinations.
 
 **What is still owed, and is not evidence yet.** T4's mutation check — a
 *newly introduced* violation must red the property, and the property must green
@@ -235,6 +246,11 @@ interactive maintainer path, and the root rule governs here.
   `visual_target: confirmed`. Verifies AC-0001.
 - Contract test: the file carries none of the three upstream identifiers.
   Verifies AC-0002.
+- **Rewrite, not add:** `test_the_top_rung_requires_a_recorded_confirmation`
+  (`test_visual_authority_precedence.py:75-79`) asserts the superseded
+  condition by equality and reds on AC-0001's edit. T2 rewrites it to the new
+  condition in the same change. Leaving it reds T2's own closure; deleting it
+  without replacement drops the only equality check on that cell.
 - Contract test: `SKILL.md`'s rung-requirement sentence carries the literal.
   Verifies AC-0003.
 
@@ -285,10 +301,13 @@ walks the loci it names.
   `notes/verification-ledger.md`, not an assertion. Naming two loci a
   measurement found is not the forbidden closed surface set — the property
   still computes its own scope, and these are its measured complement.
-- Contract test: each of the twelve non-Markdown carriers names the field where
-  it asserts the rung's precondition, checked over parsed structure — the eval
-  payloads' `assertions` entries and the test modules' rung constants.
-  Verifies AC-0011's per-pack half; T4 carries its guard half.
+- Contract test: each non-Markdown carrier **that asserts the rung's
+  precondition** names the field where it does so, checked over parsed
+  structure — the eval payloads' `assertions` entries and the test modules'
+  assertions, not their rung-name constants, which limit 1 holds are names and
+  not claims. Verifies AC-0011's per-carrier half; T4 carries its guard half.
+  The sweep reaches twelve non-Markdown carriers; how many are subjects is
+  decided by walking them, not by a count carried in the contract.
 
 **Approach:**
 - The measured migration is **14 sentences across 12 Markdown files**, plus
@@ -328,7 +347,7 @@ owns outright. Those three carry both a migration and a gate, and splitting
 them across two tasks is how the AC-0006 interaction goes unnoticed; T7 does
 both edits in one place.
 
-**Done when:** `python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -q` is green, and the verification ledger records the two AC-0005 observations and the run-on locus cost.
+**Done when:** `python3 -m pytest tests/roster/test_visual_target_exclusive_property.py -q` is green; `python3 -m pytest packs/frontend-engineering/tests/skills/frontend-engineering packs/experience-design/tests -q` is green, which is what runs the AC-0011 per-carrier assertions T3 writes and the only closure predicate in this plan that reaches `packs/experience-design/tests/skills/design-system/`; and the verification ledger records the two AC-0005 observations and the run-on locus cost.
 
 ### T4: The exclusive property is enforced, and proved able to fail
 
@@ -582,11 +601,24 @@ def test_the_superseded_rung_condition_rule_is_annotated() -> None:
 
 **Touches:** .github/workflows/build-check.yml, tools/lint-ci-parity.py, .workspace-prune-protected.toml
 
-**Done when:** `python3 tools/lint-ci-parity.py --root .` exits 0;
-`python3 -m pytest tests/roster/test_two_sided_prune_closure_invariant.py -q`
-is green, which is what re-derives `.workspace-prune-protected.toml` from the
-roster tests' literal spec paths — `lint-ci-parity.py` contains no occurrence of
-`prune` and does not check it; and `ruff check .` is clean.
+**Done when:** all four hold.
+1. **The named step exists, above the bulk step.** Nothing in the repository
+   checks this, so T8 checks it: for each of the two modules, confirm
+   `.github/workflows/build-check.yml` contains a step whose `run:` names that
+   file, and that its line number is **below** the line of the
+   `pytest catalogue-test carve-out destinations` step's predecessor bulk
+   `pytest tests/ -q` — that is, placed above it in the file. Record the two
+   line numbers in the verification ledger.
+2. `python3 tools/lint-ci-parity.py --root .` exits 0. This catches a
+   disposition missing from either axis **for a step that exists**, which is
+   why obligation 1 is checked separately: `tools/test_build_gate_chain.py:283-285`
+   states that deleting a step together with its `STEP_DISPOSITION` row passes
+   the parity gate in both directions.
+3. `python3 -m pytest tests/roster/test_two_sided_prune_closure_invariant.py -q`
+   is green. This re-derives `.workspace-prune-protected.toml` from the roster
+   tests' literal spec paths; `lint-ci-parity.py` contains no occurrence of
+   `prune` and does not check it.
+4. `ruff check .` is clean.
 
 ### T7: The producing surfaces are gated on a confirmed target
 
@@ -711,6 +743,38 @@ def test_producing_surfaces_are_gated_on_confirmation() -> None:
 
 ## Changelog
 
+- 2026-10-02 (round 3): Revised from six sustained findings. The headline one
+  is **not** a defect in any repair: `test_visual_authority_precedence.py:75-79`
+  pins the rung's Requires cell by equality to `recorded-human-confirmation`,
+  so T2's AC-0001 edit — the contract's central change — reds a shipped
+  assertion, while T2 closes on that suite being green. Three rounds of review
+  passed over it. T2 now owns rewriting that assertion, and Constraints records
+  the pin beside the ones it already named.
+  **One round-2 cut went too far and is repaired.** AC-0015 was deleted on the
+  premise that two repository gates already enforce the roster registrations.
+  Measured: `test_two_sided_prune_closure_invariant.py` enforces the prune
+  entry, `lint-ci-parity.py` enforces the disposition **only for a step that
+  already exists**, and `tools/test_build_gate_chain.py:283-285` says outright
+  that deleting a step with its row passes the parity gate both ways. Nothing
+  requires the named build-check step to exist. The criterion is not restored —
+  what was missing was a closure predicate, not a criterion — so T8 now closes
+  on four conditions, the first of which checks the step's presence and
+  placement by line number and records it.
+  **AC-0011 stops carrying a count.** Three drafts enumerated its subject set by
+  hand and all three were wrong: twelve, then nine, and the nine included two
+  modules carrying only a rung-name tuple — the exact shape used to exclude
+  three others. The criterion now states the property and no number. The
+  mechanical count the guard watches is the only figure it relies on. Limit 2
+  stops claiming universal pack-suite coverage, which was false for the three
+  roster-resident carriers.
+  **AC-0011's per-carrier half now has a closure predicate.** T3's `Done when`
+  runs both packs' suites, and is the only predicate in this plan that reaches
+  `packs/experience-design/tests/skills/design-system/`.
+  **The Stub validation record is re-run rather than patched**, for the second
+  time. It reported 12 non-Markdown carriers while attesting a run whose code
+  had no self-exclusion and would have reached 13. Every figure in it is now
+  from one run against the blocks as they stand, including both sides of the
+  self-exclusion measured with the modules on disk: 13 unexcluded, 12 excluded.
 - 2026-10-02 (round 2): Revised from eight sustained findings, seven of which
   were defects in round 1's own repair. **This revision cuts; round 1's added.**
   Round 1 answered its findings by adding a task and a criterion, and round 2

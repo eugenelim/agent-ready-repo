@@ -41,13 +41,18 @@ advance keeps it gone.
 - AC-0008's assertion moves to `tests/roster/` for the same reason — it reads a
   path under `docs/` — and, because it names a `docs/specs/<slug>` literal, owes
   a `.workspace-prune-protected.toml` entry that the property test does not.
-  Both modules' CI registration is T8's work, gated by the repository's own
-  `tools/lint-ci-parity.py` and
-  `tests/roster/test_two_sided_prune_closure_invariant.py`. **This contract
-  states no acceptance criterion for it**: restating an obligation two
-  repository gates already enforce adds something to verify without adding
-  verification, and the criterion that did so shipped without a Testing
-  Strategy entry of its own.
+  Both modules' CI registration is T8's work. **Two of its three obligations
+  are gated and one is not**, and the difference is measured rather than
+  assumed. `tests/roster/test_two_sided_prune_closure_invariant.py` enforces the
+  prune entry unconditionally. `tools/lint-ci-parity.py` enforces the
+  `STEP_DISPOSITION` entry only for a step that already exists — it demands "one
+  entry per step", so a step and its row deleted together pass in both
+  directions, as `tools/test_build_gate_chain.py:283-285` states outright.
+  **Nothing in the repository requires the named build-check step to exist at
+  all.** T8 therefore carries its own check for that one obligation; see its
+  `Done when`. This contract still states no acceptance criterion for the
+  registration, because a task with a closure predicate that detects the gap is
+  what was missing, not a criterion restating the obligation.
 - `converge`, `visualize` and `creative-direction`'s output contract are gated
   on a confirmed target — the three obligations `visual-target-field` retired
   on 2026-09-30 and handed here, because the first of them moves this very
@@ -128,9 +133,12 @@ here so a review round does not have to rediscover them.
 2. *Sentence segmentation is meaningless outside prose.* In JSON and Python a
    whole file is one "sentence", so the property would demand the field inside
    eval payloads and module docstrings. The property therefore covers Markdown
-   carriers. The twelve non-Markdown carriers are covered by their own packs'
-   suites, which assert over parsed structure rather than over sentences —
-   AC-0011 holds them to that.
+   carriers. The non-Markdown carriers are reached by the sweep but excluded
+   from the property; those among them that assert the rung's precondition are
+   covered by the suite that owns each, over parsed structure rather than over
+   sentences — AC-0011 holds them to that. Not every non-Markdown carrier is
+   such an assertion, and three of them sit in `tests/roster/` with no owning
+   pack, so this limit claims no universal pack-suite coverage.
 3. *Segmentation is unreliable inside Markdown too, and the property accepts
    that cost.* A table and an HTML comment block carry no terminal period, so
    whitespace normalization collapses each into one "sentence" that joins
@@ -249,10 +257,10 @@ Retention class: repository-durable.
   names, with the anchor's uniqueness in that file asserted rather than
   assumed. A period-delimited span of normalized text is not a bounded unit:
   adjacent structure carrying no terminal period joins it silently.
-- **TDD — the non-Markdown carriers are covered (AC-0011).** Each pack's own
-  suite asserts over parsed structure, for the nine carriers that assert the
-  rung's precondition; the three roster-resident carriers are not subjects and
-  the criterion says why. One construction test guards the
+- **TDD — the non-Markdown carriers are covered (AC-0011).** The suite that
+  owns each carrier asserts over parsed structure, for those carriers that
+  assert the rung's precondition. The criterion states no count and the reason
+  is in it. One construction test guards the
   **non-Markdown** count against silent shrinkage. It must count that subset
   rather than the whole swept set — an aggregate floor stays green while every
   non-Markdown carrier disappears and Markdown ones replace it.
@@ -320,20 +328,20 @@ Retention class: repository-durable.
   both exclusions: a carrier stating the condition with no cue from that set is
   outside the property, and so is one whose only cue came from a stripped name.
 - [ ] **AC-0011.** Every non-Markdown carrier **that asserts the rung's
-  precondition** names the field where it does so, verified by its own pack's
-  suite over parsed structure rather than by the sentence property. Measured
-  2026-10-02 the sweep reaches twelve non-Markdown carriers and **nine are
-  subjects** — four eval payloads and five pack-resident test modules. The
-  three in `tests/roster/` are not, and the reason is stated rather than
-  assumed: `test_frontend_visual_authority_adopter_prose.py:226` carries only
-  the rung-order tuple, which limit 1 already holds is a name and not a claim
-  about the rung; `test_visual_target_guide_excerpt.py` and
-  `test_visual_target_release_surface.py` are `visual-target-field`'s own field
-  tests, which already contain the literal `visual_target` and assert nothing
-  about the rung's precondition. A carrier with no owning pack suite is
-  therefore not left without an artifact — it is not a subject.
+  precondition** names the field where it does so, verified by the suite that
+  owns it over parsed structure rather than by the sentence property.
+  **This criterion states no count, deliberately.** Three successive drafts
+  enumerated the subject set by hand and each was wrong: first all twelve
+  carriers the sweep reaches, then nine, and the nine included two modules
+  carrying only a rung-name tuple — the same shape the draft used to exclude
+  three others. A carrier that merely names a rung is not asserting the
+  precondition, limit 1 already says so, and no hand count of that distinction
+  has survived a review round. The property is what holds; T3 walks the
+  measured carrier set and applies it. A carrier with no owning suite is not
+  thereby unowned — it is not a subject.
   A second construction test asserts that the count of non-Markdown carriers
-  the sweep reaches has not silently fallen.
+  the sweep reaches has not silently fallen. That count is mechanical and is
+  the only number this criterion relies on.
 - [ ] **AC-0012.** In `packs/experience-design/.apm/skills/creative-direction/references/converge.md`,
   the paragraph block containing the literal `write the selected direction's
   compositional commitments` also contains the literal `visual_target:
