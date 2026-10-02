@@ -149,7 +149,7 @@ Resolve authority from the highest rung that supplies it. A lower rung never
 overrides a higher one, and a rung silent on an axis hands that axis down.
 
 1. **`approved-visual-target`** — the direction artifact step 0 read, when it
-   records a human-confirmed composition. Binds composition only: arrangement,
+   carries `visual_target: confirmed`. Binds composition only: arrangement,
    proportion, spatial relationships. It supplies no colour, type, spacing or
    motion values, so those always come from a lower rung.
 2. **`direction-and-taxonomy`** — that artifact's aesthetic goals, axis

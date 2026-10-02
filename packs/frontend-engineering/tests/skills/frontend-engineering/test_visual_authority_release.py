@@ -81,13 +81,14 @@ def test_the_pack_pins_the_shipped_version() -> None:
     `test_pack_and_plugin_versions_match[frontend-engineering]` in the
     conformance suite; repeating it here would give one property two homes.
 
-    Moved from 0.3.5 to 0.4.0 when the design-to-build handoff release landed.
+    Moved from 0.4.0 to 0.4.1 when the visual-target rung precondition
+    delivery landed.
     This file owns the frontend visual-authority release surface, so its pin
     moves with that release and not with unrelated pack metadata churn.
     """
     version = _pack()["pack"]["version"]
-    assert version == "0.4.0", (
-        f"pack.toml carries {version!r}, not the 0.4.0 T7 release ships at. A "
+    assert version == "0.4.1", (
+        f"pack.toml carries {version!r}, not the 0.4.1 this delivery ships at. A "
         f"later delivery moves this pin with its own bump; it is not a value "
         f"to change on its own."
     )

@@ -70,6 +70,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added paired `new-spec` behavior evaluations for a shared repository substrate and an isolated private refactor, plus a `work-loop` case that rejects feature-only evidence for accepted preservation properties. The cases measure future authoring and completion behavior without making optional repository-grounding tools mandatory.
 
+## [frontend-engineering][0.4.1] — 2026-10-02
+
+### Highlights
+
+- The `approved-visual-target` rung now resolves only when the direction artifact carries `visual_target: confirmed`. An approved target whose confirmation was never recorded no longer satisfies the rung; the distinction is in the artifact, not in a reviewer's memory.
+
+## [experience-design][4.1.3] — 2026-10-02
+
+### Highlights
+
+- A visual target now binds composition only once a person confirms it and `converge` records `visual_target: confirmed` in the direction artifact. An unconfirmed target is still captured — `converge` records it as `visual_target: unconfirmed` — it just does not bind, and the rung that reads the field is downstream in `frontend-engineering`.
+
 ## [core][2.27.11] — 2026-10-01
 
 ### Highlights

@@ -35,7 +35,7 @@
       "assertions": [
         "Derives reusable relationships — relative scale, density, hierarchy, containment, depth, spacing character — rather than describing the image",
         "Reports no value as measured from the target and claims no measurement it did not perform",
-        "Treats the target as binding on composition and relationships only, taking every value from a lower rung",
+        "Treats the `visual_target: confirmed` target as binding on composition and relationships only, taking every value from a lower rung",
         "Where a relationship cannot be inferred, makes a coherent choice from the direction and labels it as such"
       ]
     },
