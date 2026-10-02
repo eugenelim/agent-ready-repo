@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "CODE-IMPLEMENTATION, sequence 13, waves 0-2 complete, property GREEN, wave 3 (T8) next",
+              "normal_loop_state": "CODE-IMPLEMENTATION, sequence 15, waves 0-3 complete, wave 4 (T6, final) next",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1406,6 +1406,19 @@
                 "returned_subagent_tokens": 74884,
                 "wall_time_seconds": 1719.73,
                 "wall_time_note": "the longest start of the case by a wide margin, at 92 tool uses",
+                "attribution": "normal-loop implementer work, observed rather than study-added"
+              },
+              "execute_wave_3_t8": {
+                "task": "T8 — register both roster modules in CI. The task where passing every gate does not mean the work was done.",
+                "commit": "13e3b7aa9",
+                "why_this_task_is_different": "Of its three obligations, two are gated and one is not. tools/test_build_gate_chain.py:283-285 states that deleting a step together with its STEP_DISPOSITION row passes the parity gate in both directions, so skipping the named build-check step leaves every gate green and the obligation silently dropped. This is the gap the controller's round-2 cut of AC-0015 created and round 3 caught. The repair was a closure predicate that can detect it, not a restored criterion.",
+                "all_four_conditions_verified": "Condition 1 checked hardest because nothing gates it: both named steps sit at build-check.yml lines 692 and 702, above the only executable bulk `pytest tests/ -q` at line 711, each carrying the standard roster guard. Condition 2: both axes of lint-ci-parity.py carry both step names - _LOCAL_STEP_DISPOSITION at 669 and 671, _GATE_MAIN_CHECKS at 971 and 972. Condition 3: the prune entry for docs/specs/frontend-visual-authority at .workspace-prune-protected.toml:60, for T5's module only. Condition 4: ruff check . exit 0.",
+                "gates": "lint-ci-parity exit 0 across 125 targets and 131 roster keys; test_two_sided_prune_closure_invariant 47 passed exit 0; ruff check . exit 0; make lint-ruff lint-mypy exit 0; tools/test_build_gate_chain.py 40 passed exit 0 - run deliberately because it is the module that owns the claim that nothing pins the step.",
+                "report_quality_improved": "T8's report carried exit codes for every gate, line numbers for both steps and all four disposition entries, and the placement arithmetic. The controller had asked for exactly that and named the previous task's omission as the reason. This is the first implementer report in the case that did not require the controller to re-derive what it claimed - although the controller re-derived it anyway.",
+                "controller_error_caught_by_its_own_check": "The controller's first placement check scripted a search for `pytest tests/ -q` across build-check.yml and concluded the steps were NOT above the bulk run. That was wrong: sixteen of the seventeen matches are comment lines explaining placement, and the only executable run is line 711. The check counted comment mentions as bulk runs. Re-derived with comment lines excluded and the placement is correct. This is the sixth instance in this case of the controller's own failure mode - a search whose scope was not checked before a conclusion was drawn - and the first to produce a false negative against correct work rather than a false claim about the controller's own. It is recorded for the same reason as the other five.",
+                "starts": 1,
+                "returned_subagent_tokens": 71826,
+                "wall_time_seconds": 473.573,
                 "attribution": "normal-loop implementer work, observed rather than study-added"
               },
               "spec_gate_2026_10_02": {
