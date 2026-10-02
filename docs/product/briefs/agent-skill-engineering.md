@@ -32,9 +32,10 @@ portable doctrine.
   contracts, while execution-economics topics cover local scripts, pack-level tests,
   skill/evaluation CI, multiple worktrees, state locks, shared hosts, and machine-load
   detection.
-- Retrieval-dated profiles exist for Claude Code, Codex, GitHub Copilot, Cursor, Kiro
-  IDE, Kiro CLI, Gemini CLI, and Google Antigravity. Every operative capability claim
-  has a first-party source and a current verification record.
+- A retrieval-dated Claude Code reference profile exists. Every operative capability
+  claim has a first-party source and a current verification record, and the shipped
+  four-state lifecycle and three-value roll-up remain the admission mechanism for
+  later profiles contributed as open extensions.
 - Subagent, hook, and plugin guidance separates a portable capability floor from
   runtime-specific composition and degradation behavior.
 - Work-loop and architect-design can invoke the installed provider when appropriate;
@@ -68,8 +69,9 @@ portable doctrine.
   state-lock, shared-host, and machine-load boundaries.
 - Runtime-neutral security, untrusted-input handling, least authority, authentication
   isolation, and bounded tool execution.
-- Portable capability floors and runtime profiles for subagents, hooks, skills,
-  plugins, and agent/plugin packaging across the eight named enterprise runtimes.
+- Portable capability floors and a retrieval-dated Claude Code reference profile for
+  subagents, hooks, skills, plugins, and agent/plugin packaging, with the shipped
+  lifecycle and roll-up mechanism available to later open-extension profiles.
 - Optional integrations for work-loop and architect-design, with an explicit path for
   additional knowledge consumers.
 - Self-host installation, guide migration, guidance reduction, backlog disposition,
@@ -164,8 +166,9 @@ describes the target state but remains `PLANNED` until M5 verifies every section
 
 ## Shipped so far
 
-Seven of the eleven slice rows below are delivered; the `Spec map` carries each
-one's status, derived from its linked spec rather than maintained here.
+Eight of the twelve committed delivery slices below are delivered. The `Spec
+map` carries the seven spec-backed slices; slice 0 is the delivered governance
+and compiler-prerequisite slice and has no child delivery spec.
 
 | Slice | Delivered |
 | --- | --- |
@@ -174,17 +177,14 @@ one's status, derived from its linked spec rather than maintained here.
 | 2a — corpus and skill patterns | Census-backed pattern topics, governed corpus admission, topology accounting, the retrieval baseline, and the `knowledge-provider` authoring mode. |
 | 2b — languages and execution economics | Python/pytest and TypeScript/Node depth for skill scripts, evaluations and pack verification, plus execution-economics topics for local runs, CI, worktrees, locks, shared hosts and load detection. |
 | 3a — composition floors and pilot profile | The three portable composition floors (skills-plus-subagents, hooks, plugin package), the runtime capability-claim ledger, and the retrieval-dated Claude Code pilot profile — three probed capabilities and four sourced-but-unprobed. |
-| 4 — consumer integrations | `work-loop` and `architect-design` each reach the installed provider through a bounded step that inlines its own request, addressed by contract version because ADR-0097 forbids a consumer naming a generated router. The seam's seven-value diagnostic vocabulary reaches an installed surface, both packs declare the seam, and `catalogue-authoring-standards.md` § 11 carries the obligation for the next consumer. |
+| 3c — subagent and plugin concepts | The portable worker-context, delegation-boundary and Agent Plugins v1 core concepts, taught in the vocabulary used by Claude agent and skill authors, with other runtime profiles retired to open extension. |
 | 3e — composition behavior fixtures | The subagent-composition and hook/plugin-design behavior fixtures, each seeding defects a shipped composition floor governs and each graded blind against a retained transcript. With these two, every representative task fixture RFC-0097's Gate 2 M2 expanded measure names carries a recorded result. |
+| 4 — consumer integrations | `work-loop` and `architect-design` each reach the installed provider through a bounded step that inlines its own request, addressed by contract version because ADR-0097 forbids a consumer naming a generated router. The seam's seven-value diagnostic vocabulary reaches an installed surface, both packs declare the seam, and `catalogue-authoring-standards.md` § 11 carries the obligation for the next consumer. |
 
 Slice 3b is discarded rather than shipped; its row below is the canonical record
-and states where each of its four residuals went.
-
-**Not yet started.** Slices 3c, 3d, 5 and 6 exist only as rows in the table
-below. None has a spec, a plan, an intent, or a `workspace.toml` work entry, and
-`["ini-009".work].queue` is empty by the rule in *Derived work* — a confirmed
-slice is a decomposition target, not permission to dispatch. **3c is
-unblocked**, since its only hard predecessor is shipped slice 3a.
+and states where each of its four residuals went. Four committed slices remain:
+3c-r, 3d, 5 and 6. Their on-disk materialization state, current gating and
+pre-spec evidence are recorded below.
 
 ## Confirmed delivery slices
 
@@ -192,7 +192,7 @@ The accepted RFC confirms this dependency-ordered cut. Sub-cuts within a confirm
 `new-spec`, back-links this brief, and remains non-dispatchable until its canonical spec
 and plan are approved and registered under `ini-009`.
 
-| Slice | Ships | Hard predecessor |
+| Slice | Ships | Dependency rule |
 | --- | --- | --- |
 | 0 — governance and compiler prerequisites | Provider-mediated knowledge ADR; resolution of the two named OKF compiler guard prerequisites; approved delivery contracts | — |
 | 1 — foundation | Portable pack; `frame`, `create`, and `update` modes; review/optimize workflow; secure deterministic router; foundational corpus and evaluations | Slice 0 |
@@ -200,7 +200,7 @@ and plan are approved and registered under `ini-009`.
 | 2b — languages and execution economics | Python/pytest and TypeScript/Node depth; CI, worktree, sandbox, lock, shared-host, and load-management practice | Slice 2a |
 | runtime-package — deferred capability | `runtime-package` remains unavailable until its package-lifecycle claims and runtime-profile gates are complete. Delivered by slice 3d. | RFC-0097 D1, M2 availability rule |
 | 3a — composition floors and pilot profile | Portable skills-plus-subagents, hooks, and plugin-package floors; the runtime capability-claim ledger with its four lifecycle states and profile roll-up; and a retrieval-dated Claude Code pilot profile | Slices 1–2 |
-| 3b — runtime profiles | **Discarded 2026-09-01**, drafted and reviewed clean across five rounds but not shipped, against a D3 charter then under correction (RFC-0097 § Errata, 2026-09-01). Its four residuals are re-homed with none orphaned, so each Follow-on that names this row resolves here: the seven remaining runtime profiles **and** the router's per-claim state and roll-up reporting with its provider response-contract change → **slice 3c**; the subagent-composition and hook/plugin-design behavior fixtures → **slice 3e**; the `runtime-package` mode and its corpus leaf → **slice 3d**. Those rows state the full scope of each. **This row is retained, not deleted:** the frozen `agent-skill-engineering-composition-floors` spec's ticked AC26 and its four Follow-ons resolve through it. | Slice 3a |
+| 3b — runtime profiles | **Discarded 2026-09-01**, drafted and reviewed clean across five rounds but not shipped, against a D3 charter then under correction (RFC-0097 § Errata, 2026-09-01). Its four residuals are re-homed with none orphaned, so each Follow-on that names this row resolves here: the seven remaining runtime profiles → **open extension**, not a committed slice; the router's per-claim state and roll-up reporting with its provider response-contract change → **slice 3c-r**; the subagent-composition and hook/plugin-design behavior fixtures → **slice 3e**; the `runtime-package` mode and its corpus leaf → **slice 3d**. Those rows state the full scope of each. **This row is retained, not deleted:** the frozen `agent-skill-engineering-composition-floors` spec's ticked AC26 and its four Follow-ons resolve through it. | Slice 3a |
 | 3c — subagent and plugin concepts in the authored vocabulary | The portable concepts a skill author actually needs: isolated context and what does **not** cross back out of a worker, delegation and worker boundaries, and the standardised plugin core the specification already fixes — root manifest, confinement, versioning, component failure isolation. Taught in the vocabulary this audience writes, Claude agents and Claude skills. Runtime divergence is stated as a bounded caveat where it changes an authoring decision, not as a per-vendor matrix. | Slice 3a |
 | 3c-r — claim-state reporting for the shipped ledger | The router's per-claim state and roll-up reporting, and the provider response-contract change it needs, scoped to the ledger slice 3a shipped rather than to eight profiles. **Retained deliberately:** the frozen composition-floors spec's `Contract:` field assigns this obligation to "the slice that completes the eight profiles", a phrase the de-scope below orphans, so this row is where that Follow-on now resolves. | Slice 3c |
 | runtime profiles beyond Claude Code — open extension, not a committed slice | The profile mechanism, four lifecycle states and roll-up that slice 3a shipped stay in place, so a later contributor can add a runtime profile without a charter change. Per-runtime compatibility stays **AgentBundle's** adapter concern, where it is already measured and tested under `packages/agentbundle/agentbundle/build/adapters/`. Duplicating it as eight maintained corpus profiles is the over-scope this row retires. | — |
@@ -208,7 +208,118 @@ and plan are approved and registered under `ini-009`.
 | 3e — composition behavior fixtures | The subagent-composition and hook/plugin-design behavior fixtures RFC-0097's Gate 2 M2 measure names | Slice 3a |
 | 4 — consumer integrations | Optional work-loop and architect-design invocation, explicit provider contract, clean absence behavior, and extension path for other loops | Slices 1 and 3a |
 | 5 — self-host and footprint adaptation | Repository self-host install; author/maintainer-guide updates; skill/pack creation journey changes; measured collapse of duplicated guidance, tooling rationale, and catalogue-curation footprint | Slice 4 (shipped) and slice 3c — guidance is not collapsed before the concepts that replace it exist |
-| 6 — pilot and closeout | External non-AgentBundle portability pilot; backlog disposition; maintenance ownership; freshness policy; architecture verification and `CURRENT` promotion | Slices 5, 3d, and 3e — closeout asserts M2 complete and promotes the architecture to `CURRENT`, which requires the `runtime-package` mode and the composition behavior fixtures to exist |
+| 6 — pilot and closeout | External non-AgentBundle portability pilot; backlog disposition; maintenance ownership; freshness policy; architecture verification and `CURRENT` promotion | Slices 3c-r, 3d, 3e, and 5 — closeout asserts M2 complete and promotes the architecture to `CURRENT`, which requires claim-state reporting, the `runtime-package` mode, the composition behavior fixtures, and the footprint adaptation to exist |
+
+## Open slices and pre-spec evidence
+
+The focused filesystem probe on 2026-10-01 checked every
+`docs/specs/agent-skill-engineering-*` directory and every `spec.md` carrying
+the `brief:agent-skill-engineering` back-link. No spec, plan, or
+`["ini-009".work]` registration exists for any open slice. The table is the
+current materialization and gating record: a ready row is ready for `new-spec`
+authoring only, and slice 6 is not ready to author until its predecessor and
+owner-input gates are true.
+
+| Slice | Gating | `spec.md` on disk | `plan.md` on disk | Next action |
+| --- | --- | --- | --- | --- |
+| 3c-r — claim-state reporting | Ready to materialize: predecessor `3c` is satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan, then register the spec under `ini-009` |
+| 3d — `runtime-package` mode | Ready to materialize: predecessor `3c` is satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan, then register the spec under `ini-009` |
+| 5 — self-host and footprint adaptation | Ready to materialize: predecessors `4` and `3c` are satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan; freeze the Gate 4 baseline before changing a route |
+| 6 — pilot and closeout | Not ready to author: predecessors `3c-r`, `3d` and `5` still need shipped child evidence; predecessor `3e` is satisfied by the Spec map | Absent | Absent | Owner-select the admitted pilot candidate and obtain the outstanding architect-owner review while predecessors deliver; materialize the slice only when its implementation inputs are explicit |
+
+### 3c-r probe — the missing response channel is bounded
+
+The shipped ledger already has a pure, tested resolver for the four claim
+states and three profile roll-ups. The missing surface is the provider
+response. Its exact v1 validator permits only `profile`, `retrieved_at` and
+`verified_at` in each `profile_provenance` item, and it requires every non-`ok`
+response to carry no `topic_ids` or `guidance`. The fixture named
+`stale-profile` currently exercises a **provider contract-version mismatch**;
+it does not exercise a selected stale capability claim.
+
+The spec must settle whether this is an additive v1 response change or a new
+contract version; the claim identifier, claim state and profile roll-up field
+shape; the identifiers-and-provenance-only response for a stale selected claim;
+and the consumer compatibility cases. It must not restore the seven retired
+runtime profiles.
+
+### 3d probe — the mode and its evidence are both absent
+
+`runtime-package` is still an explicit `unavailable` case in the author
+workflow, and `compatibility-and-runtime-package-patterns` remains in the
+compiled declared-absent register. The Claude Code ledger has seven current
+composition rows but no complete package-lifecycle set for scope and
+precedence, namespace and collision behavior, provenance or integrity,
+install/update/disable/uninstall recovery, managed policy, and
+authentication/secret handling. Its evidence was retrieved on 2026-08-31, so
+on this probe date it is 31 days old and remains inside the declared 90-day
+window.
+
+The spec must define the mode's user-visible result, the exact Claude Code
+package-lifecycle rows and probes, the topic-admission evidence, the activation
+and behavior fixtures, the removal of the unavailable-mode case, and whether
+any part of the mode consumes the 3c-r response rather than the ledger directly.
+
+### Slice 5 probe — routing prerequisites are visible, parity evidence is not
+
+The three pack skills are not present in either repository self-host projection,
+`guides/agent-skill-engineering/` does not exist, the guide-index check passes
+only because `agent-skill-engineering` remains in `GUIDE_OPTIONAL_PACKS`, and the
+site still points at `/docs/guides/`. The Draft
+[`agent-skill-engineering-guide-slice`](../intents/agent-skill-engineering-guide-slice.md)
+already owns the dedicated guide, guide-index link, exemption removal and
+`docsUrl` change; slice 5 should absorb or cite it rather than create a second
+owner.
+
+No Gate 4 baseline or cold-agent fixture artifact was found outside RFC-0097's
+requirements. The spec must therefore record the fixed six-fixture baseline
+before any routing edit, including correctness checklists, files and bytes
+loaded, always-loaded line counts and predeclared severities; name the exact
+self-host inclusion change and rollback; and separate per-surface routing from
+the repository-wide comparison and collapse gate.
+
+### Slice 6 probe — pilot selection and one owner review remain
+
+A candidate has passed admission, but no owner selection has been recorded;
+RFC-0097 leaves that choice with the INI-009 owner. The architecture remains
+`PLANNED`. Of the thirteen legacy backlog identifiers in RFC-0097 D7, four are
+closed with durable evidence and their review state recorded in the initiative:
+the two slice-0 compiler prerequisites closed without a separate pre-move owner
+sign-off, plus `security-checklists-okf-router-regression` and
+`pre-existing-skill-spec-lint-warnings` closed with maintainer review. Eight
+resolve through seven Draft intent artifacts. The architect licence defect is
+fixed, but its owner review remains outstanding.
+
+**Admission probe, 2026-10-01.** The candidate is
+[`mthines/agent-skills`](https://github.com/mthines/agent-skills) at commit
+`037498a077d8dae488ac0b00787a60fe69cfd499`. The probe inspected the Git tree,
+MIT licence, root package manifest, all tracked skill paths, and the
+`skills/authoring/create-skill` workflow, portable template, repository rules
+and `validate-skill.mjs` helper. It did not execute downloaded code. The pinned
+tree has 54 `SKILL.md` files, no tracked symlinks, no `AgentBundle` occurrence,
+and nine skill-local `.mjs` helpers across five skill areas. The selected helper
+is a zero-dependency Node 20 ESM validator: ordinary validation reads the target
+and reports findings; only its separately invoked self-test creates and removes
+fixtures under the operating-system temporary directory. No child-process or
+network import was found.
+
+**Verdict: admit with a bounded pilot route.** Use `create-skill`'s read-only
+`review` mode against its explicit portable profile and keep its default
+scaffold wiring out of scope. That default path updates this external
+repository's `CLAUDE.md` and `README.md` inventories and manages a
+`~/.claude/skills` → `~/.agents/skills` symlink chain, so treating it as portable
+would invalidate the pilot. Slice 6 still needs the owner to select this admitted
+candidate, pin the review fixture and expected findings, authorize any later
+execution of the native validator in an isolated disposable copy, and define the
+before/after retrieval and task-success measurements.
+
+The eventual slice must record the owner's pilot selection, refresh the seven
+Draft intents' current lifecycle states, obtain or explicitly disposition the
+outstanding architect-owner review, publish the maintenance and profile-freshness
+procedure, make the final M2 gate verdict, and record the verifying commit when
+it promotes the architecture to `CURRENT` and closes the initiative. Do not write
+the slice 6 spec until those owner inputs and predecessor delivery evidence
+exist.
 
 ## The runtime-profile de-scope, and what it needs
 
@@ -313,6 +424,7 @@ promotes and approves them.
 | `agent-skill-engineering-composition-floors` | Shipped |
 | `agent-skill-engineering-consumer-integrations` | Shipped |
 | `agent-skill-engineering-composition-fixtures` | Shipped |
+| `agent-skill-engineering-subagent-and-plugin-concepts` | Shipped |
 
 ## Backlog and prerequisites
 
@@ -338,5 +450,5 @@ in [INI-009](../initiatives/ini-009-agent-skill-engineering.md).
 2. Scaffold and approve the foundation spec and plan.
 3. Materialize each later slice only when its hard predecessor and evidence inputs are
    explicit; register approved specs in `workspace.toml` through `work-intake`.
-4. Keep `ini-009.work.queue` empty until an approved spec exists. A Ready brief is a
-   decomposition target, not permission to dispatch implementation.
+4. Keep `ini-009.work.queue` empty until an approved spec exists. This brief is a
+   coordination artifact, not permission to dispatch implementation.
