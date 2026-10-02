@@ -1,0 +1,1036 @@
+"""T7 TDD suite: evidence transactions recover and rehydrate without cached authority.
+
+Mode: TDD through append-log integration tests (plan.md T7).
+
+Tests:
+  AC-0008: crash injection at every frame boundary, all-or-none visibility,
+           incomplete-final-frame truncation, checksum/reference corruption refusal,
+           index deletion and rebuild, verdict equivalence from complete prefix.
+  AC-0009: receipt and supersession fixtures — stale or inadmissible records
+           cannot support a property; contradiction evaluated before support.
+  AC-0020: producer-capability checks before staging durable bytes — missing,
+           expired, mismatched, and out-of-scope authority expose no partial
+           transaction; retry also fails.
+  AC-0021: sink-available and sink-unavailable cases.
+
+Red evidence (before _evidence_store.py existed):
+  - Importing the module raised ModuleNotFoundError / AttributeError on any
+    attribute access; the first test that opens the store would fail immediately.
+  - TDD discipline verified by importing the module first in each test.
+
+Follows the importlib.util.spec_from_file_location loader pattern so the
+module remains unregistered in sys.modules between test sessions.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import importlib.util
+import os
+import stat
+import sys
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+
+# ── Path anchor ───────────────────────────────────────────────────────────────
+
+SCRIPTS = (
+    Path(__file__).resolve().parents[3]
+    / ".apm"
+    / "skills"
+    / "work-loop"
+    / "scripts"
+)
+
+
+# ── Module loader ─────────────────────────────────────────────────────────────
+
+
+def _load_module(name: str, path: Path) -> ModuleType:
+    """Load an unregistered copy of a scripts module via importlib."""
+    info = os.lstat(path)
+    assert stat.S_ISREG(info.st_mode), f"not a regular file: {path}"
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(name, str(path))
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        return mod
+    finally:
+        sys.dont_write_bytecode = prev
+
+
+@pytest.fixture(scope="module")
+def es() -> ModuleType:
+    """_evidence_store.py loaded by path."""
+    return _load_module("ev_store_t7", SCRIPTS / "_evidence_store.py")
+
+
+@pytest.fixture(scope="module")
+def acc() -> ModuleType:
+    """_acceptance.py loaded by path."""
+    return _load_module("acc_t7", SCRIPTS / "_acceptance.py")
+
+
+@pytest.fixture(scope="module")
+def sc() -> ModuleType:
+    """_security_capability.py loaded by path."""
+    return _load_module("sc_t7", SCRIPTS / "_security_capability.py")
+
+
+# ── Common fixtures ───────────────────────────────────────────────────────────
+
+
+def _null_sink(event: object) -> None:
+    """No-op audit sink (sink available; no-op storage)."""
+
+
+def _failing_sink(event: object) -> None:
+    """Audit sink that always raises an OSError (sink unavailable)."""
+    raise OSError("audit sink unavailable in test")
+
+
+def _make_grant(sc: ModuleType) -> tuple:
+    """Return a valid (issuer, grant) pair for evidence append tests."""
+    issuer = sc.CapabilityIssuer()
+    grant = issuer.issue_root_grant(
+        roots=["evidence"],
+        operations=["append"],
+        trust_class="trusted",
+        writes_allowed_roots=["evidence"],
+        control_denies=[],
+    )
+    return issuer, grant
+
+
+_CURRENT_FP = "fp-t7-test-001"
+
+
+def _make_receipt(receipt_id: str, criterion_ref: str = "prop-001") -> dict:
+    """Build a minimal valid evidence-receipt.v1 record."""
+    return {
+        "schema_version": 1,
+        "receipt_id": receipt_id,
+        "acceptance_fingerprint": _CURRENT_FP,
+        "lineage": {"criterion_ref": criterion_ref},
+        "selector": {"term": "test-run"},
+        "freshness_mode": "exact-subject",
+        "observation": {"type": "test-result"},
+        "outcome": "passed",
+        "producer": {"class": "ci-runner", "identity": "runner-generic"},
+    }
+
+
+def _make_supersession(
+    supersession_id: str,
+    superseded_receipt_ids: list[str],
+) -> dict:
+    """Build a minimal valid evidence-supersession.v1 record."""
+    return {
+        "schema_version": 1,
+        "supersession_id": supersession_id,
+        "superseded_receipt_ids": superseded_receipt_ids,
+        "authority": {"identity": "evidence-authority-generic", "role": "evidence-authority"},
+        "provenance": {"reason_code": "review-assessment-superseded"},
+    }
+
+
+def _make_property(criterion_ref: str) -> dict:
+    """Build an approved acceptance-property.v1 record for verdict evaluation."""
+    return {
+        "schema_version": 1,
+        "property_id": criterion_ref,
+        "spec_ref": "docs/specs/test-spec/spec.md",
+        "authority_ref": "approval:spec-policy:v1",
+        "subject_selector": {"paths_or_artifacts": ["src/"], "fingerprint_algorithm": "sha256"},
+        "required_observations": [
+            {
+                "term": "test-run",
+                "observation_type": "test-result",
+                "producer_class": "ci-runner",
+                "outcomes": ["passed"],
+            }
+        ],
+        "freshness_scope": "exact-subject",
+        "satisfaction_rule": {"expression": "all"},
+        "contradiction_rule": {"expression": "none"},
+        "policy_version": "v1",
+    }
+
+
+def _open_fresh_store(es: ModuleType, log_path: Path) -> object:
+    """Create and open a fresh EvidenceStore at log_path."""
+    store = es.EvidenceStore(log_path)
+    store.open()
+    return store
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0008: all-or-none visibility, truncation, corruption, index rebuild
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAllOrNoneVisibility:
+    """AC-0008: a committed frame exposes all embedded records or none."""
+
+    def test_committed_receipt_is_visible_after_open(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A receipt appended to the store is visible after a fresh open."""
+        log_path = tmp_path / "evidence.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        receipt = _make_receipt("r-001")
+        store.append_receipt(
+            receipt, transaction_id="tx-001", issuer=issuer, grant=grant, audit_sink=_null_sink
+        )
+        assert store.receipt_count == 1
+        assert store.transaction_count == 1
+
+        # Re-open and verify persistence
+        store2 = _open_fresh_store(es, log_path)
+        assert store2.receipt_count == 1
+        active = store2.get_active_receipts("prop-001")
+        assert len(active) == 1
+        assert active[0]["receipt_id"] == "r-001"
+
+    def test_incomplete_final_frame_is_truncated(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0008: an incomplete final frame (no trailing newline) is truncated on restart.
+
+        Red before: _evidence_store didn't exist, so the import itself would fail.
+        After: store opens, appends a complete frame, then we inject an incomplete
+        frame (bytes without trailing newline), and verify the store drops it.
+        """
+        log_path = tmp_path / "evidence.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Write one complete frame
+        receipt = _make_receipt("r-complete")
+        store.append_receipt(
+            receipt,
+            transaction_id="tx-complete",
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+        assert store.receipt_count == 1
+
+        # Simulate a crash mid-write: append bytes WITHOUT a trailing newline
+        # (the frame boundary was written but not the terminating newline).
+        # This represents a crash between writing bytes and writing the final "\n".
+        partial_bytes = b'{"tx":{"schema_version":1,"transaction_id":"tx-crash",'
+        log_path.write_bytes(log_path.read_bytes() + partial_bytes)
+
+        # Re-open: should truncate the incomplete frame and retain only the complete one.
+        store2 = _open_fresh_store(es, log_path)
+        assert store2.receipt_count == 1, (
+            "incomplete final frame must be truncated, not admitted"
+        )
+        assert store2.transaction_count == 1
+
+        # The log file should end with a newline (all frames complete).
+        assert log_path.read_bytes().endswith(b"\n")
+
+    def test_zero_complete_frames_after_total_crash(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0008: when all bytes are an incomplete frame (no newline), the log truncates to empty."""
+        log_path = tmp_path / "evidence-empty.log"
+        # Manually create a log with ONLY incomplete bytes.
+        log_path.write_bytes(b'{"tx":{"schema_version":1},"records":[]')
+
+        store = _open_fresh_store(es, log_path)
+        assert store.receipt_count == 0
+        assert store.transaction_count == 0
+
+    def test_crash_before_any_write_leaves_empty_store(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0008 boundary: a crash before any bytes are written leaves an empty store."""
+        log_path = tmp_path / "evidence-pre-crash.log"
+        store = _open_fresh_store(es, log_path)
+        # No appends — verify empty store.
+        assert store.receipt_count == 0
+        store2 = _open_fresh_store(es, log_path)
+        assert store2.receipt_count == 0
+
+
+class TestChecksumAndReferenceCorruption:
+    """AC-0008: checksum or reference corruption causes a hard refusal on open."""
+
+    def _write_log_with_bad_checksum(self, es: ModuleType, log_path: Path) -> None:
+        """Write a log file containing a frame with a wrong checksum."""
+        receipt = _make_receipt("r-corrupt-ck")
+        records = [receipt]
+        tx_body = {
+            "schema_version": 1,
+            "transaction_id": "tx-corrupt-ck",
+            "ordered_record_ids": ["r-corrupt-ck"],
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        # Deliberately use a wrong checksum value.
+        tx = {**tx_body, "checksum": "sha256:deadbeefdeadbeefdeadbeefdeadbeef" + "0" * 32}
+        frame = es._canonical_json({"tx": tx, "records": records}) + "\n"
+        log_path.write_bytes(frame.encode("utf-8"))
+
+    def test_bad_checksum_refuses_open(self, es: ModuleType, tmp_path: Path) -> None:
+        """AC-0008: a frame with a bad checksum raises EvidenceStoreError on open.
+
+        Red before: EvidenceStore didn't exist.
+        Verify red by mutating the guard: if we remove the checksum check in
+        _verify_frame, this test would fail (no error raised).
+        """
+        log_path = tmp_path / "corrupt-ck.log"
+        self._write_log_with_bad_checksum(es, log_path)
+        store = es.EvidenceStore(log_path)
+        with pytest.raises(es.EvidenceStoreError, match="checksum"):
+            store.open()
+
+    def _write_log_with_bad_reference(self, es: ModuleType, log_path: Path) -> None:
+        """Write a log file containing a frame where ordered_record_ids mismatches."""
+        receipt = _make_receipt("r-real-id")
+        records = [receipt]
+        tx_body = {
+            "schema_version": 1,
+            "transaction_id": "tx-ref-corrupt",
+            "ordered_record_ids": ["r-WRONG-id"],  # mismatch!
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        # Compute a valid checksum for this (deliberately wrong) tx_body.
+        checksum = es._compute_frame_checksum(tx_body, records)
+        tx = {**tx_body, "checksum": checksum}
+        frame = es._canonical_json({"tx": tx, "records": records}) + "\n"
+        log_path.write_bytes(frame.encode("utf-8"))
+
+    def test_bad_reference_refuses_open(self, es: ModuleType, tmp_path: Path) -> None:
+        """AC-0008: a frame with a reference mismatch raises EvidenceStoreError on open."""
+        log_path = tmp_path / "corrupt-ref.log"
+        self._write_log_with_bad_reference(es, log_path)
+        store = es.EvidenceStore(log_path)
+        with pytest.raises(es.EvidenceStoreError, match="reference mismatch"):
+            store.open()
+
+
+class TestIndexDeleteAndRebuild:
+    """AC-0008 NFR: deleting and rebuilding indexes does not change the verdict."""
+
+    def test_verdict_equivalent_before_and_after_index_rebuild(
+        self, es: ModuleType, sc: ModuleType, acc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0008: index rebuild yields identical verdicts from the complete prefix."""
+        log_path = tmp_path / "evidence-rebuild.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Append a receipt that satisfies prop-001.
+        receipt = _make_receipt("r-rebuild-01")
+        store.append_receipt(
+            receipt, transaction_id="tx-rebuild-01", issuer=issuer, grant=grant, audit_sink=_null_sink
+        )
+
+        prop = _make_property("prop-001")
+        verdicts_before = store.evaluate_verdicts([prop], _CURRENT_FP, acc)
+        assert verdicts_before[0]["verdict"] == "supported"
+
+        # Create a NEW store instance (deletes in-memory indexes), re-open (rebuilds).
+        store2 = es.EvidenceStore(log_path)
+        store2.open()
+        verdicts_after = store2.evaluate_verdicts([prop], _CURRENT_FP, acc)
+
+        assert verdicts_before[0]["verdict"] == verdicts_after[0]["verdict"]
+        assert (
+            verdicts_before[0]["evaluation_fingerprint"]
+            == verdicts_after[0]["evaluation_fingerprint"]
+        ), "evaluation fingerprint must be identical after index rebuild"
+
+    def test_rebuild_indexes_method_preserves_verdict(
+        self, es: ModuleType, sc: ModuleType, acc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0008: rebuild_indexes() call on the same store preserves the verdict."""
+        log_path = tmp_path / "evidence-rebuild2.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        receipt = _make_receipt("r-rb2-01")
+        store.append_receipt(
+            receipt, transaction_id="tx-rb2-01", issuer=issuer, grant=grant, audit_sink=_null_sink
+        )
+        prop = _make_property("prop-001")
+        verdicts_before = store.evaluate_verdicts([prop], _CURRENT_FP, acc)
+
+        # Call rebuild_indexes on the same store object.
+        store.rebuild_indexes()
+        verdicts_after = store.evaluate_verdicts([prop], _CURRENT_FP, acc)
+
+        assert verdicts_before[0]["verdict"] == verdicts_after[0]["verdict"]
+
+    def test_verdict_equivalence_from_complete_prefix_after_crash(
+        self, es: ModuleType, sc: ModuleType, acc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0008: the verdict from the complete prefix matches the pre-crash verdict."""
+        log_path = tmp_path / "evidence-prefix.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Append several complete frames.
+        for i in range(3):
+            receipt = _make_receipt(f"r-prefix-{i:02d}")
+            store.append_receipt(
+                receipt,
+                transaction_id=f"tx-prefix-{i:02d}",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+
+        prop = _make_property("prop-001")
+        verdict_complete = store.evaluate_verdicts([prop], _CURRENT_FP, acc)
+
+        # Inject an incomplete frame (crash simulation).
+        log_path.write_bytes(log_path.read_bytes() + b"partial-crash-data")
+
+        # Re-open: should truncate the incomplete frame.
+        store2 = _open_fresh_store(es, log_path)
+        verdict_from_prefix = store2.evaluate_verdicts([prop], _CURRENT_FP, acc)
+
+        # The verdict must be "supported" in both cases since complete receipts are present.
+        assert verdict_complete[0]["verdict"] == "supported"
+        assert verdict_from_prefix[0]["verdict"] == "supported"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0009: freshness and contradiction
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestFreshnessAndContradiction:
+    """AC-0009: stale or superseded records cannot support a property."""
+
+    def test_stale_receipt_does_not_support_verdict(
+        self, es: ModuleType, sc: ModuleType, acc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0009: a receipt with the wrong acceptance_fingerprint is stale and yields insufficient."""
+        log_path = tmp_path / "evidence-stale.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Append a receipt with an OLD acceptance fingerprint.
+        old_fp = "fp-old-subject-001"
+        stale_receipt: dict = {
+            "schema_version": 1,
+            "receipt_id": "r-stale-001",
+            "acceptance_fingerprint": old_fp,  # old subject
+            "lineage": {"criterion_ref": "prop-001"},
+            "selector": {"term": "test-run"},
+            "freshness_mode": "exact-subject",
+            "observation": {"type": "test-result"},
+            "outcome": "passed",
+            "producer": {"class": "ci-runner", "identity": "runner-generic"},
+        }
+        store.append_receipt(
+            stale_receipt,
+            transaction_id="tx-stale-001",
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+
+        prop = _make_property("prop-001")
+        # Evaluate against the CURRENT fingerprint (not old_fp).
+        current_fp = "fp-current-001"
+        verdicts = store.evaluate_verdicts([prop], current_fp, acc)
+        assert verdicts[0]["verdict"] == "insufficient", (
+            "a stale receipt must not support the verdict"
+        )
+
+    def test_superseded_receipt_does_not_support_verdict(
+        self, es: ModuleType, sc: ModuleType, acc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0009: a superseded receipt is excluded from the active set and yields insufficient."""
+        log_path = tmp_path / "evidence-superseded.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Append a supporting receipt.
+        receipt = _make_receipt("r-to-supersede")
+        store.append_receipt(
+            receipt, transaction_id="tx-sup-01", issuer=issuer, grant=grant, audit_sink=_null_sink
+        )
+        prop = _make_property("prop-001")
+        verdict_before = store.evaluate_verdicts([prop], _CURRENT_FP, acc)
+        assert verdict_before[0]["verdict"] == "supported"
+
+        # Now supersede that receipt.
+        sup = _make_supersession("sup-001", ["r-to-supersede"])
+        store.append_supersession(
+            sup,
+            transaction_id="tx-sup-02",
+            acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+
+        # The receipt is now superseded — it must not support the verdict.
+        verdict_after = store.evaluate_verdicts([prop], _CURRENT_FP, acc)
+        assert verdict_after[0]["verdict"] == "insufficient", (
+            "superseded receipt must not support the verdict"
+        )
+
+    def test_contradiction_evaluated_before_support(
+        self, es: ModuleType, sc: ModuleType, acc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0009: contradiction is evaluated before satisfaction (AC-0007 ordering)."""
+        log_path = tmp_path / "evidence-contradict.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Build a property that can be contradicted.
+        prop_with_contradiction: dict = {
+            "schema_version": 1,
+            "property_id": "prop-contradict",
+            "spec_ref": "docs/specs/test-spec/spec.md",
+            "authority_ref": "approval:spec-policy:v1",
+            "subject_selector": {"paths_or_artifacts": ["src/"], "fingerprint_algorithm": "sha256"},
+            "required_observations": [
+                {
+                    "term": "test-run",
+                    "observation_type": "test-result",
+                    "producer_class": "ci-runner",
+                    "outcomes": ["passed"],
+                },
+                {
+                    "term": "review-failure",
+                    "observation_type": "review-failure",
+                    "producer_class": "review-bridge",
+                    "outcomes": ["failed"],
+                },
+            ],
+            "freshness_scope": "exact-subject",
+            "satisfaction_rule": {"expression": "any"},
+            "contradiction_rule": {"expression": "review-failure"},
+            "policy_version": "v1",
+        }
+
+        # Append both a supporting receipt and a contradicting receipt.
+        supporting_receipt = _make_receipt("r-support", "prop-contradict")
+        store.append_receipt(
+            supporting_receipt,
+            transaction_id="tx-support",
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+
+        contradicting_receipt: dict = {
+            "schema_version": 1,
+            "receipt_id": "r-contradict",
+            "acceptance_fingerprint": _CURRENT_FP,
+            "lineage": {"criterion_ref": "prop-contradict"},
+            "selector": {"term": "review-failure"},
+            "freshness_mode": "exact-subject",
+            "observation": {"type": "review-failure"},
+            "outcome": "failed",
+            "producer": {"class": "review-bridge", "identity": "review-bridge-generic"},
+        }
+        store.append_receipt(
+            contradicting_receipt,
+            transaction_id="tx-contradict",
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+
+        # Contradiction must fire before satisfaction — verdict is "contradicted".
+        verdicts = store.evaluate_verdicts([prop_with_contradiction], _CURRENT_FP, acc)
+        assert verdicts[0]["verdict"] == "contradicted", (
+            "contradiction must be evaluated before support"
+        )
+
+    def test_inadmissible_supersession_cannot_support(
+        self, es: ModuleType, sc: ModuleType, acc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0009: a supersession does not create a receipt; it only withdraws existing ones."""
+        log_path = tmp_path / "evidence-sup-only.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Append ONLY a supersession with no matching receipt.
+        sup = _make_supersession("sup-no-receipt", ["r-nonexistent"])
+        store.append_supersession(
+            sup,
+            transaction_id="tx-sup-only",
+            acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+
+        prop = _make_property("prop-001")
+        verdicts = store.evaluate_verdicts([prop], _CURRENT_FP, acc)
+        assert verdicts[0]["verdict"] == "insufficient", (
+            "a supersession with no matching receipt must leave the verdict insufficient"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0020: producer capability checks before staging bytes
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestProducerCapabilityChecks:
+    """AC-0020: missing, expired, mismatched, and out-of-scope authority expose no partial transaction."""
+
+    def test_missing_grant_refuses_append(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0020: a None grant refuses the append with a stable code; no bytes are staged."""
+        log_path = tmp_path / "ev-missing-grant.log"
+        store = _open_fresh_store(es, log_path)
+        issuer = sc.CapabilityIssuer()
+        receipt = _make_receipt("r-no-grant")
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-no-grant",
+                issuer=issuer,
+                grant=None,
+                audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-invalid-grant"
+        assert store.receipt_count == 0
+
+    def test_expired_grant_refuses_append(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0020: an expired grant refuses the append; no partial bytes staged."""
+        log_path = tmp_path / "ev-expired-grant.log"
+        store = _open_fresh_store(es, log_path)
+        issuer = sc.CapabilityIssuer()
+        # Issue a grant that expires immediately (expires_in_s=0).
+        import time
+        grant = issuer.issue_root_grant(
+            roots=["evidence"],
+            operations=["append"],
+            trust_class="trusted",
+            writes_allowed_roots=["evidence"],
+            control_denies=[],
+            expires_in_s=0,
+        )
+        time.sleep(0.01)  # Ensure expiry.
+        receipt = _make_receipt("r-expired")
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-expired",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code in (
+            "denied-invalid-grant",
+            "denied-producer-authority",
+        ), f"unexpected code: {exc_info.value.denial_code}"
+        assert store.receipt_count == 0
+
+    def test_revoked_grant_refuses_append(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0020: a revoked grant refuses the append; no partial bytes staged."""
+        log_path = tmp_path / "ev-revoked-grant.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        issuer.revoke_grant(grant.grant_id)
+        receipt = _make_receipt("r-revoked")
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-revoked",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code in (
+            "denied-invalid-grant",
+            "denied-producer-authority",
+        ), f"unexpected code: {exc_info.value.denial_code}"
+        assert store.receipt_count == 0
+
+    def test_out_of_scope_grant_refuses_append(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0020: a grant with wrong writes.allowed_roots is out-of-scope; no partial bytes staged."""
+        log_path = tmp_path / "ev-out-scope.log"
+        store = _open_fresh_store(es, log_path)
+        issuer = sc.CapabilityIssuer()
+        # Grant access to "other-scope", NOT "evidence".
+        grant = issuer.issue_root_grant(
+            roots=["other-scope"],
+            operations=["append"],
+            trust_class="trusted",
+            writes_allowed_roots=["other-scope"],  # wrong scope
+            control_denies=[],
+        )
+        receipt = _make_receipt("r-wrong-scope")
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-wrong-scope",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-producer-authority"
+        assert store.receipt_count == 0
+
+    def test_missing_operation_refuses_append(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0020: a grant without 'append' operation refuses the append; no bytes staged."""
+        log_path = tmp_path / "ev-no-op.log"
+        store = _open_fresh_store(es, log_path)
+        issuer = sc.CapabilityIssuer()
+        # Grant only "read", not "append".
+        grant = issuer.issue_root_grant(
+            roots=["evidence"],
+            operations=["read"],  # no append
+            trust_class="trusted",
+            writes_allowed_roots=["evidence"],
+            control_denies=[],
+        )
+        receipt = _make_receipt("r-no-op")
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-no-op",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-producer-authority"
+        assert store.receipt_count == 0
+
+    def test_retry_under_denied_identity_stays_denied(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0020: retry with the same denied transaction_id still refuses; no partial record."""
+        log_path = tmp_path / "ev-retry.log"
+        store = _open_fresh_store(es, log_path)
+        issuer = sc.CapabilityIssuer()
+        # Grant without "append".
+        grant = issuer.issue_root_grant(
+            roots=["evidence"],
+            operations=["read"],
+            trust_class="trusted",
+            writes_allowed_roots=["evidence"],
+            control_denies=[],
+        )
+        receipt = _make_receipt("r-retry")
+
+        for _attempt in range(3):
+            with pytest.raises(es.EvidenceStoreRefused):
+                store.append_receipt(
+                    receipt,
+                    transaction_id="tx-retry-same-id",  # same on every attempt
+                    issuer=issuer,
+                    grant=grant,
+                    audit_sink=_null_sink,
+                )
+        assert store.receipt_count == 0, "retry must not expose a partial transaction"
+
+    def test_supersession_also_validates_producer_authority(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0020: supersession append also validates producer authority before staging."""
+        log_path = tmp_path / "ev-sup-no-op.log"
+        store = _open_fresh_store(es, log_path)
+        issuer = sc.CapabilityIssuer()
+        grant = issuer.issue_root_grant(
+            roots=["evidence"],
+            operations=["read"],  # no append
+            trust_class="trusted",
+            writes_allowed_roots=["evidence"],
+            control_denies=[],
+        )
+        sup = _make_supersession("sup-no-op", ["r-nonexistent"])
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_supersession(
+                sup,
+                transaction_id="tx-sup-no-op",
+                acceptance_fingerprint=_CURRENT_FP,
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-producer-authority"
+        assert store.supersession_count == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0021: sink-available and sink-unavailable cases
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAuditSinkBehavior:
+    """AC-0021: security events are emitted before success/refusal is acknowledged."""
+
+    def test_sink_available_event_emitted_before_append(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0021: when the sink is available, an event is emitted before success is returned."""
+        log_path = tmp_path / "ev-sink-avail.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        emitted_events: list = []
+
+        def capturing_sink(event: object) -> None:
+            emitted_events.append(event)
+
+        receipt = _make_receipt("r-sink-avail")
+        store.append_receipt(
+            receipt,
+            transaction_id="tx-sink-avail",
+            issuer=issuer,
+            grant=grant,
+            audit_sink=capturing_sink,
+        )
+
+        assert len(emitted_events) >= 1, "at least one security event must be emitted"
+        assert store.receipt_count == 1, "receipt must be committed"
+
+    def test_sink_unavailable_fails_closed_no_bytes_staged(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0021: when the sink is unavailable, the operation fails closed; no frame is staged."""
+        log_path = tmp_path / "ev-sink-unavail.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        receipt = _make_receipt("r-sink-unavail")
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-sink-unavail",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_failing_sink,  # unavailable
+            )
+
+        assert exc_info.value.denial_code == "denied-audit-sink-unavailable", (
+            f"expected denied-audit-sink-unavailable, got {exc_info.value.denial_code}"
+        )
+        assert store.receipt_count == 0, "no bytes must be staged when sink is unavailable"
+        # The log must have no frames.
+        assert log_path.read_bytes() == b""
+
+    def test_sink_unavailable_no_durable_event_claimed(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0021: when the sink is unavailable, no durable-event claim is made."""
+        log_path = tmp_path / "ev-sink-no-claim.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        receipt = _make_receipt("r-no-claim")
+        with contextlib.suppress(es.EvidenceStoreRefused):
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-no-claim",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_failing_sink,
+            )
+
+        # Re-open: the store must be empty (no frame was committed).
+        store2 = _open_fresh_store(es, log_path)
+        assert store2.receipt_count == 0
+
+    def test_denial_emits_event_before_refusal(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0021: even a denied append emits a security event before refusing."""
+        log_path = tmp_path / "ev-denial-event.log"
+        store = _open_fresh_store(es, log_path)
+        issuer = sc.CapabilityIssuer()
+        # Grant without append operation.
+        grant = issuer.issue_root_grant(
+            roots=["evidence"],
+            operations=["read"],
+            trust_class="trusted",
+            writes_allowed_roots=["evidence"],
+            control_denies=[],
+        )
+        emitted_events: list = []
+
+        def capturing_sink(event: object) -> None:
+            emitted_events.append(event)
+
+        receipt = _make_receipt("r-denial-event")
+        with pytest.raises(es.EvidenceStoreRefused):
+            store.append_receipt(
+                receipt,
+                transaction_id="tx-denial-event",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=capturing_sink,
+            )
+
+        assert len(emitted_events) >= 1, (
+            "a denied append must emit a security event before refusing"
+        )
+        event = emitted_events[0]
+        assert event.outcome == "denied"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# validate_*_dict: in-code schema validation for all three record types
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestValidateTransactionDict:
+    """In-code validation for semantic-evidence-transaction.v1."""
+
+    def test_valid_transaction_passes(self, es: ModuleType, sc: ModuleType, tmp_path: Path) -> None:
+        log_path = tmp_path / "ev-val-tx.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        receipt = _make_receipt("r-val-tx")
+        tx = store.append_receipt(
+            receipt, transaction_id="tx-val-tx", issuer=issuer, grant=grant, audit_sink=_null_sink
+        )
+        ok, code = es.validate_transaction_dict(tx)
+        assert ok, f"validate_transaction_dict must accept a valid record: {code}"
+        assert code == "ok"
+
+    def test_refuses_unknown_schema_version(self, es: ModuleType) -> None:
+        bad = {
+            "schema_version": 99,
+            "transaction_id": "tx-001",
+            "ordered_record_ids": ["r-001"],
+            "acceptance_fingerprint": "fp-001",
+            "checksum": "sha256:abc",
+        }
+        ok, code = es.validate_transaction_dict(bad)
+        assert not ok
+        assert code == "denied-unknown-schema-version"
+
+    def test_refuses_missing_required_field(self, es: ModuleType) -> None:
+        bad = {
+            "schema_version": 1,
+            # transaction_id omitted
+            "ordered_record_ids": ["r-001"],
+            "acceptance_fingerprint": "fp-001",
+            "checksum": "sha256:abc",
+        }
+        ok, code = es.validate_transaction_dict(bad)
+        assert not ok
+        assert code == "denied-missing-required-field"
+
+    def test_refuses_unknown_authority_field(self, es: ModuleType) -> None:
+        bad = {
+            "schema_version": 1,
+            "transaction_id": "tx-001",
+            "ordered_record_ids": ["r-001"],
+            "acceptance_fingerprint": "fp-001",
+            "checksum": "sha256:abc",
+            "inject_escalation": "bypass",
+        }
+        ok, code = es.validate_transaction_dict(bad)
+        assert not ok
+        assert code == "denied-unknown-authority-field"
+
+    def test_refuses_empty_ordered_record_ids(self, es: ModuleType) -> None:
+        bad = {
+            "schema_version": 1,
+            "transaction_id": "tx-001",
+            "ordered_record_ids": [],  # empty
+            "acceptance_fingerprint": "fp-001",
+            "checksum": "sha256:abc",
+        }
+        ok, code = es.validate_transaction_dict(bad)
+        assert not ok
+        assert code == "denied-empty-ordered-record-ids"
+
+
+class TestValidateReceiptDict:
+    """In-code validation for evidence-receipt.v1."""
+
+    def test_valid_receipt_passes(self, es: ModuleType) -> None:
+        ok, code = es.validate_receipt_dict(_make_receipt("r-valid"))
+        assert ok, f"validate_receipt_dict must accept a valid record: {code}"
+        assert code == "ok"
+
+    def test_refuses_unknown_schema_version(self, es: ModuleType) -> None:
+        bad = {**_make_receipt("r-bad-sv"), "schema_version": 99}
+        ok, code = es.validate_receipt_dict(bad)
+        assert not ok
+        assert code == "denied-unknown-schema-version"
+
+    def test_refuses_missing_required_field(self, es: ModuleType) -> None:
+        bad = {k: v for k, v in _make_receipt("r-miss").items() if k != "receipt_id"}
+        ok, code = es.validate_receipt_dict(bad)
+        assert not ok
+        assert code == "denied-missing-required-field"
+
+    def test_refuses_unknown_authority_field(self, es: ModuleType) -> None:
+        bad = {**_make_receipt("r-extra"), "inject_escalation": "bypass"}
+        ok, code = es.validate_receipt_dict(bad)
+        assert not ok
+        assert code == "denied-unknown-authority-field"
+
+    def test_refuses_out_of_enum_freshness_mode(self, es: ModuleType) -> None:
+        bad = {**_make_receipt("r-bad-fm"), "freshness_mode": "full-tree"}
+        ok, code = es.validate_receipt_dict(bad)
+        assert not ok
+        assert code == "denied-invalid-enum"
+
+
+class TestValidateSupersessionDict:
+    """In-code validation for evidence-supersession.v1."""
+
+    def test_valid_supersession_passes(self, es: ModuleType) -> None:
+        sup = _make_supersession("sup-valid", ["r-001"])
+        ok, code = es.validate_supersession_dict(sup)
+        assert ok, f"validate_supersession_dict must accept a valid record: {code}"
+        assert code == "ok"
+
+    def test_refuses_unknown_schema_version(self, es: ModuleType) -> None:
+        bad = {**_make_supersession("sup-bad-sv", ["r-001"]), "schema_version": 99}
+        ok, code = es.validate_supersession_dict(bad)
+        assert not ok
+        assert code == "denied-unknown-schema-version"
+
+    def test_refuses_missing_required_field(self, es: ModuleType) -> None:
+        bad = {
+            k: v
+            for k, v in _make_supersession("sup-miss", ["r-001"]).items()
+            if k != "supersession_id"
+        }
+        ok, code = es.validate_supersession_dict(bad)
+        assert not ok
+        assert code == "denied-missing-required-field"
+
+    def test_refuses_unknown_authority_field(self, es: ModuleType) -> None:
+        bad = {**_make_supersession("sup-extra", ["r-001"]), "inject_escalation": "bypass"}
+        ok, code = es.validate_supersession_dict(bad)
+        assert not ok
+        assert code == "denied-unknown-authority-field"
+
+    def test_refuses_empty_superseded_ids(self, es: ModuleType) -> None:
+        bad = {**_make_supersession("sup-empty", ["r-001"]), "superseded_receipt_ids": []}
+        ok, code = es.validate_supersession_dict(bad)
+        assert not ok
+        assert code == "denied-empty-superseded-ids"

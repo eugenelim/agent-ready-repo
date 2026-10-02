@@ -762,6 +762,18 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_containment_attestation_parity.py
 
+      # T7 evidence-store schema parity: validates that records emitted by
+      # _evidence_store.py (semantic-evidence-transaction.v1, evidence-receipt.v1,
+      # evidence-supersession.v1) satisfy their canonical contracts/delivery/
+      # schemas, and that each validate_*_dict() refuses four classes of invalid
+      # input with stable denial codes.  Both paths are above the pack tree, so
+      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the carve-out
+      # step below whose `pytest tests/ -q` also collects it, so that a failure
+      # is attributed to this named step.
+      - name: pytest evidence-store schema parity (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_evidence_store_schema_parity.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
