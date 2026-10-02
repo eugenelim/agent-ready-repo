@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "PLAN-HUMAN-GATE, transition sequence 5, spec approved, awaiting the build-strategy decision",
+              "normal_loop_state": "CODE-IMPLEMENTATION, transition sequence 7, both gates passed, 5 waves scheduled",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1303,6 +1303,21 @@
                 "reading": "Sustained fell monotonically across all seven rounds and reached a byte-exact direct clean. Blockers stopped after round 3. The honest caveat is that this is one case and the series is not a quality measurement: counts are not a denominator here, and no effectiveness figure follows from them. What the series does show, and what the cohort should carry forward, is the repair-origin fraction: 7 of 8, then 4 of 6, 2 of 4, 2 of 2, 1 of 1. The repairing agent remained the dominant source of new findings for the whole middle of the case, exactly as T16, T17 and T18 recorded on case 3.",
                 "what_review_caught_that_was_not_repair_origin": "Two findings across seven rounds were defects in the governed work rather than in a repair, both in round 3. The consequential one: test_visual_authority_precedence.py:75-79 pins the approved-visual-target row's Requires cell by equality to `recorded-human-confirmation`, which is the exact cell AC-0001 rewrites - so the contract's central edit would have reddened a shipped assertion while the task making it closed on that suite being green. Rounds 1 and 2 passed over it. That single finding is the clearest instance in this case of review finding something a cold read of the contract alone would not have surfaced, and it is recorded as an observation, not scored.",
                 "controller_failure_mode": "Five instances across the case of a controller record asserting more than its evidence supports, plus a sixth caught by the controller in a commit message before push. Named here because the shape is consistent: a number or an instrument whose scope was not checked before the claim was made. The instances were the stub validation record twice, the boundary-lint self-test claim, a both-documents completeness claim, and a file-occurrence count restated as a count of Status clauses. Record it; do not score it."
+              },
+              "plan_gate_2026_10_02": {
+                "transition": "PLAN-HUMAN-GATE -> plan-approved -> SPEC-PLAN-APPROVED, sequence 6; then plan-locked -> CODE-IMPLEMENTATION, sequence 7",
+                "gate_question": "Does this plan describe the right way to build it?",
+                "approver": "eugenelim",
+                "ordering_observed": "Both Changelog entries - the spec approval and the plan approval - were written before loop-cohort approve-plan ran. That verb splices out only the status token and hashes the rest, so an entry added afterwards invalidates the pin. The pins taken were approved_spec_hash df574afadb01 and approved_plan_hash d4d6a88b777c.",
+                "schedule": {
+                  "waves": [["T1"], ["T2", "T4"], ["T3", "T5", "T7"], ["T8"], ["T6"]],
+                  "wave_count": 5,
+                  "plan_hash": "d4d6a88b777c",
+                  "scheduler_warning": "forward-reference T3->T4, dependency authored later in the document than the task that needs it. Reordered correctly by the scheduler: T4 lands in wave 2 and T3 in wave 3, which is the sequencing round 2's finding 1 established. The warning is about document order, not about the graph.",
+                  "disjointness": "waves 2 and 3 are predicted-disjoint on the Touches screen, which loop-cohort states is serialize-only and never a greenlight for parallel dispatch"
+                },
+                "measurement_note": "Neither gate consumed a reviewer start. The pre-EXECUTE phase closed at 15 starts and the figure does not move here.",
+                "execute_owes_first": "T4's mutation check. It is the one piece of verification the plan asserts and has not performed, and until it runs the sweep is trusted on its construction rather than on a demonstration that it can fail."
               },
               "spec_gate_2026_10_02": {
                 "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
