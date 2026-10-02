@@ -64,8 +64,18 @@ def test_isolated_case_is_a_real_negative_control() -> None:
 
 def test_repository_grounding_fixture_files_exist_and_python_parses() -> None:
     """Keep every declared fixture present and every Python fixture syntactically valid."""
-    for relative_path in POSITIVE_FILES | NEGATIVE_FILES:
-        path = SKILL_ROOT / relative_path
-        assert path.is_file(), relative_path
-        if path.suffix == ".py":
-            ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    assert (SKILL_ROOT / "evals/files/shared-graph-public.rs").is_file()
+
+    for fixture_path in (
+        SKILL_ROOT / "evals/files/shared-graph-model.py",
+        SKILL_ROOT / "evals/files/shared-graph-consumers.py",
+        SKILL_ROOT / "evals/files/shared-graph-builders.py",
+        SKILL_ROOT / "evals/files/shared-graph-lifecycle.py",
+        SKILL_ROOT / "evals/files/isolated_helper.py",
+        SKILL_ROOT / "evals/files/test_isolated_helper.py",
+    ):
+        assert fixture_path.is_file()
+        ast.parse(
+            fixture_path.read_text(encoding="utf-8"),
+            filename=str(fixture_path),
+        )
