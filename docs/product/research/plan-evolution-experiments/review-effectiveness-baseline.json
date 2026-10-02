@@ -1068,7 +1068,7 @@
             },
             "normal_loop_progress": {
               "rounds_completed": 7,
-              "normal_loop_state": "SPEC-HUMAN-GATE, transition sequence 4, awaiting the owner scope decision",
+              "normal_loop_state": "PLAN-HUMAN-GATE, transition sequence 5, spec approved, awaiting the build-strategy decision",
               "round_1": {
                 "reviewer_role": "adversarial",
                 "stage": "pre-execute",
@@ -1303,6 +1303,20 @@
                 "reading": "Sustained fell monotonically across all seven rounds and reached a byte-exact direct clean. Blockers stopped after round 3. The honest caveat is that this is one case and the series is not a quality measurement: counts are not a denominator here, and no effectiveness figure follows from them. What the series does show, and what the cohort should carry forward, is the repair-origin fraction: 7 of 8, then 4 of 6, 2 of 4, 2 of 2, 1 of 1. The repairing agent remained the dominant source of new findings for the whole middle of the case, exactly as T16, T17 and T18 recorded on case 3.",
                 "what_review_caught_that_was_not_repair_origin": "Two findings across seven rounds were defects in the governed work rather than in a repair, both in round 3. The consequential one: test_visual_authority_precedence.py:75-79 pins the approved-visual-target row's Requires cell by equality to `recorded-human-confirmation`, which is the exact cell AC-0001 rewrites - so the contract's central edit would have reddened a shipped assertion while the task making it closed on that suite being green. Rounds 1 and 2 passed over it. That single finding is the clearest instance in this case of review finding something a cold read of the contract alone would not have surfaced, and it is recorded as an observation, not scored.",
                 "controller_failure_mode": "Five instances across the case of a controller record asserting more than its evidence supports, plus a sixth caught by the controller in a commit message before push. Named here because the shape is consistent: a number or an instrument whose scope was not checked before the claim was made. The instances were the stub validation record twice, the boundary-lint self-test claim, a both-documents completeness claim, and a file-occurrence count restated as a count of Status clauses. Record it; do not score it."
+              },
+              "spec_gate_2026_10_02": {
+                "transition": "SPEC-HUMAN-GATE -> spec-approved -> PLAN-HUMAN-GATE, sequence 5",
+                "gate_question": "Does this spec define the right thing to build?",
+                "approver": "eugenelim",
+                "approver_instruction": "owner, in session, after the controller reported the clean verdict and the three residuals",
+                "entered_on": "a clean verdict, not a waiver. Contrast case 3, which entered its scope gate at READY_WITH_RESIDUAL_RISK on owner instruction with no clean round. This case reached a byte-exact direct clean at round 7 before the gate was offered.",
+                "spec_status": "Draft -> Approved at commit recorded below; the plan stays Drafting until its own gate",
+                "residual_recorded_with_the_approval": [
+                  "T4's mutation check is still owed and is not evidence yet - a standing red over an unmigrated tree does not prove the property reds on a newly introduced violation",
+                  "four of seven rounds found the preceding repair defective, so the contract's late stability rests on repairs reviewed once each rather than several times",
+                  "the named build-check step above the bulk step is enforced by nothing in the repository; T8's condition 1 is its only check"
+                ],
+                "measurement_note": "The gate consumed no reviewer start. Recorded here because an approval that carries residual is a different event from one that does not, and the cohort should be able to tell them apart without re-reading the plan."
               },
               "revision_after_round_6": {
                 "commit": "c16682bb7",
