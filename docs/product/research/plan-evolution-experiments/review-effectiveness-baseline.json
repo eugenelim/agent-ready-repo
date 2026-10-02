@@ -1019,6 +1019,42 @@
               "measurement_starts_launched": 0
             },
             "notes_enumeration": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated until the normal work-loop's pre-execute review unit opens. The accepted intent is ADR-0131, the same persisted artifact case 2 cites; its digest differs from the one on case 2's row because the ADR was committed after case 2's enumeration-time read. The reviewed revision is committed and the delivery worktree is clean, so the bound bytes are stable; re-derive this row's identity if spec.md or plan.md changes before the first reviewer start. Full mode is the mode of record: the direction artifact is durable adopter state that older pack versions read during rollout, and the template is the published schema adopters author against. No measurement start has been launched."
+          },
+          {
+            "enumeration_ordinal": 4,
+            "stable_case_key": "a4b01acd2832639a2aa5b8c8581616cf74cb93b9acda9e4a00726c1993ce6295",
+            "stable_case_key_derivation": "sha256 over the NUL-joined UTF-8 fields in the contract's stated order: release_contract_sha256, repository-relative spec path, accepted_intent_digest, reviewed_revision_digest, and the enumeration ordinal rendered as its decimal string. Reproducible from repository history: all three source files are committed at base 1fe78b32a.",
+            "status": "candidate_enumerated",
+            "controller_decision_timestamp": "2026-10-02T01:46:18Z",
+            "release_contract_sha256": "d7a8e6978134900ee05f22fb1c428d27fd3e50b2d6cc4cac61496616951bd91f",
+            "release_contract_verified": true,
+            "spec_path": "docs/specs/visual-target-rung-precondition/spec.md",
+            "accepted_intent_path": "docs/adr/0132-visual-target-confirmation-is-an-explicit-state.md",
+            "accepted_intent_digest": "183528b98134479d7cd07352195379e83062eeeb7fb2345d3865c4287cf3a678",
+            "accepted_intent_digest_note": "Differs from case 3's recorded digest for the same ADR because the ADR was edited after case 3's enumeration-time read. The digest binds the bytes this case was enumerated against, not the artifact's identity.",
+            "reviewed_revision_digest": "fee65a3520512811b365d3288da03b852491a7a6d2661c6a2e660a3d203e451a",
+            "reviewed_revision_digest_definition": "sha256 of the NUL-joined UTF-8 sha256 hex digests of spec.md then plan.md at the reviewed revision",
+            "reviewed_artifacts": [
+              {"path": "docs/specs/visual-target-rung-precondition/spec.md", "sha256": "ab967155bdbfeaaa0aa28d3ab65525048035d411e57555742bd2a135cbaa2683"},
+              {"path": "docs/specs/visual-target-rung-precondition/plan.md", "sha256": "c035fd924fbffed020e57801918a626b3abbd78fe29b5bb097e0b6ec98f2c94e"}
+            ],
+            "candidate_source": "consecutive full-mode pre-execute spec/plan review admission point; registered in workspace.toml [backlog].open with a local spec need on docs/specs/visual-target-field/spec.md, and named as the successor in that spec's Follow-ons",
+            "base_commit": "1fe78b32a65f3154874fb119dbd2b62fad24b7b9",
+            "delivery_worktree_branch": "eugenelim/visual-target-rung-precondition",
+            "strata_recorded": {"new_spec_vs_amendment": "new_spec", "specialist_review_triggers": "not_yet_observed"},
+            "stopped_revision_digest": null,
+            "mode_determination": {
+              "mode": "full",
+              "decided_before": "any other reasoning about the work item, per the controller's standing rule that eligibility follows from mode and mode follows from risk",
+              "triggers_fired": [
+                "structural or public-interface change — the contract changes `references/visual-observation.md`'s precedence table, which is an interface document adopters read, and bumps both packs' published versions across pack.toml, plugin.json and marketplace.json",
+                "compliance or governance surface — the contract is agent guidance that is itself the rule, and it supersedes a contract-tier Always do rule in a Shipped spec"
+              ],
+              "triggers_not_fired": "no destructive operation, no backfill or replay, no new dependency, no multi-person coordination. Not unfamiliar: the spec names its mechanism, the three rejected alternatives, and four measured limits.",
+              "selection_ban_observed": "Admission was not decided by host, model, expected finding count, expected outcome, convenience, or whether the case would help the study. Full mode means a pre-execute spec/plan review unit, which is the frozen admission scope, so the case is eligible and no exclusion code in the closed catalog applies."
+            },
+            "notes_enumeration": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated until the normal work-loop's pre-execute review unit opens. The spec is Draft and its plan is Drafting at this revision; both are committed on origin/main, and the delivery worktree is clean at base 1fe78b32a, so the bound bytes are stable. Re-derive this row's identity if spec.md or plan.md changes before the first reviewer start. No measurement start has been launched.",
+            "ordering_note": "This case was opened ahead of the cross-pack visual golden-path evaluation slice, which cannot prove its unconfirmed-target path until this contract ships: at base 1fe78b32a the approved-visual-target rung's Requires cell reads `recorded-human-confirmation`, and no carrier under packs/, guides/, tests/ or web/ ties the rung to the `visual_target` field. PR #1487's own body records that nothing reads the field. The ordering follows the owner's separate-PR-first preference for a prerequisite fix and is not a study-driven selection."
           }
         ]
       },
