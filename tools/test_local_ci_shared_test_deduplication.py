@@ -166,9 +166,12 @@ CORE_COLLECTIONS = {
     # could and this check was red for the whole branch. The arms are named
     # `unresolved-peer` and `self-reference` rather than left to pytest's
     # generated indices, which renumber silently when an arm is inserted.
+    # Re-pinned 2026-10-02: 72 -> 73. One addition, nothing removed or renamed:
+    # test_tombstone_keeps_slug_without_duplicating_reissued_intent, which pins
+    # that an intent tombstone's retained `Slug:` yields no second `intent:` node.
     SHARED_TESTS[2]: (
-        72,
-        "1a21a5123506da2ea40f146556477a9148e06f08753f0e7b1bc43d1f0cbf0624",
+        73,
+        "8099b6e1c8f83e1e0d42daaaff590c8d3651be8cef11cf31354b3d605848998b",
     ),
 }
 
