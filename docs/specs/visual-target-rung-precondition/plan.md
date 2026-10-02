@@ -1,7 +1,7 @@
 # Plan: visual-target rung precondition
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule,
   § Security and authoring rules (the eval-harness obligation) and
   § Self-hosting projection; the **root** `AGENTS.local.md` § Landing changes
@@ -771,6 +771,21 @@ T6 bumps.
 
 ## Changelog
 
+- 2026-10-02: **Plan approved at the build-strategy gate by eugenelim.** That
+  gate asks whether this plan describes the right way to build what the spec
+  defines. Written in the same edit as the `Status` token, and before
+  `loop-cohort approve-plan` pins the baseline — an entry added afterwards
+  invalidates the pin, because `approve-plan` splices out only the status token
+  and hashes the rest.
+  The eight tasks run T1, T2, then T4 (the property lands red), T3 (the
+  migration turns it green), T5 and T7 alongside, T8 to register the two roster
+  modules, then T6. `parse_plan` accepts the graph as acyclic.
+  **What the approval does not settle.** T4's mutation check is the one piece of
+  verification this plan asserts and has not performed; it is owed at execution
+  time and the verification ledger records both observations. Until it runs, the
+  sweep is trusted on its construction rather than on a demonstration that it
+  can fail — which is the exact property the plan says a sweep test must earn,
+  so it is the first thing EXECUTE owes.
 - 2026-10-02: **Spec approved at the scope gate by eugenelim.** The question
   that gate asks is whether this spec defines the right thing to build, and the
   approval answers that one — not whether the plan is the right way to build it,
