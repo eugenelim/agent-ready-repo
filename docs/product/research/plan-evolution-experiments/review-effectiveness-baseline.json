@@ -1066,6 +1066,37 @@
               "triggers_not_fired": "no destructive operation, no backfill or replay, no new dependency, no multi-person coordination. Not unfamiliar: the spec names its mechanism, the three rejected alternatives, and four measured limits.",
               "selection_ban_observed": "Admission was not decided by host, model, expected finding count, expected outcome, convenience, or whether the case would help the study. Full mode means a pre-execute spec/plan review unit, which is the frozen admission scope, so the case is eligible and no exclusion code in the closed catalog applies."
             },
+            "normal_loop_progress": {
+              "rounds_completed": 1,
+              "normal_loop_state": "SPEC-PLAN-REVIEW, round 1 adjudication classified invalid, awaiting owner ruling",
+              "round_1": {
+                "reviewer_role": "adversarial",
+                "stage": "pre-execute",
+                "raw_findings": 12,
+                "raw_report_sha256": "e166109e8ccfe17ba1205302fb4e4c54f7a5ec7d09e39fb8ed35713fbbaf05c7",
+                "raw_report_bytes": 11891,
+                "raw_classification": "findings",
+                "not_checked_footer_present": false,
+                "adjudicated": true,
+                "adjudication_sha256": "dd105878db3bb0b58b211d55e93b42f91bde68ac895575fc7db6a386bfb85190",
+                "adjudication_bytes": 11664,
+                "adjudication_classification": "invalid",
+                "adjudication_invalid_reason": "indeterminate-audit-not-none",
+                "sustained": null,
+                "sustained_null_reason": "null_not_applicable - the classifier refused the artifact, so no finding is admitted as sustained. The adjudicator's own recorded verdicts are 11 sustained (7 blocker, 3 concern, 1 nit), 1 refuted, 0 indeterminate, but those are the artifact's claims and not a classified result. They must not be counted, acted on, or folded into any series until a valid adjudication exists.",
+                "invalid_cause_is_shape_not_verdict": "The artifact carries the exact three-section envelope and writes `None.` under `## Indeterminate audit`, and the ADJUDICATION-INDETERMINATE sentinel is absent, so the adjudicator declared no indeterminate verdict. It then appended a methodology paragraph under that final heading. loop-cohort requires that section to equal `None.` exactly, so the trailing prose fails the guard. Verified by the controller against the artifact bytes and loop-cohort.py lines 3240-3243.",
+                "controller_disclosure": "Both artifacts were delivered through the controller rather than written directly by the subagents, because this host returns subagent output as a message. Each was persisted before being classified, as the gateway requires, and the indentation the harness applies to a handback was removed. No other transformation was made. This is recorded because a controller-transcribed artifact is weaker evidence than a reviewer-written one and the audit should be able to see the difference.",
+                "starts": 2,
+                "returned_subagent_tokens_by_start": [87731, 97441],
+                "returned_subagent_tokens_total": 185172,
+                "wall_time_seconds_by_start": [868.37, 286.04],
+                "wall_time_seconds_total": 1154.41,
+                "attribution": "both starts are normal-loop review work, observed rather than study-added",
+                "wall_clock_now_available": "This run records per-start wall clock, which every case-3 round had to leave null_unavailable. The figure comes from the host's task-completion notification (duration_ms) and was present there all along; case 3's gap was a controller omission, not a tool limitation. It is not reconstructed for case 3, whose notifications are gone.",
+                "unavailable_fields": ["per-start input/output token split - the host returns one aggregate subagent token count per start"]
+              },
+              "measurement_starts_launched": 0
+            },
             "notes_enumeration": "Enumerated before the first reviewer start, per the case-ledger contract. Held at candidate_enumerated until the normal work-loop's pre-execute review unit opens. The spec is Draft and its plan is Drafting at this revision; both are committed on origin/main, and the delivery worktree is clean at base 1fe78b32a, so the bound bytes are stable. Re-derive this row's identity if spec.md or plan.md changes before the first reviewer start. No measurement start has been launched.",
             "ordering_note": "This case was opened ahead of the cross-pack visual golden-path evaluation slice, which cannot prove its unconfirmed-target path until this contract ships: at base 1fe78b32a the approved-visual-target rung's Requires cell reads `recorded-human-confirmation`, and no carrier under packs/, guides/, tests/ or web/ ties the rung to the `visual_target` field. PR #1487's own body records that nothing reads the field. The ordering follows the owner's separate-PR-first preference for a prerequisite fix and is not a study-driven selection."
           }
