@@ -1,11 +1,14 @@
-# Proposal: narrow the review-effectiveness study to a question it can answer
+# Proposal: the review-effectiveness study cannot answer its frozen question
 
 - **Status:** Draft, awaiting owner approval and independent review
 - **Raised by:** the study controller, 2026-10-02
-- **Decides:** whether to amend `immutable_contract` in
-  [`review-effectiveness-baseline.json`](review-effectiveness-baseline.json) to
-  a narrower question, or to run the frozen eight-case plan to the window close
-  and report incomplete
+- **Decides:** what to do about three independent blockers that make the frozen
+  question unreachable — stop and write up what is counted, re-charter the
+  measurement contracts in
+  [`review-effectiveness-baseline.json`](review-effectiveness-baseline.json), or
+  run to the window close and report incomplete
+- **Recommends:** stop admitting and write up the three counted observations
+  (Option D)
 - **Deciders:** the owner **and** independent review, together. The controller
   cannot do this alone and has not.
 
@@ -15,13 +18,23 @@ The study's frozen contract asks: **does adversarial review find defects that a
 cold audit would not?** Answering it needs 8 terminal cases, each with a shadow
 audit to compare against.
 
-This proposal says that question is **not reachable** under the frozen limits,
-shows the arithmetic, and offers two narrower questions the evidence in hand
-already nearly answers. It changes nothing by itself.
+This proposal shows that the question is **not reachable**, for three
+independent reasons, and asks the deciders to choose what to do instead. It
+changes nothing by itself.
 
-## The frozen question cannot be answered under the frozen ceilings
+| Blocker | What fails | Fixable by narrowing the question? |
+| --- | --- | --- |
+| **A** | 8 shadow audits need 2.35x the frozen cohort token ceiling | Yes — a question needing no shadow audit avoids it |
+| **B** | 0 finding rows exist against a >= 0.80 lineage-completeness threshold | **No** |
+| **C** | Normal-loop input/output tokens and all prose-churn attribution were never captured | **No** |
 
-This is the decisive point, and it is arithmetic rather than judgement.
+Blockers B and C were found while checking a claim this document made in its
+own first draft, and they apply retroactively to the three admitted cases. They
+are the reason the recommendation changed.
+
+## Blocker A: the frozen question cannot be afforded
+
+This is arithmetic rather than judgement.
 
 One shadow audit start consumed **846,918** returned input tokens. The cohort
 ceiling is **2,880,000**. Eight cases need eight shadow starts:
@@ -48,6 +61,70 @@ like escapes both fail:
 
 So the honest status quo is: run to 2026-10-29 and **report incomplete**. That is
 the contract working as designed, not failing.
+
+## Two further blockers, found after this proposal was first drafted
+
+The controller checked its own claim that the narrower questions are "already
+collected as a by-product of every round". **That claim was wrong.** Checking it
+found two more blockers, both independent of the token ceiling and **neither
+solved by narrowing the question.**
+
+### Blocker B: no finding rows exist
+
+`lineage_completeness_contract` requires **one finding row of 24 fields for
+every finding** emitted by normal review, closure review, shadow audit or
+adjudication, and sets a cohort threshold of **>= 0.80** complete fields across
+case rows and finding rows together.
+
+| Quantity | Value |
+| --- | ---: |
+| Raw findings tallied across the 3 admitted cases | ~289 |
+| Finding-row field values those would require | ~6,936 |
+| **Populated finding rows in the ledger** | **0** |
+| Case-row field values required (3 x 19) | 57 |
+| Case-row field values actually present (3 x 2) | 6 |
+| Cohort completeness | **~0.001** against a 0.80 threshold |
+
+The ~289 is a rough lower bound from the ledger's own per-round tallies and may
+double-count where a round is recorded twice. The exact figure does not matter:
+the numerator is 0 finding rows, so no plausible count reaches 0.80.
+
+The ledger records findings as **per-round aggregate counts and prose notes**
+instead — raw, sustained, refuted, blockers. Those are genuinely useful and are
+what every observation in this study rests on. They are not what the contract
+requires, and the gap is not a naming mismatch.
+
+### Blocker C: normal-loop cost was never split into input and output
+
+`cost_telemetry_sufficiency` requires normal-loop **input** tokens and **output**
+tokens separately, plus prose-churn-attributable actions, input tokens, output
+tokens and wall time **for every prose_churn event**.
+
+- Case 4 carries **19** undifferentiated `returned_subagent_tokens` totals and
+  **zero** input-token or output-token fields. Cases 2 and 3 are the same; the
+  only input/output splits anywhere belong to case 2's *shadow* pre-launch
+  gates, not to any normal loop.
+- **No case row carries a single `prose_churn` field.** The
+  `prose_churn_missing_rule` is explicit: any `null_unknown` or
+  `null_unavailable` attributable action, token or wall-time figure makes
+  prospective effectiveness incomplete. Six of the 18 frozen `scorecard_fields`
+  are prose-churn figures.
+
+### Why this changes the recommendation
+
+Both blockers apply **retroactively to cases 2, 3 and 4**, which are already
+terminal. Their findings were never rowed and their per-finding and
+prose-churn telemetry was never captured while the work ran. It is
+session-local and gone, and backfilling it by estimation is barred.
+
+So **no narrowing of the question alone reaches a compliant reading**, because
+the lineage and cost contracts stay frozen as they are and the existing cases
+fail them regardless of which question is asked. An amendment that narrows only
+the question lands on `report incomplete` by a different route.
+
+This correction cuts directly against the controller's first recommendation in
+this document, which said four cases would suffice because the data was already
+being collected. It was not being collected.
 
 ## The cost and the runway
 
@@ -124,31 +201,59 @@ question needs the eight-case comparison it cannot afford.
 
 ## The options
 
-**Option A — amend to a narrower question.** Pick one of:
+Blockers B and C rule out a question-only amendment, so the live options are
+narrower than this document first claimed.
 
-- *the adjudicator's refusal rate and what it protects.* Four cases suffice. The
-  measurement is already collected as a by-product of every round, needs **no
-  shadow audit**, and therefore does not touch the input-token ceiling at all.
-- *the repair-origin rate and what turns it.* Also four cases, also no shadow
-  audit — but it needs `repair_origin_findings` recorded per round on every
-  case, which case 3 shows is easy to skip.
+**Option A — amend the question *and* the measurement contracts.** Narrow to the
+adjudicator's refusal rate, and in the same amendment replace
+`lineage_completeness_contract` and `cost_telemetry_sufficiency` with what the
+loop actually produces: per-round aggregate counts of raw, sustained, refuted
+and indeterminate findings, with refusal grounds, and undifferentiated returned
+subagent tokens plus wall time per round. Drop the per-finding rows and the
+prose-churn attribution, because neither was ever captured and neither can be
+recovered.
 
-Either reaches a reading inside the window. Both answer a question the study did
-not set out to ask.
+- Reaches a reading inside the window, and needs **no shadow audit**, so it
+  never touches the token ceiling.
+- Cases 2, 3 and 4 would count, since the amended contract asks for what their
+  rows already hold.
+- The honest cost: it is a **substantial** rewrite of the frozen contract, not a
+  threshold tweak, and it lowers the evidentiary bar the study was designed
+  around. It should be read as re-chartering the study, and the record should
+  say so plainly.
 
-**Option B — keep the frozen contract.** Admit toward 8, accept that the shadow
-comparison stops at about three cases, and report incomplete on 2026-10-29. Zero
-governance cost. The frozen question stays unanswered.
+**Option B — keep the frozen contract and report incomplete** on 2026-10-29.
+Zero governance cost. Now the clear-eyed reading of Option B is stronger than it
+was: with three independent blockers, `report incomplete` is not a near miss, it
+is the only outcome the frozen contract can produce. Admitting more cases under
+it buys nothing, because each new case fails blockers B and C the moment it
+closes.
 
-**Option C — amend the ceilings only, keeping the question.** Needs a ceiling of
-at least 6,775,344 returned input tokens, a 2.35× rise, justified by n=1. The
-controller recommends against it: a frozen parameter should not move that far on
-one observation.
+**Option C — amend the ceilings only, keeping the question.** Now clearly
+insufficient. It needs a 2.35x ceiling rise on n=1 **and** still fails B and C.
+Not recommended.
 
-**Recommendation: Option A with the adjudicator question.** It is the only
-option that produces a defensible reading inside the window, it rests on data
-already being collected, and it avoids the shadow audit entirely — which is
-where the whole budget problem lives.
+**Option D — stop admitting and write up what is actually supported.** Close
+admission early, report incomplete against the frozen question, and publish the
+three counted observations in their own right: the adjudicator's refusal
+behaviour, the one-case repair-origin result, and the one reviewer role that
+contributed nothing on one diff. No amendment, no new cases, no further token
+spend.
+
+**Recommendation: Option D, with Option A as the alternative if a formal reading
+matters.** Option D is recommended because every remaining case costs ~2.5M
+tokens and ~35 starts and cannot produce a compliant reading under the frozen
+contract, while the observations already counted do not need one. Option A is
+the right choice only if the owner wants a contract-compliant reading badly
+enough to re-charter the measurement contracts, and the record should then be
+explicit that the bar moved to fit what was collected — which is uncomfortably
+close to the bias this contract exists to prevent, and is why it needs
+independent review rather than an owner nod.
+
+Note that stopping admission early is a **different act** from excluding case 1,
+and the arithmetic that made closing admission wrong on 2026-10-02 no longer
+applies the same way: that reasoning assumed the remaining cases could reach a
+reading. Blockers B and C say they cannot.
 
 ## Two mechanics the deciders need to know
 

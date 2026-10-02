@@ -389,6 +389,34 @@
           "consequence_for_a_future_measurement_start": "A prompt built from the accepted intent must use the current bytes and record the current digest alongside the enumeration-time one, exactly as case 2's stopped revision already does."
         },
         "prospective_cases_admitted_note": "cases 2, 3 and 4, against the cap of 12. Case 1 is excluded_before_launch as of 2026-10-02 with closed code missing_normal_work_loop_artifacts and is not counted here; the controller surfaced the staleness on 2026-10-02 and the owner ruled the same day. Its row carries the evidence and the selection-ban check. The exclusion consumed no admission slot and no measurement start, so the stop condition is unchanged.",
+        "measurement_contract_compliance_audit_2026_10_02": {
+          "why_this_was_run": "The controller's scope proposal asserted that the narrower candidate questions were 'already collected as a by-product of every round'. That assertion was checked against this ledger rather than left standing, and it was false. Recording the audit here because it is a fact about the cohort, not about the proposal.",
+          "blocker_b_no_finding_rows": {
+            "requirement": "lineage_completeness_contract requires one finding row of 24 fields for every finding emitted by normal review, closure review, shadow audit or adjudication, with a cohort threshold of >= 0.80 complete fields across case rows and finding rows together",
+            "observed_populated_finding_rows": 0,
+            "raw_findings_tallied_across_admitted_cases": 289,
+            "raw_findings_tally_caveat": "a rough lower bound summed from this ledger's own per-round raw tallies across cases 2, 3 and 4; it may double-count rounds recorded under more than one key. The exact figure does not affect the conclusion because the numerator is zero.",
+            "implied_finding_row_field_values_required": 6936,
+            "case_row_fields_required": 57,
+            "case_row_fields_present": 6,
+            "case_row_fields_present_detail": "each admitted row carries reviewed_revision_digest and stopped_revision_digest out of the 19 required case-row field names; the remaining 17 are absent, and for the cost fields the absence is substantive rather than a naming mismatch - see blocker C",
+            "cohort_completeness_observed": 0.0009,
+            "cohort_completeness_threshold": 0.8,
+            "what_was_recorded_instead": "per-round aggregate counts of raw, sustained, refuted, indeterminate and blocker findings, plus prose notes on disposition and repair origin. Those are what every observation in this study rests on and they are genuinely informative. They are not the frozen contract's required form.",
+            "recoverable": "no. The per-finding rows were never written while the work ran, and the no-estimation rule bars reconstructing them. null_not_applicable does not apply because the findings exist; the fields are null_unknown or null_unavailable, both of which the contract counts as incomplete and keeps in the denominator."
+          },
+          "blocker_c_cost_telemetry": {
+            "requirement": "cost_telemetry_sufficiency requires normal-loop returned INPUT tokens and returned OUTPUT tokens separately, plus prose-churn-attributable review, adjudication and repair actions, input tokens, output tokens and wall_time_seconds for EVERY prose_churn event",
+            "observed_case_4": "19 undifferentiated returned_subagent_tokens totals; ZERO input-token fields; ZERO output-token fields",
+            "observed_cases_2_and_3": "same shape. The only input/output splits anywhere in the ledger belong to case 2's shadow pre-launch gates, which are measurement-side, not normal-loop",
+            "observed_prose_churn_fields_on_any_case_row": 0,
+            "consequence": "prose_churn_missing_rule states that any null_unknown or null_unavailable attributable action, token or wall-time figure makes prospective effectiveness incomplete. Six of the 18 frozen scorecard_fields are prose-churn figures, so the scorecard cannot be completed either.",
+            "recoverable": "no. Per-start input/output splits and per-event prose-churn attribution are host task-notification data, session-local, and gone for closed cases."
+          },
+          "joint_consequence": "Blockers B and C are independent of the token-ceiling blocker and are NOT fixed by narrowing the study's question, because the lineage and cost contracts stay frozen as written and the three admitted cases fail them whichever question is asked. They also apply retroactively to cases 2, 3 and 4, which are already terminal. A question-only amendment therefore reaches report incomplete by a different route. Any future case fails both blockers the moment it closes unless the recording practice changes first.",
+          "controller_position": "Recorded, not resolved. Amending lineage_completeness_contract or cost_telemetry_sufficiency would lower the evidentiary bar to match what was in fact collected, which is adjacent to the bias this contract exists to prevent. That makes it a decision for the owner and independent review together, and it is put to them in review-effectiveness-scope-proposal.md.",
+          "reading_in_one_line": "The study collected enough to support several honest observations and not enough to support the compliant reading its own contract defines."
+        },
         "cohort_counts_2026_10_02": {
           "candidate_enumerated": 0,
           "excluded_before_launch": 1,
