@@ -378,8 +378,9 @@ Retention class: repository-durable.
   `everything else stands` is scoped per clause, not globally:
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:328` ends every
   clause with it, and `docs/specs/sast-sca-tooling/spec.md:3` carries two
-  parentheticals that each do, as does `frontend-experience-composition`'s with
-  three. An earlier draft of this criterion required the phrase's removal; that
+  parentheticals that each do — the only doubled record in the repository, and
+  the maximum any `Status` line carries. An earlier draft of this criterion
+  required the phrase's removal; that
   would have edited the annotation of a decision this contract has nothing to do
   with. **The criterion covers that one `Status` line and nothing else**:
   annotating the governance record is this contract's business, editing another

@@ -771,6 +771,24 @@ T6 bumps.
 
 ## Changelog
 
+- 2026-10-02 (round 6): One sustained finding, a Nit, and no Blocker or
+  Concern. The round-5 repairs were checked and held: T5's five stub assertions
+  are satisfiable by, and only by, the end state AC-0008 describes, the ordering
+  assertion is sound because `adr-0130` occurs only in the existing clause and
+  `adr-0132` only in the appended one, and no markdown line-length gate exists
+  to force a wrap that would break the stub's single-line read. The headroom
+  figure is consistent in all four places it is stated as current.
+  **The Nit is a false claim introduced by the round-5 repair itself.** That
+  revision cited `frontend-experience-composition` as carrying three
+  supersession clauses. It carries **one**; its other two occurrences of the
+  trailing phrase are inside `grep -qE` patterns in that spec's AC-0004 and
+  AC-0005, not `Status` clauses. A repository-wide scan of every `Status` line
+  puts the maximum at **two**, so `sast-sca-tooling` is the only doubled record,
+  not one of several. The claim came from reading a file-occurrence count as a
+  clause count. Both sites now say what the repository contains.
+  AC-0008's requirement is untouched: the per-clause-scoping conclusion rests on
+  `spec-and-plan-contract.md:328` and `sast-sca-tooling/spec.md:3`, both
+  verified, and never needed the third example.
 - 2026-10-02 (round 5): Revised from two sustained findings, both against the
   round-4 repair, neither a Blocker. The round-4 repairs were otherwise checked
   and found sound — the AC-0008 widening stays inside the one `Status` line,
@@ -787,10 +805,11 @@ T6 bumps.
   `everything else stands` to be absent from `frontend-visual-authority`'s
   `Status`, on the premise that the phrase is globally scoped and falsified by
   this contract. The premise is false: `spec-and-plan-contract.md:328` ends
-  **every** supersession clause with it, and the repository's multi-supersession
-  records scope it per clause — `sast-sca-tooling/spec.md:3` carries two
-  parentheticals each ending with it, `frontend-experience-composition`'s
-  carries three. Deleting it from the ADR-0130 clause would have edited the
+  **every** supersession clause with it, and the repository's one
+  multi-supersession record scopes it per clause — `sast-sca-tooling/spec.md:3`
+  carries two parentheticals each ending with it, and two is the maximum any
+  `Status` line in the repository carries. Deleting it from the ADR-0130 clause
+  would have edited the
   annotation of a decision this contract has nothing to do with, and would have
   left the new ADR-0132 clause off-form. AC-0008 now requires a second clause
   **appended** in the documented form, with the first left exactly as it stands.
