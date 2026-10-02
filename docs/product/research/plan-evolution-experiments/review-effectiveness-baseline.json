@@ -680,9 +680,20 @@
             "enumeration_ordinal": 3,
             "stable_case_key": "937ac85de4b7c3d9337a9cc5defdfdcfbd06f14982c668f1e7b01fdbd71362b1",
             "stable_case_key_derivation": "sha256 over the NUL-joined UTF-8 fields in the contract's stated order: release_contract_sha256, repository-relative spec path, accepted_intent_digest, reviewed_revision_digest, and the enumeration ordinal rendered as its decimal string. Recorded here because case 2's reviewed bytes were never committed, so its key cannot be recomputed from repository history to confirm the encoding by reproduction.",
-            "status": "admitted_normal_loop_open",
-            "controller_decision_timestamp": "2026-09-30T03:24:20Z",
+            "status": "normal_loop_terminal",
+            "controller_decision_timestamp": "2026-10-02T01:46:18Z",
             "normal_loop_opened_at": "2026-09-30T03:28:24Z",
+            "normal_loop_terminal_at": "2026-10-02T01:26:54Z",
+            "normal_loop_terminal_receipt": {
+              "engine_state": "DONE",
+              "transition_sequence": 49,
+              "last_event": "done",
+              "last_transition_at": "2026-10-02T01:26:54Z",
+              "source": "docs/specs/visual-target-field/engine-state.json in the delivery worktree; gitignored, read directly by the controller on 2026-10-02",
+              "delivered_as": "PR #1487, squash-merged to origin/main as 1fe78b32a",
+              "completed_task_evidence": {"T1": "f69606cfb", "T2": "2e0348b39", "T3": "15188c387", "T4": "31011ff57"},
+              "branch_retention": "eugenelim/visual-target-field must not be deleted: the four pinned SHAs exist only on it after the squash merge. Ruling recorded in docs/specs/visual-target-field/notes/ruling-2026-10-01-spec-trailer.md"
+            },
             "normal_loop_run_id": "1adcfbc1-0d36-401b-9f3d-ebfc2493790a",
             "normal_loop_engine_state_at_admission": "SPEC-PLAN-REVIEW, transition sequence 1, mode code",
             "admission_note": "Admitted when the normal work-loop pre-execute spec/plan review unit opened, immediately before the first reviewer start. The bound spec/plan bytes are unchanged from enumeration, so no identity re-derivation was required. Round 1 dispatches the adversarial spec/plan reviewer; its brief carries no reference to this study, to prior reviewer behaviour, or to historical outcomes. No measurement start has been launched.",
@@ -720,7 +731,83 @@
               "requested_output_tokens": "enforceable via CLAUDE_CODE_MAX_OUTPUT_TOKENS on a headless `claude -p` launch, per the control verified on 2026-09-29 and recorded on case 1's row"
             },
             "normal_loop_progress": {
-              "rounds_completed": 4,
+              "rounds_completed": 16,
+              "rounds_completed_definition": "Total review rounds on this case: 4 pre-amendment pre-EXECUTE rounds (recorded below as round_1 to round_4), 9 post-amendment pre-EXECUTE rounds numbered 2 to 10 by their persisted filenames, and 3 post-gates rounds. The field previously read 4 and counted only the first group; the definition is stated here because the number's meaning changed.",
+              "ledger_repair_2026_10_02": {
+                "cause": "The row was last written 2026-10-01T19:19Z and then went twelve rounds without an update. T17's guidance to commit mutable cohort updates in small local commits was not followed during T18. This entry repairs the omission; it does not re-derive any count.",
+                "report_provenance": {
+                  "location": "/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/visual-target-confirmation/.context/reviews/1adcfbc1-0d36-401b-9f3d-ebfc2493790a",
+                  "naming": "Two pre-EXECUTE families share the directory. `N-pre-execute-adversarial-*` is the pre-amendment series already on this row — its four raw digests match round_1 to round_4 byte for byte, which is how the mapping was confirmed rather than assumed. `N-pre-execute-adversarial-reviewer-*` is the post-amendment series. There is no round 1 in the second family: after amendment 1 the numbering opens at the post-gates round and the pre-EXECUTE passes resume at 2.",
+                  "raw_reports_persisted": 18,
+                  "adjudications_persisted": 18,
+                  "archived_adjudications": 2
+                },
+                "counts_source": "Measured values transcribed from the T17 and T18 handover tables. Report digests computed by the controller from the persisted files on 2026-10-02. Nothing here is estimated."
+              },
+              "post_amendment_1_pre_execute_rounds": {
+                "numbering_note": "Numbered as the persisted files are. Round 1 of this series is the post-gates round recorded under post_gates_rounds.",
+                "cost_fields_unavailable": "returned_subagent_tokens_by_start and wall_time_seconds_total are null_unavailable for every round in this block: the per-start figures were not aggregated at the time and the task notifications that carried them are not retained artifacts.",
+                "round_2": {"raw": 11, "sustained": 9, "blockers": 4, "raw_report_sha256": "2e1b57cd022f365935ebee3bb34dbb8f7b7aeb535117d09e7c9b70e1c31dba3e", "adjudication_sha256": "e954f91e8e0084f3708cf61b1f1d7f38f6c6cc64425fd240f48968d8fb632f5c"},
+                "round_3": {"raw": 10, "sustained": 10, "blockers": 3, "raw_report_sha256": "11dfeb4c76caf54790ea9cb0c2bf95cbc3e006760050e707c15b0dfff2b1c777", "adjudication_sha256": "4d511db18eafe3d0f6b284abcd4ddfc7376dd8653ab8f703d764cb78a8daa565", "process_deviation": "round 3's revision was made in SPEC-PLAN-REVIEW without firing findings-remain first; recorded rather than corrected, per notes/amendment-2026-10-01.md"},
+                "round_4": {"raw": 5, "sustained": 3, "indeterminate": 1, "blockers": 1, "raw_report_sha256": "41baec5c74cde912fb63d8cc9ea49cfe87b94a961aa77559adda31247c03e60b", "adjudication_sha256": "e378c201340e9130b4ef8975763116bc12f251359e61ba737aa25f60608536b5", "note": "the indeterminate audit classified the report invalid and was resolved by an owner ruling, not another pass"},
+                "round_5": {"raw": 2, "sustained": 2, "blockers": 0, "raw_report_sha256": "42cf2824b426de414ba8892991085c796a9c1686864076911dbd0b865fe591a0", "adjudication_sha256": "2177e755af155aeaae3bb728bbdeb762e3d1f5089fd4e816c09fbce904513318"},
+                "round_6": {"raw": 1, "sustained": 1, "refuted": 0, "blockers": 0, "raw_report_sha256": "87d94d625b0c3ef27a622f45f6c12dd345120bc2dc4d36bbf8a5fca022f91e50", "adjudication_sha256": "d67467fc88d7e390d48146770420e7d27759def8eab8216592993782854dd57b", "note": "one concern, repaired by narrowing rather than by adding specification"},
+                "round_7": {"raw": 1, "sustained": 0, "refuted": 1, "blockers": 0, "verdict": "CLEAN", "raw_report_sha256": "97674c60f3a50cc4cdec45451db7faa6bc1d1eb7dea633cbc9d99aca854afeb8", "adjudication_sha256": "057d344bd8761df4b1d7ba184a3be7ad8cb2c50e97e9c9e9a0b237c67beeb85c"},
+                "amendment_2_boundary": "post-gates round 2's adversarial pass drove contract amendment 2. Rounds 8 to 10 run against the amended contract.",
+                "round_8": {"raw": 4, "sustained": 1, "refuted": 3, "blockers": 1, "raw_report_sha256": "890930f478dcddffcb9435468988312e4441461b8555295d930a55a3a3226d10", "adjudication_sha256": "bf3ef61f92514f8e1643e889541a1cec072038b1518df08ace7c28ecf9d8ce3d", "repair_origin_note": "the single blocker was controller-introduced"},
+                "round_9": {"raw": 3, "sustained": 3, "refuted": 0, "blockers": 2, "raw_report_sha256": "3814b1d36e7dd012ca382e7ff0ffb355313852cb49fad1355b03e69ac8adf260", "adjudication_sha256": "89ef5eee4b96755d0778781e6bb54236e13522ae1a955e468789e7d1614e9f2a", "repair_origin_note": "both blockers were amendment-path staleness left by the controller's own amendment edit"},
+                "round_10": {"raw": 1, "sustained": 0, "refuted": 1, "blockers": 0, "verdict": "CLEAN", "raw_report_sha256": "674a9d2bc923564dc81b18fbcace986714194280a92d70e4c50900d50cef2a18", "adjudication_sha256": "24ef9fcced3c1b6fb86b11e4a2aa7e4c2645210992dfcf4e07ca58cba4ba32ca"}
+              },
+              "post_gates_rounds": {
+                "cost_fields_unavailable": "returned_subagent_tokens_by_start and wall_time_seconds_total are null_unavailable for every round in this block, same cause as the pre-EXECUTE block.",
+                "round_1": {
+                  "reviewers": ["adversarial-reviewer", "experience-reviewer"],
+                  "raw_total": 20,
+                  "sustained_total": 6,
+                  "blockers": 3,
+                  "per_reviewer_split": "null_unavailable — the handover records this round only as a two-reviewer total, and the controller will not split it by re-reading the reports after the fact",
+                  "adversarial_raw_sha256": "1dd9b2cc8e9c2e4911ecf623609df88437f4ae220ba874556e265ea974c881c7",
+                  "adversarial_adjudication_sha256": "f15c2257fb2f36817942dbcdc3bb239d9601642ca56184be2176acd1268b165f",
+                  "experience_raw_sha256": "a4eb0c7bbc9111c7048bb739bb70ca538d4ae7fabe997fdda0280fce7e1be9d6",
+                  "experience_adjudication_sha256": "7a446cfa0ccee1599df55517de235c8cdeada9b0f303e079a110186ddb993ed4"
+                },
+                "round_2": {
+                  "experience_reviewer": {"raw": 12, "sustained": 0, "refuted": 12, "raw_report_sha256": "9ba0d3e93a6b2df64c515b8eba092fa36838ecbeeeaf986be2a63590be2a3001", "adjudication_sha256": "73c8280836424dc9e52f73b296e170ee02926b771b2f772ac2725bf08208ab4b"},
+                  "adversarial_reviewer": {"raw": 3, "sustained": 2, "refuted": 1, "raw_report_sha256": "c6063374dbeaba64db26fb9c55990752cd767ddaa88b67434b5286fe60fbfe77", "adjudication_sha256": "4cda9517c4df93dc2625c22b25f9a106d973c834058fa9afb7522652acdbcbbb", "effect": "drove contract amendment 2"}
+                },
+                "round_3": {
+                  "reviewers": ["adversarial-reviewer"],
+                  "raw": 2,
+                  "sustained": 1,
+                  "sustained_disposition": "deferred",
+                  "refuted": 1,
+                  "raw_report_sha256": "4f592e6c35cc35230ba6240285c4200fe6ed858c2c1e0ab173aa8d9dafe6b432",
+                  "adjudication_sha256": "0c77953e68bfe4030ebdf0a896ccf64c120323bc7f7cc0f7925a00fd5e1f969a",
+                  "invalid_adjudication_note": "one adjudication attempt classified invalid. Both attempts are retained: archive-3-post-gates-adjudication-1-indeterminate.md (sha256 5bdeff4e6bf63aa49f49861df666406432b3fd5b8f4680e503d3a4b9a4916f98) and archive-3-post-gates-adjudication-2-sustained-nit.md (sha256 6de3aaf1a6c58c324e77d54a460b6f1fc6a446ec53a7a8659c3ef122d7367704)"
+                }
+              },
+              "sustained_series": {
+                "pre_amendment_pre_execute": [11, 15, 10, 11],
+                "post_amendment_1_rounds_2_to_7": [9, 10, 3, 2, 1, 0],
+                "post_amendment_2_rounds_8_to_10": [1, 3, 0],
+                "post_gates": [6, 2, "1 deferred"],
+                "note": "Recorded as observed counts. Not a quality denominator and not a score."
+              },
+              "observed_normal_loop_cost_t18": {
+                "subagent_starts": 18,
+                "returned_subagent_tokens": 1163138,
+                "source": "summed from the per-start figures in this session's task notifications",
+                "scope": "the whole T18 session on this case — review, adjudication and implementer starts together. It is not a per-round figure and must not be divided into one.",
+                "attribution": "normal-loop starts; consumes no measurement budget",
+                "wall_time_seconds": "null_unavailable — per-start wall clock exists in the notifications but was never aggregated, and is not reconstructed here",
+                "t17_session_cost": "null_unavailable — the T17 handover recorded counts for the post-gates round and pre-EXECUTE rounds 2 to 5 but no start, token or wall-clock figures, and the notifications are not retained",
+                "cost_telemetry_consequence": "Under the frozen cost_telemetry_sufficiency rule this case cannot supply complete normal-loop wall_time_seconds. That is recorded, not worked around."
+              },
+              "repair_origin_observation": {
+                "statement": "Across rounds 2 to 6 every sustained finding was a defect in the previous round's repair rather than in the work being governed. The trend turned only when repairs switched from adding specification to the Cut before adding ladder's drop-the-claim and narrow-the-claim rungs. Rounds 8 and 9 repeat the shape against the amendment-2 path.",
+                "extent": "now observed across roughly fifteen rounds on this one case; T16 and T17 recorded the same shape independently",
+                "handling": "This is a fact about the repairing agent, not about review effectiveness. Record it; do not score it. It must not be folded into an effectiveness reading."
+              },
               "round_4": {
                 "reviewer_role": "adversarial",
                 "round_purpose": "confirmation pass after the owner-directed scope reduction, chosen by the controller because a narrowing leaves stale references",
@@ -850,7 +937,8 @@
                 ],
                 "measurement_note": "The normal loop for this case terminates at the gate for review-cost purposes. Four rounds, eight observed starts, 739,853 returned subagent tokens, 3068.1 seconds. No measurement start was launched against this case."
               },
-              "normal_loop_state": "SPEC-HUMAN-GATE, pending owner scope decision",
+              "normal_loop_state": "DONE",
+              "normal_loop_state_history": "Reached SPEC-HUMAN-GATE on 2026-09-30 pending the owner scope decision, then ran rounds 6 to 10 and three post-gates rounds under two contract amendments before reaching DONE at transition sequence 49 on 2026-10-02T01:26:54Z.",
               "round_2": {
                 "reviewer_role": "adversarial",
                 "raw_findings": 16,
