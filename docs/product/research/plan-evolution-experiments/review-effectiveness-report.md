@@ -164,14 +164,163 @@ next start; they cannot retroactively gate a completed start.
 
 Independent adversarial and quality closure review are clean for the canonical
 contract digest, and the owner approved that exact digest. Consecutive-case
-admission is authorized from `2026-09-29T21:19:31Z` through
-`2026-10-29T21:19:31Z`; no prospective case or measurement start exists yet.
+admission was authorized from `2026-09-29T21:19:31Z` through
+`2026-10-29T21:19:31Z`. For what the cohort then did, see the next section.
+
+## Prospective cohort result: incomplete, and why
+
+Date: 2026-10-02. Admission closed early by owner decision on this date.
+
+**The frozen question — does adversarial review find defects that a cold audit
+would not? — is not answered, and cannot be answered from this cohort.** Three
+independent blockers each prevent a compliant reading, and two of them are
+retroactive and unrecoverable.
+
+| Blocker | What fails | Avoidable by asking a narrower question? |
+| --- | --- | --- |
+| A — cost ceiling | One shadow audit start cost 846,918 returned input tokens. Eight cases need eight starts: 6,775,344 against a frozen cohort ceiling of 2,880,000, a 2.35x overrun. The ceiling supports about three. | Yes, for a question needing no shadow audit |
+| B — no finding rows | `lineage_completeness_contract` requires one 24-field row per finding at >= 0.80 cohort completeness. The ledger holds **0** populated finding rows against roughly 289 raw findings tallied across the three admitted cases. Observed completeness is about 0.001. | **No** |
+| C — cost telemetry | Normal-loop returned tokens were recorded undifferentiated — case 4 carries 19 `returned_subagent_tokens` totals and zero input- or output-token fields — and **no case row carries any `prose_churn` field**, which `prose_churn_missing_rule` makes incomplete on its own. Eight of the 18 frozen `scorecard_fields` are prose-churn figures. | **No** |
+
+Blockers B and C apply to cases 2, 3 and 4, which are already terminal. Their
+per-finding rows were never written while the work ran, and per-start
+input/output splits and prose-churn attribution were session-local host
+telemetry that is gone. Estimating a missing measurement value is barred, so
+backfilling is not available. Neither blocker is fixed by narrowing the
+question, because the lineage and cost contracts stay frozen whichever question
+is asked.
+
+The cohort was stopped rather than run to the window close because each further
+case cost on the order of 35 starts and 2.5M returned subagent tokens while
+failing blockers B and C the moment it closed.
+
+**The one-line reading: the cohort collected enough to support several honest
+observations and not enough to support the compliant reading its own contract
+defines.**
+
+### Cohort disposition
+
+| Ordinal | Spec | Status |
+| --- | --- | --- |
+| 1 | `review-recurrence-family-key` | `excluded_before_launch`, code `missing_normal_work_loop_artifacts` |
+| 2 | `visual-target-confirmation` | `shadow_terminal` |
+| 3 | `visual-target-field` | `normal_loop_terminal` |
+| 4 | `visual-target-rung-precondition` | `normal_loop_terminal` |
+
+Three cases admitted against a cap of 12. **No case reached
+`measured_terminal`.** One shadow audit start was used of 12; no adjudication
+start was used. No protected escape was observed at any point.
+
+Case 1 ran its normal loop outside controller observation: its enumerated
+worktree was never used, the work shipped on a different branch, no per-round
+review artifacts exist for it, and its enumerated reviewed-revision digests no
+longer match the shipped artifacts. It consumed no admission slot.
+
+### What the cohort does support
+
+Three observations are fully counted. Each carries its own limit, and none is a
+quality score.
+
+**1. The adjudicator refuses most of what reviewers raise, and the refusals are
+load bearing.** On case 4's post-gates rounds 1 and 2, 31 raw findings produced
+9 sustained — 22 refused. Of one counted set of 13 refusals, 4 broke on
+authority (no rule required the change), 5 on consequence (no reader misled), 2
+on existing handling (the spec's own limits had already accepted the cost by
+name) and 2 on observation (the claim was contradicted by the cited file).
+**Twice a refusal prevented a repair that would have reintroduced a mechanism
+the spec forbids.** Once it collapsed two independent findings on the same
+sentence into one repair instead of two.
+
+*Limit:* this is the refusal behaviour of one adjudicator over one case's
+post-gates phase. It is not a precision or recall figure, and raw finding count
+is not used as a denominator for quality anywhere above.
+
+**2. Repair-origin findings dominated one case's middle rounds.** On case 4,
+rounds 2 through 7 sustained 21 findings of which 16 were defects introduced by
+the previous round's repair rather than defects in the work being governed — the
+per-round series is 7, 4, 2, 2, 1, 0 against sustained 8, 6, 4, 2, 1, 0.
+
+*Limit, and a correction:* this is **one case**. Earlier handovers and an
+earlier draft of the scope proposal described it as replicated across two cases
+and roughly 23 rounds. That overstates the record. Case 3's post-amendment
+rounds 2–6, the rounds its own dominance statement is about, carry no
+`repair_origin_findings` field at all; its only counted rounds run at 7 of 36,
+or 19%, which is not dominance. The observation stands on case 4 and is
+corroborated by prose on case 3 whose numbers were never recorded. Per the
+frozen handling rule this is **a fact about the repairing agent, recorded and
+not scored**, and it must not be folded into an effectiveness reading.
+
+**3. Review caught two defects in the governed work rather than in a repair,
+both at case 4's round 3.** The consequential one:
+`test_visual_authority_precedence.py:75-79` pinned the rung's `Requires` cell by
+equality to a superseded value, so the contract's central edit would have
+reddened a shipped assertion while the task making that edit closed on the
+suite being green. **Rounds 1 and 2 passed over it.**
+
+*Limit:* two findings on one case. This is the clearest single piece of evidence
+that review surfaces what the contract alone does not, and it is also precisely
+why the frozen question needed the eight-case comparison the cohort could not
+afford. It does not generalize on its own.
+
+### A fourth observation, narrower than it looks
+
+On case 4 the experience-reviewer produced **zero unique sustained findings**:
+14 raw across two rounds, 1 sustained, and that same defect was independently
+found by the adversarial reviewer, whose duplicate the adjudicator refused.
+Observed cost: 5 starts and 272,260 returned subagent tokens.
+
+*Limit:* one case, whose diff had an adopter surface of instruction prose. This
+is **not** a judgement about the role, and no future case may be selected to
+test it — selecting a case by whether it helps the study is banned.
+
+### Cost actually observed
+
+Case 4 is the only case with complete per-start token and wall-clock telemetry
+throughout, so it is the only sound basis for a per-case figure.
+
+| Phase | Starts | Returned subagent tokens | Wall clock |
+| --- | ---: | ---: | ---: |
+| Pre-EXECUTE review, 7 rounds | 15 | 1,142,006 | 4,106.4 s |
+| EXECUTE, 8 tasks in 5 waves | 8 | 549,639 | 4,389.0 s |
+| Post-gates rounds 1–2 | 12 | 878,758 | not totalled |
+| **Recorded subtotal** | **35** | **2,570,403** | **8,495.4 s** = 2 h 21 m |
+
+Post-gates round 3, the gate transitions and the controller's own verification
+runs sit outside that subtotal; the whole case ran to roughly 45 starts and 2.9M
+tokens. These are undifferentiated returned tokens, which is blocker C: they
+cannot be split into the input and output figures the scorecard requires.
+
+No savings claim is made against the retrospective baseline, because historical
+tokens and wall time are missing. No scalar effectiveness score is emitted.
+
+### What a future attempt would have to fix first
+
+The cohort's failure was one of recording practice, not of the work. Any
+successor needs, **before** its first case closes:
+
+1. A per-finding row written **as each round closes**, with all 24 contract
+   fields, rather than per-round aggregates plus prose. Case 3 shows how
+   silently a single field is skipped while prose keeps asserting the pattern.
+2. Returned tokens captured **split into input and output** per start, since the
+   undifferentiated total cannot be decomposed afterwards.
+3. Prose-churn attribution captured **per event, while the event happens**.
+4. Ceilings calibrated against a cache-warming host. The frozen per-case ceiling
+   of 240,000 returned input tokens was exceeded 3.5x by the first shadow start.
+
+Points 1 to 3 are all the same lesson: a measurement the contract requires must
+be written while the work runs, because the host telemetry it depends on is
+session-local.
 
 ## Sources
 
 - `review-effectiveness-baseline.json` contains the frozen event rows and
-  arithmetic inputs plus the independently reviewed and owner-approved T15
-  release record.
+  arithmetic inputs, the independently reviewed and owner-approved T15 release
+  record, the four prospective case rows, and the
+  `measurement_contract_compliance_audit_2026_10_02` block that establishes
+  blockers B and C field by field.
+- `review-effectiveness-scope-proposal.md` carries the full argument for each
+  blocker, the options considered, and the two frozen-text ambiguities left for
+  the owner and independent review.
 - `review-churn-results.json` binds the Tier A, Tier B, and repository aggregate
   values used here.
 - `review-loop-nonconvergence-survey.md` binds the occasioning loop and

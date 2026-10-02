@@ -1,6 +1,11 @@
 # Proposal: the review-effectiveness study cannot answer its frozen question
 
-- **Status:** Draft, awaiting owner approval and independent review
+- **Status:** Decided 2026-10-02 — the owner chose **Option D**. Admission is
+  closed, `immutable_contract` is untouched, and the counted observations are
+  written up in
+  [`review-effectiveness-report.md`](review-effectiveness-report.md)
+  § *Prospective cohort result*. This document is retained as the reasoning
+  behind that decision.
 - **Raised by:** the study controller, 2026-10-02
 - **Decides:** what to do about three independent blockers that make the frozen
   question unreachable — stop and write up what is counted, re-charter the
@@ -107,7 +112,7 @@ tokens and wall time **for every prose_churn event**.
 - **No case row carries a single `prose_churn` field.** The
   `prose_churn_missing_rule` is explicit: any `null_unknown` or
   `null_unavailable` attributable action, token or wall-time figure makes
-  prospective effectiveness incomplete. Six of the 18 frozen `scorecard_fields`
+  prospective effectiveness incomplete. Eight of the 18 frozen `scorecard_fields`
   are prose-churn figures.
 
 ### Why this changes the recommendation
@@ -297,8 +302,20 @@ should be settled in the same sitting as this proposal.
 
 | Party | Decision | Canonical digest cited | Date |
 | --- | --- | --- | --- |
-| Owner | | | |
-| Independent review | | | |
+| Owner | **Option D** — stop admitting, write up what is counted | n/a; no amendment was made | 2026-10-02 |
+| Independent review | not required | n/a | — |
 
-Until both rows are filled against a new canonical digest, the frozen contract
-stands unchanged and the controller continues under Option B by default.
+Independent review was not required because Option D amends nothing. The
+canonical digest `d7a8e697…1bd91f` is unchanged, so `owner_status` and
+`independent_review_status` remain valid against the digest they already cite,
+and the cohort reaches `report incomplete` through
+`admission_rule.incomplete_rule` rather than through any change to the contract.
+
+Options A and C would each have required independent review, because both move
+`immutable_contract` and therefore the canonical digest. Neither was taken.
+
+The two frozen-text ambiguities this document surfaced — the absent amendment
+path and the two-way sufficiency rule — are **left open**. Option D does not
+depend on either, and settling them would be an interpretation of frozen text
+with no live decision resting on it. They are recorded here for whoever charters
+a successor study.
