@@ -700,6 +700,15 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # roster file.
     "pytest acceptance schema parity (roster-owned)":
         LOCAL("test-after-build-check"),
+    # T3c containment-attestation schema parity: validates that records emitted
+    # by _containment.py satisfy contracts/delivery/containment-attestation.v1.
+    # schema.json, pins DELIVERY_CONTROL_PATHS to contracts/adapter.toml, and
+    # asserts validate_attestation_dict() refuses four classes of invalid input
+    # with stable denial codes.  LOCAL("test-after-build-check") is correct:
+    # that target's run-test-suite includes pytest tests/ -q, which discovers
+    # this roster file.
+    "pytest containment-attestation schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -1005,6 +1014,7 @@ _GATE_MAIN_CHECKS = (
     "pytest security-primitives schema parity (roster-owned)",
     "pytest delivery-subject schema parity (roster-owned)",
     "pytest acceptance schema parity (roster-owned)",
+    "pytest containment-attestation schema parity (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
