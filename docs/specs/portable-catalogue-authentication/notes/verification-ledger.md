@@ -132,6 +132,42 @@ neither the CLI output nor the state file. The anonymous and exact-machine
 `.netrc` legs of the same module ran on the macOS host with a generated
 loopback CA: 14 passed with the JFrog leg skipped, in 104 s.
 
+## Documentation checks (AC-0019, 2026-10-03)
+
+Run at commit `e525ae024`, after the review round's guide repairs:
+
+- `python3 tools/build-site.py` exited 0 (`build-site: done.`).
+  `tools/validate_guides.py` (235 checked), `tools/check-guide-index.py`
+  (22 packs), `tools/lint-guide-titles.py` (241 files), and
+  `tools/catalogue/sync_authoring_scaffold.py --check` each exited 0.
+- Stale-claim search, exit 0 with one hit:
+  `grep -rniE "only (supports|path|way|through).*bearer|bearer.*(only|sole)|does not currently reuse|AGENTBUNDLE_HTTP_BEARER_TOKEN alone|empty (bearer )?token|set but empty"`
+  over `guides`, `docs/guides`, both packages' `README.md` and
+  `README-pypi.md`, `packages/agentbundle/DESIGN.md`, and the packaged
+  scaffold guides. The only hit is
+  `guides/credential-brokers/how-to/add-a-credentialed-skill.md:19`, which
+  says skills may call services that take "Bearer auth". It is not a claim
+  about catalogue authentication.
+- JFrog CLI 2.105.0 setup is named in all five setup surfaces: the adopter
+  how-to, the adopter reference, the maintainer how-to, and both AgentBundle
+  READMEs.
+- Credential-example search over the lines this feature added to those files
+  (`git diff -U0 7a4d62ff7^ -- <files> | grep '^+'`), for `Bearer`/`Basic`
+  followed by a literal value, `password <value>`, `token=<value>`, JWT,
+  AWS-key, and GitHub-token shapes: zero matches (grep exit 1). Every
+  credential mention is a variable name or a `<token>`, `<user>`, or `<host>`
+  placeholder.
+
+## Review round 2 repair evidence (2026-10-03)
+
+At commit `e525ae024` the same disposable Linux container ran the real JFrog
+CLI 2.105.0 contract suite, the JFrog, `.netrc`, and fetch-session unit
+suites, the provider-matrix integration suite, and the built-CLI JFrog leg:
+209 passed, 1 Windows-only skip, in 24.06 s. On the macOS host: credbroker
+658 passed (105 s); the full AgentBundle package suite 5,531 passed, 57
+skipped, 1 xfailed (13 min 23 s); the packaging roster 14 passed with the
+JFrog leg skipped for its stated reason (67 s).
+
 ## Owner decisions taken during EXECUTE
 
 Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
