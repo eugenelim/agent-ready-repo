@@ -88,7 +88,7 @@ them from a full run gives the transitive dependents, but only as far as both
 runs are complete:
 
 - **Both runs uncut** — the `--depth 1` run reports `truncated_dependents` 0,
-  and the full run reports `truncated_dependents` 0,
+  and the full run reports `unresolved` 0, `truncated_dependents` 0,
   `depth_horizon_reached: false` and `node_cap_reached: false`. The difference
   is the complete transitive set.
 - **Only the full run cut** — the `--depth 1` run reports
@@ -97,6 +97,11 @@ runs are complete:
 - **The `--depth 1` run truncated** — no split is possible. The missing direct
   rows would land in the difference, so it is neither the transitive set nor a
   floor. Report the direct list as partial and do not report a transitive count.
+
+A non-zero `unresolved` on the full run limits every case to resolved edges. A
+direct caller bound only through an unresolved reference can surface deeper in
+the full run and be counted as transitive, so call the split "over resolved
+edges" and give the `unresolved` count beside it.
 
 Say which case applied whenever you report the split.
 

@@ -101,3 +101,15 @@ Mutation check: setting `PINNED_VERSION = "0.18.1"` turns
 - `example-prompts.md` states `node_cap_reached` false and an untruncated `--depth 1`
   run before giving the 12 / 35 split.
 - Gates: 152 passed (0.18.0 first on `PATH`); guide commands exit 0 and 0; lint pass.
+
+## Review round 4 fixes
+
+- `evidence.md` § Direct and transitive dependents: the complete-split case also requires
+  `unresolved` 0 on the full run, and a non-zero `unresolved` limits every case to
+  resolved edges.
+- Design note superseded, not amended: `plan.md` § Design (LLD) › Interfaces & contracts
+  says "`--depth 1` gives the direct set, and the difference against the full run is the
+  transitive set" without conditions. The shipped rule in `references/evidence.md`
+  § Direct and transitive dependents narrows it to three cut-dependent cases plus the
+  `unresolved` limit, and is the authority. The approved plan is not edited; no
+  acceptance criterion or task row reads that sentence.
