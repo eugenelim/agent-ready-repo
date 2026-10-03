@@ -293,6 +293,27 @@ cannot be split into the input and output figures the scorecard requires.
 No savings claim is made against the retrospective baseline, because historical
 tokens and wall time are missing. No scalar effectiveness score is emitted.
 
+### Do not delete three branches
+
+Case 3's and case 4's delivery pull requests were **squash**-merged, so the
+individual commits this record cites exist only on the branches below and
+nowhere on `main`. Deleting one turns verifiable evidence into an assertion.
+
+| Branch | Case | What it carries |
+| --- | --- | --- |
+| `eugenelim/visual-target-rung-precondition` | 4 | the 5 commits case 4's record cites |
+| `eugenelim/visual-target-field` | 3 | the 4 commits case 3's `completed_task_evidence` pins |
+| `eugenelim/review-recurrence-family-key-run41` | 1 | case 1's exclusion evidence — the spec directory holding only `plan.md` and `spec.md` where sibling specs carry `notes/review-round-*.md` |
+
+All three verified present on the remote 2026-10-02. The ledger's
+`branch_retention_requirement` block holds the cited SHAs and the commands that
+check them.
+
+One evidence claim is **not** independently checkable: case 1's
+`eugenelim/review-recurrence-family-key` branch was never pushed and exists only
+in one local checkout. The exclusion does not rest on it — the other three
+claims on that row are all verifiable from `origin`.
+
 ### What a future attempt would have to fix first
 
 The cohort's failure was one of recording practice, not of the work. Any
