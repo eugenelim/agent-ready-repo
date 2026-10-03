@@ -110,8 +110,7 @@ this work".
    wicked-estate blast-radius parse_config --depth 1 --json
    ```
 
-   That gives the direct dependents. The difference against the full blast
-   radius is the complete transitive set only when the full run reports no cut — `truncated_dependents` 0, `depth_horizon_reached: false` and `node_cap_reached: false` — and the `--depth 1` run reports `truncated_dependents` 0. Otherwise it is a floor within `searched_depth`.
+   That gives the direct dependents. Whether the difference against the full run is the transitive set depends on both runs' cut fields; apply [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
 
    - MCP available: `TraverseGraph` with `direction: "dependents"` and
      `depth: 1` gives the direct set with per-node depth in the response.

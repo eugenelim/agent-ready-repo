@@ -90,3 +90,14 @@ Mutation check: setting `PINNED_VERSION = "0.18.1"` turns
 - `gaps.md` §11 heading and summary row scope the schema-derived label to MCP only.
 - Gates after the fix: pack suites + readability 152 passed (0.18.0 first on `PATH`);
   guide commands exit 0 and 0; `make lint-ruff lint-mypy` pass.
+
+## Review round 3 fixes
+
+- The direct-versus-transitive rule now lives once, in `references/evidence.md`
+  § Direct and transitive dependents, with three cases: both runs uncut (complete
+  split), only the full run cut (floor within `searched_depth`), the `--depth 1` run
+  truncated (no split). `gaps.md`, `capability-map.md`, `investigation-patterns.md` and
+  `agents/impact-analyst.md` point to it instead of restating it.
+- `example-prompts.md` states `node_cap_reached` false and an untruncated `--depth 1`
+  run before giving the 12 / 35 split.
+- Gates: 152 passed (0.18.0 first on `PATH`); guide commands exit 0 and 0; lint pass.

@@ -76,11 +76,29 @@ unresolved and **727 truncated**.
 `blast-radius --json` returns `searched_depth`, `depth_horizon_reached`, and
 `node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
 `CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
-`--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives
-only the direct dependents; the difference against the full run is the complete transitive set only when the full run reports no cut — `truncated_dependents` 0, `depth_horizon_reached: false` and `node_cap_reached: false` — and the `--depth 1` run reports `truncated_dependents` 0. Otherwise it is a floor within `searched_depth`.
+`--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents) before subtracting.
 
 A true `node_cap_reached` means the traversal hit its node budget. No CLI flag
 raises it, so report the list as a floor.
+
+### Direct and transitive dependents
+
+`blast-radius <name> --depth 1 --json` gives the direct dependents. Subtracting
+them from a full run gives the transitive dependents, but only as far as both
+runs are complete:
+
+- **Both runs uncut** — the `--depth 1` run reports `truncated_dependents` 0,
+  and the full run reports `truncated_dependents` 0,
+  `depth_horizon_reached: false` and `node_cap_reached: false`. The difference
+  is the complete transitive set.
+- **Only the full run cut** — the `--depth 1` run reports
+  `truncated_dependents` 0, and the full run reports a cut. The difference is a
+  floor on the transitive set within `searched_depth`.
+- **The `--depth 1` run truncated** — no split is possible. The missing direct
+  rows would land in the difference, so it is neither the transitive set nor a
+  floor. Report the direct list as partial and do not report a transitive count.
+
+Say which case applied whenever you report the split.
 
 `wicked-estate path A B --json` separates bounded from proven absence. A
 `found: false` is proven absence only when `unresolved` is null and both

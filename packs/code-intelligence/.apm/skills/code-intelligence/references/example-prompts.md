@@ -54,8 +54,8 @@ wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
 **A good answer looks like:**
 
 > 47 resolved dependents, 0 unresolved, no truncation, `depth_horizon_reached`
-> false (full search to depth 12). `stats` reports the graph is current with
-> the working tree.
+> false and `node_cap_reached` false at depth 12. `stats` reports the graph is
+> current with the working tree.
 >
 > I picked five to read — `Invoice`, `LedgerEntry`, `PaymentGateway`,
 > `RefundCalculator`, and the `Money` serde implementation — chosen because
@@ -64,8 +64,9 @@ wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
 > positionally and will fail to compile with a new field; `RefundCalculator`
 > only reads `.amount` and is unaffected.
 >
-> I ran `blast-radius Money --depth 1 --json` to separate direct from transitive:
-> 12 of the 47 are direct dependents. Registering the MCP server would give per-
+> I ran `blast-radius Money --depth 1 --json` to separate direct from transitive.
+> It reported no truncation, and the full run reported no cut, so the split is
+> complete: 12 of the 47 are direct dependents and 35 are transitive. Registering the MCP server would give per-
 > dependent depth and a PageRank ranking over exactly these 47.
 
 **What the skill did not do:** estimate effort, propose a migration order, or
