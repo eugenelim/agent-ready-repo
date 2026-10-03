@@ -417,6 +417,17 @@
           "branches_now_free_to_delete": ["eugenelim/visual-target-rung-precondition", "eugenelim/visual-target-field", "eugenelim/review-recurrence-family-key-run41", "eugenelim/review-recurrence-family-key"],
           "base_commit_note": "The base_commit recorded on cases 1, 2 and 3 is an ancestor of origin/main, verified 2026-10-02, so it resolves without any branch."
         },
+        "measurement_effort_abandoned_2026_10_02": {
+          "decision": "The ENTIRE plan-evolution measurement effort is abandoned and closed, not merely this cohort. No further case, run, measurement start, or hypothesis will be attempted.",
+          "decided_by": "owner, 2026-10-02",
+          "scope": "all arms: the H1-H13 workbench pilot, the codex-collaboration and codex-headless run series, the review-churn retrospective, and this review-effectiveness cohort",
+          "owner_reasoning": "nothing actionable came out of the effort relative to its cost",
+          "supporting_facts": "13 of 13 hypotheses unavailable; 0 inferential processes ever started; instrument calibration failed with 16 failed slots against 8 calibration slots; this cohort closed incomplete against its own frozen question; each further case cost roughly 35 subagent starts and 2.5 million returned tokens.",
+          "contract_effect": "NONE. immutable_contract is untouched and its canonical SHA-256 is unchanged, so owner_status and independent_review_status remain valid against the digest they cite. Abandonment is not an amendment.",
+          "what_is_retained": "FINDINGS.md is the terminal record for the whole programme. The derived per-run records, gate memos, evidence indexes and this ledger stay tracked as the authority for every number in it. Raw corpora were extracted into git history and compacted out of the working tree.",
+          "controller_qualification": "Recorded once, not to reopen the decision. Some findings in FINDINGS.md are directly actionable despite the programme failing - the review-policy result most of all, which is quantified and points the same way across two independent runs. And the most transferable output is the failure analysis: three of the ways this effort died were recording and preservation failures a successor would repeat by default. Both are written up so that closing the effort does not discard them.",
+          "nothing_is_pending": "No person, review, gate or decision is waiting on this effort. It requires no further action from anyone."
+        },
         "admission_closed_2026_10_02": {
           "decision": "Admission is closed. No further case will be admitted, and no further measurement start will be launched.",
           "decided_by": "owner, 2026-10-02, on the controller's recommendation in review-effectiveness-scope-proposal.md",

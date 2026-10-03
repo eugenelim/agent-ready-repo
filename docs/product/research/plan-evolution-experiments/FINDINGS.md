@@ -1,8 +1,39 @@
 # Plan evolution experiments: findings against the goals
 
+> **ABANDONED 2026-10-02 by owner decision. The whole measurement effort is
+> closed.** No further case, run, measurement start or hypothesis will be
+> attempted, and nothing here is waiting on anyone. This file is the terminal
+> record: it exists to keep what was learned, not to resume anything.
+
 Compiled 2026-10-02. This is the summary view of the whole programme. It
 replaces the raw corpora in the working tree; see § *Where the raw material
 went*.
+
+## Why it was abandoned
+
+The effort set out to answer 13 hypotheses and answered none of them. Its two
+measuring arms were both killed by their own apparatus rather than by the
+questions being hard, and the remaining arms produced bounded case studies that
+cannot carry an inferential claim. Against that, each further case cost on the
+order of 35 subagent starts and 2.5 million returned tokens.
+
+The owner's reading on closing it: nothing actionable came out of it relative to
+what it cost. That is the right call on the inferential goal, which is what the
+programme was for and which it never reached.
+
+Two qualifications, recorded so the next person does not have to rediscover
+them rather than to reopen the decision:
+
+- **Some findings below are directly actionable** even though the programme
+  failed — the review-policy result in particular, which is quantified, points
+  one way across two independent runs, and bears on how review is run day to
+  day. It is bounded case-study evidence, not proof, and is stated that way.
+- **The most useful thing here is the failure analysis, not the findings.**
+  Three of the ways this effort died were recording and preservation failures
+  that any successor would repeat by default. That is written up below under
+  *The finding that outranks all of them*.
+
+Nothing in this file should be read as a standing recommendation to restart.
 
 ## The goal, and whether it was met
 
