@@ -1534,3 +1534,136 @@ class TestPathTraversalCannotEscapeGrantRoot:
         assert result.denial_code in ("denied-out-of-scope", "denied-control-plane-write"), (
             f"expected out-of-scope or control-plane denial; got {result.denial_code!r}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Forgery corpus: non-standard operations and case variants on control-plane paths
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestForgeryCorpusControlPlane:
+    """Forgery corpus: unusual and case-variant operation names must be refused on
+    delivery-control paths even when the grant root contains the target path."""
+
+    @pytest.mark.parametrize("operation,target_path", [
+        # Non-standard mutation verbs against .git/config
+        ("rename", ".git/config"),
+        ("replace", ".git/config"),
+        ("truncate", ".git/config"),
+        ("chmod", ".git/config"),
+        ("symlink", ".git/config"),
+        # Case variants of common verbs against .git/config
+        ("Write", ".git/config"),
+        ("APPEND", ".git/config"),
+        # Non-standard mutation verbs against a skill-copy path
+        ("rename", ".claude/skills/work-loop/scripts/forged.py"),
+        ("replace", ".claude/skills/work-loop/scripts/forged.py"),
+        ("truncate", ".claude/skills/work-loop/scripts/forged.py"),
+        ("chmod", ".claude/skills/work-loop/scripts/forged.py"),
+        ("symlink", ".claude/skills/work-loop/scripts/forged.py"),
+        ("Write", ".claude/skills/work-loop/scripts/forged.py"),
+        ("APPEND", ".claude/skills/work-loop/scripts/forged.py"),
+    ])
+    def test_non_standard_operation_on_control_plane_refused(
+        self,
+        effect_broker: ModuleType,
+        operation: str,
+        target_path: str,
+    ) -> None:
+        """Non-standard and case-variant operations on a delivery-control path
+        must be refused even when the grant root contains the target.
+
+        Each case must fail (return success=False, denied-control-plane-write)
+        with the fixed guard in place.  Reverting the guard to the original
+        four-operation list would allow all of these through.
+        """
+        eb = effect_broker
+        # Grant root is crafted to contain the target so the only thing
+        # blocking the effect is the delivery-control guard.
+        grant = eb.BrokerGrant(
+            grant_id=f"forgery-corpus-{operation}",
+            operations=(operation,),
+            allowed_roots=(target_path,),
+        )
+        session = eb.create_broker_session(
+            session_id=f"forgery-corpus-session-{operation}",
+            grants=[grant],
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation=operation,
+            path=target_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"operation {operation!r} on delivery-control path {target_path!r} "
+            f"must be refused; got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write for {operation!r} on "
+            f"{target_path!r}; got {result.denial_code!r}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Forgery corpus: .loop-run/ is a delivery-control path
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLoopRunDeliveryControl:
+    """.loop-run/ is a delivery-control path; write attempts must be refused."""
+
+    def test_loop_run_detected_as_delivery_control(
+        self, containment: ModuleType
+    ) -> None:
+        """is_delivery_control_path returns True for .loop-run/ paths."""
+        cn = containment
+        assert cn.is_delivery_control_path(".loop-run/events.jsonl"), (
+            ".loop-run/events.jsonl must be a delivery-control path"
+        )
+        assert cn.is_delivery_control_path(".loop-run/events.pending"), (
+            ".loop-run/events.pending must be a delivery-control path"
+        )
+
+    @pytest.mark.parametrize("target_path", [
+        ".loop-run/events.jsonl",
+        ".loop-run/events.pending",
+    ])
+    def test_loop_run_write_refused(
+        self,
+        effect_broker: ModuleType,
+        target_path: str,
+    ) -> None:
+        """A broker write to a .loop-run/ path is refused with denied-control-plane-write.
+
+        The grant root is crafted to contain the target so the only thing
+        blocking the effect is the delivery-control guard.  Reverting the
+        .loop-run/ addition to DELIVERY_CONTROL_PATHS would allow these through.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="loop-run-write-grant",
+            operations=("write",),
+            allowed_roots=(target_path,),
+        )
+        session = eb.create_broker_session(
+            session_id="loop-run-write-session",
+            grants=[grant],
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=target_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"write to {target_path!r} must be refused; got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write for {target_path!r}; "
+            f"got {result.denial_code!r}"
+        )

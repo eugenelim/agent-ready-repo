@@ -130,6 +130,10 @@ DELIVERY_CONTROL_PATHS: Final[tuple[str, ...]] = (
     ".git/",
     # Shadow acceptance delivery-control record directory.
     ".shadow-acceptance/",
+    # Loop-run event directory: the engine writes events.jsonl and events.pending
+    # here and reads events.pending back during recovery.  Untrusted grants must
+    # not write to this directory.
+    ".loop-run/",
 )
 
 # Delivery-control record filenames: exact base names that untrusted adapters

@@ -1193,3 +1193,107 @@ class TestAppendFaultInjection:
         assert "poisoned" in exc_info.value.denial_code, (
             f"expected poisoned denial, got {exc_info.value.denial_code!r}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Log-path confinement: symlink and non-regular log refusal
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLogPathConfinement:
+    """Evidence store refuses a symlinked or non-regular log path.
+
+    Tests (a) and (c) from the log-path symlink fix.  Each must fail when
+    the fix is reverted (i.e. when resolve() is restored in __init__ and
+    read_bytes() is restored in _load_and_truncate).
+    """
+
+    @staticmethod
+    def _has_symlink_support(tmp_path: Path) -> bool:
+        test_link = tmp_path / "_symlink_test_es"
+        try:
+            test_link.symlink_to(tmp_path)
+            test_link.unlink()
+            return True
+        except (NotImplementedError, OSError):
+            return False
+
+    def test_store_refuses_symlinked_log_nothing_written_outside(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        """(a) Store refuses to open when the log is a symlink; no bytes reach the target.
+
+        Red evidence: restoring ``log_path.resolve()`` in ``EvidenceStore.__init__``
+        and ``read_bytes()`` in ``_load_and_truncate`` makes this test pass by
+        following the symlink, opening successfully, and writing to the target.
+        """
+        if not self._has_symlink_support(tmp_path):
+            pytest.skip("symlinks not supported on this platform")
+
+        outside = tmp_path / "outside-target"
+        outside.mkdir()
+        target_file = outside / "evil.log"
+
+        log_link = tmp_path / "evidence.log"
+        log_link.symlink_to(target_file)
+
+        store = es.EvidenceStore(log_link)
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.open()
+
+        assert exc_info.value.denial_code == "denied-log-not-regular", (
+            f"expected denied-log-not-regular, got {exc_info.value.denial_code!r}"
+        )
+        # Nothing must have been written to or created in the outside directory.
+        assert not target_file.exists(), (
+            "no bytes must be written to the symlink target"
+        )
+        assert list(outside.iterdir()) == [], (
+            "outside directory must remain empty"
+        )
+
+    def test_store_refuses_symlinked_log_that_points_to_existing_file(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """(a) Store refuses to open when the symlink target already exists.
+
+        A symlink to an existing file is also refused — the lstat check sees
+        S_ISLNK and refuses before any read.
+        """
+        if not self._has_symlink_support(tmp_path):
+            pytest.skip("symlinks not supported on this platform")
+
+        outside = tmp_path / "outside-existing"
+        outside.mkdir()
+        target_file = outside / "existing.log"
+        target_file.write_bytes(b"")  # target exists
+
+        log_link = tmp_path / "evidence-existing.log"
+        log_link.symlink_to(target_file)
+
+        store = es.EvidenceStore(log_link)
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.open()
+
+        assert exc_info.value.denial_code == "denied-log-not-regular"
+
+    def test_store_refuses_directory_as_log_path(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        """(c) Store refuses to open when the log path is a directory.
+
+        Red evidence: restoring ``read_bytes()`` without the lstat check in
+        ``open()`` allows the open call to succeed (``is not self._log_path.exists()``
+        returns False for a directory that exists), and read_bytes() raises
+        ``IsADirectoryError``, giving a different exception type.
+        """
+        log_dir = tmp_path / "evidence.log"
+        log_dir.mkdir()
+
+        store = es.EvidenceStore(log_dir)
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.open()
+
+        assert exc_info.value.denial_code == "denied-log-not-regular", (
+            f"expected denied-log-not-regular, got {exc_info.value.denial_code!r}"
+        )

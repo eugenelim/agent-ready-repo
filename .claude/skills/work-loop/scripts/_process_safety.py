@@ -68,6 +68,7 @@ __all__ = [
     "PROCESS_ALLOW_REASON",
     "PROCESS_DENY_REASON",
     "TREE_KILL_SUPPORTED",
+    "MAX_STDIN_BYTES",
     "validate_process_spec_dict",
     "launch_safe_process",
 ]
@@ -77,6 +78,11 @@ SUPPORTED_SCHEMA_VERSION: Final[int] = 1
 # Stable reason codes for security events — carry no payload bytes.
 PROCESS_ALLOW_REASON: Final[str] = "allowed-process-launch"
 PROCESS_DENY_REASON: Final[str] = "denied-process-launch"
+
+# Hard ceiling for bounded-bytes stdin.  1 MiB is generous for structured
+# data payloads while blocking run-away allocations; confined-file mode
+# uses a separate per-call bound declared by the caller.
+MAX_STDIN_BYTES: Final[int] = 1 * 1024 * 1024  # 1 MiB
 
 # Stable denial codes — callers may match against these strings.
 DENIAL_CODES: Final[frozenset[str]] = frozenset({
@@ -91,6 +97,7 @@ DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-missing-required-field",
     "denied-non-absolute-executable",
     "denied-output-cap-exceeded",
+    "denied-stdin-bound-exceeded",
     "denied-stdin-confinement-violation",
     "denied-timeout",
     "denied-unknown-authority-field",
@@ -566,6 +573,7 @@ def launch_safe_process(
     stdin_bytes: bytes | None = None,
     stdin_path: str | None = None,
     stdin_root: str | None = None,
+    stdin_bound_bytes: int | None = None,
     sensitive_values: list[str] | None = None,
     audit_sink: Callable | None = None,
     operation_id: str | None = None,
@@ -582,30 +590,37 @@ def launch_safe_process(
     group on timeout or cap breach.
 
     Args:
-        spec_dict:        A safe-process.v1 record dict.
-        cwd_roots:        The grant's declared filesystem roots.  The spec's
-                          ``cwd`` must be inside at least one of these roots
-                          with no symlink components in the path from the root
-                          to the cwd.  An empty tuple refuses with
-                          ``denied-cwd-unsafe``.
-        env_values:       Actual values for the allowlisted env var names.
-                          Keys not in ``environment_allowlist`` are ignored.
-                          Names in ``environment_allowlist`` not present here
-                          are omitted (no ambient OS inheritance).
-        stdin_bytes:      Bytes for ``bounded-bytes`` stdin mode.
-        stdin_path:       File path for ``confined-file`` stdin mode.
-        stdin_root:       Declared confinement root for ``confined-file`` stdin.
-                          Required when stdin_mode is ``confined-file``.
-                          The stdin file must be a regular, non-linked,
-                          non-oversized file inside this root.
-        sensitive_values: Additional strings to redact from output.
-        audit_sink:       Callable accepting a SecurityEvent.  ``None`` means
-                          the audit sink is unavailable; the operation fails
-                          closed with a stable denial code without persisting
-                          any protected data.
-        operation_id:     Stable operation ID for the audit event; generated
-                          from a random token when absent.
-        correlation_id:   Correlation ID (typically the grant_id) for the event.
+        spec_dict:         A safe-process.v1 record dict.
+        cwd_roots:         The grant's declared filesystem roots.  The spec's
+                           ``cwd`` must be inside at least one of these roots
+                           with no symlink components in the path from the root
+                           to the cwd.  An empty tuple refuses with
+                           ``denied-cwd-unsafe``.
+        env_values:        Actual values for the allowlisted env var names.
+                           Keys not in ``environment_allowlist`` are ignored.
+                           Names in ``environment_allowlist`` not present here
+                           are omitted (no ambient OS inheritance).
+        stdin_bytes:       Bytes for ``bounded-bytes`` stdin mode.
+        stdin_path:        File path for ``confined-file`` stdin mode.
+        stdin_root:        Declared confinement root for ``confined-file`` stdin.
+                           Required when stdin_mode is ``confined-file``.
+                           The stdin file must be a regular, non-linked,
+                           non-oversized file inside this root.
+        stdin_bound_bytes: Optional caller-declared ceiling for ``bounded-bytes``
+                           stdin, in bytes.  Must be between 1 and
+                           ``MAX_STDIN_BYTES`` (inclusive); a value outside that
+                           range is refused with ``denied-stdin-bound-exceeded``
+                           before launch.  When ``None``, ``MAX_STDIN_BYTES``
+                           applies.  This parameter may only lower the ceiling;
+                           it cannot raise it above ``MAX_STDIN_BYTES``.
+        sensitive_values:  Additional strings to redact from output.
+        audit_sink:        Callable accepting a SecurityEvent.  ``None`` means
+                           the audit sink is unavailable; the operation fails
+                           closed with a stable denial code without persisting
+                           any protected data.
+        operation_id:      Stable operation ID for the audit event; generated
+                           from a random token when absent.
+        correlation_id:    Correlation ID (typically the grant_id) for the event.
 
     Returns:
         ``ProcessResult`` with redacted output.
@@ -634,6 +649,20 @@ def launch_safe_process(
         raise ProcessDenied(code, f"spec validation failed: {code}")
 
     corr_id = correlation_id or spec_dict["grant_id"]
+
+    # Validate caller-declared stdin ceiling before any further checks.
+    # stdin_bound_bytes may only lower MAX_STDIN_BYTES; a value above the
+    # ceiling or <= 0 is refused so callers cannot inadvertently widen it.
+    _effective_stdin_ceiling: int = MAX_STDIN_BYTES
+    if stdin_bound_bytes is not None:
+        if stdin_bound_bytes <= 0 or stdin_bound_bytes > MAX_STDIN_BYTES:
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-stdin-bound-exceeded",
+                f"stdin_bound_bytes must be between 1 and {MAX_STDIN_BYTES} (inclusive); "
+                f"got {stdin_bound_bytes}",
+            )
+        _effective_stdin_ceiling = stdin_bound_bytes
 
     # Platform capability: refuse when the host cannot guarantee tree kill.
     if not TREE_KILL_SUPPORTED:
@@ -715,6 +744,13 @@ def launch_safe_process(
         stdin_fd = subprocess.DEVNULL
     elif stdin_mode == "bounded-bytes":
         stdin_input = stdin_bytes if stdin_bytes is not None else b""
+        if len(stdin_input) > _effective_stdin_ceiling:
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-stdin-bound-exceeded",
+                f"bounded-bytes stdin exceeds the ceiling of {_effective_stdin_ceiling} bytes "
+                f"({len(stdin_input)} bytes supplied); refusing before process launch",
+            )
         stdin_fd = subprocess.PIPE
     else:
         # "confined-file": read through the confined, bounded regular-file reader.

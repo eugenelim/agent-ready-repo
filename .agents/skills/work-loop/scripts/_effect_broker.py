@@ -114,6 +114,11 @@ BROKER_DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-out-of-scope",
 })
 
+# Exact, case-sensitive operation names permitted on delivery-control paths.
+# Every other operation — including unknown and differently-cased names —
+# is refused before any effect reaches the control plane.
+_DELIVERY_CONTROL_READ_OPS: Final[frozenset[str]] = frozenset({"read"})
+
 # ---------------------------------------------------------------------------
 # Exceptions
 # ---------------------------------------------------------------------------
@@ -418,8 +423,11 @@ def request_effect(
         )
         return BrokerResult.denied("denied-out-of-scope")
 
-    # Guard: never permit writes to delivery-control paths via untrusted broker.
-    if operation in ("write", "append", "create", "delete") and _cn.is_delivery_control_path(path):  # type: ignore[attr-defined]
+    # Guard: on a delivery-control path, only exact read operations are permitted.
+    # Every other operation — including unknown names and differently-cased variants
+    # of mutation verbs such as rename, replace, truncate, chmod, symlink, Write,
+    # APPEND — is refused before any effect reaches the control plane.
+    if _cn.is_delivery_control_path(path) and operation not in _DELIVERY_CONTROL_READ_OPS:  # type: ignore[attr-defined]
         _emit_broker_event(
             audit_sink, op_id, grant_id, "denied", BROKER_DENY_REASON
         )

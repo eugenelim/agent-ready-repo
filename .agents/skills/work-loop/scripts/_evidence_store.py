@@ -110,6 +110,7 @@ class EvidenceStoreRefused(EvidenceStoreError):
 _confined_mutation_module: ModuleType | None = None
 _content_safety_module: ModuleType | None = None
 _security_events_module: ModuleType | None = None
+_file_safety_module: ModuleType | None = None
 
 
 def _load_sibling(name: str, filename: str) -> ModuleType:
@@ -162,6 +163,14 @@ def _security_events() -> ModuleType:
             "_es_security_events", "_security_events.py"
         )
     return _security_events_module
+
+
+def _file_safety() -> ModuleType:
+    """Lazily load file_safety.py for no-follow confined reads of the evidence log."""
+    global _file_safety_module
+    if _file_safety_module is None:
+        _file_safety_module = _load_sibling("_es_file_safety", "file_safety.py")
+    return _file_safety_module
 
 
 # ── Frame format helpers ───────────────────────────────────────────────────────
@@ -515,13 +524,19 @@ class EvidenceStore:
         tx = store.append_receipt(receipt, transaction_id=..., issuer=..., ...)
         verdicts = store.evaluate_verdicts(criteria, acceptance_fp, acc_module)
 
-    ``log_path`` must be an absolute path; all file operations are confined to
-    its parent directory via ``_confined_mutation.py``.
+    ``log_path`` must be an absolute path.  All file operations are confined to
+    its lexical parent directory via ``_confined_mutation.py`` and
+    ``file_safety.py`` — symlinks are never followed when deriving the
+    confinement root.  A symlinked, non-regular, or out-of-root log is refused
+    at ``open()`` with a stable ``denied-log-not-regular`` code; no bytes are
+    read from or written to the link target.
     """
 
     def __init__(self, log_path: Path) -> None:
-        self._log_path: Path = log_path.resolve()
-        self._root: Path = self._log_path.parent
+        # Use the lexical parent as the confinement root — never resolve() the
+        # log path, which would follow a symlink and escape confinement.
+        self._log_path: Path = log_path
+        self._root: Path = log_path.parent
         # In-memory indexes (derived from log, disposable).
         self._receipts: dict[str, dict] = {}
         # criterion_ref -> receipt IDs in insertion order, so a per-criterion
@@ -543,13 +558,38 @@ class EvidenceStore:
         Idempotent: calling ``open()`` on an already-open store re-reads the log
         and rebuilds indexes (equivalent to ``rebuild_indexes()``).
 
+        A symlinked, non-regular, or inaccessible log is refused before any
+        bytes are read or written.  Use ``lstat`` (no-follow) to inspect the
+        log path so a symlink placed at that location is detected without
+        following it.
+
         Raises:
             EvidenceStoreError: on I/O failure, checksum mismatch, or reference
                 corruption. The store must not be used after this exception.
-            EvidenceStoreRefused: if the log cannot be created (denied-* code).
+            EvidenceStoreRefused: if the log is a symlink, non-regular file,
+                or cannot be created (denied-* code).
         """
         cm = _confined_mutation()
-        if not self._log_path.exists():
+
+        # Validate the log path without following symlinks: it must be absent
+        # (about to be created) or a regular file.  A symlink or directory is
+        # refused before any read or write is attempted.
+        try:
+            log_info = os.lstat(self._log_path)
+        except FileNotFoundError:
+            log_info = None
+        except OSError as exc:
+            raise EvidenceStoreRefused(
+                "denied-log-not-accessible",
+                f"cannot inspect evidence log: {exc}",
+            ) from exc
+        if log_info is not None and not stat.S_ISREG(log_info.st_mode):
+            raise EvidenceStoreRefused(
+                "denied-log-not-regular",
+                "evidence log must be a regular file, not a symlink or directory",
+            )
+
+        if log_info is None:
             try:
                 cm.confined_create(self._root, self._log_path, b"")
             except cm.MutationDenied as exc:
@@ -575,8 +615,16 @@ class EvidenceStore:
 
     def _load_and_truncate(self) -> None:
         """Read the log, truncate any incomplete final frame, and build indexes."""
+        fs = _file_safety()
         try:
-            raw = self._log_path.read_bytes()
+            raw = fs.read_confined_regular_file(self._root, self._log_path)
+        except fs.UnsafeContentError as exc:
+            # The log failed a no-follow confinement check (e.g., a symlink was
+            # placed at the log path between the open() lstat check and this read).
+            raise EvidenceStoreRefused(
+                "denied-log-not-regular",
+                f"evidence log failed confinement check: {exc}",
+            ) from exc
         except OSError as exc:
             raise EvidenceStoreError(f"cannot read evidence log: {exc}") from exc
 

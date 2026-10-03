@@ -186,3 +186,16 @@ so no clean negative set can be written for it. The shadow services add no
 prompt surface either; a maintainer opts in with `WORK_LOOP_SHADOW_SERVICES=1`.
 Their behaviour is therefore covered by the pack and roster test suites listed
 above, not by a new eval case.
+
+## Shadow import has no envelope pin (owner decision, 2026-10-03)
+
+The legacy approval pin in `state.json` holds only `approved_spec_hash` and
+`approved_plan_hash`. It has never stored a reviewed-envelope fingerprint, so
+the opt-in shadow facade has no current envelope to compare against. The owner
+chose an explicit shadow-only exception. `import_policy` takes
+`approved_envelope_fingerprint` as a required keyword with no default, so a
+caller that skips the envelope comparison must say so by passing `None`. The
+shadow facade passes `None` and states why at the call. Spec and plan digest
+mismatches still refuse with zero records visible. The exception is safe only
+because every shadow record is non-authoritative; any caller that grants
+authority must supply a real envelope pin.

@@ -506,7 +506,7 @@ def import_policy(
     reviewer_role: str,
     approved_spec_digest: str,
     approved_plan_digest: str,
-    approved_envelope_fingerprint: str | None = None,
+    approved_envelope_fingerprint: str | None,
 ) -> tuple[dict, dict]:
     """Atomically import the current approved spec-policy decision.
 
@@ -545,8 +545,11 @@ def import_policy(
         Expected SHA-256 of the canonical plan (the current approval pin).
         The computed digest must equal this value; any mismatch refuses.
     approved_envelope_fingerprint:
-        When not ``None``, the fingerprint derived from *refs* must equal this
-        value.  Pass ``None`` to skip the envelope-fingerprint comparison.
+        Required keyword.  When not ``None``, the fingerprint derived from
+        *refs* must equal this value; any mismatch refuses.  Pass ``None``
+        only for non-authoritative callers that have no envelope to compare
+        (e.g. a shadow facade whose legacy approval pin stores no fingerprint).
+        Any caller that grants authority must supply a real envelope pin.
 
     Returns
     -------

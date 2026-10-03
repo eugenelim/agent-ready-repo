@@ -600,6 +600,11 @@ def _do_shadow_on_plan_locked(
         reviewer_role="shadow-reviewer",
         approved_spec_digest=approved_spec_hash,
         approved_plan_digest=approved_plan_hash,
+        # The legacy approval pin stores no reviewed-envelope fingerprint, so
+        # the facade cannot supply one.  Passing None skips the envelope
+        # comparison; this is safe only because all shadow records are
+        # non-authoritative.  Any authority-granting caller must supply a real pin.
+        approved_envelope_fingerprint=None,
     )
 
     # Step 3 — persist approval-record.v1 and initial-plan-review.v1.

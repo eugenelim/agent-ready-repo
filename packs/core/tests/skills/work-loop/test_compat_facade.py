@@ -660,17 +660,20 @@ class TestAC0011Confinement:
         assert not shadow_in_real.exists(), \
             "shadow dir must not be created via symlinked spec_dir"
 
-    def test_confinement_red_by_disabling_check(
+    def test_evidence_store_own_check_blocks_directory_symlink(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Disabling the confinement call allows a write through a symlink (red proof).
+        """EvidenceStore's own O_NOFOLLOW check blocks writes even when
+        _confined_ensure_shadow_dir is bypassed.
 
-        This test proves that the symlink refusal is directly caused by the
-        confinement check inside _confined_ensure_shadow_dir.  When that
-        function is replaced with a plain mkdir, the write escapes to the
-        symlink target — confirming the guard is not redundant.
+        Before the EvidenceStore log-path fix, bypassing _confined_ensure_shadow_dir
+        allowed writes to escape through a symlinked shadow directory because the
+        store resolved the log path with resolve() and wrote to the resolved target.
+        After the fix, the store no longer resolves the log path; its confined_create
+        call opens the (symlinked) parent directory with O_NOFOLLOW, which fails,
+        so the write is blocked without relying on _confined_ensure_shadow_dir.
 
-        Verifies AC-0011: the red is real, not a false positive.
+        Both guards together form defense in depth.
         """
         if not self._has_symlink_support(tmp_path):
             pytest.skip("symlinks not supported on this platform")
@@ -683,10 +686,9 @@ class TestAC0011Confinement:
         shadow_link = spec_dir / facade.SHADOW_SUBDIR
         shadow_link.symlink_to(outside)
 
-        # Disable the confinement check: replace _confined_ensure_shadow_dir
-        # with an unconditional no-op (as if there were no guard).
+        # Disable the directory-level confinement check.
         def _unconfined_ensure(s: Path, sd: Path, cm: object) -> None:
-            """Bypass confinement — for red-proof only."""
+            """Bypass directory confinement check — for confinement-depth proof only."""
 
         monkeypatch.setattr(facade, "_confined_ensure_shadow_dir", _unconfined_ensure)
 
@@ -695,14 +697,15 @@ class TestAC0011Confinement:
         pending = {"seq": 1, "event": "spec-ready", "from": "A", "to": "B",
                    "run_id": "red-run", "at": "2026-01-01T00:00:00Z"}
 
-        # With confinement disabled, EvidenceStore writes to shadow_dir / shadow-evidence.log.
-        # Since shadow_dir is a symlink to outside/, the write escapes.
+        # After the EvidenceStore fix, the store opens its parent with O_NOFOLLOW,
+        # which fails for a symlinked parent — so writes do NOT escape even when
+        # _confined_ensure_shadow_dir is bypassed.
         facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
-        # Confirm the write DID escape (proving the guard was the only protection)
         escaped = outside / "shadow-evidence.log"
-        assert escaped.exists(), (
-            "red proof: without the confinement check the write escapes through the symlink"
+        assert not escaped.exists(), (
+            "EvidenceStore's O_NOFOLLOW check must block the write even without "
+            "_confined_ensure_shadow_dir"
         )
 
     def test_confined_write_refuses_symlinked_shadow_dir_with_mutation_denied(
@@ -802,6 +805,65 @@ class TestAC0011Confinement:
 
         gitignore = spec_dir / facade.SHADOW_SUBDIR / ".gitignore"
         assert gitignore.read_text("utf-8").strip() == "*"
+
+    def test_symlinked_shadow_evidence_log_writes_nothing_outside(
+        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """(b) Facade with a symlinked shadow-evidence.log writes nothing outside spec dir.
+
+        The shadow directory itself is a real directory, but shadow-evidence.log
+        within it is a symlink to a file in an outside directory.  The
+        EvidenceStore must refuse to open the symlinked log and the facade must
+        record a divergence entry in shadow-security-events.jsonl — no bytes
+        reach the outside target.
+
+        Red evidence: removing the lstat check in EvidenceStore.open() and
+        restoring read_bytes() causes the store to follow the symlink, write
+        evidence to the outside target, and return successfully (no divergence).
+        """
+        if not self._has_symlink_support(tmp_path):
+            pytest.skip("symlinks not supported on this platform")
+
+        spec_dir = tmp_path / "sym-log-spec"
+        spec_dir.mkdir()
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        shadow_dir.mkdir()
+
+        outside = tmp_path / "outside-log-target"
+        outside.mkdir()
+        outside_target = outside / "evil.log"
+
+        # Place a symlink at the shadow-evidence.log path pointing to an outside file.
+        log_link = shadow_dir / "shadow-evidence.log"
+        log_link.symlink_to(outside_target)
+
+        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
+        engine_state = {"feature": "sym-log-spec", "run_id": "sym-log-run"}
+        pending = {"seq": 1, "event": "spec-ready", "from": "A", "to": "B",
+                   "run_id": "sym-log-run", "at": "2026-01-01T00:00:00Z"}
+
+        # Must NOT raise (shadow failure is absorbed into a divergence record).
+        try:
+            facade.shadow_call_on_transition(spec_dir, engine_state, pending)
+        except Exception as exc:
+            pytest.fail(f"shadow_call_on_transition raised unexpectedly: {exc}")
+
+        # Nothing must have been written outside the spec dir.
+        assert not outside_target.exists(), (
+            "no bytes must be written to the symlinked log target outside the spec dir"
+        )
+        assert list(outside.iterdir()) == [], "outside directory must remain empty"
+
+        # A divergence entry must have been recorded inside the shadow dir.
+        events_path = shadow_dir / "shadow-security-events.jsonl"
+        assert events_path.exists(), (
+            "shadow-security-events.jsonl must exist inside the shadow dir after a refused write"
+        )
+        events_text = events_path.read_text("utf-8")
+        assert facade.SHADOW_DIVERGENCE_CODE in events_text, (
+            f"divergence code {facade.SHADOW_DIVERGENCE_CODE!r} must appear in "
+            f"shadow-security-events.jsonl; got: {events_text!r}"
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

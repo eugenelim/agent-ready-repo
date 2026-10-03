@@ -1141,3 +1141,134 @@ class TestSecurityInvariants:
             audit_sink=sink,
         )
         assert isinstance(result, ps.ProcessResult)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 5: bounded-bytes stdin size limit
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestStdinBound:
+    """bounded-bytes stdin must be refused when it exceeds the ceiling.
+
+    Each test must fail (grant the write) when the size check is reverted.
+    """
+
+    def test_oversized_bounded_bytes_refused_before_launch(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """stdin exceeding MAX_STDIN_BYTES is refused before any process starts.
+
+        Reverts to failing if the bound check is removed.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        # One byte over the ceiling.
+        oversized = b"x" * (ps.MAX_STDIN_BYTES + 1)
+        spawned: list = []
+
+        original_popen = __import__("subprocess").Popen
+
+        def _spy_popen(*a, **kw):  # noqa: ANN001, ANN002, ANN003
+            spawned.append(True)
+            return original_popen(*a, **kw)
+
+        import subprocess
+        orig = subprocess.Popen
+        subprocess.Popen = _spy_popen  # type: ignore[assignment]
+        try:
+            with pytest.raises(ps.ProcessDenied) as exc_info:
+                _launch(
+                    ps,
+                    _spec(str(tmp_path), stdin_mode="bounded-bytes"),
+                    stdin_bytes=oversized,
+                    audit_sink=sink,
+                )
+        finally:
+            subprocess.Popen = orig  # type: ignore[assignment]
+
+        assert exc_info.value.denial_code == "denied-stdin-bound-exceeded", (
+            f"expected denied-stdin-bound-exceeded; got {exc_info.value.denial_code!r}"
+        )
+        assert not spawned, "no process must be spawned for oversized stdin"
+        # A denial event must have been emitted.
+        assert len(events) >= 1 and events[-1].outcome == "denied", (
+            "denial event must be emitted before the refusal"
+        )
+
+    def test_exactly_at_ceiling_accepted(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """stdin exactly at MAX_STDIN_BYTES is accepted (boundary condition)."""
+        ps = process_safety
+        _, sink = _recording_sink()
+        # Exactly at the ceiling.
+        at_ceiling = b"z" * ps.MAX_STDIN_BYTES
+        result = _launch(
+            ps,
+            _spec(
+                str(tmp_path),
+                stdin_mode="bounded-bytes",
+                argv=["-c", "import sys; sys.stdin.buffer.read(); print('ok')"],
+            ),
+            stdin_bytes=at_ceiling,
+            audit_sink=sink,
+        )
+        assert result.exit_code == 0
+
+    def test_caller_bound_above_ceiling_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A stdin_bound_bytes value above MAX_STDIN_BYTES is refused.
+
+        The caller cannot widen the ceiling beyond MAX_STDIN_BYTES.
+        Reverts to failing if the stdin_bound_bytes parameter check is removed.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(str(tmp_path), stdin_mode="bounded-bytes"),
+                stdin_bytes=b"x",
+                stdin_bound_bytes=ps.MAX_STDIN_BYTES + 1,
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-stdin-bound-exceeded", (
+            f"expected denied-stdin-bound-exceeded; got {exc_info.value.denial_code!r}"
+        )
+        assert len(events) >= 1 and events[-1].outcome == "denied"
+
+    def test_caller_bound_zero_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A stdin_bound_bytes value of 0 is refused (must be >= 1)."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(str(tmp_path), stdin_mode="bounded-bytes"),
+                stdin_bytes=b"",
+                stdin_bound_bytes=0,
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-stdin-bound-exceeded"
+
+    def test_caller_bound_lowers_ceiling(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A stdin_bound_bytes below MAX_STDIN_BYTES acts as a tighter ceiling."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        caller_bound = 16
+        oversized_for_caller = b"x" * (caller_bound + 1)
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(str(tmp_path), stdin_mode="bounded-bytes"),
+                stdin_bytes=oversized_for_caller,
+                stdin_bound_bytes=caller_bound,
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-stdin-bound-exceeded"

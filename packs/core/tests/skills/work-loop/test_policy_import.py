@@ -1852,3 +1852,52 @@ class TestFindingBFixes:
                 assert not Path(ref).is_absolute(), (
                     f"spec_ref must be repo-relative when the spec is under the git root; got {ref!r}"
                 )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 4 fix: approved_envelope_fingerprint is a required keyword
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestEnvelopeFingerprintRequired:
+    """import_policy requires approved_envelope_fingerprint as a keyword argument.
+
+    Removing the ``= None`` default means Python raises ``TypeError`` if a
+    caller omits it, making the intention explicit even for non-authoritative
+    callers that pass ``None``.
+    """
+
+    def test_import_policy_without_envelope_fingerprint_raises_type_error(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """Calling import_policy without approved_envelope_fingerprint raises TypeError.
+
+        Red evidence: reintroducing ``= None`` as the default makes this test
+        fail because the call succeeds (or raises PolicyImportRefused) instead
+        of TypeError.
+        """
+        spec_path, plan_path = _write_temp_files(
+            tmp_path / "te-kw", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE
+        )
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, _ = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+
+        with pytest.raises(TypeError):
+            pi.import_policy(
+                spec_path=spec_path,
+                plan_path=plan_path,
+                refs=VALID_REFS,
+                terminal_intent=TERMINAL_INTENT,
+                writer_grant=grant,
+                issuer=issuer,
+                audit_sink=_null_sink,
+                store=store,
+                approval_identity=APPROVAL_IDENTITY,
+                approval_role=APPROVAL_ROLE,
+                reviewer_identity=REVIEWER_IDENTITY,
+                reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest=plan_d,
+                # approved_envelope_fingerprint deliberately omitted — must raise TypeError
+            )
