@@ -118,6 +118,20 @@ In the same container run, the JFrog, `.netrc`, and fetch-session unit suites
 passed alongside it: 161 passed, 1 Windows-only skip, in 15.38 s. The adapter
 design passes its kill condition under the amended contract.
 
+**Built-CLI JFrog leg (AC-0018).** At commit `98b9a76f6`,
+`test_built_cli_installs_through_a_jfrog_cli_profile` in
+`tests/roster/test_portable_catalogue_authentication_packaging.py` ran in the
+same disposable Linux container against JFrog CLI 2.105.0. It builds both
+wheels, installs AgentBundle into a clean Python 3.11 venv from those wheels
+alone, writes a disposable profile with a dummy token, and runs the installed
+`agentbundle install --pack test-pack --output <dir> catalogue+https://…`
+console script. Result: 1 passed in 7.16 s. The CLI exited 0 and wrote its
+state file. Both catalogue requests reached the loopback host with the
+profile's bearer header from `jf`. The token and profile name appear in
+neither the CLI output nor the state file. The anonymous and exact-machine
+`.netrc` legs of the same module ran on the macOS host with a generated
+loopback CA: 14 passed with the JFrog leg skipped, in 104 s.
+
 ## Owner decisions taken during EXECUTE
 
 Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
