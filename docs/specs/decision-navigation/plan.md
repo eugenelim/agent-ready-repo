@@ -99,7 +99,7 @@ Owned by: T1, T3, T6
 
 ### Dependencies & integration
 
-The feature uses the repository's blessed confined-filesystem helpers and the existing pack build, install, and evaluation paths. Pack scripts run standalone from their projection, so the skill vendors a byte-identical copy of the blessed `file_safety.py` beside its scripts rather than reusing the pack-local `_record_paths.py`, which has no bounded read or hashing. A test in `packs/governance-extras/tests/skills/navigate-decisions/` pins the copy against `packs/core/.apm/skills/close-work/scripts/file_safety.py`, the declared source of truth, following the `architect-design` pin in `tests/roster/test_architect_design_reviewer_projection.py`. It adds no external service or runtime dependency. Traces to **AC-0009, AC-0017, AC-0018, AC-0019, AC-0022**.
+The feature uses the repository's blessed confined-filesystem helpers and the existing pack build, install, and evaluation paths. Pack scripts run standalone from their projection, so the skill vendors a byte-identical copy of the blessed `file_safety.py` beside its scripts rather than reusing the pack-local `_record_paths.py`, which has no bounded read or hashing. A roster test, `tests/roster/test_navigate_decisions_file_safety_mirror.py`, pins the copy against `packs/core/.apm/skills/close-work/scripts/file_safety.py`, the declared source of truth, following the `architect-design` pin in `tests/roster/test_architect_design_reviewer_projection.py`. Pack tests may not read outside their pack (`tools/lint-pack-test-boundary.py`), and the `Makefile` test list is the runner that names the pack suite. It adds no external service or runtime dependency. Traces to **AC-0009, AC-0017, AC-0018, AC-0019, AC-0022**.
 
 Owned by: T2, T4
 
@@ -162,7 +162,7 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 
 **Depends on:** T1
 
-**Touches:** `packs/governance-extras/.apm/skills/navigate-decisions/**`, `packs/governance-extras/tests/skills/navigate-decisions/**`, `tools/repo/build_gate_chain.py`
+**Touches:** `packs/governance-extras/.apm/skills/navigate-decisions/**`, `packs/governance-extras/tests/skills/navigate-decisions/**`, `tools/repo/build_gate_chain.py`, `Makefile`, `tests/roster/test_navigate_decisions_file_safety_mirror.py`, `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`
 
 **Verification mode:** TDD — `packs/governance-extras/tests/skills/navigate-decisions/test_query_contract.py` and `test_filesystem_safety.py`.
 
@@ -262,4 +262,7 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 - 2026-10-03 — Plan approved (build-strategy decision) by the repository owner.
 - 2026-10-03 — Amended before implementation from pre-EXECUTE review: RFC shape, status-comment rule, summary aggregates and findings-register counts, export destination, link encoding, caller-value inertness, input bound, AC-0020 scoring, AC-0024, history navigation, and complete Touches; then minimal shared ADR/RFC admission shape, register row rule, AC-0020 run unit, export mode and provenance controls, the RFC-0102 supersession grammar, `Related` field and reference grammar, unparseable-entry and unresolved-count rules, scope serialization, commit-bound case-insensitive evidence, the closed relationship value table, per-operation relationship sets, lineage directions, total relationship order with scope comparison, duplicate-entry and trimmed `raw_value` rules, and bounded canonical D-IDs, and decisive AC-0022 proofs. Owner decisions recorded in-session the same day.
 - 2026-10-03 — Amended spec approved (scope decision) by the repository owner, including at most one Status field per header region.
+- 2026-10-03 — Amended plan approved (build-strategy decision) by the repository owner.
+- 2026-10-03 — Controlled amendment during T2: T2 Touches add `Makefile` and `tests/roster/test_navigate_decisions_file_safety_mirror.py`, because `lint-pack-test-boundary` requires a recognized runner and forbids pack tests that read outside their pack; and `.github/workflows/build-check.yml` and `tools/lint-ci-parity.py`, because `tests/AGENTS.md` requires a named roster step and its `STEP_DISPOSITION` entry. The roster test names no `docs/specs/` literal, so `.workspace-prune-protected.toml` does not apply. Owner authorized in-session.
+- 2026-10-03 — Spec re-approved unchanged (scope decision) by the repository owner after the T2 amendment.
 - 2026-10-03 — Amended plan approved (build-strategy decision) by the repository owner.
