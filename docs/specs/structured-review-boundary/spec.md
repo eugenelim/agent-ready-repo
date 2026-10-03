@@ -4,7 +4,7 @@
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
-- **Brief:** `brief:acceptance-centered-work-loop`
+- **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none
 - **Contract:** `contracts/delivery/` (planned canonical delivery-contract bundle)
 - **Shape:** service
