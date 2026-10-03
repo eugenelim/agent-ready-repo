@@ -6,9 +6,9 @@ once via ``credbroker.resolve_http_access`` and binds the result to a
 that send credentials only to the bound origin and reject cross-origin or
 scheme-downgrade redirects before any request reaches the redirect target.
 
-Only bearer and anonymous access are supported by this release.  A
-``.netrc`` or JFrog CLI result raises ``CatalogueFetchError`` naming the
-provider class; those providers land in later tasks.
+Bearer, exact-machine ``.netrc``, and anonymous access are supported.  A
+JFrog CLI result raises ``CatalogueFetchError`` naming the provider class;
+that provider lands in a later task.
 """
 
 from __future__ import annotations
@@ -47,14 +47,16 @@ class FetchSession:
 
     def __init__(
         self,
-        access: BearerHttpAccess | AnonymousHttpAccess,
+        access: BearerHttpAccess | NetrcHttpAccess | AnonymousHttpAccess,
         opener: urllib.request.OpenerDirector,
     ) -> None:
         self._access = access
         self._opener = opener
         self._bound_origin: str = access.origin
         self._authorization: str | None = (
-            access.authorization if isinstance(access, BearerHttpAccess) else None
+            access.authorization
+            if isinstance(access, (BearerHttpAccess, NetrcHttpAccess))
+            else None
         )
 
     @property
@@ -166,8 +168,9 @@ def open_fetch_session(
             code=None,
         ) from exc
 
-    # Reject unsupported providers until the .netrc and JFrog fetch providers land.
-    if isinstance(access, (NetrcHttpAccess, JfrogCliHttpAccess)):
+    # JFrog CLI delegation is not yet supported; reject it until its fetch
+    # provider lands.
+    if isinstance(access, JfrogCliHttpAccess):
         raise CatalogueFetchError(
             f"access provider {type(access).__name__!r} is not yet supported",
             code=None,
@@ -175,7 +178,9 @@ def open_fetch_session(
 
     # Build the opener for the resolved origin.
     authorization: str | None = (
-        access.authorization if isinstance(access, BearerHttpAccess) else None
+        access.authorization
+        if isinstance(access, (BearerHttpAccess, NetrcHttpAccess))
+        else None
     )
     bound_origin: str = access.origin
     opener = _dh._build_direct_opener(authorization, bound_origin, env=env)

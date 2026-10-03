@@ -165,6 +165,15 @@ Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
   `pip install -e packages/credbroker` into the host's global Python, which
   breaks the no-install rule. The owner chose to restore the previous editable
   0.6.0 install from the main checkout, and it was restored on 2026-10-02.
+- **The approved T3 stub fails ruff's import-order rule.** Its import block
+  is not sorted the way the repository's isort configuration expects, so
+  `test_http_access_netrc.py` carries one `# ruff: noqa: I001` line above the
+  stub. The stub's own bytes are unchanged.
+- **The `.netrc` lookup compares against the normalized origin's host as
+  written.** Taking the host through `urlsplit(...).hostname` drops IPv6
+  brackets while the normalized machine keys keep them, so a bracketed IPv6
+  record never matched. `test_netrc_matches_ipv6_literal_with_port` pins the
+  fix.
 - **The `credential-brokers` pack moves to 0.3.4.** The vendored user library
   is `.apm/**` content, and `packs/AGENTS.md` requires a patch bump for changed
   content in `pack.toml` and `.claude-plugin/plugin.json`.

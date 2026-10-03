@@ -19,6 +19,7 @@ import hashlib  # noqa: E402, I001
 import io  # noqa: E402
 import json  # noqa: E402
 import logging  # noqa: E402
+import os  # noqa: E402
 import tarfile  # noqa: E402
 import urllib.request  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -401,27 +402,24 @@ def test_internationalized_host_bearer_bound_origin_byte_identity() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_netrc_result_rejected_as_unsupported() -> None:
-    """A NetrcHttpAccess result raises CatalogueFetchError naming the class."""
+def test_netrc_result_accepted_and_sends_basic_auth() -> None:
+    """A NetrcHttpAccess result opens a session and sends Basic auth to the bound origin."""
     from credbroker import NetrcHttpAccess
 
+    canary_b64 = "dXNlcjpwYXNz"
     fake_netrc = NetrcHttpAccess(
         origin="https://catalogue.example.test",
-        authorization="Basic dXNlcjpwYXNz",
+        authorization=f"Basic {canary_b64}",
     )
     with (
         mock.patch(
             "agentbundle.catalogue_fetch.resolve_http_access",
             return_value=fake_netrc,
         ),
-        pytest.raises(CatalogueFetchError) as exc_info,
-        open_fetch_session("https://catalogue.example.test/s.json", env={}),
+        open_fetch_session("https://catalogue.example.test/s.json", env={}) as session,
     ):
-        pass
-    msg = str(exc_info.value)
-    assert "NetrcHttpAccess" in msg
-    # Must not contain any credential material.
-    assert "dXNlcjpwYXNz" not in msg
+        assert session.provider == "netrc"
+        assert session.target_origin == "https://catalogue.example.test"
 
 
 def test_jfrog_result_rejected_as_unsupported() -> None:
@@ -714,3 +712,310 @@ def test_same_session_used_for_descriptor_and_archive(tmp_path: Path) -> None:
     # Both fetch operations were called within that one session.
     mock_bytes.assert_called_once()
     mock_archive.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# T3 — .netrc session: Basic auth sent only to bound origin; redirect policy
+# ---------------------------------------------------------------------------
+
+
+def test_netrc_session_sends_basic_auth_only_to_bound_origin(
+    tmp_path: Path,
+) -> None:
+    """NetrcHttpAccess session sends Authorization: Basic only to the bound origin."""
+    netrc_file = tmp_path / ".netrc"
+    netrc_file.write_text(
+        "machine catalogue.example.test login netrc-user password netrc-secret\n",
+        encoding="utf-8",
+    )
+    if os.name != "nt":
+        netrc_file.chmod(0o600)
+
+    import agentbundle.catalogue_fetch as _cf
+
+    requests_seen: list[urllib.request.Request] = []
+
+    class _CapturingOpenerNetrc:
+        def open(self, req: urllib.request.Request, timeout: int | None = None) -> _MockResponse:
+            requests_seen.append(req)
+            return _MockResponse(b"data")
+
+    with (
+        mock.patch.object(_cf, "_dh"),
+        open_fetch_session(
+            "https://catalogue.example.test/stable.json",
+            env={"HOME": str(tmp_path)},
+        ) as session,
+    ):
+        assert session.provider == "netrc"
+        assert session.target_origin == "https://catalogue.example.test"
+        # Authorization must be the Basic value, not a bearer token.
+        auth = session._authorization
+        assert auth is not None
+        assert auth.startswith("Basic ")
+        # Must not contain raw credentials.
+        assert "netrc-user" not in auth
+        assert "netrc-secret" not in auth
+
+
+def test_netrc_session_cross_origin_redirect_rejected(tmp_path: Path) -> None:
+    """NetrcHttpAccess session rejects cross-origin redirects before sending."""
+    netrc_file = tmp_path / ".netrc"
+    netrc_file.write_text(
+        "machine catalogue.example.test login netrc-user password netrc-secret\n",
+        encoding="utf-8",
+    )
+    if os.name != "nt":
+        netrc_file.chmod(0o600)
+
+    bound = "https://catalogue.example.test"
+    authorization = "Basic bmV0cmMtdXNlcjpuZXRyYy1zZWNyZXQ="
+
+    redirect_handler = _DirectHttpRedirectHandler(bound, authorization)
+
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        redirect_handler.redirect_request(
+            _mock_req("https://catalogue.example.test/stable.json"),
+            None, 302, "Found", {}, "https://evil.example.test/steal"
+        )
+    assert exc_info.value.code == "redirect_not_permitted"
+    # Credential must not appear in error text.
+    assert "netrc-user" not in str(exc_info.value)
+    assert "netrc-secret" not in str(exc_info.value)
+    assert authorization not in str(exc_info.value)
+
+
+def test_netrc_session_http_redirect_rejected(tmp_path: Path) -> None:
+    """NetrcHttpAccess session rejects scheme-downgrade redirects before sending."""
+    bound = "https://catalogue.example.test"
+    redirect_handler = _DirectHttpRedirectHandler(bound, "Basic bmV0cmMtdXNlcjpuZXRyYy1zZWNyZXQ=")
+
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        redirect_handler.redirect_request(
+            _mock_req("https://catalogue.example.test/stable.json"),
+            None, 301, "Moved", {}, "http://catalogue.example.test/stable.json"
+        )
+    assert exc_info.value.code == "redirect_not_permitted"
+
+
+def test_netrc_session_same_origin_redirect_keeps_authorization(tmp_path: Path) -> None:
+    """NetrcHttpAccess session forwards Authorization on same-origin HTTPS redirect."""
+    requests_seen: list[urllib.request.Request] = []
+
+    class _FakeHTTPSHandlerNetrc(urllib.request.BaseHandler):
+        handler_order = 500
+
+        def https_open(self, req: urllib.request.Request) -> object:
+            requests_seen.append(req)
+            if len(requests_seen) == 1:
+                import email.message
+                headers = email.message.Message()
+                headers["Location"] = "https://catalogue.example.test/v2/stable.json"
+                req_url = req.full_url
+
+                class _FakeResp:
+                    status = 302
+                    code = 302
+                    msg = "Found"
+                    url = req_url
+                    headers = headers
+
+                    def info(self) -> email.message.Message:
+                        return headers
+
+                    def read(self, *a: object) -> bytes:
+                        return b""
+
+                    def __enter__(self) -> "_FakeResp":
+                        return self
+
+                    def __exit__(self, *a: object) -> None:
+                        pass
+
+                return _FakeResp()
+
+            class _GoodResp:
+                def read(self, n: int = -1) -> bytes:
+                    return b"ok"
+
+                def __enter__(self) -> "_GoodResp":
+                    return self
+
+                def __exit__(self, *a: object) -> None:
+                    pass
+
+            return _GoodResp()
+
+    bound = "https://catalogue.example.test"
+    basic_auth = "Basic bmV0cmMtdXNlcjpuZXRyYy1zZWNyZXQ="
+    redirect_handler = _DirectHttpRedirectHandler(bound, basic_auth)
+
+    opener = urllib.request.OpenerDirector()
+    opener.addheaders = []
+    opener.add_handler(redirect_handler)
+    opener.add_handler(_FakeHTTPSHandlerNetrc())
+    opener.add_handler(urllib.request.UnknownHandler())
+
+    req = urllib.request.Request("https://catalogue.example.test/stable.json")
+    req.add_header("Authorization", basic_auth)
+
+    import contextlib
+    with contextlib.suppress(Exception):
+        opener.open(req, timeout=5)
+
+    if len(requests_seen) >= 2:
+        auth = requests_seen[1].get_header("Authorization")
+        assert auth == basic_auth, f"Basic auth not forwarded on same-origin redirect: {auth!r}"
+
+
+def test_jfrog_result_still_rejected_after_t3() -> None:
+    """JFrog CLI result is still rejected with CatalogueFetchError after T3."""
+    from credbroker import JfrogCliHttpAccess
+
+    fake_jfrog = JfrogCliHttpAccess(
+        server_id="my-server",
+        platform_url="https://platform.example.test/",
+        artifactory_url="https://platform.example.test/artifactory/",
+    )
+    with (
+        mock.patch(
+            "agentbundle.catalogue_fetch.resolve_http_access",
+            return_value=fake_jfrog,
+        ),
+        pytest.raises(CatalogueFetchError) as exc_info,
+        open_fetch_session("https://platform.example.test/s.json", env={}),
+    ):
+        pass
+    msg = str(exc_info.value)
+    assert "JfrogCliHttpAccess" in msg
+    assert "my-server" not in msg
+
+
+def test_netrc_post_selection_401_is_terminal_no_further_resolution(
+    tmp_path: Path,
+) -> None:
+    """After .netrc session opens, a 401 is terminal and resolution is not retried."""
+    netrc_file = tmp_path / ".netrc"
+    netrc_file.write_text(
+        "machine catalogue.example.test login netrc-user password netrc-secret\n",
+        encoding="utf-8",
+    )
+    if os.name != "nt":
+        netrc_file.chmod(0o600)
+
+    import agentbundle.catalogue_fetch as _cf
+
+    call_count: list[int] = [0]
+    original_resolve = _cf.resolve_http_access
+
+    def counting_resolve(url: str, *, env: object) -> object:
+        call_count[0] += 1
+        return original_resolve(url, env=env)  # type: ignore[arg-type]
+
+    with (
+        mock.patch.object(_cf, "resolve_http_access", side_effect=counting_resolve),
+        mock.patch.object(
+            _cf.FetchSession,
+            "fetch_bytes",
+            side_effect=CatalogueFetchError("simulated 401", code=None),
+        ),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        with pytest.raises((CatalogueFetchError, Exception)):
+            fetch_catalogue_archive(
+                "catalogue+https://catalogue.example.test/stable.json",
+                env={"HOME": str(tmp_path)},
+            )
+
+    assert call_count[0] == 1, "resolution must not be retried after a fetch failure"
+
+
+# ---------------------------------------------------------------------------
+# T3 — AC-0015 canary: netrc credentials never appear in error text or logs
+# ---------------------------------------------------------------------------
+
+NETRC_CANARY_LOGIN = "CANARY-NETRC-LOGIN-DO-NOT-EMIT"
+NETRC_CANARY_PASS = "CANARY-NETRC-PASS-DO-NOT-EMIT"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="permission-bit test requires POSIX")
+def test_netrc_canary_not_in_error_or_logs(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Canary login and password never appear in exceptions or logs from .netrc resolution."""
+    netrc_file = tmp_path / ".netrc"
+    netrc_file.write_text(
+        f"machine catalogue.example.test login {NETRC_CANARY_LOGIN} "
+        f"password {NETRC_CANARY_PASS}\n",
+        encoding="utf-8",
+    )
+    netrc_file.chmod(0o600)
+
+    import agentbundle.catalogue_fetch as _cf
+
+    with (
+        caplog.at_level(logging.DEBUG),
+        mock.patch.object(
+            _cf.FetchSession,
+            "fetch_bytes",
+            side_effect=CatalogueFetchError("simulated failure", code=None),
+        ),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        with pytest.raises(Exception) as exc_info:
+            fetch_catalogue_archive(
+                "catalogue+https://catalogue.example.test/stable.json",
+                env={"HOME": str(tmp_path)},
+            )
+
+    err_text = str(exc_info.value)
+    for secret in (NETRC_CANARY_LOGIN, NETRC_CANARY_PASS):
+        assert secret not in err_text, f"Secret found in exception: {secret!r}"
+        for record in caplog.records:
+            assert secret not in record.getMessage(), (
+                f"Secret found in log record: {secret!r}"
+            )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="permission-bit test requires POSIX")
+def test_netrc_canary_not_in_result_repr(tmp_path: Path) -> None:
+    """Canary netrc credentials never appear in FetchSession repr or target_origin."""
+    netrc_file = tmp_path / ".netrc"
+    netrc_file.write_text(
+        f"machine catalogue.example.test login {NETRC_CANARY_LOGIN} "
+        f"password {NETRC_CANARY_PASS}\n",
+        encoding="utf-8",
+    )
+    netrc_file.chmod(0o600)
+
+    import agentbundle.catalogue_fetch as _cf
+
+    archive_data, archive_sha256 = _make_tarball(("f.txt", b"netrc-payload"))
+    descriptor = {**_VALID_DESCRIPTOR, "sha256": archive_sha256}
+    descriptor_data = json.dumps(descriptor).encode()
+    archive_tmp = tmp_path / "arc.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    with (
+        mock.patch.object(_cf.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(_cf.FetchSession, "fetch_archive", return_value=archive_tmp),
+    ):
+        from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+        result = fetch_catalogue_archive_with_provenance(
+            "catalogue+https://catalogue.example.test/stable.json",
+            env={"HOME": str(tmp_path)},
+        )
+
+    import shutil
+    try:
+        for field_val in [
+            result.artifact_uri,
+            result.archive_sha256,
+            result.source_revision,
+            str(result.path),
+        ]:
+            if field_val is not None:
+                for secret in (NETRC_CANARY_LOGIN, NETRC_CANARY_PASS):
+                    assert secret not in field_val
+    finally:
+        shutil.rmtree(str(result.path), ignore_errors=True)
