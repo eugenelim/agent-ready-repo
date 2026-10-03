@@ -1,5 +1,0 @@
-## Blockers
-
-**1. T1's exact stub always fails its contiguity check.** `docs/specs/plan-evolution-experiments/plan.md:192-195`. `zip(releases, releases[1:], strict=True)` raises `ValueError` because the iterables differ by one element, so the approved TDD stub cannot go green for a correct implementation. Fix: make the exact stub assert adjacent-release contiguity without an unconditional strict-length failure.
-
-**2. W3 release still conflicts with adaptive-reserve gating.** `docs/specs/plan-evolution-experiments/spec.md:85`. The schedule makes W3 release ordinals 161 through the outer ceiling while also saying adaptive-reserve ordinals inside W3 need a separate release decision, but AC-0002 treats a passed gate memo as advancing the released interval and the T1 stub reserves every W3 slot after release with no reserve decision. Fix: define adaptive-reserve ordinals and their separate release semantics in the canonical schedule, and make Agent Rules, AC-0002, and T1 reject those slots until that decision exists.

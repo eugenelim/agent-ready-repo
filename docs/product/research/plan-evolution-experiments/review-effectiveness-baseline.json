@@ -590,7 +590,7 @@
             "stopped_revision_differs_from_reviewed_revision": true,
             "stopped_revision_recovery": "Of the three stopped-revision artifacts, plan.md and ADR-0131 are byte-exact at delivery HEAD eaaa5039a. spec.md is not: archiving the contract rewrote its Status line and inserted a \"## Why this contract was decomposed\" section before \"## Outcome\". Those two edits are the only difference, and reversing them reproduces 82e2c2cf exactly. The controller regenerated and verified the reconstruction independently in its own session rather than relying on another session scratch copy; the reversal is self-checking, so a mismatch would have reported the assumption broken rather than admitting a wrong artifact. The reconstructed bytes are session scratch and are not a repository artifact; regenerate and re-assert the digest before shadow prompt construction.",
             "normal_loop_report_provenance": {
-              "location": "EXTRACTED 2026-10-02 to docs/product/research/plan-evolution-experiments/review-corpus/case-2-visual-target-confirmation/. Previously .context/reviews/visual-target-confirmation/ inside the delivery worktree, which is gitignored and therefore not a repository artifact at all. The extracted copy is the citable one.",
+              "location": "EXTRACTED 2026-10-02 into the repository, then COMPACTED out of the working tree the same day; the files remain in git history under docs/product/research/plan-evolution-experiments/review-corpus/case-2-visual-target-confirmation/ and are retrievable with `git log --diff-filter=D --name-only` over that directory. FINDINGS.md carries the summary that replaced them. Previously .context/reviews/visual-target-confirmation/ inside the delivery worktree, which is gitignored and therefore not a repository artifact at all. The extracted copy is the citable one.",
               "status": "all eight round reports are persisted",
               "correction": "an earlier PROVENANCE.md stated three of six reports were unpersisted. That file was written before round 4 and understated the gap: five of eight were unpersisted. All five were recovered programmatically from session transcripts — the last assistant text block for rounds 2 and 3, and the SubagentHandback payload for round 4 — rather than transcribed or reconstructed from memory.",
               "reports": [
@@ -744,7 +744,7 @@
                 }
               },
               "raw_report": {
-                "path": "docs/product/research/plan-evolution-experiments/review-corpus/case-2-visual-target-confirmation/shadow/case2-shadow-adversarial-raw.md",
+                "path": "review-corpus/case-2-visual-target-confirmation/shadow/case2-shadow-adversarial-raw.md, extracted 2026-10-02 and retained in git history after the same-day compaction; the shadow prompt beside it is byte-exact at 53388, matching prompt_bytes recorded here",
                 "sha256": "a002d4d48d083b293d241eeb3ef7521d08024aea9de56277337100ddbfb25e6d",
                 "blockers": 0,
                 "concerns": 2,
@@ -828,7 +828,7 @@
               "ledger_repair_2026_10_02": {
                 "cause": "The row was last written 2026-10-01T19:19Z and then went twelve rounds without an update. T17's guidance to commit mutable cohort updates in small local commits was not followed during T18. This entry repairs the omission; it does not re-derive any count.",
                 "report_provenance": {
-                  "location": "docs/product/research/plan-evolution-experiments/review-corpus/case-3-visual-target-field/ (extracted 2026-10-02 from a gitignored directory in the visual-target-confirmation worktree; the absolute home path previously recorded here is removed per the repository rule against identifying paths)",
+                  "location": "review-corpus/case-3-visual-target-field/, extracted 2026-10-02 from a gitignored directory in a second worktree and retained in git history after the same-day compaction. The absolute home path previously recorded here is removed per the repository rule against identifying paths.",
                   "naming": "Two pre-EXECUTE families share the directory. `N-pre-execute-adversarial-*` is the pre-amendment series already on this row — its four raw digests match round_1 to round_4 byte for byte, which is how the mapping was confirmed rather than assumed. `N-pre-execute-adversarial-reviewer-*` is the post-amendment series. There is no round 1 in the second family: after amendment 1 the numbering opens at the post-gates round and the pre-EXECUTE passes resume at 2.",
                   "raw_reports_persisted": 18,
                   "adjudications_persisted": 18,

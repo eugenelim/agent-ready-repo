@@ -1,3 +1,0 @@
-## Blockers
-
-**1. Wave-release boundaries are no longer canonically defined.** `docs/specs/plan-evolution-experiments/spec.md:231`. The Agent Rule now derives refusal boundaries from "canonical allocation and stopping tables," but the spec has no stopping table, and the Study-allocation table defines total allocations rather than the currently released wave allocation; AC-0002 also says the next request after a wave gate is refused, which can read as blocking the legal post-gate next wave. Fix: add one canonical gate/release source that states the wave release boundaries and refusal semantics, and have Agent Rules, AC-0002, and T1 derive from that source.

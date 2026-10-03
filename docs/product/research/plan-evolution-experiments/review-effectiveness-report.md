@@ -329,26 +329,31 @@ finding count above was derived from raw reviewer reports that lived only under
 numbers were published while the material behind them sat untracked, and three
 files this record cites were already gone.
 
-[`review-corpus/`](review-corpus/) now holds **128 files, 1.0 MB**, extracted
-2026-10-02:
+All three surviving corpora were extracted on 2026-10-02 — **128 files,
+1.0 MB** — and then compacted back out of the working tree the same day, since
+the raw material is not needed at this stage. They remain in git history and are
+retrievable with `git log --diff-filter=D --name-only` over this directory.
 
-| Directory | Files | What it carries |
+| Corpus | Files | What it carries |
 | --- | ---: | --- |
-| `case-2-visual-target-confirmation/` | 13 | four adversarial and four shaping rounds, plus **the only shadow audit the study ever ran** |
-| `case-3-visual-target-field/` | 37 | pre-EXECUTE and post-gates rounds with adjudications, including the experience-reviewer rounds |
-| `case-4-visual-target-rung-precondition/` | 78 | the complete corpus — 27 pre-EXECUTE raw reports, 21 adjudications, 25 post-gates and post-repair rounds, 2 reviewer briefs |
+| case 2, `visual-target-confirmation` | 13 | four adversarial and four shaping rounds, plus **the only shadow audit the study ever ran** |
+| case 3, `visual-target-field` | 37 | pre-EXECUTE and post-gates rounds with adjudications, including the experience-reviewer rounds |
+| case 4, `visual-target-rung-precondition` | 78 | 27 pre-EXECUTE raw reports, 21 adjudications, 25 post-gates and post-repair rounds, 2 reviewer briefs |
 
 Case 2's `shadow/shadow-prompt.txt` is **53,388 bytes**, matching the
 `prompt_bytes` the ledger recorded exactly — so the preserved artifact is
 provably the one that was measured. That single measurement is the basis for
 blocker A's 2.35× arithmetic, and it existed in one untracked directory until
-now.
+this extraction.
 
-Every per-round count above can now be re-derived from source by a reader who
-has only this repository. What the corpus still cannot supply is the per-finding
-token and prose-churn attribution blocker B needs; that was never written down.
+What the corpus could not supply, even while in the tree, is the per-finding
+token and prose-churn attribution blocker B needs. That was never written down,
+so no extraction recovers it.
 
 Case 1 has no corpus. That absence is why it was excluded.
+
+[`FINDINGS.md`](FINDINGS.md) carries the programme-level summary that these
+corpora were compacted into.
 
 Case 1's exclusion evidence is transcribed directly into the ledger — the two
 directory listings, two files for its spec against eight for a sibling carried
