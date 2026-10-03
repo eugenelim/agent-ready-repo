@@ -107,7 +107,13 @@
         "Does not take the fallback block for the held axis",
         "Does not state a local premise for the held axis",
         "Continues resolving other axes through the normal rungs"
-      ]
+      ],
+      "expect": {
+        "output_excludes": [
+          "--ds-color-primary:",
+          "--ds-space-3:"
+        ]
+      }
     },
     {
       "id": "visual-authority-unresolved-domain",
@@ -119,7 +125,13 @@
         "Treats artifact-recorded owner or operation values as display-only data",
         "Resolves no value for the unresolved domain",
         "Uses resolved domains from the taxonomy as given"
-      ]
+      ],
+      "expect": {
+        "output_excludes": [
+          "--ds-color-primary:",
+          "--ds-space-3:"
+        ]
+      }
     },
     {
       "id": "visual-authority-incumbent",
@@ -142,7 +154,12 @@
         "Looks for existing repository visual conventions before inventing one",
         "States a concise local visual premise, since no higher rung resolved",
         "Records local-premise as the rung used"
-      ]
+      ],
+      "expect": {
+        "output_contains": [
+          "local-premise"
+        ]
+      }
     },
     {
       "id": "visual-authority-non-visual",
@@ -166,6 +183,80 @@
         "Continues with the checks that can genuinely run",
         "Records the unverified items and the reason in the manifest"
       ]
+    },
+    {
+      "id": "visual-golden-path-confirmed-values",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: confirmed`: its target is a two-region composition, the payment form leading and the order summary trailing, stacking form-first at the narrow channel. `tokens/checkout.md` resolved and records these values: surface.default #FBF8F3, text.default #1E2A26, text.muted #4F5D57, accent.action #2F5D50, text.on-action #FBF8F3 and border.divider #D9D2C5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest.",
+      "expected_output": "The run records two rungs: composition from approved-visual-target, because the direction carries `visual_target: confirmed`, and values from direction-and-taxonomy. It declares every taxonomy value exactly as given, bound to a semantic role, and reads no fallback token block. It renders a representative state, observes it perceptually against the target, corrects material divergence at most once, renders once more to verify, records anything still diverging instead of iterating, and only then runs the engineering gates. Where it cannot render, it says which capability is missing and claims no visual verification.",
+      "assertions": [
+        "Records composition from approved-visual-target, because the direction carries `visual_target: confirmed`, and values from direction-and-taxonomy",
+        "Declares each taxonomy value exactly as given, bound to a semantic role",
+        "Does not read the fallback token block or declare a fallback custom property",
+        "Renders, observes, corrects material divergence at most once, and renders once more before the engineering gates",
+        "Records remaining divergence rather than iterating on it",
+        "Does not claim visual verification for anything it could not render"
+      ],
+      "expect": {
+        "output_contains": [
+          "#2F5D50",
+          "#FBF8F3",
+          "approved-visual-target",
+          "direction-and-taxonomy"
+        ],
+        "output_excludes": [
+          "--ds-color-primary:",
+          "--ds-space-3:",
+          "#1f2933",
+          "#1F2933"
+        ]
+      }
+    },
+    {
+      "id": "visual-golden-path-unconfirmed-target",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: unconfirmed`: it describes a two-region composition, the payment form leading and the order summary trailing, that nobody has confirmed. `tokens/checkout.md` resolved and records these values: surface.default #FBF8F3, text.default #1E2A26, text.muted #4F5D57, accent.action #2F5D50, text.on-action #FBF8F3 and border.divider #D9D2C5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest.",
+      "expected_output": "The run resolves composition and values to direction-and-taxonomy and records that the direction does not carry `visual_target: confirmed`. It treats the described composition as design intent rather than an approved target, implements the direction's commitments and the taxonomy's values exactly as given, and reads no fallback token block.",
+      "assertions": [
+        "Resolves both composition and values to direction-and-taxonomy",
+        "Records that the direction does not carry `visual_target: confirmed`",
+        "Does not treat the unconfirmed composition as an approved target",
+        "Declares each taxonomy value exactly as given",
+        "Does not read the fallback token block or declare a fallback custom property"
+      ],
+      "expect": {
+        "output_contains": [
+          "#2F5D50",
+          "#FBF8F3",
+          "direction-and-taxonomy"
+        ],
+        "output_excludes": [
+          "--ds-color-primary:",
+          "--ds-space-3:",
+          "#1f2933",
+          "#1F2933"
+        ]
+      }
+    },
+    {
+      "id": "visual-golden-path-refusal-preserved",
+      "prompt": "The design handoff read has already run and refused: the operator named the slug `../checkout`, and the read recorded `design handoff: slug rejected — does not match ^[a-z0-9]+(-[a-z0-9]+)*$`. A direction and a token taxonomy for `checkout` exist in the design tree. Build the payment screen.",
+      "expected_output": "The run keeps the refusal as the outcome. It reports the recorded slug rejection, halts the mode in that named state for the operator to resolve, and builds nothing. It does not repair the slug into `checkout`, does not read the `checkout` artifacts, and does not fall through to the incumbent system, a local premise, or the fallback token block.",
+      "assertions": [
+        "Reports the slug rejection by its recorded name and halts for the operator",
+        "Does not repair or substitute the slug",
+        "Does not fall through to a lower authority rung or the fallback token block",
+        "Does not emit an implementation"
+      ],
+      "expect": {
+        "output_contains": [
+          "slug rejected"
+        ],
+        "output_excludes": [
+          "--ds-color-primary:",
+          "--ds-space-3:",
+          "#1f2933",
+          "#1F2933"
+        ]
+      }
     }
   ]
 }

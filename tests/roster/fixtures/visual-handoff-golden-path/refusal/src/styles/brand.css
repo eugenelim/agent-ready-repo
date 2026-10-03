@@ -1,0 +1,11 @@
+/* Fixture data: the incumbent brand palette, the product's existing source of
+   visual truth before the checkout taxonomy extended it. */
+:root {
+  --brand-paper: #FBF8F3;
+  --brand-ink-900: #1E2A26;
+  --brand-ink-600: #4F5D57;
+  --brand-ink-400: #8A968F;
+  --brand-pine-700: #2F5D50;
+  --brand-sand-300: #D9D2C5;
+  --brand-muted-text: var(--brand-ink-400);
+}
