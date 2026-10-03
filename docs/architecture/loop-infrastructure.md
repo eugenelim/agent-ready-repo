@@ -563,8 +563,11 @@ appends an `evidence-receipt.v1` record through the evidence store. At
 `state.json`, projects a `delivery-subject.v1` record when the tree allows, and
 derives an `acceptance-verdict.v1` record. Everything is written under
 `<spec-dir>/.shadow-acceptance/`, which ignores itself in Git. The current
-engine keeps all authority, and a shadow failure is recorded as a redacted
-`security-event.v1` entry without changing the legacy result.
+engine keeps all authority. Every writer-authority allow and denial is stored
+as a `security-event.v1` line in `shadow-security-events.jsonl` before the
+service acknowledges it; if that line cannot be stored, the write is refused.
+A shadow failure is recorded there as a redacted divergence entry without
+changing the legacy result.
 
 ```bash
 WORK_LOOP_SHADOW_SERVICES=1 python '<skill-dir>/scripts/loop-engine.py' transition …

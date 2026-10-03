@@ -576,6 +576,54 @@ class TestAC0016ShadowOn:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+class TestShadowAuditDurability:
+    """Security events the shadow services emit are stored before acknowledgment."""
+
+    _PENDING = {"seq": 1, "event": "spec-ready", "from": "A", "to": "B",
+                "run_id": "audit-run", "at": "2026-01-01T00:00:00Z"}
+
+    def test_writer_authority_allow_is_stored_durably(
+        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A shadow evidence write leaves its allow event in the shadow event log."""
+        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
+        spec_dir = tmp_path / "audit-spec"
+        spec_dir.mkdir()
+        facade.shadow_call_on_transition(spec_dir, {"feature": "audit-spec"}, self._PENDING)
+
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        assert (shadow_dir / "shadow-evidence.log").exists()
+        events = [
+            json.loads(line)
+            for line in (shadow_dir / "shadow-security-events.jsonl").read_text("utf-8").splitlines()
+        ]
+        assert any(e["outcome"] == "allowed" for e in events), events
+        assert all(e.get("reason_code") != facade.SHADOW_DIVERGENCE_CODE for e in events), (
+            "a successful shadow write must not record a divergence"
+        )
+
+    def test_failed_audit_append_blocks_the_evidence_write(
+        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When the audit event cannot be stored, the evidence write is not acknowledged."""
+        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
+        spec_dir = tmp_path / "audit-fail-spec"
+        spec_dir.mkdir()
+        real_append = facade._confined_jsonl_append
+
+        def failing_append(spec: Path, path: Path, record: dict, cm: ModuleType) -> None:
+            if path.name == "shadow-security-events.jsonl":
+                raise OSError("audit store unavailable")
+            real_append(spec, path, record, cm)
+
+        monkeypatch.setattr(facade, "_confined_jsonl_append", failing_append)
+        facade.shadow_call_on_transition(spec_dir, {"feature": "audit-fail-spec"}, self._PENDING)
+
+        log = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
+        frames = log.read_text("utf-8").splitlines() if log.exists() else []
+        assert frames == [], "no evidence frame may be written when its audit event is lost"
+
+
 class TestAC0011Confinement:
     """Shadow writes refuse symlinked paths and never write outside the root."""
 

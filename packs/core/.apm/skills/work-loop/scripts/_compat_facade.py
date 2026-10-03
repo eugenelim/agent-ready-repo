@@ -60,6 +60,7 @@ Python 3.11+.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import importlib.util
 import json
@@ -67,6 +68,7 @@ import os
 import secrets
 import stat
 import sys
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
@@ -411,8 +413,25 @@ def _record_divergence(
 # ---------------------------------------------------------------------------
 
 
-def _null_sink(event: object) -> None:
-    """Discard a security event.  Used in shadow mode to absorb audit events."""
+def _durable_sink(spec_dir: Path, shadow_dir: Path, cm: ModuleType) -> Callable[[object], None]:
+    """Return an audit sink that durably appends each security event before returning.
+
+    Each event is written as one ``security-event.v1`` line to the shadow
+    security-event log through the confined append helper.  A failed append
+    raises, so the calling service fails closed and the facade records a
+    divergence instead of acknowledging an event that was never stored.
+    """
+
+    def sink(event: object) -> None:
+        if dataclasses.is_dataclass(event) and not isinstance(event, type):
+            record: object = dataclasses.asdict(event)
+        else:
+            record = event
+        if not isinstance(record, dict):
+            raise TypeError("security event must be a dataclass or a mapping")
+        _confined_jsonl_append(spec_dir, shadow_dir / _SECURITY_EVENTS_FILE, record, cm)
+
+    return sink
 
 
 def _spec_dir_fingerprint(spec_dir: Path) -> str:
@@ -491,7 +510,7 @@ def _do_shadow_on_transition(
         transaction_id=f"shadow-tx-{secrets.token_hex(16)}",
         issuer=issuer,
         grant=grant,
-        audit_sink=_null_sink,
+        audit_sink=_durable_sink(spec_dir, shadow_dir, cm),
     )
 
 
@@ -531,7 +550,7 @@ def _try_project_legacy_subject(
             spec_dir=spec_dir,
             approved_spec_hash=approved_spec_hash,
             approved_plan_hash=approved_plan_hash,
-            audit_sink=_null_sink,
+            audit_sink=_durable_sink(spec_dir, shadow_dir, cm),
             subject_id=f"shadow-subject:{spec_dir.name}",
             evidence_policy_ref=(
                 f"compat-shadow:evidence-policy:{approved_spec_hash[:16]}"
@@ -592,7 +611,7 @@ def _do_shadow_on_plan_locked(
         terminal_intent="work-loop-code-implementation",
         writer_grant=grant,
         issuer=issuer,
-        audit_sink=_null_sink,
+        audit_sink=_durable_sink(spec_dir, shadow_dir, cm),
         store=import_store,
         approval_identity="shadow-compat-facade",
         approval_role="shadow-observer",
