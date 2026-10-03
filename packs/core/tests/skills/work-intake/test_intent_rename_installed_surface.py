@@ -9,14 +9,13 @@ import signal
 import subprocess
 import sys
 import tempfile
-import uuid
 from pathlib import Path
 from types import TracebackType
 from typing import Any, cast
 
 import pytest
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[5]
+PACK_ROOT = Path(__file__).resolve().parents[3]
 SOURCE = "docs/product/intents/FEAT-0001-rename-test.md"
 SUCCESSOR = "docs/product/intents/STRAT-0001-rename-test.md"
 TOMBSTONE_DATE = "2026-09-30"
@@ -54,15 +53,9 @@ os.rmdir = _sandbox_rmdir
 
 
 @pytest.fixture
-def workspace_tmp() -> Path:
-    """Create a disposable tree under the writable repository workspace."""
-    base = REPOSITORY_ROOT / ".pytest-tmp-intent-rename" / "installed-surface"
-    base.mkdir(parents=True, exist_ok=True)
-    root = Path(tempfile.mkdtemp(prefix=f"{uuid.uuid4().hex}-", dir=base))
-    try:
-        yield root
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+def workspace_tmp(tmp_path: Path) -> Path:
+    """Return a disposable tree for one installed-surface case."""
+    return tmp_path
 
 
 def _install_core(repo: Path, tmp_path: Path) -> Path:
@@ -70,7 +63,7 @@ def _install_core(repo: Path, tmp_path: Path) -> Path:
     catalogue = tmp_path / "catalogue"
     core = catalogue / "packs" / "core"
     core.parent.mkdir(parents=True)
-    shutil.copytree(REPOSITORY_ROOT / "packs" / "core", core, symlinks=False)
+    shutil.copytree(PACK_ROOT, core, symlinks=False)
 
     from agentbundle.cli import _build_parser
     from agentbundle.commands import install
@@ -292,13 +285,10 @@ def test_operator_syntax_refusal_is_fixed_and_echoes_no_input(
     result = subprocess.run(
         [
             sys.executable,
-            os.fspath(
-                REPOSITORY_ROOT
-                / "packs/core/.apm/skills/work-intake/scripts/intent_rename.py"
-            ),
+            os.fspath(PACK_ROOT / ".apm/skills/work-intake/scripts/intent_rename.py"),
             *arguments,
         ],
-        cwd=REPOSITORY_ROOT,
+        cwd=PACK_ROOT,
         capture_output=True,
         text=True,
         encoding="utf-8",

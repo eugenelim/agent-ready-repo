@@ -15,8 +15,7 @@ from typing import Any, Callable
 
 import pytest
 
-_PARENTS = Path(__file__).resolve().parents
-PACK_ROOT = _PARENTS[3] if len(_PARENTS) > 3 else Path.cwd() / "packs/core"
+PACK_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = PACK_ROOT / ".apm/skills/work-intake/scripts/intent_rename.py"
 SOURCE = "docs/product/intents/FEAT-0001-rename-test.md"
 SUCCESSOR = "docs/product/intents/STRAT-0001-rename-test.md"
