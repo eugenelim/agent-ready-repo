@@ -667,7 +667,11 @@ class TestAC0011Confinement:
             ["git", "init", "-q", str(git_repo)], check=True, capture_output=True
         )
         subprocess.run(
-            ["git", "-C", str(git_repo), "commit", "--allow-empty", "-m", "init"],
+            [
+                "git", "-C", str(git_repo),
+                "-c", "user.name=Test User", "-c", "user.email=test@example.com",
+                "commit", "--allow-empty", "-m", "init",
+            ],
             check=True, capture_output=True,
         )
 

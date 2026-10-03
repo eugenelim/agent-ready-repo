@@ -109,13 +109,13 @@ _VALID_MANIFEST_PAIRS: tuple[tuple[str, str], ...] = (
     ("src/util.py", "b" * 64),
 )
 
-_VALID_EXCLUSIONS: tuple[str, ...] = (".git", "docs/specs/test-feature/")
+_VALID_EXCLUSIONS: tuple[str, ...] = (".git", "fixtures/example-feature/")
 
 _VALID_SUBJECT_KWARGS: dict = {
     "subject_id": "parity-roster-001",
     "base_ref": "deadbeef" * 5,
     "result_ref": "deadbeef" * 5,
-    "spec_path": "docs/specs/test-feature/spec.md",
+    "spec_path": "fixtures/example-feature/spec.md",
     "spec_fingerprint": "c" * 64,
     "evidence_policy_ref": "policy:v1",
     "exclusions": _VALID_EXCLUSIONS,
