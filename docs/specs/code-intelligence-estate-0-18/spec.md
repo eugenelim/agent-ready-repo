@@ -1,6 +1,6 @@
 # Spec: Code-intelligence pack on Wicked Estate 0.18
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0104
@@ -88,44 +88,44 @@ Every check below is either a pack test under `packs/code-intelligence/tests/` o
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.18` when the binary reports version 0.17.0.
-- [ ] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.18.0 and an index exists.
-- [ ] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.18"`, equal to the preflight's `MINIMUM_VERSION`.
-- [ ] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.18.0 --locked`, and `0.18.0` equals the preflight's `PINNED_VERSION`.
-- [ ] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.18.0 --locked` and rejects the planted `cargo install wicked-estate --locked` and `cargo install wicked-estate --version 0.16.7 --locked`.
-- [ ] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
-- [ ] **AC-0007.** The vocabulary allowlist's CLI verbs include `path`.
-- [ ] **AC-0008.** A 0.18.0 binary dispatches every CLI verb in the vocabulary allowlist.
-- [ ] **AC-0009.** The vocabulary allowlist's MCP estate tools include `Path`.
-- [ ] **AC-0010.** `references/capability-map.md` names every MCP estate tool in the vocabulary allowlist.
-- [ ] **AC-0011.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.18"`.
-- [ ] **AC-0012.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
-- [ ] **AC-0013.** On the fixture, `blast-radius <name> --json` returns exactly the keys `target`, `dependents`, `unresolved`, `truncated_dependents`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`.
-- [ ] **AC-0014.** On the fixture, `blast-radius helper --json` with no `--depth` reports `searched_depth` 12.
-- [ ] **AC-0015.** On the fixture, `blast-radius helper --depth 1 --json` reports `depth_horizon_reached: true` and `searched_depth: 1`.
-- [ ] **AC-0016.** On the fixture, `blast-radius helper --depth 24` exits 0 and `--depth 25` exits non-zero.
-- [ ] **AC-0017.** On the fixture, `blast-radius helper --depth 1` (text) prints a line containing `CUT AT depth=1`.
-- [ ] **AC-0018.** On the fixture, `path entry helper --json` returns `found: true` and two hops, each carrying the keys `kind`, `confidence`, `provenance`, `resolved_by`, `source`, `target`.
-- [ ] **AC-0019.** On the fixture, `path helper entry --json` returns `found: false` with `depth_bounded: false` and `node_bounded: false`.
-- [ ] **AC-0020.** On the fixture, `path entry helper --max-depth 1 --json` returns `found: false` with `depth_bounded: true`.
-- [ ] **AC-0021.** On the fixture, `path entry helper --max-depth 2 --json` returns `found: true` with `depth_bounded: true`.
-- [ ] **AC-0022.** On the fixture, `path nope helper --json` exits 0 and returns `unresolved: "from"`.
-- [ ] **AC-0023.** On the fixture, `path entry nope --json` exits 0 and returns `unresolved: "to"`.
-- [ ] **AC-0024.** On the fixture, `path entry helper --max-depth 17 --json` exits 0 and returns `found: true`.
-- [ ] **AC-0025.** On the fixture, every `path entry helper --json` hop endpoint has `line_1based` equal to `line + 1`.
-- [ ] **AC-0026.** On the fixture, the `path entry helper --json` endpoint named `helper` has `line_1based` equal to the `line` that `resolve helper --json` reports.
-- [ ] **AC-0027.** The retired-claim scanner finds no match in the shipped surface.
-- [ ] **AC-0028.** The retired-claim scanner matches every sentence in its planted stale sample and no sentence in its planted current sample.
-- [ ] **AC-0029.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
-- [ ] **AC-0030.** `SKILL.md`, `references/capability-map.md`, and `references/investigation-patterns.md` each contain `wicked-estate path`.
-- [ ] **AC-0031.** `SKILL.md` and `references/capability-map.md` each contain a line holding both `blast-radius` and `--depth`.
-- [ ] **AC-0032.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.3`.
-- [ ] **AC-0033.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.3`.
-- [ ] **AC-0034.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.3\] — \d{4}-\d{2}-\d{2}$`.
-- [ ] **AC-0035.** `evals/evals.json` contains a case whose prompt contains `reach` and whose assertions contain both `wicked-estate path` and `depth_bounded`.
-- [ ] **AC-0036.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty: no tracked file changes and no untracked file appears.
-- [ ] **AC-0037.** `agentbundle catalogue verify --root .` exits 0.
-- [ ] **AC-0038.** The guidance test module's `main` exits non-zero when a given path does not exist and when the given paths contain no file to scan.
+- [x] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.18` when the binary reports version 0.17.0.
+- [x] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.18.0 and an index exists.
+- [x] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.18"`, equal to the preflight's `MINIMUM_VERSION`.
+- [x] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.18.0 --locked`, and `0.18.0` equals the preflight's `PINNED_VERSION`.
+- [x] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.18.0 --locked` and rejects the planted `cargo install wicked-estate --locked` and `cargo install wicked-estate --version 0.16.7 --locked`.
+- [x] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
+- [x] **AC-0007.** The vocabulary allowlist's CLI verbs include `path`.
+- [x] **AC-0008.** A 0.18.0 binary dispatches every CLI verb in the vocabulary allowlist.
+- [x] **AC-0009.** The vocabulary allowlist's MCP estate tools include `Path`.
+- [x] **AC-0010.** `references/capability-map.md` names every MCP estate tool in the vocabulary allowlist.
+- [x] **AC-0011.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.18"`.
+- [x] **AC-0012.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
+- [x] **AC-0013.** On the fixture, `blast-radius <name> --json` returns exactly the keys `target`, `dependents`, `unresolved`, `truncated_dependents`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`.
+- [x] **AC-0014.** On the fixture, `blast-radius helper --json` with no `--depth` reports `searched_depth` 12.
+- [x] **AC-0015.** On the fixture, `blast-radius helper --depth 1 --json` reports `depth_horizon_reached: true` and `searched_depth: 1`.
+- [x] **AC-0016.** On the fixture, `blast-radius helper --depth 24` exits 0 and `--depth 25` exits non-zero.
+- [x] **AC-0017.** On the fixture, `blast-radius helper --depth 1` (text) prints a line containing `CUT AT depth=1`.
+- [x] **AC-0018.** On the fixture, `path entry helper --json` returns `found: true` and two hops, each carrying the keys `kind`, `confidence`, `provenance`, `resolved_by`, `source`, `target`.
+- [x] **AC-0019.** On the fixture, `path helper entry --json` returns `found: false` with `depth_bounded: false` and `node_bounded: false`.
+- [x] **AC-0020.** On the fixture, `path entry helper --max-depth 1 --json` returns `found: false` with `depth_bounded: true`.
+- [x] **AC-0021.** On the fixture, `path entry helper --max-depth 2 --json` returns `found: true` with `depth_bounded: true`.
+- [x] **AC-0022.** On the fixture, `path nope helper --json` exits 0 and returns `unresolved: "from"`.
+- [x] **AC-0023.** On the fixture, `path entry nope --json` exits 0 and returns `unresolved: "to"`.
+- [x] **AC-0024.** On the fixture, `path entry helper --max-depth 17 --json` exits 0 and returns `found: true`.
+- [x] **AC-0025.** On the fixture, every `path entry helper --json` hop endpoint has `line_1based` equal to `line + 1`.
+- [x] **AC-0026.** On the fixture, the `path entry helper --json` endpoint named `helper` has `line_1based` equal to the `line` that `resolve helper --json` reports.
+- [x] **AC-0027.** The retired-claim scanner finds no match in the shipped surface.
+- [x] **AC-0028.** The retired-claim scanner matches every sentence in its planted stale sample and no sentence in its planted current sample.
+- [x] **AC-0029.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
+- [x] **AC-0030.** `SKILL.md`, `references/capability-map.md`, and `references/investigation-patterns.md` each contain `wicked-estate path`.
+- [x] **AC-0031.** `SKILL.md` and `references/capability-map.md` each contain a line holding both `blast-radius` and `--depth`.
+- [x] **AC-0032.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.3`.
+- [x] **AC-0033.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.3`.
+- [x] **AC-0034.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.3\] — \d{4}-\d{2}-\d{2}$`.
+- [x] **AC-0035.** `evals/evals.json` contains a case whose prompt contains `reach` and whose assertions contain both `wicked-estate path` and `depth_bounded`.
+- [x] **AC-0036.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty: no tracked file changes and no untracked file appears.
+- [x] **AC-0037.** `agentbundle catalogue verify --root .` exits 0.
+- [x] **AC-0038.** The guidance test module's `main` exits non-zero when a given path does not exist and when the given paths contain no file to scan.
 
 ## Follow-ons
 

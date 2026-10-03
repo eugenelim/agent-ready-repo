@@ -1,7 +1,7 @@
 # Plan: Code-intelligence pack on Wicked Estate 0.18
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/AGENTS.md` and `packs/AGENTS.local.md` (version bump, eval, self-host, marketplace, changelog); `tests/AGENTS.md` (a pack test may not read above its pack); the pack's suites `packs/code-intelligence/tests/pack/test_estate_surface_vocabulary.py`, `tests/pack/test_manifest.py`, `tests/skills/code-intelligence/test_estate_cli_contract.py`, `tests/skills/code-intelligence/test_estate_preflight.py`; the `code-intelligence` pytest lines in the `Makefile` test chain, which always run `tests/pack/` and `skills/code-intelligence/`; only the live-binary contract module inside the latter skips when `wicked-estate` is absent; `tools/build-site.py` (changelog heading form). Non-structural: no new module or boundary.
 
 > **Plan contract:** this is the implementation strategy. It may change
