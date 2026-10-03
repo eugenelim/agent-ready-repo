@@ -49,7 +49,7 @@ Follow the analyze-change-impact pattern in the `code-intelligence` skill's
    not in a footnote.
 
 4. **Separate direct from transitive.** Run `blast-radius <name> --depth 1 --json`
-   for direct dependents. Whether the difference against the full run is the transitive set depends on both runs' cut fields; apply `references/evidence.md` § Direct and transitive dependents. Where the MCP server is registered, `BlastRadius` stamps each dependent
+   for direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in `references/evidence.md` § Direct and transitive dependents. Where the MCP server is registered, `BlastRadius` stamps each dependent
    with its own `depth` and needs no second call.
 
 5. **Select, then read.** Reading five dependents properly beats listing a

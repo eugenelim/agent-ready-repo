@@ -150,7 +150,7 @@ The two surfaces differ substantially, and the MCP form is the richer one:
 | Output cut | `truncated_dependents` | `truncated` + `total` |
 
 *Note:* use `blast-radius <name> --depth 1 --json` to get direct dependents
-only. Whether the difference against the full run is the transitive set depends on both runs' cut fields; apply [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents). When
+only. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents). When
 `depth_horizon_reached` is true, the text output prints `CUT AT depth=N`;
 raise `--depth` (max 24) to go further. `blast-radius` rows carry no per-hop
 confidence or provenance — use `wicked-estate path` when you need those.

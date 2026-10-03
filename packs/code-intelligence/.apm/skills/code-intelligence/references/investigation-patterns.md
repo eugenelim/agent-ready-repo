@@ -110,7 +110,7 @@ this work".
    wicked-estate blast-radius parse_config --depth 1 --json
    ```
 
-   That gives the direct dependents. Whether the difference against the full run is the transitive set depends on both runs' cut fields; apply [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
+   That gives the direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
 
    - MCP available: `TraverseGraph` with `direction: "dependents"` and
      `depth: 1` gives the direct set with per-node depth in the response.

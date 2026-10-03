@@ -180,7 +180,7 @@ from the other.
 **The depth cut is reported.** `blast-radius --json` returns `searched_depth`,
 `depth_horizon_reached`, and `node_cap_reached`. When `depth_horizon_reached` is
 true, the text output prints a `CUT AT depth=N` line; raise `--depth` (max 24) to
-go further. Use `blast-radius <name> --depth 1` to get only direct dependents. Whether the difference against the full run is the transitive set depends on both runs' cut fields; apply [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
+go further. Use `blast-radius <name> --depth 1` to get only direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
 A true `node_cap_reached` means the node budget cut the walk; no CLI flag raises
 it. `path` hops carry
 `confidence`, `provenance`, and `resolved_by` per hop; `blast-radius` rows do not.
