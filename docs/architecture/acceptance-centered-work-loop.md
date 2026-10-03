@@ -201,8 +201,8 @@ Monthly checks enforce retention; rehearsal covers lease and write.
 | Work-loop facade and bundled supervisor | `packs/core/.apm/skills/work-loop/`; manifest-built single script embeds schemas and standard-library-only runtime modules | Deterministic digest, clean-environment import fence, and provider tests |
 | Runtime adapters | Neutral contracts plus optional host-owned projections; Core carries no Pi dependency | Adapter conformance and clean-environment dependency fence |
 | Result integration | Proposed `work_supervisor/result_integration.py` and `git_integration.py` | Merge, CAS, conflict, cancellation, and crash suite |
-| Security primitive | `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` plus proposed process and capability modules beside it | Security boundary suite |
-| Content safety | `contracts/delivery/` policy plus proposed `catalogue_tooling/content_safety.py` | Shared boundary corpus |
+| Security primitive | `packs/core/.apm/skills/work-loop/scripts/file_safety.py` (Slice 1 confinement base) plus `_security_capability.py`, `_confined_mutation.py`, `_process_safety.py`, `_security_events.py`, `_containment.py`, and `_effect_broker.py` beside it | Security boundary suite |
+| Content safety | `contracts/delivery/` policy plus `packs/core/.apm/skills/work-loop/scripts/_content_safety.py` | Shared boundary corpus |
 | Knowledge projection | Proposed stateless projector plus `packs/core/.apm/skills/project-knowledge/` collector/intake | Determinism, rescan, dedupe, and independent-admission tests |
 | Reversal manifest and bundle | `contracts/delivery/` schemas; release-loop slice-gate writer; `agentbundle` cutover reader | Manifest-only derivation, explicitly approved downgrade snapshot, retention, and rehearsal |
 | Authority and baseline cutovers | [Authority migration](work-loop-authority-migration.md); `ARCHITECTURE.md`, `loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`, and `knowledge-capture.md` update with their owning cutover | Missing-governance refusal, writer-switch CAS, baseline-link, and reversal fixtures |

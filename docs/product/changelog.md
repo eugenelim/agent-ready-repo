@@ -64,6 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.14] — 2026-10-03
+
+### Added
+
+- Callable shadow acceptance services now ship in `packs/core`. The services — acceptance projection, approval import, evidence transactions, subject projection, security primitives, content-safety guard, and the compatibility facade — are standard-library-only scripts in the `work-loop` skill. The current engine keeps all authority and calls them behind `WORK_LOOP_SHADOW_SERVICES=1`; every result is non-authoritative shadow evidence until a separately accepted governance record enables a cutover. Maintainers can verify parity, run import and reversal checks, and confirm cross-adapter conformance without reading the delivery spec.
+
 ## [core][2.27.13] — 2026-10-02
 
 ### Fixed

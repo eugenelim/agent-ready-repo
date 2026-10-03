@@ -103,7 +103,8 @@ captured output is bounded and redacted before any durable write.
 | `security-event.v1` | Primitive or broker → audit sink | Operation and correlation IDs | Security maintainers approve redaction schema; sinks ignore additive fields and reject unknown major versions | Audit failure cannot turn denial into allow | Sensitive payloads never enter diagnostics |
 
 The primitive preserves the repository's blessed helper behavior in
-[`file_safety.py`](../../packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py).
+`file_safety.py` (the work-loop skill's local copy at
+`packs/core/.apm/skills/work-loop/scripts/file_safety.py`).
 Existing confined reads, lists, and hashes already resolve and confine paths,
 reject link-like or non-regular entries, bound input, open without following
 links, and recheck identity. This design reuses those controls and adds atomic
@@ -162,13 +163,13 @@ protected ref.
 
 | Element | Source owner | Build unit | Verification |
 | --- | --- | --- | --- |
-| Capability issuer | Proposed `packages/agentbundle/agentbundle/catalogue_tooling/capabilities.py` | Supervisor bundle source | Delegation property tests |
-| Path confinement and atomic mutation primitives | `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` plus proposed mutations | Supervisor bundle source; `agentbundle` builds/tests | Boundary and race suite |
-| Process primitive | Proposed `packages/agentbundle/agentbundle/catalogue_tooling/process_safety.py` | Supervisor bundle source | Argument, timeout, and output-bound tests |
-| Audit emitter | Proposed `packages/agentbundle/agentbundle/catalogue_tooling/security_events.py` | Supervisor bundle source | Redaction and denial-path tests |
-| Containment launcher | Proposed `packages/agentbundle/agentbundle/work_supervisor/containment.py` with host adapters | Supervisor bundle and host adapters | Attestation and direct-syscall negative tests |
-| Effect broker | Proposed `packages/agentbundle/agentbundle/work_supervisor/effect_broker.py` | Supervisor bundle source | Process-boundary and authority-negative tests |
-| Portable contracts and runtime wrappers | Proposed authoritative `contracts/delivery/` plus generated package and core projections | Contract source and core pack | Source-to-projection parity and cross-adapter conformance |
+| Capability issuer | `packs/core/.apm/skills/work-loop/scripts/_security_capability.py` (Slice 1) | Work-loop skill scripts | Delegation property tests |
+| Path confinement and atomic mutation primitives | `packs/core/.apm/skills/work-loop/scripts/file_safety.py` plus `_confined_mutation.py` beside it (Slice 1) | Work-loop skill scripts | Boundary and race suite |
+| Process primitive | `packs/core/.apm/skills/work-loop/scripts/_process_safety.py` (Slice 1) | Work-loop skill scripts | Argument, timeout, and output-bound tests |
+| Audit emitter | `packs/core/.apm/skills/work-loop/scripts/_security_events.py` (Slice 1) | Work-loop skill scripts | Redaction and denial-path tests |
+| Containment launcher | `packs/core/.apm/skills/work-loop/scripts/_containment.py` with host adapters (Slice 1) | Work-loop skill scripts and host adapters | Attestation and direct-syscall negative tests |
+| Effect broker | `packs/core/.apm/skills/work-loop/scripts/_effect_broker.py` (Slice 1) | Work-loop skill scripts | Process-boundary and authority-negative tests |
+| Portable contracts and runtime wrappers | Authoritative `contracts/delivery/`; Core pack projects work-loop skill scripts, not schema copies | Contract source and Core pack | Source-to-projection parity and cross-adapter conformance |
 
 ## 9. Decisions, Alternatives, and Risks
 

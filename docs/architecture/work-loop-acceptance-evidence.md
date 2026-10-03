@@ -198,11 +198,11 @@ both stay fixed. A protected change needs owner action and fresh review.
 
 | Element | Source owner | Build unit | Verification |
 | --- | --- | --- | --- |
-| Subject providers, projectors, and schemas | Proposed `work_supervisor/acceptance.py`; schemas in `contracts/delivery/` | Supervisor bundle source and contracts | Provider parity, projection, and schema tests |
-| Approval and initial-plan-review registries and ports | Proposed `packages/agentbundle/agentbundle/work_supervisor/approvals.py` | Supervisor bundle source; `agentbundle` builds/tests | Authority, lineage, initial-review, mutation, and rehydration tests |
-| Legacy approval importer | Proposed `work_supervisor/legacy_approvals.py` reusing current canonicalization fixtures | Slice-1 supervisor service bundle | Spec/plan digest parity, criterion coverage, atomic append, refusal, and reverse-read tests |
-| Evidence transaction log and indexes | Proposed `packages/agentbundle/agentbundle/work_supervisor/evidence_store.py` | Supervisor bundle source; `agentbundle` builds/tests | Atomic framing, crash, index rebuild, and invalidation tests |
-| Freshness and satisfaction evaluators | Proposed `packages/agentbundle/agentbundle/work_supervisor/acceptance.py` | Supervisor bundle source; `agentbundle` builds/tests | Pure unit tests |
+| Subject providers, projectors, and schemas | `packs/core/.apm/skills/work-loop/scripts/_subject_source.py` and `_subject_projection.py` (Slice 1); schemas in `contracts/delivery/` | Work-loop skill scripts and contracts | Provider parity, projection, and schema tests |
+| Approval and initial-plan-review registries and ports | `packs/core/.apm/skills/work-loop/scripts/_policy_import.py` (Slice 1) | Work-loop skill scripts | Authority, lineage, initial-review, mutation, and rehydration tests |
+| Legacy approval importer | `packs/core/.apm/skills/work-loop/scripts/_policy_import.py` reusing current canonicalization fixtures (Slice 1) | Work-loop skill scripts | Spec/plan digest parity, criterion coverage, atomic append, refusal, and reverse-read tests |
+| Evidence transaction log and indexes | `packs/core/.apm/skills/work-loop/scripts/_evidence_store.py` (Slice 1) | Work-loop skill scripts | Atomic framing, crash, index rebuild, and invalidation tests |
+| Freshness and satisfaction evaluators | `packs/core/.apm/skills/work-loop/scripts/_acceptance.py` (Slice 1) | Work-loop skill scripts | Pure unit tests |
 | Evidence policy | `packs/core/.apm/skills/work-loop/` | Core pack | Skill evals |
 
 ## 9. Decisions, Alternatives, and Risks

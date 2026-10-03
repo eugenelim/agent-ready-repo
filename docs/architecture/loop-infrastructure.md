@@ -547,7 +547,93 @@ not shipped.
 - [ADR-0074 — Work loop owns its state lock](../adr/0074-the-work-loop-owns-its-state-lock.md)
 - [ADR-0125 — Durable transitions make four cohort mutations engine-invoked](../adr/0125-engine-invoked-cohort-mutations.md)
 
-## 10. Last verified against commit
+## 10. Maintainer Procedure — Acceptance Shadow Services
+
+The following commands let maintainers verify parity, recovery, and reversal for
+the Slice 1 callable shadow acceptance services without reading the delivery
+spec. All commands run from the repository root.
+
+### Enable shadow mode
+
+Set `WORK_LOOP_SHADOW_SERVICES=1` before a `loop-engine transition` call to
+activate shadow evaluation. The current engine keeps all authority; shadow
+results write under `<spec-dir>/.shadow-acceptance/` and are not authoritative.
+
+```bash
+WORK_LOOP_SHADOW_SERVICES=1 python '<skill-dir>/scripts/loop-engine.py' transition …
+```
+
+### Policy import (approval and initial-plan-review)
+
+Run the policy-import suite to verify that legacy canonicalization matches the
+target, that atomic import exposes exactly zero or two records on failure, and
+that protected-change classification works without dispatching task state:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_policy_import.py -q
+```
+
+### Rehydration (cold-start verdict recovery)
+
+Run the cold-rehydration benchmark to verify that deleting derived indexes and
+replaying all evidence records from a fresh process reproduces the pre-interruption
+verdict within 10 seconds for 1,000 criteria and 100,000 receipts:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_cold_rehydration_benchmark.py -q
+```
+
+### Reversal (disable shadow services)
+
+To restore the legacy-only path, unset the environment variable. No shadow facts
+are deleted; the current engine resumes its authoritative path, and shadow records
+remain for later reinspection:
+
+```bash
+unset WORK_LOOP_SHADOW_SERVICES
+```
+
+The compatibility facade suite verifies that disabling target calls restores the
+legacy path and that a missing accepted governance record refuses every
+authority-switch attempt:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_compat_facade.py -q
+```
+
+### Cross-adapter conformance
+
+Run the conformance roll-up to verify that projected Core pack copies are
+byte-identical to source (so every pack-suite assertion covers the projected
+copies) and that the cross-adapter corpora pass:
+
+```bash
+python3 -m pytest tests/roster/test_t9a_conformance_rollup.py -q
+```
+
+Run the clean-environment fence to verify that every work-loop runtime script
+imports only the standard library or its own sibling modules, and that shadow
+mode completes in a subprocess where `agentbundle` is not importable:
+
+```bash
+python3 -m pytest tests/roster/test_t9a_clean_env_fence.py -q
+```
+
+Run the full new-module suite for a complete Slice 1 evidence pass:
+
+```bash
+python3 -m pytest \
+  packs/core/tests/skills/work-loop/test_policy_import.py \
+  packs/core/tests/skills/work-loop/test_evidence_store.py \
+  packs/core/tests/skills/work-loop/test_compat_facade.py \
+  packs/core/tests/skills/work-loop/test_acceptance_benchmark.py \
+  packs/core/tests/skills/work-loop/test_cold_rehydration_benchmark.py \
+  tests/roster/test_t9a_conformance_rollup.py \
+  tests/roster/test_t9a_clean_env_fence.py \
+  -q
+```
+
+## 11. Last verified against commit
 
 `8d30c6f6c` for the whole page. §§ 3, 4 and 6 were re-verified against the
 change that added the cohort-state identity check they now describe; the rest
