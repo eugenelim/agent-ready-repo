@@ -1,8 +1,9 @@
 """Bounded JFrog CLI (`jf api`) executor for catalogue fetch.
 
-This module is the only place in AgentBundle that spawns a subprocess.
-All other catalogue-fetch code must not call subprocess directly; the
-credential-boundary contract test enforces this.
+This module is the only place in the catalogue-fetch subsystem that spawns
+a subprocess.  Other AgentBundle modules (e.g. workspace_mcp, system_trust)
+may spawn subprocesses for unrelated purposes; the credential-boundary
+contract test enforces that only this module calls ``jf api``.
 
 Each ``JfrogFetchSession`` issues at most two ``jf api`` subprocesses:
 one for the channel descriptor and one for the archive (or one for a
@@ -80,8 +81,8 @@ _BOTH_ALLOWED: frozenset[str] = frozenset(
 
 # Control characters (U+0000–U+001F, U+007F) and backslashes.
 _CONTROL_OR_BACKSLASH_RE: re.Pattern[str] = re.compile(r"[\x00-\x1f\x7f\\]")
-# Percent-encoded separators: / (%2f), . (%2e), and backslash (%5c), any case.
-_ENCODED_SEP_RE: re.Pattern[str] = re.compile(r"(?i)%2[ef]|%5c")
+# Percent-encoded separators: / (%2f), . (%2e), ; (%3b), and backslash (%5c), any case.
+_ENCODED_SEP_RE: re.Pattern[str] = re.compile(r"(?i)%2[ef]|%3b|%5c")
 
 
 # ── Internal subprocess exceptions ────────────────────────────────────────────
@@ -273,6 +274,13 @@ def _validate_fetch_url(url: str, access: JfrogCliHttpAccess) -> str:
 
     _NOT_PERMITTED = "endpoint_not_permitted"
 
+    # Check the RAW url string before urlsplit strips control characters.
+    # Python's urlsplit silently removes tab (\x09), CR (\x0d), LF (\x0a).
+    if _CONTROL_OR_BACKSLASH_RE.search(url):
+        raise CatalogueFetchError(
+            "fetch URL contains disallowed characters", code=_NOT_PERMITTED
+        )
+
     try:
         parsed = urlsplit(url)
     except Exception:
@@ -295,18 +303,14 @@ def _validate_fetch_url(url: str, access: JfrogCliHttpAccess) -> str:
             "fetch URL contains a fragment; rejected", code=_NOT_PERMITTED
         )
 
-    if _CONTROL_OR_BACKSLASH_RE.search(parsed.path):
-        raise CatalogueFetchError(
-            "fetch URL path contains disallowed characters", code=_NOT_PERMITTED
-        )
-
-    # Reject percent-encoded separators: %2f, %2e, %5c (any case).
+    # Reject percent-encoded separators: %2f, %2e, %3b, %5c (any case).
     if _ENCODED_SEP_RE.search(url):
         raise CatalogueFetchError(
             "fetch URL contains an encoded separator character", code=_NOT_PERMITTED
         )
 
-    # Reject dot-segments and empty interior segments (//…).
+    # Reject dot-segments, semicolons (path-parameter ambiguity),
+    # leading/trailing whitespace in segments, and empty interior segments.
     path_segments = parsed.path.split("/")
     for i, segment in enumerate(path_segments):
         if segment == "..":
@@ -316,6 +320,19 @@ def _validate_fetch_url(url: str, access: JfrogCliHttpAccess) -> str:
         if segment == ".":
             raise CatalogueFetchError(
                 "fetch URL contains a dot segment", code=_NOT_PERMITTED
+            )
+        # A semicolon in any segment may be normalized to a dot-segment by
+        # some servlet containers (e.g. /..;/ treated as /../).
+        if ";" in segment:
+            raise CatalogueFetchError(
+                "fetch URL path segment contains a semicolon; rejected",
+                code=_NOT_PERMITTED,
+            )
+        # Leading or trailing whitespace on a segment is a dot-segment ambiguity.
+        if segment != segment.strip():
+            raise CatalogueFetchError(
+                "fetch URL path segment has leading or trailing whitespace; rejected",
+                code=_NOT_PERMITTED,
             )
         # Interior empty segment means double slash.
         if segment == "" and 0 < i < len(path_segments) - 1:
@@ -439,6 +456,8 @@ def _run_bounded(
     stderr_buf = bytearray()
     _stdout_exceeded: list[bool] = [False]
     _stderr_exceeded: list[bool] = [False]
+    # Signals promptly when either reader breaches its cap.
+    _cap_breach: threading.Event = threading.Event()
 
     def _read_stdout() -> None:
         assert proc.stdout is not None
@@ -450,6 +469,7 @@ def _run_bounded(
                 stdout_buf.extend(chunk)
                 if len(stdout_buf) > stdout_cap:
                     _stdout_exceeded[0] = True
+                    _cap_breach.set()
                     return
         except OSError:
             pass
@@ -464,6 +484,7 @@ def _run_bounded(
                 stderr_buf.extend(chunk)
                 if len(stderr_buf) > stderr_cap:
                     _stderr_exceeded[0] = True
+                    _cap_breach.set()
                     return
         except OSError:
             pass
@@ -473,14 +494,17 @@ def _run_bounded(
     t_out.start()
     t_err.start()
 
-    # Wait for stdout reader up to work_deadline (grace reserved for cleanup).
-    remaining = max(0.0, work_deadline - time.monotonic())
-    t_out.join(timeout=remaining)
+    # Wait for stdout reader, cap breach, or work_deadline — whichever fires first.
+    # Poll with short intervals so a stderr breach prompts an early abort.
+    while t_out.is_alive() and not _cap_breach.is_set():
+        wait = min(0.05, max(0.0, work_deadline - time.monotonic()))
+        if wait <= 0:
+            break
+        t_out.join(timeout=wait)
 
     cap_exceeded = _stdout_exceeded[0] or _stderr_exceeded[0]
-    timed_out = time.monotonic() >= work_deadline and t_out.is_alive()
 
-    if cap_exceeded or timed_out or t_out.is_alive():
+    if cap_exceeded or t_out.is_alive():
         # Abort within the remaining deadline budget.
         with contextlib.suppress(OSError):
             proc.terminate()
@@ -503,6 +527,19 @@ def _run_bounded(
     # Normal completion: wait for stderr reader, then reap.
     remaining_err = max(0.0, deadline - time.monotonic())
     t_err.join(timeout=remaining_err)
+
+    # Re-check: stderr may have breached after stdout closed.  The child may be
+    # blocking on a full stderr pipe, so terminate before waiting.
+    if _stderr_exceeded[0]:
+        with contextlib.suppress(OSError):
+            proc.terminate()
+        with contextlib.suppress(OSError):
+            if proc.poll() is None:
+                proc.kill()
+        proc.wait()
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise _ChildCapExceeded("stderr")
+
     try:
         rc = proc.wait(timeout=max(0.0, deadline - time.monotonic()))
     except subprocess.TimeoutExpired:
@@ -593,6 +630,8 @@ def _run_bounded_to_file(
     _stdout_exceeded: list[bool] = [False]
     _stderr_exceeded: list[bool] = [False]
     _bytes_written: list[int] = [0]
+    # Signals promptly when either reader breaches its cap.
+    _cap_breach: threading.Event = threading.Event()
 
     def _write_stdout() -> None:
         assert proc.stdout is not None
@@ -606,6 +645,7 @@ def _run_bounded_to_file(
                     _bytes_written[0] += len(chunk)
                     if _bytes_written[0] > cap:
                         _stdout_exceeded[0] = True
+                        _cap_breach.set()
                         return
                     fh.write(chunk)
         except OSError:
@@ -621,6 +661,7 @@ def _run_bounded_to_file(
                 stderr_buf.extend(chunk)
                 if len(stderr_buf) > stderr_cap:
                     _stderr_exceeded[0] = True
+                    _cap_breach.set()
                     return
         except OSError:
             pass
@@ -643,14 +684,17 @@ def _run_bounded_to_file(
         with contextlib.suppress(OSError):
             archive_path.unlink(missing_ok=True)
 
-    # Wait for stdout writer up to work_deadline.
-    remaining = max(0.0, work_deadline - time.monotonic())
-    t_out.join(timeout=remaining)
+    # Wait for stdout writer, cap breach, or work_deadline — whichever fires first.
+    # Poll with short intervals so a stderr breach prompts an early abort.
+    while t_out.is_alive() and not _cap_breach.is_set():
+        wait = min(0.05, max(0.0, work_deadline - time.monotonic()))
+        if wait <= 0:
+            break
+        t_out.join(timeout=wait)
 
     cap_exceeded = _stdout_exceeded[0] or _stderr_exceeded[0]
-    timed_out = time.monotonic() >= work_deadline and t_out.is_alive()
 
-    if cap_exceeded or timed_out or t_out.is_alive():
+    if cap_exceeded or t_out.is_alive():
         _abort_and_cleanup(max(0.0, deadline - time.monotonic()))
         if _stdout_exceeded[0]:
             raise _ChildCapExceeded("stdout")
@@ -661,6 +705,13 @@ def _run_bounded_to_file(
     # Normal completion: wait for stderr reader, then reap.
     remaining_err = max(0.0, deadline - time.monotonic())
     t_err.join(timeout=remaining_err)
+
+    # Re-check: stderr may have breached after stdout closed.  The child may be
+    # blocking on a full stderr pipe, so terminate before waiting.
+    if _stderr_exceeded[0]:
+        _abort_and_cleanup(max(0.0, deadline - time.monotonic()))
+        raise _ChildCapExceeded("stderr")
+
     try:
         rc = proc.wait(timeout=max(0.0, deadline - time.monotonic()))
     except subprocess.TimeoutExpired:
@@ -726,7 +777,9 @@ class JfrogFetchSession:
             )
         self._fetch_count += 1
 
-    def fetch_bytes(self, url: str, *, max_bytes: int, timeout: int) -> bytes:
+    def fetch_bytes(
+        self, url: str, *, max_bytes: int, timeout: float = _JFROG_FETCH_TIMEOUT
+    ) -> bytes:
         """Fetch a bounded descriptor payload from *url* via ``jf api``.
 
         Applies the appended-newline rule: if stdout is exactly ``max_bytes + 1``
@@ -737,7 +790,9 @@ class JfrogFetchSession:
         Args:
             url: Fully-qualified HTTPS URL, must be under the pinned Artifactory base.
             max_bytes: Hard cap on response content bytes (after optional trim).
-            timeout: Hard subprocess deadline in seconds.
+            timeout: Hard subprocess deadline in seconds.  Defaults to
+                ``_JFROG_FETCH_TIMEOUT`` (30 s) which is the production value;
+                pass a smaller value only in tests.
 
         Returns:
             The response body as bytes (at most ``max_bytes`` bytes).
@@ -793,7 +848,9 @@ class JfrogFetchSession:
 
         return stdout
 
-    def fetch_archive(self, url: str, *, max_bytes: int, timeout: int) -> Path:
+    def fetch_archive(
+        self, url: str, *, max_bytes: int, timeout: float = _JFROG_FETCH_TIMEOUT
+    ) -> Path:
         """Stream a bounded archive from *url* via ``jf api`` to a temp file.
 
         The written file is at most ``max_bytes`` bytes.  When ``jf api``
@@ -807,7 +864,9 @@ class JfrogFetchSession:
         Args:
             url: Fully-qualified HTTPS URL, must be under the pinned Artifactory base.
             max_bytes: Hard cap on archive content bytes.
-            timeout: Hard subprocess deadline in seconds.
+            timeout: Hard subprocess deadline in seconds.  Defaults to
+                ``_JFROG_FETCH_TIMEOUT`` (30 s) which is the production value;
+                pass a smaller value only in tests.
 
         Returns:
             ``Path`` of the temporary archive file (at most ``max_bytes``

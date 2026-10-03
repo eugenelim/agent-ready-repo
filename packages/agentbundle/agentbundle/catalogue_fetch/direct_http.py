@@ -174,6 +174,10 @@ def _build_direct_opener(
 
     opener.add_handler(proxy_handler)
     opener.add_handler(redirect_handler)
+    # HTTPErrorProcessor routes 3xx responses through the redirect handler and
+    # turns non-2xx responses into urllib.error.HTTPError so that fetch helpers
+    # raise CatalogueFetchError rather than silently returning an error body.
+    opener.add_handler(urllib.request.HTTPErrorProcessor())
     opener.add_handler(https_handler)
     opener.add_handler(urllib.request.UnknownHandler())
 
@@ -197,7 +201,10 @@ def _make_direct_request(
     norm_url, req_origin = _normalized_url(url, bound_origin)
     req = urllib.request.Request(norm_url)
     if authorization and req_origin == bound_origin:
-        req.add_header("Authorization", authorization)
+        # Use add_unredirected_header so urllib does not copy it to redirect
+        # requests (where _DirectHttpRedirectHandler re-adds it for same-origin
+        # redirects), preventing duplication.
+        req.add_unredirected_header("Authorization", authorization)
     return req
 
 
@@ -234,6 +241,13 @@ def fetch_bytes_bounded(
             return b"".join(chunks)
     except CatalogueFetchError:
         raise
+    except urllib.error.HTTPError as exc:
+        # Raised by HTTPErrorProcessor for non-2xx responses (including errors
+        # raised while following a redirect).
+        raise CatalogueFetchError(
+            f"failed to fetch: HTTP {exc.code}",
+            code=None,
+        ) from exc
     except urllib.error.URLError as exc:
         raise CatalogueFetchError(
             f"failed to fetch: {exc.reason}",
@@ -287,6 +301,12 @@ def stream_to_tempfile(
                     tmp_file.write(chunk)
         except CatalogueFetchError:
             raise
+        except urllib.error.HTTPError as exc:
+            # Raised by HTTPErrorProcessor for non-2xx responses.
+            raise CatalogueFetchError(
+                f"failed to fetch archive: HTTP {exc.code}",
+                code=None,
+            ) from exc
         except urllib.error.URLError as exc:
             raise CatalogueFetchError(
                 f"failed to fetch archive: {exc.reason}",

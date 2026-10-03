@@ -188,20 +188,17 @@ class TestProviderStateMatrix:
             assert session.provider == "netrc"
 
     @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX executable bits")
-    def test_bearer_and_jfrog_selects_bearer(
+    def test_jfrog_wins_over_netrc(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Both bearer and JFrog present: bearer wins."""
+        """JFrog is selected over netrc when both are available and no bearer. AC-0006"""
         _write_fake_jf(tmp_path)
+        _write_netrc(tmp_path, "artf.example.test")
         target = f"{_ARTF_URL}cat/channel.json"
-        env = {
-            "AGENTBUNDLE_HTTP_BEARER_TOKEN": "<token>",
-            "PATH": str(tmp_path),
-            "HOME": str(tmp_path),
-        }
+        env = {"PATH": str(tmp_path), "HOME": str(tmp_path)}
         monkeypatch.setattr("socket.create_connection", _no_connect)
         with open_fetch_session(target, env=env) as session:
-            assert session.provider == "bearer"
+            assert session.provider == "jfrog"
 
 
 def _no_connect(*args: object, **kwargs: object) -> None:
@@ -225,22 +222,29 @@ class TestConfiguredButBroken:
     def test_invalid_bearer_env_var_is_terminal(
         self, tmp_path: Path
     ) -> None:
-        """A bearer token with non-visible-ASCII chars is configured-but-broken (invalid_bearer)."""
+        """A bearer token with non-visible-ASCII chars raises CatalogueFetchError wrapping invalid_bearer. AC-0007
+
+        ``open_fetch_session`` wraps ``HttpAccessError`` into ``CatalogueFetchError``.
+        The original code and provider are on ``exc.__cause__``.
+        """
         from credbroker import HttpAccessError
 
-        # A tab character is outside visible ASCII (0x21-0x7E), triggering invalid_bearer.
         env = {"AGENTBUNDLE_HTTP_BEARER_TOKEN": "bad\ttoken", "PATH": "/dev/null", "HOME": str(tmp_path)}
         with (
-            pytest.raises((CatalogueFetchError, HttpAccessError)),
-            open_fetch_session(_CATALOGUE_URL, env=env) as _session,
+            pytest.raises(CatalogueFetchError) as exc_info,
+            open_fetch_session(_CATALOGUE_URL, env=env),
         ):
             pass
+        cause = exc_info.value.__cause__
+        assert isinstance(cause, HttpAccessError), f"Expected HttpAccessError cause, got {type(cause)!r}"
+        assert cause.code == "invalid_bearer", f"Expected invalid_bearer, got {cause.code!r}"
+        assert cause.provider == "bearer", f"Expected provider=bearer, got {cause.provider!r}"
 
     @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX permission bits")
     def test_unsafe_netrc_permissions_are_terminal(
         self, tmp_path: Path
     ) -> None:
-        """A .netrc with world-readable permissions raises before anonymous."""
+        """Unsafe .netrc permissions raise CatalogueFetchError wrapping netrc_unsafe. AC-0007"""
         netrc = tmp_path / ".netrc"
         netrc.write_text(
             "machine catalogue.example.test login <user> password <secret>\n",
@@ -251,16 +255,20 @@ class TestConfiguredButBroken:
         from credbroker import HttpAccessError
 
         with (
-            pytest.raises((CatalogueFetchError, HttpAccessError)),
-            open_fetch_session(_CATALOGUE_URL, env=env) as _session,
+            pytest.raises(CatalogueFetchError) as exc_info,
+            open_fetch_session(_CATALOGUE_URL, env=env),
         ):
             pass
+        cause = exc_info.value.__cause__
+        assert isinstance(cause, HttpAccessError), f"Expected HttpAccessError cause, got {type(cause)!r}"
+        assert cause.code == "netrc_unsafe", f"Expected netrc_unsafe, got {cause.code!r}"
+        assert cause.provider == "netrc", f"Expected provider=netrc, got {cause.provider!r}"
 
     @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX executable bits")
     def test_explicit_jfrog_server_not_found_is_terminal(
         self, tmp_path: Path
     ) -> None:
-        """An explicit JFROG_CLI_SERVER_ID with no matching profile is terminal."""
+        """Explicit JFROG_CLI_SERVER_ID with no match raises CatalogueFetchError wrapping jfrog_profile_mismatch. AC-0007"""
         _write_fake_jf(tmp_path)
         env = {
             "PATH": str(tmp_path),
@@ -271,10 +279,14 @@ class TestConfiguredButBroken:
 
         target = f"{_ARTF_URL}cat/channel.json"
         with (
-            pytest.raises((CatalogueFetchError, HttpAccessError)),
-            open_fetch_session(target, env=env) as _session,
+            pytest.raises(CatalogueFetchError) as exc_info,
+            open_fetch_session(target, env=env),
         ):
             pass
+        cause = exc_info.value.__cause__
+        assert isinstance(cause, HttpAccessError), f"Expected HttpAccessError cause, got {type(cause)!r}"
+        assert cause.code == "jfrog_profile_mismatch", f"Expected jfrog_profile_mismatch, got {cause.code!r}"
+        assert cause.provider == "jfrog", f"Expected provider=jfrog, got {cause.provider!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -347,8 +359,11 @@ class TestNonHttpSourcesNoResolution:
     """
 
     def test_local_path_source_does_not_call_resolve(self, tmp_path: Path) -> None:
-        """A local-path catalogue source never calls resolve_http_access."""
-        # build a minimal local catalogue directory
+        """A local-path catalogue source never calls resolve_http_access. AC-0017"""
+        from agentbundle.catalogue import CatalogueError
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+
+        # A plain filesystem path is not a supported catalogue+https:// scheme.
         cat_dir = tmp_path / "catalogue"
         cat_dir.mkdir()
         (cat_dir / "catalogue.toml").write_text(
@@ -362,17 +377,34 @@ class TestNonHttpSourcesNoResolution:
             call_count[0] += 1
             return object()  # never actually used
 
-        # Patch at the source — catalogue_fetch module imports it
-        with mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=spy):
-            # Trigger local-path resolution; the actual install would fail (no valid
-            # catalogue) but the access resolver must never be called.
-            try:
-                from agentbundle.https_catalogue import fetch_catalogue_archive
-
-                fetch_catalogue_archive(str(cat_dir))
-            except Exception:
-                pass  # expected — not a valid catalogue archive
+        # Patch at the source — catalogue_fetch module imports it.
+        with (
+            mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=spy),
+            pytest.raises(CatalogueError),
+        ):
+            fetch_catalogue_archive(str(cat_dir))
 
         assert call_count[0] == 0, (
             f"resolve_http_access was called {call_count[0]} times for a local-path source"
+        )
+
+    def test_git_https_source_does_not_call_resolve(self, tmp_path: Path) -> None:
+        """A git+https catalogue source never calls resolve_http_access. AC-0017"""
+        from agentbundle.catalogue import CatalogueError
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+
+        call_count: list[int] = [0]
+
+        def spy(*args: object, **kwargs: object) -> object:
+            call_count[0] += 1
+            return object()  # never actually used
+
+        with (
+            mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=spy),
+            pytest.raises(CatalogueError),
+        ):
+            fetch_catalogue_archive("git+https://github.com/test/test@main")
+
+        assert call_count[0] == 0, (
+            f"resolve_http_access was called {call_count[0]} times for a git+https source"
         )

@@ -1110,3 +1110,322 @@ def test_production_constant_values() -> None:
     assert _PROD_DISCOVERY_STDOUT_CAP == 1 << 20   # 1 MiB
     assert _PROD_DISCOVERY_STDERR_CAP == 64 << 10  # 64 KiB
     assert _PROD_PROBE_CAP == 8 << 10              # 8 KiB
+
+
+# ---------------------------------------------------------------------------
+# Defect R — per-cap boundary matrix: at-cap and cap+1 for each stream
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_discovery_stderr_at_cap_does_not_raise(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exactly at the discovery stderr cap is accepted (not over). AC-0014"""
+    import sys as _sys
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_DISCOVERY_STDERR_CAP", cap)
+    real_python = _sys.executable
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    jf = tmp_path / "jf"
+    # Write exactly cap bytes to stderr, then valid empty JSON to stdout.
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"'{real_python}' -c \"import sys; sys.stderr.buffer.write(b'e' * {cap}); sys.stderr.flush()\"\n"
+        "echo '[]\n'",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+    # Must not raise — exactly at cap is allowed.
+    result = resolve_http_access(
+        "https://p.example.test/art/cat.toml",
+        env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+    )
+    assert isinstance(result, AnonymousHttpAccess)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_probe_stdout_at_cap_does_not_raise(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exactly at the probe stdout cap is accepted (not over). AC-0014"""
+    import sys as _sys
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_PROBE_CAP", cap)
+    real_python = _sys.executable
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    profiles = [_simple_profile("s", "https://p.example.test/", "https://p.example.test/artifactory/")]
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f'if [ "$1" = "config" ] && [ "$2" = "show" ] && [ "$3" = "--format=json" ]; then\n'
+        f"  printf '%s' {shlex.quote(json.dumps(profiles))}\n"
+        'elif [ "$1" = "--version" ]; then\n'
+        # Exactly cap bytes of stdout — must be accepted.
+        f"  '{real_python}' -c \"import sys; sys.stdout.buffer.write(b'x' * {cap})\"\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+    # Must not raise — cap bytes exactly is within limit (the version check may
+    # fail to parse but that is a different error path; just verify no cap error).
+    with pytest.raises(HttpAccessError) as exc_info:
+        resolve_http_access(
+            "https://p.example.test/artifactory/cat.toml",
+            env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+        )
+    # Should be a parse/probe-failed error, NOT a too-large error.
+    assert exc_info.value.code != "jfrog_probe_too_large", (
+        "At-cap probe stdout must not trigger too-large error"
+    )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_probe_stderr_at_cap_does_not_raise(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exactly at the probe stderr cap is accepted (not over). AC-0014"""
+    import sys as _sys
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_PROBE_CAP", cap)
+    real_python = _sys.executable
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    profiles = [_simple_profile("s", "https://p.example.test/", "https://p.example.test/artifactory/")]
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f'if [ "$1" = "config" ] && [ "$2" = "show" ] && [ "$3" = "--format=json" ]; then\n'
+        f"  printf '%s' {shlex.quote(json.dumps(profiles))}\n"
+        'elif [ "$1" = "--version" ]; then\n'
+        # Emit exactly cap bytes to stderr, then exit; version output may be empty.
+        f"  '{real_python}' -c \"import sys; sys.stderr.buffer.write(b'e' * {cap}); sys.stderr.flush()\"\n"
+        "  echo 'jf version 2.105.0'\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+    # At-cap stderr must not trigger too-large; any other error is acceptable.
+    try:
+        resolve_http_access(
+            "https://p.example.test/artifactory/cat.toml",
+            env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+        )
+    except HttpAccessError as exc:
+        assert exc.code != "jfrog_probe_too_large", (
+            "At-cap probe stderr must not trigger too-large error"
+        )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_probe_stderr_cap_plus_one_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One byte over the probe stderr cap raises jfrog_probe_too_large. AC-0014"""
+    import sys as _sys
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_PROBE_CAP", cap)
+    real_python = _sys.executable
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    profiles = [_simple_profile("s", "https://p.example.test/", "https://p.example.test/artifactory/")]
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f'if [ "$1" = "config" ] && [ "$2" = "show" ] && [ "$3" = "--format=json" ]; then\n'
+        f"  printf '%s' {shlex.quote(json.dumps(profiles))}\n"
+        'elif [ "$1" = "--version" ]; then\n'
+        # Emit cap+1 bytes to stderr.
+        f"  '{real_python}' -c \"import sys; sys.stderr.buffer.write(b'e' * {cap + 1}); sys.stderr.flush()\"\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+    with pytest.raises(HttpAccessError) as exc_info:
+        resolve_http_access(
+            "https://p.example.test/artifactory/cat.toml",
+            env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+        )
+    assert exc_info.value.code == "jfrog_probe_too_large"
+
+
+# ---------------------------------------------------------------------------
+# Defect A — stderr overflow after stdout EOF (discovery and probe)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_discovery_stderr_overflow_after_stdout_eof(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Discovery stderr overflow AFTER stdout EOF raises jfrog_discovery_too_large. AC-0014"""
+    import sys as _sys
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_DISCOVERY_STDERR_CAP", cap)
+    real_python = _sys.executable
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    jf = tmp_path / "jf"
+    # Write stdout first (valid JSON), then overflow stderr after stdout closes.
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        # First subprocess: write stdout and close it.
+        f"'{real_python}' -c \"import sys; sys.stdout.write('[]'); sys.stdout.flush()\"\n"
+        # Second subprocess: overflow stderr after stdout is gone.
+        f"'{real_python}' -c \"import sys; sys.stderr.buffer.write(b'e' * {cap + 1}); sys.stderr.flush()\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    start = time.monotonic()
+    with pytest.raises(HttpAccessError) as exc_info:
+        resolve_http_access(
+            "https://p.example.test/art/cat.toml",
+            env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+        )
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_discovery_too_large", exc_info.value
+    # Must abort promptly — well under the generous 120s test timeout.
+    assert elapsed < 15.0, f"abort took {elapsed:.2f}s, expected < 15s"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_probe_stderr_overflow_after_stdout_eof(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Probe stderr overflow AFTER stdout EOF raises jfrog_probe_too_large. AC-0014"""
+    import sys as _sys
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_PROBE_CAP", cap)
+    real_python = _sys.executable
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    profiles = [_simple_profile("s", "https://p.example.test/", "https://p.example.test/artifactory/")]
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        f'if [ "$1" = "config" ] && [ "$2" = "show" ] && [ "$3" = "--format=json" ]; then\n'
+        f"  printf '%s' {shlex.quote(json.dumps(profiles))}\n"
+        'elif [ "$1" = "--version" ]; then\n'
+        # Write stdout (valid version line) via first subprocess, then overflow stderr.
+        f"  '{real_python}' -c \"import sys; sys.stdout.write('jf version 2.105.0'); sys.stdout.flush()\"\n"
+        f"  '{real_python}' -c \"import sys; sys.stderr.buffer.write(b'e' * {cap + 1}); sys.stderr.flush()\"\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    start = time.monotonic()
+    with pytest.raises(HttpAccessError) as exc_info:
+        resolve_http_access(
+            "https://p.example.test/artifactory/cat.toml",
+            env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+        )
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_probe_too_large", exc_info.value
+    assert elapsed < 15.0, f"abort took {elapsed:.2f}s, expected < 15s"
+
+
+# ---------------------------------------------------------------------------
+# Defect L — controlled CWD: directory identity and cleanup after success/timeout
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_discovery_cwd_is_controlled_temp_dir(tmp_path: Path) -> None:
+    """Discovery child runs in a controlled temp dir, not the caller's cwd. AC-0013"""
+    import os as _os
+    cwd_file = tmp_path / "child_cwd.txt"
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        f"pwd > {shlex.quote(str(cwd_file))}\n"
+        "echo '[]'\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    caller_cwd = str(Path.cwd().resolve())
+
+    result = resolve_http_access(
+        "https://p.example.test/art/cat.toml",
+        env={"PATH": str(tmp_path)},
+    )
+    assert isinstance(result, AnonymousHttpAccess)
+
+    child_cwd = cwd_file.read_text(encoding="utf-8").strip()
+    assert child_cwd != caller_cwd, (
+        f"Child ran in caller's cwd {caller_cwd!r}; must use controlled temp dir"
+    )
+    assert "_jfrog_run_" in child_cwd, (
+        f"Expected _jfrog_run_* temp dir, got {child_cwd!r}"
+    )
+    # Must be cleaned up after success.
+    assert not Path(child_cwd).exists(), (
+        f"Controlled cwd temp dir not removed after success: {child_cwd!r}"
+    )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX signals")
+def test_discovery_timeout_removes_controlled_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """After a discovery timeout, the controlled cwd temp dir is removed. AC-0013"""
+    import os as _os
+    import tempfile as _tf
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        "trap '' TERM\n"
+        "sleep 30\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+    monkeypatch.setattr("credbroker._http_access._JFROG_DISCOVERY_TIMEOUT", 1.0)
+
+    sys_tmp = Path(_tf.gettempdir())
+    before = set(sys_tmp.glob("_jfrog_run_*"))
+
+    with pytest.raises(HttpAccessError) as exc_info:
+        resolve_http_access(
+            "https://p.example.test/art/cat.toml",
+            env={"PATH": str(tmp_path)},
+        )
+    assert exc_info.value.code == "jfrog_discovery_timeout"
+
+    # Wait briefly for cleanup.
+    time.sleep(0.3)
+
+    after = set(sys_tmp.glob("_jfrog_run_*"))
+    leaked = after - before
+    assert not leaked, f"Controlled cwd dirs not removed after timeout: {leaked}"
+
+
+# ---------------------------------------------------------------------------
+# Aggregate budget: discovery + probe + two fetches must not exceed 75s
+# ---------------------------------------------------------------------------
+
+
+def test_aggregate_credbroker_budget_within_75s() -> None:
+    """discovery + probe + two fetch timeouts must not exceed 75 s. AC-0013"""
+    from agentbundle.catalogue_fetch import jfrog_cli as _jf_mod
+
+    two_fetches = _jf_mod._MAX_FETCHES * _jf_mod._JFROG_FETCH_TIMEOUT
+    budget = _PROD_DISCOVERY_TIMEOUT + _PROD_PROBE_TIMEOUT + two_fetches
+    assert budget <= 75.0, (
+        f"discovery({_PROD_DISCOVERY_TIMEOUT}) + probe({_PROD_PROBE_TIMEOUT}) "
+        f"+ 2×fetch({_jf_mod._JFROG_FETCH_TIMEOUT}) = {budget}s exceeds 75s ceiling"
+    )

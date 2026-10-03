@@ -9,12 +9,11 @@ Assertions:
 - No ``import netrc`` / ``from netrc`` import.
 - No ``.netrc`` path literal in source.
 - No ``config show`` / ``.jfrog`` / ``jfrog-cli.conf`` credential-store reads.
-- No ``subprocess`` use except in ``catalogue_fetch/jfrog_cli.py``
-  (which does not exist in this release).
+- No ``subprocess`` use except in ``catalogue_fetch/jfrog_cli.py``.
 - Every ``credbroker`` import is ``from credbroker import <public name>``
   where the public name is in ``credbroker.__all__``.
 - No bare ``import credbroker`` and no private ``credbroker._*`` imports.
-- No ``os.environ`` read of credential-bearing keys.
+- No ``os.environ`` subscript or ``.get()`` of credential-bearing keys.
 - AgentBundle's package metadata declares ``credbroker>=0.7,<0.8``.
 """
 
@@ -36,12 +35,16 @@ _PKG_DIR: Path = Path(agentbundle.__file__).resolve().parent
 _PYPROJECT: Path = _PKG_DIR.parent / "pyproject.toml"
 
 # Covered modules: catalogue_fetch/*.py and https_catalogue.py.
-# subprocess is allowed only in catalogue_fetch/jfrog_cli.py (T4, not yet present).
+# subprocess is allowed only in catalogue_fetch/jfrog_cli.py.
 _SUBPROCESS_ALLOWED: frozenset[str] = frozenset({"jfrog_cli.py"})
 
 
 def _covered_sources() -> list[tuple[str, str]]:
-    """Return [(label, source_text), ...] for the covered modules."""
+    """Return [(label, source_text), ...] for the catalogue-fetch boundary modules.
+
+    Covers ``catalogue_fetch/*.py`` and ``https_catalogue.py`` — the modules
+    that touch credential data during catalogue acquisition.
+    """
     sources = []
     cf_dir = _PKG_DIR / "catalogue_fetch"
     if cf_dir.is_dir():
@@ -50,6 +53,19 @@ def _covered_sources() -> list[tuple[str, str]]:
     hc = _PKG_DIR / "https_catalogue.py"
     if hc.is_file():
         sources.append(("https_catalogue.py", hc.read_text(encoding="utf-8")))
+    return sources
+
+
+def _whole_package_sources() -> list[tuple[str, str]]:
+    """Return [(label, source_text), ...] for ALL Python files in the package tree.
+
+    Used for checks that must hold across the whole packaged agentbundle tree,
+    not just the catalogue-fetch boundary.
+    """
+    sources = []
+    for py in sorted(_PKG_DIR.rglob("*.py")):
+        label = str(py.relative_to(_PKG_DIR))
+        sources.append((label, py.read_text(encoding="utf-8")))
     return sources
 
 
@@ -233,20 +249,57 @@ def test_credbroker_imports_use_only_public_names() -> None:
 _CREDENTIAL_ENV_KEYS: frozenset[str] = frozenset({"AGENTBUNDLE_HTTP_BEARER_TOKEN"})
 
 
-def test_no_os_environ_credential_key_access() -> None:
-    """No covered module reads credential-bearing keys directly from os.environ."""
+def _check_environ_access(label: str, tree: ast.AST) -> list[str]:
+    """Return violation messages for os.environ subscript/get of credential keys."""
     violations: list[str] = []
-    for label, source in _covered_sources():
-        tree = ast.parse(source)
-        for val in _ast_string_constants(tree):
-            # Any string constant matching a credential key that appears in a
-            # call to os.environ.get or os.environ[] would have been caught by
-            # the literal-content check above; we also guard via regex on the
-            # raw source to be belt-and-suspenders.
-            if val in _CREDENTIAL_ENV_KEYS:
-                violations.append(
-                    f"{label}: string literal equals credential env key {val!r}"
-                )
+    for node in ast.walk(tree):
+        # Pattern: os.environ[<key>]
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.value, ast.Attribute)
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "os"
+            and node.value.attr == "environ"
+            and isinstance(node.slice, ast.Constant)
+            and node.slice.value in _CREDENTIAL_ENV_KEYS
+        ):
+            violations.append(
+                f"{label}: os.environ[{node.slice.value!r}] reads credential key directly"
+            )
+        # Pattern: os.environ.get(<key>, ...)
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "get"
+            and isinstance(node.func.value, ast.Attribute)
+            and isinstance(node.func.value.value, ast.Name)
+            and node.func.value.value.id == "os"
+            and node.func.value.attr == "environ"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value in _CREDENTIAL_ENV_KEYS
+        ):
+            violations.append(
+                f"{label}: os.environ.get({node.args[0].value!r}) reads credential key directly"
+            )
+    return violations
+
+
+def test_no_os_environ_credential_key_access() -> None:
+    """No module in the whole package reads credential-bearing keys via os.environ.
+
+    Checks the full packaged tree (not just the catalogue-fetch boundary) using
+    AST analysis of real ``os.environ[key]`` and ``os.environ.get(key)`` patterns.
+    String-literal proximity is insufficient — this check verifies the actual
+    subscript/attribute-call patterns that would exfiltrate credentials.
+    """
+    violations: list[str] = []
+    for label, source in _whole_package_sources():
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            continue
+        violations.extend(_check_environ_access(label, tree))
     assert not violations, "\n".join(violations)
 
 

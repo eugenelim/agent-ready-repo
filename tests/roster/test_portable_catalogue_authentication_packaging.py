@@ -877,11 +877,20 @@ class TestVersionPrecedence:
         # Filter __version__ (dunder); we check public names.
         v06_public_names = [n for n in v06_all_names if not n.startswith("__")]
 
+        floor_init_path = str(floor_v0_6_dir / "credbroker" / "__init__.py")
+        floor_pkg_dir = str(floor_v0_6_dir / "credbroker")
         script = (
-            "import sys, json\n"
-            f"sys.path.append({floor_path!r})\n"
+            "import sys, json, importlib.util, inspect\n"
+            # 0.7 is in site-packages (already on sys.path via venv).
             "import credbroker\n"
-            "import inspect\n"
+            # Load 0.6 without shadowing 0.7 in sys.modules.
+            # submodule_search_locations lets relative imports (from ._core)
+            # resolve under the floor package directory.
+            # Register in sys.modules BEFORE exec_module so relative imports work.
+            f"_spec06 = importlib.util.spec_from_file_location('_credbroker_v06', {floor_init_path!r}, submodule_search_locations=[{floor_pkg_dir!r}])\n"
+            "_mod06 = importlib.util.module_from_spec(_spec06)\n"
+            "sys.modules['_credbroker_v06'] = _mod06\n"
+            "_spec06.loader.exec_module(_mod06)\n"
             "results = {\n"
             "    'version': credbroker.__version__,\n"
             "    'file': credbroker.__file__,\n"
@@ -889,18 +898,35 @@ class TestVersionPrecedence:
             "public_names = " + repr(v06_public_names) + "\n"
             "missing = [n for n in public_names if not hasattr(credbroker, n)]\n"
             "results['missing_names'] = missing\n"
-            # Check signature compatibility for plain functions (not classes —
-            # C-extension exception subclasses have no introspectable signature
-            # on Python 3.11 and that constraint predates 0.7).
+            # Compare 0.6 and 0.7 signatures element-by-element for callables.
+            # C-extension exception subclasses may have no introspectable signature
+            # on Python 3.11; skip those (the 'not isfunction' guard covers them).
             "sig_issues = []\n"
             "for name in public_names:\n"
-            "    obj = getattr(credbroker, name, None)\n"
-            "    if not inspect.isfunction(obj):\n"
+            "    obj07 = getattr(credbroker, name, None)\n"
+            "    obj06 = getattr(_mod06, name, None)\n"
+            "    if not (inspect.isfunction(obj07) and inspect.isfunction(obj06)):\n"
             "        continue\n"
             "    try:\n"
-            "        inspect.signature(obj)\n"
+            "        sig07 = inspect.signature(obj07)\n"
+            "        sig06 = inspect.signature(obj06)\n"
             "    except (ValueError, TypeError) as e:\n"
-            "        sig_issues.append(f'{name}: {e}')\n"
+            "        sig_issues.append(f'{name}: cannot inspect: {e}')\n"
+            "        continue\n"
+            "    params07 = list(sig07.parameters.items())\n"
+            "    params06 = list(sig06.parameters.items())\n"
+            # Element-by-element name+kind comparison.
+            "    for i, ((n07, p07), (n06, p06)) in enumerate(zip(params07, params06)):\n"
+            "        if n07 != n06 or p07.kind != p06.kind:\n"
+            "            sig_issues.append(\n"
+            "                f'{name}: param[{i}] 0.6={n06!r}/{p06.kind.name}'\n"
+            "                f' vs 0.7={n07!r}/{p07.kind.name}'\n"
+            "            )\n"
+            # 0.7 must have at least as many params as 0.6 (no removal of required params).
+            "    if len(params07) < len(params06):\n"
+            "        sig_issues.append(\n"
+            "            f'{name}: 0.7 has {len(params07)} params, 0.6 had {len(params06)}'\n"
+            "        )\n"
             "results['sig_issues'] = sig_issues\n"
             "print(json.dumps(results))\n"
         )

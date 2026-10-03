@@ -116,9 +116,16 @@ def _parse_descriptor(data: bytes) -> dict:
 def _resolve_artifact_url(descriptor_url: str, artifact_field: str) -> str:
     """Resolve artifact URL against descriptor URL; enforce same-origin + HTTPS.
 
-    Same-origin is defined as scheme + host + port all equal to the
+    Same-origin is defined as the normalized HTTPS origin of the
     ORIGINALLY-REQUESTED channel descriptor URL (not the post-redirect URL).
+    The comparison uses the same normalized-origin profile that the fetch
+    session uses (``direct_http._normalize_origin``), so IDN spellings and
+    explicit ``:443`` ports compare as equal to their canonical forms.
     """
+    # Lazy import: direct_http imports credbroker; keeping it lazy means
+    # importing https_catalogue alone does not trigger credbroker loading.
+    from agentbundle.catalogue_fetch.direct_http import _normalize_origin
+
     resolved = urljoin(descriptor_url, artifact_field)
     parsed = urlsplit(resolved)
 
@@ -131,13 +138,16 @@ def _resolve_artifact_url(descriptor_url: str, artifact_field: str) -> str:
     if "@" in parsed.netloc:
         raise CatalogueError("artifact URL contains user-info in netloc; rejected")
 
-    # Same-origin check against originally-requested descriptor URL
-    orig = urlsplit(descriptor_url)
+    # Same-origin check using normalized origins (IDNA-aware, port-canonical).
+    try:
+        artifact_origin = _normalize_origin(resolved)
+        descriptor_origin = _normalize_origin(descriptor_url)
+    except Exception:
+        raise CatalogueError(
+            "artifact or descriptor URL has an unnormalizable origin; rejected"
+        ) from None
 
-    def _origin(p) -> tuple:
-        return (p.scheme.lower(), (p.hostname or "").lower(), p.port)
-
-    if _origin(parsed) != _origin(orig):
+    if artifact_origin != descriptor_origin:
         raise CatalogueError(
             "cross-origin artifact URL rejected: artifact origin does not match "
             "channel descriptor origin (scheme+host+port must all match)"
@@ -470,7 +480,7 @@ def fetch_catalogue_archive_with_provenance(
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
             _raw_rev = descriptor.get("source_revision")
-            return CatalogueArchiveResult(
+            result = CatalogueArchiveResult(
                 path=dest,
                 artifact_uri=artifact_url,
                 archive_sha256=descriptor["sha256"],
@@ -479,12 +489,15 @@ def fetch_catalogue_archive_with_provenance(
         except Exception:
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
+            raise
+        finally:
+            # Remove the archive temp file on every exit, including success.
             if archive_path is not None:
                 with contextlib.suppress(OSError):
                     archive_path.unlink(missing_ok=True)
-            raise
+        return result
 
-    elif source_uri.startswith("archive+https://"):
+    if source_uri.startswith("archive+https://"):
         archive_url_with_fragment = source_uri[len("archive+"):]
         parsed = urlsplit(archive_url_with_fragment)
         fragment = parsed.fragment
@@ -513,7 +526,7 @@ def fetch_catalogue_archive_with_provenance(
                 _verify_archive_sha256(archive_path, expected_sha256, archive_url)
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
-            return CatalogueArchiveResult(
+            result = CatalogueArchiveResult(
                 path=dest,
                 artifact_uri=archive_url,
                 archive_sha256=expected_sha256,
@@ -522,15 +535,17 @@ def fetch_catalogue_archive_with_provenance(
         except Exception:
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
+            raise
+        finally:
+            # Remove the archive temp file on every exit, including success.
             if archive_path is not None:
                 with contextlib.suppress(OSError):
                     archive_path.unlink(missing_ok=True)
-            raise
+        return result
 
-    else:
-        raise CatalogueError(
-            f"https_catalogue: unsupported scheme in {source_uri!r}"
-        )
+    raise CatalogueError(
+        f"https_catalogue: unsupported scheme in {source_uri!r}"
+    )
 
 
 def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path:

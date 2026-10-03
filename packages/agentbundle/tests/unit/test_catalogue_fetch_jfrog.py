@@ -82,7 +82,10 @@ def _make_jf(
     # Build the body for the api case.
     api_lines = []
     if capture_args_to is not None:
-        api_lines.append(f"echo \"$*\" > {shlex.quote(str(capture_args_to))}")
+        # Record each argument on its own line for element-by-element assertion.
+        api_lines.append(
+            f"{{ for arg in \"$@\"; do printf '%s\\n' \"$arg\"; done; }} > {shlex.quote(str(capture_args_to))}"
+        )
     if stderr_bytes > 0:
         py_exe_s = shlex.quote(sys.executable)
         api_lines.append(
@@ -256,12 +259,13 @@ def test_exact_argv_for_descriptor_fetch(tmp_path: Path) -> None:
         f"{_ARTF}/cat.toml", max_bytes=1024, timeout=120
     )
 
-    args_text = args_file.read_text(encoding="utf-8").strip()
-    # The captured line is: api --server-id=my-srv -- /art/cat.toml
-    assert "api" in args_text
-    assert "--server-id=my-srv" in args_text
-    assert " -- " in args_text
-    assert "art/cat.toml" in args_text
+    args_lines = args_file.read_text(encoding="utf-8").splitlines()
+    # Element-by-element: api, --server-id=<id>, --, <endpoint>
+    assert args_lines[0] == "api", f"argv[0]={args_lines[0]!r}"
+    assert args_lines[1] == "--server-id=my-srv", f"argv[1]={args_lines[1]!r}"
+    assert args_lines[2] == "--", f"argv[2]={args_lines[2]!r}"
+    assert args_lines[3].endswith("art/cat.toml"), f"argv[3]={args_lines[3]!r}"
+    assert len(args_lines) == 4, f"unexpected extra argv elements: {args_lines!r}"
     assert result == response
 
 
@@ -280,10 +284,12 @@ def test_exact_argv_for_archive_fetch(tmp_path: Path) -> None:
     )
     archive_path.unlink(missing_ok=True)
 
-    args_text = args_file.read_text(encoding="utf-8").strip()
-    assert "--server-id=arch-srv" in args_text
-    assert " -- " in args_text
-    assert "art/pack.tar.gz" in args_text
+    args_lines = args_file.read_text(encoding="utf-8").splitlines()
+    assert args_lines[0] == "api", f"argv[0]={args_lines[0]!r}"
+    assert args_lines[1] == "--server-id=arch-srv", f"argv[1]={args_lines[1]!r}"
+    assert args_lines[2] == "--", f"argv[2]={args_lines[2]!r}"
+    assert args_lines[3].endswith("art/pack.tar.gz"), f"argv[3]={args_lines[3]!r}"
+    assert len(args_lines) == 4, f"unexpected extra argv elements: {args_lines!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -337,6 +343,47 @@ def test_exact_argv_for_archive_fetch(tmp_path: Path) -> None:
         (
             "https://platform.example.test/art//cat.toml",
             "empty interior segment",
+        ),
+        # Defect B — additional fixtures required by the adjudication
+        (
+            "https://user@platform.example.test/art/cat.toml",
+            "user-info in authority",
+        ),
+        (
+            "https://platform.example.test/art/cat.toml\\evil",
+            "literal backslash in path",
+        ),
+        (
+            "https://platform.example.test/art/cat\ttoml",
+            "literal tab in URL",
+        ),
+        (
+            "https://platform.example.test/art/cat\rtoml",
+            "literal CR in URL",
+        ),
+        (
+            "https://platform.example.test/art/cat\ntoml",
+            "literal LF in URL",
+        ),
+        (
+            "https://platform.example.test/art/cat\x0btoml",
+            "vertical-tab control character",
+        ),
+        (
+            "https://platform.example.test/art/..;/cat.toml",
+            "semicolon path parameter (..;/)",
+        ),
+        (
+            "https://platform.example.test/art/.;/cat.toml",
+            "semicolon path parameter (.;/)",
+        ),
+        (
+            "https://platform.example.test/art/..%3b/cat.toml",
+            "encoded semicolon %3b in path",
+        ),
+        (
+            "https://platform.example.test/art/.. /cat.toml",
+            "trailing space in path segment",
         ),
     ],
 )
@@ -896,3 +943,307 @@ def test_open_fetch_session_creates_jfrog_session() -> None:
     ):
         assert session.provider == "jfrog"
         assert session.target_origin == "https://platform.example.test"
+
+
+# ---------------------------------------------------------------------------
+# Defect B — confinement rejects before spawning any process  (AC-0012)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_endpoint_confinement_no_subprocess_spawned(tmp_path: Path) -> None:
+    """A confined-out URL must not start jf api at all. AC-0012"""
+    # Place a real jf on PATH so the session is satisfied; then confirm no spawn.
+    _make_jf(tmp_path, response=b"{}")
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+
+    spawn_count: list[int] = [0]
+    import subprocess
+    original_popen = subprocess.Popen
+
+    def counting_popen(*args: object, **kwargs: object) -> object:
+        spawn_count[0] += 1
+        return original_popen(*args, **kwargs)
+
+    cross_origin_url = "https://evil.example.test/art/cat.toml"
+
+    with (
+        mock.patch("subprocess.Popen", counting_popen),
+        pytest.raises(CatalogueFetchError) as exc_info,
+    ):
+        session.fetch_bytes(cross_origin_url, max_bytes=1024, timeout=120)
+
+    assert exc_info.value.code == "endpoint_not_permitted"
+    assert spawn_count[0] == 0, "subprocess.Popen must not be called for a confined-out URL"
+
+
+# ---------------------------------------------------------------------------
+# Defect D — aggregate budget constants  (AC-0013)
+# ---------------------------------------------------------------------------
+
+
+def test_aggregate_subprocess_budget_is_75s() -> None:
+    """Discovery, probe, and two fetches stay within 75 s. AC-0013"""
+    # Assert on the live constants each package uses, not on wall-clock time:
+    # every call's grace and kill sit inside its own deadline.
+    from credbroker import _http_access as resolver
+
+    budget = (
+        resolver._JFROG_DISCOVERY_TIMEOUT
+        + resolver._JFROG_PROBE_TIMEOUT
+        + _PROD_MAX_FETCHES * _PROD_FETCH_TIMEOUT
+    )
+    assert (resolver._JFROG_DISCOVERY_TIMEOUT, resolver._JFROG_PROBE_TIMEOUT) == (10.0, 5.0)
+    assert budget == 75.0
+
+
+@pytest.mark.parametrize("kind", ["fetch_bytes", "fetch_archive"])
+def test_session_caps_a_delegated_deadline_at_the_per_call_bound(
+    monkeypatch: pytest.MonkeyPatch, kind: str
+) -> None:
+    """A caller's longer timeout never stretches a jf api call past 30 s. AC-0013"""
+    from agentbundle import catalogue_fetch
+    from credbroker import JfrogCliHttpAccess
+
+    seen: list[float] = []
+
+    def record(self: object, url: str, *, max_bytes: int, timeout: float) -> bytes:
+        seen.append(timeout)
+        return b""
+
+    monkeypatch.setattr(_jf_mod.JfrogFetchSession, kind, record)
+    access = JfrogCliHttpAccess(
+        server_id="example",
+        platform_url="https://platform.example.test/",
+        artifactory_url="https://platform.example.test/art/",
+    )
+    session = catalogue_fetch.FetchSession(
+        access, None, jfrog_session=_jf_mod.JfrogFetchSession(access, {"PATH": "/nonexistent"})
+    )
+    getattr(session, kind)("https://platform.example.test/art/c.json", max_bytes=10, timeout=999)
+    getattr(session, kind)("https://platform.example.test/art/c.json", max_bytes=10, timeout=3)
+
+    assert seen == [_PROD_FETCH_TIMEOUT, 3]
+
+
+# ---------------------------------------------------------------------------
+# Defect F — no temp file leaks after success  (AC-0013)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_archive_no_temp_file_leak_on_success(tmp_path: Path) -> None:
+    """Successful archive fetch leaves exactly the returned archive and no stray temp files. AC-0013
+
+    The returned ``archive_path`` is the intended output (caller-owned).
+    This test verifies that no EXTRA ``agentbundle-jfrog-*.tmp`` files leak and
+    that the controlled-cwd directory is removed after success.
+    """
+    content = b"archive_data_bytes"
+    _make_jf(tmp_path, response=content)
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+
+    sys_tmp = Path(tempfile.gettempdir())
+    before_jfrog = set(sys_tmp.glob("agentbundle-jfrog-*.tmp"))
+    before_cwd = set(sys_tmp.glob("agentbundle-jf-cwd-*"))
+
+    archive_path = session.fetch_archive(
+        f"{_ARTF}/pack.tar.gz", max_bytes=1024, timeout=120
+    )
+    # The returned archive_path is caller-owned.
+    try:
+        after_jfrog = set(sys_tmp.glob("agentbundle-jfrog-*.tmp"))
+        after_cwd = set(sys_tmp.glob("agentbundle-jf-cwd-*"))
+        new_jfrog = after_jfrog - before_jfrog
+        leaked_cwd = after_cwd - before_cwd
+        # Exactly one new jfrog temp file must exist: the returned archive.
+        assert new_jfrog == {archive_path}, (
+            f"Expected only the returned archive {archive_path}, got {new_jfrog}"
+        )
+        # CWD dir must be removed.
+        assert not leaked_cwd, f"Temp cwd dirs not cleaned up: {leaked_cwd}"
+    finally:
+        archive_path.unlink(missing_ok=True)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_descriptor_no_cwd_temp_dir_leak_on_success(tmp_path: Path) -> None:
+    """Successful descriptor fetch leaves no agentbundle-jf-cwd-* dirs behind. AC-0013"""
+    _make_jf(tmp_path, response=b'{"ok": true}')
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+
+    sys_tmp = Path(tempfile.gettempdir())
+    before_cwd = set(sys_tmp.glob("agentbundle-jf-cwd-*"))
+
+    session.fetch_bytes(f"{_ARTF}/cat.toml", max_bytes=1024, timeout=120)
+
+    after_cwd = set(sys_tmp.glob("agentbundle-jf-cwd-*"))
+    leaked_cwd = after_cwd - before_cwd
+    assert not leaked_cwd, f"Temp cwd dirs not cleaned up: {leaked_cwd}"
+
+
+# ---------------------------------------------------------------------------
+# Defect L — controlled working directory  (AC-0012)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_child_runs_in_controlled_cwd_not_caller_cwd(tmp_path: Path) -> None:
+    """The jf child process runs in a controlled temp dir, not the caller's cwd. AC-0012"""
+    cwd_capture = tmp_path / "child_cwd.txt"
+    py_exe = shlex.quote(sys.executable)
+    real_path = os.environ.get("PATH", "/usr/bin:/bin")
+
+    jf = tmp_path / "jf"
+    # Write cwd via `pwd` (simpler than Python open() — no quoting traps).
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        'if [ "$1" = "api" ]; then\n'
+        f"  pwd > {shlex.quote(str(cwd_capture))}\n"
+        f"  {py_exe} -c 'import sys; sys.stdout.buffer.write(b\"{{}}\")'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 2\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    caller_cwd = str(Path.cwd().resolve())
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+    session.fetch_bytes(f"{_ARTF}/cat.toml", max_bytes=1024, timeout=120)
+
+    child_cwd = cwd_capture.read_text(encoding="utf-8").strip()
+    assert child_cwd != caller_cwd, (
+        f"Child ran in caller's cwd {caller_cwd!r}; must use a controlled temp dir"
+    )
+    assert "agentbundle-jf-cwd-" in child_cwd, (
+        f"Expected agentbundle-jf-cwd-* temp dir, got {child_cwd!r}"
+    )
+    # The controlled cwd dir must be removed after success.
+    assert not Path(child_cwd).exists(), (
+        f"Controlled cwd temp dir not removed after success: {child_cwd!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Defect R — stderr cap boundary matrix  (AC-0014)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_descriptor_stderr_at_cap_does_not_raise(tmp_path: Path) -> None:
+    """Exactly at the stderr cap is NOT rejected. AC-0014"""
+    cap = _PROD_FETCH_STDERR_CAP
+    _make_jf(tmp_path, response=b'{"ok":true}', stderr_bytes=cap)
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+    # Should succeed: cap bytes is on the boundary (not over).
+    result = session.fetch_bytes(f"{_ARTF}/cat.toml", max_bytes=1024 * 1024, timeout=120)
+    assert result == b'{"ok":true}'
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_descriptor_stderr_cap_plus_one_raises(tmp_path: Path) -> None:
+    """One byte over the stderr cap raises jfrog_fetch_stderr_too_large. AC-0014"""
+    cap = _PROD_FETCH_STDERR_CAP
+    _make_jf(tmp_path, response=b'{"ok":true}', stderr_bytes=cap + 1)
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        session.fetch_bytes(f"{_ARTF}/cat.toml", max_bytes=1024 * 1024, timeout=120)
+    assert exc_info.value.code == "jfrog_fetch_stderr_too_large"
+
+
+# ---------------------------------------------------------------------------
+# Defect A — stderr overflow after stdout EOF  (AC-0014)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_descriptor_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
+    """Stderr overflow AFTER stdout EOF raises jfrog_fetch_stderr_too_large. AC-0014
+
+    The child closes stdout before flushing stderr past the cap.  This exercises
+    the normal-completion path where the stderr re-check catches the overflow.
+    """
+    cap = _PROD_FETCH_STDERR_CAP
+    py_exe = shlex.quote(sys.executable)
+    real_path = os.environ.get("PATH", "/usr/bin:/bin")
+
+    jf = tmp_path / "jf"
+    # Write a tiny payload then explicitly close stdout (via the python process
+    # exiting), then sleep briefly so stderr has time to overflow.
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        'if [ "$1" = "api" ]; then\n'
+        # First subprocess: write stdout payload and exit (closes stdout).
+        f"  {py_exe} -c \"import sys; sys.stdout.buffer.write(b'ok'); sys.stdout.buffer.flush()\"\n"
+        # Second subprocess: emit over-cap stderr after stdout is gone.
+        f"  {py_exe} -c \"import sys; sys.stderr.write('x'*{cap + 1}); sys.stderr.flush()\"\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 2\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+
+    start = time.monotonic()
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        session.fetch_bytes(f"{_ARTF}/cat.toml", max_bytes=1024 * 1024, timeout=60)
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_fetch_stderr_too_large", exc_info.value
+    # Must abort promptly — well under the 60s deadline.
+    assert elapsed < 10.0, f"abort took {elapsed:.2f}s, expected < 10s"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_archive_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
+    """Stderr overflow AFTER stdout EOF in archive path raises jfrog_fetch_stderr_too_large. AC-0014"""
+    cap = _PROD_FETCH_STDERR_CAP
+    py_exe = shlex.quote(sys.executable)
+    real_path = os.environ.get("PATH", "/usr/bin:/bin")
+
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        'if [ "$1" = "api" ]; then\n'
+        # Write a small archive payload to stdout then close stdout.
+        f"  {py_exe} -c \"import sys; sys.stdout.buffer.write(b'archive'); sys.stdout.buffer.flush()\"\n"
+        # Then overflow stderr after stdout is closed.
+        f"  {py_exe} -c \"import sys; sys.stderr.write('x'*{cap + 1}); sys.stderr.flush()\"\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 2\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+
+    sys_tmp = Path(tempfile.gettempdir())
+    before = set(sys_tmp.glob("agentbundle-jfrog-*.tmp"))
+
+    start = time.monotonic()
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        session.fetch_archive(f"{_ARTF}/pack.tar.gz", max_bytes=1024 * 1024, timeout=60)
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_fetch_stderr_too_large", exc_info.value
+    assert elapsed < 10.0, f"abort took {elapsed:.2f}s, expected < 10s"
+
+    # No new archive temp file must remain after a failed fetch.
+    after = set(sys_tmp.glob("agentbundle-jfrog-*.tmp"))
+    leaked = after - before
+    assert not leaked, f"Archive temp files not cleaned up after stderr overflow: {leaked}"

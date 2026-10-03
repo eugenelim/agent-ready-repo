@@ -30,6 +30,7 @@ import pytest  # noqa: E402
 from agentbundle.catalogue import CatalogueError  # noqa: E402
 from agentbundle.catalogue_fetch.direct_http import (  # noqa: E402, I001
     _DirectHttpRedirectHandler,
+    _build_direct_opener,
     _make_direct_request,
     fetch_bytes_bounded,
 )
@@ -286,80 +287,103 @@ def test_https_to_http_redirect_rejected() -> None:
 
 
 def test_same_origin_redirect_forwarded_authorization() -> None:
-    """Same-origin redirect allows the request and forwards Authorization."""
-    # Use an OpenerDirector with a fake HTTPS handler to exercise the full
-    # redirect path without a real network call.
-    requests_seen: list[urllib.request.Request] = []
+    """Same-origin HTTPS redirect is followed and Authorization forwarded exactly once.
 
-    class _FakeHTTPSHandler(urllib.request.BaseHandler):
-        handler_order = 500
+    Uses the REAL ``_build_direct_opener`` (which includes ``HTTPErrorProcessor``
+    and ``_DirectHttpRedirectHandler``) with a patched ``HTTPSHandler.https_open``
+    that returns a real 302 on the first call and 200 on the second.
+    The test fails if no redirect is followed (the assertion on ``len(seen)`` is
+    unconditional) and fails if Authorization is duplicated across header dicts.
+    """
+    import email.message
 
-        def https_open(self, req: urllib.request.Request) -> object:
-            requests_seen.append(req)
-            # First request: return a redirect response
-            if len(requests_seen) == 1:
-                import email.message
+    seen: list[urllib.request.Request] = []
+    call_count = [0]
 
-                headers = email.message.Message()
-                headers["Location"] = "https://catalogue.example.test/v2/stable.json"
-                req_url = req.full_url
+    def _fake_https_open(self: object, req: urllib.request.Request) -> object:
+        seen.append(req)
+        call_count[0] += 1
+        if call_count[0] == 1:
+            hdrs = email.message.Message()
+            hdrs["Location"] = "https://catalogue.example.test/v2/stable.json"
+            req_url = req.full_url
 
-                class _FakeResponse:
-                    status = 302
-                    code = 302
-                    msg = "Found"
-                    url = req_url
-                    headers = headers
+            class _R302:
+                code = 302
+                status = 302
+                msg = "Found"
+                url = req_url
 
-                    def info(self) -> email.message.Message:
-                        return headers
+                def info(self) -> email.message.Message:
+                    return hdrs
 
-                    def read(self, *a: object) -> bytes:
-                        return b""
-
-                    def __enter__(self) -> "_FakeResponse":
-                        return self
-
-                    def __exit__(self, *a: object) -> None:
-                        pass
-
-                return _FakeResponse()
-            # Second request (post-redirect): return a valid descriptor
-            resp_data = json.dumps(_VALID_DESCRIPTOR).encode()
-
-            class _GoodResponse:
                 def read(self, n: int = -1) -> bytes:
-                    return io.BytesIO(resp_data).read(n)
+                    return b""
 
-                def __enter__(self) -> "_GoodResponse":
+                def geturl(self) -> str:
+                    return req_url
+
+                def close(self) -> None:
+                    pass
+
+                def __enter__(self) -> "_R302":
                     return self
 
                 def __exit__(self, *a: object) -> None:
                     pass
 
-            return _GoodResponse()
+            return _R302()
+
+        class _R200:
+            code = 200
+            status = 200
+            msg = "OK"
+            _buf = io.BytesIO(b"ok")
+
+            def info(self) -> email.message.Message:
+                return email.message.Message()
+
+            def read(self, n: int = -1) -> bytes:
+                return self._buf.read(n)
+
+            def geturl(self) -> str:
+                return req.full_url
+
+            def close(self) -> None:
+                pass
+
+            def __enter__(self) -> "_R200":
+                return self
+
+            def __exit__(self, *a: object) -> None:
+                pass
+
+        return _R200()
 
     bound = "https://catalogue.example.test"
     authorization = "Bearer same-origin-token"
-    redirect_handler = _DirectHttpRedirectHandler(bound, authorization)
 
-    opener = urllib.request.OpenerDirector()
-    opener.addheaders = []
-    opener.add_handler(redirect_handler)
-    opener.add_handler(_FakeHTTPSHandler())
-    opener.add_handler(urllib.request.UnknownHandler())
+    with mock.patch.object(urllib.request.HTTPSHandler, "https_open", _fake_https_open):
+        opener = _build_direct_opener(authorization, bound, env={})
+        fetch_bytes_bounded(
+            opener,
+            "https://catalogue.example.test/stable.json",
+            bound,
+            authorization,
+            max_bytes=1024,
+            timeout=5,
+        )
 
-    req = urllib.request.Request("https://catalogue.example.test/stable.json")
-    req.add_header("Authorization", authorization)
-
-    import contextlib
-    with contextlib.suppress(Exception):
-        opener.open(req, timeout=5)  # we care about what happened, not the final response
-
-    # The second request (after redirect) should have Authorization forwarded.
-    if len(requests_seen) >= 2:
-        auth = requests_seen[1].get_header("Authorization")
-        assert auth == authorization, f"Authorization not forwarded on same-origin redirect: {auth}"
+    # Must have followed the redirect — unconditional assertion.
+    assert len(seen) == 2, f"expected 2 requests (initial + redirect), got {len(seen)}"
+    # Authorization must arrive on the redirected request.
+    redirect_req = seen[1]
+    auth = redirect_req.get_header("Authorization")
+    assert auth == authorization, f"Authorization not forwarded on same-origin redirect: {auth!r}"
+    # Must not be duplicated in the regular headers dict (would be sent twice).
+    assert redirect_req.headers.get("Authorization") is None, (
+        "Authorization duplicated in redirect_req.headers — would be sent twice"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -718,7 +742,14 @@ def test_same_session_used_for_descriptor_and_archive(tmp_path: Path) -> None:
 def test_netrc_session_sends_basic_auth_only_to_bound_origin(
     tmp_path: Path,
 ) -> None:
-    """NetrcHttpAccess session sends Authorization: Basic only to the bound origin."""
+    """NetrcHttpAccess session sends the exact Basic auth value to the bound origin.
+
+    Drives a real request through the session's direct path using a capturing
+    opener.  Asserts that the exact ``Basic <b64>`` value for
+    ``netrc-user:netrc-secret`` reaches the bound origin and not a cross-origin URL.
+    """
+    import base64
+
     netrc_file = tmp_path / ".netrc"
     netrc_file.write_text(
         "machine catalogue.example.test login netrc-user password netrc-secret\n",
@@ -727,7 +758,7 @@ def test_netrc_session_sends_basic_auth_only_to_bound_origin(
     if os.name != "nt":
         netrc_file.chmod(0o600)
 
-    import agentbundle.catalogue_fetch as _cf
+    expected_basic = "Basic " + base64.b64encode(b"netrc-user:netrc-secret").decode()
 
     requests_seen: list[urllib.request.Request] = []
 
@@ -736,8 +767,9 @@ def test_netrc_session_sends_basic_auth_only_to_bound_origin(
             requests_seen.append(req)
             return _MockResponse(b"data")
 
+    capturing_opener = _CapturingOpenerNetrc()
+
     with (
-        mock.patch.object(_cf, "_dh"),
         open_fetch_session(
             "https://catalogue.example.test/stable.json",
             env={"HOME": str(tmp_path)},
@@ -752,6 +784,23 @@ def test_netrc_session_sends_basic_auth_only_to_bound_origin(
         # Must not contain raw credentials.
         assert "netrc-user" not in auth
         assert "netrc-secret" not in auth
+        # Must be the exact base64-encoded value for "netrc-user:netrc-secret".
+        assert auth == expected_basic, f"Unexpected Basic value: {auth!r}"
+
+        # Drive a real request through the direct path with the capturing opener.
+        session._opener = capturing_opener  # type: ignore[assignment]
+        session.fetch_bytes(
+            "https://catalogue.example.test/stable.json",
+            max_bytes=1024,
+            timeout=5,
+        )
+
+    # The request must have Authorization set to the exact Basic value.
+    assert len(requests_seen) == 1, f"expected 1 request, got {len(requests_seen)}"
+    sent_auth = requests_seen[0].get_header("Authorization")
+    assert sent_auth == expected_basic, (
+        f"Expected exact Basic value {expected_basic!r} sent to bound origin, got {sent_auth!r}"
+    )
 
 
 def test_netrc_session_cross_origin_redirect_rejected(tmp_path: Path) -> None:
@@ -795,73 +844,99 @@ def test_netrc_session_http_redirect_rejected(tmp_path: Path) -> None:
 
 
 def test_netrc_session_same_origin_redirect_keeps_authorization(tmp_path: Path) -> None:
-    """NetrcHttpAccess session forwards Authorization on same-origin HTTPS redirect."""
-    requests_seen: list[urllib.request.Request] = []
+    """NetrcHttpAccess session forwards Basic auth on same-origin HTTPS redirect.
 
-    class _FakeHTTPSHandlerNetrc(urllib.request.BaseHandler):
-        handler_order = 500
+    Uses the REAL ``_build_direct_opener`` with a patched ``HTTPSHandler.https_open``.
+    The assertion is unconditional: the test fails if the redirect is not followed.
+    """
+    import email.message
 
-        def https_open(self, req: urllib.request.Request) -> object:
-            requests_seen.append(req)
-            if len(requests_seen) == 1:
-                import email.message
-                headers = email.message.Message()
-                headers["Location"] = "https://catalogue.example.test/v2/stable.json"
-                req_url = req.full_url
+    seen: list[urllib.request.Request] = []
+    call_count = [0]
 
-                class _FakeResp:
-                    status = 302
-                    code = 302
-                    msg = "Found"
-                    url = req_url
-                    headers = headers
+    def _fake_https_open_netrc(self: object, req: urllib.request.Request) -> object:
+        seen.append(req)
+        call_count[0] += 1
+        if call_count[0] == 1:
+            hdrs = email.message.Message()
+            hdrs["Location"] = "https://catalogue.example.test/v2/stable.json"
+            req_url = req.full_url
 
-                    def info(self) -> email.message.Message:
-                        return headers
+            class _R302:
+                code = 302
+                status = 302
+                msg = "Found"
+                url = req_url
 
-                    def read(self, *a: object) -> bytes:
-                        return b""
+                def info(self) -> email.message.Message:
+                    return hdrs
 
-                    def __enter__(self) -> "_FakeResp":
-                        return self
-
-                    def __exit__(self, *a: object) -> None:
-                        pass
-
-                return _FakeResp()
-
-            class _GoodResp:
                 def read(self, n: int = -1) -> bytes:
-                    return b"ok"
+                    return b""
 
-                def __enter__(self) -> "_GoodResp":
+                def geturl(self) -> str:
+                    return req_url
+
+                def close(self) -> None:
+                    pass
+
+                def __enter__(self) -> "_R302":
                     return self
 
                 def __exit__(self, *a: object) -> None:
                     pass
 
-            return _GoodResp()
+            return _R302()
+
+        class _R200:
+            code = 200
+            status = 200
+            msg = "OK"
+            _buf = io.BytesIO(b"ok")
+
+            def info(self) -> email.message.Message:
+                return email.message.Message()
+
+            def read(self, n: int = -1) -> bytes:
+                return self._buf.read(n)
+
+            def geturl(self) -> str:
+                return req.full_url
+
+            def close(self) -> None:
+                pass
+
+            def __enter__(self) -> "_R200":
+                return self
+
+            def __exit__(self, *a: object) -> None:
+                pass
+
+        return _R200()
 
     bound = "https://catalogue.example.test"
+    # Basic value for "netrc-user:netrc-secret"
     basic_auth = "Basic bmV0cmMtdXNlcjpuZXRyYy1zZWNyZXQ="
-    redirect_handler = _DirectHttpRedirectHandler(bound, basic_auth)
 
-    opener = urllib.request.OpenerDirector()
-    opener.addheaders = []
-    opener.add_handler(redirect_handler)
-    opener.add_handler(_FakeHTTPSHandlerNetrc())
-    opener.add_handler(urllib.request.UnknownHandler())
+    with mock.patch.object(urllib.request.HTTPSHandler, "https_open", _fake_https_open_netrc):
+        opener = _build_direct_opener(basic_auth, bound, env={})
+        fetch_bytes_bounded(
+            opener,
+            "https://catalogue.example.test/stable.json",
+            bound,
+            basic_auth,
+            max_bytes=1024,
+            timeout=5,
+        )
 
-    req = urllib.request.Request("https://catalogue.example.test/stable.json")
-    req.add_header("Authorization", basic_auth)
-
-    import contextlib
-    with contextlib.suppress(Exception):
-        opener.open(req, timeout=5)
-
-    if len(requests_seen) >= 2:
-        auth = requests_seen[1].get_header("Authorization")
-        assert auth == basic_auth, f"Basic auth not forwarded on same-origin redirect: {auth!r}"
+    # Must have followed the redirect — unconditional assertion.
+    assert len(seen) == 2, f"expected 2 requests (initial + redirect), got {len(seen)}"
+    auth = seen[1].get_header("Authorization")
+    assert auth == basic_auth, f"Basic auth not forwarded on same-origin redirect: {auth!r}"
+    # Must not be duplicated in the regular headers dict.
+    assert seen[1].headers.get("Authorization") is None, (
+        "Authorization duplicated in redirect_req.headers"
+    )
 
 
 def test_jfrog_result_accepted_with_jfrog_provider() -> None:
@@ -1013,3 +1088,41 @@ def test_netrc_canary_not_in_result_repr(tmp_path: Path) -> None:
                     assert secret not in field_val
     finally:
         shutil.rmtree(str(result.path), ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# Defect E — _resolve_artifact_url: IDN-spelling and explicit-:443 acceptance
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_artifact_url_idn_spelling_accepted() -> None:
+    """Artifact URL with an IDN (upper-case) hostname is accepted same-origin. AC-0010"""
+    from agentbundle.https_catalogue import _resolve_artifact_url
+
+    descriptor_url = "https://catalogue.example.test/stable.json"
+    # Same host, upper-cased — should normalize to the same origin.
+    artifact_field = "https://CATALOGUE.EXAMPLE.TEST/releases/core-stable.tar.gz"
+    result = _resolve_artifact_url(descriptor_url, artifact_field)
+    # Must return the resolved URL (not raise).
+    assert "core-stable.tar.gz" in result
+
+
+def test_resolve_artifact_url_explicit_443_accepted() -> None:
+    """Artifact URL with explicit :443 is accepted same-origin as the plain URL. AC-0010"""
+    from agentbundle.https_catalogue import _resolve_artifact_url
+
+    descriptor_url = "https://catalogue.example.test/stable.json"
+    # Explicit :443 is canonical for HTTPS — same origin as without the port.
+    artifact_field = "https://catalogue.example.test:443/releases/core-stable.tar.gz"
+    result = _resolve_artifact_url(descriptor_url, artifact_field)
+    assert "core-stable.tar.gz" in result
+
+
+def test_resolve_artifact_url_cross_origin_rejected() -> None:
+    """Artifact URL with a different host raises CatalogueError. AC-0010"""
+    from agentbundle.https_catalogue import _resolve_artifact_url
+
+    descriptor_url = "https://catalogue.example.test/stable.json"
+    artifact_field = "https://evil.example.test/releases/core-stable.tar.gz"
+    with pytest.raises(CatalogueError):
+        _resolve_artifact_url(descriptor_url, artifact_field)

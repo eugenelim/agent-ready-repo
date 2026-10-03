@@ -104,7 +104,11 @@ class FetchSession:
                 fetch fails for any other reason.
         """
         if self._jfrog_session is not None:
-            return self._jfrog_session.fetch_bytes(url, max_bytes=max_bytes, timeout=timeout)
+            # A delegated call may be shortened by the caller but never runs
+            # past the per-call bound, which keeps the aggregate budget fixed.
+            return self._jfrog_session.fetch_bytes(
+                url, max_bytes=max_bytes, timeout=min(timeout, _jf._JFROG_FETCH_TIMEOUT)
+            )
         assert self._opener is not None
         return _dh.fetch_bytes_bounded(
             self._opener,
@@ -140,7 +144,11 @@ class FetchSession:
                 fetch fails for any other reason.
         """
         if self._jfrog_session is not None:
-            return self._jfrog_session.fetch_archive(url, max_bytes=max_bytes, timeout=timeout)
+            # A delegated call may be shortened by the caller but never runs
+            # past the per-call bound, which keeps the aggregate budget fixed.
+            return self._jfrog_session.fetch_archive(
+                url, max_bytes=max_bytes, timeout=min(timeout, _jf._JFROG_FETCH_TIMEOUT)
+            )
         assert self._opener is not None
         return _dh.stream_to_tempfile(
             self._opener,

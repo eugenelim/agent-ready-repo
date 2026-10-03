@@ -537,7 +537,8 @@ def _run_bounded(
     stderr_buf: bytearray = bytearray()
     _stdout_exceeded: list[bool] = [False]
     _stderr_exceeded: list[bool] = [False]
-    _read_done: threading.Event = threading.Event()
+    # Signals promptly when either reader breaches its cap.
+    _cap_breach: threading.Event = threading.Event()
 
     def _reader(
         stream: io.RawIOBase,
@@ -553,6 +554,7 @@ def _run_bounded(
                 buf.extend(chunk)
                 if len(buf) > cap:
                     flag[0] = True
+                    _cap_breach.set()
                     return
         except OSError:
             pass
@@ -570,15 +572,17 @@ def _run_bounded(
     t_out.start()
     t_err.start()
 
-    # Wait for work_deadline or cap breach.
-    remaining = work_deadline - time.monotonic()
-    if remaining > 0:
-        t_out.join(timeout=remaining)
+    # Wait for stdout reader, cap breach, or work_deadline — whichever fires first.
+    # Poll with short intervals so a stderr breach prompts an early abort.
+    while t_out.is_alive() and not _cap_breach.is_set():
+        wait = min(0.05, max(0.0, work_deadline - time.monotonic()))
+        if wait <= 0:
+            break
+        t_out.join(timeout=wait)
 
     cap_exceeded = _stdout_exceeded[0] or _stderr_exceeded[0]
-    timed_out = time.monotonic() >= work_deadline and t_out.is_alive()
 
-    if cap_exceeded or timed_out or t_out.is_alive():
+    if cap_exceeded or t_out.is_alive():
         # Stop the child, then reap (always against already-terminated process).
         with contextlib.suppress(OSError):
             proc.terminate()
@@ -603,6 +607,19 @@ def _run_bounded(
     # Normal completion — wait for stderr reader then reap.
     remaining_err = max(0.0, deadline - time.monotonic())
     t_err.join(timeout=remaining_err)
+
+    # Re-check: stderr may have breached after stdout closed.  The child may be
+    # blocking on a full stderr pipe, so terminate before waiting.
+    if _stderr_exceeded[0]:
+        with contextlib.suppress(OSError):
+            proc.terminate()
+        with contextlib.suppress(OSError):
+            if proc.poll() is None:
+                proc.kill()
+        proc.wait()
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise _ChildCapExceeded("stderr")
+
     try:
         rc = proc.wait(timeout=max(0.0, deadline - time.monotonic()))
     except subprocess.TimeoutExpired:
