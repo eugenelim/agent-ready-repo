@@ -879,3 +879,10 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
   production workspace-status result and adds no creation workflow, lifecycle, or
   routing logic. Uses of “project” as an external tracker label, a desk-research
   lifecycle, or RFC-0079's per-codebase index are unaffected. Approved: eugenelim.
+
+- **2026-10-03 — Workspace coordination enters gated retirement.**
+  [RFC-0105](0105-artifact-derived-navigation-and-workspace-retirement.md) makes
+  `workspace-status` and `workspace.toml` transitional compatibility surfaces.
+  Their accepted behavior remains supported until RFC-0105's consumer-inventory,
+  state-disposition, behavioral-equivalence, and compatibility-closure gates all
+  pass. Approved by the Platform Core maintainer.
