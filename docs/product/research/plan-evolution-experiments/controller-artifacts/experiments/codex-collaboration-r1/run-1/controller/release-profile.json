@@ -1,0 +1,31 @@
+{
+  "approval_escalation_surface_exposed": true,
+  "credential_isolation_claim": "not claimed",
+  "delegation_tool_exposed": true,
+  "document_collection_basis": "Run 0b passed and inputs are frozen non-secret text; exposed network, web, delegation, and approval surfaces prevent inferential release",
+  "document_collection_safe": true,
+  "exposed_tool_limitation": true,
+  "external_application_messaging_tool_exposed": false,
+  "inferential_release_safe": false,
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "managed_permission_profile": "workspace-write managed session; controller-observed profile only",
+  "network_enabled": true,
+  "prepared_at": "2026-09-28T15:37:06Z",
+  "protected_credential_and_configuration_globs_denied": true,
+  "provider_token_counts": "unavailable",
+  "requested_model_route": "gpt-5.6-luna",
+  "run_id": "run-1",
+  "schema_version": 1,
+  "served_model_identity": "unavailable",
+  "shared_filesystem_limitation": true,
+  "starts": 0,
+  "study_id": "codex-collaboration-r1",
+  "terminals": 0,
+  "web_tool_exposed": true
+}

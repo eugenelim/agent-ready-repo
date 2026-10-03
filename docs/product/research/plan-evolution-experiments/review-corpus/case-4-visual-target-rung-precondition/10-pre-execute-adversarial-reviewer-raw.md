@@ -1,0 +1,3 @@
+## Blockers
+
+**1. Closed CLI foundation still owns active T6/T7.** `docs/specs/plan-evolution-experiments/plan.md:171`. The closed CLI LLD marks itself `Owned by: T1, T2, T4, T5, T6, T7` and then requires the old 12-task, wave/reserve, sandbox-profile, `runner.py`, and package-helper design, while the active spec/plan authorize an eight-task `codex-collaboration-r1` adapter at `causal_runner.py` with instruction isolation and pure-stdlib constraints; plan approval would leave two incompatible active contracts for T6/T7. Fix: Make the closed CLI foundation unambiguously history-only for T1-T5 or remove/demote its active ownership and requirements so T6-T13 have one authoritative design matching the amended spec and scoped repository rules.

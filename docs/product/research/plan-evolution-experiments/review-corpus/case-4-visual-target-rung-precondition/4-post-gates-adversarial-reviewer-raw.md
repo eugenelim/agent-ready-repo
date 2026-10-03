@@ -1,0 +1,13 @@
+## Blockers
+
+**1. The answer-key taxonomy still reaches the T14 worker root through the report itself.** `.context/codex-headless-sol-loop-confirmation-result.md:566`. The report prints checkpoint 04’s seeded-defect classes, then instructs integration to copy this report into tracked docs while only withholding three sealed files; the JSON manifest also says checkpoint 04 must be withheld, and `sealed/integration-carry-restriction.json:15` still permits the replacement attestation to include invariant and field classes. Fix: every artifact or report copied inside a future worker sandbox root must remove checkpoint 04’s taxonomy and forbid invariant/field disclosure until T15, or T14 recall comparability must be declared forfeited before launch.
+
+## Concerns
+
+**2. The Markdown handoff claims a withheld mutation proof is reproducible from carried artifacts.** `.context/codex-headless-sol-loop-confirmation-result.md:10`. The same report states `mutation_proofs_all_pass` as proved at line 180, but `sealed/mutation-proofs.json` is explicitly withheld until T15, so a holder of the carried set cannot recompute that preparation proof from this standalone report. Fix: mark the mutation proof as recorded-only until T15 and name what the attestation does and does not prove.
+
+**3. The review-policy verdict still overstates a fragile rule output as a quality preference.** `.context/codex-headless-sol-loop-confirmation-result.md:321`. The report says “full replay is the preferred policy on quality,” while the adjacent caveat says the deciding term is one subject, its interval includes zero, and the separating residual is repair-origin rather than a missed detection. Fix: state this as the frozen tie-rule output refusing closure’s cost saving, not as a robust policy preference.
+
+**4. The residual-decomposition summary contradicts the governing term.** `.context/codex-headless-sol-loop-confirmation-result.md:280`. It says the deciding residuals are “mostly inherited,” but the governing severe term separates only on `non-json-sso-guard`, which line 323 attributes to repair-origin damage on both arms. Fix: distinguish aggregate residual composition from the single residual class that actually decides the verdict.
+
+**5. The tool-digest amendment still carries a stale `t13_report.py` digest.** `.context/experiments/codex-headless-sol-loop-confirmation-r1/sealed/amendment-003-post-review-repairs.json:178`. That field records `sha256:d5e7...`, while the handoff’s binding manifest records `sha256:a61e...` for the same file. Fix: regenerate or remove stale digest snapshots so the provenance record has one current digest per tool.

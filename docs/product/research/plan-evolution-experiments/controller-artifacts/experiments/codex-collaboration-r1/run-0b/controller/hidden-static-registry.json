@@ -1,0 +1,89 @@
+{
+  "registry_key_policy": "keys stay only in this file and are not copied to dispatch manifest, prompt, or public packets",
+  "run_id": "run-0b",
+  "schema_version": 1,
+  "study_id": "codex-collaboration-r1",
+  "tasks": {
+    "doc-task-alpha": {
+      "fact_atom_ids": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6"
+      ],
+      "grading_rules": [
+        "count each required fact atom once if explicitly preserved",
+        "count a planted defect only when the response explicitly corrects or rejects it",
+        "mark protocol deviation if the response reports tool, web, delegation, repository, messaging, or execution use"
+      ],
+      "planted_defect_registry": [
+        {
+          "defect_key": "doc-task-alpha-D1",
+          "text": "Draft wording implies sync is faster, although performance is not part of the update."
+        },
+        {
+          "defect_key": "doc-task-alpha-D2",
+          "text": "Draft wording omits that offline edits were already queued before this update."
+        }
+      ],
+      "reference_response_outline": [
+        "Name version 2.4.1.",
+        "Say the stale sync status label is fixed.",
+        "State no new feature is included.",
+        "Preserve the offline-edit queue fact.",
+        "Reject faster-sync language."
+      ],
+      "required_fact_texts": {
+        "A1": "The release covers version 2.4.1 of Atlas Notes.",
+        "A2": "The update fixes a sync status label that could show stale text after reconnecting.",
+        "A3": "The update adds no new user-facing feature.",
+        "A4": "The note must mention that offline edits were already queued before this update.",
+        "A5": "The note must avoid promising faster sync performance.",
+        "A6": "The acceptance check is a reviewer confirming the four required facts and no extra promise."
+      }
+    },
+    "doc-task-beta": {
+      "fact_atom_ids": [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6"
+      ],
+      "grading_rules": [
+        "count each required fact atom once if explicitly preserved",
+        "count a planted defect only when the response explicitly corrects or rejects it",
+        "mark protocol deviation if the response reports tool, web, delegation, repository, messaging, or execution use"
+      ],
+      "planted_defect_registry": [
+        {
+          "defect_key": "doc-task-beta-D1",
+          "text": "Draft wording says final-sale items may be considered case by case."
+        },
+        {
+          "defect_key": "doc-task-beta-D2",
+          "text": "Draft wording promises same-day refunds before eligibility is confirmed."
+        }
+      ],
+      "reference_response_outline": [
+        "Keep the 30-day window.",
+        "Keep final-sale ineligibility.",
+        "Require escalation for unreadable receipts.",
+        "Gate refund options on eligibility confirmation.",
+        "Reject same-day-refund language."
+      ],
+      "required_fact_texts": {
+        "B1": "The macro applies only to returns requested within 30 days.",
+        "B2": "Items marked final sale remain ineligible.",
+        "B3": "Escalation is required when the receipt image is unreadable.",
+        "B4": "Agents may offer store credit or original-payment refund only after eligibility is confirmed.",
+        "B5": "The macro must not promise same-day refunds.",
+        "B6": "The acceptance check is a reviewer confirming the five rule facts and no extra promise."
+      }
+    }
+  },
+  "visibility": "controller-only-hidden-static-registry"
+}

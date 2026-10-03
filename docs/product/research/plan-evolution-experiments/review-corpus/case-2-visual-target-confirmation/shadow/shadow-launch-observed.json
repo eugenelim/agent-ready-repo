@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "claude",
+    "-p",
+    "--output-format",
+    "json",
+    "--allowed-tools",
+    "Read,Grep,Glob",
+    "--permission-mode",
+    "default"
+  ],
+  "allowed_tools": "Read,Grep,Glob",
+  "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "12000",
+  "cwd": "/private/tmp/claude-501/-Users-eu-gene-lim-orca-workspaces-agent-ready-repo-plan-mode/a588a60e-3070-4ec8-87f6-cdb71206a4e5/scratchpad/shadow-base",
+  "gates": {
+    "prompt_bytes": 53388,
+    "prompt_bytes_max": 120000,
+    "input_tokens_preflight_upper_bound": 53388,
+    "input_tokens_preflight_upper_bound_max": 120000,
+    "requested_output_tokens": 12000,
+    "wall_clock_seconds_timeout": 3600,
+    "prompt_sha256": "9ef24fb230fd5c900ca835e03261a72d99092192f3acd5d20c0362a13a51341f"
+  }
+}

@@ -1,0 +1,242 @@
+You are a tool-free document experiment subject. Use only the packet below.
+Do not use tools, web, delegation, repository inspection, messaging, or code execution.
+Do not inspect files, run commands, contact external services, or ask another agent.
+Return strict JSON only. Do not wrap it in Markdown.
+The JSON must match the response_schema in the packet and must include your worker alias.
+If you notice a protocol deviation, record it in protocol_deviations; otherwise use an empty array.
+
+<packet-json>
+{
+  "artifact_alias": "artifact-amber",
+  "commands": [],
+  "executable_attachments": [],
+  "forbidden_subject_actions": [
+    "tools",
+    "web",
+    "delegation",
+    "repository inspection",
+    "messaging",
+    "code execution",
+    "shell commands",
+    "external files"
+  ],
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "non_secret": true,
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "acceptance_mapping": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "atom": {
+              "type": "string"
+            },
+            "evidence": {
+              "maxLength": 260,
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "satisfied",
+                "missed",
+                "unclear"
+              ]
+            }
+          },
+          "required": [
+            "atom",
+            "status",
+            "evidence"
+          ],
+          "type": "object"
+        },
+        "maxItems": 8,
+        "minItems": 4,
+        "type": "array"
+      },
+      "alias": {
+        "type": "string"
+      },
+      "decision_record": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "because": {
+              "maxLength": 360,
+              "type": "string"
+            },
+            "decision": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "risk": {
+              "maxLength": 260,
+              "type": "string"
+            }
+          },
+          "required": [
+            "decision",
+            "because",
+            "risk"
+          ],
+          "type": "object"
+        },
+        "maxItems": 6,
+        "minItems": 2,
+        "type": "array"
+      },
+      "proposed_change_manifest": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "change": {
+              "maxLength": 320,
+              "type": "string"
+            },
+            "reason": {
+              "maxLength": 320,
+              "type": "string"
+            },
+            "section": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          "required": [
+            "section",
+            "change",
+            "reason"
+          ],
+          "type": "object"
+        },
+        "maxItems": 6,
+        "minItems": 1,
+        "type": "array"
+      },
+      "protocol_deviations": {
+        "items": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "maxItems": 8,
+        "type": "array"
+      },
+      "self_audit": {
+        "additionalProperties": false,
+        "properties": {
+          "remaining_questions": {
+            "items": {
+              "maxLength": 220,
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "scope_drift_risk": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "semantic_drift_risk": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          }
+        },
+        "required": [
+          "semantic_drift_risk",
+          "scope_drift_risk",
+          "remaining_questions"
+        ],
+        "type": "object"
+      },
+      "task_summary": {
+        "maxLength": 900,
+        "type": "string"
+      }
+    },
+    "required": [
+      "alias",
+      "task_summary",
+      "decision_record",
+      "proposed_change_manifest",
+      "acceptance_mapping",
+      "self_audit",
+      "protocol_deviations"
+    ],
+    "type": "object"
+  },
+  "run_id": "run-0",
+  "schema_version": 1,
+  "slot_id": "run-0:007",
+  "study_id": "codex-collaboration-r1",
+  "synthetic": true,
+  "task_title": "Support-macro acceptance cleanup",
+  "worker_alias": "calibration-subject-007",
+  "worker_visible_artifact": {
+    "construction_plan": {
+      "checks": [
+        "preserve each acceptance atom exactly once in the acceptance mapping",
+        "separate required facts from optional wording changes",
+        "call out any semantic or scope drift risk",
+        "return only the bounded JSON object matching the supplied schema"
+      ],
+      "narrative_notes": [
+        "The narrative explains why each check exists, but it does not add new requirements.",
+        "Treat examples as illustrations of the same facts, not as extra scope."
+      ],
+      "policy": "narrative plan adds rationale and sequencing but no extra obligations",
+      "shape": "separate spec plus narrative plan"
+    },
+    "description": "Artifact Packet Amber contains an Outcome Contract and a narrative Implementation Note as separate sections.",
+    "draft_with_known_issues": [
+      "Draft wording says final-sale items may be considered case by case.",
+      "Draft wording promises same-day refunds before eligibility is confirmed."
+    ],
+    "outcome_contract": {
+      "acceptance_atoms": [
+        {
+          "id": "B1",
+          "text": "The macro applies only to returns requested within 30 days."
+        },
+        {
+          "id": "B2",
+          "text": "Items marked final sale remain ineligible."
+        },
+        {
+          "id": "B3",
+          "text": "Escalation is required when the receipt image is unreadable."
+        },
+        {
+          "id": "B4",
+          "text": "Agents may offer store credit or original-payment refund only after eligibility is confirmed."
+        },
+        {
+          "id": "B5",
+          "text": "The macro must not promise same-day refunds."
+        },
+        {
+          "id": "B6",
+          "text": "The acceptance check is a reviewer confirming the five rule facts and no extra promise."
+        }
+      ],
+      "prohibited_promises": [
+        "The macro must not promise same-day refunds."
+      ],
+      "scenario": "A team must revise a support macro for a fictional help desk flow called Meridian Returns.",
+      "stable_outcome": "Produce a bounded change plan for the macro that preserves eligibility rules while making escalation language clear."
+    }
+  }
+}
+</packet-json>

@@ -294,26 +294,71 @@ cannot be split into the input and output figures the scorecard requires.
 No savings claim is made against the retrospective baseline, because historical
 tokens and wall time are missing. No scalar effectiveness score is emitted.
 
-### Do not delete three branches
+### This record stands alone
 
-Case 3's and case 4's delivery pull requests were **squash**-merged, so the
-individual commits this record cites exist only on the branches below and
-nowhere on `main`. Deleting one turns verifiable evidence into an assertion.
+It depends on no branch and no commit hash. Every delivery branch from this
+study may be deleted without weakening a claim here.
 
-| Branch | Case | What it carries |
-| --- | --- | --- |
-| `eugenelim/visual-target-rung-precondition` | 4 | the 5 commits case 4's record cites |
-| `eugenelim/visual-target-field` | 3 | the 4 commits case 3's `completed_task_evidence` pins |
-| `eugenelim/review-recurrence-family-key-run41` | 1 | case 1's exclusion evidence — the spec directory holding only `plan.md` and `spec.md` where sibling specs carry `notes/review-round-*.md` |
+That was not true until 2026-10-02. The record had pinned nine bare commit
+hashes as evidence, and because both delivery pull requests were
+**squash**-merged, those hashes were reachable only from their branches. The
+research record was therefore hostage to branch-pruning hygiene — the wrong
+dependency for a study to carry, and one that fails silently, since a deleted
+branch leaves the citation looking intact while it no longer resolves.
 
-All three verified present on the remote 2026-10-02. The ledger's
-`branch_retention_requirement` block holds the cited SHAs and the commands that
-check them.
+A hash was never good evidence anyway. It names a revision; it does not say what
+was done, and it cannot be checked by reading. What each task actually changed
+is the durable fact, and it survives however the branch was merged.
 
-One evidence claim is **not** independently checkable: case 1's
-`eugenelim/review-recurrence-family-key` branch was never pushed and exists only
-in one local checkout. The exclusion does not rest on it — the other three
-claims on that row are all verifiable from `origin`.
+So each citation was replaced by its substance — the task's role, its
+conventional-commit subject, its date, how many files it touched, and whether
+those files are still on `main`. **Verified 2026-10-02: every file touched by
+all nine commits is still present on `origin/main`**, with one later-deleted
+exception noted inline. The hashes remain only as convenience pointers and are
+explicitly not load-bearing.
+
+The readable task evidence lives in the two specs' verification ledgers, both on
+`main`: `docs/specs/visual-target-field/notes/verification-ledger.md` and
+`docs/specs/visual-target-rung-precondition/notes/verification-ledger.md`.
+
+### The raw review corpus is now in the repository too
+
+A worse version of the same problem turned up while fixing the first one. Every
+finding count above was derived from raw reviewer reports that lived only under
+`.context/`, which is **gitignored**, and partly inside a second worktree. The
+numbers were published while the material behind them sat untracked, and three
+files this record cites were already gone.
+
+[`review-corpus/`](review-corpus/) now holds **128 files, 1.0 MB**, extracted
+2026-10-02:
+
+| Directory | Files | What it carries |
+| --- | ---: | --- |
+| `case-2-visual-target-confirmation/` | 13 | four adversarial and four shaping rounds, plus **the only shadow audit the study ever ran** |
+| `case-3-visual-target-field/` | 37 | pre-EXECUTE and post-gates rounds with adjudications, including the experience-reviewer rounds |
+| `case-4-visual-target-rung-precondition/` | 78 | the complete corpus — 27 pre-EXECUTE raw reports, 21 adjudications, 25 post-gates and post-repair rounds, 2 reviewer briefs |
+
+Case 2's `shadow/shadow-prompt.txt` is **53,388 bytes**, matching the
+`prompt_bytes` the ledger recorded exactly — so the preserved artifact is
+provably the one that was measured. That single measurement is the basis for
+blocker A's 2.35× arithmetic, and it existed in one untracked directory until
+now.
+
+Every per-round count above can now be re-derived from source by a reader who
+has only this repository. What the corpus still cannot supply is the per-finding
+token and prose-churn attribution blocker B needs; that was never written down.
+
+Case 1 has no corpus. That absence is why it was excluded.
+
+Case 1's exclusion evidence is transcribed directly into the ledger — the two
+directory listings, two files for its spec against eight for a sibling carried
+on the same branch, four of the sibling's being review-round records. The
+contrast is the evidence, and it reads without resolving anything.
+
+One claim on that row is marked **not independently checkable** and is not
+load-bearing: the enumerated worktree's emptiness was a controller observation
+on a branch never pushed and a worktree since removed. The exclusion rests on
+the claims that survive on `main`.
 
 ### What a future attempt would have to fix first
 

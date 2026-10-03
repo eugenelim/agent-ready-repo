@@ -1,0 +1,36 @@
+{
+  "controller_protocol_deviations": [
+    "controller-dispatch-message-not-byte-identical-to-frozen-prompt",
+    "actual-transport-schema-detail-omission"
+  ],
+  "evidence_class": "non-inferential",
+  "intended_prompt_digest": "sha256:6ee90fd99ca567a83a0c14ed7714bc4c9d7e2d0e312ce51ef74d9b13e08c7a84",
+  "labels": [
+    "non-inferential",
+    "non-secret-bearing-input-only",
+    "instruction-isolated-not-securely-confined",
+    "shared-filesystem-limitation",
+    "exposed-tool-limitation"
+  ],
+  "launch_position": 4,
+  "packet_digest": "sha256:69b480bac4a1f1f8fd9c732ba74106350a292f963cea0005eb6c13c09ebda5ac",
+  "requested_model": "gpt-5.6-luna",
+  "response_schema_digest": "sha256:09aa1f7dd3bf943fca17ca0b8c4741e0e96126b986d12be42a77d9e56a03da18",
+  "run_gate_effect": "run-0-fails-closed; later document collections remain closed",
+  "run_id": "run-0",
+  "run_ordinal": 8,
+  "schema_errors": [],
+  "schema_status": "pass",
+  "schema_version": 1,
+  "served_model_identity": "unavailable",
+  "slot_id": "run-0:008",
+  "starts": 1,
+  "state": "terminal-schema-valid",
+  "study_id": "codex-collaboration-r1",
+  "study_ordinal": 8,
+  "subject_protocol_deviations": [],
+  "terminal": true,
+  "terminal_report_digest": "sha256:3dfbfc76cf9d1d394b515ae017fc191d6e720d15d59209010f5cdeb337e7a37f",
+  "tool_use_observation": "controller-unobservable; no observed external effect recorded; not proof of no tool use",
+  "worker_alias": "calibration-subject-008"
+}
