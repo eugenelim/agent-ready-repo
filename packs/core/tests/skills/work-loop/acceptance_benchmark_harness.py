@@ -281,7 +281,8 @@ print(len(verdicts))
 def run_cold_rehydration(acc: ModuleType) -> dict | None:
     """AC-0019 cold-rehydration benchmark.
 
-    Populates a fresh evidence log with NUM_CRITERIA single-receipt transactions
+    Populates a fresh evidence log with NUM_RECEIPTS single-receipt transactions
+    spread evenly over NUM_CRITERIA criteria
     (written directly, bypassing security checks — this is benchmark/harness code,
     not shipped production code), then starts a fresh subprocess that reads the
     log, builds in-memory indexes, and evaluates NUM_CRITERIA verdicts.
@@ -331,10 +332,11 @@ def run_cold_rehydration(acc: ModuleType) -> dict | None:
 
         # Write frames directly (bypass security checks — harness-only code).
         with log_path.open("wb") as fh:
-            for i, prop in enumerate(criteria):
+            for i in range(NUM_RECEIPTS):
+                prop = criteria[i % num_criteria]
                 receipt: dict = {
                     "schema_version": 1,
-                    "receipt_id": f"r-crh-{i:04d}",
+                    "receipt_id": f"r-crh-{i:06d}",
                     "acceptance_fingerprint": current_fp,
                     "lineage": {"criterion_ref": prop["property_id"]},
                     "selector": {"term": "test-run"},
@@ -345,7 +347,7 @@ def run_cold_rehydration(acc: ModuleType) -> dict | None:
                 }
                 fh.write(
                     _build_frame_bytes(
-                        f"tx-crh-{i:04d}", receipt, current_fp
+                        f"tx-crh-{i:06d}", receipt, current_fp
                     )
                 )
 
@@ -387,6 +389,8 @@ def run_cold_rehydration(acc: ModuleType) -> dict | None:
         return {
             "benchmark": "cold-rehydration",
             "num_criteria": num_criteria,
+            "num_receipts": NUM_RECEIPTS,
+            "log_frames": sum(1 for _ in log_path.open("rb")),
             "verdict_count": verdict_count,
             "elapsed_seconds": elapsed_seconds,
         }

@@ -498,6 +498,9 @@ class EvidenceStore:
         self._root: Path = self._log_path.parent
         # In-memory indexes (derived from log, disposable).
         self._receipts: dict[str, dict] = {}
+        # criterion_ref -> receipt IDs in insertion order, so a per-criterion
+        # read does not scan every receipt (AC-0019 replays 100,000 of them).
+        self._receipts_by_criterion: dict[str, list[str]] = {}
         self._supersessions: dict[str, dict] = {}
         self._superseded: set[str] = set()
         self._transactions: list[dict] = []
@@ -549,6 +552,7 @@ class EvidenceStore:
 
         # Reset indexes before rebuild.
         self._receipts.clear()
+        self._receipts_by_criterion.clear()
         self._supersessions.clear()
         self._superseded.clear()
         self._transactions.clear()
@@ -593,7 +597,7 @@ class EvidenceStore:
             self._transactions.append(tx)
             for record in records:
                 if "receipt_id" in record:
-                    self._receipts[record["receipt_id"]] = record
+                    self._index_receipt(record)
                 elif "supersession_id" in record:
                     sup_id = record["supersession_id"]
                     self._supersessions[sup_id] = record
@@ -698,7 +702,7 @@ class EvidenceStore:
 
         # Step 6: update in-memory indexes.
         self._transactions.append(tx)
-        self._receipts[receipt_id] = receipt
+        self._index_receipt(receipt)
 
         return tx
 
@@ -789,6 +793,14 @@ class EvidenceStore:
 
     # ── Read ───────────────────────────────────────────────────────────────────
 
+    def _index_receipt(self, receipt: dict) -> None:
+        """Record *receipt* in the receipt map and the per-criterion index."""
+        receipt_id = receipt["receipt_id"]
+        if receipt_id not in self._receipts:
+            criterion_ref = receipt.get("lineage", {}).get("criterion_ref")
+            self._receipts_by_criterion.setdefault(criterion_ref, []).append(receipt_id)
+        self._receipts[receipt_id] = receipt
+
     def get_active_receipts(self, criterion_ref: str) -> list[dict]:
         """Return active (non-superseded) receipts for *criterion_ref*, in insertion order.
 
@@ -797,12 +809,9 @@ class EvidenceStore:
         (AC-0009).
         """
         return [
-            r
-            for rid, r in self._receipts.items()
-            if (
-                r.get("lineage", {}).get("criterion_ref") == criterion_ref
-                and rid not in self._superseded
-            )
+            self._receipts[rid]
+            for rid in self._receipts_by_criterion.get(criterion_ref, ())
+            if rid not in self._superseded
         ]
 
     def get_all_active_receipts(self) -> list[dict]:

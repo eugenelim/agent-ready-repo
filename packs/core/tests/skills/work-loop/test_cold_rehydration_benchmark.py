@@ -80,6 +80,7 @@ def test_cold_rehydration_elapsed_within_bound(
         print(
             f"\nAC-0019 cold-rehydration benchmark:\n"
             f"  criteria:   {crh['num_criteria']}\n"
+            f"  receipts:   {crh['num_receipts']} ({crh['log_frames']} log frames)\n"
             f"  verdicts:   {verdict_count}\n"
             f"  elapsed:    {elapsed:.3f} s  (bound: 10.0 s)"
         )
@@ -89,6 +90,11 @@ def test_cold_rehydration_elapsed_within_bound(
         f"AC-0019 cold rehydration elapsed {elapsed:.3f} s exceeds the 10 s bound "
         f"({crh['num_criteria']} criteria, {verdict_count} verdicts evaluated)"
     )
+
+    # AC-0019 fixes the corpus: exactly 1,000 criteria and 100,000 evidence records.
+    assert crh["num_criteria"] == 1_000
+    assert crh["num_receipts"] == 100_000
+    assert crh["log_frames"] == 100_000
 
     # Sanity: all NUM_CRITERIA verdicts were evaluated.
     assert verdict_count == bm.NUM_CRITERIA, (
