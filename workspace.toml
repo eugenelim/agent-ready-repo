@@ -663,16 +663,24 @@ open = [
   # of the four is in this file — verified 2026-09-29, zero matches. The
   # carve-out in the ADR-0131 spec's Out of scope rests on this entry.
   { slug = "sca-hardening-uneven-across-pip-audit-invocations", source = "spec/pip-audit-advisory-allowlist (ADR-0131 scope decision; the archived pip-audit-batching slugs were never registered)" },
-  # The rename validator refuses a live intent whose H1 title contains the
-  # word "tombstone": the approved liveness rule refuses any unparsed preamble
-  # line bearing the token, and a title never parses as a field. A false
-  # refusal, fail-closed and loud, and no file in `docs/product/intents/`
-  # triggers it today (measured across all 157 on 2026-09-28). The scope owner
-  # authorized amending the approved rule to exempt the title; the amendment
-  # could not be executed -- see the sibling entry -- so it is carried here.
-  # `docs/specs/intent-renumber-and-reissue/notes/amendment-0001-h1-title-exemption.md`
-  # holds the authority, the reasoning and the residual risk.
-  { slug = "intent-rename-h1-title-false-refusal", source = "spec/intent-renumber-and-reissue (post-gates adversarial review, adjudicated F4)" },
+  # Retired 2026-10-02: `intent-rename-h1-title-false-refusal`, because the
+  # leading H1 title exemption is in the tree. The entry recorded a false
+  # `source-unreadable` refusal when a live intent title contained "tombstone".
+  # Verified in the tree rather than from a commit message: the validator exempts
+  # one leading H1 title, while its two other damaged-marker arms remain intact;
+  # `test_leading_h1_title_containing_tombstone_passes` and
+  # `test_second_h1_containing_tombstone_refuses_source_unreadable` pin both
+  # outcomes. Lint-safe to remove: no deferred-marker form names this slug.
+  # `0ffb58f27` shipped the exemption as follow-on work recorded in code,
+  # because the owning spec is Shipped and its plan frozen. The one surviving
+  # reference is
+  # docs/specs/intent-renumber-and-reissue/notes/amendment-0001-h1-title-exemption.md,
+  # which stays the authority and reasoning for the change. Its analysis stands;
+  # its closing "Outcome" section is stale in two respects — the rule is now
+  # amended in code, and this slug is no longer carried in `[backlog].open`.
+  # That record is frozen, so this note is where both claims are superseded.
+  # The sibling residual it names, `contract-amendment-prepare-strands-the-run`,
+  # is unaffected and still open: the transition defect is unfixed.
   # `loop-engine transition <spec> contract-amendment` can strand a run. The
   # cohort prepare writes `pending_transition` before the mutation validates,
   # so a mutation that refuses -- for example on a missing
@@ -2393,9 +2401,11 @@ shipped = [
   # canonical reconciliation raises `impossible_transition`. Ships the rename
   # request contract, the tombstone shape and the allocator property; the
   # operation that composes them is `intent-rename-transaction`, which this
-  # unblocks. Two residuals are carried in `[backlog].open`:
-  # `intent-rename-h1-title-false-refusal` and
-  # `contract-amendment-prepare-strands-the-run`.
+  # unblocks. One residual is carried in `[backlog].open`:
+  # `contract-amendment-prepare-strands-the-run`. The other,
+  # `intent-rename-h1-title-false-refusal`, was retired 2026-10-02 once the
+  # exemption shipped in code; the retirement note sits above that entry's
+  # former position.
   { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
   # Slice 2 of `intent-lifecycle-and-closure`, delivered 2026-09-27 and moved
   # from `queue` to `shipped` in the same change that set the spec `Shipped`
