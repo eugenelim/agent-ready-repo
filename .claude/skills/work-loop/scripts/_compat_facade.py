@@ -423,13 +423,21 @@ def _durable_sink(spec_dir: Path, shadow_dir: Path, cm: ModuleType) -> Callable[
     """
 
     def sink(event: object) -> None:
+        # Any storage failure surfaces as OSError: the security-event emitter
+        # turns that into its fail-closed sink-unavailable signal whichever
+        # copy of the emitter module the calling service loaded.
         if dataclasses.is_dataclass(event) and not isinstance(event, type):
             record: object = dataclasses.asdict(event)
         else:
             record = event
         if not isinstance(record, dict):
-            raise TypeError("security event must be a dataclass or a mapping")
-        _confined_jsonl_append(spec_dir, shadow_dir / _SECURITY_EVENTS_FILE, record, cm)
+            raise OSError("security event must be a dataclass or a mapping")
+        try:
+            _confined_jsonl_append(spec_dir, shadow_dir / _SECURITY_EVENTS_FILE, record, cm)
+        except OSError:
+            raise
+        except Exception as exc:
+            raise OSError("shadow security-event store unavailable") from exc
 
     return sink
 

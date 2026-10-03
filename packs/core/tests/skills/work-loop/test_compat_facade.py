@@ -613,7 +613,8 @@ class TestShadowAuditDurability:
 
         def failing_append(spec: Path, path: Path, record: dict, cm: ModuleType) -> None:
             if path.name == "shadow-security-events.jsonl":
-                raise OSError("audit store unavailable")
+                # The confined append reports every failure as MutationDenied.
+                raise cm.MutationDenied("denied-staging-failed", "audit store unavailable")
             real_append(spec, path, record, cm)
 
         monkeypatch.setattr(facade, "_confined_jsonl_append", failing_append)
@@ -622,6 +623,28 @@ class TestShadowAuditDurability:
         log = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
         frames = log.read_text("utf-8").splitlines() if log.exists() else []
         assert frames == [], "no evidence frame may be written when its audit event is lost"
+
+    def test_sink_failure_surfaces_as_the_stable_sink_unavailable_signal(
+        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A failed confined append reaches the emitter as its fail-closed signal."""
+        spec_dir = tmp_path / "audit-signal-spec"
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        shadow_dir.mkdir(parents=True)
+        cm = facade._cm()
+
+        def failing_append(spec: Path, path: Path, record: dict, cm_: ModuleType) -> None:
+            raise cm_.MutationDenied("denied-staging-failed", "audit store unavailable")
+
+        monkeypatch.setattr(facade, "_confined_jsonl_append", failing_append)
+        se = facade._load_sibling("_t_audit_signal_se", "_security_events.py")
+        event = se.SecurityEvent(
+            schema_version=1, operation_id="op-1", correlation_id="c-1",
+            event_type="capability-check", outcome="allowed",
+            reason_code="allowed", timestamp="2026-01-01T00:00:00Z",
+        )
+        with pytest.raises(se.AuditSinkUnavailable):
+            se.emit_security_event(facade._durable_sink(spec_dir, shadow_dir, cm), event)
 
 
 class TestAC0011Confinement:
