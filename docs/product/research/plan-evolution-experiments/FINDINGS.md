@@ -72,6 +72,25 @@ output tokens; a stronger constructor gave **0.17 fewer** correct decisions and
 **0.17 more** severe errors for **610 more** output tokens. Quality differences
 are within noise at four tasks; **the cost increases are not.**
 
+### Review churn is real and measurable — the retrospective baseline
+
+The finding that motivated everything downstream. Across four independently
+normalised pre-execution histories, **75 findings** were reported. First rounds
+produced 37; later rounds produced 38, but only **5 of those 38** were unrelated
+new defect families. Twelve were clear repeats of an earlier defect, 20 were a
+different defective surface under an already-contested invariant, and one had
+uncertain lineage.
+
+**32 of 38 later findings — 84.2% — returned to an existing defect or invariant
+family.** Repeated whole-document review was largely revisiting contested
+ground rather than finding new ground.
+
+Two Codex classifiers independently normalised the larger histories and a
+separate adjudicator resolved material disagreements, so the classification is
+not one reader's judgement. This is a recurrence proxy, not exact prose churn:
+the histories do not retain enough lineage to prove the later findings were
+blocking findings after an accepted revision.
+
 ### The review-effectiveness cohort
 
 Closed **incomplete** on 2026-10-02 — it could not answer its own frozen
@@ -92,20 +111,32 @@ unrecoverable. [`review-effectiveness-report.md`](review-effectiveness-report.md
 
 ## The finding that outranks all of them
 
-**Three of four arms died of measurement and recording failures, not of the work
-being studied.**
+**The two arms that failed were both killed by measurement, not by the work
+being studied — and a third problem reaches even the arms that succeeded.**
 
-- The workbench arm never cleared instrument calibration — 16 failed slots.
-- The review-effectiveness cohort published counts while the material behind
-  them sat in gitignored directories, and required per-finding telemetry nobody
-  ever wrote down.
-- Across the research records, **78 `.context/` paths were cited as evidence and
-  7 were already gone** before anyone checked.
+Of the four arms, two produced results and two did not:
 
-Every one is the same mistake: **evidence recorded somewhere nothing preserves,
-or not recorded at all while the work ran.** Host telemetry is session-local; a
-measurement not written during the run is gone when it ends, and estimating it
-afterwards is barred.
+| Arm | Outcome | Killed by |
+| --- | --- | --- |
+| Workbench pilot (H1–H13) | **no result** | the instrument — never cleared calibration, 16 failed slots |
+| Review-effectiveness cohort | **no compliant reading** | recording — required per-finding telemetry nobody wrote down |
+| Codex-headless run series | findings, non-inferential | — |
+| Review-churn retrospective | baseline | — |
+
+Neither failure was about planning, construction or review being hard to study.
+Both were about the apparatus: one could not start measuring, the other
+measured and did not write it down.
+
+The third problem is **evidence preservation, and it cuts across all four
+arms including the two that succeeded.** Across the research records, **78
+`.context/` paths were cited as evidence and 7 were already gone** before anyone
+checked. The headless runs produced the programme's only usable findings, and
+their raw material was never in the repository at all.
+
+All three are the same mistake in different places: **evidence recorded
+somewhere nothing preserves, or not recorded at all while the work ran.** Host
+telemetry is session-local; a measurement not written during the run is gone
+when it ends, and estimating it afterwards is barred.
 
 **A successor's first task is the recording path, not the hypothesis.** Write
 per-finding rows as each round closes, split returned tokens into input and
