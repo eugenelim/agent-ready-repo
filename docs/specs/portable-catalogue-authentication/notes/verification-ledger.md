@@ -211,6 +211,20 @@ Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
   brackets while the normalized machine keys keep them, so a bracketed IPv6
   record never matched. `test_netrc_matches_ipv6_literal_with_port` pins the
   fix.
+- **Review round 1 is a late-caught gate failure, not a reviewer finding.**
+  After T5, the sdist gate (`tools/test_check_artifact_contents.py`) reported
+  `1 failed, 82 passed`, but the controller read the exit status of a `tail`
+  filter and fired `gates-clean` (engine seq 33). The failure was the
+  explicit skip policy refusing the JFrog contract suite's environment-gated
+  skip. The run returned through `wave reopen` and `findings-remain` (seq 34),
+  whose required fingerprint is the SHA-256 of the saved gate log,
+  `5e97e24a9091e2689ca9ac1b9828049d4b5f5a9007630f4b4d381d58c88857db`.
+  The cohort therefore counts one review round that no reviewer produced. The
+  repair registers the suite's exact skip message, following the precedent of
+  the load-conditional entry, and adds it to the gate's own policy test.
+  Moving the suite out of the package tree would contradict T4's sealed
+  Touches, and making it collect nothing would hide the skip the gate exists
+  to report.
 - **The `credential-brokers` pack moves to 0.3.4.** The vendored user library
   is `.apm/**` content, and `packs/AGENTS.md` requires a patch bump for changed
   content in `pack.toml` and `.claude-plugin/plugin.json`.
