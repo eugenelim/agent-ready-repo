@@ -65,7 +65,7 @@ wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
 > only reads `.amount` and is unaffected.
 >
 > I ran `blast-radius Money --depth 1 --json` to separate direct from transitive:
-> 12 of the 47 are direct callers. Registering the MCP server would give per-
+> 12 of the 47 are direct dependents. Registering the MCP server would give per-
 > dependent depth and a PageRank ranking over exactly these 47.
 
 **What the skill did not do:** estimate effort, propose a migration order, or

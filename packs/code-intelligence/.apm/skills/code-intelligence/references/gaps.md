@@ -103,7 +103,9 @@ answer, either register the MCP server or state which approximation you used.
 ## 6. Paths — **Direct**
 
 `wicked-estate path <from> <to> [--max-depth N] [--json]` follows dependency
-edges (caller → callee) and returns the shortest route. With an ambiguous
+edges of every kind — calls, imports, containment and the rest (source-read) —
+and returns the shortest route. Read each hop's `kind`: a `Contains` or
+`Imports` hop is not a call. With an ambiguous
 `<from>`, it returns one shortest route across all candidates (source-read).
 `--max-depth` takes 1–16, defaults to 12, and values above 16 are accepted and
 clamped to 16 (source-read).
@@ -114,13 +116,18 @@ resolved_by}`. Each endpoint carries `{symbol, name, kind, file, line,
 line_1based}` — `line` is 0-based here; use `line_1based` to match the 1-based
 `line` that `resolve` and `blast-radius` report.
 
-Two outcome shapes: `found:true` means a route exists; `found:false` with both
-bound flags false means proven absence (the whole reachable set was searched);
-`found:false` with `depth_bounded` or `node_bounded` true means bounded absence
-— a route may exist beyond, so raise `--max-depth`. Unknown name exits 0 and
-sets `unresolved: "from"` or `"to"` — check this field, not the exit code.
+`found: true` means a route exists. `found: false` is proven absence only when
+`unresolved` is null and both `depth_bounded` and `node_bounded` are false: the
+whole reachable set was searched. Otherwise it proves nothing:
 
-MCP `Path` is the equivalent. Schema-derived — not executed here.
+- `unresolved: "from"` or `"to"` means that name matched no symbol. The command
+  still exits 0 and both bound flags read false, so check this field first.
+- `depth_bounded: true` means a route may lie deeper; raise `--max-depth` (max 16).
+- `node_bounded: true` means the search hit the CLI's fixed node budget. No flag
+  raises it, so report the answer as bounded.
+
+MCP `Path` is the equivalent; its response omits `from` and `to`. Inputs are
+schema-derived and the response shape is source-read — not executed here.
 
 Text output prints a `STALENESS:` line; `--json` suppresses it.
 
@@ -143,7 +150,7 @@ The two surfaces differ substantially, and the MCP form is the richer one:
 | Output cut | `truncated_dependents` | `truncated` + `total` |
 
 *Note:* use `blast-radius <name> --depth 1 --json` to get direct dependents
-only; the difference against the full run is the transitive set. When
+only; the difference against the full run is the transitive set only when neither run reports `truncated_dependents` above 0 and the full run reports `depth_horizon_reached: false`. Otherwise it is the transitive set within `searched_depth`, and a floor. When
 `depth_horizon_reached` is true, the text output prints `CUT AT depth=N`;
 raise `--depth` (max 24) to go further. `blast-radius` rows carry no per-hop
 confidence or provenance — use `wicked-estate path` when you need those.
@@ -186,7 +193,7 @@ A second, smaller correction: the annotation JSON carries `ts`, not
 `last_verified`. The human-readable `stale-annotations` text mentions a
 verification date; the machine payload does not.
 
-## 11. Confidence — **Partial on CLI, Direct on MCP (schema-derived)**
+## 11. Confidence — **Partial on CLI `blast-radius`, Direct on CLI `path` and MCP (schema-derived)**
 
 Confidence is on every edge by construction and on every annotation as a field.
 `nodes --json --semantics` exposes `rule_confidence` per node.
@@ -195,9 +202,10 @@ Confidence is on every edge by construction and on every annotation as a field.
 `confidence {min, avg, edge_count}` envelope over the traversal edges, so you
 can tell a high-confidence impact set from a speculative one.
 
-**On the CLI it does not.** You cannot look at a `blast-radius --json` result
-and see which dependents came from high-confidence edges. That is the gap, and
-it is CLI-specific. The correct response on the CLI is to verify load-bearing
+**On CLI `blast-radius` it does not.** You cannot look at a `blast-radius --json`
+result and see which dependents came from high-confidence edges. That is the
+gap. `path --json` does carry `confidence` on every hop, so for one specific
+route the CLI shows it. The correct response on the CLI is to verify load-bearing
 edges against source rather than to invent a confidence figure.
 
 ## 12. Completeness — **Direct**
@@ -208,12 +216,13 @@ Reported: `unresolved` / `unresolved_callers`, `truncated_dependents` /
 `truncated`, and `searched_depth` / `depth_horizon_reached` / `node_cap_reached`
 on `blast-radius --json` (executed). Use `blast-radius <name> --depth N` (default
 12, max 24) to control reach; when `depth_horizon_reached` is true, the text
-output prints `CUT AT depth=N`. `max_nodes` truncation on MCP `TraverseGraph`.
+output prints `CUT AT depth=N`. A true `node_cap_reached` means the traversal hit
+its node budget; no CLI flag raises it, so report the list as a floor.
+`max_nodes` truncation on MCP `TraverseGraph`.
 `stats` for overall graph size.
 
-A `found: false` with `depth_bounded: true` from `wicked-estate path --json` means
-the route is not proven absent — raise `--max-depth`. `found:false` with both
-bound flags false is proven absence: the whole reachable set was searched.
+`wicked-estate path --json` reports its own limits the same way: see
+§6 Paths for when `found: false` is a proven absence.
 
 *Caveat:* `dead-code` returns symbols with no edges at all, and the count is
 larger than intuition suggests — **42,509 of 65,807 nodes (65%)** on this

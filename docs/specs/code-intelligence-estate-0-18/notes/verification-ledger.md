@@ -51,3 +51,31 @@ In a scratch git repository holding the three-file fixture, with the updated
   `handle (core.py:4) -> helper (core.py:1)  [Calls] confidence 0.65 (scoped-name-resolver)`.
 - `wicked-estate blast-radius helper --depth 1`: coverage line ends
   "CUT AT depth=1 — more dependents exist beyond 1 hops, re-run with a larger --depth".
+
+## Review round 1 fixes (owner authorized all 11 findings, 2026-10-03)
+
+Evidence for the two findings the adjudicator could not settle:
+
+- `wicked-estate path nope helper --json` (0.18.0, fixture) returns
+  `{"depth_bounded":false,"found":false,"from":"nope","hops":[],"node_bounded":false,"to":"helper","unresolved":"from"}`
+  and exits 0 — the same flags as a searched absence. The contract suite now asserts
+  `found`, `depth_bounded` and `node_bounded` are all false in that case.
+- Upstream v0.18.0 `crates/wicked-estate-retrieve/src/lib.rs`, `Path::invoke`, returns
+  `{hops, found, depth_bounded, node_bounded, unresolved}` with no `from`/`to`; endpoints
+  carry `{symbol, name, kind, file, line, line_1based}`. No `Path` response schema ships.
+- `wicked-estate path caller.py helper` (0.18.0, fixture) returns three hops, the first
+  `caller.py (caller.py:1) -> entry (caller.py:3)  [Contains] confidence 1.00 (tree-sitter)`:
+  `path` follows non-call edges.
+- Upstream v0.18.0 MCP `BlastRadius` input schema has only `depth` and `symbol`; the CLI
+  `path` arm hardcodes its node budget. No surface offers a node-budget control.
+
+Mutation check: setting `PINNED_VERSION = "0.18.1"` turns
+`test_required_pin_equals_preflight_pinned_version` red (1 failed); restoring it turns it green.
+
+## Final run on the fixed head
+
+- Binary first on `PATH`: `wicked-estate 0.18.0 — usage:`.
+- `python3 -m pytest packs/code-intelligence/tests tools/test_check_output_readability.py -q`: 152 passed.
+- Guide commands: `scanner='pin'` exit 0; `scanner='retired'` exit 0.
+- `make lint-ruff lint-mypy`: pass. `tools/test-lint-pack-test-boundary.py`: 154 passed.
+  `tools/validate_guides.py`: OK.

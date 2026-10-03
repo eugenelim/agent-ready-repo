@@ -61,7 +61,7 @@ the server advertises **only** when an embedding backend is available.
 | Intent | CLI | Returns |
 | --- | --- | --- |
 | Blast radius / who depends on this | `wicked-estate blast-radius <name> [--depth N] --json` | `{target, dependents[], unresolved, truncated_dependents, searched_depth, depth_horizon_reached, node_cap_reached}`. Default depth 12, max 24. Read [Completeness](#completeness-fields) below before quoting it. |
-| Route from one symbol to another | `wicked-estate path <from> <to> [--max-depth N] --json` | `{from, to, hops[], found, depth_bounded, node_bounded, unresolved}`. Each hop: `{source, target, kind, confidence, provenance, resolved_by}`. Each endpoint: `{symbol, name, kind, file, line, line_1based}` — `line` is 0-based; use `line_1based`. `found:false` with both bound flags false means proven absence; with `depth_bounded:true` means bounded (raise `--max-depth`, max 16). Unknown name sets `unresolved: "from"` or `"to"`, exits 0. |
+| Route from one symbol to another | `wicked-estate path <from> <to> [--max-depth N] --json` | `{from, to, hops[], found, depth_bounded, node_bounded, unresolved}`. Each hop: `{source, target, kind, confidence, provenance, resolved_by}`. Each endpoint: `{symbol, name, kind, file, line, line_1based}` — `line` is 0-based; use `line_1based`. Follows every dependency edge kind; read each hop's `kind`. `found:false` is proven absence only when `unresolved` is null and both bound flags are false. An unknown name sets `unresolved: "from"` or `"to"` and still exits 0. With `depth_bounded:true`, raise `--max-depth` (max 16); with `node_bounded:true`, report the answer as bounded — no flag raises the node budget. |
 | Bounded neighbourhood | `wicked-estate graph-view [--focus <name>] [--limit N] [--include-tests] [--include-trivial] [--ignore <pat>]` | A filtered subgraph around the focus symbol. Trivial nodes and tests are excluded unless asked for. |
 | Entry points | `wicked-estate entrypoints --json` | Symbols with no callers or importers. |
 | Leaves | `wicked-estate leaves --json` | Symbols that call and import nothing. |
@@ -85,10 +85,11 @@ traversal edges, a `summary` with `by_kind`, `top_files`, and `top_by_pagerank`
 `searched_depth`.
 
 MCP `Path` is the equivalent of `wicked-estate path`. It takes `from`, `to`,
-`depth` (1–16, default 8), and `max_nodes` (1–5000, default 1000), and returns
-the same honest shape as the CLI: `{from, to, hops[], found, depth_bounded,
-node_bounded, unresolved}` with per-hop `{source, target, kind, confidence,
-provenance, resolved_by}`. Schema-derived — not executed here.
+`depth` (1–16, default 8), and `max_nodes` (1–5000, default 1000) — inputs
+schema-derived. It returns `{hops, found, depth_bounded, node_bounded,
+unresolved}`, without the CLI's `from` and `to`, with per-hop `{source, target,
+kind, confidence, provenance, resolved_by}` — response shape source-read, since
+no response schema ships. Not executed here.
 
 > **Edge direction.** Wicked Estate's invariant is `source = dependent`,
 > `target = dependency`. Blast radius is reverse reachability; lineage is
@@ -180,7 +181,11 @@ from the other.
 `depth_horizon_reached`, and `node_cap_reached`. When `depth_horizon_reached` is
 true, the text output prints a `CUT AT depth=N` line; raise `--depth` (max 24) to
 go further. Use `blast-radius <name> --depth 1` to get only direct dependents; the
-difference against the full run is the transitive set. `path` hops carry
+difference against the full run is the transitive set only when neither run
+reports `truncated_dependents` above 0 and the full run reports
+`depth_horizon_reached: false`; otherwise it is a floor within `searched_depth`.
+A true `node_cap_reached` means the node budget cut the walk; no CLI flag raises
+it. `path` hops carry
 `confidence`, `provenance`, and `resolved_by` per hop; `blast-radius` rows do not.
 
 MCP `BlastRadius` takes an explicit `depth` (default 8, max 24) and returns a

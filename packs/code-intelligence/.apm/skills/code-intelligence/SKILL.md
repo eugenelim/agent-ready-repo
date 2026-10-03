@@ -148,8 +148,10 @@ Three rules are load-bearing:
   `truncated_dependents` count when output was capped at 25,000 characters, and
   `searched_depth`, `depth_horizon_reached`, and `node_cap_reached` fields. Use
   `blast-radius <name> --depth N` (default 12, max 24) to control reach; when
-  `depth_horizon_reached` is true, the result is bounded — raise `--depth`. Report
-  all three completeness numbers; never present the list as complete.
+  `depth_horizon_reached` is true, the result is bounded — raise `--depth`. A true
+  `node_cap_reached` has no CLI remedy. Report `unresolved`,
+  `truncated_dependents`, `searched_depth`, and any cut flag that is true; never
+  present the list as complete.
 - **A heuristic edge is not a fact.** Every edge carries confidence and
   provenance. A name-matched edge and a compiler-verified one look identical in
   a flat list. Where an edge is load-bearing for your conclusion, verify it

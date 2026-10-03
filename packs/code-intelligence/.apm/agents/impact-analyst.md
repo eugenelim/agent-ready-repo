@@ -44,12 +44,15 @@ Follow the analyze-change-impact pattern in the `code-intelligence` skill's
 3. **Read the completeness fields first.** `unresolved` counts references the
    indexer could not bind; `truncated_dependents` counts rows dropped at the
    25,000-character output bound. Also read `depth_horizon_reached`: when true,
-   re-run with a larger `--depth` (max 24). These go at the top of your report,
+   re-run with a larger `--depth` (max 24). A true `node_cap_reached` has no CLI
+   remedy; report the list as a floor. These go at the top of your report,
    not in a footnote.
 
 4. **Separate direct from transitive.** Run `blast-radius <name> --depth 1 --json`
-   for direct dependents; the difference against the full run is the transitive
-   set. Where the MCP server is registered, `BlastRadius` stamps each dependent
+   for direct dependents. The difference against the full run is the transitive
+   set only when neither run reports `truncated_dependents` above 0 and the full
+   run reports `depth_horizon_reached: false`; otherwise call it a floor within
+   `searched_depth`. Where the MCP server is registered, `BlastRadius` stamps each dependent
    with its own `depth` and needs no second call.
 
 5. **Select, then read.** Reading five dependents properly beats listing a

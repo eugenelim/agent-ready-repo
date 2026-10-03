@@ -50,23 +50,32 @@ _CARGO_INSTALL_RE: re.Pattern[str] = re.compile(
     r"\bcargo\s+install\s+wicked-estate(?:-mcp)?"
 )
 
-#: A line must carry exactly this form to satisfy the pin check: the package name
-#: followed by `--version 0.18.0 --locked` with no other version number present.
+#: The exact version every install command must pin. A test ties it to the
+#: preflight's `PINNED_VERSION`, so the scanner and the preflight cannot drift.
+REQUIRED_PIN = "0.18.0"
+
+#: Each `cargo install` occurrence must continue with exactly this form: the
+#: package name, then `--version <REQUIRED_PIN> --locked`.
 _CORRECT_PIN_RE: re.Pattern[str] = re.compile(
-    r"\bcargo\s+install\s+wicked-estate(?:-mcp)?\s+--version\s+0\.18\.0\s+--locked"
+    r"\bcargo\s+install\s+wicked-estate(?:-mcp)?\s+--version\s+"
+    + re.escape(REQUIRED_PIN)
+    + r"\s+--locked"
 )
 
 
 def _scan_pin(path: Path) -> list[str]:
-    """Return ``'file:line'`` for every cargo-install line with an incorrect pin.
+    """Return ``'file:line'`` for every line holding an incorrectly pinned install.
 
-    A line that contains a ``cargo install wicked-estate(-mcp)?`` invocation but
-    does not carry ``--version 0.18.0 --locked`` immediately after the package
-    name is flagged as a violation.
+    Each ``cargo install wicked-estate(-mcp)?`` occurrence is checked on its own:
+    it must be followed immediately by ``--version <REQUIRED_PIN> --locked``. A
+    correct pin elsewhere on the same line does not excuse a stale one.
     """
     hits: list[str] = []
     for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        if _CARGO_INSTALL_RE.search(line) and not _CORRECT_PIN_RE.search(line):
+        if any(
+            not _CORRECT_PIN_RE.match(line, m.start())
+            for m in _CARGO_INSTALL_RE.finditer(line)
+        ):
             hits.append(f"{path}:{i}")
     return hits
 
@@ -235,6 +244,7 @@ _RETIRED_CURRENT_SAMPLE: tuple[str, ...] = (
 _PIN_STALE_SAMPLES: tuple[str, ...] = (
     "cargo install wicked-estate --locked",
     "cargo install wicked-estate --version 0.16.7 --locked",
+    "cargo install wicked-estate --version 0.18.0 --locked && cargo install wicked-estate-mcp --locked",
 )
 
 #: Correct cargo install lines that must be accepted by the pin scanner.
@@ -338,6 +348,20 @@ def test_pin_scanner_shipped_surface_is_clean() -> None:
     assert result == 0, "pin scanner found incorrect cargo install pins in the shipped surface"
 
 
+def test_required_pin_equals_preflight_pinned_version() -> None:
+    """AC-0004: the pin the scanner requires is the preflight's ``PINNED_VERSION``."""
+    import importlib.util  # noqa: PLC0415
+
+    spec = importlib.util.spec_from_file_location(
+        "code_intelligence_guidance_estate_preflight",
+        RUNTIME_ROOT / "skills" / "code-intelligence" / "scripts" / "estate_preflight.py",
+    )
+    assert spec and spec.loader
+    preflight = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(preflight)
+    assert preflight.PINNED_VERSION == REQUIRED_PIN
+
+
 def test_pin_scanner_planted_samples(tmp_path: Path) -> None:
     """AC-0005: pin scanner rejects stale install lines and accepts the correct 0.18.0 pin."""
     stale_file = tmp_path / "stale_pins.md"
@@ -383,7 +407,7 @@ def test_retired_claim_scanner_shipped_surface_is_clean() -> None:
 def test_retired_claim_planted_samples(tmp_path: Path) -> None:
     """AC-0028: retired-claim scanner matches every stale sentence and no current sentence.
 
-    Stale sentences are verbatim from today's files, one per pattern group.
+    Stale sentences come from the pre-0.18 pack and guides, at least one per pattern.
     Current sentences must not trigger any pattern; in particular, a 0.16.7
     provenance note must not match the bare-0.16 version pattern.
     """

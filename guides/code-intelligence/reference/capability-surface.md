@@ -61,10 +61,13 @@ match while appearing pinned to one. Always pass `--json` with a selector.
 - **`blast-radius --json`** returns `unresolved`, `truncated_dependents`,
   `searched_depth`, `depth_horizon_reached` and `node_cap_reached`. A true
   `depth_horizon_reached` means more dependents lie beyond the depth searched;
-  raise `--depth` (default 12, maximum 24).
+  raise `--depth` (default 12, maximum 24). A true `node_cap_reached` means the
+  node budget cut the walk, and no flag raises it.
 - **`path --json`** returns `found`, `depth_bounded`, `node_bounded` and
-  `unresolved`. `found: false` with both bound flags false means no route
-  exists. With either flag true, a route may lie beyond the search. Endpoint
+  `unresolved`. `found: false` means no route exists only when `unresolved` is
+  null and both bound flags are false. A misspelled name sets `unresolved` and
+  still exits 0. With a bound flag true, a route may lie beyond the search.
+  `path` follows every dependency edge kind, so read each hop's `kind`. Endpoint
   `line` counts from 0; use `line_1based`.
 
 ## What does not exist

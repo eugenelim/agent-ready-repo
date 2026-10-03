@@ -77,13 +77,17 @@ unresolved and **727 truncated**.
 `node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
 `CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
 `--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives
-only the direct dependents; the difference against the full run is the transitive
-set.
+only the direct dependents; the difference against the full run is the transitive set only when neither run reports `truncated_dependents` above 0 and the full run reports `depth_horizon_reached: false`. Otherwise it is the transitive set within `searched_depth`, and a floor.
 
-`wicked-estate path A B --json` separates bounded from proven absence: `found:false`
-with `depth_bounded: true` means the route may exist beyond the current
-`--max-depth`; `found:false` with both bound flags false means the whole reachable
-set was searched and no route was found.
+A true `node_cap_reached` means the traversal hit its node budget. No CLI flag
+raises it, so report the list as a floor.
+
+`wicked-estate path A B --json` separates bounded from proven absence. A
+`found: false` is proven absence only when `unresolved` is null and both
+`depth_bounded` and `node_bounded` are false. A non-null `unresolved` means a name
+matched nothing, even though the command exits 0. `depth_bounded: true` means the
+route may lie beyond `--max-depth`. `node_bounded: true` means the fixed node
+budget cut the search, and no flag raises it.
 
 When reach matters to your conclusion, say which surface you used, what depth you
 searched, and whether `depth_horizon_reached` was true.

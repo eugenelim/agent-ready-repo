@@ -506,6 +506,11 @@ def test_path_unresolved_from_side(graph: Path) -> None:
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert payload["unresolved"] == "from"
+    # The trap the pack warns about: an unknown name looks like a searched absence
+    # unless `unresolved` is read first.
+    assert payload["found"] is False
+    assert payload["depth_bounded"] is False
+    assert payload["node_bounded"] is False
 
 
 def test_path_unresolved_to_side(graph: Path) -> None:

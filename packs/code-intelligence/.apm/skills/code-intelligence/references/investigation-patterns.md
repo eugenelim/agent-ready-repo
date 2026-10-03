@@ -111,7 +111,10 @@ this work".
    ```
 
    That gives the direct dependents. The difference against the full blast
-   radius is the transitive set.
+   radius is the transitive set only when neither run reports
+   `truncated_dependents` above 0 and the full run reports
+   `depth_horizon_reached: false`. Otherwise call it the transitive set within
+   `searched_depth`, and a floor.
 
    - MCP available: `TraverseGraph` with `direction: "dependents"` and
      `depth: 1` gives the direct set with per-node depth in the response.
@@ -153,9 +156,12 @@ caveat is stated, and each claimed breakage is grounded in source.
    when you only have a description **and** the index carries embeddings.
 
 2. **When the question is a specific route, use path.** For "how does A reach B",
-   run `wicked-estate path A B --json` and read only the hop files. A `found:false`
-   with `depth_bounded: true` means the route is not proven absent — raise
-   `--max-depth`. `found:false` with both bound flags false is proven absence.
+   run `wicked-estate path A B --json` and read only the hop files. Read each
+   hop's `kind`: a `Contains` or `Imports` hop is not a call. Check `unresolved`
+   first — a misspelled name exits 0. A `found: false` is proven absence only
+   when `unresolved` is null and both bound flags are false. With
+   `depth_bounded: true`, raise `--max-depth`; with `node_bounded: true`, report
+   the answer as bounded, because no flag raises the node budget.
 
 3. **Follow what the behaviour actually flows through.** Calls via
    `graph-view --focus`; configuration via `source --file <path> --json`; rules via MCP

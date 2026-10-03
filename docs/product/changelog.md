@@ -206,7 +206,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Requires Wicked Estate 0.18 — floor and pin are both 0.18.0; a binary older than 0.18 causes the preflight to exit 4 with a remediation command.
-- `wicked-estate path` is now documented: it follows caller-to-callee edges, returns the shortest route, and reports whether a `found: false` answer is bounded (`depth_bounded` or `node_bounded` true) or proven absent (both false). The 0-based `line` field in path hop endpoints is noted.
+- `wicked-estate path` is now documented: it follows dependency edges of every kind, returns the shortest route, and reports whether a `found: false` answer is bounded (`depth_bounded` or `node_bounded` true), names an unknown symbol (`unresolved` set), or is proven absent (neither). The 0-based `line` field in path hop endpoints is noted.
 - `blast-radius --depth N` and its three cut fields (`searched_depth`, `depth_horizon_reached`, `node_cap_reached`) replace the earlier silent-depth-12 guidance.
 - MCP-only additions are documented as schema-derived: the `Path` tool, `Lineage` with `relation: "flows_to"`, `SearchEntity` with `include_values`, `rules.recall` with `projects`, and the cut fields on `TraverseGraph`, `BlastRadius`, and `Lineage`. Tool counts are 30 without an embedding backend, 31 with one.
 
