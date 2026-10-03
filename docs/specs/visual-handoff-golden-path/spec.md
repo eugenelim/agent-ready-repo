@@ -1,6 +1,6 @@
 # Spec: Visual handoff golden path
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0130, ADR-0132
@@ -106,86 +106,86 @@ apart.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The roster test installs `experience-design` and
+- [x] **AC-0001.** The roster test installs `experience-design` and
       `frontend-engineering` into one temporary repository through
       `agentbundle install`, and every rule table, template field, refusal
       record, and fallback value it applies is parsed from that installation,
       fallback values from `references/fallback-tokens.md`; a
       table it needs that is absent from the installation fails the test.
-- [ ] **AC-0002.** On the `confirmed` fixture, the walk records composition from
+- [x] **AC-0002.** On the `confirmed` fixture, the walk records composition from
       `approved-visual-target`, values from `direction-and-taxonomy`, every
       value domain sourced from the taxonomy, and a loaded-file set that
       excludes `references/fallback-tokens.md`.
-- [ ] **AC-0003.** On the `unconfirmed` fixture, the walk records
+- [x] **AC-0003.** On the `unconfirmed` fixture, the walk records
       `direction-and-taxonomy` for both composition and values, every value
       domain sourced from the taxonomy, a record that the direction does not
       carry `visual_target: confirmed`, and no fallback loaded.
-- [ ] **AC-0004.** On the `missing-taxonomy` fixture — a resolved direction, a
+- [x] **AC-0004.** On the `missing-taxonomy` fixture — a resolved direction, a
       named-skip taxonomy slot, and no incumbent system — the walk holds every
       value domain under operation kind `taxonomy-supply-required`, sources no
       domain from `local-premise` or the fallback, loads no fallback, and keeps
       composition at `direction-and-taxonomy`.
-- [ ] **AC-0005.** On the `unresolved-domain` fixture, the walk holds exactly
+- [x] **AC-0005.** On the `unresolved-domain` fixture, the walk holds exactly
       the domain the taxonomy records unresolved under operation kind
       `domain-completion-required`, sources every other value domain from the
       taxonomy, loads no fallback, and writes each gap record with exactly the
       fields the installed `gap-record-contents` cell names: the axes held and
       the operation kind.
-- [ ] **AC-0006.** On the `standalone` fixture — no `[design]` section and no
+- [x] **AC-0006.** On the `standalone` fixture — no `[design]` section and no
       incumbent system — the walk records the named skip
       `design handoff: no [design] section configured`, reaches `local-premise`,
       loads the fallback, and records each of the installed standalone
       `admits` conditions as true.
-- [ ] **AC-0007.** On the `refusal` fixture — a non-conforming slug beside a
+- [x] **AC-0007.** On the `refusal` fixture — a non-conforming slug beside a
       direction and taxonomy that would otherwise resolve — the walk records
       the installed slug-refusal record, reaches no rung, sources no value
       domain, extracts no artifact, and loads no fallback.
-- [ ] **AC-0008.** Rewriting the installed `refusal-demotes` cell to `always`
+- [x] **AC-0008.** Rewriting the installed `refusal-demotes` cell to `always`
       makes the `refusal` walk complete without raising and reach a rung, and
       rewriting the installed `approved-visual-target` `Requires` cell to
       `visual_target: none` makes the `confirmed` walk complete without raising
       and resolve composition at `direction-and-taxonomy`; a failure raised by
       the walk's unknown-vocabulary guard satisfies neither control.
-- [ ] **AC-0009.** In the `confirmed` fixture taxonomy's Authority table, Color
+- [x] **AC-0009.** In the `confirmed` fixture taxonomy's Authority table, Color
       carries `incumbent-system` and Spacing and rhythm carries
       `approved-direction`; every colour role traces to the fixture incumbent
       file, and every spacing role traces to a ranked goal of the fixture
       direction or a direction-sheet axis whose committed token is not
       `[platform-default]`. Whether those rung choices are the ones
       `design-system` would make is outside this check.
-- [ ] **AC-0010.** Every value a `confirmed`-fixture role traces to the
+- [x] **AC-0010.** Every value a `confirmed`-fixture role traces to the
       incumbent file appears verbatim in that file.
-- [ ] **AC-0011.** Every pairing the `confirmed` fixture taxonomy lists under
+- [x] **AC-0011.** Every pairing the `confirmed` fixture taxonomy lists under
       Accessibility names an element class from the installed frontend WCAG
       contrast-floor table and reaches that class's minimum ratio, computed
       from the taxonomy's resolved values with the WCAG 2.x relative-luminance
       formula; an absent table fails the test.
-- [ ] **AC-0012.** Every rung named in the `confirmed` fixture taxonomy's
+- [x] **AC-0012.** Every rung named in the `confirmed` fixture taxonomy's
       Authority table is a rung in the installed `design-system` rung table.
-- [ ] **AC-0013.** The golden implementation declares every colour and spacing
+- [x] **AC-0013.** The golden implementation declares every colour and spacing
       role of the `confirmed` fixture taxonomy with exactly the taxonomy's
       value, declares no `--ds-` property, and its markup contains no raw
       colour literal; substituting the value `references/fallback-tokens.md`
       declares for `--ds-color-primary` into `--color-accent-action`, or its
       `--ds-space-3` value into `--space-3`, makes this check fail.
-- [ ] **AC-0014.** The installed frontend `SKILL.md` places its
+- [x] **AC-0014.** The installed frontend `SKILL.md` places its
       render-and-observe section before its `## GATES phase`, and the
       `confirmed` run record carries exactly one gate event per numbered `###`
       heading under that installed GATES phase, in heading order, every one
       after its last render, observe and correct event; every gate event
       records `ran` as true or false.
-- [ ] **AC-0015.** The `confirmed` run record holds at most the installed
+- [x] **AC-0015.** The `confirmed` run record holds at most the installed
       `correction-passes` count of corrections, exactly the installed
       `verification-renders-after-correction` count of renders after the
       correction, a correction citing a material gap whose class is in the
       installed divergence-class table, and its remaining divergence recorded
       as residual rather than corrected.
-- [ ] **AC-0016.** The run-record check rejects each of five negative records
+- [x] **AC-0016.** The run-record check rejects each of five negative records
       derived from the `confirmed` one: a gate before the first render, a
       second correction, an observation with no preceding captured render, no
       `primary-state` render, and no render of the conditional state the
       fixture declares applicable.
-- [ ] **AC-0017.** The `no-browser` run record contains no observe or correct
+- [x] **AC-0017.** The `no-browser` run record contains no observe or correct
       event, names the missing capability in `manifest.unverified_items`, and
       carries exactly one gate event per numbered `###` heading under the
       installed `## GATES phase`, in heading order, where every event for a
@@ -194,7 +194,7 @@ apart.
       carries the installed result state `skipped-no-browser`; the check
       rejects the same record with any of those events set to `ran: true` or
       with any of their reasons emptied.
-- [ ] **AC-0018.** The frontend skill's `evals.json` carries cases
+- [x] **AC-0018.** The frontend skill's `evals.json` carries cases
       `visual-golden-path-confirmed-values`,
       `visual-golden-path-unconfirmed-target` and
       `visual-golden-path-refusal-preserved`, each declaring no `files`, a
@@ -203,28 +203,28 @@ apart.
       `references/fallback-tokens.md` declares for `--ds-color-primary`, at
       least one assertion beginning `Does not`,
       and at least one that does not.
-- [ ] **AC-0019.** The installed `expect.output_contains` of the
+- [x] **AC-0019.** The installed `expect.output_contains` of the
       `visual-golden-path-confirmed-values` and
       `visual-golden-path-unconfirmed-target` cases lists the `accent.action`
       and `surface.default` values of its own scenario's fixture taxonomy.
-- [ ] **AC-0020.** The existing cases
+- [x] **AC-0020.** The existing cases
       `visual-authority-upstream-gap-missing-taxonomy` and
       `visual-authority-unresolved-domain` carry an `expect.output_excludes`
       listing `--ds-color-primary:` and `--ds-space-3:`, and
       `visual-authority-standalone` carries an `expect.output_contains` listing
       `local-premise`.
-- [ ] **AC-0021.** `build-check.yml` runs the roster test in a named step, and
+- [x] **AC-0021.** `build-check.yml` runs the roster test in a named step, and
       `python3 tools/lint-ci-parity.py` exits zero.
-- [ ] **AC-0022.** `frontend-engineering` carries one patch version above its
+- [x] **AC-0022.** `frontend-engineering` carries one patch version above its
       merge-base version — `0.4.2` against today's `0.4.1` — identically in
       `pack.toml`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`
       and a free-standing `docs/product/changelog.md` heading, and
       `agentbundle catalogue lint --root . --deep` and
       `agentbundle catalogue verify --root .` exit zero.
-- [ ] **AC-0023.** The `confirmed` fixture taxonomy's Accessibility section
+- [x] **AC-0023.** The `confirmed` fixture taxonomy's Accessibility section
       records at least one adaptation — a role whose value moved to clear the
       floor — and that role appears in a pairing AC-0011 checks.
-- [ ] **AC-0024.** A state is a row of the installed representative-states
+- [x] **AC-0024.** A state is a row of the installed representative-states
       table whose value begins `required`; it is conditional when its value
       begins `required where`. The `confirmed` fixture's `scenario.toml`
       declares at least one conditional state applicable, every render event in

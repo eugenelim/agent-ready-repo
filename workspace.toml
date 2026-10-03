@@ -528,6 +528,11 @@ active  = [
 queue   = [
 ]
 shipped = [
+  # Shipped 2026-10-03. A roster test installs experience-design and
+  # frontend-engineering together and walks six handoff paths through the
+  # installed visual-authority rules; frontend-engineering 0.4.2 ships three
+  # golden eval cases. Narrower than the cross-pack-experience-eval intent.
+  {path = "docs/specs/visual-handoff-golden-path/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Prove the experience-design to frontend-engineering visual handoff across the pack boundary: six paths walked through the installed authority rules, concrete taxonomy values consumed without fallback, and render-observe-correct ahead of the engineering gates", needs = [{type = "local", kind = "spec", path = "docs/specs/design-to-build-value-handoff/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/visual-target-rung-precondition/spec.md"}]},
   # Shipped 2026-10-02. Makes the approved-visual-target rung resolve only on
   # `visual_target: confirmed`, migrating every carrier that restated the
   # superseded prose reading and enforcing it with a repository-level property

@@ -1,7 +1,7 @@
 # Plan: Visual handoff golden path
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tests/AGENTS.md` (repository-level assertions live in
   `tests/roster/`; registration obligations) and `tools/lint-pack-test-boundary.py`
   check 8; analogous construction path
