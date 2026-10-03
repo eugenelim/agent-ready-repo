@@ -49,10 +49,7 @@ Follow the analyze-change-impact pattern in the `code-intelligence` skill's
    not in a footnote.
 
 4. **Separate direct from transitive.** Run `blast-radius <name> --depth 1 --json`
-   for direct dependents. The difference against the full run is the transitive
-   set only when neither run reports `truncated_dependents` above 0 and the full
-   run reports `depth_horizon_reached: false`; otherwise call it a floor within
-   `searched_depth`. Where the MCP server is registered, `BlastRadius` stamps each dependent
+   for direct dependents. The difference against the full run is the complete transitive set only when the full run reports no cut — `truncated_dependents` 0, `depth_horizon_reached: false` and `node_cap_reached: false` — and the `--depth 1` run reports `truncated_dependents` 0. Otherwise it is a floor within `searched_depth`. Where the MCP server is registered, `BlastRadius` stamps each dependent
    with its own `depth` and needs no second call.
 
 5. **Select, then read.** Reading five dependents properly beats listing a

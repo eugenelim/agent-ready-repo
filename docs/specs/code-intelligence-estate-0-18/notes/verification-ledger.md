@@ -79,3 +79,14 @@ Mutation check: setting `PINNED_VERSION = "0.18.1"` turns
 - Guide commands: `scanner='pin'` exit 0; `scanner='retired'` exit 0.
 - `make lint-ruff lint-mypy`: pass. `tools/test-lint-pack-test-boundary.py`: 154 passed.
   `tools/validate_guides.py`: OK.
+
+## Review round 2 fixes
+
+- The direct-versus-transitive rule now reads identically in `evidence.md`, `gaps.md`,
+  `capability-map.md`, `investigation-patterns.md` and `agents/impact-analyst.md`: the
+  difference is the complete transitive set only when the full run reports no cut
+  (`truncated_dependents` 0, `depth_horizon_reached: false`, `node_cap_reached: false`)
+  and the `--depth 1` run reports `truncated_dependents` 0; otherwise a floor.
+- `gaps.md` §11 heading and summary row scope the schema-derived label to MCP only.
+- Gates after the fix: pack suites + readability 152 passed (0.18.0 first on `PATH`);
+  guide commands exit 0 and 0; `make lint-ruff lint-mypy` pass.

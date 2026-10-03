@@ -150,7 +150,7 @@ The two surfaces differ substantially, and the MCP form is the richer one:
 | Output cut | `truncated_dependents` | `truncated` + `total` |
 
 *Note:* use `blast-radius <name> --depth 1 --json` to get direct dependents
-only; the difference against the full run is the transitive set only when neither run reports `truncated_dependents` above 0 and the full run reports `depth_horizon_reached: false`. Otherwise it is the transitive set within `searched_depth`, and a floor. When
+only; the difference against the full run is the complete transitive set only when the full run reports no cut — `truncated_dependents` 0, `depth_horizon_reached: false` and `node_cap_reached: false` — and the `--depth 1` run reports `truncated_dependents` 0. Otherwise it is a floor within `searched_depth`. When
 `depth_horizon_reached` is true, the text output prints `CUT AT depth=N`;
 raise `--depth` (max 24) to go further. `blast-radius` rows carry no per-hop
 confidence or provenance — use `wicked-estate path` when you need those.
@@ -193,7 +193,7 @@ A second, smaller correction: the annotation JSON carries `ts`, not
 `last_verified`. The human-readable `stale-annotations` text mentions a
 verification date; the machine payload does not.
 
-## 11. Confidence — **Partial on CLI `blast-radius`, Direct on CLI `path` and MCP (schema-derived)**
+## 11. Confidence — **Partial on CLI `blast-radius`; Direct on CLI `path`; Direct on MCP (schema-derived)**
 
 Confidence is on every edge by construction and on every annotation as a field.
 `nodes --json --semantics` exposes `rule_confidence` per node.
@@ -274,7 +274,7 @@ by assuming `--help` is exhaustive.
 | 8 | Context | Direct |
 | 9 | Compare | Partial |
 | 10 | Provenance / evidence | Partial on blast-radius (in the model, not per row); Direct on path hops |
-| 11 | Confidence | Partial on CLI blast-radius; Direct on path hops and MCP (schema-derived) |
+| 11 | Confidence | Partial on CLI blast-radius; Direct on CLI path hops; Direct on MCP (schema-derived) |
 | 12 | Completeness | Direct — unresolved, truncation and depth cut all reported |
 | 13 | Snapshot / revision identity | Partial |
 | 14 | Capability discovery | Partial |

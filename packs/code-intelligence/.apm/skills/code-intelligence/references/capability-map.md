@@ -181,9 +181,7 @@ from the other.
 `depth_horizon_reached`, and `node_cap_reached`. When `depth_horizon_reached` is
 true, the text output prints a `CUT AT depth=N` line; raise `--depth` (max 24) to
 go further. Use `blast-radius <name> --depth 1` to get only direct dependents; the
-difference against the full run is the transitive set only when neither run
-reports `truncated_dependents` above 0 and the full run reports
-`depth_horizon_reached: false`; otherwise it is a floor within `searched_depth`.
+difference against the full run is the complete transitive set only when the full run reports no cut — `truncated_dependents` 0, `depth_horizon_reached: false` and `node_cap_reached: false` — and the `--depth 1` run reports `truncated_dependents` 0. Otherwise it is a floor within `searched_depth`.
 A true `node_cap_reached` means the node budget cut the walk; no CLI flag raises
 it. `path` hops carry
 `confidence`, `provenance`, and `resolved_by` per hop; `blast-radius` rows do not.

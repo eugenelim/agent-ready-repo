@@ -111,10 +111,7 @@ this work".
    ```
 
    That gives the direct dependents. The difference against the full blast
-   radius is the transitive set only when neither run reports
-   `truncated_dependents` above 0 and the full run reports
-   `depth_horizon_reached: false`. Otherwise call it the transitive set within
-   `searched_depth`, and a floor.
+   radius is the complete transitive set only when the full run reports no cut — `truncated_dependents` 0, `depth_horizon_reached: false` and `node_cap_reached: false` — and the `--depth 1` run reports `truncated_dependents` 0. Otherwise it is a floor within `searched_depth`.
 
    - MCP available: `TraverseGraph` with `direction: "dependents"` and
      `depth: 1` gives the direct set with per-node depth in the response.

@@ -77,7 +77,7 @@ unresolved and **727 truncated**.
 `node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
 `CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
 `--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives
-only the direct dependents; the difference against the full run is the transitive set only when neither run reports `truncated_dependents` above 0 and the full run reports `depth_horizon_reached: false`. Otherwise it is the transitive set within `searched_depth`, and a floor.
+only the direct dependents; the difference against the full run is the complete transitive set only when the full run reports no cut — `truncated_dependents` 0, `depth_horizon_reached: false` and `node_cap_reached: false` — and the `--depth 1` run reports `truncated_dependents` 0. Otherwise it is a floor within `searched_depth`.
 
 A true `node_cap_reached` means the traversal hit its node budget. No CLI flag
 raises it, so report the list as a floor.
