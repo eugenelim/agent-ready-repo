@@ -11,6 +11,7 @@ execution observed against them.
 | T1 | `test_resolve_http_access_returns_public_anonymous_variant` | `packages/credbroker/tests/unit/test_http_access.py` | `cmp` against the plan block: identical | Collection error: `ImportError: cannot import name 'AnonymousHttpAccess' from 'credbroker'` |
 | T2 | `test_open_fetch_session_resolves_anonymous_access_once` | `packages/agentbundle/tests/unit/test_catalogue_fetch.py` | `cmp` against the plan block: identical | Collection error: `ModuleNotFoundError: No module named 'agentbundle.catalogue_fetch'` |
 | T3 | `test_netrc_exact_host_returns_origin_bound_access` | `packages/credbroker/tests/unit/test_http_access_netrc.py` | `cmp` against the plan block: identical | Assertion failure, not the planned collection error: `isinstance(AnonymousHttpAccess(origin='https://catalogue.example.test'), NetrcHttpAccess)` is `False` |
+| T4 | `test_jfrog_longest_profile_returns_pinned_binding` | `packages/credbroker/tests/unit/test_http_access_jfrog.py` | `cmp` against the plan block: identical | Assertion failure, not the planned collection error: `isinstance(AnonymousHttpAccess(origin='https://platform.example.test'), JfrogCliHttpAccess)` is `False` |
 
 ## Real JFrog CLI contract (T4 grounding, 2026-10-02)
 
