@@ -310,10 +310,9 @@ def test_negative_fixture_key_files_exist() -> None:
         "instruction": ["docs/adr/0001-instruction.md"],
         "bidi": ["docs/adr/0001-bidi.md"],
     }
-    for corpus, files in cases.items():
-        for rel in files:
-            p = _NEG_DIR / corpus / rel
-            assert p.is_file(), f"missing file in {corpus}: {rel}"
+    present = {f.relative_to(_NEG_DIR).as_posix() for f in _NEG_DIR.rglob("*.md")}
+    expected = {f"{corpus}/{rel}" for corpus, files in cases.items() for rel in files}
+    assert expected <= present, f"missing negative fixtures: {sorted(expected - present)}"
 
 
 def test_malformed_h1_has_mismatched_ordinal() -> None:
@@ -1586,3 +1585,25 @@ def test_lineage_invalid_direction_fails() -> None:
         {"operation": "lineage", "id": "ADR-0001", "direction": "sideways", "depth": 1},
     )
     assert payload["status"] == "error"
+
+
+def test_multi_did_scopes_parse_with_or_without_spaces(tmp_path: pathlib.Path) -> None:
+    """`D6,D7` and `D7, D6` are one scope set, so the mirrored pair is checked."""
+    adr = tmp_path / "docs" / "adr"
+    adr.mkdir(parents=True)
+    (adr / "0001-old.md").write_text(
+        "# ADR-0001: Old\n\n- **Status:** Accepted\n"
+        "- **Superseded in part:** ADR-0002 D6,D7\n\n## Decision\n",
+        encoding="utf-8",
+    )
+    (adr / "0002-new.md").write_text(
+        "# ADR-0002: New\n\n- **Status:** Accepted\n"
+        "- **Supersedes in part:** ADR-0001 D7, D6\n\n## Decision\n",
+        encoding="utf-8",
+    )
+    payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
+    checked = [r for r in payload["relationships"] if r["trust_class"] == "checked"]
+    assert [(r["from"], r["to"], r["scope"]) for r in checked] == [
+        ("ADR-0002", "ADR-0001", ["D6", "D7"])
+    ]
+    assert not [r for r in payload["relationships"] if r["resolution_state"] == "unresolved"]
