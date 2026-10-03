@@ -2,7 +2,7 @@
 type: token-taxonomy
 slug: "checkout"
 direction: "checkout"
-route: "extend"
+route: "originate"
 date: "2026-10-01"
 ---
 

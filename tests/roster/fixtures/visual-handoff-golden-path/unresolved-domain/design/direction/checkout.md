@@ -15,7 +15,7 @@ Fixture data for a roster test. No person or product is described.
 
 1. **Calm assurance** — means: the buyer never wonders whether payment worked.
 2. **Clear next step** — means: one obvious action per screen.
-3. **Familiar brand** — means: the existing brand palette carries over unchanged where it can.
+3. **Quiet surroundings** — means: nothing around the form competes with it.
 
 **Primary action or continuation:** pay for the order.
 
