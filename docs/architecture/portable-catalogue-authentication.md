@@ -35,7 +35,7 @@ What is changing, and what baseline artifact does this delta assume?
 | Credential architecture edge | Yes | AgentBundle must consume a target-bound `credbroker` API rather than acquire a second direct credential exception under the repository [credential boundary](credentials.md#4-dependencies-and-allowed-edges) |
 | Publisher CI credentials | No | CI secret stores continue to own upload identities such as `ARTIFACTORY_USER` and `ARTIFACTORY_TOKEN` |
 | Catalogue source precedence | No | The baseline's five-layer source selection remains unchanged |
-| Descriptor, digest, provenance, and extraction | Compatibility only | These catalogue semantics move behind no new provider-specific rules |
+| Descriptor, digest, provenance, and extraction | Modified on JFrog leg | The JFrog CLI appends one `0x0a` to stdout when the body does not already end in it; `https_catalogue.py` applies digest-checked trim on the JFrog path before extraction |
 | AgentBundle credential storage | No | AgentBundle must not add a token store or copy credentials from user-owned tools |
 
 | Unchanged context | Link |
@@ -291,12 +291,26 @@ shell string. AgentBundle gives the process no credential, credential-bearing
 URL, or unrelated full URL; the real-CLI contract test must ground the final
 argument order before implementation.
 
-Descriptor stdout is capped at 1 MiB. Archive stdout is streamed to a temporary
-file and capped at 256 MiB; stderr is separately bounded and sanitized.
+The child environment for every `jf` subprocess uses a closed allowlist.
+`SSL_CERT_FILE` and `SSL_CERT_DIR` are carried because `jf api` ignores the
+CLI's own trust store and, on Linux, reads trust anchors from these two Go
+variables; a corporate CA must reach the delegated leg through them.  On
+macOS, `jf api` trusts only the system keychain, which is a stated residual.
+Both variables hold file paths, not secrets.
 
-Standard input is closed. Discovery has a 10-second hard timeout, and each
-`jf api` process has a 30-second hard timeout; expiry terminates the process,
-waits for cleanup, and removes partial output.
+Descriptor stdout is capped at 1 MiB plus one byte.  Archive stdout is
+streamed to a temporary file and capped at 256 MiB plus one byte.  The extra
+byte accommodates the trailing `0x0a` the JFrog CLI appends when the response
+body does not already end in that byte.  Stdout at exactly the cap plus one is
+accepted only when its final byte is `0x0a`; that byte is then removed so no
+more than the cap reaches parsing, digest acceptance, or extraction.  Stderr
+is separately bounded at 64 KiB per subprocess and is never included in
+diagnostics.
+
+Standard input is closed. Discovery has a 10-second hard timeout, the version
+probe has a 5-second timeout, and each `jf api` process has a 30-second hard
+timeout; expiry terminates the process, waits for cleanup, and removes partial
+output.
 
 JFrog CLI owns configured authentication, token refresh, proxy behavior, and
 redirect handling. AgentBundle constrains the selected server and endpoint but
@@ -338,8 +352,8 @@ change, and how does that affect every existing party?
 | Standalone archive redirect lock | baseline prose corrected; implementation linked unchanged | [Distribution mechanisms](../../packages/agentbundle/DESIGN.md#distribution-mechanisms) | Existing code already origin-locks redirects for this form | Original requested archive origin remains the anchor | Existing redirect-handler suite plus a new standalone-archive cross-origin test and provider cases |
 | JFrog redirect policy | widened by delegation | New | Applies only when JFrog is selected | Provider and endpoint binding precede CLI delegation | Real-CLI contract test and security review |
 | One provider per acquisition | new | New | Descriptor and artifact retain one credential mechanism | Fetch session is selected once | Integration tests assert one provider class |
-| Descriptor and archive limits | linked unchanged | [`https_catalogue.py` limits](../../packages/agentbundle/agentbundle/https_catalogue.py) | All callers retain 1 MiB and 256 MiB maximums | Every provider enforces the supplied cap | Over-limit tests for both providers |
-| Integrity and extraction | linked unchanged | [`https_catalogue.py`](../../packages/agentbundle/agentbundle/https_catalogue.py) | Existing SHA-256 and safe-extraction behavior remains | Catalogue layer retains verification and extraction | Existing mismatch, member, and expanded-size tests |
+| Descriptor and archive limits | modified on JFrog leg | [`https_catalogue.py` limits](../../packages/agentbundle/agentbundle/https_catalogue.py) | Direct-HTTP callers retain 1 MiB and 256 MiB maximums; JFrog leg admits one extra byte (the appended `0x0a`) and removes it before parsing, so accepted bytes stay within the same limits | Every provider enforces the supplied cap; JFrog leg caps at limit+1 and rejects if last byte is not `0x0a` | Appended-newline boundary tests for both descriptor and archive |
+| Integrity and extraction | modified on JFrog leg | [`https_catalogue.py`](../../packages/agentbundle/agentbundle/https_catalogue.py) | Direct-HTTP callers retain exact SHA-256 verification; JFrog leg tries exact match then trimmed-by-one-`0x0a` match and truncates the file to the verified candidate before extraction | Digest-checked trim enforced in `_verify_jfrog_archive_sha256`; only matched candidate goes on to extraction | Exact-match, trimmed-match, and both-candidates-fail fixtures |
 | Credential-free diagnostics | narrowed | [Credential observability](credentials.md#7-observability-and-evidence) | Existing diagnostics may become more structured, not more revealing | Typed failures plus bounded sanitized stderr | Secret-canary and hostile-output tests |
 
 The catalogue compatibility rule is additive: callers do not change source

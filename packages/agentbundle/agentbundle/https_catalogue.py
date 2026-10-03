@@ -192,6 +192,18 @@ def _check_client_version(minimum: str | None, *, running_version: str | None = 
 # ---------------------------------------------------------------------------
 
 
+def _sha256_of_file(path: Path) -> str:
+    """Return the SHA-256 hex digest of *path*, reading in 64 KiB chunks."""
+    hasher = hashlib.sha256()
+    with path.open("rb") as fh:
+        while True:
+            chunk = fh.read(65536)
+            if not chunk:
+                break
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
 def _verify_archive_sha256(path: Path, expected_sha256: str, url: str) -> None:
     """Hash ``path`` in 64 KiB chunks and verify against ``expected_sha256``.
 
@@ -199,17 +211,10 @@ def _verify_archive_sha256(path: Path, expected_sha256: str, url: str) -> None:
     is raised.  The error message includes both the expected and received
     digests.  The URL is included only for identification, never a credential.
     """
-    hasher = hashlib.sha256()
     try:
-        with path.open("rb") as fh:
-            while True:
-                chunk = fh.read(65536)
-                if not chunk:
-                    break
-                hasher.update(chunk)
+        received = _sha256_of_file(path)
     except OSError as exc:
         raise CatalogueError(f"failed to read archive {url!r}: {exc}") from exc
-    received = hasher.hexdigest()
     if received != expected_sha256:
         with contextlib.suppress(OSError):
             path.unlink(missing_ok=True)
@@ -217,6 +222,102 @@ def _verify_archive_sha256(path: Path, expected_sha256: str, url: str) -> None:
             f"SHA-256 mismatch for archive {url!r}: "
             f"expected {expected_sha256!r}, received {received!r}"
         )
+
+
+def _verify_jfrog_archive_sha256(path: Path, expected_sha256: str, url: str) -> None:
+    """Verify the digest of a JFrog CLI archive, applying the appended-byte rule.
+
+    The JFrog CLI appends one ``0x0a`` to stdout when the response body does
+    not already end in that byte.  This function therefore tries two digest
+    candidates in order:
+
+    1. The exact file bytes (no trim).
+    2. The file bytes with the last byte removed, provided the file is
+       non-empty and its last byte is ``0x0a``.
+
+    If the exact bytes match, no modification is made and the file is left
+    as-is for extraction.  If the trimmed bytes match, the file is truncated
+    by one byte so that only the verified candidate goes on to extraction.
+    If neither candidate matches, the file is removed and ``CatalogueError``
+    is raised.
+
+    Args:
+        path: Path to the downloaded archive temp file.
+        expected_sha256: Expected 64-character lowercase hex SHA-256 digest.
+        url: Archive URL, included only for identification in error messages.
+
+    Raises:
+        CatalogueError: Both candidates fail digest verification, or an
+            I/O error occurs.
+    """
+    try:
+        received = _sha256_of_file(path)
+    except OSError as exc:
+        raise CatalogueError(f"failed to read archive {url!r}: {exc}") from exc
+
+    # Candidate 1: exact bytes.
+    if received == expected_sha256:
+        return
+
+    # Candidate 2: trim one trailing 0x0a byte and re-verify.
+    try:
+        file_size = path.stat().st_size
+    except OSError as exc:
+        with contextlib.suppress(OSError):
+            path.unlink(missing_ok=True)
+        raise CatalogueError(f"failed to stat archive {url!r}: {exc}") from exc
+
+    if file_size > 0:
+        try:
+            with path.open("rb") as fh:
+                fh.seek(-1, 2)  # Seek to last byte.
+                last_byte = fh.read(1)
+        except OSError as exc:
+            with contextlib.suppress(OSError):
+                path.unlink(missing_ok=True)
+            raise CatalogueError(f"failed to read archive {url!r}: {exc}") from exc
+
+        if last_byte == b"\x0a":
+            # Compute digest of all-but-last-byte without holding the full
+            # content in memory: re-read the file up to file_size-1 bytes.
+            hasher = hashlib.sha256()
+            try:
+                with path.open("rb") as fh:
+                    remaining = file_size - 1
+                    while remaining > 0:
+                        chunk = fh.read(min(65536, remaining))
+                        if not chunk:
+                            break
+                        hasher.update(chunk)
+                        remaining -= len(chunk)
+            except OSError as exc:
+                with contextlib.suppress(OSError):
+                    path.unlink(missing_ok=True)
+                raise CatalogueError(
+                    f"failed to read archive {url!r}: {exc}"
+                ) from exc
+            trimmed_digest = hasher.hexdigest()
+
+            if trimmed_digest == expected_sha256:
+                # Truncate the file to the verified length.
+                try:
+                    with path.open("r+b") as fh:
+                        fh.truncate(file_size - 1)
+                except OSError as exc:
+                    with contextlib.suppress(OSError):
+                        path.unlink(missing_ok=True)
+                    raise CatalogueError(
+                        f"failed to truncate archive {url!r}: {exc}"
+                    ) from exc
+                return
+
+    # Both candidates failed.
+    with contextlib.suppress(OSError):
+        path.unlink(missing_ok=True)
+    raise CatalogueError(
+        f"SHA-256 mismatch for archive {url!r}: "
+        f"expected {expected_sha256!r}, received {received!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -359,7 +460,13 @@ def fetch_catalogue_archive_with_provenance(
                     max_bytes=_MAX_ARCHIVE_BYTES,
                     timeout=_HTTP_TIMEOUT,
                 )
-            _verify_archive_sha256(archive_path, descriptor["sha256"], artifact_url)
+            is_jfrog = session.provider == "jfrog"
+            if is_jfrog:
+                _verify_jfrog_archive_sha256(
+                    archive_path, descriptor["sha256"], artifact_url
+                )
+            else:
+                _verify_archive_sha256(archive_path, descriptor["sha256"], artifact_url)
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
             _raw_rev = descriptor.get("source_revision")
@@ -399,7 +506,11 @@ def fetch_catalogue_archive_with_provenance(
                     max_bytes=_MAX_ARCHIVE_BYTES,
                     timeout=_HTTP_TIMEOUT,
                 )
-            _verify_archive_sha256(archive_path, expected_sha256, archive_url)
+            is_jfrog = session.provider == "jfrog"
+            if is_jfrog:
+                _verify_jfrog_archive_sha256(archive_path, expected_sha256, archive_url)
+            else:
+                _verify_archive_sha256(archive_path, expected_sha256, archive_url)
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
             return CatalogueArchiveResult(

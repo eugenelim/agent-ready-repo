@@ -425,7 +425,7 @@ def test_bearer_broken_blocks_lower_providers(
     jfrog_called: list[str] = []
     netrc_called: list[str] = []
 
-    def fake_jfrog(origin: str, env: Mapping[str, str]) -> None:
+    def fake_jfrog(origin: str, target_url: str, env: Mapping[str, str]) -> None:
         jfrog_called.append("jfrog")
         return
 
@@ -456,7 +456,7 @@ def test_provider_order_bearer_wins_over_anonymous(
     jfrog_called: list[str] = []
     netrc_called: list[str] = []
 
-    def record_jfrog(origin: str, env: Mapping[str, str]) -> None:
+    def record_jfrog(origin: str, target_url: str, env: Mapping[str, str]) -> None:
         jfrog_called.append("jfrog")
         return
 
@@ -488,7 +488,7 @@ def test_anonymous_is_fallback_when_all_unavailable(
         bearer_called.append("bearer")
         return
 
-    def record_jfrog(origin: str, env: Mapping[str, str]) -> None:
+    def record_jfrog(origin: str, target_url: str, env: Mapping[str, str]) -> None:
         jfrog_called.append("jfrog")
         return
 

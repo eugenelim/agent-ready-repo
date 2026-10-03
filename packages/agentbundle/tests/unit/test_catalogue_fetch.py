@@ -422,8 +422,8 @@ def test_netrc_result_accepted_and_sends_basic_auth() -> None:
         assert session.target_origin == "https://catalogue.example.test"
 
 
-def test_jfrog_result_rejected_as_unsupported() -> None:
-    """A JfrogCliHttpAccess result raises CatalogueFetchError naming the class."""
+def test_jfrog_result_yields_jfrog_session() -> None:
+    """A JfrogCliHttpAccess result yields a session with provider 'jfrog'."""
     from credbroker import JfrogCliHttpAccess
 
     fake_jfrog = JfrogCliHttpAccess(
@@ -436,14 +436,10 @@ def test_jfrog_result_rejected_as_unsupported() -> None:
             "agentbundle.catalogue_fetch.resolve_http_access",
             return_value=fake_jfrog,
         ),
-        pytest.raises(CatalogueFetchError) as exc_info,
-        open_fetch_session("https://platform.example.test/s.json", env={}),
+        open_fetch_session("https://platform.example.test/s.json", env={}) as session,
     ):
-        pass
-    msg = str(exc_info.value)
-    assert "JfrogCliHttpAccess" in msg
-    # Must not contain the non-public server identifier.
-    assert "my-server" not in msg
+        assert session.provider == "jfrog"
+        assert session.target_origin == "https://platform.example.test"
 
 
 # ---------------------------------------------------------------------------
@@ -868,8 +864,8 @@ def test_netrc_session_same_origin_redirect_keeps_authorization(tmp_path: Path) 
         assert auth == basic_auth, f"Basic auth not forwarded on same-origin redirect: {auth!r}"
 
 
-def test_jfrog_result_still_rejected_after_t3() -> None:
-    """JFrog CLI result is still rejected with CatalogueFetchError after T3."""
+def test_jfrog_result_accepted_with_jfrog_provider() -> None:
+    """After all providers land, JFrog CLI yields a session with provider 'jfrog'."""
     from credbroker import JfrogCliHttpAccess
 
     fake_jfrog = JfrogCliHttpAccess(
@@ -882,13 +878,11 @@ def test_jfrog_result_still_rejected_after_t3() -> None:
             "agentbundle.catalogue_fetch.resolve_http_access",
             return_value=fake_jfrog,
         ),
-        pytest.raises(CatalogueFetchError) as exc_info,
-        open_fetch_session("https://platform.example.test/s.json", env={}),
+        open_fetch_session("https://platform.example.test/s.json", env={}) as session,
     ):
-        pass
-    msg = str(exc_info.value)
-    assert "JfrogCliHttpAccess" in msg
-    assert "my-server" not in msg
+        assert session.provider == "jfrog"
+        # Server ID must not appear in the session's public attributes.
+        assert "my-server" not in session.target_origin
 
 
 def test_netrc_post_selection_401_is_terminal_no_further_resolution(
