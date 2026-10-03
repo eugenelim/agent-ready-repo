@@ -12,16 +12,16 @@ Fixture data for a roster test. No person or product is described.
 
 ## Authority
 
-- **Route:** extend — the brand palette exists; spacing does not.
+- **Route:** originate — no incumbent visual system exists.
 - **Direction source:** direction/checkout.md
-- **Incumbent source:** src/styles/brand.css
+- **Incumbent source:** none found — searched src/
 - **Visual target:** the direction's frontmatter records its disposition; the target binds composition only and supplies no value.
 - **Stated constraints:** none
 
 | Domain | Rung that supplied it |
 |---|---|
 | Typography | `unresolved` |
-| Color | `incumbent-system` |
+| Color | `approved-direction` |
 | Spacing and rhythm | `approved-direction` |
 | Shape and containment | `approved-direction` |
 | Depth | `approved-direction` |
@@ -38,12 +38,12 @@ Fixture data for a roster test. No person or product is described.
 
 | Role | Job it does | Resolved value | Traces to |
 |---|---|---|---|
-| `surface.default` | page ground | #FBF8F3 | incumbent `--brand-paper` in src/styles/brand.css |
-| `text.default` | body copy | #1E2A26 | incumbent `--brand-ink-900` in src/styles/brand.css |
-| `text.muted` | secondary copy | #4F5D57 | incumbent `--brand-ink-600` in src/styles/brand.css |
-| `accent.action` | the pay action | #2F5D50 | incumbent `--brand-pine-700` in src/styles/brand.css |
-| `text.on-action` | label on the pay action | #FBF8F3 | incumbent `--brand-paper` in src/styles/brand.css |
-| `border.divider` | separators between groups | #D9D2C5 | incumbent `--brand-sand-300` in src/styles/brand.css |
+| `surface.default` | page ground | #FBF8F3 | Chromatic intensity |
+| `text.default` | body copy | #1E2A26 | Chromatic intensity |
+| `text.muted` | secondary copy | #4F5D57 | Chromatic intensity |
+| `accent.action` | the pay action | #2F5D50 | Chromatic intensity |
+| `text.on-action` | label on the pay action | #FBF8F3 | Chromatic intensity |
+| `border.divider` | separators between groups | #D9D2C5 | Chromatic intensity |
 
 ### Spacing and rhythm
 
@@ -67,6 +67,16 @@ Fixture data for a roster test. No person or product is described.
 
 - **Durations:** none — the surface does not animate.
 
+## Proving set
+
+Fixture data: the needs this system was checked against.
+
+| Product need | Domains it exercised | What it exposed |
+|---|---|---|
+| the payment form | Color, Spacing and rhythm | held |
+| the pay action | Color | held |
+| the narrow channel | Spacing and rhythm | held |
+
 ## Accessibility
 
 - **Standard and conformance level:** WCAG 2.2 AA, chosen by the product owner.
@@ -78,11 +88,7 @@ Fixture data for a roster test. No person or product is described.
 | `text.muted` | `surface.default` | Body text |
 | `text.on-action` | `accent.action` | Body text |
 
-- **Adaptations made:**
-
-| Role | Incumbent value | Resolved value | Why |
-|---|---|---|---|
-| `text.muted` | `--brand-ink-400` #8A968F | `--brand-ink-600` #4F5D57 | the incumbent muted text missed the body-text floor on the paper ground |
+- **Adaptations made:** none required.
 
 ## Binding
 

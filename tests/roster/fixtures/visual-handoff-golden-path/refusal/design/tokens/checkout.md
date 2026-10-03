@@ -78,6 +78,16 @@ Fixture data for a roster test. No person or product is described.
 
 - **Durations:** none — the surface does not animate.
 
+## Proving set
+
+Fixture data: the needs this system was checked against.
+
+| Product need | Domains it exercised | What it exposed |
+|---|---|---|
+| the payment form | Color, Spacing and rhythm | the incumbent muted text missed the body-text floor |
+| the pay action | Color | held |
+| the narrow channel | Spacing and rhythm | held |
+
 ## Accessibility
 
 - **Standard and conformance level:** WCAG 2.2 AA, chosen by the product owner.

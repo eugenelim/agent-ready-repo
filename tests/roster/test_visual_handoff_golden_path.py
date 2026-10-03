@@ -143,6 +143,8 @@ class Rules:
     read_paths: list[tuple[str, str]]
     refusal_records: dict[str, str]
     slug_pattern: str
+    slug_max_length: int
+    no_design_section_skip: str
     visual_target_values: tuple[str, ...]
     domains: tuple[str, ...]
 
@@ -164,8 +166,11 @@ class Rules:
             encoding="utf-8"
         )
 
-        slug = re.search(r"not matching `(\^[^`]+\$)`", skill)
-        assert slug, "frontend SKILL.md: no slug pattern"
+        flat = " ".join(skill.split())
+        slug = re.search(r"not matching `(\^[^`]+\$)`, or over (\d+) characters", flat)
+        assert slug, "frontend SKILL.md: no slug pattern and length bound"
+        skip = re.search(r"named skip, `(design handoff: [^`]*\[design\][^`]*)`", flat)
+        assert skip, "frontend SKILL.md: no named skip for a missing [design] section"
         vt = re.search(r'^visual_target: "<([^>]+)>"', cd, re.M)
         assert vt, "creative-direction template: no visual_target values"
         return cls(
@@ -182,6 +187,8 @@ class Rules:
                 for r in _table_after(dh, "## The six refusals", where="design-handoff.md")
             },
             slug_pattern=slug.group(1),
+            slug_max_length=int(slug.group(2)),
+            no_design_section_skip=skip.group(1),
             visual_target_values=tuple(v.strip() for v in vt.group(1).split("|")),
             domains=tuple(row["Domain"] for row in _authority_rows(tt, "token-taxonomy template")),
         )
@@ -229,8 +236,8 @@ def _read_handoff(rules: Rules, tree: Path, slug: str) -> Read:
     layout = tree / "agentbundle-layout.toml"
     config = tomllib.loads(layout.read_text(encoding="utf-8")) if layout.is_file() else {}
     if "design" not in config:
-        return Read(completed=True, record="design handoff: no [design] section configured")
-    if len(slug) > 64 or not re.fullmatch(rules.slug_pattern, slug):
+        return Read(completed=True, record=rules.no_design_section_skip)
+    if len(slug) > rules.slug_max_length or not re.fullmatch(rules.slug_pattern, slug):
         template = next(v for k, v in rules.refusal_records.items() if k.startswith("Slug"))
         record = re.sub(r"<[^>]+>", f"does not match {rules.slug_pattern}", template)
         return Read(completed=False, record=record)
@@ -457,6 +464,10 @@ def test_refusal_halts_without_reaching_any_rung(rules: Rules) -> None:
     assert route.domains == {}
     assert route.read.artifacts == {}
     assert FALLBACK not in route.loaded
+    # The premise: under a conforming slug this same tree resolves both
+    # artifacts, so the empty extraction above is the refusal's doing.
+    conforming = _read_handoff(rules, FIXTURES / "refusal", "checkout")
+    assert set(conforming.artifacts) == {"creative-direction", "token-taxonomy"}
 
 
 def _mutated(skills: Path, old: str, new: str) -> Rules:
@@ -523,16 +534,32 @@ def _declarations(css: str) -> dict[str, str]:
     return dict(re.findall(r"(--[\w-]+):\s*([^;]+);", css))
 
 
+# Properties whose value must come from a role, never a literal, in the markup.
+ROLE_BOUND = re.compile(
+    r"(?<![\w-])(color|background(?:-color)?|gap|padding[\w-]*|margin[\w-]*)\s*:\s*([^;}]+)"
+)
+
+
 def consumption_violations(css: str, html: str, expected: dict[str, str]) -> list[str]:
-    """Every way an implementation can fail to consume the taxonomy as given."""
-    declared = _declarations(css)
-    problems = [
-        f"{prop}: declares {declared.get(prop)!r}, taxonomy resolved {value!r}"
-        for prop, value in expected.items()
-        if declared.get(prop) != value
+    """Every way an implementation — token file and markup alike — can fail to
+    consume the taxonomy as given."""
+    declarations = re.findall(r"(--[\w-]+):\s*([^;]+);", css + "\n" + html)
+    problems = []
+    for prop, value in expected.items():
+        values = [v.strip() for p, v in declarations if p == prop]
+        if not values:
+            problems.append(f"{prop}: not declared; taxonomy resolved {value!r}")
+        problems += [
+            f"{prop}: declares {v!r}, taxonomy resolved {value!r}" for v in values if v != value
+        ]
+    problems += [
+        f"declares fallback property {p}" for p, _ in declarations if p.startswith("--ds-")
     ]
-    problems += [f"declares fallback property {p}" for p in declared if p.startswith("--ds-")]
     problems += [f"markup holds raw colour {m}" for m in COLOUR_LITERAL.findall(html)]
+    for name, value in ROLE_BOUND.findall(html):
+        # Zero is a relationship, not a value a taxonomy owns.
+        if re.sub(r"var\(--[\w-]+\)|\b0\b", "", value).strip():
+            problems.append(f"markup sets {name} to {value.strip()!r} rather than a role")
     if "--ds-" in html:
         problems.append("markup references a fallback property")
     return problems
@@ -643,6 +670,16 @@ def test_the_implementation_consumes_the_taxonomy_as_given(skills: Path, taxonom
         assert swapped != css
         assert consumption_violations(swapped, html, expected), f"{prop} swap went undetected"
 
+        # The markup is half the implementation: a redeclaration there, or a
+        # literal in place of the role, fails the same check.
+        redeclared = html.replace(
+            "<style>", f"<style>\n    :root {{ {prop}: {fallback[fallback_prop]}; }}", 1
+        )
+        assert consumption_violations(css, redeclared, expected), f"{prop} redeclaration missed"
+        bypassed = html.replace(f"var({prop})", fallback[fallback_prop])
+        assert bypassed != html
+        assert consumption_violations(css, bypassed, expected), f"{prop} literal use missed"
+
 
 def test_an_accessibility_adaptation_is_recorded_and_checked(taxonomy: str) -> None:
     """AC-0023."""
@@ -752,7 +789,9 @@ def run_violations(record: dict, loop: LoopRules, declared_states: list[str]) ->
     if len(corrections) > loop.correction_passes:
         problems.append(f"{len(corrections)} corrections; the bound is {loop.correction_passes}")
     if corrections:
-        after = steps[corrections[-1] + 1 : first_gate].count("render")
+        start = corrections[-1] + 1
+        end = next((j for j in range(start, len(steps)) if steps[j] == "gate"), len(steps))
+        after = steps[start:end].count("render")
         if after != loop.verification_renders:
             problems.append(
                 f"{after} renders after the correction; the bound is {loop.verification_renders}"
@@ -820,9 +859,11 @@ def test_the_confirmed_run_stays_inside_the_loop_bound(loop: LoopRules) -> None:
     assert steps.count("correct") == 1 and "residual" in steps
 
 
-def _without(record: dict, predicate) -> dict:
+def _relabelled(record: dict, state: str, as_state: str) -> dict:
     out = copy.deepcopy(record)
-    out["events"] = [e for e in out["events"] if not predicate(e)]
+    for event in out["events"]:
+        if event.get("state") == state:
+            event["state"] = as_state
     return out
 
 
@@ -853,17 +894,21 @@ def test_the_run_check_rejects_each_broken_record(loop: LoopRules) -> None:
     for event in uncaptured["events"][:first_observe]:
         event.pop("capture", None)
 
-    no_primary = _without(good, lambda e: e.get("state") == "primary-state")
-    no_conditional = _without(good, lambda e: e.get("state") == declared[0])
+    # Relabel rather than delete, so the render count — and every other rule —
+    # still holds and only state coverage can fail.
+    no_primary = _relabelled(good, "primary-state", declared[0])
+    no_conditional = _relabelled(good, declared[0], "primary-state")
 
-    for name, broken in (
-        ("gate first", gate_first),
-        ("second correction", second_correction),
-        ("uncaptured observation", uncaptured),
-        ("no primary", no_primary),
-        ("no conditional", no_conditional),
+    # Each negative breaks exactly one rule, so each rule has a test that reds
+    # when that rule alone is removed.
+    for broken, only in (
+        (gate_first, "a render, observe or correct event follows a gate"),
+        (second_correction, f"2 corrections; the bound is {loop.correction_passes}"),
+        (uncaptured, "an observation precedes every captured render"),
+        (no_primary, "no primary-state render"),
+        (no_conditional, f"no {declared[0]} render"),
     ):
-        assert run_violations(broken, loop, declared), f"{name} was accepted"
+        assert run_violations(broken, loop, declared) == [only]
 
 
 def test_the_no_browser_run_claims_nothing_it_could_not_do(loop: LoopRules) -> None:

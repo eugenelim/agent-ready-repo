@@ -206,7 +206,8 @@
         "output_excludes": [
           "--ds-color-primary:",
           "--ds-space-3:",
-          "#1f2933"
+          "#1f2933",
+          "#1F2933"
         ]
       }
     },
@@ -230,7 +231,8 @@
         "output_excludes": [
           "--ds-color-primary:",
           "--ds-space-3:",
-          "#1f2933"
+          "#1f2933",
+          "#1F2933"
         ]
       }
     },
@@ -251,7 +253,8 @@
         "output_excludes": [
           "--ds-color-primary:",
           "--ds-space-3:",
-          "#1f2933"
+          "#1f2933",
+          "#1F2933"
         ]
       }
     }
