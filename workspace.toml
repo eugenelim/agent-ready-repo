@@ -2302,7 +2302,6 @@ milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires
 
 ["ini-010".brief_queue]
 executing = [
-  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
   # Moved to `executing` 2026-09-24 when slice 1 started, briefly back to `ready`
   # while its spec was parked for a material amendment, and back to `executing`
   # when that amendment was re-approved the same day. Membership and the brief's
@@ -2320,6 +2319,11 @@ executing = [
 # `intent-identity-and-registration`; it consumes whichever form has landed.
 ready = []
 draft = []
+# Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
+# the brief's `Status: Shipped` and `Cut-closed:` record.
+shipped = [
+  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
+]
 
 ["ini-010".shaping_queue]
 active  = []

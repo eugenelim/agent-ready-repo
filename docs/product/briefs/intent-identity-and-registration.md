@@ -3,7 +3,8 @@
 - **Slug:** `intent-identity-and-registration`
 - **Received:** 2026-09-18
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Executing
+- **Status:** Shipped
+- **Cut-closed:** 2026-10-03 All eight slices confirmed Shipped; see § Spec map.
 - **Parent intent:** intent:intent-identity-and-registration
 - **Ready confirmed:** 2026-09-20 by eugenelim, bound to revision `sha256:62c26b6c92f56952`, which returned `Clean` from an independent delivery-brief shaping review. Five slices confirmed; each is a `Draft` spec.
 - **Amended 2026-09-21 by eugenelim**, after the Ready confirmation above: the reuse bullet's "renumbered at admission" became "numbered at admission". Wording only — it changes no slice, no scope and no confirmation, and the parent intent's A1′ and validation hook took the same change. The older phrase said *when* an ordinal is assigned, but read as a requirement that admission rename files, which this brief's own forward-only non-goal forbids and which the delivery slice then found no admission surface can do. Renaming belongs to `intent-renumber-and-reissue`.
