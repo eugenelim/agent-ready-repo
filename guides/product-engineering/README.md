@@ -148,6 +148,7 @@ Recipes for a problem you already have, once the walk is familiar.
 - [Hand an intent to build](how-to/hand-an-intent-to-build.md) — start Core intake with the outcome and boundaries intact, and read the route it picks.
 - [Run a capability across a value stream](how-to/run-a-capability-across-a-value-stream.md) — coordinate one capability across several component repos from a meta-repo.
 - [Fix a refused intent](how-to/fix-a-refused-intent.md) — read the refusal, find the field it names, and apply the one remedy that clears it.
+- [Rename an intent](how-to/rename-an-intent.md) — retire one intent path, issue its successor, and recover the transaction if it stops partway through.
 - [Write a product's voice and microcopy](how-to/write-product-microcopy.md) — characterize the product's voice, then write the error, empty, button, and label copy from blame-free formulas.
 
 When one stage of the walk needs more than the short route:

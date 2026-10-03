@@ -1,0 +1,37 @@
+{
+  "fixture": "Hand-authored record of a hypothetical run. Nothing in it was rendered or observed by the test that reads it.",
+  "authority": {
+    "composition": "approved-visual-target",
+    "values": "direction-and-taxonomy",
+    "token_namespace": "--color-*, --space-*"
+  },
+  "events": [
+    {"step": "render", "state": "primary-state", "channel": ">=1152", "capture": "captures/payment-wide.png"},
+    {"step": "render", "state": "narrow-channel", "channel": "<480", "capture": "captures/payment-narrow.png"},
+    {
+      "step": "observe",
+      "matches": ["the pay action is the one dominant element", "dividers, not cards"],
+      "material_gaps": [
+        {"class": "composition", "note": "at the narrow channel the order summary stacks above the payment form; the target puts the form first"}
+      ]
+    },
+    {"step": "correct", "addresses": ["composition"]},
+    {"step": "render", "state": "narrow-channel", "channel": "<480", "capture": "captures/payment-narrow-2.png"},
+    {"step": "observe", "matches": ["the form leads at both channels"], "material_gaps": []},
+    {
+      "step": "residual",
+      "divergences": [
+        {"class": "whitespace-density", "note": "the wide channel reads slightly tighter than the expansive commitment"}
+      ]
+    },
+    {"step": "gate", "name": "Structural HTML validation", "ran": true},
+    {"step": "gate", "name": "Accessibility audit", "ran": true},
+    {"step": "gate", "name": "CSS token enforcement", "ran": false, "reason": "stylelint is not configured in this repository"},
+    {"step": "gate", "name": "Visual QA checklist", "ran": true},
+    {"step": "gate", "name": "Rendered-page inspection", "ran": true, "result_state": "completed"}
+  ],
+  "manifest": {
+    "visual_authority": "composition from approved-visual-target (direction/checkout.md); values from direction-and-taxonomy (tokens/checkout.md); namespace --color-*, --space-*",
+    "unverified_items": []
+  }
+}

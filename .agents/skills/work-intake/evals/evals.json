@@ -481,6 +481,39 @@
         "Refuses a successor path resolving outside the intents directory",
         "Refuses both pointer fields together, and refuses neither"
       ]
+    },
+    {
+      "id": "installed-intent-rename-retires-and-issues",
+      "prompt": "Rename docs/product/intents/FEAT-0001-old-name.md into the STRAT namespace from an installed Core pack.",
+      "expected_output": "The agent uses the installed operator command `python3 .agents/skills/work-intake/scripts/intent_rename.py rename docs/product/intents/FEAT-0001-old-name.md STRAT`. It treats the operation as retire-and-issue: the source path becomes a tombstone, the successor receives the allocator's next fresh STRAT ordinal, citations and workspace.toml move to the successor, and no in-place renumbering occurs.",
+      "assertions": [
+        "Invokes the installed script rather than an internal function",
+        "Describes fresh target-token allocation rather than ordinal carry-over",
+        "Leaves a tombstone at the retired path",
+        "Repoints citations and workspace membership"
+      ]
+    },
+    {
+      "id": "installed-intent-rename-recovery-requires-operator-direction",
+      "prompt": "An installed intent rename stopped after creating a partial transaction stage. Recover it.",
+      "expected_output": "The agent asks for or uses the human-selected direction, `forward` or `back`, and the original tombstone date, then runs `python3 .agents/skills/work-intake/scripts/intent_rename.py recover <forward|back> <source-path> <target-token> <tombstone-date>`. It does not trust the stage record to choose the request, date, or direction.",
+      "assertions": [
+        "Requires an explicit forward/back recovery direction",
+        "Requires the operator-supplied tombstone date",
+        "Uses the installed recover command",
+        "States that the durable record is comparison data, not authority"
+      ]
+    },
+    {
+      "id": "installed-intent-rename-resolve-stops-at-tombstone",
+      "prompt": "Resolve a retired intent path after an installed rename.",
+      "expected_output": "The agent uses `python3 .agents/skills/work-intake/scripts/intent_rename.py resolve <intent-path>` and reports the diagnostic naming the tombstone and its `Reissued as:` target. It does not read or return successor content and does not recursively follow another tombstone.",
+      "assertions": [
+        "Uses the installed resolve command",
+        "Names both the tombstone and successor target",
+        "Stops at the tombstone instead of following recursively",
+        "Does not reveal successor file content"
+      ]
     }
   ]
 }

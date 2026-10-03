@@ -5,9 +5,10 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:repository-work-graph
-- **Status:** Accepted
+- **Status:** Fulfilled
 - **Owner:** eugenelim
 - **Accepted:** 2026-09-19 by eugenelim — see [Acceptance record](#acceptance-record)
+- **Fulfilled:** 2026-10-03 eugenelim: all nine descendants terminal — the delivery brief Shipped (Cut-closed 2026-10-03) and its eight specs Shipped, per close-work's closure check; the intent's own cited claims were not independently re-validated.
 
 - **Nonmaterial correction 2026-09-21 by eugenelim, lifecycle owner.** The preamble now carries the field set and order that `guides/product-engineering/reference/intent-fields-and-modes.md` defines — `Slug`, `Level`, `Scale`, `Maturity`, `Parent intent` — with the two lifecycle fields after them. `Accepted:` was 154 words of shaping-review narrative in a field position, which no reader can parse as a value; the narrative moved unchanged to `## Acceptance record` and the field now holds the date and the owner. Two links to this intent's delivery brief carried the brief's former title and now carry its current one. Nothing decided here changed, so the acceptance stands.
 - **De-risked:** 2026-09-18

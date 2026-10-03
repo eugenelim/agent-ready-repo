@@ -17,6 +17,7 @@
 # committed.
 agentbundle-layout.toml
 !packs/**/evals/files/agentbundle-layout.toml
+!tests/roster/fixtures/**/agentbundle-layout.toml
 
 # Work-loop session state — per-spec scratch, never committed.
 # The engine writes the run id to a repo-root temp file; it was committed once
