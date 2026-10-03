@@ -64,16 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [frontend-engineering][0.4.2] — 2026-10-03
-
-### Added
-
-- Three golden-path eval cases for the visual handoff: a confirmed target with the taxonomy's concrete values, an unconfirmed target, and a design-handoff refusal that must stay a refusal. Each grades both sides deterministically — the values it must carry and the fallback declarations it must not.
-
-### Changed
-
-- The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
-
 ## [core][2.27.14] — 2026-10-03
 
 ### Highlights
@@ -89,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
 - The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
+
+## [frontend-engineering][0.4.2] — 2026-10-03
+
+### Added
+
+- Three golden-path eval cases for the visual handoff: a confirmed target with the taxonomy's concrete values, an unconfirmed target, and a design-handoff refusal that must stay a refusal. Each grades both sides deterministically — the values it must carry and the fallback declarations it must not.
+
+### Changed
+
+- The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
 
 ## [core][2.27.13] — 2026-10-02
 
