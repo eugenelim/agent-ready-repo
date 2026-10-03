@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [frontend-engineering][0.4.2] — 2026-10-03
+
+### Added
+
+- Three golden-path eval cases for the visual handoff: a confirmed target with the taxonomy's concrete values, an unconfirmed target, and a design-handoff refusal that must stay a refusal. Each grades both sides deterministically — the values it must carry and the fallback declarations it must not.
+
+### Changed
+
+- The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
+
 ## [core][2.27.14] — 2026-10-03
 
 ### Highlights
@@ -91,16 +101,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added paired `new-spec` behavior evaluations for a shared repository substrate and an isolated private refactor, plus a `work-loop` case that rejects feature-only evidence for accepted preservation properties. The cases measure future authoring and completion behavior without making optional repository-grounding tools mandatory.
-
-## [frontend-engineering][0.4.2] — 2026-10-03
-
-### Added
-
-- Three golden-path eval cases for the visual handoff: a confirmed target with the taxonomy's concrete values, an unconfirmed target, and a design-handoff refusal that must stay a refusal. Each grades both sides deterministically — the values it must carry and the fallback declarations it must not.
-
-### Changed
-
-- The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
 
 ## [frontend-engineering][0.4.1] — 2026-10-02
 
