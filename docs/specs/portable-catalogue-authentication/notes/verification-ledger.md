@@ -134,7 +134,7 @@ loopback CA: 14 passed with the JFrog leg skipped, in 104 s.
 
 ## Documentation checks (AC-0019, 2026-10-03)
 
-Run at commit `e525ae024`, after the review round's guide repairs:
+Run at commit `3d69a95fc`, after the review round's guide repairs. The checks first ran at `e525ae024`, which was amended into `3d69a95fc`; the two differ only in the two regenerated credbroker copies under `.agentbundle/lib/` and `packs/credential-brokers/.apm/user-libs/`, which no documentation check reads:
 
 - `python3 tools/build-site.py` exited 0 (`build-site: done.`).
   `tools/validate_guides.py` (235 checked), `tools/check-guide-index.py`
@@ -160,7 +160,7 @@ Run at commit `e525ae024`, after the review round's guide repairs:
 
 ## Review round 2 repair evidence (2026-10-03)
 
-At commit `e525ae024` the same disposable Linux container ran the real JFrog
+At commit `3d69a95fc` (the same tree as the run's `e525ae024` apart from the regenerated credbroker copies, which the container suites import from `packages/credbroker/` rather than from those copies) the same disposable Linux container ran the real JFrog
 CLI 2.105.0 contract suite, the JFrog, `.netrc`, and fetch-session unit
 suites, the provider-matrix integration suite, and the built-CLI JFrog leg:
 209 passed, 1 Windows-only skip, in 24.06 s. On the macOS host: credbroker

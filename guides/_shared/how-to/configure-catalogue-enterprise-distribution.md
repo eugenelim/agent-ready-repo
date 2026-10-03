@@ -31,9 +31,13 @@ clients. A login for one does not authenticate the others.
 | Read a protected catalogue | AgentBundle's HTTPS client via `credbroker.resolve_http_access` | The process that launches AgentBundle | Resolves in priority order: `AGENTBUNDLE_HTTP_BEARER_TOKEN`, a JFrog CLI 2.105.0+ profile, an exact-machine `.netrc` record, then anonymous. |
 
 The provider order is fixed and the resolution stops as soon as one provider
-is configured. When a configured provider is broken (wrong token, unsafe file
-permissions, named profile absent), the resolution fails rather than falling
-back to the next provider.
+is configured. When a configured provider is broken — for example, a bearer
+value containing whitespace (`invalid_bearer`), an unreadable or unsafe `.netrc`
+file, or a named JFrog CLI profile that is absent or does not match — the
+resolution fails rather than falling back to the next provider. A wrong or
+expired token passes resolution (only the token format is checked at that
+stage) and fails at fetch time with a 401 or 403 on the direct path, or
+`jfrog_fetch_failed` on the JFrog CLI path.
 
 ## 1. Provision the repositories and identities
 

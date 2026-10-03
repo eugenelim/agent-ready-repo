@@ -217,9 +217,9 @@ The three credential paths are independent:
 3. AgentBundle's HTTPS client resolves a protected catalogue read through a
    four-provider chain: bearer token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`), JFrog
    CLI 2.105.0+ profile, exact-machine `.netrc` record, then anonymous. The
-   chain stops at the first available provider. See
-   [Protected catalogue authentication](../reference/agentbundle.md#protected-catalogue-authentication)
-   for provider details and failure codes.
+   chain stops at the first available provider; there is no fallback once a
+   provider is chosen. See the AgentBundle reference's Protected catalogue
+   authentication section for provider details and failure codes.
 
 `AGENTBUNDLE_CA_BUNDLE`, `HTTPS_PROXY`, and `NO_PROXY` control TLS trust and
 network routing when install or upgrade resolves a remote catalogue. They are

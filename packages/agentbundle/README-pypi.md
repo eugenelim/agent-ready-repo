@@ -546,6 +546,8 @@ for a bearer token, configure a JFrog CLI 2.105.0+ profile with `jf login` or
 `jf config add` (optionally name it with `JFROG_CLI_SERVER_ID`), or provide an
 exact-machine `.netrc` record. Public catalogues need no credential setup.
 AgentBundle picks the first available source and does not fall back across types.
+AgentBundle never stores or prints the catalogue credential, and never forwards
+it to another origin — redirects that leave the origin are rejected.
 
 For bearer, `.netrc`, and public catalogues, set `AGENTBUNDLE_CA_BUNDLE` for a
 private CA. For the JFrog CLI path on Linux, use `SSL_CERT_FILE` or
