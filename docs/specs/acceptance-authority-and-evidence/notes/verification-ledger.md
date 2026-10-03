@@ -52,6 +52,16 @@ work-loop pack suite, and the printed AC-0018 p95 and AC-0019 cold-rehydration
 figures into this ledger, because the job log expires under the repository's
 log-retention setting (deferred round-13 adversarial Nit).
 
+Recorded evidence: `test-corpus.yml` run 37096863910, head commit
+`d53bbc3af4ddfabc34a0e31a655cebe135764f3c`, completed 2026-10-03 on
+`ubuntu-latest`. The workflow file at that commit is byte-identical to the
+default branch's copy. Shard 2/4 ran the work-loop pack suite and passed:
+
+- AC-0018: 1,000 criteria and 100,000 receipts, 5 warm-up and 100 timed runs,
+  p95 88.4 ms and p50 76.5 ms against the 2,000 ms bound.
+- AC-0019: 1,000 criteria, 100,000 receipts and 100,000 log frames rehydrated
+  to 1,000 verdicts in 2.076 s against the 10 s bound.
+
 ## T9a acceptance evidence map
 
 Each criterion maps to the suites that exercise it. Pack-behaviour suites live

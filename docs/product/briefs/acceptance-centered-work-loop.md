@@ -3,9 +3,10 @@
 - **Slug:** `acceptance-centered-work-loop`
 - **Received:** 2026-09-30
 - **Owner:** Platform Core
-- **Status:** Ready
+- **Status:** Executing
 - **Cut-closed:** <!-- Set only after the final slice cut and its evidence are confirmed. -->
 - **Source / provenance:** Repository architecture set rooted at [`docs/architecture/acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md), including its authority-migration and runtime-crosswalk children, at content revision `sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02`. The amended set received a `SHIP IT` architecture review, the refreshed brief received its independent shaping review, and the owner explicitly confirmed this Ready transition on 2026-10-01.
+- **Executing from 2026-10-03.** `acceptance-authority-and-evidence` moved to `Implementing`, and a `Ready` brief cannot have a child carrying execution evidence. The Ready confirmation above stands as the record of that gate; this line records the transition off it.
 
 ## Outcome
 
