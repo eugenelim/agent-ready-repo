@@ -1,6 +1,7 @@
 # Natural-work review effectiveness baseline
 
-Date: 2026-09-29
+Retrospective baseline frozen 2026-09-29. Prospective cohort closed **2026-10-02
+as incomplete** — see § *Prospective cohort result*, which owns that outcome.
 
 ## Baseline result
 
