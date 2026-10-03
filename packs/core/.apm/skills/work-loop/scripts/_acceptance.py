@@ -1,11 +1,11 @@
 """_acceptance — pure reviewed-envelope projection, freshness, and verdict evaluation.
 
-Implements the T4 pure acceptance services for the work-loop skill scripts:
+Implements the pure acceptance services for the work-loop skill scripts:
 
-  * Reviewed execution envelope derivation and validation (AC-0003).
-  * Change classification against the reviewed envelope (AC-0004).
-  * Freshness evaluation for exact-subject and path-set receipts (AC-0009).
-  * Satisfaction and verdict evaluation across all supported adapters (AC-0007).
+  * Reviewed execution envelope derivation and validation.
+  * Change classification against the reviewed envelope.
+  * Freshness evaluation for exact-subject and path-set receipts.
+  * Satisfaction and verdict evaluation across all supported adapters.
 
 The module is importable without Git, filesystem mutation, the engine, or adapter
 code. All operations are deterministic, stateless, and produce the same result for
@@ -13,8 +13,8 @@ the same canonical inputs on every conforming adapter.
 
 ``SUPPORTED_ADAPTERS`` is declared once here. Conformance tests refuse to run against
 a set smaller than two members so every adapter comparison always covers at least two
-runtimes (spec/acceptance-authority-and-evidence Constraint — "declare in one place
-and make conformance suites refuse to run against an empty or single-member declaration").
+runtimes: the set is declared in one place, and conformance suites refuse an empty
+or single-member declaration.
 
 Standard library only. No third-party imports, no packaging, no installation.
 Python 3.11+.
@@ -35,16 +35,16 @@ if hasattr(sys.stderr, "reconfigure"):
 __all__ = [
     # Adapter declaration (declared once; conformance suites require ≥2 members)
     "SUPPORTED_ADAPTERS",
-    # Envelope (AC-0003)
+    # Reviewed execution envelope
     "ENVELOPE_REFS_KEYS",
     "SUPPORTED_ENVELOPE_SCHEMA_VERSION",
     "derive_envelope",
     "validate_envelope_dict",
-    # Change classification (AC-0004)
+    # Change classification
     "classify_change",
-    # Freshness (AC-0009)
+    # Freshness
     "is_fresh",
-    # Verdict evaluation (AC-0007)
+    # Verdict evaluation
     "SUPPORTED_PROPERTY_SCHEMA_VERSION",
     "SUPPORTED_VERDICT_SCHEMA_VERSION",
     "evaluate_verdict",
@@ -123,7 +123,7 @@ def _fingerprint(data: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Reviewed execution envelope (AC-0003)
+# Reviewed execution envelope
 # ---------------------------------------------------------------------------
 
 
@@ -202,7 +202,7 @@ def validate_envelope_dict(record: object) -> tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
-# Change classification (AC-0004)
+# Change classification
 # ---------------------------------------------------------------------------
 
 
@@ -235,7 +235,7 @@ def classify_change(
 
 
 # ---------------------------------------------------------------------------
-# Freshness evaluation (AC-0009)
+# Freshness evaluation
 # ---------------------------------------------------------------------------
 
 
@@ -272,7 +272,7 @@ def is_fresh(
 
 
 # ---------------------------------------------------------------------------
-# Verdict evaluation (AC-0007)
+# Verdict evaluation
 # ---------------------------------------------------------------------------
 
 
@@ -408,6 +408,13 @@ def evaluate_verdict(
 
     authority_ref = property_record.get("authority_ref", "")
 
+    property_id = property_record.get("property_id")
+    if not isinstance(property_id, str) or not property_id:
+        raise AcceptanceRefused(
+            "denied-missing-property-id",
+            "property_record must carry a non-empty property_id",
+        )
+
     # Step 1 — unapproved
     if not isinstance(authority_ref, str) or not authority_ref:
         verdict = "unapproved"
@@ -472,7 +479,7 @@ def evaluate_verdict(
 
 
 # ---------------------------------------------------------------------------
-# Record validation (parity rule from verification-ledger.md)
+# Record validation: each emitted record is checked in code before it is returned
 # ---------------------------------------------------------------------------
 
 

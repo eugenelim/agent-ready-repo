@@ -1,15 +1,14 @@
 """_subject_source — legacy worktree subject-source provider for delivery-subject.v1.
 
-Implements the legacy-worktree-snapshot subject-source.v1 port (T6).
+Implements the legacy-worktree-snapshot subject-source.v1 port.
 
-AC-0005 — the legacy provider and the runtime-neutral projector emit identical
-           canonical manifests, product fingerprints, exclusions, spec identity,
-           and plan provenance for the same acknowledged product tree.
+Parity invariant: the legacy provider and the runtime-neutral projector emit
+identical canonical manifests, product fingerprints, exclusions, spec identity,
+and plan provenance for the same acknowledged product tree.
 
-AC-0006 — ambient, ignored, untracked, excluded, unreadable, link-like,
-           non-regular, unacknowledged, and drifting paths cannot enter a
-           delivery subject; an unresolved traversal bound emits no partial
-           subject.
+Exclusion invariant: ambient, ignored, untracked, excluded, unreadable,
+link-like, non-regular, unacknowledged, and drifting paths cannot enter a
+delivery subject; an unresolved traversal bound emits no partial subject.
 
 The acknowledged boundary is the cohort's ``approved_spec_hash`` and
 ``approved_plan_hash`` fields.  Drift is detected by comparing those stored
@@ -18,8 +17,7 @@ from ``_loop_guards`` — the canonical implementation is not duplicated here)
 and by checking for uncommitted tracked-file changes (``git status``).
 
 Traversal limits are the canonical numeric values for this module.  Test code
-must import them from here so the plan document never duplicates the
-architecture-owned numbers (architecture §6).
+must import them from here rather than repeating the numbers.
 
 All Git subprocess calls go through ``_process_safety.launch_safe_process``.
 All file reads for hashing go through ``file_safety.sha256_confined_regular_file``.
@@ -53,8 +51,7 @@ __all__ = [
     "SubjectRefused",
     # Schema constant
     "SUPPORTED_SCHEMA_VERSION",
-    # Traversal limits (architecture §6 — tests must read these constants, not
-    # duplicate the numbers in the plan document)
+    # Traversal limits (tests must read these constants, not duplicate the numbers)
     "MAX_PRODUCT_PATHS",
     "MAX_PRODUCT_BYTES",
     "MAX_TRAVERSAL_S",
@@ -69,9 +66,9 @@ __all__ = [
     "validate_subject_dict",
 ]
 
-# ── Traversal limits from architecture §6 ─────────────────────────────────────
+# ── Traversal limits ──────────────────────────────────────────────────────────
 #
-# Source of truth: docs/architecture/work-loop-acceptance-evidence.md §6.
+# Canonical numeric values for this module.
 # Tests must read these constants and must not reproduce the numbers elsewhere.
 
 MAX_PRODUCT_PATHS: Final[int] = 100_000
@@ -269,6 +266,7 @@ def _run_git(
     try:
         result = ps.launch_safe_process(
             spec_dict,
+            cwd_roots=(str(repo_root),),
             env_values=passthrough,
             audit_sink=audit_sink,
         )
@@ -299,7 +297,7 @@ def _check_approved_digests(
     """Raise SubjectRefused when spec or plan hashes deviate from the approved boundary.
 
     Calls ``sha256_canonical_contract`` from ``_loop_guards``; the canonical
-    normalization is not duplicated here (spec Agent Rules, Constraint §Constraints).
+    normalization lives in one place and is not duplicated here.
     """
     g = _guards()
     try:

@@ -1,22 +1,23 @@
-"""_evidence_store — append-only evidence transaction log for Slice 1.
+"""_evidence_store — append-only evidence transaction log.
 
-Implements AC-0008, AC-0009, AC-0020, and AC-0021 for the work-loop skill scripts.
+All-or-none guarantee: each frame exposes all embedded records (receipts or
+supersessions) together or not at all. An incomplete final frame (no trailing
+newline) is truncated on restart. A frame with a bad checksum or mismatched
+record IDs is a hard error; the store refuses to open.
 
-AC-0008: Each frame exposes all embedded records (receipts or supersessions)
-together or not at all. An incomplete final frame (no trailing newline) is
-truncated on restart. A frame with a bad checksum or mismatched record IDs is
-a hard error; the store refuses to open.
+Superseded-receipt exclusion: active-receipt evaluation excludes superseded
+receipts. Stale exact-subject receipts (acceptance_fingerprint mismatch) are
+filtered by the acceptance evaluator. Contradiction is evaluated before
+satisfaction.
 
-AC-0009: Active-receipt evaluation excludes superseded receipts. Stale
-exact-subject receipts (acceptance_fingerprint mismatch) are filtered by the
-acceptance evaluator. Contradiction is evaluated before satisfaction.
+Producer authority: every append validates the named producer grant before
+staging bytes. Missing, expired, mismatched, or out-of-scope grant exposes no
+partial frame. Retry under the same transaction_id also fails if authority is
+invalid.
 
-AC-0020: Every append validates the named producer grant before staging bytes.
-Missing, expired, mismatched, or out-of-scope grant exposes no partial frame.
-Retry under the same transaction_id also fails if authority is invalid.
-
-AC-0021: When the audit sink is unavailable the operation fails closed with a
-stable redacted denial code. No frame is appended and no protected data persists.
+Audit sink required: when the audit sink is unavailable the operation fails
+closed with a stable redacted denial code. No frame is appended and no
+protected data persists.
 
 Frame format (one JSON line per frame, terminated with newline):
   {"tx": <semantic-evidence-transaction.v1>, "records": [<receipt or supersession>...]}
@@ -210,7 +211,8 @@ def _build_transaction(
 def _serialize_frame(tx: dict, records: list[dict]) -> bytes:
     """Serialize a frame to bytes: one JSON line terminated with ``\\n``.
 
-    A frame without a trailing newline is incomplete (AC-0008 truncation rule).
+    A frame without a trailing newline is incomplete; the store truncates to
+    the last complete frame on restart.
     """
     line = _canonical_json({"tx": tx, "records": records})
     return (line + "\n").encode("utf-8")
@@ -274,6 +276,15 @@ _RECEIPT_REQUIRED: Final[frozenset[str]] = frozenset({
     "producer",
 })
 _RECEIPT_ALLOWED: Final[frozenset[str]] = _RECEIPT_REQUIRED | {"task_projection_revision"}
+
+# Closed nested objects: name -> (required keys, allowed keys).  Each value is a
+# non-empty string.
+_RECEIPT_NESTED: Final[dict[str, tuple[frozenset[str], frozenset[str]]]] = {
+    "lineage": (frozenset({"criterion_ref"}), frozenset({"criterion_ref", "attestation_ref"})),
+    "selector": (frozenset({"term"}), frozenset({"term"})),
+    "observation": (frozenset({"type"}), frozenset({"type"})),
+    "producer": (frozenset({"class", "identity"}), frozenset({"class", "identity"})),
+}
 _RECEIPT_FRESHNESS_MODES: Final[frozenset[str]] = frozenset({"exact-subject", "path-set"})
 
 _SUPERSESSION_REQUIRED: Final[frozenset[str]] = frozenset({
@@ -324,6 +335,9 @@ def validate_receipt_dict(d: object) -> tuple[bool, str]:
       denied-missing-required-field  — a required field is absent.
       denied-unknown-authority-field — a field not in the schema is present.
       denied-invalid-enum            — freshness_mode is not in the permitted set.
+      denied-invalid-nested-field    — lineage, selector, observation, or producer
+                                       is not an object with exactly its permitted
+                                       non-empty string fields.
     """
     if not isinstance(d, dict):
         return False, "denied-not-a-dict"
@@ -339,6 +353,15 @@ def validate_receipt_dict(d: object) -> tuple[bool, str]:
     mode = d.get("freshness_mode")
     if mode not in _RECEIPT_FRESHNESS_MODES:
         return False, "denied-invalid-enum"
+    for name, (required, allowed) in _RECEIPT_NESTED.items():
+        nested = d[name]
+        if (
+            not isinstance(nested, dict)
+            or not required <= set(nested)
+            or not set(nested) <= allowed
+            or not all(isinstance(v, str) and v for v in nested.values())
+        ):
+            return False, "denied-invalid-nested-field"
     return True, "ok"
 
 
@@ -379,7 +402,7 @@ def _check_record_safety(record: dict, record_type: str, *, record_id: str) -> N
     Raises ``EvidenceStoreRefused`` if the profile is missing, unknown, or the
     record does not pass the check. No payload bytes are retained on rejection.
 
-    AC-0014: every write boundary applies its named profile before persisting.
+    Every write boundary applies its named content-safety profile before persisting.
     """
     cs = _content_safety()
     profile = cs.SLICE_1_WRITER_BOUNDARIES.get(record_type)
@@ -415,13 +438,14 @@ def _check_producer_authority(
     Raises ``EvidenceStoreRefused`` if authority is denied or if the audit sink
     is unavailable. The caller must fail closed: no frame is staged.
 
-    AC-0020: Before any durable write the named producer is verified against its
-    capability grant and record scope; missing, expired, or out-of-scope grants
-    always refuse, and retry cannot turn a denial into an allow.
+    Producer authority: before any durable write the named producer is verified
+    against its capability grant and record scope; missing, expired, or
+    out-of-scope grants always refuse, and retry cannot turn a denial into an
+    allow.
 
-    AC-0021: A security event is emitted before this function returns (whether
-    allowed or denied). When the sink is unavailable the operation fails closed
-    and no protected data persists.
+    Audit sink required: a security event is emitted before this function
+    returns (whether allowed or denied). When the sink is unavailable the
+    operation fails closed and no protected data persists.
     """
     se = _security_events()
     operation_id = se.make_operation_id()
@@ -476,11 +500,13 @@ class EvidenceStore:
     """Append-only evidence transaction log with crash recovery.
 
     Each append commits one transaction containing one or more records that
-    become visible together or not at all (AC-0008 all-or-none guarantee).
+    become visible together or not at all (all-or-none guarantee: a transaction
+    is visible whole or not at all).
 
     In-memory indexes are derived from the log and are disposable: creating a
     new ``EvidenceStore`` instance and calling ``open()`` rebuilds them from the
-    log. Deleting indexes cannot change the verdict (AC-0008 NFR).
+    log. Deleting indexes cannot change the verdict (index deletion cannot
+    change the verdict).
 
     Usage::
 
@@ -499,12 +525,15 @@ class EvidenceStore:
         # In-memory indexes (derived from log, disposable).
         self._receipts: dict[str, dict] = {}
         # criterion_ref -> receipt IDs in insertion order, so a per-criterion
-        # read does not scan every receipt (AC-0019 replays 100,000 of them).
+        # read does not scan every receipt (per-criterion index avoids scanning all receipts).
         self._receipts_by_criterion: dict[str, list[str]] = {}
         self._supersessions: dict[str, dict] = {}
         self._superseded: set[str] = set()
         self._transactions: list[dict] = []
         self._opened: bool = False
+        # Set when a rollback after a failed append itself fails; the file
+        # state is then unknown.  Cleared only by a fresh open() call.
+        self._poisoned: bool = False
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -530,6 +559,7 @@ class EvidenceStore:
                 ) from exc
         self._load_and_truncate()
         self._opened = True
+        self._poisoned = False  # fresh replay — state is now known.
 
     def rebuild_indexes(self) -> None:
         """Rebuild all derived indexes from the log without changing any record.
@@ -537,7 +567,7 @@ class EvidenceStore:
         After rebuilding, the verdicts produced by ``evaluate_verdicts()`` are
         semantically identical to the pre-rebuild state. Deleting indexes (by
         creating a new ``EvidenceStore`` instance) and calling ``open()`` also
-        rebuilds them (AC-0008 NFR: index deletion cannot change the verdict).
+        rebuilds them (index deletion cannot change the verdict).
         """
         self._load_and_truncate()
 
@@ -605,7 +635,7 @@ class EvidenceStore:
                         self._superseded.add(rid)
 
     def _truncate_log(self, complete_bytes: bytes) -> None:
-        """Replace the log with only the complete-frame prefix (AC-0008 truncation rule)."""
+        """Replace the log with only the complete-frame prefix (recover to last complete frame)."""
         cm = _confined_mutation()
         try:
             cm.confined_atomic_replace(self._root, self._log_path, complete_bytes)
@@ -627,7 +657,7 @@ class EvidenceStore:
     ) -> dict:
         """Append a receipt as a single-record transaction.
 
-        Order of operations (AC-0020, AC-0021):
+        Order of operations (authority verified and event emitted before any write):
           1. Verify producer authority (emit security event before proceeding).
           2. Apply content-safety profile to the receipt bytes.
           3. Validate the receipt record structure.
@@ -635,8 +665,12 @@ class EvidenceStore:
           5. Serialize and append the complete frame.
           6. Update in-memory indexes.
 
-        If any step fails, no bytes are staged and the in-memory indexes are
-        unchanged (AC-0008 all-or-none guarantee for single-record transactions).
+        If any step before the filesystem write fails, no bytes are staged and
+        the in-memory indexes are unchanged (all-or-none guarantee for
+        single-record transactions).  If the write itself fails part-way, the
+        append is rolled back by truncating to the pre-append file position.
+        If the rollback also fails, the store is poisoned: it will refuse all
+        further appends with ``denied-store-poisoned`` until reopened.
 
         Args:
             receipt:        A valid ``evidence-receipt.v1`` record dict.
@@ -650,7 +684,7 @@ class EvidenceStore:
             The committed ``semantic-evidence-transaction.v1`` record.
 
         Raises:
-            EvidenceStoreRefused: on any refusal (stable denial_code; no bytes staged).
+            EvidenceStoreRefused: on any refusal (stable denial_code).
             EvidenceStoreError: on I/O failure during the append.
         """
         if not self._opened:
@@ -658,8 +692,13 @@ class EvidenceStore:
                 "denied-store-not-opened",
                 "EvidenceStore.open() must be called before appending",
             )
+        if self._poisoned:
+            raise EvidenceStoreRefused(
+                "denied-store-poisoned",
+                "store is in a failed-closed state from a rollback error; reopen to recover",
+            )
 
-        # Step 1: producer authority check (AC-0020). Emits security event (AC-0021).
+        # Step 1: producer authority check. Emits security event before staging.
         _check_producer_authority(
             issuer,
             grant,
@@ -695,6 +734,8 @@ class EvidenceStore:
         try:
             cm.confined_append(self._root, self._log_path, frame_bytes)
         except cm.MutationDenied as exc:
+            if exc.denial_code == "denied-rollback-failed":
+                self._poisoned = True
             raise EvidenceStoreRefused(
                 f"denied-append-failed-{exc.denial_code}",
                 f"frame append failed: {exc.denial_code}",
@@ -734,7 +775,8 @@ class EvidenceStore:
             The committed ``semantic-evidence-transaction.v1`` record.
 
         Raises:
-            EvidenceStoreRefused: on any refusal (stable denial_code; no bytes staged).
+            EvidenceStoreRefused: on any refusal (stable denial_code); a failed
+                write is rolled back to the last complete frame.
             EvidenceStoreError: on I/O failure during the append.
         """
         if not self._opened:
@@ -742,8 +784,13 @@ class EvidenceStore:
                 "denied-store-not-opened",
                 "EvidenceStore.open() must be called before appending",
             )
+        if self._poisoned:
+            raise EvidenceStoreRefused(
+                "denied-store-poisoned",
+                "store is in a failed-closed state from a rollback error; reopen to recover",
+            )
 
-        # Step 1: producer authority check (AC-0020). Emits security event (AC-0021).
+        # Step 1: producer authority check. Emits security event before staging.
         _check_producer_authority(
             issuer,
             grant,
@@ -778,6 +825,8 @@ class EvidenceStore:
         try:
             cm.confined_append(self._root, self._log_path, frame_bytes)
         except cm.MutationDenied as exc:
+            if exc.denial_code == "denied-rollback-failed":
+                self._poisoned = True
             raise EvidenceStoreRefused(
                 f"denied-append-failed-{exc.denial_code}",
                 f"frame append failed: {exc.denial_code}",
@@ -805,8 +854,7 @@ class EvidenceStore:
         """Return active (non-superseded) receipts for *criterion_ref*, in insertion order.
 
         Superseded receipts are excluded by the store. Stale receipts (wrong
-        acceptance_fingerprint) are filtered by the evaluator's freshness check
-        (AC-0009).
+        acceptance_fingerprint) are filtered by the evaluator's freshness check.
         """
         return [
             self._receipts[rid]
@@ -832,9 +880,9 @@ class EvidenceStore:
     ) -> list[dict]:
         """Evaluate verdicts for all criteria from stored active receipts.
 
-        This is the timed unit for AC-0019 cold-rehydration: from call entry to
-        full verdict return. Uses in-memory indexes but they are disposable —
-        rebuilding them yields the same verdicts (AC-0008 NFR).
+        Measures from call entry to full verdict return. Uses in-memory indexes
+        but they are disposable — rebuilding them yields the same verdicts
+        (index deletion cannot change the verdict).
 
         Args:
             criteria:                     List of ``acceptance-property.v1`` dicts.

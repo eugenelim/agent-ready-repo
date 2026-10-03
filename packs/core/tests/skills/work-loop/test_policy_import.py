@@ -212,6 +212,31 @@ def _null_sink(event: Any) -> None:
     """A no-op audit sink for testing."""
 
 
+# Placeholder digest value for tests that fail before the digest check.
+# The writer-authority tests refuse at step 1 (authority), so the digest
+# comparison is never reached; any string value works as a stand-in.
+_PLACEHOLDER_DIGEST: str = "a" * 64
+
+
+def _compute_approved_pins(
+    pi: ModuleType,
+    acc: ModuleType,
+    spec_path: Path,
+    plan_path: Path,
+    refs: dict,
+) -> tuple[str, str, str]:
+    """Return (approved_spec_digest, approved_plan_digest, approved_envelope_fingerprint).
+
+    Computes the correct pins for a successful import call.  Tests that expect
+    a successful import (or that fail after the digest check) should use this
+    helper to supply matching pins.
+    """
+    spec_d = pi.compute_spec_digest(spec_path)
+    plan_d = pi.compute_plan_digest(plan_path)
+    env_fp: str = acc.derive_envelope(refs)["envelope_fingerprint"]
+    return spec_d, plan_d, env_fp
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # AC-0001: Frozen canonicalization corpus
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -324,12 +349,13 @@ class TestAtomicImport:
     """AC-0002, AC-0014: atomic import exposes exactly zero or two records."""
 
     def test_successful_import_exposes_two_records(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """A successful import produces exactly two visible records."""
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         approval, review = pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -343,6 +369,9 @@ class TestAtomicImport:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         assert store.record_count() == 2, "successful import must expose exactly two records"
         records = store.get_records()
@@ -351,7 +380,7 @@ class TestAtomicImport:
         assert 1 in record_types
 
     def test_interrupt_before_first_write_exposes_zero(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """Interruption before first write exposes zero records.
 
@@ -361,6 +390,7 @@ class TestAtomicImport:
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
 
         def _fail_stage(record: dict) -> None:  # noqa: ARG001
             raise RuntimeError("injected failure before first stage write")
@@ -381,13 +411,16 @@ class TestAtomicImport:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest=plan_d,
+                approved_envelope_fingerprint=env_fp,
             )
         assert store.record_count() == 0, (
             "interrupted before first write must expose zero records"
         )
 
     def test_interrupt_between_writes_exposes_zero(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """Interruption between writes exposes zero records.
 
@@ -398,6 +431,7 @@ class TestAtomicImport:
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
 
         call_count = [0]
         original_stage = pi.ImportStore._stage
@@ -424,18 +458,26 @@ class TestAtomicImport:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest=plan_d,
+                approved_envelope_fingerprint=env_fp,
             )
         assert store.record_count() == 0, (
             "interrupted between writes must expose zero records"
         )
 
     def test_malformed_refs_exposes_zero(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """Malformed refs (missing required key) exposes zero records."""
+        """Malformed refs (missing required key) exposes zero records.
+
+        The missing key is detected by derive_envelope (step 6) after the
+        digest comparison (step 5), so correct digests are needed.
+        """
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, _ = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         bad_refs = {k: v for k, v in VALID_REFS.items() if k != "spec_policy"}
 
         with pytest.raises(pi.PolicyImportRefused):
@@ -452,17 +494,25 @@ class TestAtomicImport:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest=plan_d,
+                approved_envelope_fingerprint=None,
             )
         assert store.record_count() == 0, "malformed refs must expose zero records"
 
-    def test_digest_mismatch_on_restart_exposes_zero(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+    def test_replay_into_non_empty_store_is_refused(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """If the spec digest differs from what an existing record carries, expose zero new records."""
+        """A second import into a non-empty store is refused with denied-already-imported.
+
+        This is the replay-protection check; a digest or envelope mismatch is a
+        distinct, separate check covered by the tests below.
+        """
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
-        # First import succeeds
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        # First import succeeds.
         pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -476,20 +526,13 @@ class TestAtomicImport:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
-        # Store a wrong digest to simulate mismatch
-        existing_count = store.record_count()
-        assert existing_count == 2
-
-        # Import with mismatched envelope (different refs)
-        different_refs = dict(VALID_REFS)
-        different_refs["spec_policy"] = "approval:spec-policy:DIFFERENT"
-        # The mismatched envelope should still work for a fresh store
-        # The digest mismatch scenario: replay an import where spec content changed
-        # We test this by passing a spec_policy_fingerprint that doesn't match computed
-        # This is tested via the envelope_fingerprint check in review
-        # A simpler test: a stored record with a wrong envelope_fingerprint triggers mismatch
-        with pytest.raises(pi.PolicyImportRefused):
+        assert store.record_count() == 2
+        # Second import is refused — store already has records.
+        with pytest.raises(pi.PolicyImportRefused) as exc_info:
             pi.import_policy(
                 spec_path=spec_path,
                 plan_path=plan_path,
@@ -498,17 +541,250 @@ class TestAtomicImport:
                 writer_grant=grant,
                 issuer=issuer,
                 audit_sink=_null_sink,
-                store=store,  # store already has 2 records — replay is a mismatch
+                store=store,
                 approval_identity=APPROVAL_IDENTITY,
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest=plan_d,
+                approved_envelope_fingerprint=env_fp,
             )
+        assert exc_info.value.denial_code == "denied-already-imported"
+        assert store.record_count() == 2, "replay refusal must not change the visible record count"
+
+    def test_spec_digest_mismatch_exposes_zero(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A spec digest that differs from the computed canonical digest exposes zero records."""
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        _, plan_d, _ = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        with pytest.raises(pi.PolicyImportRefused) as exc_info:
+            pi.import_policy(
+                spec_path=spec_path,
+                plan_path=plan_path,
+                refs=VALID_REFS,
+                terminal_intent=TERMINAL_INTENT,
+                writer_grant=grant,
+                issuer=issuer,
+                audit_sink=_null_sink,
+                store=store,
+                approval_identity=APPROVAL_IDENTITY,
+                approval_role=APPROVAL_ROLE,
+                reviewer_identity=REVIEWER_IDENTITY,
+                reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest="wrong" + "a" * 60,  # deliberately wrong
+                approved_plan_digest=plan_d,
+                approved_envelope_fingerprint=None,
+            )
+        assert exc_info.value.denial_code == "denied-spec-digest-mismatch", (
+            "spec digest mismatch must produce the stable code denied-spec-digest-mismatch"
+        )
+        assert store.record_count() == 0, "spec digest mismatch must expose zero records"
+
+    def test_plan_digest_mismatch_exposes_zero(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A plan digest that differs from the computed canonical digest exposes zero records."""
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, _, _ = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        with pytest.raises(pi.PolicyImportRefused) as exc_info:
+            pi.import_policy(
+                spec_path=spec_path,
+                plan_path=plan_path,
+                refs=VALID_REFS,
+                terminal_intent=TERMINAL_INTENT,
+                writer_grant=grant,
+                issuer=issuer,
+                audit_sink=_null_sink,
+                store=store,
+                approval_identity=APPROVAL_IDENTITY,
+                approval_role=APPROVAL_ROLE,
+                reviewer_identity=REVIEWER_IDENTITY,
+                reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest="wrong" + "b" * 60,  # deliberately wrong
+                approved_envelope_fingerprint=None,
+            )
+        assert exc_info.value.denial_code == "denied-plan-digest-mismatch", (
+            "plan digest mismatch must produce the stable code denied-plan-digest-mismatch"
+        )
+        assert store.record_count() == 0, "plan digest mismatch must expose zero records"
+
+    def test_envelope_mismatch_exposes_zero(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """An envelope fingerprint that differs from the derived envelope exposes zero records."""
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, _ = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        with pytest.raises(pi.PolicyImportRefused) as exc_info:
+            pi.import_policy(
+                spec_path=spec_path,
+                plan_path=plan_path,
+                refs=VALID_REFS,
+                terminal_intent=TERMINAL_INTENT,
+                writer_grant=grant,
+                issuer=issuer,
+                audit_sink=_null_sink,
+                store=store,
+                approval_identity=APPROVAL_IDENTITY,
+                approval_role=APPROVAL_ROLE,
+                reviewer_identity=REVIEWER_IDENTITY,
+                reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest=plan_d,
+                approved_envelope_fingerprint="wrong-envelope-fingerprint",
+            )
+        assert exc_info.value.denial_code == "denied-envelope-mismatch", (
+            "envelope fingerprint mismatch must produce denied-envelope-mismatch"
+        )
+        assert store.record_count() == 0, "envelope mismatch must expose zero records"
+
+    def test_ambiguous_criterion_duplicate_value_exposes_zero(
+        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """Duplicate ref values (two criteria claim the same approval) exposes zero records.
+
+        A criterion is ambiguous when the same non-empty value appears for two
+        distinct keys; neither can be uniquely identified so the import refuses.
+        The ambiguity check runs before digest computation, so placeholder digests
+        suffice.
+        """
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        # Two different keys share the same ref value.
+        duplicate_refs = dict(VALID_REFS)
+        duplicate_refs["scope_and_non_goals"] = duplicate_refs["spec_policy"]
+        with pytest.raises(pi.PolicyImportRefused) as exc_info:
+            pi.import_policy(
+                spec_path=spec_path,
+                plan_path=plan_path,
+                refs=duplicate_refs,
+                terminal_intent=TERMINAL_INTENT,
+                writer_grant=grant,
+                issuer=issuer,
+                audit_sink=_null_sink,
+                store=store,
+                approval_identity=APPROVAL_IDENTITY,
+                approval_role=APPROVAL_ROLE,
+                reviewer_identity=REVIEWER_IDENTITY,
+                reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
+            )
+        assert exc_info.value.denial_code == "denied-ambiguous-criterion", (
+            "duplicate ref values must produce the stable code denied-ambiguous-criterion"
+        )
+        assert store.record_count() == 0, "ambiguous criterion must expose zero records"
+
+    def test_schema_invalid_approval_exposes_zero(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A schema-invalid approval record is refused and exposes zero records.
+
+        The builder is monkeypatched to inject an unknown field; validate_approval_dict
+        must detect it and refuse with denied-schema-invalid-approval.
+        """
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        original_build = pi._build_approval_record
+
+        def _bad_approval_build(**kwargs: Any) -> dict:
+            record = original_build(**kwargs)
+            record["inject_escalation"] = "bypass"  # unknown field fails validation
+            return record
+
+        pi._build_approval_record = _bad_approval_build  # type: ignore[assignment]
+        try:
+            with pytest.raises(pi.PolicyImportRefused) as exc_info:
+                pi.import_policy(
+                    spec_path=spec_path,
+                    plan_path=plan_path,
+                    refs=VALID_REFS,
+                    terminal_intent=TERMINAL_INTENT,
+                    writer_grant=grant,
+                    issuer=issuer,
+                    audit_sink=_null_sink,
+                    store=store,
+                    approval_identity=APPROVAL_IDENTITY,
+                    approval_role=APPROVAL_ROLE,
+                    reviewer_identity=REVIEWER_IDENTITY,
+                    reviewer_role=REVIEWER_ROLE,
+                    approved_spec_digest=spec_d,
+                    approved_plan_digest=plan_d,
+                    approved_envelope_fingerprint=env_fp,
+                )
+            assert exc_info.value.denial_code == "denied-schema-invalid-approval", (
+                "schema-invalid approval must produce denied-schema-invalid-approval"
+            )
+            assert store.record_count() == 0, "schema-invalid approval must expose zero records"
+        finally:
+            pi._build_approval_record = original_build  # type: ignore[assignment]
+
+    def test_schema_invalid_review_exposes_zero(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A schema-invalid initial review is refused and exposes zero records.
+
+        The builder is monkeypatched to inject an unknown field; validate_initial_review_dict
+        must detect it and refuse with denied-schema-invalid-review.
+        """
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        original_build = pi._build_initial_review
+
+        def _bad_review_build(**kwargs: Any) -> dict:
+            record = original_build(**kwargs)
+            record["inject_authority"] = "bypass"  # unknown field fails validation
+            return record
+
+        pi._build_initial_review = _bad_review_build  # type: ignore[assignment]
+        try:
+            with pytest.raises(pi.PolicyImportRefused) as exc_info:
+                pi.import_policy(
+                    spec_path=spec_path,
+                    plan_path=plan_path,
+                    refs=VALID_REFS,
+                    terminal_intent=TERMINAL_INTENT,
+                    writer_grant=grant,
+                    issuer=issuer,
+                    audit_sink=_null_sink,
+                    store=store,
+                    approval_identity=APPROVAL_IDENTITY,
+                    approval_role=APPROVAL_ROLE,
+                    reviewer_identity=REVIEWER_IDENTITY,
+                    reviewer_role=REVIEWER_ROLE,
+                    approved_spec_digest=spec_d,
+                    approved_plan_digest=plan_d,
+                    approved_envelope_fingerprint=env_fp,
+                )
+            assert exc_info.value.denial_code == "denied-schema-invalid-review", (
+                "schema-invalid initial review must produce denied-schema-invalid-review"
+            )
+            assert store.record_count() == 0, "schema-invalid review must expose zero records"
+        finally:
+            pi._build_initial_review = original_build  # type: ignore[assignment]
 
     def test_wrong_terminal_intent_exposes_zero(
         self, pi: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """A wrong terminal intent is refused and exposes zero records."""
+        """A wrong terminal intent is refused and exposes zero records.
+
+        The terminal-intent check runs before digest computation, so placeholder
+        digests suffice.
+        """
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
@@ -527,24 +803,26 @@ class TestAtomicImport:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
             )
         assert store.record_count() == 0, "wrong terminal intent must expose zero records"
         assert "denied" in exc_info.value.denial_code
 
     def test_missing_profile_exposes_zero(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """An unknown content-safety profile refuses and exposes zero records.
+        """An invalid authority identity refuses and exposes zero records.
 
-        This tests AC-0014: the on_before_first_write hook is used to tamper
-        with the profile registry check via a synthetic store that claims an
-        unknown profile.
+        The authority identity check runs after the digest comparison, so
+        correct digests are needed to reach the identity check.
         """
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, _ = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
 
-        # Test with an empty identity — content safety check must refuse before persist
         with pytest.raises(pi.PolicyImportRefused):
             pi.import_policy(
                 spec_path=spec_path,
@@ -555,12 +833,15 @@ class TestAtomicImport:
                 issuer=issuer,
                 audit_sink=_null_sink,
                 store=store,
-                approval_identity="",  # empty identity fails content safety
+                approval_identity="",  # empty identity is refused
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=spec_d,
+                approved_plan_digest=plan_d,
+                approved_envelope_fingerprint=None,
             )
-        assert store.record_count() == 0, "missing/unknown profile must expose zero records"
+        assert store.record_count() == 0, "invalid authority identity must expose zero records"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -574,7 +855,11 @@ class TestWriterAuthorityRefusals:
     def test_no_grant_exposes_zero_records(
         self, pi: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """A None grant refuses and exposes zero records."""
+        """A None grant refuses and exposes zero records.
+
+        The authority check runs before digest computation, so placeholder
+        digests suffice.
+        """
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer = sc.CapabilityIssuer()
@@ -593,6 +878,9 @@ class TestWriterAuthorityRefusals:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
             )
         assert store.record_count() == 0, "no grant must expose zero records"
         assert "denied" in exc_info.value.denial_code
@@ -628,6 +916,9 @@ class TestWriterAuthorityRefusals:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
             )
         assert store.record_count() == 0, "expired grant must expose zero records"
 
@@ -662,6 +953,9 @@ class TestWriterAuthorityRefusals:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
             )
         assert store.record_count() == 0, "mismatched grant must expose zero records"
 
@@ -695,6 +989,9 @@ class TestWriterAuthorityRefusals:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
             )
         assert store.record_count() == 0, "revoked grant must expose zero records"
 
@@ -733,6 +1030,9 @@ class TestWriterAuthorityRefusals:
                     approval_role=APPROVAL_ROLE,
                     reviewer_identity=REVIEWER_IDENTITY,
                     reviewer_role=REVIEWER_ROLE,
+                    approved_spec_digest=_PLACEHOLDER_DIGEST,
+                    approved_plan_digest=_PLACEHOLDER_DIGEST,
+                    approved_envelope_fingerprint=None,
                 )
             assert store.record_count() == 0, (
                 f"attempt {attempt + 1}: retry under same revoked identity must still expose zero"
@@ -747,6 +1047,8 @@ class TestWriterAuthorityRefusals:
         The sink raises OSError (a standard-library I/O failure) to simulate
         an unavailable audit path; _security_events maps that to
         AuditSinkUnavailable, which propagates as a fail-closed denial.
+        The authority check runs before digest computation, so placeholder
+        digests suffice.
         """
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
@@ -772,6 +1074,9 @@ class TestWriterAuthorityRefusals:
                 approval_role=APPROVAL_ROLE,
                 reviewer_identity=REVIEWER_IDENTITY,
                 reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
             )
         assert store.record_count() == 0, (
             "unavailable audit sink must fail closed with zero records"
@@ -929,12 +1234,13 @@ class TestReverseReader:
     # ── reverse_read (dual-read) ──────────────────────────────────────────────
 
     def test_reverse_read_reconstructs_original_pair(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """reverse_read returns the original approval and initial-plan-review records."""
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         original_approval, original_review = pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -948,6 +1254,9 @@ class TestReverseReader:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         read_approval, read_review = pi.reverse_read(store)
         assert read_approval["approval_id"] == original_approval["approval_id"], (
@@ -969,7 +1278,7 @@ class TestReverseReader:
     # ── compatibility_snapshot (post-cutover) ─────────────────────────────────
 
     def test_default_resolver_refuses(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """compatibility_snapshot with default resolver refuses (denied-no-governance-record).
 
@@ -980,6 +1289,7 @@ class TestReverseReader:
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -993,6 +1303,9 @@ class TestReverseReader:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         with pytest.raises(pi.PolicyImportRefused) as exc_info:
             pi.compatibility_snapshot(store)
@@ -1001,13 +1314,14 @@ class TestReverseReader:
         )
 
     def test_fixture_resolver_yields_snapshot_without_authority(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """A fixture resolver yields a snapshot that grants no target authority
         while the store stays byte-identical (no semantic facts deleted or changed)."""
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         _, review = pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -1021,6 +1335,9 @@ class TestReverseReader:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         resolver = _make_governance_resolver(
             envelope_fingerprint=review["envelope_fingerprint"],
@@ -1038,7 +1355,7 @@ class TestReverseReader:
         )
 
     def test_resolver_claiming_authority_cannot_grant_it(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """A resolver whose decision dict contains grants_target_authority=True
         cannot make the module grant target authority in the snapshot.
@@ -1049,6 +1366,7 @@ class TestReverseReader:
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         _, review = pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -1062,6 +1380,9 @@ class TestReverseReader:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
 
         def _greedy_resolver() -> dict:
@@ -1080,7 +1401,7 @@ class TestReverseReader:
         assert snapshot.get("is_compatibility_snapshot") is True
 
     def test_forged_non_callable_resolver_refuses(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """A forged non-callable (dict) passed as authority_resolver refuses.
 
@@ -1091,6 +1412,7 @@ class TestReverseReader:
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -1104,6 +1426,9 @@ class TestReverseReader:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         # Forged dict — not a callable.
         forged_dict: Any = {
@@ -1117,12 +1442,13 @@ class TestReverseReader:
         )
 
     def test_lossy_projection_refuses(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """A lossy projection (wrong envelope fingerprint in decision) refuses."""
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -1136,6 +1462,9 @@ class TestReverseReader:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         # Decision with wrong fingerprint → module refuses with denied-lossy-projection.
         resolver = _make_governance_resolver(
@@ -1149,12 +1478,13 @@ class TestReverseReader:
         )
 
     def test_boundary_crossing_projection_refuses(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """A boundary-crossing projection (wrong terminal intent in decision) refuses."""
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         _, review = pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -1168,6 +1498,9 @@ class TestReverseReader:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         # Decision with wrong intent → module refuses with denied-boundary-crossing-projection.
         resolver = _make_governance_resolver(
@@ -1190,12 +1523,13 @@ class TestRecordValidation:
     """In-code validation of approval-record.v1 and initial-plan-review.v1."""
 
     def test_validate_approval_accepts_valid_record(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """validate_approval_dict accepts a well-formed approval-record.v1."""
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         approval, _ = pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -1209,6 +1543,9 @@ class TestRecordValidation:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         ok, code = pi.validate_approval_dict(approval)
         assert ok, f"validate_approval_dict rejected a valid record: {code}"
@@ -1292,12 +1629,13 @@ class TestRecordValidation:
         assert code == "denied-invalid-enum"
 
     def test_validate_initial_review_accepts_valid_record(
-        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
         """validate_initial_review_dict accepts a well-formed initial-plan-review.v1."""
         spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
         store = pi.ImportStore()
         issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
         _, review = pi.import_policy(
             spec_path=spec_path,
             plan_path=plan_path,
@@ -1311,6 +1649,9 @@ class TestRecordValidation:
             approval_role=APPROVAL_ROLE,
             reviewer_identity=REVIEWER_IDENTITY,
             reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
         )
         ok, code = pi.validate_initial_review_dict(review)
         assert ok, f"validate_initial_review_dict rejected a valid record: {code}"
@@ -1384,3 +1725,130 @@ class TestRecordValidation:
         ok, code = pi.validate_initial_review_dict(bad)
         assert not ok
         assert code == "denied-invalid-enum"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding B: timestamp consistency and repo-relative spec_ref
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestFindingBFixes:
+    """Verify Finding B fixes: paired records share a timestamp and spec_ref is portable."""
+
+    def test_paired_records_have_same_timestamp(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """The approval record and initial review are built with the same timestamp.
+
+        Both records must carry the same RFC 3339 timestamp so they are
+        unambiguously paired.  Before the fix, _build_initial_review called
+        _now_rfc3339() independently, which could produce a different second.
+        """
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        approval, review = pi.import_policy(
+            spec_path=spec_path,
+            plan_path=plan_path,
+            refs=VALID_REFS,
+            terminal_intent=TERMINAL_INTENT,
+            writer_grant=grant,
+            issuer=issuer,
+            audit_sink=_null_sink,
+            store=store,
+            approval_identity=APPROVAL_IDENTITY,
+            approval_role=APPROVAL_ROLE,
+            reviewer_identity=REVIEWER_IDENTITY,
+            reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
+        )
+        assert approval["timestamp"] == review["timestamp"], (
+            "approval and initial review must carry the same timestamp so they are "
+            "unambiguously paired"
+        )
+
+    def test_spec_ref_is_not_absolute_system_path(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """The approval record's spec_ref is a repo-relative path when possible.
+
+        An absolute system path leaks machine-specific information and is not
+        portable across machines.  When the spec file is under a git root, the
+        stored ref must be relative.  Outside a git root (a system temp
+        directory here), the ref is ``<spec-dir-name>/<file-name>``, never a
+        host path.
+        """
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, spec_path, plan_path, VALID_REFS)
+        approval, _ = pi.import_policy(
+            spec_path=spec_path,
+            plan_path=plan_path,
+            refs=VALID_REFS,
+            terminal_intent=TERMINAL_INTENT,
+            writer_grant=grant,
+            issuer=issuer,
+            audit_sink=_null_sink,
+            store=store,
+            approval_identity=APPROVAL_IDENTITY,
+            approval_role=APPROVAL_ROLE,
+            reviewer_identity=REVIEWER_IDENTITY,
+            reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
+        )
+        spec_ref = approval["lineage"]["spec_ref"]
+        assert spec_ref == "a/spec.md", spec_ref
+        assert str(tmp_path) not in spec_ref
+
+    def test_spec_ref_is_repo_relative_for_repo_spec(
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType
+    ) -> None:
+        """When the spec lives under the repository git root, spec_ref is repo-relative.
+
+        Uses actual spec files from the repository tree, which are under a .git
+        root that _repo_relative_spec_ref can detect.
+        """
+        # Use any real spec file that exists in the repository.
+        spec_path = SCRIPTS.parents[3] / "tests" / "skills" / "work-loop" / "fixtures" / "spec.md"
+        plan_path = SCRIPTS.parents[3] / "tests" / "skills" / "work-loop" / "fixtures" / "plan.md"
+        # If no fixture files exist, create synthetic ones and skip the relative assertion.
+        import tempfile
+        if not spec_path.exists() or not plan_path.exists():
+            # Fall back to using a temp directory under the repo root so the git walk finds .git.
+            repo_root = SCRIPTS.parents[5]  # packs/core/.apm/skills/work-loop/scripts → repo root
+            with tempfile.TemporaryDirectory(dir=repo_root) as td:
+                td_path = Path(td)
+                sp = td_path / "spec.md"
+                pp = td_path / "plan.md"
+                sp.write_text(_SPEC_TEXT_APPROVED, encoding="utf-8")
+                pp.write_text(_PLAN_TEXT_BASE, encoding="utf-8")
+                store = pi.ImportStore()
+                issuer, grant = _make_issuer_and_grant(sc)
+                spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, sp, pp, VALID_REFS)
+                approval, _ = pi.import_policy(
+                    spec_path=sp,
+                    plan_path=pp,
+                    refs=VALID_REFS,
+                    terminal_intent=TERMINAL_INTENT,
+                    writer_grant=grant,
+                    issuer=issuer,
+                    audit_sink=_null_sink,
+                    store=store,
+                    approval_identity=APPROVAL_IDENTITY,
+                    approval_role=APPROVAL_ROLE,
+                    reviewer_identity=REVIEWER_IDENTITY,
+                    reviewer_role=REVIEWER_ROLE,
+                    approved_spec_digest=spec_d,
+                    approved_plan_digest=plan_d,
+                    approved_envelope_fingerprint=env_fp,
+                )
+                ref = approval["lineage"]["spec_ref"]
+                assert not Path(ref).is_absolute(), (
+                    f"spec_ref must be repo-relative when the spec is under the git root; got {ref!r}"
+                )

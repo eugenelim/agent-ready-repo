@@ -6,18 +6,17 @@ child's direct authority; the broker validates grants and performs the only
 approved outward effect.
 
 Every effect request validates the named producer's capability grant before
-staging any effect (AC-0020).  When the audit sink is available, a durable
-security event is emitted before the effect is acknowledged.  When the sink
-is unavailable, the request fails closed with a stable redacted denial code,
-no effect success, no protected data persistence, and no durable-event claim
-(AC-0021).
+staging any effect.  When the audit sink is available, a durable security
+event is emitted before the effect is acknowledged.  When the sink is
+unavailable, the request fails closed with a stable redacted denial code,
+no effect success, no protected data persistence, and no durable-event claim.
 
 Broker effects that target delivery-control paths (as defined in
 ``_containment.DELIVERY_CONTROL_PATHS``) are refused without audit when the
 grant does not cover that path; no bypass write ever reaches the control
 plane.
 
-In Slice 1, real brokered effects run only in conformance fixtures.
+Real brokered effects run only in conformance fixtures.
 
 Standard library only plus the sibling ``_security_events.py`` and
 ``_containment.py`` modules, each loaded by path at import time.
@@ -28,6 +27,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import posixpath
 import stat
 import sys
 from dataclasses import dataclass
@@ -140,6 +140,18 @@ class BrokerRefused(BrokerError):
 # ---------------------------------------------------------------------------
 
 
+def _path_within_root(path: str, root: str) -> bool:
+    """Return True when *path* is exactly *root* or a descendant of *root*.
+
+    Both arguments must already be lexically normalized (e.g., via
+    ``posixpath.normpath``).  The check uses path-component containment:
+    the path must equal the root exactly, or start with ``<root>/``, so
+    that ``/work`` does not accidentally match ``/workXYZ``.
+    """
+    root_norm = posixpath.normpath(root.replace("\\", "/")).rstrip("/")
+    return path == root_norm or path.startswith(root_norm + "/")
+
+
 @dataclass(frozen=True)
 class BrokerGrant:
     """A broker-session grant for a set of allowed operations on declared paths.
@@ -155,14 +167,18 @@ class BrokerGrant:
     expires_at_monotonic: float | None = None   # None means no expiry
 
     def is_valid_for(self, operation: str, path: str) -> bool:
-        """Return True when this grant covers *operation* on *path*."""
+        """Return True when this grant covers *operation* on *path*.
+
+        Normalises *path* lexically before the containment check to prevent
+        ``..`` traversal attacks (e.g., ``/work/../../evil`` resolving outside
+        the grant root ``/work`` must be denied, not passed through).
+        """
         if operation not in self.operations:
             return False
-        path_norm = path.rstrip("/")
-        return any(
-            path_norm == root.rstrip("/") or path_norm.startswith(root.rstrip("/") + "/")
-            for root in self.allowed_roots
-        )
+        # Normalize to resolve ./ and ../ before containment check.
+        # posixpath.normpath is cross-platform for lexical normalization.
+        path_norm = posixpath.normpath(path.replace("\\", "/"))
+        return any(_path_within_root(path_norm, root) for root in self.allowed_roots)
 
 
 @dataclass(frozen=True)
@@ -307,7 +323,7 @@ def _emit_allow_and_check(
 ) -> None:
     """Emit an allow event and propagate AuditSinkUnavailable as BrokerRefused.
 
-    The event is emitted before any effect is performed (AC-0021).
+    The event is emitted before any effect is performed.
     """
     event = _se.SecurityEvent(  # type: ignore[attr-defined]
         schema_version=1,
@@ -355,8 +371,8 @@ def request_effect(
 ) -> BrokerResult:
     """Request an outward effect from the broker.
 
-    Validates the producer's grant before staging any effect (AC-0020).
-    Emits a durable security event before acknowledging success (AC-0021).
+    Validates the producer's grant before staging any effect.
+    Emits a durable security event before acknowledging success.
     Fails closed when the audit sink is unavailable.
 
     Args:
@@ -374,7 +390,7 @@ def request_effect(
         the audit event was durably emitted; ``success=False`` with a stable
         ``denial_code`` on any refusal.
     """
-    # AC-0021: unavailable sink → fail closed, no data persisted.
+    # Unavailable sink → fail closed, no data persisted.
     if audit_sink is None:
         return BrokerResult.denied("denied-audit-sink-unavailable")
 
@@ -388,7 +404,7 @@ def request_effect(
         )
         return BrokerResult.denied("denied-missing-grant")
 
-    # Check grant expiry (AC-0020: expired authority exposes no partial record).
+    # Check grant expiry (expired authority exposes no partial record).
     if _is_expired(grant):
         _emit_broker_event(
             audit_sink, op_id, grant_id, "denied", BROKER_DENY_REASON
@@ -409,14 +425,14 @@ def request_effect(
         )
         return BrokerResult.denied("denied-control-plane-write")
 
-    # AC-0021: emit the allow event BEFORE performing any effect.
+    # Emit the allow event BEFORE performing any effect.
     # AuditSinkUnavailable propagates as BrokerRefused.
     try:
         _emit_allow_and_check(audit_sink, op_id, grant_id)
     except BrokerRefused:
         return BrokerResult.denied("denied-audit-sink-unavailable")
 
-    # In Slice 1, real brokered effects run only in conformance fixtures.
+    # Real brokered effects run only in conformance fixtures.
     # The effect is acknowledged here; the caller performs the actual I/O
     # under the primitive layer.
     return BrokerResult.allowed()

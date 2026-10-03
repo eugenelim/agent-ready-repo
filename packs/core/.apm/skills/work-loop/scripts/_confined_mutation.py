@@ -55,6 +55,7 @@ DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-staging-failed",
     "denied-not-found",
     "denied-already-exists",
+    "denied-rollback-failed",
 })
 
 # ── Sibling file_safety loader ────────────────────────────────────────────────
@@ -160,6 +161,25 @@ def _write_all(fd: int, content: bytes, *, relative: str) -> None:
                 "denied-staging-failed", f"write returned 0 for {relative}"
             )
         pos += n
+
+
+def _rollback_append(fd: int, pre_len: int, relative: str) -> None:
+    """Truncate *fd* back to *pre_len* bytes after a failed append.
+
+    If truncation fails, the file is in an unknown state. Callers must fail
+    closed — refusing further appends until the store is reopened — rather
+    than layering new bytes onto unknown content.
+
+    Raises:
+        MutationDenied: with ``denied-rollback-failed`` when truncation fails.
+    """
+    try:
+        os.ftruncate(fd, pre_len)
+    except OSError as exc:
+        raise MutationDenied(
+            "denied-rollback-failed",
+            f"partial write and rollback truncation failed for {relative}: {exc}",
+        ) from exc
 
 
 def _try_unlink_by_dir_fd(name: str, dir_fd: int) -> None:
@@ -335,6 +355,14 @@ def confined_append(
     Uses ``O_APPEND`` with identity verification to avoid a read-then-write
     race.  Refuses before staging any bytes when descriptor walk is unavailable.
 
+    On a failed write, truncates the file back to its pre-append size so that
+    no partial bytes remain (rollback).  If the rollback truncation itself
+    fails, raises with ``denied-rollback-failed``; callers must treat the file
+    as being in an unknown state and fail closed.
+
+    On a successful write, fsyncs the file descriptor before returning so that
+    the appended bytes are durable before the caller is notified.
+
     Args:
         root:      The canonical root directory.
         path:      Absolute target path inside *root*.
@@ -403,8 +431,31 @@ def confined_append(
                     f"identity changed between stat and open: {relative}",
                 )
 
-            # Write content.
-            _write_all(fd, content, relative=relative)
+            # Record the pre-append file size for rollback on partial failure.
+            try:
+                pre_len = os.fstat(fd).st_size
+            except OSError as exc:
+                raise MutationDenied(
+                    "denied-staging-failed",
+                    f"fstat pre-append failed for {relative}: {exc}",
+                ) from exc
+
+            # Write all content; roll back to pre_len if the write fails.
+            try:
+                _write_all(fd, content, relative=relative)
+            except MutationDenied:
+                _rollback_append(fd, pre_len, relative)
+                raise
+
+            # Fsync before reporting success so appended bytes are durable.
+            try:
+                os.fsync(fd)
+            except OSError:
+                _rollback_append(fd, pre_len, relative)
+                raise MutationDenied(
+                    "denied-staging-failed",
+                    f"fsync failed for append to {relative}",
+                ) from None
 
     except MutationDenied:
         raise

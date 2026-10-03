@@ -374,6 +374,12 @@ def security_capability() -> ModuleType:
     return _load_script("sc_roster", _SCRIPTS / "_security_capability.py")
 
 
+@pytest.fixture(scope="module")
+def acceptance_roster() -> ModuleType:
+    """_acceptance.py loaded by path (roster copy, distinct from parity copy)."""
+    return _load_script("acc_roster2", _SCRIPTS / "_acceptance.py")
+
+
 def _make_issuer_and_grant_roster(sc: ModuleType) -> tuple:
     """Return a valid (issuer, grant) pair for roster import tests."""
     issuer = sc.CapabilityIssuer()
@@ -404,6 +410,7 @@ _VALID_REFS_ROSTER = {
 @pytest.fixture(scope="module")
 def _imported_records(
     policy_import: ModuleType,
+    acceptance_roster: ModuleType,
     security_capability: ModuleType,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> tuple[dict, dict]:
@@ -419,6 +426,12 @@ def _imported_records(
         "# Plan\n\n- **Status:** Approved\n\n## Tasks\n\n### T1: Task\n\n- [ ] Done\n",
         encoding="utf-8",
     )
+    # Compute the correct approved pins before calling import_policy.
+    approved_spec_digest: str = policy_import.compute_spec_digest(spec_path)
+    approved_plan_digest: str = policy_import.compute_plan_digest(plan_path)
+    approved_envelope_fingerprint: str = acceptance_roster.derive_envelope(
+        _VALID_REFS_ROSTER
+    )["envelope_fingerprint"]
     store = policy_import.ImportStore()
     issuer, grant = _make_issuer_and_grant_roster(security_capability)
     approval, review = policy_import.import_policy(
@@ -434,6 +447,9 @@ def _imported_records(
         approval_role="spec-policy-owner",
         reviewer_identity="platform-core-maintainer",
         reviewer_role="plan-review-authority",
+        approved_spec_digest=approved_spec_digest,
+        approved_plan_digest=approved_plan_digest,
+        approved_envelope_fingerprint=approved_envelope_fingerprint,
     )
     return approval, review
 

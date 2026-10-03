@@ -288,6 +288,33 @@ class TestReceiptSchemaParity:
         assert not ok
         assert code == "denied-invalid-enum"
 
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("lineage", {"scope": "x"}),
+            ("lineage", {"criterion_ref": "c", "scope": "x"}),
+            ("selector", {"term": ""}),
+            ("observation", {"seq": 1}),
+            ("observation", {"type": "t", "seq": 1}),
+            ("producer", {"identity": "p"}),
+            ("producer", "not-an-object"),
+        ],
+    )
+    def test_validate_refuses_nested_record_the_schema_rejects(
+        self, es: ModuleType, field: str, value: object
+    ) -> None:
+        """A nested object the canonical schema rejects is refused in code too."""
+        import jsonschema  # test-time only
+
+        bad = {**_make_receipt("r-nested"), field: value}
+        schema = _load_schema(_RECEIPT_SCHEMA_PATH)
+        assert list(jsonschema.Draft202012Validator(schema).iter_errors(bad)), (
+            "fixture must be schema-invalid"
+        )
+        ok, code = es.validate_receipt_dict(bad)
+        assert not ok
+        assert code == "denied-invalid-nested-field"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # evidence-supersession.v1

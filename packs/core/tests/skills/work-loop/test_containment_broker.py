@@ -1235,3 +1235,302 @@ class TestAttestationValidation:
             assert code == "denied-same-process-isolation-claim", (
                 f"expected denied-same-process-isolation-claim for {mechanism!r}; got {code!r}"
             )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FINDING A: delivery-control path guard — forgery path spellings and additional
+# protected paths (.git, state files, shadow acceptance).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestDeliveryControlPathForgerySpellings:
+    """is_delivery_control_path must detect every delivery-control path regardless of spelling.
+
+    Tests fail when the normalization or component-detection fix is removed.
+    """
+
+    @pytest.mark.parametrize("delivery_path", [
+        # ./ prefixed — lstrip("./") incorrectly drops the leading dot,
+        # turning ./.claude/... into claude/... (misses the delivery-control prefix).
+        "./.claude/skills/work-loop/SKILL.md",
+        "./packs/core/.apm/skills/work-loop/SKILL.md",
+        # Absolute path forms — must be detected via the "anywhere in path" check.
+        "/repo/.claude/skills/work-loop/SKILL.md",
+        "/some/abs/.claude/skills/work-loop/SKILL.md",
+        "/work/.git/refs/heads/main",
+        # ../ traversal — must resolve correctly via posixpath.normpath.
+        ".other/../.claude/skills/work-loop/SKILL.md",
+        "packs/core/.apm/skills/../skills/work-loop/SKILL.md",
+        # Case variants — comparison must be case-insensitive.
+        ".CLAUDE/SKILLS/WORK-LOOP/SKILL.md",
+        "PACKS/CORE/.APM/SKILLS/WORK-LOOP/SKILL.md",
+        # .git anywhere in path.
+        ".git/refs/heads/main",
+        "repo/.git/config",
+        "/abs/path/.git/COMMIT_EDITMSG",
+        # Shadow acceptance.
+        ".shadow-acceptance/governance.json",
+        "/spec/.shadow-acceptance/result.json",
+        # Engine state filenames.
+        "state.json",
+        "engine-state.json",
+        "/some/dir/state.json",
+    ])
+    def test_forgery_spelling_is_detected(
+        self, containment: ModuleType, delivery_path: str
+    ) -> None:
+        """Every forgery spelling must be detected as a delivery-control path.
+
+        This test fails if the normalization fix is reverted (e.g., ./.claude/...
+        is no longer detected when lstrip removes the leading dot).
+        """
+        cn = containment
+        assert cn.is_delivery_control_path(delivery_path), (
+            f"delivery-control path not detected with spelling: {delivery_path!r}"
+        )
+
+    def test_dot_slash_prefix_specifically_detected(self, containment: ModuleType) -> None:
+        """Specifically: ./.claude/... must be detected (lstrip-bug regression guard).
+
+        lstrip('./') incorrectly strips the leading . making ./.claude → claude,
+        which no longer matches the .claude/skills/work-loop/ prefix.
+        This test fails if the lstrip-based normalization is used instead of posixpath.normpath.
+        """
+        cn = containment
+        assert cn.is_delivery_control_path("./.claude/skills/work-loop/SKILL.md"), (
+            "./.claude path must be detected (regression guard for lstrip normalization bug)"
+        )
+
+    def test_git_component_any_depth_detected(self, containment: ModuleType) -> None:
+        """A .git component at any path depth is always delivery-control."""
+        cn = containment
+        for path in [
+            ".git/config",
+            ".git/refs/heads/main",
+            "repo/.git/FETCH_HEAD",
+            "/abs/root/.git/packed-refs",
+            "nested/deep/.git/objects/ab/cdef",
+        ]:
+            assert cn.is_delivery_control_path(path), (
+                f".git component at any depth must be delivery-control: {path!r}"
+            )
+
+
+class TestProtectedRefGrantCoversTarget:
+    """AC-0013: protected-ref/git forgery where the grant EXPLICITLY covers the target.
+
+    These tests fail if the delivery-control guard is removed: the grant allows
+    the path, but the guard must still deny the write.
+    """
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    @pytest.mark.parametrize("git_path,grant_root", [
+        # Grant covers exactly the .git/ path — the delivery-control guard must fire.
+        (".git/refs/heads/main", ".git/"),
+        (".git/COMMIT_EDITMSG", ".git/"),
+        (".git/packed-refs", ".git/"),
+        # Absolute form: grant covers the absolute .git/ path.
+        ("/repo/.git/refs/heads/main", "/repo/.git/"),
+    ])
+    def test_git_write_refused_when_grant_covers_git(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        git_path: str,
+        grant_root: str,
+        adapter: str,
+    ) -> None:
+        """Git metadata write is refused even when the grant explicitly covers the .git path.
+
+        Before the fix, .git/ was not in DELIVERY_CONTROL_PATHS, so a grant
+        covering .git/ would allow the write.  After the fix, the delivery-control
+        guard fires and returns denied-control-plane-write regardless of the grant.
+
+        This test fails if .git/ is removed from DELIVERY_CONTROL_PATHS.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id=f"git-grant-{adapter}",
+            operations=("write",),
+            allowed_roots=(grant_root,),  # grant explicitly covers the .git path
+        )
+        session = eb.create_broker_session(
+            session_id=f"git-session-{adapter}", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=git_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"git write to {git_path!r} must be refused even when grant "
+            f"covers {grant_root!r} (adapter {adapter!r})"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write; got {result.denial_code!r}"
+        )
+
+
+class TestCrossAdapterCorpusVariesByAdapter:
+    """AC-0013: cross-adapter corpus must vary by adapter, not be the same call twice."""
+
+    @pytest.mark.parametrize("adapter,delivery_path,grant_root", [
+        # sequential-reference adapter → the pack source path.
+        (
+            "sequential-reference",
+            "packs/core/.apm/skills/work-loop/SKILL.md",
+            "packs/core/.apm/skills/work-loop/",
+        ),
+        # core-compatibility adapter → the claude-code projection path.
+        (
+            "core-compatibility",
+            ".claude/skills/work-loop/SKILL.md",
+            ".claude/skills/work-loop/",
+        ),
+    ])
+    def test_adapter_specific_skill_copy_path_refused(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        adapter: str,
+        delivery_path: str,
+        grant_root: str,
+    ) -> None:
+        """Each adapter's specific skill-copy path is refused on write.
+
+        The corpus varies by adapter: each leg tests a different delivery-control
+        path so the parametrize matrix is not the same call twice.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id=f"adapter-specific-grant-{adapter}",
+            operations=("write",),
+            allowed_roots=(grant_root,),
+        )
+        session = eb.create_broker_session(
+            session_id=f"adapter-specific-session-{adapter}", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=delivery_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"adapter {adapter!r}: skill-copy {delivery_path!r} must be refused; "
+            f"got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write"
+
+
+class TestPathTraversalCannotEscapeGrantRoot:
+    """BrokerGrant.is_valid_for must normalize paths to prevent ../ traversal attacks."""
+
+    def test_traversal_escape_refused(self, effect_broker: ModuleType) -> None:
+        """A ../ traversal path that escapes the grant root is refused as out-of-scope.
+
+        Without the posixpath.normpath fix, /work/output/../shared/secret.txt
+        passes startswith('/work/output/'), leaking the grant boundary.
+        With the fix, normpath resolves it to /work/shared/secret.txt which is
+        not within /work/output → denied-out-of-scope.
+
+        This test fails if posixpath.normpath is removed from is_valid_for.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="narrow-output-grant",
+            operations=("write",),
+            allowed_roots=("/work/output",),  # narrow grant: only /work/output
+        )
+        session = eb.create_broker_session(
+            session_id="traversal-escape-session", grants=[grant]
+        )
+        # Traversal path: /work/output/../shared/secret.txt resolves to /work/shared/secret.txt
+        # which is OUTSIDE /work/output → must be refused.
+        path = "/work/output/../shared/secret.txt"
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"traversal path {path!r} must be refused (escapes grant root /work/output)"
+        )
+        assert result.denial_code in ("denied-out-of-scope", "denied-control-plane-write"), (
+            f"expected out-of-scope or control-plane denial; got {result.denial_code!r}"
+        )
+
+    def test_dot_slash_prefix_in_grant_path_normalized(
+        self, effect_broker: ModuleType
+    ) -> None:
+        """A ./-prefixed path is normalized before grant containment check."""
+        eb = effect_broker
+        # Grant covers /work; path uses ./ prefix
+        grant = eb.BrokerGrant(
+            grant_id="work-grant",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(
+            session_id="dotslash-session", grants=[grant]
+        )
+        events: list = []
+        # ./work/file.txt normalizes to work/file.txt (relative) → not under /work
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="./work/output/file.txt",  # relative dotslash, not absolute /work
+            audit_sink=lambda e: events.append(e),
+        )
+        # posixpath.normpath("./work/output/file.txt") = "work/output/file.txt"
+        # which is not within /work (absolute) → out-of-scope.
+        assert not result.success, (
+            "relative ./work/... path must not match absolute /work grant root"
+        )
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_traversal_to_delivery_control_refused_per_adapter(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        adapter: str,
+    ) -> None:
+        """Traversal path escaping into a delivery-control path is refused.
+
+        Grant covers /work; traversal path /work/../../.claude/skills/work-loop/x
+        normalizes to /.claude/skills/work-loop/x which is both outside the grant
+        and a delivery-control path.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id=f"traversal-dc-grant-{adapter}",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(
+            session_id=f"traversal-dc-session-{adapter}", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="/work/../../.claude/skills/work-loop/SKILL.md",
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"traversal to delivery-control path must be refused "
+            f"(adapter {adapter!r})"
+        )
+        assert result.denial_code in ("denied-out-of-scope", "denied-control-plane-write"), (
+            f"expected out-of-scope or control-plane denial; got {result.denial_code!r}"
+        )

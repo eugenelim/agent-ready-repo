@@ -550,14 +550,21 @@ not shipped.
 ## 10. Maintainer Procedure — Acceptance Shadow Services
 
 The following commands let maintainers verify parity, recovery, and reversal for
-the Slice 1 callable shadow acceptance services without reading the delivery
+the callable shadow acceptance services without reading the delivery
 spec. All commands run from the repository root.
 
 ### Enable shadow mode
 
 Set `WORK_LOOP_SHADOW_SERVICES=1` before a `loop-engine transition` call to
-activate shadow evaluation. The current engine keeps all authority; shadow
-results write under `<spec-dir>/.shadow-acceptance/` and are not authoritative.
+turn on the shadow services. After each committed transition, the engine
+appends an `evidence-receipt.v1` record through the evidence store. At
+`plan-locked`, it also imports the `approval-record.v1` and
+`initial-plan-review.v1` records against the approved spec and plan digests in
+`state.json`, projects a `delivery-subject.v1` record when the tree allows, and
+derives an `acceptance-verdict.v1` record. Everything is written under
+`<spec-dir>/.shadow-acceptance/`, which ignores itself in Git. The current
+engine keeps all authority, and a shadow failure is recorded as a redacted
+`security-event.v1` entry without changing the legacy result.
 
 ```bash
 WORK_LOOP_SHADOW_SERVICES=1 python '<skill-dir>/scripts/loop-engine.py' transition …

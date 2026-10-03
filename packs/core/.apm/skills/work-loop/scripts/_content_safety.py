@@ -1,17 +1,17 @@
-"""_content_safety — content-safety guard for Slice 1 semantic writer boundaries.
+"""_content_safety — content-safety guard for durable semantic writer boundaries.
 
 Accepts a named profile and payload bytes; returns a typed ContentSafetyDecision
 without persisting anything. Standard library only.
 
-AC-0014: every Slice 1 durable semantic writer and replay boundary is registered
-in SLICE_1_WRITER_BOUNDARIES before use; a missing or unknown profile refuses
-without persisting payload bytes. The delivery-content-safety.md §4 Slice 1
-writer boundary table names the same set and the same profiles.
+Every durable semantic writer and replay boundary is registered in
+SLICE_1_WRITER_BOUNDARIES before use; a missing or unknown profile refuses
+without persisting payload bytes. The registered writer boundary table names
+the same set and the same profiles.
 
-AC-0015: rejected payload bytes, excerpts, and content-derived hashes never
-leave this module; accepted free text is returned as typed UntrustedData for
-consumers. The inert wrapper signals that the value must not be concatenated
-into system instructions, commands, tool calls, paths, approvals, or authority.
+Rejected payload bytes, excerpts, and content-derived hashes never leave this
+module; accepted free text is returned as typed UntrustedData for consumers.
+The inert wrapper signals that the value must not be concatenated into system
+instructions, commands, tool calls, paths, approvals, or authority.
 
 Classification vocabulary (content-safety-policy.v1):
   public, repository-internal  — may persist as bounded Git text
@@ -45,8 +45,8 @@ POLICY_VERSION: Final[str] = "slice-1.v1"
 
 # ── Boundary profile definitions ─────────────────────────────────────────────
 #
-# Limits from delivery-content-safety.md §4 "Boundary profile" table.
-# Keys: profile names used in the Semantic boundary and Slice 1 boundary tables.
+# Per-profile size and shape limits for each content-safety boundary profile.
+# Keys: profile names used in the semantic boundary and writer boundary tables.
 # Every key in SLICE_1_WRITER_BOUNDARIES must map to a key here.
 BOUNDARY_PROFILES: Final[dict[str, dict]] = {
     # 64 KiB: allowlisted identifiers, enums, digests, numbers, repo-relative paths
@@ -74,19 +74,19 @@ BOUNDARY_PROFILES: Final[dict[str, dict]] = {
     "product-addition": {},
 }
 
-# ── Slice 1 writer boundary registry ─────────────────────────────────────────
+# ── Writer boundary registry ──────────────────────────────────────────────────
 #
-# The SINGLE declared registry that every Slice 1 durable semantic writer and
-# replay boundary must use. A writer that bypasses this registry or uses a
-# profile other than the one assigned here violates the content-safety contract.
+# The SINGLE declared registry that every durable semantic writer and replay
+# boundary must use. A writer that bypasses this registry or uses a profile
+# other than the one assigned here violates the content-safety contract.
 #
-# The delivery-content-safety.md §4 "Slice 1 writer boundaries" table names this
-# same set and these same profiles. The roster test asserts both agree.
+# The registered writer boundary table names this same set and these same
+# profiles. The roster test asserts both agree.
 #
-# T5 writers: initial-plan-review.v1, approval-record.v1, reviewed-execution-envelope.v1
-# T7 writers: semantic-evidence-transaction.v1 (frame), evidence-receipt.v1,
-#             evidence-supersession.v1
-# T3a writers: security-event.v1
+# Policy-import writers: initial-plan-review.v1, approval-record.v1, reviewed-execution-envelope.v1
+# Evidence-store writers: semantic-evidence-transaction.v1 (frame), evidence-receipt.v1,
+#                         evidence-supersession.v1
+# Security-event writer: security-event.v1
 SLICE_1_WRITER_BOUNDARIES: Final[dict[str, str]] = {
     "initial-plan-review.v1": "structured-control",
     "approval-record.v1": "structured-control",
@@ -173,8 +173,8 @@ class ContentSafetyDecision:
 
     Maps to content-safety-decision.v1 schema fields.
 
-    AC-0015 invariant: rejected decisions carry NO payload bytes, excerpts,
-    or content-derived hashes. Only `accepted` carries normalized_record_digest.
+    Invariant: rejected decisions carry NO payload bytes, excerpts, or
+    content-derived hashes. Only ``accepted`` carries normalized_record_digest.
     The dataclass raises ValueError if either half of the invariant is violated,
     so any code that constructs a decision with a digest on rejection is caught
     at construction time rather than silently leaking.
@@ -214,11 +214,10 @@ class UntrustedData:
 
     Maps to untrusted-data.v1 schema fields.
 
-    AC-0015: Consumers MUST NOT concatenate .value into system instructions,
-    commands, tool calls, paths, approvals, or authority. The value field is
-    opaque data, not procedure. The four boolean properties below enforce the
-    typed boundary: they always return False because an inert wrapper is
-    never an executable.
+    Consumers MUST NOT concatenate .value into system instructions, commands,
+    tool calls, paths, approvals, or authority. The value field is opaque data,
+    not procedure. The four boolean properties below enforce the typed boundary:
+    they always return False because an inert wrapper is never an executable.
     """
 
     record_id: str
@@ -230,19 +229,19 @@ class UntrustedData:
     SCHEMA_VERSION: ClassVar[int] = 1
 
     def can_select_tools(self) -> bool:
-        """Always False: typed inert data cannot select tools (AC-0015)."""
+        """Always False: typed inert data cannot select tools."""
         return False
 
     def can_grant_authority(self) -> bool:
-        """Always False: typed inert data cannot grant authority (AC-0015)."""
+        """Always False: typed inert data cannot grant authority."""
         return False
 
     def can_alter_procedure(self) -> bool:
-        """Always False: typed inert data cannot alter procedure (AC-0015)."""
+        """Always False: typed inert data cannot alter procedure."""
         return False
 
     def can_supply_executable_path(self) -> bool:
-        """Always False: typed inert data cannot supply executable paths (AC-0015)."""
+        """Always False: typed inert data cannot supply executable paths."""
         return False
 
 
@@ -257,7 +256,7 @@ def _reject(
 ) -> ContentSafetyDecision:
     """Construct a rejection decision.
 
-    AC-0015: carries NO payload bytes, excerpts, or content-derived hashes.
+    Carries NO payload bytes, excerpts, or content-derived hashes.
     normalized_record_digest is always absent.
     """
     return ContentSafetyDecision(

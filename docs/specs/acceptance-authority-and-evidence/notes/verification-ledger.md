@@ -176,3 +176,13 @@ Legacy authority made every decision in both runs. The shadow facade
 (Run A) emitted non-authoritative records for observability only and
 did not alter any engine state or cohort state. The byte-identical
 `engine-state.json` semantic fields confirm this.
+
+## Pack eval harness
+
+The `work-loop` skill is deliberately outside the Core pack's eval roster.
+`packs/core/pack.toml` lines 49-50 record why: the skill is loaded broadly by
+the plan, execute, and review discipline rather than by a narrow user prompt,
+so no clean negative set can be written for it. The shadow services add no
+prompt surface either; a maintainer opts in with `WORK_LOOP_SHADOW_SERVICES=1`.
+Their behaviour is therefore covered by the pack and roster test suites listed
+above, not by a new eval case.

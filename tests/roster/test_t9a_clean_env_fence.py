@@ -39,6 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 _PROJECTED_SCRIPTS = REPO_ROOT / ".claude" / "skills" / "work-loop" / "scripts"
 
 _ENGINE = _PROJECTED_SCRIPTS / "loop-engine.py"
+_COHORT = _PROJECTED_SCRIPTS / "loop-cohort.py"
 
 # Python 3.10+ exposes stdlib_module_names; fall back to a curated set on older.
 try:
@@ -333,6 +334,7 @@ class TestSubprocessCleanEnvFence:
         )
 
         engine = str(_ENGINE)
+        cohort = str(_COHORT)
 
         # 1. engine init
         r = subprocess.run(
@@ -346,8 +348,6 @@ class TestSubprocessCleanEnvFence:
         )
         run_data = json.loads(r.stdout)
         assert "run_id" in run_data, f"no run_id in engine init output: {r.stdout!r}"
-
-        cohort = str(_PROJECTED_SCRIPTS / "loop-cohort.py")
 
         # 2. cohort init
         r = subprocess.run(
@@ -374,15 +374,21 @@ class TestSubprocessCleanEnvFence:
 
         # Confirm shadow evidence was written (shadow is ON)
         shadow_dir = spec_dir / ".shadow-acceptance"
-        evidence = shadow_dir / "evidence.jsonl"
-        assert evidence.exists(), (
-            "Shadow evidence.jsonl not written despite WORK_LOOP_SHADOW_SERVICES=1; "
+        evidence_log = shadow_dir / "shadow-evidence.log"
+        assert evidence_log.exists(), (
+            "Shadow shadow-evidence.log not written despite WORK_LOOP_SHADOW_SERVICES=1; "
             "the compatibility path may not have run."
         )
-        record = json.loads(evidence.read_text("utf-8").splitlines()[0])
-        assert record.get("event") == "spec-ready", (
-            f"Unexpected first shadow record: {record}"
+        first_frame = json.loads(evidence_log.read_text("utf-8").splitlines()[0])
+        # EvidenceStore frame format: {"tx": {...}, "records": [...]}
+        assert "records" in first_frame, (
+            f"shadow-evidence.log first line must be an EvidenceStore frame: {first_frame}"
         )
-        assert record.get("authoritative") is False, (
-            "Shadow record must be non-authoritative (legacy authority holds)"
+        first_receipt = first_frame["records"][0]
+        selector_term = first_receipt.get("selector", {}).get("term", "")
+        assert selector_term == "engine-transition:spec-ready", (
+            f"Expected selector.term='engine-transition:spec-ready'; got {selector_term!r}"
+        )
+        assert "authoritative" not in first_receipt, (
+            "Shadow receipt must not carry an 'authoritative' field (legacy authority holds)"
         )

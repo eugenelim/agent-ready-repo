@@ -1,17 +1,17 @@
 """_subject_projection — runtime-neutral delivery-subject projector.
 
-Pure component (T6).  Takes a product manifest (canonical sorted path-hash pairs)
+Pure component.  Takes a product manifest (canonical sorted path-hash pairs)
 and metadata and produces a ``delivery-subject.v1`` record whose acceptance
 fingerprint is deterministic over product paths and hashes, spec identity,
 evidence policy, exclusions, and lineage.
 
 Task-projection revision and hash are execution provenance only.  They are stored
 in the optional fields of the record but are excluded from the acceptance
-fingerprint computation so task-only changes never alter it (spec §4 invariant).
+fingerprint computation so task-only changes never alter it (spec fingerprint
+invariant: task-only edits must not change the acceptance fingerprint).
 
-Parity rule (verification-ledger.md §Script-versus-schema parity): every task
-that adds a module building delivery records carries parity tests.  This module
-satisfies that obligation for T6 by exporting ``validate_subject_dict()`` which
+Parity rule: every module building delivery records carries parity tests.  This
+module satisfies that obligation by exporting ``validate_subject_dict()`` which
 the roster suite and pack tests use to verify refusal of schema-invalid inputs.
 
 Standard library only.  No third-party imports, no packaging, no installation.
@@ -154,7 +154,8 @@ def project_delivery_subject(
     The acceptance fingerprint is deterministic over product, spec, evidence
     policy, exclusions, and lineage.  It never includes task-projection
     provenance.  Identical inputs always produce the same record on every
-    conforming adapter (spec AC-0005 / AC-0007 determinism invariant).
+    conforming adapter (determinism invariant: same inputs, same record on every
+    conforming adapter).
     """
     sorted_exclusions = sorted(exclusions)
     fp = compute_acceptance_fingerprint(

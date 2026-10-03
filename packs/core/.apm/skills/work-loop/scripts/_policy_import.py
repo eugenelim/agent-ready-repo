@@ -1,32 +1,32 @@
 """_policy_import — policy import, reviewed envelope, initial plan review,
-change classification, and reverse-read for Slice 1.
+change classification, and reverse-read.
 
-T5 module: atomic import of the current approved spec-policy decision as one
+Atomic import of the current approved spec-policy decision as one
 ``approval-record.v1`` plus one ``initial-plan-review.v1`` record, bound to the
 derived ``reviewed-execution-envelope.v1`` fingerprint and the authorized terminal
 intent. Produces exactly zero or two visible records after any interruption.
 
 Implements:
 
-  AC-0001 — calls the current canonicalizer from ``_loop_guards`` through its
-             owning module; never copies normalization code.
-  AC-0002 — import exposes zero or two records; any interruption or validation
-             failure before atomic commit leaves zero visible.
-  AC-0014 — every write boundary applies its named content-safety profile before
-             persisting; a missing or unknown profile refuses without payload retention.
-  AC-0017 — ``reverse_read`` reconstructs the original approved pair (dual-read);
+  Canonicalization — calls the current canonicalizer from ``_loop_guards`` through
+             its owning module; never copies normalization code.
+  Zero-or-two visibility — import exposes zero or two records; any interruption or
+             validation failure before atomic commit leaves zero visible.
+  Content-safety — every write boundary applies its named content-safety profile
+             before persisting; a missing or unknown profile refuses without payload
+             retention.
+  Dual-read path — ``reverse_read`` reconstructs the original approved pair;
              ``compatibility_snapshot`` enforces snapshot invariants in the module:
              it calls an injected resolver that answers only whether an accepted
              authority-switch governance decision exists; the module then validates
              the decision's envelope fingerprint and terminal intent against the
              stored records, builds the snapshot itself (no target-authority grant),
              and verifies the store is byte-identical before and after.  The module
-             default resolver refuses because Slice 1 has no accepted governance
-             record.
-  AC-0020 — writer authority verified via ``_security_events`` before any durable
-             write; retry under the same denied record identity stays denied.
-  AC-0021 — when the audit sink is unavailable the operation fails closed; zero
-             records are exposed and no protected data is persisted.
+             default resolver refuses because no accepted governance record exists.
+  Writer authority — verified via ``_security_events`` before any durable write;
+             retry under the same denied record identity stays denied.
+  Audit sink required — when the audit sink is unavailable the operation fails
+             closed; zero records are exposed and no protected data is persisted.
 
 Standard library only. Loads sibling modules by path using the
 ``importlib.util.spec_from_file_location`` pattern established in
@@ -61,7 +61,7 @@ __all__ = [
     "import_policy",
     "reverse_read",
     "compatibility_snapshot",
-    # Digest helpers (AC-0001)
+    # Digest helpers
     "compute_spec_digest",
     "compute_plan_digest",
     # In-code schema validation
@@ -166,7 +166,7 @@ def _security_events() -> ModuleType:
     return _security_events_module
 
 
-# ── AC-0001: Digest helpers ───────────────────────────────────────────────────
+# ── Digest helpers ────────────────────────────────────────────────────────────
 #
 # These call the current canonicalizer from _loop_guards through its owning
 # module. They never copy normalization code; the single canonical implementation
@@ -206,8 +206,9 @@ class ImportStore:
     two staged records (spec-policy approval + initial-plan-review). Any
     interruption before that call leaves zero records visible.
 
-    This is an in-memory store for test use and Slice 1 shadow operation.
-    File-backed persistence (AC-0008's crash-recovery guarantees) is owned by T7.
+    This is an in-memory store for test use and shadow operation.
+    File-backed persistence with crash-recovery guarantees is owned by the
+    evidence-store module.
     """
 
     def __init__(self) -> None:
@@ -259,7 +260,7 @@ def _check_record_safety(
     Refuses (raising PolicyImportRefused) without persisting payload bytes if
     the profile is missing, unknown, or the record does not pass the check.
 
-    AC-0014: every write boundary applies its named profile before persisting.
+    Every write boundary applies its named content-safety profile before persisting.
     """
     cs = _content_safety()
     profile = cs.SLICE_1_WRITER_BOUNDARIES.get(record_type)
@@ -300,7 +301,7 @@ def _check_writer_authority(
     Raises AuditSinkUnavailable (from _security_events) if the sink is unavailable;
     the caller fails closed.
 
-    AC-0020: before any durable write, the named writer is validated against its
+    Before any durable write, the named writer is validated against its
     capability and record scope.
     """
     se = _security_events()
@@ -352,12 +353,79 @@ def _check_writer_authority(
         )
 
 
+# ── Refs ambiguity check ──────────────────────────────────────────────────────
+#
+# A refs dict is ambiguous when any value is not a non-empty string, or when the
+# same value appears under two or more distinct keys (two criteria reference the
+# same approval, making neither uniquely identifiable).  Both cases prevent the
+# reviewed-execution-envelope fingerprint from being unambiguous.
+
+
+def _check_refs_unambiguous(refs: object) -> None:
+    """Raise PolicyImportRefused when refs contains empty or duplicate values.
+
+    Grounds the definition: a criterion is ambiguous when its ref value is empty
+    or blank (cannot name the approval), or when the same non-empty string value
+    appears for two distinct keys (two different criteria claim the same approval,
+    so neither can be uniquely identified).
+
+    Called before derive_envelope so the refusal carries the stable code
+    ``denied-ambiguous-criterion`` rather than a generic derivation error.
+    """
+    if not isinstance(refs, dict):
+        raise PolicyImportRefused(
+            "denied-ambiguous-criterion",
+            "refs must be a dict of approval reference strings",
+        )
+    seen: dict[str, str] = {}  # value → first key that claimed it
+    for key, value in refs.items():
+        if not isinstance(value, str) or not value.strip():
+            raise PolicyImportRefused(
+                "denied-ambiguous-criterion",
+                f"ref {key!r} is empty or not a string; cannot uniquely identify the approval",
+            )
+        if value in seen:
+            raise PolicyImportRefused(
+                "denied-ambiguous-criterion",
+                f"refs {seen[value]!r} and {key!r} share the same value "
+                f"{value!r}; criterion cannot be uniquely identified",
+            )
+        seen[value] = key
+
+
 # ── RFC 3339 timestamp ────────────────────────────────────────────────────────
 
 
 def _now_rfc3339() -> str:
     """Current UTC instant as RFC 3339."""
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# ── Repo-relative spec reference ──────────────────────────────────────────────
+#
+# Approval records store spec_ref as a portable repository-relative path.
+# Absolute caller paths (e.g. from os.getcwd()) are not portable across
+# machines and are not meaningful as a spec identity.
+
+
+def _repo_relative_spec_ref(spec_path: Path) -> str:
+    """Return a repo-relative path string for spec_path when under a git root.
+
+    Walks parent directories looking for a ``.git`` entry.  If found and
+    spec_path is under that root, returns the POSIX-style relative path.
+    Without a git root, returns ``<spec-dir-name>/<file-name>`` so a host
+    path, which may include a home directory, never enters the record.
+    """
+    resolved = spec_path.resolve()
+    current = resolved.parent
+    while current != current.parent:
+        if (current / ".git").exists():
+            try:
+                return resolved.relative_to(current).as_posix()
+            except ValueError:
+                break
+        current = current.parent
+    return f"{resolved.parent.name}/{resolved.name}"
 
 
 # ── Record builders ───────────────────────────────────────────────────────────
@@ -415,7 +483,7 @@ def _build_initial_review(
             "role": reviewer_role,
         },
         "decision": decision,
-        "timestamp": _now_rfc3339(),
+        "timestamp": timestamp,
     }
 
 
@@ -436,6 +504,9 @@ def import_policy(
     approval_role: str,
     reviewer_identity: str,
     reviewer_role: str,
+    approved_spec_digest: str,
+    approved_plan_digest: str,
+    approved_envelope_fingerprint: str | None = None,
 ) -> tuple[dict, dict]:
     """Atomically import the current approved spec-policy decision.
 
@@ -443,24 +514,58 @@ def import_policy(
     record, both visible together in *store* after a successful call, or neither
     on any failure.
 
-    Steps (fail-closed at each boundary):
-      1. Validate writer authority (AC-0020) — emit security event.
-      2. Validate terminal intent (non-empty).
-      3. Compute spec and plan digests via _loop_guards (AC-0001).
-      4. Derive the reviewed-execution-envelope (AC-0003).
-      5. Build the approval-record.v1 and apply content-safety (AC-0014).
-      6. Stage approval record.
-      7. Build the initial-plan-review.v1 and apply content-safety (AC-0014).
-      8. Stage initial-plan-review record.
-      9. Commit both atomically.
-      10. Replay protection: store must have been empty before this call.
+    Parameters
+    ----------
+    spec_path:
+        Path to the spec file whose canonical digest is computed and compared.
+    plan_path:
+        Path to the plan file whose canonical digest is computed and compared.
+    refs:
+        Ordered mapping from each approval-reference role to its opaque ref
+        string.  All values must be non-empty strings; the same value appearing
+        under two distinct keys is refused as ambiguous.
+    terminal_intent:
+        The authorized terminal intent string bound to the initial plan review.
+    writer_grant:
+        Capability grant authorising this import operation.
+    issuer:
+        Issuer that issued *writer_grant*.
+    audit_sink:
+        Callable that durably persists a security event before any durable write.
+    store:
+        Import store to commit records into.
+    approval_identity, approval_role:
+        Identity and role of the spec-policy approval authority.
+    reviewer_identity, reviewer_role:
+        Identity and role of the plan-review authority.
+    approved_spec_digest:
+        Expected SHA-256 of the canonical spec (the current approval pin).
+        The computed digest must equal this value; any mismatch refuses.
+    approved_plan_digest:
+        Expected SHA-256 of the canonical plan (the current approval pin).
+        The computed digest must equal this value; any mismatch refuses.
+    approved_envelope_fingerprint:
+        When not ``None``, the fingerprint derived from *refs* must equal this
+        value.  Pass ``None`` to skip the envelope-fingerprint comparison.
 
-    Returns:
-        (approval_record, initial_plan_review) on success.
+    Returns
+    -------
+    tuple[dict, dict]
+        ``(approval_record, initial_plan_review)`` on success.
 
-    Raises:
-        PolicyImportRefused: on any validation, authority, or content-safety failure.
-        AuditSinkUnavailable: when the audit sink is unavailable (AC-0021).
+    Raises
+    ------
+    PolicyImportRefused
+        On any validation, authority, pin-mismatch, or content-safety failure.
+
+        Stable denial codes:
+        ``denied-already-imported``       — store already contains records.
+        ``denied-ambiguous-criterion``    — refs has duplicate or empty values.
+        ``denied-spec-digest-mismatch``   — computed spec digest != approved pin.
+        ``denied-plan-digest-mismatch``   — computed plan digest != approved pin.
+        ``denied-envelope-mismatch``      — derived envelope fp != approved pin.
+        ``denied-schema-invalid-approval`` — built approval record fails validation.
+        ``denied-schema-invalid-review``  — built initial review fails validation.
     """
     # Replay protection: if the store already has records this is a double-import.
     if store.record_count() > 0:
@@ -469,7 +574,7 @@ def import_policy(
             "store already contains records; re-import is not permitted",
         )
 
-    # Step 1 — validate writer authority (AC-0020).
+    # Step 1 — validate writer authority.
     _check_writer_authority(
         issuer,
         writer_grant,
@@ -485,7 +590,10 @@ def import_policy(
             "terminal_intent must be a non-empty string",
         )
 
-    # Step 3 — compute digests via _loop_guards (AC-0001).
+    # Step 3 — refuse ambiguous criterion references before computing digests.
+    _check_refs_unambiguous(refs)
+
+    # Step 4 — compute digests via _loop_guards.
     try:
         spec_digest = compute_spec_digest(spec_path)
         plan_digest = compute_plan_digest(plan_path)
@@ -495,7 +603,19 @@ def import_policy(
             "failed to compute canonical digests",
         ) from exc
 
-    # Step 4 — derive the reviewed-execution-envelope (AC-0003).
+    # Step 5 — compare computed digests against the caller's approval pins.
+    if spec_digest != approved_spec_digest:
+        raise PolicyImportRefused(
+            "denied-spec-digest-mismatch",
+            "computed spec digest does not match the approved pin",
+        )
+    if plan_digest != approved_plan_digest:
+        raise PolicyImportRefused(
+            "denied-plan-digest-mismatch",
+            "computed plan digest does not match the approved pin",
+        )
+
+    # Step 6 — derive the reviewed-execution-envelope.
     acc = _acceptance()
     try:
         envelope = acc.derive_envelope(refs)
@@ -506,7 +626,17 @@ def import_policy(
         ) from exc
     envelope_fingerprint: str = envelope["envelope_fingerprint"]
 
-    # Validate authority_identity (basic content check).
+    # Step 7 — optionally compare envelope fingerprint against the caller's pin.
+    if (
+        approved_envelope_fingerprint is not None
+        and envelope_fingerprint != approved_envelope_fingerprint
+    ):
+        raise PolicyImportRefused(
+            "denied-envelope-mismatch",
+            "derived envelope fingerprint does not match the approved pin",
+        )
+
+    # Validate approval authority identity and role.
     if not isinstance(approval_identity, str) or not approval_identity.strip():
         raise PolicyImportRefused(
             "denied-invalid-authority-identity",
@@ -518,7 +648,7 @@ def import_policy(
             "approval_role must be a non-empty string",
         )
 
-    # Step 5 — build and content-check the approval record (AC-0014).
+    # Step 8 — build the approval-record.v1.
     approval_id = "appr-" + secrets.token_hex(12)
     timestamp = _now_rfc3339()
     approval_record = _build_approval_record(
@@ -526,19 +656,29 @@ def import_policy(
         authority_identity=approval_identity,
         authority_role=approval_role,
         decision_scope="spec-policy",
-        manifest_ref=plan_digest,   # plan digest as base manifest reference
-        spec_ref=str(spec_path),
+        manifest_ref=plan_digest,
+        spec_ref=_repo_relative_spec_ref(spec_path),
         spec_policy_fingerprint=spec_digest,
         decision="approved",
         timestamp=timestamp,
     )
+
+    # Validate the built approval record against its contract before staging.
+    _val_ok, _val_code = validate_approval_dict(approval_record)
+    if not _val_ok:
+        raise PolicyImportRefused(
+            "denied-schema-invalid-approval",
+            f"built approval record failed schema validation: {_val_code}",
+        )
+
+    # Apply content-safety profile before staging.
     _check_record_safety(
         approval_record,
         "approval-record.v1",
         record_id=approval_id,
     )
 
-    # Step 6 — stage approval record.
+    # Step 9 — stage the approval record.
     store._stage(approval_record)
 
     # Validate reviewer identity.
@@ -555,7 +695,7 @@ def import_policy(
             "reviewer_role must be a non-empty string",
         )
 
-    # Step 9 — build and content-check the initial-plan-review record (AC-0014).
+    # Step 10 — build the initial-plan-review.v1.
     review_id = "rev-" + secrets.token_hex(12)
     initial_review = _build_initial_review(
         review_id=review_id,
@@ -567,6 +707,17 @@ def import_policy(
         decision="accepted",
         timestamp=timestamp,
     )
+
+    # Validate the built initial review against its contract before staging.
+    _val_ok, _val_code = validate_initial_review_dict(initial_review)
+    if not _val_ok:
+        store._rollback()
+        raise PolicyImportRefused(
+            "denied-schema-invalid-review",
+            f"built initial review failed schema validation: {_val_code}",
+        )
+
+    # Apply content-safety profile before staging.
     try:
         _check_record_safety(
             initial_review,
@@ -577,10 +728,10 @@ def import_policy(
         store._rollback()
         raise
 
-    # Step 10 — stage initial-plan-review record.
+    # Step 11 — stage the initial-plan-review record.
     store._stage(initial_review)
 
-    # Step 11 — commit atomically.
+    # Step 12 — commit atomically.
     try:
         store._commit()
     except PolicyImportRefused:
@@ -592,12 +743,12 @@ def import_policy(
 
 # ── reverse_read ─────────────────────────────────────────────────────────────
 #
-# AC-0017 dual-read path.  Returns the original (approval, initial_review) pair
+# Dual-read path.  Returns the original (approval, initial_review) pair
 # reconstructed from the store.  No resolver, no snapshot production.
 
 
 def reverse_read(store: ImportStore) -> tuple[dict, dict]:
-    """Reconstruct the original approved pair from the store (AC-0017 dual-read).
+    """Reconstruct the original approved pair from the store (dual-read).
 
     Returns:
         ``(approval_record, initial_plan_review)`` as stored.
@@ -636,7 +787,7 @@ def reverse_read(store: ImportStore) -> tuple[dict, dict]:
 
 # ── compatibility_snapshot ────────────────────────────────────────────────────
 #
-# AC-0017 post-cutover path.
+# Post-cutover compatibility path.
 #
 # The resolver answers whether an accepted authority-switch governance decision
 # exists; it returns a decision dict carrying its governance reference, envelope
@@ -651,16 +802,16 @@ def reverse_read(store: ImportStore) -> tuple[dict, dict]:
 #   4. Verifies the store's records are byte-identical before and after.
 #
 # The module default resolver refuses with "denied-no-governance-record"
-# because Slice 1 has no accepted authority-switch governance record.
+# because no accepted authority-switch governance record exists.
 # Test fixtures (defined in the test file) supply a resolver that returns
 # the decision dict.
 
 
 def _default_governance_resolver() -> dict:
-    """Module default: refuses because Slice 1 has no accepted governance record."""
+    """Module default: refuses because no accepted authority-switch governance record exists."""
     raise PolicyImportRefused(
         "denied-no-governance-record",
-        "no accepted authority-switch governance record exists in Slice 1",
+        "no accepted authority-switch governance record exists",
     )
 
 
@@ -669,7 +820,7 @@ def compatibility_snapshot(
     *,
     authority_resolver: Callable[[], dict] = _default_governance_resolver,
 ) -> dict:
-    """Produce a within-envelope compatibility snapshot (AC-0017 post-cutover).
+    """Produce a within-envelope compatibility snapshot.
 
     The *authority_resolver* answers whether an accepted authority-switch
     governance decision exists.  It returns a decision dict with at minimum
@@ -687,7 +838,7 @@ def compatibility_snapshot(
     Refusal codes:
       - ``denied-empty-store`` / ``denied-incomplete-store``: store is wrong size.
       - ``denied-unrecognized-record-types``: records are not identifiable.
-      - ``denied-no-governance-record``: default resolver; Slice 1 has none.
+      - ``denied-no-governance-record``: default resolver; no governance record exists.
       - ``denied-invalid-decision-shape``: resolver returned a non-dict or dict
         missing required fields.
       - ``denied-lossy-projection``: decision fingerprint ≠ stored fingerprint.
@@ -803,8 +954,7 @@ def compatibility_snapshot(
 
 # ── In-code schema validation ─────────────────────────────────────────────────
 #
-# The parity rule (verification-ledger.md §Script-versus-schema parity) requires
-# each module that emits delivery records to validate them in code and refuse
+# Every module that emits delivery records validates them in code and refuses
 # each schema-invalid case with a stable denial code.
 
 # Required fields for approval-record.v1.

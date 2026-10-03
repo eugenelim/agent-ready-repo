@@ -282,3 +282,79 @@ class TestByteIdentityRedEvidence:
         assert source_files[0].name in diffs_after, (
             f"Red evidence: expected {source_files[0].name} in diffs; got {diffs_after}"
         )
+
+
+# ── Shadow records satisfy their canonical schemas ────────────────────────────
+
+_PACK_TESTS = REPO_ROOT / "packs" / "core" / "tests" / "skills" / "work-loop"
+_DELIVERY_SCHEMAS = REPO_ROOT / "contracts" / "delivery"
+
+# Shadow file name → canonical schema it must satisfy.
+_SHADOW_FILE_SCHEMAS: dict[str, str] = {
+    "shadow-approval.json": "approval-record.v1.schema.json",
+    "shadow-initial-review.json": "initial-plan-review.v1.schema.json",
+    "shadow-verdict.json": "acceptance-verdict.v1.schema.json",
+    "shadow-delivery-subject.json": "delivery-subject.v1.schema.json",
+    "shadow-property.json": "acceptance-property.v1.schema.json",
+}
+
+
+def _delivery_validator(schema_name: str):  # type: ignore[no-untyped-def]
+    """Return a Draft 2020-12 validator for one canonical delivery schema."""
+    import json
+
+    import jsonschema  # test-time only
+
+    schema = json.loads((_DELIVERY_SCHEMAS / schema_name).read_text(encoding="utf-8"))
+    return jsonschema.Draft202012Validator(schema)
+
+
+class TestShadowRecordsMatchCanonicalSchemas:
+    """Every record the shadow facade persists validates against contracts/delivery/."""
+
+    def test_full_shadow_run_writes_only_schema_valid_records(self, tmp_path: Path) -> None:
+        """Run the real engine to plan-locked with shadow on, then validate every record."""
+        import json
+        import subprocess
+
+        helpers = _load_script("wl_compat_facade_tests", _PACK_TESTS / "test_compat_facade.py")
+        root = tmp_path / "repo"
+        root.mkdir()
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        results = helpers._run_full_sequence(root, "schema-feature", shadow="1")
+        assert results.get("plan_locked_rc") == 0, results
+
+        shadow_dir = results["shadow_dir"]
+        written = {f.name for f in shadow_dir.iterdir() if f.is_file()}
+        assert {"shadow-approval.json", "shadow-initial-review.json",
+                "shadow-property.json", "shadow-verdict.json",
+                "shadow-evidence.log"} <= written, written
+        verdict = json.loads((shadow_dir / "shadow-verdict.json").read_text(encoding="utf-8"))
+        assert verdict["verdict"] == "supported", verdict
+        known = set(_SHADOW_FILE_SCHEMAS) | {
+            "shadow-evidence.log", "shadow-security-events.jsonl", ".gitignore",
+        }
+        assert written <= known, f"unregistered shadow files: {sorted(written - known)}"
+
+        for name, schema_name in _SHADOW_FILE_SCHEMAS.items():
+            if name in written:
+                record = json.loads((shadow_dir / name).read_text(encoding="utf-8"))
+                errors = [e.message for e in _delivery_validator(schema_name).iter_errors(record)]
+                assert not errors, f"{name} violates {schema_name}: {errors}"
+
+        tx_validator = _delivery_validator("semantic-evidence-transaction.v1.schema.json")
+        receipt_validator = _delivery_validator("evidence-receipt.v1.schema.json")
+        lines = (shadow_dir / "shadow-evidence.log").read_text(encoding="utf-8").splitlines()
+        assert lines, "the evidence log must hold at least one transaction"
+        for line in lines:
+            frame = json.loads(line)
+            assert not list(tx_validator.iter_errors(frame["tx"])), frame["tx"]
+            for receipt in frame["records"]:
+                errors = [e.message for e in receipt_validator.iter_errors(receipt)]
+                assert not errors, f"shadow receipt violates evidence-receipt.v1: {errors}"
+
+        events = shadow_dir / "shadow-security-events.jsonl"
+        if events.exists():
+            validator = _delivery_validator("security-event.v1.schema.json")
+            for line in events.read_text(encoding="utf-8").splitlines():
+                assert not list(validator.iter_errors(json.loads(line))), line

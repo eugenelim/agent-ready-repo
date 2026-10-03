@@ -4,9 +4,9 @@ No same-process wrapper may claim OS isolation.  The launcher reports which
 containment axes the current host can attest and refuses to activate untrusted
 code when the host cannot supply verified containment.
 
-Every launcher attestation is compared with its grant (AC-0010): any attestation
-broader than the grant in roots, read enforcement, network, children, or limits
-is refused before launch or effect.
+Every launcher attestation is compared with its grant: any attestation broader
+than the grant in roots, read enforcement, network, children, or limits is
+refused before launch or effect.
 
 DELIVERY_CONTROL_PATHS is a built-in constant that names every path that
 untrusted grants must not write to:
@@ -19,9 +19,8 @@ untrusted grants must not write to:
 A roster test pins this constant to the projections ``contracts/adapter.toml``
 declares so drift is caught before merge.
 
-In Slice 1, real launches and brokered effects run only in conformance
-fixtures; the module defines the contract without performing production
-launches.
+Real launches and brokered effects run only in conformance fixtures; the module
+defines the contract without performing production launches.
 
 Implements the containment-attestation.v1 contract for the work-loop skill
 scripts.
@@ -34,6 +33,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import posixpath
 import stat
 import sys
 from dataclasses import dataclass
@@ -125,7 +125,19 @@ DELIVERY_CONTROL_PATHS: Final[tuple[str, ...]] = (
     ".kiro/skills/work-loop/",
     # Cohort skill home shared by codex, cursor, gemini, copilot: .agents/skills/<name>/
     ".agents/skills/work-loop/",
+    # Git metadata directory — any path component named .git is delivery-control.
+    # is_delivery_control_path also detects .git at any depth in an absolute path.
+    ".git/",
+    # Shadow acceptance delivery-control record directory.
+    ".shadow-acceptance/",
 )
+
+# Delivery-control record filenames: exact base names that untrusted adapters
+# must never write to, regardless of which directory they appear in.
+_DELIVERY_CONTROL_FILENAMES: Final[frozenset[str]] = frozenset({
+    "state.json",
+    "engine-state.json",
+})
 
 # ---------------------------------------------------------------------------
 # Schema version
@@ -298,7 +310,7 @@ def validate_attestation_dict(d: object) -> tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
-# Attestation-vs-grant comparison (AC-0010)
+# Attestation-vs-grant comparison
 # ---------------------------------------------------------------------------
 
 # Product-read proof modes ordered by permissiveness (lower index = stricter).
@@ -346,7 +358,7 @@ def check_attestation_within_grant(
     grant in every axis.  Returns (False, denial_code) when any axis of the
     attestation is broader than the grant allows.
 
-    Checked axes (AC-0010):
+    Checked axes (attestation must not be broader than the grant on any axis):
     - roots: attestation roots must be within grant roots.
     - read_enforcement / product_read_proof_mode: attestation must not claim
       weaker read coverage than the grant requires.
@@ -357,7 +369,7 @@ def check_attestation_within_grant(
     ``grant`` is duck-typed to avoid a compile-time import of
     _security_capability.CapabilityGrant.
     """
-    grant_roots: tuple[str, ...] = tuple(getattr(grant, "roots", ()))
+    grant_roots: tuple[str, ...] = tuple(grant.roots)
     if _roots_broader(attestation.roots, grant_roots):
         return False, "denied-attestation-broader-than-grant"
 
@@ -421,20 +433,57 @@ def check_attestation_within_grant(
 def is_delivery_control_path(path: str) -> bool:
     """Return True when *path* is within a delivery-control path.
 
-    A path is a delivery-control path when it matches or is under any prefix
-    in ``DELIVERY_CONTROL_PATHS``.  Both the path and each prefix are
-    normalised (trailing slash stripped for the prefix, leading ./ removed).
+    Handles all path spellings: relative, absolute, ``./``-prefixed,
+    ``..``-traversal, and case variants (comparison is case-insensitive
+    so the guard holds on case-insensitive filesystems such as macOS and
+    Windows).
+
+    Specifically:
+    - Any path component named ``.git`` is delivery-control, regardless of
+      its position in the path (e.g. ``/repo/.git/config`` is caught).
+    - Exact base-file names in ``_DELIVERY_CONTROL_FILENAMES`` are refused
+      regardless of the containing directory.
+    - Every prefix in ``DELIVERY_CONTROL_PATHS`` is matched after lexical
+      normalization of the requested path so that ``./`` prefixes and ``..``
+      segments are resolved before the comparison.
     """
-    normalised = path.lstrip("./").lstrip("/")
+    # Normalize: resolve ./ and ../ without following symlinks.
+    # posixpath.normpath is cross-platform and performs only lexical
+    # normalization; it never touches the real filesystem.
+    normalized = posixpath.normpath(path.replace("\\", "/"))
+    normalized_lower = normalized.lower()
+
+    # Split into components for element-level checks.
+    parts = [p for p in normalized.split("/") if p and p != "."]
+
+    # .git as a path component at any depth is always delivery-control.
+    if any(p.lower() == ".git" for p in parts):
+        return True
+
+    # Exact filename check for delivery-control record names.
+    if parts and parts[-1].lower() in {n.lower() for n in _DELIVERY_CONTROL_FILENAMES}:
+        return True
+
     for prefix in DELIVERY_CONTROL_PATHS:
-        norm_prefix = prefix.rstrip("/")
-        # Exact match or path is under the prefix.
-        if normalised == norm_prefix or normalised.startswith(norm_prefix + "/"):
+        norm_prefix = prefix.rstrip("/").lower()
+
+        # Strip any leading slash for relative-path comparison.
+        norm_rel = normalized_lower.lstrip("/")
+
+        # Relative-path match: exactly the prefix or a path under it.
+        if norm_rel == norm_prefix or norm_rel.startswith(norm_prefix + "/"):
             return True
-        # Also check against the prefix as-is (absolute or prefix-relative).
-        plain = prefix.rstrip("/")
-        if path == plain or path.startswith(plain + "/"):
+
+        # Absolute-path match: /prefix or a direct child, and also the
+        # "anywhere in path" form (/repo/.claude/skills/work-loop/x).
+        if (
+            normalized_lower == "/" + norm_prefix
+            or normalized_lower.startswith("/" + norm_prefix + "/")
+            or ("/" + norm_prefix + "/") in normalized_lower
+            or normalized_lower.endswith("/" + norm_prefix)
+        ):
             return True
+
     return False
 
 
@@ -458,10 +507,10 @@ def report_host_containment_axes() -> dict:
       ``supported_mechanisms``: list[str] — names of mechanisms the host can
                               prove.
 
-    In Slice 1, the sequential reference runtime is a same-process trusted
-    adapter; it cannot attest OS-level containment for untrusted code.
-    Hosts that cannot supply any verified containment must report both
-    ``verified_sandbox`` and ``restricted_principal`` as False.
+    The sequential reference runtime is a trusted in-process adapter; it cannot
+    attest OS-level containment for untrusted code. Hosts that cannot supply
+    any verified containment must report both ``verified_sandbox`` and
+    ``restricted_principal`` as False.
     """
     # The sequential reference runtime operates as a trusted in-process
     # adapter.  It cannot claim OS isolation for untrusted code.
@@ -500,12 +549,12 @@ class _SequentialReferenceHost:
 
 
 #: Module-default host — the sequential reference runtime.
-#: Activating untrusted code always refuses in Slice 1.
+#: Activating untrusted code always refuses; no OS-level containment is available.
 _DEFAULT_HOST: Final[_SequentialReferenceHost] = _SequentialReferenceHost()
 
 
 # ---------------------------------------------------------------------------
-# Untrusted process launcher (AC-0013)
+# Untrusted process launcher
 # ---------------------------------------------------------------------------
 
 
@@ -521,17 +570,16 @@ def launch_untrusted(
 
     Refuses before any process starts unless all of the following hold:
 
-    1. The audit sink is available (AC-0021).
+    1. The audit sink is available.
     2. The host supplies a valid containment attestation.
-    3. The attestation is within the grant on every axis (AC-0010).
+    3. The attestation is within the grant on every axis.
 
     Only then does it delegate to ``_process_safety.launch_safe_process()``.
 
     The module-default host is the sequential reference runtime, which cannot
     supply verified containment for untrusted code.  The production path
-    therefore always refuses with ``denied-no-verified-containment`` in
-    Slice 1.  A host fixture that provides an attestation lives only in test
-    files.
+    therefore always refuses with ``denied-no-verified-containment``.
+    A host fixture that provides an attestation lives only in test files.
 
     Args:
         spec_dict:     A safe-process.v1 spec dict for the untrusted process.
@@ -541,7 +589,7 @@ def launch_untrusted(
                        reference runtime (always returns None).
         audit_sink:    Callable accepting a SecurityEvent.  ``None`` means
                        the sink is unavailable; refuses immediately with no
-                       event persisted (AC-0021).
+                       event persisted.
         operation_id:  Stable operation ID for the audit event; generated
                        when absent.
 
@@ -555,7 +603,7 @@ def launch_untrusted(
         _process_safety.ProcessDenied: propagated from ``launch_safe_process``
             when containment checks pass but the process itself fails.
     """
-    # AC-0021: unavailable sink → fail closed immediately, no data persisted.
+    # Unavailable sink → fail closed immediately, no data persisted.
     if audit_sink is None:
         raise ContainmentRefused(
             "denied-audit-sink-unavailable",
@@ -593,7 +641,7 @@ def launch_untrusted(
         children=raw_attestation.get("children"),
     )
 
-    # AC-0010: attestation must not be broader than the grant on any axis.
+    # Attestation must not be broader than the grant on any axis.
     ok, denial_code = check_attestation_within_grant(attestation, grant)
     if not ok:
         raise ContainmentRefused(
@@ -607,6 +655,7 @@ def launch_untrusted(
     _ps = _load_sibling("_ps_cont_launch", "_process_safety.py")
     return _ps.launch_safe_process(  # type: ignore[attr-defined]
         spec_dict,
+        cwd_roots=tuple(grant.roots),
         audit_sink=audit_sink,
         operation_id=operation_id,
     )

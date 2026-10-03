@@ -1,9 +1,10 @@
-"""_compat_facade — compatibility facade for Slice 1 shadow services.
+"""_compat_facade — compatibility facade for shadow services.
 
-T8 module: translates existing engine events and approved pins into typed
-calls to Slice 1 services, dual-emits shadow facts, and treats every target
-result as shadow data.  The engine calls this at the minimum set of points
-needed to satisfy AC-0007, AC-0016, and AC-0017.
+Translates existing engine events and approved pins into typed calls to
+shadow services, dual-emits shadow facts using registered delivery contract
+types, and treats every target result as shadow data.  The engine calls this
+at the minimum set of points needed to emit shadow evidence and verdicts and
+to enforce the reversal contract.
 
 Shadow calls are OFF by default and enabled only by the environment variable::
 
@@ -11,8 +12,8 @@ Shadow calls are OFF by default and enabled only by the environment variable::
 
 When that variable is absent or not ``"1"``, the engine's behavior is
 byte-for-byte identical to its pre-facade behavior.  This env var is the
-reversal path AC-0017 names: setting it back to off (or unsetting it)
-restores the legacy path without deleting any shadow facts already written.
+reversal path: setting it back to off (or unsetting it) restores the legacy
+path without deleting any shadow facts already written.
 
 With shadow calls ON:
 
@@ -20,44 +21,50 @@ With shadow calls ON:
   change the legacy transition, cohort write, legacy plan pin, or completion
   decision, and must NEVER count as a legacy allow or approval.
 - The facade records a stable redacted ``SHADOW_DIVERGENCE_CODE`` in the
-  per-feature shadow directory and emits no partial shadow fact.
+  per-feature shadow directory using the ``security-event.v1`` registered type
+  and emits no partial shadow fact.
 
-All shadow writes (directory creation, atomic JSON replace, JSONL append)
-are routed through the committed ``_confined_mutation.py`` primitives,
-rooted at the spec directory (AC-0011).  A symlinked ``.shadow-acceptance``
-or symlinked spec directory is refused with a shadow divergence code and
-never redirects writes outside the root.
+All shadow writes are routed through the committed ``_confined_mutation.py``
+primitives or through the ``EvidenceStore`` writer port, rooted at the spec
+directory.  A symlinked ``.shadow-acceptance`` or symlinked spec directory is
+refused with a shadow divergence code and never redirects writes outside the
+root.
 
 Shadow facts are stored under::
 
     <spec-dir>/.shadow-acceptance/
 
-The directory is self-ignoring: when the facade creates it, it also
-exclusively creates ``.shadow-acceptance/.gitignore`` containing ``*``
-through the confined primitive.  No entry in the repository ``.gitignore``
-is needed.
+using only registered ``contracts/delivery/*.schema.json`` record types:
 
-A missing accepted governance fingerprint refuses every target-authority
-switch (AC-0017).  The fingerprint is represented by the file::
+- ``evidence-receipt.v1``    — appended for each legacy transition via EvidenceStore
+- ``approval-record.v1``     — spec-policy approval record, written at plan-locked
+- ``initial-plan-review.v1`` — initial plan review record, written at plan-locked
+- ``acceptance-verdict.v1``  — derived verdict after plan-locked
+- ``delivery-subject.v1``    — optional legacy subject projection at plan-locked
+- ``security-event.v1``      — divergence/failure records (best-effort, closed schema)
 
-    <spec-dir>/.shadow-acceptance/governance.json
+The directory is self-ignoring: ``<spec-dir>/.shadow-acceptance/.gitignore``
+containing ``*`` is created on first use.
 
-with ``{"decision": "accepted", ...}`` present.  Implementation alone cannot
-place this file; it must be produced by a separately accepted governance
-process.
+The governance gate for target-authority switches is the ``_policy_import``
+module's ``compatibility_snapshot`` function.  Its default resolver refuses
+because no accepted authority-switch governance record exists; the gate cannot
+be satisfied by any file this facade can write.
 
-Standard library only.  Loads sibling Slice 1 modules by path using the
+Standard library only.  Loads sibling modules by path using the
 ``importlib.util.spec_from_file_location`` pattern established in the other
-Slice 1 script modules.
+script modules.
 
 Python 3.11+.
 """
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
+import secrets
 import stat
 import sys
 from datetime import UTC, datetime
@@ -80,8 +87,6 @@ __all__ = [
     # Engine call points (called after legacy commit — never change legacy behavior)
     "shadow_call_on_transition",
     "shadow_call_on_plan_locked",
-    # Governance check (AC-0017)
-    "check_governance_fingerprint",
 ]
 
 # ---------------------------------------------------------------------------
@@ -100,6 +105,17 @@ SHADOW_DIVERGENCE_CODE: Final[str] = "shadow-divergence:redacted"
 SHADOW_SUBDIR: Final[str] = ".shadow-acceptance"
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
+
+# Shadow store file names — registered contract record types only.
+_EVIDENCE_LOG: Final[str] = "shadow-evidence.log"           # evidence-receipt.v1 via EvidenceStore
+_APPROVAL_FILE: Final[str] = "shadow-approval.json"         # approval-record.v1
+_REVIEW_FILE: Final[str] = "shadow-initial-review.json"     # initial-plan-review.v1
+_VERDICT_FILE: Final[str] = "shadow-verdict.json"           # acceptance-verdict.v1
+_SUBJECT_FILE: Final[str] = "shadow-delivery-subject.json"  # delivery-subject.v1 (optional)
+_PROPERTY_FILE: Final[str] = "shadow-property.json"         # acceptance-property.v1
+_SHADOW_PROPERTY_ID: Final[str] = "shadow:legacy-plan-locked"
+_SHADOW_PRODUCER: Final[str] = "shadow-compat-facade"
+_SECURITY_EVENTS_FILE: Final[str] = "shadow-security-events.jsonl"  # security-event.v1
 
 # ---------------------------------------------------------------------------
 # Opt-in check
@@ -121,6 +137,11 @@ def shadow_enabled() -> bool:
 
 _acceptance_module: ModuleType | None = None
 _confined_mutation_module: ModuleType | None = None
+_file_safety_module: ModuleType | None = None
+_security_capability_module: ModuleType | None = None
+_policy_import_module_cache: ModuleType | None = None
+_evidence_store_module_cache: ModuleType | None = None
+_subject_source_module_cache: ModuleType | None = None
 
 _CM_UNAVAILABLE = object()  # sentinel — _confined_mutation load failed
 
@@ -183,8 +204,52 @@ def _cm() -> object:
         return _CM_UNAVAILABLE
 
 
+def _file_safety() -> ModuleType:
+    """Lazily load ``file_safety.py`` for bounded, no-follow file reads."""
+    global _file_safety_module
+    if _file_safety_module is None:
+        _file_safety_module = _load_sibling("_cf_file_safety", "file_safety.py")
+    return _file_safety_module
+
+
+def _security_capability() -> ModuleType:
+    """Lazily load ``_security_capability.py`` for capability issuance."""
+    global _security_capability_module
+    if _security_capability_module is None:
+        _security_capability_module = _load_sibling(
+            "_cf_security_capability", "_security_capability.py"
+        )
+    return _security_capability_module
+
+
+def _policy_import_mod() -> ModuleType:
+    """Lazily load ``_policy_import.py`` for spec-policy import."""
+    global _policy_import_module_cache
+    if _policy_import_module_cache is None:
+        _policy_import_module_cache = _load_sibling("_cf_policy_import", "_policy_import.py")
+    return _policy_import_module_cache
+
+
+def _evidence_store_mod() -> ModuleType:
+    """Lazily load ``_evidence_store.py`` for the evidence transaction log."""
+    global _evidence_store_module_cache
+    if _evidence_store_module_cache is None:
+        _evidence_store_module_cache = _load_sibling("_cf_evidence_store", "_evidence_store.py")
+    return _evidence_store_module_cache
+
+
+def _subject_source_mod() -> ModuleType:
+    """Lazily load ``_subject_source.py`` for legacy subject projection."""
+    global _subject_source_module_cache
+    if _subject_source_module_cache is None:
+        _subject_source_module_cache = _load_sibling(
+            "_cf_subject_source", "_subject_source.py"
+        )
+    return _subject_source_module_cache
+
+
 # ---------------------------------------------------------------------------
-# Shadow storage helpers — confined writes (AC-0011)
+# Shadow storage helpers — confined writes
 # ---------------------------------------------------------------------------
 
 
@@ -283,6 +348,28 @@ def _confined_json_write(
     cm.confined_atomic_replace(spec_dir, path, content)
 
 
+def _confined_read_json(spec_dir: Path, file_path: Path) -> dict:
+    """Read and parse a JSON file using the confined file reader.
+
+    Returns an empty dict on any failure (file absent, not parseable, etc.).
+    Uses ``file_safety.read_confined_regular_file`` for bounded, no-follow reads.
+    """
+    try:
+        fs = _file_safety()
+        raw = fs.read_confined_regular_file(spec_dir, file_path, max_bytes=1024 * 1024)
+        data = json.loads(raw.decode("utf-8"))
+        if isinstance(data, dict):
+            return data
+        return {}
+    except Exception:  # noqa: BLE001 — missing or unparseable: return empty
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Divergence recording — security-event.v1 (best-effort in error path)
+# ---------------------------------------------------------------------------
+
+
 def _record_divergence(
     spec_dir: Path,
     shadow_dir: Path,
@@ -291,52 +378,94 @@ def _record_divergence(
     exc_type: str,
     cm: ModuleType,
 ) -> None:
-    """Best-effort append of a stable, redacted divergence entry.
+    """Best-effort append of a schema-valid security-event.v1 divergence entry.
 
-    Carries only the divergence code, a context tag (no payload content),
-    and a timestamp.  Never logs exception messages or partial shadow facts.
-    Any failure in the divergence write is silently absorbed.
+    Writes only the seven required fields of the closed ``security-event.v1``
+    schema: no exception messages, no content-derived hashes, no partial
+    shadow facts, and no extra fields.  Any failure is silently absorbed.
+
+    The ``context`` and ``exc_type`` parameters are reserved for future
+    structured logging; they do not enter the record under the closed schema.
     """
     try:
-        # The shadow dir may not exist yet if the failure was during dir creation.
-        # Try to ensure it; if that fails too, give up silently.
+        # The shadow dir may not exist if the failure was during dir creation.
         _confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
         entry = {
-            "divergence_code": SHADOW_DIVERGENCE_CODE,
-            "context": context,
-            "exc_type": exc_type,
-            "at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "schema_version": 1,
+            "operation_id": "op-" + secrets.token_hex(8),
+            "correlation_id": "shadow-compat-facade",
+            "event_type": "capability-check",
+            "outcome": "denied",
+            "reason_code": SHADOW_DIVERGENCE_CODE,
+            "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
-        _confined_jsonl_append(spec_dir, shadow_dir / "divergence.jsonl", entry, cm)
+        _confined_jsonl_append(
+            spec_dir, shadow_dir / _SECURITY_EVENTS_FILE, entry, cm
+        )
     except Exception:  # noqa: BLE001 — divergence recording must never propagate
         pass
 
 
 # ---------------------------------------------------------------------------
-# Shadow evidence (AC-0007 dual-emit)
+# Capability helpers
 # ---------------------------------------------------------------------------
 
 
-def _build_shadow_evidence_record(pending_data: dict) -> dict:
-    """Build a minimal shadow evidence record from a legacy transition event.
+def _null_sink(event: object) -> None:
+    """Discard a security event.  Used in shadow mode to absorb audit events."""
 
-    The record captures the event's stable identity fields (sequence number,
-    event name, source and target states, run-id) without payload bytes.
-    It carries ``authoritative: false`` so no consumer may treat it as a
-    direct approval or completion authority.
+
+def _spec_dir_fingerprint(spec_dir: Path) -> str:
+    """Return a stable acceptance fingerprint from *spec_dir*'s repository-relative path.
+
+    Relative to the repository root so the fingerprint survives a checkout move.
     """
+    resolved = spec_dir.resolve()
+    relative = resolved.relative_to(_find_repo_root(spec_dir)).as_posix()
+    digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()
+    return f"sha256:{digest}"
+
+
+def _make_shadow_grant(scope_roots: list[str]) -> tuple:
+    """Issue a short-lived shadow grant covering the requested write scopes.
+
+    Returns ``(issuer, grant)`` where the grant authorises ``["append"]``
+    operations within each of *scope_roots* and their sub-paths.
+    """
+    sc = _security_capability()
+    issuer = sc.CapabilityIssuer()
+    grant = issuer.issue_root_grant(
+        roots=["shadow-compat"],
+        operations=["append"],
+        trust_class="shadow-compat",
+        writes_allowed_roots=scope_roots,
+        control_denies=[],
+    )
+    return issuer, grant
+
+
+# ---------------------------------------------------------------------------
+# Shadow evidence — evidence-receipt.v1 via EvidenceStore
+# ---------------------------------------------------------------------------
+
+
+def _build_shadow_evidence_receipt(spec_dir: Path, pending_data: dict) -> dict:
+    """Build an ``evidence-receipt.v1`` record for a completed legacy transition.
+
+    Uses only stable, inert fields (sequence number, event name selector).
+    No payload bytes or content-derived hashes enter the record.
+    """
+    event_name = str(pending_data.get("event", "unknown"))
     return {
         "schema_version": 1,
-        "record_type": "shadow-transition-evidence",
-        "seq": pending_data.get("seq"),
-        "event": pending_data.get("event"),
-        "from_state": pending_data.get("from"),
-        "to_state": pending_data.get("to"),
-        "run_id": pending_data.get("run_id"),
-        "at": pending_data.get("at"),
-        # Shadow: this record is non-authoritative.  A target authority
-        # switch requires an accepted governance fingerprint (AC-0017).
-        "authoritative": False,
+        "receipt_id": f"shadow-{secrets.token_hex(16)}",
+        "acceptance_fingerprint": _spec_dir_fingerprint(spec_dir),
+        "lineage": {"criterion_ref": _SHADOW_PROPERTY_ID},
+        "selector": {"term": f"engine-transition:{event_name}"},
+        "freshness_mode": "exact-subject",
+        "observation": {"type": "engine-transition"},
+        "outcome": "observed",
+        "producer": {"class": _SHADOW_PRODUCER, "identity": _SHADOW_PRODUCER},
     }
 
 
@@ -346,15 +475,71 @@ def _do_shadow_on_transition(
     pending_data: dict,
     cm: ModuleType,
 ) -> None:
-    """Append one shadow evidence record for the completed legacy transition."""
+    """Append one shadow evidence-receipt.v1 for the completed legacy transition."""
     _confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
-    record = _build_shadow_evidence_record(pending_data)
-    _confined_jsonl_append(spec_dir, shadow_dir / "evidence.jsonl", record, cm)
+
+    es_mod = _evidence_store_mod()
+    issuer, grant = _make_shadow_grant(["evidence"])
+
+    log_path = shadow_dir / _EVIDENCE_LOG
+    store = es_mod.EvidenceStore(log_path)
+    store.open()
+
+    receipt = _build_shadow_evidence_receipt(spec_dir, pending_data)
+    store.append_receipt(
+        receipt,
+        transaction_id=f"shadow-tx-{secrets.token_hex(16)}",
+        issuer=issuer,
+        grant=grant,
+        audit_sink=_null_sink,
+    )
 
 
 # ---------------------------------------------------------------------------
-# Shadow policy import (AC-0016 plan-locked hook)
+# Shadow policy import — shadow services at plan-locked
 # ---------------------------------------------------------------------------
+
+
+def _find_repo_root(spec_dir: Path) -> Path:
+    """Walk up from *spec_dir* to the nearest ``.git`` parent; fall back to parent."""
+    current = spec_dir.resolve()
+    while current != current.parent:
+        if (current / ".git").exists():
+            return current
+        current = current.parent
+    return spec_dir.resolve().parent
+
+
+def _try_project_legacy_subject(
+    spec_dir: Path,
+    shadow_dir: Path,
+    approved_spec_hash: str,
+    approved_plan_hash: str,
+    cm: ModuleType,
+) -> None:
+    """Best-effort legacy subject projection; silently skipped on any failure.
+
+    Subject projection may fail when the working tree is dirty, git is
+    unavailable, or the approved digests have drifted — all acceptable in
+    shadow mode.  When successful, writes a ``delivery-subject.v1`` record.
+    """
+    try:
+        ss = _subject_source_mod()
+        repo_root = _find_repo_root(spec_dir)
+        subject = ss.project_legacy_subject(
+            repo_root=repo_root,
+            spec_dir=spec_dir,
+            approved_spec_hash=approved_spec_hash,
+            approved_plan_hash=approved_plan_hash,
+            audit_sink=_null_sink,
+            subject_id=f"shadow-subject:{spec_dir.name}",
+            evidence_policy_ref=(
+                f"compat-shadow:evidence-policy:{approved_spec_hash[:16]}"
+            ),
+        )
+        _confined_json_write(spec_dir, shadow_dir / _SUBJECT_FILE, subject, cm)
+    except Exception:  # noqa: BLE001 — subject projection is optional
+        pass
 
 
 def _do_shadow_on_plan_locked(
@@ -363,47 +548,110 @@ def _do_shadow_on_plan_locked(
     engine_state: dict,
     cm: ModuleType,
 ) -> None:
-    """Write a shadow policy-import record for the plan-locked event.
+    """Call shadow services at plan-locked and persist registered record types.
 
-    Reads the approved spec/plan digests from the cohort ``state.json``
-    alongside the spec dir.  The record is non-authoritative (AC-0016):
-    it mirrors the approved pin only for shadow audit purposes and creates
-    no target task-projection record or plan approval.
+    Sequence:
+    1. Read approved spec/plan digests from ``state.json`` via the confined reader.
+    2. Call ``import_policy`` with those digests to produce ``approval-record.v1``
+       and ``initial-plan-review.v1`` records.
+    3. Write those records as confined JSON files.
+    4. Open the ``EvidenceStore`` to collect receipts from prior transitions.
+    5. Optionally project a legacy delivery subject (best-effort; silently skipped).
+    6. Call ``evaluate_verdict`` with the collected receipts.
+    7. Write the derived verdict as a confined JSON file.
 
-    A missing or unreadable ``state.json`` leaves the hash fields empty
-    and is recorded as a divergence code rather than a failure.
+    Any failure propagates to the caller, whose outer try/except records a
+    divergence and returns — never affecting the legacy path.
     """
     _confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
 
-    # Read approved hashes from state.json (cohort state).  This runs AFTER
-    # the legacy plan-locked commit, outside the critical section, so a simple
-    # read is acceptable here.  Any failure falls back to empty strings.
-    approved_spec_hash = ""
-    approved_plan_hash = ""
-    try:
-        state_path = spec_dir / "state.json"
-        raw = state_path.read_bytes()
-        cohort_state = json.loads(raw.decode("utf-8"))
-        if isinstance(cohort_state, dict):
-            approved_spec_hash = str(cohort_state.get("approved_spec_hash") or "")
-            approved_plan_hash = str(cohort_state.get("approved_plan_hash") or "")
-    except Exception:  # noqa: BLE001 — missing hashes: record still written
-        pass
+    # Step 1 — read approved hashes via bounded, no-follow reader.
+    cohort_state = _confined_read_json(spec_dir, spec_dir / "state.json")
+    approved_spec_hash = str(cohort_state.get("approved_spec_hash") or "")
+    approved_plan_hash = str(cohort_state.get("approved_plan_hash") or "")
+    if not approved_spec_hash or not approved_plan_hash:
+        raise ValueError(
+            "approved_spec_hash or approved_plan_hash absent in state.json"
+        )
 
-    shadow_import_record = {
-        "schema_version": 1,
-        "record_type": "shadow-policy-import",
-        "feature": str(engine_state.get("feature", "")),
-        "run_id": str(engine_state.get("run_id", "")),
-        "approved_spec_hash": approved_spec_hash,
-        "approved_plan_hash": approved_plan_hash,
-        "at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        # Non-authoritative.  Target authority switch requires an accepted
-        # governance fingerprint (AC-0017); this record grants none.
-        "authoritative": False,
-        "governance_required_for_authority_switch": True,
+    # Step 2 — call import_policy with the approved pins.
+    pi = _policy_import_mod()
+    acc = _acceptance()
+    issuer, grant = _make_shadow_grant(["delivery", "evidence"])
+
+    digest_prefix = approved_spec_hash[:16]
+    refs: dict[str, str] = {
+        k: f"compat-shadow:{digest_prefix}:{k}" for k in acc.ENVELOPE_REFS_KEYS
     }
-    _confined_json_write(spec_dir, shadow_dir / "policy-import.json", shadow_import_record, cm)
+
+    import_store = pi.ImportStore()
+    approval_record, initial_review = pi.import_policy(
+        spec_path=spec_dir / "spec.md",
+        plan_path=spec_dir / "plan.md",
+        refs=refs,
+        terminal_intent="work-loop-code-implementation",
+        writer_grant=grant,
+        issuer=issuer,
+        audit_sink=_null_sink,
+        store=import_store,
+        approval_identity="shadow-compat-facade",
+        approval_role="shadow-observer",
+        reviewer_identity="shadow-compat-facade",
+        reviewer_role="shadow-reviewer",
+        approved_spec_digest=approved_spec_hash,
+        approved_plan_digest=approved_plan_hash,
+    )
+
+    # Step 3 — persist approval-record.v1 and initial-plan-review.v1.
+    _confined_json_write(spec_dir, shadow_dir / _APPROVAL_FILE, approval_record, cm)
+    _confined_json_write(spec_dir, shadow_dir / _REVIEW_FILE, initial_review, cm)
+
+    # Step 4 — open EvidenceStore to collect receipts from prior transitions.
+    es_mod = _evidence_store_mod()
+    store = es_mod.EvidenceStore(shadow_dir / _EVIDENCE_LOG)
+    store.open()
+    receipts = store.get_all_active_receipts()
+
+    # Step 5 — optional legacy subject projection (best-effort).
+    _try_project_legacy_subject(
+        spec_dir, shadow_dir, approved_spec_hash, approved_plan_hash, cm
+    )
+
+    # Step 6 — evaluate verdict over the collected receipts.
+    acceptance_fp = _spec_dir_fingerprint(spec_dir)
+    spec_dir_ref = spec_dir.resolve().relative_to(_find_repo_root(spec_dir)).as_posix()
+    property_record = {
+        "schema_version": 1,
+        "property_id": _SHADOW_PROPERTY_ID,
+        "spec_ref": f"{spec_dir_ref}/spec.md",
+        "authority_ref": "shadow-compat-observation",
+        "subject_selector": {
+            "paths_or_artifacts": [spec_dir_ref],
+            "fingerprint_algorithm": "sha256",
+        },
+        "required_observations": [
+            {
+                "term": "engine-transition:plan-locked",
+                "observation_type": "engine-transition",
+                "producer_class": _SHADOW_PRODUCER,
+                "outcomes": ["observed"],
+            },
+        ],
+        "freshness_scope": "exact-subject",
+        "satisfaction_rule": {"expression": "any"},
+        "contradiction_rule": {"expression": "none"},
+        "policy_version": "shadow-compat-1",
+    }
+    _confined_json_write(spec_dir, shadow_dir / _PROPERTY_FILE, property_record, cm)
+    verdict = acc.evaluate_verdict(
+        property_record=property_record,
+        receipts=receipts,
+        current_acceptance_fingerprint=acceptance_fp,
+        adapter="sequential-reference",
+    )
+
+    # Step 7 — persist acceptance-verdict.v1.
+    _confined_json_write(spec_dir, shadow_dir / _VERDICT_FILE, verdict, cm)
 
 
 # ---------------------------------------------------------------------------
@@ -446,7 +694,7 @@ def shadow_call_on_plan_locked(
     spec_dir: Path,
     engine_state: dict,
 ) -> None:
-    """Write a shadow policy-import record at plan-locked (AC-0016).
+    """Call shadow services and write registered record types at plan-locked.
 
     Called AFTER the legacy plan-locked commit succeeds.  Any exception is
     caught and recorded as ``SHADOW_DIVERGENCE_CODE``.  Never affects the
@@ -469,34 +717,6 @@ def shadow_call_on_plan_locked(
             exc_type=type(exc).__name__,
             cm=confined,  # type: ignore[arg-type]
         )
-
-
-def check_governance_fingerprint(spec_dir: Path) -> bool:
-    """Return True only when an accepted governance fingerprint is present.
-
-    A missing, unreadable, or invalid governance record returns ``False``,
-    refusing every target-authority switch (AC-0017).  The governance record
-    must be produced by a separately accepted governance process — it cannot
-    be created by this implementation alone.
-
-    The accepted record must be at::
-
-        <spec-dir>/.shadow-acceptance/governance.json
-
-    with ``{"decision": "accepted", ...}`` present.
-    """
-    governance_path = _shadow_dir(spec_dir) / "governance.json"
-    try:
-        info = os.lstat(governance_path)
-        if not stat.S_ISREG(info.st_mode):
-            return False
-        raw = governance_path.read_bytes()
-        data = json.loads(raw.decode("utf-8"))
-        if not isinstance(data, dict):
-            return False
-        return data.get("decision") == "accepted"
-    except Exception:  # noqa: BLE001 — missing or unreadable = no governance
-        return False
 
 
 # ---------------------------------------------------------------------------

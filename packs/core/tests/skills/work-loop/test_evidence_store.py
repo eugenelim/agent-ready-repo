@@ -1034,3 +1034,162 @@ class TestValidateSupersessionDict:
         ok, code = es.validate_supersession_dict(bad)
         assert not ok
         assert code == "denied-empty-superseded-ids"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0008 / AC-0011: partial-write rollback and store-poison invariants
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAppendFaultInjection:
+    """AC-0008: a partial write is rolled back; a subsequent append lands cleanly.
+
+    Monkeypatches os.write in the confined_mutation module (via the shared os
+    object) to simulate a mid-write ENOSPC failure, then verifies that:
+      1. The failed append leaves the log at its pre-append size.
+      2. A subsequent successful append lands correctly.
+      3. A fresh reopen yields exactly the complete records (no partial bytes).
+    Also verifies that rollback failure poisons the store: all further appends
+    refuse with a stable denial code until the store is reopened.
+    """
+
+    def test_partial_write_rolled_back_and_store_reopens_clean(
+        self,
+        es: ModuleType,
+        sc: ModuleType,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mid-append ENOSPC is rolled back; the store reopens with only complete records.
+
+        Red before the fix: os.write in confined_append had no rollback, so the
+        partial bytes survived. After the fix: ftruncate restores the file to its
+        pre-append size, so the next append and a fresh reopen see only complete
+        frames.
+        """
+        import errno
+
+        log_path = tmp_path / "fault-rollback.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Append one complete frame before the fault.
+        receipt_a = _make_receipt("r-fault-a")
+        store.append_receipt(
+            receipt_a,
+            transaction_id="tx-fa",
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+        assert store.receipt_count == 1
+        pre_fault_size = log_path.stat().st_size
+
+        # Monkeypatch os.write to write 1 byte then raise ENOSPC.
+        original_write = os.write
+
+        def _partial_then_fail(fd: int, data: bytes) -> int:
+            original_write(fd, data[:1])
+            raise OSError(errno.ENOSPC, "no space left on device")
+
+        monkeypatch.setattr(os, "write", _partial_then_fail)
+        try:
+            receipt_b = _make_receipt("r-fault-b")
+            with pytest.raises(es.EvidenceStoreRefused):
+                store.append_receipt(
+                    receipt_b,
+                    transaction_id="tx-fb",
+                    issuer=issuer,
+                    grant=grant,
+                    audit_sink=_null_sink,
+                )
+        finally:
+            monkeypatch.setattr(os, "write", original_write)
+
+        # Log must be back to pre-fault size (rollback succeeded).
+        assert log_path.stat().st_size == pre_fault_size, (
+            "partial write bytes must be rolled back to the pre-append position"
+        )
+
+        # A subsequent append must succeed cleanly.
+        receipt_c = _make_receipt("r-fault-c")
+        store.append_receipt(
+            receipt_c,
+            transaction_id="tx-fc",
+            issuer=issuer,
+            grant=grant,
+            audit_sink=_null_sink,
+        )
+        assert store.receipt_count == 2  # r-fault-a and r-fault-c only
+
+        # Fresh reopen must yield exactly the two complete records.
+        store2 = _open_fresh_store(es, log_path)
+        assert store2.receipt_count == 2
+        active = store2.get_active_receipts("prop-001")
+        ids = {r["receipt_id"] for r in active}
+        assert "r-fault-a" in ids
+        assert "r-fault-c" in ids
+        assert "r-fault-b" not in ids, "rolled-back receipt must not appear after reopen"
+
+    def test_rollback_failure_poisons_store(
+        self,
+        es: ModuleType,
+        sc: ModuleType,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When a rollback truncation fails, the store is poisoned and refuses further appends.
+
+        Red before the fix: rollback did not exist, so the store had no way to
+        detect or signal the unknown-file-state condition. After the fix: the
+        store sets a poisoned flag and refuses any subsequent append with
+        ``denied-store-poisoned`` until reopened.
+        """
+        import errno
+
+        log_path = tmp_path / "fault-poison.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        original_write = os.write
+        original_ftruncate = os.ftruncate
+
+        def _partial_then_fail(fd: int, data: bytes) -> int:
+            original_write(fd, data[:1])
+            raise OSError(errno.ENOSPC, "no space left on device")
+
+        def _ftruncate_fail(fd: int, length: int) -> None:
+            raise OSError(errno.EIO, "simulated IO error during rollback truncation")
+
+        monkeypatch.setattr(os, "write", _partial_then_fail)
+        monkeypatch.setattr(os, "ftruncate", _ftruncate_fail)
+        try:
+            receipt_a = _make_receipt("r-poison-a")
+            with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+                store.append_receipt(
+                    receipt_a,
+                    transaction_id="tx-poa",
+                    issuer=issuer,
+                    grant=grant,
+                    audit_sink=_null_sink,
+                )
+            assert "rollback-failed" in exc_info.value.denial_code, (
+                f"expected rollback-failed denial, got {exc_info.value.denial_code!r}"
+            )
+        finally:
+            monkeypatch.setattr(os, "write", original_write)
+            monkeypatch.setattr(os, "ftruncate", original_ftruncate)
+
+        # Store is now poisoned: any further append must refuse.
+        receipt_b = _make_receipt("r-poison-b")
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                receipt_b,
+                transaction_id="tx-pob",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+        assert "poisoned" in exc_info.value.denial_code, (
+            f"expected poisoned denial, got {exc_info.value.denial_code!r}"
+        )

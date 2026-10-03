@@ -27,6 +27,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -335,7 +336,7 @@ class TestAC0016ShadowOn:
     def test_shadow_transition_writes_evidence_record(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """shadow_call_on_transition writes a shadow evidence record to .shadow-acceptance/."""
+        """shadow_call_on_transition writes a shadow evidence-receipt.v1 frame."""
         monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
         spec_dir = tmp_path / "ev-spec"
         spec_dir.mkdir()
@@ -345,59 +346,130 @@ class TestAC0016ShadowOn:
 
         facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
-        evidence_path = spec_dir / facade.SHADOW_SUBDIR / "evidence.jsonl"
-        assert evidence_path.exists(), "shadow evidence file must be created"
-        records = [json.loads(line) for line in evidence_path.read_text("utf-8").splitlines()]
+        # EvidenceStore log: one JSON line per frame, each frame {"tx": {...}, "records": [...]}
+        log_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
+        assert log_path.exists(), "shadow evidence log must be created"
+        lines = [ln for ln in log_path.read_text("utf-8").splitlines() if ln]
+        assert len(lines) == 1, "one frame per transition"
+        frame = json.loads(lines[0])
+        assert "tx" in frame and "records" in frame, "frame must have tx and records"
+        records = frame["records"]
         assert len(records) == 1
         r = records[0]
-        assert r["record_type"] == "shadow-transition-evidence"
-        assert r["event"] == "spec-ready"
-        assert r["seq"] == 1
-        assert r["authoritative"] is False
+        # evidence-receipt.v1 required fields
+        assert r["schema_version"] == 1
+        assert r.get("receipt_id", "").startswith("shadow-"), "receipt_id must start with 'shadow-'"
+        assert r["outcome"] == "observed"
+        assert r["selector"]["term"] == "engine-transition:spec-ready"
+        # Schema is closed: no non-schema fields (no authoritative flag)
+        assert "authoritative" not in r
 
     def test_shadow_plan_locked_writes_policy_import_record(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """shadow_call_on_plan_locked writes a shadow policy-import record."""
+        """shadow_call_on_plan_locked writes approval-record.v1 and initial-plan-review.v1."""
+        import types
+
         monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
         spec_dir = tmp_path / "pi-spec"
         spec_dir.mkdir()
-        engine_state = {"feature": "pi-spec", "run_id": "pi-run"}
+        # Provide state.json so _do_shadow_on_plan_locked can read approved hashes
+        (spec_dir / "state.json").write_text(
+            json.dumps({"approved_spec_hash": "a" * 64, "approved_plan_hash": "b" * 64}),
+            encoding="utf-8",
+        )
 
+        # Inject a fake _policy_import module so import_policy succeeds without real files
+        fake_approval = {"schema_version": 1, "approval_id": "approval-test-001",
+                         "decision": "approved", "timestamp": "2026-01-01T00:00:00Z",
+                         "authority": {"identity": "shadow-compat-facade", "role": "shadow-observer"},
+                         "decision_scope": "shadow-compat",
+                         "base": {"manifest_ref": "compat-shadow:manifest"},
+                         "lineage": {"spec_ref": "specs/pi-spec/spec.md"},
+                         "spec_policy_fingerprint": "sha256:fp-001"}
+        fake_review = {"schema_version": 1, "review_id": "review-test-001",
+                       "plan_hash": "b" * 64, "terminal_intent": "work-loop-code-implementation",
+                       "reviewer": {"identity": "shadow-compat-facade", "role": "shadow-reviewer"},
+                       "timestamp": "2026-01-01T00:00:00Z",
+                       "envelope_fingerprint": "sha256:env-fp-001"}
+
+        class _FakeImportStore:
+            def record_count(self) -> int:
+                return 0
+
+        def _fake_import_policy(**kw: object) -> tuple:
+            return fake_approval, fake_review
+
+        fake_pi = types.SimpleNamespace(
+            ImportStore=_FakeImportStore,
+            import_policy=_fake_import_policy,
+            PolicyImportRefused=Exception,
+        )
+        monkeypatch.setattr(facade, "_policy_import_module_cache", fake_pi)
+
+        engine_state = {"feature": "pi-spec", "run_id": "pi-run"}
         facade.shadow_call_on_plan_locked(spec_dir, engine_state)
 
-        import_path = spec_dir / facade.SHADOW_SUBDIR / "policy-import.json"
-        assert import_path.exists(), "shadow policy-import file must be created"
-        record = json.loads(import_path.read_text("utf-8"))
-        assert record["record_type"] == "shadow-policy-import"
-        assert record["feature"] == "pi-spec"
-        assert record["run_id"] == "pi-run"
-        assert record["authoritative"] is False
-        assert record["governance_required_for_authority_switch"] is True
+        approval_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-approval.json"
+        assert approval_path.exists(), "shadow-approval.json (approval-record.v1) must be created"
+        review_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-initial-review.json"
+        assert review_path.exists(), "shadow-initial-review.json (initial-plan-review.v1) must be created"
+        # approval-record.v1 must have schema_version (no ad-hoc record_type or governance flag)
+        approval = json.loads(approval_path.read_text("utf-8"))
+        assert approval["schema_version"] == 1
+        assert "governance_required_for_authority_switch" not in approval, (
+            "registered record types carry no ad-hoc governance flag"
+        )
+        assert "authoritative" not in approval
 
     def test_shadow_plan_locked_reads_approved_hashes(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """shadow_call_on_plan_locked captures the approved hashes from state.json."""
+        """shadow_call_on_plan_locked passes approved hashes from state.json to import_policy."""
+        import types
+
         monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
         spec_dir = tmp_path / "hash-spec"
         spec_dir.mkdir()
-        # Write a minimal state.json with approved hashes
+        spec_hash = "aabbcc" * 10 + "11"
+        plan_hash = "ddeeff" * 10 + "22"
         state = {
             "schema_version": 2,
             "run_id": "hash-run",
-            "approved_spec_hash": "aabbcc" * 10 + "11",
-            "approved_plan_hash": "ddeeff" * 10 + "22",
+            "approved_spec_hash": spec_hash,
+            "approved_plan_hash": plan_hash,
         }
         (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
-        engine_state = {"feature": "hash-spec", "run_id": "hash-run"}
 
+        # Spy: capture what import_policy receives, then stop
+        captured: dict = {}
+
+        class _FakeImportStore:
+            def record_count(self) -> int:
+                return 0
+
+        def _spy_import_policy(**kw: object) -> None:
+            captured["spec"] = kw.get("approved_spec_digest")
+            captured["plan"] = kw.get("approved_plan_digest")
+            raise RuntimeError("spy-stop")
+
+        fake_pi = types.SimpleNamespace(
+            ImportStore=_FakeImportStore,
+            import_policy=_spy_import_policy,
+            PolicyImportRefused=RuntimeError,
+        )
+        monkeypatch.setattr(facade, "_policy_import_module_cache", fake_pi)
+
+        engine_state = {"feature": "hash-spec", "run_id": "hash-run"}
+        # Should complete without raising (divergence absorbed)
         facade.shadow_call_on_plan_locked(spec_dir, engine_state)
 
-        import_path = spec_dir / facade.SHADOW_SUBDIR / "policy-import.json"
-        record = json.loads(import_path.read_text("utf-8"))
-        assert record["approved_spec_hash"] == state["approved_spec_hash"]
-        assert record["approved_plan_hash"] == state["approved_plan_hash"]
+        assert captured.get("spec") == spec_hash, (
+            "approved_spec_digest must be read from state.json"
+        )
+        assert captured.get("plan") == plan_hash, (
+            "approved_plan_digest must be read from state.json"
+        )
 
     def test_shadow_records_are_non_authoritative(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -419,18 +491,30 @@ class TestAC0016ShadowOn:
                        "at": "2026-01-01T00:00:00Z"}
             facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
-        evidence_path = spec_dir / facade.SHADOW_SUBDIR / "evidence.jsonl"
-        records = [json.loads(line) for line in evidence_path.read_text("utf-8").splitlines()]
-        for r in records:
-            assert r["authoritative"] is False, \
-                f"shadow record for {r['event']} must be non-authoritative"
+        log_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
+        assert log_path.exists()
+        lines = [ln for ln in log_path.read_text("utf-8").splitlines() if ln]
+        assert len(lines) == 3, "one frame per transition"
+        for line in lines:
+            frame = json.loads(line)
+            for r in frame["records"]:
+                assert "authoritative" not in r, (
+                    "evidence-receipt.v1 schema is closed; no 'authoritative' field"
+                )
+
+        # No approval record written during transitions (only at plan-locked)
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        assert not (shadow_dir / "shadow-approval.json").exists(), (
+            "approval-record.v1 must not be written during regular transitions"
+        )
 
     def test_shadow_divergence_is_recorded_on_failure(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A shadow failure produces a divergence record, no partial fact.
+        """A shadow failure produces a security-event.v1 divergence record, no partial fact.
 
-        Proves AC-0016: shadow refusal → stable redacted divergence code.
+        Proves AC-0016: shadow refusal → stable redacted divergence code written
+        using the closed security-event.v1 schema (exactly seven fields).
         """
         monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
         spec_dir = tmp_path / "div-spec"
@@ -439,24 +523,24 @@ class TestAC0016ShadowOn:
         pending = {"seq": 1, "event": "spec-ready", "from": "A", "to": "B",
                    "run_id": "div-run", "at": "2026-01-01T00:00:00Z"}
 
-        # Inject failure at the evidence append step after the dir is created
-        original_do = facade._do_shadow_on_transition
+        # Inject failure after the shadow dir is created
         monkeypatch.setattr(
             facade, "_do_shadow_on_transition",
             lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("injected")),
         )
         facade.shadow_call_on_transition(spec_dir, engine_state, pending)
-        monkeypatch.setattr(facade, "_do_shadow_on_transition", original_do)
 
-        # Divergence record must exist; partial evidence record must not exist
-        # The divergence write itself creates the shadow dir
-        div_path = spec_dir / facade.SHADOW_SUBDIR / "divergence.jsonl"
-        assert div_path.exists(), "divergence record must be written"
+        # security-event.v1 divergence record must exist
+        div_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-security-events.jsonl"
+        assert div_path.exists(), "security-event divergence file must be written"
         entry = json.loads(div_path.read_text("utf-8").splitlines()[0])
-        assert entry["divergence_code"] == facade.SHADOW_DIVERGENCE_CODE
-        assert entry["exc_type"] == "RuntimeError"
-        # No partial evidence
-        ev_path = spec_dir / facade.SHADOW_SUBDIR / "evidence.jsonl"
+        assert entry["outcome"] == "denied"
+        assert entry["reason_code"] == facade.SHADOW_DIVERGENCE_CODE
+        # security-event.v1 is a closed schema — no extra fields
+        assert "exc_type" not in entry, "closed schema: no exc_type field"
+        assert "context_tag" not in entry, "closed schema: no context_tag field"
+        # No partial evidence log
+        ev_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
         assert not ev_path.exists(), "no partial shadow evidence on failure"
 
     def test_no_dispatch_no_task_projection(
@@ -476,12 +560,15 @@ class TestAC0016ShadowOn:
         facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
         shadow_dir = spec_dir / facade.SHADOW_SUBDIR
-        # Only evidence.jsonl and .gitignore should exist; no task projection or dispatch records
         existing = {p.name for p in shadow_dir.iterdir()} if shadow_dir.exists() else set()
-        forbidden = {"task-projection.json", "dispatch-record.json", "approval.json",
-                     "initial-plan-review.json"}
+        # Plan-locked records must not be created during a regular transition
+        forbidden = {
+            "task-projection.json", "dispatch-record.json",
+            "shadow-approval.json", "shadow-initial-review.json",
+            "shadow-verdict.json", "shadow-delivery-subject.json",
+        }
         overlap = existing & forbidden
-        assert not overlap, f"shadow created forbidden records: {overlap}"
+        assert not overlap, f"shadow created forbidden records during transition: {overlap}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -603,24 +690,17 @@ class TestAC0011Confinement:
 
         monkeypatch.setattr(facade, "_confined_ensure_shadow_dir", _unconfined_ensure)
 
-        # Also disable confined_jsonl_append to use plain file write (no path check).
-        def _plain_jsonl_append(root: Path, path: Path, record: dict, cm: object) -> None:
-            line = json.dumps(record) + "\n"
-            with path.open("a", encoding="utf-8") as fh:
-                fh.write(line)
-
-        monkeypatch.setattr(facade, "_confined_jsonl_append", _plain_jsonl_append)
-
         monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
         engine_state = {"feature": "red-spec", "run_id": "red-run"}
         pending = {"seq": 1, "event": "spec-ready", "from": "A", "to": "B",
                    "run_id": "red-run", "at": "2026-01-01T00:00:00Z"}
 
-        # With confinement disabled, the write escapes to outside/
+        # With confinement disabled, EvidenceStore writes to shadow_dir / shadow-evidence.log.
+        # Since shadow_dir is a symlink to outside/, the write escapes.
         facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
         # Confirm the write DID escape (proving the guard was the only protection)
-        escaped = outside / "evidence.jsonl"
+        escaped = outside / "shadow-evidence.log"
         assert escaped.exists(), (
             "red proof: without the confinement check the write escapes through the symlink"
         )
@@ -752,26 +832,32 @@ class TestAC0007DualEmitCorpus:
                        "run_id": "corpus-run", "at": "2026-01-01T00:00:00Z"}
             facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
-        evidence_path = spec_dir / facade.SHADOW_SUBDIR / "evidence.jsonl"
-        records = [json.loads(line) for line in evidence_path.read_text("utf-8").splitlines()]
-        assert len(records) == 3, "one shadow record per transition"
+        log_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
+        assert log_path.exists(), "shadow evidence log must be created"
+        lines = [ln for ln in log_path.read_text("utf-8").splitlines() if ln]
+        assert len(lines) == 3, "one frame per transition"
         for i, (event, _, _) in enumerate(events):
-            assert records[i]["event"] == event
-            assert records[i]["seq"] == i + 1
+            frame = json.loads(lines[i])
+            r = frame["records"][0]
+            assert r["selector"]["term"] == f"engine-transition:{event}", (
+                f"frame {i}: selector term must encode event {event!r}"
+            )
+            assert r["observation"] == {"type": "engine-transition"}
 
     def test_acceptance_verdict_deterministic_over_shadow_receipts(
-        self, acc: ModuleType
+        self, acc: ModuleType, tmp_path: Path
     ) -> None:
-        """evaluate_verdict() is deterministic for shadow-compatible receipt records.
+        """evaluate_verdict is pure: deleting mechanical state cannot change it.
 
-        Proves AC-0007: identical inputs always produce the same verdict; deleting
-        derived state (no separate index exists) and re-evaluating gives the same
-        result.
+        Proves AC-0007: receipts with task-projection fields and mechanical state
+        files beside the store (cohort.json, engine-state.json, cached-verdict.json)
+        give the same verdict before and after those files are deleted.  Proved by
+        a temporary mutation: changing the receipt outcome changes the verdict.
         """
-        # A minimal property record with a satisfaction rule
         fingerprint = "sha256:frozen-corpus-fp-001"
         property_record = {
             "schema_version": 1,
+            "property_id": "prop-1",
             "authority_ref": "spec-001",
             "satisfaction_rule": {"expression": "any"},
             "required_observations": [
@@ -780,16 +866,29 @@ class TestAC0007DualEmitCorpus:
             "contradiction_rule": {"expression": "none"},
         }
 
-        # Minimal evidence receipt (shadow-compatible: has the required fields
-        # that evaluate_verdict + is_fresh inspect)
+        # Receipt with the optional task_projection_revision field (allowed by schema)
         receipt = {
+            "schema_version": 1,
+            "receipt_id": "r-det-001",
             "acceptance_fingerprint": fingerprint,
-            "freshness_mode": "exact-subject",
+            "lineage": {"criterion_ref": "prop-1"},
             "selector": {"term": "implementation-done"},
+            "freshness_mode": "exact-subject",
+            "observation": {"type": "engine-transition"},
             "outcome": "complete",
+            "producer": {"class": "shadow-compat-facade", "identity": "shadow-compat-facade"},
+            "task_projection_revision": "rev-abc123",
         }
 
-        # Evaluate once — should be "supported"
+        # Write fake mechanical state files beside the store location
+        (tmp_path / "cohort.json").write_text('{"schema_version": 2}', encoding="utf-8")
+        (tmp_path / "engine-state.json").write_text(
+            '{"schema_version": 1, "state": "CODE-IMPLEMENTATION"}', encoding="utf-8"
+        )
+        (tmp_path / "cached-verdict.json").write_text(
+            '{"verdict": "supported"}', encoding="utf-8"
+        )
+
         verdict1 = acc.evaluate_verdict(
             property_record=property_record,
             receipts=[receipt],
@@ -798,8 +897,11 @@ class TestAC0007DualEmitCorpus:
         )
         assert verdict1["verdict"] == "supported"
 
-        # "Delete target indexes and mechanical state": since evaluate_verdict is
-        # purely functional (no external state), re-evaluate with the same inputs.
+        # Delete the mechanical state — evaluator must not read those files
+        (tmp_path / "cohort.json").unlink()
+        (tmp_path / "engine-state.json").unlink()
+        (tmp_path / "cached-verdict.json").unlink()
+
         verdict2 = acc.evaluate_verdict(
             property_record=property_record,
             receipts=[receipt],
@@ -807,21 +909,56 @@ class TestAC0007DualEmitCorpus:
             adapter="sequential-reference",
         )
         assert verdict1["verdict"] == verdict2["verdict"], (
-            "AC-0007: verdict must be identical after deleting target indexes"
+            "AC-0007: verdict must be identical after deleting mechanical state"
+        )
+        assert verdict1["evaluation_fingerprint"] == verdict2["evaluation_fingerprint"], (
+            "AC-0007: evaluation fingerprint must be identical (deterministic)"
+        )
+
+        # Prove by mutation: varying the receipt outcome changes the verdict
+        modified_receipt = {**receipt, "outcome": "not-complete"}
+        verdict_modified = acc.evaluate_verdict(
+            property_record=property_record,
+            receipts=[modified_receipt],
+            current_acceptance_fingerprint=fingerprint,
+            adapter="sequential-reference",
+        )
+        assert verdict_modified["verdict"] != verdict1["verdict"], (
+            "AC-0007: changing receipt outcome must change the verdict (non-trivial)"
         )
 
     def test_verdict_parity_across_supported_adapters(self, acc: ModuleType) -> None:
         """The same approved properties produce the same verdict on every adapter.
 
         Proves AC-0007: identical inputs produce the same verdict on every
-        declared supported adapter.
+        declared supported adapter.  The cross-adapter check is non-trivial:
+        an invalid adapter raises AcceptanceRefused, confirming the check fires.
         """
         assert len(acc.SUPPORTED_ADAPTERS) >= 2, (
             "conformance requires at least two supported adapters"
         )
+
+        # Non-trivial check: an invalid adapter name is refused
+        prop_minimal = {
+            "schema_version": 1,
+            "property_id": "prop-2",
+            "authority_ref": "spec-parity-check",
+            "satisfaction_rule": {"expression": "any"},
+            "required_observations": [],
+            "contradiction_rule": {"expression": "none"},
+        }
+        with pytest.raises(acc.AcceptanceRefused):
+            acc.evaluate_verdict(
+                property_record=prop_minimal,
+                receipts=[],
+                current_acceptance_fingerprint="sha256:parity-check-fp",
+                adapter="invalid-adapter-xyz",
+            )
+
         fingerprint = "sha256:parity-fp-002"
         property_record = {
             "schema_version": 1,
+            "property_id": "prop-3",
             "authority_ref": "spec-002",
             "satisfaction_rule": {"expression": "all"},
             "required_observations": [
@@ -858,11 +995,10 @@ class TestAC0007DualEmitCorpus:
         self, facade: ModuleType, acc: ModuleType, tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Shadow evidence written to disk can be read back and evaluated consistently.
+        """Shadow evidence round-trips through EvidenceStore and produces identical verdicts.
 
-        Proves AC-0007: dual-emitted records round-trip through file storage and
-        produce identical verdicts even after deleting the shadow store and
-        rebuilding from the original records.
+        Proves AC-0007: dual-emitted records persisted via EvidenceStore produce
+        the same verdict before and after deleting and re-emitting the shadow store.
         """
         import shutil
 
@@ -871,7 +1007,6 @@ class TestAC0007DualEmitCorpus:
         spec_dir.mkdir()
         engine_state = {"feature": "round-trip-spec", "run_id": "rt-run"}
 
-        # Emit three shadow transition events
         pending_corpus = [
             {"seq": 1, "event": "spec-ready", "from": "SPEC-PLAN-DRAFTING",
              "to": "SPEC-PLAN-REVIEW", "run_id": "rt-run", "at": "2026-01-01T00:00:00Z"},
@@ -883,59 +1018,48 @@ class TestAC0007DualEmitCorpus:
         for pending in pending_corpus:
             facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
-        evidence_path = spec_dir / facade.SHADOW_SUBDIR / "evidence.jsonl"
-        assert evidence_path.exists()
+        log_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
+        assert log_path.exists()
 
-        # Read back the written records
-        stored_records = [
-            json.loads(line)
-            for line in evidence_path.read_text("utf-8").splitlines()
-        ]
-        assert len(stored_records) == len(pending_corpus)
+        # Open the EvidenceStore to get active receipts
+        es_mod = _load_module("es_rt", SCRIPTS / "_evidence_store.py")
+        store = es_mod.EvidenceStore(log_path)
+        store.open()
+        receipts_first = store.get_all_active_receipts()
+        assert len(receipts_first) == len(pending_corpus), "one receipt per transition"
 
-        # Build an acceptance fingerprint and evaluate verdicts
-        fingerprint = "sha256:rt-fp-003"
-        receipts = [
-            {**r, "acceptance_fingerprint": fingerprint, "freshness_mode": "exact-subject",
-             "selector": {"term": r["event"]}, "outcome": "observed"}
-            for r in stored_records
-        ]
+        # Evaluate verdict from the first store
         property_record = {
             "schema_version": 1,
+            "property_id": "prop-4",
             "authority_ref": "spec-rt",
             "satisfaction_rule": {"expression": "any"},
-            "required_observations": [{"term": "spec-ready", "outcomes": ["observed"]}],
+            "required_observations": [
+                {"term": "engine-transition:spec-ready", "outcomes": ["observed"]},
+            ],
             "contradiction_rule": {"expression": "none"},
         }
-
+        acceptance_fp = receipts_first[0]["acceptance_fingerprint"]
         verdict_from_store = acc.evaluate_verdict(
             property_record=property_record,
-            receipts=receipts,
-            current_acceptance_fingerprint=fingerprint,
+            receipts=receipts_first,
+            current_acceptance_fingerprint=acceptance_fp,
             adapter="sequential-reference",
         )
 
-        # "Delete target indexes and mechanical state" — delete the shadow store
+        # Delete the shadow store and re-emit (simulates rehydration from base events)
         shutil.rmtree(spec_dir / facade.SHADOW_SUBDIR)
         assert not (spec_dir / facade.SHADOW_SUBDIR).exists()
-
-        # Re-emit from the original corpus (simulating rehydration from base records)
         for pending in pending_corpus:
             facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
-        reloaded = [
-            json.loads(line)
-            for line in evidence_path.read_text("utf-8").splitlines()
-        ]
-        receipts_rehydrated = [
-            {**r, "acceptance_fingerprint": fingerprint, "freshness_mode": "exact-subject",
-             "selector": {"term": r["event"]}, "outcome": "observed"}
-            for r in reloaded
-        ]
+        store2 = es_mod.EvidenceStore(log_path)
+        store2.open()
+        receipts_rehydrated = store2.get_all_active_receipts()
         verdict_rehydrated = acc.evaluate_verdict(
             property_record=property_record,
             receipts=receipts_rehydrated,
-            current_acceptance_fingerprint=fingerprint,
+            current_acceptance_fingerprint=acceptance_fp,
             adapter="sequential-reference",
         )
 
@@ -953,6 +1077,7 @@ class TestAC0007DualEmitCorpus:
         fingerprint = "sha256:truth-table-fp"
         property_record = {
             "schema_version": 1,
+            "property_id": "prop-5",
             "authority_ref": "spec-tt",
             "satisfaction_rule": {"expression": "all"},
             "required_observations": [{"term": "gates-clean", "outcomes": ["pass"]}],
@@ -990,80 +1115,45 @@ class TestAC0007DualEmitCorpus:
 
 
 class TestAC0017Governance:
-    """Missing governance fingerprint refuses target-authority switch (AC-0017)."""
+    """Missing accepted governance record refuses target-authority switch (AC-0017).
 
-    def test_governance_missing_returns_false(
-        self, facade: ModuleType, tmp_path: Path
+    The governance gate lives in ``_policy_import.compatibility_snapshot``.  Its
+    default resolver refuses because no accepted authority-switch governance record
+    exists in Slice 1; the facade cannot satisfy the gate by writing any file.
+    """
+
+    def test_governance_gate_refuses_without_accepted_record(
+        self, facade: ModuleType
     ) -> None:
-        """check_governance_fingerprint returns False when governance.json is absent."""
-        spec_dir = tmp_path / "no-gov-spec"
-        spec_dir.mkdir()
-        assert facade.check_governance_fingerprint(spec_dir) is False
+        """compatibility_snapshot default resolver refuses; the gate cannot be self-satisfied.
 
-    def test_governance_empty_dir_returns_false(
-        self, facade: ModuleType, tmp_path: Path
-    ) -> None:
-        """check_governance_fingerprint returns False when shadow dir is empty."""
-        spec_dir = tmp_path / "empty-gov-spec"
-        spec_dir.mkdir()
-        (spec_dir / facade.SHADOW_SUBDIR).mkdir()
-        assert facade.check_governance_fingerprint(spec_dir) is False
-
-    def test_governance_invalid_json_returns_false(
-        self, facade: ModuleType, tmp_path: Path
-    ) -> None:
-        """check_governance_fingerprint returns False for malformed governance.json."""
-        spec_dir = tmp_path / "bad-gov-spec"
-        (spec_dir / facade.SHADOW_SUBDIR).mkdir(parents=True)
-        (spec_dir / facade.SHADOW_SUBDIR / "governance.json").write_bytes(b"not json")
-        assert facade.check_governance_fingerprint(spec_dir) is False
-
-    def test_governance_wrong_decision_returns_false(
-        self, facade: ModuleType, tmp_path: Path
-    ) -> None:
-        """check_governance_fingerprint returns False when decision != 'accepted'."""
-        spec_dir = tmp_path / "wrong-dec-spec"
-        (spec_dir / facade.SHADOW_SUBDIR).mkdir(parents=True)
-        gov = {"decision": "pending", "fingerprint": "abc123"}
-        (spec_dir / facade.SHADOW_SUBDIR / "governance.json").write_text(
-            json.dumps(gov), encoding="utf-8"
-        )
-        assert facade.check_governance_fingerprint(spec_dir) is False
-
-    def test_governance_accepted_returns_true(
-        self, facade: ModuleType, tmp_path: Path
-    ) -> None:
-        """check_governance_fingerprint returns True for a valid accepted record.
-
-        Proves AC-0017: with a governance fingerprint present, an authority switch
-        becomes possible (this function gates it).
+        Proves AC-0017: the governance gate is in _policy_import, not in a file
+        the facade can write.  With a fully populated store the default resolver
+        raises PolicyImportRefused("denied-no-governance-record").
         """
-        spec_dir = tmp_path / "gov-spec"
-        (spec_dir / facade.SHADOW_SUBDIR).mkdir(parents=True)
-        gov = {
-            "decision": "accepted",
-            "fingerprint": "sha256:governance-record-001",
-            "at": "2026-01-01T00:00:00Z",
+        pi = facade._policy_import_mod()
+        store = pi.ImportStore()
+        # Populate the store with the two required record types so the code path
+        # reaches the authority resolver (the default refuses with
+        # denied-no-governance-record).
+        approval_rec = {
+            "decision_scope": "spec-policy",
+            "envelope_fingerprint": "sha256:test-fp",
         }
-        (spec_dir / facade.SHADOW_SUBDIR / "governance.json").write_text(
-            json.dumps(gov), encoding="utf-8"
-        )
-        assert facade.check_governance_fingerprint(spec_dir) is True
-
-    def test_governance_check_refuses_authority_switch_without_record(
-        self, facade: ModuleType, tmp_path: Path
-    ) -> None:
-        """Without a governance record every target-authority switch is refused.
-
-        Proves AC-0017: implementation alone cannot satisfy the gate.
-        """
-        spec_dir = tmp_path / "no-switch-spec"
-        spec_dir.mkdir()
-        result = facade.check_governance_fingerprint(spec_dir)
-        assert result is False, (
-            "AC-0017: a missing governance fingerprint must refuse every "
-            "target-authority switch"
-        )
+        review_rec = {
+            "authorized_terminal_intent": "deliver",
+            "envelope_fingerprint": "sha256:test-fp",
+        }
+        store._stage(approval_rec)
+        store._stage(review_rec)
+        store._commit()
+        try:
+            pi.compatibility_snapshot(store)
+            raise AssertionError("compatibility_snapshot must raise PolicyImportRefused")
+        except pi.PolicyImportRefused as exc:
+            assert exc.denial_code == "denied-no-governance-record", (
+                f"AC-0017: expected denied-no-governance-record, got {exc.denial_code!r}"
+            )
 
     def test_shadow_off_restores_legacy_path(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1073,7 +1163,6 @@ class TestAC0017Governance:
         After setting shadow=on and writing facts, turning it off means the
         facade calls are no-ops and the legacy state is the only active path.
         """
-        # Enable shadow and write some facts
         monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
         spec_dir = tmp_path / "reversal-spec"
         spec_dir.mkdir()
@@ -1082,9 +1171,9 @@ class TestAC0017Governance:
                    "to": "SPEC-PLAN-REVIEW", "run_id": "rev-run", "at": "2026-01-01T00:00:00Z"}
         facade.shadow_call_on_transition(spec_dir, engine_state, pending)
 
-        evidence_path = spec_dir / facade.SHADOW_SUBDIR / "evidence.jsonl"
-        assert evidence_path.exists(), "shadow evidence should exist after shadow=on"
-        count_before = len(evidence_path.read_text("utf-8").splitlines())
+        log_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-evidence.log"
+        assert log_path.exists(), "shadow evidence log should exist after shadow=on"
+        count_before = sum(1 for ln in log_path.read_text("utf-8").splitlines() if ln)
 
         # Disable shadow (reversal)
         monkeypatch.setenv(facade.SHADOW_ENV_VAR, "0")
@@ -1095,58 +1184,291 @@ class TestAC0017Governance:
                     "to": "SPEC-HUMAN-GATE", "run_id": "rev-run", "at": "2026-01-01T00:00:01Z"}
         facade.shadow_call_on_transition(spec_dir, engine_state, pending2)
 
-        # Evidence file count unchanged (no new shadow fact appended)
-        count_after = len(evidence_path.read_text("utf-8").splitlines())
+        count_after = sum(1 for ln in log_path.read_text("utf-8").splitlines() if ln)
         assert count_after == count_before, (
             "AC-0017: disabling shadow restores legacy path; "
             "no additional shadow facts written after reversal"
         )
 
-    def test_shadow_facts_preserved_after_reversal(
-        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Reversal preserves existing shadow facts (does not delete them).
+    def test_shadow_facts_preserved_after_reversal(self, tmp_path: Path) -> None:
+        """Turning shadow off mid-run keeps every earlier shadow fact byte-for-byte.
 
-        Proves AC-0017: rollback selects the old verdict path without deleting
-        new semantic facts.
+        Runs the real engine with shadow on through spec-approved, then unsets
+        the variable for the remaining transitions.  The legacy run must still
+        complete, the earlier shadow files must be unchanged, and no new shadow
+        fact (such as the plan-locked verdict) may appear.
         """
-        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
-        spec_dir = tmp_path / "preserve-spec"
-        spec_dir.mkdir()
-        engine_state = {"feature": "preserve-spec", "run_id": "pres-run"}
-        pending = {"seq": 1, "event": "spec-ready", "from": "A", "to": "B",
-                   "run_id": "pres-run", "at": "2026-01-01T00:00:00Z"}
-        facade.shadow_call_on_transition(spec_dir, engine_state, pending)
-
-        evidence_path = spec_dir / facade.SHADOW_SUBDIR / "evidence.jsonl"
-        assert evidence_path.exists()
-        content_before = evidence_path.read_bytes()
-
-        # Disable shadow — facts must be preserved
-        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "0")
-        assert evidence_path.read_bytes() == content_before, (
-            "AC-0017: existing shadow facts must be preserved after reversal"
+        root = tmp_path / "repo-reversal"
+        root.mkdir()
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        results = _run_full_sequence(
+            root, "reversal-feature", shadow="1", reverse_after="spec-approved"
+        )
+        assert results.get("plan_locked_rc") == 0, results
+        snapshot = results["shadow_snapshot"]
+        assert snapshot.get("shadow-evidence.log"), "shadow facts must exist before reversal"
+        shadow_dir = results["shadow_dir"]
+        after = {f.name: f.read_bytes() for f in shadow_dir.iterdir() if f.is_file()}
+        assert after == snapshot, (
+            "AC-0017: reversal must neither delete, change, nor add shadow facts"
         )
 
-    def test_missing_governance_in_policy_import_record(
-        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """The shadow policy-import record carries governance_required_for_authority_switch.
 
-        Proves AC-0017: the shadow record explicitly marks that a governance
-        fingerprint is required for any authority switch.
+# ─────────────────────────────────────────────────────────────────────────────
+# AC-0016: full transition sequence — shadow ON vs OFF parity
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _git_env() -> dict[str, str]:
+    """Minimal git environment so commits succeed in a fresh repo."""
+    return {
+        "GIT_AUTHOR_NAME": "Test Agent",
+        "GIT_AUTHOR_EMAIL": "test@example.invalid",
+        "GIT_COMMITTER_NAME": "Test Agent",
+        "GIT_COMMITTER_EMAIL": "test@example.invalid",
+    }
+
+
+_UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+_TIMESTAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?")
+
+
+def _mask(results: dict, text: str) -> str:
+    """Mask the run root, run ids, and timestamps so two runs compare byte-for-byte."""
+    text = text.replace(str(results["root"]), "<ROOT>")
+    text = _UUID_RE.sub("<ID>", text)
+    return _TIMESTAMP_RE.sub("<TS>", text)
+
+
+def _normalized_transcript(results: dict) -> list[tuple[str, int, str, str]]:
+    """Every engine and cohort call's exit code, stdout, and stderr, masked."""
+    return [
+        (label, rc, _mask(results, out), _mask(results, err))
+        for label, rc, out, err in results["transcript"]
+    ]
+
+
+def _run_full_sequence(
+    root: Path,
+    feature: str,
+    *,
+    shadow: str | None = None,
+    reverse_after: str | None = None,
+) -> dict:
+    """Run the full spec-plan engine sequence; return captured state."""
+    spec_dir = root / "docs" / "specs" / feature
+    spec_dir.mkdir(parents=True)
+
+    env: dict[str, str] = {**os.environ, **_git_env()}
+    if shadow is not None:
+        env["WORK_LOOP_SHADOW_SERVICES"] = shadow
+    else:
+        env.pop("WORK_LOOP_SHADOW_SERVICES", None)
+
+    transcript: list[tuple[str, int, str, str]] = []
+
+    def _run(script: Path, *args: str) -> subprocess.CompletedProcess:
+        r = subprocess.run(
+            [sys.executable, str(script), *args],
+            capture_output=True, text=True, encoding="utf-8",
+            cwd=str(root), env=env,
+        )
+        label = f"{script.name} {args[0]} {args[2] if len(args) > 2 else ''}"
+        transcript.append((label, r.returncode, r.stdout, r.stderr))
+        if reverse_after is not None and len(args) > 2 and args[2] == reverse_after:
+            # Reversal: snapshot the shadow facts, then turn shadow off for the rest.
+            shadow_dir = spec_dir / ".shadow-acceptance"
+            results["shadow_snapshot"] = {
+                f.name: f.read_bytes() for f in shadow_dir.iterdir() if f.is_file()
+            }
+            env.pop("WORK_LOOP_SHADOW_SERVICES", None)
+        return r
+
+    def engine(*args: str) -> subprocess.CompletedProcess:
+        return _run(ENGINE, *args)
+
+    def cohort(*args: str) -> subprocess.CompletedProcess:
+        return _run(COHORT, *args)
+
+    results: dict = {"transcript": transcript, "root": root}
+
+    # 1. init
+    r = engine("init", str(spec_dir), "--mode", "spec-plan", "--json")
+    results["init_rc"] = r.returncode
+    results["init_stdout"] = r.stdout
+    if r.returncode != 0:
+        return results
+    run_id = json.loads(r.stdout)["run_id"]
+
+    # 2. cohort init
+    r = cohort("init", str(spec_dir), "--run-id", run_id)
+    results["cohort_init_rc"] = r.returncode
+    if r.returncode != 0:
+        return results
+
+    # 3. spec-ready
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Draft\n\n## Acceptance Criteria\n\n- [ ] AC-001.\n",
+        encoding="utf-8",
+    )
+    r = engine("transition", str(spec_dir), "spec-ready")
+    results["spec_ready_rc"] = r.returncode
+    results["spec_ready_stdout"] = r.stdout
+    if r.returncode != 0:
+        return results
+
+    # 4. reviewers-clean — no explicit payload; the engine defaults to all-skipped
+    #    internally.  Passing --all-skipped is rejected by SPEC-PLAN-REVIEW state.
+    r = engine("transition", str(spec_dir), "reviewers-clean")
+    results["reviewers_clean_rc"] = r.returncode
+    results["reviewers_clean_stderr"] = r.stderr
+    if r.returncode != 0:
+        return results
+
+    # 5. spec-approved
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n- [ ] AC-001.\n",
+        encoding="utf-8",
+    )
+    r = engine("transition", str(spec_dir), "spec-approved")
+    results["spec_approved_rc"] = r.returncode
+    results["spec_approved_stdout"] = r.stdout
+    if r.returncode != 0:
+        return results
+
+    # 6. plan-approved (plan.md Status: Approved with task structure)
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "### T1\n\n**Depends on:** none\n\n"
+        "### T2\n\n**Depends on:** T1\n",
+        encoding="utf-8",
+    )
+    r = engine("transition", str(spec_dir), "plan-approved")
+    results["plan_approved_rc"] = r.returncode
+    results["plan_approved_stdout"] = r.stdout
+    if r.returncode != 0:
+        return results
+
+    # 7. cohort approve-plan
+    r = cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    results["cohort_approve_rc"] = r.returncode
+    if r.returncode != 0:
+        return results
+
+    # 8. plan-locked
+    r = engine("transition", str(spec_dir), "plan-locked")
+    results["plan_locked_rc"] = r.returncode
+    results["plan_locked_stdout"] = r.stdout
+
+    # Capture final state
+    state_path = spec_dir / "engine-state.json"
+    if state_path.exists():
+        state = json.loads(state_path.read_text("utf-8"))
+        # Semantic fields only; strip timestamps and run-ids
+        _time_keys = {
+            "run_id", "at", "started_at", "updated_at", "timestamp",
+            "last_transition_at", "created_at",
+        }
+        results["engine_state_semantic"] = {
+            k: v for k, v in state.items() if k not in _time_keys
+        }
+
+    # Cohort state, including the legacy plan pin, compared after masking.
+    results["cohort_state_text"] = (spec_dir / "state.json").read_text("utf-8")
+
+    results["shadow_dir"] = spec_dir / ".shadow-acceptance"
+    return results
+
+
+class TestAC0016FullTransitionSequence:
+    """Full init→plan-locked sequence: shadow ON and OFF produce identical outputs."""
+
+    def test_full_sequence_shadow_off(self, tmp_path: Path) -> None:
+        """Full transition sequence completes successfully with shadow OFF."""
+        root = tmp_path / "repo-off"
+        root.mkdir()
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        results = _run_full_sequence(root, "seq-off-feature", shadow=None)
+        assert results.get("plan_locked_rc") == 0, (
+            f"plan-locked must succeed with shadow OFF; results={results}"
+        )
+        assert results["engine_state_semantic"].get("state") == "DONE"
+
+    def test_full_sequence_shadow_on(self, tmp_path: Path) -> None:
+        """Full transition sequence completes successfully with shadow ON."""
+        root = tmp_path / "repo-on"
+        root.mkdir()
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        results = _run_full_sequence(root, "seq-on-feature", shadow="1")
+        assert results.get("plan_locked_rc") == 0, (
+            f"plan-locked must succeed with shadow ON; results={results}"
+        )
+        assert results["engine_state_semantic"].get("state") == "DONE"
+
+    def test_shadow_on_off_parity(self, tmp_path: Path) -> None:
+        """Shadow ON and OFF produce identical exit codes, stdout, and engine state.
+
+        Proves AC-0016: the shadow service never changes observable legacy behavior.
         """
-        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
-        spec_dir = tmp_path / "gov-req-spec"
-        spec_dir.mkdir()
-        engine_state = {"feature": "gov-req-spec", "run_id": "gov-req-run"}
+        feature = "parity-feature"
 
-        facade.shadow_call_on_plan_locked(spec_dir, engine_state)
+        root_off = tmp_path / "repo-off"
+        root_off.mkdir()
+        subprocess.run(["git", "init", "-q", str(root_off)], check=True, capture_output=True)
+        off = _run_full_sequence(root_off, feature, shadow=None)
 
-        import_path = spec_dir / facade.SHADOW_SUBDIR / "policy-import.json"
-        record = json.loads(import_path.read_text("utf-8"))
-        assert record["governance_required_for_authority_switch"] is True
-        assert record["authoritative"] is False
+        root_on = tmp_path / "repo-on"
+        root_on.mkdir()
+        subprocess.run(["git", "init", "-q", str(root_on)], check=True, capture_output=True)
+        on = _run_full_sequence(root_on, feature, shadow="1")
+
+        for step in ("init_rc", "spec_ready_rc", "reviewers_clean_rc",
+                     "spec_approved_rc", "plan_approved_rc", "plan_locked_rc"):
+            assert off.get(step) == on.get(step), (
+                f"AC-0016: exit codes must be identical for {step!r}: "
+                f"off={off.get(step)!r} on={on.get(step)!r}"
+            )
+
+        assert _normalized_transcript(off) == _normalized_transcript(on), (
+            "AC-0016: every engine and cohort call must print the same stdout "
+            "and stderr with shadow ON and OFF"
+        )
+
+        assert off.get("engine_state_semantic") == on.get("engine_state_semantic"), (
+            "AC-0016: engine-state.json semantic fields must be identical\n"
+            f"off={off.get('engine_state_semantic')}\n"
+            f"on={on.get('engine_state_semantic')}"
+        )
+        assert _mask(off, off["cohort_state_text"]) == _mask(on, on["cohort_state_text"]), (
+            "AC-0016: cohort state, including the plan pin, must be identical"
+        )
+
+    def test_shadow_on_produces_verdict_record(self, tmp_path: Path) -> None:
+        """With shadow ON, the shadow directory contains a derived verdict record.
+
+        Proves AC-0016 shadow completeness: plan-locked fires the shadow service
+        which produces shadow-verdict.json under .shadow-acceptance/.
+        """
+        root = tmp_path / "repo-verdict"
+        root.mkdir()
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        results = _run_full_sequence(root, "verdict-feature", shadow="1")
+        assert results.get("plan_locked_rc") == 0, (
+            f"plan-locked must succeed; results={results}"
+        )
+        shadow_dir = results["shadow_dir"]
+        assert shadow_dir.exists(), (
+            "shadow directory must be created when shadow=1"
+        )
+        verdict_path = shadow_dir / "shadow-verdict.json"
+        assert verdict_path.exists(), (
+            f"shadow-verdict.json must exist after plan-locked with shadow=1; "
+            f"shadow_dir contents: {list(shadow_dir.iterdir())}"
+        )
+        verdict = json.loads(verdict_path.read_text("utf-8"))
+        assert "verdict" in verdict, (
+            f"shadow-verdict.json must contain 'verdict'; got {list(verdict.keys())}"
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

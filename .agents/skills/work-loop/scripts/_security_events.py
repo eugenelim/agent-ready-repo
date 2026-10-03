@@ -18,10 +18,15 @@ Standard library only. No third-party imports, no packaging, no installation.
 Python 3.11+.
 """
 
+import importlib.util
+import json
+import os
 import secrets
+import stat
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Callable, Final
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -39,6 +44,44 @@ __all__ = [
     "make_operation_id",
     "validate_event_dict",
 ]
+
+# ── Sibling module loader ─────────────────────────────────────────────────────
+
+_SCRIPTS_DIR: Final[Path] = Path(__file__).resolve().parent
+
+
+def _load_sibling(alias: str, filename: str) -> object:
+    """Load a sibling script module by filename, registered temporarily.
+
+    Uses the same importlib.util loader pattern as other script modules.
+    """
+    path = _SCRIPTS_DIR / filename
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        raise ImportError(f"cannot locate {filename}: {exc}") from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise ImportError(f"{filename} is not a regular file")
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(alias, str(path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"no import spec for {path}")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[alias] = mod
+        try:
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        finally:
+            sys.modules.pop(alias, None)
+        return mod
+    finally:
+        sys.dont_write_bytecode = previous
+
+
+# Loaded once at module import; used by emit_security_event to apply the
+# registered content-safety profile before passing the event to the sink.
+_cs = _load_sibling("_cs_se", "_content_safety.py")
 
 # ── Stable reason codes ───────────────────────────────────────────────────────
 #
@@ -130,14 +173,52 @@ def emit_security_event(
 ) -> SecurityEvent:
     """Emit *event* to *sink* and return it.
 
+    Applies the registered content-safety profile for ``security-event.v1``
+    before passing the event to the sink.  A missing or unknown profile, or a
+    failing check, raises ``AuditSinkUnavailable`` so the caller fails closed;
+    audit failure never turns a denial into an allow.
+
     The sink is called BEFORE this function returns, so the event is durable
     (from the caller's perspective) before any success acknowledgment.
 
     Raises:
-        AuditSinkUnavailable: when the sink raises ``AuditSinkError`` or any
-            ``OSError``.  In that case no success is returned and the caller
-            must fail closed.
+        AuditSinkUnavailable: when the content-safety check fails, the sink
+            raises ``AuditSinkError``, or any ``OSError``.  In every case no
+            success is returned and the caller must fail closed.
     """
+    # Apply the registered content-safety profile before append.
+    # The profile for security-event.v1 is "structured-control".
+    # An unknown or missing profile refuses without persisting payload bytes.
+    profile = _cs.SLICE_1_WRITER_BOUNDARIES.get("security-event.v1")  # type: ignore[attr-defined]
+    if profile is None:
+        raise AuditSinkUnavailable(
+            "security-event.v1 has no registered content-safety profile; "
+            "failing closed without persisting the event"
+        )
+    payload = json.dumps(
+        {
+            "schema_version": event.schema_version,
+            "operation_id": event.operation_id,
+            "correlation_id": event.correlation_id,
+            "event_type": event.event_type,
+            "outcome": event.outcome,
+            "reason_code": event.reason_code,
+            "timestamp": event.timestamp,
+        },
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    decision = _cs.check_content_safety(  # type: ignore[attr-defined]
+        profile,
+        payload,
+        source_record_id=event.operation_id,
+    )
+    if not decision.accepted:
+        raise AuditSinkUnavailable(
+            f"security-event content-safety check failed "
+            f"({decision.decision_code}); failing closed without persisting"
+        )
+
     try:
         sink(event)
     except AuditSinkError as exc:

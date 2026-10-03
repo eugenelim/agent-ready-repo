@@ -1109,3 +1109,85 @@ class TestSecurityEventWriterAuthority:
         event_str = str(vars(denied_event) if hasattr(denied_event, "__dict__") else denied_event)
         assert refused_content.decode("utf-8", errors="replace") not in event_str
         assert refused_hash[:16] not in event_str
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FINDING B: emit_security_event must apply content-safety before sink delivery.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSecurityEventContentSafetyCheck:
+    """emit_security_event applies the structured-control profile before sink delivery.
+
+    These tests fail when the content-safety check is removed from emit_security_event.
+    """
+
+    # Shared maker for a clean event whose fields all pass structured-control.
+    def _clean_event(self, se: object) -> object:
+        return se.SecurityEvent(  # type: ignore[attr-defined]
+            schema_version=1,
+            operation_id="op-safe-cs-001",
+            correlation_id="grant-safe-cs",
+            event_type="file-write",
+            outcome="allowed",
+            reason_code="allowed-file-write",
+            timestamp="2026-10-01T00:00:00Z",
+        )
+
+    def test_clean_event_reaches_sink(self, security_events: object) -> None:
+        """A well-formed event passes the content-safety check and reaches the sink."""
+        se = security_events
+        received: list = []
+        event = self._clean_event(se)
+        se.emit_security_event(lambda e: received.append(e), event)  # type: ignore[attr-defined]
+        assert len(received) == 1, "clean event must reach the sink after content-safety pass"
+
+    def test_event_with_credential_pattern_refused_before_sink(
+        self, security_events: object
+    ) -> None:
+        """An event whose fields embed a credential pattern is refused before sink delivery.
+
+        This test fails if the content-safety check is removed from emit_security_event:
+        without the check emit_security_event delivers the event unconditionally and no
+        AuditSinkUnavailable is raised, so the assertion on received would be wrong too.
+        """
+        se = security_events
+        received: list = []
+        # A GitHub PAT pattern in reason_code — structured-control's credential
+        # scanner must detect and refuse it.
+        event_with_cred = se.SecurityEvent(  # type: ignore[attr-defined]
+            schema_version=1,
+            operation_id="op-cred-cs-001",
+            correlation_id="grant-cred-cs",
+            event_type="file-write",
+            outcome="denied",
+            reason_code="ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1",  # PAT pattern
+            timestamp="2026-10-01T00:00:00Z",
+        )
+        import pytest as _pytest
+        with _pytest.raises(se.AuditSinkUnavailable):  # type: ignore[attr-defined]
+            se.emit_security_event(lambda e: received.append(e), event_with_cred)  # type: ignore[attr-defined]
+        assert not received, "event with credential pattern must not reach the sink"
+
+    def test_missing_profile_registration_refused(
+        self, security_events: object, monkeypatch: object
+    ) -> None:
+        """A missing content-safety profile registration refuses the event before sink delivery.
+
+        This test fails if the profile lookup is removed from emit_security_event:
+        without the check the AuditSinkUnavailable is never raised regardless of the
+        registry contents, so the pytest.raises block would not catch it.
+        """
+        se = security_events
+        received: list = []
+
+        # Patch out security-event.v1 from the registry to simulate missing registration.
+        original = dict(se._cs.SLICE_1_WRITER_BOUNDARIES)  # type: ignore[attr-defined]
+        patched = {k: v for k, v in original.items() if k != "security-event.v1"}
+        monkeypatch.setattr(se._cs, "SLICE_1_WRITER_BOUNDARIES", patched)  # type: ignore[attr-defined]
+
+        event = self._clean_event(se)
+        import pytest as _pytest
+        with _pytest.raises(se.AuditSinkUnavailable):  # type: ignore[attr-defined]
+            se.emit_security_event(lambda e: received.append(e), event)  # type: ignore[attr-defined]
+        assert not received, "event with missing profile must not reach the sink"

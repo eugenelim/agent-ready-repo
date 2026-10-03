@@ -6,25 +6,35 @@ No PATH search, shell reinterpretation, ambient environment, open stdin,
 orphan child, or unredacted durable output.  Identity drift, ungranted env
 or cwd, unsupported tree kill, timeout, launch error, or bound breach refuses.
 
-AC-0012: every managed process uses an identity-pinned absolute executable,
-fixed argument vector, confined working directory, allowlisted environment,
-explicit bounded stdin, full process-tree timeout, bounded output, and
-redaction of every value supplied through environment and stdin.  Any
-validation or runtime breach terminates the tree and records no durable
-success or unredacted output.
+Every managed process uses an identity-pinned absolute executable, fixed
+argument vector, confined working directory, allowlisted environment, explicit
+bounded stdin, full process-tree timeout, bounded output, and redaction of every
+value supplied through environment and stdin.  Any validation or runtime breach
+terminates the tree and records no durable success or unredacted output.
 
-AC-0021: when the audit sink is available, every process allow and policy
-denial emits a durable redacted security event before success or refusal is
-acknowledged.  When the sink is unavailable the operation fails closed with
-a stable redacted denial code and no protected data is persisted.
+Output is read incrementally up to a hard cap (output bound plus the length of
+the longest sensitive value).  Exceeding the hard cap terminates the process
+tree before any output reaches the caller.  Redaction runs on the full captured
+stream before any truncation so no sensitive fragment survives at a cut point.
+After truncation any tail that is a non-empty prefix of a sensitive value is
+also dropped.
+
+Confined-file stdin is read through the sibling file_safety.py confined reader
+against a caller-declared root; absolute-path, traversal, link, non-regular, and
+size violations refuse before any bytes reach the process.
+
+When the audit sink is available, every process allow and policy denial emits a
+durable redacted security event before success or refusal is acknowledged.  When
+the sink is unavailable the operation fails closed with a stable redacted denial
+code and no protected data is persisted.
 
 Platform capability: if the host cannot terminate the full process group
 (``os.killpg`` unavailable), launch is refused and the capability declaration
 does so with a stable denial code.
 
-Standard library only plus the sibling ``_security_events.py`` module, loaded
-by path at import time.  No third-party imports, no packaging, no installation.
-Python 3.11+.
+Standard library only plus the sibling ``_security_events.py`` and
+``file_safety.py`` modules, loaded by path at import time.  No third-party
+imports, no packaging, no installation.  Python 3.11+.
 """
 
 from __future__ import annotations
@@ -37,6 +47,8 @@ import signal
 import stat
 import subprocess
 import sys
+import threading
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -70,6 +82,7 @@ PROCESS_DENY_REASON: Final[str] = "denied-process-launch"
 DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-audit-sink-unavailable",
     "denied-cwd-not-found",
+    "denied-cwd-unsafe",
     "denied-identity-mismatch",
     "denied-invalid-output-bound",
     "denied-invalid-stdin-mode",
@@ -77,6 +90,8 @@ DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-launch-failed",
     "denied-missing-required-field",
     "denied-non-absolute-executable",
+    "denied-output-cap-exceeded",
+    "denied-stdin-confinement-violation",
     "denied-timeout",
     "denied-unknown-authority-field",
     "denied-unknown-schema-version",
@@ -122,6 +137,10 @@ def _load_sibling(alias: str, filename: str) -> object:
 
 # Security events sibling — loaded once at module import.
 _se = _load_sibling("_se_proc_safety", "_security_events.py")
+
+# File-safety sibling — loaded once at module import for confined stdin reads
+# and confined cwd checks.  It is reused unchanged, never copied or modified.
+_fs = _load_sibling("_fs_proc_safety", "file_safety.py")
 
 # ── Schema constants ──────────────────────────────────────────────────────────
 
@@ -314,6 +333,28 @@ def _redact_bytes(data: bytes, sensitive: list[bytes]) -> tuple[bytes, bool]:
     return data, was_redacted
 
 
+def _drop_sensitive_tail_prefix(data: bytes, sensitive: list[bytes]) -> bytes:
+    """Drop any tail of *data* that is a non-empty strict prefix of a sensitive value.
+
+    After redaction, truncating the output stream might still leave a fragment
+    at the tail when the truncation point falls inside a sensitive value whose
+    length exceeds the gap between the capture hard-cap and the output bound.
+    Dropping such a tail is belt-and-suspenders insurance: the hard-cap
+    calculation already ensures the full secret was available for redaction, but
+    this pass catches any edge where the redacted stream's length shift moves a
+    prefix back into view.
+    """
+    for val in sensitive:
+        if not val:
+            continue
+        # Check every strict prefix of this sensitive value (length 1..len-1).
+        for prefix_len in range(1, len(val)):
+            prefix = val[:prefix_len]
+            if data.endswith(prefix):
+                return data[:-prefix_len]
+    return data
+
+
 def _collect_sensitive(
     env: dict[str, str],
     stdin_bytes: bytes | None,
@@ -336,6 +377,128 @@ def _collect_sensitive(
         if encoded:
             sensitive.append(encoded)
     return sensitive
+
+
+def _communicate_bounded(
+    proc: subprocess.Popen,  # type: ignore[type-arg]
+    stdin_input: bytes | None,
+    timeout_s: int,
+    hard_cap: int,
+) -> tuple[bytes, bytes, bool]:
+    """Read stdout/stderr up to *hard_cap* combined bytes; write stdin; wait.
+
+    Uses threads to read stdout and stderr concurrently so that large output
+    does not accumulate unbounded in memory.  Each reader thread appends data
+    to its target list up to ``hard_cap`` total bytes, then stops.  The cap is
+    enforced inside the lock so the combined total never overshoots.
+
+    Returns ``(stdout_bytes, stderr_bytes, cap_exceeded)`` where
+    ``cap_exceeded`` is True when combined bytes read hit the hard cap.  The
+    caller uses ``proc.poll()`` to distinguish a still-running flood from a
+    process that simply exited after producing more output than expected.
+
+    Raises ``subprocess.TimeoutExpired`` when the process does not finish within
+    *timeout_s* seconds.
+
+    Hard-cap semantics: when cap_exceeded is True AND the process is still
+    running, the caller should kill the process tree (flood attack).  When
+    cap_exceeded is True but the process already exited, truncation handles the
+    extra output and no kill is needed.
+    """
+    stdout_parts: list[bytes] = []
+    stderr_parts: list[bytes] = []
+    total_read: list[int] = [0]
+    capped: list[bool] = [False]
+    lock = threading.Lock()
+
+    def _drain(pipe: object, target: list) -> None:
+        """Read from *pipe* into *target* up to the shared hard cap.
+
+        Uses ``read1`` (one raw syscall worth of data) so that a process which
+        has written data and is now sleeping does not leave the thread blocked
+        on a ``read(N)`` call that waits for N bytes before returning.
+        Falls back to ``read`` if ``read1`` is not available on the object.
+        """
+        while True:
+            try:
+                chunk = pipe.read1(65536)  # type: ignore[attr-defined]
+            except AttributeError:
+                # read1 not available (e.g. a raw file object in tests).
+                try:
+                    chunk = pipe.read(65536)  # type: ignore[attr-defined]
+                except OSError:
+                    break
+            except OSError:
+                break
+            if not chunk:
+                break
+            with lock:
+                if capped[0]:
+                    # Another stream already hit the cap; stop reading.
+                    break
+                new_total = total_read[0] + len(chunk)
+                if new_total > hard_cap:
+                    # Append only what fits within the cap, then stop.
+                    allowed = hard_cap - total_read[0]
+                    if allowed > 0:
+                        target.append(chunk[:allowed])
+                    total_read[0] = new_total
+                    capped[0] = True
+                    break
+                total_read[0] = new_total
+                target.append(chunk)
+
+    out_t = threading.Thread(target=_drain, args=(proc.stdout, stdout_parts), daemon=True)
+    err_t = threading.Thread(target=_drain, args=(proc.stderr, stderr_parts), daemon=True)
+
+    if stdin_input is not None:
+        def _send() -> None:
+            try:
+                proc.stdin.write(stdin_input)  # type: ignore[attr-defined]
+                proc.stdin.close()  # type: ignore[attr-defined]
+            except OSError:
+                pass
+        in_t: threading.Thread | None = threading.Thread(target=_send, daemon=True)
+    else:
+        in_t = None
+
+    if in_t is not None:
+        in_t.start()
+    out_t.start()
+    err_t.start()
+
+    # Poll until the cap fires, the process exits, or the timeout elapses.
+    # Polling (rather than blocking on proc.wait) lets us break out early when
+    # the cap fires while the process is still running.
+    _POLL_S = 0.02  # 20 ms poll granularity
+    deadline = time.monotonic() + timeout_s
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0.0:
+            # Timeout: join threads briefly so the caller can proceed to kill.
+            out_t.join(timeout=0.5)
+            err_t.join(timeout=0.5)
+            if in_t is not None:
+                in_t.join(timeout=0.5)
+            raise subprocess.TimeoutExpired(proc.args, timeout_s)  # type: ignore[arg-type]
+        if capped[0]:
+            # Cap hit; drain threads have already stopped.  Let them finish and
+            # return to the caller, which will check proc.poll() to decide.
+            out_t.join(timeout=0.5)
+            err_t.join(timeout=0.5)
+            if in_t is not None:
+                in_t.join(timeout=0.5)
+            break
+        if proc.poll() is not None:
+            # Process exited; let drain threads consume any remaining pipe data.
+            out_t.join(timeout=max(0.0, deadline - time.monotonic()))
+            err_t.join(timeout=max(0.0, deadline - time.monotonic()))
+            if in_t is not None:
+                in_t.join(timeout=max(0.0, deadline - time.monotonic()))
+            break
+        time.sleep(min(_POLL_S, remaining))
+
+    return b"".join(stdout_parts), b"".join(stderr_parts), capped[0]
 
 
 def _emit_event(
@@ -371,7 +534,7 @@ def _emit_allow(
 ) -> None:
     """Emit an allow event.  Raises ``ProcessDenied`` if the sink fails.
 
-    The event is emitted before any process launches (AC-0021).  If the sink
+    The event is emitted before any process launches.  If the sink
     raises, the launch is aborted with ``denied-audit-sink-unavailable``.
     """
     event = _se.SecurityEvent(  # type: ignore[attr-defined]
@@ -398,9 +561,11 @@ def _emit_allow(
 def launch_safe_process(
     spec_dict: dict,
     *,
+    cwd_roots: tuple[str, ...],
     env_values: dict[str, str] | None = None,
     stdin_bytes: bytes | None = None,
     stdin_path: str | None = None,
+    stdin_root: str | None = None,
     sensitive_values: list[str] | None = None,
     audit_sink: Callable | None = None,
     operation_id: str | None = None,
@@ -409,18 +574,30 @@ def launch_safe_process(
     """Launch a safe process according to a safe-process.v1 spec_dict.
 
     Validates the spec, pins the executable identity, confirms the working
-    directory, emits a durable allow event before launching, runs the process
-    with bounded stdin, captures bounded and redacted output, and kills the
-    whole process group on timeout.
+    directory (refusing when the cwd is not inside any declared root or has
+    symlink components in the path), emits a durable allow event before
+    launching, runs the process with bounded stdin, reads output incrementally
+    up to a hard cap (output bound plus the longest sensitive value), redacts
+    the full captured stream before any truncation, and kills the whole process
+    group on timeout or cap breach.
 
     Args:
         spec_dict:        A safe-process.v1 record dict.
+        cwd_roots:        The grant's declared filesystem roots.  The spec's
+                          ``cwd`` must be inside at least one of these roots
+                          with no symlink components in the path from the root
+                          to the cwd.  An empty tuple refuses with
+                          ``denied-cwd-unsafe``.
         env_values:       Actual values for the allowlisted env var names.
                           Keys not in ``environment_allowlist`` are ignored.
                           Names in ``environment_allowlist`` not present here
                           are omitted (no ambient OS inheritance).
         stdin_bytes:      Bytes for ``bounded-bytes`` stdin mode.
         stdin_path:       File path for ``confined-file`` stdin mode.
+        stdin_root:       Declared confinement root for ``confined-file`` stdin.
+                          Required when stdin_mode is ``confined-file``.
+                          The stdin file must be a regular, non-linked,
+                          non-oversized file inside this root.
         sensitive_values: Additional strings to redact from output.
         audit_sink:       Callable accepting a SecurityEvent.  ``None`` means
                           the audit sink is unavailable; the operation fails
@@ -436,7 +613,7 @@ def launch_safe_process(
     Raises:
         ``ProcessDenied``: with a stable denial code on any refusal.
     """
-    # AC-0021: unavailable sink → fail closed immediately, no data persisted.
+    # Unavailable sink → fail closed immediately, no data persisted.
     if audit_sink is None:
         raise ProcessDenied(
             "denied-audit-sink-unavailable",
@@ -485,13 +662,39 @@ def launch_safe_process(
             "pinned digest in the spec; refusing to launch",
         )
 
-    # Confirm working directory exists.
-    if not Path(spec_dict["cwd"]).is_dir():
+    # Confirm working directory: must exist, then must be inside at least one
+    # declared root with no symlink components on the path from root to cwd.
+    cwd_str: str = spec_dict["cwd"]
+    if not Path(cwd_str).is_dir():
         _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
         raise ProcessDenied(
             "denied-cwd-not-found",
-            f"cwd does not exist or is not a directory: {spec_dict['cwd']!r}",
+            f"cwd does not exist or is not a directory: {cwd_str!r}",
         )
+    if not cwd_roots:
+        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+        raise ProcessDenied(
+            "denied-cwd-unsafe",
+            "no cwd_roots declared; cwd cannot be confirmed as confined",
+        )
+    _cwd_confined = False
+    _last_cwd_exc: Exception | None = None
+    for _root in cwd_roots:
+        try:
+            _fs.validate_confined_directory(  # type: ignore[attr-defined]
+                Path(_root), Path(cwd_str)
+            )
+            _cwd_confined = True
+            break
+        except Exception as exc:
+            _last_cwd_exc = exc
+    if not _cwd_confined:
+        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+        raise ProcessDenied(
+            "denied-cwd-unsafe",
+            f"cwd is not inside any declared root or contains a symlink component: "
+            f"{_last_cwd_exc}",
+        ) from _last_cwd_exc
 
     # Build environment: only explicitly allowlisted names, no ambient inheritance.
     vals = env_values or {}
@@ -502,6 +705,7 @@ def launch_safe_process(
     }
 
     # Resolve stdin according to mode.
+    bound: int = spec_dict["output_bound_bytes"]
     stdin_mode: str = spec_dict["stdin_mode"]
     stdin_input: bytes | None
     stdin_fd: int
@@ -513,28 +717,47 @@ def launch_safe_process(
         stdin_input = stdin_bytes if stdin_bytes is not None else b""
         stdin_fd = subprocess.PIPE
     else:
-        # "confined-file": read from the caller-supplied path.
+        # "confined-file": read through the confined, bounded regular-file reader.
+        # stdin_root declares the confinement boundary; the path must name a
+        # regular, non-linked, non-oversized file inside that root.
         if stdin_path is None:
             _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
             raise ProcessDenied(
                 "denied-launch-failed",
                 "confined-file stdin mode requires a stdin_path argument",
             )
-        try:
-            with Path(stdin_path).open("rb") as fh:
-                stdin_input = fh.read()
-        except OSError as exc:
+        if stdin_root is None:
             _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
             raise ProcessDenied(
                 "denied-launch-failed",
-                f"cannot read confined-file stdin {stdin_path!r}: {exc}",
+                "confined-file stdin mode requires a stdin_root argument declaring "
+                "the confinement boundary",
+            )
+        try:
+            stdin_input = _fs.read_confined_regular_file(  # type: ignore[attr-defined]
+                Path(stdin_root),
+                Path(stdin_path),
+                max_bytes=max(bound, 1),
+            )
+        except Exception as exc:
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-stdin-confinement-violation",
+                f"confined-file stdin refused: {exc}",
             ) from exc
         stdin_fd = subprocess.PIPE
 
     # Collect all values that must be redacted from process output.
     sensitive_raw = _collect_sensitive(env, stdin_input, sensitive_values)
 
-    # AC-0021: emit the allow event BEFORE the process is launched.
+    # Hard cap: output bound plus the longest sensitive value length.
+    # This guarantees that any sensitive value starting within the first
+    # *bound* bytes of output is fully captured and redactable before
+    # truncation.  Exceeding the hard cap terminates the process tree.
+    _max_secret_len = max((len(s) for s in sensitive_raw), default=0)
+    hard_cap = bound + _max_secret_len
+
+    # Emit the allow event BEFORE the process is launched.
     # If the sink raises, ProcessDenied propagates and no process starts.
     _emit_allow(audit_sink, op_id, corr_id)
 
@@ -544,7 +767,7 @@ def launch_safe_process(
         proc = subprocess.Popen(
             argv,
             env=env,
-            cwd=spec_dict["cwd"],
+            cwd=cwd_str,
             stdin=stdin_fd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -557,15 +780,13 @@ def launch_safe_process(
             f"process launch failed: {exc}",
         ) from exc
 
-    # Communicate with a process-tree timeout.
+    # Read output incrementally with the hard cap; write stdin concurrently.
     timeout_s: int = spec_dict["process_tree_timeout_s"]
     try:
-        raw_stdout, raw_stderr = proc.communicate(
-            input=stdin_input,
-            timeout=timeout_s,
+        raw_stdout, raw_stderr, overflowed = _communicate_bounded(
+            proc, stdin_input, timeout_s, hard_cap
         )
     except subprocess.TimeoutExpired:
-        # Kill the process group and drain to avoid pipe deadlocks.
         _kill_process_tree(proc)
         with contextlib.suppress(Exception):
             proc.communicate()
@@ -581,24 +802,48 @@ def launch_safe_process(
             f"process I/O error: {exc}",
         ) from exc
 
-    # Bound combined stdout + stderr before any durable write.
-    bound: int = spec_dict["output_bound_bytes"]
-    truncated = False
-    if bound == 0:
-        truncated = bool(raw_stdout or raw_stderr)
-        raw_stdout = b""
-        raw_stderr = b""
-    elif len(raw_stdout) + len(raw_stderr) > bound:
-        out_take = min(len(raw_stdout), bound)
-        err_take = bound - out_take
-        raw_stdout = raw_stdout[:out_take]
-        raw_stderr = raw_stderr[:err_take]
-        truncated = True
+    # Output cap breach while process still running: terminate and refuse.
+    # When the process has already exited (proc.poll() returns an exit code),
+    # the cap reflects normal output-exceeded-bound behavior; truncation handles
+    # it below and no kill is needed.
+    if overflowed and proc.poll() is None:
+        _kill_process_tree(proc)
+        with contextlib.suppress(Exception):
+            proc.communicate()
+        raise ProcessDenied(
+            "denied-output-cap-exceeded",
+            f"process output exceeded the hard cap ({hard_cap} bytes) while "
+            "still running; all children killed, no output returned",
+        )
 
-    # Redact every sensitive value from the bounded output.
+    # Redact the FULL captured stream BEFORE any truncation.
+    # This prevents a sensitive value that straddles the output bound from
+    # surviving as an unredacted prefix in the returned bytes.
     stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw)
     stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw)
     was_redacted = redacted1 or redacted2
+
+    # Bound combined redacted stdout + stderr.
+    # ``overflowed`` means the reader stopped before EOF (more output existed),
+    # so the output is always considered truncated in that case.
+    truncated: bool = overflowed
+    if bound == 0:
+        truncated = truncated or bool(stdout_red or stderr_red)
+        stdout_red = b""
+        stderr_red = b""
+    elif len(stdout_red) + len(stderr_red) > bound:
+        out_take = min(len(stdout_red), bound)
+        err_take = bound - out_take
+        stdout_red = stdout_red[:out_take]
+        stderr_red = stderr_red[:err_take]
+        truncated = True
+
+    # Belt-and-suspenders: drop any tail that is a strict prefix of a sensitive
+    # value.  Redaction already handled the in-band case; this catches any edge
+    # where the redacted stream's length shift moves a fragment into view.
+    if sensitive_raw and truncated:
+        stdout_red = _drop_sensitive_tail_prefix(stdout_red, sensitive_raw)
+        stderr_red = _drop_sensitive_tail_prefix(stderr_red, sensitive_raw)
 
     return ProcessResult(
         exit_code=proc.returncode,

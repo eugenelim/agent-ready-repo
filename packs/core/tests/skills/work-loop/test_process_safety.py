@@ -121,6 +121,18 @@ def _failing_sink(exc):
     return _sink
 
 
+def _launch(ps, spec, *, cwd_roots=None, **kw):
+    """Thin wrapper around ps.launch_safe_process that defaults cwd_roots.
+
+    When cwd_roots is not supplied the spec's own cwd is used as the sole
+    declared root, which is sufficient for tests that exercise paths other
+    than the cwd-root confinement invariant.
+    """
+    if cwd_roots is None:
+        cwd_roots = (spec["cwd"],)
+    return ps.launch_safe_process(spec, cwd_roots=cwd_roots, **kw)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # AC-0012: process spec validation
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -201,7 +213,7 @@ class TestAuditSinkUnavailable:
         """audit_sink=None refuses with 'denied-audit-sink-unavailable'."""
         ps = process_safety
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(_spec(str(tmp_path)), audit_sink=None)
+            _launch(ps, _spec(str(tmp_path)), audit_sink=None)
         assert exc_info.value.denial_code == "denied-audit-sink-unavailable"
 
     def test_raising_sink_refuses_launch_on_allow_event(
@@ -217,7 +229,7 @@ class TestAuditSinkUnavailable:
         # ps._se is the _security_events module instance loaded by _process_safety.
         bad_sink = _failing_sink(ps._se.AuditSinkError("injected failure"))
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(_spec(str(tmp_path)), audit_sink=bad_sink)
+            _launch(ps, _spec(str(tmp_path)), audit_sink=bad_sink)
         assert exc_info.value.denial_code == "denied-audit-sink-unavailable"
 
     def test_none_sink_leaves_no_output(
@@ -227,7 +239,7 @@ class TestAuditSinkUnavailable:
         ps = process_safety
         result = None
         with contextlib.suppress(ps.ProcessDenied):
-            result = ps.launch_safe_process(_spec(str(tmp_path)), audit_sink=None)
+            result = _launch(ps, _spec(str(tmp_path)), audit_sink=None)
         assert result is None, "no ProcessResult must escape when sink is unavailable"
 
 
@@ -245,7 +257,7 @@ class TestAuditEventOrder:
         """An allow event with outcome='allowed' appears in the sink."""
         ps = process_safety
         events, sink = _recording_sink()
-        result = ps.launch_safe_process(_spec(str(tmp_path)), audit_sink=sink)
+        result = _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
         assert isinstance(result, ps.ProcessResult)
         assert len(events) == 1
         ev = events[0]
@@ -260,7 +272,7 @@ class TestAuditEventOrder:
         events, sink = _recording_sink()
         bad = _spec(str(tmp_path), executable_identity="a" * 64)  # wrong hash
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(bad, audit_sink=sink)
+            _launch(ps, bad, audit_sink=sink)
         assert exc_info.value.denial_code == "denied-identity-mismatch"
         assert len(events) == 1
         ev = events[0]
@@ -275,7 +287,7 @@ class TestAuditEventOrder:
         events, sink = _recording_sink()
         bad = _spec(str(tmp_path), schema_version=99)
         with pytest.raises(ps.ProcessDenied):
-            ps.launch_safe_process(bad, audit_sink=sink)
+            _launch(ps, bad, audit_sink=sink)
         # Denial event must appear in the sink.
         assert len(events) == 1
         assert events[0].outcome == "denied"
@@ -295,7 +307,8 @@ class TestSuccessfulLaunch:
         """A process that exits 0 produces exit_code=0 in ProcessResult."""
         ps = process_safety
         events, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(str(tmp_path), argv=["-c", "import sys; sys.exit(0)"]),
             audit_sink=sink,
         )
@@ -307,7 +320,8 @@ class TestSuccessfulLaunch:
         """A process that exits 1 produces exit_code=1 in ProcessResult."""
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(str(tmp_path), argv=["-c", "import sys; sys.exit(1)"]),
             audit_sink=sink,
         )
@@ -321,7 +335,8 @@ class TestSuccessfulLaunch:
         ps = process_safety
         _, sink = _recording_sink()
         # A semicolon in argv should be passed literally, not as a shell separator.
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(str(tmp_path), argv=["-c", "print('hello; world')"]),
             audit_sink=sink,
         )
@@ -345,7 +360,7 @@ class TestExecutableIdentity:
         _, sink = _recording_sink()
         bad = _spec(str(tmp_path), executable_identity="0" * 64)
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(bad, audit_sink=sink)
+            _launch(ps, bad, audit_sink=sink)
         assert exc_info.value.denial_code == "denied-identity-mismatch"
 
     def test_correct_identity_allows(
@@ -354,7 +369,7 @@ class TestExecutableIdentity:
         """Correct executable_identity pin allows launch."""
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(_spec(str(tmp_path)), audit_sink=sink)
+        result = _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
         assert isinstance(result, ps.ProcessResult)
 
 
@@ -374,7 +389,7 @@ class TestWorkingDirectory:
         _, sink = _recording_sink()
         bad = _spec("/nonexistent-dir-t3b-xyz-123456")
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(bad, audit_sink=sink)
+            _launch(ps, bad, audit_sink=sink)
         assert exc_info.value.denial_code == "denied-cwd-not-found"
 
     def test_valid_cwd_is_respected(
@@ -384,7 +399,8 @@ class TestWorkingDirectory:
         ps = process_safety
         _, sink = _recording_sink()
         # Ask Python to print its cwd; it must match tmp_path.
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import os; print(os.getcwd())"],
@@ -418,7 +434,8 @@ class TestEnvironmentIsolation:
         """
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import os, json; print(json.dumps(dict(os.environ)))"],
@@ -447,7 +464,8 @@ class TestEnvironmentIsolation:
         """A var in environment_allowlist with a supplied value reaches the child."""
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import os; print(os.environ.get('SAFE_VAR', 'absent'))"],
@@ -470,7 +488,8 @@ class TestEnvironmentIsolation:
         ps = process_safety
         _, sink = _recording_sink()
         # Supply the var as env_values but omit it from the allowlist.
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import os; print(os.environ.get('BLOCKED_VAR', 'absent'))"],
@@ -497,7 +516,8 @@ class TestStdinModes:
         """With stdin_mode='closed', the child reads zero bytes from stdin."""
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import sys; data = sys.stdin.buffer.read(); print(len(data))"],
@@ -518,7 +538,8 @@ class TestStdinModes:
         ps = process_safety
         _, sink = _recording_sink()
         payload = b"secret-payload-xyz"
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import sys; data = sys.stdin.buffer.read(); print(len(data))"],
@@ -540,7 +561,8 @@ class TestStdinModes:
         ps = process_safety
         _, sink = _recording_sink()
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(
+            _launch(
+                ps,
                 _spec(str(tmp_path), stdin_mode="confined-file"),
                 stdin_path=None,
                 audit_sink=sink,
@@ -570,7 +592,8 @@ class TestProcessTreeTimeout:
         ps = process_safety
         _, sink = _recording_sink()
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(
+            _launch(
+                ps,
                 _spec(
                     str(tmp_path),
                     argv=["-c", "import time; time.sleep(120)"],
@@ -589,7 +612,8 @@ class TestProcessTreeTimeout:
         _, sink = _recording_sink()
         raised: ps.ProcessDenied | None = None
         try:
-            ps.launch_safe_process(
+            _launch(
+                ps,
                 _spec(
                     str(tmp_path),
                     argv=["-c", "import time; time.sleep(120)"],
@@ -623,7 +647,8 @@ class TestProcessTreeTimeout:
         )
         _, sink = _recording_sink()
         with pytest.raises(ps.ProcessDenied) as exc_info:
-            ps.launch_safe_process(
+            _launch(
+                ps,
                 _spec(
                     str(tmp_path),
                     argv=["-c", code],
@@ -662,7 +687,8 @@ class TestBoundedOutput:
         ps = process_safety
         _, sink = _recording_sink()
         # Print 100 bytes; bound to 50.
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "print('A' * 100)"],
@@ -679,7 +705,8 @@ class TestBoundedOutput:
         """output_bound_bytes=0 drops all output."""
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "print('should be dropped')"],
@@ -697,7 +724,8 @@ class TestBoundedOutput:
         """Output within the bound is not truncated."""
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "print('hi')"],
@@ -724,7 +752,8 @@ class TestOutputRedaction:
         ps = process_safety
         _, sink = _recording_sink()
         secret = "TOP_SECRET_VALUE_XYZ"
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import os; print(os.environ.get('SECRET', ''))"],
@@ -745,7 +774,8 @@ class TestOutputRedaction:
         ps = process_safety
         _, sink = _recording_sink()
         payload = b"super-secret-input-bytes"
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())"],
@@ -766,7 +796,8 @@ class TestOutputRedaction:
         ps = process_safety
         _, sink = _recording_sink()
         secret = "caller-secret-token"
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", f"print({secret!r})"],
@@ -793,7 +824,8 @@ class TestOutputEncoding:
         """A process emitting raw non-UTF-8 bytes produces a valid ProcessResult."""
         ps = process_safety
         _, sink = _recording_sink()
-        result = ps.launch_safe_process(
+        result = _launch(
+            ps,
             _spec(
                 str(tmp_path),
                 argv=["-c", "import sys; sys.stdout.buffer.write(b'\\xff\\xfe\\x00\\x01')"],
@@ -805,3 +837,307 @@ class TestOutputEncoding:
         assert isinstance(result.stdout_redacted, bytes)
         # The non-UTF-8 bytes either appear as-is (no match) or are replaced.
         # Either way no exception was raised.
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Security invariants: redaction order, output cap, confined stdin, cwd safety
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSecurityInvariants:
+    """Regression fixtures for the three blocker bugs.
+
+    Each test must fail when its specific fix is reverted:
+
+    - ``test_secret_straddling_output_bound_is_fully_redacted``: fails if
+      truncation runs before redaction.
+    - ``test_output_flood_exceeding_cap_terminates``: fails if
+      ``communicate()`` is used without a hard cap.
+    - ``test_confined_file_stdin_outside_root_refused``,
+      ``test_confined_file_stdin_symlink_refused``,
+      ``test_confined_file_stdin_oversize_refused``: fail if the confined-file
+      stdin reader does not enforce its root and bounds.
+    - ``test_cwd_symlink_escape_refused``: fails if the cwd check only calls
+      ``is_dir()`` instead of checking for symlink components.
+    """
+
+    def test_secret_straddling_output_bound_is_fully_redacted(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A sensitive value that straddles the output bound must not survive.
+
+        The process outputs 16 bytes of padding followed by the secret (8 bytes).
+        With output_bound_bytes=20 the old code truncated to 20 bytes BEFORE
+        redacting, leaving the first 4 bytes of the secret in the output.
+        The fixed code redacts the full stream first, then truncates.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        secret = "XSECRETX"  # 8 bytes
+        padding = "A" * 16   # 16 bytes, total output = 24 bytes
+        # The process writes padding + secret to stdout.
+        code = f"import sys; sys.stdout.buffer.write(({padding!r} + {secret!r}).encode())"
+        result = _launch(
+            ps,
+            _spec(
+                str(tmp_path),
+                argv=["-c", code],
+                # Bound at 20: secret starts at byte 16 and ends at byte 23.
+                # Without the fix, bytes 16-19 (first 4 chars of secret) survive.
+                output_bound_bytes=20,
+            ),
+            sensitive_values=[secret],
+            audit_sink=sink,
+        )
+        assert result.exit_code == 0
+        # No fragment of the secret may appear in the redacted output.
+        for frag_len in range(1, len(secret) + 1):
+            assert secret[:frag_len].encode() not in result.stdout_redacted, (
+                f"sensitive fragment {secret[:frag_len]!r} survived in output"
+            )
+
+    @_NEEDS_KILL
+    def test_output_flood_exceeding_cap_terminates(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A running process that floods stdout beyond the hard cap is terminated.
+
+        The hard cap is output_bound_bytes + len(longest sensitive value).
+        A process that exceeds the cap while still running raises
+        ProcessDenied('denied-output-cap-exceeded') and kills the process tree.
+        The process keeps running (sleeps) after writing so proc.poll() is None
+        when the cap fires, guaranteeing the cap-exceeded path not the timeout.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        secret = "MYSECRET"  # 8 bytes; hard_cap = bound + 8
+        bound = 64
+        hard_cap = bound + len(secret)  # = 72
+        # Flood: write 10× the hard cap, then sleep so the process stays alive.
+        flood_bytes = hard_cap * 10
+        code = (
+            f"import sys, time\n"
+            f"sys.stdout.buffer.write(b'X' * {flood_bytes})\n"
+            f"sys.stdout.buffer.flush()\n"
+            f"time.sleep(60)\n"
+        )
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(tmp_path),
+                    argv=["-c", code],
+                    output_bound_bytes=bound,
+                    process_tree_timeout_s=10,
+                ),
+                sensitive_values=[secret],
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-output-cap-exceeded"
+
+    def test_confined_file_stdin_outside_root_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """stdin_path outside the declared stdin_root is refused.
+
+        Without the fix, the old code opened the file with no root check.
+        The fixed code uses read_confined_regular_file which checks confinement.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        # root = a subdir; path = a file ABOVE the root.
+        root_dir = tmp_path / "root"
+        root_dir.mkdir()
+        outside_file = tmp_path / "outside.txt"
+        outside_file.write_bytes(b"secret data")
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(root_dir),
+                    stdin_mode="confined-file",
+                ),
+                stdin_path=str(outside_file),
+                stdin_root=str(root_dir),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code in (
+            "denied-stdin-confinement-violation",
+            "denied-launch-failed",
+        )
+
+    def test_confined_file_stdin_symlink_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A symlink as stdin_path is refused even when it resolves inside the root.
+
+        Without the fix, the old open() follows the symlink silently.
+        The fixed code uses read_confined_regular_file which calls lstat and
+        detects symlinks via UnsafeContentError.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        root_dir = tmp_path / "root"
+        root_dir.mkdir()
+        real_file = root_dir / "real.txt"
+        real_file.write_bytes(b"content")
+        link_file = root_dir / "link.txt"
+        try:
+            link_file.symlink_to(real_file)
+        except (OSError, NotImplementedError):
+            pytest.skip("cannot create symlink on this host")
+
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(root_dir),
+                    stdin_mode="confined-file",
+                ),
+                stdin_path=str(link_file),
+                stdin_root=str(root_dir),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code in (
+            "denied-stdin-confinement-violation",
+            "denied-launch-failed",
+        )
+
+    def test_confined_file_stdin_oversize_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A stdin file larger than the output bound is refused.
+
+        The fixed code passes max_bytes=bound to read_confined_regular_file.
+        A file exceeding that limit raises BoundExceeded → ProcessDenied.
+        Without the fix, the old code reads the file with no size check.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        root_dir = tmp_path / "root"
+        root_dir.mkdir()
+        big_file = root_dir / "big.bin"
+        bound = 16
+        # Write more bytes than the bound.
+        big_file.write_bytes(b"X" * (bound + 1))
+
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(root_dir),
+                    stdin_mode="confined-file",
+                    output_bound_bytes=bound,
+                    process_tree_timeout_s=10,
+                ),
+                stdin_path=str(big_file),
+                stdin_root=str(root_dir),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code in (
+            "denied-stdin-confinement-violation",
+            "denied-launch-failed",
+        )
+
+    def test_cwd_symlink_escape_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A cwd path that is itself a symlink to a directory is refused.
+
+        Path.is_dir() follows symlinks so the old code accepted symlink cwd
+        paths.  The fixed code calls validate_confined_directory which uses
+        lstat and detects the symlink component, raising ProcessDenied.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        real_dir = tmp_path / "real"
+        real_dir.mkdir()
+        link_dir = tmp_path / "link"
+        try:
+            link_dir.symlink_to(real_dir)
+        except (OSError, NotImplementedError):
+            pytest.skip("cannot create symlink on this host")
+
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, _spec(str(link_dir)), audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-cwd-unsafe"
+
+    def test_cwd_outside_every_root_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A valid cwd that is not inside any declared root refuses with denied-cwd-unsafe.
+
+        The cwd directory exists on disk; the only declared root is a sibling
+        directory, so no root contains the cwd.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        cwd_dir = tmp_path / "cwd_dir"
+        cwd_dir.mkdir()
+        other_root = tmp_path / "other_root"
+        other_root.mkdir()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            ps.launch_safe_process(
+                _spec(str(cwd_dir)),
+                cwd_roots=(str(other_root),),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-cwd-unsafe"
+
+    def test_cwd_inside_root_via_symlink_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A cwd inside the root but reached via a symlink component refuses.
+
+        The cwd path has a symlinked component between the root and the cwd,
+        so validate_confined_directory raises and the launch is refused.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        real_sub = tmp_path / "real_sub"
+        real_sub.mkdir()
+        link_sub = tmp_path / "link_sub"
+        try:
+            link_sub.symlink_to(real_sub)
+        except (OSError, NotImplementedError):
+            pytest.skip("cannot create symlink on this host")
+
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            ps.launch_safe_process(
+                _spec(str(link_sub)),
+                cwd_roots=(str(tmp_path),),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-cwd-unsafe"
+
+    def test_cwd_empty_roots_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An empty cwd_roots tuple refuses with denied-cwd-unsafe.
+
+        No root means no confinement boundary can be established.
+        """
+        ps = process_safety
+        _, sink = _recording_sink()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            ps.launch_safe_process(
+                _spec(str(tmp_path)),
+                cwd_roots=(),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-cwd-unsafe"
+
+    def test_cwd_inside_root_accepted(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A cwd inside a declared root with no symlink components is accepted."""
+        ps = process_safety
+        _, sink = _recording_sink()
+        sub_dir = tmp_path / "sub"
+        sub_dir.mkdir()
+        result = ps.launch_safe_process(
+            _spec(str(sub_dir)),
+            cwd_roots=(str(tmp_path),),
+            audit_sink=sink,
+        )
+        assert isinstance(result, ps.ProcessResult)

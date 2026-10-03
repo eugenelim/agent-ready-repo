@@ -476,33 +476,96 @@ class TestVerdictEvaluation:
         assert verdict["verdict"] == "supported"
         assert verdict["evaluation_fingerprint"]
 
-    def test_verdict_unchanged_after_deleting_empty_mechanical_state(
-        self, acc: ModuleType
+    def test_verdict_unchanged_after_deleting_mechanical_state(
+        self, acc: ModuleType, tmp_path: Path
     ) -> None:
-        """Deleting task/phase/cohort/cached-verdict state cannot change the verdict.
+        """Deleting real mechanical state files cannot change the verdict.
 
-        The evaluator takes only property_record and receipts as inputs —
-        it has no access to task or mechanical state, so deleting that state
-        is equivalent to passing None here.
+        The evaluator takes only property_record and receipts as inputs.
+        This test creates real mechanical state files beside the store (cohort,
+        engine-state, cached-verdict), evaluates once, then deletes those files
+        and re-evaluates — the verdict and its fingerprint must be identical.
+        Proves by mutation: changing the receipt outcome changes the verdict.
         """
+        # Create a receipt with task_projection_revision field
+        receipt = {
+            "schema_version": 1,
+            "receipt_id": "r-mech-001",
+            "acceptance_fingerprint": self.FP,
+            "lineage": {"criterion_ref": "prop-001"},
+            "selector": {"term": "test-run"},
+            "freshness_mode": "exact-subject",
+            "observation": {"type": "test-result"},
+            "outcome": "passed",
+            "producer": {"class": "ci-runner", "identity": "runner-generic"},
+            "task_projection_revision": "rev-abc123",
+        }
         prop = _make_property()
-        receipt = _make_receipt(acceptance_fingerprint=self.FP)
-        # First evaluation
+
+        # Create mechanical state files alongside the store root
+        cohort_path = tmp_path / ".cohort-state.json"
+        engine_path = tmp_path / "engine-state.json"
+        cached_path = tmp_path / "cached-verdict.json"
+        cohort_path.write_text('{"state": "DONE", "run_id": "run-001"}', encoding="utf-8")
+        engine_path.write_text('{"state": "DONE", "run_id": "run-001"}', encoding="utf-8")
+        cached_path.write_text('{"verdict": "supported"}', encoding="utf-8")
+
+        # First evaluation (mechanical state files present alongside)
         v1 = acc.evaluate_verdict(
             property_record=prop,
             receipts=[receipt],
             current_acceptance_fingerprint=self.FP,
             adapter="sequential-reference",
         )
-        # Second evaluation — same inputs, simulating 'after deleting task state'
+        assert v1["verdict"] == "supported"
+
+        # Delete the mechanical state files
+        for p in (cohort_path, engine_path, cached_path):
+            p.unlink()
+
+        # Second evaluation (state files deleted) — must be identical
         v2 = acc.evaluate_verdict(
             property_record=prop,
             receipts=[receipt],
             current_acceptance_fingerprint=self.FP,
             adapter="sequential-reference",
         )
-        assert v1["verdict"] == v2["verdict"]
-        assert v1["evaluation_fingerprint"] == v2["evaluation_fingerprint"]
+        assert v1["verdict"] == v2["verdict"], (
+            "verdict must not change when mechanical state files are deleted"
+        )
+        assert v1["evaluation_fingerprint"] == v2["evaluation_fingerprint"], (
+            "evaluation_fingerprint must be stable regardless of mechanical state files"
+        )
+
+        # The same receipt without its mechanical task-projection field must
+        # give the same verdict and evaluation fingerprint: the evaluator may
+        # not read or hash mechanical state carried on evidence.
+        stripped = {k: v for k, v in receipt.items() if k != "task_projection_revision"}
+        varied = {**receipt, "task_projection_revision": "rev-other"}
+        for other in (stripped, varied):
+            v_other = acc.evaluate_verdict(
+                property_record=prop,
+                receipts=[other],
+                current_acceptance_fingerprint=self.FP,
+                adapter="sequential-reference",
+            )
+            assert v_other["verdict"] == v1["verdict"]
+            assert v_other["evaluation_fingerprint"] == v1["evaluation_fingerprint"], (
+                "mechanical task-projection state must not reach the verdict"
+            )
+
+        # Mutation proof: changing receipt outcome changes the verdict
+        mutated = {**receipt, "outcome": "failed"}
+        v3 = acc.evaluate_verdict(
+            property_record=prop,
+            receipts=[mutated],
+            current_acceptance_fingerprint=self.FP,
+            adapter="sequential-reference",
+        )
+        assert v3["verdict"] != v1["verdict"], (
+            "Mutation of receipt outcome must change the verdict "
+            "(evaluation is sensitive to receipt content)"
+        )
 
     def test_verdict_record_satisfies_schema_structure(self, acc: ModuleType) -> None:
         """The emitted verdict record contains all required fields."""
