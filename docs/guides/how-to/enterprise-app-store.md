@@ -120,9 +120,12 @@ exact-machine `.netrc` record, then anonymous. The chain stops at the first
 available provider. When a configured provider is broken, resolution fails
 immediately — no fallback to the next provider.
 
-For the JFrog CLI path, AgentBundle delegates fetches to `jf api`. On Linux,
-use `SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a private CA for `jf api` — the
-direct-HTTPS variable `AGENTBUNDLE_CA_BUNDLE` does not reach the subprocess.
+For the JFrog CLI path, AgentBundle delegates fetches to `jf api` —
+`AGENTBUNDLE_CA_BUNDLE` does not reach the subprocess. On Linux, use
+`SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a private CA for `jf api`. On
+macOS, add the corporate CA to the system keychain instead — `jf api` reads
+only the system keychain there. `jf api` ignores `~/.jfrog/security/certs/`,
+so a passing `jf rt ping` does not prove the catalogue fetch will succeed.
 
 ## Troubleshoot without exposing secrets
 
@@ -132,16 +135,20 @@ direct-HTTPS variable `AGENTBUNDLE_CA_BUNDLE` does not reach the subprocess.
 - **401 or 403:** check which provider AgentBundle selected. For bearer, confirm
   the token has read access to the channel and release paths. For JFrog CLI,
   run `jf config show --format=json` to confirm the profile matches the catalogue
-  origin and the stored token has not expired. For `.netrc`, confirm the `machine`
-  key matches the catalogue host and the file is mode `0600`. Do not print token
-  values.
+  origin and the stored token has not expired; access failures on the JFrog CLI
+  path surface as `jfrog_fetch_failed` rather than an HTTP status code. For
+  `.netrc`, confirm the `machine` key matches the catalogue host and the file is
+  mode `0600`. Do not print token values.
 - **Configured-but-broken error:** a failure code such as `netrc_unsafe` or
   `jfrog_profile_mismatch` means a provider was detected but broken. Fix the
   broken configuration — the chain will not fall back past it.
 - **TLS failure (direct path):** configure `AGENTBUNDLE_CA_BUNDLE` with the
   approved PEM CA bundle path. Do not disable certificate verification.
-- **TLS failure (JFrog CLI path on Linux):** set `SSL_CERT_FILE` or `SSL_CERT_DIR`
-  instead — `AGENTBUNDLE_CA_BUNDLE` does not reach `jf api`.
+- **TLS failure (JFrog CLI path):** `AGENTBUNDLE_CA_BUNDLE` does not reach `jf
+  api`; TLS failures there surface as `jfrog_fetch_failed`. On Linux, set
+  `SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a private CA. On macOS, add the
+  corporate CA to the system keychain — `jf api` reads only the system keychain
+  there.
 - **Proxy failure:** configure `HTTPS_PROXY` and `NO_PROXY` through the managed
   environment. Keep proxy credentials out of repository files and transcripts.
 - **Expired credentials:** rotate the publisher or reader identity through the

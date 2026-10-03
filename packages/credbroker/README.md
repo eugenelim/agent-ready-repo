@@ -77,10 +77,14 @@ it from `agentbundle.catalogue_fetch.open_fetch_session`; use it the same way in
 any tool that fetches from a URL that may be open or protected.
 
 ```python
+import os
 from credbroker import resolve_http_access, HttpAccessError
 
 try:
-    access = resolve_http_access("https://registry.example.test/channel.json")
+    access = resolve_http_access(
+        "https://registry.example.test/channel.json",
+        env=os.environ,
+    )
 except HttpAccessError as exc:
     raise SystemExit(f"access denied: {exc.code} from {exc.provider}")
 
@@ -91,20 +95,26 @@ except HttpAccessError as exc:
 #   AnonymousHttpAccess — no credentials
 ```
 
+`env` is a required keyword-only argument and is the only credential source;
+`os.environ` is never read directly. Pass a specific dict in tests to control
+which providers are active without touching the process environment.
+
 Providers are checked in priority order:
 
 | Priority | Provider | Active when |
 | --- | --- | --- |
-| 1 | Bearer token | `AGENTBUNDLE_HTTP_BEARER_TOKEN` is set |
+| 1 | Bearer token | `AGENTBUNDLE_HTTP_BEARER_TOKEN` is set and non-empty |
 | 2 | JFrog CLI 2.105.0+ | A configured JFrog CLI profile matches the target origin |
 | 3 | Exact-machine `.netrc` | The file has a record for the target host (or host:port) |
 | 4 | Anonymous | None of the above are present |
 
 The chain stops at the first available provider. When a provider is present but
-broken (expired token, mismatched profile, unsafe `.netrc` permissions),
-`HttpAccessError` is raised immediately — no silent fallback to the next provider.
+broken (for example, `invalid_bearer` — a bearer value containing whitespace or
+a non-ASCII character; or `netrc_incomplete` — a `.netrc` record with no
+password), `HttpAccessError` is raised immediately — no silent fallback to the
+next provider. An expired token passes resolution and fails later at fetch time.
 
-Pass `env` to inject a specific environment dict (useful in tests):
+To inject a specific environment dict in a test:
 
 ```python
 access = resolve_http_access(url, env={"AGENTBUNDLE_HTTP_BEARER_TOKEN": token})

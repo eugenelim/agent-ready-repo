@@ -340,8 +340,9 @@ session does not open and the install fails immediately. There is no fallback.
 | anonymous | Always | None |
 
 The JFrog CLI path appends one `0x0a` byte to stdout; `https_catalogue.py`
-applies a digest-checked trim (OD-1): the SHA-256 of the exact bytes is tried
-first; if it does not match, the file is truncated by one byte and re-verified.
+applies a digest-checked trim (OD-1): the SHA-256 of the trimmed candidate is
+computed first; only when that hash matches the expected digest is the trailing
+byte removed and the file written.
 On Linux, `jf api` trusts a private CA only through `SSL_CERT_FILE` /
 `SSL_CERT_DIR` (OD-2); `AGENTBUNDLE_CA_BUNDLE` is not forwarded to the
 subprocess.

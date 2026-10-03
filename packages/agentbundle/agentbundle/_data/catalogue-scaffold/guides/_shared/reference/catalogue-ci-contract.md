@@ -214,13 +214,12 @@ The three credential paths are independent:
    `agentbundle` wheel.
 2. The protected upload job authenticates its upload client with a restricted
    publisher identity.
-3. AgentBundle's HTTPS client authenticates a protected catalogue read with
-   `AGENTBUNDLE_HTTP_BEARER_TOKEN`.
-
-AgentBundle does not currently reuse JFrog CLI profiles, Pip or uv credentials,
-`.netrc`, keyrings, browser login state, or the repository credential broker for
-catalogue reads. A managed launcher may inject the bearer token as a lowest-
-friction workaround, but that remains a second credential surface.
+3. AgentBundle's HTTPS client resolves a protected catalogue read through a
+   four-provider chain: bearer token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`), JFrog
+   CLI 2.105.0+ profile, exact-machine `.netrc` record, then anonymous. The
+   chain stops at the first available provider. See
+   [Protected catalogue authentication](../reference/agentbundle.md#protected-catalogue-authentication)
+   for provider details and failure codes.
 
 `AGENTBUNDLE_CA_BUNDLE`, `HTTPS_PROXY`, and `NO_PROXY` control TLS trust and
 network routing when install or upgrade resolves a remote catalogue. They are

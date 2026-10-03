@@ -114,9 +114,11 @@ for a bearer token, configure a JFrog CLI 2.105.0+ profile with `jf login` or
 exact-machine `.netrc` record. Public catalogues need no credential setup.
 AgentBundle picks the first available source and does not fall back across types.
 
-For the direct path, set `AGENTBUNDLE_CA_BUNDLE` for a private CA. For the JFrog
-CLI path on Linux, use `SSL_CERT_FILE` or `SSL_CERT_DIR`; `AGENTBUNDLE_CA_BUNDLE`
-does not reach the `jf` subprocess.
+For bearer, `.netrc`, and public catalogues, set `AGENTBUNDLE_CA_BUNDLE` for a
+private CA. For the JFrog CLI path on Linux, use `SSL_CERT_FILE` or
+`SSL_CERT_DIR`; `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf` subprocess. On
+macOS, add the corporate CA to the system keychain for the JFrog CLI path — `jf
+api` reads only the system keychain there and ignores `~/.jfrog/security/certs/`.
 
 **JSON output for CI pipelines:**
 
@@ -306,7 +308,7 @@ The session instruction template (injected by the control plane at session start
 
 ## Credentials
 
-`agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](../credbroker/README.md), a standalone resolver that keeps cleartext out of the model's reach.
+Skills resolve their own credentials through [`credbroker`](../credbroker/README.md), a standalone resolver that keeps cleartext out of the model's reach. AgentBundle uses `credbroker` only to read protected catalogues.
 
 ## Learn more
 

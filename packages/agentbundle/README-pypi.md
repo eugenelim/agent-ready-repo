@@ -23,9 +23,11 @@ profile with `jf login` or `jf config add` (and optionally name it with
 catalogue host. Public catalogues still work with no credential setup. AgentBundle
 picks the first available source and stops — no fallback across credential types.
 
-On a corporate network, set `AGENTBUNDLE_CA_BUNDLE` for the direct HTTPS path.
-For the JFrog CLI path on Linux, set `SSL_CERT_FILE` or `SSL_CERT_DIR` instead;
-`AGENTBUNDLE_CA_BUNDLE` does not reach the `jf` subprocess.
+On a corporate network, set `AGENTBUNDLE_CA_BUNDLE` for bearer, `.netrc`, and
+public catalogues. For the JFrog CLI path on Linux, set `SSL_CERT_FILE` or
+`SSL_CERT_DIR` instead; `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf`
+subprocess. On macOS, add the corporate CA to the system keychain for the JFrog
+CLI path.
 
 ## What's new in 0.50.0
 
@@ -537,9 +539,19 @@ agentbundle install --pack core
 ```
 
 The channel descriptor points to an immutable versioned archive; agentbundle
-fetches, verifies its SHA-256 digest, and installs. Pass a bearer token via
-`AGENTBUNDLE_HTTP_BEARER_TOKEN` — it is never stored in state, never printed, and
-never forwarded to a different host.
+fetches, verifies its SHA-256 digest, and installs.
+
+AgentBundle picks credentials automatically: set `AGENTBUNDLE_HTTP_BEARER_TOKEN`
+for a bearer token, configure a JFrog CLI 2.105.0+ profile with `jf login` or
+`jf config add` (optionally name it with `JFROG_CLI_SERVER_ID`), or provide an
+exact-machine `.netrc` record. Public catalogues need no credential setup.
+AgentBundle picks the first available source and does not fall back across types.
+
+For bearer, `.netrc`, and public catalogues, set `AGENTBUNDLE_CA_BUNDLE` for a
+private CA. For the JFrog CLI path on Linux, use `SSL_CERT_FILE` or
+`SSL_CERT_DIR`; `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf` subprocess. On
+macOS, add the corporate CA to the system keychain for the JFrog CLI path — `jf
+api` reads only the system keychain there and ignores `~/.jfrog/security/certs/`.
 
 **JSON output for CI pipelines:**
 
@@ -918,7 +930,7 @@ not the environment — compare them with
 
 ## Credentials
 
-`agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](https://pypi.org/project/credbroker/), a standalone resolver that keeps cleartext out of the model's reach.
+Skills resolve their own credentials through [`credbroker`](https://pypi.org/project/credbroker/), a standalone resolver that keeps cleartext out of the model's reach. AgentBundle uses `credbroker` only to read protected catalogues.
 
 ## Learn more
 

@@ -177,10 +177,10 @@ Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4 (the org Artifactory boot
 
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
-| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Bearer token sent as `Authorization: Bearer <token>` on `catalogue+https://` and `archive+https://` requests. Checked first in the four-provider chain. **Secret: inject through an organization-managed launcher or process environment. Do not log it or persist it to version control.** An empty string is treated as configured-but-broken and stops the chain. |
-| `JFROG_CLI_SERVER_ID` | unset | Name of the JFrog CLI profile to use when multiple profiles match the catalogue origin by prefix. When unset, the profile whose `artifactory-url` has the longest matching prefix is used. Ignored when the JFrog CLI provider is unavailable (no `jf` on `PATH`, or no matching profile). |
+| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Bearer token sent as `Authorization: Bearer <token>` on `catalogue+https://` and `archive+https://` requests. Checked first in the four-provider chain. **Secret: inject through an organization-managed launcher or process environment. Do not log it or persist it to version control.** An empty value counts as unset; the chain moves on to the next provider. |
+| `JFROG_CLI_SERVER_ID` | unset | Name of the JFrog CLI profile to use when multiple profiles match the catalogue origin by prefix. When unset, the profile whose `artifactoryUrl` has the longest matching prefix is used. Setting this variable makes the JFrog CLI provider required: if `jf` cannot run, resolution fails with `jfrog_cli_not_executable`; if the named profile is missing or does not match the catalogue URL, it fails with `jfrog_profile_mismatch`. |
 | `AGENTBUNDLE_CA_BUNDLE` | unset | Absolute path to a PEM CA bundle for TLS verification, honoured on every catalogue source form. Raises `CatalogueError` if the path does not exist — including on `git+https://`, where the variable was previously ignored. **Semantics differ by source form:** on `git+https://` the bundle is *added* to the default trust store; on `catalogue+https://` and `archive+https://` it *replaces* it, which pins verification to your own authority. Does **not** reach the `jf api` subprocess on the JFrog CLI path — use `SSL_CERT_FILE` / `SSL_CERT_DIR` for that. Example: `AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem agentbundle install --pack core` |
-| `SSL_CERT_FILE`, `SSL_CERT_DIR` | unset | Standard OpenSSL-family trust-store paths. Honoured on `git+https://` sources and passed through to the `jf api` subprocess on Linux for the JFrog CLI path. Not consulted by direct HTTPS fetches (bearer, .netrc, anonymous) — use `AGENTBUNDLE_CA_BUNDLE` for those. A stale `SSL_CERT_FILE` or `SSL_CERT_DIR` is **not** recoverable: OpenSSL resolves its default paths from those variables, so a bad value leaves the trust store empty and every fetch fails verification. Unset them rather than pointing them at a missing file. |
+| `SSL_CERT_FILE`, `SSL_CERT_DIR` | unset | Standard OpenSSL-family trust-store paths. Honoured on `git+https://` sources and passed through to the `jf api` subprocess on Linux for the JFrog CLI path. Direct HTTPS fetches (bearer, `.netrc`, anonymous) also honor these variables through Python's default trust store while `AGENTBUNDLE_CA_BUNDLE` is unset; a set `AGENTBUNDLE_CA_BUNDLE` replaces that store for direct fetches. A stale value is **not** recoverable: a bad path leaves the trust store empty and fetches fail verification. Unset them rather than pointing them at a missing file. |
 | `REQUESTS_CA_BUNDLE` | unset | Standard path, honoured on `git+https://` sources only. Anchors are added to the default store, never substituted for it. A stale value is ignored harmlessly. |
 | `AGENTBUNDLE_NO_SYSTEM_TRUST` | unset | When set to any non-empty value, disables the operating-system trust fallback described in [Corporate networks](#corporate-networks) below. The underlying verification error is still reported, with the troubleshooting guidance appended. |
 | `AGENTBUNDLE_NO_REMOTE` | unset | When set to any non-empty value, skips Layer 3 (org Artifactory bootstrap) and Layer 4 (editable-install detection), falling through to Layer 5. Use on hosts that cannot reach Artifactory, or in CI pipelines that resolve a local catalogue. Example: `AGENTBUNDLE_NO_REMOTE=1 agentbundle install --pack core /path/to/local-catalogue` |
@@ -202,9 +202,12 @@ fallback occurs.
 | 4 | Anonymous | Always available | — |
 
 The JFrog CLI provider delegates fetches to `jf api --server-id=<id>`, which
-uses the stored profile token. On Linux, use `SSL_CERT_FILE` or `SSL_CERT_DIR`
-to trust a private CA for the `jf api` subprocess — `AGENTBUNDLE_CA_BUNDLE`
-does not reach it.
+uses the stored profile token. `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf
+api` subprocess. On Linux, use `SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a
+private CA for `jf api`. On macOS, add the corporate CA to the system keychain
+instead — `jf api` reads only the system keychain there. `jf api` ignores
+`~/.jfrog/security/certs/`, so a passing `jf rt ping` does not prove the
+catalogue fetch will succeed.
 
 Failure codes reported by AgentBundle (no credential material appears in any
 error message):
@@ -236,9 +239,6 @@ another provider:
 | `descriptor_too_large`, `archive_too_large` | The descriptor passed 1 MiB or the archive passed 256 MiB |
 | `endpoint_not_permitted` | A JFrog-path URL left the profile's Artifactory base or carried an unsafe path |
 | `jfrog_fetch_failed`, `jfrog_fetch_timeout`, `jfrog_fetch_stderr_too_large` | `jf api` returned a non-2xx status or failed, took over 30 seconds, or wrote too much error output |
-| `netrc_malformed` | netrc | Parse error, ambiguous keys, colon in login, or control characters |
-| `netrc_incomplete` | netrc | Matched record lacks login or password |
-| `invalid_target_host` | target | Catalogue hostname is not encodable as a valid IDNA host |
 
 Installing the AgentBundle wheel is separate. The Python package client may
 reuse its own organization-managed credentials for an Artifactory PyPI

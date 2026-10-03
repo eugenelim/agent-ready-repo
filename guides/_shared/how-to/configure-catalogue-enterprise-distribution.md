@@ -198,10 +198,8 @@ chain, in this order:
 4. **Anonymous** — no credential is sent. This path succeeds only when the
    catalogue is publicly accessible.
 
-The chain stops at the first available provider. When a provider is
-configured but broken (a malformed bearer token, unsafe `.netrc` permissions, a
-named JFrog profile that is missing), resolution fails immediately — it does not fall back. Fix the
-broken configuration rather than removing it.
+See [Keep the three credential paths separate](#keep-the-three-credential-paths-separate)
+for the no-fallback rule.
 
 Users can then run:
 
@@ -235,6 +233,8 @@ provider AgentBundle selected and whether the credential is valid:
   read access to the channel and release paths.
 - JFrog CLI: confirm the profile URL matches the catalogue origin and the
   stored token has not expired. Run `jf config show --format=json` to inspect.
+  On the JFrog CLI path, access failures surface as `jfrog_fetch_failed` rather
+  than an HTTP status code.
 - `.netrc`: confirm the `machine` key matches the catalogue host (or
   `host:port` for non-standard ports) and the file is `0600`.
 - Anonymous: if no provider is configured and the catalogue requires auth,
@@ -250,14 +250,19 @@ the message. Common codes: `invalid_bearer` (whitespace or a non-ASCII character
 token), `netrc_unsafe`
 (wrong file permissions), `jfrog_profile_mismatch` (named profile not found).
 Fix the broken configuration; do not remove it and expect fallback to the next
-provider.
+provider. See [Protected catalogue authentication](../reference/agentbundle.md#protected-catalogue-authentication)
+for the full list of resolution and fetch codes.
 
 ### TLS verification fails behind the corporate network
 
-For direct HTTPS fetches (bearer, .netrc, anonymous), set `AGENTBUNDLE_CA_BUNDLE`
-to the approved PEM CA bundle path. For the JFrog CLI path on Linux, set
-`SSL_CERT_FILE` or `SSL_CERT_DIR` instead — `AGENTBUNDLE_CA_BUNDLE` does not
-reach the `jf api` subprocess. Keep certificate bundles separate from tokens.
+For direct HTTPS fetches (bearer, `.netrc`, anonymous), set `AGENTBUNDLE_CA_BUNDLE`
+to the approved PEM CA bundle path. For the JFrog CLI path, `AGENTBUNDLE_CA_BUNDLE`
+does not reach the `jf api` subprocess — TLS failures on that path surface as
+`jfrog_fetch_failed`. On Linux, set `SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a
+private CA for `jf api`. On macOS, add the corporate CA to the system keychain
+instead — `jf api` reads only the system keychain there. `jf api` ignores
+`~/.jfrog/security/certs/`, so a passing `jf rt ping` does not prove the
+catalogue fetch will succeed. Keep certificate bundles separate from tokens.
 AgentBundle keeps HTTPS and certificate verification enabled.
 
 ### Requests do not reach Artifactory
@@ -286,7 +291,7 @@ detection. It does not turn a protected remote catalogue into an offline source.
 
 ## See also
 
-- [`agentbundle` reference — source resolution and authentication](../reference/agentbundle.md#catalogue-source-resolution)
+- [`agentbundle` reference — source resolution and authentication](../reference/agentbundle.md#protected-catalogue-authentication)
 - [Catalogue CI contract](../reference/catalogue-ci-contract.md) — portable build, publication, verification, and evidence responsibilities
 - [JFrog login](https://docs.jfrog.com/integrations/docs/jf-login) — JFrog CLI's interactive login and reusable profile
 - [Configure JFrog CLI](https://docs.jfrog.com/integrations/docs/configuring-the-cli) — supported interactive and automation configuration
