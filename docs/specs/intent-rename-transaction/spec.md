@@ -1,6 +1,6 @@
 # Spec: The intent rename transaction
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098; ADR-0129; ADR-0134
@@ -152,9 +152,9 @@ materializes the sealed record schema; it deepens the existing AC-0026 stub.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0003.** A failure before the rename begins applying leaves the
+- [x] **AC-0003.** A failure before the rename begins applying leaves the
       working tree and the index as they were before it ran.
-- [ ] **AC-0026.** An interruption while the rename is applying leaves the
+- [x] **AC-0026.** An interruption while the rename is applying leaves the
       repository in one of two observable states — every change applied, or a
       partial state naming every path the rename intended to write, from which
       re-running the operation or restoring those paths ends in the complete
@@ -181,7 +181,7 @@ materializes the sealed record schema; it deepens the existing AC-0026 stub.
       completion seal never authorizes a live-path mutation. Stage-only cleanup
       after seal removal requires a durable cleanup marker written after an
       independently validated terminal state.
-- [ ] **AC-0001.** After a rename, the vacated path occurs in no tracked file
+- [x] **AC-0001.** After a rename, the vacated path occurs in no tracked file
       except the tombstone standing at it and this spec's own
       `notes/verification-ledger.md`. The searched set is the pre-run tracked
       set plus every file the operation creates, whatever its index state, so
@@ -194,7 +194,7 @@ materializes the sealed record schema; it deepens the existing AC-0026 stub.
       operation repoints the source and the projection is regenerated rather
       than edited. The criterion is evaluated after that step, which is the
       only point at which both it and the bar on editing a projection hold.
-- [ ] **AC-0018.** Over AC-0001's searched set, every file that cited the
+- [x] **AC-0018.** Over AC-0001's searched set, every file that cited the
       vacated path before a rename cites the new path after it, and no other content in that file changes.
       A citation is repointed, never removed. A tracked generated projection is
       outside this criterion. The operation repoints that file's `.apm/` source
@@ -207,25 +207,25 @@ materializes the sealed record schema; it deepens the existing AC-0026 stub.
       satisfies it. The renamed artifact itself is
       outside this criterion, because it becomes a tombstone; AC-0024 governs
       it.
-- [ ] **AC-0024.** The successor's bytes equal the retired source's bytes
+- [x] **AC-0024.** The successor's bytes equal the retired source's bytes
       after substituting the new path for the vacated one, and differ nowhere
       else. A source that cites its own path is the case that distinguishes
       this from plain equality: the substitution is what lets AC-0001 and this
       criterion both hold.
-- [ ] **AC-0002.** After a rename the successor's `Slug:` bytes equal the
+- [x] **AC-0002.** After a rename the successor's `Slug:` bytes equal the
       retired source's, the tombstone carries those same bytes, and every
       unaffected intent keeps its prior `Slug:` bytes. The corpus gains an
       occurrence of that value rather than preserving a collection, so the
       mapping is stated directly.
-- [ ] **AC-0012.** The new filename's ordinal is the allocator's next ordinal
+- [x] **AC-0012.** The new filename's ordinal is the allocator's next ordinal
       for the target token over the corpus as it stood before the rename. The
       allocator's answer is the whole requirement: carrying an ordinal across
       fails it whenever carrying and allocating differ, and where they
       coincide there is nothing to distinguish.
-- [ ] **AC-0025.** A rename completes through the surface an installed
+- [x] **AC-0025.** A rename completes through the surface an installed
       `packs/core` exposes to an operator, exercised as an operator invokes it
       rather than through an internal entry point.
-- [ ] **AC-0013.** A request satisfying the request contract in
+- [x] **AC-0013.** A request satisfying the request contract in
       `docs/specs/intent-renumber-and-reissue/spec.md` whose source is registered in
       `workspace.toml` and whose affected paths are all clean succeeds,
       leaving a tombstone at the vacated path whose
@@ -242,13 +242,13 @@ materializes the sealed record schema; it deepens the existing AC-0026 stub.
       gate pins, and a budget that truncated the search instead of refusing
       would leave a stale citation behind while still reporting AC-0001
       satisfied.
-- [ ] **AC-0007.** Resolving a tombstone whose `Reissued as:` names a path
+- [x] **AC-0007.** Resolving a tombstone whose `Reissued as:` names a path
       that does not exist yields a diagnostic naming the tombstone and the
       missing path, on the operator surface AC-0025 names.
-- [ ] **AC-0008.** Resolving a tombstone whose `Reissued as:` names a file that
+- [x] **AC-0008.** Resolving a tombstone whose `Reissued as:` names a file that
       itself carries `Tombstone:` yields a diagnostic naming both paths, on
       that same operator surface.
-- [ ] **AC-0009.** On the operator surface AC-0025 names, resolving a path
+- [x] **AC-0009.** On the operator surface AC-0025 names, resolving a path
       that lands on a tombstone yields a
       diagnostic naming the tombstone and its `Reissued as:` target, and never
       the successor's content. Resolution stops at the tombstone rather than

@@ -2359,12 +2359,6 @@ backlog = [
 queue   = [
 ]
 active  = [
-  # The final slice of `intent-identity-and-registration`, implementing from
-  # 2026-09-30 after its measurement-led plan, ADR-0134, adversarial review and
-  # security review were complete. It delivers the retire-and-issue transaction
-  # over the request and tombstone contracts shipped by
-  # `intent-renumber-and-reissue`.
-  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-renumber-and-reissue/spec.md"}] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
@@ -2383,6 +2377,11 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # The final slice of `intent-identity-and-registration`. Delivered
+  # 2026-10-03 and moved from `active` to `shipped` in the change that set the
+  # spec `Shipped` and the plan `Done`. Ships the installed retire-and-issue
+  # rename, its recovery, and one-hop tombstone resolution.
+  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [] },
   # The final confirmed slice of `intent-identity-and-registration`, delivered
   # 2026-09-29 and moved from `backlog.open` in the same change that set the
   # spec `Shipped` and the plan `Done`. It keeps three out-of-root forms

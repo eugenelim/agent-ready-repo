@@ -1,6 +1,6 @@
 # Plan: The intent rename transaction
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Approach
