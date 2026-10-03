@@ -1,33 +1,39 @@
-"""Packaging tests for portable-catalogue-authentication T1.
+"""Packaging tests for portable-catalogue-authentication T1 and T5.
 
 Anchored at the repository root via ``Path(__file__).resolve().parents[2]``.
 Reads ``packs/`` and builds wheels, so it cannot live in the agentbundle sdist
 package suite. CI registration: a named step above the bulk
 ``pytest tests/ -q`` step in ``.github/workflows/build-check.yml``.
 
-Spec mapping: AC-0001 (credbroker half), AC-0002, AC-0003.
-AgentBundle-wheel cases (AC-0001 agentbundle half) come in T2; the structure
-here leaves a clear class boundary so T2 and T5 can add cases.
+Spec mapping: AC-0001 (credbroker half), AC-0001 (agentbundle half),
+AC-0002, AC-0003, AC-0018.
 
 Verification mode: TDD package and integration.
 """
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
+import http.server
 import io
+import json
 import os
 import pathlib
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import tarfile
+import threading
 import zipfile
 
 import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 CREDBROKER_PKG = REPO_ROOT / "packages" / "credbroker"
+AGENTBUNDLE_PKG = REPO_ROOT / "packages" / "agentbundle"
 PACKS_DIR = REPO_ROOT / "packs"
 VENDORED_FLOOR = PACKS_DIR / "credential-brokers" / ".apm" / "user-libs" / "credbroker"
 
@@ -133,6 +139,247 @@ def _wheel_metadata_version(wheel: pathlib.Path) -> str:
             if m:
                 return m.group(1).strip()
     pytest.fail(f"Could not read Version: from wheel METADATA in {wheel!r}")
+
+
+def _build_agentbundle_wheel(dest: pathlib.Path) -> pathlib.Path:
+    """Build the agentbundle wheel into ``dest`` without network access.
+
+    Uses ``pip wheel --no-deps --no-build-isolation`` so the already-installed
+    setuptools is reused and no index is contacted.
+
+    Returns:
+        Path to the built ``.whl`` file.
+    """
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "wheel",
+            "--no-deps",
+            "--no-build-isolation",
+            "--no-index",
+            "--wheel-dir",
+            str(dest),
+            str(AGENTBUNDLE_PKG),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        pytest.fail(
+            f"agentbundle wheel build failed (exit {result.returncode}):\n"
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+
+    wheels = list(dest.glob("agentbundle-*.whl"))
+    if not wheels:
+        pytest.fail(f"No agentbundle wheel found in {dest!r} after build")
+    return wheels[0]
+
+
+def _venv_pip_exe(venv_dir: pathlib.Path) -> str:
+    """Return the pip executable path inside *venv_dir*."""
+    for candidate in (
+        venv_dir / "bin" / "pip",
+        venv_dir / "bin" / "pip3",
+        venv_dir / "Scripts" / "pip.exe",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    pytest.fail(f"Could not find pip executable in venv {venv_dir!r}")
+
+
+def _venv_python_exe(venv_dir: pathlib.Path) -> str:
+    """Return the Python executable path inside *venv_dir*."""
+    for candidate in (
+        venv_dir / "bin" / "python3",
+        venv_dir / "bin" / "python",
+        venv_dir / "Scripts" / "python.exe",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    pytest.fail(f"Could not find Python executable in venv {venv_dir!r}")
+
+
+def _venv_agentbundle_exe(venv_dir: pathlib.Path) -> str:
+    """Return the agentbundle console script path inside *venv_dir*."""
+    for candidate in (
+        venv_dir / "bin" / "agentbundle",
+        venv_dir / "Scripts" / "agentbundle.exe",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    pytest.fail(
+        f"agentbundle console script not found in venv {venv_dir!r} — "
+        "pip install may have failed or not created the entry point"
+    )
+
+
+def _minimal_catalogue_archive() -> tuple[bytes, str]:
+    """Return ``(archive_bytes, sha256_hex)`` for a minimal installable catalogue.
+
+    The archive contains one pack (``test-pack/``) with a valid ``pack.toml``
+    and a stub skill.  The pack declares ``[pack.adapter-contract] version = "0.8"``
+    and ``[pack.install] default-scope = "repo" allowed-scopes = ["repo"]`` so
+    that ``agentbundle install --pack test-pack`` at repo scope completes without
+    scope-resolution errors.
+    """
+    pack_toml = (
+        b"[pack]\n"
+        b'name = "test-pack"\n'
+        b'version = "1.0.0"\n'
+        b"[pack.adapter-contract]\n"
+        b'version = "0.8"\n'
+        b"[pack.install]\n"
+        b'default-scope = "repo"\n'
+        b'allowed-scopes = ["repo"]\n'
+    )
+
+    skill_md = (
+        b"---\n"
+        b"name: test-skill\n"
+        b"description: Minimal fixture skill for AC-0018.\n"
+        b"---\n"
+        b"Fixture skill for AC-0018.\n"
+    )
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        info = tarfile.TarInfo("packs/test-pack/pack.toml")
+        info.size = len(pack_toml)
+        tf.addfile(info, io.BytesIO(pack_toml))
+
+        info2 = tarfile.TarInfo(
+            "packs/test-pack/.apm/skills/test-skill/SKILL.md"
+        )
+        info2.size = len(skill_md)
+        tf.addfile(info2, io.BytesIO(skill_md))
+
+    data = buf.getvalue()
+    sha256_hex = hashlib.sha256(data).hexdigest()
+    return data, sha256_hex
+
+
+# ── Loopback HTTPS server for AC-0018 ────────────────────────────────────────
+
+
+class _AuthServer(http.server.ThreadingHTTPServer):
+    """ThreadingHTTPServer with daemon threads so tests don't hang on exit."""
+
+    daemon_threads = True
+
+
+class _AuthHandler(http.server.BaseHTTPRequestHandler):
+    """Serve fixed routes; optionally require Basic auth; record all requests."""
+
+    # Subclasses (created via ``type()``) set class-level attributes.
+    routes: dict[str, bytes] = {}
+    require_basic_auth: bool = False
+    seen: list[tuple[str, str | None]] = []
+
+    def do_GET(self) -> None:  # noqa: N802
+        """Handle GET: optionally enforce Basic auth, serve route or 404."""
+        auth = self.headers.get("Authorization")
+        self.seen.append((self.path, auth))
+
+        if self.require_basic_auth and not (auth and auth.startswith("Basic ")):
+            body = b"Unauthorized"
+            self.send_response(401)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        body = self.routes.get(self.path)
+        if body is None:
+            err = b"not found"
+            self.send_response(404)
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, fmt: str, *args: object) -> None:  # noqa: D102
+        pass  # Suppress access log to keep test output clean.
+
+
+@contextlib.contextmanager
+def _loopback_https(
+    routes: dict[str, bytes],
+    cert_path: pathlib.Path,
+    key_path: pathlib.Path,
+    *,
+    require_basic_auth: bool = False,
+):
+    """Serve *routes* over loopback HTTPS; yield ``(base_url, handler_class)``.
+
+    The handler class has a ``seen`` list of ``(path, Authorization)`` tuples
+    recorded for every GET request.  ``base_url`` is
+    ``"https://127.0.0.1:<port>/"``.  The server shuts down cleanly when the
+    context exits.
+    """
+    handler_cls = type(
+        "_BoundHandler",
+        (_AuthHandler,),
+        {
+            "routes": dict(routes),
+            "require_basic_auth": require_basic_auth,
+            "seen": [],
+        },
+    )
+    server = _AuthServer(("127.0.0.1", 0), handler_cls)
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.load_cert_chain(certfile=str(cert_path), keyfile=str(key_path))
+    server.socket = ctx.wrap_socket(server.socket, server_side=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        port = server.server_address[1]
+        yield f"https://127.0.0.1:{port}/", handler_cls
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def _install_built_agentbundle(
+    venv_dir: pathlib.Path, python311: str, both_wheels: pathlib.Path
+) -> pathlib.Path:
+    """Create *venv_dir* and install AgentBundle from *both_wheels* only (no index)."""
+    result = subprocess.run(
+        [python311, "-m", "venv", str(venv_dir)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        pytest.fail(f"venv creation failed: {result.stderr}")
+    pip = _venv_pip_exe(venv_dir)
+    install_result = subprocess.run(
+        [
+            pip,
+            "install",
+            "--no-index",
+            f"--find-links={both_wheels}",
+            "agentbundle",
+        ],
+        capture_output=True,
+        text=True,
+        env=_clean_env(),
+        check=False,
+    )
+    if install_result.returncode != 0:
+        pytest.fail(
+            f"pip install agentbundle failed:\n"
+            f"{install_result.stdout}\n{install_result.stderr}"
+        )
+    return venv_dir
 
 
 # ── AC-0001 (credbroker half): wheel version agreement ───────────────────────
@@ -692,3 +939,502 @@ class TestVersionPrecedence:
             f"Signature incompatibilities with 0.6 callable surfaces: "
             f"{data['sig_issues']}"
         )
+
+
+# ── AC-0001 (agentbundle half): pip installs agentbundle + credbroker ────────
+
+
+class TestAgentbundleWheelInstall:
+    """Build both wheels; pip install agentbundle pulls credbroker 0.7.0.
+
+    AC-0001 (agentbundle half): pip install resolves credbroker 0.7.0 as the
+    declared dependency.  Both ``agentbundle.__file__`` and
+    ``credbroker.__file__`` resolve inside the venv's site-packages, not the
+    repository source tree.
+    """
+
+    @pytest.fixture(scope="class")
+    def python311(self) -> str:
+        """Python 3.11 interpreter path (fails with clear message if absent)."""
+        return _find_python311()
+
+    @pytest.fixture(scope="class")
+    def both_wheels(
+        self, tmp_path_factory: pytest.TempPathFactory
+    ) -> pathlib.Path:
+        """Build credbroker 0.7.0 and agentbundle 0.51.0 wheels (once per class)."""
+        dest = tmp_path_factory.mktemp("both_wheels_ab")
+        _build_credbroker_wheel(dest)
+        _build_agentbundle_wheel(dest)
+        return dest
+
+    @pytest.fixture(scope="class")
+    def venv_with_agentbundle(
+        self,
+        tmp_path_factory: pytest.TempPathFactory,
+        python311: str,
+        both_wheels: pathlib.Path,
+    ) -> pathlib.Path:
+        """Create a clean 3.11 venv with agentbundle + credbroker installed via pip."""
+        venv_dir = tmp_path_factory.mktemp("venv_ab_half") / "venv"
+        result = subprocess.run(
+            [python311, "-m", "venv", str(venv_dir)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            pytest.fail(f"venv creation failed: {result.stderr}")
+        pip = _venv_pip_exe(venv_dir)
+        install_result = subprocess.run(
+            [
+                pip,
+                "install",
+                "--no-index",
+                f"--find-links={both_wheels}",
+                "agentbundle",
+            ],
+            capture_output=True,
+            text=True,
+            env=_clean_env(),
+            check=False,
+        )
+        if install_result.returncode != 0:
+            pytest.fail(
+                f"pip install agentbundle failed (exit {install_result.returncode}):\n"
+                f"stdout:\n{install_result.stdout}\nstderr:\n{install_result.stderr}"
+            )
+        return venv_dir
+
+    def test_credbroker_070_installed_as_dependency(
+        self,
+        venv_with_agentbundle: pathlib.Path,
+    ) -> None:
+        """credbroker 0.7.0 is installed as a dependency of agentbundle. AC-0001."""
+        venv_python = _venv_python_exe(venv_with_agentbundle)
+        script = (
+            "import importlib.metadata, json\n"
+            "try:\n"
+            "    ver = importlib.metadata.version('credbroker')\n"
+            "except importlib.metadata.PackageNotFoundError:\n"
+            "    ver = 'NOT_FOUND'\n"
+            "print(json.dumps({'version': ver}))\n"
+        )
+        run = subprocess.run(
+            [venv_python, "-c", script],
+            capture_output=True,
+            text=True,
+            env=_clean_env(),
+            check=False,
+        )
+        assert run.returncode == 0, (
+            f"Version check failed: stdout={run.stdout!r} stderr={run.stderr!r}"
+        )
+        data = json.loads(run.stdout.strip())
+        assert data["version"] == "0.7.0", (
+            f"Expected credbroker 0.7.0, got {data['version']!r}"
+        )
+
+    def test_both_packages_resolve_inside_venv_site_packages(
+        self,
+        venv_with_agentbundle: pathlib.Path,
+    ) -> None:
+        """agentbundle and credbroker __file__ resolve inside venv, not repo. AC-0001."""
+        venv_python = _venv_python_exe(venv_with_agentbundle)
+        script = (
+            "import agentbundle, credbroker, json\n"
+            "print(json.dumps({"
+            "'ab': agentbundle.__file__, 'cb': credbroker.__file__"
+            "}))\n"
+        )
+        run = subprocess.run(
+            [venv_python, "-c", script],
+            capture_output=True,
+            text=True,
+            env=_clean_env(),
+            check=False,
+        )
+        assert run.returncode == 0, (
+            f"Import check failed: stdout={run.stdout!r} stderr={run.stderr!r}"
+        )
+        data = json.loads(run.stdout.strip())
+        venv_str = str(venv_with_agentbundle.resolve())
+        repo_str = str(REPO_ROOT.resolve())
+        for name, path in (("agentbundle", data["ab"]), ("credbroker", data["cb"])):
+            assert path.startswith(venv_str), (
+                f"{name}.__file__ not inside venv: {path!r}"
+            )
+            assert not path.startswith(repo_str), (
+                f"{name}.__file__ resolves to repo source tree: {path!r}"
+            )
+
+
+# ── AC-0018: installed CLI end-to-end HTTPS catalogue acquisition ─────────────
+
+
+class TestBuiltCliHttpsInstall:
+    """Use the installed agentbundle CLI to fetch catalogue+https:// end-to-end.
+
+    AC-0018: tests anonymous, .netrc Basic-auth, and (skipped unless env vars
+    present) JFrog CLI scenarios.  Each scenario runs the installed console
+    script (not python -m) so the packaging boundary is exercised.
+    """
+
+    @pytest.fixture(scope="class")
+    def python311(self) -> str:
+        """Python 3.11 interpreter path (fails with clear message if absent)."""
+        return _find_python311()
+
+    @pytest.fixture(scope="class")
+    def both_wheels(
+        self, tmp_path_factory: pytest.TempPathFactory
+    ) -> pathlib.Path:
+        """Build credbroker + agentbundle wheels (once per class)."""
+        dest = tmp_path_factory.mktemp("ac18_wheels")
+        _build_credbroker_wheel(dest)
+        _build_agentbundle_wheel(dest)
+        return dest
+
+    @pytest.fixture(scope="class")
+    def installed_venv(
+        self,
+        tmp_path_factory: pytest.TempPathFactory,
+        python311: str,
+        both_wheels: pathlib.Path,
+    ) -> pathlib.Path:
+        """Create a 3.11 venv with agentbundle + credbroker installed via pip."""
+        return _install_built_agentbundle(
+            tmp_path_factory.mktemp("ac18_venv") / "venv", python311, both_wheels
+        )
+
+    @pytest.fixture(scope="class")
+    def tls_cert_key(
+        self, tmp_path_factory: pytest.TempPathFactory
+    ) -> tuple[pathlib.Path, pathlib.Path]:
+        """Generate a self-signed cert + key for 127.0.0.1 with SAN."""
+        if not shutil.which("openssl"):
+            pytest.fail(
+                "openssl is required to generate the loopback certificate for "
+                "the built-CLI scenarios; CI runners provide it"
+            )
+        tls_dir = tmp_path_factory.mktemp("ac18_tls")
+        cert = tls_dir / "cert.pem"
+        key = tls_dir / "key.pem"
+        result = subprocess.run(
+            [
+                "openssl",
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-nodes",
+                "-days",
+                "1",
+                "-subj",
+                "/CN=127.0.0.1",
+                "-addext",
+                "subjectAltName=IP:127.0.0.1",
+                "-keyout",
+                str(key),
+                "-out",
+                str(cert),
+            ],
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            pytest.fail(
+                f"openssl cert generation failed:\n"
+                f"{result.stderr.decode('utf-8', 'replace')}"
+            )
+        return cert, key
+
+    @pytest.fixture(scope="class")
+    def catalogue_routes(self) -> dict[str, bytes]:
+        """Build the minimal descriptor + archive route map."""
+        archive_bytes, sha256_hex = _minimal_catalogue_archive()
+        descriptor = json.dumps(
+            {
+                "schema": 1,
+                "kind": "agentbundle-catalogue",
+                "bundle": "test",
+                "channel": "stable",
+                "release": "1.0.0",
+                "artifact": "archive.tar.gz",
+                "sha256": sha256_hex,
+            }
+        ).encode("utf-8")
+        return {
+            "/channel.json": descriptor,
+            "/archive.tar.gz": archive_bytes,
+        }
+
+    def _run_install(
+        self,
+        installed_venv: pathlib.Path,
+        catalogue_url: str,
+        output_dir: pathlib.Path,
+        cert: pathlib.Path,
+        *,
+        extra_env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess:
+        """Run ``agentbundle install`` from the installed venv's console script."""
+        agentbundle_bin = _venv_agentbundle_exe(installed_venv)
+        env: dict[str, str] = {
+            **_clean_env(),
+            # Direct-HTTPS path: trust the self-signed cert.
+            "AGENTBUNDLE_CA_BUNDLE": str(cert),
+            # Strip any real credential env vars so tests are isolated.
+        }
+        env.pop("AGENTBUNDLE_HTTP_BEARER_TOKEN", None)
+        env.pop("JFROG_CLI_SERVER_ID", None)
+        env.pop("JFROG_CLI_HOME_DIR", None)
+        if extra_env:
+            env.update(extra_env)
+        return subprocess.run(
+            [
+                agentbundle_bin,
+                "install",
+                "--pack",
+                "test-pack",
+                "--output",
+                str(output_dir),
+                catalogue_url,
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+
+    def test_anonymous_install_exits_zero(
+        self,
+        tmp_path: pathlib.Path,
+        installed_venv: pathlib.Path,
+        tls_cert_key: tuple[pathlib.Path, pathlib.Path],
+        catalogue_routes: dict[str, bytes],
+    ) -> None:
+        """Anonymous catalogue install exits 0 and writes state. AC-0018."""
+        cert, key = tls_cert_key
+        output_dir = tmp_path / "repo"
+        output_dir.mkdir()
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        with _loopback_https(catalogue_routes, cert, key) as (base_url, handler):
+            result = self._run_install(
+                installed_venv,
+                f"catalogue+{base_url}channel.json",
+                output_dir,
+                cert,
+                extra_env={
+                    # Redirect HOME so the real user's .netrc is not consulted.
+                    "HOME": str(fake_home),
+                    "USERPROFILE": str(fake_home),
+                },
+            )
+
+        assert result.returncode == 0, (
+            f"Anonymous install failed (exit {result.returncode}):\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        # Observable installed result: state file written.
+        state_file = output_dir / ".agentbundle-state.toml"
+        assert state_file.exists(), (
+            "State file not written after anonymous install"
+        )
+        # No credential canary: no Basic or Bearer token in CLI output.
+        combined = result.stdout + result.stderr
+        assert "Basic " not in combined, (
+            "Credential token visible in CLI output for anonymous scenario"
+        )
+
+    def test_netrc_install_sends_basic_auth_to_loopback(
+        self,
+        tmp_path: pathlib.Path,
+        installed_venv: pathlib.Path,
+        tls_cert_key: tuple[pathlib.Path, pathlib.Path],
+        catalogue_routes: dict[str, bytes],
+    ) -> None:
+        """.netrc credentials produce Basic auth on the loopback origin. AC-0018."""
+        if os.name == "nt":
+            pytest.skip(".netrc chmod 0o600 is not enforced on Windows")
+
+        cert, key = tls_cert_key
+        output_dir = tmp_path / "repo"
+        output_dir.mkdir()
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        # Start server first so we know the dynamic port.
+        with _loopback_https(
+            catalogue_routes, cert, key, require_basic_auth=True
+        ) as (base_url, handler):
+            # Extract the port from the base URL and write host:port .netrc key.
+            port = int(base_url.rstrip("/").rsplit(":", 1)[1])
+            netrc_path = fake_home / ".netrc"
+            # Use host:port key so it matches the non-default port exactly.
+            netrc_path.write_text(
+                f"machine 127.0.0.1:{port} login testuser password testpass\n",
+                encoding="utf-8",
+            )
+            netrc_path.chmod(0o600)
+
+            result = self._run_install(
+                installed_venv,
+                f"catalogue+{base_url}channel.json",
+                output_dir,
+                cert,
+                extra_env={
+                    "HOME": str(fake_home),
+                    "USERPROFILE": str(fake_home),
+                },
+            )
+
+        assert result.returncode == 0, (
+            f".netrc install failed (exit {result.returncode}):\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        # Server must have received a Basic auth header.
+        auth_values = [
+            auth
+            for _, auth in handler.seen
+            if auth and auth.startswith("Basic ")
+        ]
+        assert auth_values, (
+            f"No Basic auth header reached the loopback server.\n"
+            f"handler.seen: {handler.seen!r}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        # Basic header must not appear verbatim in CLI stdout/stderr.
+        for auth_val in auth_values:
+            assert auth_val not in result.stdout, (
+                f"Auth header value found in stdout: {auth_val!r}"
+            )
+            assert auth_val not in result.stderr, (
+                f"Auth header value found in stderr: {auth_val!r}"
+            )
+        # Observable installed result: state file written, carrying no
+        # credential or credential-derived value.
+        state_file = output_dir / ".agentbundle-state.toml"
+        assert state_file.exists(), (
+            "State file not written after .netrc install"
+        )
+        state_text = state_file.read_text(encoding="utf-8")
+        for secret in ("testpass", *auth_values, *(a.split(" ", 1)[1] for a in auth_values)):
+            assert secret not in state_text
+            assert secret not in result.stdout + result.stderr
+
+
+_JF_EXECUTABLE = os.environ.get("AGENTBUNDLE_TEST_JF_EXECUTABLE", "")
+_JF_CA_CERT = os.environ.get("AGENTBUNDLE_TEST_JF_CA_CERT", "")
+_JF_CA_KEY = os.environ.get("AGENTBUNDLE_TEST_JF_CA_KEY", "")
+
+
+@pytest.mark.skipif(
+    not (_JF_EXECUTABLE and _JF_CA_CERT and _JF_CA_KEY),
+    reason=(
+        "AGENTBUNDLE_TEST_JF_EXECUTABLE, AGENTBUNDLE_TEST_JF_CA_CERT, and "
+        "AGENTBUNDLE_TEST_JF_CA_KEY must all be set to run the JFrog leg of "
+        "AC-0018; it runs in a disposable Linux container, where jf api trusts "
+        "the loopback CA through SSL_CERT_FILE"
+    ),
+)
+def test_built_cli_installs_through_a_jfrog_cli_profile(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The installed CLI acquires a catalogue through a real JFrog CLI profile. AC-0018"""
+    token = "disposable-roster-token-0001"
+    wheels = tmp_path / "wheels"
+    wheels.mkdir()
+    _build_credbroker_wheel(wheels)
+    _build_agentbundle_wheel(wheels)
+    venv_dir = _install_built_agentbundle(tmp_path / "venv", _find_python311(), wheels)
+
+    archive_bytes, sha256_hex = _minimal_catalogue_archive()
+    descriptor = json.dumps(
+        {
+            "schema": 1,
+            "kind": "agentbundle-catalogue",
+            "bundle": "test",
+            "channel": "stable",
+            "release": "1.0.0",
+            "artifact": "archive.tar.gz",
+            "sha256": sha256_hex,
+        }
+    ).encode("utf-8")
+    routes = {
+        "/artifactory/cat/channel.json": descriptor,
+        "/artifactory/cat/archive.tar.gz": archive_bytes,
+    }
+    home = tmp_path / "home"
+    home.mkdir()
+    jf_home = tmp_path / "jfrog-home"
+    jf_home.mkdir()
+    output_dir = tmp_path / "repo"
+    output_dir.mkdir()
+
+    with _loopback_https(
+        routes, pathlib.Path(_JF_CA_CERT), pathlib.Path(_JF_CA_KEY)
+    ) as (base_url, handler):
+        jf_env = {
+            "PATH": str(pathlib.Path(_JF_EXECUTABLE).parent),
+            "HOME": str(home),
+            "JFROG_CLI_HOME_DIR": str(jf_home),
+            "SSL_CERT_FILE": _JF_CA_CERT,
+        }
+        subprocess.run(
+            [
+                _JF_EXECUTABLE,
+                "config",
+                "add",
+                "roster-profile",
+                f"--url={base_url}",
+                f"--artifactory-url={base_url}artifactory/",
+                f"--access-token={token}",
+                "--interactive=false",
+            ],
+            env=jf_env,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            check=True,
+            timeout=60,
+        )
+        cli_env = {
+            key: value
+            for key, value in _clean_env().items()
+            if not key.startswith(("AGENTBUNDLE_", "JFROG_", "JF_"))
+        }
+        cli_env.update(jf_env)
+        cli_env["PATH"] = os.pathsep.join(
+            [jf_env["PATH"], str(pathlib.Path(_venv_agentbundle_exe(venv_dir)).parent), "/usr/bin", "/bin"]
+        )
+        result = subprocess.run(
+            [
+                _venv_agentbundle_exe(venv_dir),
+                "install",
+                "--pack",
+                "test-pack",
+                "--output",
+                str(output_dir),
+                f"catalogue+{base_url}artifactory/cat/channel.json",
+            ],
+            capture_output=True,
+            text=True,
+            env=cli_env,
+            cwd=tmp_path,
+            check=False,
+        )
+
+    assert result.returncode == 0, (
+        f"JFrog install failed (exit {result.returncode}):\n"
+        f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+    )
+    state_file = output_dir / ".agentbundle-state.toml"
+    assert state_file.exists(), "State file not written after JFrog install"
+    assert {path for path, _ in handler.seen} >= set(routes)
+    assert all(auth == f"Bearer {token}" for path, auth in handler.seen if path in routes)
+    state_text = state_file.read_text(encoding="utf-8")
+    for secret in (token, "roster-profile"):
+        assert secret not in result.stdout + result.stderr
+        assert secret not in state_text

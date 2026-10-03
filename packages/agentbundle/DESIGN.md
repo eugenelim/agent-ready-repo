@@ -317,6 +317,41 @@ any network contact.
   member path is validated against the pack's declared `allowed-prefixes`
   before being written to disk.
 
+#### HTTPS fetch-session facade and credential resolution
+
+`catalogue_fetch.open_fetch_session(url, env=env)` is the single point where
+access credentials are resolved for any `catalogue+https://` or
+`archive+https://` fetch. It calls `credbroker.resolve_http_access(url, env=env)`
+exactly once per session and yields a `FetchSession` object. All subsequent
+`fetch_bytes()` and `fetch_archive()` calls on that session reuse the same
+resolved credential — no repeated resolution.
+
+**Provider order:** `bearer > jfrog > netrc > anonymous`.
+The chain stops at the first available provider. When a provider is configured
+but broken (a malformed bearer token, a named JFrog profile that is missing, unsafe `.netrc`
+permissions), `credbroker.resolve_http_access` raises `HttpAccessError`; the
+session does not open and the install fails immediately. There is no fallback.
+
+| Provider | Available when | Credential sent |
+| --- | --- | --- |
+| bearer | `AGENTBUNDLE_HTTP_BEARER_TOKEN` set and non-empty | `Authorization: Bearer <token>` |
+| jfrog | `jf` (2.105.0+) on PATH, profile URL matches | Delegated to `jf api --server-id=<id>` subprocess |
+| netrc | `~/.netrc` has matching `machine` key, `0600` | `Authorization: Basic <base64(user:pass)>` |
+| anonymous | Always | None |
+
+The JFrog CLI path appends one `0x0a` byte to stdout; `https_catalogue.py`
+applies a digest-checked trim (OD-1): the SHA-256 of the exact bytes is tried
+first; if it does not match, the file is truncated by one byte and re-verified.
+On Linux, `jf api` trusts a private CA only through `SSL_CERT_FILE` /
+`SSL_CERT_DIR` (OD-2); `AGENTBUNDLE_CA_BUNDLE` is not forwarded to the
+subprocess.
+
+**AgentBundle-to-credbroker edge:** `agentbundle` declares `credbroker>=0.7,<0.8`
+as a wheel-level dependency (pyproject.toml). The import happens inside
+`catalogue_fetch/__init__.py`; it is not top-level so importing
+`agentbundle.https_catalogue` does not trigger credbroker loading for callers
+that never fetch from HTTPS sources.
+
 #### Operator checklist
 
 To enable Artifactory distribution:

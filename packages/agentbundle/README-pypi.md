@@ -14,6 +14,19 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.51.0
+
+HTTPS catalogue acquisition now selects credentials automatically. Set
+`AGENTBUNDLE_HTTP_BEARER_TOKEN` for a bearer token, configure a JFrog CLI 2.105.0+
+profile with `jf login` or `jf config add` (and optionally name it with
+`JFROG_CLI_SERVER_ID`), or provide an exact-machine `.netrc` record for the
+catalogue host. Public catalogues still work with no credential setup. AgentBundle
+picks the first available source and stops — no fallback across credential types.
+
+On a corporate network, set `AGENTBUNDLE_CA_BUNDLE` for the direct HTTPS path.
+For the JFrog CLI path on Linux, set `SSL_CERT_FILE` or `SSL_CERT_DIR` instead;
+`AGENTBUNDLE_CA_BUNDLE` does not reach the `jf` subprocess.
+
 ## What's new in 0.50.0
 
 `agentbundle catalogue sync --package <name>` writes now instead of refusing.

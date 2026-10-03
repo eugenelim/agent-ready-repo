@@ -106,9 +106,17 @@ agentbundle install --pack core
 ```
 
 The channel descriptor points to an immutable versioned archive; agentbundle
-fetches, verifies its SHA-256 digest, and installs. Pass a bearer token via
-`AGENTBUNDLE_HTTP_BEARER_TOKEN` — it is never stored in state, never printed, and
-never forwarded to a different host.
+fetches, verifies its SHA-256 digest, and installs.
+
+AgentBundle picks credentials automatically: set `AGENTBUNDLE_HTTP_BEARER_TOKEN`
+for a bearer token, configure a JFrog CLI 2.105.0+ profile with `jf login` or
+`jf config add` (optionally name it with `JFROG_CLI_SERVER_ID`), or provide an
+exact-machine `.netrc` record. Public catalogues need no credential setup.
+AgentBundle picks the first available source and does not fall back across types.
+
+For the direct path, set `AGENTBUNDLE_CA_BUNDLE` for a private CA. For the JFrog
+CLI path on Linux, use `SSL_CERT_FILE` or `SSL_CERT_DIR`; `AGENTBUNDLE_CA_BUNDLE`
+does not reach the `jf` subprocess.
 
 **JSON output for CI pipelines:**
 
