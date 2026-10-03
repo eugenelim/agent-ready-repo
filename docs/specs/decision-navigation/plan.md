@@ -87,7 +87,7 @@ Owned by: T2, T3
 
 ### Failure, edge cases & resilience
 
-Malformed records, duplicate identifiers, contradictory or missing endpoints, unsafe inputs or destinations, budget refusal, existing output, and interrupted publication produce stable fail-closed results. Bounded mode is an explicit representation, not a partial-failure fallback. Traces to **AC-0005, AC-0007, AC-0009, AC-0013, AC-0014, AC-0022**.
+Malformed records, duplicate identifiers, oversized inputs, unsafe inputs or destinations, budget refusal, existing output, and interrupted publication produce stable fail-closed results. One-sided, contradictory, or missing-endpoint lineage is unresolved evidence, not a failure. Bounded mode is an explicit representation, not a partial-failure fallback. Traces to **AC-0005, AC-0007, AC-0009, AC-0013, AC-0014, AC-0022**.
 
 Owned by: T1, T2, T3
 
@@ -99,7 +99,7 @@ Owned by: T1, T3, T6
 
 ### Dependencies & integration
 
-The feature uses the repository's blessed confined-filesystem helpers and the existing pack build, install, and evaluation paths. It adds no external service or runtime dependency. Traces to **AC-0009, AC-0017, AC-0018, AC-0019, AC-0022**.
+The feature uses the repository's blessed confined-filesystem helpers and the existing pack build, install, and evaluation paths. Pack scripts run standalone from their projection, so the skill vendors a byte-identical copy of the blessed `file_safety.py` beside its scripts rather than reusing the pack-local `_record_paths.py`, which has no bounded read or hashing. A test in `packs/governance-extras/tests/skills/navigate-decisions/` pins the copy against `packs/core/.apm/skills/close-work/scripts/file_safety.py`, the declared source of truth, following the `architect-design` pin in `tests/roster/test_architect_design_reviewer_projection.py`. It adds no external service or runtime dependency. Traces to **AC-0009, AC-0017, AC-0018, AC-0019, AC-0022**.
 
 Owned by: T2, T4
 
@@ -109,7 +109,7 @@ Owned by: T2, T4
 
 **Depends on:** none
 
-**Touches:** `packs/governance-extras/tests/skills/navigate-decisions/**`, `packs/governance-extras/.apm/skills/navigate-decisions/**`
+**Touches:** `packs/governance-extras/tests/skills/navigate-decisions/**`, `packs/governance-extras/.apm/skills/navigate-decisions/**`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`
 
 **Verification mode:** TDD — `packs/governance-extras/tests/skills/navigate-decisions/test_query_contract.py` and the mixed fixture corpus.
 
@@ -122,49 +122,38 @@ Owned by: T2, T4
 **Approach:** Use a checked-in mixed fixture root and a minimal executable seam. The first compilable red assertion is:
 
 ```python
-import json
-import subprocess
+import importlib.util
+import pathlib
 import sys
-from pathlib import Path
 
-
-SCRIPT = Path(
-    "packs/governance-extras/.apm/skills/navigate-decisions/"
-    "scripts/navigate_decisions.py"
+sys.dont_write_bytecode = True
+HERE = pathlib.Path(__file__).resolve().parent
+SCRIPTS = HERE.parents[2] / ".apm/skills/navigate-decisions/scripts"
+FIXTURE = HERE / "fixtures/mixed"
+SPEC = importlib.util.spec_from_file_location(
+    "governance_extras_navigate_decisions", SCRIPTS / "navigate_decisions.py"
 )
-FIXTURE = Path(
-    "packs/governance-extras/tests/skills/navigate-decisions/fixtures/mixed"
-)
+NAV = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(NAV)
 
 
-def test_query_keeps_partial_lineage_checked_and_bodies_bounded() -> None:
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(SCRIPT),
-            "query",
-            "--root",
-            str(FIXTURE),
-            "--record",
-            "ADR-0001",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+def test_record_returns_body_and_checked_partial_lineage() -> None:
+    payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
 
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
     assert payload["schema"] == "decision-navigation.query.v1"
-    assert payload["records"][0]["id"] == "ADR-0001"
-    assert payload["records"][0]["body"] is None
-    assert payload["records"][0]["checked_lineage"] == [
-        {
-            "relation": "superseded-in-part-by",
-            "target": "ADR-0020",
-            "scope": "D3",
-        }
-    ]
+    assert payload["status"] == "ok"
+    record = payload["records"][0]
+    assert record["id"] == "ADR-0001"
+    assert record["body"]["available"] is True
+    expected = {
+        "from": "ADR-0020",
+        "relation": "supersedes_in_part",
+        "to": "ADR-0001",
+        "scope": ["D3"],
+        "trust_class": "checked",
+        "resolution_state": "resolved",
+    }
+    assert any(expected.items() <= r.items() for r in payload["relationships"])
 ```
 
 **Done when:** The positive fixture validates, every negative fixture reaches its intended boundary, and the contract test fails only on the absent query behavior.
@@ -173,7 +162,7 @@ def test_query_keeps_partial_lineage_checked_and_bodies_bounded() -> None:
 
 **Depends on:** T1
 
-**Touches:** `packs/governance-extras/.apm/skills/navigate-decisions/**`, `packs/governance-extras/tests/skills/navigate-decisions/**`
+**Touches:** `packs/governance-extras/.apm/skills/navigate-decisions/**`, `packs/governance-extras/tests/skills/navigate-decisions/**`, `tools/repo/build_gate_chain.py`
 
 **Verification mode:** TDD — `packs/governance-extras/tests/skills/navigate-decisions/test_query_contract.py` and `test_filesystem_safety.py`.
 
@@ -209,7 +198,7 @@ def test_query_keeps_partial_lineage_checked_and_bodies_bounded() -> None:
 
 **Depends on:** T2
 
-**Touches:** `packs/governance-extras/pack.toml`, `packs/governance-extras/.apm/skills/navigate-decisions/evals/eval_queries.json`, `packs/governance-extras/.apm/skills/rfc-status/**`, owned generated projections
+**Touches:** `packs/governance-extras/pack.toml`, `packs/governance-extras/.claude-plugin/plugin.json`, `packs/governance-extras/.apm/skills/navigate-decisions/evals/eval_queries.json`, `packs/governance-extras/.apm/skills/rfc-status/**`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`, `tools/add-rendering-directives.py`, `tests/roster/test_conventions_retirement.py`, owned generated projections
 
 **Verification mode:** TDD and goal-based build/install checks — `packs/governance-extras/.apm/skills/navigate-decisions/evals/eval_queries.json` and owned build outputs.
 
@@ -217,6 +206,7 @@ def test_query_keeps_partial_lineage_checked_and_bodies_bounded() -> None:
 
 - Route migrated `rfc-status` prompts and new landscape, lineage, broader-or-narrower guidance, provenance, constraint, and explorer prompts to `navigate-decisions` (**AC-0017**).
 - Keep creation and revision prompts routed to `new-adr` and `new-rfc` (**AC-0018**).
+- Keep intent-hierarchy and intent-status prompts out of `navigate-decisions` (**AC-0024**).
 - Build and install the pack with `navigate-decisions` and no operative `rfc-status` surface (**AC-0019**).
 
 **Done when:** Activation evaluations, pack build, and installed-surface checks are green before the predecessor skill is removed.
@@ -225,7 +215,7 @@ def test_query_keeps_partial_lineage_checked_and_bodies_bounded() -> None:
 
 **Depends on:** T3, T4
 
-**Touches:** `packs/governance-extras/README.md`, `packs/governance-extras/DESIGN.md`, `packs/governance-extras/JOURNEY.md`, `packs/governance-extras/docs/index.md`, `guides/governance-extras/**`, owning release surface
+**Touches:** `packs/governance-extras/README.md`, `packs/governance-extras/DESIGN.md`, `packs/governance-extras/JOURNEY.md`, `packs/governance-extras/docs/index.md`, `guides/governance-extras/**`, `web/src/content/journeys/governance-extras.md`, `docs/architecture/decision-graph.md`, `docs/product/changelog.md`
 
 **Verification mode:** Goal-based documentation review — `guides/governance-extras/how-to/navigate-decisions.md`, pack build output, and operative-surface search results.
 
@@ -240,7 +230,7 @@ def test_query_keeps_partial_lineage_checked_and_bodies_bounded() -> None:
 
 **Depends on:** T3-T5
 
-**Touches:** `docs/specs/decision-navigation/notes/verification-ledger.md`, corrections required by observed failures
+**Touches:** `docs/specs/decision-navigation/notes/verification-ledger.md`; a correction outside the T1–T5 Touches returns through controlled plan amendment
 
 **Verification mode:** Goal-based and manual comparative evidence — `docs/specs/decision-navigation/notes/verification-ledger.md`.
 
@@ -270,3 +260,6 @@ def test_query_keeps_partial_lineage_checked_and_bodies_bounded() -> None:
 
 - 2026-10-03 — Spec approved (scope decision) by the repository owner.
 - 2026-10-03 — Plan approved (build-strategy decision) by the repository owner.
+- 2026-10-03 — Amended before implementation from pre-EXECUTE review: RFC shape, status-comment rule, summary aggregates and findings-register counts, export destination, link encoding, caller-value inertness, input bound, AC-0020 scoring, AC-0024, history navigation, and complete Touches; then minimal shared ADR/RFC admission shape, register row rule, AC-0020 run unit, export mode and provenance controls, the RFC-0102 supersession grammar, `Related` field and reference grammar, unparseable-entry and unresolved-count rules, scope serialization, commit-bound case-insensitive evidence, the closed relationship value table, per-operation relationship sets, lineage directions, total relationship order with scope comparison, duplicate-entry and trimmed `raw_value` rules, and bounded canonical D-IDs, and decisive AC-0022 proofs. Owner decisions recorded in-session the same day.
+- 2026-10-03 — Amended spec approved (scope decision) by the repository owner, including at most one Status field per header region.
+- 2026-10-03 — Amended plan approved (build-strategy decision) by the repository owner.
