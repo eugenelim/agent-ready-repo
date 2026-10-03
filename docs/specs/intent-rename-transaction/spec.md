@@ -1,9 +1,9 @@
 # Spec: The intent rename transaction
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0108; ADR-0033; ADR-0098
+- **Constrained by:** ADR-0108; ADR-0033; ADR-0098; ADR-0129; ADR-0134
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
 - **Contract:** none
@@ -96,7 +96,7 @@ inside a slice whose other four fifths were ready to build.
 | Decision rationale | Applicable — the transaction and recovery model is the decision this slice exists to settle | `docs/adr/` | eugenelim | An Accepted ADR stating the phase model, what recovery may trust, and the rejected alternatives | The ADR exists and this spec cites it in `Constrained by:` |
 | Maintainer procedure | Applicable — recovery is operator-driven and its refusals need a story | `guides/product-engineering/how-to/` | eugenelim | A how-to covering a rename, each refusal, and both recovery directions | The page walks one real rename and one real recovery end to end |
 | Current product truth | Applicable — `intake-intent` and `work-intake` both state that nothing renames an intent | the two `SKILL.md` bodies | eugenelim | Those statements point at this operation | No skill still claims an intent can never be renamed |
-| Release history | Applicable — the operation ships inside `packs/core` | `packs/core/CHANGELOG.md` | eugenelim | One entry for the shipped operation | Entry present under the released version |
+| Release history | Applicable — the operation ships inside `packs/core` | `docs/product/changelog.md` | eugenelim | One Core entry for the shipped operation | Entry present under the released Core version |
 | Reusable learning | Applicable — the failure modes were measured, and the measurements are why this slice exists | `docs/specs/intent-rename-transaction/notes/verification-ledger.md` | eugenelim | The inherited spike measurements plus whatever this slice measures | The ledger records the measurements the design rests on |
 | Current architecture | Not applicable — the operation adds no module boundary and no layer | — | — | — | — |
 
@@ -108,9 +108,20 @@ inside a slice whose other four fifths were ready to build.
   is what the predecessor slice could not settle in prose, so it is driven by
   execution rather than by argument. Three case families sit inside this group
   rather than beside it, because each is a way the same two-state property
-  fails: recovery reading an untrusted record — truncated, carrying an unknown
-  field, disagreeing with what the request re-derives, or altered after the
-  kill — must refuse before the first destructive act; the sweep must remove a
+  fails: recovery reading an untrusted record — truncated, carrying duplicate
+  or unknown fields, exceeding fixed structural bounds, disagreeing with what
+  the request re-derives, or altered after the kill — must refuse before the
+  first destructive act; an absent or invalid
+  completion seal must never authorize Commit; every non-registry live target
+  must still be its preimage or postimage; `workspace.toml` must be re-read,
+  parsed, semantically transitioned and validated under the shared lock while
+  preserving unrelated valid bytes and entries; a created successor and a
+  stranded shared lock must be recognised by retained filesystem identity
+  rather than byte equality. Clearing the lock additionally requires a bounded
+  canonical owner PID proven dead; live, malformed, foreign and alien-link
+  states refuse before lock mutation.
+  Real kills immediately after each hard link prove recovery accepts only the
+  owned two-link stage artifact and refuses an alien link. The sweep must remove a
   real orphan while leaving a symlinked candidate and another transaction's
   temporary alone; and the lock must not be strandable by a kill inside its
   critical section.
@@ -134,17 +145,43 @@ inside a slice whose other four fifths were ready to build.
 - **The operator how-to: manual QA.** A person follows the page through one
   rename and one recovery; a test cannot tell whether the page is followable.
 
+Construction-stub tally: 11/12 criteria have exact PLAN stubs. AC-0025 is
+`no stub (goal-based)` because its proof is the installed operator surface.
+T2's altered-record matrix is `no stub (implementation-discovered)` until T1
+materializes the sealed record schema; it deepens the existing AC-0026 stub.
+
 ## Acceptance Criteria
 
-- [ ] **AC-0003.** A failure before the rename begins applying leaves the
+- [x] **AC-0003.** A failure before the rename begins applying leaves the
       working tree and the index as they were before it ran.
-- [ ] **AC-0026.** An interruption while the rename is applying leaves the
+- [x] **AC-0026.** An interruption while the rename is applying leaves the
       repository in one of two observable states — every change applied, or a
       partial state naming every path the rename intended to write, from which
       re-running the operation or restoring those paths ends in the complete
       rename or the pre-rename state and in no third state. Which failures
-      recover automatically, and how, is design.
-- [ ] **AC-0001.** After a rename, the vacated path occurs in no tracked file
+      recover automatically, and how, is design. Before the first destructive
+      recovery act, the operation boundedly and confinedly reads a complete
+      sealed record and independently re-derives the allowed write set and
+      exact postimage bytes for every non-registry write from the operator's
+      request, operator-confirmed tombstone date, and pinned repository
+      snapshot. `workspace.toml` is never replayed from a staged postimage:
+      recovery re-reads and parses its current bytes under the shared lock,
+      applies the one semantic source-to-successor transition, validates the
+      result, and preserves unrelated valid bytes and entries. Before semantic use
+      or mutation, its parser rejects duplicate or unknown object keys, wrong
+      scalar or container types, non-finite numbers, nesting beyond a fixed
+      depth, containers beyond a fixed member count, strings beyond a fixed
+      length, and any byte-budget excess, with a fixed diagnostic that echoes no
+      record content. Recovery then establishes that every live target is still
+      an allowed preimage or postimage. A created successor or stranded shared
+      lock is this transaction's only when retained filesystem identity proves
+      it; equal bytes alone never grant ownership. Clearing that same-inode
+      lock also requires one bounded canonical owner PID proven dead; a live,
+      malformed, foreign or alien-link lock refuses before mutation. A missing or invalid
+      completion seal never authorizes a live-path mutation. Stage-only cleanup
+      after seal removal requires a durable cleanup marker written after an
+      independently validated terminal state.
+- [x] **AC-0001.** After a rename, the vacated path occurs in no tracked file
       except the tombstone standing at it and this spec's own
       `notes/verification-ledger.md`. The searched set is the pre-run tracked
       set plus every file the operation creates, whatever its index state, so
@@ -157,7 +194,7 @@ inside a slice whose other four fifths were ready to build.
       operation repoints the source and the projection is regenerated rather
       than edited. The criterion is evaluated after that step, which is the
       only point at which both it and the bar on editing a projection hold.
-- [ ] **AC-0018.** Over AC-0001's searched set, every file that cited the
+- [x] **AC-0018.** Over AC-0001's searched set, every file that cited the
       vacated path before a rename cites the new path after it, and no other content in that file changes.
       A citation is repointed, never removed. A tracked generated projection is
       outside this criterion. The operation repoints that file's `.apm/` source
@@ -170,25 +207,25 @@ inside a slice whose other four fifths were ready to build.
       satisfies it. The renamed artifact itself is
       outside this criterion, because it becomes a tombstone; AC-0024 governs
       it.
-- [ ] **AC-0024.** The successor's bytes equal the retired source's bytes
+- [x] **AC-0024.** The successor's bytes equal the retired source's bytes
       after substituting the new path for the vacated one, and differ nowhere
       else. A source that cites its own path is the case that distinguishes
       this from plain equality: the substitution is what lets AC-0001 and this
       criterion both hold.
-- [ ] **AC-0002.** After a rename the successor's `Slug:` bytes equal the
+- [x] **AC-0002.** After a rename the successor's `Slug:` bytes equal the
       retired source's, the tombstone carries those same bytes, and every
       unaffected intent keeps its prior `Slug:` bytes. The corpus gains an
       occurrence of that value rather than preserving a collection, so the
       mapping is stated directly.
-- [ ] **AC-0012.** The new filename's ordinal is the allocator's next ordinal
+- [x] **AC-0012.** The new filename's ordinal is the allocator's next ordinal
       for the target token over the corpus as it stood before the rename. The
       allocator's answer is the whole requirement: carrying an ordinal across
       fails it whenever carrying and allocating differ, and where they
       coincide there is nothing to distinguish.
-- [ ] **AC-0025.** A rename completes through the surface an installed
+- [x] **AC-0025.** A rename completes through the surface an installed
       `packs/core` exposes to an operator, exercised as an operator invokes it
       rather than through an internal entry point.
-- [ ] **AC-0013.** A request satisfying the request contract in
+- [x] **AC-0013.** A request satisfying the request contract in
       `docs/specs/intent-renumber-and-reissue/spec.md` whose source is registered in
       `workspace.toml` and whose affected paths are all clean succeeds,
       leaving a tombstone at the vacated path whose
@@ -205,17 +242,18 @@ inside a slice whose other four fifths were ready to build.
       gate pins, and a budget that truncated the search instead of refusing
       would leave a stale citation behind while still reporting AC-0001
       satisfied.
-- [ ] **AC-0007.** Resolving a tombstone whose `Reissued as:` names a path
+- [x] **AC-0007.** Resolving a tombstone whose `Reissued as:` names a path
       that does not exist yields a diagnostic naming the tombstone and the
       missing path, on the operator surface AC-0025 names.
-- [ ] **AC-0008.** Resolving a tombstone whose `Reissued as:` names a file that
+- [x] **AC-0008.** Resolving a tombstone whose `Reissued as:` names a file that
       itself carries `Tombstone:` yields a diagnostic naming both paths, on
       that same operator surface.
-- [ ] **AC-0009.** On the operator surface AC-0025 names, resolving a path
+- [x] **AC-0009.** On the operator surface AC-0025 names, resolving a path
       that lands on a tombstone yields a
       diagnostic naming the tombstone and its `Reissued as:` target, and never
       the successor's content. Resolution stops at the tombstone rather than
-      following it.
+      recursively following it; it may boundedly and confinedly inspect exactly
+      the target preamble only to classify the AC-0007 and AC-0008 cases.
 
 ## Retired identifiers
 
@@ -239,10 +277,16 @@ review history behind their wording stays legible._
 
 ## Assumptions
 
-- Process: this slice inherits the tombstone convention from its sibling, whose
-  ADR ratifies it. If that ADR lands with different wording, the tombstone this
-  transaction writes follows the ADR, not this spec
-  (settled by: eugenelim, when the sibling's ADR is Accepted)
 - Technical: the spike could not produce a same-device-different-mount `EXDEV`
   case without elevation, and did not exercise Windows reparse-point semantics.
   Both are recorded as unmeasured in `notes/verification-ledger.md`
+
+## Changelog
+
+- 2026-09-29 — T0 completed. Strengthened AC-0026 and its verification group
+  with the measured recovery-record, preimage/postimage and inode-ownership
+  boundary; added the construction-stub tally.
+- 2026-09-29 — added accepted ADR-0129 to the governing constraints and removed
+  the stale conditional assumption about its acceptance.
+- 2026-09-28 — drafted from the twelve transaction criteria cut out of
+  `intent-renumber-and-reissue` with their identifiers preserved.

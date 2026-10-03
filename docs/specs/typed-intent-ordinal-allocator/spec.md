@@ -1,6 +1,6 @@
 # Spec: Prefix-type-aware intent ordinal allocator
 
-- **Status:** Shipped (2026-09-21) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- shipped 2026-09-21. Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Mode:** full
 - **Brief:** brief:intent-identity-and-registration
