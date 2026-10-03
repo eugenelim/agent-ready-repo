@@ -101,7 +101,7 @@ def test_each_publishable_pack_has_a_passing_readability_fixture() -> None:
         result = readability.evaluate_corpus(documents)
         assert result.status == "pass", (pack.name, result)
         results[pack.name] = result
-    assert len(results) == 22
+    assert len(results) == 23
 
 
 @pytest.mark.parametrize(
