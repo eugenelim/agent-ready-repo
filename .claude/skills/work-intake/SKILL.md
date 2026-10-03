@@ -369,9 +369,13 @@ the cause token to `intake-intent` so it records which refusal occurred. An
 intent without an ordinal is whole: the slug is its identity and the ordinal is
 a human-facing alias. Report no failure to the operator, because none occurred.
 
-Never rename an artifact that already exists to add or change an ordinal. A
-path already on disk keeps it, whatever its `Level`; renumbering is a separate
-workflow with its own citation sweep.
+Never rename an artifact that already exists during ordinary admission, and
+never renumber it in place. A path already on disk keeps it during ordinary
+admission, whatever its `Level`. When an operator needs to change an existing
+intent's token or name, run
+`scripts/intent_rename.py`: it retires the old path with a tombstone, allocates
+a fresh target ordinal, repoints citations, and can recover an interrupted
+transaction.
 
 After the owner returns a durable artifact, register it as a Draft,
 non-dispatchable entry with repository-relative path, source provenance,

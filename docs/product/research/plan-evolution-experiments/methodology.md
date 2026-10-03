@@ -1,5 +1,11 @@
 # Plan Evolution Experiments Methodology
 
+> **ABANDONED 2026-10-02 by owner decision.** The whole measurement effort is
+> closed: no further case, run, or measurement start will be attempted, and all
+> 13 hypotheses ended `unavailable`. This file is retained as the frozen method
+> record. [`FINDINGS.md`](FINDINGS.md) is the terminal record of what the
+> programme learned and why it was closed.
+
 This research record is standalone by design. It freezes the pilot method before any model worker launches and does not depend on the delivery spec directory.
 
 The pilot tests H1 through H13 from the frozen workbench design. The durable design fixture names each hypothesis, its comparison, primary measure, evidence class, and verdict rule. The study records direct pilot evidence separately from retrospective, proxy, and source evidence.
