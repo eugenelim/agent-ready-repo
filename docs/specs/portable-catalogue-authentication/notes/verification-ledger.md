@@ -96,6 +96,28 @@ against the vendor checksum), `jf api` again ignored
 `SSL_CERT_DIR` because no environment variable configures a CA for `jf`. That
 premise is false for `jf api` on Linux.
 
+**Contract test result (T4 Done when).** At commit `0e9bf4b72`,
+`packages/agentbundle/tests/integration/test_jfrog_cli_contract.py` ran
+against the official linux-arm64 JFrog CLI 2.105.0 inside a disposable
+`python:3.11-slim` container. The loopback CA was supplied through
+`SSL_CERT_FILE` and the profile carried only the dummy token. Result: 6 passed
+in 6.36 s. The six tests prove:
+- discovery pins the profile's server ID and both base URLs;
+- descriptor stdout is the body plus exactly the one appended newline, and the
+  loopback host received the profile's bearer header from `jf`, never from
+  AgentBundle;
+- a full `catalogue+https://` acquisition verifies and extracts a binary
+  archive whose last byte is not `0x0a`;
+- a 404 maps to `jfrog_fetch_failed`;
+- a stalled response ends in `jfrog_fetch_timeout` within the 4 s deadline
+  plus 1 s, with no live `jf api` process left;
+- the token, the server ID, the `Http Status` stderr line, and the request URL
+  never appear in the raised error or the DEBUG log.
+
+In the same container run, the JFrog, `.netrc`, and fetch-session unit suites
+passed alongside it: 161 passed, 1 Windows-only skip, in 15.38 s. The adapter
+design passes its kill condition under the amended contract.
+
 ## Owner decisions taken during EXECUTE
 
 Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
