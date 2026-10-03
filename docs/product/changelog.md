@@ -196,6 +196,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
+## [code-intelligence][0.1.3] — 2026-10-03
+
+### Highlights
+
+- The agent can now ask for the route from one symbol to another using `wicked-estate path`. A result of `found: false` with `depth_bounded: true` means the route was not proven absent — the search hit its depth limit — and you can raise `--max-depth` (up to 16) to look deeper.
+- A blast radius now tells you when the depth limit cut it short. `depth_horizon_reached: true` in the JSON output means the result is a floor, not the full set; `--depth N` (maximum 24) lets you search deeper, and `--depth 1` isolates the direct dependents from the transitive ones.
+
+### Changed
+
+- Requires Wicked Estate 0.18 — floor and pin are both 0.18.0; a binary older than 0.18 causes the preflight to exit 4 with a remediation command.
+- `wicked-estate path` is now documented: it follows caller-to-callee edges, returns the shortest route, and reports whether a `found: false` answer is bounded (`depth_bounded` or `node_bounded` true) or proven absent (both false). The 0-based `line` field in path hop endpoints is noted.
+- `blast-radius --depth N` and its three cut fields (`searched_depth`, `depth_horizon_reached`, `node_cap_reached`) replace the earlier silent-depth-12 guidance.
+- MCP-only additions are documented as schema-derived: the `Path` tool, `Lineage` with `relation: "flows_to"`, `SearchEntity` with `include_values`, `rules.recall` with `projects`, and the cut fields on `TraverseGraph`, `BlastRadius`, and `Lineage`. Tool counts are 30 without an embedding backend, 31 with one.
+
 ## [code-intelligence][0.1.2] — 2026-09-30
 
 ### Added

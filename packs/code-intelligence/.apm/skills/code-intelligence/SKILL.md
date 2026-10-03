@@ -57,7 +57,7 @@ consume this skill without any of them knowing about the others.
 Queries run against a graph built by the `wicked-estate` CLI. Install once:
 
 ```bash
-cargo install wicked-estate --version '^0.16' --locked
+cargo install wicked-estate --version 0.18.0 --locked
 ```
 
 ### Step 1 — check the binary and the index before any real work
@@ -71,7 +71,7 @@ python scripts/estate_preflight.py --check
 | 0 | Binary and index both present | Proceed. |
 | 2 | Binary absent | Give the user the install command above. Offer `--install --yes` only if they ask; it compiles from source and takes minutes. Do not install silently. |
 | 3 | No index | Ask before running `wicked-estate index .` — it writes `.wicked-estate/graph.db`. |
-| 4 | Version below the floor | Report it; the documented verbs were verified against 0.16. |
+| 4 | Version below the floor | Report it; the documented verbs were verified against 0.18. |
 
 On exit 2, 3, or 4 you may still answer using your own repository tools, but you
 must say so — see [Degrading without the graph](#degrading-without-the-graph).
@@ -114,7 +114,8 @@ early as the objective allows.
    behaviour: `wicked-estate source <name> --json`.
 
 4. **Expand.** Follow only the relationships the question needs —
-   `blast-radius` for dependents, `graph-view --focus` for a bounded
+   `blast-radius` for dependents, `wicked-estate path A B --json` for a specific
+   route from one symbol to another, `graph-view --focus` for a bounded
    neighbourhood, `clusters` for subsystem shape.
 
 5. **Stop.** Stop when you have enough evidence for the user's objective, not
@@ -143,17 +144,19 @@ flattening it into confident prose.
 Three rules are load-bearing:
 
 - **A blast radius is a floor, not a total.** `blast-radius --json` returns an
-  `unresolved` count of references the indexer could not bind, and a
-  `truncated_dependents` count when output was capped at 25,000 characters.
-  A third limit is **not reported at all**: the CLI traverses to a hardcoded
-  depth of 12. Report the two numbers, and mention the horizon when reach
-  matters; never present the list as complete.
+  `unresolved` count of references the indexer could not bind, a
+  `truncated_dependents` count when output was capped at 25,000 characters, and
+  `searched_depth`, `depth_horizon_reached`, and `node_cap_reached` fields. Use
+  `blast-radius <name> --depth N` (default 12, max 24) to control reach; when
+  `depth_horizon_reached` is true, the result is bounded — raise `--depth`. Report
+  all three completeness numbers; never present the list as complete.
 - **A heuristic edge is not a fact.** Every edge carries confidence and
   provenance. A name-matched edge and a compiler-verified one look identical in
   a flat list. Where an edge is load-bearing for your conclusion, verify it
   against source before relying on it.
 - **Freshness will not appear in your JSON.** The `STALENESS:` line prints from
-  only five subcommands, and `blast-radius` suppresses it under `--json`. Its
+  only six subcommands — `query`, `blast-radius`, `stats`, `clusters`, `context`,
+  and `path` — and `blast-radius` and `path` suppress it under `--json`. Its
   absence is not evidence the graph is current — run a bare `wicked-estate
   stats` when freshness matters, and say which revision you answered from.
 

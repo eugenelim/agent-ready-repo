@@ -24,13 +24,13 @@ the pack, because it is what the agent reads:
 ## Two surfaces
 
 Wicked Estate ships a command-line tool and an MCP server. The pack drives the
-**CLI** by default, for two reasons: the server advertises 29 tool schemas that
+**CLI** by default, for two reasons: the server advertises 30 tool schemas that
 stay resident in the agent's context for a whole session, and the CLI is the
-larger surface — 34 subcommand names, several with no MCP equivalent.
+larger surface — 35 subcommand names, several with no MCP equivalent.
 
 | Surface | Maturity | Why |
 | --- | --- | --- |
-| CLI | **validated** | Exercised against a real index; tests pin the returned shapes for nine verbs and check the rest for acceptance |
+| CLI | **validated** | Exercised end to end against a real index; tests pin the returned shapes of `resolve`, `blast-radius` (with `--depth`), `path`, and other verbs on a small fixture, and check the rest for acceptance |
 | MCP | **contract-complete** | Mapped from upstream's registered tools and conformance schemas. Never executed by this pack |
 
 Four capabilities are **MCP-only**: `Lineage`, `RulesInventory`,
@@ -43,7 +43,8 @@ if you need them, and prefer `--readonly`.
 | --- | --- |
 | Resolve a name to a stable ID | `wicked-estate resolve <name> --json` |
 | Fetch source | `wicked-estate source --symbols <id> --json` |
-| What depends on this | `wicked-estate blast-radius <name> --json` |
+| What depends on this | `wicked-estate blast-radius <name> [--depth N] --json` |
+| Route from A to B | `wicked-estate path <from> <to> [--max-depth N] --json` |
 | Bounded neighbourhood | `wicked-estate graph-view --focus <name>` |
 | Load-bearing symbols | `wicked-estate rank` |
 | Subsystems | `wicked-estate clusters --json` |
@@ -55,15 +56,24 @@ if you need them, and prefer `--readonly`.
 The text path re-runs a name search instead, so an ambiguous name returns every
 match while appearing pinned to one. Always pass `--json` with a selector.
 
+## What the CLI reports about completeness
+
+- **`blast-radius --json`** returns `unresolved`, `truncated_dependents`,
+  `searched_depth`, `depth_horizon_reached` and `node_cap_reached`. A true
+  `depth_horizon_reached` means more dependents lie beyond the depth searched;
+  raise `--depth` (default 12, maximum 24).
+- **`path --json`** returns `found`, `depth_bounded`, `node_bounded` and
+  `unresolved`. `found: false` with both bound flags false means no route
+  exists. With either flag true, a route may lie beyond the search. Endpoint
+  `line` counts from 0; use `line_1based`.
+
 ## What does not exist
 
-- **A path between two symbols.** Reachability is answerable; the route is not.
-- **Depth on a CLI blast radius**, so direct and transitive impact cannot be
-  separated from the CLI alone.
-- **Per-edge confidence or provenance on CLI read paths**, although every edge
-  carries them in the model.
-- **A reported traversal horizon.** The CLI stops at twelve hops and says
-  nothing.
+- **Per-edge confidence or provenance on blast-radius rows**, although every
+  edge carries them in the model. Use `wicked-estate path A B --json` for
+  per-hop evidence on a specific route.
+- **Ranked dependents on the CLI.** `rank` is a global top-25 with no seed and
+  no input set; MCP `BlastRadius` has `summary.top_by_pagerank`.
 - **A structured graph revision field.** Recoverable from a staleness warning
   plus `stats`, not queryable.
 

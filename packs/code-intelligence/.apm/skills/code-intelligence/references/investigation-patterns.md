@@ -95,25 +95,26 @@ this work".
 
 3. **Read the completeness fields before reading the list.** `unresolved` counts
    references that could not be bound, and `truncated_dependents` counts rows
-   dropped at the 25,000-character bound. Both mean your list is a floor.
+   dropped at the 25,000-character bound. Both mean your list is a floor. Also
+   read `depth_horizon_reached`: when true, the text prints `CUT AT depth=N`
+   and you can raise `--depth` (max 24) to go further.
 
-   There is a third limit and it is **not reported**: the CLI traverses to a
-   hardcoded depth of 12, and anything further away is silently absent from all
-   three numbers. Say so when the answer depends on reach.
-
-   Freshness is not in this output either — `blast-radius` suppresses its
-   `STALENESS:` line under `--json`. Run a bare `wicked-estate stats` to learn
-   whether the graph is behind the working tree.
+   Freshness is not in this output — `blast-radius` suppresses its `STALENESS:`
+   line under `--json`. Run a bare `wicked-estate stats` to learn whether the
+   graph is behind the working tree.
 
 4. **Separate direct from transitive.** The flat `dependents` array does not
-   distinguish them. Get depth by traversing:
+   distinguish them. Get depth by running:
+
+   ```bash
+   wicked-estate blast-radius parse_config --depth 1 --json
+   ```
+
+   That gives the direct dependents. The difference against the full blast
+   radius is the transitive set.
 
    - MCP available: `TraverseGraph` with `direction: "dependents"` and
-     `depth: 1` gives the direct set; the difference against the full blast
-     radius is the transitive set. The response carries per-node depth.
-   - CLI only: run `blast-radius` on the subject, then treat
-     `graph-view --focus <subject>` as the local first-hop picture, and say
-     that finer depth attribution was not available.
+     `depth: 1` gives the direct set with per-node depth in the response.
 
 5. **Inspect the important paths, not the whole list.** A hundred-row list
    pasted back is not impact analysis. Five paths read properly is.
@@ -145,21 +146,26 @@ caveat is stated, and each claimed breakage is grounded in source.
 
 ## 3. Investigate behavior
 
-**Question shape:** "Why does the retry loop fire twice?"
+**Question shape:** "Why does the retry loop fire twice?" or "How does A reach B?"
 
 1. **Locate the relevant implementation.** Start from the observable symptom.
    `wicked-estate query` for a name you already know; `wicked-estate semantic`
    when you only have a description **and** the index carries embeddings.
 
-2. **Follow what the behaviour actually flows through.** Calls via
+2. **When the question is a specific route, use path.** For "how does A reach B",
+   run `wicked-estate path A B --json` and read only the hop files. A `found:false`
+   with `depth_bounded: true` means the route is not proven absent — raise
+   `--max-depth`. `found:false` with both bound flags false is proven absence.
+
+3. **Follow what the behaviour actually flows through.** Calls via
    `graph-view --focus`; configuration via `source --file <path> --json`; rules via MCP
    `RulesInventory` and `TraverseGraph` with `edge_kinds: ["invoked_by"]`.
 
-3. **Gather evidence incrementally.** One hop, read, decide whether the next hop
+4. **Gather evidence incrementally.** One hop, read, decide whether the next hop
    is warranted. Pulling a large subgraph and then reasoning over it produces
    confident answers from unread code.
 
-4. **Keep heuristic edges out of the causal chain.** A name-resolved edge is a
+5. **Keep heuristic edges out of the causal chain.** A name-resolved edge is a
    candidate, not a call. Where an edge is load-bearing for the explanation,
    open the source and confirm the call is really there.
 

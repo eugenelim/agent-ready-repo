@@ -8,7 +8,7 @@ and reading what actually comes back.
 It is skipped when `wicked-estate` is absent, so it self-declares as unrun
 rather than passing vacuously. To run it:
 
-    cargo install wicked-estate --version 0.16.7 --locked
+    cargo install wicked-estate --version 0.18.0 --locked
     pytest packs/code-intelligence/tests/skills/code-intelligence/
 
 The index is built once per session into a temp directory from a purpose-built
@@ -65,7 +65,7 @@ BINARY = shutil.which("wicked-estate")
 
 pytestmark = pytest.mark.skipif(
     BINARY is None,
-    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.16.7 --locked`",
+    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.18.0 --locked`",
 )
 
 
@@ -137,15 +137,28 @@ def test_resolve_reports_ambiguity_rather_than_collapsing_it(graph: Path) -> Non
 
 
 def test_blast_radius_json_top_level_keys(graph: Path, known_symbol: dict) -> None:
-    """The four CLI keys the pack's completeness guidance depends on."""
+    """The seven CLI keys the pack's completeness guidance depends on.
+
+    0.18.0 adds searched_depth, depth_horizon_reached, and node_cap_reached
+    to the existing four, enabling the agent to distinguish a depth-cut result
+    from a complete one.  See gaps.md §Completeness for the gap this closes.
+    """
     payload = json.loads(run("blast-radius", known_symbol["name"], "--json", db=graph).stdout)
-    assert set(payload) == {"target", "dependents", "unresolved", "truncated_dependents"}
+    assert set(payload) == {
+        "target",
+        "dependents",
+        "unresolved",
+        "truncated_dependents",
+        "searched_depth",
+        "depth_horizon_reached",
+        "node_cap_reached",
+    }
 
 
 def test_blast_radius_dependents_have_no_depth_or_confidence(
     graph: Path, known_symbol: dict
 ) -> None:
-    """gaps.md #7 and #11 claim the CLI form omits both. Hold them to it."""
+    """gaps.md §Impact and §Confidence claim the CLI form omits both. Hold them to it."""
     payload = json.loads(run("blast-radius", known_symbol["name"], "--json", db=graph).stdout)
     assert payload["dependents"], "fixture symbol has no dependents"
     row = payload["dependents"][0]
@@ -250,7 +263,7 @@ def test_context_rows_lack_symbol_id(graph: Path, known_symbol: dict) -> None:
 
 
 def test_undocumented_but_dispatched_verbs_are_accepted(graph: Path) -> None:
-    """gaps.md #14 claims three verbs work despite being absent from --help."""
+    """gaps.md §Capability discovery claims three verbs work despite being absent from --help."""
     assert run("by-requirement", "REQ-NONEXISTENT", db=graph).returncode == 0
     assert run("graph-view", "--limit", "5", db=graph).returncode == 0
     # `semantics` with no symbol prints its own usage rather than the banner,
@@ -360,3 +373,215 @@ def test_signatures_only_requires_json(graph: Path, known_symbol: dict) -> None:
         run("source", "--symbols", known_symbol["symbol_id"], "--json", db=graph).stdout
     )
     assert with_body["nodes"][0]["source"]
+
+
+# ── 0.18.0: blast-radius --depth and searched_depth ───────────────────────────
+
+
+@pytest.fixture(scope="session")
+def helper_symbol(indexed_graph: Path) -> dict:
+    """The resolved symbol for `helper` in the fixture (defined exactly once in core.py)."""
+    completed = run("resolve", "helper", "--json", db=indexed_graph)
+    hits = json.loads(completed.stdout)
+    assert len(hits) == 1, "helper should be defined exactly once in the fixture"
+    return hits[0]
+
+
+def test_blast_radius_default_searched_depth(graph: Path) -> None:
+    """AC-0014: blast-radius with no --depth reports searched_depth of 12.
+
+    See gaps.md §Completeness for the default traversal depth that 0.18.0 now
+    reports explicitly via searched_depth.
+    """
+    payload = json.loads(run("blast-radius", "helper", "--json", db=graph).stdout)
+    assert payload["searched_depth"] == 12
+
+
+def test_blast_radius_depth_sets_horizon_reached_and_searched(graph: Path) -> None:
+    """AC-0015: --depth 1 reports depth_horizon_reached true and searched_depth 1.
+
+    See gaps.md §Completeness: depth_horizon_reached distinguishes a cut result
+    from a complete one.
+    """
+    payload = json.loads(
+        run("blast-radius", "helper", "--depth", "1", "--json", db=graph).stdout
+    )
+    assert payload["depth_horizon_reached"] is True
+    assert payload["searched_depth"] == 1
+
+
+def test_blast_radius_depth_ceiling_is_24(graph: Path) -> None:
+    """AC-0016: --depth 24 exits 0 and --depth 25 exits non-zero.
+
+    See gaps.md §Completeness: the maximum depth is 24; values above it are
+    refused rather than silently clamped.
+    """
+    assert run("blast-radius", "helper", "--depth", "24", db=graph).returncode == 0
+    assert run("blast-radius", "helper", "--depth", "25", db=graph).returncode != 0
+
+
+def test_blast_radius_text_cut_line(graph: Path) -> None:
+    """AC-0017: --depth 1 in text mode prints a line containing 'CUT AT depth=1'.
+
+    See gaps.md §Completeness: the text output now surfaces the depth horizon
+    so an agent without --json can still see that output was cut.
+    """
+    stdout = run("blast-radius", "helper", "--depth", "1", db=graph).stdout
+    assert "CUT AT depth=1" in stdout
+
+
+# ── 0.18.0: path command ──────────────────────────────────────────────────────
+
+
+def test_path_entry_to_helper_found_with_two_hops(graph: Path) -> None:
+    """AC-0018: path entry helper --json returns found true and exactly two hops.
+
+    Each hop must carry kind, confidence, provenance, resolved_by, source, and
+    target.  The fixture path is entry -> handle (core.py) -> helper.
+    See gaps.md §Paths for the capability that 0.18.0 adds.
+    """
+    payload = json.loads(
+        run("path", "entry", "helper", "--json", db=graph).stdout
+    )
+    assert payload["found"] is True
+    assert len(payload["hops"]) == 2, (
+        f"expected 2 hops, got {len(payload['hops'])}"
+    )
+    required_hop_keys = {"kind", "confidence", "provenance", "resolved_by", "source", "target"}
+    for hop in payload["hops"]:
+        assert required_hop_keys <= set(hop), (
+            f"hop missing keys: {required_hop_keys - set(hop)}"
+        )
+
+
+def test_path_helper_to_entry_not_found_unbounded(graph: Path) -> None:
+    """AC-0019: path helper entry --json returns found false with both bounds false.
+
+    The dependency direction is entry->handle->helper, so the reverse walk
+    finds no path.  Both depth_bounded and node_bounded must be false because
+    the walk was not cut short.  See gaps.md §Paths.
+    """
+    payload = json.loads(
+        run("path", "helper", "entry", "--json", db=graph).stdout
+    )
+    assert payload["found"] is False
+    assert payload["depth_bounded"] is False
+    assert payload["node_bounded"] is False
+
+
+def test_path_entry_helper_depth_bounded_absence(graph: Path) -> None:
+    """AC-0020: path entry helper --max-depth 1 returns found false with depth_bounded true.
+
+    The path from entry to helper takes 2 hops; with max-depth 1 the walk
+    touches its frontier without finding the target.  See gaps.md §Paths.
+    """
+    payload = json.loads(
+        run("path", "entry", "helper", "--max-depth", "1", "--json", db=graph).stdout
+    )
+    assert payload["found"] is False
+    assert payload["depth_bounded"] is True
+
+
+def test_path_entry_helper_found_with_depth_bounded(graph: Path) -> None:
+    """AC-0021: path entry helper --max-depth 2 returns found true with depth_bounded true.
+
+    depth_bounded is true whenever the walk touches its frontier, even when a
+    route is found.  The 2-hop path from entry to helper exactly reaches the
+    max-depth frontier.  See gaps.md §Paths.
+    """
+    payload = json.loads(
+        run("path", "entry", "helper", "--max-depth", "2", "--json", db=graph).stdout
+    )
+    assert payload["found"] is True
+    assert payload["depth_bounded"] is True
+
+
+def test_path_unresolved_from_side(graph: Path) -> None:
+    """AC-0022: path nope helper --json exits 0 and returns unresolved 'from'.
+
+    An unresolved input on the from side exits 0 so that a workflow can handle
+    it gracefully.  See gaps.md §Paths.
+    """
+    result = run("path", "nope", "helper", "--json", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["unresolved"] == "from"
+
+
+def test_path_unresolved_to_side(graph: Path) -> None:
+    """AC-0023: path entry nope --json exits 0 and returns unresolved 'to'.
+
+    An unresolved input on the to side exits 0 so that a workflow can handle
+    it gracefully.  See gaps.md §Paths.
+    """
+    result = run("path", "entry", "nope", "--json", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["unresolved"] == "to"
+
+
+def test_path_above_16_max_depth_accepted(graph: Path) -> None:
+    """AC-0024: path entry helper --max-depth 17 exits 0 and returns found true.
+
+    Values above 16 are accepted by the shared parser (clamped to 16 internally
+    per source-read, but accepted without error).  See gaps.md §Paths.
+    """
+    result = run("path", "entry", "helper", "--max-depth", "17", "--json", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["found"] is True
+
+
+def test_path_hop_endpoints_line_numbering(graph: Path) -> None:
+    """AC-0025: every path endpoint has line_1based equal to line + 1.
+
+    The path command reports line as 0-based (unlike resolve and blast-radius),
+    and provides line_1based as the 1-based equivalent.  See gaps.md §Paths for
+    the note on the 0-based line caveat.
+    """
+    payload = json.loads(
+        run("path", "entry", "helper", "--json", db=graph).stdout
+    )
+    assert payload["found"] is True
+    for hop in payload["hops"]:
+        for endpoint_key in ("source", "target"):
+            endpoint = hop[endpoint_key]
+            assert endpoint["line_1based"] == endpoint["line"] + 1, (
+                f"{endpoint_key} endpoint: line_1based {endpoint['line_1based']} "
+                f"!= line {endpoint['line']} + 1"
+            )
+
+
+def test_path_helper_endpoint_matches_resolve_line(
+    graph: Path, indexed_graph: Path, helper_symbol: dict
+) -> None:
+    """AC-0026: the 'helper' endpoint in path entry helper has line_1based matching resolve.
+
+    resolve reports 1-based line numbers; path reports 0-based line plus
+    line_1based.  They must agree: path.line_1based == resolve.line.  See
+    gaps.md §Paths for the line-numbering caveat.
+    """
+    resolve_line = helper_symbol["line"]
+
+    payload = json.loads(
+        run("path", "entry", "helper", "--json", db=graph).stdout
+    )
+    assert payload["found"] is True
+
+    # Find the endpoint named "helper" among all hop endpoints.
+    helper_endpoint: dict | None = None
+    for hop in payload["hops"]:
+        for ep_key in ("source", "target"):
+            if hop[ep_key].get("name") == "helper":
+                helper_endpoint = hop[ep_key]
+                break
+        if helper_endpoint is not None:
+            break
+
+    assert helper_endpoint is not None, (
+        "no endpoint named 'helper' found in path hops"
+    )
+    assert helper_endpoint["line_1based"] == resolve_line, (
+        f"path endpoint line_1based {helper_endpoint['line_1based']} "
+        f"!= resolve line {resolve_line}"
+    )

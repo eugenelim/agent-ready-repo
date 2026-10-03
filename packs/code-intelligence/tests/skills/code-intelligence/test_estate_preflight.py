@@ -41,7 +41,7 @@ def test_absent_binary_exits_two_with_the_install_command(monkeypatch) -> None:
 
 def test_present_binary_without_index_exits_three(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(preflight, "find_binary", lambda: "/usr/bin/wicked-estate")
-    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 16, 7))
+    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 18, 0))
     monkeypatch.delenv(preflight.DB_ENV_VAR, raising=False)
     code, report = preflight.build_report(root=tmp_path, explicit_db=None)
     assert code == preflight.EXIT_INDEX_ABSENT
@@ -53,7 +53,7 @@ def test_ready_when_binary_and_index_both_present(monkeypatch, tmp_path) -> None
     db.parent.mkdir(parents=True)
     db.write_bytes(b"")
     monkeypatch.setattr(preflight, "find_binary", lambda: "/usr/bin/wicked-estate")
-    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 16, 7))
+    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 18, 0))
     monkeypatch.delenv(preflight.DB_ENV_VAR, raising=False)
     code, report = preflight.build_report(root=tmp_path, explicit_db=None)
     assert code == preflight.EXIT_READY
@@ -62,10 +62,10 @@ def test_ready_when_binary_and_index_both_present(monkeypatch, tmp_path) -> None
 
 def test_version_below_floor_exits_four(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(preflight, "find_binary", lambda: "/usr/bin/wicked-estate")
-    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 15, 2))
+    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 17, 0))
     code, report = preflight.build_report(root=tmp_path, explicit_db=None)
     assert code == preflight.EXIT_VERSION_BELOW
-    assert report["required"] == "0.16"
+    assert report["required"] == "0.18"
 
 
 def test_unparseable_version_does_not_block_a_working_binary(monkeypatch, tmp_path) -> None:
@@ -130,7 +130,7 @@ def test_env_override_escaping_via_symlink_is_refused(monkeypatch, tmp_path) -> 
 def test_refused_override_reports_exit_six_and_names_the_fix(monkeypatch, tmp_path) -> None:
     """The refusal must be actionable, not indistinguishable from no index."""
     monkeypatch.setattr(preflight, "find_binary", lambda: "/usr/bin/wicked-estate")
-    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 16, 7))
+    monkeypatch.setattr(preflight, "read_version", lambda _b: (0, 18, 0))
     monkeypatch.setenv(preflight.DB_ENV_VAR, "/etc/passwd")
     code, report = preflight.build_report(root=tmp_path, explicit_db=None)
     assert code == preflight.EXIT_OVERRIDE_REFUSED

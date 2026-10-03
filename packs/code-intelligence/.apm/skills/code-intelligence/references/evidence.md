@@ -71,16 +71,22 @@ whatever the store returned — not the most important dependents. On a mid-size
 repository this fires easily: a probe against this catalogue returned 7
 unresolved and **727 truncated**.
 
-### The depth cap nobody reports
+### The depth cut is reported
 
-The CLI hardcodes blast-radius traversal to **depth 12**. Dependents beyond 12
-hops are dropped and are counted in *neither* of the two fields above — the
-horizon is silent. MCP `BlastRadius` takes an explicit `depth` (default 8, max
-24) and stamps each dependent with its own `depth`, so there the reach is
-visible.
+`blast-radius --json` returns `searched_depth`, `depth_horizon_reached`, and
+`node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
+`CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
+`--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives
+only the direct dependents; the difference against the full run is the transitive
+set.
 
-When reach matters to your conclusion, say which surface you used and what its
-horizon was.
+`wicked-estate path A B --json` separates bounded from proven absence: `found:false`
+with `depth_bounded: true` means the route may exist beyond the current
+`--max-depth`; `found:false` with both bound flags false means the whole reachable
+set was searched and no route was found.
+
+When reach matters to your conclusion, say which surface you used, what depth you
+searched, and whether `depth_horizon_reached` was true.
 
 ### Node caps on traversal
 
@@ -100,10 +106,10 @@ The CLI prints this on stdout:
 STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate index . --repo my-repo` to refresh
 ```
 
-**But only from five subcommands** — `query`, `blast-radius`, `stats`,
-`clusters`, and `context` — and `blast-radius` suppresses it under `--json`,
-because machine output must be exactly one JSON document. Since this skill
-teaches the `--json` forms, you will usually not see it at all.
+**But only from six subcommands** — `query`, `blast-radius`, `stats`,
+`clusters`, `context`, and `path` — and `blast-radius` and `path` suppress it
+under `--json`, because machine output must be exactly one JSON document. Since
+this skill teaches the `--json` forms, you will usually not see it at all.
 
 So do not treat its absence as evidence of freshness. Run a bare
 `wicked-estate stats` when freshness matters; that is the one command that
