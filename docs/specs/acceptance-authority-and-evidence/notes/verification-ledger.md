@@ -51,3 +51,118 @@ T9a writes the dispatched run's ID, head commit SHA, the shard that ran the
 work-loop pack suite, and the printed AC-0018 p95 and AC-0019 cold-rehydration
 figures into this ledger, because the job log expires under the repository's
 log-retention setting (deferred round-13 adversarial Nit).
+
+## T9a acceptance evidence map
+
+Each criterion maps to the suites that exercise it. Pack-behaviour suites live
+in `packs/core/tests/skills/work-loop/`; repository-level suites live in `tests/roster/`. Every runtime module's
+records are also pinned to their canonical schemas by the roster parity suites
+(`test_delivery_contract_bundle.py`, `test_security_primitives_schema_parity.py`,
+`test_acceptance_schema_parity.py`, `test_delivery_subject_parity.py`,
+`test_containment_attestation_parity.py`, `test_evidence_store_schema_parity.py`).
+`test_t9a_conformance_rollup.py` proves the projected `.claude/` and `.agents/`
+copies are byte-identical to the pack source and importable.
+
+| AC | Evidence |
+| --- | --- |
+| AC-0001 | `test_policy_import.py::TestCanonicalizationCorpus` |
+| AC-0002 | `test_policy_import.py::TestAtomicImport` |
+| AC-0003 | `test_acceptance.py::TestEnvelopeProjection`; `test_policy_import.py::TestChangeClassification` |
+| AC-0004 | `test_acceptance.py::TestChangeClassifier`; `test_policy_import.py::TestChangeClassification` |
+| AC-0005 | `test_subject_projection.py::TestProviderParityAC0005` |
+| AC-0006 | `test_subject_projection.py::TestSubjectAdmissionNegativesAC0006`, `::TestTraversalLimitsAC0006` |
+| AC-0007 | `test_acceptance.py::TestVerdictEvaluation`; `test_compat_facade.py::TestAC0007DualEmitCorpus` |
+| AC-0008 | `test_evidence_store.py::TestAllOrNoneVisibility`, `::TestChecksumAndReferenceCorruption`, `::TestIndexDeleteAndRebuild` |
+| AC-0009 | `test_acceptance.py::TestFreshnessEvaluation`; `test_evidence_store.py::TestFreshnessAndContradiction` |
+| AC-0010 | `test_security_primitives.py::TestCapabilityIntersection`, `::TestCapabilityGrantLifecycle`; `test_containment_broker.py::TestAttestationWithinGrant` |
+| AC-0011 | `test_security_primitives.py::TestConfinedMutationHappyPath`, `::TestConfinedMutationAdversarial`; `test_compat_facade.py::TestAC0011Confinement` |
+| AC-0012 | `test_process_safety.py` (all classes) |
+| AC-0013 | `test_containment_broker.py::TestDeliveryControlPathGuard`, `::TestForgeryFixturesPerAdapter`, `::TestDirectSyscallForgery`, `::TestProtectedRefForgery`, `::TestBrokerBypassForgery`, `::TestLaunchUntrusted`; `test_containment_attestation_parity.py` |
+| AC-0014 | `test_content_safety.py`; `test_content_safety_boundary_matrix.py`; the content-profile refusals in `test_policy_import.py::TestAtomicImport` |
+| AC-0015 | `test_content_safety.py` (no-payload and inert-data cases) |
+| AC-0016 | `test_compat_facade.py::TestAC0016ShadowOff`, `::TestAC0016ShadowOn`; the engine and cohort suites (571 passed, 5 skipped); the T9a real invocation below |
+| AC-0017 | `test_policy_import.py::TestReverseReader`; `test_compat_facade.py::TestAC0017Governance` |
+| AC-0018 | `test_acceptance_benchmark.py` (asserts p95 within 2 s); binding run: the `test-corpus.yml` dispatch, pending owner confirmation |
+| AC-0019 | `test_cold_rehydration_benchmark.py` (asserts within 10 s); binding run: the `test-corpus.yml` dispatch, pending owner confirmation |
+| AC-0020 | `test_security_primitives.py::TestSecurityEventWriterAuthority`; `test_policy_import.py::TestWriterAuthorityRefusals`; `test_evidence_store.py::TestProducerCapabilityChecks`; `test_containment_broker.py::TestBrokerCapabilityFailures` |
+| AC-0021 | `test_security_primitives.py::TestSecurityEvents`; `test_process_safety.py::TestAuditSinkUnavailable`, `::TestAuditEventOrder`; `test_evidence_store.py::TestAuditSinkBehavior` |
+
+The clean-environment fence (`test_t9a_clean_env_fence.py`) evidences the
+Never-do rule that no `work-loop` runtime module imports outside the standard
+library and its siblings, and that the projected scripts run where `agentbundle`
+is not importable. The other Never-do rule, no change under
+`packages/agentbundle/`, is a fact about this slice rather than a lasting
+repository rule, so it is checked once here instead of by a permanent test:
+`git diff --name-only origin/main -- packages/agentbundle` listed 0 files at
+branch head `6616ba4f7` on base `c586b26cf` (2026-10-02). T9b re-runs it before
+closeout.
+
+## T9a real invocation
+
+Recorded 2026-10-02 using a throwaway spec in a temporary git repository.
+Both runs used the pack source scripts at
+`packs/core/.apm/skills/work-loop/scripts/` (byte-identical to the projected
+copies at `.claude/skills/work-loop/scripts/`). Commands are shown with
+positional arguments abbreviated as `<spec-dir>`; all resolved to absolute
+paths in execution. All exits were 0.
+
+### Run A: WORK_LOOP_SHADOW_SERVICES=1
+
+```
+WORK_LOOP_SHADOW_SERVICES=1 python loop-engine.py init <spec-dir> --mode code --json
+  exit 0  → state=SPEC-PLAN-REVIEW, run_id=<run-id-A>
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-cohort.py init <spec-dir> --run-id <run-id-A>
+  exit 0
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-engine.py transition <spec-dir> spec-ready
+  exit 0  → state=SPEC-PLAN-REVIEW, last_event=spec-ready
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-engine.py transition <spec-dir> reviewers-clean
+  exit 0  → state=SPEC-HUMAN-GATE, last_event=reviewers-clean
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-engine.py transition <spec-dir> spec-approved
+  exit 0  → state=PLAN-HUMAN-GATE, last_event=spec-approved
+
+[write plan.md to <spec-dir>]
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-engine.py transition <spec-dir> plan-approved
+  exit 0  → state=SPEC-PLAN-APPROVED, last_event=plan-approved
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-cohort.py approve-plan <spec-dir> --expect-run-id <run-id-A>
+  exit 0
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-cohort.py schedule <spec-dir> --expect-run-id <run-id-A>
+  exit 0
+
+WORK_LOOP_SHADOW_SERVICES=1 python loop-engine.py transition <spec-dir> plan-locked
+  exit 0  → state=CODE-IMPLEMENTATION, last_event=plan-locked, transition_sequence=5
+```
+
+Shadow evidence written to `<spec-dir>/.shadow-acceptance/`:
+
+- `evidence.jsonl`: 5 records, all `authoritative: false`
+  - events: `spec-ready`, `reviewers-clean`, `spec-approved`, `plan-approved`, `plan-locked`
+- `policy-import.json`: `{"governance_required_for_authority_switch": true}`
+
+### Run B: WORK_LOOP_SHADOW_SERVICES unset
+
+Identical 9-command sequence with the env var unset. All exits 0.
+Final state: `state=CODE-IMPLEMENTATION`, `last_event=plan-locked`,
+`transition_sequence=5`.
+
+No `.shadow-acceptance/` directory written.
+
+### Comparison
+
+The following `engine-state.json` fields are identical across both runs:
+`feature`, `mode`, `state`, `last_event`, `transition_sequence`,
+`schema_version`, `gate_question`, `last_event_context`.
+
+Fields that differ: `run_id` (each run generates a fresh UUID) and
+`last_transition_at` (wall-clock timestamps differ).
+
+Legacy authority made every decision in both runs. The shadow facade
+(Run A) emitted non-authoritative records for observability only and
+did not alter any engine state or cohort state. The byte-identical
+`engine-state.json` semantic fields confirm this.

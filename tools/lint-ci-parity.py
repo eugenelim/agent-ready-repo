@@ -717,6 +717,18 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # roster file.
     "pytest evidence-store schema parity (roster-owned)":
         LOCAL("test-after-build-check"),
+    # T9a conformance roll-up: verifies byte-identity of both adapter projections
+    # to the pack source and imports key modules from the projected paths.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest T9a conformance roll-up (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T9a clean-environment fence: static import analysis, subprocess
+    # agentbundle-free fence, and agentbundle/ diff assertion — each with red
+    # evidence.  LOCAL("test-after-build-check") is correct: that target's
+    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    "pytest T9a clean-environment fence (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -1024,6 +1036,8 @@ _GATE_MAIN_CHECKS = (
     "pytest acceptance schema parity (roster-owned)",
     "pytest containment-attestation schema parity (roster-owned)",
     "pytest evidence-store schema parity (roster-owned)",
+    "pytest T9a conformance roll-up (roster-owned)",
+    "pytest T9a clean-environment fence (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",

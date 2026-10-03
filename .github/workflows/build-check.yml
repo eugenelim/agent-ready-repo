@@ -774,6 +774,27 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_evidence_store_schema_parity.py
 
+      # T9a conformance roll-up: verifies that both adapter projections
+      # (.claude/skills/work-loop/scripts/ and .agents/skills/work-loop/scripts/)
+      # are byte-identical to the pack source, plus import smoke-tests from each
+      # projected path and red evidence that the byte-identity check can fail.
+      # Reads above any single pack tree, so lint-pack-test-boundary forbids a
+      # pack home.  Sits ABOVE the carve-out step below whose `pytest tests/ -q`
+      # also collects it, so that a failure is attributed to this named step.
+      - name: pytest T9a conformance roll-up (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_t9a_conformance_rollup.py
+
+      # T9a clean-environment fence: three independent checks (static import
+      # analysis, subprocess agentbundle-free fence, agentbundle/ diff assertion)
+      # each with red evidence.  Uses git diff origin/main and subprocess, so it
+      # reads above any single pack tree — lint-pack-test-boundary forbids a pack
+      # home.  Sits ABOVE the carve-out step below whose `pytest tests/ -q` also
+      # collects it, so that a failure is attributed to this named step.
+      - name: pytest T9a clean-environment fence (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_t9a_clean_env_fence.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
