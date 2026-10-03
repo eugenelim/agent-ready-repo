@@ -89,8 +89,7 @@ and direction sheet:
 - **First-viewport thesis** — what the opening viewport makes clear, what
   concrete evidence or mechanism it exposes, and which primary action or
   continuation it supports. This is not a hero layout prescription.
-- **Approved visual target** — optional. When present, identify the target,
-  what is binding, what is illustrative, and what may adapt responsively.
+- **Approved visual target** — optional. When present and the human has confirmed it (`visual_target: confirmed`), identify the target, what is binding, what is illustrative, and what may adapt responsively.
 - **Signature interaction** — the interaction that materially expresses the
   product or helps someone understand or operate it. `none` is valid.
   Decorative motion is not a signature interaction.

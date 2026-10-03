@@ -16,12 +16,13 @@
     },
     {
       "id": 2,
-      "prompt": "Run a well-architected review of a serverless design that omits the latency budget and asserts a managed-service limit with no cited source.",
-      "expected_output": "A WA-mode critique that, via the serverless lens, raises two findings: an unbudgeted synchronous long-operation path (a 🟥 blocker when the work cannot fit the binding front-door timeout — structurally impossible, not merely slow), and a load-bearing managed-service claim with no visible grounding (the reviewer re-derives or flags rather than trusting the design's own assertion). Findings carry the mechanical/judgment tag.",
+      "prompt": "Run a well-architected review of a serverless design that omits the latency budget and asserts a managed-service limit with no cited source. The team also calls the product SaaS.",
+      "expected_output": "A WA-mode critique that, via the supported serverless lens, raises two findings: an unbudgeted synchronous long-operation path (a 🟥 blocker when the work cannot fit the binding front-door timeout — structurally impossible, not merely slow), and a load-bearing managed-service claim with no visible grounding (the reviewer re-derives or flags rather than trusting the design's own assertion). It does not offer SaaS as a workload-class lens. Findings carry the mechanical/judgment tag.",
       "assertions": [
         "Raises the unbudgeted synchronous long-operation path as a finding, a 🟥 blocker when it makes the design structurally impossible",
         "Raises the ungrounded load-bearing managed-service claim as a finding, re-deriving or flagging rather than trusting the design's assertion",
-        "Tags each WA-mode finding mechanical (🔧) or judgment (🧭)"
+        "Tags each WA-mode finding mechanical (🔧) or judgment (🧭)",
+        "Offers only workload-class lenses backed by a corpus concept and does not offer SaaS as a workload-class lens"
       ]
     },
     {
