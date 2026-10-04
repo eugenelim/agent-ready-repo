@@ -303,9 +303,25 @@ def _do_temp_write_rename(
                         f"exclusive create failed for {relative}: {exc}",
                     ) from exc
                 else:
-                    # Link succeeded: the content is at leaf; remove the temp name.
+                    # Link succeeded; remove the temp name so the target has
+                    # exactly one hard link.  If the removal fails, roll back
+                    # by unlinking the target and refusing with a stable code,
+                    # so a successful create never leaves a multiply-linked file.
                     committed = True
-                    _try_unlink_by_dir_fd(temp_name, parent_fd)
+                    try:
+                        os.unlink(temp_name, dir_fd=parent_fd)
+                    except OSError as _unlink_exc:
+                        # Rollback: remove the target so no two-link file is
+                        # left reachable at the intended path.  Set
+                        # committed=False so the outer handler can attempt to
+                        # clean the temp name by absolute path as a last resort.
+                        with contextlib.suppress(OSError):
+                            os.unlink(leaf, dir_fd=parent_fd)
+                        committed = False
+                        raise MutationDenied(
+                            "denied-rollback-failed",
+                            f"exclusive create cleanup failed for {relative}: {_unlink_exc}",
+                        ) from _unlink_exc
             else:
                 # Non-exclusive atomic replace: rename replaces an existing target.
                 try:

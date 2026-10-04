@@ -326,8 +326,9 @@ class CapabilityIssuer:
     """
 
     def __init__(self) -> None:
-        # grant_id → (CapabilityGrant, revoked: bool, expires_at_monotonic: float | None)
-        self._grants: dict[str, tuple[CapabilityGrant, bool, float | None]] = {}
+        # grant_id → (CapabilityGrant, revoked: bool, expires_at: float | None,
+        #              parent_id: str | None)
+        self._grants: dict[str, tuple[CapabilityGrant, bool, float | None, str | None]] = {}
 
     def _new_grant_id(self) -> str:
         return "grant-" + secrets.token_hex(16)
@@ -375,7 +376,7 @@ class CapabilityIssuer:
         expires_at: float | None = None
         if expires_in_s is not None:
             expires_at = time.monotonic() + expires_in_s
-        self._grants[grant_id] = (grant, False, expires_at)
+        self._grants[grant_id] = (grant, False, expires_at, None)
         return grant
 
     def issue_child_grant(
@@ -385,43 +386,88 @@ class CapabilityIssuer:
     ) -> CapabilityGrant:
         """Issue a child grant as the intersection of *parent* and *request*.
 
-        Verifies the parent is currently valid before issuing.
+        Verifies the parent is currently valid before issuing.  The request
+        must carry the same trust class as the parent; no class ordering is
+        declared, so a mismatch is refused rather than silently resolved.
 
-        Raises CapabilityRefused if the parent is not valid.
+        The child's expiry is capped at the parent's registered expiry.  The
+        parent link is stored so that verify_grant fails a child whose parent
+        (transitively) is expired or revoked.
+
+        Raises CapabilityRefused if the parent is not valid or if the request
+        and parent trust classes differ.
         """
         if not self.verify_grant(parent):
             raise CapabilityRefused(
                 "denied-invalid-parent",
                 "parent grant is not valid (not issued here, expired, or revoked)",
             )
+        if request.trust_class != parent.trust_class:
+            raise CapabilityRefused(
+                "denied-trust-class-mismatch",
+                "child grant request trust class differs from parent; issuance refused",
+            )
+        # Retrieve the parent's registered expiry to cap the child's lifetime.
+        parent_entry = self._grants.get(parent.grant_id)
+        parent_expires_at: float | None = parent_entry[2] if parent_entry is not None else None
         new_id = self._new_grant_id()
         child = intersect_grants(parent, request, new_grant_id=new_id)
-        self._grants[new_id] = (child, False, None)
+        self._grants[new_id] = (child, False, parent_expires_at, parent.grant_id)
         return child
 
     def revoke_grant(self, grant_id: str) -> None:
         """Revoke a grant.  Revoked grants fail all future verifications."""
         entry = self._grants.get(grant_id)
         if entry is not None:
-            grant, _, expires_at = entry
-            self._grants[grant_id] = (grant, True, expires_at)
+            grant, _, expires_at, parent_id = entry
+            self._grants[grant_id] = (grant, True, expires_at, parent_id)
 
     def verify_grant(self, grant: CapabilityGrant) -> bool:
         """Return True iff *grant* was issued by this issuer and is not expired or revoked.
 
         A caller-built grant (grant_id not in this registry) or a grant whose
-        fields do not match the registered copy both return False.
+        fields do not match the registered copy both return False.  For a child
+        grant, every ancestor in the parent chain must also be valid: a child is
+        invalid when any ancestor is revoked or expired.
         """
         entry = self._grants.get(grant.grant_id)
         if entry is None:
             return False
-        registered_grant, revoked, expires_at = entry
+        registered_grant, revoked, expires_at, parent_id = entry
         if revoked:
             return False
         if expires_at is not None and time.monotonic() > expires_at:
             return False
         # Guard against a replayed grant with altered fields (privilege escalation)
-        return registered_grant is grant or registered_grant == grant
+        if not (registered_grant is grant or registered_grant == grant):
+            return False
+        # Transitively verify the parent chain.
+        return parent_id is None or self._verify_parent_chain(parent_id)
+
+    def _verify_parent_chain(self, parent_id: str) -> bool:
+        """Return True iff every ancestor in the parent chain is valid.
+
+        Walks the chain iteratively with cycle detection to avoid recursion
+        depth issues.  Returns False if any ancestor is revoked or expired, or
+        if the chain references an unknown grant ID.
+        """
+        visited: set[str] = set()
+        current_id: str | None = parent_id
+        while current_id is not None:
+            if current_id in visited:
+                # Cycle detected — existing checks already passed for these IDs.
+                break
+            visited.add(current_id)
+            entry = self._grants.get(current_id)
+            if entry is None:
+                return False
+            _, ancestor_revoked, ancestor_expires_at, next_parent_id = entry
+            if ancestor_revoked:
+                return False
+            if ancestor_expires_at is not None and time.monotonic() > ancestor_expires_at:
+                return False
+            current_id = next_parent_id
+        return True
 
 
 # ── In-code schema validation ─────────────────────────────────────────────────

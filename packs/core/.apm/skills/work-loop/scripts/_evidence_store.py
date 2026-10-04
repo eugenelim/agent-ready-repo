@@ -98,22 +98,80 @@ _EVIDENCE_LOG_MAX_BYTES: Final[int] = 256 * 1024 * 1024  # 256 MiB
 
 
 @contextlib.contextmanager
-def _advisory_lock(path: Path) -> Generator[int, None, None]:
-    """Acquire an exclusive advisory lock on *path*; yield the open fd.
+def _advisory_lock(
+    root: Path,
+    path: Path,
+    *,
+    expected_identity: tuple[int, int] | None = None,
+) -> Generator[int, None, None]:
+    """Acquire an exclusive advisory lock on *path* via a confined parent-fd walk.
 
-    The caller may use the fd for ``os.fstat`` or ``os.ftruncate`` on the
-    locked inode.  The lock is released and the fd closed on exit regardless
-    of exceptions.  Not called when ``_HAS_FCNTL`` is False.
+    Yield the open fd.  Opens the log through its parent directory fd with O_RDWR, O_NOFOLLOW,
+    O_NONBLOCK, and O_CLOEXEC.  Refuses when the target is not a regular file,
+    has more than one hard link, or (when expected_identity is supplied) its
+    (st_dev, st_ino) differs from the identity recorded at read time.  A FIFO
+    placed at the log path raises EvidenceStoreError without blocking.
+
+    The lock is released and the fd closed on exit regardless of exceptions.
+    Not called when _HAS_FCNTL is False.
     """
-    fd = os.open(str(path), os.O_RDWR | getattr(os, "O_CLOEXEC", 0))
+    fs = _file_safety()
     try:
+        relative = path.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise EvidenceStoreError(
+            f"advisory lock path is outside root: {path}"
+        ) from exc
+
+    open_flags = os.O_RDWR
+    for _flag in ("O_NOFOLLOW", "O_NONBLOCK", "O_CLOEXEC"):
+        if hasattr(os, _flag):
+            open_flags |= getattr(os, _flag)
+
+    fd = -1
+    try:
+        try:
+            with fs._open_confined_parent(root, path, relative=relative) as (parent_fd, leaf):
+                if parent_fd is None:
+                    # Fallback host: open by path with the no-follow flags.
+                    fd = os.open(str(path), open_flags)
+                else:
+                    fd = os.open(leaf, open_flags, dir_fd=parent_fd)
+        except fs.UnsafeContentError as exc:
+            raise EvidenceStoreError(
+                f"advisory lock path failed confinement check: {exc}"
+            ) from exc
+
+        file_stat = os.fstat(fd)
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise EvidenceStoreError(
+                f"advisory lock target is not a regular file: {relative}"
+            )
+        if file_stat.st_nlink != 1:
+            raise EvidenceStoreError(
+                f"advisory lock target has more than one hard link: {relative}"
+            )
+        if expected_identity is not None and (
+            file_stat.st_dev, file_stat.st_ino
+        ) != expected_identity:
+            raise EvidenceStoreError(
+                f"advisory lock target identity changed since read: {relative}"
+            )
+
         _fcntl.flock(fd, _fcntl.LOCK_EX)  # type: ignore[name-defined]
         try:
             yield fd
         finally:
             _fcntl.flock(fd, _fcntl.LOCK_UN)  # type: ignore[name-defined]
+
+    except EvidenceStoreError:
+        raise
+    except OSError as exc:
+        raise EvidenceStoreError(f"advisory lock failed: {exc}") from exc
     finally:
-        os.close(fd)
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 # ── Exceptions ─────────────────────────────────────────────────────────────────
 
@@ -631,6 +689,10 @@ class EvidenceStore:
         # Set when a rollback after a failed append itself fails; the file
         # state is then unknown.  Cleared only by a fresh open() call.
         self._poisoned: bool = False
+        # (st_dev, st_ino) of the log file recorded at the last read.
+        # Used by _truncate_log_safe to refuse a truncation when the file
+        # at the log path is not the file that was read.
+        self._log_identity: tuple[int, int] | None = None
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -727,6 +789,18 @@ class EvidenceStore:
         except OSError as exc:
             raise EvidenceStoreError(f"cannot read evidence log: {exc}") from exc
 
+        # Record the identity of the file just read so that _truncate_log_safe
+        # can refuse a truncation when the file at the path differs from the one
+        # that was read.  lstat is used because read_confined_regular_file
+        # already refused any non-regular file or symlink.
+        try:
+            _ls = os.lstat(self._log_path)
+            self._log_identity = (
+                (_ls.st_dev, _ls.st_ino) if stat.S_ISREG(_ls.st_mode) else None
+            )
+        except OSError:
+            self._log_identity = None
+
         # Reset indexes before rebuild.
         self._receipts.clear()
         self._receipts_by_criterion.clear()
@@ -813,7 +887,9 @@ class EvidenceStore:
             self._truncate_log(complete_bytes)
             return
         try:
-            with _advisory_lock(self._log_path) as lock_fd:
+            with _advisory_lock(
+                self._root, self._log_path, expected_identity=self._log_identity
+            ) as lock_fd:
                 current_size = os.fstat(lock_fd).st_size
                 if current_size > bytes_read:
                     # A concurrent appender committed a new frame; do not remove it.
@@ -925,7 +1001,7 @@ class EvidenceStore:
         cm = _confined_mutation()
         try:
             if _HAS_FCNTL:
-                with _advisory_lock(self._log_path):
+                with _advisory_lock(self._root, self._log_path):
                     cm.confined_append(self._root, self._log_path, frame_bytes)
             else:
                 cm.confined_append(self._root, self._log_path, frame_bytes)
@@ -1034,7 +1110,7 @@ class EvidenceStore:
         cm = _confined_mutation()
         try:
             if _HAS_FCNTL:
-                with _advisory_lock(self._log_path):
+                with _advisory_lock(self._root, self._log_path):
                     cm.confined_append(self._root, self._log_path, frame_bytes)
             else:
                 cm.confined_append(self._root, self._log_path, frame_bytes)

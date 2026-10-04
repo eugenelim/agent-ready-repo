@@ -293,10 +293,18 @@ def validate_process_spec_dict(d: dict) -> tuple[bool, str]:
     executable = d.get("executable", "")
     if not isinstance(executable, str) or not Path(executable).is_absolute():
         return False, "denied-non-absolute-executable"
+    # A NUL byte in the executable path terminates the C-string at the OS
+    # boundary, silently truncating the path and defeating identity pinning.
+    if "\x00" in executable:
+        return False, "denied-invalid-field-value"
 
     # argv must be a list of strings; a bare string turns into single-char args.
     argv_val = d.get("argv")
     if not isinstance(argv_val, list) or not all(isinstance(i, str) for i in argv_val):
+        return False, "denied-invalid-field-value"
+    # A NUL byte in any argv item terminates the C-string at the OS boundary,
+    # silently splitting or truncating the argument.
+    if any("\x00" in item for item in argv_val):
         return False, "denied-invalid-field-value"
 
     # environment_allowlist must be a list of strings with no '=' or NUL,
@@ -406,12 +414,16 @@ def _kill_process_tree(proc: subprocess.Popen) -> None:  # type: ignore[type-arg
     Does NOT call ``proc.wait()``; the caller is responsible for draining
     the process after this returns.  Silently ignores errors from processes
     that have already exited.
+
+    Because every managed launch uses ``start_new_session=True``, the
+    process-group ID equals ``proc.pid``.  Using ``proc.pid`` directly
+    avoids an ``os.getpgid`` call that fails once the leader is reaped.
     """
     if hasattr(os, "killpg"):
-        with contextlib.suppress(OSError, ProcessLookupError):
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        with contextlib.suppress(OSError, ProcessLookupError, PermissionError):
+            os.killpg(proc.pid, signal.SIGKILL)
     else:
-        with contextlib.suppress(OSError, ProcessLookupError):
+        with contextlib.suppress(OSError, ProcessLookupError, PermissionError):
             proc.kill()
 
 
@@ -778,6 +790,15 @@ def launch_safe_process(
             "denied-launch-failed",
             f"cannot open or verify executable {spec_dict['executable']!r}: {exc}",
         ) from exc
+    except Exception:
+        # Any non-OSError (e.g. ValueError from a NUL that passed schema
+        # validation through another path) must also store a denial event and
+        # surface as ProcessDenied without leaking exception text.
+        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+        raise ProcessDenied(
+            "denied-launch-failed",
+            "cannot open or verify executable",
+        ) from None
 
     # The open descriptor (Linux) must be closed after Popen starts.
     # This try/finally ensures closure even when validation or Popen raise.
@@ -831,6 +852,17 @@ def launch_safe_process(
             for name in spec_dict["environment_allowlist"]
             if name in vals
         }
+
+        # Refuse a NUL byte in any supplied environment value before the allow
+        # event.  A NUL terminates the C-string at the OS boundary, silently
+        # truncating the value and potentially hiding injected content.
+        for _env_val in env.values():
+            if isinstance(_env_val, str) and "\x00" in _env_val:
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+                raise ProcessDenied(
+                    "denied-invalid-field-value",
+                    "environment value contains an invalid character",
+                )
 
         # Resolve stdin according to mode.
         bound: int = spec_dict["output_bound_bytes"]
@@ -952,6 +984,15 @@ def launch_safe_process(
                 "denied-launch-failed",
                 f"process launch failed: {exc}",
             ) from exc
+        except Exception:
+            # Any non-OSError (e.g. ValueError from an unexpected field type)
+            # must also store a denial event and surface as ProcessDenied
+            # without leaking exception text.
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-launch-failed",
+                "process launch failed",
+            ) from None
         finally:
             # Close the verified descriptor now that the child has started
             # (or Popen failed).  The kernel keeps the binary mapped in the
@@ -990,6 +1031,18 @@ def launch_safe_process(
                 "denied-launch-failed",
                 f"process I/O error: {exc}",
             ) from exc
+        except Exception:
+            # Any non-OSError from _communicate_bounded must also kill the tree,
+            # store a denial event, and surface as ProcessDenied without leaking
+            # exception text.
+            _kill_process_tree(proc)
+            with contextlib.suppress(Exception):
+                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-launch-failed",
+                "process I/O error",
+            ) from None
 
         # Output cap breach: determine whether the process is still running.
         # A process that already wrote all its output and is in the process of
@@ -1046,6 +1099,17 @@ def launch_safe_process(
             output_was_truncated=truncated,
             output_was_redacted=was_redacted,
         )
+
+        # Signal the process group on the normal-exit path so that no background
+        # child survives the launch.  The error paths (timeout, I/O, cap) already
+        # kill via _kill_process_tree.  Because start_new_session=True the group
+        # ID equals proc.pid; use it directly — os.getpgid fails once the leader
+        # is reaped.  Tolerate ProcessLookupError and PermissionError in case the
+        # group is already empty.
+        if hasattr(os, "killpg"):
+            with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
+                os.killpg(proc.pid, signal.SIGKILL)
+
     finally:
         # Ensure the verified descriptor is closed if any step raised before
         # the Popen finally block could close it.

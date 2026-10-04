@@ -431,13 +431,29 @@ def check_attestation_within_grant(
     if grant_child_denied and attest_child_allowed:
         return False, "denied-attestation-broader-than-grant"
 
+    # Destination restriction: when the grant allows network but restricts to
+    # specific destinations, the v1 attestation schema has no destinations field
+    # and therefore cannot prove that restriction.  Any network-allowed attestation
+    # against such a grant must be refused.
+    grant_net_allowed = grant_network is not None and getattr(grant_network, "allowed", False)
+    if attest_net_allowed and grant_net_allowed:
+        grant_dests = getattr(grant_network, "allowed_destinations", ())
+        if grant_dests:
+            return False, "denied-attestation-broader-than-grant"
+
     # limits: attestation limits must not be more permissive than the grant.
+    # When the grant sets a limit, an attestation that omits it cannot prove
+    # that restriction and must be refused.
     grant_limits = getattr(grant, "limits", None)
     if grant_limits is not None:
         grant_max_bytes = getattr(grant_limits, "max_bytes", None)
         grant_timeout_s = getattr(grant_limits, "timeout_s", None)
         attest_max_bytes = attestation.limits.get("max_bytes")
         attest_timeout_s = attestation.limits.get("timeout_s")
+        if grant_max_bytes is not None and attest_max_bytes is None:
+            return False, "denied-attestation-broader-than-grant"
+        if grant_timeout_s is not None and attest_timeout_s is None:
+            return False, "denied-attestation-broader-than-grant"
         if (
             grant_max_bytes is not None
             and attest_max_bytes is not None

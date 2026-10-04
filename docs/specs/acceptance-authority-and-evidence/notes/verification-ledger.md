@@ -238,3 +238,20 @@ path runs after a final no-follow check that its device and inode still match
 the verified file. Accepted residual risk: on macOS a short window remains
 between that check and exec. Exploiting it needs write access to the
 executable's directory, which the trust model excludes.
+
+A fourth override on 2026-10-04 followed security review round 2, which found
+no Blockers and upheld 5 Concerns and 1 Nit, and refuted 1 Nit. The owner chose
+to fix all six in one wave. Each fix stays inside the current schemas; none adds
+a `containment-attestation.v1` destinations field. CI run 37214031330 at
+`8cdf5d88b` passed on every shard, which exercised the Linux `/proc/self/fd`
+exec path that cannot run on macOS.
+
+Security round 2 fixes, mutation-checked against the pre-fix code: the NUL,
+post-allow error, and success-path group-kill tests in `test_process_safety.py`;
+the attestation limit and destination tests and the child-grant trust,
+expiry, and parent-chain tests; and the evidence-log lock symlink-swap and
+inode-change tests plus the exclusive-create rollback test all fail without
+their fixes. `TestAdvisoryLockConfinement::test_fifo_at_log_path_does_not_block`
+also passes without the lock fix, because the store's earlier regular-file
+check already refuses a FIFO log. It stays as a regression guard and is not
+counted as evidence for the lock change.

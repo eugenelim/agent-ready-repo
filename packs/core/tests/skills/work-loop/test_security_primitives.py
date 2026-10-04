@@ -781,6 +781,52 @@ class TestExclusiveCreateRace:
         confined_mutation.confined_atomic_replace(tmp_root, target, b"new content")
         assert target.read_bytes() == b"new content"
 
+    def test_unlink_failure_after_link_raises_denied_rollback_failed(
+        self,
+        confined_mutation: ModuleType,
+        tmp_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Unlink failure after link raises MutationDenied and leaves no two-link target.
+
+        Red evidence: the old code called _try_unlink_by_dir_fd which suppresses
+        every OSError, so a failed unlink silently left st_nlink == 2 and the
+        create reported success.  With the fix, the unlink is not suppressed:
+        failure triggers a rollback that unlinks the target name and raises
+        MutationDenied('denied-rollback-failed'), so the successful create always
+        leaves a target with exactly one link.
+        """
+        import errno
+        import os as _os
+
+        target = tmp_root / "unlink-fail-exclusive.txt"
+        content = b"test-content"
+        real_unlink = _os.unlink
+        call_count = [0]
+
+        def _fail_first_unlink(path: str, *, dir_fd: int | None = None) -> None:
+            call_count[0] += 1
+            if call_count[0] == 1:
+                # Fail the first call (temp-name cleanup after a successful link).
+                raise OSError(errno.EIO, "simulated unlink failure in test")
+            return real_unlink(path, dir_fd=dir_fd)  # type: ignore[call-arg]
+
+        monkeypatch.setattr(_os, "unlink", _fail_first_unlink)
+
+        with pytest.raises(confined_mutation.MutationDenied) as exc_info:
+            confined_mutation.confined_create(tmp_root, target, content)
+
+        assert exc_info.value.denial_code == "denied-rollback-failed", (
+            f"expected denied-rollback-failed, got {exc_info.value.denial_code!r}"
+        )
+        # Rollback must have removed the target: no two-link file at the intended path.
+        assert not target.exists(), (
+            "target must not exist after rollback; a two-link file must not be left behind"
+        )
+        # No temp files must linger.
+        remaining = list(tmp_root.glob(".wl-tmp-*"))
+        assert not remaining, f"temp files must be cleaned up after rollback: {remaining}"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # AC-0020 / AC-0021: Security events and durable audit

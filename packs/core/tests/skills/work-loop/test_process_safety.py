@@ -1726,3 +1726,201 @@ class TestProcessSpecTypeValidation:
         assert not any(e.outcome == "allowed" for e in events), (
             "no allow event must be stored when env name contains NUL"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 2: NUL bytes in argv, env values, and executable path
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestNulByteDenial:
+    """NUL bytes in argv, env values, and executable path are refused before allow.
+
+    Each test must fail (allow the launch or raise without a denial event)
+    when the corresponding NUL check is reverted.
+    """
+
+    def test_nul_in_argv_item_refused_before_allow(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An argv item containing NUL is refused before the allow event.
+
+        A NUL byte in an argv item terminates the C-string at the OS boundary,
+        silently splitting or truncating the argument.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        bad = _spec(str(tmp_path), argv=["-c\x00injected", "pass"])
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, bad, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"argv item with NUL must be refused; got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when argv contains a NUL byte"
+        )
+        assert len([e for e in events if e.outcome == "denied"]) >= 1, (
+            "a denied event must be stored for a NUL in argv"
+        )
+
+    def test_nul_in_env_value_refused_before_allow(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An environment value containing NUL is refused before the allow event.
+
+        A NUL byte in a value terminates the C-string at the OS boundary,
+        silently truncating the value and potentially hiding injected content.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        spec = _spec(
+            str(tmp_path),
+            environment_allowlist=["SAFE_VAR"],
+        )
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps, spec,
+                env_values={"SAFE_VAR": "value\x00injected"},
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"env value with NUL must be refused; got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when an env value contains a NUL byte"
+        )
+        assert len([e for e in events if e.outcome == "denied"]) >= 1, (
+            "a denied event must be stored for a NUL in an env value"
+        )
+
+    def test_nul_in_executable_path_refused_before_allow(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An executable path containing NUL is refused before the allow event.
+
+        A NUL byte in the path terminates the C-string at the OS boundary,
+        silently truncating the path and defeating identity pinning.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        bad = _spec(str(tmp_path), executable=PYTHON + "\x00garbage")
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, bad, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"executable with NUL must be refused; got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when the executable path contains NUL"
+        )
+        assert len([e for e in events if e.outcome == "denied"]) >= 1, (
+            "a denied event must be stored for a NUL in the executable path"
+        )
+
+    def test_non_oserror_from_popen_mapped_to_process_denied(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A non-OSError raised by Popen after the allow event is mapped to ProcessDenied.
+
+        Monkeypatches subprocess.Popen to raise ValueError (a non-OSError) so
+        the post-allow exception handler is exercised.  The allow event must
+        appear in the sink and a denial event must follow it.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+
+        _real_popen = subprocess.Popen
+
+        def _bad_popen(*args, **kwargs):  # noqa: ANN002, ANN003
+            raise ValueError("injected non-OSError Popen failure")
+
+        subprocess.Popen = _bad_popen  # type: ignore[assignment]
+        try:
+            with pytest.raises(ps.ProcessDenied) as exc_info:
+                _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
+        finally:
+            subprocess.Popen = _real_popen  # type: ignore[assignment]
+
+        assert exc_info.value.denial_code == "denied-launch-failed", (
+            f"non-OSError from Popen must map to denied-launch-failed; "
+            f"got {exc_info.value.denial_code!r}"
+        )
+        # The exception message must not contain the injected text.
+        assert "injected" not in str(exc_info.value), (
+            "exception text must not leak into ProcessDenied message"
+        )
+        outcomes = [e.outcome for e in events]
+        assert "allowed" in outcomes, "allow event must be stored before Popen"
+        assert "denied" in outcomes, "denied event must be stored after non-OSError"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 3: process group cleanup on the success path
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestProcessGroupCleanup:
+    """No group member survives a successful launch.
+
+    The test must fail (group member survives) when the success-path kill is
+    reverted.
+    """
+
+    @_NEEDS_KILL
+    @pytest.mark.skipif(
+        not Path("/bin/sh").exists(),
+        reason="/bin/sh not available on this host",
+    )
+    def test_success_path_kills_process_group(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A successful launch leaves no surviving group member.
+
+        The shell backgrounds a long-running sleep, prints its own PID (which
+        equals the process group ID because start_new_session=True), then
+        exits normally.  launch_safe_process must kill the process group before
+        returning so the background sleep does not survive.
+        """
+        ps = process_safety
+        # Resolve /bin/sh so O_NOFOLLOW does not refuse a symlink.
+        sh = str(Path("/bin/sh").resolve())
+        if not Path(sh).is_file():
+            pytest.skip("/bin/sh resolves to a non-regular file")
+        sh_hash = _sha256(sh)
+        events, sink = _recording_sink()
+        result = _launch(
+            ps,
+            {
+                "schema_version": 1,
+                "executable": sh,
+                "executable_identity": sh_hash,
+                # Background a long sleep; print the shell's PID (= pgid) to stdout.
+                "argv": ["-c", "sleep 30 >/dev/null 2>&1 & printf '%d\\n' $$"],
+                "grant_id": "test-pgid-cleanup",
+                "cwd": str(tmp_path),
+                "environment_allowlist": [],
+                "stdin_mode": "closed",
+                "process_tree_timeout_s": 10,
+                "output_bound_bytes": 65536,
+            },
+            audit_sink=sink,
+        )
+        assert isinstance(result, ps.ProcessResult), "launch must succeed"
+
+        # The shell printed its own PID, which equals the process group ID.
+        pgid = int(result.stdout_redacted.strip())
+
+        # Wait briefly for SIGKILL to take effect, then assert the group is gone.
+        deadline = time.monotonic() + 3.0
+        group_gone = False
+        while time.monotonic() < deadline:
+            try:
+                os.killpg(pgid, 0)
+            except (ProcessLookupError, OSError):
+                group_gone = True
+                break
+            time.sleep(0.05)
+
+        assert group_gone, (
+            f"process group {pgid} survived after launch_safe_process returned; "
+            "success-path process-group kill may be missing"
+        )

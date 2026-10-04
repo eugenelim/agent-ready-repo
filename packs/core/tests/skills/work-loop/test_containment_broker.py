@@ -1960,3 +1960,184 @@ class TestLaunchUntrustedIssuerVerification:
         assert exc_info.value.denial_code == "denied-no-verified-containment", (
             "omitting issuer must not change default-host refusal code"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 4: attestation check — omitted limits and destination-restricted
+# network grants.  Each test fails when its corresponding fix is reverted.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAttestationLimitsAndDestinations:
+    """check_attestation_within_grant refuses when the grant sets a limit that
+    the attestation omits, and refuses a network-allowed attestation when the
+    grant restricts allowed_destinations (which v1 cannot express).
+    """
+
+    class _FixtureHost:
+        """Test fixture host that returns a configurable attestation dict."""
+
+        def __init__(self, attestation: dict) -> None:
+            self._attestation = attestation
+
+        def get_attestation(self, spec_dict: dict, grant: object) -> dict | None:
+            return self._attestation
+
+    def test_omitted_max_bytes_refused_with_denied_event(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation omitting max_bytes when the grant sets it is refused with one denied event.
+
+        Before the fix the limit comparison was skipped when attest_max_bytes was
+        None, so a grant with max_bytes=1000 accepted an attestation with
+        limits={}.  After the fix, an omitted max_bytes is treated as broader.
+
+        Fails when the None-omission guard is removed from check_attestation_within_grant.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], limits=sc._Limits(max_bytes=1000)
+        )
+        # Attestation omits max_bytes entirely.
+        host = self._FixtureHost({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-lim",
+            "roots": ("/work",),
+            "limits": {},
+        })
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=lambda e: events.append(e),
+            )
+        assert exc_info.value.denial_code == "denied-attestation-broader-than-grant", (
+            f"expected denied-attestation-broader-than-grant; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+        assert len(events) == 1, (
+            f"exactly one denied event must be emitted; got {len(events)}"
+        )
+        assert events[0].outcome == "denied"
+
+    def test_omitted_timeout_s_refused_with_denied_event(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation omitting timeout_s when the grant sets it is refused with one denied event.
+
+        Mirrors the max_bytes case.
+
+        Fails when the None-omission guard is removed from check_attestation_within_grant.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], limits=sc._Limits(timeout_s=60)
+        )
+        host = self._FixtureHost({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-to",
+            "roots": ("/work",),
+            "limits": {},
+        })
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=lambda e: events.append(e),
+            )
+        assert exc_info.value.denial_code == "denied-attestation-broader-than-grant", (
+            f"expected denied-attestation-broader-than-grant; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+        assert len(events) == 1, (
+            f"exactly one denied event must be emitted; got {len(events)}"
+        )
+        assert events[0].outcome == "denied"
+
+    def test_network_allowed_against_destination_restricted_grant_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A network-allowed attestation against a destination-restricted grant is refused.
+
+        The v1 attestation schema has no allowed_destinations field.  When the
+        grant restricts destinations (non-empty allowed_destinations), an
+        attestation claiming network=allowed cannot prove that restriction and
+        must be refused.
+
+        Fails when the destination-restriction guard is removed from
+        check_attestation_within_grant.
+        """
+        cn, sc = containment, security_capability
+        # Grant allows network but restricts to specific destinations.
+        _, grant = _make_root_grant(
+            sc,
+            roots=["/work"],
+            network=sc._NetworkGrant(allowed=True, allowed_destinations=("api.example.com",)),
+        )
+        # Attestation claims network is allowed but cannot express the destination.
+        host = self._FixtureHost({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-net",
+            "roots": ("/work",),
+            "limits": {},
+            "network": {"allowed": True},
+        })
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=lambda e: events.append(e),
+            )
+        assert exc_info.value.denial_code == "denied-attestation-broader-than-grant", (
+            f"expected denied-attestation-broader-than-grant; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+
+    def test_limits_present_and_within_pass(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: attestation with limits present and within the grant passes.
+
+        Verifies that the omission fix does not over-refuse when the attestation
+        supplies both max_bytes and timeout_s and they are within the grant.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], limits=sc._Limits(max_bytes=2000, timeout_s=120)
+        )
+        attestation = _make_attestation(
+            cn, limits={"max_bytes": 500, "timeout_s": 30}
+        )
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"attestation with limits within grant must pass; got code: {code!r}"
+
+    def test_network_allowed_against_unrestricted_grant_passes(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: network-allowed attestation against an unrestricted allowed grant passes.
+
+        When the grant allows network with no destination restriction (empty
+        allowed_destinations), a network-allowed attestation is not refused.
+        """
+        cn, sc = containment, security_capability
+        # Grant allows network with no destination restriction.
+        _, grant = _make_root_grant(
+            sc,
+            roots=["/work"],
+            network=sc._NetworkGrant(allowed=True, allowed_destinations=()),
+        )
+        attestation = _make_attestation(cn, network={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, (
+            "network-allowed attestation against unrestricted allowed grant must pass; "
+            f"got code: {code!r}"
+        )

@@ -17,6 +17,7 @@ import importlib.util
 import os
 import stat
 import sys
+import time
 from pathlib import Path
 from types import ModuleType
 
@@ -234,14 +235,13 @@ class TestTrustClassNeverEscalated:
     def test_child_trust_class_never_exceeds_parent(
         self, sc: ModuleType
     ) -> None:
-        """A request naming a different trust class than the parent gets the parent's class.
+        """A request with a different trust class than the parent is refused.
 
-        Before the fix, intersect_grants copied trust_class directly from the
-        request, so a child could name any class regardless of the parent.
-        After the fix, the parent's class is kept unless both sides already agree.
+        No class ordering is declared in this module, so the only safe response
+        is to refuse issuance.  issue_child_grant must raise CapabilityRefused
+        with the stable code denied-trust-class-mismatch.
 
-        Fails when the trust_class assignment reverts to unconditionally using
-        request.trust_class.
+        Fails when the trust-class check is removed from issue_child_grant.
         """
         issuer = sc.CapabilityIssuer()
         real_parent = issuer.issue_root_grant(
@@ -257,14 +257,15 @@ class TestTrustClassNeverEscalated:
             roots=["/work"],
             trust_class="system",  # different from parent's "trusted-adapter"
         )
-        child = issuer.issue_child_grant(real_parent, request)
-        assert child.trust_class == "trusted-adapter", (
-            "child must inherit parent's trust_class when request differs; "
-            f"got {child.trust_class!r}"
+        with pytest.raises(sc.CapabilityRefused) as exc_info:
+            issuer.issue_child_grant(real_parent, request)
+        assert exc_info.value.denial_code == "denied-trust-class-mismatch", (
+            "mismatched trust class must raise CapabilityRefused with "
+            f"denied-trust-class-mismatch; got {exc_info.value.denial_code!r}"
         )
 
     def test_matching_trust_class_preserved(self, sc: ModuleType) -> None:
-        """When both parent and request use the same trust class, the child keeps it."""
+        """When both parent and request use the same trust class, the child issues."""
         issuer = sc.CapabilityIssuer()
         real_parent = issuer.issue_root_grant(
             roots=["/work"],
@@ -282,4 +283,94 @@ class TestTrustClassNeverEscalated:
         assert child.trust_class == "trusted-adapter", (
             "matching trust class must be preserved; "
             f"got {child.trust_class!r}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 5: child expiry capped at parent's and parent-chain verification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestChildGrantExpiryAndParentChain:
+    """Child grant expiry is capped at parent's; verify_grant fails the child
+    when any ancestor is revoked or expired.
+    """
+
+    def test_child_expiry_capped_at_parent(self, sc: ModuleType) -> None:
+        """A child grant's expiry never exceeds the parent's registered expiry.
+
+        The parent is issued with a short lifetime.  The child is issued with no
+        explicit expiry.  After the parent would have expired, verify_grant must
+        return False for the child.
+
+        Fails when the expiry-cap logic is removed from issue_child_grant.
+        """
+        issuer = sc.CapabilityIssuer()
+        parent = issuer.issue_root_grant(
+            roots=["/work"],
+            operations=["read", "write"],
+            trust_class="trusted-adapter",
+            writes_allowed_roots=["/work"],
+            control_denies=[],
+            expires_in_s=0.05,  # 50 ms — expires very soon
+        )
+        request = _bare_grant(sc, roots=["/work"], trust_class="trusted-adapter")
+        child = issuer.issue_child_grant(parent, request)
+        # Both should verify immediately after issuance.
+        assert issuer.verify_grant(parent), "parent must verify immediately after issuance"
+        assert issuer.verify_grant(child), "child must verify immediately after issuance"
+        # Wait for parent to expire.
+        time.sleep(0.1)
+        # Parent is now expired; child must also fail verification.
+        assert not issuer.verify_grant(parent), "parent must fail after expiry"
+        assert not issuer.verify_grant(child), (
+            "child must fail after parent expires (expiry cap not honoured)"
+        )
+
+    def test_revoking_parent_fails_child_verify(self, sc: ModuleType) -> None:
+        """Revoking the parent makes verify_grant return False for the child.
+
+        Fails when the parent-chain check is removed from verify_grant.
+        """
+        issuer = sc.CapabilityIssuer()
+        parent = issuer.issue_root_grant(
+            roots=["/work"],
+            operations=["read", "write"],
+            trust_class="trusted-adapter",
+            writes_allowed_roots=["/work"],
+            control_denies=[],
+        )
+        request = _bare_grant(sc, roots=["/work"], trust_class="trusted-adapter")
+        child = issuer.issue_child_grant(parent, request)
+        # Both verify before revocation.
+        assert issuer.verify_grant(parent), "parent must verify before revocation"
+        assert issuer.verify_grant(child), "child must verify before parent revocation"
+        # Revoke the parent.
+        issuer.revoke_grant(parent.grant_id)
+        assert not issuer.verify_grant(parent), "parent must fail after revocation"
+        assert not issuer.verify_grant(child), (
+            "child must fail after parent is revoked (parent-chain check missing)"
+        )
+
+    def test_expired_parent_fails_child_verify(self, sc: ModuleType) -> None:
+        """An expired parent makes verify_grant return False for the child.
+
+        Fails when the parent-chain expiry check is removed from verify_grant.
+        This is a belt-and-suspenders check alongside the expiry-cap test.
+        """
+        issuer = sc.CapabilityIssuer()
+        parent = issuer.issue_root_grant(
+            roots=["/work"],
+            operations=["read", "write"],
+            trust_class="trusted-adapter",
+            writes_allowed_roots=["/work"],
+            control_denies=[],
+            expires_in_s=0.05,
+        )
+        request = _bare_grant(sc, roots=["/work"], trust_class="trusted-adapter")
+        child = issuer.issue_child_grant(parent, request)
+        time.sleep(0.1)
+        # Expired parent — child must fail regardless of child's own registry entry.
+        assert not issuer.verify_grant(child), (
+            "child must fail when parent is expired (parent-chain check missing)"
         )

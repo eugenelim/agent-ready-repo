@@ -1318,3 +1318,161 @@ class TestLogPathConfinement:
         assert exc_info.value.denial_code == "denied-log-not-regular", (
             f"expected denied-log-not-regular, got {exc_info.value.denial_code!r}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Advisory-lock confinement: symlink swap, FIFO, and inode change
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAdvisoryLockConfinement:
+    """Advisory lock and truncation refuse a swapped-in symlink, FIFO, or changed inode.
+
+    These tests exercise the no-follow, regular-file, and identity checks
+    added to _advisory_lock.  Each must fail when the fix is reverted
+    (i.e. when _advisory_lock is restored to the bare os.open-by-path form).
+
+    All tests skip when fcntl is unavailable (non-POSIX platforms fall back
+    to atomic replace, bypassing _advisory_lock entirely) or when the host
+    does not supply the relevant OS primitive.
+    """
+
+    @staticmethod
+    def _require_fcntl(es: ModuleType) -> None:
+        """Skip the test when fcntl is not available on this platform."""
+        if not getattr(es, "_HAS_FCNTL", False):
+            pytest.skip("fcntl not available; advisory lock is not used on this platform")
+
+    def test_symlink_swap_after_read_refused_outside_file_unchanged(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        """A symlink placed at the log path after the read is refused; the link target is untouched.
+
+        Red evidence: the old _advisory_lock opened by path with no O_NOFOLLOW,
+        so a symlink swapped in after the read was followed and the outside file
+        was truncated.  With the fix, O_NOFOLLOW causes os.open to raise ELOOP,
+        which is converted to EvidenceStoreError before any bytes are written.
+        """
+        self._require_fcntl(es)
+        if not hasattr(os, "O_NOFOLLOW"):
+            pytest.skip("O_NOFOLLOW not available on this platform")
+        try:
+            _test_link = tmp_path / "_sym_probe"
+            _test_link.symlink_to(tmp_path)
+            _test_link.unlink()
+        except (NotImplementedError, OSError):
+            pytest.skip("symlinks not supported on this platform")
+
+        outside_dir = tmp_path / "outside"
+        outside_dir.mkdir()
+        outside_file = outside_dir / "outside.log"
+        outside_file.write_bytes(b"original-content")
+
+        log_path = tmp_path / "sym-swap.log"
+        store = es.EvidenceStore(log_path)
+        store.open()
+
+        # Record the identity of the real log file.
+        log_stat = os.lstat(log_path)
+        store._log_identity = (log_stat.st_dev, log_stat.st_ino)  # type: ignore[attr-defined]
+
+        # Swap the log for a symlink pointing to the outside file.
+        log_path.unlink()
+        log_path.symlink_to(outside_file)
+
+        # Truncation must refuse rather than follow the symlink.
+        with pytest.raises(es.EvidenceStoreError):
+            store._truncate_log_safe(b"", bytes_read=0)  # type: ignore[attr-defined]
+
+        # The outside file must be completely unchanged.
+        assert outside_file.read_bytes() == b"original-content", (
+            "symlink target must not be modified by the refused truncation"
+        )
+
+    def test_fifo_at_log_path_does_not_block(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        """A FIFO placed at the log path is refused without blocking.
+
+        Red evidence: the old _advisory_lock opened by path with no O_NONBLOCK,
+        so a FIFO at the log path could block the advisory-lock open indefinitely.
+        With the fix, O_NONBLOCK prevents the block and the S_ISREG check
+        then refuses the FIFO with EvidenceStoreError.
+        """
+        import threading
+
+        self._require_fcntl(es)
+        if not hasattr(os, "mkfifo"):
+            pytest.skip("mkfifo not available on this platform")
+
+        log_path = tmp_path / "fifo-test.log"
+        store = es.EvidenceStore(log_path)
+        store.open()
+
+        log_stat = os.lstat(log_path)
+        store._log_identity = (log_stat.st_dev, log_stat.st_ino)  # type: ignore[attr-defined]
+
+        # Replace the log file with a FIFO.
+        log_path.unlink()
+        os.mkfifo(str(log_path))
+
+        exc_holder: list[BaseException | None] = [None]
+
+        def _run() -> None:
+            try:
+                store._truncate_log_safe(b"", bytes_read=0)  # type: ignore[attr-defined]
+            except BaseException as exc:
+                exc_holder[0] = exc
+
+        thread = threading.Thread(target=_run, daemon=True)
+        thread.start()
+        thread.join(timeout=2.0)
+
+        assert not thread.is_alive(), (
+            "truncation blocked on FIFO — O_NONBLOCK or S_ISREG check is missing"
+        )
+        assert isinstance(exc_holder[0], es.EvidenceStoreError), (
+            f"expected EvidenceStoreError for FIFO, got {type(exc_holder[0])}: {exc_holder[0]}"
+        )
+
+    def test_inode_change_between_read_and_truncate_is_refused(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        """An inode change between read and truncation is detected and refused.
+
+        Red evidence: the old _advisory_lock compared nothing against the read
+        identity, so a file atomically replaced between read and truncation was
+        silently truncated.  With the fix, the (st_dev, st_ino) recorded at read
+        time is compared against the descriptor opened for locking, and a mismatch
+        raises EvidenceStoreError before any truncation occurs.
+        """
+        self._require_fcntl(es)
+
+        log_path = tmp_path / "inode-change.log"
+        store = es.EvidenceStore(log_path)
+        store.open()
+
+        # Record the current log identity (simulating what _load_and_truncate stores).
+        log_stat = os.lstat(log_path)
+        original_identity = (log_stat.st_dev, log_stat.st_ino)
+        store._log_identity = original_identity  # type: ignore[attr-defined]
+
+        # Atomically replace the log file so the new file has a different inode.
+        replacement = tmp_path / "replacement.log"
+        replacement.write_bytes(b"new-content\n")
+        replacement.rename(log_path)
+
+        # The new file's inode differs from original_identity.
+        new_stat = os.lstat(log_path)
+        assert (new_stat.st_dev, new_stat.st_ino) != original_identity, (
+            "test setup error: rename did not change the inode"
+        )
+
+        # Truncation must refuse because the inode changed.
+        with pytest.raises(es.EvidenceStoreError):
+            store._truncate_log_safe(b"", bytes_read=100)  # type: ignore[attr-defined]
+
+        # The replacement file must not have been truncated.
+        assert log_path.read_bytes() == b"new-content\n", (
+            "replacement file must not be truncated after identity-change refusal"
+        )
