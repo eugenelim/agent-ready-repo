@@ -221,10 +221,10 @@ higher source already answers.
    extend, and no upstream gap holds the axis. It does not depend on which rung
    supplied composition.
 
-**Record the token namespace you resolved** — `--ds-*` from the fallback,
-`--color-*` or whatever an incumbent system already uses. The craft rules and
-the token gates below mean *that* namespace, not a literal prefix: a surface
-extending an existing system passes by using the system it inherited.
+**Record the token namespace you resolved** — `--ds-*` for a system this pack
+seeds, whether a taxonomy or the fallback supplied its values; `--color-*` or
+whatever an incumbent uses. The prefix never records provenance; the manifest's
+`visual authority` field does. Craft rules and token gates mean *that* namespace.
 
 Define primitives once and reference them from a semantic layer:
 `Primitive → Semantic → Component`, one-way. Components read semantics, never

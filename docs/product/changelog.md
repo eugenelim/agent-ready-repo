@@ -80,6 +80,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
 - The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
 
+## [frontend-engineering][0.4.3] — 2026-10-04
+
+### Changed
+
+- The token-namespace rule now says `--ds-*` names any system this pack seeds, whether a taxonomy or the fallback supplied the values, and that the manifest's `visual authority` field — not the prefix — records where values came from.
+- The visual-authority eval cases are calibrated against live runs: the two gap cases and the standalone case start from what the handoff read extracted or name the product, every case asks for the `visual authority` line in the reply, hex values are lower-case, and fallback detection keys on the fallback's own values rather than the shared `--ds-*` names.
+
 ## [frontend-engineering][0.4.2] — 2026-10-03
 
 ### Added
