@@ -17,7 +17,7 @@ change something — and you will know how much to trust the answer.
 The pack drives a command-line tool it does not bundle.
 
 ```bash
-cargo install wicked-estate --version 0.16.7 --locked
+cargo install wicked-estate --version 0.18.0 --locked
 ```
 
 This compiles from source and takes several minutes. It needs `cargo` already
@@ -78,8 +78,9 @@ That second sentence is the part worth learning.
   both produce these.
 - **`truncated_dependents`** means you are looking at a prefix, not the whole
   list.
-- **Depth** is capped at twelve hops on the command line and *is not reported*,
-  so a far-away dependent can be missing with nothing to tell you.
+- **`depth_horizon_reached`** is true when the traversal hit its depth limit.
+  Use `blast-radius <name> --depth N` (max 24) to go further. When it is false,
+  the depth was not the constraint.
 
 A blast radius is a floor, not a total. An answer that gives you a number
 without these is overclaiming.

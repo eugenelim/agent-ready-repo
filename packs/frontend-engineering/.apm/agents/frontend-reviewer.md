@@ -239,7 +239,7 @@ Read the manifest's `visual authority` field and the diff together.
 **Flag:**
 - The field is absent on a diff that changed what the surface looks like.
 - The field names a rung the manifest cannot support — an approved visual
-  target with no recorded human confirmation behind it, or an incumbent system
+  target lacking `visual_target: confirmed`, or an incumbent system
   on a surface that has none.
 - The field names an inherited authority and the diff contradicts it: a fresh
   palette, type scale or layout grammar where a taxonomy or an existing system

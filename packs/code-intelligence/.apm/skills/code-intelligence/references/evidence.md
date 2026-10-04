@@ -71,16 +71,49 @@ whatever the store returned — not the most important dependents. On a mid-size
 repository this fires easily: a probe against this catalogue returned 7
 unresolved and **727 truncated**.
 
-### The depth cap nobody reports
+### The depth cut is reported
 
-The CLI hardcodes blast-radius traversal to **depth 12**. Dependents beyond 12
-hops are dropped and are counted in *neither* of the two fields above — the
-horizon is silent. MCP `BlastRadius` takes an explicit `depth` (default 8, max
-24) and stamps each dependent with its own `depth`, so there the reach is
-visible.
+`blast-radius --json` returns `searched_depth`, `depth_horizon_reached`, and
+`node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
+`CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
+`--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents) before subtracting.
 
-When reach matters to your conclusion, say which surface you used and what its
-horizon was.
+A true `node_cap_reached` means the traversal hit its node budget. No CLI flag
+raises it, so report the list as a floor.
+
+### Direct and transitive dependents
+
+`blast-radius <name> --depth 1 --json` gives the direct dependents. Subtracting
+them from a full run gives the transitive dependents, but only as far as both
+runs are complete:
+
+- **Both runs uncut** — the `--depth 1` run reports `truncated_dependents` 0,
+  and the full run reports `unresolved` 0, `truncated_dependents` 0,
+  `depth_horizon_reached: false` and `node_cap_reached: false`. The difference
+  is the complete transitive set.
+- **Only the full run cut** — the `--depth 1` run reports
+  `truncated_dependents` 0, and the full run reports a cut. The difference is a
+  floor on the transitive set within `searched_depth`.
+- **The `--depth 1` run truncated** — no split is possible. The missing direct
+  rows would land in the difference, so it is neither the transitive set nor a
+  floor. Report the direct list as partial and do not report a transitive count.
+
+A non-zero `unresolved` on the full run limits every case to resolved edges. A
+direct caller bound only through an unresolved reference can surface deeper in
+the full run and be counted as transitive, so call the split "over resolved
+edges" and give the `unresolved` count beside it.
+
+Say which case applied whenever you report the split.
+
+`wicked-estate path A B --json` separates bounded from proven absence. A
+`found: false` is proven absence only when `unresolved` is null and both
+`depth_bounded` and `node_bounded` are false. A non-null `unresolved` means a name
+matched nothing, even though the command exits 0. `depth_bounded: true` means the
+route may lie beyond `--max-depth`. `node_bounded: true` means the fixed node
+budget cut the search, and no flag raises it.
+
+When reach matters to your conclusion, say which surface you used, what depth you
+searched, and whether `depth_horizon_reached` was true.
 
 ### Node caps on traversal
 
@@ -100,10 +133,10 @@ The CLI prints this on stdout:
 STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate index . --repo my-repo` to refresh
 ```
 
-**But only from five subcommands** — `query`, `blast-radius`, `stats`,
-`clusters`, and `context` — and `blast-radius` suppresses it under `--json`,
-because machine output must be exactly one JSON document. Since this skill
-teaches the `--json` forms, you will usually not see it at all.
+**But only from six subcommands** — `query`, `blast-radius`, `stats`,
+`clusters`, `context`, and `path` — and `blast-radius` and `path` suppress it
+under `--json`, because machine output must be exactly one JSON document. Since
+this skill teaches the `--json` forms, you will usually not see it at all.
 
 So do not treat its absence as evidence of freshness. Run a bare
 `wicked-estate stats` when freshness matters; that is the one command that

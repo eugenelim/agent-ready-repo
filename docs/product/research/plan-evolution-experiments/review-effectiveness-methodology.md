@@ -20,7 +20,7 @@ The classes below are kept separate in every table and arithmetic step.
 | Tier B aggregate histories | `install-to-ship-walkthrough` and the occasioning 15-round Claude Code loop | Mechanism corroboration only; not pooled with Tier A event rows. |
 | Repository aggregate | The repository-wide transcript, PR, spec/plan, and acceptance-criterion survey in `review-loop-nonconvergence-survey.md` | Prevalence and mechanism context only. |
 | T13 synthetic | The Sol T13 block and its seven review rounds | Methodological negative control only; no natural-work quality or cost claim. |
-| Prospective natural work | Independently reviewed and owner-approved release record v1; no cases started | Consecutive eligible cases may now enter T15 under the frozen release gates. |
+| Prospective natural work | Independently reviewed and owner-approved release record v1; four candidates enumerated, three admitted, none reaching `measured_terminal` | Cohort closed 2026-10-02 as incomplete. `review-effectiveness-report.md` § *Prospective cohort result* owns the outcome and the three blockers behind it. |
 
 ## Inclusion and exclusion rules
 
@@ -240,5 +240,17 @@ time, prompts, and complete repair lineage. The repository-wide aggregates may
 overlap named cases and are never added to Tier A totals. T13 remains a
 methodological negative result about experiment construction and does not
 validate a natural-work policy. The prospective release passed independent
-review and owner approval, but no eligible prospective case has yet been
-admitted, so no prospective evidence exists yet.
+review and owner approval, and the cohort it authorized ran and then closed
+incomplete on 2026-10-02 without producing a compliant effectiveness reading.
+`review-effectiveness-report.md` § *Prospective cohort result* owns that
+outcome, the three blockers behind it, and the observations the cohort does
+support.
+
+The prospective limitation that matters most for a successor is not in the list
+above, because it was not foreseen: **the contract required measurements that
+were never recorded while the work ran.** No finding rows were written against a
+contract requiring one 24-field row per finding, normal-loop returned tokens
+were never split into input and output, and prose-churn attribution was never
+captured at all. The host telemetry those needed is session-local, so none of it
+can be recovered after a case closes, and estimating a missing measurement value
+is barred. Design the recording path before the first case, not after.

@@ -77,7 +77,7 @@
         "Records operate as the primary engagement mode and treats the operations-dashboard genre as distinct from that mode.",
         "Asks only concise fallback questions for facts that remain unresolved or records clearly labeled assumptions.",
         "Separates available text-only evidence and assets from placeholders.",
-        "Includes the product-specific visual thesis, first-viewport thesis, and approved visual target disposition."
+        "Includes the product-specific visual thesis, first-viewport thesis, and the direction's `visual_target:` disposition."
       ]
     },
     {

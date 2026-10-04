@@ -683,6 +683,34 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_target_release_surface.py
 
+      # visual-target-rung-precondition (T4): reads packs/, guides/, web/src/content/,
+      # tests/, and docs/design/, so lint-pack-test-boundary forbids a pack home. Sits
+      # ABOVE the carve-out step below, whose `pytest tests/ -q` also collects it.
+      # Placement above it still matters: the job no longer stops at the first failure,
+      # so a step after the carve-out runs — and reports the same failure a second time
+      # against a broad target instead of the named one.
+      - name: pytest visual-target exclusive property (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_visual_target_exclusive_property.py
+
+      # visual-target-rung-precondition (T5): reads docs/specs/frontend-visual-authority,
+      # so lint-pack-test-boundary forbids a pack home. Sits ABOVE the carve-out step
+      # below, whose `pytest tests/ -q` also collects it. Placement above it still
+      # matters: the job no longer stops at the first failure, so a step after the
+      # carve-out runs — and reports the same failure a second time against a broad
+      # target instead of the named one.
+      - name: pytest visual-authority supersession (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_visual_authority_supersession.py
+
+      # visual-handoff-golden-path: installs experience-design and
+      # frontend-engineering together and reads both, so lint-pack-test-boundary
+      # forbids a pack home. Sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it, so a failure is reported here first.
+      - name: pytest visual handoff golden path (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_visual_handoff_golden_path.py
+
       # portable-catalogue-authentication: credbroker 0.7 wheel build,
       # isolated-install, co-location, and packaging tests. These read packs/
       # and build wheels, so they cannot live in the sdist package suite.

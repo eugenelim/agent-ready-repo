@@ -448,7 +448,7 @@ python3 -c "import json;print(sorted({len(json.loads(l)) for l in open('.loop-ru
 
 D1, D2 and D3 are all decisions for the same owner, so they are recorded together
 as one shaping intent rather than three:
-[`loop-telemetry-event-vocabulary`](../intents/loop-telemetry-event-vocabulary.md).
+[`loop-telemetry-event-vocabulary`](../intents/FEAT-0015-loop-telemetry-event-vocabulary.md).
 It is deliberately non-dispatchable — held by repository maintainers, with no
 `workspace.toml` entry — because the initiative that will consume it has not
 started.

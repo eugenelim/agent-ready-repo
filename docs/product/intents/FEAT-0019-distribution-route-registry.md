@@ -1,0 +1,72 @@
+# Distribution route registry extraction
+
+- **Slug:** `distribution-route-registry`
+- **Status:** Fulfilled
+- **Level:** feature
+- **Owner:** eugenelim
+- **Scale:** app
+- **Maturity:** brownfield
+- **Parent intent:** capability:first-class-distribution-routes
+- **Accepted:** 2026-09-24 by eugenelim, on an owner waiver rather than an independent shaping review. This intent reached a delivered state without ever passing `Draft` → `Accepted`, so the ratification is taken now rather than reconstructed from a review that never ran; the owner waived the intent-mode review that gate names, for this one-off migration only. Basis: `docs/specs/lifecycle-transition-contract/notes/migration-record.md`.
+- **Fulfilled:** 2026-09-24 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account. The registry exists as declared data with a schema and a lookup, which is the extraction this intent asked for: `agentbundle/_data/distribution-routes.toml` beside `distribution-routes.schema.json`, read through `agentbundle/build/route_lookup.py` and its `DistributionRouteDeclaration`. Its spec `docs/specs/distribution-route-registry/spec.md` is `Shipped`. Record written by the 2026-09-24 corpus migration.
+
+## Outcome
+
+Every surface that consumes distribution routes takes its route set from
+`contracts/distribution-routes.toml`, and no shared build-time code selects behavior by
+a route's name — so the `agent-plugin` route, which one of fifteen such surfaces carries
+today, is present on all of them.
+
+## Opportunity
+
+Route dispatch was spread across route-name branches and hand-maintained route
+lists in the build pipeline, CLI, installer, verifier, lint pass, and
+build-check. A route that shipped still had to be wired by hand across those
+surfaces.
+
+## Boundary
+
+This fulfilled feature owns dispatch and completion over the three declared
+routes by using the route registry and lookup as the shared source of truth.
+
+It does not admit a route the contract has not declared. That remains
+[FEAT-0020](FEAT-0020-distribution-route-set-opening.md).
+
+## Assumptions
+
+- **Riskiest assumption:** all shared route consumers can depend on registry lookup without losing route-specific behavior that belongs behind registered handlers.
+- Phase 1A supplied the third real route (`agent-plugin`) and has shipped, so
+  D1's gate is met. Phase 1B adds a canonical *primitive*, not a route, and does
+  not advance that gate. Extraction runs before 1B per the
+  [RFC-0092 erratum](../../rfc/0092-first-class-distribution-routes.md#errata).
+- "Generic" means the six fields select a **named handler** — manifest projector,
+  admission policy, marketplace projector, lifecycle implementation, safety and
+  diagnostic profile — not that all route behavior collapses into six string
+  values. Route-specific code survives behind a registered handler; what must not
+  survive is a route-name conditional in shared code.
+- Some current behavior is not expressible by the six fields as they stand and
+  needs either a registered handler or a new contract field. Known cases:
+  default-build recipe membership and order; recipe names and the CLI
+  adapter-target mapping; legacy `--emit-install-routes` inclusion; canonical
+  primitive source paths; route-specific filesystem and sanitized-diagnostic
+  policy; the Claude manifest, seed, and marker artifact paths; and build-check
+  lifecycle-artifact expectations.
+- `apm` and `claude-plugins` both declare `lifecycle-trigger =
+  "session-start-install-marker"` yet need different commands, roots, and scope
+  detection — `packages/agentbundle/templates/install-marker.py:825` branches on
+  route name to tell them apart. The declared value alone cannot select the
+  implementation, so the registry must key lifecycle on a handler, or the
+  contract must distinguish the two triggers.
+- Published bytes do not change. The Claude and APM golden fixtures the brief
+  requires across Phase 0 and Phase 2, and the Agent Plugin determinism the
+  Phase 1A spec established, all still hold afterwards.
+- The registry must fail closed on an unknown projector, policy, or handler name
+  and on an inconsistent route declaration, rather than falling through to a
+  default.
+- **Knowledge surface:** In-repository RFC-0092, distribution-routes programme brief, shipped registry spec, and fulfilment evidence.
+
+## Source
+
+- Mode: repo-origin
+- Locator: docs/product/briefs/distribution-routes-programme.md
+- Revision: sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d

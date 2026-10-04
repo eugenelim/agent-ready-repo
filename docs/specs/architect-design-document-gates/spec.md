@@ -509,7 +509,7 @@ on a checklist item only that rubric owns.
       `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`,
       authored from `assets/subsystem-design.md` and carrying the subsystem
       design for the layer-5 enterprise telemetry endpoint default that
-      `docs/product/intents/catalogue-level-telemetry-endpoint-default.md`
+      `docs/product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md`
       frames. It holds no `<…>` placeholder token.
 - [x] **AC-0046.** No precheck fires on that reference document, and each of
       the seven is walked against it with the walk recorded.

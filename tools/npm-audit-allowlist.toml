@@ -38,4 +38,22 @@
 #   """
 #   unblocked_when = "example-pkg ships >=2.4.1, which repins the vulnerable transitive dep"
 
-allow = []
+[[allow]]
+id = "GHSA-ch52-4w7c-c8xp"
+reason = """
+Transitive dependency of astro in docs-site and web. Both sites build to static
+files with no server adapter, so no shared HTTP cache serves one user's cached
+response to another; the max-stale flaw needs that shared cache to disclose
+anything. No patched http-cache-semantics release exists (affected: <= 4.2.0).
+"""
+unblocked_when = "http-cache-semantics publishes a release that patches GHSA-ch52-4w7c-c8xp"
+
+[[allow]]
+id = "GHSA-vfj7-8cjw-p6xm"
+reason = """
+Transitive dependency of stylelint (via micromatch) in web, used only at lint
+time. The only patterns it expands are the repository's own committed globs,
+such as src/**/*.{css,astro}, so no untrusted, deeply nested pattern reaches
+it. No patched braces release exists (affected: <= 3.0.3).
+"""
+unblocked_when = "braces publishes a release that patches GHSA-vfj7-8cjw-p6xm"

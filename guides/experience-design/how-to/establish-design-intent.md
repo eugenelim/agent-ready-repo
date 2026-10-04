@@ -99,7 +99,7 @@ Turn these journey pains and peak moments into three to five design principles.
 
 ```
 Set a visual direction for this surface from its audience, product mechanism,
-available proof, surface genre, and any approved visual target. We have direct
+available proof, surface genre, and any approved visual target (`visual_target: confirmed`). We have direct
 answers, not an upstream product brief.
 ```
 
@@ -419,7 +419,7 @@ date: "<YYYY-MM-DD>"
 - **Direction source:** <path or name of the approved direction, or "none">
 - **Incumbent source:** <the file or module the interface actually reads its
   visual values from, or "none found — searched <where>">
-- **Visual target:** <what it is and what it was read for, or "none". It binds
+- **Visual target:** <`visual_target: confirmed` — what it is and what it was read for, or "none". It binds
   composition and relationships; it supplies no value>
 - **Stated constraints:** <any constraint that arrived already decided, or "none">
 

@@ -90,7 +90,7 @@ open.
 | Rung | Source | Binds |
 | --- | --- | --- |
 | `stated-constraint` | A constraint the operator or an accepted record states | Whatever it names |
-| `approved-visual-target` | The confirmed composition recorded in the direction | Composition and relationships only — arrangement, proportion, spatial relationship. **Supplies no value**, so every value comes from a lower rung |
+| `approved-visual-target` | The composition confirmed as `visual_target: confirmed` in the direction | Composition and relationships only — arrangement, proportion, spatial relationship. **Supplies no value**, so every value comes from a lower rung |
 | `approved-direction` | The direction's ranked goals, axis tokens and signature device | The character of every axis it commits |
 | `incumbent-system` | The product's existing source of visual truth | Every axis above it left open, plus the naming and binding convention for all of them |
 | `platform-convention` | The convention of the target surface the direction names | An axis the direction left at `[platform-default]` because that platform owns it |
@@ -139,7 +139,7 @@ before the value that makes it executable.
    existing-artifact checks. Resolve `output_dir` per
    `references/agentbundle-layout.md` (the `[design]` section).
 2. **Read the authority.** The direction artifact, the incumbent system, any
-   stated constraint, and the visual target when one exists. Finding the
+   stated constraint, and the `visual_target: confirmed` target when one exists. Finding the
    incumbent system is a real search, not a question — see
    `references/incumbent-systems.md`.
 3. **Select the route** from the rubric above.
@@ -205,7 +205,7 @@ Load when the predicate fires; don't load speculatively.
 
 | Predicate | Reference |
 | --- | --- |
-| A route must resolve values, or a visual target is present | `references/value-derivation.md` |
+| A route must resolve values, or a `visual_target: confirmed` target is present | `references/value-derivation.md` |
 | Any route other than a confirmed-greenfield `originate` | `references/incumbent-systems.md` |
 | Naming roles, layering them, or setting a scale's ratio | `references/token-taxonomy-derivation.md` |
 | Deciding what belongs to a token and what to a component | `references/atomic-composition.md` |

@@ -27,12 +27,13 @@ from pathlib import Path
 import pytest
 
 #: The upstream release both allowlists were transcribed from.
-VERIFIED_AGAINST = "0.16"
+VERIFIED_AGAINST = "0.18"
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_ROOT = PACK_ROOT / ".apm"
 
 #: Every subcommand `wicked-estate` dispatches. `hotspots` is an alias of `rank`.
+#: `path` was added in 0.18.0, bringing the dispatch set to 35 names.
 CLI_VERBS = frozenset(
     {
         "annotate",
@@ -56,6 +57,7 @@ CLI_VERBS = frozenset(
         "index",
         "leaves",
         "nodes",
+        "path",
         "plugins",
         "query",
         "rank",
@@ -72,8 +74,9 @@ CLI_VERBS = frozenset(
     }
 )
 
-#: The 11 estate-domain MCP tools, plus `SemanticSearch`, which the server
-#: advertises only when an embedding backend is available.
+#: The 12 estate-domain MCP tools: the 11 from 0.16 plus `Path` added in 0.17/0.18,
+#: and `SemanticSearch` which the server advertises only when an embedding backend
+#: is available.
 MCP_ESTATE_TOOLS = frozenset(
     {
         "SearchEntity",
@@ -86,6 +89,7 @@ MCP_ESTATE_TOOLS = frozenset(
         "RankHotspots",
         "Communities",
         "Lineage",
+        "Path",
         "SemanticSearch",
     }
 )

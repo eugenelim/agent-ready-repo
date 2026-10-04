@@ -114,11 +114,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   0.7 takes precedence via normal `sys.path` ordering; the floor remains the
   zero-pip fallback for user-scope skill resolution.
 
+## [core][2.27.14] — 2026-10-03
+
+### Highlights
+
+- Installed Core can now rename an intent as a recoverable retire-and-issue operation. The old path becomes a tombstone, the successor receives a fresh target-token ordinal, citations and `workspace.toml` move with it, and an interrupted run can be driven forward or back.
+
+### Added
+
+- `work-intake` now ships `intent_rename.py` with installed `rename`, `recover`, and `resolve` commands for operators.
+- Product Engineering now includes a how-to for renaming an intent and recovering an interrupted rename.
+
+### Changed
+
+- `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
+- The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
+
+## [frontend-engineering][0.4.2] — 2026-10-03
+
+### Added
+
+- Three golden-path eval cases for the visual handoff: a confirmed target with the taxonomy's concrete values, an unconfirmed target, and a design-handoff refusal that must stay a refusal. Each grades both sides deterministically — the values it must carry and the fallback declarations it must not.
+
+### Changed
+
+- The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
+
+## [core][2.27.13] — 2026-10-02
+
+### Fixed
+
+- `lint-traceability` no longer reports a duplicate intent id when a retired intent leaves a tombstone. A tombstone keeps its old `Slug:` so existing links still resolve, and the reissued record carries the same slug; the lint now skips any intent file whose preamble carries a `Tombstone:` field, so only the reissued record becomes the `intent:` node.
+
 ## [core][2.27.12] — 2026-10-01
 
 ### Added
 
 - Added paired `new-spec` behavior evaluations for a shared repository substrate and an isolated private refactor, plus a `work-loop` case that rejects feature-only evidence for accepted preservation properties. The cases measure future authoring and completion behavior without making optional repository-grounding tools mandatory.
+
+## [frontend-engineering][0.4.1] — 2026-10-02
+
+### Highlights
+
+- The `approved-visual-target` rung now resolves only when the direction artifact carries `visual_target: confirmed`. An approved target whose confirmation was never recorded no longer satisfies the rung; the distinction is in the artifact, not in a reviewer's memory.
+
+## [experience-design][4.1.3] — 2026-10-02
+
+### Highlights
+
+- A visual target now binds composition only once a person confirms it and `converge` records `visual_target: confirmed` in the direction artifact. An unconfirmed target is still captured — `converge` records it as `visual_target: unconfirmed` — it just does not bind, and the rung that reads the field is downstream in `frontend-engineering`.
 
 ## [core][2.27.11] — 2026-10-01
 
@@ -227,6 +271,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
+
+## [code-intelligence][0.1.3] — 2026-10-03
+
+### Highlights
+
+- The agent can now ask for the route from one symbol to another using `wicked-estate path`. A result of `found: false` with `depth_bounded: true` means the route was not proven absent — the search hit its depth limit — and you can raise `--max-depth` (up to 16) to look deeper.
+- A blast radius now tells you when the depth limit cut it short. `depth_horizon_reached: true` in the JSON output means the result is a floor, not the full set; `--depth N` (maximum 24) lets you search deeper, and `--depth 1` isolates the direct dependents from the transitive ones.
+
+### Changed
+
+- Requires Wicked Estate 0.18 — floor and pin are both 0.18.0; a binary older than 0.18 causes the preflight to exit 4 with a remediation command.
+- `wicked-estate path` is now documented: it follows dependency edges of every kind, returns the shortest route, and reports whether a `found: false` answer is bounded (`depth_bounded` or `node_bounded` true), names an unknown symbol (`unresolved` set), or is proven absent (neither). The 0-based `line` field in path hop endpoints is noted.
+- `blast-radius --depth N` and its three cut fields (`searched_depth`, `depth_horizon_reached`, `node_cap_reached`) replace the earlier silent-depth-12 guidance.
+- MCP-only additions are documented as schema-derived: the `Path` tool, `Lineage` with `relation: "flows_to"`, `SearchEntity` with `include_values`, `rules.recall` with `projects`, and the cut fields on `TraverseGraph`, `BlastRadius`, and `Lineage`. Tool counts are 30 without an embedding backend, 31 with one.
 
 ## [code-intelligence][0.1.2] — 2026-09-30
 

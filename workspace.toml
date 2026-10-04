@@ -486,6 +486,7 @@ shipped = [
 ]
 queue   = [
   {path = "docs/specs/jsonl-otlp-exporter/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md"}, summary = "Publish a standalone JSONL-to-OTLP logs exporter with profile-defined field mapping and fail-closed input and endpoint controls", needs = []},
+  {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
   {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after its clean-room adversarial review reached
@@ -527,6 +528,16 @@ active  = [
 queue   = [
 ]
 shipped = [
+  # Shipped 2026-10-03. A roster test installs experience-design and
+  # frontend-engineering together and walks six handoff paths through the
+  # installed visual-authority rules; frontend-engineering 0.4.2 ships three
+  # golden eval cases. Narrower than the cross-pack-experience-eval intent.
+  {path = "docs/specs/visual-handoff-golden-path/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Prove the experience-design to frontend-engineering visual handoff across the pack boundary: six paths walked through the installed authority rules, concrete taxonomy values consumed without fallback, and render-observe-correct ahead of the engineering gates", needs = [{type = "local", kind = "spec", path = "docs/specs/design-to-build-value-handoff/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/visual-target-rung-precondition/spec.md"}]},
+  # Shipped 2026-10-02. Makes the approved-visual-target rung resolve only on
+  # `visual_target: confirmed`, migrating every carrier that restated the
+  # superseded prose reading and enforcing it with a repository-level property
+  # over a re-run sweep. Seven pre-EXECUTE review rounds and three post-gates.
+  {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed, gate converge, visualize and creative-direction SKILL.md on a confirmed target under the three criteria visual-target-field retired on 2026-09-30, and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-target-field/spec.md"}]},
     {path = "docs/specs/xd-copy-router/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/experience-design-skill-consolidation.md"}, summary = "Fold content-design, copy-direction and tone-of-voice into one copy-layer skill with three modes, reconciling six drifted shared references", needs = [{type = "local", kind = "spec", path = "docs/specs/xd-genre-router/spec.md"}]},
     {path = "docs/specs/xd-genre-router/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/experience-design-skill-consolidation.md"}, summary = "Fold six genre skills and information-architecture into one genre-aware skill and repair frontend-engineering's genre routing", needs = [{type = "local", kind = "spec", path = "docs/specs/creative-direction-modes/spec.md"}]},
     {path = "docs/specs/creative-direction-modes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give creative-direction five operations, divergence generation, and a capability-gated visual step, with a smaller always-loaded body; standalone, no brief", needs = []},
@@ -602,6 +613,11 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Keep the historical work-intake migration spec's live deferral anchor
+  # resolvable after its successor spec moves to Platform Core's ready queue.
+  # The approved spec owns implementation; this note is only the historical
+  # anchor and retires through a governed amendment of that shipped spec.
+  {path = "docs/specs/work-intake-migration-docs/notes/capture-work-alias-removal.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md"}, summary = "Preserve the historical capture-work-alias-removal deferral anchor while the approved removal spec is queued for Platform Core", needs = []},
   # The consumer half of the decomposed visual-target contract. Registered here
   # because `visual-target-field` ships a frontmatter field that nothing reads,
   # and this successor is the whole justification for that: a follow-on recorded
@@ -636,7 +652,6 @@ open = [
   # permits PyJWT>=2.15.0, eleven entries retire at 2.14.0 and the twelfth at
   # 2.15.0, and the gate itself will say so.
   { slug = "semgrep-pyjwt-pin-blocks-every-sca-remediation", source = "gate-sast, 2026-09-30 (CVE-2026-102270 and CVE-2026-101918 added the same day; ADR-0131 vehicle holding twelve entries)" },
-  {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed, gate converge, visualize and creative-direction SKILL.md on a confirmed target under the three criteria visual-target-field retired on 2026-09-30, and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-target-field/spec.md"}]},
   # The four recorded SCA weaknesses of `make sast` are closed for ONE of its
   # pip-audit invocations and open for the rest. ADR-0131 gave the new
   # `tools/run-pip-audit-gate.py` an environment scrub (every `PIP_*` removed,
@@ -653,16 +668,24 @@ open = [
   # of the four is in this file — verified 2026-09-29, zero matches. The
   # carve-out in the ADR-0131 spec's Out of scope rests on this entry.
   { slug = "sca-hardening-uneven-across-pip-audit-invocations", source = "spec/pip-audit-advisory-allowlist (ADR-0131 scope decision; the archived pip-audit-batching slugs were never registered)" },
-  # The rename validator refuses a live intent whose H1 title contains the
-  # word "tombstone": the approved liveness rule refuses any unparsed preamble
-  # line bearing the token, and a title never parses as a field. A false
-  # refusal, fail-closed and loud, and no file in `docs/product/intents/`
-  # triggers it today (measured across all 157 on 2026-09-28). The scope owner
-  # authorized amending the approved rule to exempt the title; the amendment
-  # could not be executed -- see the sibling entry -- so it is carried here.
-  # `docs/specs/intent-renumber-and-reissue/notes/amendment-0001-h1-title-exemption.md`
-  # holds the authority, the reasoning and the residual risk.
-  { slug = "intent-rename-h1-title-false-refusal", source = "spec/intent-renumber-and-reissue (post-gates adversarial review, adjudicated F4)" },
+  # Retired 2026-10-02: `intent-rename-h1-title-false-refusal`, because the
+  # leading H1 title exemption is in the tree. The entry recorded a false
+  # `source-unreadable` refusal when a live intent title contained "tombstone".
+  # Verified in the tree rather than from a commit message: the validator exempts
+  # one leading H1 title, while its two other damaged-marker arms remain intact;
+  # `test_leading_h1_title_containing_tombstone_passes` and
+  # `test_second_h1_containing_tombstone_refuses_source_unreadable` pin both
+  # outcomes. Lint-safe to remove: no deferred-marker form names this slug.
+  # `0ffb58f27` shipped the exemption as follow-on work recorded in code,
+  # because the owning spec is Shipped and its plan frozen. The one surviving
+  # reference is
+  # docs/specs/intent-renumber-and-reissue/notes/amendment-0001-h1-title-exemption.md,
+  # which stays the authority and reasoning for the change. Its analysis stands;
+  # its closing "Outcome" section is stale in two respects — the rule is now
+  # amended in code, and this slug is no longer carried in `[backlog].open`.
+  # That record is frozen, so this note is where both claims are superseded.
+  # The sibling residual it names, `contract-amendment-prepare-strands-the-run`,
+  # is unaffected and still open: the transition defect is unfixed.
   # `loop-engine transition <spec> contract-amendment` can strand a run. The
   # cohort prepare writes `pending_transition` before the mutation validates,
   # so a mutation that refuses -- for example on a missing
@@ -830,60 +853,11 @@ open = [
   # infra loop works for the six mapped domains. Unblock: an owner decision on (2), since
   # deleting versus implementing that claim changes whether (3) is a gap or by design.
   {path = "packs/governance-extras/seeds/governance/manifest.example.yaml", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token. The third defect, infra-decisions.md's false seven-to-eight correspondence claim, was fixed by b59becf26 on 2026-09-24", needs = []},
-  # Two corrections to `loop-telemetry-export`'s contract that were found by doing
-  # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
-  # a completed task's section, and both corrections land inside T2 and T4, which
-  # the wave advances had already recorded complete. Landing them anyway required
-  # `loop-cohort reset`, which destroys the cohort audit trail -- three review
-  # rounds, nineteen finding fingerprints, the amendment history -- so the owner
-  # chose the trail and the amendment was narrowed. Neither blocks anything: both
-  # behaviours ship, are gated and are mutation-proved; what is missing is contract
-  # text. The general question the entry carries is whether the amendment path needs
-  # a way to correct a completed task's contract at all, since a contract error found
-  # by implementing its own task is always discovered after that task is frozen.
-  # `roadmap.md` names eight loop-telemetry events. Measuring them against what the
-  # work-loop can actually emit (docs/product/research/loop-telemetry-event-derivability.md)
-  # found six derivable, one half-derivable and one impossible: `gate-waived` names a
-  # verdict waiver the FSM cannot perform, and `budget-exceeded`'s token half needs
-  # counts the pack never sees. The roadmap vocabulary therefore promises measurements
-  # that no amount of implementation will produce. Fix is a vocabulary decision, not
-  # code: retire, rename, or re-scope the two names in roadmap.md. Nothing is blocked --
-  # the shipped exporter carries the six that are derivable. Unblock: an owner decision
-  # on whether roadmap event names are commitments or sketches.
-  {path = "docs/product/intents/loop-telemetry-event-vocabulary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/research/loop-telemetry-event-derivability.md"}, summary = "Reconcile roadmap.md's eight loop-telemetry event names with the six the work-loop can actually emit, rather than adding events to match the vocabulary", needs = []},
-  # The work-loop base-freshness gate was waived by the task owner for the
-  # `loop-telemetry-export` delivery, and the waiver left no trace on the run: a later
-  # reader cannot tell a base that was verified from one accepted on authority. The
-  # episode that showed the cost is in the spec's verification ledger -- main released
-  # core 2.25.27 mid-delivery and a shared rerere cache discarded this branch's version
-  # bump, surfacing as a changelog conflict instead of as the gate. Fix would be a
-  # durable marker written by packs/core/.apm/skills/work-loop/scripts (the engine state
-  # or the run's event line), not a new gate. Nothing is blocked. Unblock: a decision on
-  # whether a waived gate should be recorded on the run at all.
+  {path = "docs/product/intents/CAP-0008-loop-telemetry-governance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Keep the shipped loop telemetry contract and the future INI-005 vocabulary truthful without inventing sender or endpoint work", needs = []},
+  {path = "docs/product/intents/FEAT-0015-loop-telemetry-event-vocabulary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/research/loop-telemetry-event-derivability.md"}, summary = "Reconcile ecosystem-overview.md's eight loop-telemetry event names with the six the work-loop can actually emit, rather than adding events to match the vocabulary", needs = []},
   {path = "docs/specs/loop-telemetry-export/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Decide whether a waived work-loop base-freshness check should leave a durable marker on the run, so a later reader can tell a verified base from one accepted on authority", needs = []},
-  {path = "docs/product/intents/loop-telemetry-contract-corrections.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/notes/verification-ledger.md"}, summary = "Decide whether AC-0031's four-of-six enumeration and the uncriterioned undeliverable-setting refusal are worth a contract change now that both behaviours have shipped", needs = []},
-  # An enterprise operator cannot yet configure a telemetry endpoint once in its
-  # catalogue so that every user installing the core pack exports to it with no setup.
-  # The enterprise half already ships: RFC-0101 is Accepted, its catalogue-pack-defaults
-  # and pack-config-api specs are Shipped, and catalogue.toml's [pack-defaults.<pack>]
-  # is an open map of string keys in contracts/catalogue.schema.json -- so
-  # [pack-defaults.core] telemetry_endpoint = "..." is schema-legal today with no schema
-  # change. The missing hop is the last one: the baked layer lives inside the installed
-  # agentbundle package's _data/install-defaults.toml and is reachable only via
-  # agentbundle.config.load_pack_config(), while both readers that would use it are
-  # standard-library-only -- the sender's contract forbids a runtime dependency, and the
-  # invoking hook is stdlib-only by convention. That is the identical gap
-  # docs/product/intents/credential-pack-defaults-projection.md records for credentials,
-  # so this is a second consumer of one missing installer projection, not a separate
-  # mechanism. NOT pack.layout/_append_layout_section: that channel places an output
-  # directory, is closed over four keys, and would write a URL as a path. Also open: an
-  # enterprise default means installing begins sending, which contradicts the sender
-  # spec's "installing is the first consent, configuring is the second" until that
-  # sentence admits an operator consenting for its users. Nothing is blocked -- an
-  # adopter-authored [telemetry] section in either scope already reaches the sender.
-  # Fix: an RFC-0101 addendum shared with the credential intent, then a telemetry
-  # precedence-and-disclosure spec. Unblock: the shared projection decision.
-  {path = "docs/product/intents/catalogue-level-telemetry-endpoint-default.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/credential-pack-defaults-projection.md"}, summary = "Let an enterprise catalogue bake a telemetry endpoint once so its users export with zero setup, via the RFC-0101 pack-defaults cascade and the stdlib-readable projection the credential intent also needs", needs = [{type = "local", kind = "intent", path = "docs/product/intents/credential-pack-defaults-projection.md"}]},
+  {path = "docs/product/intents/FEAT-0016-loop-telemetry-contract-corrections.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/notes/verification-ledger.md"}, summary = "Decide whether to amend AC-0031's four-of-six gate enumeration or accept the verification-ledger correction as the durable account", needs = []},
+  {path = "docs/product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/credential-pack-defaults-projection.md"}, summary = "Let an enterprise catalogue bake a telemetry endpoint once so its users export with zero setup, via the RFC-0101 pack-defaults cascade and the stdlib-readable projection the credential intent also needs", needs = [{type = "local", kind = "intent", path = "docs/product/intents/credential-pack-defaults-projection.md"}]},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
@@ -1043,15 +1017,12 @@ open = [
   # owns native adapter projections and their singleton-conflict contract.
   {path = "docs/product/intents/catalogue-rules-primitive.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/cognitive-load-reduction/notes/guidance-pointer-patterns-survey.md", revision = "local-2026-08-27"}, summary = "Add a portable rules primitive with native adapter projections and safe context-file fallbacks", needs = []},
 
-  {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
-  # Phase 2b — the schema genericization cut from the Phase 2 slice on 2026-09-03.
-  # Blocked on Phase 2 landing: it removes the per-route enum pins that four of the
-  # eight shipped route-contract refusals rest on, so it needs its own confinement
-  # and compatibility-authority contract. Must land before the Codex route.
-  {path = "docs/product/intents/distribution-route-set-opening.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Open the route set so a route needs no schema entry, with confinement for the values the per-route pins currently fix", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
-  {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}, {type = "local", kind = "intent", path = "docs/product/intents/distribution-route-set-opening.md"}]},
-  {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
-  {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
+  {path = "docs/product/intents/CAP-0009-first-class-distribution-routes.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md"}, summary = "Evolve first-class distribution routes through one declared contract, same-wave primitive parity, and evidence-backed route profiles", needs = []},
+  {path = "docs/product/intents/FEAT-0020-distribution-route-set-opening.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Open the route set so a route needs no schema entry, with confinement for the values the per-route pins currently fix", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
+  {path = "docs/product/intents/FEAT-0021-canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
+  {path = "docs/product/intents/FEAT-0022-codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/FEAT-0021-canonical-mcp-install-parity.md"}, {type = "local", kind = "intent", path = "docs/product/intents/FEAT-0020-distribution-route-set-opening.md"}]},
+  {path = "docs/product/intents/FEAT-0023-kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/FEAT-0022-codex-plugin-route.md"}]},
+  {path = "docs/product/intents/FEAT-0024-claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/FEAT-0023-kiro-power-route-profile.md"}]},
   # Unblocks when the current Kiro contract is reacquired and the migration
   # receives its own approved spec.
   {path = "docs/product/intents/kiro-hook-schema-v1.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Migrate direct Kiro hook projection to the standalone v1 schema", needs = []},
@@ -1144,7 +1115,6 @@ open = [
   # carries none of the shipped-artifact exposure that motivates the entries
   # above. Revisit only if web/ ever gains a server-side runtime.
 
-  {path = "docs/product/intents/capture-work-alias-removal.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Remove the capture-work alias and legacy workspace reader only after every RFC-0083 compatibility, notice, audit, rollback, specification, and authorization gate is satisfied", needs = []},
   {path = "docs/product/intents/tracker-refresh-trusted-authority-inputs.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Tracker refresh receives trusted scope, lifecycle and capability state, and explicit projection-repair confirmation before affected writes", needs = []},
   {path = "docs/product/design/workspace-anchor-staleness-invariant.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0083-work-intake-and-artifact-routing.md", revision = "sha256-bytes-v1:8176272b14747e07e70beb752d6b709ccac502c284a9c114ae03c0cb48312a9d"}, summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions", needs = []},
 
@@ -1753,16 +1723,16 @@ open = [
   {path = "docs/product/intents/roster-suite-parallel-execution.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/remote-ci-verification-parity.md"}, summary = "The roster suite runs 2.5x faster in parallel but at least one case reads the live working tree, so a peer worker reds a clean tree: measured 540s serial vs 218s at four workers, wait-bound rather than CPU-bound, no lease contention, and test_workspace_status_projection.py confirmed non-isolated", needs = []},
   {path = "docs/product/intents/dispatch-workflow-posture-assertions.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/remote-ci-verification-parity.md"}, summary = "The two dispatch-only workflows have no posture assertions of their own: actionlint and zizmor verify their present state but nothing pins their trigger set, absent inputs, read-only token, timeout or runner label against drift, and the repo-wide excessive-permissions pass is scoped to three named files with the broad scanner floor above that finding class", needs = []},
   {path = "docs/product/intents/pack-eval-rollout-completion.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0037-pack-activation-evals.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Eligible pack skills have stable behavior coverage and the remaining pack-eval rollout decisions are ready for their next dedicated slices", needs = []},
-  {path = "docs/product/intents/pack-javascript-ci-workflow.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/pack-test-boundary-remaining-packs/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "JavaScript living in pack skills has CI coverage, committed lockfiles, dependency auditing, and no stale runner exemptions", needs = []},
   {path = "docs/product/intents/packages-marker-rename-sweep.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/packages-governance-marker-sweep/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Every retained runtime governance-marker string has its matching pinning assertion updated in the same reviewed change", needs = []},
   {path = "docs/product/intents/plugin-publish-trust-boundary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/claude-plugin-route-scope/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Marketplace publication has an independently reviewable actor boundary, an approver preview, and current live-control evidence", needs = []},
   {path = "docs/product/intents/project-knowledge-retryable-capture-handling.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Workflows handle retryable project-knowledge capture timeouts through a bounded recovery path without silent loops or changed diagnostic semantics", needs = []},
   {path = "docs/product/intents/pytest-tmpdir-worktree-attribution.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0097-agent-skill-engineering.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Pytest temporary trees can be attributed to their worktree and reclaimed when that worktree is dead, while single-checkout behavior remains unchanged", needs = []},
-  {path = "docs/product/intents/registry-acquired-mcp-servers.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "MCP servers acquired from package registries have an approved acquisition and execution trust model", needs = []},
+  {path = "docs/product/intents/FEAT-0025-registry-acquired-mcp-servers.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "MCP servers acquired from package registries have an approved acquisition and execution trust model", needs = []},
   {path = "docs/product/intents/required-check-and-deploy-ordering.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Repository controls preserve trustworthy pull-request gating and current Pages publication", needs = []},
-  {path = "docs/product/intents/rfc0088-browser-follow-on-specs.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "The RFC-0088 browser pilot has a complete set of three separately scoped follow-on specifications for foundation delivery, behavior results, and repair tooling", needs = []},
-  {path = "docs/product/intents/rfc0088-exposure-and-privacy-anchoring.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "RFC-0088's browser-endpoint exposure and cross-round term identity claims have evidence at their stated boundaries", needs = []},
-  {path = "docs/product/intents/rfc0088-signing-and-cost-observations.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "RFC-0088 has the missing dated observations for signing-identity update survival and destination-group interactive sign-in cost", needs = []},
+  {path = "docs/product/intents/CAP-0010-rfc0088-browser-follow-on-specs.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "The RFC-0088 browser pilot has owned evidence and delivery-contract follow-ons for exposure, privacy, signing, operating cost, foundation delivery, result policy, and repair tooling", needs = []},
+  {path = "docs/product/intents/FEAT-0026-rfc0088-exposure-and-privacy-anchoring.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "RFC-0088's browser-endpoint exposure and cross-round term identity claims have evidence at their stated boundaries", needs = []},
+  {path = "docs/product/intents/FEAT-0027-rfc0088-signing-and-cost-observations.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "RFC-0088 has the missing dated observations for signing-identity update survival and destination-group interactive sign-in cost", needs = []},
+  {path = "docs/product/intents/FEAT-0028-rfc0088-browser-delivery-specifications.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Author RFC-0088's three separately gated browser-pilot delivery specifications after the boundary evidence is settled", needs = [{type = "local", kind = "intent", path = "docs/product/intents/FEAT-0026-rfc0088-exposure-and-privacy-anchoring.md"}, {type = "local", kind = "intent", path = "docs/product/intents/FEAT-0027-rfc0088-signing-and-cost-observations.md"}]},
   {path = "docs/product/intents/sast-scanner-coverage-expansion.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/pack-script-root-boundary-validation/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Shipped JavaScript receives Semgrep and CodeQL analysis, and the repository can make CodeQL findings merge-blocking when remote branch protection permits it", needs = []},
   {path = "docs/product/intents/scanner-suppression-and-pin-hygiene.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/build-check-coverage-gaps/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "SAST and npm-audit suppressions and the package installs that support their gates have explicit, durable integrity and expiry controls", needs = []},
   {path = "docs/product/intents/skill-description-semantic-drift-gate.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/local-gate-ci-parity/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Skill descriptions retain valid activation and handoff semantics as the catalogue and Codex skills-context budget evolve", needs = []},
@@ -2181,18 +2151,6 @@ open = [
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
-  # Slice 9 of `intent-identity-and-registration`, cut from
-  # `intent-renumber-and-reissue` on 2026-09-28 and Draft. It takes that slice's
-  # transaction: twelve criteria, the staging-and-recovery design, and the
-  # operator surface. The cut was evidence-driven -- a spec-stage security pass
-  # sustained ten findings against the transaction, four against the repairs to
-  # those, and six against the repairs to those, while the sibling's request and
-  # tombstone contracts took none. Registered in `backlog.open` because it is a
-  # Draft spec and that is the only initiative-free collection admitting one;
-  # it moves to ini-010's work queue when its spec is approved, as its sibling
-  # did. `needs` carries the blocking edge: its tombstone writing rests on the
-  # ADR that sibling's T4 produces.
-  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-renumber-and-reissue/spec.md"}] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make a feature intent's mapping to its independently shippable spec, or to a delivery brief and its child specs, visible from the intent side; needs its own de-risk before decomposition", needs = [] },
@@ -2230,24 +2188,6 @@ open = [
 ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ini-007 · Catalogue Contracts, Composition, Semantics, and Discovery
-#
-# Create one converged catalogue information model and one clear discovery
-# system for five audiences: enterprise catalogue maintainers (including
-# air-gapped), marketing evaluators, platform engineers, repository engineers,
-# and coding agents. Introduces the optional [[pack.integrations]] convention,
-# a portable authoring-standards hub, a bundled-contract inspection surface,
-# a deterministic neutral catalogue index, and audience-specific information
-# architecture across the docs site, marketing site, and repository README.
-#
-# Governing RFC: RFC-0076, accepted 2026-07-29 (docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md).
-# Source brief: .context/attachments/HZQyuH/pasted_text_2026-07-29_13-27-49.txt
-#
-# Non-goals: hosted registry, publisher namespaces, exact version selectors,
-# multi-version dependency solving, subjective trust scores, automatic
-# integration dispatch, executable `when` expressions, CI workflow generation.
-# ─────────────────────────────────────────────────────────────────────────────
 ["ini-007"]
 name      = "Catalogue Contracts, Composition, Semantics, and Discovery"
 status    = "active"
@@ -2258,13 +2198,6 @@ active  = [
 ]
 shipped = [
   {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},
-  # Shipped 2026-09-26: 56 of 56 acceptance criteria met, spec `Shipped` and plan
-  # `Done`. Moved from `queue` in the same change that set those statuses --
-  # membership and status move together, and the canonical reconciliation raises
-  # `impossible_transition` on a `Shipped` spec sitting in `queue`, which is
-  # exactly the finding this entry produced until it was moved. The installed-CLI
-  # manual-QA pass left the criteria for the spec's `## Follow-ons` by owner
-  # decision and is outstanding; it needs a credentialed Jira instance.
   { path = "docs/specs/jira-epic-outcome-view/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0014-tracker-native-value-before-adoption.md" }, summary = "Group a Jira scope by Epic and render each Epic's delivery reading beside its declared outcome, read from Jira and never authored here. Read-only, zero coupling to this repository's machinery per ADR-0126 D1-D3; the first slice obliged by that ADR", needs = [] },
   {path = "docs/specs/catalogue-sync-dry-run/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "c1d4fbf1614c4ac4e173e06a7a623b54d2422343"}, summary = "agentbundle catalogue sync --dry-run and --check: resolve, replay, classify, and plan with no write path", needs = []},
   {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
@@ -2294,19 +2227,11 @@ queue   = [
 ["ini-007".brief_queue]
 executing = []
 ready     = []
-draft     = [
-  # Empty. The Draft brief that sat here was removed on 2026-09-24 and replaced
-  # by docs/product/intents/CAP-0006-catalogue-contracts-composition-and-discovery.md,
-  # which carries the same tranche as a capability intent rather than a brief
-  # with no proposed slices. See STRAT-0004 § Decomposition decisions.
-]
+draft     = []
 
 ["ini-007".shaping_queue]
 active = []
 backlog = [
-  {path = "docs/product/intents/catalogue-search-verb.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Expose a catalogue search verb over the neutral semantic index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}]},
-  {path = "docs/product/intents/catalogue-wave5-release-integrity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Protect catalogue releases with digests, comparisons, and same-version mutation refusal", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}]},
-  {path = "docs/product/intents/catalogue-wave6-technical-docs-ia.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Create an author-focused technical documentation route for building a catalogue", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/documentation-entry-navigation/spec.md"}]},
   {path = "docs/product/intents/catalogue-wave7-marketing-evaluator.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Give prospective adopters an evaluator-oriented catalogue marketing surface", needs = [{type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave6-technical-docs-ia.md"}]},
   {path = "docs/product/intents/catalogue-wave9-migration-closeout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Close the first-party catalogue migration after release and discovery outcomes are complete", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave5-release-integrity.md"}, {type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave7-marketing-evaluator.md"}, {type = "local", kind = "spec", path = "docs/specs/documentation-entry-navigation/spec.md"}]},
 ]
@@ -2383,7 +2308,6 @@ milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires
 
 ["ini-010".brief_queue]
 executing = [
-  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
   # Moved to `executing` 2026-09-24 when slice 1 started, briefly back to `ready`
   # while its spec was parked for a material amendment, and back to `executing`
   # when that amendment was re-approved the same day. Membership and the brief's
@@ -2401,6 +2325,11 @@ executing = [
 # `intent-identity-and-registration`; it consumes whichever form has landed.
 ready = []
 draft = []
+# Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
+# the brief's `Status: Shipped` and `Cut-closed:` record.
+shipped = [
+  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
+]
 
 ["ini-010".shaping_queue]
 active  = []
@@ -2458,6 +2387,11 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # The final slice of `intent-identity-and-registration`. Delivered
+  # 2026-10-03 and moved from `active` to `shipped` in the change that set the
+  # spec `Shipped` and the plan `Done`. Ships the installed retire-and-issue
+  # rename, its recovery, and one-hop tombstone resolution.
+  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [] },
   # The final confirmed slice of `intent-identity-and-registration`, delivered
   # 2026-09-29 and moved from `backlog.open` in the same change that set the
   # spec `Shipped` and the plan `Done`. It keeps three out-of-root forms
@@ -2470,9 +2404,11 @@ shipped = [
   # canonical reconciliation raises `impossible_transition`. Ships the rename
   # request contract, the tombstone shape and the allocator property; the
   # operation that composes them is `intent-rename-transaction`, which this
-  # unblocks. Two residuals are carried in `[backlog].open`:
-  # `intent-rename-h1-title-false-refusal` and
-  # `contract-amendment-prepare-strands-the-run`.
+  # unblocks. One residual is carried in `[backlog].open`:
+  # `contract-amendment-prepare-strands-the-run`. The other,
+  # `intent-rename-h1-title-false-refusal`, was retired 2026-10-02 once the
+  # exemption shipped in code; the retirement note sits above that entry's
+  # former position.
   { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
   # Slice 2 of `intent-lifecycle-and-closure`, delivered 2026-09-27 and moved
   # from `queue` to `shipped` in the same change that set the spec `Shipped`

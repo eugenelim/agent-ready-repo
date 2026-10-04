@@ -37,10 +37,10 @@ Estate never learns any of them exist.
 ## What it is honest about
 
 The pack ships a fourteen-point assessment of what the provider does and does
-not expose, and the answer is not "everything". There is no path query — you can
-establish that A reaches B, not the route. The command-line blast radius carries
-no depth, so direct and transitive impact cannot be separated from it alone. Its
-traversal stops at twelve hops and does not say so.
+not expose, and the answer is not "everything". The command-line blast radius
+carries no per-row depth or confidence — use `wicked-estate path A B --json`
+for per-hop evidence on a specific route. Nothing ranks a supplied set of
+symbols on the CLI — `rank` is a fixed global top-25.
 
 Those are recorded rather than papered over, because an agent that knows where
 the map ends is more useful than one that does not.
