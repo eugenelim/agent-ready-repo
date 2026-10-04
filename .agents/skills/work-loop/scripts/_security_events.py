@@ -18,13 +18,14 @@ Standard library only. No third-party imports, no packaging, no installation.
 Python 3.11+.
 """
 
+import contextlib
 import importlib.util
 import json
 import os
 import secrets
 import stat
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Callable, Final
@@ -40,6 +41,7 @@ __all__ = [
     "AuditSinkUnavailable",
     "KNOWN_REASON_CODES",
     "emit_security_event",
+    "emit_denial_best_effort",
     "check_writer_authority_and_emit",
     "make_operation_id",
     "validate_event_dict",
@@ -221,15 +223,36 @@ def emit_security_event(
 
     try:
         sink(event)
-    except AuditSinkError as exc:
-        raise AuditSinkUnavailable(
-            f"audit sink unavailable; failing closed: {exc}"
-        ) from exc
-    except OSError as exc:
-        raise AuditSinkUnavailable(
-            f"audit sink I/O error; failing closed: {exc}"
-        ) from exc
+    except Exception as exc:  # noqa: BLE001 — every sink failure fails closed
+        # The message is fixed: sink error text can carry paths or payload.
+        raise AuditSinkUnavailable("audit sink unavailable; failing closed") from exc
     return event
+
+
+#: Correlation value used when a caller-supplied correlation ID is refused by
+#: the content-safety check, so the denial is still audited without its bytes.
+REDACTED_CORRELATION_ID: Final[str] = "redacted"
+
+
+def emit_denial_best_effort(
+    sink: Callable[[SecurityEvent], None],
+    event: SecurityEvent,
+) -> None:
+    """Emit a denial event through the content-safety check; never raise.
+
+    A denial is returned to its caller whether or not it can be audited.  If
+    the event is refused (for example, a credential-shaped correlation ID),
+    it is retried once with the correlation ID redacted, so no refused bytes
+    reach the sink.  A sink that is still unavailable is ignored here because
+    the operation is already failing closed.
+    """
+    try:
+        emit_security_event(sink, event)
+        return
+    except AuditSinkUnavailable:
+        pass
+    with contextlib.suppress(AuditSinkUnavailable):
+        emit_security_event(sink, replace(event, correlation_id=REDACTED_CORRELATION_ID))
 
 
 def check_writer_authority_and_emit(

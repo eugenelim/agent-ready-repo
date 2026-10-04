@@ -1191,3 +1191,39 @@ class TestSecurityEventContentSafetyCheck:
         with _pytest.raises(se.AuditSinkUnavailable):  # type: ignore[attr-defined]
             se.emit_security_event(lambda e: received.append(e), event)  # type: ignore[attr-defined]
         assert not received, "event with missing profile must not reach the sink"
+
+
+class TestSingleAuditEmitter:
+    """Every shipped module reaches an audit sink only through the checked emitter."""
+
+    def test_no_module_calls_an_audit_sink_directly(self) -> None:
+        """Only the emitter and the facade's own durable sink may invoke a sink."""
+        import re
+
+        scripts = SCRIPTS
+        direct = re.compile(r"\b(?:audit_sink|sink)\(")
+        offenders = []
+        for path in sorted(scripts.glob("_*.py")):
+            if path.name == "_security_events.py":
+                continue
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                code = line.split("#", 1)[0]
+                if direct.search(code) and not code.lstrip().startswith("def "):
+                    offenders.append(f"{path.name}:{number}: {line.strip()}")
+        assert not offenders, "call the checked emitter instead:\n" + "\n".join(offenders)
+
+    def test_emitter_message_never_carries_sink_text(self) -> None:
+        """A sink failure surfaces with a fixed message, whatever the sink raised."""
+        se = _load_module("se_message", SCRIPTS / "_security_events.py")
+        event = se.SecurityEvent(
+            schema_version=1, operation_id="op-1", correlation_id="c-1",
+            event_type="capability-check", outcome="allowed",
+            reason_code="allowed", timestamp="2026-01-01T00:00:00Z",
+        )
+
+        def failing_sink(event: object) -> None:
+            raise RuntimeError("boom /private/secret")
+
+        with pytest.raises(se.AuditSinkUnavailable) as exc_info:
+            se.emit_security_event(failing_sink, event)
+        assert "/private" not in str(exc_info.value)

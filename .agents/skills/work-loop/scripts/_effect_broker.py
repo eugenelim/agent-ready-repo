@@ -307,7 +307,6 @@ def _emit_broker_event(
     For allow events use ``_emit_allow_and_check`` instead.  Denial events
     are best-effort; the denial proceeds regardless.
     """
-    import contextlib
     event = _se.SecurityEvent(  # type: ignore[attr-defined]
         schema_version=1,
         operation_id=operation_id,
@@ -317,8 +316,7 @@ def _emit_broker_event(
         reason_code=reason_code,
         timestamp=_now_rfc3339(),
     )
-    with contextlib.suppress(Exception):
-        audit_sink(event)
+    _se.emit_denial_best_effort(audit_sink, event)  # type: ignore[attr-defined]
 
 
 def _emit_allow_and_check(
@@ -341,10 +339,10 @@ def _emit_allow_and_check(
     )
     try:
         _se.emit_security_event(audit_sink, event)  # type: ignore[attr-defined]
-    except _se.AuditSinkUnavailable as exc:  # type: ignore[attr-defined]
+    except Exception as exc:  # noqa: BLE001 — any sink failure from any module load
         raise BrokerRefused(
             "denied-audit-sink-unavailable",
-            f"audit sink unavailable before effect; failing closed: {exc}",
+            "audit sink unavailable before effect; failing closed",
         ) from exc
 
 

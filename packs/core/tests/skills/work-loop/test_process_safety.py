@@ -232,6 +232,37 @@ class TestAuditSinkUnavailable:
             _launch(ps, _spec(str(tmp_path)), audit_sink=bad_sink)
         assert exc_info.value.denial_code == "denied-audit-sink-unavailable"
 
+    @pytest.mark.parametrize(
+        "failure",
+        [RuntimeError("boom /private/secret"), OSError("disk /private/secret-path full")],
+    )
+    def test_any_sink_failure_refuses_with_redacted_stable_code(
+        self, process_safety: ModuleType, tmp_path, failure: Exception
+    ) -> None:
+        """Every sink failure on the allow path gives the stable code and no sink text."""
+        ps = process_safety
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, _spec(str(tmp_path)), audit_sink=_failing_sink(failure))
+        assert exc_info.value.denial_code == "denied-audit-sink-unavailable"
+        assert "/private" not in str(exc_info.value)
+
+    def test_credential_shaped_correlation_id_never_reaches_the_sink(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A denial carrying a credential-shaped correlation ID is audited redacted."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        with pytest.raises(ps.ProcessDenied):
+            _launch(
+                ps, _spec(str(outside)), cwd_roots=(str(tmp_path / "root"),),
+                audit_sink=sink, correlation_id="AKIAIOSFODNN7EXAMPLE",
+            )
+        assert events, "the denial must still be audited"
+        assert all("AKIAIOSFODNN7EXAMPLE" not in repr(e) for e in events), events
+        assert {e.correlation_id for e in events} == {"redacted"}
+
     def test_none_sink_leaves_no_output(
         self, process_safety: ModuleType, tmp_path
     ) -> None:

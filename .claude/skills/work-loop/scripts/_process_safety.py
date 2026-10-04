@@ -530,8 +530,7 @@ def _emit_event(
         timestamp=_now_rfc3339(),
     )
     # Denial events are best-effort; the denial proceeds regardless.
-    with contextlib.suppress(Exception):
-        audit_sink(event)
+    _se.emit_denial_best_effort(audit_sink, event)  # type: ignore[attr-defined]
 
 
 def _emit_allow(
@@ -555,10 +554,10 @@ def _emit_allow(
     )
     try:
         _se.emit_security_event(audit_sink, event)  # type: ignore[attr-defined]
-    except _se.AuditSinkUnavailable as exc:  # type: ignore[attr-defined]
+    except Exception as exc:  # noqa: BLE001 — any sink failure from any module load
         raise ProcessDenied(
             "denied-audit-sink-unavailable",
-            f"audit sink unavailable during allow emission; failing closed: {exc}",
+            "audit sink unavailable during allow emission; failing closed",
         ) from exc
 
 

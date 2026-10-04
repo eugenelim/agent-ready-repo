@@ -919,6 +919,57 @@ class TestLaunchUntrusted:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+_CREDENTIAL_SHAPED = "AKIAIOSFODNN7EXAMPLE"
+
+
+class TestBrokerAuditBoundary:
+    """Every broker event passes the content-safety check; sink failures stay redacted."""
+
+    def test_credential_shaped_grant_id_never_reaches_the_sink(
+        self, effect_broker: ModuleType
+    ) -> None:
+        """A denial for a credential-shaped grant ID is audited with the ID redacted."""
+        eb = effect_broker
+        session = eb.create_broker_session(session_id="s-cred", grants=[])
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=_CREDENTIAL_SHAPED,
+            operation="write",
+            path="/work/x",
+            audit_sink=events.append,
+        )
+        assert result.denial_code == "denied-missing-grant"
+        assert events, "the denial must still be audited"
+        assert all(_CREDENTIAL_SHAPED not in repr(e) for e in events), events
+        assert {e.correlation_id for e in events} == {"redacted"}
+
+    @pytest.mark.parametrize(
+        "failure",
+        [RuntimeError("boom /private/secret"), OSError("disk /private/secret-path full")],
+    )
+    def test_allow_path_sink_failure_refuses_with_stable_code(
+        self, effect_broker: ModuleType, failure: Exception
+    ) -> None:
+        """Any sink failure before an effect refuses with the stable sink code."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="g-allow", operations=("write",), allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(session_id="s-allow", grants=[grant])
+
+        def failing_sink(event: object) -> None:
+            raise failure
+
+        result = eb.request_effect(
+            session, grant_id="g-allow", operation="write", path="/work/out.txt",
+            audit_sink=failing_sink,
+        )
+        assert not result.success
+        assert result.denial_code == "denied-audit-sink-unavailable"
+        assert "/private" not in repr(result)
+
+
 class TestBrokerCapabilityFailures:
     """AC-0020/AC-0021: broker refuses missing, expired, and mismatched producer capabilities."""
 
