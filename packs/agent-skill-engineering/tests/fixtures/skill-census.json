@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 133,
+  "population_size": 132,
   "entries": [
     {
       "pack": "_example",
@@ -854,15 +854,6 @@
       "families": [
         "orientation-read-model",
         "deterministic-script-backed"
-      ],
-      "exception": null
-    },
-    {
-      "pack": "governance-extras",
-      "skill": "rfc-status",
-      "families": [
-        "orientation-read-model",
-        "state-status-lifecycle"
       ],
       "exception": null
     },

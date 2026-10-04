@@ -1,6 +1,6 @@
 [pack]
 name = "iac-terraform"
-version = "0.1.10"
+version = "0.1.11"
 description = "Describe the infrastructure you want; get Terraform you would be willing to review. Cloud-agnostic, gated on a written decision, and it stops at the plan — applying is still yours."
 readme = "README.md"
 display_name = "IaC (Terraform)"
@@ -33,8 +33,10 @@ pack = "governance-extras"
 # `new-adr` rather than embedding its template or parsing records, so a richer
 # template reaches it as new fields on records the skill writes, not as a
 # contract change here; `new-adr/references/infra-decisions.md` and infra mode
-# are untouched by that release. Bumped so the range admits the minor shipped.
-version = "^0.11"
+# are untouched by that release. 1.0 replaced the read-only `rfc-status` skill,
+# which this pack never used, with `navigate-decisions`; `new-adr` and the
+# governance-index template are unchanged. Bumped so the range admits the major.
+version = "^1.0"
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

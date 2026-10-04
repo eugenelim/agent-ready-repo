@@ -150,7 +150,7 @@ SKILLS: dict[str, list[str]] = {
     "new-spec":                     ["key-value"],
     "bug-fix":                      ["diff", "table"],
     # governance-extras
-    "rfc-status":                   ["table"],
+    "navigate-decisions":           ["table"],
     "new-adr":                      ["key-value"],
     "new-rfc":                      ["key-value"],
     # architect

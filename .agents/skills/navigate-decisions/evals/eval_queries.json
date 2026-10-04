@@ -1,0 +1,198 @@
+[
+  {
+    "query": "rfc status",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me the current RFC landscape",
+    "should_trigger": true
+  },
+  {
+    "query": "What RFCs are open right now?",
+    "should_trigger": true
+  },
+  {
+    "query": "How many RFCs are in draft?",
+    "should_trigger": true
+  },
+  {
+    "query": "Give me an RFC dashboard",
+    "should_trigger": true
+  },
+  {
+    "query": "Any RFC candidates in the findings register?",
+    "should_trigger": true
+  },
+  {
+    "query": "What RFC candidates do we have queued?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me which RFCs are active and which are accepted",
+    "should_trigger": true
+  },
+  {
+    "query": "rfc report",
+    "should_trigger": true
+  },
+  {
+    "query": "What governance work is in flight?",
+    "should_trigger": true
+  },
+  {
+    "query": "How many roadmap intents do we have?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me ADR-0001",
+    "should_trigger": true
+  },
+  {
+    "query": "Look up RFC-0105",
+    "should_trigger": true
+  },
+  {
+    "query": "Which ADRs are accepted?",
+    "should_trigger": true
+  },
+  {
+    "query": "What supersedes RFC-0042?",
+    "should_trigger": true
+  },
+  {
+    "query": "What is ADR-0027 about?",
+    "should_trigger": true
+  },
+  {
+    "query": "Find decisions about authentication",
+    "should_trigger": true
+  },
+  {
+    "query": "Give me a summary of all ADRs and RFCs",
+    "should_trigger": true
+  },
+  {
+    "query": "What decisions do we have on record?",
+    "should_trigger": true
+  },
+  {
+    "query": "How many accepted ADRs are there?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me all withdrawn RFCs",
+    "should_trigger": true
+  },
+  {
+    "query": "Trace the lineage of ADR-0050",
+    "should_trigger": true
+  },
+  {
+    "query": "What does ADR-0010 supersede?",
+    "should_trigger": true
+  },
+  {
+    "query": "Which record superseded RFC-0020?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me the decisions that supersede ADR-0030",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me the context for ADR-0015",
+    "should_trigger": true
+  },
+  {
+    "query": "What guidance is broader than ADR-0001?",
+    "should_trigger": true
+  },
+  {
+    "query": "Which decisions provide broader context for RFC-0099?",
+    "should_trigger": true
+  },
+  {
+    "query": "Where is ADR-0027 defined in the repository?",
+    "should_trigger": true
+  },
+  {
+    "query": "What is the source file for RFC-0105?",
+    "should_trigger": true
+  },
+  {
+    "query": "What constraints does RFC-0099 impose?",
+    "should_trigger": true
+  },
+  {
+    "query": "Are there any decisions that constrain our microservice architecture?",
+    "should_trigger": true
+  },
+  {
+    "query": "Generate an offline HTML explorer of our ADRs and RFCs",
+    "should_trigger": true
+  },
+  {
+    "query": "Export the decision corpus to an HTML file",
+    "should_trigger": true
+  },
+  {
+    "query": "Create an offline decision explorer I can share with reviewers",
+    "should_trigger": true
+  },
+  {
+    "query": "Draft a new RFC for adopting trunk-based development",
+    "should_trigger": false
+  },
+  {
+    "query": "Record the decision to use Postgres as an ADR",
+    "should_trigger": false
+  },
+  {
+    "query": "What should I work on next?",
+    "should_trigger": false
+  },
+  {
+    "query": "Update the conventions file",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a spec for the new caching feature",
+    "should_trigger": false
+  },
+  {
+    "query": "Show the work queue from workspace.toml",
+    "should_trigger": false
+  },
+  {
+    "query": "Fix the bug in the RFC template",
+    "should_trigger": false
+  },
+  {
+    "query": "Create an ADR for our API versioning decision",
+    "should_trigger": false
+  },
+  {
+    "query": "Write an RFC for the new caching feature",
+    "should_trigger": false
+  },
+  {
+    "query": "Revise RFC-0099 to reflect its new accepted status",
+    "should_trigger": false
+  },
+  {
+    "query": "Show me the intent hierarchy",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the status of FEAT-0029?",
+    "should_trigger": false
+  },
+  {
+    "query": "List all intents in the roadmap",
+    "should_trigger": false
+  },
+  {
+    "query": "What intents depend on FEAT-0030?",
+    "should_trigger": false
+  }
+]
