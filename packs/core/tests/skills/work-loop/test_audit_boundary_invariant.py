@@ -538,3 +538,17 @@ class TestRecoveryIdentityBinding:
         with pytest.raises(es.EvidenceStoreError):
             store.open()
         assert log_path.read_bytes() == b'{"partial', "the log must be left intact"
+
+    def test_identity_change_refuses_truncation_without_fcntl(
+        self, es: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Hosts without an advisory lock still refuse to replace a different file."""
+        log_path = tmp_path / "ev.log"
+        log_path.write_bytes(b'{"partial')
+        monkeypatch.setattr(es, "_HAS_FCNTL", False)
+        identities = iter([(1, 1), (1, 1), (1, 2)])
+        monkeypatch.setattr(es, "_regular_file_identity", lambda path: next(identities))
+        store = es.EvidenceStore(log_path)
+        with pytest.raises(es.EvidenceStoreError):
+            store.open()
+        assert log_path.read_bytes() == b'{"partial', "the log must be left intact"

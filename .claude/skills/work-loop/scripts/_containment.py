@@ -280,6 +280,18 @@ _SAME_PROCESS_MECHANISMS: Final[frozenset[str]] = frozenset({
 
 
 def validate_attestation_dict(d: object) -> tuple[bool, str]:
+    """Validate *d* without ever raising: any unexpected value refuses.
+
+    A record of any shape returns a stable denial code instead of an
+    exception, so every caller can audit the refusal.
+    """
+    try:
+        return _validate_attestation_dict_checked(d)
+    except Exception:  # noqa: BLE001 — validation must never raise
+        return False, "denied-invalid-attestation-field"
+
+
+def _validate_attestation_dict_checked(d: object) -> tuple[bool, str]:
     """Validate a containment-attestation.v1 record dict in code.
 
     Checks schema_version, required fields, absence of unknown
@@ -299,7 +311,11 @@ def validate_attestation_dict(d: object) -> tuple[bool, str]:
         return False, "denied-missing-required-field"
 
     version = d.get("schema_version")
-    if not isinstance(version, int) or version != SUPPORTED_ATTESTATION_SCHEMA_VERSION:
+    if (
+        not isinstance(version, int)
+        or isinstance(version, bool)
+        or version != SUPPORTED_ATTESTATION_SCHEMA_VERSION
+    ):
         return False, "denied-unknown-schema-version"
 
     missing = _REQUIRED_ATTESTATION_KEYS - set(d.keys())
@@ -317,8 +333,17 @@ def validate_attestation_dict(d: object) -> tuple[bool, str]:
         return False, "denied-same-process-isolation-claim"
 
     read_enf = d.get("read_enforcement")
-    if read_enf is not None and read_enf not in _VALID_READ_ENFORCEMENT:
+    if read_enf is not None and (
+        not isinstance(read_enf, str) or read_enf not in _VALID_READ_ENFORCEMENT
+    ):
         return False, "denied-unknown-authority-field"
+    trace_coverage = d.get("trace_coverage")
+    if trace_coverage is not None and (
+        not isinstance(trace_coverage, str) or not trace_coverage
+    ):
+        return False, "denied-invalid-attestation-field"
+    if not isinstance(d.get("limits"), dict):
+        return False, "denied-invalid-attestation-field"
 
     principal = d.get("principal_or_sandbox")
     if not isinstance(principal, str) or not principal:

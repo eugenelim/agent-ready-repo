@@ -893,15 +893,21 @@ class EvidenceStore:
         unavailable so no committed frame is removed on those platforms either
         (best-effort; true serialisation requires the lock).
         """
-        if not _HAS_FCNTL:
-            self._truncate_log(complete_bytes)
-            return
         if self._log_identity is None:
             # The identity of the bytes read could not be bound, so the file at
             # the path cannot be shown to be the one read: never truncate it.
             raise EvidenceStoreError(
                 "evidence log identity changed during recovery; refusing to truncate"
             )
+        if not _HAS_FCNTL:
+            # No advisory lock on this host: still refuse to replace a file that
+            # is not the one that was read.
+            if _regular_file_identity(self._log_path) != self._log_identity:
+                raise EvidenceStoreError(
+                    "evidence log identity changed during recovery; refusing to truncate"
+                )
+            self._truncate_log(complete_bytes)
+            return
         try:
             with _advisory_lock(
                 self._root, self._log_path, expected_identity=self._log_identity

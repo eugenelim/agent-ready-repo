@@ -251,7 +251,19 @@ class ProcessResult:
 # ── Validation ────────────────────────────────────────────────────────────────
 
 
-def validate_process_spec_dict(d: dict) -> tuple[bool, str]:
+def validate_process_spec_dict(d: object) -> tuple[bool, str]:
+    """Validate *d* without ever raising: any unexpected value refuses.
+
+    A record of any shape returns a stable denial code instead of an
+    exception, so every caller can audit the refusal.
+    """
+    try:
+        return _validate_process_spec_dict_checked(d)
+    except Exception:  # noqa: BLE001 — validation must never raise
+        return False, "denied-invalid-field-value"
+
+
+def _validate_process_spec_dict_checked(d: object) -> tuple[bool, str]:
     """Validate a safe-process.v1 record dict in code.
 
     Checks schema_version, required fields, unknown authority-shaped fields,
@@ -274,7 +286,11 @@ def validate_process_spec_dict(d: dict) -> tuple[bool, str]:
         return False, "denied-missing-required-field"
 
     version = d.get("schema_version")
-    if not isinstance(version, int) or version != SUPPORTED_SCHEMA_VERSION:
+    if (
+        not isinstance(version, int)
+        or isinstance(version, bool)
+        or version != SUPPORTED_SCHEMA_VERSION
+    ):
         return False, "denied-unknown-schema-version"
 
     missing = _REQUIRED_SPEC_KEYS - set(d.keys())
@@ -287,7 +303,7 @@ def validate_process_spec_dict(d: dict) -> tuple[bool, str]:
         return False, "denied-unknown-authority-field"
 
     stdin_mode = d.get("stdin_mode")
-    if stdin_mode not in _VALID_STDIN_MODES:
+    if not isinstance(stdin_mode, str) or stdin_mode not in _VALID_STDIN_MODES:
         return False, "denied-invalid-stdin-mode"
 
     executable = d.get("executable", "")
@@ -320,7 +336,12 @@ def validate_process_spec_dict(d: dict) -> tuple[bool, str]:
     if not isinstance(env_allowlist, list):
         return False, "denied-invalid-field-value"
     for _env_name in env_allowlist:
-        if not isinstance(_env_name, str) or "=" in _env_name or "\x00" in _env_name:
+        if (
+            not isinstance(_env_name, str)
+            or not _env_name
+            or "=" in _env_name
+            or "\x00" in _env_name
+        ):
             return False, "denied-invalid-field-value"
 
     timeout = d.get("process_tree_timeout_s")

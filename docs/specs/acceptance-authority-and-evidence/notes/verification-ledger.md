@@ -264,8 +264,33 @@ are now typed against the unchanged `containment-attestation.v1` schema, and any
 exception in the attestation-versus-grant check refuses through the audited path.
 Recovery records the evidence-log identity only when no-follow stats taken
 before and after the read agree, and refuses to truncate otherwise. The
-success-path group kill runs before the exited leader is reaped. `cwd`,
+success-path group kill runs before the exited leader is reaped on hosts
+with `os.waitid` and `WNOWAIT` (see the residual below). `cwd`,
 `grant_id`, and `executable_identity` must be non-empty strings before any
 filesystem call. Against the pre-fix code, 16 of the 17 new tests fail. The
 exception is `network: {"allowed": "true"}`: the old code already refused it,
 because the grant allows no network.
+
+## Group kill on hosts without `waitid` (owner decision, 2026-10-04)
+
+`os.waitid` with `WNOWAIT` can see that a process exited without reaping it.
+On hosts that have it, the success-path group kill signals the launch's
+process group while the exited leader still reserves the group ID. macOS
+builds of Python 3.11 and 3.12 do not have it, and this repository supports
+3.11. On those hosts the leader is reaped before the group kill. The owner
+accepted the remaining risk: exploiting it needs the freed ID to be reused by
+another of the same user's process groups within microseconds. The kill stays
+in place there, because removing it would let a backgrounded child outlive a
+successful launch.
+
+A sixth override on 2026-10-04 followed security review round 4, which upheld
+1 Concern and 3 Nits. All four came from validators that raised on an
+unexpected type. The owner chose to close that whole class.
+`validate_attestation_dict` and `validate_process_spec_dict` now never raise:
+any exception refuses with a stable code. Every schema field is type-checked,
+including booleans offered as integers, unhashable enum values, `limits: null`,
+and `trace_coverage`. `test_validator_totality.py` runs every field of both
+records through 15 wrong-type and edge values. It checks the validators and
+both launch boundaries, and requires each refusal to be audited. All four of
+its tests fail against the pre-fix code. Recovery on hosts without `fcntl`
+now also refuses to replace a file whose identity differs from the one read.
