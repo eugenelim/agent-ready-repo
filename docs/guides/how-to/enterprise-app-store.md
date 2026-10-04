@@ -108,30 +108,47 @@ Do not copy their GitHub syntax as the portable contract. The public
 [Catalogue CI contract](../../../guides/_shared/reference/catalogue-ci-contract.md)
 owns the provider-neutral sequence and responsibility boundary.
 
-## Account for current reader authentication
+## Reader authentication providers
 
 Organization defaults select the protected catalogue URL. They do not
 authenticate it.
 
-AgentBundle's HTTPS client currently reads only
-`AGENTBUNDLE_HTTP_BEARER_TOKEN`. It does not reuse a JFrog CLI profile, Pip or
-uv authentication, `.netrc`, a keyring, browser SSO state, or `credbroker`.
+AgentBundle resolves catalogue credentials through a four-provider chain via
+`credbroker.resolve_http_access`. Providers are evaluated in priority order:
+bearer token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`), JFrog CLI 2.105.0+ profile,
+exact-machine `.netrc` record, then anonymous. The chain stops at the first
+available provider. When a configured provider is broken, resolution fails
+immediately — no fallback to the next provider.
 
-The lowest-friction supported path is an organization-managed shell, launcher,
-or endpoint policy that injects the Artifactory-issued read token into the
-AgentBundle process. This is a workaround and a second credential surface, not
-transparent reuse. A runtime change to reuse provider-native credentials needs
-separate authorization and security review.
+For the JFrog CLI path, AgentBundle delegates fetches to `jf api` —
+`AGENTBUNDLE_CA_BUNDLE` does not reach the subprocess. On Linux, use
+`SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a private CA for `jf api`. On
+macOS, add the corporate CA to the system keychain instead — `jf api` reads
+only the system keychain there. `jf api` ignores `~/.jfrog/security/certs/`,
+so a passing `jf rt ping` does not prove the catalogue fetch will succeed.
 
 ## Troubleshoot without exposing secrets
 
 - **Wrong source:** `agentbundle config get source` shows whether a user source
   overrides the organization bootstrap. Use `agentbundle config unset source`
   only when the organization default should take over.
-- **401 or 403:** confirm that the read identity can fetch both the channel
-  descriptor and its referenced release objects. Do not print its token.
-- **TLS failure:** configure `AGENTBUNDLE_CA_BUNDLE` with the approved PEM CA
-  bundle path. Do not disable certificate verification.
+- **401 or 403:** check which provider AgentBundle selected. For bearer, confirm
+  the token has read access to the channel and release paths. For JFrog CLI,
+  run `jf config show --format=json` to confirm the profile matches the catalogue
+  origin and the stored token has not expired; access failures on the JFrog CLI
+  path surface as `jfrog_fetch_failed` rather than an HTTP status code. For
+  `.netrc`, confirm the `machine` key matches the catalogue host and the file is
+  mode `0600`. Do not print token values.
+- **Configured-but-broken error:** a failure code such as `netrc_unsafe` or
+  `jfrog_profile_mismatch` means a provider was detected but broken. Fix the
+  broken configuration — the chain will not fall back past it.
+- **TLS failure (direct path):** configure `AGENTBUNDLE_CA_BUNDLE` with the
+  approved PEM CA bundle path. Do not disable certificate verification.
+- **TLS failure (JFrog CLI path):** `AGENTBUNDLE_CA_BUNDLE` does not reach `jf
+  api`; TLS failures there surface as `jfrog_fetch_failed`. On Linux, set
+  `SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a private CA. On macOS, add the
+  corporate CA to the system keychain — `jf api` reads only the system keychain
+  there.
 - **Proxy failure:** configure `HTTPS_PROXY` and `NO_PROXY` through the managed
   environment. Keep proxy credentials out of repository files and transcripts.
 - **Expired credentials:** rotate the publisher or reader identity through the

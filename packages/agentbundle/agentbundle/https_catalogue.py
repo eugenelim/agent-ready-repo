@@ -8,11 +8,12 @@ Implements ``catalogue+https://`` and ``archive+https://`` source URI schemes:
   fragment supplies the expected digest.
 
 Security invariants:
-- Bearer token read-only from ``AGENTBUNDLE_HTTP_BEARER_TOKEN`` env var.
-  Never logged, printed, or forwarded to a different origin.
-- Same-origin redirect enforcement: the originally-requested URL is the anchor.
-  Cross-origin redirects are rejected before any outbound request is sent.
-- HTTPS only — no ``HTTPHandler`` in the opener; HTTP redirects rejected.
+- Bearer credential resolved via ``credbroker``; never read directly or
+  logged, printed, or forwarded to a different origin.
+- Same-origin redirect enforcement and cross-origin rejection are delegated
+  to ``catalogue_fetch``'s direct HTTP provider.
+- HTTPS only — scheme-downgrade redirects are rejected before the redirected
+  request is sent.
 - Archive extracted member-by-member; never ``extractall()`` without per-member
   safety checks. Path traversal, absolute paths, symlinks, hard links, and
   special files are all rejected.
@@ -27,12 +28,9 @@ import json
 import os
 import re
 import shutil
-import ssl
 import sys
 import tarfile
 import tempfile
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from urllib.parse import urljoin, urlsplit, urlunsplit
@@ -66,150 +64,6 @@ _SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 _DESCRIPTOR_REQUIRED_FIELDS = (
     "schema", "kind", "bundle", "channel", "release", "artifact", "sha256"
 )
-
-
-# ---------------------------------------------------------------------------
-# Redirect handler — rejects cross-origin, HTTP, and user-info redirects
-# ---------------------------------------------------------------------------
-
-
-class _OriginLockingRedirectHandler(urllib.request.HTTPRedirectHandler):
-    """Custom redirect handler that enforces same-origin redirect policy.
-
-    The same-origin anchor is the ORIGINALLY-REQUESTED URL (captured before
-    ``urlopen`` is called), not the post-redirect final URL. Cross-origin
-    redirects are rejected before any request is sent to the redirect target.
-    """
-
-    def __init__(self, original_url: str) -> None:
-        self._original = urlsplit(original_url)
-
-    def _origin(self, parsed) -> tuple:
-        return (
-            parsed.scheme.lower(),
-            (parsed.hostname or "").lower(),
-            parsed.port,
-        )
-
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
-        parsed_new = urlsplit(newurl)
-        # Reject HTTP redirects (HTTPS only)
-        if parsed_new.scheme.lower() != "https":
-            raise CatalogueError(
-                f"HTTPS-only: redirect to non-HTTPS URL rejected: {parsed_new.scheme}://..."
-            )
-        # Reject user-info in redirect URL
-        if "@" in parsed_new.netloc:
-            raise CatalogueError("redirect contains user-info in netloc; rejected")
-        # Reject cross-origin (compare against ORIGINALLY requested URL)
-        if self._origin(parsed_new) != self._origin(self._original):
-            raise CatalogueError(
-                "cross-origin redirect rejected (bearer token not forwarded)"
-            )
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-
-# ---------------------------------------------------------------------------
-# Opener construction
-# ---------------------------------------------------------------------------
-
-
-def _build_opener(
-    token: str | None,
-    original_url: str,
-    *,
-    env: dict | None = None,
-) -> urllib.request.OpenerDirector:
-    """Build a custom opener with proxy support, redirect enforcement, HTTPS only.
-
-    - ``ProxyHandler()`` (no args) reads HTTPS_PROXY / NO_PROXY from
-      ``os.environ`` automatically via ``urllib.request.getproxies()``.
-    - No ``HTTPHandler`` — HTTP is disabled in the opener.
-    - ``_OriginLockingRedirectHandler`` rejects cross-origin redirects before
-      they are followed; same-origin redirects forward ``Authorization`` intact.
-    - Bearer token is added as ``Authorization: Bearer <token>`` when present.
-    - ``env`` defaults to ``os.environ``; injectable for testing.
-    """
-    redirect_handler = _OriginLockingRedirectHandler(original_url)
-    proxy_handler = urllib.request.ProxyHandler()
-
-    ca_bundle = (env if env is not None else os.environ).get("AGENTBUNDLE_CA_BUNDLE")
-    if ca_bundle:
-        if not Path(ca_bundle).exists():
-            raise CatalogueError(
-                f"AGENTBUNDLE_CA_BUNDLE path does not exist: {ca_bundle!r}"
-            )
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ctx.load_verify_locations(cafile=ca_bundle)
-        https_handler = urllib.request.HTTPSHandler(context=ctx)
-    else:
-        https_handler = urllib.request.HTTPSHandler()
-
-    opener = urllib.request.OpenerDirector()
-    opener.addheaders = []  # prevent default User-Agent from leaking in some paths
-
-    opener.add_handler(proxy_handler)
-    opener.add_handler(redirect_handler)
-    opener.add_handler(https_handler)
-    opener.add_handler(urllib.request.UnknownHandler())
-
-    if token:
-        # Store token for use in _fetch_bytes_limited / _stream_and_verify
-        # via a custom opener attribute; NOT logged anywhere.
-        opener._bearer_token = token  # type: ignore[attr-defined]
-    else:
-        opener._bearer_token = None  # type: ignore[attr-defined]
-
-    return opener
-
-
-def _make_request(url: str, opener: urllib.request.OpenerDirector) -> urllib.request.Request:
-    """Build a Request, adding Authorization header if the opener has a token."""
-    req = urllib.request.Request(url)
-    token = getattr(opener, "_bearer_token", None)
-    if token:
-        req.add_header("Authorization", f"Bearer {token}")
-    return req
-
-
-# ---------------------------------------------------------------------------
-# HTTP fetch helpers
-# ---------------------------------------------------------------------------
-
-
-def _fetch_bytes_limited(
-    url: str,
-    opener: urllib.request.OpenerDirector,
-    max_bytes: int,
-    timeout: int,
-) -> bytes:
-    """Stream a response, enforcing ``max_bytes`` regardless of Content-Length.
-
-    Raises ``CatalogueError`` if the byte limit is exceeded before the response
-    body is consumed.
-    """
-    req = _make_request(url, opener)
-    try:
-        with opener.open(req, timeout=timeout) as resp:
-            chunks = []
-            total = 0
-            while True:
-                chunk = resp.read(65536)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > max_bytes:
-                    raise CatalogueError(
-                        f"response from {url!r} exceeds {max_bytes} byte limit"
-                    )
-                chunks.append(chunk)
-            return b"".join(chunks)
-    except CatalogueError:
-        raise
-    except urllib.error.URLError as exc:
-        raise CatalogueError(f"failed to fetch {url!r}: {exc.reason}") from exc
-    except OSError as exc:
-        raise CatalogueError(f"failed to fetch {url!r}: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -262,9 +116,16 @@ def _parse_descriptor(data: bytes) -> dict:
 def _resolve_artifact_url(descriptor_url: str, artifact_field: str) -> str:
     """Resolve artifact URL against descriptor URL; enforce same-origin + HTTPS.
 
-    Same-origin is defined as scheme + host + port all equal to the
+    Same-origin is defined as the normalized HTTPS origin of the
     ORIGINALLY-REQUESTED channel descriptor URL (not the post-redirect URL).
+    The comparison uses the same normalized-origin profile that the fetch
+    session uses (``direct_http._normalize_origin``), so IDN spellings and
+    explicit ``:443`` ports compare as equal to their canonical forms.
     """
+    # Lazy import: direct_http imports credbroker; keeping it lazy means
+    # importing https_catalogue alone does not trigger credbroker loading.
+    from agentbundle.catalogue_fetch.direct_http import _normalize_origin
+
     resolved = urljoin(descriptor_url, artifact_field)
     parsed = urlsplit(resolved)
 
@@ -277,13 +138,16 @@ def _resolve_artifact_url(descriptor_url: str, artifact_field: str) -> str:
     if "@" in parsed.netloc:
         raise CatalogueError("artifact URL contains user-info in netloc; rejected")
 
-    # Same-origin check against originally-requested descriptor URL
-    orig = urlsplit(descriptor_url)
+    # Same-origin check using normalized origins (IDNA-aware, port-canonical).
+    try:
+        artifact_origin = _normalize_origin(resolved)
+        descriptor_origin = _normalize_origin(descriptor_url)
+    except Exception:
+        raise CatalogueError(
+            "artifact or descriptor URL has an unnormalizable origin; rejected"
+        ) from None
 
-    def _origin(p) -> tuple:
-        return (p.scheme.lower(), (p.hostname or "").lower(), p.port)
-
-    if _origin(parsed) != _origin(orig):
+    if artifact_origin != descriptor_origin:
         raise CatalogueError(
             "cross-origin artifact URL rejected: artifact origin does not match "
             "channel descriptor origin (scheme+host+port must all match)"
@@ -334,63 +198,136 @@ def _check_client_version(minimum: str | None, *, running_version: str | None = 
 
 
 # ---------------------------------------------------------------------------
-# Archive streaming + SHA-256 verification
+# Archive SHA-256 verification
 # ---------------------------------------------------------------------------
 
 
-def _stream_and_verify(
-    url: str,
-    expected_sha256: str,
-    opener: urllib.request.OpenerDirector,
-    timeout: int,
-) -> Path:
-    """Stream archive to a temp file, compute SHA-256, raise on mismatch.
+def _sha256_of_file(path: Path) -> str:
+    """Return the SHA-256 hex digest of *path*, reading in 64 KiB chunks."""
+    hasher = hashlib.sha256()
+    with path.open("rb") as fh:
+        while True:
+            chunk = fh.read(65536)
+            if not chunk:
+                break
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
-    Returns the path to the verified temp file. The caller is responsible for
-    cleanup on success; this function cleans up on its own failures.
+
+def _verify_archive_sha256(path: Path, expected_sha256: str, url: str) -> None:
+    """Hash ``path`` in 64 KiB chunks and verify against ``expected_sha256``.
+
+    On mismatch the file at ``path`` is removed before the ``CatalogueError``
+    is raised.  The error message includes both the expected and received
+    digests.  The URL is included only for identification, never a credential.
     """
-    tmp_fd, tmp_path_str = tempfile.mkstemp(prefix="agentbundle-archive-", suffix=".tar.gz")
-    tmp_path = Path(tmp_path_str)
     try:
-        req = _make_request(url, opener)
-        hasher = hashlib.sha256()
-        total = 0
-        try:
-            with opener.open(req, timeout=timeout) as resp, os.fdopen(tmp_fd, "wb") as tmp_file:
-                tmp_fd = -1  # fd now owned by tmp_file
-                while True:
-                    chunk = resp.read(65536)
-                    if not chunk:
-                        break
-                    total += len(chunk)
-                    if total > _MAX_ARCHIVE_BYTES:
-                        raise CatalogueError(
-                            f"archive from {url!r} exceeds {_MAX_ARCHIVE_BYTES} byte limit"
-                        )
-                    hasher.update(chunk)
-                    tmp_file.write(chunk)
-        except CatalogueError:
-            raise
-        except urllib.error.URLError as exc:
-            raise CatalogueError(f"failed to fetch archive {url!r}: {exc.reason}") from exc
-        except OSError as exc:
-            raise CatalogueError(f"failed to fetch archive {url!r}: {exc}") from exc
-
-        received = hasher.hexdigest()
-        if received != expected_sha256:
-            raise CatalogueError(
-                f"SHA-256 mismatch for archive {url!r}: "
-                f"expected {expected_sha256!r}, received {received!r}"
-            )
-        return tmp_path
-    except Exception:
-        # Close the fd if it was never handed to fdopen
-        if tmp_fd >= 0:
-            with contextlib.suppress(OSError):
-                os.close(tmp_fd)
+        received = _sha256_of_file(path)
+    except OSError as exc:
+        raise CatalogueError(f"failed to read archive {url!r}: {exc}") from exc
+    if received != expected_sha256:
         with contextlib.suppress(OSError):
-            tmp_path.unlink(missing_ok=True)
-        raise
+            path.unlink(missing_ok=True)
+        raise CatalogueError(
+            f"SHA-256 mismatch for archive {url!r}: "
+            f"expected {expected_sha256!r}, received {received!r}"
+        )
+
+
+def _verify_jfrog_archive_sha256(path: Path, expected_sha256: str, url: str) -> None:
+    """Verify the digest of a JFrog CLI archive, applying the appended-byte rule.
+
+    The JFrog CLI appends one ``0x0a`` to stdout when the response body does
+    not already end in that byte.  This function therefore tries two digest
+    candidates in order:
+
+    1. The exact file bytes (no trim).
+    2. The file bytes with the last byte removed, provided the file is
+       non-empty and its last byte is ``0x0a``.
+
+    If the exact bytes match, no modification is made and the file is left
+    as-is for extraction.  If the trimmed bytes match, the file is truncated
+    by one byte so that only the verified candidate goes on to extraction.
+    If neither candidate matches, the file is removed and ``CatalogueError``
+    is raised.
+
+    Args:
+        path: Path to the downloaded archive temp file.
+        expected_sha256: Expected 64-character lowercase hex SHA-256 digest.
+        url: Archive URL, included only for identification in error messages.
+
+    Raises:
+        CatalogueError: Both candidates fail digest verification, or an
+            I/O error occurs.
+    """
+    try:
+        received = _sha256_of_file(path)
+    except OSError as exc:
+        raise CatalogueError(f"failed to read archive {url!r}: {exc}") from exc
+
+    # Candidate 1: exact bytes.
+    if received == expected_sha256:
+        return
+
+    # Candidate 2: trim one trailing 0x0a byte and re-verify.
+    try:
+        file_size = path.stat().st_size
+    except OSError as exc:
+        with contextlib.suppress(OSError):
+            path.unlink(missing_ok=True)
+        raise CatalogueError(f"failed to stat archive {url!r}: {exc}") from exc
+
+    if file_size > 0:
+        try:
+            with path.open("rb") as fh:
+                fh.seek(-1, 2)  # Seek to last byte.
+                last_byte = fh.read(1)
+        except OSError as exc:
+            with contextlib.suppress(OSError):
+                path.unlink(missing_ok=True)
+            raise CatalogueError(f"failed to read archive {url!r}: {exc}") from exc
+
+        if last_byte == b"\x0a":
+            # Compute digest of all-but-last-byte without holding the full
+            # content in memory: re-read the file up to file_size-1 bytes.
+            hasher = hashlib.sha256()
+            try:
+                with path.open("rb") as fh:
+                    remaining = file_size - 1
+                    while remaining > 0:
+                        chunk = fh.read(min(65536, remaining))
+                        if not chunk:
+                            break
+                        hasher.update(chunk)
+                        remaining -= len(chunk)
+            except OSError as exc:
+                with contextlib.suppress(OSError):
+                    path.unlink(missing_ok=True)
+                raise CatalogueError(
+                    f"failed to read archive {url!r}: {exc}"
+                ) from exc
+            trimmed_digest = hasher.hexdigest()
+
+            if trimmed_digest == expected_sha256:
+                # Truncate the file to the verified length.
+                try:
+                    with path.open("r+b") as fh:
+                        fh.truncate(file_size - 1)
+                except OSError as exc:
+                    with contextlib.suppress(OSError):
+                        path.unlink(missing_ok=True)
+                    raise CatalogueError(
+                        f"failed to truncate archive {url!r}: {exc}"
+                    ) from exc
+                return
+
+    # Both candidates failed.
+    with contextlib.suppress(OSError):
+        path.unlink(missing_ok=True)
+    raise CatalogueError(
+        f"SHA-256 mismatch for archive {url!r}: "
+        f"expected {expected_sha256!r}, received {received!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -502,32 +439,48 @@ def fetch_catalogue_archive_with_provenance(
     success. On any failure, temp directories are cleaned up before the
     ``CatalogueError`` is re-raised.
 
-    ``env`` defaults to ``os.environ``; injectable for testing (bearer token
-    lookup). Note: proxy settings are always read from ``os.environ`` by
-    ``ProxyHandler()``, not from ``env``.
+    ``env`` defaults to ``os.environ``; injectable for testing. Note: proxy
+    settings are always read from ``os.environ`` by ``ProxyHandler()``, not
+    from ``env``.
     """
+    # Lazy import: catalogue_fetch imports credbroker; keeping it here means
+    # importing agentbundle.https_catalogue does not trigger credbroker loading.
+    from agentbundle.catalogue_fetch import open_fetch_session as _open_session
+
     if env is None:
         env = os.environ  # type: ignore[assignment]
-    token = env.get("AGENTBUNDLE_HTTP_BEARER_TOKEN")
 
     if source_uri.startswith("catalogue+https://"):
         channel_url = source_uri[len("catalogue+"):]
-        opener = _build_opener(token, channel_url, env=env)
 
-        dest = None
-        archive_path = None
+        dest: Path | None = None
+        archive_path: Path | None = None
         try:
-            raw = _fetch_bytes_limited(channel_url, opener, _MAX_DESCRIPTOR_BYTES, _HTTP_TIMEOUT)
-            descriptor = _parse_descriptor(raw)
-            _check_client_version(descriptor.get("minimum_agentbundle_version"))
-            artifact_url = _resolve_artifact_url(channel_url, descriptor["artifact"])
-            archive_path = _stream_and_verify(
-                artifact_url, descriptor["sha256"], opener, _HTTP_TIMEOUT
-            )
+            with _open_session(channel_url, env=env) as session:
+                raw = session.fetch_bytes(
+                    channel_url,
+                    max_bytes=_MAX_DESCRIPTOR_BYTES,
+                    timeout=_HTTP_TIMEOUT,
+                )
+                descriptor = _parse_descriptor(raw)
+                _check_client_version(descriptor.get("minimum_agentbundle_version"))
+                artifact_url = _resolve_artifact_url(channel_url, descriptor["artifact"])
+                archive_path = session.fetch_archive(
+                    artifact_url,
+                    max_bytes=_MAX_ARCHIVE_BYTES,
+                    timeout=_HTTP_TIMEOUT,
+                )
+            is_jfrog = session.provider == "jfrog"
+            if is_jfrog:
+                _verify_jfrog_archive_sha256(
+                    archive_path, descriptor["sha256"], artifact_url
+                )
+            else:
+                _verify_archive_sha256(archive_path, descriptor["sha256"], artifact_url)
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
             _raw_rev = descriptor.get("source_revision")
-            return CatalogueArchiveResult(
+            result = CatalogueArchiveResult(
                 path=dest,
                 artifact_uri=artifact_url,
                 archive_sha256=descriptor["sha256"],
@@ -536,12 +489,15 @@ def fetch_catalogue_archive_with_provenance(
         except Exception:
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
+            raise
+        finally:
+            # Remove the archive temp file on every exit, including success.
             if archive_path is not None:
                 with contextlib.suppress(OSError):
                     archive_path.unlink(missing_ok=True)
-            raise
+        return result
 
-    elif source_uri.startswith("archive+https://"):
+    if source_uri.startswith("archive+https://"):
         archive_url_with_fragment = source_uri[len("archive+"):]
         parsed = urlsplit(archive_url_with_fragment)
         fragment = parsed.fragment
@@ -550,16 +506,27 @@ def fetch_catalogue_archive_with_provenance(
                 "archive+https:// URL must have #sha256=<64hex> fragment"
             )
         expected_sha256 = fragment[len("sha256="):]
+        # Strip fragment before session open: the fragment is never sent to a
+        # server or passed into access resolution.
         archive_url = urlunsplit(parsed._replace(fragment=""))
-        opener = _build_opener(token, archive_url, env=env)
 
         dest = None
         archive_path = None
         try:
-            archive_path = _stream_and_verify(archive_url, expected_sha256, opener, _HTTP_TIMEOUT)
+            with _open_session(archive_url, env=env) as session:
+                archive_path = session.fetch_archive(
+                    archive_url,
+                    max_bytes=_MAX_ARCHIVE_BYTES,
+                    timeout=_HTTP_TIMEOUT,
+                )
+            is_jfrog = session.provider == "jfrog"
+            if is_jfrog:
+                _verify_jfrog_archive_sha256(archive_path, expected_sha256, archive_url)
+            else:
+                _verify_archive_sha256(archive_path, expected_sha256, archive_url)
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
-            return CatalogueArchiveResult(
+            result = CatalogueArchiveResult(
                 path=dest,
                 artifact_uri=archive_url,
                 archive_sha256=expected_sha256,
@@ -568,15 +535,17 @@ def fetch_catalogue_archive_with_provenance(
         except Exception:
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
+            raise
+        finally:
+            # Remove the archive temp file on every exit, including success.
             if archive_path is not None:
                 with contextlib.suppress(OSError):
                     archive_path.unlink(missing_ok=True)
-            raise
+        return result
 
-    else:
-        raise CatalogueError(
-            f"https_catalogue: unsupported scheme in {source_uri!r}"
-        )
+    raise CatalogueError(
+        f"https_catalogue: unsupported scheme in {source_uri!r}"
+    )
 
 
 def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path:

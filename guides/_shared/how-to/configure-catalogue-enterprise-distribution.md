@@ -1,6 +1,6 @@
 ---
 title: How to publish and use a protected enterprise catalogue
-summary: Publish AgentBundle catalogues through any CI runner, ship non-secret organization defaults, and account for the current reader-authentication limit.
+summary: Publish AgentBundle catalogues through any CI runner, ship non-secret organization defaults, and configure the four supported reader-authentication providers.
 pack: _shared
 kind: how-to
 ---
@@ -13,8 +13,7 @@ Artifactory Generic repository.
 
 **Result:** CI publishes a verified catalogue without storing credentials in
 the repository. The wheel sends users to the approved catalogue channel. The
-reader setup also reflects an important limit: AgentBundle does not yet reuse
-an existing JFrog CLI, Pip, uv, keyring, or browser login.
+reader resolves credentials automatically through a four-provider chain.
 
 The sequence below first records the non-secret coordinates, then generates
 organization defaults from them. Do not generate or publish defaults before
@@ -29,11 +28,16 @@ clients. A login for one does not authenticate the others.
 | --- | --- | --- | --- |
 | Install the `agentbundle` wheel | Pip, uv, Poetry, or another Python package client | The package client and its organization-managed configuration | May reuse that client's existing `.netrc`, keyring, or login support. AgentBundle does not read these credentials. |
 | Publish a catalogue | JFrog CLI or another upload client in a protected CI job | The organization's CI or secrets platform | Use a restricted service identity or CI-issued OIDC token. Use a username only when the upload client requires one. |
-| Read a protected catalogue | AgentBundle's HTTPS client | The process that launches AgentBundle | Reads only `AGENTBUNDLE_HTTP_BEARER_TOKEN`. It does not reuse JFrog CLI profiles, Pip or uv credentials, `.netrc`, keyrings, or browser SSO state. |
+| Read a protected catalogue | AgentBundle's HTTPS client via `credbroker.resolve_http_access` | The process that launches AgentBundle | Resolves in priority order: `AGENTBUNDLE_HTTP_BEARER_TOKEN`, a JFrog CLI 2.105.0+ profile, an exact-machine `.netrc` record, then anonymous. |
 
-The environment variable carries an Artifactory-issued access token. It is not
-an AgentBundle-specific token format. It is still a second credential injection
-surface, so protected catalogue access is not transparent today.
+The provider order is fixed and the resolution stops as soon as one provider
+is configured. When a configured provider is broken — for example, a bearer
+value containing whitespace (`invalid_bearer`), an unreadable or unsafe `.netrc`
+file, or a named JFrog CLI profile that is absent or does not match — the
+resolution fails rather than falling back to the next provider. A wrong or
+expired token passes resolution (only the token format is checked at that
+stage) and fails at fetch time with a 401 or 403 on the direct path, or
+`jfrog_fetch_failed` on the JFrog CLI path.
 
 ## 1. Provision the repositories and identities
 
@@ -171,32 +175,44 @@ channel names, artifact paths, archive digest, CI run reference, and verificatio
 result. Do not record a token, username, authenticated URL, or secret-store
 location.
 
-## 7. Provide catalogue read authentication honestly
+## 7. Configure catalogue read authentication
 
-JFrog's interactive `jf login` flow can complete SSO, SAML, OAuth, or MFA and
-store reusable access and refresh tokens in a JFrog CLI profile. Later
-`jf rt download` commands reuse that profile. AgentBundle does not call JFrog
-CLI or read its profile.
+AgentBundle resolves the catalogue reader's credentials through a four-provider
+chain, in this order:
 
-Pip and uv also have reusable authentication paths for the wheel install. Those
-credentials belong to the package client and are not exposed to AgentBundle's
-separate HTTPS implementation.
+1. **Bearer token** — set `AGENTBUNDLE_HTTP_BEARER_TOKEN` in the process
+   environment. AgentBundle attaches it as `Authorization: Bearer <token>`.
+   Provision, scope, rotate, and revoke this token through the organization
+   credential service.
 
-For a protected catalogue, the lowest-friction supported approach today is an
-organization-managed shell, developer launcher, or endpoint policy that injects
-`AGENTBUNDLE_HTTP_BEARER_TOKEN` into the AgentBundle process. Users can then run:
+2. **JFrog CLI profile** — configure a JFrog CLI 2.105.0+ profile with
+   `jf login` or `jf config add` targeting the same Artifactory instance.
+   AgentBundle selects the profile whose Artifactory URL has the longest
+   matching prefix for the catalogue URL; set `JFROG_CLI_SERVER_ID` to name
+   a specific profile when multiple profiles exist. AgentBundle delegates the
+   actual fetch to `jf api`, which uses the stored token from the profile.
+
+3. **Machine-bound `.netrc` record** — add a line of the form
+   `machine <host> login <user> password <token>` to the user `.netrc` file
+   (`~/.netrc` on POSIX; `%USERPROFILE%\.netrc` on Windows). AgentBundle
+   uses the `host` or `host:port` key that matches the catalogue origin.
+   The `default` key is never used. The file must be readable only by its
+   owner (mode `0600` on POSIX).
+
+4. **Anonymous** — no credential is sent. This path succeeds only when the
+   catalogue is publicly accessible.
+
+See [Keep the three credential paths separate](#keep-the-three-credential-paths-separate)
+for the no-fallback rule.
+
+Users can then run:
 
 ```bash
 agentbundle install --pack core
 ```
 
-Treat this as a managed workaround, not native credential reuse. The
-organization must provision, scope, rotate, and revoke the Artifactory read
-token. A user who is already signed in through JFrog CLI, Pip, uv, a keyring, or
-browser SSO still needs this extra integration.
-
-Transparent reuse requires a separately authorized runtime design change. The
-current setup guide does not select or design that credential resolver.
+No extra credential injection step is needed when a JFrog CLI profile or
+`.netrc` record is already in place.
 
 ## Troubleshooting
 
@@ -214,21 +230,43 @@ Unset the user source only when the organization default should take over.
 
 ### The wheel installs but the catalogue returns 401 or 403
 
-The package client and AgentBundle use different credential paths. Confirm that
-the managed launcher injected a current read token and that the identity can read
-both the channel descriptor and referenced release objects. Do not print the
-value while checking.
+The package client and AgentBundle use different credential paths. Check which
+provider AgentBundle selected and whether the credential is valid:
 
-### An existing JFrog or package-client login is ignored
+- Bearer: confirm `AGENTBUNDLE_HTTP_BEARER_TOKEN` is set and the token has
+  read access to the channel and release paths.
+- JFrog CLI: confirm the profile URL matches the catalogue origin and the
+  stored token has not expired. Run `jf config show --format=json` to inspect.
+  On the JFrog CLI path, access failures surface as `jfrog_fetch_failed` rather
+  than an HTTP status code.
+- `.netrc`: confirm the `machine` key matches the catalogue host (or
+  `host:port` for non-standard ports) and the file is `0600`.
+- Anonymous: if no provider is configured and the catalogue requires auth,
+  configure one of the providers above.
 
-That is current behavior. AgentBundle does not reuse JFrog CLI profiles, Pip or
-uv authentication, `.netrc`, keyrings, or an SSO browser session for catalogue
-retrieval.
+Do not print credential values while troubleshooting.
+
+### A configured credential source fails with an error
+
+When a provider is configured but broken, AgentBundle stops the resolution and
+reports the provider class and failure code — no credential material appears in
+the message. Common codes: `invalid_bearer` (whitespace or a non-ASCII character in the
+token), `netrc_unsafe`
+(wrong file permissions), `jfrog_profile_mismatch` (named profile not found).
+Fix the broken configuration; do not remove it and expect fallback to the next
+provider. See [Protected catalogue authentication](../reference/agentbundle.md#protected-catalogue-authentication)
+for the full list of resolution and fetch codes.
 
 ### TLS verification fails behind the corporate network
 
-Set `AGENTBUNDLE_CA_BUNDLE` to the approved PEM CA bundle path when the platform
-trust store is not enough. Keep the certificate bundle separate from tokens.
+For direct HTTPS fetches (bearer, `.netrc`, anonymous), set `AGENTBUNDLE_CA_BUNDLE`
+to the approved PEM CA bundle path. For the JFrog CLI path, `AGENTBUNDLE_CA_BUNDLE`
+does not reach the `jf api` subprocess — TLS failures on that path surface as
+`jfrog_fetch_failed`. On Linux, set `SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a
+private CA for `jf api`. On macOS, add the corporate CA to the system keychain
+instead — `jf api` reads only the system keychain there. `jf api` ignores
+`~/.jfrog/security/certs/`, so a passing `jf rt ping` does not prove the
+catalogue fetch will succeed. Keep certificate bundles separate from tokens.
 AgentBundle keeps HTTPS and certificate verification enabled.
 
 ### Requests do not reach Artifactory
@@ -257,7 +295,7 @@ detection. It does not turn a protected remote catalogue into an offline source.
 
 ## See also
 
-- [`agentbundle` reference — source resolution and authentication](../reference/agentbundle.md#catalogue-source-resolution)
+- [`agentbundle` reference — source resolution and authentication](../reference/agentbundle.md#protected-catalogue-authentication)
 - [Catalogue CI contract](../reference/catalogue-ci-contract.md) — portable build, publication, verification, and evidence responsibilities
 - [JFrog login](https://docs.jfrog.com/integrations/docs/jf-login) — JFrog CLI's interactive login and reusable profile
 - [Configure JFrog CLI](https://docs.jfrog.com/integrations/docs/configuring-the-cli) — supported interactive and automation configuration

@@ -335,6 +335,27 @@ The `credbroker` library is pip-installable and imported in-process, so there is
 
 Because the bootstrap **appends** (never prepends) the floor, a pip-installed `credbroker` of any vintage always shadows it: pip is the primary contract, the floor is the fallback that guarantees resolution where pip hasn't run. Declaring `credbroker` in your `requirements.txt` (above) stays the right thing to do — it covers the local dev loop and non-user-scope installs, and it's what makes `[crypto]` reachable.
 
+### Package independence from AgentBundle
+
+Starting with AgentBundle 0.51.0, `credbroker` is a declared wheel-level
+dependency of `agentbundle` itself. When a user installs `agentbundle` from
+a wheel, pip also installs `credbroker 0.7.x`. This has no effect on skill
+scripts and makes no change to the layered model above.
+
+A skill's `requirements.txt` still declares `credbroker` independently. The
+reason is boundaries: `agentbundle` installs packs and resolves catalogues;
+skill scripts run as standalone Python subprocesses — often in venvs or under
+Python interpreters that have no relation to the one that runs `agentbundle`.
+An `agentbundle` dependency in one Python environment does not make `credbroker`
+importable in another.
+
+If your skill script runs in the same environment as `agentbundle` (for example,
+during a test), `credbroker` may already be resolvable through `agentbundle`'s
+transitive dependency. Do not rely on this: declare the dependency in your own
+`requirements.txt`. An explicit declaration is the only path that works across
+all Python-environment shapes — venv, editable clone, vendor floor, and the
+`pip install credbroker` corporate path.
+
 ### Installing without PyPI (corporate)
 
 `credbroker` does **not** require PyPI. The [`release-credbroker`](../../../.github/workflows/release-credbroker.yml) workflow builds a platform-independent wheel (`credbroker-<version>-py3-none-any.whl`) and an sdist on every change to the package and validates them with `twine check`, so a locked-down or air-gapped site can install from a wheel it hosts or copies in:

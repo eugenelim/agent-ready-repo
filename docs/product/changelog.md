@@ -97,6 +97,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
 
+## [agentbundle][0.51.0] — 2026-10-03
+
+### Highlights
+
+- **Protected catalogue installation without manual token injection.** AgentBundle
+  now picks credentials automatically from a priority-ordered set: bearer token,
+  JFrog CLI 2.105.0+ profile, exact-machine `.netrc` record, and anonymous. Public
+  catalogues need no setup. A broken configured provider stops resolution; no
+  fallback across types. Set `AGENTBUNDLE_CA_BUNDLE` for the direct path; use
+  `SSL_CERT_FILE` or `SSL_CERT_DIR` to reach `jf api` on Linux.
+
+### Added
+
+- HTTPS catalogue acquisition resolves credentials automatically from four
+  providers in priority order: bearer token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`),
+  JFrog CLI profile (2.105.0+), exact-machine `.netrc`, and anonymous. Each
+  provider binds credentials to one normalized origin and does not forward them
+  to any other host.
+- JFrog CLI delegated fetches: 10 s discovery, 5 s version probe, 30 s per fetch,
+  75 s aggregate subprocess budget, endpoint confinement, list-form arguments.
+- Exact-machine `.netrc`: host or host:port keys; `default` is never matched;
+  permissions checked before reading.
+
+### Changed
+
+- A broken configured provider terminates resolution immediately. It never falls
+  back to a lower provider.
+- Requires `credbroker>=0.7,<0.8`.
+
+## [credbroker][0.7.0] — 2026-10-03
+
+### Added
+
+- `resolve_http_access(target_url, *, env)` — resolves target-bound HTTP access
+  from a priority-ordered provider set (bearer, JFrog CLI, exact-machine `.netrc`,
+  anonymous). Returns one of `BearerHttpAccess`, `JfrogCliHttpAccess`,
+  `NetrcHttpAccess`, or `AnonymousHttpAccess`. Raises `HttpAccessError` with a
+  stable non-secret `provider` and `code` for broken configured providers.
+- `HttpAccessError`, `BearerHttpAccess`, `JfrogCliHttpAccess`, `NetrcHttpAccess`,
+  `AnonymousHttpAccess` — five new public names added to `__all__`.
+
+## [credential-brokers][0.3.4] — 2026-10-03
+
+### Changed
+
+- The vendored `credbroker` user-library floor in `.apm/user-libs/credbroker/`
+  is updated to match the `credbroker` 0.7.0 source. A co-located pip-installed
+  0.7 takes precedence via normal `sys.path` ordering; the floor remains the
+  zero-pip fallback for user-scope skill resolution.
+
 ## [core][2.27.13] — 2026-10-02
 
 ### Fixed
