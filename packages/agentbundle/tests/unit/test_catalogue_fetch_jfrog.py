@@ -399,6 +399,18 @@ def test_exact_argv_for_archive_fetch(tmp_path: Path) -> None:
             "percent-encoded dot-segment with NUL (..%00)",
         ),
         (
+            "https://platform.example.test/art/%252e%252e/cat.toml",
+            "double-encoded dot-segment (%252e%252e)",
+        ),
+        (
+            "https://platform.example.test/art/%25%32%65%25%32%65/cat.toml",
+            "double-encoded dot-segment, digits encoded (%25%32%65)",
+        ),
+        (
+            "https://platform.example.test/art/%c0%ae%c0%ae/cat.toml",
+            "overlong UTF-8 dot-segment (%c0%ae%c0%ae)",
+        ),
+        (
             "https://platform.example.test/art/%20../cat.toml",
             "percent-encoded leading space before dot-segment (%20..)",
         ),

@@ -51,6 +51,17 @@ def _make_tarball() -> bytes:
     return buf.getvalue()
 
 
+def _git_fixture_tarball() -> bytes:
+    """Return a GitHub-style archive holding ``repo-main/catalogue.toml``."""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        content = b'[catalogue]\nname = "fixture"\nversion = "0.0.1"\n'
+        info = tarfile.TarInfo(name="repo-main/catalogue.toml")
+        info.size = len(content)
+        tf.addfile(info, io.BytesIO(content))
+    return buf.getvalue()
+
+
 def _write_fake_jf(tmp_path: Path, *, version: str = "2.105.0") -> Path:
     """Write a POSIX #!/bin/sh jf script that serves a profile for _ARTF_URL."""
     profiles = [
@@ -360,28 +371,19 @@ class TestNonHttpSourcesNoResolution:
     ) -> None:
         """resolve_catalogue with a git+https source runs the git transport, never calls resolve_http_access. AC-0017
 
-        The git transport (_resolve_https) is monkeypatched to return a fixture
-        directory rather than making a real network request.
+        The real ``_resolve_https`` and ``_fetch_and_extract`` run; only
+        ``urllib.request.urlopen`` is replaced by a fixture tarball.
         """
-        from agentbundle import catalogue as _cat_mod
         from agentbundle.catalogue import resolve_catalogue
 
-        git_uri = "git+https://github.com/example/repo@main"
-
-        fixture_dir = tmp_path / "git_fixture"
-        fixture_dir.mkdir()
-        (fixture_dir / "catalogue.toml").write_text(
-            '[catalogue]\nname = "fixture"\nversion = "0.0.1"\n',
-            encoding="utf-8",
-        )
-
-        git_transport_calls: list[int] = [0]
+        archive = _git_fixture_tarball()
+        opened: list[str] = []
         ab_resolve_calls: list[int] = [0]
         cb_resolve_calls: list[int] = [0]
 
-        def fake_resolve_https(uri: str) -> Path:
-            git_transport_calls[0] += 1
-            return fixture_dir
+        def fake_urlopen(url: str, **kwargs: object) -> io.BytesIO:
+            opened.append(url)
+            return io.BytesIO(archive)
 
         def ab_spy(*args: object, **kwargs: object) -> object:
             ab_resolve_calls[0] += 1
@@ -392,22 +394,61 @@ class TestNonHttpSourcesNoResolution:
             raise AssertionError("credbroker.resolve_http_access called for git+https source")
 
         with (
-            mock.patch.object(_cat_mod, "_resolve_https", fake_resolve_https),
+            mock.patch("urllib.request.urlopen", fake_urlopen),
             mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=ab_spy),
             mock.patch("credbroker.resolve_http_access", side_effect=cb_spy),
         ):
-            result = resolve_catalogue(git_uri)
+            result = resolve_catalogue("git+https://github.com/example/repo@main")
 
-        assert git_transport_calls[0] == 1, (
-            f"git transport (_resolve_https) was called {git_transport_calls[0]} times, expected 1"
-        )
-        assert result == fixture_dir, f"Expected {fixture_dir}, got {result}"
+        assert len(opened) == 1, opened
+        assert opened[0].startswith("https://github.com/example/repo/"), opened
+        assert (result / "catalogue.toml").is_file(), f"No extracted catalogue at {result}"
         assert ab_resolve_calls[0] == 0, (
             f"agentbundle.catalogue_fetch.resolve_http_access called {ab_resolve_calls[0]} times"
         )
         assert cb_resolve_calls[0] == 0, (
             f"credbroker.resolve_http_access called {cb_resolve_calls[0]} times"
         )
+
+    def test_git_https_subprocess_does_not_import_catalogue_fetch_or_credbroker(
+        self, tmp_path: Path
+    ) -> None:
+        """Resolving a git+https source imports neither catalogue_fetch nor credbroker's resolver. AC-0017
+
+        Runs the real Git transport in a clean interpreter with only
+        ``urllib.request.urlopen`` replaced by a fixture tarball.
+        """
+        archive_path = tmp_path / "repo-main.tar.gz"
+        archive_path.write_bytes(_git_fixture_tarball())
+
+        script = (
+            "import io, sys, urllib.request\n"
+            f"archive = open({str(archive_path)!r}, 'rb').read()\n"
+            "urllib.request.urlopen = lambda url, **kw: io.BytesIO(archive)\n"
+            "from agentbundle.catalogue import resolve_catalogue\n"
+            "result = resolve_catalogue('git+https://github.com/example/repo@main')\n"
+            "assert (result / 'catalogue.toml').is_file(), result\n"
+            "leaked = [m for m in ('agentbundle.catalogue_fetch', 'credbroker._http_access')\n"
+            "          if m in sys.modules]\n"
+            "assert not leaked, f'imported for a git+https source: {leaked}'\n"
+        )
+
+        repo_root = Path(__file__).resolve().parents[4]
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            cwd=str(repo_root),
+            env={
+                **os.environ,
+                "PYTHONPATH": "packages/agentbundle:packages/credbroker",
+            },
+        )
+        if proc.returncode != 0:
+            pytest.fail(
+                f"Subprocess failed (exit {proc.returncode}):\n"
+                f"stdout: {proc.stdout!r}\nstderr: {proc.stderr!r}"
+            )
 
     def test_local_path_subprocess_does_not_import_catalogue_fetch_or_credbroker(
         self, tmp_path: Path

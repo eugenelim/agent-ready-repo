@@ -9,11 +9,12 @@ Assertions over the WHOLE packaged tree:
 - No ``import netrc`` / ``from netrc`` import in any module.
 - No ``.netrc`` path literal in any module.
 - No ``config show`` / ``.jfrog`` / ``jfrog-cli.conf`` credential-store literals.
-- No ``subprocess`` use except in ``catalogue_fetch/jfrog_cli.py`` (whole tree).
+- No ``subprocess`` use in the catalogue-fetch modules except ``catalogue_fetch/jfrog_cli.py``.
 - No ``os.environ[key]``, ``os.environ.get(key)``, ``os.getenv(key)``, or
   imported ``environ``/``getenv`` reads of credential-bearing keys, in any module.
-- Only ``catalogue_fetch/jfrog_cli.py`` passes ``"jf"`` or ``"jf.exe"`` to a
-  subprocess call or uses the ``jf api`` argv shape.
+- Only ``catalogue_fetch/jfrog_cli.py`` builds a ``jf api`` argv (a list or
+  tuple whose second element is ``"api"``) or passes ``"jf"``/``"jf.exe"`` to a
+  subprocess call or ``shutil.which``.
 - Every ``credbroker`` import is ``from credbroker import <public name>``
   where the public name is in ``credbroker.__all__`` (catalogue-fetch modules).
 - AgentBundle's package metadata declares ``credbroker>=0.7,<0.8``.
@@ -401,58 +402,59 @@ def test_no_os_environ_credential_key_access() -> None:
 
 
 def _has_jf_invocation(tree: ast.AST) -> bool:
-    """Return True when the AST contains a subprocess call with a 'jf'/'jf.exe' constant.
+    """Return True when the AST builds a ``jf api`` argv or names ``jf`` for a spawn.
 
-    Looks for string constants 'jf' or 'jf.exe' that appear as arguments to
-    subprocess.Popen, subprocess.run, subprocess.check_call, subprocess.check_output,
-    or subprocess.call; or as elements of list/tuple literals that are passed to
-    those functions.  Also detects the 'jf api' argv shape (a list whose first
-    element is a Name/Constant and second is 'api').
+    Two shapes count, wherever they appear in the module:
 
-    This check is conservative: it reports any file that contains the literal
-    string 'jf' or 'jf.exe' as a direct Call argument or inside a list/tuple
-    passed to a subprocess function.
+    - a list or tuple literal whose second element is the string ``"api"``,
+      which is the ``jf api`` argv shape even when it is assigned to a variable
+      before reaching ``subprocess``;
+    - the string ``"jf"`` or ``"jf.exe"`` passed to a ``subprocess`` call, inside
+      the argv literal of one, or to ``shutil.which``.
     """
-    _SUBPROCESS_FUNCS = frozenset({"Popen", "run", "check_call", "check_output", "call"})
+    _spawn_funcs = frozenset({"Popen", "run", "check_call", "check_output", "call"})
 
     def _is_jf_constant(node: ast.expr) -> bool:
         return isinstance(node, ast.Constant) and node.value in ("jf", "jf.exe")
 
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
+        if isinstance(node, (ast.List, ast.Tuple)) and len(node.elts) >= 2:
+            second = node.elts[1]
+            if isinstance(second, ast.Constant) and second.value == "api":
+                return True
+        if not isinstance(node, ast.Call) or not node.args:
             continue
         func = node.func
-        # subprocess.Popen(...) or subprocess.run(...) etc.
-        is_subprocess_call = (
-            isinstance(func, ast.Attribute)
-            and isinstance(func.value, ast.Name)
-            and func.value.id == "subprocess"
-            and func.attr in _SUBPROCESS_FUNCS
-        )
-        if not is_subprocess_call:
+        name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+        if name not in _spawn_funcs and name != "which":
             continue
-        # Check the first positional arg (the argv).
-        if not node.args:
-            continue
-        argv_arg = node.args[0]
-        # Direct string constant: subprocess.run("jf", ...)  — unusual but possible.
-        if _is_jf_constant(argv_arg):
+        first = node.args[0]
+        if _is_jf_constant(first):
             return True
-        # List or tuple: subprocess.run(["jf", "api", ...], ...)
-        if isinstance(argv_arg, (ast.List, ast.Tuple)):
-            for elt in argv_arg.elts:
-                if _is_jf_constant(elt):
-                    return True
+        if isinstance(first, (ast.List, ast.Tuple)) and any(
+            _is_jf_constant(elt) for elt in first.elts
+        ):
+            return True
     return False
 
 
-def test_only_jfrog_cli_invokes_jf() -> None:
-    """Only catalogue_fetch/jfrog_cli.py may pass 'jf' or 'jf.exe' to subprocess.
+def test_jf_invocation_detector_flags_the_real_invocation() -> None:
+    """The detector recognises jfrog_cli.py's own invocation, and a copy of it."""
+    sources = dict(_whole_package_sources())
+    assert _has_jf_invocation(ast.parse(sources[_JF_ALLOWED_LABEL]))
+    copied = (
+        "import subprocess\n"
+        "def fetch(jf_path, server_id, endpoint):\n"
+        '    argv = [jf_path, "api", f"--server-id={server_id}", "--", endpoint]\n'
+        "    return subprocess.Popen(argv)\n"
+    )
+    assert _has_jf_invocation(ast.parse(copied))
+    assert _has_jf_invocation(ast.parse('import shutil\nshutil.which("jf")\n'))
+    assert not _has_jf_invocation(ast.parse('import subprocess\nsubprocess.run(["git", "status"])\n'))
 
-    No other module in the whole packaged tree may contain a subprocess call
-    whose argv includes the literal string 'jf' or 'jf.exe'.  The allowed
-    module is catalogue_fetch/jfrog_cli.py.
-    """
+
+def test_only_jfrog_cli_invokes_jf() -> None:
+    """Only catalogue_fetch/jfrog_cli.py may build a jf api argv or spawn jf. AC-0015"""
     violations: list[str] = []
     for label, source in _whole_package_sources():
         if label == _JF_ALLOWED_LABEL:
@@ -462,9 +464,7 @@ def test_only_jfrog_cli_invokes_jf() -> None:
         except SyntaxError:
             continue
         if _has_jf_invocation(tree):
-            violations.append(
-                f"{label}: contains a subprocess call with 'jf' or 'jf.exe' in the argv"
-            )
+            violations.append(f"{label}: builds a jf api argv or spawns jf")
     assert not violations, "\n".join(violations)
 
 

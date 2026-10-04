@@ -1238,10 +1238,27 @@ def test_non_2xx_does_not_raise_type_error(code: int) -> None:
         pytest.fail(f"TypeError raised for HTTP {code}: {exc}")
 
 
+class _RedirectThenStatusHandler(_StubHttpsHandler):
+    """Stub that answers the first request with a same-origin 302, then ``code``."""
+
+    def __init__(self, code: int) -> None:
+        super().__init__(code)
+        self.urls: list[str] = []
+
+    def https_open(self, req: urllib.request.Request) -> _StubHttpsResponse:
+        self.urls.append(req.full_url)
+        if len(self.urls) == 1:
+            response = _StubHttpsResponse(302, "Found")
+            response._hdrs["Location"] = "/moved/cat.toml"
+            return response
+        return _StubHttpsResponse(self._code)
+
+
 def test_same_origin_redirect_then_non_2xx_raises_catalogue_fetch_error() -> None:
-    """A same-origin 302-then-401 redirect raises CatalogueFetchError, not TypeError. Item A"""
-    # Use a 302 redirect to the same origin then a 401 on the second request.
-    # We test this by checking that the opener handles 401 correctly after redirect.
-    opener = _make_real_opener_with_stub(401)
+    """A same-origin 302 followed by a 401 raises CatalogueFetchError, not TypeError. Item A"""
+    stub = _RedirectThenStatusHandler(401)
+    opener = _build_direct_opener(None, _BOUND_ORIGIN_A, env={})
+    opener.add_handler(stub)
     with pytest.raises(CatalogueFetchError):
         fetch_bytes_bounded(opener, _URL_A, _BOUND_ORIGIN_A, None, 1024, 10)
+    assert stub.urls == [_URL_A, "https://catalogue.example.test/moved/cat.toml"]

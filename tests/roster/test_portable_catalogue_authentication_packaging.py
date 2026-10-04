@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import http.server
+import inspect
 import io
 import json
 import os
@@ -901,45 +902,12 @@ class TestVersionPrecedence:
             # Compare 0.6 and 0.7 signatures element-by-element for callables.
             # C-extension exception subclasses may have no introspectable signature
             # on Python 3.11; skip those (the 'not isfunction' guard covers them).
-            "sig_issues = []\n"
+            # Run the same comparison the unit tests below exercise.
+            + inspect.getsource(_compare_signatures_07_vs_06)
+            + "sig_issues = []\n"
             "for name in public_names:\n"
-            "    obj07 = getattr(credbroker, name, None)\n"
-            "    obj06 = getattr(_mod06, name, None)\n"
-            "    if not (inspect.isfunction(obj07) and inspect.isfunction(obj06)):\n"
-            "        continue\n"
-            "    try:\n"
-            "        sig07 = inspect.signature(obj07)\n"
-            "        sig06 = inspect.signature(obj06)\n"
-            "    except (ValueError, TypeError) as e:\n"
-            "        sig_issues.append(f'{name}: cannot inspect: {e}')\n"
-            "        continue\n"
-            "    params07 = list(sig07.parameters.items())\n"
-            "    params06 = list(sig06.parameters.items())\n"
-            # Element-by-element name+kind comparison over the shared prefix.
-            "    for i, ((n07, p07), (n06, p06)) in enumerate(zip(params07, params06, strict=False)):\n"
-            "        if n07 != n06 or p07.kind != p06.kind:\n"
-            "            sig_issues.append(\n"
-            "                f'{name}: param[{i}] 0.6={n06!r}/{p06.kind.name}'\n"
-            "                f' vs 0.7={n07!r}/{p07.kind.name}'\n"
-            "            )\n"
-            # A 0.6 parameter that had a default must still have a default in 0.7.
-            "        _VARIADIC = {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}\n"
-            "        if p06.default is not inspect.Parameter.empty and p07.default is inspect.Parameter.empty and p07.kind not in _VARIADIC:\n"
-            "            sig_issues.append(\n"
-            "                f'{name}: param[{i}] {n06!r} had a default in 0.6 but not in 0.7'\n"
-            "            )\n"
-            # 0.7 must have at least as many params as 0.6 (no removal of required params).
-            "    if len(params07) < len(params06):\n"
-            "        sig_issues.append(\n"
-            "            f'{name}: 0.7 has {len(params07)} params, 0.6 had {len(params06)}'\n"
-            "        )\n"
-            # Extra 0.7 params beyond the 0.6 list must all have defaults (or be variadic).
-            "    _VARIADIC2 = {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}\n"
-            "    for extra_n, extra_p in params07[len(params06):]:\n"
-            "        if extra_p.default is inspect.Parameter.empty and extra_p.kind not in _VARIADIC2:\n"
-            "            sig_issues.append(\n"
-            "                f'{name}: extra 0.7 param {extra_n!r} has no default — breaks 0.6 callers'\n"
-            "            )\n"
+            "    sig_issues.extend(_compare_signatures_07_vs_06(\n"
+            "        name, getattr(credbroker, name, None), getattr(_mod06, name, None)))\n"
             "results['sig_issues'] = sig_issues\n"
             "print(json.dumps(results))\n"
         )
@@ -1049,23 +1017,18 @@ def _compare_signatures_07_vs_06(
 
 
 def test_signature_comparison_detects_added_required_param() -> None:
-    """_compare_signatures_07_vs_06 reports a newly required parameter. AC-0003"""
+    """_compare_signatures_07_vs_06 reports one appended required parameter. AC-0003"""
 
     def func06(a: int, b: int = 0) -> None:
         pass
 
-    def func07_added_required(a: int, b: int = 0, c: int = ...) -> None:  # type: ignore[assignment]
+    def func07(a: int, b: int = 0, *, c: int) -> None:
         pass
 
-    # Simulate: c has no default in 0.7 (required).
-    def func07_required(a: int, b: int, c: int) -> None:
-        pass
-
-    issues = _compare_signatures_07_vs_06("f", func07_required, func06)
-    # b lost its default, and c is a new required param.
-    assert any("default" in msg or "no default" in msg or "had a default" in msg for msg in issues), (
-        f"Expected a 'default' issue for removed default, got: {issues}"
-    )
+    issues = _compare_signatures_07_vs_06("f", func07, func06)
+    assert issues == [
+        "f: extra 0.7 param 'c' has no default — breaks 0.6 callers"
+    ], issues
 
 
 def test_signature_comparison_detects_removed_default() -> None:

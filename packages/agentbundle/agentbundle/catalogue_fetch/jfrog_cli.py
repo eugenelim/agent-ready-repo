@@ -1,9 +1,9 @@
 """Bounded JFrog CLI (`jf api`) executor for catalogue fetch.
 
-This module is the only place in the catalogue-fetch subsystem that spawns
-a subprocess.  Other AgentBundle modules (e.g. workspace_mcp, system_trust)
-may spawn subprocesses for unrelated purposes; the credential-boundary
-contract test enforces that only this module calls ``jf api``.
+This module is the only catalogue-fetch module that spawns a subprocess and
+the only packaged AgentBundle module that invokes ``jf``.  Other modules
+(e.g. workspace_mcp, system_trust) may spawn subprocesses for unrelated
+purposes.  The credential-boundary contract test checks both rules.
 
 Each ``JfrogFetchSession`` issues at most two ``jf api`` subprocesses:
 one for the channel descriptor and one for the archive (or one for a
@@ -335,10 +335,20 @@ def _validate_fetch_url(url: str, access: JfrogCliHttpAccess) -> str:
                 code=_NOT_PERMITTED,
             )
         # The decoded form is what a server may act on, so an encoded control
-        # character, padded segment, or dot segment is just as ambiguous.
-        decoded = unquote(segment)
+        # character, padded segment, or dot segment is just as ambiguous. A
+        # percent that survives one decode came from ``%25`` and could decode
+        # again further along, and an invalid UTF-8 sequence (such as an
+        # overlong dot) has no single meaning, so both are refused too.
+        try:
+            decoded = unquote(segment, errors="strict")
+        except UnicodeDecodeError:
+            raise CatalogueFetchError(
+                "fetch URL path segment is not valid UTF-8; rejected",
+                code=_NOT_PERMITTED,
+            ) from None
         if (
-            _CONTROL_OR_BACKSLASH_RE.search(decoded)
+            "%" in decoded
+            or _CONTROL_OR_BACKSLASH_RE.search(decoded)
             or decoded != decoded.strip()
             or decoded in {".", ".."}
         ):
