@@ -7,6 +7,7 @@ changing a rule moves `references/visual-observation.md` and not this file.
 from __future__ import annotations
 
 import json
+import re
 
 from frontend_engineering_visual_authority_rules import (
     FALLBACK_TOKENS,
@@ -29,7 +30,8 @@ def test_the_upstream_gap_table_states_its_rules() -> None:
     assert rule("Upstream gaps", "gap-demotes") == "never"
     assert rule("Upstream gaps", "gap-outcome") == (
         "hold the axis, stop that part of the implementation, and route it "
-        "to the owner the artifact records"
+        "to the owner the artifact records, or, for a domain the taxonomy left "
+        "silent, to whoever produced the taxonomy"
     )
     assert rule("Upstream gaps", "gap-record") == "required"
 
@@ -231,3 +233,37 @@ def test_the_upstream_gap_evals_exist_and_route() -> None:
         "no-upstream-authority-to-complete",
     ):
         assert condition in standalone
+
+
+def test_the_gap_names_its_silent_domain_source() -> None:
+    """AC-0001: a domain a resolved taxonomy leaves silent is a gap source."""
+    sources = rule("Upstream gaps", "gap-sources").lower()
+    assert "silent" in sources
+    assert "supplies no value the surface needs in a domain" in sources
+    assert "does not record that domain unresolved" in sources
+    assert "implementation would otherwise set a value in it" in sources
+
+
+def test_a_silent_domain_completes_under_the_existing_operation_kind() -> None:
+    """AC-0002: silence reuses `domain-completion-required`; no third kind."""
+    contents = rule("Upstream gaps", "gap-record-contents")
+    assert "`domain-completion-required` for a taxonomy domain recorded unresolved or left silent" in contents
+    assert re.findall(r"`([a-z]+(?:-[a-z]+)+-required)`", contents) == [
+        "taxonomy-supply-required",
+        "domain-completion-required",
+    ]
+
+
+def test_the_entrypoint_holds_and_routes_a_silent_domain() -> None:
+    """AC-0003 and AC-0012: step 2 holds a silent domain; the gap paragraph
+    routes it to whoever produced the taxonomy and names no upstream skill."""
+    text = read(SKILL)
+    step = " ".join(section(text, "### 2. Resolve token values", "\n### ").lower().split())
+    assert "a domain the taxonomy leaves silent" in step
+    flat = " ".join(text.split())
+    paragraph = flat[flat.index("An upstream gap is not a rung") :]
+    paragraph = paragraph[: paragraph.index("references/visual-observation.md")]
+    assert "owner or operation the artifact records" in paragraph
+    assert "to whoever produced the taxonomy" in paragraph
+    for skill_name in ("design-system", "creative-direction", "experience-design"):
+        assert skill_name not in paragraph

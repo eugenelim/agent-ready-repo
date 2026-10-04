@@ -136,3 +136,4 @@
 | 0132 | [Visual-target confirmation is an explicit state, and selection never implies it](0132-visual-target-confirmation-is-an-explicit-state.md) | Accepted | 2026-09-29 |
 | 0133 | [An advisory with no published fix is acceptable, and it retires on the first fix rather than on a version floor](0133-an-unfixed-advisory-is-acceptable-and-retires-on-the-first-fix.md) | Accepted | 2026-09-30 |
 | 0134 | [Intent rename uses a sealed transaction with identity-bound recovery](0134-intent-rename-sealed-identity-bound-transaction.md) | Accepted | 2026-09-29 |
+| 0135 | [A taxonomy-silent domain is an upstream gap, never a build-time value](0135-a-taxonomy-silent-domain-is-an-upstream-gap.md) | Accepted | 2026-10-04 |
