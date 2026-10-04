@@ -1,6 +1,6 @@
 # Spec: Silent taxonomy domain is an upstream gap
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0135, ADR-0130
@@ -80,42 +80,42 @@ both the roster walk and a model-eval case exercise the hold.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The installed `visual-observation.md` `gap-sources` cell
+- [x] **AC-0001.** The installed `visual-observation.md` `gap-sources` cell
       names a third source — a resolved `tokens/<slug>.md` that supplies no
       value the surface needs in a domain and does not record that domain
       unresolved — and states the test for need: the implementation would
       otherwise set a value in that domain.
-- [ ] **AC-0002.** The installed `gap-record-contents` cell assigns
+- [x] **AC-0002.** The installed `gap-record-contents` cell assigns
       `domain-completion-required` to a domain the taxonomy left silent as well
       as one it recorded unresolved, names no third operation kind, and the
       installed `gap-outcome` cell routes a silent domain to whoever produced
       the taxonomy.
-- [ ] **AC-0003.** The frontend `SKILL.md` step-2 rule says a domain the
+- [x] **AC-0003.** The frontend `SKILL.md` step-2 rule says a domain the
       taxonomy leaves silent is held as an upstream gap, and the `SKILL.md`
       body stays at or under 968 lines.
-- [ ] **AC-0012.** The frontend `SKILL.md` upstream-gap paragraph and the
+- [x] **AC-0012.** The frontend `SKILL.md` upstream-gap paragraph and the
       `read-the-design-handoff.md` routing sentence each say that a domain the
       taxonomy left silent routes to whoever produced the taxonomy, keep the
       recorded owner or operation as the route for the other sources, and name
       no specific upstream skill.
-- [ ] **AC-0004.** `read-the-design-handoff.md` names the silent-domain source
+- [x] **AC-0004.** `read-the-design-handoff.md` names the silent-domain source
       alongside the two existing sources, and the roster adopter-prose test
       asserts all three.
-- [ ] **AC-0005.** On a `silent-domain` fixture — a resolved direction, a
+- [x] **AC-0005.** On a `silent-domain` fixture — a resolved direction, a
       taxonomy that lists Typography in its Authority table but gives no
       Typography values, and `needed_domains` including Typography — the walk
       holds Typography under `domain-completion-required`, sources every other
       needed domain from the taxonomy, loads no fallback, and writes the gap
       record `{"axes held": ["Typography"], "operation kind":
       "domain-completion-required"}`.
-- [ ] **AC-0006.** Every existing walk fixture whose taxonomy resolves declares
+- [x] **AC-0006.** Every existing walk fixture whose taxonomy resolves declares
       `needed_domains`, and the walk holds none of them silent; removing the
       `confirmed` fixture's Typography section in-test makes the walk hold
       Typography as silent.
-- [ ] **AC-0011.** The `silent-domain` fixture's taxonomy also gives no
+- [x] **AC-0011.** The `silent-domain` fixture's taxonomy also gives no
       Graphic language values, Graphic language is not in its
       `needed_domains`, and the walk does not hold it.
-- [ ] **AC-0007.** The installed `evals.json` carries a
+- [x] **AC-0007.** The installed `evals.json` carries a
       `visual-authority-silent-domain` case whose prompt states a resolved
       taxonomy silent on typography; it carries an assertion beginning
       `Does not` that names inventing a value for the silent domain, an
@@ -124,14 +124,14 @@ both the roster walk and a model-eval case exercise the hold.
       `domain-completion-required` and one resolved colour value from the
       prompt, and an `expect.output_excludes` listing the same fallback colour
       values the golden cases exclude.
-- [ ] **AC-0008.** The `visual-golden-path-confirmed-values` and
+- [x] **AC-0008.** The `visual-golden-path-confirmed-values` and
       `visual-golden-path-unconfirmed-target` prompts state the resolved values
       of their scenario fixture's Typography, Shape and containment, and
       Spatial structure sections, and the roster test checks each value against that fixture's
       taxonomy.
-- [ ] **AC-0009.** ADR-0135 carries `Status: Accepted`, and ADR-0130 carries
+- [x] **AC-0009.** ADR-0135 carries `Status: Accepted`, and ADR-0130 carries
       `Superseded in part: ADR-0135 D2`.
-- [ ] **AC-0010.** `frontend-engineering` carries one patch version above its
+- [x] **AC-0010.** `frontend-engineering` carries one patch version above its
       version on `main` at merge — `0.4.4` against today's `0.4.3` —
       identically in `pack.toml`, `.claude-plugin/plugin.json`,
       `.claude-plugin/marketplace.json` and a free-standing changelog heading,

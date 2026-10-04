@@ -1,7 +1,7 @@
 # Plan: Silent taxonomy domain is an upstream gap
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0130 D2/D3 and ADR-0135; the gap rows in
   `references/visual-observation.md` and their pack test
   `test_visual_authority_upstream_gap.py`; the roster walk in

@@ -528,6 +528,9 @@ active  = [
 queue   = [
 ]
 shipped = [
+  # Shipped 2026-10-04. ADR-0135: a token taxonomy silent on a domain the
+  # surface needs is a third upstream-gap source; frontend-engineering 0.4.4.
+  {path = "docs/specs/silent-domain-gap/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Hold a visual domain a resolved token taxonomy leaves silent as an upstream gap routed to whoever produced the taxonomy, across the frontend rule table, entrypoint, guide, roster walk and evals", needs = [{type = "local", kind = "spec", path = "docs/specs/visual-handoff-golden-path/spec.md"}]},
   # Shipped 2026-10-03. A roster test installs experience-design and
   # frontend-engineering together and walks six handoff paths through the
   # installed visual-authority rules; frontend-engineering 0.4.2 ships three
