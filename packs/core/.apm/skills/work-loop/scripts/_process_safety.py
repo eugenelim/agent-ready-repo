@@ -298,6 +298,13 @@ def validate_process_spec_dict(d: dict) -> tuple[bool, str]:
     if "\x00" in executable:
         return False, "denied-invalid-field-value"
 
+    # These identifiers reach the filesystem and the audit trail, so each must
+    # be a non-empty string without NUL before any filesystem call.
+    for field in ("cwd", "grant_id", "executable_identity"):
+        value = d.get(field)
+        if not isinstance(value, str) or not value or "\x00" in value:
+            return False, "denied-invalid-field-value"
+
     # argv must be a list of strings; a bare string turns into single-char args.
     argv_val = d.get("argv")
     if not isinstance(argv_val, list) or not all(isinstance(i, str) for i in argv_val):
@@ -489,6 +496,27 @@ def _collect_sensitive(
     return sensitive
 
 
+def _leader_exited(proc: subprocess.Popen) -> bool:  # type: ignore[type-arg]
+    """Return whether the group leader has exited, without reaping it.
+
+    Leaving the leader unreaped keeps its PID, and so the launch's process
+    group ID, reserved until the caller signals the group; a reaped ID could
+    be reused by an unrelated group.  Falls back to ``poll()`` (which reaps)
+    where ``waitid`` with ``WNOWAIT`` is unavailable.
+    """
+    if proc.returncode is not None:
+        return True
+    if hasattr(os, "waitid") and hasattr(os, "WNOWAIT"):
+        try:
+            info = os.waitid(
+                os.P_PID, proc.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT
+            )
+        except ChildProcessError:
+            return True
+        return info is not None
+    return proc.poll() is not None
+
+
 def _communicate_bounded(
     proc: subprocess.Popen,  # type: ignore[type-arg]
     stdin_input: bytes | None,
@@ -599,7 +627,7 @@ def _communicate_bounded(
             if in_t is not None:
                 in_t.join(timeout=0.5)
             break
-        if proc.poll() is not None:
+        if _leader_exited(proc):
             # Process exited; let drain threads consume any remaining pipe data.
             out_t.join(timeout=max(0.0, deadline - time.monotonic()))
             err_t.join(timeout=max(0.0, deadline - time.monotonic()))
@@ -1048,11 +1076,12 @@ def launch_safe_process(
         # A process that already wrote all its output and is in the process of
         # exiting may not yet be reaped when poll() is first called.  Give it a
         # small deterministic window before treating the cap breach as a flood.
-        if overflowed and proc.poll() is None:
-            with contextlib.suppress(Exception):
-                proc.wait(timeout=0.2)
+        if overflowed and not _leader_exited(proc):
+            grace_deadline = time.monotonic() + 0.2
+            while not _leader_exited(proc) and time.monotonic() < grace_deadline:
+                time.sleep(0.01)
         # If still running after the grace window, kill and refuse.
-        if overflowed and proc.poll() is None:
+        if overflowed and not _leader_exited(proc):
             _kill_process_tree(proc)
             with contextlib.suppress(Exception):
                 proc.communicate(timeout=_DRAIN_TIMEOUT_S)
@@ -1092,6 +1121,16 @@ def launch_safe_process(
             stdout_red = _drop_sensitive_tail_prefix(stdout_red, sensitive_raw)
             stderr_red = _drop_sensitive_tail_prefix(stderr_red, sensitive_raw)
 
+        # Signal the process group while the unreaped leader still reserves its
+        # ID, so no background child survives and the signal cannot reach an
+        # unrelated group that reused the ID.  start_new_session=True makes the
+        # group ID equal proc.pid.  Then reap the leader for its exit code.
+        if hasattr(os, "killpg"):
+            with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
+                os.killpg(proc.pid, signal.SIGKILL)
+        with contextlib.suppress(Exception):
+            proc.wait(timeout=_DRAIN_TIMEOUT_S)
+
         _result = ProcessResult(
             exit_code=proc.returncode,
             stdout_redacted=stdout_red,
@@ -1099,16 +1138,6 @@ def launch_safe_process(
             output_was_truncated=truncated,
             output_was_redacted=was_redacted,
         )
-
-        # Signal the process group on the normal-exit path so that no background
-        # child survives the launch.  The error paths (timeout, I/O, cap) already
-        # kill via _kill_process_tree.  Because start_new_session=True the group
-        # ID equals proc.pid; use it directly — os.getpgid fails once the leader
-        # is reaped.  Tolerate ProcessLookupError and PermissionError in case the
-        # group is already empty.
-        if hasattr(os, "killpg"):
-            with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
-                os.killpg(proc.pid, signal.SIGKILL)
 
     finally:
         # Ensure the verified descriptor is closed if any step raised before

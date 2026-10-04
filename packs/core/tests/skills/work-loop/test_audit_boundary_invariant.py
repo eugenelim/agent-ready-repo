@@ -484,3 +484,57 @@ class TestRecoveryPreservesConcurrentFrame:
             "file was truncated even though bytes_read < actual file size; "
             "a concurrent committed frame would have been lost"
         )
+
+
+class TestAttestationFieldTypes:
+    """Malformed attestation values refuse with one audited denial, never pass or crash."""
+
+    @pytest.mark.parametrize(
+        "patch",
+        [
+            {"limits": {"max_bytes": float("nan"), "timeout_s": float("nan")}},
+            {"limits": {"max_bytes": True, "timeout_s": True}},
+            {"limits": {"max_bytes": "5", "timeout_s": 10}},
+            {"limits": {"max_bytes": 100, "timeout_s": 0}},
+            {"limits": {"max_bytes": 100, "timeout_s": 10, "extra": 1}},
+            {"limits": ["x"]},
+            {"network": "yes"},
+            {"network": {"allowed": "true"}},
+            {"children": {"allowed": False, "extra": 1}},
+        ],
+    )
+    def test_malformed_attestation_refused_and_audited(
+        self, sc: ModuleType, cn: ModuleType, patch: dict
+    ) -> None:
+        issuer = sc.CapabilityIssuer()
+        grant = issuer.issue_root_grant(
+            roots=["/work"], operations=["read"], trust_class="untrusted",
+            writes_allowed_roots=[], control_denies=[],
+            limits=sc._Limits(max_bytes=100, timeout_s=10),
+        )
+        attestation = {
+            "schema_version": 1, "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "sandbox-1", "roots": ("/work",),
+            "limits": {"max_bytes": 100, "timeout_s": 10},
+        }
+        attestation.update(patch)
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused):
+            cn.launch_untrusted({}, grant, host=_Host(attestation), audit_sink=events.append)
+        assert len(_denials(events)) == 1, events
+
+
+class TestRecoveryIdentityBinding:
+    """Recovery refuses to truncate unless the bytes read are bound to one file identity."""
+
+    def test_identity_change_during_read_refuses_truncation(
+        self, es: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        log_path = tmp_path / "ev.log"
+        log_path.write_bytes(b'{"partial')  # a torn final frame
+        identities = iter([(1, 1), (1, 2)])
+        monkeypatch.setattr(es, "_regular_file_identity", lambda path: next(identities))
+        store = es.EvidenceStore(log_path)
+        with pytest.raises(es.EvidenceStoreError):
+            store.open()
+        assert log_path.read_bytes() == b'{"partial', "the log must be left intact"

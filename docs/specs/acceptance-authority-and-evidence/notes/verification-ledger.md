@@ -255,3 +255,17 @@ their fixes. `TestAdvisoryLockConfinement::test_fifo_at_log_path_does_not_block`
 also passes without the lock fix, because the store's earlier regular-file
 check already refuses a FIFO log. It stays as a regression guard and is not
 counted as evidence for the lock change.
+
+A fifth override on 2026-10-04 followed security review round 3, which upheld
+1 Concern and 3 Nits and found no Blockers. Across security rounds the counts
+were 2 Blockers, 6 Concerns, 3 Nits; then 0, 5, 1; then 0, 1, 3. The fixes:
+attestation `limits`, `network`, `children`, `roots`, and `principal_or_sandbox`
+are now typed against the unchanged `containment-attestation.v1` schema, and any
+exception in the attestation-versus-grant check refuses through the audited path.
+Recovery records the evidence-log identity only when no-follow stats taken
+before and after the read agree, and refuses to truncate otherwise. The
+success-path group kill runs before the exited leader is reaped. `cwd`,
+`grant_id`, and `executable_identity` must be non-empty strings before any
+filesystem call. Against the pre-fix code, 16 of the 17 new tests fail. The
+exception is `network: {"allowed": "true"}`: the old code already refused it,
+because the grant allows no network.

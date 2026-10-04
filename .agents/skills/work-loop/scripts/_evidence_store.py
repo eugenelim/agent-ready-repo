@@ -97,6 +97,15 @@ except ImportError:
 _EVIDENCE_LOG_MAX_BYTES: Final[int] = 256 * 1024 * 1024  # 256 MiB
 
 
+def _regular_file_identity(path: Path) -> tuple[int, int] | None:
+    """Return ``(st_dev, st_ino)`` for a regular file at *path*, without following links."""
+    try:
+        info = os.lstat(path)
+    except OSError:
+        return None
+    return (info.st_dev, info.st_ino) if stat.S_ISREG(info.st_mode) else None
+
+
 @contextlib.contextmanager
 def _advisory_lock(
     root: Path,
@@ -770,6 +779,7 @@ class EvidenceStore:
         """
         fs = _file_safety()
         _BoundExceeded = fs.BoundExceeded  # type: ignore[attr-defined]
+        identity_before = _regular_file_identity(self._log_path)
         try:
             raw = fs.read_confined_regular_file(
                 self._root, self._log_path, max_bytes=_EVIDENCE_LOG_MAX_BYTES
@@ -791,15 +801,15 @@ class EvidenceStore:
 
         # Record the identity of the file just read so that _truncate_log_safe
         # can refuse a truncation when the file at the path differs from the one
-        # that was read.  lstat is used because read_confined_regular_file
-        # already refused any non-regular file or symlink.
-        try:
-            _ls = os.lstat(self._log_path)
-            self._log_identity = (
-                (_ls.st_dev, _ls.st_ino) if stat.S_ISREG(_ls.st_mode) else None
-            )
-        except OSError:
-            self._log_identity = None
+        # that was read.  The same no-follow identity before and after the read
+        # binds it to the bytes read; any mismatch records none, and recovery
+        # then refuses to truncate.
+        identity_after = _regular_file_identity(self._log_path)
+        self._log_identity = (
+            identity_before
+            if identity_before is not None and identity_before == identity_after
+            else None
+        )
 
         # Reset indexes before rebuild.
         self._receipts.clear()
@@ -886,6 +896,12 @@ class EvidenceStore:
         if not _HAS_FCNTL:
             self._truncate_log(complete_bytes)
             return
+        if self._log_identity is None:
+            # The identity of the bytes read could not be bound, so the file at
+            # the path cannot be shown to be the one read: never truncate it.
+            raise EvidenceStoreError(
+                "evidence log identity changed during recovery; refusing to truncate"
+            )
         try:
             with _advisory_lock(
                 self._root, self._log_path, expected_identity=self._log_identity

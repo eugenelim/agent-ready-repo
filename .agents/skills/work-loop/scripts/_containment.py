@@ -158,7 +158,22 @@ ATTESTATION_DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-unsupported-host-containment",
     "denied-audit-sink-unavailable",
     "denied-unverified-grant",
+    "denied-invalid-attestation-field",
 })
+
+# Closed nested objects of containment-attestation.v1: name -> (required keys,
+# allowed keys).  Values are type-checked separately below.
+_ATTESTATION_NESTED_KEYS: Final[dict[str, tuple[frozenset[str], frozenset[str]]]] = {
+    "limits": (frozenset(), frozenset({"max_bytes", "timeout_s"})),
+    "network": (frozenset({"allowed"}), frozenset({"allowed"})),
+    "children": (frozenset({"allowed"}), frozenset({"allowed"})),
+}
+_ATTESTATION_LIMIT_MINIMUMS: Final[dict[str, int]] = {"max_bytes": 0, "timeout_s": 1}
+
+
+def _is_plain_int(value: object) -> bool:
+    """True for an int that is not a bool (bool is an int subclass)."""
+    return isinstance(value, int) and not isinstance(value, bool)
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -304,6 +319,33 @@ def validate_attestation_dict(d: object) -> tuple[bool, str]:
     read_enf = d.get("read_enforcement")
     if read_enf is not None and read_enf not in _VALID_READ_ENFORCEMENT:
         return False, "denied-unknown-authority-field"
+
+    principal = d.get("principal_or_sandbox")
+    if not isinstance(principal, str) or not principal:
+        return False, "denied-invalid-attestation-field"
+    roots = d.get("roots", ())
+    if not isinstance(roots, (list, tuple)) or not all(
+        isinstance(root, str) and root for root in roots
+    ):
+        return False, "denied-invalid-attestation-field"
+
+    # Nested objects are closed and typed; a NaN, boolean, or string limit can
+    # never stand in for a proven integer bound.
+    for name, (required, allowed) in _ATTESTATION_NESTED_KEYS.items():
+        if name not in d or d[name] is None:
+            continue
+        nested = d[name]
+        if not isinstance(nested, dict):
+            return False, "denied-invalid-attestation-field"
+        keys = set(nested)
+        if not required <= keys or not keys <= allowed:
+            return False, "denied-invalid-attestation-field"
+        if "allowed" in nested and not isinstance(nested["allowed"], bool):
+            return False, "denied-invalid-attestation-field"
+    for key, minimum in _ATTESTATION_LIMIT_MINIMUMS.items():
+        value = (d.get("limits") or {}).get(key)
+        if value is not None and (not _is_plain_int(value) or value < minimum):
+            return False, "denied-invalid-attestation-field"
 
     return True, "ok"
 
@@ -722,7 +764,10 @@ def launch_untrusted(
     )
 
     # Attestation must not be broader than the grant on any axis.
-    ok, denial_code = check_attestation_within_grant(attestation, grant)
+    try:
+        ok, denial_code = check_attestation_within_grant(attestation, grant)
+    except Exception:  # noqa: BLE001 — any check failure refuses, audited
+        ok, denial_code = False, "denied-invalid-attestation-field"
     if not ok:
         raise refuse(
             denial_code,

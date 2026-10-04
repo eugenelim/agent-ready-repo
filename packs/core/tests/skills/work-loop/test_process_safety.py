@@ -1924,3 +1924,53 @@ class TestProcessGroupCleanup:
             f"process group {pgid} survived after launch_safe_process returned; "
             "success-path process-group kill may be missing"
         )
+
+
+class TestSpecIdentifierFields:
+    """cwd, grant_id, and executable_identity must be non-empty strings before any launch step."""
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [("cwd", 123), ("cwd", ""), ("grant_id", ""), ("grant_id", None),
+         ("executable_identity", 7), ("executable_identity", "abc\x00")],
+    )
+    def test_invalid_identifier_refused_before_allow(
+        self, process_safety: ModuleType, tmp_path, field: str, value: object
+    ) -> None:
+        ps = process_safety
+        events, sink = _recording_sink()
+        spec = _spec(str(tmp_path))
+        spec[field] = value
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            ps.launch_safe_process(spec, cwd_roots=(str(tmp_path),), audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value"
+        assert not [e for e in events if e.outcome == "allowed"]
+
+
+class TestGroupKillBeforeReap:
+    """The success-path group kill runs while the leader still reserves the group ID."""
+
+    def test_leader_unreaped_when_group_is_signalled(
+        self, process_safety: ModuleType, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        ps = process_safety
+        if not (hasattr(os, "waitid") and hasattr(os, "WNOWAIT")):
+            pytest.skip("waitid with WNOWAIT is unavailable on this host")
+        observed: list[bool] = []
+        real_killpg = os.killpg
+
+        def recording_killpg(pgid: int, sig: int) -> None:
+            try:
+                info = os.waitid(os.P_PID, pgid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                observed.append(info is not None)
+            except ChildProcessError:
+                observed.append(False)
+            real_killpg(pgid, sig)
+
+        monkeypatch.setattr(ps.os, "killpg", recording_killpg)
+        _, sink = _recording_sink()
+        result = _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
+        assert result.exit_code == 0
+        assert observed and observed[-1], (
+            "the group must be signalled before the exited leader is reaped"
+        )
