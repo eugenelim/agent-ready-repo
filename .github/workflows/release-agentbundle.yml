@@ -110,7 +110,10 @@ jobs:
       - name: Smoke — install wheel into fresh venv and import the CLI entrypoint
         run: |
           python3 -m venv /tmp/smokevenv
-          /tmp/smokevenv/bin/pip install --quiet packages/agentbundle/dist/*.whl
+          # agentbundle requires credbroker>=0.7; build it from this repository
+          # outside dist/ so it is never uploaded with the agentbundle release.
+          python3 -m build packages/credbroker --wheel --outdir /tmp/credbroker-dist
+          /tmp/smokevenv/bin/pip install --quiet packages/agentbundle/dist/*.whl /tmp/credbroker-dist/*.whl
           /tmp/smokevenv/bin/python -c "from agentbundle.cli import main"
 
       - name: Smoke — agentbundle console script on PATH

@@ -408,16 +408,22 @@ def test_unencodable_target_raises_before_file_open(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(os.name != "nt", reason="Windows-only test")
-def test_windows_userprofile_home_resolution(tmp_path: Path) -> None:
-    """On Windows, USERPROFILE is used to locate .netrc."""
+def test_userprofile_home_resolution_follows_the_platform(tmp_path: Path) -> None:
+    """USERPROFILE locates .netrc on Windows and is ignored on POSIX.
+
+    Runs on every platform rather than skipping, because the credbroker CI gate
+    refuses any skipped test.
+    """
     _make_netrc(tmp_path, "machine catalogue.example.test login wu password wp\n")
     result = resolve_http_access(
         "https://catalogue.example.test/c.toml",
         env={"USERPROFILE": str(tmp_path)},
     )
-    assert isinstance(result, NetrcHttpAccess)
-    assert result.origin == "https://catalogue.example.test"
+    if os.name == "nt":
+        assert isinstance(result, NetrcHttpAccess)
+        assert result.origin == "https://catalogue.example.test"
+    else:
+        assert isinstance(result, AnonymousHttpAccess)
 
 
 def test_nt_userprofile_home_resolution_cross_platform(tmp_path: Path) -> None:
