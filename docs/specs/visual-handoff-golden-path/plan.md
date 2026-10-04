@@ -51,8 +51,9 @@ and AC-0008's mutation controls prove the cells drive the outcome.
   fallback's declaration forms and placeholder value, never the bare `--ds-`
   prefix a correct explanation may mention.
 - User decision 2026-10-04, replacing the exclusion forms above — `--ds-*` is
-  the pack's system-token namespace, used when a taxonomy records no naming of
-  its own, so golden cases exclude only the fallback's own colour values.
+  the pack's system-token namespace, the last step of the naming order — the
+  taxonomy's recorded naming, else the incumbent's names, else `--ds-*` — so
+  golden cases exclude only the fallback's own colour values.
 
 ## Construction tests
 

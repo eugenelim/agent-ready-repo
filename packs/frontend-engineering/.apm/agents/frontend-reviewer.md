@@ -247,7 +247,8 @@ Read the manifest's `visual authority` field and the diff together.
 - The diff introduces a parallel token system beside the one the manifest says
   was inherited: names other than the taxonomy's recorded naming, or a new
   `--ds-*` set alongside an incumbent system. A `--ds-*` system carrying the
-  taxonomy's own values is correct when the taxonomy records no naming.
+  taxonomy's own values is correct only when the taxonomy records no naming and
+  no incumbent system exists.
 - The manifest claims visual verification and no capture backs it, or records a
   material divergence as observed with nothing resolving or recording it.
 
