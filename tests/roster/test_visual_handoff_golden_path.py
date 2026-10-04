@@ -1078,3 +1078,39 @@ def test_every_resolving_fixture_declares_its_needs_and_holds_none_silent(
     assert (
         walk(rules, "confirmed", tree=tree).domains["Typography"] == "domain-completion-required"
     )
+
+
+def test_the_silent_domain_eval_grades_the_hold(skills: Path, eval_cases: dict[str, dict]) -> None:
+    """silent-domain-gap AC-0007."""
+    case = eval_cases.get("visual-authority-silent-domain")
+    assert case is not None, "visual-authority-silent-domain is not installed"
+    assert "no typography values" in case["prompt"]
+    assertions = case["assertions"]
+    assert any(a.startswith("Does not") and "silent typography domain" in a for a in assertions)
+    assert any(not a.startswith("Does not") and "upstream gap" in a for a in assertions)
+    expect = case["expect"]
+    assert "domain-completion-required" in expect["output_contains"]
+    assert "#2f5d50" in expect["output_contains"] and "#2f5d50" in case["prompt"]
+    assert _fallback_excludes(skills) <= set(expect["output_excludes"])
+
+
+def test_golden_prompts_state_type_shape_and_layout_values(eval_cases: dict[str, dict]) -> None:
+    """silent-domain-gap AC-0008: each golden prompt states its own fixture's
+    Typography role values and its Shape and containment and Spatial structure
+    commitments, verbatim."""
+    for case_id, scenario in GOLDEN_CASES.items():
+        if scenario is None:
+            continue
+        text = (FIXTURES / scenario / "design" / "tokens" / "checkout.md").read_text(
+            encoding="utf-8"
+        )
+        prompt = eval_cases[case_id]["prompt"]
+        for value, _ in _role_table(text, "### Typography").values():
+            assert value in prompt, f"{case_id}: typography {value!r} missing"
+        for heading, label in (
+            ("### Shape and containment", "**Borders and dividers:**"),
+            ("### Spatial structure", "**Column behaviour:**"),
+        ):
+            line = next(ln for ln in _section(text, heading).splitlines() if label in ln)
+            commitment = line.split(label, 1)[1].strip().rstrip(".")
+            assert commitment in prompt, f"{case_id}: {heading} {commitment!r} missing"

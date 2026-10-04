@@ -194,7 +194,7 @@
     },
     {
       "id": "visual-golden-path-confirmed-values",
-      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: confirmed`: its target is a two-region composition, the payment form leading and the order summary trailing, stacking form-first at the narrow channel. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest. In your reply, quote the evidence manifest's `visual authority` line.",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: confirmed`: its target is a two-region composition, the payment form leading and the order summary trailing, stacking form-first at the narrow channel. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px; typography body system-ui stack, 1rem, 400, 1.5 and heading system-ui stack, 1.375rem, 600, 1.25; shape and containment: 1px solid `border.divider` between groups; 1px solid `text.muted` around controls, corners square — 0 on every surface; spatial structure: one column below 1152px; two columns at 1152px and above, split 3fr to 2fr, the payment form first. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest. In your reply, quote the evidence manifest's `visual authority` line.",
       "expected_output": "The run records two rungs: composition from approved-visual-target, because the direction carries `visual_target: confirmed`, and values from direction-and-taxonomy. It declares every taxonomy value exactly as given, bound to a semantic role, and reads no fallback token block. It renders a representative state, observes it perceptually against the target, corrects material divergence at most once, renders once more to verify, records anything still diverging instead of iterating, and only then runs the engineering gates. Where it cannot render, it says which capability is missing and claims no visual verification.",
       "assertions": [
         "Records composition from approved-visual-target, because the direction carries `visual_target: confirmed`, and values from direction-and-taxonomy",
@@ -223,7 +223,7 @@
     },
     {
       "id": "visual-golden-path-unconfirmed-target",
-      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: unconfirmed`: it describes a two-region composition, the payment form leading and the order summary trailing, that nobody has confirmed. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest. In your reply, quote the evidence manifest's `visual authority` line.",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: unconfirmed`: it describes a two-region composition, the payment form leading and the order summary trailing, that nobody has confirmed. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px; typography body system-ui stack, 1rem, 400, 1.5 and heading system-ui stack, 1.375rem, 600, 1.25; shape and containment: 1px solid `border.divider` between groups; 1px solid `text.muted` around controls, corners square — 0 on every surface; spatial structure: one column below 1152px; two columns at 1152px and above, split 3fr to 2fr, the payment form first. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest. In your reply, quote the evidence manifest's `visual authority` line.",
       "expected_output": "The run resolves composition and values to direction-and-taxonomy and records that the direction does not carry `visual_target: confirmed`. It treats the described composition as design intent rather than an approved target, implements the direction's commitments and the taxonomy's values exactly as given, and reads no fallback token block.",
       "assertions": [
         "Resolves both composition and values to direction-and-taxonomy",
@@ -261,6 +261,31 @@
       "expect": {
         "output_contains": [
           "slug rejected"
+        ],
+        "output_excludes": [
+          "#1f2933",
+          "#1F2933",
+          "#f8fafc",
+          "#F8FAFC",
+          "#1a202c",
+          "#1A202C"
+        ]
+      }
+    },
+    {
+      "id": "visual-authority-silent-domain",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and records `visual_target: none`. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px; shape and containment: 1px solid `border.divider` between groups, corners square; spatial structure: one column below 1152px, two columns split 3fr to 2fr above it. Its Authority table lists Typography, but it gives no typography values and records nothing unresolved. Build the payment screen, then hand back what you built and what you held. In your reply, quote the evidence manifest's `visual authority` line.",
+      "expected_output": "The run treats typography as a domain the taxonomy left silent: the surface needs it, the taxonomy supplies no value for it and does not record it unresolved. It holds the typography axis as an upstream gap under `domain-completion-required`, routes it to whoever produced the taxonomy, and sets no font family, size, weight or line height of its own, so the user agent's default applies. It uses the colour, spacing, shape and spatial values exactly as given and reads no fallback token block.",
+      "assertions": [
+        "Holds typography as an upstream gap under `domain-completion-required` and routes it to whoever produced the taxonomy",
+        "Uses the resolved colour, spacing, shape and spatial values as given",
+        "Does not invent a font family, type scale, weight or line height for the silent typography domain",
+        "Does not read the fallback token block or declare a fallback value"
+      ],
+      "expect": {
+        "output_contains": [
+          "domain-completion-required",
+          "#2f5d50"
         ],
         "output_excludes": [
           "#1f2933",
