@@ -43,7 +43,7 @@ A read-only probe on 2026-10-02 measured 1,668 KiB allocated under `docs/adr/` a
 
 **Manual verification:**
 
-- Offline Chrome review for keyboard access, visible focus, high-zoom reflow, reduced-motion handling, required states, source labelling, support references, and no double-click dependency (**AC-0011–AC-0016, AC-0021**).
+- Offline Chrome review for keyboard access, visible focus, high-zoom reflow, reduced-motion handling, required states, source labelling, support references, and no double-click dependency (**AC-0011–AC-0016, AC-0021, AC-0025, AC-0026**).
 - The benchmark schedule named only in **AC-0015**, with thresholds frozen before measurement.
 - The frozen comparative evidence required by **AC-0020**.
 
@@ -51,12 +51,12 @@ A read-only probe on 2026-10-02 measured 1,668 KiB allocated under `docs/adr/` a
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| User procedure and product documentation | T5 | Guide examples, link checks, installed documentation | `close-work` confirms current public navigation and no stale operative name |
+| User procedure and product documentation | T5, T7 | Guide examples, link checks, installed documentation | `close-work` confirms current public navigation and no stale operative name |
 | Pack promise and journey | T5 | Reviewed README and journey against shipped behavior | Durable surfaces name the same boundaries and workflow |
-| Architecture | T5 | Design review against RFC-0105, CAP-0002, `docs/architecture/decision-graph.md`, and implementation controls | Read-only, on-demand, multi-form, checked-lineage, reference-policy, and safe-publication truth remains current |
-| Pack registration and generated projections | T4 | Activation evaluation, build, and install results | Installed pack exposes `navigate-decisions` and no operative `rfc-status` |
-| Executable proof | T1-T4 | Targeted tests and evaluation fixtures | Every criterion has named passing evidence |
-| Verification ledger | T3, T6 | Chrome measurements, interaction review, destination checks, and task-panel results | Ledger records thresholds, exact version, results, and final representation rule |
+| Architecture | T5, T7 | Design review against RFC-0105, CAP-0002, `docs/architecture/decision-graph.md`, and implementation controls | Read-only, on-demand, multi-form, checked-lineage, reference-policy, and safe-publication truth remains current |
+| Pack registration and generated projections | T4, T7 | Activation evaluation, build, and install results | Installed pack exposes `navigate-decisions` and no operative `rfc-status` |
+| Executable proof | T1-T4, T7 | Targeted tests and evaluation fixtures | Every criterion has named passing evidence |
+| Verification ledger | T3, T6, T7 | Chrome measurements, interaction review, destination checks, and task-panel results | Ledger records thresholds, exact version, results, and final representation rule |
 | Release history | T5 | Owning changelog or release note | Shipped version and compatibility change are discoverable |
 
 ## Design (LLD)
@@ -226,9 +226,42 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 
 **Done when:** Every durable output mapped to T5 matches shipped behavior, the owning release surface records the replacement, and operative-surface search finds no stale `rfc-status` guidance outside allowed history.
 
+### T7 — Explorer redesign and post-gates review corrections
+
+**Depends on:** T1-T5
+
+**Touches:** `packs/governance-extras/.apm/skills/navigate-decisions/**`, `packs/governance-extras/tests/skills/navigate-decisions/**`, `packs/governance-extras/pack.toml`, `packs/governance-extras/DESIGN.md`, `guides/governance-extras/how-to/navigate-decisions.md`, `docs/specs/decision-navigation/notes/verification-ledger.md`, owned generated projections
+
+**Verification mode:** TDD for query and publication corrections; visual/manual QA for the redesign — `test_query_contract.py`, `test_html_publication.py`, and scripted desktop Chrome evidence in the verification ledger.
+
+**Tests:**
+
+- Close every finding in the T7 corrections table of `docs/specs/decision-navigation/notes/verification-ledger.md` by its listed mode (**AC-0001–AC-0014, AC-0016, AC-0019, AC-0021–AC-0023**).
+- Closure modes and their pass conditions:
+  - failing test: a test fails on the defect and passes after the fix.
+  - scripted Chrome check: a check in the scripted desktop-Chrome evidence run fails on the defect and passes after the fix.
+  - document change: the corrected text is re-read against shipped behaviour and agrees with it.
+  - mutation red: the new or strengthened test fails against a recorded mutation that reintroduces the defect and passes on the fixed code.
+  - lint or search: a named lint or search command finds the item before the fix and nothing after it.
+  - ledger deviation: the correction to a completed task's text is recorded in the ledger's deviations section.
+- The T7 corrections table in the ledger holds exactly these 58 findings, each closed by the mode named here. Within that table only each row's Status may change; any change to this set, a mode, or a pass condition needs a controlled amendment. The rest of the ledger stays open for evidence:
+  - failing test (30): ADV-1, ADV-2, ADV-3, ADV-4, ADV-5, ADV-6, ADV-7, ADV-8, ADV-9, ADV-10, ADV-13, ADV-17, ADV-18, ADV-19, SEC-1, SEC-2, SEC-3, SEC-4, SEC-5, SEC-7, SEC-8, QE-1, QE-2, QE-3, QE-4, QE-6, QE-7, QE-12, QE-13, QE-20
+  - document change (7): ADV-11, ADV-12, ADV-14, ADV-20, SEC-6, QE-15, QE-17
+  - mutation red (8): ADV-15, QE-5, QE-8, QE-9, QE-10, QE-11, QE-16, QE-21
+  - ledger deviation (1): ADV-16
+  - scripted Chrome check (10): QE-14, FE-F1, FE-F4, FE-F2, FE-F3, FE-F5, FE-F6, FE-F9, FE-F10, FE-F11
+  - lint or search (2): QE-18, QE-19
+- Prove safe Markdown rendering with the scripted Chrome check on a hostile-fixture export: allowlisted elements only, text nodes only, inert links, unloaded images, literal raw HTML, visible escaping of link targets and image alt text, the 32-level nesting fallback, the 2 MiB pathological-body render within 2 seconds without a stack error, the computed-style separation of the record-content container and its headings from trust cues, and a test that reads the emitted content security policy (**AC-0010**).
+- Prove superseded-by markers in list and detail and their links (**AC-0025**), and the SVG lineage diagram, folded contextual edges, chain atlas, keyboard focus, and text equivalent (**AC-0026**).
+- Re-run the AC-0015 and AC-0016 Chrome scripts from any checkout with no personal path, and record the export command and captured output.
+
+**Approach:** The visual direction follows the supplied review-pack reference: a centred column, a header with an eyebrow label and gradient title, stat cards, pill filters, and card rows; trust classes carry an evidence rail of solid, dashed, dotted, and double left borders with written labels. CSS and JavaScript live as files beside the explorer and are inlined at export, with the script hash computed from the inlined bytes. The lineage diagram layers only checked supersession relationships with longest-path layering after collapsing cycles into one layer, orders each layer by barycenter, and builds SVG with `createElementNS`.
+
+**Done when:** Every row of the T7 corrections table is closed by its listed mode and marked closed, the Chrome evidence is re-recorded, and the T3 and T5 gates still pass.
+
 ### T6 — Measured outcome evidence and completion gates pass
 
-**Depends on:** T3-T5
+**Depends on:** T3-T5, T7
 
 **Touches:** `docs/specs/decision-navigation/notes/verification-ledger.md`; a correction outside the T1–T5 Touches returns through controlled plan amendment
 
@@ -269,3 +302,6 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 - 2026-10-04 — Controlled amendment during T4: T4 Touches add `packs/iac-terraform/pack.toml` and its `.claude-plugin/plugin.json`, because removing `rfc-status` makes governance-extras 1.0.0 and iac-terraform's `^0.11` dependency then fails `catalogue verify` (CAT-V-007). Owner authorized in-session.
 - 2026-10-04 — Spec re-approved unchanged (scope decision) by the repository owner after the T4 amendment.
 - 2026-10-04 — Amended plan approved (build-strategy decision) by the repository owner.
+- 2026-10-04 — Controlled amendment after post-gates review: added T7 for the explorer redesign and all sustained review corrections; AC-0010 now admits safe Markdown rendering with parse, styling, escaping, and content-security-policy limits; added AC-0025 (supersession markers) and AC-0026 (visual lineage, chains, and cycles); T7 closes the tracked corrections table in the ledger. Owner authorized in-session.
+- 2026-10-04 — Amended spec approved (scope decision) by the repository owner: Markdown in AC-0010, AC-0025, and AC-0026.
+- 2026-10-04 — Amended plan approved (build-strategy decision) by the repository owner: T7 and its 58 pinned corrections.

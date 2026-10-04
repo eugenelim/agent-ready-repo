@@ -99,6 +99,81 @@ refusal names the worktree, so it cannot pass on a missing path. The
 owner-only mode tests `test_temp_sibling_mode_0600_before_write` and
 `test_published_file_mode_0600` passed in the same run.
 
+## T7 corrections from the first post-gates review
+
+The first post-gates review (2026-10-04, branch head `a241146fd`) sustained
+58 findings after independent adjudication. T7 closes every one by the mode
+listed in its row. The plan's T7 Tests own the mode definitions and this row
+set; only the Status column changes here.
+
+| ID | Severity | Finding | Closes by | Status |
+| --- | --- | --- | --- | --- |
+| ADV-1 | Blocker | Relationship `source` holds a record ID instead of a repository-relative path. | failing test | open |
+| ADV-2 | Blocker | Records carry no structured header fields, so no output has `exact headers`. | failing test | open |
+| ADV-3 | Blocker | The relationship, result-byte and lineage bounds are never enforced. | failing test | open |
+| ADV-4 | Blocker | Malformed selectors and assertions return the whole corpus or crash instead of refusing. | failing test | open |
+| ADV-5 | Blocker | In the HTML, caller assertions lose their text and are not normalized relationship tuples. | failing test | open |
+| ADV-6 | Blocker | The support-reference inventory is missing. | failing test | open |
+| ADV-7 | Blocker | Several AC-0022 destination refusals and proofs are missing. | failing test | open |
+| ADV-8 | Blocker | The HTML shows record text without display escaping, in the same text node as trust labels. | failing test | open |
+| ADV-9 | Concern | The explorer and the query read registers and corpus roots differently. | failing test | open |
+| ADV-10 | Concern | Header parsing departs from the stated grammar. | failing test | open |
+| ADV-11 | Concern | Shipped scripts cite internal governance records. | document change | open |
+| ADV-12 | Concern | The ledger commits a personal local path. | document change | open |
+| ADV-13 | Concern | The provenance block is inserted into the HTML without escaping. | failing test | open |
+| ADV-14 | Concern | The guide, design doc and skill contradict shipped behavior. | document change | open |
+| ADV-15 | Concern | Some tests cannot fail, and the AC-0021 fixtures are missing. | mutation red | open |
+| ADV-16 | Concern | Plan T2 names a verification file that does not exist. | ledger deviation | open |
+| ADV-17 | Concern | Refusal shapes are not stable. | failing test | open |
+| ADV-18 | Concern | Full export drops admitted bodies between 1 MiB and 2 MiB. | failing test | open |
+| ADV-19 | Concern | A commit-pinned link can show content that differs from the export. | failing test | open |
+| ADV-20 | Nit | The pack description still makes the retired promise. | document change | open |
+| SEC-1 | Blocker | CLI `--name` is joined before validation, so a dot-segment or absolute name escapes the destination root. | failing test | open |
+| SEC-2 | Concern | Raw bidi controls reach visible HTML, and the escape set misses directional marks. | failing test | open |
+| SEC-3 | Concern | Provenance is put into the HTML without HTML escaping. | failing test | open |
+| SEC-4 | Concern | The export reads register files through a duplicate code path that reports unsafe or oversized files as absent. | failing test | open |
+| SEC-5 | Concern | Caller assertions are not checked against a schema. | failing test | open |
+| SEC-6 | Concern | SKILL.md does not declare the `filesystem_write` boundary its script crosses. | document change | open |
+| SEC-7 | Concern | Publication is not tied to the identity of the directory that was validated, and the temporary sibling is not validated before the link. | failing test | open |
+| SEC-8 | Nit | The repository-identity parser accepts dot-segment owner and repo names, and the host allowlist constant is never read. | failing test | open |
+| QE-1 | Blocker | The export recomputes the summary and turns register refusals into `absent`. | failing test | open |
+| QE-2 | Blocker | The 400-relationship and 512 KiB non-detail limits are never enforced. | failing test | open |
+| QE-3 | Blocker | The explorer embeds raw caller dicts, so assertion text never shows. | failing test | open |
+| QE-4 | Blocker | An empty selector or one with only unknown keys matches the whole corpus. | failing test | open |
+| QE-5 | Blocker | The lineage tests cannot fail on depth or on traversal of unchecked edges. | mutation red | open |
+| QE-6 | Concern | A Status value with two HTML comments loses everything after the first comment. | failing test | open |
+| QE-7 | Concern | Badly typed query input crashes `run_query` or is silently accepted. | failing test | open |
+| QE-8 | Concern | Most refusal tests check that an error happened, not which error. | mutation red | open |
+| QE-9 | Concern | Several inertness and encoding tests are tautologies or run on fixtures that cannot trigger them. | mutation red | open |
+| QE-10 | Concern | The no-partial-file test never reaches `os.link`. | mutation red | open |
+| QE-11 | Concern | The parity test compares only part of the relationship data. | mutation red | open |
+| QE-12 | Nit | Export refusals carry prose only, with no machine-readable code. | failing test | open |
+| QE-13 | Concern | Source links trust whatever git repository encloses `root`, and the HTML tests run real git. | failing test | open |
+| QE-14 | Concern | A malformed or unknown URL hash leaves the explorer blank. | scripted Chrome check | open |
+| QE-15 | Concern | The ledger's Chrome evidence scripts cannot reproduce its recorded results. | document change | open |
+| QE-16 | Nit | The CLI entry point has no tests. | mutation red | open |
+| QE-17 | Concern | Shipped pack scripts cite internal governance records, and one citation reaches every exported HTML file. | document change | open |
+| QE-18 | Nit | The by-path module loader is duplicated, and one copy has drifted. | lint or search | open |
+| QE-19 | Nit | Dead code and unused names. | lint or search | open |
+| QE-20 | Nit | The temp file descriptor leaks if `fchmod` fails. | failing test | open |
+| QE-21 | Nit | The owner-only temp-mode test checks call order, not the actual mode. | mutation red | open |
+| FE-F1 | Concern | Back to the first no-hash entry leaves the previous view and selection on screen. | scripted Chrome check | open |
+| FE-F4 | Concern | An unknown route or unparseable data island renders a blank main area with no error. | scripted Chrome check | open |
+| FE-F2 | Nit | Focus drops to the document body after a record, edge or context button navigates. | scripted Chrome check | open |
+| FE-F3 | Nit | No live region announces result-count or no-results changes. | scripted Chrome check | open |
+| FE-F5 | Nit | The no-results message does not echo the active query or filters and offers no reset control. | scripted Chrome check | open |
+| FE-F6 | Nit | Edge and context buttons fall below the 24-by-24 target size, and no exception is documented. | scripted Chrome check | open |
+| FE-F9 | Nit | Record buttons say they are toggles but navigate. | scripted Chrome check | open |
+| FE-F10 | Nit | An unknown record ID in the route shows the `nothing selected` guidance instead of saying the record is missing. | scripted Chrome check | open |
+| FE-F11 | Nit | Long record bodies have no progressive disclosure, and orientation scrolls away. | scripted Chrome check | open |
+
+## Deviations from completed task text
+
+- **T2 verification artifact (ADV-16):** T2 names `test_filesystem_safety.py`,
+  but its filesystem-confinement tests live in `test_query_contract.py`.
+  The confinement proof for T2 is the `test_query_contract.py` cases that
+  build symlink, hard-link, special-file, and traversal shapes.
+
 ## Evidence scripts
 
 ### bench.py
