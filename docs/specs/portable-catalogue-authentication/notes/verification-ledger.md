@@ -209,6 +209,32 @@ At commit `c50ed9428` (projections included):
   direct child within its grace and joining reader threads for at most
   0.2 s.
 
+## Review round 4 repair evidence (2026-10-04)
+
+At commit `d99affa10` (build-self changed no projections):
+
+- **Mutation proofs, run by the controller.** Each line was changed in
+  place, the target test was run, and the file was restored byte-for-byte.
+  All 7 mutations turned their tests red:
+  - calling the HTTP access resolver from the Git transport;
+  - importing `credbroker._http_access` from the Git transport (clean
+    interpreter check);
+  - copying the `[jf_path, "api", ...]` invocation into `system_trust.py`;
+  - removing the appended-required-parameter rule from the shared AC-0003
+    signature comparison;
+  - removing the direct opener's redirect handler (real same-origin 302,
+    then 401);
+  - dropping the `%`-after-decoding check (`%252e%252e`,
+    `%25%32%65%25%32%65`);
+  - dropping strict UTF-8 decoding (`%c0%ae%c0%ae`).
+- **Runs.** credbroker with AgentBundle blocked from import: 660 passed, 1
+  skipped (59 s). Full AgentBundle package suite: 5,564 passed, 57 skipped,
+  1 xfailed (15 min 7 s). Packaging roster: 16 passed, JFrog leg skipped
+  for its stated reason (80 s). Disposable Linux container with JFrog CLI
+  2.105.0 (same suites as round 3): 240 passed, 1 Windows-only skip (25 s).
+  The sdist gate: 84 passed (12 min 18 s). Lint, the documentation build,
+  and guide checks each exited 0.
+
 ## Owner decisions taken during EXECUTE
 
 Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
