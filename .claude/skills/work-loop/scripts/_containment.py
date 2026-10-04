@@ -13,11 +13,7 @@ untrusted grants must not write to:
 
 * The Core pack's own work-loop source tree.
 * Every projected copy of the work-loop skill, one entry per distinct
-  target-path prefix that ``contracts/adapter.toml`` declares for the Core
-  pack's surfaces (the skill primitive).
-
-A roster test pins this constant to the projections ``contracts/adapter.toml``
-declares so drift is caught before merge.
+  target path an installed adapter uses for this skill.
 
 Real launches and brokered effects run only in conformance fixtures; the module
 defines the contract without performing production launches.
@@ -109,12 +105,9 @@ def _load_sibling(alias: str, filename: str) -> object:
 #
 # Paths that untrusted grants must not write to.  Includes the pack source
 # and every projected copy of the work-loop skill per adapter target-path.
-# A roster test in tests/roster/ pins this constant to the projections that
-# contracts/adapter.toml declares for the Core pack's surfaces.
-#
-# Adopters lack contracts/adapter.toml, so the constant is self-contained
-# here.  Paths are relative prefixes; the grant check normalises both sides
-# before comparison.
+# The list is self-contained so it needs no adapter configuration at run time.
+# Paths are relative prefixes; the grant check normalises both sides before
+# comparison.
 
 DELIVERY_CONTROL_PATHS: Final[tuple[str, ...]] = (
     # Pack source — the canonical work-loop skill source tree.

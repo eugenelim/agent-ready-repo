@@ -608,6 +608,27 @@ class TestProducerCapabilityChecks:
         assert exc_info.value.denial_code == "denied-invalid-grant"
         assert store.receipt_count == 0
 
+    def test_missing_grant_with_failing_sink_uses_stable_redacted_code(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """AC-0021: a None grant whose denial cannot be audited refuses with the sink code."""
+        store = _open_fresh_store(es, tmp_path / "ev-missing-grant-sink.log")
+
+        def failing_sink(event: object) -> None:
+            raise OSError("disk /private/path full")
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                _make_receipt("r-no-grant-sink"),
+                transaction_id="tx-no-grant-sink",
+                issuer=sc.CapabilityIssuer(),
+                grant=None,
+                audit_sink=failing_sink,
+            )
+        assert exc_info.value.denial_code == "denied-audit-sink-unavailable"
+        assert "/private/path" not in str(exc_info.value)
+        assert store.receipt_count == 0
+
     def test_expired_grant_refuses_append(
         self, es: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:

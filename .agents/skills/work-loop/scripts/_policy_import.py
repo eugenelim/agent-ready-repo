@@ -297,9 +297,9 @@ def _check_writer_authority(
 ) -> None:
     """Validate writer authority and emit a durable security event.
 
-    Raises PolicyImportRefused if authority is denied.
-    Raises AuditSinkUnavailable (from _security_events) if the sink is unavailable;
-    the caller fails closed.
+    Raises PolicyImportRefused if authority is denied, and with
+    ``denied-audit-sink-unavailable`` if the audit sink is unavailable; the
+    caller fails closed.
 
     Before any durable write, the named writer is validated against its
     capability and record scope.
@@ -319,7 +319,13 @@ def _check_writer_authority(
             reason_code="denied-invalid-grant",
             timestamp=timestamp,
         )
-        se.emit_security_event(audit_sink, event)
+        try:
+            se.emit_security_event(audit_sink, event)
+        except Exception as exc:  # noqa: BLE001 — a sink failure from any module load
+            raise PolicyImportRefused(
+                "denied-audit-sink-unavailable",
+                "audit sink unavailable; failing closed",
+            ) from exc
         raise PolicyImportRefused(
             "denied-invalid-grant",
             "writer grant is None or not a CapabilityGrant",

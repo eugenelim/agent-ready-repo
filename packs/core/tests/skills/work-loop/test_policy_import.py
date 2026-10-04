@@ -885,6 +885,38 @@ class TestWriterAuthorityRefusals:
         assert store.record_count() == 0, "no grant must expose zero records"
         assert "denied" in exc_info.value.denial_code
 
+    def test_no_grant_with_failing_sink_uses_stable_redacted_code(
+        self, pi: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A None grant whose denial cannot be audited refuses with the sink code."""
+        spec_path, plan_path = _write_temp_files(tmp_path / "a", _SPEC_TEXT_APPROVED, _PLAN_TEXT_BASE)
+        store = pi.ImportStore()
+
+        def failing_sink(event: object) -> None:
+            raise OSError("disk /private/path full")
+
+        with pytest.raises(pi.PolicyImportRefused) as exc_info:
+            pi.import_policy(
+                spec_path=spec_path,
+                plan_path=plan_path,
+                refs=VALID_REFS,
+                terminal_intent=TERMINAL_INTENT,
+                writer_grant=None,
+                issuer=sc.CapabilityIssuer(),
+                audit_sink=failing_sink,
+                store=store,
+                approval_identity=APPROVAL_IDENTITY,
+                approval_role=APPROVAL_ROLE,
+                reviewer_identity=REVIEWER_IDENTITY,
+                reviewer_role=REVIEWER_ROLE,
+                approved_spec_digest=_PLACEHOLDER_DIGEST,
+                approved_plan_digest=_PLACEHOLDER_DIGEST,
+                approved_envelope_fingerprint=None,
+            )
+        assert exc_info.value.denial_code == "denied-audit-sink-unavailable"
+        assert "/private/path" not in str(exc_info.value)
+        assert store.record_count() == 0
+
     def test_expired_grant_exposes_zero_records(
         self, pi: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:

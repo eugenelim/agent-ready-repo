@@ -471,7 +471,13 @@ def _check_producer_authority(
             reason_code="denied-invalid-grant",
             timestamp=timestamp,
         )
-        se.emit_security_event(audit_sink, event)
+        try:
+            se.emit_security_event(audit_sink, event)
+        except Exception as exc:  # noqa: BLE001 — a sink failure from any module load
+            raise EvidenceStoreRefused(
+                "denied-audit-sink-unavailable",
+                "audit sink unavailable; failing closed",
+            ) from exc
         raise EvidenceStoreRefused(
             "denied-invalid-grant",
             "producer grant is None or not a CapabilityGrant",

@@ -21,8 +21,11 @@ With shadow calls ON:
   change the legacy transition, cohort write, legacy plan pin, or completion
   decision, and must NEVER count as a legacy allow or approval.
 - The facade records a stable redacted ``SHADOW_DIVERGENCE_CODE`` in the
-  per-feature shadow directory using the ``security-event.v1`` registered type
-  and emits no partial shadow fact.
+  per-feature shadow directory using the ``security-event.v1`` registered type.
+  Each evidence transaction is all-or-none.  The plan-locked records are
+  written one file at a time, so a failure part-way leaves the files written so
+  far beside the divergence entry and no ``acceptance-verdict.v1``; a missing or
+  older verdict means that run did not complete.
 
 All shadow writes are routed through the committed ``_confined_mutation.py``
 primitives or through the ``EvidenceStore`` writer port, rooted at the spec
@@ -34,14 +37,16 @@ Shadow facts are stored under::
 
     <spec-dir>/.shadow-acceptance/
 
-using only registered ``contracts/delivery/*.schema.json`` record types:
+using only registered delivery record types:
 
 - ``evidence-receipt.v1``    — appended for each legacy transition via EvidenceStore
 - ``approval-record.v1``     — spec-policy approval record, written at plan-locked
 - ``initial-plan-review.v1`` — initial plan review record, written at plan-locked
+- ``acceptance-property.v1`` — shadow acceptance property, written at plan-locked
 - ``acceptance-verdict.v1``  — derived verdict after plan-locked
 - ``delivery-subject.v1``    — optional legacy subject projection at plan-locked
-- ``security-event.v1``      — divergence/failure records (best-effort, closed schema)
+- ``security-event.v1``      — every writer-authority allow and denial, plus
+  divergence records (closed schema)
 
 The directory is self-ignoring: ``<spec-dir>/.shadow-acceptance/.gitignore``
 containing ``*`` is created on first use.
