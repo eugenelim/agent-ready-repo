@@ -553,7 +553,9 @@ def consumption_violations(css: str, html: str, expected: dict[str, str]) -> lis
             f"{prop}: declares {v!r}, taxonomy resolved {value!r}" for v in values if v != value
         ]
     problems += [
-        f"declares fallback property {p}" for p, _ in declarations if p.startswith("--ds-")
+        f"declares {p}, outside the naming the taxonomy records"
+        for p, _ in declarations
+        if p.startswith("--ds-")
     ]
     problems += [f"markup holds raw colour {m}" for m in COLOUR_LITERAL.findall(html)]
     for name, value in ROLE_BOUND.findall(html):
@@ -561,7 +563,7 @@ def consumption_violations(css: str, html: str, expected: dict[str, str]) -> lis
         if re.sub(r"var\(--[\w-]+\)|\b0\b", "", value).strip():
             problems.append(f"markup sets {name} to {value.strip()!r} rather than a role")
     if "--ds-" in html:
-        problems.append("markup references a fallback property")
+        problems.append("markup references a property outside the taxonomy's naming")
     return problems
 
 
@@ -940,7 +942,19 @@ GOLDEN_CASES = {
     "visual-golden-path-unconfirmed-target": "unconfirmed",
     "visual-golden-path-refusal-preserved": None,
 }
-DECLARATION_EXCLUDES = ("--ds-color-primary:", "--ds-space-3:")
+# `--ds-*` is the pack's system-token namespace, so a correct build may use it;
+# what marks a fallback substitution is the fallback's own values. These three
+# are distinctive enough that a correct answer has no reason to emit them.
+FALLBACK_SIGNATURE = ("--ds-color-primary", "--ds-color-surface-alt", "--ds-color-on-surface")
+
+
+def _fallback_excludes(skills: Path) -> set[str]:
+    values = _fallback_values(skills)
+    return {
+        form
+        for prop in FALLBACK_SIGNATURE
+        for form in (values[prop].lower(), values[prop].upper())
+    }
 
 
 @pytest.fixture(scope="module")
@@ -951,16 +965,15 @@ def eval_cases(skills: Path) -> dict[str, dict]:
 
 def test_golden_cases_grade_both_sides(skills: Path, eval_cases: dict[str, dict]) -> None:
     """AC-0018."""
-    placeholder = _fallback_values(skills)["--ds-color-primary"]
+    needed = _fallback_excludes(skills)
     for case_id in GOLDEN_CASES:
         case = eval_cases.get(case_id)
         assert case is not None, f"{case_id} is not installed"
         assert "files" not in case, f"{case_id} needs a seeded file"
         expect = case.get("expect", {})
         assert expect.get("output_contains"), f"{case_id} has no positive criterion"
-        excludes = expect.get("output_excludes", [])
-        for needed in (*DECLARATION_EXCLUDES, placeholder):
-            assert needed in excludes, f"{case_id} does not exclude {needed!r}"
+        missing = needed - set(expect.get("output_excludes", []))
+        assert not missing, f"{case_id} does not exclude {sorted(missing)}"
         assertions = case.get("assertions", [])
         assert any(a.startswith("Does not") for a in assertions), case_id
         assert any(not a.startswith("Does not") for a in assertions), case_id
@@ -983,7 +996,7 @@ def test_golden_cases_expect_their_own_scenarios_values(eval_cases: dict[str, di
 
 
 def test_existing_gap_and_standalone_cases_carry_deterministic_criteria(
-    eval_cases: dict[str, dict],
+    skills: Path, eval_cases: dict[str, dict]
 ) -> None:
     """AC-0020."""
     for case_id in (
@@ -991,6 +1004,6 @@ def test_existing_gap_and_standalone_cases_carry_deterministic_criteria(
         "visual-authority-unresolved-domain",
     ):
         excludes = eval_cases[case_id].get("expect", {}).get("output_excludes", [])
-        assert set(DECLARATION_EXCLUDES) <= set(excludes), case_id
+        assert _fallback_excludes(skills) <= set(excludes), case_id
     standalone = eval_cases["visual-authority-standalone"].get("expect", {})
     assert "local-premise" in standalone.get("output_contains", [])

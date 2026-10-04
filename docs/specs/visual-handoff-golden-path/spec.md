@@ -198,10 +198,10 @@ apart.
       `visual-golden-path-confirmed-values`,
       `visual-golden-path-unconfirmed-target` and
       `visual-golden-path-refusal-preserved`, each declaring no `files`, a
-      non-empty `expect.output_contains`, an `expect.output_excludes` listing
-      `--ds-color-primary:`, `--ds-space-3:` and the value
-      `references/fallback-tokens.md` declares for `--ds-color-primary`, at
-      least one assertion beginning `Does not`,
+      non-empty `expect.output_contains`, an `expect.output_excludes` listing,
+      in lower and upper case, the values `references/fallback-tokens.md`
+      declares for `--ds-color-primary`, `--ds-color-surface-alt` and
+      `--ds-color-on-surface`, at least one assertion beginning `Does not`,
       and at least one that does not.
 - [x] **AC-0019.** The installed `expect.output_contains` of the
       `visual-golden-path-confirmed-values` and
@@ -210,7 +210,7 @@ apart.
 - [x] **AC-0020.** The existing cases
       `visual-authority-upstream-gap-missing-taxonomy` and
       `visual-authority-unresolved-domain` carry an `expect.output_excludes`
-      listing `--ds-color-primary:` and `--ds-space-3:`, and
+      listing those same fallback values, and
       `visual-authority-standalone` carries an `expect.output_contains` listing
       `local-premise`.
 - [x] **AC-0021.** `build-check.yml` runs the roster test in a named step, and

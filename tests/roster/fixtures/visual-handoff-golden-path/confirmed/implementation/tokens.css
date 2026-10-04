@@ -1,12 +1,12 @@
 /* Fixture data: the golden implementation's token layer. Every value is the one
    design/tokens/checkout.md resolved, bound by role and used as given. */
 :root {
-  --color-surface-default: #FBF8F3;
-  --color-text-default: #1E2A26;
-  --color-text-muted: #4F5D57;
-  --color-accent-action: #2F5D50;
-  --color-text-on-action: #FBF8F3;
-  --color-border-divider: #D9D2C5;
+  --color-surface-default: #fbf8f3;
+  --color-text-default: #1e2a26;
+  --color-text-muted: #4f5d57;
+  --color-accent-action: #2f5d50;
+  --color-text-on-action: #fbf8f3;
+  --color-border-divider: #d9d2c5;
 
   --space-1: 6px;
   --space-2: 10px;
