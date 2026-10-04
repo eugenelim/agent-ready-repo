@@ -2,26 +2,26 @@
 type: token-taxonomy
 slug: "checkout"
 direction: "checkout"
-route: "originate"
+route: "extend"
 date: "2026-10-01"
 ---
 
 # Design system: Checkout
 
-Fixture data for a roster test. No person or product is described.
+Fixture data for a roster test. No person or product is described. This taxonomy lists Typography in its Authority table but gives no Typography values, and records nothing unresolved.
 
 ## Authority
 
-- **Route:** originate — no incumbent visual system exists.
+- **Route:** extend — the brand palette exists; spacing does not.
 - **Direction source:** direction/checkout.md
-- **Incumbent source:** none found — searched src/
+- **Incumbent source:** src/styles/brand.css
 - **Visual target:** the direction's frontmatter records its disposition; the target binds composition only and supplies no value.
 - **Stated constraints:** none
 
 | Domain | Rung that supplied it |
 |---|---|
-| Typography | `unresolved` |
-| Color | `approved-direction` |
+| Typography | `platform-convention` |
+| Color | `incumbent-system` |
 | Spacing and rhythm | `approved-direction` |
 | Shape and containment | `approved-direction` |
 | Depth | `approved-direction` |
@@ -38,12 +38,12 @@ Fixture data for a roster test. No person or product is described.
 
 | Role | Job it does | Resolved value | Traces to |
 |---|---|---|---|
-| `surface.default` | page ground | #fbf8f3 | Chromatic intensity |
-| `text.default` | body copy | #1e2a26 | Chromatic intensity |
-| `text.muted` | secondary copy | #4f5d57 | Chromatic intensity |
-| `accent.action` | the pay action | #2f5d50 | Chromatic intensity |
-| `text.on-action` | label on the pay action | #fbf8f3 | Chromatic intensity |
-| `border.divider` | separators between groups | #d9d2c5 | Chromatic intensity |
+| `surface.default` | page ground | #fbf8f3 | incumbent `--brand-paper` in src/styles/brand.css |
+| `text.default` | body copy | #1e2a26 | incumbent `--brand-ink-900` in src/styles/brand.css |
+| `text.muted` | secondary copy | #4f5d57 | incumbent `--brand-ink-600` in src/styles/brand.css |
+| `accent.action` | the pay action | #2f5d50 | incumbent `--brand-pine-700` in src/styles/brand.css |
+| `text.on-action` | label on the pay action | #fbf8f3 | incumbent `--brand-paper` in src/styles/brand.css |
+| `border.divider` | separators between groups | #d9d2c5 | incumbent `--brand-sand-300` in src/styles/brand.css |
 
 ### Spacing and rhythm
 
@@ -84,7 +84,7 @@ Fixture data: the needs this system was checked against.
 
 | Product need | Domains it exercised | What it exposed |
 |---|---|---|
-| the payment form | Color, Spacing and rhythm | held |
+| the payment form | Color, Spacing and rhythm | the incumbent muted text missed the body-text floor |
 | the pay action | Color | held |
 | the narrow channel | Spacing and rhythm | held |
 
@@ -99,7 +99,11 @@ Fixture data: the needs this system was checked against.
 | `text.muted` | `surface.default` | Body text |
 | `text.on-action` | `accent.action` | Body text |
 
-- **Adaptations made:** none required.
+- **Adaptations made:**
+
+| Role | Incumbent value | Resolved value | Why |
+|---|---|---|---|
+| `text.muted` | `--brand-ink-400` #8a968f | `--brand-ink-600` #4f5d57 | the incumbent muted text missed the body-text floor on the paper ground |
 
 ## Binding
 
@@ -111,4 +115,4 @@ Fixture data: the needs this system was checked against.
 
 | Domain | Authority that is missing | Who resolves it | Operation that supplies it |
 |---|---|---|---|
-| Typography | No type commitment in the direction and no incumbent type scale | Design lead (placeholder) | Amend the direction's type axes |
+| — | — | — | — |

@@ -37,6 +37,7 @@ SCENARIOS = (
     "unresolved-domain",
     "standalone",
     "refusal",
+    "silent-domain",
 )
 PACKS = ("experience-design", "frontend-engineering")
 FALLBACK = "references/fallback-tokens.md"
@@ -289,6 +290,7 @@ def walk(rules: Rules, scenario: str, *, tree: Path | None = None) -> Route:
     # Gap sources, as the installed gap-sources cell names them.
     sources = rules.gaps["gap-sources"]
     assert "named skip" in sources and "needed domain unresolved" in sources, sources
+    assert "leaves a domain silent" in sources, sources
     kinds = re.findall(r"`([a-z-]+)`", rules.gaps["gap-record-contents"])
     supply_kind, completion_kind = kinds[0], kinds[1]
     fields_match = re.search(
@@ -301,7 +303,18 @@ def walk(rules: Rules, scenario: str, *, tree: Path | None = None) -> Route:
     if direction and taxonomy is None and not incumbent:
         held = [(d, supply_kind) for d in rules.domains]
     elif taxonomy is not None:
-        held = [(d, completion_kind) for d in _unresolved_domains(taxonomy)]
+        unresolved = _unresolved_domains(taxonomy)
+        held = [(d, completion_kind) for d in unresolved]
+        # A needed domain the taxonomy neither gives values for nor records
+        # unresolved is silent. A `### <Domain>` commitments section stands in
+        # for "gives values"; every fixture section carries the values its
+        # implementation sets. Need is fixture data, with no default.
+        assert "needed_domains" in facts, f"{tree.name}: a resolving taxonomy needs needed_domains"
+        held += [
+            (d, completion_kind)
+            for d in facts["needed_domains"]
+            if d not in unresolved and f"\n### {d}\n" not in taxonomy["body"]
+        ]
 
     def holds(token: str, row_index: int) -> bool:
         token = token.strip()
@@ -1007,3 +1020,61 @@ def test_existing_gap_and_standalone_cases_carry_deterministic_criteria(
         assert _fallback_excludes(skills) <= set(excludes), case_id
     standalone = eval_cases["visual-authority-standalone"].get("expect", {})
     assert "local-premise" in standalone.get("output_contains", [])
+
+
+# ── a taxonomy-silent domain (silent-domain-gap AC-0005, AC-0006, AC-0011) ───
+
+
+def test_a_silent_needed_domain_is_held(rules: Rules) -> None:
+    """AC-0005: Typography is listed in the Authority table but given no
+    values, and nothing records it unresolved."""
+    route = walk(rules, "silent-domain")
+    assert route.domains["Typography"] == "domain-completion-required"
+    facts = tomllib.loads(
+        (FIXTURES / "silent-domain" / "scenario.toml").read_text(encoding="utf-8")
+    )
+    for domain in facts["needed_domains"]:
+        if domain != "Typography":
+            assert route.domains[domain] == "taxonomy", (domain, route.domains[domain])
+    assert FALLBACK not in route.loaded
+    assert route.gap_records == [
+        {"axes held": ["Typography"], "operation kind": "domain-completion-required"}
+    ]
+
+
+def test_an_unneeded_silent_domain_is_not_held(rules: Rules) -> None:
+    """AC-0011: Graphic language has no values and is not needed."""
+    facts = tomllib.loads(
+        (FIXTURES / "silent-domain" / "scenario.toml").read_text(encoding="utf-8")
+    )
+    taxonomy = (FIXTURES / "silent-domain" / "design" / "tokens" / "checkout.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Graphic language" not in facts["needed_domains"]
+    assert "\n### Graphic language\n" not in taxonomy
+    held = {d for d, v in walk(rules, "silent-domain").domains.items() if v != "taxonomy"}
+    assert "Graphic language" not in held
+
+
+def test_every_resolving_fixture_declares_its_needs_and_holds_none_silent(
+    rules: Rules, tmp_path: Path
+) -> None:
+    """AC-0006, with the mutation that proves the check can red."""
+    for scenario in ("confirmed", "unconfirmed", "unresolved-domain"):
+        facts = tomllib.loads((FIXTURES / scenario / "scenario.toml").read_text(encoding="utf-8"))
+        assert facts.get("needed_domains"), f"{scenario} declares no needed_domains"
+    refusal = tomllib.loads((FIXTURES / "refusal" / "scenario.toml").read_text(encoding="utf-8"))
+    assert refusal.get("needed_domains"), "refusal declares no needed_domains"
+    for scenario in ("confirmed", "unconfirmed"):
+        assert not walk(rules, scenario).gap_records, scenario
+
+    tree = tmp_path / "confirmed"
+    shutil.copytree(FIXTURES / "confirmed", tree)
+    taxonomy = tree / "design" / "tokens" / "checkout.md"
+    text = taxonomy.read_text(encoding="utf-8")
+    stripped = re.sub(r"### Typography\n.*?(?=### Color)", "", text, flags=re.S)
+    assert stripped != text
+    taxonomy.write_text(stripped, encoding="utf-8")
+    assert (
+        walk(rules, "confirmed", tree=tree).domains["Typography"] == "domain-completion-required"
+    )
