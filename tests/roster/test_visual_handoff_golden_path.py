@@ -1107,10 +1107,12 @@ def test_golden_prompts_state_type_shape_and_layout_values(eval_cases: dict[str,
         prompt = eval_cases[case_id]["prompt"]
         for value, _ in _role_table(text, "### Typography").values():
             assert value in prompt, f"{case_id}: typography {value!r} missing"
-        for heading, label in (
-            ("### Shape and containment", "**Borders and dividers:**"),
-            ("### Spatial structure", "**Column behaviour:**"),
-        ):
-            line = next(ln for ln in _section(text, heading).splitlines() if label in ln)
-            commitment = line.split(label, 1)[1].strip().rstrip(".")
-            assert commitment in prompt, f"{case_id}: {heading} {commitment!r} missing"
+        for heading in ("### Shape and containment", "### Spatial structure"):
+            commitments = [
+                ln.split(":**", 1)[1].strip().rstrip(".")
+                for ln in _section(text, heading).splitlines()
+                if ln.startswith("- **") and not ln.startswith("- **Relationship:**")
+            ]
+            assert commitments, f"{scenario}: {heading} commits nothing"
+            for commitment in commitments:
+                assert commitment in prompt, f"{case_id}: {heading} {commitment!r} missing"

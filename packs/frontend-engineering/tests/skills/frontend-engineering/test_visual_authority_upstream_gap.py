@@ -248,7 +248,7 @@ def test_a_silent_domain_completes_under_the_existing_operation_kind() -> None:
     """AC-0002: silence reuses `domain-completion-required`; no third kind."""
     contents = rule("Upstream gaps", "gap-record-contents")
     assert "`domain-completion-required` for a taxonomy domain recorded unresolved or left silent" in contents
-    assert re.findall(r"`([a-z]+(?:-[a-z]+)+-required)`", contents) == [
+    assert re.findall(r"`([^`]+)`", contents) == [
         "taxonomy-supply-required",
         "domain-completion-required",
     ]
