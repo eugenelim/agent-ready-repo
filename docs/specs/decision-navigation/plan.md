@@ -198,7 +198,7 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 
 **Depends on:** T2
 
-**Touches:** `packs/governance-extras/pack.toml`, `packs/governance-extras/.claude-plugin/plugin.json`, `packs/governance-extras/.apm/skills/navigate-decisions/evals/eval_queries.json`, `packs/governance-extras/.apm/skills/rfc-status/**`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`, `tools/add-rendering-directives.py`, `tests/roster/test_conventions_retirement.py`, owned generated projections
+**Touches:** `packs/governance-extras/pack.toml`, `packs/governance-extras/.claude-plugin/plugin.json`, `packs/governance-extras/.apm/skills/navigate-decisions/evals/eval_queries.json`, `packs/governance-extras/.apm/skills/rfc-status/**`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`, `tools/add-rendering-directives.py`, `tests/roster/test_conventions_retirement.py`, `packs/iac-terraform/pack.toml`, `packs/iac-terraform/.claude-plugin/plugin.json`, owned generated projections
 
 **Verification mode:** TDD and goal-based build/install checks — `packs/governance-extras/.apm/skills/navigate-decisions/evals/eval_queries.json` and owned build outputs.
 
@@ -266,3 +266,6 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 - 2026-10-03 — Controlled amendment during T2: T2 Touches add `Makefile` and `tests/roster/test_navigate_decisions_file_safety_mirror.py`, because `lint-pack-test-boundary` requires a recognized runner and forbids pack tests that read outside their pack; and `.github/workflows/build-check.yml` and `tools/lint-ci-parity.py`, because `tests/AGENTS.md` requires a named roster step and its `STEP_DISPOSITION` entry. The roster test names no `docs/specs/` literal, so `.workspace-prune-protected.toml` does not apply. Owner authorized in-session.
 - 2026-10-03 — Spec re-approved unchanged (scope decision) by the repository owner after the T2 amendment.
 - 2026-10-03 — Amended plan approved (build-strategy decision) by the repository owner.
+- 2026-10-04 — Controlled amendment during T4: T4 Touches add `packs/iac-terraform/pack.toml` and its `.claude-plugin/plugin.json`, because removing `rfc-status` makes governance-extras 1.0.0 and iac-terraform's `^0.11` dependency then fails `catalogue verify` (CAT-V-007). Owner authorized in-session.
+- 2026-10-04 — Spec re-approved unchanged (scope decision) by the repository owner after the T4 amendment.
+- 2026-10-04 — Amended plan approved (build-strategy decision) by the repository owner.
