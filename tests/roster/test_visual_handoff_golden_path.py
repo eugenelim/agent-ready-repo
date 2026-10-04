@@ -1116,3 +1116,16 @@ def test_golden_prompts_state_type_shape_and_layout_values(eval_cases: dict[str,
             assert commitments, f"{scenario}: {heading} commits nothing"
             for commitment in commitments:
                 assert commitment in prompt, f"{case_id}: {heading} {commitment!r} missing"
+
+
+def test_the_golden_implementation_sets_the_taxonomy_type_and_shape(taxonomy: str) -> None:
+    """The confirmed fixture needs Typography and Shape and containment, so its
+    golden implementation sets them: each Typography role's size, weight and
+    line height, the control border, and square corners."""
+    html = (CONFIRMED / "implementation" / "index.html").read_text(encoding="utf-8")
+    fonts = re.findall(r"font:\s*([^;]+);", html)
+    for role, (value, _) in _role_table(taxonomy, "### Typography").items():
+        size, weight, leading = (part.strip() for part in value.split(",")[1:4])
+        assert any(f"{weight} {size}/{leading}" in font for font in fonts), (role, value, fonts)
+    assert "border: 1px solid var(--color-text-muted)" in html
+    assert "border-radius: 0" in html
