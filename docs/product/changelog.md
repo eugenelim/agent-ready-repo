@@ -80,6 +80,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
 - The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
 
+## [frontend-engineering][0.4.4] — 2026-10-04
+
+### Highlights
+
+- A token taxonomy that says nothing about a visual domain the surface needs — no value, and no `unresolved` record — is now an upstream gap. The build holds that axis and routes it to whoever produced the taxonomy, instead of inventing a type scale or stroke widths that read as resolved.
+
+### Added
+
+- A `visual-authority-silent-domain` eval case grades the hold, and the two golden-path cases now state typography, shape and layout values so they leave nothing silent.
+
 ## [frontend-engineering][0.4.3] — 2026-10-04
 
 ### Changed
