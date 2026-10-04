@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Executing
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one repo-scope primitive instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change

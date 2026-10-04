@@ -2412,12 +2412,11 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # FEAT-0003's single delivery unit, Approved 2026-10-04. Moved here from
-  # `backlog.open`, which admits only Draft specs. Moves to `active` with the
-  # spec's `Status: Implementing` in one change.
-  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
 ]
 active  = [
+  # FEAT-0003's single delivery unit, approved 2026-10-04 and started the
+  # same day; moved from `queue` with the spec's `Status: Implementing`.
+  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
