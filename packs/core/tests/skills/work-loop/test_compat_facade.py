@@ -1643,3 +1643,80 @@ class TestStructural:
                               "import tomli", "import tomlkit"]
         for pat in forbidden_patterns:
             assert pat not in src, f"facade must not import {pat!r}"
+
+    def test_divergence_routes_through_checked_emitter(
+        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """_record_divergence calls emit_denial_best_effort, not _confined_jsonl_append directly.
+
+        Monkeypatches _security_events() to intercept emit_denial_best_effort
+        and verifies it is called with a denied event carrying the stable
+        divergence reason code.  Ensures the checked emitter is on the path
+        rather than a raw JSONL write.
+        """
+        captured: list = []
+
+        class _FakeSE:
+            """Minimal stand-in for the _security_events module."""
+
+            class SecurityEvent:
+                def __init__(self, **kw: object) -> None:
+                    for k, v in kw.items():
+                        setattr(self, k, v)
+
+            @staticmethod
+            def emit_denial_best_effort(sink: object, event: object) -> None:  # noqa: ARG004
+                captured.append(event)
+
+            REDACTED_CORRELATION_ID = "redacted"
+
+            @staticmethod
+            def make_operation_id() -> str:
+                return "op-fake"
+
+        monkeypatch.setattr(facade, "_security_events_module_cache", _FakeSE)
+
+        spec_dir = tmp_path / "div-emitter-spec"
+        spec_dir.mkdir()
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        shadow_dir.mkdir()
+
+        # cm stub: expose the confined primitives that _confined_ensure_shadow_dir
+        # needs.  confined_jsonl_append raises so we can confirm _record_divergence
+        # does NOT call it directly.
+        class _MutationDenied(Exception):
+            def __init__(self, denial_code: str, message: str = "") -> None:
+                super().__init__(message)
+                self.denial_code = denial_code
+
+        class _CM:
+            MutationDenied = _MutationDenied
+
+            def confined_jsonl_append(self, *a: object, **kw: object) -> None:
+                raise AssertionError(
+                    "_confined_jsonl_append must not be called directly by _record_divergence"
+                )
+
+            def confined_append(self, *a: object, **kw: object) -> None:
+                pass
+
+            def confined_create(self, *a: object, **kw: object) -> None:
+                # No-op: .gitignore creation is idempotent; skip it in tests.
+                pass
+
+            def confined_ensure_dir(self, *a: object, **kw: object) -> None:
+                pass
+
+        # Call _record_divergence directly.
+        facade._record_divergence(
+            spec_dir,
+            shadow_dir,
+            context="test-context",
+            exc_type="RuntimeError",
+            cm=_CM(),
+        )
+
+        assert len(captured) == 1, f"expected 1 call to emit_denial_best_effort, got: {captured}"
+        event = captured[0]
+        assert getattr(event, "outcome", None) == "denied", event
+        assert getattr(event, "reason_code", None) == facade.SHADOW_DIVERGENCE_CODE, event

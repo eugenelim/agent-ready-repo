@@ -249,11 +249,14 @@ def emit_denial(
     sink: Callable[[SecurityEvent], None],
     event: SecurityEvent,
 ) -> SecurityEvent:
-    """Store a denial event, redacting a correlation ID the content-safety check refuses.
+    """Store a denial event, redacting any caller-supplied field the content-safety check refuses.
 
-    Only a refused event is retried, once, with the correlation ID replaced by
-    ``REDACTED_CORRELATION_ID``, so a denial is still audited without the
-    refused bytes.  A sink failure is never retried: it raises
+    On a ``SecurityEventRefused`` the event is retried once with both
+    ``operation_id`` replaced by a fresh ``make_operation_id()`` value and
+    ``correlation_id`` replaced by ``REDACTED_CORRELATION_ID``.  Either field
+    could carry a credential-shaped value that triggers the refusal, so both
+    are replaced together; a fresh operation ID is not derived from any
+    request bytes.  A sink failure is never retried: it raises
     ``AuditSinkUnavailable`` so the caller fails closed and the sink is called
     at most once per stored event.
     """
@@ -261,7 +264,12 @@ def emit_denial(
         return emit_security_event(sink, event)
     except SecurityEventRefused:
         return emit_security_event(
-            sink, replace(event, correlation_id=REDACTED_CORRELATION_ID)
+            sink,
+            replace(
+                event,
+                operation_id=make_operation_id(),
+                correlation_id=REDACTED_CORRELATION_ID,
+            ),
         )
 
 

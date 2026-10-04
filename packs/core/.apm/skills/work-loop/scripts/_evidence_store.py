@@ -35,6 +35,7 @@ Python 3.11+.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -44,7 +45,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable, Final
+from typing import Any, Callable, Final, Generator
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -74,6 +75,45 @@ SUPPORTED_RECEIPT_SCHEMA_VERSION: Final[int] = 1
 SUPPORTED_SUPERSESSION_SCHEMA_VERSION: Final[int] = 1
 
 _SCRIPTS_DIR: Final[Path] = Path(__file__).resolve().parent
+
+# ── Advisory locking (platform-optional) ──────────────────────────────────────
+#
+# When fcntl is available, every append and recovery truncation acquires an
+# exclusive advisory lock on the log file to serialise them.  Recovery then
+# never removes a frame that an appender just committed, and an appender never
+# races with an in-progress in-place truncation.  The fallback (no fcntl) keeps
+# the prior behaviour on platforms that do not ship the module (e.g. Windows).
+
+try:
+    import fcntl as _fcntl
+    _HAS_FCNTL: bool = True
+except ImportError:
+    _HAS_FCNTL = False
+
+# Upper bound on evidence log reads.  Measured from the 100,000-receipt
+# benchmark corpus: each frame is ~574 bytes; 100,000 frames ≈ 57 MB.
+# This constant is ~4.5× that corpus size, giving clear headroom for growth
+# while preventing unbounded reads in _load_and_truncate.
+_EVIDENCE_LOG_MAX_BYTES: Final[int] = 256 * 1024 * 1024  # 256 MiB
+
+
+@contextlib.contextmanager
+def _advisory_lock(path: Path) -> Generator[int, None, None]:
+    """Acquire an exclusive advisory lock on *path*; yield the open fd.
+
+    The caller may use the fd for ``os.fstat`` or ``os.ftruncate`` on the
+    locked inode.  The lock is released and the fd closed on exit regardless
+    of exceptions.  Not called when ``_HAS_FCNTL`` is False.
+    """
+    fd = os.open(str(path), os.O_RDWR | getattr(os, "O_CLOEXEC", 0))
+    try:
+        _fcntl.flock(fd, _fcntl.LOCK_EX)  # type: ignore[name-defined]
+        try:
+            yield fd
+        finally:
+            _fcntl.flock(fd, _fcntl.LOCK_UN)  # type: ignore[name-defined]
+    finally:
+        os.close(fd)
 
 # ── Exceptions ─────────────────────────────────────────────────────────────────
 
@@ -434,6 +474,36 @@ def _check_record_safety(record: dict, record_type: str, *, record_id: str) -> N
         )
 
 
+def _emit_post_allow_denial(
+    audit_sink: Callable[[Any], None],
+    operation_id: str,
+    denial_code: str,
+) -> None:
+    """Emit a best-effort denial event matching a prior allow event at the same boundary.
+
+    When a boundary stores an allow event and then refuses further processing,
+    a matching denied event must be stored so the audit log remains consistent.
+    Uses ``emit_denial_best_effort`` so the original refusal is never suppressed.
+    Both events share the same ``operation_id``; the correlation is set to
+    ``"redacted"`` because the post-allow refusal carries no grant ID.
+    """
+    try:
+        se = _security_events()
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        event = se.SecurityEvent(
+            schema_version=1,
+            operation_id=operation_id,
+            correlation_id="redacted",
+            event_type="capability-check",
+            outcome="denied",
+            reason_code=denial_code,
+            timestamp=timestamp,
+        )
+        se.emit_denial_best_effort(audit_sink, event)
+    except Exception:  # noqa: BLE001 — denial emission must not suppress the original refusal
+        pass
+
+
 def _check_producer_authority(
     issuer: object,
     grant: object,
@@ -441,8 +511,12 @@ def _check_producer_authority(
     audit_sink: Callable[[Any], None],
     record_scope: str,
     required_operations: list[str],
-) -> None:
+) -> str:
     """Validate producer authority and emit a durable security event.
+
+    Returns the ``operation_id`` used in the emitted event so that callers can
+    attach a matching denial event for any subsequent post-allow refusal at the
+    same boundary.
 
     Raises ``EvidenceStoreRefused`` if authority is denied or if the audit sink
     is unavailable. The caller must fail closed: no frame is staged.
@@ -506,6 +580,8 @@ def _check_producer_authority(
             "denied-producer-authority",
             f"producer authority denied for scope {record_scope!r}",
         )
+
+    return operation_id
 
 
 # ── EvidenceStore ──────────────────────────────────────────────────────────────
@@ -620,10 +696,27 @@ class EvidenceStore:
     # ── Internal: log replay and truncation ────────────────────────────────────
 
     def _load_and_truncate(self) -> None:
-        """Read the log, truncate any incomplete final frame, and build indexes."""
+        """Read the log, truncate any incomplete final frame, and build indexes.
+
+        The read is bounded by ``_EVIDENCE_LOG_MAX_BYTES``; a log that exceeds
+        this limit raises ``EvidenceStoreError`` — the store is unrecoverable.
+
+        When an incomplete final frame is found, truncation is serialised
+        against concurrent appends via an exclusive advisory lock
+        (``fcntl.flock``).  The lock is acquired only for the truncate step
+        so that recovery never removes a frame a concurrent appender committed.
+        """
         fs = _file_safety()
+        _BoundExceeded = fs.BoundExceeded  # type: ignore[attr-defined]
         try:
-            raw = fs.read_confined_regular_file(self._root, self._log_path)
+            raw = fs.read_confined_regular_file(
+                self._root, self._log_path, max_bytes=_EVIDENCE_LOG_MAX_BYTES
+            )
+        except _BoundExceeded as exc:
+            raise EvidenceStoreError(
+                f"evidence log exceeds the recoverable size limit "
+                f"({_EVIDENCE_LOG_MAX_BYTES} bytes); treat the store as unrecoverable"
+            ) from exc
         except fs.UnsafeContentError as exc:
             # The log failed a no-follow confinement check (e.g., a symlink was
             # placed at the log path between the open() lstat check and this read).
@@ -648,13 +741,14 @@ class EvidenceStore:
         # A frame is complete iff it is followed by a newline byte.
         # After split on b"\n", the last element is b"" when raw ends with b"\n".
         if not raw.endswith(b"\n"):
+            bytes_read = len(raw)
             last_nl = raw.rfind(b"\n")
             if last_nl < 0:
                 # The entire content is one incomplete frame — truncate all.
-                self._truncate_log(b"")
+                self._truncate_log_safe(b"", bytes_read=bytes_read)
                 return
             complete_prefix = raw[: last_nl + 1]
-            self._truncate_log(complete_prefix)
+            self._truncate_log_safe(complete_prefix, bytes_read=bytes_read)
             raw = complete_prefix
 
         # Parse each complete frame (lines without empty trailing element).
@@ -689,13 +783,45 @@ class EvidenceStore:
                         self._superseded.add(rid)
 
     def _truncate_log(self, complete_bytes: bytes) -> None:
-        """Replace the log with only the complete-frame prefix (recover to last complete frame)."""
+        """Replace the log with only the complete-frame prefix (recover to last complete frame).
+
+        Used as a fallback when ``fcntl`` is unavailable.  Callers that can
+        use the advisory lock should call ``_truncate_log_safe`` instead.
+        """
         cm = _confined_mutation()
         try:
             cm.confined_atomic_replace(self._root, self._log_path, complete_bytes)
         except cm.MutationDenied as exc:
             raise EvidenceStoreError(
                 f"cannot truncate evidence log: {exc.denial_code}"
+            ) from exc
+
+    def _truncate_log_safe(self, complete_bytes: bytes, *, bytes_read: int) -> None:
+        """Truncate the log to complete_bytes under an exclusive advisory lock.
+
+        Acquires the lock, re-checks the file size, and truncates in-place
+        with ``os.ftruncate`` only when the file has not grown since the
+        caller read ``bytes_read`` bytes.  When the file has grown (a
+        concurrent appender committed a new frame), the truncation is skipped
+        to preserve that committed frame.
+
+        Falls back to ``_truncate_log`` (atomic replace) when ``fcntl`` is
+        unavailable so no committed frame is removed on those platforms either
+        (best-effort; true serialisation requires the lock).
+        """
+        if not _HAS_FCNTL:
+            self._truncate_log(complete_bytes)
+            return
+        try:
+            with _advisory_lock(self._log_path) as lock_fd:
+                current_size = os.fstat(lock_fd).st_size
+                if current_size > bytes_read:
+                    # A concurrent appender committed a new frame; do not remove it.
+                    return
+                os.ftruncate(lock_fd, len(complete_bytes))
+        except OSError as exc:
+            raise EvidenceStoreError(
+                f"cannot truncate evidence log: {exc}"
             ) from exc
 
     # ── Append: receipts ───────────────────────────────────────────────────────
@@ -753,7 +879,8 @@ class EvidenceStore:
             )
 
         # Step 1: producer authority check. Emits security event before staging.
-        _check_producer_authority(
+        # The returned operation_id links any post-allow denial to this allow event.
+        op_id = _check_producer_authority(
             issuer,
             grant,
             audit_sink=audit_sink,
@@ -763,13 +890,19 @@ class EvidenceStore:
 
         # Step 2: content-safety check on the receipt.
         receipt_id = receipt.get("receipt_id", "unknown")
-        _check_record_safety(receipt, "evidence-receipt.v1", record_id=receipt_id)
+        try:
+            _check_record_safety(receipt, "evidence-receipt.v1", record_id=receipt_id)
+        except EvidenceStoreRefused as exc:
+            _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+            raise
 
         # Step 3: structural validation.
         ok, code = validate_receipt_dict(receipt)
         if not ok:
+            denial_code = f"denied-invalid-receipt-{code}"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
             raise EvidenceStoreRefused(
-                f"denied-invalid-receipt-{code}",
+                denial_code,
                 f"receipt validation failed: {code}",
             )
 
@@ -778,20 +911,31 @@ class EvidenceStore:
         ordered_ids = [receipt_id]
         acceptance_fp = receipt.get("acceptance_fingerprint", "")
         tx = _build_transaction(transaction_id, ordered_ids, acceptance_fp, records)
-        _check_record_safety(
-            tx, "semantic-evidence-transaction.v1", record_id=transaction_id
-        )
+        try:
+            _check_record_safety(
+                tx, "semantic-evidence-transaction.v1", record_id=transaction_id
+            )
+        except EvidenceStoreRefused as exc:
+            _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+            raise
 
-        # Step 5: serialize and append the frame.
+        # Step 5: serialize and append the frame under the advisory lock so that
+        # recovery truncation cannot race with this append and remove it.
         frame_bytes = _serialize_frame(tx, records)
         cm = _confined_mutation()
         try:
-            cm.confined_append(self._root, self._log_path, frame_bytes)
+            if _HAS_FCNTL:
+                with _advisory_lock(self._log_path):
+                    cm.confined_append(self._root, self._log_path, frame_bytes)
+            else:
+                cm.confined_append(self._root, self._log_path, frame_bytes)
         except cm.MutationDenied as exc:
             if exc.denial_code == "denied-rollback-failed":
                 self._poisoned = True
+            denial_code = f"denied-append-failed-{exc.denial_code}"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
             raise EvidenceStoreRefused(
-                f"denied-append-failed-{exc.denial_code}",
+                denial_code,
                 f"frame append failed: {exc.denial_code}",
             ) from exc
 
@@ -845,7 +989,8 @@ class EvidenceStore:
             )
 
         # Step 1: producer authority check. Emits security event before staging.
-        _check_producer_authority(
+        # The returned operation_id links any post-allow denial to this allow event.
+        op_id = _check_producer_authority(
             issuer,
             grant,
             audit_sink=audit_sink,
@@ -855,13 +1000,19 @@ class EvidenceStore:
 
         # Step 2: content-safety check on the supersession.
         sup_id = supersession.get("supersession_id", "unknown")
-        _check_record_safety(supersession, "evidence-supersession.v1", record_id=sup_id)
+        try:
+            _check_record_safety(supersession, "evidence-supersession.v1", record_id=sup_id)
+        except EvidenceStoreRefused as exc:
+            _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+            raise
 
         # Step 3: structural validation.
         ok, code = validate_supersession_dict(supersession)
         if not ok:
+            denial_code = f"denied-invalid-supersession-{code}"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
             raise EvidenceStoreRefused(
-                f"denied-invalid-supersession-{code}",
+                denial_code,
                 f"supersession validation failed: {code}",
             )
 
@@ -869,20 +1020,31 @@ class EvidenceStore:
         records = [supersession]
         ordered_ids = [sup_id]
         tx = _build_transaction(transaction_id, ordered_ids, acceptance_fingerprint, records)
-        _check_record_safety(
-            tx, "semantic-evidence-transaction.v1", record_id=transaction_id
-        )
+        try:
+            _check_record_safety(
+                tx, "semantic-evidence-transaction.v1", record_id=transaction_id
+            )
+        except EvidenceStoreRefused as exc:
+            _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+            raise
 
-        # Step 5: serialize and append the frame.
+        # Step 5: serialize and append the frame under the advisory lock so that
+        # recovery truncation cannot race with this append and remove it.
         frame_bytes = _serialize_frame(tx, records)
         cm = _confined_mutation()
         try:
-            cm.confined_append(self._root, self._log_path, frame_bytes)
+            if _HAS_FCNTL:
+                with _advisory_lock(self._log_path):
+                    cm.confined_append(self._root, self._log_path, frame_bytes)
+            else:
+                cm.confined_append(self._root, self._log_path, frame_bytes)
         except cm.MutationDenied as exc:
             if exc.denial_code == "denied-rollback-failed":
                 self._poisoned = True
+            denial_code = f"denied-append-failed-{exc.denial_code}"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
             raise EvidenceStoreRefused(
-                f"denied-append-failed-{exc.denial_code}",
+                denial_code,
                 f"frame append failed: {exc.denial_code}",
             ) from exc
 
