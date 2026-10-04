@@ -512,8 +512,17 @@ def _scan_kind_dir(
     Raises:
         UnsafeContentError: If kind_dir itself or any candidate entry is unsafe.
     """
+    # A dangling symlink or a non-directory that exists is unsafe, not absent.
+    if kind_dir.is_symlink():
+        raise fs.UnsafeContentError(
+            f"corpus root is a symlink: {kind_dir.name}"
+        )
     if not kind_dir.is_dir():
-        return []  # Missing directory is allowed; corpus is simply empty.
+        if kind_dir.exists():
+            raise fs.UnsafeContentError(
+                f"corpus root is not a directory: {kind_dir.name}"
+            )
+        return []  # Truly absent directory is allowed; corpus is simply empty.
 
     fs.validate_confined_directory(root, kind_dir)
 
@@ -891,34 +900,37 @@ def _sort_records(recs: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _count_register_rows(text: str) -> int:
-    """Count data rows in the first Markdown table in text.
+    """Count data rows across every Markdown table in text.
 
     A data row is a pipe-delimited line that is neither the header row nor
-    a separator row.
+    a separator row.  Counts across all tables in the file.
 
-    spec: 'A register row is a Markdown table line that is neither a table's
+    spec: 'A register row is a Markdown table line that is neither a table\'s
     header line nor its separator line; a file with no table counts zero rows.'
     """
-    header_seen = False
     count = 0
+    # Within each table, skip the header (first non-separator row) and separators.
     in_table = False
+    header_seen = False
     for line in text.splitlines():
         stripped = line.strip()
         is_table_line = stripped.startswith("|") and stripped.endswith("|")
         if is_table_line:
-            in_table = True
-            # Check for separator: all cells contain only dashes, colons, spaces.
+            if not in_table:
+                # Start of a new table — reset per-table state.
+                in_table = True
+                header_seen = False
             inner = stripped[1:-1]
             cells = inner.split("|")
             is_sep = all(re.match(r"^[:\- ]+$", cell) for cell in cells)
             if is_sep:
-                continue
+                continue  # separator row
             if not header_seen:
                 header_seen = True
-                continue  # first non-separator row is the header
+                continue  # header row of this table
             count += 1
-        elif in_table:
-            break  # table ended
+        else:
+            in_table = False  # gap between tables resets state
     return count
 
 
@@ -937,6 +949,11 @@ def _read_register_file(
     with input_too_large.'
     """
     path = root / rel_path_str
+    # A dangling symlink is an unsafe input, not an absent file.
+    if path.is_symlink():
+        raise fs.UnsafeContentError(
+            f"register file is a symlink: {rel_path_str}"
+        )
     if not path.exists():
         return "absent"
     try:

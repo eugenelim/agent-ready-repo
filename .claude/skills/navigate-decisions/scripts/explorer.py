@@ -275,6 +275,15 @@ def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
     remote_url = _run_git(["config", "--get", "remote.origin.url"], cwd)
     head_sha = _run_git(["rev-parse", "HEAD"], cwd)
 
+    # A commit-pinned link is safe only when the working tree has no
+    # uncommitted changes under the exported record paths.  Check with
+    # ``git status --porcelain docs/adr docs/rfc``.  Any output means
+    # the working tree differs from HEAD for those paths.
+    status_out = _run_git(
+        ["status", "--porcelain", "docs/adr", "docs/rfc"], cwd
+    )
+    working_tree_clean = status_out is not None and status_out.strip() == ""
+
     identity: tuple[str, str] | None = None
     if remote_url:
         identity = _parse_github_identity(remote_url)
@@ -293,7 +302,7 @@ def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
             links[src] = {"url": None, "label": src, "kind": "inert"}
             continue
 
-        if head_sha and re.match(r"^[0-9a-f]{40}$", head_sha):
+        if head_sha and re.match(r"^[0-9a-f]{40}$", head_sha) and working_tree_clean:
             url = (
                 f"https://github.com/{urllib.parse.quote(owner, safe='')}/"
                 f"{urllib.parse.quote(repo, safe='')}/blob/{head_sha}/{encoded}"
@@ -828,15 +837,25 @@ def _validate_destination(
         resolved_dir = Path(tempfile.gettempdir()).resolve()
     else:
         raw_dir = Path(dest_dir)
-        # Reject symlinked parent before resolving.
-        try:
-            lst = os.lstat(raw_dir)
-            if _stat.S_ISLNK(lst.st_mode):
+        # Reject symlinked components anywhere in the path.
+        # Walk each prefix so that a symlink in an ancestor is caught even
+        # when the final component is a real directory.
+        _raw_parts = raw_dir.parts
+        _accum = Path(_raw_parts[0]) if _raw_parts else Path()
+        for _part in _raw_parts[1:]:
+            _accum = _accum / _part
+            try:
+                _cst = os.lstat(_accum)
+                if _stat.S_ISLNK(_cst.st_mode):
+                    raise ValueError(
+                        f"destination path component is a symlink and is refused: {_accum}"
+                    )
+            except FileNotFoundError:
+                break  # path doesn't exist yet — handled later
+            except OSError as _exc:
                 raise ValueError(
-                    f"destination directory is a symlink and is refused: {raw_dir}"
-                )
-        except FileNotFoundError:
-            pass  # Non-existent path handled later by validate_confined_directory.
+                    f"destination path component cannot be inspected: {_accum}: {_exc}"
+                ) from _exc
         resolved_dir = raw_dir.resolve()
 
     # Validate name: single segment, .html extension.
@@ -1045,14 +1064,18 @@ def publish_explorer(
             if cls_name == "BoundExceeded":
                 return {
                     "status": "error",
-                    "code": "input_too_large",
-                    "error": f"register file exceeds 2 MiB: {rel_path}",
+                    "error": {
+                        "code": "input_too_large",
+                        "message": f"register file exceeds 2 MiB: {rel_path}",
+                    },
                 }
             if cls_name == "UnsafeContentError":
                 return {
                     "status": "error",
-                    "code": "unsafe_input",
-                    "error": f"register file is unsafe: {rel_path}: {exc}",
+                    "error": {
+                        "code": "unsafe_input",
+                        "message": f"register file is unsafe: {rel_path}: {exc}",
+                    },
                 }
             raise
 
@@ -1065,12 +1088,17 @@ def publish_explorer(
 
     # Prepare API records.
     sorted_internal = _sort_records_fn(list(records_raw.values()))
-    include_body = mode == "full"
     api_records: list[dict[str, Any]] = []
     for rec in sorted_internal:
-        api_rec = _record_to_api_fn(rec, include_body=include_body)
-        if mode == "bounded" and not include_body:
-            # Override body to show bounded_mode omission with source handoff.
+        if mode == "full":
+            # Full export embeds every admitted body (up to the 2 MiB admission
+            # bound).  _record_to_api applies the 1 MiB query limit, which is
+            # intentionally stricter than the admission limit; override here.
+            api_rec = _record_to_api_fn(rec, include_body=False)
+            api_rec["body"] = {"available": True, "content": rec["body_text"]}
+        else:
+            # Bounded mode: omit body with source handoff.
+            api_rec = _record_to_api_fn(rec, include_body=False)
             api_rec["body"] = {
                 "available": False,
                 "omission_reason": "bounded_mode",

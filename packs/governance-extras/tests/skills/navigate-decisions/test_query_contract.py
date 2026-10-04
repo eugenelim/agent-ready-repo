@@ -2069,3 +2069,178 @@ def test_context_valid_assertion_accepted() -> None:
         if r.get("trust_class") == "navigation_only"
     ]
     assert nav_only, "caller assertion must appear as navigation_only relationship"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-10 / QE-6: H1 first line; trailing comment; repeated D-IDs as set
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_h1_not_first_line_fails_whole_operation() -> None:
+    """A record where the H1 is not the very first line must fail the operation.
+
+    spec: 'The first line is an H1'  The code checks lines[0]; any leading blank
+    line causes 'no H1 found' and the corpus is refused.
+    """
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = pathlib.Path(td)
+        adr_dir = td_path / "docs" / "adr"
+        adr_dir.mkdir(parents=True)
+        # Blank first line; H1 is on line 2.
+        content = "\n# ADR-0001: Record\n\n- **Status:** Accepted\n\n## Context\n\nBody.\n"
+        (adr_dir / "0001-blank-first.md").write_text(content)
+        payload = NAV.run_query(td_path, {"operation": "summary"})
+    assert payload["status"] == "error", (
+        "H1 not on first line must fail the whole operation"
+    )
+    assert payload["error"]["code"] == "malformed_record", (
+        f"expected malformed_record; got {payload['error']['code']!r}"
+    )
+
+
+def test_two_html_comments_keeps_first_comment() -> None:
+    """Status with two HTML comments keeps everything before the last comment.
+
+    spec: 'remove one trailing HTML comment'.  'Accepted <!-- a --> kept <!-- b -->'
+    must yield raw_value 'Accepted <!-- a --> kept'.
+    """
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = pathlib.Path(td)
+        adr_dir = td_path / "docs" / "adr"
+        adr_dir.mkdir(parents=True)
+        content = (
+            "# ADR-0001: Two-comment status\n\n"
+            "- **Status:** Accepted <!-- a --> kept <!-- b -->\n\n"
+            "## Context\n\nBody.\n"
+        )
+        (adr_dir / "0001-two-comment.md").write_text(content)
+        payload = NAV.run_query(td_path, {"operation": "record", "id": "ADR-0001"})
+    assert payload["status"] == "ok", f"two-comment record must be admitted; got {payload!r}"
+    lc = payload["records"][0]["lifecycle"]
+    assert lc["raw_value"] == "Accepted <!-- a --> kept", (
+        f"only the last trailing comment must be stripped; got {lc['raw_value']!r}"
+    )
+
+
+def test_repeated_d_ids_form_set() -> None:
+    """Repeated D-IDs in a scope are deduplicated to a set.
+
+    spec: 'scope is a set of D-IDs'.  'D3, D3' must yield scope ['D3'].
+    """
+    parseable, scope = NAV._parse_did_list(["D3", "D3", "D1", "D1"])
+    assert parseable is True, "valid D-IDs with duplicates must be parseable"
+    assert scope == ["D1", "D3"], (
+        f"repeated D-IDs must be deduplicated; got {scope!r}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-17: Query refusal carries {code, message, limits, observed}
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_query_refusal_has_documented_error_shape() -> None:
+    """Every query refusal must carry code, message, limits, and observed.
+
+    spec: 'a stable error envelope … {code, message, limits, observed}'.
+    Verified against an unknown-record refusal (not_found) and an unsafe-input
+    refusal to cover both the record and corpus error paths.
+    """
+    # not_found refusal.
+    payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-9999"})
+    assert payload["status"] == "error"
+    err = payload["error"]
+    assert isinstance(err, dict), f"error must be a dict; got {type(err)}"
+    for field in ("code", "message", "limits", "observed"):
+        assert field in err, (
+            f"error dict must have '{field}' field; got keys: {list(err.keys())}"
+        )
+    assert isinstance(err["limits"], dict), "limits must be a dict"
+    assert isinstance(err["observed"], dict), "observed must be a dict"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-9 / SEC-4 / QE-1: register safety — dangling symlink; two-table count
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_dangling_symlink_register_is_unsafe_input() -> None:
+    """A dangling symlink register file must refuse the query with unsafe_input.
+
+    spec: 'An unsafe register file refuses the operation with code unsafe_input.'
+    A dangling symlink is not absent — it is an unsafe path.
+    """
+    import shutil
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = pathlib.Path(td)
+        shutil.copytree(str(FIXTURE), str(td_path / "mixed"))
+        corpus = td_path / "mixed"
+        reg_dir = corpus / "docs" / "product" / "findings"
+        reg_dir.mkdir(parents=True, exist_ok=True)
+        reg_file = reg_dir / "rfc-candidates.md"
+        if reg_file.exists() or reg_file.is_symlink():
+            reg_file.unlink()
+        reg_file.symlink_to("/absolutely/nonexistent/dangling/target")
+        assert reg_file.is_symlink() and not reg_file.exists(), (
+            "fixture must be a dangling symlink"
+        )
+        payload = NAV.run_query(corpus, {"operation": "summary"})
+    assert payload["status"] == "error", (
+        "dangling symlink register must refuse the query"
+    )
+    assert payload["error"]["code"] == "unsafe_input", (
+        f"expected unsafe_input; got {payload['error']['code']!r}"
+    )
+
+
+def test_dangling_adr_dir_refuses_operation() -> None:
+    """A dangling symlink at docs/adr must refuse the operation with unsafe_input.
+
+    spec: corpus roots that are symlinks are refused rather than treated as absent.
+    """
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = pathlib.Path(td)
+        # docs/rfc is absent (OK); docs/adr is a dangling symlink (unsafe).
+        docs = td_path / "docs"
+        docs.mkdir()
+        adr_link = docs / "adr"
+        adr_link.symlink_to("/nonexistent/path")
+        assert adr_link.is_symlink() and not adr_link.exists()
+        payload = NAV.run_query(td_path, {"operation": "summary"})
+    assert payload["status"] == "error", (
+        "dangling symlink corpus root must refuse the operation"
+    )
+    assert payload["error"]["code"] in ("unsafe_input", "malformed_record"), (
+        f"expected unsafe_input or malformed_record; got {payload['error']['code']!r}"
+    )
+
+
+def test_two_table_register_count_sums_all_tables() -> None:
+    """_count_register_rows counts data rows across every table in the file.
+
+    A file with two tables (1 and 2 data rows) must report 3, not 1.
+    """
+    text = (
+        "# Register\n\n"
+        "| Col1 | Col2 |\n"
+        "|------|------|\n"
+        "| row1 | val1 |\n"
+        "\n"
+        "## Second section\n\n"
+        "| A | B |\n"
+        "|---|---|\n"
+        "| x | y |\n"
+        "| p | q |\n"
+    )
+    count = NAV._count_register_rows(text)
+    assert count == 3, (
+        f"two-table register (1 + 2 data rows) must count 3; got {count}"
+    )

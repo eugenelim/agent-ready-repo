@@ -853,6 +853,8 @@ def test_github_allowlisted_host_produces_link(tmp_path: pathlib.Path) -> None:
             return "https://github.com/test-owner/test-repo.git"
         if args == ["rev-parse", "HEAD"]:
             return "a" * 40
+        if args[0] == "status":
+            return ""  # clean working tree
         return None
 
     # _build_source_links no longer checks git root; the caller (publish_explorer)
@@ -935,3 +937,323 @@ def test_is_inside_worktree_sibling(tmp_path: pathlib.Path) -> None:
     sibling = tmp_path / "other"
     sibling.mkdir()
     assert EXPLORER._is_inside_worktree(sibling, root) is False
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-7: AC-0022 destination shapes — symlink ancestor, hostile-record proof
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX-only symlink test")
+def test_refuses_ancestor_symlink_in_destination_path(tmp_path: pathlib.Path) -> None:
+    """A symlink in an ancestor component of the destination path must be refused.
+
+    The destination directory itself may be a real directory, but if any
+    component below it in the path is a symlink, publication is refused.
+    AC-0022 requires that destination ancestors are not symlinks.
+
+    Mutation: removing the ancestor-symlink walk would allow publication
+    through a symlinked path component.
+    """
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(real)
+    # sub is a real directory accessed via the symlink in link.
+    sub = real / "sub"
+    sub.mkdir()
+    # Supply link/sub as destination — the link component is a symlink.
+    result = EXPLORER.publish_explorer(FIXTURE, destination=link / "sub")
+    assert result["status"] == "error", (
+        "destination path going through a symlink ancestor must be refused"
+    )
+    assert result["error"]["code"] in ("invalid_destination", "corpus_error"), (
+        f"expected stable refusal code; got: {result['error']!r}"
+    )
+
+
+def test_hostile_record_does_not_redirect_destination(tmp_path: pathlib.Path) -> None:
+    """Instruction-shaped record text cannot redirect the export destination.
+
+    The export API takes destination only from its argument.  Exporting the
+    instruction fixture (which has prompt-injection text) must produce a file
+    in the given directory, not somewhere else.
+
+    Mutation: routing destination from record content would make the file land
+    outside tmp_path.
+    """
+    instruction_fixture = HERE / "fixtures" / "negative" / "instruction"
+    dest = tmp_path / "out"
+    dest.mkdir()
+    result = EXPLORER.publish_explorer(instruction_fixture, destination=dest)
+    # The corpus has one well-formed record, so the export must succeed.
+    assert result["status"] == "ok", (
+        f"instruction fixture must export successfully; got {result!r}"
+    )
+    out_path = pathlib.Path(result["path"])
+    # The output file must reside inside the given destination directory.
+    assert out_path.resolve().parent == dest.resolve(), (
+        f"file must land in {dest.resolve()}; got {out_path.resolve().parent}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-9 / SEC-4 / QE-1: export register safety and summary parity
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_export_refuses_unsafe_register(tmp_path: pathlib.Path) -> None:
+    """A dangling symlink register file must refuse the export with unsafe_input.
+
+    The export must read registers through the same code path as the query so
+    that an unsafe or oversized register stops the whole export.
+
+    Mutation: catching UnsafeContentError and returning 'absent' would allow
+    the export to succeed with a false inventory.
+    """
+    import shutil
+
+    corpus = tmp_path / "mixed"
+    shutil.copytree(str(FIXTURE), str(corpus))
+    reg_dir = corpus / "docs" / "product" / "findings"
+    reg_dir.mkdir(parents=True, exist_ok=True)
+    reg_file = reg_dir / "rfc-candidates.md"
+    if reg_file.exists() or reg_file.is_symlink():
+        reg_file.unlink()
+    reg_file.symlink_to("/absolutely/nonexistent/dangling/target")
+    assert reg_file.is_symlink() and not reg_file.exists(), (
+        "register must be a dangling symlink"
+    )
+    result = EXPLORER.publish_explorer(corpus, destination=tmp_path / "dest")
+    assert result["status"] == "error", (
+        "dangling symlink register must refuse the export"
+    )
+    assert result["error"]["code"] in ("unsafe_input", "corpus_error"), (
+        f"expected unsafe_input or corpus_error; got {result['error']!r}"
+    )
+
+
+def test_export_two_table_register_sum(tmp_path: pathlib.Path) -> None:
+    """Export summary counts data rows across every table in the register file.
+
+    A two-table register with 1 and 2 data rows must report row_count=3.
+
+    Mutation: stopping after the first table would report row_count=1.
+    """
+    import shutil
+
+    corpus = tmp_path / "mixed"
+    shutil.copytree(str(FIXTURE), str(corpus))
+    reg_dir = corpus / "docs" / "product" / "findings"
+    reg_dir.mkdir(parents=True, exist_ok=True)
+    reg_file = reg_dir / "rfc-candidates.md"
+    if reg_file.exists() or reg_file.is_symlink():
+        reg_file.unlink()
+    two_table = (
+        "# RFC Candidates\n\n"
+        "| RFC | Description |\n"
+        "|-----|-------------|\n"
+        "| RFC-0001 | First candidate |\n"
+        "\n"
+        "## Archived\n\n"
+        "| RFC | Reason |\n"
+        "|-----|--------|\n"
+        "| RFC-0002 | Done |\n"
+        "| RFC-0003 | Withdrawn |\n"
+    )
+    reg_file.write_text(two_table)
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    result = EXPLORER.publish_explorer(corpus, destination=dest, mode="bounded")
+    assert result["status"] == "ok", f"export must succeed; got {result!r}"
+    html = pathlib.Path(result["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    row_count = data["summary"]["register_files"]["rfc_candidates"]["row_count"]
+    assert row_count == 3, (
+        f"two-table register (1 + 2 data rows) must count 3; got {row_count}"
+    )
+
+
+def test_export_summary_parity_with_query_summary(tmp_path: pathlib.Path) -> None:
+    """Export embedded summary must match the query summary operation.
+
+    The export builds its summary from the same code as the query, so the
+    by_kind, by_lifecycle_value, and unresolved counts must be identical.
+
+    Mutation: a divergent summary path would produce different counts.
+    """
+    query_payload = NAV.run_query(FIXTURE, {"operation": "summary"})
+    assert query_payload["status"] == "ok", f"query must succeed; got {query_payload!r}"
+    q_summary = query_payload["summary"]
+
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    result = EXPLORER.publish_explorer(FIXTURE, destination=dest, mode="bounded")
+    assert result["status"] == "ok", f"export must succeed; got {result!r}"
+    html = pathlib.Path(result["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    e_summary = data["summary"]
+
+    assert e_summary["by_kind"] == q_summary["by_kind"], (
+        f"by_kind mismatch: export={e_summary['by_kind']} query={q_summary['by_kind']}"
+    )
+    assert e_summary["by_lifecycle_value"] == q_summary["by_lifecycle_value"], (
+        "by_lifecycle_value mismatch between export and query summary"
+    )
+    assert e_summary["unresolved_reference_count"] == q_summary["unresolved_reference_count"], (
+        "unresolved_reference_count mismatch between export and query summary"
+    )
+    assert e_summary["register_files"] == q_summary["register_files"], (
+        "register_files mismatch between export and query summary"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-18: Full export embeds every admitted body (up to 2 MiB admission bound)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_full_export_embeds_body_larger_than_1_mib(tmp_path: pathlib.Path) -> None:
+    """Full export embeds record bodies between 1 MiB and 2 MiB.
+
+    The record query operation limits body to 1 MiB; the full export must embed
+    every admitted body up to the 2 MiB admission limit.
+
+    Mutation: reusing the record-query body_available flag (1 MiB threshold) for
+    the full export would mark bodies > 1 MiB as body_too_large instead of
+    embedding them.
+    """
+    corpus = tmp_path / "corpus"
+    adr_dir = corpus / "docs" / "adr"
+    adr_dir.mkdir(parents=True)
+    # Body is 1.5 MiB (above the 1 MiB query limit, below the 2 MiB admission limit).
+    big_body = "x" * (1024 * 1024 + 512 * 1024)
+    content = (
+        "# ADR-0001: Big body record\n\n"
+        "- **Status:** Accepted\n\n"
+        f"## Context\n\n{big_body}\n"
+    )
+    (adr_dir / "0001-big.md").write_text(content)
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    result = EXPLORER.publish_explorer(corpus, destination=dest, mode="full")
+    assert result["status"] == "ok", f"large-body export must succeed; got {result!r}"
+    html = pathlib.Path(result["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    body = data["records"][0]["body"]
+    assert body.get("available") is True, (
+        f"full export must embed 1.5 MiB body; got {body!r}"
+    )
+    assert "omission_reason" not in body or body.get("omission_reason") is None, (
+        f"full export must not omit admitted body; got {body!r}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-19: Commit-pinned link only when working tree is clean
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_commit_pinned_link_only_when_clean(tmp_path: pathlib.Path) -> None:
+    """A commit-pinned link is emitted only when the working tree is clean.
+
+    Mutation: skipping the status check would emit commit_pinned even with
+    uncommitted changes, giving a link that points to content differing from
+    the export.
+    """
+    import unittest.mock as _mock
+
+    def mock_git_clean(args: list, cwd: str, timeout: int = 5) -> str | None:
+        if args == ["config", "--get", "remote.origin.url"]:
+            return "https://github.com/owner/repo.git"
+        if args == ["rev-parse", "HEAD"]:
+            return "b" * 40
+        if args[0] == "status":
+            return ""  # clean working tree
+        return None
+
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git_clean),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
+        links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
+
+    sl = links["docs/adr/0001-alpha.md"]
+    assert sl["kind"] == "commit_pinned", (
+        f"clean working tree with HEAD sha must produce commit_pinned; got {sl['kind']!r}"
+    )
+
+
+def test_dirty_working_tree_link_labelled_may_be_newer(tmp_path: pathlib.Path) -> None:
+    """A dirty working tree degrades the link to branch_latest with 'may be newer' label.
+
+    Mutation: skipping the status check would keep commit_pinned even when
+    the working tree has uncommitted changes.
+    """
+    import unittest.mock as _mock
+
+    def mock_git_dirty(args: list, cwd: str, timeout: int = 5) -> str | None:
+        if args == ["config", "--get", "remote.origin.url"]:
+            return "https://github.com/owner/repo.git"
+        if args == ["rev-parse", "HEAD"]:
+            return "c" * 40
+        if args[0] == "status":
+            return "M docs/adr/0001-alpha.md"  # dirty — uncommitted change
+        return None
+
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git_dirty),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
+        links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
+
+    sl = links["docs/adr/0001-alpha.md"]
+    assert sl["kind"] == "branch_latest", (
+        f"dirty working tree must produce branch_latest; got {sl['kind']!r}"
+    )
+    assert "newer" in sl["label"].lower() or "HEAD" in sl["label"], (
+        f"branch_latest label must mention 'newer' or 'HEAD'; got {sl['label']!r}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SEC-8: Dot-segment owner or repo degrades to inert; allowlist is checked
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_dot_segment_owner_repo_degrades_to_inert() -> None:
+    """A URL with dot-segment owner or repo must produce inert provenance.
+
+    'https://github.com/../..' has owner='..' and repo='..'; both are refused
+    so no clickable link is emitted.  _SOURCE_HOST_ALLOWLIST governs which
+    hosts are permitted; github.com is in the allowlist.
+
+    Mutation: removing the dot-segment owner/repo check would emit a link
+    that normalises to an unintended path on the forge.
+    """
+    result = EXPLORER._parse_github_identity("https://github.com/../..")
+    assert result is None, (
+        f"dot-segment owner/repo must be refused; got {result!r}"
+    )
+
+    import unittest.mock as _mock
+
+    def mock_git_dot(args: list, cwd: str, timeout: int = 5) -> str | None:
+        if args == ["config", "--get", "remote.origin.url"]:
+            return "https://github.com/../.."
+        if args == ["rev-parse", "HEAD"]:
+            return "d" * 40
+        if args[0] == "status":
+            return ""
+        return None
+
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git_dot),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
+        links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
+
+    sl = links["docs/adr/0001-alpha.md"]
+    assert sl.get("url") is None or sl.get("kind") == "inert", (
+        f"dot-segment remote URL must produce inert link; got {sl!r}"
+    )
