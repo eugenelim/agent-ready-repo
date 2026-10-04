@@ -2199,7 +2199,6 @@ open = [
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
-  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
   { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
   # Delivery-system coexistence — CAP-0004's family. The capability and its
   # three feature intents are Accepted and their three briefs are Ready, so all
@@ -2413,6 +2412,10 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
+  # FEAT-0003's single delivery unit, Approved 2026-10-04. Moved here from
+  # `backlog.open`, which admits only Draft specs. Moves to `active` with the
+  # spec's `Status: Implementing` in one change.
+  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
 ]
 active  = [
 ]
