@@ -125,10 +125,10 @@ class FetchSession:
         The partial temp file is removed on every failure before the exception
         propagates.
 
-        For JFrog access, the returned file may be at most ``max_bytes + 1``
-        bytes because the JFrog CLI appends one ``0x0a`` when the body does
-        not already end in that byte.  ``https_catalogue.py`` applies the
-        digest-checked trim before extraction.
+        For JFrog access, the returned file is at most ``max_bytes`` bytes.
+        When the JFrog CLI appends one trailing ``0x0a`` byte, the digest-
+        checked trim in ``catalogue_fetch/jfrog_cli.py`` truncates the file to
+        ``max_bytes`` before returning it.
 
         Args:
             url: Target URL (must be on or below the bound origin).

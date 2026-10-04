@@ -174,10 +174,13 @@ def _build_direct_opener(
 
     opener.add_handler(proxy_handler)
     opener.add_handler(redirect_handler)
-    # HTTPErrorProcessor routes 3xx responses through the redirect handler and
-    # turns non-2xx responses into urllib.error.HTTPError so that fetch helpers
-    # raise CatalogueFetchError rather than silently returning an error body.
+    # HTTPErrorProcessor routes 3xx responses through the redirect handler.
     opener.add_handler(urllib.request.HTTPErrorProcessor())
+    # HTTPDefaultErrorHandler raises HTTPError for any non-2xx response that
+    # HTTPErrorProcessor did not handle (e.g. unfollowed 300 or 304).  Without
+    # it, OpenerDirector.error returns None for those codes, causing
+    # opener.open() to return None and a downstream TypeError.
+    opener.add_handler(urllib.request.HTTPDefaultErrorHandler())
     opener.add_handler(https_handler)
     opener.add_handler(urllib.request.UnknownHandler())
 

@@ -264,7 +264,7 @@ def test_exact_argv_for_descriptor_fetch(tmp_path: Path) -> None:
     assert args_lines[0] == "api", f"argv[0]={args_lines[0]!r}"
     assert args_lines[1] == "--server-id=my-srv", f"argv[1]={args_lines[1]!r}"
     assert args_lines[2] == "--", f"argv[2]={args_lines[2]!r}"
-    assert args_lines[3].endswith("art/cat.toml"), f"argv[3]={args_lines[3]!r}"
+    assert args_lines[3] == "/art/cat.toml", f"argv[3]={args_lines[3]!r}"
     assert len(args_lines) == 4, f"unexpected extra argv elements: {args_lines!r}"
     assert result == response
 
@@ -288,7 +288,7 @@ def test_exact_argv_for_archive_fetch(tmp_path: Path) -> None:
     assert args_lines[0] == "api", f"argv[0]={args_lines[0]!r}"
     assert args_lines[1] == "--server-id=arch-srv", f"argv[1]={args_lines[1]!r}"
     assert args_lines[2] == "--", f"argv[2]={args_lines[2]!r}"
-    assert args_lines[3].endswith("art/pack.tar.gz"), f"argv[3]={args_lines[3]!r}"
+    assert args_lines[3] == "/art/pack.tar.gz", f"argv[3]={args_lines[3]!r}"
     assert len(args_lines) == 4, f"unexpected extra argv elements: {args_lines!r}"
 
 
@@ -384,6 +384,27 @@ def test_exact_argv_for_archive_fetch(tmp_path: Path) -> None:
         (
             "https://platform.example.test/art/.. /cat.toml",
             "trailing space in path segment",
+        ),
+        # Item B — encoded segments: decoded form must also be rejected
+        (
+            "https://platform.example.test/art/..%20/cat.toml",
+            "percent-encoded dot-segment with trailing space (..%20)",
+        ),
+        (
+            "https://platform.example.test/art/..%09/cat.toml",
+            "percent-encoded dot-segment with tab (..%09)",
+        ),
+        (
+            "https://platform.example.test/art/..%00/cat.toml",
+            "percent-encoded dot-segment with NUL (..%00)",
+        ),
+        (
+            "https://platform.example.test/art/%20../cat.toml",
+            "percent-encoded leading space before dot-segment (%20..)",
+        ),
+        (
+            "https://platform.example.test/art/x%0ay/cat.toml",
+            "percent-encoded newline in path segment (x%0ay)",
         ),
     ],
 )
@@ -979,6 +1000,85 @@ def test_endpoint_confinement_no_subprocess_spawned(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Item D — AgentBundle child environment (AC-0015)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_jfrog_child_env_excludes_credential_keys(tmp_path: Path) -> None:
+    """The jf child env must not carry credential-bearing keys. AC-0015
+
+    A fake jf script records its real environment (via 'env') to a file whose
+    path is baked into the script, then serves the api endpoint successfully.
+    The recorded env must carry PATH, HOME, HTTPS_PROXY, and SSL_CERT_FILE,
+    and must not carry AGENTBUNDLE_HTTP_BEARER_TOKEN, JFROG_CLI_SERVER_ID,
+    or any other secret key, nor any canary value.
+    """
+    env_record = tmp_path / "child_env.txt"
+    real_path = os.environ.get("PATH", "/usr/bin:/bin")
+    py_exe = shlex.quote(sys.executable)
+
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        'if [ "$1" = "api" ]; then\n'
+        # Record the real child environment to the baked-in path.
+        f"  env > {shlex.quote(str(env_record))}\n"
+        # Return a valid empty-object JSON response.
+        f"  {py_exe} -c \"import sys; sys.stdout.buffer.write(b'{{}}')\"\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 2\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    access = _make_access()
+    env = {
+        "PATH": str(tmp_path),
+        "HOME": str(tmp_path),
+        "HTTPS_PROXY": "https://proxy.example.test:8080",
+        "SSL_CERT_FILE": "/etc/ssl/certs/ca-bundle.crt",
+        "AGENTBUNDLE_HTTP_BEARER_TOKEN": "canary-bearer",
+        "JFROG_CLI_SERVER_ID": "canary-id",
+        "SECRET_X": "canary-secret",
+    }
+    session = JfrogFetchSession(access, env)
+    session.fetch_bytes(f"{_ARTF}/cat.toml", max_bytes=1024, timeout=120)
+
+    assert env_record.exists(), "jf did not write the env record"
+    child_env_text = env_record.read_text(encoding="utf-8")
+    # Build a dict from the recorded env (handles multi-line values poorly but
+    # is sufficient for single-line key=value pairs from a controlled env).
+    child_env: dict[str, str] = {}
+    for line in child_env_text.splitlines():
+        if "=" in line:
+            k, _, v = line.partition("=")
+            child_env[k] = v
+
+    # Allowed keys must be present.
+    assert "PATH" in child_env, "PATH missing from child env"
+
+    # Credential-bearing keys must be absent.
+    assert "AGENTBUNDLE_HTTP_BEARER_TOKEN" not in child_env, (
+        "AGENTBUNDLE_HTTP_BEARER_TOKEN reached the child env"
+    )
+    assert "JFROG_CLI_SERVER_ID" not in child_env, (
+        "JFROG_CLI_SERVER_ID reached the child env"
+    )
+    assert "SECRET_X" not in child_env, (
+        "SECRET_X reached the child env"
+    )
+
+    # No canary value may appear anywhere in the recorded env.
+    for canary in ("canary-bearer", "canary-id", "canary-secret"):
+        assert canary not in child_env_text, (
+            f"Canary value {canary!r} found in child environment"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Defect D — aggregate budget constants  (AC-0013)
 # ---------------------------------------------------------------------------
 
@@ -1160,32 +1260,37 @@ def test_descriptor_stderr_cap_plus_one_raises(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Defect A — stderr overflow after stdout EOF  (AC-0014)
+# Item J — stderr cap ordering: post-EOF and stdout-open fixtures  (AC-0014)
+# ---------------------------------------------------------------------------
+# Each test uses a single-process shell script that really closes fd 1 with
+# ``exec 1>&-`` before writing stderr past the cap.  This produces the true
+# post-EOF ordering — the shell does not keep stdout open until it exits.
+#
+# A second fixture per runner keeps stdout open (with ``sleep 30``) while
+# overflowing stderr to exercise the cap-breach poll path.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
 def test_descriptor_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
-    """Stderr overflow AFTER stdout EOF raises jfrog_fetch_stderr_too_large. AC-0014
+    """Stderr overflow AFTER real stdout close raises jfrog_fetch_stderr_too_large. AC-0014
 
-    The child closes stdout before flushing stderr past the cap.  This exercises
-    the normal-completion path where the stderr re-check catches the overflow.
+    The shell uses 'exec 1>&-' to close fd 1 before writing stderr past the cap.
+    This exercises the post-EOF stderr re-check in _run_bounded.
     """
     cap = _PROD_FETCH_STDERR_CAP
-    py_exe = shlex.quote(sys.executable)
     real_path = os.environ.get("PATH", "/usr/bin:/bin")
 
     jf = tmp_path / "jf"
-    # Write a tiny payload then explicitly close stdout (via the python process
-    # exiting), then sleep briefly so stderr has time to overflow.
     jf.write_text(
         "#!/bin/sh\n"
         f"export PATH={shlex.quote(real_path)}\n"
         'if [ "$1" = "api" ]; then\n'
-        # First subprocess: write stdout payload and exit (closes stdout).
-        f"  {py_exe} -c \"import sys; sys.stdout.buffer.write(b'ok'); sys.stdout.buffer.flush()\"\n"
-        # Second subprocess: emit over-cap stderr after stdout is gone.
-        f"  {py_exe} -c \"import sys; sys.stderr.write('x'*{cap + 1}); sys.stderr.flush()\"\n"
+        # Write stdout payload, then close fd 1.
+        "  printf 'ok'\n"
+        "  exec 1>&-\n"
+        # Write stderr past the cap to a /dev/zero source (portable: use head -c).
+        f"  head -c {cap + 1000} /dev/zero >&2\n"
         "  exit 0\n"
         "fi\n"
         "exit 2\n",
@@ -1202,15 +1307,20 @@ def test_descriptor_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
     elapsed = time.monotonic() - start
 
     assert exc_info.value.code == "jfrog_fetch_stderr_too_large", exc_info.value
-    # Must abort promptly — well under the 60s deadline.
     assert elapsed < 10.0, f"abort took {elapsed:.2f}s, expected < 10s"
 
 
 @pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
-def test_archive_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
-    """Stderr overflow AFTER stdout EOF in archive path raises jfrog_fetch_stderr_too_large. AC-0014"""
+def test_descriptor_stderr_overflow_stdout_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Stderr overflow while stdout stays open is detected promptly via cap-breach poll. AC-0014
+
+    The shell writes stderr past the cap and then sleeps with stdout open.
+    _run_bounded must detect the breach via _cap_breach and abort within
+    5 s even when the deadline is 60 s.
+    """
     cap = _PROD_FETCH_STDERR_CAP
-    py_exe = shlex.quote(sys.executable)
     real_path = os.environ.get("PATH", "/usr/bin:/bin")
 
     jf = tmp_path / "jf"
@@ -1218,10 +1328,47 @@ def test_archive_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
         "#!/bin/sh\n"
         f"export PATH={shlex.quote(real_path)}\n"
         'if [ "$1" = "api" ]; then\n'
-        # Write a small archive payload to stdout then close stdout.
-        f"  {py_exe} -c \"import sys; sys.stdout.buffer.write(b'archive'); sys.stdout.buffer.flush()\"\n"
-        # Then overflow stderr after stdout is closed.
-        f"  {py_exe} -c \"import sys; sys.stderr.write('x'*{cap + 1}); sys.stderr.flush()\"\n"
+        # Overflow stderr BEFORE closing stdout.
+        f"  head -c {cap + 1000} /dev/zero >&2\n"
+        # Keep stdout open for a long time.
+        "  sleep 30\n"
+        "fi\n"
+        "exit 2\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+
+    start = time.monotonic()
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        session.fetch_bytes(f"{_ARTF}/cat.toml", max_bytes=1024 * 1024, timeout=60)
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_fetch_stderr_too_large", exc_info.value
+    assert elapsed < 5.0, (
+        f"cap-breach abort took {elapsed:.2f}s with stdout open; expected < 5s"
+    )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_archive_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
+    """Stderr overflow AFTER real stdout close in archive path. AC-0014
+
+    Uses 'exec 1>&-' to close fd 1 before overflowing stderr.
+    """
+    cap = _PROD_FETCH_STDERR_CAP
+    real_path = os.environ.get("PATH", "/usr/bin:/bin")
+
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        'if [ "$1" = "api" ]; then\n'
+        "  printf 'archive_data'\n"
+        "  exec 1>&-\n"
+        f"  head -c {cap + 1000} /dev/zero >&2\n"
         "  exit 0\n"
         "fi\n"
         "exit 2\n",
@@ -1243,7 +1390,48 @@ def test_archive_stderr_overflow_after_stdout_closes(tmp_path: Path) -> None:
     assert exc_info.value.code == "jfrog_fetch_stderr_too_large", exc_info.value
     assert elapsed < 10.0, f"abort took {elapsed:.2f}s, expected < 10s"
 
-    # No new archive temp file must remain after a failed fetch.
+    after = set(sys_tmp.glob("agentbundle-jfrog-*.tmp"))
+    leaked = after - before
+    assert not leaked, f"Archive temp files not cleaned up after stderr overflow: {leaked}"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_archive_stderr_overflow_stdout_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Stderr overflow while stdout stays open in archive path is detected promptly. AC-0014"""
+    cap = _PROD_FETCH_STDERR_CAP
+    real_path = os.environ.get("PATH", "/usr/bin:/bin")
+
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        'if [ "$1" = "api" ]; then\n'
+        f"  head -c {cap + 1000} /dev/zero >&2\n"
+        "  sleep 30\n"
+        "fi\n"
+        "exit 2\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    access = _make_access()
+    session = JfrogFetchSession(access, {"PATH": str(tmp_path)})
+
+    sys_tmp = Path(tempfile.gettempdir())
+    before = set(sys_tmp.glob("agentbundle-jfrog-*.tmp"))
+
+    start = time.monotonic()
+    with pytest.raises(CatalogueFetchError) as exc_info:
+        session.fetch_archive(f"{_ARTF}/pack.tar.gz", max_bytes=1024 * 1024, timeout=60)
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_fetch_stderr_too_large", exc_info.value
+    assert elapsed < 5.0, (
+        f"cap-breach abort took {elapsed:.2f}s with stdout open; expected < 5s"
+    )
+
     after = set(sys_tmp.glob("agentbundle-jfrog-*.tmp"))
     leaked = after - before
     assert not leaked, f"Archive temp files not cleaned up after stderr overflow: {leaked}"

@@ -384,6 +384,24 @@ class _ChildCapExceeded(Exception):
         super().__init__(stream)
 
 
+# ── Child termination helpers ─────────────────────────────────────────────────
+# Termination is scoped to the direct child: the grounded JFrog CLI leaves no
+# descendants holding its output pipes, so signalling the child alone is the
+# contract, and the child keeps the caller's process group.
+
+
+def _terminate_child(proc: subprocess.Popen[bytes]) -> None:
+    """Ask the direct child to stop (SIGTERM on POSIX)."""
+    with contextlib.suppress(OSError):
+        proc.terminate()
+
+
+def _kill_child(proc: subprocess.Popen[bytes]) -> None:
+    """Force the direct child to stop (SIGKILL on POSIX)."""
+    with contextlib.suppress(OSError):
+        proc.kill()
+
+
 def _build_jfrog_child_env(
     env: Mapping[str, str], *, _os_name: str | None = None
 ) -> dict[str, str]:
@@ -548,7 +566,14 @@ def _run_bounded(
     ) -> None:
         try:
             while True:
-                chunk = stream.read(65536)
+                # read1() does a single underlying system call, returning whatever
+                # bytes are immediately in the OS pipe buffer.  This avoids
+                # blocking for a second full-chunk read when the cap equals the
+                # read size: after reading cap bytes the next call returns the
+                # small overflow immediately rather than waiting for a complete
+                # chunk from grandchildren (e.g. sleep) holding the write end open.
+                # proc.stdout/stderr are BufferedReader at runtime.
+                chunk = stream.read1(65536)  # type: ignore[attr-defined]
                 if not chunk:
                     break
                 buf.extend(chunk)
@@ -583,17 +608,18 @@ def _run_bounded(
     cap_exceeded = _stdout_exceeded[0] or _stderr_exceeded[0]
 
     if cap_exceeded or t_out.is_alive():
-        # Stop the child, then reap (always against already-terminated process).
-        with contextlib.suppress(OSError):
-            proc.terminate()
-        # Wait up to grace for the readers to finish.
-        grace_remaining = max(0.0, deadline - time.monotonic() - 0.1)
-        t_out.join(timeout=grace_remaining)
-        t_err.join(timeout=max(0.0, deadline - time.monotonic() - 0.05))
-        with contextlib.suppress(OSError):
-            if proc.poll() is None:
-                proc.kill()
+        # Abort: terminate, allow the grace, kill, and reap the direct child.
+        _terminate_child(proc)
+        try:
+            proc.wait(timeout=min(grace, max(0.0, deadline - time.monotonic())))
+        except subprocess.TimeoutExpired:
+            _kill_child(proc)
         proc.wait()
+        # The child is reaped. A reader still blocked on a pipe that a
+        # descendant holds open is a daemon thread; it never holds the call
+        # past its deadline.
+        t_out.join(timeout=min(0.2, max(0.0, deadline - time.monotonic())))
+        t_err.join(timeout=min(0.2, max(0.0, deadline - time.monotonic())))
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
         exceeded_stream = (
@@ -611,11 +637,9 @@ def _run_bounded(
     # Re-check: stderr may have breached after stdout closed.  The child may be
     # blocking on a full stderr pipe, so terminate before waiting.
     if _stderr_exceeded[0]:
-        with contextlib.suppress(OSError):
-            proc.terminate()
-        with contextlib.suppress(OSError):
-            if proc.poll() is None:
-                proc.kill()
+        _terminate_child(proc)
+        if proc.poll() is None:
+            _kill_child(proc)
         proc.wait()
         shutil.rmtree(tmp_dir, ignore_errors=True)
         raise _ChildCapExceeded("stderr")
@@ -623,10 +647,8 @@ def _run_bounded(
     try:
         rc = proc.wait(timeout=max(0.0, deadline - time.monotonic()))
     except subprocess.TimeoutExpired:
-        with contextlib.suppress(OSError):
-            proc.terminate()
-        with contextlib.suppress(OSError):
-            proc.kill()
+        _terminate_child(proc)
+        _kill_child(proc)
         proc.wait()
         shutil.rmtree(tmp_dir, ignore_errors=True)
         raise _ChildTimeout() from None

@@ -894,6 +894,75 @@ def test_fetch_catalogue_archive_archive_https(tmp_path: Path):
         shutil.rmtree(str(result), ignore_errors=True)
 
 
+def test_fetch_catalogue_archive_catalogue_https_removes_archive_after_success(tmp_path: Path):
+    """Archive temp file is removed after a successful catalogue+https acquisition. Item K
+
+    fetch_catalogue_archive_with_provenance must unlink the archive temp file
+    in its finally block even on success.  This test patches fetch_archive to
+    return a REAL temp file and asserts that the file is gone after the call.
+    """
+    import shutil
+
+    from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+
+    archive_data, archive_sha256 = _make_tarball(("k.txt", b"k"))
+
+    # Create a real temp file that the patched fetch_archive returns.
+    archive_tmp = tmp_path / "real_archive.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    descriptor = {
+        **_VALID_DESCRIPTOR,
+        "artifact": "https://example.test/releases/k.tar.gz",
+        "sha256": archive_sha256,
+    }
+    descriptor_data = json.dumps(descriptor).encode()
+
+    with (
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive", return_value=archive_tmp),
+    ):
+        result_obj = fetch_catalogue_archive_with_provenance(
+            "catalogue+https://example.test/channels/stable.json",
+            env={},
+        )
+
+    try:
+        # The archive temp file must have been removed by the finally block.
+        assert not archive_tmp.exists(), (
+            f"Archive temp file {archive_tmp} still exists after successful acquisition"
+        )
+        assert result_obj.path.is_dir()
+    finally:
+        shutil.rmtree(str(result_obj.path), ignore_errors=True)
+
+
+def test_fetch_catalogue_archive_archive_https_removes_archive_after_success(tmp_path: Path):
+    """Archive temp file is removed after a successful archive+https acquisition. Item K"""
+    import shutil
+
+    from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+
+    archive_data, archive_sha256 = _make_tarball(("k.txt", b"k"))
+
+    archive_tmp = tmp_path / "real_archive2.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    with mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive", return_value=archive_tmp):
+        result_obj = fetch_catalogue_archive_with_provenance(
+            f"archive+https://example.test/releases/k.tar.gz#sha256={archive_sha256}",
+            env={},
+        )
+
+    try:
+        assert not archive_tmp.exists(), (
+            f"Archive temp file {archive_tmp} still exists after successful acquisition"
+        )
+        assert result_obj.path.is_dir()
+    finally:
+        shutil.rmtree(str(result_obj.path), ignore_errors=True)
+
+
 def test_fetch_catalogue_archive_minimum_version_rejected():
     """A `minimum_agentbundle_version` newer than the running version fails before download."""
     descriptor = {

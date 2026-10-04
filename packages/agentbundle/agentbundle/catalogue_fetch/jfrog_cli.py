@@ -41,7 +41,7 @@ import threading
 import time
 from collections.abc import Mapping
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from credbroker import HttpAccessError, JfrogCliHttpAccess
 
@@ -334,6 +334,18 @@ def _validate_fetch_url(url: str, access: JfrogCliHttpAccess) -> str:
                 "fetch URL path segment has leading or trailing whitespace; rejected",
                 code=_NOT_PERMITTED,
             )
+        # The decoded form is what a server may act on, so an encoded control
+        # character, padded segment, or dot segment is just as ambiguous.
+        decoded = unquote(segment)
+        if (
+            _CONTROL_OR_BACKSLASH_RE.search(decoded)
+            or decoded != decoded.strip()
+            or decoded in {".", ".."}
+        ):
+            raise CatalogueFetchError(
+                "fetch URL path segment decodes to an ambiguous segment; rejected",
+                code=_NOT_PERMITTED,
+            )
         # Interior empty segment means double slash.
         if segment == "" and 0 < i < len(path_segments) - 1:
             raise CatalogueFetchError(
@@ -478,7 +490,10 @@ def _run_bounded(
         assert proc.stderr is not None
         try:
             while True:
-                chunk = proc.stderr.read(_JFROG_CHUNK)
+                # read1 returns what one system call delivers, so a reader at
+                # the cap sees the first byte over it instead of waiting for a
+                # full chunk that a still-open pipe may never complete.
+                chunk = proc.stderr.read1(_JFROG_CHUNK)  # type: ignore[attr-defined]
                 if not chunk:
                     break
                 stderr_buf.extend(chunk)
@@ -505,16 +520,20 @@ def _run_bounded(
     cap_exceeded = _stdout_exceeded[0] or _stderr_exceeded[0]
 
     if cap_exceeded or t_out.is_alive():
-        # Abort within the remaining deadline budget.
+        # Abort: terminate, allow the grace, kill, and reap the direct child.
         with contextlib.suppress(OSError):
             proc.terminate()
-        grace_remaining = max(0.0, deadline - time.monotonic() - 0.05)
-        t_out.join(timeout=grace_remaining)
-        t_err.join(timeout=max(0.0, deadline - time.monotonic() - 0.05))
-        with contextlib.suppress(OSError):
-            if proc.poll() is None:
+        try:
+            proc.wait(timeout=min(grace, max(0.0, deadline - time.monotonic())))
+        except subprocess.TimeoutExpired:
+            with contextlib.suppress(OSError):
                 proc.kill()
         proc.wait()
+        # The child is reaped. A reader still blocked on a pipe that a
+        # descendant holds open is a daemon thread; it never holds the call
+        # past its deadline.
+        t_out.join(timeout=min(0.2, max(0.0, deadline - time.monotonic())))
+        t_err.join(timeout=min(0.2, max(0.0, deadline - time.monotonic())))
         shutil.rmtree(tmp_dir, ignore_errors=True)
         exceeded_stream = (
             "stdout" if _stdout_exceeded[0] else
@@ -655,7 +674,10 @@ def _run_bounded_to_file(
         assert proc.stderr is not None
         try:
             while True:
-                chunk = proc.stderr.read(_JFROG_CHUNK)
+                # read1 returns what one system call delivers, so a reader at
+                # the cap sees the first byte over it instead of waiting for a
+                # full chunk that a still-open pipe may never complete.
+                chunk = proc.stderr.read1(_JFROG_CHUNK)  # type: ignore[attr-defined]
                 if not chunk:
                     break
                 stderr_buf.extend(chunk)
@@ -674,12 +696,17 @@ def _run_bounded_to_file(
     def _abort_and_cleanup(grace_budget: float) -> None:
         with contextlib.suppress(OSError):
             proc.terminate()
-        t_out.join(timeout=max(0.0, grace_budget - 0.05))
-        t_err.join(timeout=max(0.0, deadline - time.monotonic() - 0.05))
-        with contextlib.suppress(OSError):
-            if proc.poll() is None:
+        try:
+            proc.wait(timeout=min(grace, grace_budget))
+        except subprocess.TimeoutExpired:
+            with contextlib.suppress(OSError):
                 proc.kill()
         proc.wait()
+        # The child is reaped. A reader still blocked on a pipe that a
+        # descendant holds open is a daemon thread; it never holds the call
+        # past its deadline.
+        t_out.join(timeout=min(0.2, max(0.0, deadline - time.monotonic())))
+        t_err.join(timeout=min(0.2, max(0.0, deadline - time.monotonic())))
         shutil.rmtree(tmp_dir, ignore_errors=True)
         with contextlib.suppress(OSError):
             archive_path.unlink(missing_ok=True)

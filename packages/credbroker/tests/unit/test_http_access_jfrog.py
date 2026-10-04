@@ -1056,7 +1056,7 @@ def test_server_id_not_in_repr_or_str(tmp_path: Path) -> None:
 def test_discovery_timeout_reaps_child_and_removes_cwd(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """After a timeout, the child process is gone and temp cwd is removed. AC-0013"""
+    """After a timeout the child process is reaped (PID file exists, process is gone). AC-0013"""
     pid_file = tmp_path / "child.pid"
     jf = tmp_path / "jf"
     real_path = os.environ.get("PATH", "/usr/bin:/bin")
@@ -1078,24 +1078,27 @@ def test_discovery_timeout_reaps_child_and_removes_cwd(
         )
     assert exc_info.value.code == "jfrog_discovery_timeout"
 
-    # Wait a moment for cleanup
+    # Wait a moment for cleanup.
     time.sleep(0.3)
 
-    if pid_file.exists():
+    # PID file must exist: the fixture writes it before sleeping.
+    assert pid_file.exists(), (
+        "PID file was not written; the fixture did not run long enough "
+        "or the sleep-based delay was too short"
+    )
+    pid = int(pid_file.read_text().strip())
+
+    # Assert the process is gone: wait up to 2 s in short increments.
+    deadline = time.monotonic() + 2.0
+    gone = False
+    while time.monotonic() < deadline:
         try:
-            pid = int(pid_file.read_text().strip())
-            # Process must not be running
-            try:
-                os.kill(pid, 0)
-                process_alive = True
-            except ProcessLookupError:
-                process_alive = False
-            except PermissionError:
-                # Process exists but owned by different user; treat as alive for safety
-                process_alive = True
-            assert not process_alive, f"Child process {pid} still alive after timeout"
-        except (ValueError, OSError):
-            pass  # PID file unreadable → process already gone
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            gone = True
+            break
+        time.sleep(0.05)
+    assert gone, f"Child process {pid} still alive after timeout and reap"
 
 
 # ---------------------------------------------------------------------------
@@ -1252,7 +1255,15 @@ def test_probe_stderr_cap_plus_one_raises(
 
 
 # ---------------------------------------------------------------------------
-# Defect A — stderr overflow after stdout EOF (discovery and probe)
+# Item J — stderr cap ordering: post-EOF and stdout-open (discovery and probe)
+# ---------------------------------------------------------------------------
+# These tests use a single-process shell script with ``exec 1>&-`` to really
+# close fd 1 before writing stderr past the cap.  This produces the true
+# post-EOF ordering: the runner's stdout thread sees EOF, joins, and the
+# post-EOF re-check catches the stderr breach.
+#
+# A second fixture per runner keeps stdout open while overflowing stderr to
+# exercise the cap-breach poll path, asserting termination within 5 s.
 # ---------------------------------------------------------------------------
 
 
@@ -1260,22 +1271,24 @@ def test_probe_stderr_cap_plus_one_raises(
 def test_discovery_stderr_overflow_after_stdout_eof(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Discovery stderr overflow AFTER stdout EOF raises jfrog_discovery_too_large. AC-0014"""
-    import sys as _sys
+    """Discovery stderr overflow after real stdout close raises jfrog_discovery_too_large. AC-0014
+
+    Uses 'exec 1>&-' to close fd 1 before overflowing stderr, exercising the
+    post-EOF stderr re-check in credbroker._http_access._run_bounded.
+    """
     import os as _os
     cap = 32
     monkeypatch.setattr("credbroker._http_access._JFROG_DISCOVERY_STDERR_CAP", cap)
-    real_python = _sys.executable
     real_path = _os.environ.get("PATH", "/usr/bin:/bin")
     jf = tmp_path / "jf"
-    # Write stdout first (valid JSON), then overflow stderr after stdout closes.
     jf.write_text(
         "#!/bin/sh\n"
         f"export PATH={shlex.quote(real_path)}\n"
-        # First subprocess: write stdout and close it.
-        f"'{real_python}' -c \"import sys; sys.stdout.write('[]'); sys.stdout.flush()\"\n"
-        # Second subprocess: overflow stderr after stdout is gone.
-        f"'{real_python}' -c \"import sys; sys.stderr.buffer.write(b'e' * {cap + 1}); sys.stderr.flush()\"\n"
+        # Write valid JSON to stdout, then close fd 1.
+        "printf '[]'\n"
+        "exec 1>&-\n"
+        # Overflow stderr after fd 1 is closed.
+        f"head -c {cap + 1000} /dev/zero >&2\n"
         "exit 0\n",
         encoding="utf-8",
     )
@@ -1290,20 +1303,58 @@ def test_discovery_stderr_overflow_after_stdout_eof(
     elapsed = time.monotonic() - start
 
     assert exc_info.value.code == "jfrog_discovery_too_large", exc_info.value
-    # Must abort promptly — well under the generous 120s test timeout.
     assert elapsed < 15.0, f"abort took {elapsed:.2f}s, expected < 15s"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_discovery_stderr_overflow_stdout_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Discovery stderr overflow while stdout stays open terminates promptly. AC-0014
+
+    The cap-breach poll in credbroker._http_access._run_bounded must abort
+    within 5 s even when stdout is still open (sleep 30).
+    """
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_DISCOVERY_STDERR_CAP", cap)
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        # Overflow stderr first while stdout stays open.
+        f"head -c {cap + 1000} /dev/zero >&2\n"
+        "sleep 30\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    start = time.monotonic()
+    with pytest.raises(HttpAccessError) as exc_info:
+        resolve_http_access(
+            "https://p.example.test/art/cat.toml",
+            env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+        )
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_discovery_too_large", exc_info.value
+    assert elapsed < 5.0, (
+        f"cap-breach abort took {elapsed:.2f}s with stdout open; expected < 5s"
+    )
 
 
 @pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
 def test_probe_stderr_overflow_after_stdout_eof(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Probe stderr overflow AFTER stdout EOF raises jfrog_probe_too_large. AC-0014"""
-    import sys as _sys
+    """Probe stderr overflow after real stdout close raises jfrog_probe_too_large. AC-0014
+
+    Uses 'exec 1>&-' to close fd 1 before overflowing stderr.
+    """
     import os as _os
     cap = 32
     monkeypatch.setattr("credbroker._http_access._JFROG_PROBE_CAP", cap)
-    real_python = _sys.executable
     real_path = _os.environ.get("PATH", "/usr/bin:/bin")
     profiles = [_simple_profile("s", "https://p.example.test/", "https://p.example.test/artifactory/")]
     jf = tmp_path / "jf"
@@ -1313,9 +1364,10 @@ def test_probe_stderr_overflow_after_stdout_eof(
         f'if [ "$1" = "config" ] && [ "$2" = "show" ] && [ "$3" = "--format=json" ]; then\n'
         f"  printf '%s' {shlex.quote(json.dumps(profiles))}\n"
         'elif [ "$1" = "--version" ]; then\n'
-        # Write stdout (valid version line) via first subprocess, then overflow stderr.
-        f"  '{real_python}' -c \"import sys; sys.stdout.write('jf version 2.105.0'); sys.stdout.flush()\"\n"
-        f"  '{real_python}' -c \"import sys; sys.stderr.buffer.write(b'e' * {cap + 1}); sys.stderr.flush()\"\n"
+        # Write valid version to stdout, close fd 1, then overflow stderr.
+        "  printf 'jf version 2.105.0'\n"
+        "  exec 1>&-\n"
+        f"  head -c {cap + 1000} /dev/zero >&2\n"
         "fi\n",
         encoding="utf-8",
     )
@@ -1331,6 +1383,45 @@ def test_probe_stderr_overflow_after_stdout_eof(
 
     assert exc_info.value.code == "jfrog_probe_too_large", exc_info.value
     assert elapsed < 15.0, f"abort took {elapsed:.2f}s, expected < 15s"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX executable bits")
+def test_probe_stderr_overflow_stdout_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Probe stderr overflow while stdout stays open terminates promptly. AC-0014"""
+    import os as _os
+    cap = 32
+    monkeypatch.setattr("credbroker._http_access._JFROG_PROBE_CAP", cap)
+    real_path = _os.environ.get("PATH", "/usr/bin:/bin")
+    profiles = [_simple_profile("s", "https://p.example.test/", "https://p.example.test/artifactory/")]
+    jf = tmp_path / "jf"
+    jf.write_text(
+        "#!/bin/sh\n"
+        f"export PATH={shlex.quote(real_path)}\n"
+        f'if [ "$1" = "config" ] && [ "$2" = "show" ] && [ "$3" = "--format=json" ]; then\n'
+        f"  printf '%s' {shlex.quote(json.dumps(profiles))}\n"
+        'elif [ "$1" = "--version" ]; then\n'
+        # Overflow stderr while stdout stays open.
+        f"  head -c {cap + 1000} /dev/zero >&2\n"
+        "  sleep 30\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    jf.chmod(0o755)
+
+    start = time.monotonic()
+    with pytest.raises(HttpAccessError) as exc_info:
+        resolve_http_access(
+            "https://p.example.test/artifactory/cat.toml",
+            env={"PATH": f"{tmp_path}{_os.pathsep}{real_path}"},
+        )
+    elapsed = time.monotonic() - start
+
+    assert exc_info.value.code == "jfrog_probe_too_large", exc_info.value
+    assert elapsed < 5.0, (
+        f"cap-breach abort took {elapsed:.2f}s with stdout open; expected < 5s"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1419,13 +1510,15 @@ def test_discovery_timeout_removes_controlled_cwd(
 # ---------------------------------------------------------------------------
 
 
-def test_aggregate_credbroker_budget_within_75s() -> None:
-    """discovery + probe + two fetch timeouts must not exceed 75 s. AC-0013"""
-    from agentbundle.catalogue_fetch import jfrog_cli as _jf_mod
+def test_aggregate_credbroker_constants_within_15s() -> None:
+    """discovery + probe timeouts must not exceed 15 s. AC-0013
 
-    two_fetches = _jf_mod._MAX_FETCHES * _jf_mod._JFROG_FETCH_TIMEOUT
-    budget = _PROD_DISCOVERY_TIMEOUT + _PROD_PROBE_TIMEOUT + two_fetches
-    assert budget <= 75.0, (
+    The credbroker suite must pass without agentbundle installed; this test
+    covers only the credbroker-owned constants.  The full 75 s budget is
+    asserted on the agentbundle side where both packages are available.
+    """
+    budget = _PROD_DISCOVERY_TIMEOUT + _PROD_PROBE_TIMEOUT
+    assert budget <= 15.0, (
         f"discovery({_PROD_DISCOVERY_TIMEOUT}) + probe({_PROD_PROBE_TIMEOUT}) "
-        f"+ 2×fetch({_jf_mod._JFROG_FETCH_TIMEOUT}) = {budget}s exceeds 75s ceiling"
+        f"= {budget}s exceeds 15s credbroker ceiling"
     )

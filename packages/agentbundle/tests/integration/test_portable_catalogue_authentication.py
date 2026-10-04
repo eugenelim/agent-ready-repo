@@ -16,6 +16,8 @@ import io
 import json
 import os
 import shlex
+import subprocess
+import sys
 import tarfile
 from pathlib import Path
 from unittest import mock
@@ -88,117 +90,26 @@ def _write_netrc(tmp_path: Path, host: str) -> Path:
 
 # ---------------------------------------------------------------------------
 # AC-0006: provider-state matrix — all 8 availability combinations
+#
+# One target (artf.example.test/artifactory/) that the fake JFrog profile
+# matches.  Eight {bearer?} × {jfrog-matches?} × {netrc?} tuples tested
+# exactly once each, asserting the selected provider.
 # ---------------------------------------------------------------------------
 
+# 8 tuples: (bearer_set, jfrog_matches, netrc_present, expected_provider)
+_MATRIX_PARAMS = [
+    pytest.param(True, True, True, "bearer", id="bearer-jfrog-netrc"),
+    pytest.param(True, True, False, "bearer", id="bearer-jfrog-nonetrc"),
+    pytest.param(True, False, True, "bearer", id="bearer-nojfrog-netrc"),
+    pytest.param(True, False, False, "bearer", id="bearer-nojfrog-nonetrc"),
+    pytest.param(False, True, True, "jfrog", id="nobearer-jfrog-netrc"),
+    pytest.param(False, True, False, "jfrog", id="nobearer-jfrog-nonetrc"),
+    pytest.param(False, False, True, "netrc", id="nobearer-nojfrog-netrc"),
+    pytest.param(False, False, False, "anonymous", id="nobearer-nojfrog-nonetrc"),
+]
 
-class TestProviderStateMatrix:
-    """Eight availability combinations produce the correct first-available provider.
-
-    No socket activity during discovery (monkeypatch socket.create_connection).
-    AC-0006.
-    """
-
-    def _env_with_bearer(self) -> dict[str, str]:
-        return {"AGENTBUNDLE_HTTP_BEARER_TOKEN": "<token>"}
-
-    @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX executable bits")
-    def test_bearer_wins_when_available(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Bearer is selected when available, even with JFrog and .netrc present."""
-        _write_fake_jf(tmp_path)
-        _write_netrc(tmp_path, "catalogue.example.test")
-        env = {
-            "AGENTBUNDLE_HTTP_BEARER_TOKEN": "<token>",
-            "PATH": str(tmp_path),
-            "HOME": str(tmp_path),
-        }
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        with open_fetch_session(_CATALOGUE_URL, env=env) as session:
-            assert session.provider == "bearer"
-
-    @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX executable bits")
-    def test_jfrog_wins_without_bearer(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """JFrog is selected when bearer is absent and a matching profile exists."""
-        _write_fake_jf(tmp_path)
-        env = {"PATH": str(tmp_path), "HOME": str(tmp_path)}
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        target = f"{_ARTF_URL}cat/channel.json"
-        with open_fetch_session(target, env=env) as session:
-            assert session.provider == "jfrog"
-
-    @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX permission bits")
-    def test_netrc_wins_without_bearer_or_jfrog(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Netrc is selected when bearer and JFrog are absent."""
-        # No jf on PATH; provide .netrc for the catalogue host.
-        _write_netrc(tmp_path, "catalogue.example.test")
-        env = {"PATH": "/dev/null", "HOME": str(tmp_path)}
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        with open_fetch_session(_CATALOGUE_URL, env=env) as session:
-            assert session.provider == "netrc"
-
-    def test_anonymous_when_nothing_configured(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Anonymous is selected when no credential source is present."""
-        env: dict[str, str] = {"PATH": "/dev/null", "HOME": str(tmp_path)}
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        with open_fetch_session(_CATALOGUE_URL, env=env) as session:
-            assert session.provider == "anonymous"
-
-    @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX executable bits")
-    def test_jfrog_skipped_when_no_matching_profile(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """JFrog is unavailable (no match) and falls through to anonymous."""
-        # Profile is for a different host; catalogue URL uses catalogue.example.test.
-        _write_fake_jf(tmp_path)
-        env = {"PATH": str(tmp_path), "HOME": str(tmp_path)}
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        # URL is on catalogue.example.test, profile is for artf.example.test.
-        with open_fetch_session(_CATALOGUE_URL, env=env) as session:
-            assert session.provider == "anonymous"
-
-    def test_bearer_alone_selects_bearer(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Bearer only, no JFrog, no netrc: selects bearer."""
-        env = {
-            "AGENTBUNDLE_HTTP_BEARER_TOKEN": "<token>",
-            "PATH": "/dev/null",
-            "HOME": str(tmp_path),
-        }
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        with open_fetch_session(_CATALOGUE_URL, env=env) as session:
-            assert session.provider == "bearer"
-
-    @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX permission bits")
-    def test_netrc_only_selects_netrc(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Netrc only, no bearer, no JFrog: selects netrc."""
-        _write_netrc(tmp_path, "catalogue.example.test")
-        env = {"PATH": "/dev/null", "HOME": str(tmp_path)}
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        with open_fetch_session(_CATALOGUE_URL, env=env) as session:
-            assert session.provider == "netrc"
-
-    @pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX executable bits")
-    def test_jfrog_wins_over_netrc(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """JFrog is selected over netrc when both are available and no bearer. AC-0006"""
-        _write_fake_jf(tmp_path)
-        _write_netrc(tmp_path, "artf.example.test")
-        target = f"{_ARTF_URL}cat/channel.json"
-        env = {"PATH": str(tmp_path), "HOME": str(tmp_path)}
-        monkeypatch.setattr("socket.create_connection", _no_connect)
-        with open_fetch_session(target, env=env) as session:
-            assert session.provider == "jfrog"
+# The target URL lies under the fake JFrog profile's artifactoryUrl.
+_MATRIX_TARGET = f"{_ARTF_URL}cat/channel.json"
 
 
 def _no_connect(*args: object, **kwargs: object) -> None:
@@ -206,6 +117,49 @@ def _no_connect(*args: object, **kwargs: object) -> None:
     raise AssertionError(
         f"socket.create_connection called during provider discovery: {args!r}"
     )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="fixture requires POSIX executable bits")
+@pytest.mark.parametrize(
+    "bearer_set, jfrog_matches, netrc_present, expected",
+    _MATRIX_PARAMS,
+)
+def test_provider_state_matrix(
+    bearer_set: bool,
+    jfrog_matches: bool,
+    netrc_present: bool,
+    expected: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Eight {bearer} × {jfrog-matching} × {netrc} combinations each select the right provider.
+
+    Exactly one test per combination.  The JFrog profile always covers
+    artf.example.test/artifactory/ (the matrix target); 'jfrog_matches'
+    controls whether jf is placed on PATH.  AC-0006.
+    """
+    env: dict[str, str] = {"PATH": "/dev/null", "HOME": str(tmp_path)}
+
+    if bearer_set:
+        env["AGENTBUNDLE_HTTP_BEARER_TOKEN"] = "<token>"
+
+    if jfrog_matches:
+        # Place a matching jf on PATH.
+        _write_fake_jf(tmp_path)
+        env["PATH"] = str(tmp_path)
+
+    if netrc_present:
+        # netrc covers the artf target host.
+        _write_netrc(tmp_path, "artf.example.test")
+        env["HOME"] = str(tmp_path)
+
+    monkeypatch.setattr("socket.create_connection", _no_connect)
+
+    with open_fetch_session(_MATRIX_TARGET, env=env) as session:
+        assert session.provider == expected, (
+            f"bearer={bearer_set} jfrog={jfrog_matches} netrc={netrc_present}: "
+            f"expected {expected!r}, got {session.provider!r}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -351,19 +305,21 @@ class TestOneResolutionReuse:
 
 
 class TestNonHttpSourcesNoResolution:
-    """Local-path and git sources never import or call resolve_http_access.
+    """Local-path and git sources never call resolve_http_access.
 
     AC-0017: these source routes execute their own transports without touching
-    the HTTP access resolver. Existing coverage in test_https_catalogue.py
-    (direct_source_acquisition path) is extended here with an explicit spy.
+    the HTTP access resolver.  Tests drive ``resolve_catalogue`` (not
+    ``fetch_catalogue_archive``) so the transport actually runs, and spy on
+    both ``agentbundle.catalogue_fetch.resolve_http_access`` and
+    ``credbroker.resolve_http_access`` to assert zero calls.
     """
 
-    def test_local_path_source_does_not_call_resolve(self, tmp_path: Path) -> None:
-        """A local-path catalogue source never calls resolve_http_access. AC-0017"""
-        from agentbundle.catalogue import CatalogueError
-        from agentbundle.https_catalogue import fetch_catalogue_archive
+    def test_local_path_catalogue_resolves_without_http_access(
+        self, tmp_path: Path
+    ) -> None:
+        """resolve_catalogue with a local path returns the path, never calls resolve_http_access. AC-0017"""
+        from agentbundle.catalogue import resolve_catalogue
 
-        # A plain filesystem path is not a supported catalogue+https:// scheme.
         cat_dir = tmp_path / "catalogue"
         cat_dir.mkdir()
         (cat_dir / "catalogue.toml").write_text(
@@ -371,40 +327,127 @@ class TestNonHttpSourcesNoResolution:
             encoding="utf-8",
         )
 
-        call_count: list[int] = [0]
+        ab_resolve_calls: list[int] = [0]
+        cb_resolve_calls: list[int] = [0]
 
-        def spy(*args: object, **kwargs: object) -> object:
-            call_count[0] += 1
-            return object()  # never actually used
+        def ab_spy(*args: object, **kwargs: object) -> object:
+            ab_resolve_calls[0] += 1
+            raise AssertionError("resolve_http_access called for local path")
 
-        # Patch at the source — catalogue_fetch module imports it.
-        with (
-            mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=spy),
-            pytest.raises(CatalogueError),
-        ):
-            fetch_catalogue_archive(str(cat_dir))
-
-        assert call_count[0] == 0, (
-            f"resolve_http_access was called {call_count[0]} times for a local-path source"
-        )
-
-    def test_git_https_source_does_not_call_resolve(self, tmp_path: Path) -> None:
-        """A git+https catalogue source never calls resolve_http_access. AC-0017"""
-        from agentbundle.catalogue import CatalogueError
-        from agentbundle.https_catalogue import fetch_catalogue_archive
-
-        call_count: list[int] = [0]
-
-        def spy(*args: object, **kwargs: object) -> object:
-            call_count[0] += 1
-            return object()  # never actually used
+        def cb_spy(*args: object, **kwargs: object) -> object:
+            cb_resolve_calls[0] += 1
+            raise AssertionError("credbroker.resolve_http_access called for local path")
 
         with (
-            mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=spy),
-            pytest.raises(CatalogueError),
+            mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=ab_spy),
+            mock.patch("credbroker.resolve_http_access", side_effect=cb_spy),
         ):
-            fetch_catalogue_archive("git+https://github.com/test/test@main")
+            result = resolve_catalogue(str(cat_dir))
 
-        assert call_count[0] == 0, (
-            f"resolve_http_access was called {call_count[0]} times for a git+https source"
+        assert isinstance(result, Path), f"Expected Path, got {type(result)!r}"
+        assert result.resolve() == cat_dir.resolve(), (
+            f"Expected {cat_dir}, got {result}"
         )
+        assert ab_resolve_calls[0] == 0, (
+            f"agentbundle.catalogue_fetch.resolve_http_access called {ab_resolve_calls[0]} times"
+        )
+        assert cb_resolve_calls[0] == 0, (
+            f"credbroker.resolve_http_access called {cb_resolve_calls[0]} times"
+        )
+
+    def test_git_https_catalogue_transport_runs_without_http_access(
+        self, tmp_path: Path
+    ) -> None:
+        """resolve_catalogue with a git+https source runs the git transport, never calls resolve_http_access. AC-0017
+
+        The git transport (_resolve_https) is monkeypatched to return a fixture
+        directory rather than making a real network request.
+        """
+        from agentbundle import catalogue as _cat_mod
+        from agentbundle.catalogue import resolve_catalogue
+
+        git_uri = "git+https://github.com/example/repo@main"
+
+        fixture_dir = tmp_path / "git_fixture"
+        fixture_dir.mkdir()
+        (fixture_dir / "catalogue.toml").write_text(
+            '[catalogue]\nname = "fixture"\nversion = "0.0.1"\n',
+            encoding="utf-8",
+        )
+
+        git_transport_calls: list[int] = [0]
+        ab_resolve_calls: list[int] = [0]
+        cb_resolve_calls: list[int] = [0]
+
+        def fake_resolve_https(uri: str) -> Path:
+            git_transport_calls[0] += 1
+            return fixture_dir
+
+        def ab_spy(*args: object, **kwargs: object) -> object:
+            ab_resolve_calls[0] += 1
+            raise AssertionError("resolve_http_access called for git+https source")
+
+        def cb_spy(*args: object, **kwargs: object) -> object:
+            cb_resolve_calls[0] += 1
+            raise AssertionError("credbroker.resolve_http_access called for git+https source")
+
+        with (
+            mock.patch.object(_cat_mod, "_resolve_https", fake_resolve_https),
+            mock.patch("agentbundle.catalogue_fetch.resolve_http_access", side_effect=ab_spy),
+            mock.patch("credbroker.resolve_http_access", side_effect=cb_spy),
+        ):
+            result = resolve_catalogue(git_uri)
+
+        assert git_transport_calls[0] == 1, (
+            f"git transport (_resolve_https) was called {git_transport_calls[0]} times, expected 1"
+        )
+        assert result == fixture_dir, f"Expected {fixture_dir}, got {result}"
+        assert ab_resolve_calls[0] == 0, (
+            f"agentbundle.catalogue_fetch.resolve_http_access called {ab_resolve_calls[0]} times"
+        )
+        assert cb_resolve_calls[0] == 0, (
+            f"credbroker.resolve_http_access called {cb_resolve_calls[0]} times"
+        )
+
+    def test_local_path_subprocess_does_not_import_catalogue_fetch_or_credbroker(
+        self, tmp_path: Path
+    ) -> None:
+        """Resolving a local-path source does not import catalogue_fetch or credbroker. AC-0017
+
+        Runs in a subprocess to get a clean import state.
+        """
+        cat_dir = tmp_path / "catalogue_sub"
+        cat_dir.mkdir()
+        (cat_dir / "catalogue.toml").write_text(
+            '[catalogue]\nname = "sub"\nversion = "0.0.1"\n',
+            encoding="utf-8",
+        )
+
+        script = (
+            "import sys\n"
+            "from agentbundle.catalogue import resolve_catalogue\n"
+            f"result = resolve_catalogue({str(cat_dir)!r})\n"
+            "assert 'agentbundle.catalogue_fetch' not in sys.modules, "
+            "    f'catalogue_fetch was imported: {{list(sys.modules.keys())}}'\n"
+            "assert 'credbroker._http_access' not in sys.modules, "
+            "    f'credbroker._http_access was imported: {{list(sys.modules.keys())}}'\n"
+        )
+
+        # Find the repository root (4 levels up from this file).
+        repo_root = Path(__file__).resolve().parents[4]
+
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            cwd=str(repo_root),
+            env={
+                **os.environ,
+                "PYTHONPATH": "packages/agentbundle:packages/credbroker",
+            },
+        )
+        if proc.returncode != 0:
+            pytest.fail(
+                f"Subprocess failed (exit {proc.returncode}):\n"
+                f"stdout: {proc.stdout!r}\nstderr: {proc.stderr!r}"
+            )
