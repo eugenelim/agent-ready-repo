@@ -168,6 +168,47 @@ suites, the provider-matrix integration suite, and the built-CLI JFrog leg:
 skipped, 1 xfailed (13 min 23 s); the packaging roster 14 passed with the
 JFrog leg skipped for its stated reason (67 s).
 
+## Review round 3 repair evidence (2026-10-04)
+
+At commit `c50ed9428` (projections included):
+
+- **Mutation proofs, run by the controller.** For each repaired control, the
+  production line was changed in place, the target tests were run, and the
+  file was restored byte-for-byte; the working tree was unchanged afterwards.
+  All 13 mutations turned their tests red:
+  - removing `HTTPDefaultErrorHandler` (non-2xx responses);
+  - skipping the decoded-segment check (`..%20`, `..%09`, `..%00`);
+  - passing the whole env to the `jf api` child;
+  - importing `catalogue_fetch` from `catalogue.py` (local resolution
+    without the resolver modules);
+  - adding a bearer `os.getenv` read to `system_trust.py`, and a `netrc`
+    import to `catalogue.py` (whole-tree boundary);
+  - letting `.netrc` precede JFrog (all eight provider combinations);
+  - removing the post-EOF stderr re-check in each package;
+  - ignoring the cap-breach event in each package (the stdout-open tests
+    exceeded their 5 s bound);
+  - leaving the archive temp file after success;
+  - removing the delegated-timeout cap.
+- **Runs.** credbroker with AgentBundle blocked from import: 660 passed, 1
+  skipped (94 s). Full AgentBundle package suite: 5,560 passed, 56 skipped, 1
+  xfailed (13 min 23 s). Packaging roster: 16 passed, JFrog leg skipped for
+  its stated reason (57 s). Disposable Linux container with JFrog CLI 2.105.0
+  (real-CLI contract, JFrog, `.netrc`, fetch-session, provider-matrix suites,
+  and the built-CLI JFrog leg): 236 passed, 1 Windows-only skip (25 s). The
+  documentation build and guide checks each exited 0.
+- **Expired fixture certificate.** The first container run at this commit
+  failed four JFrog tests. Real `jf api` stderr showed
+  `x509: certificate has expired or is not yet valid`: the disposable loopback
+  certificate made on 2026-10-01 had 2-day validity and expired at
+  2026-10-04 04:55 UTC. A fresh throwaway certificate (30 days) passed the
+  same suites unchanged. The code did not regress.
+- **Termination scope kept.** The repair implementer had switched both
+  bounded runners to process-group termination. That contradicts AC-0013's
+  direct-child scope and owner decision 4, so the controller reverted it. The
+  stuck-reader case the change targeted is handled instead by reaping the
+  direct child within its grace and joining reader threads for at most
+  0.2 s.
+
 ## Owner decisions taken during EXECUTE
 
 Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
