@@ -223,3 +223,37 @@ with sync_playwright() as pw:
     b.close()
 print(json.dumps(res, indent=1))
 ```
+
+## AC-0020 comparative outcome
+
+### Frozen panel (2026-10-04, before any session)
+
+Each session attempts all five tasks once with `navigate-decisions` and once
+by direct file browsing, alternating which condition goes first per session.
+Answers are scored against the repository at the session's commit.
+
+| Task | Prompt | Correct answer must include |
+| --- | --- | --- |
+| 1. Orientation | How many ADRs and RFCs exist, and how many RFCs are not Accepted? | Exact counts by kind and every non-`Accepted` RFC status value |
+| 2. Exact status | What is RFC-0099's exact lifecycle status? | The full qualified value, not just `Accepted` |
+| 3. Partial supersession | Which decisions does ADR-0098 supersede in part, and which D-IDs? | ADR-0019 D6, D7 and ADR-0076 D1, D2, both checked |
+| 4. Guidance context | Given the assertion "RFC-0105 is wider guidance for ADR-0134", what relates them and how far can you trust it? | The assertion is navigation-only; any `Related` links are contextual; no checked lineage is implied |
+| 5. Handoff | Where is ADR-0001's rationale, and where does its source live? | Its body or a source handoff, the repository-relative path, and the statement that this is not complete applicable policy |
+
+### Measurement rules
+
+- **Run:** one task attempted in one session in one condition.
+- **Lookup effort:** files opened plus tool or query calls. For an agent, every
+  tool call counts. For a person using the HTML explorer, each search entry,
+  filter change, view switch, and record selection counts as one query call,
+  and opening the export counts as one file.
+- **Unaided:** the run finishes with no hint, correction, or help from anyone.
+- **Incorrect claim:** any wrong status, lineage, guidance-trust, policy-
+  completeness, or source statement in the final answer.
+- **Pass:** at least four of five tasks have lower median effort with the
+  navigator; at least 80% of navigator runs finish unaided; zero incorrect
+  claims across all runs; at least two human-run and two agent-run sessions.
+
+### Sessions
+
+None run yet. Human-run sessions need the repository owner or a delegate.
