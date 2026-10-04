@@ -1,7 +1,7 @@
 # Plan: Portable catalogue authentication
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** [`docs/architecture/portable-catalogue-authentication.md`](../../architecture/portable-catalogue-authentication.md) and [`docs/architecture/credentials.md`](../../architecture/credentials.md); [`packages/agentbundle/agentbundle/https_catalogue.py`](../../../packages/agentbundle/agentbundle/https_catalogue.py) and [`packages/agentbundle/agentbundle/build/user_libs.py`](../../../packages/agentbundle/agentbundle/build/user_libs.py); [`packages/agentbundle/tests/unit/test_https_catalogue.py`](../../../packages/agentbundle/tests/unit/test_https_catalogue.py), [`packages/agentbundle/tests/build_pipeline/test_user_libs_projection.py`](../../../packages/agentbundle/tests/build_pipeline/test_user_libs_projection.py), and [`packages/credbroker/tests/unit/test_public_surface.py`](../../../packages/credbroker/tests/unit/test_public_surface.py). Named uncertainty: the exact `jf api` argument order and binary-stream behavior remain a real-CLI test obligation against JFrog CLI 2.105.0 or later.
 
 > **Plan contract:** this is the implementation strategy. It may change

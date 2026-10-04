@@ -2255,9 +2255,9 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
-  {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},
 ]
 shipped = [
+  {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},
   # Shipped 2026-09-26: 56 of 56 acceptance criteria met, spec `Shipped` and plan
   # `Done`. Moved from `queue` in the same change that set those statuses --
   # membership and status move together, and the canonical reconciliation raises
