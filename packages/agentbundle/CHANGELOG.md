@@ -6,6 +6,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.51.0] — 2026-10-03
+
+### Added
+
+- HTTPS catalogue acquisition now resolves credentials automatically from a
+  closed, priority-ordered provider set: bearer token
+  (`AGENTBUNDLE_HTTP_BEARER_TOKEN`), JFrog CLI profile (2.105.0+, selected by
+  longest Artifactory-URL prefix or by `JFROG_CLI_SERVER_ID`), exact-machine
+  `.netrc` record (host or host:port key; `default` is ignored), and anonymous.
+  Public catalogues continue to work without any credential setup.
+- The resolver is the new `credbroker.resolve_http_access` public API, consumed
+  through a fetch-session facade in `agentbundle.catalogue_fetch`. Each provider
+  result binds to one normalized origin; credentials never reach a different host.
+- JFrog CLI delegated fetches are bounded: 10 s discovery, 5 s version probe,
+  30 s per fetch, 75 s aggregate subprocess budget. Endpoint confinement and
+  list-form argument passing prevent injection. `SSL_CERT_FILE` and `SSL_CERT_DIR`
+  are forwarded to the `jf` subprocess on Linux so a corporate CA reaches
+  `jf api`; `AGENTBUNDLE_CA_BUNDLE` covers the direct HTTP path only.
+- Exact-machine `.netrc` records: host or host:port keys are checked in order;
+  host fallback applies only when no port-qualified record exists; `default` is
+  never matched. Credentials are bound to the normalized origin and sent only on
+  same-origin HTTPS requests.
+
+### Changed
+
+- A configured-but-broken provider raises a terminal error and never falls back
+  to a lower provider (ADR-0138). A broken bearer env-var, a profile that
+  cannot connect, a `.netrc` with unsafe permissions or a malformed record each
+  terminate resolution immediately.
+- AgentBundle now requires `credbroker>=0.7,<0.8`. The credential-brokers pack's
+  vendored floor remains `credbroker` 0.6 for skills that import it directly;
+  normal site-packages precedence selects 0.7 when both are present.
+
 ## [0.50.0] — 2026-09-24
 
 ### Added

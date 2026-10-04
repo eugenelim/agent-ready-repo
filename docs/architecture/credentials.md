@@ -55,6 +55,14 @@ outbound HTTP header. Direct credential reads require the explicit
 the engine never imports `credbroker`. Consumers call the library and do not
 construct broker argv or subprocesses themselves.
 
+**`agentbundle` → `credbroker.resolve_http_access`.** AgentBundle 0.51.0
+calls `credbroker.resolve_http_access(url, env=env)` from
+`agentbundle.catalogue_fetch.open_fetch_session` when fetching
+`catalogue+https://` or `archive+https://` sources. This is a one-directional
+dependency: `credbroker` never imports `agentbundle`. The resolved credential
+is used only within the `FetchSession` context; no credential material is
+included in error messages or state files.
+
 The `creds` broker uses first-hit-wins per required key. `env` consumes an
 already-present environment value. `cli` delegates to the vendor CLI.
 A fallback declaration requires both brokers' security phrases.

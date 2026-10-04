@@ -87,6 +87,12 @@ _EXPECTED_SKIP_REASONS = tuple(
         r"^wall-clock not asserted: load/core \d+(?:\.\d+)? exceeds "
         r"\d+(?:\.\d+)?\. CPU \(\d+(?:\.\d+)?s\) and memory "
         r"\(\d+(?:\.\d+)? MiB\) were asserted unconditionally\.$",
+        # The real JFrog CLI contract suite needs an officially acquired `jf`
+        # and a disposable loopback CA, which no package-only workspace holds;
+        # it runs in a disposable Linux container instead. Exact message only.
+        r"^AGENTBUNDLE_TEST_JF_EXECUTABLE, AGENTBUNDLE_TEST_JF_CA_CERT, and "
+        r"AGENTBUNDLE_TEST_JF_CA_KEY must all be set to run the JFrog CLI "
+        r"contract suite$",
     )
 )
 _EXPECTED_STUB_MODULE_HASHES = {

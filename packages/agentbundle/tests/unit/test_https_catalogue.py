@@ -26,22 +26,33 @@ import urllib.request
 from pathlib import Path
 from unittest import mock
 
+import agentbundle.catalogue_fetch as catalogue_fetch
 import pytest
 from agentbundle import https_catalogue
 from agentbundle.catalogue import CatalogueError
+from agentbundle.catalogue_fetch.direct_http import (
+    _build_direct_opener,
+    _DirectHttpRedirectHandler,
+    _make_direct_request,
+    fetch_bytes_bounded,
+    stream_to_tempfile,
+)
 from agentbundle.https_catalogue import (
-    _build_opener,
     _check_client_version,
-    _fetch_bytes_limited,
-    _make_request,
-    _OriginLockingRedirectHandler,
     _parse_descriptor,
     _resolve_artifact_url,
     _safe_extract,
-    _stream_and_verify,
+    _verify_archive_sha256,
     fetch_catalogue_archive,
 )
 from agentbundle.source_defaults import _is_valid_source
+
+# ---------------------------------------------------------------------------
+# Constants for direct_http unit tests
+# ---------------------------------------------------------------------------
+
+_BOUND_ORIGIN = "https://example.test"
+_MAX_FETCH_BYTES = 10 * 1024 * 1024  # generous limit for direct_http unit tests
 
 # ---------------------------------------------------------------------------
 # Test helpers / fixtures
@@ -67,9 +78,8 @@ class _MockResponse:
 class _MockOpener:
     """Mock urllib opener that returns a fixed response body."""
 
-    def __init__(self, response_data: bytes, *, token: str | None = None) -> None:
+    def __init__(self, response_data: bytes) -> None:
         self._data = response_data
-        self._bearer_token = token
         self._last_req: urllib.request.Request | None = None
 
     def open(self, req: urllib.request.Request, timeout: int | None = None) -> _MockResponse:
@@ -80,9 +90,6 @@ class _MockOpener:
 class _ErrorOpener:
     """Mock opener that raises a URLError on open."""
 
-    def __init__(self, *, token: str | None = None) -> None:
-        self._bearer_token = token
-
     def open(self, req: urllib.request.Request, timeout: int | None = None) -> None:
         import urllib.error
         raise urllib.error.URLError("simulated connection error")
@@ -90,9 +97,6 @@ class _ErrorOpener:
 
 class _SlowOpener:
     """Mock opener that raises a timeout error."""
-
-    def __init__(self) -> None:
-        self._bearer_token = None
 
     def open(self, req: urllib.request.Request, timeout: int | None = None) -> None:
         import urllib.error
@@ -576,7 +580,8 @@ def test_safe_extract_too_large_expanded(tmp_path: Path, monkeypatch: pytest.Mon
 
 
 # ---------------------------------------------------------------------------
-# T2 — _stream_and_verify
+# T2 — _stream_and_verify (re-pointed to stream_to_tempfile + _verify_archive_sha256)
+# old target: _stream_and_verify → new target: stream_to_tempfile / _verify_archive_sha256
 # ---------------------------------------------------------------------------
 
 
@@ -584,8 +589,12 @@ def test_stream_and_verify_sha256_match(tmp_path: Path):
     """SHA-256 match — returns path to temp file."""
     data, sha256 = _make_tarball(("hello.txt", b"world"))
     opener = _MockOpener(data)
-    result = _stream_and_verify("https://example.test/archive.tar.gz", sha256, opener, 30)
+    result = stream_to_tempfile(
+        opener, "https://example.test/archive.tar.gz", _BOUND_ORIGIN, None,
+        _MAX_FETCH_BYTES, 30,
+    )
     try:
+        _verify_archive_sha256(result, sha256, "https://example.test/archive.tar.gz")
         assert result.exists()
         assert result.read_bytes() == data
     finally:
@@ -597,8 +606,12 @@ def test_stream_and_verify_sha256_mismatch():
     data, real_sha256 = _make_tarball(("hello.txt", b"world"))
     wrong_sha256 = "b" * 64
     opener = _MockOpener(data)
+    result = stream_to_tempfile(
+        opener, "https://example.test/archive.tar.gz", _BOUND_ORIGIN, None,
+        _MAX_FETCH_BYTES, 30,
+    )
     with pytest.raises(CatalogueError) as exc:
-        _stream_and_verify("https://example.test/archive.tar.gz", wrong_sha256, opener, 30)
+        _verify_archive_sha256(result, wrong_sha256, "https://example.test/archive.tar.gz")
     msg = str(exc.value)
     assert wrong_sha256 in msg    # expected
     assert real_sha256 in msg     # received
@@ -609,30 +622,39 @@ def test_stream_and_verify_sha256_mismatch_cleans_up():
     data, _ = _make_tarball(("hello.txt", b"world"))
     wrong_sha256 = "b" * 64
     opener = _MockOpener(data)
+    result = stream_to_tempfile(
+        opener, "https://example.test/archive.tar.gz", _BOUND_ORIGIN, None,
+        _MAX_FETCH_BYTES, 30,
+    )
     with contextlib.suppress(CatalogueError):
-        _stream_and_verify("https://example.test/archive.tar.gz", wrong_sha256, opener, 30)
+        _verify_archive_sha256(result, wrong_sha256, "https://example.test/archive.tar.gz")
     # No temp files should linger — we just verify no exception escapes uncleaned
     # (the temp file is created + deleted internally)
 
 
 def test_stream_and_verify_too_large(monkeypatch: pytest.MonkeyPatch):
-    """Archive exceeding _MAX_ARCHIVE_BYTES rejected during streaming."""
-    monkeypatch.setattr(https_catalogue, "_MAX_ARCHIVE_BYTES", 5)
+    """Archive exceeding the byte limit rejected during streaming."""
     data = b"0" * 10  # 10 bytes > 5 byte limit
     opener = _MockOpener(data)
     with pytest.raises(CatalogueError, match="byte limit"):
-        _stream_and_verify("https://example.test/archive.tar.gz", "a" * 64, opener, 30)
+        stream_to_tempfile(
+            opener, "https://example.test/archive.tar.gz", _BOUND_ORIGIN, None, 5, 30,
+        )
 
 
 def test_stream_and_verify_fetch_error_propagates():
     """Fetch errors surface as CatalogueError."""
     opener = _ErrorOpener()
     with pytest.raises(CatalogueError, match="failed to fetch archive"):
-        _stream_and_verify("https://example.test/archive.tar.gz", "a" * 64, opener, 30)
+        stream_to_tempfile(
+            opener, "https://example.test/archive.tar.gz", _BOUND_ORIGIN, None,
+            _MAX_FETCH_BYTES, 30,
+        )
 
 
 # ---------------------------------------------------------------------------
-# T2 — _fetch_bytes_limited
+# T2 — _fetch_bytes_limited (re-pointed to fetch_bytes_bounded)
+# old target: _fetch_bytes_limited → new target: fetch_bytes_bounded
 # ---------------------------------------------------------------------------
 
 
@@ -640,7 +662,9 @@ def test_fetch_bytes_limited_within_limit():
     """Descriptor within size limit fetched successfully."""
     data = b"x" * 100
     opener = _MockOpener(data)
-    result = _fetch_bytes_limited("https://example.test/descriptor.json", opener, 200, 30)
+    result = fetch_bytes_bounded(
+        opener, "https://example.test/descriptor.json", _BOUND_ORIGIN, None, 200, 30,
+    )
     assert result == data
 
 
@@ -649,36 +673,41 @@ def test_fetch_bytes_limited_exceeds_limit():
     data = b"x" * 11
     opener = _MockOpener(data)
     with pytest.raises(CatalogueError, match="byte limit"):
-        _fetch_bytes_limited("https://example.test/descriptor.json", opener, 10, 30)
+        fetch_bytes_bounded(
+            opener, "https://example.test/descriptor.json", _BOUND_ORIGIN, None, 10, 30,
+        )
 
 
 def test_fetch_bytes_limited_error_propagates():
     """Fetch errors surface as CatalogueError."""
     opener = _ErrorOpener()
     with pytest.raises(CatalogueError, match="failed to fetch"):
-        _fetch_bytes_limited("https://example.test/descriptor.json", opener, 1024, 30)
+        fetch_bytes_bounded(
+            opener, "https://example.test/descriptor.json", _BOUND_ORIGIN, None, 1024, 30,
+        )
 
 
 # ---------------------------------------------------------------------------
-# T2 — _build_opener and proxy support
+# T2 — _build_opener and proxy support (re-pointed to _build_direct_opener)
+# old target: _build_opener → new target: _build_direct_opener
 # ---------------------------------------------------------------------------
 
 
 def test_build_opener_uses_proxy_handler(monkeypatch: pytest.MonkeyPatch):
-    """_build_opener creates opener via ProxyHandler (verifies correct class used)."""
+    """_build_direct_opener creates opener via ProxyHandler (verifies correct class used)."""
     # Set a proxy so ProxyHandler registers its protocol-specific open methods
     # (ProxyHandler only appears in opener.handlers when proxies are configured,
     # because it generates <scheme>_open methods dynamically at __init__ time).
     monkeypatch.setitem(os.environ, "HTTPS_PROXY", "http://proxy.example.test:3128")
     monkeypatch.delitem(os.environ, "NO_PROXY", raising=False)
-    opener = _build_opener(None, "https://example.test/stable.json")
+    opener = _build_direct_opener(None, _BOUND_ORIGIN, env=os.environ)
     proxy_handlers = [h for h in opener.handlers if isinstance(h, urllib.request.ProxyHandler)]
     assert len(proxy_handlers) == 1
 
 
 def test_build_opener_no_http_handler():
     """HTTPS only: opener must not include a plain HTTPHandler."""
-    opener = _build_opener(None, "https://example.test/stable.json")
+    opener = _build_direct_opener(None, _BOUND_ORIGIN, env={})
     http_handlers = [h for h in opener.handlers if type(h) is urllib.request.HTTPHandler]
     assert len(http_handlers) == 0
 
@@ -687,7 +716,7 @@ def test_proxy_env_honored(monkeypatch: pytest.MonkeyPatch):
     """HTTPS_PROXY env var is read by ProxyHandler."""
     monkeypatch.setitem(os.environ, "HTTPS_PROXY", "http://proxy.example.test:3128")
     monkeypatch.delitem(os.environ, "NO_PROXY", raising=False)
-    opener = _build_opener(None, "https://example.test/stable.json")
+    opener = _build_direct_opener(None, _BOUND_ORIGIN, env=os.environ)
     proxy_handlers = [h for h in opener.handlers if isinstance(h, urllib.request.ProxyHandler)]
     assert len(proxy_handlers) == 1
     ph = proxy_handlers[0]
@@ -698,7 +727,7 @@ def test_no_proxy_honored(monkeypatch: pytest.MonkeyPatch):
     """NO_PROXY env var is read by ProxyHandler."""
     monkeypatch.setitem(os.environ, "HTTPS_PROXY", "http://proxy.example.test:3128")
     monkeypatch.setitem(os.environ, "NO_PROXY", "example.test")
-    opener = _build_opener(None, "https://example.test/stable.json")
+    opener = _build_direct_opener(None, _BOUND_ORIGIN, env=os.environ)
     proxy_handlers = [h for h in opener.handlers if isinstance(h, urllib.request.ProxyHandler)]
     assert len(proxy_handlers) == 1
     # Both env vars were consumed — ProxyHandler built with them
@@ -706,21 +735,22 @@ def test_no_proxy_honored(monkeypatch: pytest.MonkeyPatch):
 
 
 # ---------------------------------------------------------------------------
-# T2 — bearer token injection
+# T2 — bearer token injection (re-pointed to _make_direct_request)
+# old target: _build_opener / _make_request → new target: _make_direct_request
 # ---------------------------------------------------------------------------
 
 
 def test_bearer_token_in_request():
     """Authorization: Bearer header present in request when token is set."""
-    opener = _build_opener("test-token-12345", "https://example.test/stable.json")
-    req = _make_request("https://example.test/stable.json", opener)
+    req = _make_direct_request(
+        "https://example.test/stable.json", _BOUND_ORIGIN, "Bearer test-token-12345"
+    )
     assert req.get_header("Authorization") == "Bearer test-token-12345"
 
 
 def test_no_bearer_token_no_auth_header():
     """No token → no Authorization header."""
-    opener = _build_opener(None, "https://example.test/stable.json")
-    req = _make_request("https://example.test/stable.json", opener)
+    req = _make_direct_request("https://example.test/stable.json", _BOUND_ORIGIN, None)
     assert req.get_header("Authorization") is None
 
 
@@ -729,9 +759,13 @@ def test_bearer_token_absent_from_errors():
     secret_token = "super-secret-bearer-99999"
     data, real_sha256 = _make_tarball(("hello.txt", b"world"))
     wrong_sha256 = "b" * 64
-    opener = _MockOpener(data, token=secret_token)
+    opener = _MockOpener(data)
     try:
-        _stream_and_verify("https://example.test/archive.tar.gz", wrong_sha256, opener, 30)
+        result = stream_to_tempfile(
+            opener, "https://example.test/archive.tar.gz", _BOUND_ORIGIN,
+            f"Bearer {secret_token}", _MAX_FETCH_BYTES, 30,
+        )
+        _verify_archive_sha256(result, wrong_sha256, "https://example.test/archive.tar.gz")
     except CatalogueError as exc:
         assert secret_token not in str(exc)
     else:
@@ -739,7 +773,8 @@ def test_bearer_token_absent_from_errors():
 
 
 # ---------------------------------------------------------------------------
-# T2 — _OriginLockingRedirectHandler
+# T2 — _OriginLockingRedirectHandler (re-pointed to _DirectHttpRedirectHandler)
+# old target: _OriginLockingRedirectHandler → new target: _DirectHttpRedirectHandler
 # ---------------------------------------------------------------------------
 
 
@@ -750,7 +785,7 @@ def _mock_req(url: str) -> urllib.request.Request:
 
 def test_redirect_to_http_rejected():
     """Redirect to http:// rejected regardless of token."""
-    handler = _OriginLockingRedirectHandler("https://example.test/stable.json")
+    handler = _DirectHttpRedirectHandler(_BOUND_ORIGIN, None)
     with pytest.raises(CatalogueError, match="HTTPS-only"):
         handler.redirect_request(
             _mock_req("https://example.test/stable.json"),
@@ -760,7 +795,7 @@ def test_redirect_to_http_rejected():
 
 def test_redirect_with_user_info_rejected():
     """Redirect URL containing user-info rejected."""
-    handler = _OriginLockingRedirectHandler("https://example.test/stable.json")
+    handler = _DirectHttpRedirectHandler(_BOUND_ORIGIN, None)
     with pytest.raises(CatalogueError, match="user-info"):
         handler.redirect_request(
             _mock_req("https://example.test/stable.json"),
@@ -770,7 +805,7 @@ def test_redirect_with_user_info_rejected():
 
 def test_cross_origin_redirect_rejected_different_host():
     """Redirect to a different host (different origin) rejected."""
-    handler = _OriginLockingRedirectHandler("https://example.test/stable.json")
+    handler = _DirectHttpRedirectHandler(_BOUND_ORIGIN, None)
     with pytest.raises(CatalogueError, match="cross-origin"):
         handler.redirect_request(
             _mock_req("https://example.test/stable.json"),
@@ -780,7 +815,7 @@ def test_cross_origin_redirect_rejected_different_host():
 
 def test_cross_origin_redirect_rejected_different_port():
     """Redirect to same host but different port (different origin) rejected."""
-    handler = _OriginLockingRedirectHandler("https://example.test:443/stable.json")
+    handler = _DirectHttpRedirectHandler("https://example.test:443", None)
     with pytest.raises(CatalogueError, match="cross-origin"):
         handler.redirect_request(
             _mock_req("https://example.test:443/stable.json"),
@@ -805,6 +840,8 @@ def test_same_origin_anchor_is_originally_requested():
 
 # ---------------------------------------------------------------------------
 # T2 — fetch_catalogue_archive end-to-end (mocked)
+# Patches changed: _fetch_bytes_limited/_stream_and_verify →
+#   FetchSession.fetch_bytes / FetchSession.fetch_archive
 # ---------------------------------------------------------------------------
 
 
@@ -819,14 +856,12 @@ def test_fetch_catalogue_archive_catalogue_https(tmp_path: Path):
     }
     descriptor_data = json.dumps(descriptor).encode()
 
-    # Patch _fetch_bytes_limited (for descriptor) and _stream_and_verify (for archive)
     archive_tmp = tmp_path / "archive.tar.gz"
     archive_tmp.write_bytes(archive_data)
 
     with (
-        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),
-        mock.patch.object(https_catalogue, "_stream_and_verify", return_value=archive_tmp),
-        mock.patch.object(https_catalogue, "_check_client_version"),
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive", return_value=archive_tmp),
     ):
         result = fetch_catalogue_archive(
             "catalogue+https://example.test/channels/stable.json",
@@ -846,7 +881,7 @@ def test_fetch_catalogue_archive_archive_https(tmp_path: Path):
     archive_tmp = tmp_path / "archive.tar.gz"
     archive_tmp.write_bytes(archive_data)
 
-    with mock.patch.object(https_catalogue, "_stream_and_verify", return_value=archive_tmp):
+    with mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive", return_value=archive_tmp):
         result = fetch_catalogue_archive(
             f"archive+https://example.test/releases/core.tar.gz#sha256={archive_sha256}",
             env={},
@@ -859,6 +894,75 @@ def test_fetch_catalogue_archive_archive_https(tmp_path: Path):
         shutil.rmtree(str(result), ignore_errors=True)
 
 
+def test_fetch_catalogue_archive_catalogue_https_removes_archive_after_success(tmp_path: Path):
+    """Archive temp file is removed after a successful catalogue+https acquisition. Item K
+
+    fetch_catalogue_archive_with_provenance must unlink the archive temp file
+    in its finally block even on success.  This test patches fetch_archive to
+    return a REAL temp file and asserts that the file is gone after the call.
+    """
+    import shutil
+
+    from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+
+    archive_data, archive_sha256 = _make_tarball(("k.txt", b"k"))
+
+    # Create a real temp file that the patched fetch_archive returns.
+    archive_tmp = tmp_path / "real_archive.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    descriptor = {
+        **_VALID_DESCRIPTOR,
+        "artifact": "https://example.test/releases/k.tar.gz",
+        "sha256": archive_sha256,
+    }
+    descriptor_data = json.dumps(descriptor).encode()
+
+    with (
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive", return_value=archive_tmp),
+    ):
+        result_obj = fetch_catalogue_archive_with_provenance(
+            "catalogue+https://example.test/channels/stable.json",
+            env={},
+        )
+
+    try:
+        # The archive temp file must have been removed by the finally block.
+        assert not archive_tmp.exists(), (
+            f"Archive temp file {archive_tmp} still exists after successful acquisition"
+        )
+        assert result_obj.path.is_dir()
+    finally:
+        shutil.rmtree(str(result_obj.path), ignore_errors=True)
+
+
+def test_fetch_catalogue_archive_archive_https_removes_archive_after_success(tmp_path: Path):
+    """Archive temp file is removed after a successful archive+https acquisition. Item K"""
+    import shutil
+
+    from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+
+    archive_data, archive_sha256 = _make_tarball(("k.txt", b"k"))
+
+    archive_tmp = tmp_path / "real_archive2.tar.gz"
+    archive_tmp.write_bytes(archive_data)
+
+    with mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive", return_value=archive_tmp):
+        result_obj = fetch_catalogue_archive_with_provenance(
+            f"archive+https://example.test/releases/k.tar.gz#sha256={archive_sha256}",
+            env={},
+        )
+
+    try:
+        assert not archive_tmp.exists(), (
+            f"Archive temp file {archive_tmp} still exists after successful acquisition"
+        )
+        assert result_obj.path.is_dir()
+    finally:
+        shutil.rmtree(str(result_obj.path), ignore_errors=True)
+
+
 def test_fetch_catalogue_archive_minimum_version_rejected():
     """A `minimum_agentbundle_version` newer than the running version fails before download."""
     descriptor = {
@@ -868,26 +972,29 @@ def test_fetch_catalogue_archive_minimum_version_rejected():
     descriptor_data = json.dumps(descriptor).encode()
 
     with (
-        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),
-        mock.patch.object(https_catalogue, "_stream_and_verify") as mock_verify,
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive") as mock_archive,
     ):
         with pytest.raises(CatalogueError, match="999.0.0"):
             fetch_catalogue_archive(
                 "catalogue+https://example.test/channels/stable.json",
                 env={},
             )
-        mock_verify.assert_not_called()  # archive must NOT be fetched
+        mock_archive.assert_not_called()  # archive must NOT be fetched
 
 
-def test_fetch_catalogue_archive_temp_dir_cleaned_on_digest_mismatch():
-    """Temp dir cleaned up when SHA-256 verification fails after extraction."""
+def test_fetch_catalogue_archive_temp_dir_cleaned_on_digest_mismatch(tmp_path: Path):
+    """Temp dir cleaned up when SHA-256 verification fails after fetch."""
     descriptor = {**_VALID_DESCRIPTOR, "sha256": "a" * 64}
     descriptor_data = json.dumps(descriptor).encode()
 
+    # A real temp file whose content does NOT produce "a"*64 digest
+    wrong_archive = tmp_path / "wrong.tar.gz"
+    wrong_archive.write_bytes(b"wrong content - SHA-256 will not match")
+
     with (
-        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),  # noqa: E501
-        mock.patch.object(https_catalogue, "_stream_and_verify",
-                          side_effect=CatalogueError("SHA-256 mismatch")),
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_bytes", return_value=descriptor_data),
+        mock.patch.object(catalogue_fetch.FetchSession, "fetch_archive", return_value=wrong_archive),
         pytest.raises(CatalogueError, match="mismatch"),
     ):
         fetch_catalogue_archive(
@@ -909,27 +1016,34 @@ def test_fetch_catalogue_archive_archive_https_no_sha256_fragment():
 
 
 def test_bearer_token_passed_to_opener():
-    """Bearer token from env passed to opener (not forwarded cross-origin)."""
-    descriptor_data = json.dumps({**_VALID_DESCRIPTOR, "sha256": "a" * 64}).encode()
+    """Bearer token from env reaches the descriptor request as Authorization header.
 
-    captured_env = {}
+    Intent: bearer token from env reaches the request, not cross-origin.
+    Drives fetch_catalogue_archive with AGENTBUNDLE_HTTP_BEARER_TOKEN and
+    asserts the descriptor request carried Authorization: Bearer my-secret-token
+    to example.test.
+    """
+    captured: dict[str, str | None] = {}
 
-    def fake_build_opener(token, original_url, **kwargs):
-        captured_env["token"] = token
-        return _MockOpener(b"", token=token)
+    def capturing_fbb(
+        opener: object, url: str, bound_origin: str,
+        authorization: str | None, max_bytes: int, timeout: int,
+    ) -> bytes:
+        captured["authorization"] = authorization
+        raise CatalogueError("interrupt for test")
 
     with (
-        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),  # noqa: E501
-        mock.patch.object(https_catalogue, "_stream_and_verify",
-                          side_effect=CatalogueError("mismatch for test")),
-        mock.patch.object(https_catalogue, "_build_opener", side_effect=fake_build_opener),
+        mock.patch(
+            "agentbundle.catalogue_fetch.direct_http.fetch_bytes_bounded",
+            side_effect=capturing_fbb,
+        ),
         contextlib.suppress(CatalogueError),
     ):
         fetch_catalogue_archive(
             "catalogue+https://example.test/channels/stable.json",
             env={"AGENTBUNDLE_HTTP_BEARER_TOKEN": "my-secret-token"},
         )
-    assert captured_env.get("token") == "my-secret-token"
+    assert captured.get("authorization") == "Bearer my-secret-token"
 
 
 # ---------------------------------------------------------------------------
@@ -946,18 +1060,18 @@ def test_timeout_constant_is_finite():
 
 
 def test_timeout_passed_to_opener():
-    """_fetch_bytes_limited and _stream_and_verify pass timeout to opener.open."""
+    """fetch_bytes_bounded passes timeout to opener.open."""
     data = b"x" * 5
-    captured = {}
+    captured: dict[str, object] = {}
 
     class _CapturingOpener:
-        _bearer_token = None
-
-        def open(self, req, timeout=None):
+        def open(self, req: urllib.request.Request, timeout: int | None = None) -> _MockResponse:
             captured["timeout"] = timeout
             return _MockResponse(data)
 
-    _fetch_bytes_limited("https://example.test/x", _CapturingOpener(), 100, 42)
+    fetch_bytes_bounded(
+        _CapturingOpener(), "https://example.test/x", _BOUND_ORIGIN, None, 100, 42,
+    )
     assert captured.get("timeout") == 42
 
 
@@ -1074,7 +1188,8 @@ def test_resolve_catalogue_http_error_is_https_only_message():
 
 
 # ---------------------------------------------------------------------------
-# T2 — AGENTBUNDLE_CA_BUNDLE support in _build_opener
+# T2 — AGENTBUNDLE_CA_BUNDLE support (re-pointed to _build_direct_opener)
+# old target: _build_opener → new target: _build_direct_opener
 # ---------------------------------------------------------------------------
 
 
@@ -1085,9 +1200,9 @@ def test_build_opener_custom_ca_bundle(tmp_path: Path):
 
     mock_ctx = mock.MagicMock()
     with mock.patch("ssl.SSLContext", return_value=mock_ctx) as mock_ssl_ctx:
-        opener = _build_opener(
+        opener = _build_direct_opener(
             None,
-            "https://example.test/stable.json",
+            _BOUND_ORIGIN,
             env={"AGENTBUNDLE_CA_BUNDLE": str(ca_file)},
         )
 
@@ -1101,9 +1216,9 @@ def test_build_opener_missing_ca_file_raises():
     """AGENTBUNDLE_CA_BUNDLE with non-existent path raises CatalogueError naming the file."""
     missing = "/nonexistent/corp-ca.pem"
     with pytest.raises(CatalogueError) as exc:
-        _build_opener(
+        _build_direct_opener(
             None,
-            "https://example.test/stable.json",
+            _BOUND_ORIGIN,
             env={"AGENTBUNDLE_CA_BUNDLE": missing},
         )
     assert missing in str(exc.value)
@@ -1113,7 +1228,7 @@ def test_build_opener_no_ca_bundle_uses_default():
     """Without AGENTBUNDLE_CA_BUNDLE, HTTPSHandler is built without a custom context."""
     real_handler = urllib.request.HTTPSHandler
     with mock.patch.object(urllib.request, "HTTPSHandler", wraps=real_handler) as mock_handler:
-        _build_opener(None, "https://example.test/stable.json", env={})
+        _build_direct_opener(None, _BOUND_ORIGIN, env={})
 
     # Our code path must call HTTPSHandler() with no arguments (default SSL context)
     mock_handler.assert_called_once_with()

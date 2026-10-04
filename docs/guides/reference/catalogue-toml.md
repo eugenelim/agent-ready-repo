@@ -91,9 +91,11 @@ distribution coordinates. The schema rejects unknown fields, and the URL
 validator rejects user information and credential query parameters.
 
 No credentials go in this file or the generated defaults. AgentBundle's HTTPS
-catalogue client currently authenticates only through an
-Artifactory-issued token injected as `AGENTBUNDLE_HTTP_BEARER_TOKEN`. It does
-not reuse JFrog CLI, Pip, uv, `.netrc`, keyring, or browser-login credentials.
+catalogue client resolves credentials through a four-provider chain: bearer
+token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`), JFrog CLI 2.105.0+ profile,
+exact-machine `.netrc` record, then anonymous. The Pip, uv, keyring, and
+browser-login credentials used to install the wheel are separate and are not
+available to the catalogue client.
 See the [public setup guide](../../../guides/_shared/how-to/configure-catalogue-enterprise-distribution.md#keep-the-three-credential-paths-separate).
 
 | Field | Type | Description |
