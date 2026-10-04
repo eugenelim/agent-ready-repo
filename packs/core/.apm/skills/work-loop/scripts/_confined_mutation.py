@@ -280,16 +280,43 @@ def _do_temp_write_rename(
                         os.close(temp_fd)
                     temp_fd = -1
 
-            # Atomic rename within the same parent directory.
-            try:
-                os.rename(temp_name, leaf, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-                committed = True
-            except OSError as exc:
-                _try_unlink_by_dir_fd(temp_name, parent_fd)
-                raise MutationDenied(
-                    "denied-staging-failed",
-                    f"rename failed for {relative}: {exc}",
-                ) from exc
+            # Commit the staged content to the target name.
+            if exclusive:
+                # Use os.link so that a target created between the earlier
+                # existence check and this point causes FileExistsError
+                # atomically, instead of being silently replaced by rename.
+                # OSError with EPERM/ENOTSUP/EXDEV means the filesystem does
+                # not support hard links; fail closed rather than fall back to
+                # rename, which would violate the exclusive-create contract.
+                try:
+                    os.link(temp_name, leaf, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+                except FileExistsError:
+                    _try_unlink_by_dir_fd(temp_name, parent_fd)
+                    raise MutationDenied(
+                        "denied-already-exists",
+                        f"file already exists: {relative}",
+                    ) from None
+                except OSError as exc:
+                    _try_unlink_by_dir_fd(temp_name, parent_fd)
+                    raise MutationDenied(
+                        "denied-staging-failed",
+                        f"exclusive create failed for {relative}: {exc}",
+                    ) from exc
+                else:
+                    # Link succeeded: the content is at leaf; remove the temp name.
+                    committed = True
+                    _try_unlink_by_dir_fd(temp_name, parent_fd)
+            else:
+                # Non-exclusive atomic replace: rename replaces an existing target.
+                try:
+                    os.rename(temp_name, leaf, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+                    committed = True
+                except OSError as exc:
+                    _try_unlink_by_dir_fd(temp_name, parent_fd)
+                    raise MutationDenied(
+                        "denied-staging-failed",
+                        f"rename failed for {relative}: {exc}",
+                    ) from exc
 
     except MutationDenied:
         if not committed and temp_fd < 0:

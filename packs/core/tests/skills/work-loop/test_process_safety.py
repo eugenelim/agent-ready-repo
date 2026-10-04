@@ -19,7 +19,9 @@ import hashlib
 import importlib.util
 import os
 import stat
+import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from types import ModuleType
@@ -69,7 +71,10 @@ def process_safety() -> ModuleType:
 
 # ── Executable identity ───────────────────────────────────────────────────────
 
-PYTHON = sys.executable
+# Resolve sys.executable so the test always uses a non-symlink regular file.
+# _open_hash_executable opens with O_NOFOLLOW, so the spec must name a
+# regular file (not a symlink).  Path.resolve() gives the canonical target.
+PYTHON = str(Path(sys.executable).resolve())
 
 
 def _sha256(path: str) -> str:
@@ -1303,3 +1308,421 @@ class TestStdinBound:
                 audit_sink=sink,
             )
         assert exc_info.value.denial_code == "denied-stdin-bound-exceeded"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 4 (process half): post-allow failures must store a denial event
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestPostAllowDenialEvents:
+    """AC-0021: each post-allow failure stores a denied event before raising.
+
+    Each test must fail (no denial event) when the fix is reverted.
+    """
+
+    @_NEEDS_KILL
+    def test_timeout_stores_denial_event(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A process-tree timeout stores a denied event after the allow event."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(tmp_path),
+                    argv=["-c", "import time; time.sleep(120)"],
+                    process_tree_timeout_s=1,
+                ),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-timeout"
+        outcomes = [e.outcome for e in events]
+        assert "allowed" in outcomes, "allow event must be stored before the process"
+        assert "denied" in outcomes, "denied event must be stored after timeout"
+
+    @_NEEDS_KILL
+    def test_output_cap_stores_denial_event(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An output-cap breach stores a denied event after the allow event."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        bound = 64
+        secret = "MYSECRET"
+        hard_cap = bound + len(secret)
+        flood = hard_cap * 10
+        code = (
+            f"import sys, time\n"
+            f"sys.stdout.buffer.write(b'X' * {flood})\n"
+            f"sys.stdout.buffer.flush()\n"
+            f"time.sleep(60)\n"
+        )
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(tmp_path),
+                    argv=["-c", code],
+                    output_bound_bytes=bound,
+                    process_tree_timeout_s=10,
+                ),
+                sensitive_values=[secret],
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-output-cap-exceeded"
+        outcomes = [e.outcome for e in events]
+        assert "allowed" in outcomes, "allow event must be stored before the process"
+        assert "denied" in outcomes, "denied event must be stored after cap breach"
+
+    def test_launch_failure_stores_denial_event(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A Popen failure after the allow event stores a denied event.
+
+        Monkeypatches subprocess.Popen to raise OSError after the allow event
+        has been stored, so the denial event must appear alongside the allow.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+
+        _real_popen = subprocess.Popen
+
+        def _failing_popen(*args, **kwargs):  # noqa: ANN002, ANN003
+            raise OSError("injected Popen failure for test")
+
+        subprocess.Popen = _failing_popen  # type: ignore[assignment]
+        try:
+            with pytest.raises(ps.ProcessDenied) as exc_info:
+                _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
+        finally:
+            subprocess.Popen = _real_popen  # type: ignore[assignment]
+
+        assert exc_info.value.denial_code == "denied-launch-failed"
+        outcomes = [e.outcome for e in events]
+        assert "allowed" in outcomes, "allow event must be stored before Popen"
+        assert "denied" in outcomes, "denied event must be stored after Popen failure"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 6: executable identity — no-follow, bounded, fd-based exec
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestExecIdentityMechanism:
+    """AC-0011/AC-0012: executable open is no-follow, bounded, regular-file only.
+
+    Each test must fail when the fix is reverted to path-based hashing.
+    """
+
+    def test_symlink_executable_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A symlink at the executable path is refused before any allow event.
+
+        Without the fix, the old code followed the symlink silently.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        link_path = tmp_path / "python_link"
+        try:
+            link_path.symlink_to(PYTHON)
+        except (OSError, NotImplementedError):
+            pytest.skip("cannot create symlink on this host")
+
+        link_hash = _sha256(PYTHON)  # same content; hash matches the target
+        spec = _spec(str(tmp_path), executable=str(link_path), executable_identity=link_hash)
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, spec, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-launch-failed", (
+            f"symlink executable should be refused with denied-launch-failed; "
+            f"got {exc_info.value.denial_code!r}"
+        )
+        # No allow event must be present (refusal happens before allow).
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when the executable is a symlink"
+        )
+
+    def test_fifo_executable_refused_without_hang(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A FIFO at the executable path is refused promptly, without hanging.
+
+        Without the fix, open() on a FIFO without O_NONBLOCK blocks until a
+        writer appears.  A timeout guard in this test catches a hang.
+        """
+        ps = process_safety
+        fifo_path = tmp_path / "exec_fifo"
+        try:
+            os.mkfifo(str(fifo_path))
+        except (OSError, AttributeError):
+            pytest.skip("mkfifo not available on this host")
+
+        result: dict = {"denied": False, "timed_out": False}
+
+        def _run() -> None:
+            events, sink = _recording_sink()
+            spec = _spec(
+                str(tmp_path),
+                executable=str(fifo_path),
+                executable_identity="a" * 64,
+            )
+            try:
+                _launch(ps, spec, audit_sink=sink)
+            except ps.ProcessDenied:
+                result["denied"] = True
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        t.join(timeout=5)
+        if t.is_alive():
+            result["timed_out"] = True
+
+        assert not result["timed_out"], (
+            "launch with FIFO executable hung — O_NONBLOCK not applied during open"
+        )
+        assert result["denied"], "launch with FIFO executable must be denied"
+
+    def test_swap_after_verification_refused(
+        self, process_safety: ModuleType, tmp_path, monkeypatch
+    ) -> None:
+        """A binary swap between verification and exec is detected and refused.
+
+        This test exercises the macOS / non-Linux code path where the verified
+        descriptor is closed and a final no-follow stat re-checks the inode
+        before Popen.  On Linux the fd-based exec path is used instead (no
+        TOCTOU window), so this test is skipped there.
+
+        The test simulates a post-verification swap by monkeypatching
+        ``_open_and_verify_executable`` to return a bogus inode number.
+        When the caller re-stats the real path the inode does not match,
+        so launch is refused with ``denied-executable-identity-changed``.
+
+        This test MUST fail when the final identity re-check is removed.
+        """
+        ps = process_safety
+        if ps._USE_PROC_FD:  # type: ignore[attr-defined]
+            pytest.skip("Linux uses fd-based exec; TOCTOU check is macOS/non-Linux only")
+
+        original_fn = ps._open_and_verify_executable  # type: ignore[attr-defined]
+
+        def _fake_verify(path: str) -> tuple:
+            hex_digest, fd, st_dev, st_ino = original_fn(path)
+            # Return a bogus inode to simulate a post-verification swap.
+            return hex_digest, fd, st_dev, st_ino + 99_999
+
+        monkeypatch.setattr(ps, "_open_and_verify_executable", _fake_verify)
+
+        events, sink = _recording_sink()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-executable-identity-changed", (
+            f"swap should be refused with 'denied-executable-identity-changed'; "
+            f"got {exc_info.value.denial_code!r}"
+        )
+        # A denial event must have been emitted.
+        assert any(e.outcome == "denied" for e in events), (
+            "a denied event must be stored when inode check fails"
+        )
+
+    @pytest.mark.skipif(
+        not (sys.platform.startswith("linux") and Path("/proc/self/fd").is_dir()),
+        reason="Linux /proc/self/fd fd-based exec is Linux-only",
+    )
+    def test_linux_proc_fd_used_for_exec(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """On Linux, Popen's executable= is /proc/self/fd/<n>, not the original path.
+
+        When _USE_PROC_FD is True, the verified descriptor is passed directly
+        to Popen so the kernel executes exactly the inode that was hashed with
+        no TOCTOU window.
+
+        This test MUST fail when the fd-based exec path is replaced with the
+        original-path exec.
+        """
+        ps = process_safety
+        popen_calls: list[dict] = []
+        _real_popen = subprocess.Popen
+
+        def _spy_popen(argv, *, executable=None, **kwargs):  # noqa: ANN001, ANN002, ANN003
+            popen_calls.append({"argv": argv, "executable": executable})
+            return _real_popen(argv, executable=executable, **kwargs)
+
+        events, sink = _recording_sink()
+        subprocess.Popen = _spy_popen  # type: ignore[assignment]
+        try:
+            _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
+        finally:
+            subprocess.Popen = _real_popen  # type: ignore[assignment]
+
+        assert popen_calls, "Popen must have been called"
+        exe = popen_calls[0]["executable"]
+        assert exe is not None, "executable= must be set in the Popen call"
+        assert exe.startswith("/proc/self/fd/"), (
+            f"On Linux, Popen must use /proc/self/fd/<n>; got executable={exe!r}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 7: bounded post-kill drain — escaped descendants cannot block timeout
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestBoundedPostKillDrain:
+    """AC-0012: timeout and cap paths complete in bounded time.
+
+    Each test must fail (hang or exceed the time bound) when the fix is reverted
+    to proc.communicate() with no timeout argument.
+    """
+
+    @_NEEDS_KILL
+    def test_timeout_bounded_when_descendant_holds_pipe(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """Timeout path finishes within a fixed bound even if a grandchild holds the pipe.
+
+        The Python script spawns a grandchild with close_fds=False (so the
+        grandchild inherits the stdout/stderr pipe), then the grandchild calls
+        os.setpgid to create its own process group.  After the parent (Python
+        script) is killed, the grandchild is still alive and holds the pipes.
+        Without a bounded drain, proc.communicate() blocks forever.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        # Child spawns a grandchild that creates its own process group and
+        # inherits the pipe, then parent sleeps past the timeout.
+        code = (
+            "import os, sys, subprocess, time\n"
+            "gc = subprocess.Popen(\n"
+            "    [sys.executable, '-c',\n"
+            "     'import os, time; os.setpgid(0, 0); time.sleep(60)'],\n"
+            "    close_fds=False,\n"
+            ")\n"
+            "time.sleep(60)\n"
+        )
+        start = time.monotonic()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(tmp_path),
+                    argv=["-c", code],
+                    process_tree_timeout_s=1,
+                ),
+                audit_sink=sink,
+            )
+        elapsed = time.monotonic() - start
+        assert exc_info.value.denial_code == "denied-timeout"
+        # 1 s timeout + 5 s drain bound + generous overhead = 15 s ceiling.
+        assert elapsed < 15, (
+            f"Timeout path took {elapsed:.1f}s — bounded drain not applied"
+        )
+        # Denial event must have been stored (Finding 4 complement).
+        assert any(e.outcome == "denied" for e in events), (
+            "denied event must be stored after timeout"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 11: process spec type validation before the allow event
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestProcessSpecTypeValidation:
+    """validate_process_spec_dict refuses invalid field types with stable codes.
+
+    Each test must fail (allow the launch) when the type checks are reverted.
+    All refusals must happen before any allow event is stored.
+    """
+
+    def test_string_argv_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """argv='hello' (a string, not a list) is refused with denied-invalid-field-value."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        bad = _spec(str(tmp_path), argv="hello")  # type: ignore[arg-type]
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, bad, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"string argv must be refused; got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when argv has the wrong type"
+        )
+
+    def test_non_string_argv_item_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """argv=[1, 'hello'] (non-string item) is refused with denied-invalid-field-value."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        bad = _spec(str(tmp_path), argv=[1, "hello"])  # type: ignore[list-item]
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, bad, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"non-string argv item must be refused; got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when argv contains a non-string"
+        )
+
+    def test_non_list_environment_allowlist_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """environment_allowlist='PATH' (a string) is refused with denied-invalid-field-value."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        bad = _spec(str(tmp_path), environment_allowlist="PATH")  # type: ignore[arg-type]
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, bad, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"non-list environment_allowlist must be refused; "
+            f"got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when environment_allowlist has wrong type"
+        )
+
+    def test_env_name_with_equals_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An env name containing '=' is refused with denied-invalid-field-value.
+
+        An env name with '=' would corrupt the environment key=value format
+        on POSIX, potentially allowing environment injection.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        bad = _spec(str(tmp_path), environment_allowlist=["PATH=injected"])
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, bad, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"env name with '=' must be refused; got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when env name contains '='"
+        )
+
+    def test_env_name_with_nul_refused(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An env name containing NUL is refused with denied-invalid-field-value.
+
+        A NUL byte in an env name would truncate the key at the C-string boundary,
+        potentially hiding or escaping the name.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        bad = _spec(str(tmp_path), environment_allowlist=["PATH\x00INJECTED"])
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, bad, audit_sink=sink)
+        assert exc_info.value.denial_code == "denied-invalid-field-value", (
+            f"env name with NUL must be refused; got {exc_info.value.denial_code!r}"
+        )
+        assert not any(e.outcome == "allowed" for e in events), (
+            "no allow event must be stored when env name contains NUL"
+        )

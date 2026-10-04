@@ -287,6 +287,36 @@ def _check_record_safety(
 # ── Authority check helper ────────────────────────────────────────────────────
 
 
+def _emit_post_allow_denial(
+    audit_sink: Callable[[Any], None],
+    operation_id: str,
+    denial_code: str,
+) -> None:
+    """Emit a best-effort denial event matching a prior allow event at the same boundary.
+
+    When a boundary stores an allow event and then refuses further processing,
+    a matching denied event must be stored so the audit log remains consistent.
+    Uses ``emit_denial_best_effort`` so the original refusal is never suppressed.
+    Both events share the same ``operation_id``; the correlation is set to
+    ``"redacted"`` because the post-allow refusal carries no grant ID.
+    """
+    try:
+        se = _security_events()
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        event = se.SecurityEvent(
+            schema_version=1,
+            operation_id=operation_id,
+            correlation_id="redacted",
+            event_type="capability-check",
+            outcome="denied",
+            reason_code=denial_code,
+            timestamp=timestamp,
+        )
+        se.emit_denial_best_effort(audit_sink, event)
+    except Exception:  # noqa: BLE001 — denial emission must not suppress the original refusal
+        pass
+
+
 def _check_writer_authority(
     issuer: object,
     grant: object,
@@ -294,8 +324,12 @@ def _check_writer_authority(
     audit_sink: Callable[[Any], None],
     record_scope: str,
     required_operations: list[str],
-) -> None:
+) -> str:
     """Validate writer authority and emit a durable security event.
+
+    Returns the ``operation_id`` used in the emitted event so that callers can
+    attach a matching denial event for any subsequent post-allow refusal at the
+    same boundary.
 
     Raises PolicyImportRefused if authority is denied, and with
     ``denied-audit-sink-unavailable`` if the audit sink is unavailable; the
@@ -357,6 +391,7 @@ def _check_writer_authority(
             "denied-writer-authority",
             f"writer authority denied for record scope {record_scope!r}",
         )
+    return operation_id
 
 
 # ── Refs ambiguity check ──────────────────────────────────────────────────────
@@ -584,7 +619,8 @@ def import_policy(
         )
 
     # Step 1 — validate writer authority.
-    _check_writer_authority(
+    # The returned operation_id links any post-allow denial to this allow event.
+    op_id = _check_writer_authority(
         issuer,
         writer_grant,
         audit_sink=audit_sink,
@@ -594,19 +630,25 @@ def import_policy(
 
     # Step 2 — validate terminal intent.
     if not isinstance(terminal_intent, str) or not terminal_intent.strip():
+        _emit_post_allow_denial(audit_sink, op_id, "denied-invalid-terminal-intent")
         raise PolicyImportRefused(
             "denied-invalid-terminal-intent",
             "terminal_intent must be a non-empty string",
         )
 
     # Step 3 — refuse ambiguous criterion references before computing digests.
-    _check_refs_unambiguous(refs)
+    try:
+        _check_refs_unambiguous(refs)
+    except PolicyImportRefused as exc:
+        _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+        raise
 
     # Step 4 — compute digests via _loop_guards.
     try:
         spec_digest = compute_spec_digest(spec_path)
         plan_digest = compute_plan_digest(plan_path)
     except (OSError, ValueError, ImportError) as exc:
+        _emit_post_allow_denial(audit_sink, op_id, "denied-canonicalization-failed")
         raise PolicyImportRefused(
             "denied-canonicalization-failed",
             "failed to compute canonical digests",
@@ -614,11 +656,13 @@ def import_policy(
 
     # Step 5 — compare computed digests against the caller's approval pins.
     if spec_digest != approved_spec_digest:
+        _emit_post_allow_denial(audit_sink, op_id, "denied-spec-digest-mismatch")
         raise PolicyImportRefused(
             "denied-spec-digest-mismatch",
             "computed spec digest does not match the approved pin",
         )
     if plan_digest != approved_plan_digest:
+        _emit_post_allow_denial(audit_sink, op_id, "denied-plan-digest-mismatch")
         raise PolicyImportRefused(
             "denied-plan-digest-mismatch",
             "computed plan digest does not match the approved pin",
@@ -629,6 +673,7 @@ def import_policy(
     try:
         envelope = acc.derive_envelope(refs)
     except Exception as exc:  # noqa: BLE001 — map AcceptanceRefused to PolicyImportRefused
+        _emit_post_allow_denial(audit_sink, op_id, "denied-envelope-derivation")
         raise PolicyImportRefused(
             "denied-envelope-derivation",
             "envelope derivation failed",
@@ -640,6 +685,7 @@ def import_policy(
         approved_envelope_fingerprint is not None
         and envelope_fingerprint != approved_envelope_fingerprint
     ):
+        _emit_post_allow_denial(audit_sink, op_id, "denied-envelope-mismatch")
         raise PolicyImportRefused(
             "denied-envelope-mismatch",
             "derived envelope fingerprint does not match the approved pin",
@@ -647,11 +693,13 @@ def import_policy(
 
     # Validate approval authority identity and role.
     if not isinstance(approval_identity, str) or not approval_identity.strip():
+        _emit_post_allow_denial(audit_sink, op_id, "denied-invalid-authority-identity")
         raise PolicyImportRefused(
             "denied-invalid-authority-identity",
             "approval_identity must be a non-empty string",
         )
     if not isinstance(approval_role, str) or not approval_role.strip():
+        _emit_post_allow_denial(audit_sink, op_id, "denied-invalid-authority-role")
         raise PolicyImportRefused(
             "denied-invalid-authority-role",
             "approval_role must be a non-empty string",
@@ -675,17 +723,22 @@ def import_policy(
     # Validate the built approval record against its contract before staging.
     _val_ok, _val_code = validate_approval_dict(approval_record)
     if not _val_ok:
+        _emit_post_allow_denial(audit_sink, op_id, "denied-schema-invalid-approval")
         raise PolicyImportRefused(
             "denied-schema-invalid-approval",
             f"built approval record failed schema validation: {_val_code}",
         )
 
     # Apply content-safety profile before staging.
-    _check_record_safety(
-        approval_record,
-        "approval-record.v1",
-        record_id=approval_id,
-    )
+    try:
+        _check_record_safety(
+            approval_record,
+            "approval-record.v1",
+            record_id=approval_id,
+        )
+    except PolicyImportRefused as exc:
+        _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+        raise
 
     # Step 9 — stage the approval record.
     store._stage(approval_record)
@@ -693,12 +746,14 @@ def import_policy(
     # Validate reviewer identity.
     if not isinstance(reviewer_identity, str) or not reviewer_identity.strip():
         store._rollback()
+        _emit_post_allow_denial(audit_sink, op_id, "denied-invalid-reviewer-identity")
         raise PolicyImportRefused(
             "denied-invalid-reviewer-identity",
             "reviewer_identity must be a non-empty string",
         )
     if not isinstance(reviewer_role, str) or not reviewer_role.strip():
         store._rollback()
+        _emit_post_allow_denial(audit_sink, op_id, "denied-invalid-reviewer-role")
         raise PolicyImportRefused(
             "denied-invalid-reviewer-role",
             "reviewer_role must be a non-empty string",
@@ -721,6 +776,7 @@ def import_policy(
     _val_ok, _val_code = validate_initial_review_dict(initial_review)
     if not _val_ok:
         store._rollback()
+        _emit_post_allow_denial(audit_sink, op_id, "denied-schema-invalid-review")
         raise PolicyImportRefused(
             "denied-schema-invalid-review",
             f"built initial review failed schema validation: {_val_code}",
@@ -733,8 +789,9 @@ def import_policy(
             "initial-plan-review.v1",
             record_id=review_id,
         )
-    except PolicyImportRefused:
+    except PolicyImportRefused as exc:
         store._rollback()
+        _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
         raise
 
     # Step 11 — stage the initial-plan-review record.

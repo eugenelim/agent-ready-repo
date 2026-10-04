@@ -157,6 +157,7 @@ ATTESTATION_DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-no-verified-containment",
     "denied-unsupported-host-containment",
     "denied-audit-sink-unavailable",
+    "denied-unverified-grant",
 })
 
 # ---------------------------------------------------------------------------
@@ -326,21 +327,44 @@ _ENFORCEMENT_TO_PROOF_MODE: Final[dict[str, str]] = {
 }
 
 
+def _norm_path(raw: str) -> str:
+    """Lexically normalise a path string for containment comparison.
+
+    Uses posixpath.normpath so that traversal sequences like /w/../etc resolve
+    before the check.  Trailing slashes are stripped so prefix comparison works
+    consistently.  Backslashes are converted to forward slashes first so that
+    Windows-style paths do not bypass normalisation.
+    """
+    return posixpath.normpath(raw.replace("\\", "/")).rstrip("/")
+
+
+def _norm_covered_by(a_norm: str, g_root: str) -> bool:
+    """Return True when normalised attestation root *a_norm* is within *g_root*.
+
+    *g_root* is normalised here so callers need not pre-normalise grant roots.
+    """
+    g_norm = _norm_path(g_root)
+    return a_norm == g_norm or a_norm.startswith(g_norm + "/")
+
+
 def _roots_broader(attestation_roots: tuple[str, ...], grant_roots: tuple[str, ...]) -> bool:
     """Return True when the attestation claims roots outside the grant.
 
     A root is outside the grant when no grant root is a prefix of it.
-    This is a conservative check: if the attestation root is ``/a`` but the
-    grant only permits ``/a/sub``, the attestation is broader.
+    Both sides are normalised with posixpath.normpath before comparison so that
+    traversal sequences like /w/../etc resolve before the check.  A normalised
+    attestation root that still contains a ``..`` component (e.g. ``../outside``)
+    is always treated as broader — it cannot be verified to be within any grant.
     """
     if not grant_roots:
         return bool(attestation_roots)
     for a_root in attestation_roots:
-        a_norm = a_root.rstrip("/")
-        covered = any(
-            a_norm == g_root.rstrip("/") or a_norm.startswith(g_root.rstrip("/") + "/")
-            for g_root in grant_roots
-        )
+        a_norm = _norm_path(a_root)
+        # A path that retains .. after normalisation escapes its start point
+        # and cannot be contained within any grant root.
+        if ".." in a_norm.split("/"):
+            return True
+        covered = any(_norm_covered_by(a_norm, g_root) for g_root in grant_roots)
         if not covered:
             return True
     return False
@@ -373,7 +397,11 @@ def check_attestation_within_grant(
 
     # read_enforcement vs product_read_proof_mode
     grant_proof_mode: str | None = getattr(grant, "product_read_proof_mode", None)
-    if attestation.read_enforcement is not None and grant_proof_mode is not None:
+    if grant_proof_mode is not None:
+        if attestation.read_enforcement is None:
+            # Grant requires read coverage but attestation claims none — refuse.
+            # An absent read_enforcement is weaker than any required proof mode.
+            return False, "denied-attestation-broader-than-grant"
         # Attestation claims a specific read enforcement; it must be at least as
         # strict as the grant requires.
         attest_perm = _PROOF_MODE_PERMISSIVENESS.get(
@@ -384,20 +412,23 @@ def check_attestation_within_grant(
             # Attestation is weaker (more permissive) than the grant requires.
             return False, "denied-attestation-broader-than-grant"
 
-    # network: if grant denies network (network is None), attestation must not claim it.
+    # network: deny when the grant disallows network (absent or allowed=False).
+    # A grant field of allowed=False is treated the same as absent.
     grant_network = getattr(grant, "network", None)
+    grant_net_denied = grant_network is None or not getattr(grant_network, "allowed", True)
     attest_net_allowed = (
         attestation.network is not None and attestation.network.get("allowed")
     )
-    if grant_network is None and attest_net_allowed:
+    if grant_net_denied and attest_net_allowed:
         return False, "denied-attestation-broader-than-grant"
 
-    # children: if grant denies children, attestation must not claim it.
+    # children: deny when the grant disallows children (absent or allowed=False).
     grant_children = getattr(grant, "children", None)
+    grant_child_denied = grant_children is None or not getattr(grant_children, "allowed", True)
     attest_child_allowed = (
         attestation.children is not None and attestation.children.get("allowed")
     )
-    if grant_children is None and attest_child_allowed:
+    if grant_child_denied and attest_child_allowed:
         return False, "denied-attestation-broader-than-grant"
 
     # limits: attestation limits must not be more permissive than the grant.
@@ -563,14 +594,16 @@ def launch_untrusted(
     host: object | None = None,
     audit_sink: Callable | None = None,
     operation_id: str | None = None,
+    issuer: object | None = None,
 ) -> object:
     """Launch an untrusted executable under verified host containment.
 
     Refuses before any process starts unless all of the following hold:
 
     1. The audit sink is available.
-    2. The host supplies a valid containment attestation.
-    3. The attestation is within the grant on every axis.
+    2. When an issuer is provided, the grant must verify against it.
+    3. The host supplies a valid containment attestation.
+    4. The attestation is within the grant on every axis.
 
     Only then does it delegate to ``_process_safety.launch_safe_process()``.
 
@@ -590,14 +623,20 @@ def launch_untrusted(
                        event persisted.
         operation_id:  Stable operation ID for the audit event; generated
                        when absent.
+        issuer:        Optional owning issuer.  When given, the grant must
+                       pass ``issuer.verify_grant(grant)``; a caller-built
+                       or revoked grant is refused with an audited denial and
+                       the ``denied-unverified-grant`` code before any host
+                       interaction.  When absent (default), no issuer check
+                       is performed.
 
     Returns:
         The ``ProcessResult`` from ``_process_safety.launch_safe_process()``.
 
     Raises:
         ContainmentRefused: with a stable denial code on any containment
-            refusal (sink unavailable, no attestation, invalid attestation,
-            or attestation broader than the grant).
+            refusal (sink unavailable, unverified grant, no attestation,
+            invalid attestation, or attestation broader than the grant).
         _process_safety.ProcessDenied: propagated from ``launch_safe_process``
             when containment checks pass but the process itself fails.
     """
@@ -627,6 +666,15 @@ def launch_untrusted(
             ),
         )
         return ContainmentRefused(denial_code, message)
+
+    # When an issuer is provided, verify the grant before trusting any of its
+    # fields.  A caller-built grant or a revoked grant fails verification and
+    # is refused with an audited denial before any host interaction.
+    if issuer is not None and not issuer.verify_grant(grant):
+        raise refuse(
+            "denied-unverified-grant",
+            "grant could not be verified with its issuer; refusing untrusted launch",
+        )
 
     # Ask the host for a verified containment attestation.
     raw_attestation = resolved_host.get_attestation(spec_dict, grant)

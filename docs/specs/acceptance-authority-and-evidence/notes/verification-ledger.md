@@ -215,3 +215,26 @@ refused case, with the correlation ID redacted, and never retries a failing
 sink. Writer-authority denials and all three untrusted-launch refusals now use
 it. `test_audit_boundary_invariant.py` asserts one stored `denied` event for
 each refusal at the four security boundaries.
+
+A third override on 2026-10-04 followed the first post-gates security review,
+which sustained 11 findings and refuted one: 2 Blockers, 6 Concerns, and 3 Nits,
+including one downgraded from a Concern. They fall into four groups: untrusted
+launch and grants, audit completeness after an allow event, the process
+primitive, and file safety. The owner chose a single hardening wave covering all
+11, each fix with a test that fails without it. A full re-review follows:
+security first, then adversarial and quality-engineer. The refuted finding,
+that confined-file stdin should share the bounded-bytes ceiling, stays refuted:
+that mode keeps its own explicit per-call bound.
+
+## Executable identity pinning (owner decision, 2026-10-04)
+
+The process primitive verifies an executable through a no-follow, bounded,
+regular-file descriptor before launch. The owner chose to pin by file identity
+rather than run a private temp copy, because a relocated copy breaks binaries
+that locate libraries or helpers relative to their own path. On Linux the
+verified descriptor itself is executed through `/proc/self/fd`, so the kernel
+runs exactly the hashed file. On macOS, which has no equivalent, the original
+path runs after a final no-follow check that its device and inode still match
+the verified file. Accepted residual risk: on macOS a short window remains
+between that check and exec. Exploiting it needs write access to the
+executable's directory, which the trust model excludes.

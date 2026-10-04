@@ -200,7 +200,8 @@ def intersect_grants(
     - ``control_denies``: union (both sets of denied paths apply).
     - ``product_read_proof_mode``: stricter of the two (lower permissiveness);
       absent in either → absent (deny all product reads).
-    - ``trust_class``: taken from the request.
+    - ``trust_class``: kept from the parent unless both sides already agree;
+      a child may never claim a more-trusted class than its parent.
     """
     # roots: intersection
     child_roots = tuple(sorted(set(parent.roots) & set(request.roots)))
@@ -218,17 +219,37 @@ def intersect_grants(
     child_network: _NetworkGrant | None = None
     if parent.network is not None and request.network is not None:
         net_allowed = parent.network.allowed and request.network.allowed
-        p_dests = set(parent.network.allowed_destinations)
-        r_dests = set(request.network.allowed_destinations)
-        if p_dests and r_dests:
-            child_dests = tuple(sorted(p_dests & r_dests))
-        elif p_dests:
-            child_dests = tuple(sorted(p_dests))
-        elif r_dests:
-            child_dests = tuple(sorted(r_dests))
+        if not net_allowed:
+            # At least one side denies network; child inherits the denial.
+            child_network = _NetworkGrant(allowed=False)
         else:
-            child_dests = ()
-        child_network = _NetworkGrant(allowed=net_allowed, allowed_destinations=child_dests)
+            p_dests = set(parent.network.allowed_destinations)
+            r_dests = set(request.network.allowed_destinations)
+            if p_dests and r_dests:
+                # Both sides constrain to specific destinations: take intersection.
+                # A disjoint intersection produces no valid destinations, so
+                # network is denied rather than yielding an empty set that reads
+                # as "any destination".
+                intersected = p_dests & r_dests
+                if not intersected:
+                    child_network = _NetworkGrant(allowed=False)
+                else:
+                    child_network = _NetworkGrant(
+                        allowed=True, allowed_destinations=tuple(sorted(intersected))
+                    )
+            elif p_dests:
+                # Only parent constrains: child is limited to parent's list.
+                child_network = _NetworkGrant(
+                    allowed=True, allowed_destinations=tuple(sorted(p_dests))
+                )
+            elif r_dests:
+                # Only request constrains: child is limited to request's list.
+                child_network = _NetworkGrant(
+                    allowed=True, allowed_destinations=tuple(sorted(r_dests))
+                )
+            else:
+                # Neither side constrains destinations: any destination is allowed.
+                child_network = _NetworkGrant(allowed=True)
 
     # children: absent in either → absent
     child_children: _ChildrenGrant | None = None
@@ -269,12 +290,22 @@ def intersect_grants(
         else:
             child_proof_mode = request.product_read_proof_mode
 
+    # trust_class: a child may never claim a more-trusted class than its parent.
+    # No explicit ordering is declared in this module, so the parent's class is
+    # kept whenever the two differ; the request may only keep its own class when
+    # both sides already agree.
+    child_trust_class = (
+        request.trust_class
+        if request.trust_class == parent.trust_class
+        else parent.trust_class
+    )
+
     return CapabilityGrant(
         schema_version=SUPPORTED_SCHEMA_VERSION,
         grant_id=new_grant_id,
         roots=child_roots,
         operations=child_ops,
-        trust_class=request.trust_class,
+        trust_class=child_trust_class,
         writes=child_writes,
         control_denies=child_control_denies,
         limits=child_limits,

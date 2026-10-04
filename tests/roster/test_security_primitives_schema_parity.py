@@ -463,3 +463,29 @@ class TestSafeProcessSchemaParity:
         ok, code = process_safety.validate_process_spec_dict(bad)
         assert not ok, "must refuse stdin_mode outside enum"
         assert code == "denied-invalid-stdin-mode"
+
+    def test_validate_refuses_non_string_argv_item(
+        self, process_safety: ModuleType
+    ) -> None:
+        """validate_process_spec_dict refuses argv with a non-string item.
+
+        The safe-process.v1 schema declares argv items as type: string.
+        A non-string item is refused before any allow event.
+        """
+        bad = {**_VALID_SAFE_PROCESS, "argv": [1, "extra"]}
+        ok, code = process_safety.validate_process_spec_dict(bad)
+        assert not ok, "must refuse argv with a non-string item"
+        assert code == "denied-invalid-field-value"
+
+    def test_validate_refuses_env_name_with_equals(
+        self, process_safety: ModuleType
+    ) -> None:
+        """validate_process_spec_dict refuses an env name containing '='.
+
+        The safe-process.v1 schema declares environment_allowlist items as
+        type: string.  A name with '=' corrupts the POSIX key=value format.
+        """
+        bad = {**_VALID_SAFE_PROCESS, "environment_allowlist": ["PATH=injected"]}
+        ok, code = process_safety.validate_process_spec_dict(bad)
+        assert not ok, "must refuse env name containing '='"
+        assert code == "denied-invalid-field-value"

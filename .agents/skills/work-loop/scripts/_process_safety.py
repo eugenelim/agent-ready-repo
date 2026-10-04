@@ -89,7 +89,9 @@ DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-audit-sink-unavailable",
     "denied-cwd-not-found",
     "denied-cwd-unsafe",
+    "denied-executable-identity-changed",
     "denied-identity-mismatch",
+    "denied-invalid-field-value",
     "denied-invalid-output-bound",
     "denied-invalid-stdin-mode",
     "denied-invalid-timeout",
@@ -173,12 +175,26 @@ _VALID_STDIN_MODES: Final[frozenset[str]] = frozenset({
     "confined-file",
 })
 
+# Upper bound for executable binary size.  256 MiB accommodates any realistic
+# system binary (Python: ~20 MiB, git: ~10 MiB) while blocking oversized files
+# that could exhaust memory or indicate a confused-deputy attack.
+_MAX_EXECUTABLE_BYTES: Final[int] = 256 * 1024 * 1024
+
 # ── Platform capability ───────────────────────────────────────────────────────
 
 # True when the host can terminate the full process group on timeout.
 # Launch is refused with "denied-unsupported-tree-kill" when False.
 TREE_KILL_SUPPORTED: Final[bool] = (
     hasattr(os, "killpg") and hasattr(signal, "SIGKILL")
+)
+
+# True when /proc/self/fd is available for fd-based exec.
+# On Linux, Popen executes the verified descriptor directly via
+# executable="/proc/self/fd/<n>" + pass_fds=(n,), so the kernel runs exactly
+# the inode that was hashed — no TOCTOU window between verification and exec.
+# Elsewhere (macOS, …) a path-based exec is used with a final identity re-check.
+_USE_PROC_FD: Final[bool] = (
+    sys.platform.startswith("linux") and Path("/proc/self/fd").is_dir()
 )
 
 # ── Exception ────────────────────────────────────────────────────────────────
@@ -278,6 +294,20 @@ def validate_process_spec_dict(d: dict) -> tuple[bool, str]:
     if not isinstance(executable, str) or not Path(executable).is_absolute():
         return False, "denied-non-absolute-executable"
 
+    # argv must be a list of strings; a bare string turns into single-char args.
+    argv_val = d.get("argv")
+    if not isinstance(argv_val, list) or not all(isinstance(i, str) for i in argv_val):
+        return False, "denied-invalid-field-value"
+
+    # environment_allowlist must be a list of strings with no '=' or NUL,
+    # which would corrupt or escape the environment key on POSIX.
+    env_allowlist = d.get("environment_allowlist")
+    if not isinstance(env_allowlist, list):
+        return False, "denied-invalid-field-value"
+    for _env_name in env_allowlist:
+        if not isinstance(_env_name, str) or "=" in _env_name or "\x00" in _env_name:
+            return False, "denied-invalid-field-value"
+
     timeout = d.get("process_tree_timeout_s")
     if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout < 1:
         return False, "denied-invalid-timeout"
@@ -297,16 +327,77 @@ def _now_rfc3339() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _hash_file_sha256(path: str) -> str:
-    """Return the SHA-256 hex digest of the file at *path*.
+def _open_and_verify_executable(path: str) -> tuple[str, int, int, int]:
+    """Open *path* without following links, verify it, and hash it.
 
-    Raises OSError when the file cannot be opened or read.
+    Opens with O_RDONLY|O_NOFOLLOW|O_NONBLOCK so that:
+    - a symlink at the final path component is refused (ELOOP / ENOTDIR);
+    - a FIFO does not block the open call (O_NONBLOCK on open; no effect on
+      reads from regular files).
+
+    After a successful open, fstat verifies:
+    - the target is a regular file (S_ISREG);
+    - the file size is within _MAX_EXECUTABLE_BYTES (256 MiB).
+
+    The SHA-256 is computed by reading from the open descriptor.  The inode
+    identity (st_dev, st_ino) is recorded so the caller can detect a swap
+    between verification and exec.
+
+    Platform-specific exec guarantee:
+    - Linux with /proc/self/fd (_USE_PROC_FD is True): the file descriptor is
+      kept open and returned.  The caller executes
+      ``executable="/proc/self/fd/<n>"`` with ``pass_fds=(n,)`` so the kernel
+      runs exactly the inode that was hashed — no TOCTOU window.
+    - Elsewhere (macOS and others): the descriptor is closed before this
+      function returns (returned fd is -1).  The caller performs a final
+      ``os.stat(path, follow_symlinks=False)`` immediately before Popen and
+      refuses if the inode identity has changed.  A narrow TOCTOU window
+      remains on these platforms; exploiting it requires write access to the
+      executable's directory.
+
+    Returns:
+        (hex_digest, fd_or_neg1, st_dev, st_ino) — SHA-256 hex digest, open
+        descriptor or -1, device number, inode number.
+
+    Raises:
+        OSError: when the file cannot be opened, is not a regular file, or
+                 exceeds _MAX_EXECUTABLE_BYTES.
     """
-    h = hashlib.sha256()
-    with Path(path).open("rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    src_fd = os.open(path, flags)
+    try:
+        info = os.fstat(src_fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise OSError(
+                f"executable is not a regular file "
+                f"(mode {oct(info.st_mode)}): {path!r}"
+            )
+        if info.st_size > _MAX_EXECUTABLE_BYTES:
+            raise OSError(
+                f"executable size {info.st_size} bytes exceeds ceiling of "
+                f"{_MAX_EXECUTABLE_BYTES} bytes: {path!r}"
+            )
+        st_dev = info.st_dev
+        st_ino = info.st_ino
+        # Hash the file content from the open descriptor.
+        h = hashlib.sha256()
+        while True:
+            chunk = os.read(src_fd, 65536)
+            if not chunk:
+                break
             h.update(chunk)
-    return h.hexdigest()
+        hex_digest = h.hexdigest()
+    except Exception:
+        os.close(src_fd)
+        raise
+
+    # On Linux with /proc/self/fd: keep the descriptor open for fd-based exec.
+    if _USE_PROC_FD:
+        return hex_digest, src_fd, st_dev, st_ino
+
+    # Elsewhere: close now; the caller re-checks identity right before Popen.
+    os.close(src_fd)
+    return hex_digest, -1, st_dev, st_ino
 
 
 def _kill_process_tree(proc: subprocess.Popen) -> None:  # type: ignore[type-arg]
@@ -672,218 +763,294 @@ def launch_safe_process(
             "launch refused to avoid orphan children",
         )
 
-    # Pin executable identity: hash the actual file before launch.
+    # Pin executable identity: open without following links (O_NOFOLLOW),
+    # refuse non-regular files (fstat S_ISREG), enforce the 256 MiB size
+    # ceiling, and hash the content from the open descriptor.  The exec
+    # mechanism is platform-specific (see _open_and_verify_executable).
+    exec_fd: int = -1  # descriptor kept open on Linux; -1 on macOS/others
     try:
-        actual_identity = _hash_file_sha256(spec_dict["executable"])
+        actual_identity, exec_fd, exec_dev, exec_ino = _open_and_verify_executable(
+            spec_dict["executable"]
+        )
     except OSError as exc:
         _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
         raise ProcessDenied(
             "denied-launch-failed",
-            f"cannot hash executable {spec_dict['executable']!r}: {exc}",
+            f"cannot open or verify executable {spec_dict['executable']!r}: {exc}",
         ) from exc
 
-    if actual_identity != spec_dict["executable_identity"]:
-        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-        raise ProcessDenied(
-            "denied-identity-mismatch",
-            "executable identity mismatch: the file on disk does not match the "
-            "pinned digest in the spec; refusing to launch",
-        )
-
-    # Confirm working directory: must exist, then must be inside at least one
-    # declared root with no symlink components on the path from root to cwd.
-    cwd_str: str = spec_dict["cwd"]
-    if not Path(cwd_str).is_dir():
-        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-        raise ProcessDenied(
-            "denied-cwd-not-found",
-            f"cwd does not exist or is not a directory: {cwd_str!r}",
-        )
-    if not cwd_roots:
-        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-        raise ProcessDenied(
-            "denied-cwd-unsafe",
-            "no cwd_roots declared; cwd cannot be confirmed as confined",
-        )
-    _cwd_confined = False
-    _last_cwd_exc: Exception | None = None
-    for _root in cwd_roots:
-        try:
-            _fs.validate_confined_directory(  # type: ignore[attr-defined]
-                Path(_root), Path(cwd_str)
-            )
-            _cwd_confined = True
-            break
-        except Exception as exc:
-            _last_cwd_exc = exc
-    if not _cwd_confined:
-        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-        raise ProcessDenied(
-            "denied-cwd-unsafe",
-            f"cwd is not inside any declared root or contains a symlink component: "
-            f"{_last_cwd_exc}",
-        ) from _last_cwd_exc
-
-    # Build environment: only explicitly allowlisted names, no ambient inheritance.
-    vals = env_values or {}
-    env: dict[str, str] = {
-        name: vals[name]
-        for name in spec_dict["environment_allowlist"]
-        if name in vals
-    }
-
-    # Resolve stdin according to mode.
-    bound: int = spec_dict["output_bound_bytes"]
-    stdin_mode: str = spec_dict["stdin_mode"]
-    stdin_input: bytes | None
-    stdin_fd: int
-
-    if stdin_mode == "closed":
-        stdin_input = None
-        stdin_fd = subprocess.DEVNULL
-    elif stdin_mode == "bounded-bytes":
-        stdin_input = stdin_bytes if stdin_bytes is not None else b""
-        if len(stdin_input) > _effective_stdin_ceiling:
+    # The open descriptor (Linux) must be closed after Popen starts.
+    # This try/finally ensures closure even when validation or Popen raise.
+    try:
+        if actual_identity != spec_dict["executable_identity"]:
             _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
             raise ProcessDenied(
-                "denied-stdin-bound-exceeded",
-                f"bounded-bytes stdin exceeds the ceiling of {_effective_stdin_ceiling} bytes "
-                f"({len(stdin_input)} bytes supplied); refusing before process launch",
+                "denied-identity-mismatch",
+                "executable identity mismatch: the file on disk does not match the "
+                "pinned digest in the spec; refusing to launch",
             )
-        stdin_fd = subprocess.PIPE
-    else:
-        # "confined-file": read through the confined, bounded regular-file reader.
-        # stdin_root declares the confinement boundary; the path must name a
-        # regular, non-linked, non-oversized file inside that root.
-        if stdin_path is None:
+
+        # Confirm working directory: must exist, then must be inside at least one
+        # declared root with no symlink components on the path from root to cwd.
+        cwd_str: str = spec_dict["cwd"]
+        if not Path(cwd_str).is_dir():
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-cwd-not-found",
+                f"cwd does not exist or is not a directory: {cwd_str!r}",
+            )
+        if not cwd_roots:
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-cwd-unsafe",
+                "no cwd_roots declared; cwd cannot be confirmed as confined",
+            )
+        _cwd_confined = False
+        _last_cwd_exc: Exception | None = None
+        for _root in cwd_roots:
+            try:
+                _fs.validate_confined_directory(  # type: ignore[attr-defined]
+                    Path(_root), Path(cwd_str)
+                )
+                _cwd_confined = True
+                break
+            except Exception as exc:
+                _last_cwd_exc = exc
+        if not _cwd_confined:
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-cwd-unsafe",
+                f"cwd is not inside any declared root or contains a symlink component: "
+                f"{_last_cwd_exc}",
+            ) from _last_cwd_exc
+
+        # Build environment: only explicitly allowlisted names, no ambient inheritance.
+        vals = env_values or {}
+        env: dict[str, str] = {
+            name: vals[name]
+            for name in spec_dict["environment_allowlist"]
+            if name in vals
+        }
+
+        # Resolve stdin according to mode.
+        bound: int = spec_dict["output_bound_bytes"]
+        stdin_mode: str = spec_dict["stdin_mode"]
+        stdin_input: bytes | None
+        stdin_fd: int
+
+        if stdin_mode == "closed":
+            stdin_input = None
+            stdin_fd = subprocess.DEVNULL
+        elif stdin_mode == "bounded-bytes":
+            stdin_input = stdin_bytes if stdin_bytes is not None else b""
+            if len(stdin_input) > _effective_stdin_ceiling:
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+                raise ProcessDenied(
+                    "denied-stdin-bound-exceeded",
+                    f"bounded-bytes stdin exceeds the ceiling of {_effective_stdin_ceiling} bytes "
+                    f"({len(stdin_input)} bytes supplied); refusing before process launch",
+                )
+            stdin_fd = subprocess.PIPE
+        else:
+            # "confined-file": read through the confined, bounded regular-file reader.
+            # stdin_root declares the confinement boundary; the path must name a
+            # regular, non-linked, non-oversized file inside that root.
+            if stdin_path is None:
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+                raise ProcessDenied(
+                    "denied-launch-failed",
+                    "confined-file stdin mode requires a stdin_path argument",
+                )
+            if stdin_root is None:
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+                raise ProcessDenied(
+                    "denied-launch-failed",
+                    "confined-file stdin mode requires a stdin_root argument declaring "
+                    "the confinement boundary",
+                )
+            try:
+                stdin_input = _fs.read_confined_regular_file(  # type: ignore[attr-defined]
+                    Path(stdin_root),
+                    Path(stdin_path),
+                    max_bytes=max(bound, 1),
+                )
+            except Exception as exc:
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+                raise ProcessDenied(
+                    "denied-stdin-confinement-violation",
+                    f"confined-file stdin refused: {exc}",
+                ) from exc
+            stdin_fd = subprocess.PIPE
+
+        # Collect all values that must be redacted from process output.
+        sensitive_raw = _collect_sensitive(env, stdin_input, sensitive_values)
+
+        # Hard cap: output bound plus the longest sensitive value length.
+        # This guarantees that any sensitive value starting within the first
+        # *bound* bytes of output is fully captured and redactable before
+        # truncation.  Exceeding the hard cap terminates the process tree.
+        _max_secret_len = max((len(s) for s in sensitive_raw), default=0)
+        hard_cap = bound + _max_secret_len
+
+        # Emit the allow event BEFORE the process is launched.
+        # If the sink raises, ProcessDenied propagates and no process starts.
+        _emit_allow(audit_sink, op_id, corr_id)
+
+        # Launch the process in a new session so its entire process group can be
+        # killed.  The exec mechanism depends on platform (see _USE_PROC_FD):
+        # - Linux (/proc/self/fd available): execute the verified descriptor
+        #   directly so the kernel runs exactly the inode that was hashed.
+        # - macOS / others: perform a final no-follow stat to confirm the inode
+        #   at the original path has not changed since verification, then run
+        #   the original path.  A narrow TOCTOU window remains on these platforms
+        #   (exploiting it requires write access to the executable's directory).
+        argv_list = [spec_dict["executable"]] + list(spec_dict["argv"])
+        _exec_path: str
+        _pass_fds: tuple[int, ...] = ()
+        if exec_fd >= 0:
+            # Linux: execute via /proc/self/fd so exec runs the verified inode.
+            _exec_path = f"/proc/self/fd/{exec_fd}"
+            _pass_fds = (exec_fd,)
+        else:
+            # macOS/others: re-check the inode hasn't changed since verification.
+            try:
+                _recheck = Path(spec_dict["executable"]).stat(follow_symlinks=False)
+            except OSError as exc:
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+                raise ProcessDenied(
+                    "denied-executable-identity-changed",
+                    f"executable disappeared or could not be stat'd before exec: {exc}",
+                ) from exc
+            if (
+                (_recheck.st_dev, _recheck.st_ino) != (exec_dev, exec_ino)
+                or not stat.S_ISREG(_recheck.st_mode)
+            ):
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+                raise ProcessDenied(
+                    "denied-executable-identity-changed",
+                    "executable inode changed between verification and exec; "
+                    "refusing to launch",
+                )
+            _exec_path = spec_dict["executable"]
+
+        try:
+            proc = subprocess.Popen(
+                argv_list,
+                executable=_exec_path,
+                env=env,
+                cwd=cwd_str,
+                stdin=stdin_fd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                start_new_session=True,
+                close_fds=True,
+                pass_fds=_pass_fds,
+            )
+        except OSError as exc:
             _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
             raise ProcessDenied(
                 "denied-launch-failed",
-                "confined-file stdin mode requires a stdin_path argument",
-            )
-        if stdin_root is None:
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-launch-failed",
-                "confined-file stdin mode requires a stdin_root argument declaring "
-                "the confinement boundary",
-            )
-        try:
-            stdin_input = _fs.read_confined_regular_file(  # type: ignore[attr-defined]
-                Path(stdin_root),
-                Path(stdin_path),
-                max_bytes=max(bound, 1),
-            )
-        except Exception as exc:
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-stdin-confinement-violation",
-                f"confined-file stdin refused: {exc}",
+                f"process launch failed: {exc}",
             ) from exc
-        stdin_fd = subprocess.PIPE
+        finally:
+            # Close the verified descriptor now that the child has started
+            # (or Popen failed).  The kernel keeps the binary mapped in the
+            # child's address space independently of this fd.
+            if exec_fd >= 0:
+                with contextlib.suppress(OSError):
+                    os.close(exec_fd)
+                exec_fd = -1
 
-    # Collect all values that must be redacted from process output.
-    sensitive_raw = _collect_sensitive(env, stdin_input, sensitive_values)
+        # Read output incrementally with the hard cap; write stdin concurrently.
+        timeout_s: int = spec_dict["process_tree_timeout_s"]
+        # Bounded post-kill drain timeout: after SIGKILL to the process group, a
+        # descendant that left the group and holds the pipes could block
+        # communicate() forever.  A small fixed bound ensures this path returns.
+        _DRAIN_TIMEOUT_S = 5
+        try:
+            raw_stdout, raw_stderr, overflowed = _communicate_bounded(
+                proc, stdin_input, timeout_s, hard_cap
+            )
+        except subprocess.TimeoutExpired:
+            _kill_process_tree(proc)
+            with contextlib.suppress(Exception):
+                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-timeout",
+                f"process tree timeout exceeded ({timeout_s}s); "
+                "all children killed, no output returned",
+            ) from None
+        except OSError as exc:
+            _kill_process_tree(proc)
+            with contextlib.suppress(Exception):
+                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-launch-failed",
+                f"process I/O error: {exc}",
+            ) from exc
 
-    # Hard cap: output bound plus the longest sensitive value length.
-    # This guarantees that any sensitive value starting within the first
-    # *bound* bytes of output is fully captured and redactable before
-    # truncation.  Exceeding the hard cap terminates the process tree.
-    _max_secret_len = max((len(s) for s in sensitive_raw), default=0)
-    hard_cap = bound + _max_secret_len
+        # Output cap breach: determine whether the process is still running.
+        # A process that already wrote all its output and is in the process of
+        # exiting may not yet be reaped when poll() is first called.  Give it a
+        # small deterministic window before treating the cap breach as a flood.
+        if overflowed and proc.poll() is None:
+            with contextlib.suppress(Exception):
+                proc.wait(timeout=0.2)
+        # If still running after the grace window, kill and refuse.
+        if overflowed and proc.poll() is None:
+            _kill_process_tree(proc)
+            with contextlib.suppress(Exception):
+                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
+            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+            raise ProcessDenied(
+                "denied-output-cap-exceeded",
+                f"process output exceeded the hard cap ({hard_cap} bytes) while "
+                "still running; all children killed, no output returned",
+            )
 
-    # Emit the allow event BEFORE the process is launched.
-    # If the sink raises, ProcessDenied propagates and no process starts.
-    _emit_allow(audit_sink, op_id, corr_id)
+        # Redact the FULL captured stream BEFORE any truncation.
+        # This prevents a sensitive value that straddles the output bound from
+        # surviving as an unredacted prefix in the returned bytes.
+        stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw)
+        stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw)
+        was_redacted = redacted1 or redacted2
 
-    # Launch the process in a new session so its entire process group can be killed.
-    argv = [spec_dict["executable"]] + list(spec_dict["argv"])
-    try:
-        proc = subprocess.Popen(
-            argv,
-            env=env,
-            cwd=cwd_str,
-            stdin=stdin_fd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            start_new_session=True,
-            close_fds=True,
+        # Bound combined redacted stdout + stderr.
+        # ``overflowed`` means the reader stopped before EOF (more output existed),
+        # so the output is always considered truncated in that case.
+        truncated: bool = overflowed
+        if bound == 0:
+            truncated = truncated or bool(stdout_red or stderr_red)
+            stdout_red = b""
+            stderr_red = b""
+        elif len(stdout_red) + len(stderr_red) > bound:
+            out_take = min(len(stdout_red), bound)
+            err_take = bound - out_take
+            stdout_red = stdout_red[:out_take]
+            stderr_red = stderr_red[:err_take]
+            truncated = True
+
+        # Belt-and-suspenders: drop any tail that is a strict prefix of a sensitive
+        # value.  Redaction already handled the in-band case; this catches any edge
+        # where the redacted stream's length shift moves a fragment into view.
+        if sensitive_raw and truncated:
+            stdout_red = _drop_sensitive_tail_prefix(stdout_red, sensitive_raw)
+            stderr_red = _drop_sensitive_tail_prefix(stderr_red, sensitive_raw)
+
+        _result = ProcessResult(
+            exit_code=proc.returncode,
+            stdout_redacted=stdout_red,
+            stderr_redacted=stderr_red,
+            output_was_truncated=truncated,
+            output_was_redacted=was_redacted,
         )
-    except OSError as exc:
-        raise ProcessDenied(
-            "denied-launch-failed",
-            f"process launch failed: {exc}",
-        ) from exc
+    finally:
+        # Ensure the verified descriptor is closed if any step raised before
+        # the Popen finally block could close it.
+        if exec_fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(exec_fd)
 
-    # Read output incrementally with the hard cap; write stdin concurrently.
-    timeout_s: int = spec_dict["process_tree_timeout_s"]
-    try:
-        raw_stdout, raw_stderr, overflowed = _communicate_bounded(
-            proc, stdin_input, timeout_s, hard_cap
-        )
-    except subprocess.TimeoutExpired:
-        _kill_process_tree(proc)
-        with contextlib.suppress(Exception):
-            proc.communicate()
-        raise ProcessDenied(
-            "denied-timeout",
-            f"process tree timeout exceeded ({timeout_s}s); "
-            "all children killed, no output returned",
-        ) from None
-    except OSError as exc:
-        _kill_process_tree(proc)
-        raise ProcessDenied(
-            "denied-launch-failed",
-            f"process I/O error: {exc}",
-        ) from exc
-
-    # Output cap breach while process still running: terminate and refuse.
-    # When the process has already exited (proc.poll() returns an exit code),
-    # the cap reflects normal output-exceeded-bound behavior; truncation handles
-    # it below and no kill is needed.
-    if overflowed and proc.poll() is None:
-        _kill_process_tree(proc)
-        with contextlib.suppress(Exception):
-            proc.communicate()
-        raise ProcessDenied(
-            "denied-output-cap-exceeded",
-            f"process output exceeded the hard cap ({hard_cap} bytes) while "
-            "still running; all children killed, no output returned",
-        )
-
-    # Redact the FULL captured stream BEFORE any truncation.
-    # This prevents a sensitive value that straddles the output bound from
-    # surviving as an unredacted prefix in the returned bytes.
-    stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw)
-    stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw)
-    was_redacted = redacted1 or redacted2
-
-    # Bound combined redacted stdout + stderr.
-    # ``overflowed`` means the reader stopped before EOF (more output existed),
-    # so the output is always considered truncated in that case.
-    truncated: bool = overflowed
-    if bound == 0:
-        truncated = truncated or bool(stdout_red or stderr_red)
-        stdout_red = b""
-        stderr_red = b""
-    elif len(stdout_red) + len(stderr_red) > bound:
-        out_take = min(len(stdout_red), bound)
-        err_take = bound - out_take
-        stdout_red = stdout_red[:out_take]
-        stderr_red = stderr_red[:err_take]
-        truncated = True
-
-    # Belt-and-suspenders: drop any tail that is a strict prefix of a sensitive
-    # value.  Redaction already handled the in-band case; this catches any edge
-    # where the redacted stream's length shift moves a fragment into view.
-    if sensitive_raw and truncated:
-        stdout_red = _drop_sensitive_tail_prefix(stdout_red, sensitive_raw)
-        stderr_red = _drop_sensitive_tail_prefix(stderr_red, sensitive_raw)
-
-    return ProcessResult(
-        exit_code=proc.returncode,
-        stdout_redacted=stdout_red,
-        stderr_redacted=stderr_red,
-        output_was_truncated=truncated,
-        output_was_redacted=was_redacted,
-    )
+    return _result

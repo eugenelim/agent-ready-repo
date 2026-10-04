@@ -1718,3 +1718,245 @@ class TestLoopRunDeliveryControl:
             f"expected denied-control-plane-write for {target_path!r}; "
             f"got {result.denial_code!r}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 1: attestation check — network/children allowed=False, read-proof,
+# and root normalisation fixes.
+# Each test fails when its corresponding fix is reverted.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAttestationGrantAxesFixed:
+    """check_attestation_within_grant treats allowed=False the same as absent,
+    refuses absent or weaker read enforcement, and normalises roots before
+    the containment comparison.
+    """
+
+    def test_network_allowed_false_on_grant_refuses_attestation(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A grant network field of allowed=False refuses an attestation claiming network.
+
+        Before the fix the check only triggered when grant.network was None.
+        A grant with _NetworkGrant(allowed=False) would not fire the guard, so
+        an attestation claiming allowed=True would pass.  After the fix,
+        allowed=False is treated the same as absent.
+
+        Fails when the guard is reverted to check only grant_network is None.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], network=sc._NetworkGrant(allowed=False)
+        )
+        attestation = _make_attestation(cn, network={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation claiming network must be refused when grant has network.allowed=False"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_children_allowed_false_on_grant_refuses_attestation(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A grant children field of allowed=False refuses an attestation claiming children.
+
+        Mirrors the network case: before the fix, only None triggered the guard.
+        After the fix, _ChildrenGrant(allowed=False) is treated as absent.
+
+        Fails when the guard is reverted to check only grant_children is None.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], children=sc._ChildrenGrant(allowed=False)
+        )
+        attestation = _make_attestation(cn, children={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation claiming children must be refused when grant has children.allowed=False"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_read_enforcement_absent_refused_when_grant_sets_proof_mode(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Absent read_enforcement is refused when the grant sets product_read_proof_mode.
+
+        Before the fix, the read-mode comparison was skipped when attestation
+        read_enforcement was None.  A grant requiring trace would accept an
+        attestation with no read coverage at all.  After the fix, absent
+        read_enforcement when the grant requires a proof mode is refused.
+
+        Fails when the condition is reverted to require both sides to be non-None.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], product_read_proof_mode="trace"
+        )
+        # Attestation claims no read enforcement at all (None).
+        attestation = _make_attestation(cn, read_enforcement=None)
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "absent read_enforcement must be refused when grant requires a proof mode"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_read_enforcement_weaker_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """An attestation with weaker read enforcement than the grant is refused.
+
+        Grant requires trace (strictest); attestation claims allowlist (weaker).
+        After the fix the permissiveness comparison refuses this case.
+
+        Fails when the permissiveness comparison is removed or reversed.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], product_read_proof_mode="trace"
+        )
+        attestation = _make_attestation(cn, read_enforcement="allowlist")
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation with allowlist enforcement must be refused when grant requires trace"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_root_traversal_escape_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """An attestation root that uses traversal to escape the grant root is refused.
+
+        /w/../etc normalises to /etc, which is not inside the grant root /w.
+        Before the fix, the prefix comparison was done without normalisation so
+        /w/../etc passed the startswith('/w/') check incorrectly.
+
+        Fails when posixpath.normpath normalisation is removed from _roots_broader.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/w"])
+        # /w/../etc normalises to /etc — outside the grant root.
+        attestation = _make_attestation(cn, roots=("/w/../etc",))
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation root /w/../etc must be refused (normalises to /etc, outside /w)"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_within_grant_attestation_still_passes(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: a well-formed attestation within the grant passes all axes.
+
+        Verifies that the fixes do not over-refuse valid attestations.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        attestation = _make_attestation(cn, roots=("/work",))
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"within-grant attestation must be allowed; got code: {code!r}"
+
+    def test_empty_roots_attestation_still_passes(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: an attestation with empty roots is not refused (it is narrower).
+
+        An empty roots list is more restricted than any non-empty grant root list;
+        refusing it would be over-broad.  The adjudicator ruled that empty roots
+        are narrower than the grant, not broader.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        attestation = _make_attestation(cn, roots=())
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"empty-roots attestation must not be refused; got code: {code!r}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 5: launch_untrusted issuer verification.
+# The test fails when the issuer check is removed.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLaunchUntrustedIssuerVerification:
+    """launch_untrusted refuses with an audited denial when an issuer is given
+    and the grant does not verify against it.
+    """
+
+    class _FixtureHost:
+        """Test fixture host that returns a valid attestation dict."""
+
+        def get_attestation(self, spec_dict: dict, grant: object) -> dict | None:
+            return {
+                "schema_version": 1,
+                "host_mechanism": "os-sandbox",
+                "principal_or_sandbox": "fixture-sandbox-002",
+                "roots": ("/work",),
+                "limits": {},
+            }
+
+    def test_unverified_grant_with_issuer_refused_with_one_denied_event(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A caller-built (unverified) grant is refused and one denied event is emitted.
+
+        launch_untrusted is called with an issuer whose registry does not contain
+        the supplied grant (it was built by hand, not issued).  The function must
+        refuse with denied-unverified-grant and emit exactly one denied event
+        through the audit sink.
+
+        Fails when the issuer-verification check is removed from launch_untrusted.
+        """
+        cn, sc = containment, security_capability
+        issuer = sc.CapabilityIssuer()
+        # Build a grant that was NOT issued by this issuer (caller-built).
+        caller_built_grant = sc.CapabilityGrant(
+            schema_version=sc.SUPPORTED_SCHEMA_VERSION,
+            grant_id="caller-built-grant-not-in-registry",
+            roots=("/work",),
+            operations=("read", "write"),
+            trust_class="trusted-adapter",
+            writes=sc._WritesGrant(allowed_roots=("/work",)),
+            control_denies=(),
+            limits=sc._Limits(),
+        )
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                caller_built_grant,
+                host=self._FixtureHost(),
+                audit_sink=events.append,
+                issuer=issuer,  # issuer does not know this grant
+            )
+        assert exc_info.value.denial_code == "denied-unverified-grant", (
+            f"expected denied-unverified-grant; got {exc_info.value.denial_code!r}"
+        )
+        assert len(events) == 1, (
+            f"exactly one denied event must be emitted; got {len(events)}"
+        )
+        assert events[0].outcome == "denied", (
+            f"emitted event must have outcome=denied; got {events[0].outcome!r}"
+        )
+        assert events[0].reason_code == "denied-unverified-grant", (
+            f"emitted event must carry the denial code; got {events[0].reason_code!r}"
+        )
+
+    def test_issuer_none_skips_verification(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """When issuer is None, no grant verification is performed (unchanged behaviour)."""
+        cn, sc = containment, security_capability
+        # No issuer: the default host refuses (no-verified-containment),
+        # not denied-unverified-grant.
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                audit_sink=lambda e: None,
+                # issuer omitted (default None)
+            )
+        assert exc_info.value.denial_code == "denied-no-verified-containment", (
+            "omitting issuer must not change default-host refusal code"
+        )

@@ -146,6 +146,7 @@ _acceptance_module: ModuleType | None = None
 _confined_mutation_module: ModuleType | None = None
 _file_safety_module: ModuleType | None = None
 _security_capability_module: ModuleType | None = None
+_security_events_module_cache: ModuleType | None = None
 _policy_import_module_cache: ModuleType | None = None
 _evidence_store_module_cache: ModuleType | None = None
 _subject_source_module_cache: ModuleType | None = None
@@ -227,6 +228,16 @@ def _security_capability() -> ModuleType:
             "_cf_security_capability", "_security_capability.py"
         )
     return _security_capability_module
+
+
+def _security_events() -> ModuleType:
+    """Lazily load ``_security_events.py`` for the checked audit emitter."""
+    global _security_events_module_cache
+    if _security_events_module_cache is None:
+        _security_events_module_cache = _load_sibling(
+            "_cf_security_events", "_security_events.py"
+        )
+    return _security_events_module_cache
 
 
 def _policy_import_mod() -> ModuleType:
@@ -387,9 +398,11 @@ def _record_divergence(
 ) -> None:
     """Best-effort append of a schema-valid security-event.v1 divergence entry.
 
-    Writes only the seven required fields of the closed ``security-event.v1``
-    schema: no exception messages, no content-derived hashes, no partial
-    shadow facts, and no extra fields.  Any failure is silently absorbed.
+    Routes through ``emit_denial_best_effort`` so the content-safety check
+    runs before the event reaches the shadow log.  Writes only the seven
+    required fields of the closed ``security-event.v1`` schema: no exception
+    messages, no content-derived hashes, no partial shadow facts, and no
+    extra fields.  Any failure is silently absorbed.
 
     The ``context`` and ``exc_type`` parameters are reserved for future
     structured logging; they do not enter the record under the closed schema.
@@ -397,18 +410,18 @@ def _record_divergence(
     try:
         # The shadow dir may not exist if the failure was during dir creation.
         _confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
-        entry = {
-            "schema_version": 1,
-            "operation_id": "op-" + secrets.token_hex(8),
-            "correlation_id": "shadow-compat-facade",
-            "event_type": "capability-check",
-            "outcome": "denied",
-            "reason_code": SHADOW_DIVERGENCE_CODE,
-            "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
-        _confined_jsonl_append(
-            spec_dir, shadow_dir / _SECURITY_EVENTS_FILE, entry, cm
+        se = _security_events()
+        event = se.SecurityEvent(
+            schema_version=1,
+            operation_id="op-" + secrets.token_hex(8),
+            correlation_id="shadow-compat-facade",
+            event_type="capability-check",
+            outcome="denied",
+            reason_code=SHADOW_DIVERGENCE_CODE,
+            timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
+        sink = _durable_sink(spec_dir, shadow_dir, cm)
+        se.emit_denial_best_effort(sink, event)
     except Exception:  # noqa: BLE001 — divergence recording must never propagate
         pass
 

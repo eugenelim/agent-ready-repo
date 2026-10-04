@@ -676,6 +676,112 @@ class TestConfinedMutationAdversarial:
         assert target.read_bytes() == original
 
 
+class TestExclusiveCreateRace:
+    """Atomic exclusive-create correctly refuses a concurrent writer (AC-0011).
+
+    These tests fail when the commit step uses os.rename instead of os.link,
+    because rename would silently overwrite a file created between the
+    existence check and the commit.
+    """
+
+    def test_race_condition_refused_with_stable_code(
+        self,
+        confined_mutation: ModuleType,
+        tmp_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A target created between existence check and commit is refused.
+
+        Simulates a concurrent writer by creating the target file inside a
+        monkeypatched os.link call (just before the real link attempt).
+        With os.rename the call would succeed and the racing writer's content
+        would be silently replaced; with os.link it must raise
+        MutationDenied('denied-already-exists').
+        """
+        import os as _os
+
+        target = tmp_root / "race-exclusive.txt"
+        original_bytes = b"written by racing creator"
+        real_link = _os.link
+        call_count = [0]
+
+        def _intercept_link(src: str, dst: str, **kwargs: object) -> None:
+            # On the first call, simulate a concurrent writer arriving just
+            # before the commit.  The real link then fails because the target
+            # already exists.
+            if call_count[0] == 0:
+                target.write_bytes(original_bytes)
+            call_count[0] += 1
+            return real_link(src, dst, **kwargs)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(_os, "link", _intercept_link)
+
+        with pytest.raises(confined_mutation.MutationDenied) as exc_info:
+            confined_mutation.confined_create(tmp_root, target, b"new content")
+
+        assert exc_info.value.denial_code == "denied-already-exists"
+        assert target.read_bytes() == original_bytes, (
+            "racing writer's content must be preserved, not overwritten"
+        )
+
+    def test_race_condition_temp_cleaned_up(
+        self,
+        confined_mutation: ModuleType,
+        tmp_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The staged temp file is removed when an exclusive create is refused.
+
+        With os.rename the call would succeed (no temp remains, but the wrong
+        file is at the target).  With os.link the refusal path must clean up
+        the temp so no orphan files remain.
+        """
+        import os as _os
+
+        target = tmp_root / "race-cleanup.txt"
+        real_link = _os.link
+        call_count = [0]
+
+        def _intercept_link(src: str, dst: str, **kwargs: object) -> None:
+            if call_count[0] == 0:
+                target.write_bytes(b"concurrent content")
+            call_count[0] += 1
+            return real_link(src, dst, **kwargs)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(_os, "link", _intercept_link)
+
+        with pytest.raises(confined_mutation.MutationDenied) as exc_info:
+            confined_mutation.confined_create(tmp_root, target, b"my content")
+
+        assert exc_info.value.denial_code == "denied-already-exists"
+        remaining = list(tmp_root.glob(".wl-tmp-*"))
+        assert not remaining, f"temp files must be cleaned up on refusal, found: {remaining}"
+
+    def test_normal_exclusive_create_succeeds(
+        self,
+        confined_mutation: ModuleType,
+        tmp_root: Path,
+    ) -> None:
+        """A non-racing exclusive create writes the file and leaves no temp behind."""
+        target = tmp_root / "normal-exclusive.txt"
+        content = b"exclusive content"
+        confined_mutation.confined_create(tmp_root, target, content)
+        assert target.read_bytes() == content
+        remaining = list(tmp_root.glob(".wl-tmp-*"))
+        assert not remaining, f"temp must be cleaned up after success, found: {remaining}"
+
+    def test_atomic_replace_still_replaces(
+        self,
+        confined_mutation: ModuleType,
+        tmp_root: Path,
+    ) -> None:
+        """Non-exclusive atomic replace is unaffected by the exclusive-create fix."""
+        target = tmp_root / "atomic-replace.txt"
+        target.write_bytes(b"old content")
+        confined_mutation.confined_atomic_replace(tmp_root, target, b"new content")
+        assert target.read_bytes() == b"new content"
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # AC-0020 / AC-0021: Security events and durable audit
 # ═══════════════════════════════════════════════════════════════════════════════
