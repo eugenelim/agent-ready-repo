@@ -50,6 +50,10 @@ and AC-0008's mutation controls prove the cells drive the outcome.
   substring test (`pack_evals.py:908-910`), so golden cases exclude the
   fallback's declaration forms and placeholder value, never the bare `--ds-`
   prefix a correct explanation may mention.
+- User decision 2026-10-04, replacing the exclusion forms above — `--ds-*` is
+  the pack's system-token namespace, the last step of the naming order — the
+  taxonomy's recorded naming, else the incumbent's names, else `--ds-*` — so
+  golden cases exclude only the fallback's own colour values.
 
 ## Construction tests
 

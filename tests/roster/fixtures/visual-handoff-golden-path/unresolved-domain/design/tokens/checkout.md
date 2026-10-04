@@ -38,12 +38,12 @@ Fixture data for a roster test. No person or product is described.
 
 | Role | Job it does | Resolved value | Traces to |
 |---|---|---|---|
-| `surface.default` | page ground | #FBF8F3 | Chromatic intensity |
-| `text.default` | body copy | #1E2A26 | Chromatic intensity |
-| `text.muted` | secondary copy | #4F5D57 | Chromatic intensity |
-| `accent.action` | the pay action | #2F5D50 | Chromatic intensity |
-| `text.on-action` | label on the pay action | #FBF8F3 | Chromatic intensity |
-| `border.divider` | separators between groups | #D9D2C5 | Chromatic intensity |
+| `surface.default` | page ground | #fbf8f3 | Chromatic intensity |
+| `text.default` | body copy | #1e2a26 | Chromatic intensity |
+| `text.muted` | secondary copy | #4f5d57 | Chromatic intensity |
+| `accent.action` | the pay action | #2f5d50 | Chromatic intensity |
+| `text.on-action` | label on the pay action | #fbf8f3 | Chromatic intensity |
+| `border.divider` | separators between groups | #d9d2c5 | Chromatic intensity |
 
 ### Spacing and rhythm
 
