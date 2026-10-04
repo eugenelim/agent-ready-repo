@@ -21,8 +21,10 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import stat as _stat
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -1615,6 +1617,58 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="JSON",
         help="JSON array of caller assertion dicts for context.",
     )
+
+    exp = sub.add_parser(
+        "export",
+        help=(
+            "Publish a self-contained offline HTML decision explorer. "
+            "The default destination is the OS temporary directory. "
+            "A non-default destination must come word for word from the "
+            "user's own request and never from record content."
+        ),
+    )
+    exp.add_argument(
+        "--root",
+        required=True,
+        metavar="DIR",
+        help="Repository root directory.",
+    )
+    exp.add_argument(
+        "--destination",
+        metavar="DIR",
+        default=None,
+        help=(
+            "Directory to write the HTML file into.  "
+            "Defaults to the OS temporary directory.  "
+            "Must not be inside the repository worktree.  "
+            "User-supplied only; never derived from record content."
+        ),
+    )
+    exp.add_argument(
+        "--name",
+        metavar="FILENAME",
+        default=None,
+        help=(
+            "Output filename (single segment ending .html).  "
+            "Defaults to decisions-<timestamp>.html."
+        ),
+    )
+    exp.add_argument(
+        "--mode",
+        choices=["full", "bounded"],
+        default="full",
+        help="Export mode: full embeds all bodies, bounded omits them.",
+    )
+    exp.add_argument(
+        "--confirm-over-budget",
+        action="store_true",
+        help="Publish even if the estimated size exceeds the budget constant.",
+    )
+    exp.add_argument(
+        "--assertions",
+        metavar="JSON",
+        help="JSON array of caller assertion dicts to embed in the HTML.",
+    )
     return parser
 
 
@@ -1648,6 +1702,69 @@ def main(argv: list[str] | None = None) -> int:
         result = run_query(root, query)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result.get("status") == "ok" else 1
+
+    if args.command == "export":
+        # Load explorer by path — same discipline as file_safety loader.
+        explorer_path = _SCRIPT_DIR / "explorer.py"
+        try:
+            st = os.lstat(explorer_path)
+        except OSError:
+            print("error: explorer.py not found alongside navigate_decisions.py",
+                  file=sys.stderr)
+            return 1
+        if not stat.S_ISREG(st.st_mode) or stat.S_ISLNK(st.st_mode):
+            print("error: explorer.py is not a regular file", file=sys.stderr)
+            return 1
+        prev_dnwb = sys.dont_write_bytecode
+        try:
+            sys.dont_write_bytecode = True
+            exp_spec = importlib.util.spec_from_file_location(
+                "_nav_decisions_explorer", explorer_path
+            )
+            if exp_spec is None or exp_spec.loader is None:
+                print("error: cannot load explorer.py", file=sys.stderr)
+                return 1
+            exp_mod = importlib.util.module_from_spec(exp_spec)
+            sys.modules[exp_spec.name] = exp_mod
+            exp_spec.loader.exec_module(exp_mod)
+        except Exception as exc:
+            print(f"error: loading explorer.py failed: {exc}", file=sys.stderr)
+            return 1
+        finally:
+            sys.dont_write_bytecode = prev_dnwb
+
+        assertions: list[dict[str, Any]] | None = None
+        if args.assertions:
+            try:
+                assertions = json.loads(args.assertions)
+            except json.JSONDecodeError as exc:
+                print(f"error: invalid --assertions JSON: {exc}", file=sys.stderr)
+                return 2
+
+        root = Path(args.root).resolve()
+
+        # Build destination: if --name is given, pass it alongside --destination.
+        dest = args.destination
+        if args.name and dest:
+            dest = str(Path(dest) / args.name)
+        elif args.name and not dest:
+            dest = str(Path(tempfile.gettempdir()) / args.name)
+
+        result = exp_mod.publish_explorer(
+            root,
+            destination=dest,
+            mode=args.mode,
+            confirm_over_budget=args.confirm_over_budget,
+            assertions=assertions,
+        )
+        if result.get("status") == "ok":
+            print(f"Published: {result['path']}", file=sys.stderr)
+            print(f"Size: {result['size_bytes']:,} bytes", file=sys.stderr)
+            print(f"Mode: {result['mode']}", file=sys.stderr)
+            print(result["path"])
+            return 0
+        print(f"error: {result.get('error', 'unknown error')}", file=sys.stderr)
+        return 1
 
     return 1
 

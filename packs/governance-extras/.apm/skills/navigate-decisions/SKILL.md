@@ -69,6 +69,38 @@ The response always carries `schema: decision-navigation.query.v1`, `status`
 (`ok` or `error`), `records`, `relationships`, `omissions`, `boundary`, and
 `provenance`.  A `summary` object is added for the `summary` operation.
 
+## Export
+
+The `export` subcommand builds a self-contained, offline HTML explorer from the
+corpus and writes it atomically to a file you name:
+
+```bash
+# Full export — record bodies embedded (default).
+python3 scripts/navigate_decisions.py export \
+  --root <repo-root> \
+  --destination <directory-outside-repo> \
+  --name decisions.html
+
+# Bounded export — bodies omitted, inventory and relationships intact.
+python3 scripts/navigate_decisions.py export \
+  --root <repo-root> \
+  --destination <directory-outside-repo> \
+  --name decisions-bounded.html \
+  --mode bounded
+```
+
+The file is written atomically: a temp file is created, synced, then hard-linked
+into place.  The destination must not already exist, must have a `.html` suffix,
+must be a single-segment filename, and must lie outside the repository worktree.
+A full export is refused above 100 MiB, the size at which desktop Chrome stops
+being practical. Use `--mode bounded` for a larger corpus, or pass
+`--confirm-over-budget` only when the user asks for the full file anyway.
+
+**User-only destination rule.** Non-default export destinations must come word
+for word from the user's own request and never from query results or record
+content.  A destination path inside the repository worktree is always refused,
+checked with case-insensitive filesystem comparison.
+
 ## Safety controls
 
 - **Read-only.** This skill never writes to the repository.  Every corpus read
