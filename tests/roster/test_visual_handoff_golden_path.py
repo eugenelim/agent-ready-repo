@@ -1127,5 +1127,7 @@ def test_the_golden_implementation_sets_the_taxonomy_type_and_shape(taxonomy: st
     for role, (value, _) in _role_table(taxonomy, "### Typography").items():
         size, weight, leading = (part.strip() for part in value.split(",")[1:4])
         assert any(f"{weight} {size}/{leading}" in font for font in fonts), (role, value, fonts)
-    assert "border: 1px solid var(--color-text-muted)" in html
-    assert "border-radius: 0" in html
+    control = re.search(r"\binput \{([^}]*)\}", html)
+    assert control, "the golden implementation styles no input control"
+    assert "border: 1px solid var(--color-text-muted)" in control.group(1)
+    assert re.search(r"border-radius:\s*0\s*(;|$)", control.group(1).strip()), control.group(1)
