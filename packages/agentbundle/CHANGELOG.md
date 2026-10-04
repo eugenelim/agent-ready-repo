@@ -32,7 +32,7 @@ breaking.
 ### Changed
 
 - A configured-but-broken provider raises a terminal error and never falls back
-  to a lower provider (ADR-0137). A broken bearer env-var, a profile that
+  to a lower provider (ADR-0138). A broken bearer env-var, a profile that
   cannot connect, a `.netrc` with unsafe permissions or a malformed record each
   terminate resolution immediately.
 - AgentBundle now requires `credbroker>=0.7,<0.8`. The credential-brokers pack's

@@ -1,4 +1,4 @@
-# ADR-0135: Catalogue `.netrc` uses exact machine matches
+# ADR-0136: Catalogue `.netrc` uses exact machine matches
 
 - **Status:** Accepted
 - **Date:** 2026-09-30
@@ -9,8 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0134 (`credbroker` owns protected-catalogue credential
-  resolution); ADR-0137 (provider precedence and terminal failures)
+- **Related:** ADR-0135 (`credbroker` owns protected-catalogue credential
+  resolution); ADR-0138 (provider precedence and terminal failures)
 
 ## Decision summary
 

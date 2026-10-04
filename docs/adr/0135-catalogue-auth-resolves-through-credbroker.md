@@ -1,4 +1,4 @@
-# ADR-0134: Catalogue authentication resolves through credbroker
+# ADR-0135: Catalogue authentication resolves through credbroker
 
 - **Status:** Accepted
 - **Date:** 2026-09-30
@@ -10,8 +10,8 @@
 - **Superseded by:** none
 - **Superseded in part:** none
 - **Related:** ADR-0003 (credentialed skills use broker contracts without an
-  AgentBundle runtime); ADR-0026 (`credbroker` extension precedent); ADR-0135
-  (exact-machine `.netrc` provider); ADR-0136 (JFrog CLI provider); ADR-0137
+  AgentBundle runtime); ADR-0026 (`credbroker` extension precedent); ADR-0136
+  (exact-machine `.netrc` provider); ADR-0137 (JFrog CLI provider); ADR-0138
   (provider precedence and terminal failures)
 
 ## Decision summary

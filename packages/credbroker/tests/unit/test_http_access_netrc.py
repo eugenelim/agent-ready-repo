@@ -445,7 +445,7 @@ def test_nt_no_home_vars_returns_none_cross_platform() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC-0007 / ADR-0137 D4 — no fallback: netrc_* error stops resolution
+# AC-0007 / ADR-0138 D4 — no fallback: netrc_* error stops resolution
 # ---------------------------------------------------------------------------
 
 

@@ -1,4 +1,4 @@
-# ADR-0137: Catalogue authentication selects one provider without fallback
+# ADR-0138: Catalogue authentication selects one provider without fallback
 
 - **Status:** Accepted
 - **Date:** 2026-09-30
@@ -9,8 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0134 (`credbroker` dependency and skill-runtime direction);
-  ADR-0135 (exact-machine `.netrc` provider); ADR-0136 (JFrog CLI provider)
+- **Related:** ADR-0135 (`credbroker` dependency and skill-runtime direction);
+  ADR-0136 (exact-machine `.netrc` provider); ADR-0137 (JFrog CLI provider)
 
 ## Decision summary
 
@@ -128,6 +128,6 @@ target-bound identity without credential confusion or downgrade.
 ## References
 
 - [Portable catalogue authentication architecture](../architecture/portable-catalogue-authentication.md)
-- [ADR-0134: Catalogue authentication resolves through credbroker](0134-catalogue-auth-resolves-through-credbroker.md)
-- [ADR-0135: Catalogue `.netrc` uses exact machine matches](0135-catalogue-netrc-uses-exact-machine-matches.md)
-- [ADR-0136: Catalogue JFrog authentication delegates to JFrog CLI](0136-catalogue-jfrog-auth-delegates-to-jfrog-cli.md)
+- [ADR-0135: Catalogue authentication resolves through credbroker](0135-catalogue-auth-resolves-through-credbroker.md)
+- [ADR-0136: Catalogue `.netrc` uses exact machine matches](0136-catalogue-netrc-uses-exact-machine-matches.md)
+- [ADR-0137: Catalogue JFrog authentication delegates to JFrog CLI](0137-catalogue-jfrog-auth-delegates-to-jfrog-cli.md)

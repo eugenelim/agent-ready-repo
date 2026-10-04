@@ -29,7 +29,7 @@ closed environment `PATH=/usr/bin:/bin` and a scratch `HOME`.
 
 **Discovery 1 — `jf config show --format=json` is present in 2.105.0.**
 `jf config show --help` lists `--format` with `table, json`, and the command
-exits 0 with a JSON array. That settles the ADR-0136 D8 floor outright. Each
+exits 0 with a JSON array. That settles the ADR-0137 D8 floor outright. Each
 profile object carries `url`, `artifactoryUrl`, `distributionUrl`, `xrayUrl`,
 `missionControlUrl`, `pipelinesUrl`, `accessToken` (masked as `***`),
 `serverId`, and `isDefault`. With no profile configured, it prints `[]`.
@@ -250,6 +250,15 @@ Taken by the spec owner (eugenelim) on 2026-10-02, after reviewing Discoveries
   Record macOS, where `jf api` reads only the system keychain, as a stated
   residual. Run the real-CLI contract test and AC-0018's JFrog leg in a Linux
   container, where a loopback CA is trusted without touching the host.
+
+## ADR renumbering on merge (2026-10-04)
+
+Updating the branch from `main` brought in ADR-0134 (intent rename), which
+was accepted first. This feature's four ADRs moved from 0134–0137 to
+0135–0138, unchanged except for their numbers, and every reference in this
+feature's spec, plan, ledger, changelog, and tests moved with them. Commits
+made before the move cite the old numbers in their `Engine-Change-RFC`
+trailers.
 
 ## Discoveries
 
