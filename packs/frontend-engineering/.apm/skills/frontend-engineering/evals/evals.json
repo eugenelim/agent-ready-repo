@@ -200,7 +200,7 @@
         "Records composition from approved-visual-target, because the direction carries `visual_target: confirmed`, and values from direction-and-taxonomy",
         "Declares each taxonomy value exactly as given, bound to a semantic role",
         "Does not read the fallback token block or declare a fallback custom property",
-        "Renders, observes, corrects material divergence at most once, and renders once more before the engineering gates",
+        "Renders, observes, corrects material divergence at most once, and renders once more before the engineering gates, or, where nothing can render, names the missing capability and records the loop as not run",
         "Records remaining divergence rather than iterating on it",
         "Does not claim visual verification for anything it could not render"
       ],
