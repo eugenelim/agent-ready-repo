@@ -710,6 +710,14 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_authority_supersession.py
 
+      # visual-handoff-golden-path: installs experience-design and
+      # frontend-engineering together and reads both, so lint-pack-test-boundary
+      # forbids a pack home. Sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it, so a failure is reported here first.
+      - name: pytest visual handoff golden path (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_visual_handoff_golden_path.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

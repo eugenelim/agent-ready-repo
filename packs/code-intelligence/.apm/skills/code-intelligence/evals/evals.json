@@ -69,6 +69,17 @@
       ]
     },
     {
+      "id": 7,
+      "prompt": "How does the HTTP handler `handle_request` reach `write_row`? `wicked-estate path` returns `found: false` with `depth_bounded: true` at the default depth.",
+      "expected_output": "An answer that uses `wicked-estate path` to address the route question, explains that `depth_bounded: true` means the path search hit its depth frontier and the route is not proven absent — not that no route exists — and offers to raise `--max-depth` (up to a maximum of 16) to search deeper, naming the hop files to inspect when a route is found.",
+      "assertions": [
+        "Uses `wicked-estate path` (or names it) to answer the route question",
+        "Reports that `depth_bounded: true` means the route is not proven absent and offers to raise `--max-depth` (maximum 16)",
+        "Does not claim no route exists",
+        "Names the hop files to read when a route is found"
+      ]
+    },
+    {
       "id": "cognitive-load-output-quality",
       "prompt": "Complete a representative code-intelligence task that produces a user-facing findings handoff. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, completeness counts, and exact errors.",
       "expected_output": "The findings handoff leads with the useful outcome and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or the index's own completeness counts. Routine tool calls have no optional assistant narration between them. The final handoff states what was verified against source and what remains unestablished, and names a next action only when one remains.",

@@ -30,7 +30,7 @@ probe: it is the one command that reports freshness and readiness together.
 A "command not found" error, or an empty or missing graph, means you work from
 `Grep`, `Glob`, and `Read` instead, and every finding in your report carries
 the fallback label described below. The remediation is
-`cargo install wicked-estate --version 0.16.7 --locked`, then
+`cargo install wicked-estate --version 0.18.0 --locked`, then
 `wicked-estate index .` — offer it; do not run it yourself.
 
 ## How you work

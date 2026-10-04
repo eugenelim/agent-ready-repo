@@ -1,6 +1,6 @@
 # Capability map — tool-neutral intent to Wicked Estate surface
 
-Every row names a command or tool that exists in Wicked Estate 0.16 and says
+Every row names a command or tool that exists in Wicked Estate 0.18 and says
 what it actually returns. Nothing here is aspirational. If an intent has no row,
 the capability does not exist — see [`gaps.md`](gaps.md).
 
@@ -8,7 +8,7 @@ the capability does not exist — see [`gaps.md`](gaps.md).
 
 | Surface | Maturity | Evidence |
 | --- | --- | --- |
-| CLI | **validated** | Exercised end-to-end against a real index. 20 tests pin the returned shapes for `resolve`, `blast-radius`, `nodes`, `rank`, `annotations`, `stale-annotations`, `context`, `source` and `stats`; every other verb is checked for acceptance, not for its return shape |
+| CLI | **validated** | Exercised end-to-end against a real index. Tests pin the returned shapes for `resolve`, `blast-radius` (incl. `--depth`), `path`, `nodes`, `rank`, `annotations`, `stale-annotations`, `context`, `source` and `stats`; every other verb is checked for acceptance, not for its return shape |
 | MCP | **contract-complete** | Read from upstream's registered tool names and conformance schemas. **Never executed here** |
 
 Where a row describes MCP behaviour, it states what upstream documents, not
@@ -20,15 +20,16 @@ were read from upstream's source and a one-off manual index respectively.
 
 Two surfaces ship, and they are not the same size.
 
-- **The CLI** (`wicked-estate`) accepts 34 subcommand names across 33 dispatch
+- **The CLI** (`wicked-estate`) accepts 35 subcommand names across 34 dispatch
   arms — `rank` and `hotspots` are one arm with two names, a fact read from
-  upstream's dispatch table rather than observed. It is the default
-  provider for this skill: it costs no resident context, and it covers several
-  capabilities the MCP server does not expose at all.
-- **The MCP server** (`wicked-estate-mcp`) advertises 29 tools across an estate
-  domain, a memory domain, a knowledge domain, and a proposal queue. Registering
-  it puts all 29 tool schemas in the agent's context for the whole session, so
-  this pack treats it as opt-in for the four capability areas with no CLI verb.
+  upstream's dispatch table rather than observed.
+  It is the default provider for this skill: it costs no resident context, and
+  it covers several capabilities the MCP server does not expose at all.
+- **The MCP server** (`wicked-estate-mcp`) advertises 30 tools without an
+  embedding backend and 31 with one (`SemanticSearch`), across an estate domain,
+  a memory domain, a knowledge domain, and a proposal queue. Registering it puts
+  all tool schemas in the agent's context for the whole session, so this pack
+  treats it as opt-in for the four capability areas with no CLI verb.
 
 Throughout: `--db` is optional. The CLI resolves the graph as explicit `--db`,
 then `WICKED_ESTATE_DB`, then `.wicked-estate/graph.db`.
@@ -59,7 +60,8 @@ the server advertises **only** when an embedding backend is available.
 
 | Intent | CLI | Returns |
 | --- | --- | --- |
-| Blast radius / who depends on this | `wicked-estate blast-radius <name> --json` | `{target, dependents[], unresolved, truncated_dependents}`. Read [Completeness](#completeness-fields) below before quoting it. |
+| Blast radius / who depends on this | `wicked-estate blast-radius <name> [--depth N] --json` | `{target, dependents[], unresolved, truncated_dependents, searched_depth, depth_horizon_reached, node_cap_reached}`. Default depth 12, max 24. Read [Completeness](#completeness-fields) below before quoting it. |
+| Route from one symbol to another | `wicked-estate path <from> <to> [--max-depth N] --json` | `{from, to, hops[], found, depth_bounded, node_bounded, unresolved}`. Each hop: `{source, target, kind, confidence, provenance, resolved_by}`. Each endpoint: `{symbol, name, kind, file, line, line_1based}` — `line` is 0-based; use `line_1based`. Follows every dependency edge kind; read each hop's `kind`. `found:false` is proven absence only when `unresolved` is null and both bound flags are false. An unknown name sets `unresolved: "from"` or `"to"` and still exits 0. With `depth_bounded:true`, raise `--max-depth` (max 16); with `node_bounded:true`, report the answer as bounded — no flag raises the node budget. |
 | Bounded neighbourhood | `wicked-estate graph-view [--focus <name>] [--limit N] [--include-tests] [--include-trivial] [--ignore <pat>]` | A filtered subgraph around the focus symbol. Trivial nodes and tests are excluded unless asked for. |
 | Entry points | `wicked-estate entrypoints --json` | Symbols with no callers or importers. |
 | Leaves | `wicked-estate leaves --json` | Symbols that call and import nothing. |
@@ -70,15 +72,24 @@ the server advertises **only** when an embedding backend is available.
 MCP equivalents: `TraverseGraph` is the closest thing to a general walk and has
 no CLI counterpart with the same shape — it takes `symbol`, `depth` (≤ 16),
 `direction` (`dependencies` / `dependents` / `both`), `edge_kinds[]`, and
-`max_nodes` (≤ 1000), and returns nodes, edges, and depths.
+`max_nodes` (≤ 1000), and returns nodes, edges, depths, plus `depth_horizon_reached`,
+`node_cap_reached`, and `searched_depth`.
 
 MCP `BlastRadius` returns **considerably more than the CLI form**, and it is
 worth registering the server when impact work is the session's main job. Each
 dependent carries `depth`, so direct and transitive separate cleanly. The
 response also carries a `confidence {min, avg, edge_count}` envelope over the
-traversal edges, and a `summary` with `by_kind`, `top_files`, and
-`top_by_pagerank` — the last being the only way to rank dependents by
-importance, since the CLI's `rank` cannot take a supplied set.
+traversal edges, a `summary` with `by_kind`, `top_files`, and `top_by_pagerank`
+— the last being the only way to rank dependents by importance, since the CLI's
+`rank` cannot take a supplied set — and `depth_horizon_reached`, `node_cap_reached`,
+`searched_depth`.
+
+MCP `Path` is the equivalent of `wicked-estate path`. It takes `from`, `to`,
+`depth` (1–16, default 8), and `max_nodes` (1–5000, default 1000) — inputs
+schema-derived. It returns `{hops, found, depth_bounded, node_bounded,
+unresolved}`, without the CLI's `from` and `to`, with per-hop `{source, target,
+kind, confidence, provenance, resolved_by}` — response shape source-read, since
+no response schema ships. Not executed here.
 
 > **Edge direction.** Wicked Estate's invariant is `source = dependent`,
 > `target = dependency`. Blast radius is reverse reachability; lineage is
@@ -90,7 +101,8 @@ importance, since the CLI's `rank` cannot take a supplied set.
 
 | Intent | Surface | Returns |
 | --- | --- | --- |
-| Transitive dependencies of a symbol | **MCP only** — `Lineage` | Forward reachability over `Calls` + `Imports`, to `depth` ≤ 24. The complement of `BlastRadius`. |
+| Transitive dependencies of a symbol | **MCP only** — `Lineage` | Forward reachability over `Calls` + `Imports`, to `depth` ≤ 24. The complement of `BlastRadius`. Adds `depth_horizon_reached`, `node_cap_reached`, `searched_depth`. |
+| TypeScript value lineage | **MCP only** — `Lineage` with `relation: "flows_to"` | Producer-to-consumer value flow through parameters, returns, fields, property reads, and Angular `@Input()`s. TypeScript only. Synthetic value nodes are not name-addressable and are excluded from search unless `SearchEntity{include_values: true}`. Schema-derived. |
 
 The CLI has **no lineage subcommand at all.** The nearest CLI approximation
 is `graph-view --focus <name>`, which returns a bounded neighbourhood rather
@@ -126,7 +138,7 @@ equivalent and is sufficient for most work.
 | Intent | Surface | Returns |
 | --- | --- | --- |
 | Inventory rules-engine nodes | **MCP only** — `RulesInventory` | `[{name, kind, file, invoked_by: [code_files]}]` for every `RuleSet` and `Rule` node, and the code that invokes them. Takes no parameters. |
-| Recall conformance rules | **MCP only** — `rules.recall` | Faceted, severity-ordered rules. Filters: `framework`, `language`, `layer`, `rule_type` (`pattern` \| `policy`), `scope`, `severity` (`info` \| `warn` \| `error` \| `critical`), `limit`. Read-only by design; there is deliberately no write counterpart. |
+| Recall conformance rules | **MCP only** — `rules.recall` | Faceted, severity-ordered rules. Filters: `framework`, `language`, `layer`, `rule_type` (`pattern` \| `policy`), `scope`, `severity` (`info` \| `warn` \| `error` \| `critical`), `limit`, `projects` (array of strings — a project-scoped rule is returned only when its project is listed; omit/empty for global rules only). Results within a severity are ordered by weight then id. Read-only by design; there is deliberately no write counterpart. Schema-derived. |
 | Symbols satisfying a requirement | `wicked-estate by-requirement <requirement>` | Symbols annotated as satisfying that requirement, with `file:line`. Not listed in `--help`; it is in the CLI's dispatch table. |
 | Requirement linkage per symbol | `wicked-estate nodes --json --semantics` | Adds `requirement` and `requirement_validated` to each node. |
 | Trace code to a rules engine | **MCP only** — `TraverseGraph` with `edge_kinds` | `["invoked_by"]` traces code → rules; `["governs"]` gives ruleset → rule structure; `["evaluates"]` gives rule → condition. |
@@ -147,7 +159,7 @@ result, not a contradiction. Do not run the write to make the read succeed.
 | Graph identity and size | `wicked-estate stats` | Node and edge counts by kind, a **graph-wide `unresolved` total**, database size, git provenance when indexed from a checkout, and the per-repository registry in a multi-repo graph. It is also the only reliable place to see the `STALENESS:` line. |
 | Symbol fingerprint | `wicked-estate fingerprint <name>` | A stable hex fingerprint for the symbol, for detecting change across revisions. |
 | What changed since a revision | `wicked-estate changed-since <sha> --json` | Symbols in files changed since that git SHA. |
-| Index freshness | `wicked-estate stats`, or any non-`--json` read | `STALENESS: N commit(s) in '<label>' since last index`. **Only five subcommands print it** — `query`, `blast-radius`, `stats`, `clusters`, `context` — and `blast-radius` suppresses it under `--json` so machine output stays one document. The `--json` calls this skill teaches therefore never show it: get freshness from a bare `wicked-estate stats`. |
+| Index freshness | `wicked-estate stats`, or any non-`--json` read | `STALENESS: N commit(s) in '<label>' since last index`. **Six subcommands print it** — `query`, `blast-radius`, `stats`, `clusters`, `context`, `path` — and `blast-radius` and `path` suppress it under `--json` so machine output stays one document. The `--json` calls this skill teaches therefore never show it: get freshness from a bare `wicked-estate stats`. |
 
 ---
 
@@ -161,20 +173,23 @@ from the other.
 | --- | --- | --- | --- |
 | Unbound call sites | `unresolved` | `unresolved_callers` | References the resolver could not bind. Potential missing dependents. |
 | Output cut | `truncated_dependents` (rows dropped) | `truncated` (boolean) plus `total` | The list is a prefix. |
-| Traversal depth cap | **none — unreported** | `depth` per dependent, `depth` request parameter | See below. |
-| Index freshness | `STALENESS:` line, five commands only | not surfaced | The graph describes an older revision. |
+| Traversal depth cap | `searched_depth`, `depth_horizon_reached`, `node_cap_reached` | `depth_horizon_reached`, `node_cap_reached`, `searched_depth` | Use `blast-radius <name> --depth N` (default 12, max 24) to control reach. |
+| Index freshness | `STALENESS:` line, six commands only | not surfaced | The graph describes an older revision. |
 | Source-bundle cut | `summary.truncated_count` with `requested` / `returned` | n/a | `source --json` reports how many of the selected symbols it actually returned within `budget`. A large `--cluster` easily exceeds it. |
 
-**The unreported one matters most.** The CLI hardcodes its blast-radius
-traversal to **depth 12**. Dependents further away are dropped, and they are
-counted in neither `unresolved` (which counts unbound references to the target
-name) nor `truncated_dependents` (a character-budget cut). So a CLI blast radius
-has a silent horizon, and nothing in the output tells you whether you hit it.
-MCP `BlastRadius` takes an explicit `depth` (default 8, max 24) and returns a
-per-dependent `depth`, so the horizon is at least visible there.
+**The depth cut is reported.** `blast-radius --json` returns `searched_depth`,
+`depth_horizon_reached`, and `node_cap_reached`. When `depth_horizon_reached` is
+true, the text output prints a `CUT AT depth=N` line; raise `--depth` (max 24) to
+go further. Use `blast-radius <name> --depth 1` to get only direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
+A true `node_cap_reached` means the node budget cut the walk; no CLI flag raises
+it. `path` hops carry
+`confidence`, `provenance`, and `resolved_by` per hop; `blast-radius` rows do not.
 
-MCP `TraverseGraph` truncates at `max_nodes` (default 200) and reports depth per
-node, so a result at the cap is also a floor.
+MCP `BlastRadius` takes an explicit `depth` (default 8, max 24) and returns a
+per-dependent `depth`, plus `depth_horizon_reached`, `node_cap_reached`, and
+`searched_depth`, so the horizon is fully visible there. MCP `TraverseGraph`
+truncates at `max_nodes` (default 200, max 1000) and reports depth per node, so
+a result at the cap is also a floor.
 
 ---
 
@@ -210,7 +225,8 @@ skill that only fires when an optional server is registered triggers unreliably.
   `proposal.reject`.
 
 Ten of these mutate state. Running `wicked-estate-mcp --readonly` drops the
-write tools from the advertised set, leaving 19 read tools. Prefer it.
+write tools from the advertised set, leaving 20 read tools (21 with SemanticSearch).
+Prefer it.
 
 ---
 
