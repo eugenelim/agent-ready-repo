@@ -9,11 +9,12 @@
 > shipped behavior and its verification agree with this model.
 
 The current baseline is [Governance Extras design](../../packs/governance-extras/DESIGN.md):
-`rfc-status` is a read-only RFC lifecycle summary, while `new-adr` and `new-rfc`
-own separate authoring flows. This planned architecture replaces the summary
-surface with ADR-and-RFC navigation and adds disposable views. It does not
-change the authoring owners, canonical Markdown records, or repo-only pack
-scope.
+`navigate-decisions` is a read-only skill that queries the admitted ADR and RFC
+corpus and exports a self-contained offline HTML explorer, while `new-adr` and
+`new-rfc` own separate authoring flows. This architecture replaced the earlier
+read-only `rfc-status` summary with ADR-and-RFC navigation and multi-form
+disposable views. It does not change the authoring owners, canonical Markdown
+records, or repo-only pack scope.
 
 ## 1. Purpose
 

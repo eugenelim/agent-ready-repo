@@ -16,7 +16,7 @@ This pack provides the RFC mechanism itself, so it has no upstream RFC of its ow
 
 Things a reasonable reader might expect this pack to solve. It doesn't, by design:
 
-- **Live governance dashboards.** `rfc-status` is a read-only point-in-time scan of `docs/rfc/`. It does not maintain a live dashboard, send notifications, or integrate with an issue tracker. It reads what's in the repo and reports it.
+- **Live governance dashboards.** `navigate-decisions` is a read-only, on-demand derivation from canonical ADR and RFC records. It does not maintain a live dashboard, send notifications, or integrate with an issue tracker. Generated query results and HTML files are disposable projections; the canonical records are the authority.
 - **RFC comment thread management.** Responding to reviewer comments, threading replies, and tracking per-reviewer objections are a wiki or issue tracker's job. This pack writes structured RFC documents; comment threads live outside the repo.
 - **Automated decision enforcement.** A shared convention is documentation — a shared understanding of how the project works. It is not a validator, a lint rule, or a CI gate. The pack writes the document; enforcement is the team's job.
 - **Team approval workflows.** This pack writes RFC and ADR files. It does not create GitHub review requests, post to Slack, or orchestrate multi-person sign-off. The human gates (G-draft, G-accept, G-merge) are the adopter's checkpoints — the pack cannot substitute for the human work of circulating a document and getting a decision.
@@ -183,11 +183,58 @@ These constraints must never be violated by any skill in this pack or any skill 
 
 5. **Adversarial critique track is not optional.** Every ADR produced by `new-adr` includes the adversarial critique — the strongest case against the decision. An ADR that omits the adversarial track is not complete.
 
-6. **`rfc-status` is read-only.** It never creates or modifies RFC files, RFC index entries, or any governance artifact. Any invocation path that would cause `rfc-status` to write a file is out of scope.
+6. **`navigate-decisions` is read-only.** It never creates or modifies ADR files, RFC files, index entries, or any governance artifact. Its architecture is on-demand derivation from canonical records: it reads `docs/adr/` and `docs/rfc/` through the repository's blessed confined-filesystem helpers, derives a bounded query result or a self-contained offline HTML file, and leaves the canonical sources unchanged. Internal renderer, parser, payload, search, graph, and styling choices remain implementation decisions as long as the accepted behavior and safety contract holds. ADR and RFC authoring stays with `new-adr` and `new-rfc`; `navigate-decisions` does not take authoring work.
 
 ---
 
-## 8. Design decisions and rationale log
+## 8. navigate-decisions architecture
+
+### Read-only and on-demand derivation
+
+`navigate-decisions` derives every result from canonical ADR and RFC records in `docs/adr/` and `docs/rfc/` at query time. It does not maintain a durable index or graph: every query discovers, admits, and reads the corpus fresh. Generated query results and offline HTML files are disposable projections; the canonical Markdown records remain the only authority.
+
+### ADR and RFC separation
+
+ADR and RFC are distinct artifact types with separate shapes, admission rules, and lifecycle values. The navigator admits them together as one corpus but never flattens their differences. Every record carries its `kind`, its exact lifecycle `raw_value` (including missing, unfamiliar, or qualified values), and its `source` path. Missing a `**Status:**` field yields the missing-state marker; any present value is admitted as-is. The navigator never normalizes lifecycle values across kinds or invents a single current-version answer across partial supersession scopes.
+
+### Confined reads via vendored file_safety
+
+Every corpus read goes through the repository's blessed confined-filesystem helper (`file_safety.py`), vendored beside the skill's scripts. Symlinks, hard links, special files, traversal escapes, duplicate identities, and identity-changing paths are refused before any content is read. A candidate larger than 2 MiB is refused with code `input_too_large`. Malformed candidates, unsafe inputs, and duplicate kind-plus-ordinal identities fail the whole operation; partial truth is never returned.
+
+### Checked versus contextual versus navigation-only relationships
+
+Three distinct trust classes govern every relationship the navigator emits:
+
+- **Checked lineage** (`trust_class: checked`): both endpoints are admitted and reciprocal supersession metadata agrees on relation and scope. This is the only authoritative lineage.
+- **Candidate lineage** (`trust_class: candidate`): a supersession entry whose mirror was not found. Unresolved evidence, not checked lineage.
+- **Contextual reference** (`trust_class: contextual`): an explicit `Related` field reference. The source record points here; the relationship is not validated lineage.
+- **Navigation-only** (`trust_class: navigation_only`): a caller assertion supplied at query time. Non-authoritative navigation input; it never becomes a source-record fact.
+
+Free-form prose, filenames, dates, directory proximity, and model judgment do not create checked edges.
+
+### Multi-form views
+
+The same corpus fact model supports four views: corpus list (orientation and filtering), lifecycle graph (what superseded what and whether replacement is whole or partial), guidance context (a wider record beside narrower or related guidance), and record detail (complete rationale and provenance). Each view is a rendering lens over the same facts. Visual hierarchy, contextual references, and navigation grouping never become checked lineage. The implementation may use different internal representations and code paths for the agent query and HTML views; they are not required to share a renderer, component, payload, or search module.
+
+### Safe offline publication
+
+The HTML explorer is one self-contained file embedded with data, styles, and scripts. It performs no network or adjacent-file reads at runtime. Publication is atomic: an exclusively created temporary sibling is synced and then published with a no-replace operation; there is no overwrite mode. On POSIX, the temporary sibling and the published file are readable and writable only by their owner from creation through publication. A destination inside the repository worktree is refused; a full export exceeding 100 MiB is refused or requires explicit confirmation.
+
+### Measured full-versus-bounded rule
+
+The full-versus-bounded selection rule is evidence-backed. Chrome scale evidence recorded in the verification ledger shows the current corpus (238 records, ~5.7 MiB) is practical in full mode; the 100 MiB file-size threshold is the measured limit at which desktop Chrome stops being practical. Bounded mode is a first-class representation, not a partial-failure fallback: it retains the complete record inventory, exact headers, checked graph, contextual references, and provenance while omitting bodies.
+
+### Reference-policy boundary
+
+Every query result and HTML view states that it reports recorded decisions and candidate context, not the complete policy applicable to a proposed action. Absence is not permission, and retrieval relevance is not authority.
+
+### Implementation freedom
+
+Internal renderer, parser, payload, search, graph, styling, and module choices remain implementation decisions as long as the accepted behavior and safety contract holds. A future change that promotes a contextual relationship to checked authority, changes the public query contract, or adds a runtime dependency or hosted service crosses a separate governance boundary and must be decided explicitly.
+
+---
+
+## 9. Design decisions and rationale log
 
 ### Why RFC and ADR are separate artifacts (from v1)
 

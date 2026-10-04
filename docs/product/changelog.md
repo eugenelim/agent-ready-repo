@@ -64,6 +64,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [governance-extras][1.0.0] — 2026-10-04
+
+### Highlights
+
+- `navigate-decisions` replaces the retired `rfc-status` skill. It queries both ADRs and RFCs for exact lifecycle, checked supersession lineage, contextual references, guidance context, and record detail. It also exports a self-contained offline HTML explorer with list, lifecycle-graph, guidance-context, and record-detail views.
+
+### Changed
+
+- **Breaking:** `rfc-status` is removed. Use `navigate-decisions` with a `summary` prompt (or ask "show me the RFC landscape") to get the counts and lifecycle view `rfc-status` provided. All `rfc-status` activation prompts now route to `navigate-decisions`.
+
+### Migration
+
+Run `navigate-decisions summary` (or ask "how many RFCs are in each lifecycle state?") in place of `rfc-status`. For exact record detail, use `navigate-decisions record ADR-NNNN` or `navigate-decisions record RFC-NNNN`. For offline review, export with `navigate-decisions export`.
+
+## [iac-terraform][0.1.11] — 2026-10-04
+
+### Changed
+
+- The `governance-extras` dependency range is widened to `^1.0` (from `^0.11`). The `iac-terraform` pack behavior is unchanged; this update tracks the governance-extras major release that replaced `rfc-status` with `navigate-decisions`.
+
 ## [core][2.27.14] — 2026-10-03
 
 ### Highlights

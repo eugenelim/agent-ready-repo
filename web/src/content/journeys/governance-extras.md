@@ -29,8 +29,8 @@ skills:
   - name: new-adr
     description: "Records an architectural decision with two critique tracks and optional supporting-practice capture only when the decision-maker accepts it."
     humanTouches: 2
-  - name: rfc-status
-    description: "Surfaces the current RFC landscape at a glance — how many RFCs are in each lifecycle state, which are active, and how many findings are waiting in the candidate register."
+  - name: navigate-decisions
+    description: "Queries the ADR and RFC corpus for lifecycle, lineage, guidance context, and exact record detail. Exports a self-contained offline HTML explorer for human review."
     humanTouches: 0
 humanGates:
   - id: review-rfc-draft
@@ -81,11 +81,11 @@ relatedJourneys:
   - core
 ---
 
-| Say this               | What happens                                            |
-|------------------------|---------------------------------------------------------|
-| `rfc-status`           | Orient — RFC landscape by status and findings count     |
-| `new-rfc`              | Propose a cross-cutting change through a structured RFC |
-| `new-adr`              | Record an architectural decision with critique tracks   |
+| Say this               | What happens                                                   |
+|------------------------|----------------------------------------------------------------|
+| `navigate-decisions`   | Orient — ADR and RFC landscape, lifecycle, lineage, and detail |
+| `new-rfc`              | Propose a cross-cutting change through a structured RFC        |
+| `new-adr`              | Record an architectural decision with critique tracks          |
 
 ---
 
@@ -115,25 +115,14 @@ Approve? ›
 
 ### 2. Manage the comment period
 
-Type `rfc-status` at any point during the comment period to see where the RFC stands — the agent keeps the RFC's objector section updated as feedback arrives.
+Type `navigate-decisions` at any point during the comment period to see where the RFC stands — the agent reads the corpus and reports exact lifecycle state, open RFCs, and RFC candidates.
 
 ```text
-rfc-status
+navigate-decisions summary
 
-  Active:
-
-  | State | RFCs                                       |
-  |-------|--------------------------------------------|
-  | Open  | RFC-0043: Trunk-based development          |
-
-  Resolved:
-
-  | State    | Count |
-  |----------|------:|
-  | Accepted |    12 |
-  | Rejected |     2 |
-
-  RFC candidates: 3 entries
+  ADRs: 134  RFCs: 104
+  Accepted: 234  Superseded: 2  Draft: 1  Open: 1
+  RFC candidates: 8 entries
 ```
 
 - **Output:** a resolved objection record — all objections addressed or explicitly set aside with a reason.
