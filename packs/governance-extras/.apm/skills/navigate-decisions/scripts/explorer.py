@@ -20,9 +20,6 @@ Security model
 - Source links are built only from validated repository-relative
   segments, percent-encoded one at a time, through a reviewed in-code
   HTTPS mapping with an exact host allowlist.
-
-Spec: docs/specs/decision-navigation/spec.md
-Plan task: T3 — Offline publication is safe, reviewable, and evidence-sized
 """
 from __future__ import annotations
 
@@ -47,12 +44,11 @@ _IS_POSIX = os.name == "posix"
 
 # ── Budget ────────────────────────────────────────────────────────────────────
 
-# AC-0015: full export stays practical in desktop Chrome up to the 100 MiB
-# file-size limit, the first threshold crossed as the corpus grows (between
-# 10x and 25x the 2026-10-03 corpus). Larger corpora need bounded mode or an
-# explicit confirmation. Evidence: docs/specs/decision-navigation/notes/verification-ledger.md.
+# Full exports up to 100 MiB stay practical in desktop Chrome. Above that limit,
+# full mode requires explicit confirmation; bounded mode is the default for
+# larger corpora. The threshold was chosen from measured Chrome scale evidence.
 BUDGET_BYTES: int = 100 * 1024 * 1024
-_BUDGET_LABEL = "100 MiB (AC-0015 measured full-export limit)"
+_BUDGET_LABEL = "100 MiB full-export limit"
 
 # ── Host allowlist for clickable source links ─────────────────────────────────
 
@@ -137,6 +133,24 @@ def _get_nav() -> Any:
     return mod
 
 
+# ── HTML safe encoding ───────────────────────────────────────────────────────
+
+
+def _html_escape(text: str) -> str:
+    """Escape text for safe insertion into HTML content.
+
+    Replaces &, <, > and " so the result is safe inside element content
+    and quoted attribute values.  Does not alter quotes for unquoted attributes.
+    """
+    return (
+        text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
 # ── JSON safe encoding ────────────────────────────────────────────────────────
 
 
@@ -182,19 +196,32 @@ def _run_git(args: list[str], cwd: str, timeout: int = 5) -> str | None:
 
 
 def _parse_github_identity(url: str) -> tuple[str, str] | None:
-    """Return (owner, repo) for a github.com remote URL, or None."""
+    """Return (owner, repo) for a github.com remote URL, or None.
+
+    Rejects owner or repo names that are dot-segments (``.`` or ``..``), which
+    would change the resolved path on the host.  The host is validated against
+    _SOURCE_HOST_ALLOWLIST before any link is emitted.
+    """
+    # Only exact hosts in the allowlist are permitted.
+    host = "github.com"
+    if host not in _SOURCE_HOST_ALLOWLIST:
+        return None  # allowlist governs; reject unrecognised host
+
     m = re.match(
         r"^https://github\.com/([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$",
         url,
     )
+    if not m:
+        m = re.match(
+            r"^git@github\.com:([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$",
+            url,
+        )
     if m:
-        return m.group(1), m.group(2)
-    m = re.match(
-        r"^git@github\.com:([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$",
-        url,
-    )
-    if m:
-        return m.group(1), m.group(2)
+        owner, repo = m.group(1), m.group(2)
+        # Reject dot-segment names.
+        if owner in (".", "..") or repo in (".", ".."):
+            return None
+        return owner, repo
     return None
 
 
@@ -220,12 +247,29 @@ def _encode_path(repo_relative: str) -> str:
     return "/".join(urllib.parse.quote(s, safe="") for s in segments)
 
 
+def _git_root_matches(root: Path) -> bool:
+    """Return True only when the git top-level resolves to root.
+
+    Called before link building to ensure source paths are relative to the
+    same root we read from.  Returns False when git is unavailable, when
+    the top-level call fails, or when the resolved paths differ.
+    """
+    cwd = str(root)
+    git_toplevel = _run_git(["rev-parse", "--show-toplevel"], cwd)  # noqa: S603
+    if git_toplevel is None:
+        return False
+    return Path(git_toplevel).resolve() == root.resolve()
+
+
 def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
     """Build a map from repo-relative source path to link info.
 
     Uses git to obtain the remote URL and HEAD sha.  Falls back to inert
     provenance text for any unrecognized remote or host outside the allowlist.
     Record-supplied URLs never become links.
+
+    The caller is responsible for calling _git_root_matches before invoking
+    this function and passing an empty sources list when it returns False.
     """
     cwd = str(root)
     remote_url = _run_git(["config", "--get", "remote.origin.url"], cwd)
@@ -620,7 +664,9 @@ def _build_html(
     csp = (
         f"default-src 'none'; "
         f"script-src 'sha256-{js_hash}'; "
-        f"style-src 'unsafe-inline'"
+        f"style-src 'unsafe-inline'; "
+        f"base-uri 'none'; "
+        f"form-action 'none'"
     )
 
     # Embed all data as safe JSON in a data island.
@@ -666,7 +712,7 @@ def _build_html(
         f"<li>Roadmap intents register: {_reg_cell('roadmap_intents')}</li>"
         f"</ul>"
     )
-    prov_text = json.dumps(provenance, indent=2, ensure_ascii=False)
+    prov_text = _html_escape(json.dumps(provenance, indent=2, ensure_ascii=False))
 
     title = f"Decision Navigator — {total} records — {now.strftime('%Y-%m-%dT%H:%M:%SZ')}"
 
@@ -798,8 +844,7 @@ def _validate_destination(
         raise ValueError(
             f"destination name must be a single path segment: {name!r}"
         )
-    from pathlib import PurePath as _PP
-    pp = _PP(name)
+    pp = Path(name)
     if len(pp.parts) != 1 or name in (".", ".."):
         raise ValueError(
             f"destination name must be a single path segment: {name!r}"
@@ -854,20 +899,40 @@ def _publish_atomically(target_dir: Path, target_path: Path, content: bytes) -> 
     )
     tmp_path = Path(tmp_name)
     published = False
+    # Track whether fdopen has taken ownership of descriptor.
+    fd_owned_by_fdopen = False
     try:
         if _IS_POSIX:
             os.fchmod(descriptor, 0o600)
         with os.fdopen(descriptor, "wb") as handle:
+            fd_owned_by_fdopen = True
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
         if _IS_POSIX and _stat.S_IMODE(tmp_path.stat().st_mode) != 0o600:
             raise OSError("temporary file permissions are not owner-only after fchmod")
+        # Validate the temp file identity before linking: it must be a regular
+        # file with exactly one hard link (nlink == 1) so the link will create
+        # exactly two references before we unlink the temp.  This ties the
+        # publication to the identity of the file we wrote, not a replacement.
+        if _IS_POSIX:
+            tmp_st = Path(tmp_name).stat()
+            if not _stat.S_ISREG(tmp_st.st_mode):
+                raise OSError("temporary file is not a regular file before link")
+            if tmp_st.st_nlink != 1:
+                raise OSError(
+                    f"temporary file has {tmp_st.st_nlink} links before os.link; "
+                    "expected 1"
+                )
         os.link(tmp_name, str(target_path))
         published = True
     except FileExistsError as exc:
         raise ValueError("destination already exists (race condition)") from exc
     finally:
+        # Close the fd only when fdopen has not already taken ownership.
+        if not fd_owned_by_fdopen:
+            with contextlib.suppress(OSError):
+                os.close(descriptor)
         with contextlib.suppress(OSError):
             tmp_path.unlink()
     if published and _IS_POSIX and _stat.S_IMODE(target_path.stat().st_mode) != 0o600:
@@ -883,6 +948,7 @@ def publish_explorer(
     root: Any,
     *,
     destination: Any = None,
+    name: str | None = None,
     mode: str = "full",
     confirm_over_budget: bool = False,
     assertions: list[dict[str, Any]] | None = None,
@@ -895,6 +961,9 @@ def publish_explorer(
         destination: Destination directory (Path or str).  Defaults to
             the OS temporary directory.  Must be supplied explicitly by the
             user and not derived from record content.
+        name: Output filename.  Must be a single ``.html`` segment, already
+            validated by the caller (e.g. main()).  Defaults to a timestamp
+            name when None.
         mode: "full" (embed all record bodies) or "bounded" (omit bodies).
         confirm_over_budget: If True, publish even when the estimated size
             exceeds the budget constant.  Requires explicit user intent.
@@ -918,6 +987,7 @@ def publish_explorer(
     _record_to_api_fn = nav._record_to_api
     _sort_records_fn = nav._sort_records
     _sort_relationships_fn = nav._sort_relationships
+    _read_register_file_fn = nav._read_register_file
 
     root_path = Path(root) if not isinstance(root, Path) else root
     now_ = now or datetime.now(UTC)
@@ -926,7 +996,10 @@ def publish_explorer(
     if mode not in ("full", "bounded"):
         return {
             "status": "error",
-            "error": f"mode must be 'full' or 'bounded'; got {mode!r}",
+            "error": {
+                "code": "invalid_mode",
+                "message": f"mode must be 'full' or 'bounded'; got {mode!r}",
+            },
         }
 
     # Admit corpus.
@@ -935,7 +1008,11 @@ def publish_explorer(
         err = admission["error"]
         return {
             "status": "error",
-            "error": f"corpus admission failed [{err['code']}]: {err['message']}",
+            "error": {
+                "code": "corpus_error",
+                "message": f"corpus admission failed [{err['code']}]: {err['message']}",
+                "upstream_code": err["code"],
+            },
         }
     records_raw = admission["records"]
 
@@ -960,33 +1037,24 @@ def publish_explorer(
         ("rfc_candidates", "docs/product/findings/rfc-candidates.md"),
         ("roadmap_intents", "docs/product/findings/roadmap-intents.md"),
     ):
-        rpath = root_path / rel_path
-        if not rpath.exists():
-            register[key] = "absent"
-        else:
-            try:
-                raw = fs.read_confined_regular_file(
-                    root_path, rpath, max_bytes=2 * 1024 * 1024
-                )
-                text = raw.decode("utf-8", errors="replace")
-                # Count table data rows.
-                count = 0
-                header_seen = False
-                import re as _re
-                for line in text.splitlines():
-                    stripped = line.strip()
-                    if stripped.startswith("|") and stripped.endswith("|"):
-                        inner = stripped[1:-1]
-                        cells = inner.split("|")
-                        if all(_re.match(r"^[:\- ]+$", c) for c in cells):
-                            continue
-                        if not header_seen:
-                            header_seen = True
-                            continue
-                        count += 1
-                register[key] = {"row_count": count}
-            except Exception:
-                register[key] = "absent"
+        try:
+            result = _read_register_file_fn(fs, root_path, rel_path)
+            register[key] = result
+        except Exception as exc:
+            cls_name = type(exc).__name__
+            if cls_name == "BoundExceeded":
+                return {
+                    "status": "error",
+                    "code": "input_too_large",
+                    "error": f"register file exceeds 2 MiB: {rel_path}",
+                }
+            if cls_name == "UnsafeContentError":
+                return {
+                    "status": "error",
+                    "code": "unsafe_input",
+                    "error": f"register file is unsafe: {rel_path}: {exc}",
+                }
+            raise
 
     summary = {
         "by_kind": by_kind,
@@ -1015,9 +1083,11 @@ def publish_explorer(
 
     sorted_rels = _sort_relationships_fn(all_rels)
 
-    # Build source links.
+    # Build source links.  Only emit clickable links when the git top-level
+    # matches root so that source paths are relative to the corpus we read from.
     sources = list({r["source"] for r in sorted_internal})
-    source_links = _build_source_links(root_path, sources)
+    sources_for_links = sources if _git_root_matches(root_path) else []
+    source_links = _build_source_links(root_path, sources_for_links)
 
     # Build provenance.
     provenance = {
@@ -1053,26 +1123,36 @@ def publish_explorer(
     if estimated_bytes > BUDGET_BYTES and not confirm_over_budget:
         return {
             "status": "error",
-            "error": (
-                f"estimated export size {estimated_bytes:,} bytes exceeds "
-                f"budget {BUDGET_BYTES:,} bytes ({_BUDGET_LABEL}). "
-                "Use bounded mode or pass confirm_over_budget=True."
-            ),
-            "estimated_bytes": estimated_bytes,
-            "budget_bytes": BUDGET_BYTES,
+            "error": {
+                "code": "over_budget",
+                "message": (
+                    f"estimated export size {estimated_bytes:,} bytes exceeds "
+                    f"budget {BUDGET_BYTES:,} bytes ({_BUDGET_LABEL}). "
+                    "Use bounded mode or pass confirm_over_budget=True."
+                ),
+                "estimated_bytes": estimated_bytes,
+                "budget_bytes": BUDGET_BYTES,
+            },
         }
 
-    # Determine output name and destination.
-    if destination is None:
+    # Determine output name and destination directory.
+    # When 'name' is provided it has already been validated by the caller as
+    # one .html segment; 'destination' is always a directory in that case.
+    # When 'name' is absent, 'destination' may be a file path (backward compat)
+    # or a directory; fall back to a timestamp name.
+    timestamp_name = f"decisions-{now_.strftime('%Y%m%dT%H%M%SZ')}.html"
+    if name is not None:
+        out_name = name
+        dest_dir = Path(destination) if destination is not None else None
+    elif destination is None:
+        out_name = timestamp_name
         dest_dir = None
-        out_name = f"decisions-{now_.strftime('%Y%m%dT%H%M%SZ')}.html"
     else:
         dest_path = Path(destination)
         if dest_path.is_dir():
             dest_dir = dest_path
-            out_name = f"decisions-{now_.strftime('%Y%m%dT%H%M%SZ')}.html"
+            out_name = timestamp_name
         else:
-            # Treat destination as a file path: parent is dir, name is filename.
             dest_dir = dest_path.parent
             out_name = dest_path.name
 
@@ -1080,13 +1160,19 @@ def publish_explorer(
     try:
         resolved_dir, full_path = _validate_destination(dest_dir, out_name, root_path)
     except ValueError as exc:
-        return {"status": "error", "error": str(exc)}
+        return {
+            "status": "error",
+            "error": {"code": "invalid_destination", "message": str(exc)},
+        }
 
     # Publish atomically.
     try:
         _publish_atomically(resolved_dir, full_path, content)
     except (OSError, ValueError) as exc:
-        return {"status": "error", "error": f"publication failed: {exc}"}
+        return {
+            "status": "error",
+            "error": {"code": "publish_failed", "message": f"publication failed: {exc}"},
+        }
 
     return {
         "status": "ok",

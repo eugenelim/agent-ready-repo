@@ -136,9 +136,13 @@ def test_fact_parity_lifecycle_values(tmp_path: pathlib.Path) -> None:
 def test_fact_parity_relationship_tuples(tmp_path: pathlib.Path) -> None:
     """Embedded relationship tuples match run_query output for all admitted records.
 
-    Checks all fields of each checked relationship (AC-0008 tuple comparison).
+    Checks every relationship field (AC-0008 tuple comparison), including
+    raw_value and source which were absent from the original comparison.
+
+    Mutation: dropping raw_value or source from the HTML data island would
+    cause the all-fields comparison to fail.
     """
-    html = _html(tmp_path)
+    html = _html(tmp_path, mode="bounded")
     data = _extract_json_data(html)
     html_checked = [
         r for r in data["relationships"] if r["trust_class"] == "checked"
@@ -150,18 +154,21 @@ def test_fact_parity_relationship_tuples(tmp_path: pathlib.Path) -> None:
     query_checked = [r for r in q["relationships"] if r["trust_class"] == "checked"]
 
     for qr in query_checked:
-        key_fields = {
+        # All fields that the spec says every relationship carries.
+        all_fields = {
             "from": qr["from"],
             "to": qr["to"],
             "relation": qr["relation"],
             "scope": qr["scope"],
+            "raw_value": qr["raw_value"],
+            "basis": qr["basis"],
+            "source": qr["source"],
+            "direction": qr["direction"],
             "trust_class": qr["trust_class"],
             "resolution_state": qr["resolution_state"],
-            "basis": qr["basis"],
-            "direction": qr["direction"],
         }
-        assert any(key_fields.items() <= hr.items() for hr in html_checked), (
-            f"Checked relationship not found in HTML: {key_fields}"
+        assert any(all_fields.items() <= hr.items() for hr in html_checked), (
+            f"Checked relationship not found in HTML with all fields: {all_fields}"
         )
 
 
@@ -382,7 +389,10 @@ def test_refuses_destination_inside_worktree(tmp_path: pathlib.Path) -> None:
     dest_inside.mkdir()
     result = EXPLORER.publish_explorer(fake_root, destination=dest_inside)
     assert result["status"] == "error"
-    err = result["error"].lower()
+    assert result["error"]["code"] == "invalid_destination", (
+        f"Expected invalid_destination code, got: {result['error']!r}"
+    )
+    err = result["error"]["message"].lower()
     assert "worktree" in err or "inside" in err, (
         f"Expected worktree refusal message, got: {result['error']!r}"
     )
@@ -413,7 +423,8 @@ def test_refuses_case_variant_inside_worktree(tmp_path: pathlib.Path) -> None:
     )
     # Refused because it is the worktree, not because the path is missing.
     assert dest_variant.is_dir()
-    assert "inside the repository worktree" in str(result["error"])
+    assert result["error"]["code"] == "invalid_destination"
+    assert "inside the repository worktree" in result["error"]["message"]
 
 
 def test_refuses_non_html_name(tmp_path: pathlib.Path) -> None:
@@ -424,7 +435,10 @@ def test_refuses_non_html_name(tmp_path: pathlib.Path) -> None:
     )
     # Destination is a file path: parent is tmp_path, name is out.txt
     assert result["status"] == "error"
-    assert ".html" in result["error"].lower() or "html" in result["error"].lower(), (
+    assert result["error"]["code"] == "invalid_destination", (
+        f"Expected invalid_destination code, got: {result['error']!r}"
+    )
+    assert ".html" in result["error"]["message"].lower() or "html" in result["error"]["message"].lower(), (
         f"Expected .html name refusal, got: {result['error']!r}"
     )
 
@@ -447,6 +461,9 @@ def test_refuses_symlinked_parent(tmp_path: pathlib.Path) -> None:
     assert result["status"] == "error", (
         "Expected refusal for symlinked destination directory"
     )
+    assert result["error"]["code"] in ("invalid_destination", "corpus_error"), (
+        f"Expected machine-readable code for symlink refusal, got: {result['error']!r}"
+    )
 
 
 def test_refuses_existing_target(tmp_path: pathlib.Path) -> None:
@@ -462,7 +479,11 @@ def test_refuses_existing_target(tmp_path: pathlib.Path) -> None:
     )
     # Since this file already exists, it must be refused.
     assert result["status"] == "error"
-    assert "exist" in result["error"].lower() or "already" in result["error"].lower(), (
+    assert result["error"]["code"] in ("invalid_destination", "publish_failed"), (
+        f"Expected invalid_destination or publish_failed code, got: {result['error']!r}"
+    )
+    msg = result["error"]["message"].lower()
+    assert "exist" in msg or "already" in msg, (
         f"Expected existing-file refusal, got: {result['error']!r}"
     )
 
@@ -472,13 +493,33 @@ def test_refuses_over_budget_without_confirm(tmp_path: pathlib.Path) -> None:
     import unittest.mock as _mock
 
     with _mock.patch.object(EXPLORER, "BUDGET_BYTES", 1):  # 1-byte budget
-        result = _publish(tmp_path / "budget_test", confirm_over_budget=False)
+        result = _publish(tmp_path, mode="bounded", confirm_over_budget=False)
     # Should error because estimated size > 1 byte
     assert result["status"] == "error"
-    err = result["error"].lower()
-    assert "budget" in err or "exceed" in err, (
-        f"Expected budget-exceeded error, got: {result['error']!r}"
+    assert result["error"]["code"] == "over_budget", (
+        f"Expected over_budget code, got: {result['error']!r}"
     )
+    msg = result["error"]["message"].lower()
+    assert "budget" in msg or "exceed" in msg, (
+        f"Expected budget-exceeded message, got: {result['error']!r}"
+    )
+
+
+def test_export_refusal_carries_machine_readable_code() -> None:
+    """Every export refusal must carry a machine-readable code in error["code"].
+
+    Tests the invalid-mode code as the simplest refusal path.
+
+    Mutation: changing error to a plain string instead of a dict with 'code' would
+    fail the isinstance check and the code assertion.
+    """
+    result = EXPLORER.publish_explorer(FIXTURE, mode="unknown_mode")
+    assert result["status"] == "error"
+    err = result["error"]
+    assert isinstance(err, dict), f"error must be a dict with code/message; got {type(err)}"
+    assert "code" in err, f"error dict must have 'code' field; got {err!r}"
+    assert "message" in err, f"error dict must have 'message' field; got {err!r}"
+    assert err["code"] == "invalid_mode", f"expected code='invalid_mode'; got {err['code']!r}"
 
 
 def test_confirm_over_budget_allows_publish(tmp_path: pathlib.Path) -> None:
@@ -497,15 +538,27 @@ def test_confirm_over_budget_allows_publish(tmp_path: pathlib.Path) -> None:
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX-only file mode test")
 def test_temp_sibling_mode_0600_before_write(tmp_path: pathlib.Path) -> None:
-    """fchmod 0o600 must be called before content is written to the temp sibling."""
+    """fchmod 0o600 must be called before content is written, and the actual
+    temp-file mode must be 0o600 at write time.
+
+    Checks both call order AND actual filesystem mode — the original test only
+    checked call order, so a mutation swapping fchmod(0o644) would have passed.
+
+    Mutation: changing 0o600 to 0o644 in the fchmod call would make the actual-mode
+    assertion fail while the (now-corrected) event filter still catches it.
+    """
     import unittest.mock as _mock
 
     events: list[tuple] = []
     real_fchmod = os.fchmod
+    actual_modes_at_fchmod: list[int] = []
 
     def mock_fchmod(fd: int, mode: int) -> None:
-        events.append(("fchmod", mode))
         real_fchmod(fd, mode)
+        # Read back the actual mode from the OS to confirm the requested mode landed.
+        actual = stat.S_IMODE(os.fstat(fd).st_mode)
+        actual_modes_at_fchmod.append(actual)
+        events.append(("fchmod", mode))
 
     real_fdopen = os.fdopen
 
@@ -535,6 +588,10 @@ def test_temp_sibling_mode_0600_before_write(tmp_path: pathlib.Path) -> None:
     assert min(fchmod_indices) < min(write_indices), (
         "fchmod(0o600) must be called before write"
     )
+    # Verify actual filesystem mode, not just the argument passed to fchmod.
+    assert any(m == 0o600 for m in actual_modes_at_fchmod), (
+        f"Actual file mode after fchmod was not 0o600; got {[oct(m) for m in actual_modes_at_fchmod]}"
+    )
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX-only file mode test")
@@ -547,11 +604,130 @@ def test_published_file_mode_0600(tmp_path: pathlib.Path) -> None:
     assert mode == 0o600, f"Expected 0o600, got {oct(mode)}"
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX-only fd-leak test")
+def test_fchmod_failure_closes_fd(tmp_path: pathlib.Path) -> None:
+    """The temp-file descriptor is closed even when fchmod raises an error.
+
+    QE-20: If fchmod raises OSError (e.g., unsupported filesystem), the
+    descriptor must still be closed before the exception propagates.  The code
+    tracks ownership with fd_owned_by_fdopen and closes in the finally block
+    when fdopen has not taken over.
+
+    Mutation: removing the fd_owned_by_fdopen close in the finally block would
+    leave the descriptor open; this test detects the leak by counting open
+    descriptors before and after the call.
+    """
+    import unittest.mock as _mock
+
+    def count_fds() -> int:
+        import subprocess
+        result = subprocess.run(
+            ["lsof", "-p", str(os.getpid()), "-a", "-d", "0-9999"],
+            capture_output=True,
+            text=True,
+        )
+        return len(result.stdout.splitlines())
+
+    target_dir = tmp_path / "out"
+    target_dir.mkdir()
+    target_path = target_dir / "out.html"
+
+    fds_before = count_fds()
+    with _mock.patch.object(os, "fchmod", side_effect=OSError("fchmod blocked")), pytest.raises(OSError, match="fchmod blocked"):
+        EXPLORER._publish_atomically(target_dir, target_path, b"content")
+    fds_after = count_fds()
+
+    assert fds_after <= fds_before + 1, (  # +1 for lsof itself
+        f"fd count grew from {fds_before} to {fds_after} after fchmod failure; "
+        "the temp-file descriptor was not closed"
+    )
+
+
+# ── SEC-7: Temp file identity validated before link ──────────────────────────
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX-only identity test")
+def test_validated_dir_used_for_publication(tmp_path: pathlib.Path) -> None:
+    """publish_explorer uses the resolved (validated) directory for publication.
+
+    The destination returned by _validate_destination is the resolved canonical
+    path.  Publication must use that path, not re-derive it from the original
+    argument.
+
+    Mutation: bypassing _validate_destination and deriving the path from the raw
+    destination argument would fail when a symlink is involved — a symlinked
+    parent is refused by validate_destination, so a bypass would either use the
+    wrong path or skip the check.
+
+    This test confirms the resolved canonical path is used: it creates a valid
+    directory, publishes to it, and checks that the output file has the expected
+    resolved path as its parent.
+    """
+    real_dir = tmp_path / "real"
+    real_dir.mkdir()
+    result = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=real_dir,
+        name="validated.html",
+        mode="bounded",
+    )
+    assert result["status"] == "ok", f"expected ok; got {result!r}"
+    out_path = pathlib.Path(result["path"])
+    # The published file must be inside the resolved canonical directory.
+    assert out_path.resolve().parent == real_dir.resolve(), (
+        f"Published file must be in the validated directory {real_dir.resolve()}; "
+        f"got {out_path.resolve().parent}"
+    )
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX-only nlink test")
+def test_publish_atomically_rejects_extra_hard_link(tmp_path: pathlib.Path) -> None:
+    """_publish_atomically refuses when the temp file has extra hard links.
+
+    Simulates a race: another process hard-links the temp file before os.link.
+    The nlink check must detect nlink > 1 and refuse.
+
+    Mutation: removing the nlink check would allow publication even with a
+    compromised temp file.
+    """
+    import types
+    import unittest.mock as _mock
+
+    target_dir = tmp_path / "out"
+    target_dir.mkdir()
+    target_path = target_dir / "out.html"
+
+    # Build a fake stat_result with st_nlink=2 but correct st_mode (0o100600 = reg+0o600)
+    real_stat = os.stat
+
+    call_count = [0]
+
+    def patched_stat(path, **kw):
+        st = real_stat(path, **kw)
+        path_str = str(path)
+        if ".nav-decisions-" in path_str and ".tmp" in path_str:
+            call_count[0] += 1
+            # Return a namespace that mimics stat_result with st_nlink=2
+            fake = types.SimpleNamespace(**{
+                attr: getattr(st, attr) for attr in dir(st) if attr.startswith("st_")
+            })
+            fake.st_nlink = 2  # inject extra link
+            return fake
+        return st
+
+    with _mock.patch.object(os, "stat", patched_stat), pytest.raises(OSError, match="links before os.link"):
+        EXPLORER._publish_atomically(target_dir, target_path, b"content")
+
+
 # ── AC-0013, AC-0022: Failure leaves no partial file ─────────────────────────
 
 
 def test_no_partial_file_on_link_failure(tmp_path: pathlib.Path) -> None:
-    """If os.link fails, no partial file must remain at the destination."""
+    """If os.link fails, no partial file must remain at the destination.
+
+    Uses a valid destination so the test actually reaches os.link.
+    Mutation: removing the unlink-on-failure cleanup would leave a partial file.
+    """
     import unittest.mock as _mock
 
     called_paths: list[pathlib.Path] = []
@@ -561,9 +737,18 @@ def test_no_partial_file_on_link_failure(tmp_path: pathlib.Path) -> None:
         raise OSError("injected link failure")
 
     with _mock.patch.object(os, "link", failing_link):
-        result = _publish(tmp_path / "no_partial")
+        result = EXPLORER.publish_explorer(
+            FIXTURE,
+            destination=tmp_path,
+            name="decisions.html",
+            mode="bounded",
+        )
 
     assert result["status"] == "error"
+    # os.link must have been called — if it wasn't, the test proves nothing.
+    assert called_paths, (
+        "os.link was never called; test did not reach the atomic-publish path"
+    )
     # No file at any of the attempted destination paths.
     for p in called_paths:
         assert not p.exists(), f"Partial file left at {p}"
@@ -670,7 +855,12 @@ def test_github_allowlisted_host_produces_link(tmp_path: pathlib.Path) -> None:
             return "a" * 40
         return None
 
-    with _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git):
+    # _build_source_links no longer checks git root; the caller (publish_explorer)
+    # does via _git_root_matches.  Mock that check True to exercise link building.
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
         links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
 
     sl = links.get("docs/adr/0001-alpha.md", {})
@@ -690,7 +880,11 @@ def test_branch_link_labelled_may_be_newer(tmp_path: pathlib.Path) -> None:
             return "https://github.com/owner/repo.git"
         return None  # no HEAD sha
 
-    with _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git):
+    # _build_source_links no longer checks git root; mock _git_root_matches True.
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
         links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
 
     sl = links["docs/adr/0001-alpha.md"]

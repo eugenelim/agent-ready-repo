@@ -29,6 +29,8 @@ approximate and the section name is the authoritative reference.
 from __future__ import annotations
 
 import importlib.util
+import io
+import json
 import os
 import pathlib
 import sys
@@ -39,6 +41,7 @@ sys.dont_write_bytecode = True
 HERE = pathlib.Path(__file__).resolve().parent
 SCRIPTS = HERE.parents[2] / ".apm/skills/navigate-decisions/scripts"
 FIXTURE = HERE / "fixtures/mixed"
+_CHAIN_DIR = HERE / "fixtures" / "lineage-chain"
 SPEC = importlib.util.spec_from_file_location(
     "governance_extras_navigate_decisions", SCRIPTS / "navigate_decisions.py"
 )
@@ -540,11 +543,14 @@ def test_record_adr_0030_missing_status_marker() -> None:
 
 
 def test_record_fields_include_id_kind_title_source() -> None:
-    """record entry carries id, kind, title, lifecycle, source, and body_availability.
+    """record entry carries id, kind, title, lifecycle, source, header_fields, and body.
 
     spec: "Each record carries its identifier, kind, title, exact lifecycle value or
     missing-state marker, repository-relative source, present structured fields,
     body-availability state..."
+
+    ADV-2: header_fields must be present so callers can read exact header values
+    without parsing the body.
     """
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0002"})
     rec = payload["records"][0]
@@ -552,8 +558,36 @@ def test_record_fields_include_id_kind_title_source() -> None:
     assert rec["kind"] == "ADR"
     assert isinstance(rec["title"], str) and rec["title"]
     assert "source" in rec
+    assert "header_fields" in rec, (
+        "record must carry 'header_fields' with structured supersession and related values"
+    )
+    assert isinstance(rec["header_fields"], dict), (
+        f"header_fields must be a dict; got {type(rec['header_fields'])}"
+    )
     assert "body" in rec
     assert "available" in rec["body"]
+
+
+def test_record_header_fields_contains_supersession_entries() -> None:
+    """header_fields carries structured supersession entries for records that declare them.
+
+    ADR-0001 in the fixture declares supersession relationships; its header_fields
+    must carry at least one structured supersession entry.
+
+    Mutation: removing header_fields or making it always empty would fail this test.
+    """
+    # ADR-0001 supersedes ADR-0002 in the fixture
+    payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
+    assert payload["status"] == "ok"
+    rec = payload["records"][0]
+    hf = rec["header_fields"]
+    # At least one supersession key is expected (supersedes, superseded_by, etc.)
+    supersession_keys = {"supersedes", "supersedes_in_part", "superseded_by", "superseded_in_part"}
+    present = supersession_keys & set(hf.keys())
+    assert present, (
+        f"ADR-0001 declares supersession relationships; header_fields must carry "
+        f"at least one of {sorted(supersession_keys)}; got keys {sorted(hf.keys())}"
+    )
 
 
 def test_record_unknown_id_fails_with_stable_error() -> None:
@@ -644,22 +678,33 @@ def test_lineage_traverses_only_checked_relationships() -> None:
 
     spec: "lineage traverses only checked relationships"
     The one-sided fixture has an unresolved entry; lineage must not cross it.
+
+    Mutation: removing the checked-only guard would add ADR-0002 to records.
     """
     one_sided = _NEG_DIR / "one-sided"
     payload = NAV.run_query(
         one_sided,
-        {"operation": "lineage", "id": "ADR-0001", "direction": "older", "depth": 1},
+        {"operation": "lineage", "id": "ADR-0001", "direction": "older", "depth": 4},
     )
     # ADR-0001 claims to supersede ADR-0002 but edge is unresolved.
-    # lineage must return ADR-0001 and not traverse to ADR-0002 via lineage.
-    if payload["status"] == "ok":
-        # If traversal happened to ADR-0002, the edge was wrongly treated as checked.
-        # We check the relationships for trust_class, not just the records set.
-        for rel in payload.get("relationships", []):
-            if rel.get("from") == "ADR-0001" and rel.get("to") == "ADR-0002":
-                assert rel.get("trust_class") != "checked", (
-                    "lineage must not traverse an unresolved (one-sided) edge as checked"
-                )
+    assert payload["status"] == "ok", f"lineage failed: {payload}"
+    record_ids = {r["id"] for r in payload.get("records", [])}
+    # ADR-0002 must NOT appear in records — unresolved edge was not traversed.
+    assert "ADR-0002" not in record_ids, (
+        f"lineage must not traverse an unresolved edge; ADR-0002 appeared: {record_ids}"
+    )
+    # The unresolved edge itself must still be reported with a non-checked trust class.
+    rels = payload.get("relationships", [])
+    edge_to_002 = [
+        r for r in rels
+        if r.get("from") == "ADR-0001" and r.get("to") == "ADR-0002"
+    ]
+    assert edge_to_002, (
+        "lineage must include the one-sided edge from ADR-0001 as untraversed"
+    )
+    assert edge_to_002[0].get("trust_class") != "checked", (
+        "lineage must not classify an unresolved edge as checked"
+    )
 
 
 def test_lineage_includes_unchecked_relationships_as_untraversed() -> None:
@@ -689,13 +734,35 @@ def test_lineage_depth_limit_respected() -> None:
     """lineage stops at the requested depth and does not over-traverse.
 
     spec: "a depth from 1 through 4"
+
+    Uses the lineage-chain fixture: ADR-0003 → ADR-0002 → ADR-0001 (all checked).
+    depth=1 reaches ADR-0002 but not ADR-0001; depth=2 reaches both.
+
+    Mutation: removing the depth guard would include ADR-0001 at depth=1.
     """
-    payload = NAV.run_query(
-        FIXTURE,
+    chain = _CHAIN_DIR
+    payload_d1 = NAV.run_query(
+        chain,
         {"operation": "lineage", "id": "ADR-0003", "direction": "older", "depth": 1},
     )
-    # With depth=1, lineage from ADR-0003 reaches ADR-0002 but not further.
-    assert payload["status"] == "ok"
+    assert payload_d1["status"] == "ok", f"lineage depth=1 failed: {payload_d1}"
+    ids_d1 = {r["id"] for r in payload_d1["records"]}
+    assert "ADR-0002" in ids_d1, (
+        f"depth=1 from ADR-0003 must reach ADR-0002; got {ids_d1}"
+    )
+    assert "ADR-0001" not in ids_d1, (
+        f"depth=1 must not reach ADR-0001 (two hops away); got {ids_d1}"
+    )
+
+    payload_d2 = NAV.run_query(
+        chain,
+        {"operation": "lineage", "id": "ADR-0003", "direction": "older", "depth": 2},
+    )
+    assert payload_d2["status"] == "ok", f"lineage depth=2 failed: {payload_d2}"
+    ids_d2 = {r["id"] for r in payload_d2["records"]}
+    assert "ADR-0001" in ids_d2, (
+        f"depth=2 must reach ADR-0001 (two hops); got {ids_d2}"
+    )
 
 
 def test_lineage_partial_edge_with_scope() -> None:
@@ -806,6 +873,60 @@ def test_search_missing_selectors_fails() -> None:
     assert payload["status"] == "error"
 
 
+def test_search_non_list_selectors_fails() -> None:
+    """search with non-list selectors fails with a stable error.
+
+    ADV-4/QE-4: A string or dict instead of a list for selectors must be refused,
+    not silently accepted or causing a crash.
+
+    Mutation: removing the isinstance(selectors, list) check in _validate_selectors
+    would cause this to crash or match the whole corpus.
+    """
+    payload = NAV.run_query(FIXTURE, {"operation": "search", "selectors": "ADR"})
+    assert payload["status"] == "error", (
+        "non-list selectors must be refused with an error"
+    )
+    assert "error" in payload
+    assert "code" in payload["error"]
+
+
+def test_search_selector_with_only_unknown_keys_fails() -> None:
+    """search with a selector containing only unknown keys is refused.
+
+    ADV-4/QE-4: A selector dict with no known filter key must be refused.
+    Without this check it would silently match the whole corpus.
+
+    Mutation: removing the unknown-key check in _validate_selector would allow
+    this to pass and return all records instead of refusing.
+    """
+    payload = NAV.run_query(
+        FIXTURE,
+        {"operation": "search", "selectors": [{"not_a_real_key": "ADR"}]},
+    )
+    assert payload["status"] == "error", (
+        "a selector with only unknown keys must be refused, not match the whole corpus"
+    )
+    assert "error" in payload
+
+
+def test_search_non_dict_selector_element_fails() -> None:
+    """search with a non-dict selector element is refused.
+
+    ADV-4: Each element in the selectors list must be a dict; a string or int
+    element must be refused.
+
+    Mutation: removing the isinstance(sel, dict) check in _validate_selector
+    would cause this to crash or match nothing instead of refusing.
+    """
+    payload = NAV.run_query(
+        FIXTURE,
+        {"operation": "search", "selectors": ["ADR"]},
+    )
+    assert payload["status"] == "error", (
+        "a non-dict selector element must be refused"
+    )
+
+
 # ── context operation ─────────────────────────────────────────────────────────
 
 
@@ -903,8 +1024,8 @@ def test_relationship_closed_value_set_checked_full() -> None:
     assert rel["trust_class"] == "checked"
     assert rel["resolution_state"] == "resolved"
     assert rel["scope"] == []
-    # source is the superseding record
-    assert "ADR-0003" in rel["source"]
+    # source is the repository-relative path of the superseding record
+    assert rel["source"] == "docs/adr/0003-bravo.md"
 
 
 def test_relationship_closed_value_set_checked_partial() -> None:
@@ -926,7 +1047,8 @@ def test_relationship_closed_value_set_checked_partial() -> None:
     assert rel["trust_class"] == "checked"
     assert rel["resolution_state"] == "resolved"
     assert rel["scope"] == ["D3"]
-    assert "ADR-0020" in rel["source"]
+    # source is the repository-relative path of the superseding record
+    assert rel["source"] == "docs/adr/0020-foxtrot.md"
 
 
 def test_relationship_closed_value_set_contextual_reference() -> None:
@@ -982,7 +1104,8 @@ def test_relationship_source_is_superseding_record_for_checked_pair() -> None:
         and r.get("trust_class") == "checked"
     ]
     assert checked, "ADR-0002 record must include the checked full edge from ADR-0003"
-    assert "ADR-0003" in checked[0]["source"]
+    # source is the repository-relative path of the superseding record
+    assert checked[0]["source"] == "docs/adr/0003-bravo.md"
 
 
 # ── ordering ──────────────────────────────────────────────────────────────────
@@ -1265,6 +1388,8 @@ def test_bidi_raw_value_preserved_display_value_escaped() -> None:
     spec: "HTML and other human-facing forms use a separate display_value that
     visibly escapes unsafe bidirectional or non-printing controls; this presentation
     change does not normalize or replace the raw source fact."
+
+    Mutation: setting display_value = raw_value would fail the display assertions.
     """
     corpus = _NEG_DIR / "bidi"
     payload = NAV.run_query(corpus, {"operation": "record", "id": "ADR-0001"})
@@ -1273,13 +1398,23 @@ def test_bidi_raw_value_preserved_display_value_escaped() -> None:
     lc = record["lifecycle"]
     raw = lc["raw_value"]
     display = lc["display_value"]
-    # raw_value preserves the bidi characters (U+202E and U+202C are present in fixture)
-    assert "‮" in raw or "‬" in raw, (
-        "raw_value must preserve bidi control characters"
+    # raw_value must preserve the literal bidi control characters from the fixture.
+    assert "‮" in raw, (
+        "raw_value must preserve U+202E RIGHT-TO-LEFT OVERRIDE"
     )
-    # display_value must differ from raw_value (escaping changes it)
-    assert display != raw, (
-        "display_value must differ from raw_value when bidi controls are present"
+    assert "‬" in raw, (
+        "raw_value must preserve U+202C POP DIRECTIONAL FORMATTING"
+    )
+    # display_value must visibly escape bidi controls — raw chars must not appear.
+    assert "‮" not in display, (
+        "display_value must not contain raw U+202E; it must be escaped"
+    )
+    assert "‬" not in display, (
+        "display_value must not contain raw U+202C; it must be escaped"
+    )
+    # The escaped notation must be present so the user sees the literal code point.
+    assert "[U+202E]" in display or "202E" in display, (
+        "display_value must visibly annotate the escaped U+202E control"
     )
 
 
@@ -1347,9 +1482,85 @@ def test_result_too_large_refusal_carries_error_fields(tmp_path: pathlib.Path) -
     )
     assert payload["status"] == "error"
     assert payload["error"]["code"] == "result_too_large"
-    assert "limit" in payload["error"]
+    assert "limits" in payload["error"]
     assert "observed" in payload["error"]
     assert "hint" in payload["error"]
+
+
+def test_relationship_limit_enforced() -> None:
+    """The 400-relationship limit is enforced for non-detail operations.
+
+    ADV-3/QE-2: '_check_non_detail_bounds refuses when relationships exceed 400.'
+    Calls the bounds function directly with fabricated data to avoid expensive
+    fixture construction.
+
+    Mutation: removing the relationship-count check would allow results with
+    more than 400 relationships, violating the non-detail bound spec.
+    """
+    env: dict = {
+        "schema": "decision-navigation.query.v1",
+        "query": {"operation": "search"},
+        "boundary": NAV.BOUNDARY_NOTICE,
+        "provenance": {},
+    }
+    # Build 401 minimal relationship dicts
+    rels = [
+        {
+            "from": f"ADR-{i:04d}",
+            "to": f"ADR-{i + 1:04d}",
+            "relation": "supersedes",
+            "scope": [],
+            "raw_value": f"ADR-{i + 1:04d}",
+            "basis": "supersession_fields",
+            "source": f"docs/adr/{i:04d}-test.md",
+            "direction": "superseding_to_superseded",
+            "trust_class": "checked",
+            "resolution_state": "resolved",
+        }
+        for i in range(1, 402)
+    ]
+    result = NAV._check_non_detail_bounds(env, [], rels, "search")
+    assert result is not None, (
+        "_check_non_detail_bounds must refuse when relationship count exceeds 400"
+    )
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "result_too_large"
+    assert "limits" in result["error"]
+    assert result["error"]["limits"].get("max_relationships") == 400
+
+
+def test_result_byte_limit_enforced() -> None:
+    """The 512 KiB byte limit is enforced for non-detail operations.
+
+    ADV-3/QE-2: '_check_non_detail_bounds refuses when estimated JSON exceeds 512 KiB.'
+    Calls the bounds function directly with a large record list.
+
+    Mutation: removing the byte-size check would allow results larger than 512 KiB.
+    """
+    env: dict = {
+        "schema": "decision-navigation.query.v1",
+        "query": {"operation": "search"},
+        "boundary": NAV.BOUNDARY_NOTICE,
+        "provenance": {},
+    }
+    # Each record is ~600 bytes; 900 records → ~540 KiB
+    big_records = [
+        {
+            "id": f"ADR-{i:04d}",
+            "kind": "ADR",
+            "title": "x" * 500,  # 500-char title to bulk up JSON size
+            "source": f"docs/adr/{i:04d}-test.md",
+        }
+        for i in range(1, 901)
+    ]
+    result = NAV._check_non_detail_bounds(env, big_records, [], "search")
+    assert result is not None, (
+        "_check_non_detail_bounds must refuse when estimated JSON exceeds 512 KiB"
+    )
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "result_too_large"
+    assert "limits" in result["error"]
+    assert result["error"]["limits"].get("max_result_bytes") == 512 * 1024
 
 
 def test_unsafe_filesystem_symlink_refuses_operation(tmp_path: pathlib.Path) -> None:
@@ -1385,8 +1596,8 @@ def test_unsafe_filesystem_symlink_refuses_operation(tmp_path: pathlib.Path) -> 
 
     payload = NAV.run_query(tmp_path, {"operation": "summary"})
     assert payload["status"] == "error"
-    assert payload["error"]["code"] in ("unsafe_input", "input_too_large", "error"), (
-        f"symlinked candidate must refuse the operation; got {payload['error']}"
+    assert payload["error"]["code"] == "unsafe_input", (
+        f"symlinked candidate must set code='unsafe_input'; got {payload['error']}"
     )
 
 
@@ -1415,6 +1626,9 @@ def test_unsafe_filesystem_hard_link_refuses_operation(tmp_path: pathlib.Path) -
         pytest.skip("hard links not supported on this filesystem")
     payload = NAV.run_query(tmp_path, {"operation": "summary"})
     assert payload["status"] == "error"
+    assert payload["error"]["code"] == "unsafe_input", (
+        f"hard-linked candidate must set code='unsafe_input'; got {payload['error']}"
+    )
 
 
 def test_unsafe_filesystem_fifo_refuses_operation(tmp_path: pathlib.Path) -> None:
@@ -1433,6 +1647,9 @@ def test_unsafe_filesystem_fifo_refuses_operation(tmp_path: pathlib.Path) -> Non
         pytest.skip("FIFO creation failed on this filesystem")
     payload = NAV.run_query(tmp_path, {"operation": "summary"})
     assert payload["status"] == "error"
+    assert payload["error"]["code"] == "unsafe_input", (
+        f"FIFO candidate must set code='unsafe_input'; got {payload['error']}"
+    )
 
 
 def test_traversal_attempt_refuses_operation(tmp_path: pathlib.Path) -> None:
@@ -1453,6 +1670,9 @@ def test_traversal_attempt_refuses_operation(tmp_path: pathlib.Path) -> None:
         pytest.skip("symlinks unavailable on this filesystem")
     payload = NAV.run_query(tmp_path, {"operation": "summary"})
     assert payload["status"] == "error"
+    assert payload["error"]["code"] == "unsafe_input", (
+        f"traversal attempt must set code='unsafe_input'; got {payload['error']}"
+    )
 
 
 def test_unsupported_operation_fails_with_error() -> None:
@@ -1469,6 +1689,29 @@ def test_missing_operation_key_fails_with_error() -> None:
     """A query dict missing the operation key fails with a stable error."""
     payload = NAV.run_query(FIXTURE, {})
     assert payload["status"] == "error"
+
+
+def test_non_dict_query_returns_error_not_crash() -> None:
+    """A non-dict query value returns a stable error rather than crashing.
+
+    QE-7: run_query must not crash when called with a non-dict query.
+    Before the fix, passing a string like "summary" caused an AttributeError
+    because the code called query.get("operation") without checking the type.
+
+    Mutation: removing the isinstance(query, dict) guard would cause this to
+    raise AttributeError instead of returning an error dict.
+    """
+    for bad_query in ("summary", 42, None, ["operation", "summary"]):
+        try:
+            result = NAV.run_query(FIXTURE, bad_query)  # type: ignore[arg-type]
+            assert result.get("status") == "error", (
+                f"non-dict query {bad_query!r} must return status=error; got {result!r}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise AssertionError(
+                f"run_query must not crash with non-dict query {bad_query!r}; "
+                f"raised {type(exc).__name__}: {exc}"
+            ) from exc
 
 
 def test_body_too_large_omission(tmp_path: pathlib.Path) -> None:
@@ -1531,24 +1774,36 @@ def test_missing_register_file_reported_as_absent(tmp_path: pathlib.Path) -> Non
     )
 
 
-def test_reference_policy_boundary_present_in_response() -> None:
-    """Every query response states that it reports recorded decisions and
-    candidate context, not the complete policy applicable to an action.
+_BOUNDARY_SENTINEL = "not a complete statement of the policy"
+_BOUNDARY_QUERIES = [
+    {"operation": "summary"},
+    {"operation": "record", "id": "ADR-0001"},
+    {"operation": "search", "selectors": [{"kind": "ADR"}]},
+    {"operation": "lineage", "id": "ADR-0003", "direction": "older", "depth": 1},
+    {"operation": "context", "selectors": [{"kind": "ADR"}]},
+]
+
+
+@pytest.mark.parametrize("query", _BOUNDARY_QUERIES, ids=[q["operation"] for q in _BOUNDARY_QUERIES])
+def test_reference_policy_boundary_present_in_response(query: dict) -> None:
+    """Every query response carries a 'boundary' field with the exact policy note.
 
     spec AC-0021: "Every query and HTML view states that it reports recorded
     decisions and candidate context rather than the complete policy applicable
     to an action."
-    spec: "State that the navigator reports recorded decisions and candidate
-    context, not the complete policy applicable to a proposed action."
+
+    Tests all five operations.  Mutation: removing 'boundary' from any
+    operation's response would fail the exact-field assertion.
     """
-    payload = NAV.run_query(FIXTURE, {"operation": "summary"})
-    # The policy boundary note must appear somewhere in the response
-    # Accept the note in provenance, boundary, or a top-level field
-    response_str = str(payload)
-    assert (
-        "policy" in response_str.lower() or "candidate context" in response_str.lower()
-        or "recorded decisions" in response_str.lower()
-    ), "response must include the reference-policy boundary note"
+    payload = NAV.run_query(FIXTURE, query)
+    assert payload.get("status") == "ok", f"query {query!r} failed: {payload}"
+    assert "boundary" in payload, (
+        f"response for operation={query['operation']!r} must carry a 'boundary' field"
+    )
+    boundary = payload["boundary"]
+    assert _BOUNDARY_SENTINEL in boundary.lower(), (
+        f"boundary field must contain the policy sentinel text; got {boundary!r}"
+    )
 
 
 def test_summary_carries_query_envelope() -> None:
@@ -1607,3 +1862,210 @@ def test_multi_did_scopes_parse_with_or_without_spaces(tmp_path: pathlib.Path) -
         ("ADR-0002", "ADR-0001", ["D6", "D7"])
     ]
     assert not [r for r in payload["relationships"] if r["resolution_state"] == "unresolved"]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLI entry point tests (QE-16)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_cli_query_summary_exits_zero() -> None:
+    """main() with query --operation summary returns 0 and writes valid JSON.
+
+    Mutation: changing the return code or breaking JSON output would fail.
+    """
+    buf = io.StringIO()
+    import contextlib
+
+    with contextlib.redirect_stdout(buf):
+        code = NAV.main(["query", "--root", str(FIXTURE), "--operation", "summary"])
+    assert code == 0, f"expected exit 0, got {code}"
+    out = buf.getvalue()
+    payload = json.loads(out)
+    assert payload["status"] == "ok"
+    assert payload["schema"] == "decision-navigation.query.v1"
+
+
+def test_cli_query_unknown_record_exits_one() -> None:
+    """main() returns 1 when the query itself returns an error status.
+
+    Mutation: returning 0 on error would fail this test.
+    """
+    buf = io.StringIO()
+    import contextlib
+
+    with contextlib.redirect_stdout(buf):
+        code = NAV.main(
+            ["query", "--root", str(FIXTURE), "--operation", "record", "--id", "ADR-9999"]
+        )
+    assert code == 1, f"expected exit 1 for unknown record, got {code}"
+    out = buf.getvalue()
+    payload = json.loads(out)
+    assert payload["status"] == "error"
+
+
+def test_cli_query_invalid_selectors_json_exits_two() -> None:
+    """main() returns 2 when --selectors is not valid JSON.
+
+    Mutation: returning 0 or 1 for bad JSON would fail this test.
+    """
+    err_buf = io.StringIO()
+    import contextlib
+
+    with contextlib.redirect_stderr(err_buf):
+        code = NAV.main(
+            ["query", "--root", str(FIXTURE), "--operation", "search",
+             "--selectors", "{bad json"]
+        )
+    assert code == 2, f"expected exit 2 for invalid selectors JSON, got {code}"
+
+
+def test_cli_query_operation_routes_to_run_query() -> None:
+    """main() query command calls run_query and prints its result as JSON.
+
+    Mutation: skipping the run_query call or printing without json.dumps would fail.
+    """
+    buf = io.StringIO()
+    import contextlib
+
+    with contextlib.redirect_stdout(buf):
+        code = NAV.main(
+            ["query", "--root", str(FIXTURE), "--operation", "lineage",
+             "--id", "ADR-0003", "--direction", "older", "--depth", "1"]
+        )
+    assert code == 0
+    payload = json.loads(buf.getvalue())
+    assert payload["status"] == "ok"
+    record_ids = {r["id"] for r in payload["records"]}
+    assert "ADR-0002" in record_ids, (
+        "lineage older depth=1 from ADR-0003 must include ADR-0002"
+    )
+
+
+def test_cli_export_dotdot_name_exits_two() -> None:
+    """main() export with a dot-segment --name exits 2 without publishing anything.
+
+    SEC-1: The --name must be validated BEFORE it is joined to a destination
+    directory.  A dot-segment like '../escape.html' must be refused at exit code 2.
+
+    Mutation: if --name validation is removed or happens after the join,
+    a hostile name could escape the destination directory.
+    """
+    import contextlib
+
+    err_buf = io.StringIO()
+    with contextlib.redirect_stderr(err_buf):
+        code = NAV.main(
+            ["export", "--root", str(FIXTURE), "--name", "../escape.html"]
+        )
+    assert code == 2, (
+        f"expected exit 2 for dot-segment --name; got {code}\nstderr: {err_buf.getvalue()!r}"
+    )
+
+
+def test_cli_export_absolute_name_exits_two() -> None:
+    """main() export with an absolute --name exits 2 without publishing anything.
+
+    SEC-1: An absolute path like '/etc/passwd.html' as --name must be refused
+    at exit code 2 before any join to the destination directory.
+    """
+    import contextlib
+
+    err_buf = io.StringIO()
+    with contextlib.redirect_stderr(err_buf):
+        code = NAV.main(
+            ["export", "--root", str(FIXTURE), "--name", "/etc/passwd.html"]
+        )
+    assert code == 2, (
+        f"expected exit 2 for absolute --name; got {code}\nstderr: {err_buf.getvalue()!r}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Caller-assertion schema validation (SEC-5)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_context_non_list_assertions_refused() -> None:
+    """context refuses assertions that are not a list.
+
+    spec: "Caller assertions not conforming to the schema are refused."
+
+    Mutation: removing the isinstance(assertions, list) check would return ok
+    or crash instead of refusing with invalid_assertion.
+    """
+    payload = NAV.run_query(
+        FIXTURE,
+        {
+            "operation": "context",
+            "selectors": [{"kind": "ADR"}],
+            "assertions": "not a list",
+        },
+    )
+    assert payload["status"] == "error"
+    assert payload["error"]["code"] == "invalid_assertion", (
+        f"non-list assertions must yield invalid_assertion; got {payload['error']!r}"
+    )
+
+
+def test_context_non_dict_assertion_element_refused() -> None:
+    """context refuses an assertion element that is not a dict.
+
+    Mutation: removing the isinstance(a, dict) check would crash or accept
+    a malformed assertion.
+    """
+    payload = NAV.run_query(
+        FIXTURE,
+        {
+            "operation": "context",
+            "selectors": [{"kind": "ADR"}],
+            "assertions": ["string-not-a-dict"],
+        },
+    )
+    assert payload["status"] == "error"
+    assert payload["error"]["code"] == "invalid_assertion", (
+        f"non-dict assertion element must yield invalid_assertion; got {payload['error']!r}"
+    )
+
+
+def test_context_assertion_non_string_field_refused() -> None:
+    """context refuses an assertion whose 'from', 'to', or 'text' is not a string.
+
+    Mutation: removing the isinstance(a[key], str) check would accept a malformed
+    assertion.
+    """
+    payload = NAV.run_query(
+        FIXTURE,
+        {
+            "operation": "context",
+            "selectors": [{"kind": "ADR"}],
+            "assertions": [{"from": 123, "to": "ADR-0001", "text": "guide"}],
+        },
+    )
+    assert payload["status"] == "error"
+    assert payload["error"]["code"] == "invalid_assertion", (
+        f"assertion with non-string 'from' must yield invalid_assertion; got {payload['error']!r}"
+    )
+
+
+def test_context_valid_assertion_accepted() -> None:
+    """context accepts a well-formed caller assertion and includes it in the response.
+
+    Verifies that the schema check does not block valid assertions.
+    """
+    payload = NAV.run_query(
+        FIXTURE,
+        {
+            "operation": "context",
+            "selectors": [{"kind": "ADR"}],
+            "assertions": [
+                {"from": "ADR-0001", "to": "ADR-0002", "text": "informs design"}
+            ],
+        },
+    )
+    assert payload["status"] == "ok", f"valid assertion must be accepted; got {payload!r}"
+    nav_only = [
+        r for r in payload.get("relationships", [])
+        if r.get("trust_class") == "navigation_only"
+    ]
+    assert nav_only, "caller assertion must appear as navigation_only relationship"

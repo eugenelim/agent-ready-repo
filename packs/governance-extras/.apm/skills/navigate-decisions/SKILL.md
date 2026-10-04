@@ -2,7 +2,7 @@
 name: navigate-decisions
 description: Use this skill when the user asks to look up, summarise, trace, or explore architecture decision records (ADRs) or request-for-comments (RFCs) in the repository. Triggers on phrases like "show me ADR-0001", "which ADRs are accepted", "what supersedes this decision", "trace the lineage of RFC-0042", "find decisions about authentication", "rfc status", "show me the RFC landscape", "how many RFCs are in draft", "any RFC candidates in the findings register", "rfc report", "how many roadmap intents do we have", "export the decision corpus to HTML". Do NOT use for creating or revising records (use `new-adr` or `new-rfc`). Do NOT use for intent-hierarchy or intent-status queries.
 metadata:
-  boundaries: [filesystem_read_untrusted]
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
 
 # Skill: navigate-decisions

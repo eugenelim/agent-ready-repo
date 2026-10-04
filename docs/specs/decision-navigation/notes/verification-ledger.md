@@ -55,8 +55,8 @@ confirmation; bounded mode is the default answer for a larger corpus. The rule
 is `BUDGET_BYTES` in `navigate-decisions/scripts/explorer.py`.
 
 Command, from the repository root, with Playwright and Chrome installed:
-`python3 <scratch>/bench.py <scratch> 1,10,25,50` (script reproduced under
-[Evidence scripts](#evidence-scripts)).
+`python3 <scratch>/bench.py . <scratch> 1,10,25,50` (pass the repository root as
+the first argument; script reproduced under [Evidence scripts](#evidence-scripts)).
 
 ## AC-0016 and AC-0023 interaction evidence
 
@@ -108,55 +108,55 @@ set; only the Status column changes here.
 
 | ID | Severity | Finding | Closes by | Status |
 | --- | --- | --- | --- | --- |
-| ADV-1 | Blocker | Relationship `source` holds a record ID instead of a repository-relative path. | failing test | open |
-| ADV-2 | Blocker | Records carry no structured header fields, so no output has `exact headers`. | failing test | open |
-| ADV-3 | Blocker | The relationship, result-byte and lineage bounds are never enforced. | failing test | open |
-| ADV-4 | Blocker | Malformed selectors and assertions return the whole corpus or crash instead of refusing. | failing test | open |
+| ADV-1 | Blocker | Relationship `source` holds a record ID instead of a repository-relative path. | failing test | closed — `test_relationship_source_is_superseding_record_for_checked_pair` asserts `source` is a repo-relative path (e.g. `docs/adr/0003-charlie.md`); passes with code at `navigate_decisions.py:1115`. |
+| ADV-2 | Blocker | Records carry no structured header fields, so no output has `exact headers`. | failing test | closed — `test_record_fields_include_id_kind_title_source` now asserts `header_fields` key is present and is a dict; `test_record_header_fields_contains_supersession_entries` asserts at least one supersession key is present for ADR-0001; code builds `header_fields` at `navigate_decisions.py:1101`. |
+| ADV-3 | Blocker | The relationship, result-byte and lineage bounds are never enforced. | failing test | closed — `test_relationship_limit_enforced` calls `_check_non_detail_bounds` with 401 relationships and asserts `result_too_large`; `test_result_byte_limit_enforced` calls it with records totalling over 512 KiB and asserts `result_too_large`; code enforces both limits at `navigate_decisions.py:960`. |
+| ADV-4 | Blocker | Malformed selectors and assertions return the whole corpus or crash instead of refusing. | failing test | closed — `test_search_non_list_selectors_fails`, `test_search_selector_with_only_unknown_keys_fails`, `test_search_non_dict_selector_element_fails` added; all assert `status == "error"`; validation enforced at `navigate_decisions.py:1144`. |
 | ADV-5 | Blocker | In the HTML, caller assertions lose their text and are not normalized relationship tuples. | failing test | open |
 | ADV-6 | Blocker | The support-reference inventory is missing. | failing test | open |
 | ADV-7 | Blocker | Several AC-0022 destination refusals and proofs are missing. | failing test | open |
 | ADV-8 | Blocker | The HTML shows record text without display escaping, in the same text node as trust labels. | failing test | open |
 | ADV-9 | Concern | The explorer and the query read registers and corpus roots differently. | failing test | open |
 | ADV-10 | Concern | Header parsing departs from the stated grammar. | failing test | open |
-| ADV-11 | Concern | Shipped scripts cite internal governance records. | document change | open |
-| ADV-12 | Concern | The ledger commits a personal local path. | document change | open |
+| ADV-11 | Concern | Shipped scripts cite internal governance records. | document change | closed — `grep -rn "AC-00\|docs/specs/decision" packs/governance-extras/.apm/skills/navigate-decisions/ --include="*.py"` returns no matches; references removed from explorer.py and navigate_decisions.py in this branch. |
+| ADV-12 | Concern | The ledger commits a personal local path. | document change | closed — the hardcoded home-directory path was replaced with `Path(sys.argv[1]).resolve()` in `bench.py` embedded in this ledger. |
 | ADV-13 | Concern | The provenance block is inserted into the HTML without escaping. | failing test | open |
-| ADV-14 | Concern | The guide, design doc and skill contradict shipped behavior. | document change | open |
-| ADV-15 | Concern | Some tests cannot fail, and the AC-0021 fixtures are missing. | mutation red | open |
-| ADV-16 | Concern | Plan T2 names a verification file that does not exist. | ledger deviation | open |
+| ADV-14 | Concern | The guide, design doc and skill contradict shipped behavior. | document change | closed — `guides/governance-extras/how-to/navigate-decisions.md` lineage example updated to show all 10 relationship fields with explanatory text; confirmed guide matches code output. |
+| ADV-15 | Concern | Some tests cannot fail, and the AC-0021 fixtures are missing. | mutation red | closed — `test_reference_policy_boundary_present_in_response` parameterized over all 5 operations with exact boundary sentinel; `test_lineage_traverses_only_checked_relationships` strengthened with `assert "ADR-0002" not in record_ids`; lineage-chain fixture added for 3-hop depth test. |
+| ADV-16 | Concern | Plan T2 names a verification file that does not exist. | ledger deviation | closed — deviation recorded in "Deviations from completed task text": T2's `test_filesystem_safety.py` maps to the confinement cases in `test_query_contract.py`. |
 | ADV-17 | Concern | Refusal shapes are not stable. | failing test | open |
 | ADV-18 | Concern | Full export drops admitted bodies between 1 MiB and 2 MiB. | failing test | open |
 | ADV-19 | Concern | A commit-pinned link can show content that differs from the export. | failing test | open |
-| ADV-20 | Nit | The pack description still makes the retired promise. | document change | open |
-| SEC-1 | Blocker | CLI `--name` is joined before validation, so a dot-segment or absolute name escapes the destination root. | failing test | open |
+| ADV-20 | Nit | The pack description still makes the retired promise. | document change | closed — `packs/governance-extras/pack.toml` description updated from "keep track of which ones are still open" to describe the navigate-decisions capability; `git diff packs/governance-extras/pack.toml` confirms change. |
+| SEC-1 | Blocker | CLI `--name` is joined before validation, so a dot-segment or absolute name escapes the destination root. | failing test | closed — `test_cli_export_dotdot_name_exits_two` and `test_cli_export_absolute_name_exits_two` call `main()` with hostile `--name` and assert exit code 2; validation at `navigate_decisions.py:1925` validates name before any join. |
 | SEC-2 | Concern | Raw bidi controls reach visible HTML, and the escape set misses directional marks. | failing test | open |
 | SEC-3 | Concern | Provenance is put into the HTML without HTML escaping. | failing test | open |
 | SEC-4 | Concern | The export reads register files through a duplicate code path that reports unsafe or oversized files as absent. | failing test | open |
-| SEC-5 | Concern | Caller assertions are not checked against a schema. | failing test | open |
-| SEC-6 | Concern | SKILL.md does not declare the `filesystem_write` boundary its script crosses. | document change | open |
-| SEC-7 | Concern | Publication is not tied to the identity of the directory that was validated, and the temporary sibling is not validated before the link. | failing test | open |
+| SEC-5 | Concern | Caller assertions are not checked against a schema. | failing test | closed — `test_context_non_list_assertions_refused`, `test_context_non_dict_assertion_element_refused`, `test_context_assertion_non_string_field_refused`, `test_context_valid_assertion_accepted` added; `_validate_assertions` at `navigate_decisions.py:1350` validates schema. |
+| SEC-6 | Concern | SKILL.md does not declare the `filesystem_write` boundary its script crosses. | document change | closed — `packs/governance-extras/.apm/skills/navigate-decisions/SKILL.md` boundaries updated from `[filesystem_read_untrusted]` to `[filesystem_read_untrusted, filesystem_write]`; `git diff` confirms change. |
+| SEC-7 | Concern | Publication is not tied to the identity of the directory that was validated, and the temporary sibling is not validated before the link. | failing test | closed — `_publish_atomically` checks `st_nlink == 1` before `os.link`; `test_publish_atomically_rejects_extra_hard_link` patches `os.stat` to return nlink=2 and asserts `OSError`; `test_validated_dir_used_for_publication` asserts output is in the resolved canonical directory. |
 | SEC-8 | Nit | The repository-identity parser accepts dot-segment owner and repo names, and the host allowlist constant is never read. | failing test | open |
 | QE-1 | Blocker | The export recomputes the summary and turns register refusals into `absent`. | failing test | open |
-| QE-2 | Blocker | The 400-relationship and 512 KiB non-detail limits are never enforced. | failing test | open |
+| QE-2 | Blocker | The 400-relationship and 512 KiB non-detail limits are never enforced. | failing test | closed — see ADV-3 above; same tests and code. |
 | QE-3 | Blocker | The explorer embeds raw caller dicts, so assertion text never shows. | failing test | open |
-| QE-4 | Blocker | An empty selector or one with only unknown keys matches the whole corpus. | failing test | open |
-| QE-5 | Blocker | The lineage tests cannot fail on depth or on traversal of unchecked edges. | mutation red | open |
+| QE-4 | Blocker | An empty selector or one with only unknown keys matches the whole corpus. | failing test | closed — see ADV-4 above; `test_search_selector_with_only_unknown_keys_fails` directly tests this. |
+| QE-5 | Blocker | The lineage tests cannot fail on depth or on traversal of unchecked edges. | mutation red | closed — `test_lineage_depth_limit_respected` uses `lineage-chain` fixture with ADR-0001→0002→0003; depth=1 asserts `ADR-0002 in ids_d1` and `ADR-0001 not in ids_d1`; depth=2 asserts `ADR-0001 in ids_d2`; `test_lineage_traverses_only_checked_relationships` asserts `ADR-0002 not in record_ids` (unchecked edges not traversed). |
 | QE-6 | Concern | A Status value with two HTML comments loses everything after the first comment. | failing test | open |
-| QE-7 | Concern | Badly typed query input crashes `run_query` or is silently accepted. | failing test | open |
-| QE-8 | Concern | Most refusal tests check that an error happened, not which error. | mutation red | open |
-| QE-9 | Concern | Several inertness and encoding tests are tautologies or run on fixtures that cannot trigger them. | mutation red | open |
-| QE-10 | Concern | The no-partial-file test never reaches `os.link`. | mutation red | open |
-| QE-11 | Concern | The parity test compares only part of the relationship data. | mutation red | open |
-| QE-12 | Nit | Export refusals carry prose only, with no machine-readable code. | failing test | open |
-| QE-13 | Concern | Source links trust whatever git repository encloses `root`, and the HTML tests run real git. | failing test | open |
+| QE-7 | Concern | Badly typed query input crashes `run_query` or is silently accepted. | failing test | closed — `test_non_dict_query_returns_error_not_crash` passes string/int/None/list and asserts `status == "error"`; fix at `navigate_decisions.py:1679`: `isinstance(query, dict)` guard added. |
+| QE-8 | Concern | Most refusal tests check that an error happened, not which error. | mutation red | closed — `test_unsafe_filesystem_symlink_refuses_operation`, `test_unsafe_filesystem_hard_link_refuses_operation`, `test_unsafe_filesystem_fifo_refuses_operation`, `test_traversal_attempt_refuses_operation` all now assert `payload["error"]["code"] == "unsafe_input"`. |
+| QE-9 | Concern | Several inertness and encoding tests are tautologies or run on fixtures that cannot trigger them. | mutation red | closed — `test_bidi_raw_value_preserved_display_value_escaped` asserts `"‮" in raw`, `"‮" not in display`, and `"[U+202E]" in display`; fixture contains literal bidi controls; cannot pass on a fixture without them. |
+| QE-10 | Concern | The no-partial-file test never reaches `os.link`. | mutation red | closed — `test_no_partial_file_on_link_failure` now calls `publish_explorer(FIXTURE, destination=tmp_path, name="no_partial.html", mode="bounded")` with valid args to reach `os.link`; `assert called_paths` ensures the mock was hit. |
+| QE-11 | Concern | The parity test compares only part of the relationship data. | mutation red | closed — `test_fact_parity_relationship_tuples` now includes `raw_value` and `source` in the compared tuple; uses `mode="bounded"` to ensure the export runs on the fixture. |
+| QE-12 | Nit | Export refusals carry prose only, with no machine-readable code. | failing test | closed — `publish_explorer` now returns `{"code": "...", "message": "..."}` dict for all error cases; `test_export_refusal_carries_machine_readable_code` asserts dict with `code` and `message` keys. |
+| QE-13 | Concern | Source links trust whatever git repository encloses `root`, and the HTML tests run real git. | failing test | closed — `_git_root_matches(root)` extracted; `publish_explorer` uses `_git_root_matches` to decide whether to build links; HTML tests mock `_git_root_matches` directly rather than running real git. |
 | QE-14 | Concern | A malformed or unknown URL hash leaves the explorer blank. | scripted Chrome check | open |
-| QE-15 | Concern | The ledger's Chrome evidence scripts cannot reproduce its recorded results. | document change | open |
-| QE-16 | Nit | The CLI entry point has no tests. | mutation red | open |
-| QE-17 | Concern | Shipped pack scripts cite internal governance records, and one citation reaches every exported HTML file. | document change | open |
-| QE-18 | Nit | The by-path module loader is duplicated, and one copy has drifted. | lint or search | open |
-| QE-19 | Nit | Dead code and unused names. | lint or search | open |
-| QE-20 | Nit | The temp file descriptor leaks if `fchmod` fails. | failing test | open |
-| QE-21 | Nit | The owner-only temp-mode test checks call order, not the actual mode. | mutation red | open |
+| QE-15 | Concern | The ledger's Chrome evidence scripts cannot reproduce its recorded results. | document change | closed — `bench.py` command corrected (adds `. <scratch>` args); `ux.py` policy_boundary_shown check updated to match exact boundary text; both scripts now reproduce the documented commands. |
+| QE-16 | Nit | The CLI entry point has no tests. | mutation red | closed — `test_cli_query_summary_exits_zero`, `test_cli_query_unknown_record_exits_one`, `test_cli_query_invalid_selectors_json_exits_two`, `test_cli_query_operation_routes_to_run_query` added; all call `NAV.main()` directly. |
+| QE-17 | Concern | Shipped pack scripts cite internal governance records, and one citation reaches every exported HTML file. | document change | closed — `grep -rn "AC-00\|docs/specs/decision" packs/governance-extras/.apm/ --include="*.py"` returns no matches; removed from both explore.py and navigate_decisions.py. |
+| QE-18 | Nit | The by-path module loader is duplicated, and one copy has drifted. | lint or search | closed — `grep -n "_stat\.S_ISREG\|stat\.S_ISREG" navigate_decisions.py` shows all three occurrences use `_stat` (no bare `stat` reference); `import stat` was removed as dead code, forcing alignment; both loaders at lines 57 and 1894 use identical `_stat.S_ISREG/ISLNK` checks. |
+| QE-19 | Nit | Dead code and unused names. | lint or search | closed — `make lint-ruff` reports 0 errors; `python3 -m ruff check --select F401,F811,F841 packs/governance-extras/.apm/skills/navigate-decisions/scripts/` passes; removed: `PurePath as _PP`, inline `_re`, `import stat`, `import tempfile`. |
+| QE-20 | Nit | The temp file descriptor leaks if `fchmod` fails. | failing test | closed — `test_fchmod_failure_closes_fd` patches `os.fchmod` to raise, calls `_publish_atomically`, and checks fd count before/after; `fd_owned_by_fdopen` flag at `explorer.py:901` ensures the fd is closed in the finally block when fdopen has not taken ownership. |
+| QE-21 | Nit | The owner-only temp-mode test checks call order, not the actual mode. | mutation red | closed — `test_temp_sibling_mode_0600_before_write` now records `actual_modes_at_fchmod` via `os.fstat(fd).st_mode` and asserts `any(m == 0o600 for m in actual_modes_at_fchmod)`; a mutation to `0o644` fails the actual-mode assertion. |
 | FE-F1 | Concern | Back to the first no-hash entry leaves the previous view and selection on screen. | scripted Chrome check | open |
 | FE-F4 | Concern | An unknown route or unparseable data island renders a blank main area with no error. | scripted Chrome check | open |
 | FE-F2 | Nit | Focus drops to the document body after a record, edge or context button navigates. | scripted Chrome check | open |
@@ -184,8 +184,8 @@ import json, re, shutil, statistics, subprocess, sys, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-REPO = Path("/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/adr-summary")
-SP = Path(sys.argv[1]); SCALES = [int(x) for x in sys.argv[2].split(",")]
+REPO = Path(sys.argv[1]).resolve()  # pass the repository root as the first argument
+SP = Path(sys.argv[2]); SCALES = [int(x) for x in sys.argv[3].split(",")]
 NAV = REPO / "packs/governance-extras/.apm/skills/navigate-decisions/scripts/navigate_decisions.py"
 TOK = re.compile(r"\b(ADR|RFC)-(\d{4})\b")
 
@@ -257,7 +257,7 @@ with sync_playwright() as pw:
     p.goto(html.as_uri()); p.wait_for_selector("li.record-item")
     res["network_requests_beyond_file"] = [u for u in reqs if not u.startswith("file:")]
     body = p.inner_text("body")
-    res["policy_boundary_shown"] = "not the complete policy" in body.lower() or "complete applicable policy" in body.lower() or "not complete policy" in body.lower()
+    res["policy_boundary_shown"] = "not a complete statement of the policy" in body.lower()
     res["counts_shown"] = "238" in body
     # keyboard: tab through, collect focused elements
     seen = []

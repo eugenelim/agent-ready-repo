@@ -125,13 +125,22 @@ Real output for `newer` on ADR-0023 (Superseded, trimmed):
   ],
   "relationships": [
     {
-      "from": "ADR-0042", "to": "ADR-0023",
-      "relation": "supersedes", "scope": [],
-      "trust_class": "checked", "resolution_state": "resolved"
+      "from": "ADR-0042",
+      "to": "ADR-0023",
+      "relation": "supersedes",
+      "scope": [],
+      "raw_value": "ADR-0023",
+      "basis": "supersession_fields",
+      "source": "docs/adr/0042-example.md",
+      "direction": "superseding_to_superseded",
+      "trust_class": "checked",
+      "resolution_state": "resolved"
     }
   ]
 }
 ```
+
+Every relationship carries `from`, `to`, `relation`, `scope`, `raw_value` (the original text of the claim), `basis` (how the relationship was established), `source` (repository-relative path of the record that declared it), `direction`, `trust_class`, and `resolution_state`.
 
 Direction `both` traverses in either direction. Depth runs from 1 through 4.
 

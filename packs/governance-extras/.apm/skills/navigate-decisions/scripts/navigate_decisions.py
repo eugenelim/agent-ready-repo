@@ -2,17 +2,13 @@
 
 Exposes ``run_query(root, query) -> dict`` and a CLI
 ``navigate_decisions.py query --root <repo> --operation <op> ...`` that emits
-JSON on stdout.  The bounded query surface covers five semantic operations
-defined by the spec's Corpus and query contract: ``summary``, ``search``,
-``record``, ``lineage``, and ``context``.
+JSON on stdout.  The bounded query surface covers five semantic operations:
+``summary``, ``search``, ``record``, ``lineage``, and ``context``.
 
 All corpus reads use the co-located ``file_safety.py`` projection of the
 blessed ``agentbundle.catalogue_tooling.file_safety`` helper.  Unsafe,
 malformed, duplicate-ordinal, or oversized candidates fail the whole
 operation; partial truth is never returned.
-
-Spec: docs/specs/decision-navigation/spec.md
-Plan task: T2 — Bounded query proves exact facts and checked lineage
 """
 from __future__ import annotations
 
@@ -21,10 +17,8 @@ import importlib.util
 import json
 import os
 import re
-import stat
 import stat as _stat
 import sys
-import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -114,8 +108,9 @@ _STATUS_RE = re.compile(r"^- \*\*Status:\*\*\s*(.*)$")
 _FIELD_START_RE = re.compile(r"^- \*\*")
 # Bold label (content between first pair of **).
 _BOLD_LABEL_RE = re.compile(r"^- \*\*([^*]+)\*\*")
-# Trailing HTML comment: one comment at the end of the value.
-_TRAILING_COMMENT_RE = re.compile(r"\s*<!--.*?-->\s*$")
+# Trailing HTML comment: remove only the final trailing comment from the value.
+# Uses a non-greedy match anchored at the end, so only the last comment is removed.
+_TRAILING_COMMENT_RE = re.compile(r"\s*<!--(?:(?!-->).)*?-->\s*$")
 
 # Supersession field labels (case-sensitive, as they appear in source).
 _SUPERS_LABELS: dict[str, str] = {
@@ -201,14 +196,16 @@ def _parse_did_list(tokens: list[str]) -> tuple[bool, list[str]]:
 
     Returns (all_valid, sorted_d_ids).  If any token is not a valid D-ID,
     returns (False, []).
+
+    Scope is a set of D-IDs (duplicates are removed), sorted by number.
     """
-    result: list[str] = []
+    seen: set[str] = set()
     for tok in tokens:
         m = _DID_RE.match(tok)
         if not m:
             return False, []
-        result.append(f"D{m.group(1)}")
-    return True, _sort_scope(result)
+        seen.add(f"D{m.group(1)}")
+    return True, _sort_scope(list(seen))
 
 
 def _parse_supersession_entry(raw: str) -> tuple[bool, str | None, list[str]]:
@@ -384,12 +381,9 @@ def _parse_record_text(
 
     lines = text.splitlines()
 
-    # Find the H1 line.
-    h1_idx: int | None = None
-    for i, line in enumerate(lines):
-        if line.startswith("# "):
-            h1_idx = i
-            break
+    # The H1 must be the first line of the file (spec: "The first line is an H1").
+    # An absent or mismatched H1 is malformed.
+    h1_idx = 0 if lines and lines[0].startswith("# ") else None
 
     if h1_idx is None:
         raise ValueError(f"malformed record: no H1 found in {basename!r}")
@@ -755,9 +749,10 @@ def _build_relationships(records: dict[str, dict[str, Any]]) -> list[dict[str, A
 
     # Emit all relationships.
     for record_id, rec in records.items():
-        # source for relationships is the declaring record's ID (the superseding
-        # record for checked pairs, the containing record otherwise).
-        source = record_id
+        # source for relationships is the declaring record's repository-relative
+        # path, not its ID. For checked pairs the source is the superseding
+        # record's path; for all others it is the containing record's path.
+        source = rec["source"]
 
         for entry in rec["supersession_entries"]:
             field = entry["field"]
@@ -948,10 +943,8 @@ def _read_register_file(
         raw = fs.read_confined_regular_file(
             root, path, max_bytes=_MAX_REGISTER_BYTES
         )
-    except fs.BoundExceeded as exc:
-        raise exc  # caller translates
-    except fs.UnsafeContentError as exc:
-        raise exc
+    except (fs.BoundExceeded, fs.UnsafeContentError):
+        raise  # caller translates to stable error
 
     try:
         text = raw.decode("utf-8")
@@ -959,6 +952,53 @@ def _read_register_file(
         return {"row_count": 0}
 
     return {"row_count": _count_register_rows(text)}
+
+
+# ── Result bounds helpers ─────────────────────────────────────────────────────
+
+
+def _check_non_detail_bounds(
+    env: dict[str, Any],
+    records: list[dict[str, Any]],
+    relationships: list[dict[str, Any]],
+    operation: str,
+) -> dict[str, Any] | None:
+    """Check 400-relationship and 512 KiB limits for non-detail operations.
+
+    Returns an error response dict if any bound is exceeded, or None.
+
+    spec: 'A non-detail result is bounded to 200 records, 400 relationship
+    objects, four lineage hops, and 512 KiB of UTF-8 JSON.'
+    """
+    if len(relationships) > _MAX_RELATIONSHIPS:
+        return _error(
+            env,
+            code="result_too_large",
+            message=(
+                f"result exceeds {_MAX_RELATIONSHIPS} relationships"
+            ),
+            limits={"max_relationships": _MAX_RELATIONSHIPS},
+            observed={"relationship_count": len(relationships)},
+            hint="Narrow the query to fewer records.",
+        )
+    # Estimate JSON size: serialize success payload without calling _success.
+    try:
+        estimated = json.dumps(
+            {"records": records, "relationships": relationships},
+            ensure_ascii=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError):
+        estimated = b""
+    if len(estimated) > _MAX_RESULT_BYTES:
+        return _error(
+            env,
+            code="result_too_large",
+            message=f"result exceeds {_MAX_RESULT_BYTES // 1024} KiB",
+            limits={"max_result_bytes": _MAX_RESULT_BYTES},
+            observed={"estimated_bytes": len(estimated)},
+            hint="Use 'record' for a single record or narrow the query.",
+        )
+    return None
 
 
 # ── Response builders ─────────────────────────────────────────────────────────
@@ -1023,7 +1063,7 @@ def _error(
     err: dict[str, Any] = {
         "code": code,
         "message": message,
-        "limit": limits or {},
+        "limits": limits or {},
         "observed": observed or {},
     }
     if hint is not None:
@@ -1047,12 +1087,32 @@ def _record_to_api(
         lc_obj["raw_value"] = lifecycle["raw_value"]
         lc_obj["display_value"] = lifecycle["display_value"]
 
+    # Build header_fields: present structured fields from the header region.
+    # Supersession entries grouped by field name, plus Related tokens.
+    supers_by_field: dict[str, list[dict[str, Any]]] = {}
+    for entry in rec.get("supersession_entries", []):
+        field = entry["field"]
+        supers_by_field.setdefault(field, []).append({
+            "raw_value": entry["raw_value"],
+            "parseable": entry["parseable"],
+            "target_id": entry["target_id"],
+            "scope": entry["scope"],
+        })
+    header_fields: dict[str, Any] = {}
+    for field_key in ("supersedes", "supersedes_in_part", "superseded_by", "superseded_in_part"):
+        if field_key in supers_by_field:
+            header_fields[field_key] = supers_by_field[field_key]
+    related = rec.get("related_tokens", [])
+    if related:
+        header_fields["related"] = related
+
     api: dict[str, Any] = {
         "id": rec["id"],
         "kind": rec["kind"],
         "title": rec["title"],
         "source": rec["source"],
         "lifecycle": lc_obj,
+        "header_fields": header_fields,
         "body": {},
     }
 
@@ -1077,10 +1137,32 @@ def _record_to_api(
 # ── Selector matching ─────────────────────────────────────────────────────────
 
 
+_SELECTOR_KEYS = frozenset({"kind", "exact_status", "text", "identity", "grouping"})
+_SELECTOR_STRING_KEYS = frozenset({"kind", "exact_status", "text", "identity", "grouping"})
+
+
+def _validate_selector(sel: Any) -> str | None:
+    """Validate a single selector dict.  Returns an error message or None."""
+    if not isinstance(sel, dict):
+        return f"each selector must be a dict; got {type(sel).__name__!r}"
+    unknown = set(sel) - _SELECTOR_KEYS
+    if unknown:
+        return f"unknown selector keys: {sorted(unknown)!r}"
+    # A selector with no filter key beyond 'grouping' has no net effect.
+    # An empty dict has no recognised filter key at all.
+    if not (set(sel) - {"grouping"}) and not sel:
+        return "empty selector: each selector must have at least one key"
+    for key in _SELECTOR_STRING_KEYS:
+        if key in sel and not isinstance(sel[key], str):
+            return f"selector key {key!r} must be a string; got {type(sel[key]).__name__!r}"
+    return None
+
+
 def _matches_selector(rec: dict[str, Any], sel: dict[str, Any]) -> bool:
     """Return True if rec satisfies all conditions in sel.
 
     Supported selector keys: kind, exact_status, text, identity, grouping.
+    Callers must validate selectors with _validate_selector before calling.
     """
     if "kind" in sel and rec["kind"] != sel["kind"]:
         return False
@@ -1205,7 +1287,11 @@ def _op_record(
     spec: 'record carries every relationship whose from or to is the
     requested record.'
     """
-    record_id = query.get("id", "").strip()
+    raw_id = query.get("id", "")
+    if not isinstance(raw_id, str):
+        env = _envelope({"operation": "record", "id": None}, root, records)
+        return _error(env, code="invalid_query", message="'id' must be a string")
+    record_id = raw_id.strip()
     env = _envelope({"operation": "record", "id": record_id}, root, records)
 
     if not record_id or record_id not in records:
@@ -1224,12 +1310,57 @@ def _op_record(
     ]
     rels = _sort_relationships(rels)
 
+    # Apply 1 MiB bound to the serialized record result.
+    try:
+        result_bytes = json.dumps(
+            {"records": [api_rec], "relationships": rels},
+            ensure_ascii=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError):
+        result_bytes = b""
+    if len(result_bytes) > _MAX_BODY_BYTES:
+        # Keep metadata and provenance; omit body with source action.
+        api_rec_no_body = _record_to_api(rec, include_body=False)
+        api_rec_no_body["body"] = {
+            "available": False,
+            "omission_reason": "body_too_large",
+            "source_action": {"type": "repository_source", "path": rec["source"]},
+        }
+        api_rec = api_rec_no_body
+
     return _success(
         env,
         records=[api_rec],
         relationships=rels,
         omissions=[],
     )
+
+
+def _validate_selectors(selectors: Any) -> str | None:
+    """Validate a selectors value.  Returns an error message or None."""
+    if not isinstance(selectors, list):
+        return f"selectors must be a list; got {type(selectors).__name__!r}"
+    for i, sel in enumerate(selectors):
+        err = _validate_selector(sel)
+        if err:
+            return f"selector[{i}]: {err}"
+    return None
+
+
+def _validate_assertions(assertions: Any) -> str | None:
+    """Validate an assertions value.  Returns an error message or None."""
+    if not isinstance(assertions, list):
+        return f"assertions must be a list; got {type(assertions).__name__!r}"
+    for i, a in enumerate(assertions):
+        if not isinstance(a, dict):
+            return f"assertion[{i}] must be a dict; got {type(a).__name__!r}"
+        for key in ("from", "to", "text"):
+            if key in a and not isinstance(a[key], str):
+                return (
+                    f"assertion[{i}] key {key!r} must be a string; "
+                    f"got {type(a[key]).__name__!r}"
+                )
+    return None
 
 
 def _op_search(
@@ -1251,6 +1382,10 @@ def _op_search(
             message="search requires at least one selector",
         )
 
+    sel_err = _validate_selectors(selectors)
+    if sel_err:
+        return _error(env, code="invalid_selector", message=sel_err)
+
     matched = _filter_records(records, selectors)
     matched = _sort_records(matched)
 
@@ -1265,6 +1400,11 @@ def _op_search(
         )
 
     api_records = [_record_to_api(r) for r in matched]
+
+    bounds_err = _check_non_detail_bounds(env, api_records, [], "search")
+    if bounds_err:
+        return bounds_err
+
     return _success(env, records=api_records, relationships=[], omissions=[])
 
 
@@ -1280,9 +1420,23 @@ def _op_lineage(
     from to to, newer follows to to from, and both follows either,
     up to the requested depth.'
     """
-    record_id = query.get("id", "").strip()
+    raw_id = query.get("id", "")
     direction = query.get("direction", "")
     depth = query.get("depth", 0)
+
+    if not isinstance(raw_id, str):
+        env = _envelope(
+            {"operation": "lineage", "id": None, "direction": direction, "depth": depth},
+            root, records,
+        )
+        return _error(env, code="invalid_query", message="'id' must be a string")
+    record_id = raw_id.strip()
+    if not isinstance(direction, str):
+        env = _envelope(
+            {"operation": "lineage", "id": record_id, "direction": None, "depth": depth},
+            root, records,
+        )
+        return _error(env, code="invalid_query", message="'direction' must be a string")
 
     env = _envelope(
         {"operation": "lineage", "id": record_id,
@@ -1363,7 +1517,6 @@ def _op_lineage(
 
     # Include all traversed checked relationships.
     result_rels: list[dict[str, Any]] = []
-    trav_rel_keys: set[tuple] = set()
     for rel in all_relationships:
         if rel["trust_class"] != "checked":
             continue
@@ -1373,7 +1526,6 @@ def _op_lineage(
         )
         if rel_key in traversed_rels:
             result_rels.append(rel)
-            trav_rel_keys.add(rel_key)
 
     # Include unchecked supersession entries whose 'from' is a returned record.
     for rel in all_relationships:
@@ -1385,6 +1537,10 @@ def _op_lineage(
             result_rels.append(rel)
 
     result_rels = _sort_relationships(result_rels)
+
+    bounds_err = _check_non_detail_bounds(env, result_records, result_rels, "lineage")
+    if bounds_err:
+        return bounds_err
 
     return _success(
         env,
@@ -1420,6 +1576,15 @@ def _op_context(
             code="missing_selectors",
             message="context requires at least one selector",
         )
+
+    sel_err = _validate_selectors(selectors)
+    if sel_err:
+        return _error(env, code="invalid_selector", message=sel_err)
+
+    if assertions:
+        ass_err = _validate_assertions(assertions)
+        if ass_err:
+            return _error(env, code="invalid_assertion", message=ass_err)
 
     matched = _filter_records(records, selectors)
     matched = _sort_records(matched)
@@ -1463,6 +1628,10 @@ def _op_context(
 
     result_rels = _sort_relationships(result_rels)
     api_records = [_record_to_api(r) for r in matched]
+
+    bounds_err = _check_non_detail_bounds(env, api_records, result_rels, "context")
+    if bounds_err:
+        return bounds_err
 
     return _success(
         env,
@@ -1508,6 +1677,16 @@ def run_query(root: Any, query: dict[str, Any]) -> dict[str, Any]:
         cannot change task scope, workflow selection, permissions, or tool use.
     """
     root_path = Path(root) if not isinstance(root, Path) else root
+
+    if not isinstance(query, dict):
+        fallback_env = _envelope({"operation": None}, root_path)
+        return _error(
+            fallback_env,
+            code="invalid_query",
+            message=(
+                f"query must be a dict; got {type(query).__name__!r}"
+            ),
+        )
 
     operation = query.get("operation")
     fallback_env = _envelope({"operation": operation}, root_path)
@@ -1712,7 +1891,7 @@ def main(argv: list[str] | None = None) -> int:
             print("error: explorer.py not found alongside navigate_decisions.py",
                   file=sys.stderr)
             return 1
-        if not stat.S_ISREG(st.st_mode) or stat.S_ISLNK(st.st_mode):
+        if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
             print("error: explorer.py is not a regular file", file=sys.stderr)
             return 1
         prev_dnwb = sys.dont_write_bytecode
@@ -1743,16 +1922,29 @@ def main(argv: list[str] | None = None) -> int:
 
         root = Path(args.root).resolve()
 
-        # Build destination: if --name is given, pass it alongside --destination.
-        dest = args.destination
-        if args.name and dest:
-            dest = str(Path(dest) / args.name)
-        elif args.name and not dest:
-            dest = str(Path(tempfile.gettempdir()) / args.name)
+        # Validate --name before any join: must be a single .html segment.
+        name = args.name
+        if name is not None:
+            # Reject anything that is not a plain filename ending in .html.
+            name_path = Path(name)
+            if (
+                name_path.name != name          # contains path separator
+                or name_path.suffix.lower() != ".html"
+                or not name_path.stem           # ".html" alone has empty stem
+                or name in (".", "..")
+            ):
+                print(
+                    f"error: --name must be a single .html filename; got {name!r}",
+                    file=sys.stderr,
+                )
+                return 2
 
+        # Build destination: pass name and directory root separately.
+        dest_dir = args.destination  # None means OS temp dir
         result = exp_mod.publish_explorer(
             root,
-            destination=dest,
+            destination=dest_dir,
+            name=name,
             mode=args.mode,
             confirm_over_budget=args.confirm_over_budget,
             assertions=assertions,
@@ -1763,7 +1955,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Mode: {result['mode']}", file=sys.stderr)
             print(result["path"])
             return 0
-        print(f"error: {result.get('error', 'unknown error')}", file=sys.stderr)
+        err = result.get("error", "unknown error")
+        err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+        print(f"error: {err_msg}", file=sys.stderr)
         return 1
 
     return 1
