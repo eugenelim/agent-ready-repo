@@ -33,6 +33,7 @@ import posixpath
 import stat
 import sys
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Callable, Final
 
@@ -608,11 +609,29 @@ def launch_untrusted(
         )
 
     resolved_host = host if host is not None else _DEFAULT_HOST
+    se = _load_sibling("_se_cont_launch", "_security_events.py")
+    event_operation_id = operation_id or se.make_operation_id()  # type: ignore[attr-defined]
+
+    def refuse(denial_code: str, message: str) -> ContainmentRefused:
+        """Audit a containment refusal through the checked emitter, then return it."""
+        se.emit_denial_best_effort(  # type: ignore[attr-defined]
+            audit_sink,
+            se.SecurityEvent(  # type: ignore[attr-defined]
+                schema_version=1,
+                operation_id=event_operation_id,
+                correlation_id=str(getattr(grant, "grant_id", "unknown")),
+                event_type="containment-launch",
+                outcome="denied",
+                reason_code=denial_code,
+                timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
+        )
+        return ContainmentRefused(denial_code, message)
 
     # Ask the host for a verified containment attestation.
     raw_attestation = resolved_host.get_attestation(spec_dict, grant)
     if raw_attestation is None:
-        raise ContainmentRefused(
+        raise refuse(
             "denied-no-verified-containment",
             "host supplies no verified containment attestation; refusing untrusted launch",
         )
@@ -620,7 +639,7 @@ def launch_untrusted(
     # Validate the attestation dict against the containment-attestation.v1 schema.
     ok, denial_code = validate_attestation_dict(raw_attestation)
     if not ok:
-        raise ContainmentRefused(
+        raise refuse(
             denial_code,
             f"attestation schema validation failed: {denial_code}",
         )
@@ -641,7 +660,7 @@ def launch_untrusted(
     # Attestation must not be broader than the grant on any axis.
     ok, denial_code = check_attestation_within_grant(attestation, grant)
     if not ok:
-        raise ContainmentRefused(
+        raise refuse(
             denial_code,
             f"attestation is broader than the grant: {denial_code}",
         )

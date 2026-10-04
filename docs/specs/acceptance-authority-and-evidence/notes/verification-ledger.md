@@ -95,7 +95,7 @@ copies are byte-identical to the pack source and importable.
 | AC-0018 | `test_acceptance_benchmark.py` (asserts p95 within 2 s); binding run: the `test-corpus.yml` dispatch, pending owner confirmation |
 | AC-0019 | `test_cold_rehydration_benchmark.py` (asserts within 10 s); binding run: the `test-corpus.yml` dispatch, pending owner confirmation |
 | AC-0020 | `test_security_primitives.py::TestSecurityEventWriterAuthority`; `test_policy_import.py::TestWriterAuthorityRefusals`; `test_evidence_store.py::TestProducerCapabilityChecks`; `test_containment_broker.py::TestBrokerCapabilityFailures` |
-| AC-0021 | `test_security_primitives.py::TestSecurityEvents`; `test_process_safety.py::TestAuditSinkUnavailable`, `::TestAuditEventOrder`; `test_evidence_store.py::TestAuditSinkBehavior`; `test_compat_facade.py::TestShadowAuditDurability`; `test_security_primitives.py::TestSingleAuditEmitter`; `test_containment_broker.py::TestBrokerAuditBoundary` |
+| AC-0021 | `test_security_primitives.py::TestSecurityEvents`; `test_process_safety.py::TestAuditSinkUnavailable`, `::TestAuditEventOrder`; `test_evidence_store.py::TestAuditSinkBehavior`; `test_compat_facade.py::TestShadowAuditDurability`; `test_security_primitives.py::TestSingleAuditEmitter`; `test_containment_broker.py::TestBrokerAuditBoundary`; `test_audit_boundary_invariant.py` (all classes) |
 
 The clean-environment fence (`test_t9a_clean_env_fence.py`) evidences the
 Never-do rule that no `work-loop` runtime module imports outside the standard
@@ -204,3 +204,14 @@ returns a fixed message on any sink failure, and denials go through
 `emit_denial_best_effort`, which redacts a refused correlation ID.
 `test_security_primitives.py::TestSingleAuditEmitter` fails if any module
 calls a sink directly.
+
+A second override on 2026-10-04 followed round seven, which found that the
+first sweep enforced the wrong rule: it checked that no module called a sink
+directly, not that every refusal stored a redacted event. The owner chose to
+fix the rule itself. `emit_security_event` now raises `SecurityEventRefused`
+when the content-safety check refuses an event and plain
+`AuditSinkUnavailable` when the sink fails. `emit_denial` retries only the
+refused case, with the correlation ID redacted, and never retries a failing
+sink. Writer-authority denials and all three untrusted-launch refusals now use
+it. `test_audit_boundary_invariant.py` asserts one stored `denied` event for
+each refusal at the four security boundaries.

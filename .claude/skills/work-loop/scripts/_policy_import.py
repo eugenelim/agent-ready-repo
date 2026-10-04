@@ -320,7 +320,7 @@ def _check_writer_authority(
             timestamp=timestamp,
         )
         try:
-            se.emit_security_event(audit_sink, event)
+            se.emit_denial(audit_sink, event)
         except Exception as exc:  # noqa: BLE001 — a sink failure from any module load
             raise PolicyImportRefused(
                 "denied-audit-sink-unavailable",

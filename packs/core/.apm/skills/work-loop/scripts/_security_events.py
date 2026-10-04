@@ -39,8 +39,10 @@ __all__ = [
     "SecurityEvent",
     "AuditSinkError",
     "AuditSinkUnavailable",
+    "SecurityEventRefused",
     "KNOWN_REASON_CODES",
     "emit_security_event",
+    "emit_denial",
     "emit_denial_best_effort",
     "check_writer_authority_and_emit",
     "make_operation_id",
@@ -149,6 +151,15 @@ class AuditSinkUnavailable(Exception):
     """
 
 
+class SecurityEventRefused(AuditSinkUnavailable):
+    """The event itself failed its content-safety check; the sink was never called.
+
+    A subclass of ``AuditSinkUnavailable`` so callers that only fail closed
+    keep working, while denial emitters can tell a refused event (which they
+    redact and retry) from a sink that failed (which they never retry).
+    """
+
+
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 
@@ -216,7 +227,7 @@ def emit_security_event(
         source_record_id=event.operation_id,
     )
     if not decision.accepted:
-        raise AuditSinkUnavailable(
+        raise SecurityEventRefused(
             f"security-event content-safety check failed "
             f"({decision.decision_code}); failing closed without persisting"
         )
@@ -234,25 +245,37 @@ def emit_security_event(
 REDACTED_CORRELATION_ID: Final[str] = "redacted"
 
 
+def emit_denial(
+    sink: Callable[[SecurityEvent], None],
+    event: SecurityEvent,
+) -> SecurityEvent:
+    """Store a denial event, redacting a correlation ID the content-safety check refuses.
+
+    Only a refused event is retried, once, with the correlation ID replaced by
+    ``REDACTED_CORRELATION_ID``, so a denial is still audited without the
+    refused bytes.  A sink failure is never retried: it raises
+    ``AuditSinkUnavailable`` so the caller fails closed and the sink is called
+    at most once per stored event.
+    """
+    try:
+        return emit_security_event(sink, event)
+    except SecurityEventRefused:
+        return emit_security_event(
+            sink, replace(event, correlation_id=REDACTED_CORRELATION_ID)
+        )
+
+
 def emit_denial_best_effort(
     sink: Callable[[SecurityEvent], None],
     event: SecurityEvent,
 ) -> None:
-    """Emit a denial event through the content-safety check; never raise.
+    """Emit a denial with ``emit_denial``; never raise.
 
-    A denial is returned to its caller whether or not it can be audited.  If
-    the event is refused (for example, a credential-shaped correlation ID),
-    it is retried once with the correlation ID redacted, so no refused bytes
-    reach the sink.  A sink that is still unavailable is ignored here because
-    the operation is already failing closed.
+    For refusals that are returned whether or not they can be audited: the
+    operation is already failing closed, so an unavailable sink is ignored.
     """
-    try:
-        emit_security_event(sink, event)
-        return
-    except AuditSinkUnavailable:
-        pass
     with contextlib.suppress(AuditSinkUnavailable):
-        emit_security_event(sink, replace(event, correlation_id=REDACTED_CORRELATION_ID))
+        emit_denial(sink, event)
 
 
 def check_writer_authority_and_emit(
@@ -330,7 +353,11 @@ def check_writer_authority_and_emit(
         timestamp=timestamp,
     )
     # Emit before returning — AuditSinkUnavailable propagates; caller fails closed.
-    emit_security_event(sink, event)
+    # A denial carries the caller's grant ID, so it is redacted if refused.
+    if outcome == "allowed":
+        emit_security_event(sink, event)
+    else:
+        emit_denial(sink, event)
     return outcome == "allowed"
 
 
