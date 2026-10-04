@@ -244,8 +244,11 @@ Read the manifest's `visual authority` field and the diff together.
 - The field names an inherited authority and the diff contradicts it: a fresh
   palette, type scale or layout grammar where a taxonomy or an existing system
   was said to supply them.
-- The diff introduces a parallel `--ds-*` token system where the manifest says
-  a taxonomy or an incumbent system was inherited, with no stated reason.
+- The diff introduces a parallel token system beside the one the manifest says
+  was inherited: names other than the taxonomy's recorded naming, or a new
+  `--ds-*` set alongside an incumbent system. A `--ds-*` system carrying the
+  taxonomy's own values is correct only when the taxonomy records no naming and
+  no incumbent system exists.
 - The manifest claims visual verification and no capture backs it, or records a
   material divergence as observed with nothing resolving or recording it.
 

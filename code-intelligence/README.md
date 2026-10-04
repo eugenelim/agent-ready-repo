@@ -53,7 +53,7 @@ Wicked Estate never learns that any of them exist.
 You need the CLI and an index.
 
 ```bash
-cargo install wicked-estate --version 0.16.7 --locked
+cargo install wicked-estate --version 0.18.0 --locked
 echo '.wicked-estate/' >> .gitignore   # the index is large and local
 wicked-estate index .
 ```
@@ -73,18 +73,18 @@ python scripts/estate_preflight.py --check
 ```
 
 Exit 0 is ready, 2 means the binary is missing, 3 means there is no index, and
-4 means the binary is older than the 0.16 floor this pack was verified against.
+4 means the binary is older than the 0.18 floor this pack was verified against.
 
 ## CLI, not MCP, by default
 
 Wicked Estate ships both a CLI and an MCP server. This pack drives the CLI, for
 two reasons.
 
-The MCP server advertises **29 tool schemas**, and they stay resident in the
+The MCP server advertises **30 tool schemas**, and they stay resident in the
 agent's context for the entire session whether or not a single one is called.
 The CLI costs nothing until you run it.
 
-The CLI is also the larger surface. It accepts 34 subcommand names, including
+The CLI is also the larger surface. It accepts 35 subcommand names, including
 several with no MCP equivalent: requirement linkage (`by-requirement`,
 `semantics`), snapshot identity (`fingerprint`, `changed-since`, `stats`), the
 annotation evidence envelope (`annotations`, `stale-annotations`), and
@@ -111,14 +111,13 @@ composition, partially available, not available today, or unclear.
 
 Some of what that found:
 
-- **There is no path query.** You can establish that A reaches B. You cannot ask
-  for the route.
-- **The CLI blast radius has a silent depth-12 horizon**, reported by neither
-  completeness field.
 - **Nothing ranks a supplied set of symbols on the CLI** — `rank` is a fixed
   global top-25, so "which of these 47 dependents matter most" has no CLI answer.
-- **Per-edge confidence and provenance are not printed on the CLI read paths**,
-  even though every edge carries them. MCP `BlastRadius` does surface them.
+- **Per-edge confidence and provenance are not in blast-radius rows**, even though
+  every edge carries them. Use `wicked-estate path A B --json` when you need
+  per-hop confidence and provenance on a specific route.
+- **Lineage and rules discovery are MCP-only.** Forward transitive reachability,
+  `RulesInventory`, and `rules.recall` have no CLI verb.
 
 None of these are requests to change Wicked Estate, and nothing in this pack
 depends on them changing. They are the map of where an agent must stop and say
@@ -135,10 +134,10 @@ from `grep` is not a blast radius.
 ## Requires
 
 - `core` ≥ 2.0
-- `wicked-estate` ≥ 0.16 in `PATH` (Tier-2 dependency: detected first, installed
+- `wicked-estate` ≥ 0.18 in `PATH` (Tier-2 dependency: detected first, installed
   only on explicit consent, pinned, never with sudo)
 - An index built with `wicked-estate index <path>`
-- Optionally `wicked-estate-mcp` ≥ 0.16, for the four MCP-only capabilities
+- Optionally `wicked-estate-mcp` ≥ 0.18, for the four MCP-only capabilities
 
 Read-only by default. The commands that mutate the graph — `index`, `annotate`,
 `semantics`, `compact`, and friends — always ask first.
