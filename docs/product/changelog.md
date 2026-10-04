@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The token-namespace rule now says `--ds-*` names any system this pack seeds, whether a taxonomy or the fallback supplied the values, and that the manifest's `visual authority` field — not the prefix — records where values came from.
+- The token-namespace rule now resolves in order: the naming a taxonomy's Binding section records, else the incumbent's own names, else `--ds-*` for a system this pack seeds. The manifest's `visual authority` field, not the prefix, records where values came from, and `frontend-reviewer` flags a parallel token system against that order rather than any `--ds-*` set.
 - The visual-authority eval cases are calibrated against live runs: the two gap cases and the standalone case start from what the handoff read extracted or name the product, every case asks for the `visual authority` line in the reply, hex values are lower-case, and fallback detection keys on the fallback's own values rather than the shared `--ds-*` names.
 
 ## [frontend-engineering][0.4.2] — 2026-10-03

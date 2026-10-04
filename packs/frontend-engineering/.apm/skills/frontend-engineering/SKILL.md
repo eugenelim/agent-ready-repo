@@ -221,9 +221,9 @@ higher source already answers.
    extend, and no upstream gap holds the axis. It does not depend on which rung
    supplied composition.
 
-**Record the token namespace you resolved** — `--ds-*` for a system this pack
-seeds, whether a taxonomy or the fallback supplied its values; `--color-*` or
-whatever an incumbent uses. The prefix never records provenance; the manifest's
+**Record the token namespace you resolved** — the naming a taxonomy's Binding
+section records; else the incumbent's own (`--color-*`, say); else `--ds-*` for a
+system this pack seeds. The prefix never records provenance; the manifest's
 `visual authority` field does. Craft rules and token gates mean *that* namespace.
 
 Define primitives once and reference them from a semantic layer:

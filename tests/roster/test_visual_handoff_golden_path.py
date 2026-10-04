@@ -553,7 +553,9 @@ def consumption_violations(css: str, html: str, expected: dict[str, str]) -> lis
             f"{prop}: declares {v!r}, taxonomy resolved {value!r}" for v in values if v != value
         ]
     problems += [
-        f"declares fallback property {p}" for p, _ in declarations if p.startswith("--ds-")
+        f"declares {p}, outside the naming the taxonomy records"
+        for p, _ in declarations
+        if p.startswith("--ds-")
     ]
     problems += [f"markup holds raw colour {m}" for m in COLOUR_LITERAL.findall(html)]
     for name, value in ROLE_BOUND.findall(html):
@@ -561,7 +563,7 @@ def consumption_violations(css: str, html: str, expected: dict[str, str]) -> lis
         if re.sub(r"var\(--[\w-]+\)|\b0\b", "", value).strip():
             problems.append(f"markup sets {name} to {value.strip()!r} rather than a role")
     if "--ds-" in html:
-        problems.append("markup references a fallback property")
+        problems.append("markup references a property outside the taxonomy's naming")
     return problems
 
 
