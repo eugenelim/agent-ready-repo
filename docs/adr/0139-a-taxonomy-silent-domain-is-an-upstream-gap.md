@@ -1,4 +1,4 @@
-# ADR-0135: A taxonomy-silent domain is an upstream gap, never a build-time value
+# ADR-0139: A taxonomy-silent domain is an upstream gap, never a build-time value
 
 - **Status:** Accepted
 - **Date:** 2026-10-04

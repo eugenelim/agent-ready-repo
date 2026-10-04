@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Done <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** ADR-0130 D2/D3 and ADR-0135; the gap rows in
+- **Repository anchors:** ADR-0130 D2/D3 and ADR-0139; the gap rows in
   `references/visual-observation.md` and their pack test
   `test_visual_authority_upstream_gap.py`; the roster walk in
   `tests/roster/test_visual_handoff_golden_path.py`, which already evaluates
@@ -29,7 +29,7 @@ table is the single owner and the rest follow.
 
 ## Constraints
 
-- ADR-0135 D1–D3; ADR-0130 D3 (no lower rung fills the axis).
+- ADR-0139 D1–D3; ADR-0130 D3 (no lower rung fills the axis).
 - The `SKILL.md` body budget AC-0003 names.
 - `packs/AGENTS.md` — portable wording, no internal-governance citations in
   shipped content; the pack change bumps its patch version.
@@ -44,7 +44,7 @@ packs and walks every fixture.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Decision rationale — ADR-0135 | T4 | ADR status line | ADR shape lint green |
+| Decision rationale — ADR-0139 | T4 | ADR status line | ADR shape lint green |
 | User-facing promise — the how-to guide | T1 | roster adopter-prose test | test green |
 | Release history — changelog | T4 | the changelog heading at the version AC-0010 names | `catalogue verify` exits zero |
 
@@ -60,7 +60,7 @@ packs and walks every fixture.
   `needed_domains` in its `scenario.toml`; there is no default. The walk tests
   silence per section: a needed domain is silent unless the taxonomy has a
   `### <Domain>` commitments section for it or records it `unresolved` — a
-  coarser stand-in for ADR-0135's per-value test, which the fixtures satisfy
+  coarser stand-in for ADR-0139's per-value test, which the fixtures satisfy
   because each section they carry holds every value their implementation
   sets. The existing checkout fixtures — `confirmed`, `unconfirmed`,
   `unresolved-domain` and `refusal` — need Typography, Color, Spacing and
@@ -118,7 +118,7 @@ def test_the_gap_names_its_silent_domain_source() -> None:
 ### T4: Decision accepted and release cut
 
 **Depends on:** T1, T2, T3
-**Touches:** docs/adr/0135-a-taxonomy-silent-domain-is-an-upstream-gap.md, docs/adr/README.md, packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py, docs/product/changelog.md
+**Touches:** docs/adr/0139-a-taxonomy-silent-domain-is-an-upstream-gap.md, docs/adr/README.md, packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, packs/frontend-engineering/tests/skills/frontend-engineering/test_visual_authority_release.py, docs/product/changelog.md
 **Tests:**
 - AC-0009: goal-based — `python3 -m pytest tests/roster/test_lint_adr_shape_corpus.py -q` and the ADR index regenerated with no diff on re-run; no stub (goal-based).
 - AC-0010: goal-based — `agentbundle catalogue lint --root . --deep` and `agentbundle catalogue verify --root .`; no stub (goal-based).

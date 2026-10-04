@@ -31,3 +31,7 @@ Execution observations recorded after the plan baseline was pinned on
   `.context/`, so the gitignored codex-eval scratch copies of the frontend pack
   failed it locally. The copies were removed and the scratch driver now builds
   its catalogue outside the repository; CI never saw them.
+- **ADR ordinal collision at merge.** `main` gained ADR-0135 through ADR-0138
+  while this branch was in review, so this delivery's record moved from
+  ADR-0135 to ADR-0139; every citation in the spec, plan, ADR-0130 and
+  `workspace.toml` moved with it. The decision text is unchanged.

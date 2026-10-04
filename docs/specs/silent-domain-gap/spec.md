@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0135, ADR-0130
+- **Constrained by:** ADR-0139, ADR-0130
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -42,7 +42,7 @@ both the roster walk and a model-eval case exercise the hold.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | The gap sources ADR-0130 D2 fixed change | `docs/adr/0135-a-taxonomy-silent-domain-is-an-upstream-gap.md` | eugenelim | ADR-0135 `Accepted`; ADR-0130 `Superseded in part: ADR-0135 D2` | both records agree |
+| Decision rationale | The gap sources ADR-0130 D2 fixed change | `docs/adr/0139-a-taxonomy-silent-domain-is-an-upstream-gap.md` | eugenelim | ADR-0139 `Accepted`; ADR-0130 `Superseded in part: ADR-0139 D2` | both records agree |
 | User-facing promise | Adopters read the gap sources in the how-to | `guides/frontend-engineering/how-to/read-the-design-handoff.md` | pack maintainer | three sources named | guide test green |
 | Release history | Shipped pack content changes | `docs/product/changelog.md` | pack maintainer | a free-standing frontend-engineering section at the bumped version | entry present |
 
@@ -129,8 +129,8 @@ both the roster walk and a model-eval case exercise the hold.
       of their scenario fixture's Typography, Shape and containment, and
       Spatial structure sections, and the roster test checks each value against that fixture's
       taxonomy.
-- [x] **AC-0009.** ADR-0135 carries `Status: Accepted`, and ADR-0130 carries
-      `Superseded in part: ADR-0135 D2`.
+- [x] **AC-0009.** ADR-0139 carries `Status: Accepted`, and ADR-0130 carries
+      `Superseded in part: ADR-0139 D2`.
 - [x] **AC-0010.** `frontend-engineering` carries one patch version above its
       version on `main` at merge — `0.4.4` against today's `0.4.3` —
       identically in `pack.toml`, `.claude-plugin/plugin.json`,
