@@ -411,6 +411,9 @@ def test_refuses_case_variant_inside_worktree(tmp_path: pathlib.Path) -> None:
     assert result["status"] == "error", (
         "Expected refusal for case-variant destination inside worktree"
     )
+    # Refused because it is the worktree, not because the path is missing.
+    assert dest_variant.is_dir()
+    assert "inside the repository worktree" in str(result["error"])
 
 
 def test_refuses_non_html_name(tmp_path: pathlib.Path) -> None:
