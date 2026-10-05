@@ -20,7 +20,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 # ── Load the module under test ─────────────────────────────────────────────────
 # Unique sys.modules key to isolate this suite from T2 (test_closure_index_bounds).
@@ -56,6 +56,49 @@ ROOT = Path("/fake/root")
 INTENTS_DIR = ROOT / "docs" / "product" / "intents"
 BRIEFS_DIR = ROOT / "docs" / "product" / "briefs"
 SPECS_DIR = ROOT / "docs" / "specs"
+
+
+# ── Snapshot helpers for snapshot_provider injection ─────────────────────────
+
+
+def _snapshot(
+    *,
+    relations: list[dict[str, Any]] | None = None,
+    provenance: list[dict[str, Any]] | None = None,
+    diagnostics: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a minimal valid delivery snapshot for test injection."""
+    return {
+        "schema_version": 1,
+        "complete": True,
+        "relations": relations or [],
+        "classifications": [],
+        "provenance": provenance or [],
+        "diagnostics": diagnostics or [],
+    }
+
+
+def _direct(intent_slug: str, spec_slug: str) -> dict[str, Any]:
+    """Build a direct-delivery relation record."""
+    return {
+        "type": "direct-delivery",
+        "route": "spec",
+        "intent": f"intent:{intent_slug}",
+        "spec": f"spec:{spec_slug}",
+        "basis": {"intent": "Decomposed", "spec": "Discovery"},
+    }
+
+
+def _coord(intent_slug: str, brief_slug: str, spec_slug: str) -> dict[str, Any]:
+    """Build a coordinated-delivery relation record."""
+    return {
+        "type": "coordinated-delivery",
+        "route": "brief",
+        "intent": f"intent:{intent_slug}",
+        "brief": f"brief:{brief_slug}",
+        "spec": f"spec:{spec_slug}",
+        "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+    }
 
 
 # ── Preamble content builders ──────────────────────────────────────────────────
@@ -158,6 +201,7 @@ def _build(
     ancestor_slug: str,
     ancestor_terminus: str,
     dir_lister=None,
+    snapshot_provider=None,
 ) -> dict:
     """Invoke the module-private closure builder with injected seams."""
     return ci._build_descendant_closure(
@@ -166,6 +210,7 @@ def _build(
         ROOT,
         _reader=fs.reader,
         _dir_lister=dir_lister if dir_lister is not None else fs.dir_lister,
+        _snapshot_provider=snapshot_provider,
     )
 
 
@@ -221,7 +266,17 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
     expected_all = expected_children | expected_specs
 
     fs = FakeFS(files)
-    result = _build(fs, ancestor_slug, "children")
+    # Inject a snapshot that maps each child intent to its grandchild spec(s).
+    # work-item-closeout has two specs; the snapshot carries two direct-delivery
+    # records for it, which is synthetic but valid for close-work's traversal.
+    snap = _snapshot(relations=[
+        _direct("work-item-capture", "spec-capture"),
+        _direct("work-item-prioritisation", "spec-prioritisation"),
+        _direct("work-item-delegation", "spec-delegation"),
+        _direct("work-item-closeout", "spec-closeout-a"),
+        _direct("work-item-closeout", "spec-closeout-b"),
+    ])
+    result = _build(fs, ancestor_slug, "children", snapshot_provider=lambda _r: snap)
 
     assert result.keys() == expected_all, (
         f"expected {sorted(expected_all)}, got {sorted(result)}\n"
@@ -266,7 +321,13 @@ def test_ac0020_brief_terminus_inverts_parent_intent_over_briefs() -> None:
     }
 
     fs = FakeFS(files)
-    result = _build(fs, ancestor_slug, "brief")
+    # Inject a snapshot with one coordinated-delivery relation for the matching
+    # brief. The spec slug is a placeholder; the spec file does not exist in
+    # FakeFS, so _get_fields returns {} and no spec is added to the result.
+    snap = _snapshot(relations=[
+        _coord(ancestor_slug, brief_slug, "placeholder-spec"),
+    ])
+    result = _build(fs, ancestor_slug, "brief", snapshot_provider=lambda _r: snap)
 
     assert brief_slug in result, f"expected brief '{brief_slug}' in closure"
     assert unrelated_slug not in result, (
@@ -304,7 +365,13 @@ def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
         )
 
     fs = FakeFS(files)
-    result = _build(fs, ancestor_slug, "brief")
+    # Inject a snapshot with two coordinated-delivery relations — one per spec
+    # under the brief. The unrelated spec has no relation, so it is excluded.
+    snap = _snapshot(relations=[
+        _coord(ancestor_slug, brief_slug, spec_slugs[0]),
+        _coord(ancestor_slug, brief_slug, spec_slugs[1]),
+    ])
+    result = _build(fs, ancestor_slug, "brief", snapshot_provider=lambda _r: snap)
 
     assert brief_slug in result, f"brief '{brief_slug}' must be in closure"
     for spec_slug in spec_slugs:
@@ -350,12 +417,18 @@ def test_ac0020_spec_terminus_inverts_discovery_over_specs() -> None:
         )
 
     fs = FakeFS(files)
-    result = _build(fs, ancestor_slug, "spec")
+    # Inject a snapshot mapping the ancestor to two direct-delivery specs.
+    # The unrelated spec has no relation for ancestor_slug, so it is excluded.
+    snap = _snapshot(relations=[
+        _direct(ancestor_slug, spec_slugs[0]),
+        _direct(ancestor_slug, spec_slugs[1]),
+    ])
+    result = _build(fs, ancestor_slug, "spec", snapshot_provider=lambda _r: snap)
 
     for spec_slug in spec_slugs:
-        assert spec_slug in result, f"spec '{spec_slug}' must be in closure via Discovery:"
+        assert spec_slug in result, f"spec '{spec_slug}' must be in closure via snapshot"
     assert unrelated_spec_slug not in result, (
-        "spec pointing to a different intent must not appear"
+        "spec not in snapshot must not appear"
     )
     assert len(result) == 2, (
         f"expected 2 descendants, got {len(result)}: {sorted(result)}"
@@ -397,37 +470,42 @@ def test_intents_only_walk_returns_empty_for_brief_terminus_fixture() -> None:
 
     fs = FakeFS(files)
 
-    # ── Intents-only walk (the wrong-but-plausible implementation) ────────────
-    def intents_only_lister(d: Path) -> Iterable[Path]:
-        """Only lists the intents directory; returns nothing for briefs and specs."""
-        if str(d) == str(INTENTS_DIR):
-            return fs.dir_lister(d)
-        return []  # briefs and specs are never listed
-
+    # ── Empty-snapshot walk (the wrong-but-plausible implementation) ──────────
+    # An empty snapshot (no delivery relations) causes the brief terminus to find
+    # no descendants, mimicking a plausible implementation that checks delivery
+    # records but finds none. An implementation that stops here would report
+    # "eligible" — wrong, because the brief and its spec are live.
+    empty_snap = _snapshot()
     wrong_result = ci._build_descendant_closure(
         ancestor_slug,
         "brief",
         ROOT,
         _reader=fs.reader,
-        _dir_lister=intents_only_lister,
+        _dir_lister=fs.dir_lister,
+        _snapshot_provider=lambda _r: empty_snap,
     )
 
-    # The intents-only walk finds nothing: the brief is in briefs/, not intents/.
-    # An implementation that stops here would report "eligible" — wrong, because
-    # the brief and its spec are live.
+    # The empty-snapshot walk finds nothing. This demonstrates that snapshot
+    # content — not directory scanning — drives the brief terminus.
     assert len(wrong_result) == 0, (
-        f"intents-only walk should return empty closure for brief-terminus ancestor, "
+        f"empty-snapshot walk should return empty closure for brief-terminus ancestor, "
         f"but got {sorted(wrong_result)} — expected the empty (false-eligible) answer"
     )
 
     # ── Cross-kind walk (the correct implementation) ───────────────────────────
-    correct_result = _build(fs, ancestor_slug, "brief")
+    # Inject a snapshot with both the brief and its spec.
+    correct_snap = _snapshot(relations=[
+        _coord(ancestor_slug, brief_slug, spec_slug),
+    ])
+    correct_result = _build(
+        fs, ancestor_slug, "brief", snapshot_provider=lambda _r: correct_snap
+    )
 
     assert brief_slug in correct_result, (
         "correct walk must find the live brief"
     )
     assert spec_slug in correct_result, (
-        "correct walk must find the live spec via Brief: inversion"
+        "correct walk must find the live spec via snapshot coordinated-delivery"
     )
     assert len(correct_result) == 2, (
         f"correct walk: expected 2 descendants, got {len(correct_result)}: "
@@ -552,20 +630,28 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
     )
 
     # No _reader or _dir_lister: both default seams execute against the real tree.
+    # _snapshot_provider is injected because the real resolver subprocess is not
+    # installed in tmp_path. This test targets the default reader and dir_lister
+    # seams (the real filesystem path), not the resolver subprocess; a dedicated
+    # subprocess test lives in test_closure_delivery_snapshot.py (VI-1101/1103).
+    snap = _snapshot(relations=[
+        _coord(ancestor_slug, brief_slug, spec_slug),
+    ])
     result = ci._build_descendant_closure(
         ancestor_slug,
         "brief",
         tmp_path,
+        _snapshot_provider=lambda _r: snap,
     )
 
     assert brief_slug in result, (
-        "real-filesystem walk must find the brief via _default_dir_lister"
+        "real-filesystem walk must find the brief"
     )
     assert spec_slug in result, (
-        "real-filesystem walk must find the nested spec via _default_dir_lister"
+        "real-filesystem walk must find the nested spec"
     )
     assert "other-feature" not in result, (
-        "spec with a different Brief: must not appear"
+        "spec not in snapshot must not appear"
     )
     assert len(result) == 2, (
         f"expected 2 descendants (brief + spec), got {len(result)}: {sorted(result)}"
