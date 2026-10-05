@@ -2169,3 +2169,32 @@ class TestRedactionAtTheCapAndAtScale:
         result = _launch(ps, spec, audit_sink=sink, stdin_bytes=stdin)
         assert result.stdout_redacted == b"[REDACTED]"
         assert time.monotonic() - started < 20.0
+
+
+class TestRedactionMatchesTheBoundaryEncoding:
+    """The redaction set holds the exact bytes the child receives for every secret."""
+
+    SECRET = "pw\udcffend-credential"
+
+    def test_collected_forms_include_the_os_boundary_bytes(
+        self, process_safety: ModuleType
+    ) -> None:
+        ps = process_safety
+        forms = ps._collect_sensitive({"TOKEN": self.SECRET}, None, [self.SECRET])
+        assert os.fsencode(self.SECRET) in forms
+
+    @pytest.mark.skipif(os.name != "posix", reason="surrogate-escaped env values are POSIX-only")
+    def test_echoed_surrogate_escaped_env_value_is_redacted(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        ps = process_safety
+        _, sink = _recording_sink()
+        spec = _spec(
+            str(tmp_path),
+            argv=["-c", "import os, sys; sys.stdout.buffer.write(os.environb[b'TOKEN'])"],
+            environment_allowlist=["TOKEN"],
+        )
+        result = _launch(ps, spec, audit_sink=sink, env_values={"TOKEN": self.SECRET})
+        assert os.fsencode(self.SECRET) not in result.stdout_redacted
+        assert b"credential" not in result.stdout_redacted
+        assert result.output_was_redacted

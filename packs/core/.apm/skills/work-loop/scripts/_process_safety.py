@@ -599,17 +599,31 @@ def _collect_sensitive(
     stdin bytes, and any additional caller-supplied strings.
     """
     sensitive: list[bytes] = []
-    for v in env.values():
-        encoded = v.encode("utf-8", errors="replace")
-        if encoded:
-            sensitive.append(encoded)
+    for v in [*env.values(), *(extra or [])]:
+        sensitive.extend(_encoded_forms(v))
     if stdin_bytes:
         sensitive.append(stdin_bytes)
-    for v in (extra or []):
-        encoded = v.encode("utf-8", errors="replace")
-        if encoded:
-            sensitive.append(encoded)
     return sensitive
+
+
+def _encoded_forms(value: str) -> list[bytes]:
+    """Return every byte form *value* can take at the process boundary.
+
+    The child receives environment values encoded by ``os.fsencode`` (on POSIX,
+    surrogate escapes become their raw bytes), so that exact form must be in the
+    redaction set; a lossy UTF-8 encoding would hold different bytes and match
+    nothing.  The other forms are kept so a value written back in another
+    encoding is still redacted.  Redacting an extra form can only hide more.
+    """
+    forms: set[bytes] = set()
+    for encode in (
+        os.fsencode,
+        lambda v: v.encode("utf-8", errors="surrogateescape"),
+        lambda v: v.encode("utf-8", errors="replace"),
+    ):
+        with contextlib.suppress(UnicodeError, ValueError):
+            forms.add(encode(value))
+    return [form for form in forms if form]
 
 
 def _leader_exited(proc: subprocess.Popen) -> bool:  # type: ignore[type-arg]
@@ -1070,7 +1084,12 @@ def _launch_safe_process_unguarded(
         # event.  A NUL terminates the C-string at the OS boundary, silently
         # truncating the value and potentially hiding injected content.
         for _env_val in env.values():
-            if isinstance(_env_val, str) and "\x00" in _env_val:
+            _encodable = True
+            try:
+                os.fsencode(_env_val)
+            except (UnicodeError, TypeError):
+                _encodable = False
+            if not _encodable or (isinstance(_env_val, str) and "\x00" in _env_val):
                 _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
                 raise ProcessDenied(
                     "denied-invalid-field-value",

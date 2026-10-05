@@ -362,3 +362,15 @@ brute-force definition that includes bounds and overflow. It covers the
 reviewer's launch-level repro and stderr filling the combined cap, and timing
 bounds keep every slow case under 5 s. Against the committed code, the
 complete-value, self-overlap, and overflowed-launch tests fail.
+
+The redaction re-check, security round 10, confirmed the cover-never-cut logic
+and its linear cost. It upheld 1 Concern, which sits just outside that logic.
+The redaction set encoded secrets as lossy UTF-8, while the child receives
+environment values encoded by `os.fsencode`. So a secret with non-UTF-8 bytes
+was matched in a different form and leaked whole. The redaction set now holds
+every byte form each environment value and caller-supplied string can take,
+the `os.fsencode` form included. An environment value that cannot be encoded
+for the process boundary is refused before the allow event.
+`TestRedactionMatchesTheBoundaryEncoding` checks the collected forms and runs a
+launch that echoes a surrogate-escaped value. Both tests fail against the
+committed code.
