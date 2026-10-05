@@ -507,3 +507,13 @@ def test_pathological_body_renders_fully_and_inertly(
     assert set(info["tags"]) <= _BODY_ELEMENTS
     assert not page._errors  # type: ignore[attr-defined]
     assert not page._non_file_requests  # type: ignore[attr-defined]
+
+
+def test_typing_in_search_keeps_focus(browser: object, export_mixed: pathlib.Path) -> None:
+    """FE-F2 regression: filtering re-renders the list without stealing focus."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.click("#search-input")  # type: ignore[union-attr]
+    page.keyboard.type("adr")  # type: ignore[union-attr]
+    assert page.evaluate("() => document.activeElement.id") == "search-input"  # type: ignore[union-attr]
+    assert page.input_value("#search-input") == "adr"  # type: ignore[union-attr]

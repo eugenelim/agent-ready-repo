@@ -276,12 +276,16 @@ nav[aria-label="Views"] button[aria-current="page"]{
 .detail-heading{
   position:sticky;top:0;background:var(--surface);
   padding:.4rem 0;z-index:10;border-bottom:1px solid var(--border);margin-bottom:.75rem}
-.meta-table{border-collapse:collapse;margin-bottom:.9rem;font-size:.88rem;width:100%;max-width:60rem}
-.meta-table th,.meta-table td{
-  border:1px solid var(--border);padding:.3rem .5rem;text-align:left;vertical-align:top}
+.meta-table{
+  border-collapse:separate;border-spacing:0;margin-bottom:.9rem;font-size:.88rem;width:100%;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden}
+.meta-table th,.meta-table td{padding:.45rem var(--pad-sm);text-align:left;vertical-align:top;
+  border-bottom:1px solid var(--border)}
+.meta-table tr:last-child th,.meta-table tr:last-child td{border-bottom:none}
 .meta-table th{
-  background:rgba(229,231,235,.4);white-space:nowrap;
-  width:8rem;font-weight:600;font-size:.83rem}
+  color:var(--text-muted);white-space:nowrap;width:8rem;font-weight:600;
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
 /* Detail <details> sections styled as cards */
 .rel-details,.sr-details,.body-details{
   background:var(--surface);border:1px solid var(--border);
@@ -370,3 +374,12 @@ nav[aria-label="Views"] button[aria-current="page"]{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
+
+/* Programmatic focus on view headings: no box unless the keyboard put it there */
+.detail-heading:focus,.view-heading:focus,h2[tabindex="-1"]:focus{outline:none}
+.detail-heading:focus-visible,h2[tabindex="-1"]:focus-visible{
+  outline:3px solid var(--accent);outline-offset:4px;border-radius:4px}
+/* Status filter sized to its content, not the full row */
+#status-filter{width:auto;max-width:min(26rem,100%)}
+/* List banners sit under the card's button as a full-width strip */
+.record-item>.supersede-banner{border-radius:0}

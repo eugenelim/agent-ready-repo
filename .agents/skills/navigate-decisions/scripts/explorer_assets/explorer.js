@@ -102,7 +102,7 @@ var c=document.getElementById('view-'+state.view);if(!c)return;
 var h=c.querySelector('h2,h1');
 if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
 function navigate(view,id){
-state.view=view;if(id!==undefined)state.sel=id;pushState();render();}
+state.view=view;if(id!==undefined)state.sel=id;pushState();render();focusViewHeading();}
 function render(){
 VALID_VIEWS.forEach(function(v){
 var b=document.getElementById('btn-'+v);
@@ -116,8 +116,7 @@ if(!c)return;c.textContent='';
 if(state.view==='list')renderList(c);
 else if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
-else if(state.view==='detail')renderDetail(c);
-focusViewHeading();}
+else if(state.view==='detail')renderDetail(c);}
 // ── Supersession banner ──────────────────────────────────────────────────────
 function supBanner(entry,isDetail){
 var div=document.createElement('div');
@@ -171,14 +170,15 @@ b.appendChild(ridEl);b.appendChild(ttEl);b.appendChild(badge);b.appendChild(stEl
 // Supersession banners from checked relationships only
 var supBy=r.superseded_by||[];
 var unresClaims=r.unresolved_claims||[];
-if(supBy.length>0){
-supBy.forEach(function(s){b.appendChild(supBanner(s,false));});}
-else if(unresClaims.length>0){
-var sb2=document.createElement('div');sb2.className='supersede-banner';sb2.setAttribute('role','note');
-sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+unresClaims[0]));
-b.appendChild(sb2);}
 b.addEventListener('click',function(){navigate('detail',r.id);});
-li.appendChild(b);ul.appendChild(li);});
+li.appendChild(b);
+if(supBy.length>0){
+supBy.forEach(function(s){li.appendChild(supBanner(s,false));});}
+else if(unresClaims.length>0){
+var sb2=document.createElement('div');sb2.className='supersede-banner is-unresolved';sb2.setAttribute('role','note');
+sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+unresClaims[0]));
+li.appendChild(sb2);}
+ul.appendChild(li);});
 c.appendChild(ul);
 updateLive(fr.length+' of '+records.length+' records shown.');}
 // ── Graph view ───────────────────────────────────────────────────────────────
@@ -358,7 +358,7 @@ var FOLD_THRESHOLD=3000;
 var content=body.content||'';
 var bodyEl;
 if(content.length>FOLD_THRESHOLD){
-var bd=el('details','body-details');
+var bd=el('details','body-details');bd.open=true;
 var bs=el('summary',null,'Record content ('+content.length+' chars)');
 bd.appendChild(bs);
 var sec=document.createElement('section');
@@ -399,7 +399,7 @@ var anyOpen=false;
 for(var di=0;di<dets.length;di++){if(dets[di].open){anyOpen=true;break;}}
 for(var dj=0;dj<dets.length;dj++){dets[dj].open=!anyOpen;}
 expandAllBtn.textContent=anyOpen?'Expand all':'Collapse all';});}
-window.addEventListener('popstate',function(){parseHash();render();});
+window.addEventListener('popstate',function(){parseHash();render();focusViewHeading();});
 var provPre=document.getElementById('prov-pre');
 if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);
 var supInvEl=document.getElementById('sup-inv');
