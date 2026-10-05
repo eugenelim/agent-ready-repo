@@ -75,16 +75,36 @@ def _snapshot(
     relations: list[dict[str, Any]] | None = None,
     provenance: list[dict[str, Any]] | None = None,
     diagnostics: list[dict[str, Any]] | None = None,
+    artifacts: dict[str, str] | None = None,
+    classifications: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Build a minimal valid delivery snapshot for test injection."""
+    """Build a minimal valid delivery snapshot for test injection.
+
+    When *artifacts* is omitted, the dict is auto-populated from the spec and
+    brief identifiers present in *relations* using the canonical path grammar.
+    """
+    _rels = relations or []
+    if artifacts is None:
+        _arts: dict[str, str] = {}
+        for _rel in _rels:
+            for _id_key, _prefix, _path_tmpl in (
+                ("spec", "spec:", "docs/specs/{slug}/spec.md"),
+                ("brief", "brief:", "docs/product/briefs/{slug}.md"),
+            ):
+                _val = _rel.get(_id_key, "")
+                if _val.startswith(_prefix) and _val not in _arts:
+                    _slug = _val[len(_prefix):]
+                    _arts[_val] = _path_tmpl.format(slug=_slug)
+    else:
+        _arts = artifacts
     return {
         "schema_version": 1,
         "complete": True,
-        "relations": relations or [],
-        "classifications": [],
+        "relations": _rels,
+        "classifications": classifications or [],
         "provenance": provenance or [],
         "diagnostics": diagnostics or [],
-        "artifacts": {},
+        "artifacts": _arts,
     }
 
 
@@ -776,58 +796,63 @@ def _make_spec_terminus_tree(tmp_path: Path, discovery_value: str) -> tuple[Path
 
 
 @pytest.mark.parametrize(
-    "discovery_value,label",
+    "escaping_path,label",
     [
-        ("../../../etc/passwd", "bare dotdot path"),
-        ("`../../../etc/passwd`", "backtick dotdot path"),
-        ("[link](../../../etc/passwd)", "markdown link dotdot"),
-        ("/etc/passwd", "absolute path outside root"),
+        ("../../etc/passwd", "dotdot path"),
+        ("/etc/passwd", "absolute path"),
+        ("docs\\specs\\..\\..\\etc\\passwd", "backslash path"),
     ],
 )
 def test_confinement_escaping_discovery_contributes_no_edge(
-    tmp_path: Path, discovery_value: str, label: str
+    tmp_path: Path, escaping_path: str, label: str
 ) -> None:
-    """An escaping Discovery: value in any corpus form contributes no edge.
+    """A snapshot whose artifacts dict carries an escaping path yields delivery-resolver-unavailable.
 
-    With snapshot-based delivery the ``spec`` terminus only opens files named
-    in the canonical snapshot. An empty snapshot means no spec is named and
-    none is opened, so the confined reader's confinement guarantee holds at
-    the snapshot level: an unsafe Discovery: value never even reaches the reader
-    during a spec-terminus walk.
-
-    The default confined reader still guards non-delivery reads (e.g. the
-    ancestor's own file). The test uses an empty snapshot to confirm that a
-    spec not present in the snapshot contributes no edge regardless of its
-    Discovery: content.
+    _validate_snapshot_dict checks every artifacts path for safety (no ``..``
+    segments, no absolute paths, no backslashes).  When the injected provider
+    returns a snapshot with an unsafe path, the validation raises inside
+    ``_get_snapshot()`` and the whole decision refuses rather than following the
+    escape.  No file outside the root is opened.
     """
-    root, ancestor_slug, spec_slug = _make_spec_terminus_tree(tmp_path, discovery_value)
+    import pytest as _pytest
 
-    empty_snap = _snapshot()
-    result = ci._build_descendant_closure(
-        ancestor_slug, "spec", root, _snapshot_provider=lambda _r: empty_snap
+    root, ancestor_slug, spec_slug = _make_spec_terminus_tree(tmp_path, "safe-discovery")
+
+    # Inject a snapshot that names the spec but maps it to an escaping path.
+    unsafe_snap = _snapshot(
+        relations=[_direct(ancestor_slug, spec_slug)],
+        artifacts={f"spec:{spec_slug}": escaping_path},
     )
-
-    assert spec_slug not in result, (
-        f"{label}: spec not in snapshot should contribute no edge"
+    with _pytest.raises(ci._ClosureDeliveryRefusal) as exc_info:
+        ci._build_descendant_closure(
+            ancestor_slug, "spec", root, _snapshot_provider=lambda _r: unsafe_snap
+        )
+    assert exc_info.value.reason == "delivery-resolver-unavailable", (
+        f"{label}: escaping artifacts path must yield delivery-resolver-unavailable, "
+        f"got {exc_info.value.reason!r}"
     )
 
 
 def test_confinement_symlink_outside_root_contributes_no_edge(
     tmp_path: Path,
 ) -> None:
-    """A Discovery: value pointing to a symlink outside the root contributes no edge.
+    """A snapshot artifacts path pointing to a symlinked spec yields an unreadable record.
 
     file_safety.py rejects symlinks via O_NOFOLLOW / post-open inode check.
+    When the spec's artifacts path resolves to a symlink, ``_get_fields``
+    catches the ValueError from the confined reader and returns empty fields.
+    The spec record is added to the result with an empty Status (contributing
+    no terminal edge), but no file content from outside the root is read.
     """
     root = tmp_path / "repo"
     outside = tmp_path / "outside"
     root.mkdir()
     outside.mkdir()
 
-    # A real intent file lives outside the repo root.
-    outside_intent = outside / "leaked-intent.md"
-    outside_intent.write_text(
-        _intent("leaked-intent"), encoding="utf-8"
+    # A real spec content file lives outside the repo root.
+    outside_spec = outside / "leaked-spec.md"
+    outside_spec.write_text(
+        "- **Status:** Shipped\n", encoding="utf-8"
     )
 
     intents_dir = root / "docs" / "product" / "intents"
@@ -842,26 +867,27 @@ def test_confinement_symlink_outside_root_contributes_no_edge(
         _intent(ancestor_slug, decomposed="spec"), encoding="utf-8"
     )
 
-    # Symlink inside the repo root pointing to the outside file.
-    symlink_path = intents_dir / "symlink-to-outside.md"
-    symlink_path.symlink_to(outside_intent)
+    # Create the spec directory and a symlink pointing to the outside file.
+    spec_dir = specs_dir / spec_slug
+    spec_dir.mkdir()
+    symlink_path = spec_dir / "spec.md"
+    symlink_path.symlink_to(outside_spec)
 
-    # The spec's Discovery: points to the symlink (by relative path from root).
-    discovery_value = "docs/product/intents/symlink-to-outside.md"
-    spec_feature = specs_dir / "symlink-test-feature"
-    spec_feature.mkdir()
-    (spec_feature / "spec.md").write_text(
-        _spec(spec_slug, discovery=discovery_value), encoding="utf-8"
+    # Snapshot names the spec with a valid canonical path — the symlink check
+    # happens at file-open time via the confined reader, not at validation time.
+    snap = _snapshot(
+        relations=[_direct(ancestor_slug, spec_slug)],
+        artifacts={f"spec:{spec_slug}": f"docs/specs/{spec_slug}/spec.md"},
     )
-
-    # Empty snapshot: spec not named, so no attempt to open the symlink.
-    empty_snap = _snapshot()
     result = ci._build_descendant_closure(
-        ancestor_slug, "spec", root, _snapshot_provider=lambda _r: empty_snap
+        ancestor_slug, "spec", root, _snapshot_provider=lambda _r: snap
     )
 
-    assert spec_slug not in result, (
-        "spec not in snapshot should contribute no edge"
+    # The spec is found via the snapshot relation but its file is unreadable
+    # (symlink rejected by the confined reader), so Status is empty.
+    assert spec_slug in result, "spec named in snapshot must appear in result"
+    assert result[spec_slug].status == "", (
+        "symlinked spec file must be unreadable; Status should be empty"
     )
 
 

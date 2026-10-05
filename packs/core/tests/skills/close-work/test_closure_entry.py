@@ -67,16 +67,36 @@ def _snapshot(
     relations: list[dict[str, Any]] | None = None,
     provenance: list[dict[str, Any]] | None = None,
     diagnostics: list[dict[str, Any]] | None = None,
+    artifacts: dict[str, str] | None = None,
+    classifications: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Build a minimal valid delivery snapshot for test injection."""
+    """Build a minimal valid delivery snapshot for test injection.
+
+    When *artifacts* is omitted, the dict is auto-populated from the spec and
+    brief identifiers present in *relations* using the canonical path grammar.
+    """
+    _rels = relations or []
+    if artifacts is None:
+        _arts: dict[str, str] = {}
+        for _rel in _rels:
+            for _id_key, _prefix, _path_tmpl in (
+                ("spec", "spec:", "docs/specs/{slug}/spec.md"),
+                ("brief", "brief:", "docs/product/briefs/{slug}.md"),
+            ):
+                _val = _rel.get(_id_key, "")
+                if _val.startswith(_prefix) and _val not in _arts:
+                    _slug = _val[len(_prefix):]
+                    _arts[_val] = _path_tmpl.format(slug=_slug)
+    else:
+        _arts = artifacts
     return {
         "schema_version": 1,
         "complete": True,
-        "relations": relations or [],
-        "classifications": [],
+        "relations": _rels,
+        "classifications": classifications or [],
         "provenance": provenance or [],
         "diagnostics": diagnostics or [],
-        "artifacts": {},
+        "artifacts": _arts,
     }
 
 
@@ -104,10 +124,15 @@ def _coord(intent_slug: str, brief_slug: str, spec_slug: str) -> dict[str, Any]:
 
 
 def _prov(spec_slug: str, intent_slug: str) -> dict[str, Any]:
-    """Build a contextual-provenance record for a Discovery: reference."""
+    """Build a contextual-provenance record for a Discovery: reference.
+
+    Mirrors the resolver's output: the ``intent`` field carries the canonical
+    identifier; ``target`` carries the same value for backward compatibility.
+    """
     return {
         "subject": f"spec:{spec_slug}",
         "field": "Discovery",
+        "intent": f"intent:{intent_slug}",
         "target": f"intent:{intent_slug}",
     }
 
@@ -418,18 +443,36 @@ def test_ac0002_spec_brief_none_uses_discovery(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "discovery_value",
+    "discovery_value,inject_prov,expected_count",
     [
-        "docs/product/intents/form-ancestor.md",
-        "`docs/product/intents/form-ancestor.md`",
-        "[intent](docs/product/intents/form-ancestor.md)",
+        # Bare-path and backtick-path: resolver emits a provenance record with
+        # the resolved intent identifier.  close-work follows the ``intent`` field.
+        (
+            "docs/product/intents/form-ancestor.md",
+            True,
+            1,
+        ),
+        (
+            "`docs/product/intents/form-ancestor.md`",
+            True,
+            1,
+        ),
+        # Markdown-link form: the resolver classifies this as malformed and
+        # emits no provenance record.  close-work sees no edges and returns
+        # an empty ancestor list.
+        (
+            "[intent](docs/product/intents/form-ancestor.md)",
+            False,
+            0,
+        ),
     ],
     ids=["bare-path", "backtick-path", "markdown-link"],
 )
 def test_ac0003_discovery_three_forms_resolve_same_ancestor(
-    tmp_path: Path, discovery_value: str
+    tmp_path: Path, discovery_value: str, inject_prov: bool, expected_count: int
 ) -> None:
-    """Discovery: in all three corpus forms resolves to the same intent ancestor."""
+    """Discovery: corpus forms: bare-path and backtick-path resolve to the ancestor;
+    markdown-link is classified as malformed so no provenance record is emitted."""
     intents_dir = tmp_path / "docs" / "product" / "intents"
     intents_dir.mkdir(parents=True)
 
@@ -439,15 +482,19 @@ def test_ac0003_discovery_three_forms_resolve_same_ancestor(
         f"- **Status:** Accepted\n"
         f"- **Decomposed:** 2026-09-01 closed-empty\n"
     )
-    # form-ancestor has Decomposed: closed-empty → contextual-provenance record.
-    # resolve_intent_ancestors looks up provenance records for spec→intent edges.
+    # The resolver emits a provenance record only for safe Discovery: forms.
     spec_fields = {"Slug": "test-spec", "Discovery": discovery_value}
-    snap = _snapshot(provenance=[_prov("test-spec", parent_slug)])
+    provenance = [_prov("test-spec", parent_slug)] if inject_prov else []
+    snap = _snapshot(provenance=provenance)
     ancestors = ci.resolve_intent_ancestors(
         "test-spec", "spec", spec_fields, tmp_path, _snapshot_provider=lambda _r: snap
     )
-    assert len(ancestors) == 1
-    assert ancestors[0][0] == parent_slug
+    assert len(ancestors) == expected_count, (
+        f"discovery_value={discovery_value!r}: expected {expected_count} ancestor(s), "
+        f"got {ancestors!r}"
+    )
+    if expected_count > 0:
+        assert ancestors[0][0] == parent_slug
 
 
 # ── Defect regression: resolver failure (AC-0018 fail-closed) ─────────────────
@@ -476,31 +523,22 @@ def test_resolver_failure_in_resolve_intent_ancestors_surfaces_code(tmp_path: Pa
 
 
 @pytest.mark.parametrize(
-    "discovery_value,prov_target",
+    "discovery_value",
     [
-        # Bare-path form: resolver stores the path as-is in provenance target.
-        (
-            "docs/product/intents/my-cap.md",
-            "docs/product/intents/my-cap.md",
-        ),
-        # Backtick-path form: resolver strips backticks → same bare-path target.
-        (
-            "`docs/product/intents/my-cap.md`",
-            "docs/product/intents/my-cap.md",
-        ),
+        "docs/product/intents/my-cap.md",
+        "`docs/product/intents/my-cap.md`",
     ],
     ids=["bare-path", "backtick-path"],
 )
 def test_path_form_provenance_target_reaches_non_feature_ancestor(
     tmp_path: Path,
     discovery_value: str,
-    prov_target: str,
 ) -> None:
-    """Provenance target in docs/product/intents/*.md form resolves to ancestor.
+    """Provenance ``intent`` field resolves bare-path and backtick Discovery: to ancestor.
 
-    Before T2, _resolve_discovery_path handled bare-path and backtick-path
-    Discovery: values pointing to non-feature intents.  After T2 these arrive
-    as path-form provenance targets.  close-work must follow them.
+    The resolver stores the resolved intent identifier in the ``intent`` field of
+    the provenance record.  close-work uses ``intent`` (then falls back to
+    ``target``) to look up the ancestor slug; path-form targets are not followed.
     """
     intents_dir = tmp_path / "docs" / "product" / "intents"
     intents_dir.mkdir(parents=True)
@@ -512,11 +550,12 @@ def test_path_form_provenance_target_reaches_non_feature_ancestor(
         "- **Decomposed:** 2026-09-01 closed-empty\n"
     )
     spec_fields = {"Slug": "test-spec", "Discovery": discovery_value}
-    # Provenance record whose target is the repository-relative path (path form).
+    # Provenance record with the resolved intent identifier in the ``intent`` field.
     prov_record = {
         "subject": "spec:test-spec",
         "field": "Discovery",
-        "target": prov_target,
+        "intent": f"intent:{cap_slug}",
+        "target": f"intent:{cap_slug}",
     }
     snap = _snapshot(provenance=[prov_record])
     ancestors = ci.resolve_intent_ancestors(

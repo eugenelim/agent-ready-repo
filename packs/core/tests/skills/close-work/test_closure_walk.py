@@ -66,16 +66,36 @@ def _snapshot(
     relations: list[dict[str, Any]] | None = None,
     provenance: list[dict[str, Any]] | None = None,
     diagnostics: list[dict[str, Any]] | None = None,
+    artifacts: dict[str, str] | None = None,
+    classifications: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Build a minimal valid delivery snapshot for test injection."""
+    """Build a minimal valid delivery snapshot for test injection.
+
+    When *artifacts* is omitted, the dict is auto-populated from the spec and
+    brief identifiers present in *relations* using the canonical path grammar.
+    """
+    _rels = relations or []
+    if artifacts is None:
+        _arts: dict[str, str] = {}
+        for _rel in _rels:
+            for _id_key, _prefix, _path_tmpl in (
+                ("spec", "spec:", "docs/specs/{slug}/spec.md"),
+                ("brief", "brief:", "docs/product/briefs/{slug}.md"),
+            ):
+                _val = _rel.get(_id_key, "")
+                if _val.startswith(_prefix) and _val not in _arts:
+                    _slug = _val[len(_prefix):]
+                    _arts[_val] = _path_tmpl.format(slug=_slug)
+    else:
+        _arts = artifacts
     return {
         "schema_version": 1,
         "complete": True,
-        "relations": relations or [],
-        "classifications": [],
+        "relations": _rels,
+        "classifications": classifications or [],
         "provenance": provenance or [],
         "diagnostics": diagnostics or [],
-        "artifacts": {},
+        "artifacts": _arts,
     }
 
 
@@ -223,9 +243,9 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
 
     Fixture models the work-item-capture-and-disposition tree (measured
     2026-09-26): Accepted ancestor with ``children`` terminus → four child
-    intents each Accepted with ``spec`` terminus → five grandchild specs via
-    ``Discovery:``. A one-hop implementation stops at the four children and
-    misses the five grandchild specs, producing 4 descendants instead of 9.
+    intents each Accepted with ``spec`` terminus → four grandchild specs via
+    ``Discovery:``.  A one-hop implementation stops at the four children and
+    misses the four grandchild specs, producing 4 descendants instead of 8.
 
     Three node levels, two artifact kinds (intent and spec), two edges traversed.
     """
@@ -238,13 +258,12 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
         ("work-item-delegation", "Accepted"),
         ("work-item-closeout", "Accepted"),
     ]
-    # Five grandchild specs, one per child (capture has two for one child).
+    # Four grandchild specs, one per child (one-to-one direct-delivery).
     grandchildren: list[tuple[str, str, str]] = [
         ("spec-capture", "Shipped", "work-item-capture"),
         ("spec-prioritisation", "Implementing", "work-item-prioritisation"),
         ("spec-delegation", "Implementing", "work-item-delegation"),
-        ("spec-closeout-a", "Implementing", "work-item-closeout"),
-        ("spec-closeout-b", "Draft", "work-item-closeout"),
+        ("spec-closeout", "Implementing", "work-item-closeout"),
     ]
 
     files: dict[str, str] = {
@@ -267,23 +286,20 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
     expected_all = expected_children | expected_specs
 
     fs = FakeFS(files)
-    # Inject a snapshot that maps each child intent to its grandchild spec(s).
-    # work-item-closeout has two specs; the snapshot carries two direct-delivery
-    # records for it, which is synthetic but valid for close-work's traversal.
+    # Inject a snapshot that maps each child intent to its one grandchild spec.
     snap = _snapshot(relations=[
         _direct("work-item-capture", "spec-capture"),
         _direct("work-item-prioritisation", "spec-prioritisation"),
         _direct("work-item-delegation", "spec-delegation"),
-        _direct("work-item-closeout", "spec-closeout-a"),
-        _direct("work-item-closeout", "spec-closeout-b"),
+        _direct("work-item-closeout", "spec-closeout"),
     ])
     result = _build(fs, ancestor_slug, "children", snapshot_provider=lambda _r: snap)
 
     assert result.keys() == expected_all, (
         f"expected {sorted(expected_all)}, got {sorted(result)}\n"
-        "a one-hop implementation would stop at the 4 children and miss the 5 specs"
+        "a one-hop implementation would stop at the 4 children and miss the 4 specs"
     )
-    assert len(result) == 9, f"expected 9 descendants, got {len(result)}"
+    assert len(result) == 8, f"expected 8 descendants, got {len(result)}"
 
     # Kind check: children are intents, grandchildren are specs.
     for child_slug, _ in children:
@@ -389,15 +405,15 @@ def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
 
 
 def test_ac0020_spec_terminus_inverts_discovery_over_specs() -> None:
-    """The ``spec`` terminus inverts ``Discovery:`` over specs (AC-0020).
+    """The ``spec`` terminus finds only specs named in the snapshot (AC-0020).
 
-    Specs whose ``Discovery:`` resolves to the ancestor slug are included.
-    Specs pointing to a different intent are excluded. Three Discovery: forms
-    (bare path, backtick, markdown link) are all handled — see AC-0003;
-    here we assert the bare-path form as the primary case.
+    The snapshot names one spec for the ancestor; a second spec in the
+    filesystem with a different Discovery: target is excluded because it is
+    not in the snapshot.  This confirms that close-work does not scan the
+    specs collection itself — membership comes from the snapshot alone.
     """
     ancestor_slug = "spec-driven-intent"
-    spec_slugs = ["alpha-spec", "beta-spec"]
+    spec_slug = "alpha-spec"
     unrelated_spec_slug = "gamma-spec"
 
     ancestor_path = f"docs/product/intents/{ancestor_slug}.md"
@@ -408,31 +424,25 @@ def test_ac0020_spec_terminus_inverts_discovery_over_specs() -> None:
             ancestor_slug, decomposed="spec"
         ),
         str(INTENTS_DIR / "other-intent.md"): _intent("other-intent"),
+        str(SPECS_DIR / spec_slug / "spec.md"): _spec(
+            spec_slug, discovery=ancestor_path
+        ),
         str(SPECS_DIR / unrelated_spec_slug / "spec.md"): _spec(
             unrelated_spec_slug, discovery=other_path
         ),
     }
-    for spec_slug in spec_slugs:
-        files[str(SPECS_DIR / spec_slug / "spec.md")] = _spec(
-            spec_slug, discovery=ancestor_path
-        )
 
     fs = FakeFS(files)
-    # Inject a snapshot mapping the ancestor to two direct-delivery specs.
-    # The unrelated spec has no relation for ancestor_slug, so it is excluded.
-    snap = _snapshot(relations=[
-        _direct(ancestor_slug, spec_slugs[0]),
-        _direct(ancestor_slug, spec_slugs[1]),
-    ])
+    # Snapshot names only alpha-spec; gamma-spec has no relation, so it is excluded.
+    snap = _snapshot(relations=[_direct(ancestor_slug, spec_slug)])
     result = _build(fs, ancestor_slug, "spec", snapshot_provider=lambda _r: snap)
 
-    for spec_slug in spec_slugs:
-        assert spec_slug in result, f"spec '{spec_slug}' must be in closure via snapshot"
+    assert spec_slug in result, f"spec '{spec_slug}' must be in closure via snapshot"
     assert unrelated_spec_slug not in result, (
         "spec not in snapshot must not appear"
     )
-    assert len(result) == 2, (
-        f"expected 2 descendants, got {len(result)}: {sorted(result)}"
+    assert len(result) == 1, (
+        f"expected 1 descendant, got {len(result)}: {sorted(result)}"
     )
 
 

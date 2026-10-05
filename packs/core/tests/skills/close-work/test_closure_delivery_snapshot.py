@@ -99,16 +99,37 @@ def _snapshot(
     relations: list[dict[str, Any]] | None = None,
     provenance: list[dict[str, Any]] | None = None,
     diagnostics: list[dict[str, Any]] | None = None,
+    artifacts: dict[str, str] | None = None,
+    classifications: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Build a minimal valid delivery snapshot for test injection."""
+    """Build a minimal valid delivery snapshot for test injection.
+
+    When *artifacts* is omitted, the dict is auto-populated from the spec and
+    brief identifiers present in *relations* using the canonical path grammar,
+    so callers only need to supply explicit artifacts for edge-case tests.
+    """
+    _rels = relations or []
+    if artifacts is None:
+        _arts: dict[str, str] = {}
+        for _rel in _rels:
+            for _id_key, _prefix, _path_tmpl in (
+                ("spec", "spec:", "docs/specs/{slug}/spec.md"),
+                ("brief", "brief:", "docs/product/briefs/{slug}.md"),
+            ):
+                _val = _rel.get(_id_key, "")
+                if _val.startswith(_prefix) and _val not in _arts:
+                    _slug = _val[len(_prefix):]
+                    _arts[_val] = _path_tmpl.format(slug=_slug)
+    else:
+        _arts = artifacts
     return {
         "schema_version": 1,
         "complete": True,
-        "relations": relations or [],
-        "classifications": [],
+        "relations": _rels,
+        "classifications": classifications or [],
         "provenance": provenance or [],
         "diagnostics": diagnostics or [],
-        "artifacts": {},
+        "artifacts": _arts,
     }
 
 
