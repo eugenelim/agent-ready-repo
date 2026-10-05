@@ -32,20 +32,22 @@ A full export stays practical at a corpus size only if every limit holds.
   stops changing; median of three.
 - **Heap:** `performance.memory.usedJSHeapSize` peak after startup and search.
 
-### Results (2026-10-04, commit `3ed1f797deae8656dbe27e471dce7378b9898406`)
+### Results (2026-10-05, commit `d2f93902f`)
 
 Desktop Google Chrome 154.0.8037.93 on macOS 26.5.2. The 1× corpus is the
-repository at that commit: 238 records (134 ADRs, 104 RFCs).
+repository at that commit: 238 records (134 ADRs, 104 RFCs). This re-run
+replaces the 2026-10-04 run at `3ed1f797`, which predates the T7 redesign.
 
 | Scale | Records | Full HTML | Startup | Search | Peak heap | Within limits |
 | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 1× | 238 | 5.7 MiB | 116 ms | 1.0 ms | 19.5 MiB | yes |
-| 10× | 2,380 | 56.3 MiB | 598 ms | 5.6 ms | 170.3 MiB | yes |
-| 25× | 5,950 | 140.6 MiB | 1,275 ms | 13.3 ms | 412.9 MiB | no — file size |
-| 50× | 11,900 | 281.2 MiB | 3,030 ms | 28.0 ms | 828.2 MiB | no — file size and startup |
+| 1× | 238 | 5.8 MiB | 118 ms | 1.0 ms | 20.1 MiB | yes |
+| 10× | 2,380 | 57.1 MiB | 506 ms | 6.3 ms | 111.6 MiB | yes |
+| 25× | 5,950 | 142.7 MiB | 1,204 ms | 16.3 ms | 419.6 MiB | no — file size |
+| 50× | 11,900 | 285.4 MiB | 2,476 ms | 31.3 ms | 553.6 MiB | no — file size |
 
-A bounded export of the 50× corpus is 14.6 MiB, starts in 577 ms, searches in
-26.5 ms, and peaks at 28.0 MiB of heap.
+The bounded-mode figure is from the 2026-10-04 run: a bounded export of the
+50× corpus is 14.6 MiB, starts in 577 ms, searches in 26.5 ms, and peaks at
+28.0 MiB of heap.
 
 **First threshold exceeded:** HTML file size (100 MiB), between 10× and 25×.
 
@@ -60,15 +62,20 @@ the first argument; script reproduced under [Evidence scripts](#evidence-scripts
 
 ## AC-0016 and AC-0023 interaction evidence
 
-Scripted run (2026-10-04, commit `3ed1f797`, Chrome 154.0.8037.93, offline
-browser context) of the 1× full export:
+Scripted run (2026-10-05, commit `d2f93902f`, Chrome 154.0.8037.93, offline
+browser context) of the 1× full export. It replaces the 2026-10-04 run at
+`3ed1f797`. The script's boundary-sentence string check is stale and reported
+false; a direct check found the sentence visible on the first screen. Its
+"partial" check found the word only in folded text, so `f7224b02d` labels each
+partial edge "in part · <scope>" and a browser check pins it.
 
 - **Offline:** zero requests other than the `file:` page itself; zero page errors.
 - **Orientation:** corpus counts (238) and the boundary sentence "It is not a
   complete statement of the policy applicable to any proposed action." are on
   the first screen.
-- **Keyboard:** Tab reaches search, kind filter, status filter, the four view
-  buttons, then each record button; Enter on a record selects it.
+- **Keyboard:** Tab reaches the three kind filters, status filter, search, the
+  four view buttons, Expand all, then each record button; Enter on a record
+  selects it.
 - **Focus:** focused controls show a 3 px solid outline.
 - **Views keep selection:** list, graph, context, and detail each keep
   `ADR-0001` selected (`#graph/ADR-0001`, `#context/ADR-0001`, …).
@@ -77,10 +84,10 @@ browser context) of the 1× full export:
 - **No-results state:** "No records match the active search and filters. Clear
   to see all 238 records."
 - **Graph trust labels:** the lifecycle graph labels partial supersession and
-  its scope (`D3`) apart from full supersession.
+  its scope (`in part · D3`) apart from full supersession.
 - **Reflow:** at 200% (640 CSS px) and 400% (320 CSS px) every view has zero
-  horizontal overflow. An earlier run found 391 px and 711 px of overflow from
-  the status filter; fixed in `6cbf8eb6` before this run.
+  horizontal overflow; the lineage diagram scales to fit and opens its text
+  version first below 40rem.
 - **Motion and activation:** a `prefers-reduced-motion` rule is present; no
   element uses double-click.
 
