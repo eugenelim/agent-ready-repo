@@ -224,3 +224,13 @@ scratch after recording.
   pre-existing in other packs, zero errors).
 - Governance-citation grep over `packs/` shipped content — no new hits in
   `.apm/` or `README.md` from T3 changes.
+
+## Owner ruling — AC-0013 marketplace clause (2026-10-05)
+
+The owner (eugenelim) ruled that AC-0013 is wrong as written: a repository-only
+pack never appears in the Claude marketplace plugin, so
+`.claude-plugin/marketplace.json` can carry no Core version to agree with. The
+ruling authorizes a controlled amendment that narrows AC-0013 to the two Core
+manifests, the free-standing changelog entry, and the Highlights disposition.
+T1's marketplace regeneration step ran and left no Core entry, as the ruling
+expects.
