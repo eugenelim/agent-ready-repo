@@ -1069,3 +1069,19 @@ def test_focused_graph_returns_to_atlas(browser: object, export_mixed: pathlib.P
     page.click("button.atlas-back")  # type: ignore[union-attr]
     page.wait_for_selector(".chain-card")  # type: ignore[union-attr]
     assert page.evaluate("location.hash") == "#graph"  # type: ignore[union-attr]
+
+
+def test_back_from_focused_graph_restores_atlas(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0016: Back after focusing a node from the atlas shows the atlas again."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    _navigate_graph(page, "ADR-0001")
+    page.click("button.atlas-back")  # type: ignore[union-attr]
+    page.wait_for_selector(".chain-card")  # type: ignore[union-attr]
+    page.locator('.chain-card g[data-node-id="ADR-0020"]').click()  # type: ignore[union-attr]
+    page.wait_for_selector("button.atlas-back")  # type: ignore[union-attr]
+    page.go_back()  # type: ignore[union-attr]
+    page.wait_for_selector(".chain-card")  # type: ignore[union-attr]
+    assert page.locator("button.atlas-back").count() == 0  # type: ignore[union-attr]

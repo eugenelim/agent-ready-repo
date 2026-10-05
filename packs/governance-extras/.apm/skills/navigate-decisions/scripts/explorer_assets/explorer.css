@@ -90,7 +90,7 @@ button{min-height:24px;min-width:24px}
   font-weight:800;line-height:1.2;color:var(--text)}
 /* gradient key-phrase in h1 */
 .title-gradient{
-  background:linear-gradient(90deg,#1d4ed8 0%,#7c3aed 50%,#06b6d4 100%);
+  background:linear-gradient(90deg,#1d4ed8 0%,#6d28d9 50%,#0e7490 100%);
   -webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent;
   /* fallback for browsers without background-clip:text */
@@ -182,8 +182,8 @@ nav[aria-label="Views"] button[aria-current="page"]{
   border-color:var(--accent);
   box-shadow:0 0 0 2px rgba(29,78,216,.18),var(--shadow)}
 /* Superseded: muted visual */
-.record-item.is-superseded{opacity:.78}
-.record-item.is-superseded .rid{text-decoration:line-through;opacity:.55}
+.record-item.is-superseded .rtitle{color:var(--text-muted)}
+.record-item.is-superseded .rid{text-decoration:line-through}
 .record-btn{
   width:100%;text-align:left;padding:.65rem var(--pad-sm);
   background:none;border:none;cursor:pointer;
@@ -309,9 +309,9 @@ nav[aria-label="Views"] button[aria-current="page"]{
   overflow-x:auto;max-width:75ch;line-height:1.6}
 @media(prefers-color-scheme:dark){.record-content{background:rgba(15,17,23,.4)}}
 /* Record-content headings — smaller than the h1/h2 page headings */
-.record-content h3{font-size:1rem;margin:.7rem 0 .3rem;font-weight:600;color:var(--text)}
-.record-content h4{font-size:.95rem;margin:.55rem 0 .25rem;font-weight:600;color:var(--text)}
-.record-content h5,.record-content h6{font-size:.88rem;margin:.45rem 0 .2rem;font-weight:600;color:var(--text)}
+.record-content h3{font-size:1.2rem;margin:.7rem 0 .3rem;font-weight:600;color:var(--text)}
+.record-content h4{font-size:1.05rem;margin:.55rem 0 .25rem;font-weight:600;color:var(--text)}
+.record-content h5,.record-content h6{font-size:1rem;margin:.45rem 0 .2rem;font-weight:600;color:var(--text)}
 .record-content p{margin:.35rem 0}
 .record-content ul,.record-content ol{margin:.28rem 0;padding-left:1.5rem}
 .record-content li{margin:.12rem 0}
@@ -340,7 +340,16 @@ nav[aria-label="Views"] button[aria-current="page"]{
   font-size:.78rem;font-weight:600;color:var(--text-muted);
   margin-bottom:.4rem;font-style:italic}
 .lineage-wrap{overflow-x:auto;max-width:100%;margin-bottom:.6rem}
-.lineage-wrap svg{display:block}
+.lineage-wrap svg,.chain-svg-wrap svg{display:block;max-width:100%;height:auto}
+.lineage-axis{font-size:.78rem;color:var(--text-muted);margin:.2rem 0 .4rem;white-space:pre-wrap}
+/* The diagram palette is light; in dark mode it sits on a light canvas. */
+@media(prefers-color-scheme:dark){
+  .lineage-wrap,.chain-svg-wrap{background:#f8fafc;border-radius:var(--radius-sm);padding:.4rem}
+  .title-gradient{background:linear-gradient(90deg,#93c5fd 0%,#c4b5fd 50%,#67e8f9 100%);
+    -webkit-background-clip:text;background-clip:text;color:#93c5fd}
+  .kind-pill.active,nav[aria-label="Views"] button[aria-current="page"]{color:#0b1220}}
+.error-panel{margin:1rem 0;padding:.8rem 1rem;border:2px solid #b91c1c;border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--text);font-weight:600}
 .lineage-legend{
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius-sm);margin:.45rem 0;font-size:.78rem}
@@ -390,8 +399,10 @@ nav[aria-label="Views"] button[aria-current="page"]{
 /* ── Responsive — no horizontal scroll at 640 and 320 px ── */
 @media(max-width:40rem){
   :root{--pad:var(--pad-sm)}
-  .stat-cards{gap:.4rem}
-  .stat-card{min-width:68px;padding:.5rem .65rem}
+  .stat-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.3rem;padding:.6rem var(--pad)}
+  .stat-card{min-width:0;padding:.35rem .3rem;box-shadow:none}
+  .stat-num{font-size:1.05rem}
+  .stat-label{font-size:.6rem;letter-spacing:.02em;overflow-wrap:anywhere}
   .controls{flex-direction:column;align-items:stretch}
   .controls>*{max-width:100%;box-sizing:border-box}
   nav[aria-label="Views"]{flex-wrap:wrap;width:100%;border-radius:var(--radius-sm)}

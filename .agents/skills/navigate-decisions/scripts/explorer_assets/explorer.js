@@ -4,7 +4,12 @@ var dataEl=document.getElementById('nav-data');
 var D;
 try{D=JSON.parse(dataEl?dataEl.textContent:'');}
 catch(e){
-document.body.textContent='Integrity error: data island could not be parsed. '+String(e);
+var main=document.getElementById('app-main')||document.body;
+main.textContent='';
+var ep=document.createElement('div');ep.className='error-panel';ep.setAttribute('role','alert');
+ep.textContent='This export is damaged: its embedded data could not be read ('+String(e)+
+'). Run the export again to get a fresh copy.';
+main.appendChild(ep);
 return;}
 var records=D.records||[],rels=D.relationships||[],mode=D.mode||'full';
 var srcLinks=D.source_links||{},embAsserts=D.embedded_assertions||[];
@@ -68,7 +73,8 @@ if(!kindEl)return;
 kindEl.querySelectorAll('button.kind-pill').forEach(function(b){
 var bk=b.getAttribute('data-kind')||'';
 if(bk===kind){b.classList.add('active');}
-else{b.classList.remove('active');}});}
+else{b.classList.remove('active');}
+b.setAttribute('aria-pressed',bk===kind?'true':'false');});}
 // ── Routing ──────────────────────────────────────────────────────────────────
 function parseHash(){
 try{
@@ -77,7 +83,7 @@ if(!h){state.view='list';state.sel=null;return;}
 var i=h.indexOf('/');
 var v=i<0?h:h.slice(0,i);
 if(VALID_VIEWS.indexOf(v)<0){state.view='list';state.sel=null;return;}
-state.view=v;
+state.view=v;state.sel=null;
 if(i>=0){try{state.sel=decodeURIComponent(h.slice(i+1));}
 catch(ue){state.sel=null;}}
 }catch(ex){state.view='list';state.sel=null;}}
@@ -216,7 +222,8 @@ else{
 var ul=el('ul','ctx-list');
 ctx.forEach(function(r){
 var peer=r.from===rec.id?r.to:r.from;
-var label=peer+' [contextual · '+r.resolution_state+']';
+var dir=r.from===rec.id?'refers to':'referred to by';
+var label=dir+' '+peer+' [contextual · '+r.resolution_state+']';
 var li=el('li',null);
 var admitted=records.find(function(x){return x.id===peer;});
 if(admitted){

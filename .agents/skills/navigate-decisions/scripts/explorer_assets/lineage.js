@@ -261,7 +261,7 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
     sa(rect,'fill','#f8faff');sa(rect,'stroke','#c7d2fe');sa(rect,'stroke-width','1.5');
   }
   g.appendChild(rect);
-  var fs1=Math.round(10*scale),fs2=Math.round(9*scale);
+  var fs1=Math.max(9,Math.round(10*scale)),fs2=Math.max(8,Math.round(9*scale));
   var idt=svgEl('text');
   sa(idt,'x',x+6);sa(idt,'y',y+nh*0.42);
   sa(idt,'font-family','ui-monospace,monospace');sa(idt,'font-size',fs1+'');
@@ -290,7 +290,7 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   fr.style.display='none';g.appendChild(fr);
   g.addEventListener('click',function(){navigate_fn('graph',nid);});
   g.addEventListener('keydown',function(e){
-    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();navigate_fn('graph',nid);}
+    if((e.key==='Enter'||e.key===' ')&&!e.shiftKey){e.preventDefault();navigate_fn('graph',nid);}
     else if(e.key==='Enter'&&e.shiftKey){e.preventDefault();navigate_fn('detail',nid);}
   });
   g.addEventListener('focus',function(){fr.style.display='';});
@@ -373,6 +373,8 @@ function appendLegend(container){
 function appendTextEquiv(container,chainNodes,chainCheckedRels,allRels,allRecords,selectedId,sccList,n2s){
   var det=document.createElement('details');det.className='lineage-text';
   var s=document.createElement('summary');s.textContent='Lineage as text';det.appendChild(s);
+  // On narrow screens the scaled-down diagram is hard to read, so lead with the text.
+  if(window.matchMedia&&window.matchMedia('(max-width:40rem)').matches)det.open=true;
   var ul=document.createElement('ul');
   chainNodes.forEach(function(nid){
     var rec=allRecords.find(function(r){return r.id===nid;});
@@ -465,7 +467,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
 
   var svg=svgEl('svg');
   sa(svg,'role','group');sa(svg,'aria-labelledby',capId);
-  sa(svg,'width',svgW);sa(svg,'height',svgH);
+  sa(svg,'width',svgW);sa(svg,'height',svgH);sa(svg,'viewBox','0 0 '+svgW+' '+svgH);
   addDefs(svg,pfx);
 
   // Edge group (behind nodes)
@@ -582,6 +584,9 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
 
   // Scrollable wrapper
   var wrap=document.createElement('div');
+  var axis=document.createElement('p');axis.className='lineage-axis';
+  axis.textContent='← Older (superseded)  ·  arrows read “supersedes”  ·  Newer (superseding) →';
+  container.appendChild(axis);
   wrap.className='lineage-wrap';wrap.style.overflowX='auto';wrap.style.maxWidth='100%';
   wrap.appendChild(svg);container.appendChild(wrap);
 
@@ -629,7 +634,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
     empty.textContent='No checked supersession chains in this corpus.';
     container.appendChild(empty);return;
   }
-  var scale=0.62;
+  var scale=0.8;
   var nw=Math.round(NW*scale),nh=Math.round(NH*scale);
   var xg=Math.round(XG*scale),yg=Math.round(YG*scale);
   var grid=document.createElement('div');grid.className='chain-atlas';
@@ -637,19 +642,20 @@ function renderAtlas(container,allRels,allRecords,navigate){
   chains.forEach(function(cn){
     var card=document.createElement('div');card.className='chain-card';
     var lbl=document.createElement('div');lbl.className='chain-card-label';
-    lbl.textContent=cn.length+' records';card.appendChild(lbl);
     var cRels=allRels.filter(function(r){
       return r.trust_class==='checked'&&cn.indexOf(r.from)>=0&&cn.indexOf(r.to)>=0;
     });
     var pr2=positions(cn,cRels);
     var np2=pr2.nodePos,sl2=pr2.sccList,maxL2=pr2.maxL;
+    var newest=cn.filter(function(n){return np2[n]&&np2[n].col===maxL2;});
+    lbl.textContent=cn.length+' records · newest: '+newest.join(', ');card.appendChild(lbl);
     var maxR=0;
     cn.forEach(function(n){if(np2[n]&&np2[n].row>maxR)maxR=np2[n].row;});
     var sw=PX*2+maxL2*(nw+xg)+nw,sh=PY*2+(maxR+1)*(nh+yg)-yg;
     sw=Math.max(sw,120);sh=Math.max(sh,60);
     var pfx='at'+cn[0].replace(/\W/g,'').slice(0,8)+'-';
     var svg=svgEl('svg');
-    sa(svg,'width',sw);sa(svg,'height',sh);
+    sa(svg,'width',sw);sa(svg,'height',sh);sa(svg,'viewBox','0 0 '+sw+' '+sh);
     sa(svg,'role','group');sa(svg,'aria-label','Chain: '+cn.join(', '));
     addDefs(svg,pfx);
     var eg2=svgEl('g');sa(eg2,'aria-hidden','true');

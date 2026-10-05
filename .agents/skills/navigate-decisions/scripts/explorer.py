@@ -574,6 +574,7 @@ def _build_html(
         "<head>\n"
         f'<meta http-equiv="Content-Security-Policy" content="{csp}">\n'
         '<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{title}</title>\n"
         f"<style>\n{css_content}</style>\n"
         "</head>\n"
@@ -596,9 +597,9 @@ def _build_html(
         '<div class="stat-cards" id="stat-cards"></div>\n'
         '<div class="controls">\n'
         '<div id="kind-filter" class="kind-pills" role="group" aria-label="Filter by kind">\n'
-        '<button class="kind-pill active" data-kind="">All</button>\n'
-        '<button class="kind-pill" data-kind="ADR">ADR</button>\n'
-        '<button class="kind-pill" data-kind="RFC">RFC</button>\n'
+        '<button class="kind-pill active" data-kind="" aria-pressed="true">All</button>\n'
+        '<button class="kind-pill" data-kind="ADR" aria-pressed="false">ADR</button>\n'
+        '<button class="kind-pill" data-kind="RFC" aria-pressed="false">RFC</button>\n'
         "</div>\n"
         '<label class="ctrl-label">Status '
         '<select id="status-filter">'
