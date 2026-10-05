@@ -338,14 +338,15 @@ def _validate_attestation_dict_checked(d: object) -> tuple[bool, str]:
     if mechanism.lower() in _SAME_PROCESS_MECHANISMS:
         return False, "denied-same-process-isolation-claim"
 
-    read_enf = d.get("read_enforcement")
-    if read_enf is not None and (
-        not isinstance(read_enf, str) or read_enf not in _VALID_READ_ENFORCEMENT
+    # Optional string fields: absent is allowed, but a present value (null
+    # included) must be a string the schema accepts.
+    if "read_enforcement" in d and (
+        not isinstance(d["read_enforcement"], str)
+        or d["read_enforcement"] not in _VALID_READ_ENFORCEMENT
     ):
         return False, "denied-unknown-authority-field"
-    trace_coverage = d.get("trace_coverage")
-    if trace_coverage is not None and (
-        not isinstance(trace_coverage, str) or not trace_coverage
+    if "trace_coverage" in d and (
+        not isinstance(d["trace_coverage"], str) or not d["trace_coverage"]
     ):
         return False, "denied-invalid-attestation-field"
     if not isinstance(d.get("limits"), dict):
@@ -741,7 +742,13 @@ def launch_untrusted(
 
     resolved_host = host if host is not None else _DEFAULT_HOST
     se = _load_sibling("_se_cont_launch", "_security_events.py")
-    event_operation_id = operation_id or se.make_operation_id()  # type: ignore[attr-defined]
+    event_operation_id = (
+        operation_id
+        if isinstance(operation_id, str) and operation_id
+        else se.make_operation_id()  # type: ignore[attr-defined]
+    )
+    # Refusals this function built and audited; only these may pass the guard.
+    audited_refusals: set[int] = set()
 
     def refuse(denial_code: str, message: str) -> ContainmentRefused:
         """Audit a containment refusal through the checked emitter, then return it."""
@@ -757,7 +764,9 @@ def launch_untrusted(
                 timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             ),
         )
-        return ContainmentRefused(denial_code, message)
+        refusal = ContainmentRefused(denial_code, message)
+        audited_refusals.add(id(refusal))
+        return refusal
 
     def check_before_launch() -> tuple[str, ...]:
         """Run every pre-launch check; return the grant roots to confine cwd to."""
@@ -816,8 +825,15 @@ def launch_untrusted(
     # refusal, never an unaudited escape.
     try:
         cwd_roots = check_before_launch()
-    except ContainmentRefused:
-        raise
+    except ContainmentRefused as exc:
+        if id(exc) in audited_refusals:
+            raise
+        # A refusal raised by host or issuer code was never audited and may
+        # carry a code outside the stable set: audit it under a stable code.
+        raise refuse(
+            "denied-containment-check-failed",
+            "a containment pre-launch check failed; refusing untrusted launch",
+        ) from None
     except Exception:  # noqa: BLE001 — any pre-launch failure refuses, audited
         raise refuse(
             "denied-containment-check-failed",

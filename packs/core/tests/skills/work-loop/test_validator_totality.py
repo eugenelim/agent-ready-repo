@@ -239,3 +239,62 @@ def test_safe_launch_never_stores_a_malformed_correlation(
         )
     assert events, value
     _assert_schema_valid_events(events, value)
+
+
+@pytest.mark.parametrize("raiser", ["host", "issuer"])
+def test_untrusted_launch_audits_a_refusal_raised_by_host_or_issuer(
+    cn: ModuleType, sc: ModuleType, raiser: str
+) -> None:
+    """A ContainmentRefused from host or issuer code is re-audited under a stable code."""
+
+    class RefusingHost:
+        def get_attestation(self, spec_dict: dict, grant: object) -> object:
+            raise cn.ContainmentRefused("host-made-up-code", "host refused")
+
+    class RefusingIssuer:
+        def verify_grant(self, grant: object) -> bool:
+            raise cn.ContainmentRefused("issuer-made-up-code", "issuer refused")
+
+    real_issuer = sc.CapabilityIssuer()
+    grant = real_issuer.issue_root_grant(
+        roots=["/work"], operations=["read"], trust_class="untrusted",
+        writes_allowed_roots=[], control_denies=[],
+    )
+    events: list = []
+    with pytest.raises(cn.ContainmentRefused) as exc_info:
+        cn.launch_untrusted(
+            {}, grant,
+            host=RefusingHost() if raiser == "host" else _Host(_attestation()),
+            issuer=RefusingIssuer() if raiser == "issuer" else None,
+            audit_sink=events.append,
+        )
+    assert exc_info.value.denial_code in cn.ATTESTATION_DENIAL_CODES
+    assert [e.outcome for e in events] == ["denied"], events
+    _assert_schema_valid_events(events, raiser)
+
+
+@pytest.mark.parametrize("value", ODD_VALUES)
+def test_untrusted_launch_never_stores_a_malformed_operation_id(
+    cn: ModuleType, sc: ModuleType, value: object
+) -> None:
+    """Odd caller operation IDs never reach a stored event at the untrusted boundary."""
+    real_issuer = sc.CapabilityIssuer()
+    grant = real_issuer.issue_root_grant(
+        roots=["/work"], operations=["read"], trust_class="untrusted",
+        writes_allowed_roots=[], control_denies=[],
+    )
+    events: list = []
+    with pytest.raises(cn.ContainmentRefused):
+        cn.launch_untrusted({}, grant, host=_Host(None), audit_sink=events.append,
+                            operation_id=value)
+    assert events, value
+    _assert_schema_valid_events(events, value)
+
+
+@pytest.mark.parametrize("field", ["read_enforcement", "trace_coverage"])
+def test_present_but_null_optional_string_is_refused(cn: ModuleType, field: str) -> None:
+    """A present-but-null optional string field fails validation, as the schema requires."""
+    record = _attestation()
+    record[field] = None
+    ok, _ = cn.validate_attestation_dict(record)
+    assert ok is False

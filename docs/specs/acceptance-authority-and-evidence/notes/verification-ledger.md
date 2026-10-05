@@ -309,3 +309,14 @@ stays valid JSON. A present-but-null `network`, `children`, `max_bytes`, or
 `timeout_s` is now refused, so every attestation field really is type-checked.
 `test_validator_totality.py` adds raising hosts and issuers and schema checks
 on every stored event. Its new cases fail against the pre-fix code.
+
+## Security review stop rule (owner decision, 2026-10-04)
+
+Security review rounds 3 to 6 each found narrow audit-hygiene edges at the launch
+boundaries: odd caller-supplied values that could leave a refusal unaudited or
+store a malformed event. In every case the launch already failed closed, and
+the untrusted-launch boundary has no production caller yet. After the eighth
+override, which fixes round 6, the owner set a stop rule. One final security
+round runs. Any finding it raises in this audit-hygiene class at Concern or
+below goes to a recorded follow-up backlog item, not another override. A
+Blocker, or a finding outside this class, still stops the loop as usual.
