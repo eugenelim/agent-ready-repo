@@ -833,6 +833,7 @@ EXPECTED_SCRIPT_STEPS = [
     ".claude/skills/new-adr/scripts/index-records.py",
     "packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py",
     ".claude/skills/new-adr/scripts/lint-adr-shape.py",
+    "packs/governance-extras/tests/skills/navigate-decisions",
     ".claude/skills/new-rfc/scripts/index-records.py",
     ".claude/skills/new-rfc/scripts/next-ordinal.py",
     "packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py",
