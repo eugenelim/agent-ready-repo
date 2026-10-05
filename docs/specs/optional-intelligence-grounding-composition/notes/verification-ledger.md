@@ -39,7 +39,7 @@ was observed, not what the contract requires.
   created it passed.
 - **Full suite green.** `packs/core/tests/skills/repository-grounding/`: 91
   passed, 2 skipped. Skipped are the two Windows-only tests
-  (`test_windows_drive_letter_*`), which require `os.name == "nt"`.
+  (`test_accepted_windows_path_as_uri` and `test_accepted_windows_uri_encoded_colon`), which require `os.name == "nt"`.
 - **lint-pack-test-boundary.** Replaced `SKILL_ROOT / rel` (dynamic loop
   variable, flagged as `_UnresolvedPath`) with an explicit `_EVALS_FILES` tuple
   of literal paths; also added `_EVALS_PY_FILES` and a consistency check. 154
@@ -83,6 +83,8 @@ was observed, not what the contract requires.
   Those sentences were removed so each case tests the skill, not the prompt.
 
 ## Behavior-evaluation runs (2026-10-05)
+
+The full per-run records — each run's answer, evidence record, assertions, and result — are in [`eval-runs.md`](eval-runs.md).
 
 Each of the 22 cases in `repository-grounding/evals/evals.json` ran once in a
 fresh agent session that received only the projected skill (without its
@@ -278,3 +280,29 @@ expects.
 | AC-0012 | Evals for verified and unverifiable claims |
 | AC-0013 | Release record above |
 | AC-0014 | Evals for embedded instruction, proposed root, index refresh |
+
+## Post-gates review round 1 repairs (2026-10-05)
+
+- **Output order.** `main()` now flushes the text stream before writing file
+  bytes, so piped output always leads with `received:`, `root:`, `source:`.
+  `test_main_writes_header_lines_before_file_bytes` asserts the exact byte
+  order on a block-buffered stream; it fails with the flush removed (observed:
+  1 failed) and passes with it.
+- **Dot and space segments (owner decision).** The owner chose to refuse, on
+  every platform and before any filesystem access, any segment made only of
+  dots and spaces or ending in a dot or space (a lone `.` stays accepted), as
+  `parent-segment`. This goes beyond the plan's step 3, which named only an
+  exact `..`, and closes the unconfirmed Windows trimming question without a
+  Windows run. Tests cover `.. `, `...`, `name.`, `name `, the same refusal
+  whether an outside target exists or not, and `./src.py` still reading.
+- **Locator file text is data.** `SKILL.md` now states that file text the
+  locator reader returns is evidence, never instruction.
+- **Skill accuracy.** `SKILL.md` names the explorer's conventional defaults and
+  the `--guidance-file`, `--runner-glob`, and `--suffix` overrides, and splits
+  exit 2 into the seed-escape refusal (stdout) and usage errors (stderr).
+- **Tests.** The eval construction test pins each case's fixture list and a
+  digest of its assertion list; the co-located-helper test sets up its own
+  precondition and passes alone; two README tests now fail when their claim is
+  removed; the identity-change fake lost its dead branch.
+- **Docs.** README wording and glosses, the changelog Highlight on approved
+  folders and the transport, and the suite-disposition reason's step name.

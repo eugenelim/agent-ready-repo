@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import ast
 import base64
+import hashlib
 import importlib.util
+import io
 import json
 import os
 import sys
@@ -359,6 +361,10 @@ def test_refused_nul_byte(tmp_path: Path) -> None:
 @pytest.mark.parametrize("locator,label", [
     ("src/..:3", "path with .. and forward slash"),
     ("src\\..\\x", "path with .. and backslash"),
+    ("src/.. /x", "dot-dot-space segment Windows could trim to .."),
+    ("src/.../x", "dots-only segment"),
+    ("src/name./x", "segment ending in a dot"),
+    ("src/name /x", "segment ending in a space"),
 ])
 def test_refused_parent_segment_in_path(tmp_path: Path, locator: str, label: str) -> None:
     """A path containing a .. segment (with / or \\ separators) is refused."""
@@ -573,19 +579,15 @@ def test_refused_identity_change(tmp_path: Path) -> None:
     assert fs is not None, "file_safety module must be loaded after a read call"
 
     original_fstat = os.fstat
-    call_count = [0]
 
     def fake_fstat(fd: int) -> os.stat_result:
+        """Report a different inode on every fstat, as a swapped file would."""
         real = original_fstat(fd)
-        call_count[0] += 1
-        if call_count[0] >= 1:
-            # Simulate a different inode to trigger identity-change detection
-            return os.stat_result((
-                real.st_mode, real.st_ino + 99999, real.st_dev, real.st_nlink,
-                real.st_uid, real.st_gid, real.st_size,
-                real.st_atime, real.st_mtime, real.st_ctime,
-            ))
-        return real  # pragma: no cover
+        return os.stat_result((
+            real.st_mode, real.st_ino + 99999, real.st_dev, real.st_nlink,
+            real.st_uid, real.st_gid, real.st_size,
+            real.st_atime, real.st_mtime, real.st_ctime,
+        ))
 
     original = fs.os.fstat
     fs.os.fstat = fake_fstat
@@ -593,7 +595,6 @@ def test_refused_identity_change(tmp_path: Path) -> None:
         result = reader.read_locator(repo, "target.py")
     finally:
         fs.os.fstat = original
-        call_count[0] = 0
 
     assert result.status == "refused"
     assert result.reason == "unsafe-file"
@@ -802,11 +803,36 @@ def test_main_read_prints_ascii_only_root_and_source(tmp_path: Path) -> None:
     assert all(ord(c) < 128 for c in src_val)
 
 
+def test_main_writes_header_lines_before_file_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On a block-buffered stdout the header lines still precede the file bytes."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.txt").write_bytes(b"hello\n")
+    raw = io.BytesIO()
+    stdout = io.TextIOWrapper(raw, encoding="utf-8", line_buffering=False)
+    monkeypatch.setattr(sys, "stdout", stdout)
+
+    code = reader.main(["--root", str(repo), "--locator-b64", _b64("a.txt")])
+    stdout.flush()
+
+    assert code == 0
+    expected_root = json.dumps(os.path.realpath(repo), ensure_ascii=True)
+    assert raw.getvalue() == (
+        b'received: "a.txt"\n'
+        + f"root: {expected_root}\n".encode("ascii")
+        + b'source: "a.txt"\n'
+        + b"hello\n"
+    )
+
+
 # ── Co-located file_safety copy ───────────────────────────────────────────────
 
 def test_reader_loads_colocated_file_safety() -> None:
     """The reader loads the co-located scripts/file_safety.py, not agentbundle's copy."""
-    _reader()  # ensure reader (and file_safety) is loaded
+    _reader()._load_file_safety()
     name = "packs_core_repository_grounding_file_safety"
     assert name in sys.modules, "file_safety was not registered in sys.modules"
     fs_path = Path(sys.modules[name].__file__)  # type: ignore[arg-type]
@@ -925,12 +951,125 @@ def test_evals_python_fixtures_parse() -> None:
             ) from exc
 
 
+# Each case's fixture list and a digest of its exact assertion list. Removing a
+# fixture, or dropping or rewording an assertion, changes one of these and fails
+# the pin below; an intended change re-pins here in the same commit.
+_PINNED_EVAL_CASES: dict[str, tuple[tuple[str, ...], str]] = {
+    "provider-fit-with-depth-cut": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/code-search-output-with-depth-cut.json', 'evals/files/repo-config-py.py',),
+        "d09c552a4561a2aa389615ed453f52b5acd625c13d6ce3a6cb601980e729143d",
+    ),
+    "no-provider-baseline": (
+        ('evals/files/repo-config-py.py',),
+        "d5fe2eb39fe78d78f8bc0a789aac24b3f5a284198aa30f31e151f718d287d5ba",
+    ),
+    "poor-fit-provider": (
+        ('evals/files/graph-tool-description.txt', 'evals/files/graph-tool-output.json', 'evals/files/repo-config-py.py',),
+        "c97af9387992558452a83fad65d8f68878d9cd7b972aa6ad2f7aaddd2afac5f6",
+    ),
+    "refused-provider": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/repo-config-py.py',),
+        "0d85adea2f82a585929fcac46da6f8de01dd0443e0e0cb1d7c2bb717c45e5e8f",
+    ),
+    "unavailable-provider": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/repo-config-py.py',),
+        "8758b4e783996f17ca035f47ffdbf74605970599548b9dbfc292d1ebe66202d0",
+    ),
+    "timed-out-provider": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/repo-config-py.py',),
+        "204d0b9b603df265fc6bd1cda029d9e0159069ac2419ee47498715a5e18a38c0",
+    ),
+    "malformed-provider-output": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/repo-config-py.py',),
+        "7140ee90eb2b59065fb270c79c842e2dc5ff72253049ff896056243d40607af9",
+    ),
+    "incomplete-provider-output": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/repo-config-py.py',),
+        "62f782477b03d627f7eb9aaedceb9cc0218d5ce21782ddf1a19cac5786472c83",
+    ),
+    "conflicting-provider-claim": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/conflicting-claim-tool-output.json', 'evals/files/repo-config-py.py',),
+        "d40ad2ae86e3f50914867bbc4f8639ee1cf8214980d491288329be978d5589be",
+    ),
+    "outside-root-locator": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/outside-root-locator-tool-output.json',),
+        "bf18bd89cbdb603ec4bd361a2195c5dc9d3a4f7fe33a19379784eac32270e444",
+    ),
+    "symbol-without-file-location": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/symbol-no-file-tool-output.json',),
+        "10741a485a8d4fb6654b7755fdcaf495e663621c322934200345876497ae0051",
+    ),
+    "pwned-payload-locator": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/pwned-payload-tool-output.json',),
+        "b223bf6dae6a16a706e1fe242a3cada0ffc9e3d8ad3c588c1d6ec14b7db19dac",
+    ),
+    "unexposed-config-provider-hint": (
+        ('evals/files/unexposed-config-hint.json', 'evals/files/repo-config-py.py',),
+        "d6a83fd2e01dcf66abebae8e231f5bc2f98a53a30c62346130b12905f8700643",
+    ),
+    "two-native-shapes-providers": (
+        ('evals/files/lsp-tool-description.txt', 'evals/files/lsp-tool-output.json', 'evals/files/graph-tool-description.txt', 'evals/files/graph-tool-output.json', 'evals/files/repo-config-py.py',),
+        "32a5f9bef527df75493e2e27a74167de5c0ba4bfac0624eef20d7eabe712e130",
+    ),
+    "minimized-disclosure-bounded-request": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/code-search-output-with-depth-cut.json', 'evals/files/repo-config-py.py',),
+        "bfa2884438842f2be2a84a0a25e66a02b3011241ea3f29c356f5861544e1d58c",
+    ),
+    "credential-in-provider-output": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/credential-tool-output.json', 'evals/files/repo-config-py.py',),
+        "a9095fe3bed49c4735aab4cb68f4f36b1b2268e1438670915726ec52005f8061",
+    ),
+    "broad-upload-offer": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/upload-offer-tool-output.json', 'evals/files/repo-config-py.py',),
+        "d8340ec32f9b10b4dca366df4b9752500aaf3ae8e6e1ee0c76b914fc94c74f8a",
+    ),
+    "verified-provider-claim": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/verified-claim-tool-output.json', 'evals/files/repo-config-py.py',),
+        "a7886747ef617b8d0fcba84495c63c745faaa612871aab0187d23af1fe98bfe5",
+    ),
+    "unverifiable-provider-claim": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/unverifiable-claim-tool-output.json', 'evals/files/repo-config-py.py',),
+        "ec21d5303dac3e1418164b62c41e2b94ff8091c7f237480d9010b8c94ee52be8",
+    ),
+    "embedded-instruction-in-output": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/embedded-instruction-tool-output.json', 'evals/files/repo-config-py.py',),
+        "22c974e153878d216ef2473d2d79dcc4c8688fd1edc952b5fee16d62d69e5181",
+    ),
+    "proposed-approved-root": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/proposed-root-tool-output.json',),
+        "d90bacc987ae07c566ec1738887561b5f1fb8596245d92f870fb619f47a75d62",
+    ),
+    "index-refresh-request": (
+        ('evals/files/code-search-tool-description.txt', 'evals/files/index-refresh-tool-output.json', 'evals/files/repo-config-py.py',),
+        "50ac70223685be6fe7a53476c15e49882aa1f0df4816273984dc31926f332677",
+    ),
+}
+
+
+def _assertions_digest(assertions: list[str]) -> str:
+    """Hash an assertion list exactly as the pin table records it."""
+    encoded = json.dumps(assertions, ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def test_evals_each_case_has_assertions() -> None:
     """Every eval case has at least one assertion."""
     evals = _evals_by_id()
     for eid, case in evals.items():
         assertions = case.get("assertions", [])
         assert len(assertions) >= 1, f"Eval {eid}: no assertions"
+
+
+def test_evals_cases_match_their_pinned_files_and_assertions() -> None:
+    """Each case keeps exactly its pinned fixtures and assertion text."""
+    evals = _evals_by_id()
+    assert set(evals) == set(_PINNED_EVAL_CASES)
+    for eid, (files, digest) in _PINNED_EVAL_CASES.items():
+        case = evals[eid]
+        assert tuple(case["files"]) == files, f"Eval {eid}: fixture list changed"
+        assert _assertions_digest(case["assertions"]) == digest, (
+            f"Eval {eid}: assertions removed or reworded"
+        )
 
 
 # ── Goal-based absence scans ─────────────────────────────────────────────────
@@ -972,3 +1111,25 @@ def test_ac0007_skill_md_has_no_normalized_provider_schema() -> None:
         assert pattern not in skill_text, (
             f"SKILL.md contains normalized schema pattern: {pattern!r}"
         )
+
+
+def test_dot_only_segment_refusal_does_not_depend_on_the_target(tmp_path: Path) -> None:
+    """A trimmed-dot escape gives the same refusal whether the target exists or not."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (tmp_path / "present.txt").write_text("x\n", encoding="utf-8")
+    present = reader.read_locator(repo, "src/.. /.. /present.txt")
+    absent = reader.read_locator(repo, "src/.. /.. /absent.txt")
+    assert (present.status, present.reason) == ("refused", "parent-segment")
+    assert (absent.status, absent.reason) == ("refused", "parent-segment")
+
+
+def test_lone_dot_segment_is_still_accepted(tmp_path: Path) -> None:
+    """A lone '.' segment never leaves its directory and stays accepted."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "src.py").write_text("y = 2\n", encoding="utf-8")
+    result = reader.read_locator(repo, "./src.py")
+    assert (result.status, result.data) == ("read", b"y = 2\n")

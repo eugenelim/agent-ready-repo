@@ -69,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - Core now has a `repository-grounding` skill that answers "what already governs these paths?" from the repository alone, and can add evidence from a code-intelligence tool your agent already has. Provider evidence is labelled, its limits are kept, a claim that conflicts with source never decides the answer, and with no tool installed the answer is the same.
-- A path or `file:` URI a provider returns is read only through a locator reader that keeps reads inside the repository, refuses links, hard links, oversized files, and shell metacharacter tricks, and reports why it refused.
+- A path or `file:` URI a provider returns is read only if the file sits inside the repository or a folder you approved. Symlinks, hard links, non-regular and oversized files are refused with a stated reason, and the locator text never reaches a command line raw, so shell metacharacters in it cannot run.
 
 ### Added
 

@@ -112,9 +112,19 @@ def _has_splitlines_char(text: str) -> bool:
 
 
 def _has_parent_segment(path_text: str) -> bool:
-    """Return True if path_text contains a '..' component using / or \\ as separators."""
-    normalized = path_text.replace("\\", "/")
-    return ".." in normalized.split("/")
+    """Return True if any segment could act as a parent step on some platform.
+
+    Both / and \\ separate segments. Besides an exact '..', a segment made only
+    of dots and spaces, or ending in a dot or a space, is refused: Windows can
+    trim trailing dots and spaces, so such a spelling might open as '..' or '.'.
+    A lone '.' stays accepted because it never leaves its directory.
+    """
+    for segment in path_text.replace("\\", "/").split("/"):
+        if segment == ".":
+            continue
+        if segment == ".." or segment.endswith((".", " ")):
+            return True
+    return False
 
 
 def _strip_line_suffix(text: str) -> str:
@@ -399,6 +409,9 @@ def main(argv: list[str] | None = None) -> int:
         assert result.data is not None
         print(f"root: {json.dumps(str(result.root), ensure_ascii=True)}")
         print(f"source: {json.dumps(result.path.as_posix(), ensure_ascii=True)}")
+        # The header lines must reach the byte stream before any file bytes,
+        # or piped output would lead with untrusted text.
+        sys.stdout.flush()
         sys.stdout.buffer.write(result.data)
         return 0
     print(f"refused: {result.reason}")

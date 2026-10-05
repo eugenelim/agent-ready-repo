@@ -69,7 +69,7 @@ def test_readme_states_baseline_needs_no_provider() -> None:
     say so explicitly so adopters know no extra install step is required.
     """
     section = _section()
-    assert "No provider" in section or "no provider" in section.lower(), (
+    assert "no provider" in section.lower(), (
         "packs/core/README.md § Repository grounding must state that the "
         "baseline works without a provider (no provider, index, language server, "
         "or optional pack is required)"
@@ -83,17 +83,13 @@ def test_readme_states_no_provider_index_or_optional_pack_required() -> None:
     an edit that softens the claim to 'usually not required' or drops the
     sentence fails this test.
     """
-    section = _section()
-    # The section must carry the substance that no provider is required.
-    # Check for the exact words that convey the no-requirement contract.
-    assert "required" in section, (
-        "packs/core/README.md § Repository grounding must use the word 'required' "
-        "when describing provider necessity"
-    )
-    # Must not say a provider IS required.
-    assert "provider is required" not in section.lower(), (
-        "packs/core/README.md § Repository grounding must not state that a "
-        "provider is required"
+    section = " ".join(_section().split())
+    assert (
+        "No provider, index, language server, or optional pack is required."
+        in section
+    ), (
+        "packs/core/README.md § Repository grounding must keep the exact "
+        "no-provider-required sentence"
     )
 
 
@@ -142,7 +138,8 @@ def test_readme_states_provider_output_is_data() -> None:
     skill's safety model.
     """
     section = _section()
-    assert "attributed data" in section or "data" in section, (
+    flat = " ".join(section.split())
+    assert "never as instruction or authority" in flat, (
         "packs/core/README.md § Repository grounding must state that provider "
         "output is treated as attributed data"
     )

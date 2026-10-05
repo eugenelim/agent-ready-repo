@@ -1210,8 +1210,9 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
             "the full suite directory; it reaches CI only through the dispatch-only "
-            "test-corpus.yml. The path-filtered build-check-windows.yml pull-request step "
-            "(`pytest loop-cohort CLI portability` job) also runs test_read_locator.py on a "
+            "test-corpus.yml. The path-filtered build-check-windows.yml step `pytest "
+            "repository-grounding locator reader (Windows placement)`, in the job "
+            "`AgentBundle compatibility (windows)`, also runs test_read_locator.py on a "
             "pull request, providing Windows placement and reparse-point coverage for that "
             "file."
         ),

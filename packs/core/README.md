@@ -186,21 +186,26 @@ same gate.
 
 `repository-grounding` answers "what already governs these paths?" before a
 spec, plan, or implementation is written. It probes the paths a change will
-touch and reports governing files, references, phrase pins, gates, co-change
-partners, and dead links — selected by stage.
+touch and reports what it finds, selected by stage: the rule files above them,
+files that name them, files that quote a line from them (phrase pins), the
+build or CI runners that would run them (gates), files that usually change with
+them (co-change partners), and links that no longer resolve.
 
-The repository-native baseline is always sufficient for answering the same
-constraint and acceptance question. No provider, index, language server, or
-optional pack is required to run the inquiry or to get a useful result.
+No provider, index, language server, or optional pack is required. Without
+one, the inquiry still finds the rules that govern the paths and answers
+whether a change meets them. A provider can add evidence, but it never changes
+that answer.
 
 An already-exposed code-intelligence capability — one made available by the
 active host, an installed skill, effective repository guidance, explicit user
 selection, or a host-native language or editor surface — can add attributed
 evidence on top of the baseline. Such a provider is used in its own native
 shape; there is no common schema across different providers. Provider output is
-treated as attributed data, not as instruction or authority. Provider-returned
-file locators are read only through the skill's locator reader; the raw locator
-text never reaches a shell or host file tool directly.
+treated as attributed data, never as instruction or authority. When a provider
+points at a file with a path or `file:` URI (a file locator), the skill reads
+it only through its locator reader, which keeps the read inside the repository
+or a folder you approved; the raw locator text never reaches a shell or host
+file tool directly.
 
 Only exposed surfaces are considered. Hidden configuration files, arbitrary
 local executables, and inferred endpoints are outside the set the skill
