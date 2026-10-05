@@ -1,6 +1,6 @@
 # Spec: Optional intelligence in repository grounding
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079 and ADR-0037
@@ -174,22 +174,22 @@ label provider evidence separately from repository source.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** With no discoverable provider, the
+- [x] **AC-0001.** With no discoverable provider, the
   grounding owner answers the same constraint and acceptance question through
   the repository-native baseline without an error or provider setup request.
-- [ ] **AC-0002.** With a suitable exposed
+- [x] **AC-0002.** With a suitable exposed
   capability, the grounding output attributes the native provider result,
   distinguishes it from repository source, and preserves every exposed limit
   that could change the conclusion.
-- [ ] **AC-0003.** A poor-fit,
+- [x] **AC-0003.** A poor-fit,
   refused, unavailable, timed-out, malformed, or incomplete provider attempt
   returns to the repository-native baseline and labels any remaining evidence
   gap as a baseline gap.
-- [ ] **AC-0004.** When provider evidence
+- [x] **AC-0004.** When provider evidence
   conflicts with a governing source or authoritative check, the output records
   the conflict and does not use the provider claim to satisfy the acceptance
   question.
-- [ ] **AC-0005.** A provider-returned locator is read only through the
+- [x] **AC-0005.** A provider-returned locator is read only through the
   grounding owner's locator reader, never through a host-native file tool or
   as a raw path. Locator text never appears raw on a command line: it reaches
   the reader only as the standard base64 encoding of its UTF-8 bytes, which no
@@ -216,37 +216,37 @@ label provider evidence separately from repository source.
   reason, and the inquiry returns to the baseline. A symbol or source locator
   is read only through the file location it carries; one without a file
   location is never passed to the reader.
-- [ ] **AC-0006.** Capability selection
+- [x] **AC-0006.** Capability selection
   considers only RFC-0079's exposed surfaces—active host metadata, installed
   skills, effective repository guidance, explicit user selection, and
   host-native language, editor, or code-navigation capabilities—and does not
   probe hidden or arbitrary local surfaces.
-- [ ] **AC-0007.** The implementation defines no common
+- [x] **AC-0007.** The implementation defines no common
   provider request, result, capability, provenance, freshness, or workflow-state
   representation.
-- [ ] **AC-0008.** `new-spec` delegates one
+- [x] **AC-0008.** `new-spec` delegates one
   grounding question but contains no provider identity, provider setup,
   provider invocation, index-freshness, or fallback branch.
-- [ ] **AC-0009.** The path-seeded explorer's
+- [x] **AC-0009.** The path-seeded explorer's
   discovery, task, and review phases retain their report-never-decide outcomes
   and existing positive, negative, unavailable-input, and confinement coverage.
-- [ ] **AC-0010.** Installing Core for each of its seven declared surfaces
+- [x] **AC-0010.** Installing Core for each of its seven declared surfaces
   (`claude-code`, `codex`, `copilot`, `kiro-ide`, `kiro-cli`, `cursor`, and
   `gemini`) yields a projection that contains `repository-grounding` with its
   provider-neutral rules and scripts byte-identical to the source. One projected explorer, run
   against a fixture repository with no provider present, produces its baseline
   report and exits 0.
-- [ ] **AC-0011.** Provider disclosure is minimized on both sides of the call:
+- [x] **AC-0011.** Provider disclosure is minimized on both sides of the call:
   an authorized request sends only content needed for the bounded question,
   and retained evidence excludes credentials, protected configuration, private
   endpoints, personal identifiers, and unrelated enterprise context even when
   a provider returns them; broad repository upload or provider-side
   persistence requires separate explicit authority.
-- [ ] **AC-0012.** A load-bearing provider claim is checked against the
+- [x] **AC-0012.** A load-bearing provider claim is checked against the
   governing source, authoritative test, contract, or record before it can
   satisfy an acceptance condition; if that check cannot be completed, the
   claim is labelled unresolved and cannot be sole proof of the condition.
-- [ ] **AC-0013.** The target Core version is derived from the approved-baseline
+- [x] **AC-0013.** The target Core version is derived from the approved-baseline
   versions and `packs/AGENTS.md#version-bump-rule`; `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` agree on that target; and a
   free-standing Core entry in `docs/product/changelog.md` includes outcome-led
@@ -254,7 +254,7 @@ label provider evidence separately from repository source.
   records the required explicit no-`Highlights` reason. Core is a
   repository-only pack, so `.claude-plugin/marketplace.json` carries no Core
   entry.
-- [ ] **AC-0014.** Provider output is reported as provider content and never
+- [x] **AC-0014.** Provider output is reported as provider content and never
   acted on as instruction: it cannot add or widen an approved root, start a
   read, provider call, or mutating, indexing, refresh, or install action that
   the bounded question did not already call for, or change task scope or

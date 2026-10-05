@@ -1,7 +1,7 @@
 # Plan: Optional intelligence in repository grounding
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/new-spec/scripts/explore-grounding.py`; `packs/core/tests/skills/new-spec/test_explore_grounding.py`; `packs/core/.apm/skills/project-knowledge/SKILL.md` and `packs/core/tests/skills/project-knowledge/` as precedent for a reusable Core inquiry owner and its construction tests; `packs/core/.apm/skills/close-work/scripts/file_safety.py` and `tests/roster/test_close_work_extraction_and_immediate_disposition.py` (`test_projected_file_safety_matches_the_agentbundle_canonical`) as precedent for a co-located confinement helper and its byte pin; `Makefile` `run-test-suite` list and `tools/lint-ci-parity.py` `SUITE_DISPOSITION` as the suite registration path; `packs/AGENTS.md#version-bump-rule`; `docs/architecture/loop-contract.md`; `docs/rfc/0079-codebase-context-pack.md`.
 
 > **Plan contract:** this is the implementation strategy. It may change

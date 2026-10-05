@@ -320,3 +320,17 @@ expects.
   you or the calling workflow approved; the parametrized refusal test's
   docstring states the rule its cases exercise.
 - Reader suite after the repair: 102 passed, 2 skipped.
+
+## Closeout (2026-10-05)
+
+- **Review.** Final post-gates round 3: `adversarial-reviewer`,
+  `quality-engineer`, and `experience-reviewer` clean; `security-reviewer`
+  clean with a scope footer adjudicated clean.
+- **Reusable learning.** No capture in this change. The run's process lessons
+  (adjudicator output-format slips, `--prepare-workspace` flattening fixture
+  paths) concern the work-loop and eval tooling, not this skill, and are left
+  for those owners.
+- **Workspace.** `workspace.toml` is unchanged: the owner keeps this spec in
+  the repository backlog, and moving its entry is left to closeout after merge.
+- **Windows.** The Windows-only reader cases run in the `build-check-windows.yml`
+  step on the pull request; no Windows result exists before it opens.
