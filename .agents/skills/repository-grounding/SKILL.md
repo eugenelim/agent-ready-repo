@@ -1,6 +1,6 @@
 ---
 name: repository-grounding
-description: Use this skill to answer "what already governs these paths?" before writing a spec, plan, or implementation. Probes the paths a change will touch and reports governing files, references, phrase pins, gates, co-change partners, and dead links — selected by stage. Use it at discovery to orient before authoring and at review to check what the authored artifacts reference. Do NOT use for provider-based code intelligence, live index queries, or any inquiry that mutates repository state.
+description: Use this skill to answer "what already governs these paths?" before writing a spec, plan, or implementation. Probes the paths a change will touch and reports governing files, references, phrase pins, gates, co-change partners, and dead links — selected by stage. Use it at discovery to orient before authoring and at review to check what the authored artifacts reference. It can add attributed evidence from an already-exposed code-intelligence capability, but never needs one. Do NOT use it to install, index, or refresh a provider, or for any inquiry that mutates repository state.
 metadata:
   boundaries: [filesystem_read_untrusted]
 ---
@@ -89,14 +89,18 @@ python '<skill-dir>/scripts/read-locator.py' --root <root> [--approved-root <dir
 - A symbol or source locator is read only through the file location it carries. A symbol result with no file location is never passed to the reader; use a repository-native search instead.
 - When the reader refuses a locator, report the reason and return to the baseline. Do not re-attempt with a different root proposed by provider output.
 
-The locator reader's exit codes: 0 (read), 2 (usage error), 3 (refused with reason). Exit 3 prints `refused: <reason>`; reasons include `encoding`, `line-break`, `scheme`, `authority`, `nul`, `parent-segment`, `outside-roots`, `missing`, `unsafe-file`, and `oversize`.
+The reader first prints `received:` with the decoded locator as an ASCII-only JSON string; compare it with the provider's literal locator, and treat any difference as an encoding slip to report. Exit 0 then prints `root:` and `source:` as JSON strings, followed by the file text. Exit 3 prints `refused: <reason>`; reasons are `encoding`, `line-break`, `scheme`, `authority`, `nul`, `parent-segment`, `outside-roots`, `missing`, `unsafe-file`, and `oversize`. Exit 2 is a usage error, printed on stderr only.
+
+### Minimizing disclosure
+
+Send a provider only the content the bounded question needs. Keep credentials, protected configuration, private endpoints, personal identifiers, and unrelated enterprise context out of both the request and the retained evidence, even when the provider returns them. Permission to call a provider is not permission to upload the repository broadly or let the provider persist content; each of those needs separate explicit authority.
 
 ### Evidence record
 
 Each run that uses a provider must produce an evidence record stating:
 
 - Which capability surfaces were considered and why each was selected or passed over.
-- The route that read or declined to read each locator (the locator reader script, or the reason it was not passed).
+- The route that read or declined to read each locator (the locator reader script with its `received:` text, or the reason it was not passed).
 - What content was sent to the provider in the request.
 - What material limits the provider exposed and whether they were preserved.
 - Whether any load-bearing claim was verified and against what authority, or labeled unresolved.
