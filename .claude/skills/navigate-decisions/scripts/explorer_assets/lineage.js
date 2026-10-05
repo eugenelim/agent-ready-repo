@@ -233,10 +233,14 @@ function edgeLabel(g,x1,y1,x2,y2,txt,fill){
     var tt=svgEl('title');tt.textContent=txt;t.appendChild(tt);
     txt=txt.slice(0,MAX_LABEL-1)+'…';
   }
-  sa(t,'x',x2+14);sa(t,'y',y2-4);
+  // A plate behind the text keeps crossing edges from running through it.
+  var plate=svgEl('rect');
+  sa(plate,'x',x2+11);sa(plate,'y',y2-6);sa(plate,'width',txt.length*6+6);sa(plate,'height',12);
+  sa(plate,'rx','3');sa(plate,'fill','#ffffff');sa(plate,'stroke',fill||'#4b5563');sa(plate,'stroke-width','0.75');
+  g.appendChild(plate);
+  sa(t,'x',x2+14);sa(t,'y',y2);sa(t,'dominant-baseline','middle');
   sa(t,'text-anchor','start');sa(t,'font-size','10');sa(t,'font-weight','600');
-  sa(t,'fill',fill||'#4b5563');sa(t,'stroke','#ffffff');sa(t,'stroke-width','3');
-  sa(t,'paint-order','stroke');sa(t,'class','edge-label');
+  sa(t,'fill',fill||'#4b5563');sa(t,'class','edge-label');
   t.appendChild(document.createTextNode(txt));g.appendChild(t);
 }
 
@@ -266,7 +270,7 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   sa(idt,'x',x+6);sa(idt,'y',y+nh*0.42);
   sa(idt,'font-family','ui-monospace,monospace');sa(idt,'font-size',fs1+'');
   sa(idt,'fill',isSel?'#fff':'#1d4ed8');
-  if(isOld)sa(idt,'text-decoration','line-through');
+  if(isOld==='full')sa(idt,'text-decoration','line-through');
   idt.textContent=nid;g.appendChild(idt);
   if(nh>28){
     var ttt=svgEl('text');
@@ -407,6 +411,11 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   var checkedRels=allRels.filter(function(r){return r.trust_class==='checked';});
   var cn=chainOf(selectedId,allRels);
 
+  if(!allRecords.some(function(r){return r.id===selectedId;})){
+    var miss=document.createElement('p');miss.className='empty-msg';
+    miss.textContent=selectedId+' is not in this export.';
+    container.appendChild(miss);return;
+  }
   if(cn.length<2){
     var note=document.createElement('p');note.className='graph-note';
     note.textContent=selectedId+' has no checked supersession lineage.';
@@ -471,6 +480,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   addDefs(svg,pfx);
 
   // Edge group (behind nodes)
+  var lg=svgEl('g');sa(lg,'aria-hidden','true');
   var eg=svgEl('g');sa(eg,'aria-hidden','true');
 
   // Draw checked edges within the chain
@@ -501,7 +511,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       drawEdge(eg,x1,y1,x2,y2,stroke,'2',null,'url(#'+pfx+'af)');
       if(isPartial){
         var sc2='in part · '+(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated');
-        edgeLabel(eg,x1,y1,x2,y2,sc2,'#1d4ed8');
+        edgeLabel(lg,x1,y1,x2,y2,sc2,'#1d4ed8');
       }
     }
   });
@@ -541,7 +551,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     edgeLabel(eg,ex1,ey1,sx,sy+NH/2,'asserted','#7c3aed');
   });
 
-  svg.appendChild(eg);
+  svg.appendChild(eg);svg.appendChild(lg);
 
   // Contextual edges (hidden by default, separate group)
   var ctxG=svgEl('g');sa(ctxG,'aria-hidden','true');ctxG.style.display='none';
@@ -575,7 +585,8 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var rec=allRecords.find(function(r){return r.id===nid;});
     var x=PX+p.col*(NW+XG),y=PY+p.row*(NH+YG);
     var isSel=nid===selectedId;
-    var isOld=rec&&rec.superseded_by&&rec.superseded_by.length>0;
+    var supB=(rec&&rec.superseded_by)||[];
+    var isOld=supB.some(function(s){return !s.partial;})?'full':supB.length?'part':'';
     var isCyc=sccList&&sccList[p.scc]&&sccList[p.scc].length>1;
     var g=drawNode(svg,nid,x,y,NW,NH,rec,isSel,isCyc,isOld,1,navigate);
     nodeGs.push(g);nodeMap[nid]=g;
@@ -651,7 +662,8 @@ function renderAtlas(container,allRels,allRecords,navigate){
     lbl.textContent=cn.length+' records · newest: '+newest.join(', ');card.appendChild(lbl);
     var maxR=0;
     cn.forEach(function(n){if(np2[n]&&np2[n].row>maxR)maxR=np2[n].row;});
-    var sw=PX*2+maxL2*(nw+xg)+nw,sh=PY*2+(maxR+1)*(nh+yg)-yg;
+    var hasCyc2=cn.some(function(n){return sl2&&np2[n]&&sl2[np2[n].scc]&&sl2[np2[n].scc].length>1;});
+    var sw=PX*2+maxL2*(nw+xg)+nw+(hasCyc2?xg:0),sh=PY*2+(maxR+1)*(nh+yg)-yg;
     sw=Math.max(sw,120);sh=Math.max(sh,60);
     var pfx='at'+cn[0].replace(/\W/g,'').slice(0,8)+'-';
     var svg=svgEl('svg');
@@ -662,7 +674,20 @@ function renderAtlas(container,allRels,allRecords,navigate){
     var ports2=edgePorts(cRels,np2,nh);
     cRels.forEach(function(r,ri){
       var fp=np2[r.from],tp=np2[r.to];if(!fp||!tp)return;
-      if(fp.scc===tp.scc)return; // cycle arcs omitted in atlas compact view
+      if(fp.scc===tp.scc){
+        // Cycle members share a layer: arc to the right and label it.
+        var cx=PX+fp.col*(nw+xg)+nw+3;
+        var cy1=PY+fp.row*(nh+yg)+nh/2,cy2=PY+tp.row*(nh+yg)+nh/2;
+        var ax=cx+Math.round(xg*0.6),ay=(cy1+cy2)/2;
+        var arc=svgEl('path');
+        sa(arc,'d','M '+cx+','+cy1+' Q '+ax+','+ay+' '+cx+','+cy2);
+        sa(arc,'fill','none');sa(arc,'stroke','#374151');sa(arc,'stroke-width','1.5');
+        sa(arc,'stroke-dasharray','6 3');sa(arc,'marker-end','url(#'+pfx+'af)');
+        eg2.appendChild(arc);
+        var cl=svgEl('text');sa(cl,'x',ax+3);sa(cl,'y',ay);sa(cl,'font-size','9');
+        sa(cl,'fill','#b45309');cl.textContent='cycle';eg2.appendChild(cl);
+        return;
+      }
       var x1=PX+fp.col*(nw+xg),y1=PY+fp.row*(nh+yg)+ports2[ri].y1;
       var x2=PX+tp.col*(nw+xg)+nw,y2=PY+tp.row*(nh+yg)+ports2[ri].y2;
       drawEdge(eg2,x1,y1,x2,y2,'#374151','1.5',null,'url(#'+pfx+'af)');

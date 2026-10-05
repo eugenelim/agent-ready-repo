@@ -22,8 +22,7 @@
   --s-deprecated-bg:#fee2e2;--s-deprecated-fg:#991b1b;
   --s-default-bg:#f3f4f6;--s-default-fg:#374151;
 }
-@media(prefers-color-scheme:dark){
-  :root{
+  :root[data-theme="dark"]{
     --bg:#0f1117;
     --surface:#1c1f2e;
     --border:#2d3148;
@@ -37,7 +36,7 @@
     --s-deprecated-bg:#450a0a;--s-deprecated-fg:#fca5a5;
     --s-default-bg:#1f2937;--s-default-fg:#d1d5db;
   }
-}
+
 /* ── Reset ── */
 *,*::before,*::after{box-sizing:border-box}
 html{font-size:100%}
@@ -80,6 +79,15 @@ button{min-height:24px;min-width:24px}
 .grad-mark{
   width:22px;height:22px;border-radius:5px;flex-shrink:0;
   background:linear-gradient(135deg,#1d4ed8,#7c3aed,#06b6d4)}
+.theme-toggle{
+  margin-left:auto;display:inline-flex;border:1.5px solid var(--border);
+  border-radius:999px;overflow:hidden}
+.theme-toggle button{
+  border:0;background:var(--surface);color:var(--text-muted);
+  font-size:.75rem;padding:.2rem .7rem;min-height:28px;min-width:44px;cursor:pointer}
+.theme-toggle button+button{border-left:1px solid var(--border)}
+.theme-toggle button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:700}
+:root[data-theme="dark"] .theme-toggle button[aria-pressed="true"]{color:#0b1220}
 .eyebrow{
   font-family:ui-monospace,"Cascadia Code","Source Code Pro",monospace;
   font-size:.68rem;font-weight:600;letter-spacing:.16em;
@@ -104,14 +112,14 @@ button{min-height:24px;min-width:24px}
   padding:.55rem .9rem;
   font-size:.83rem;color:#374151;font-style:italic;
   margin-bottom:.5rem}
-@media(prefers-color-scheme:dark){
-  .info-panel{background:#1a2040;border-color:#2d3a6e;color:#9ca3af}}
+  :root[data-theme="dark"] .info-panel{background:#1a2040;border-color:#2d3a6e;color:#9ca3af}
+
 .mode-notice{
   margin:.4rem 0;padding:.35rem .75rem;
   background:#fef9c3;border:1px solid #fde68a;
   border-radius:var(--radius-sm);font-size:.83rem;color:#713f12}
-@media(prefers-color-scheme:dark){
-  .mode-notice{background:#3b2200;border-color:#92400e;color:#fcd34d}}
+  :root[data-theme="dark"] .mode-notice{background:#3b2200;border-color:#92400e;color:#fcd34d}
+
 /* ── Stat cards ── */
 .stat-cards{
   display:flex;flex-wrap:wrap;gap:.65rem;
@@ -184,6 +192,14 @@ nav[aria-label="Views"] button[aria-current="page"]{
 /* Superseded: muted visual */
 .record-item.is-superseded .rtitle{color:var(--text-muted)}
 .record-item.is-superseded .rid{text-decoration:line-through}
+.record-item.is-superseded-part .rid{text-decoration:underline dashed;text-underline-offset:3px}
+.ctx-record{margin:.1rem 0 .5rem;color:var(--text-muted);font-size:.88rem}
+/* Links take the theme accent; the browser default blue is unreadable on dark. */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+a{color:var(--accent)}
+.supersede-banner a{color:#1e3a8a;font-weight:700}
+:root[data-theme="dark"] .supersede-banner a{color:#bfdbfe}
 .record-btn{
   width:100%;text-align:left;padding:.65rem var(--pad-sm);
   background:none;border:none;cursor:pointer;
@@ -227,10 +243,10 @@ nav[aria-label="Views"] button[aria-current="page"]{
   /* amber left accent — distinct from the evidence-rail (4 px solid/dashed/dotted/double) */
   border-left:3px solid #f59e0b;
   margin:0}
-@media(prefers-color-scheme:dark){
-  .supersede-banner{
+  :root[data-theme="dark"] .supersede-banner{
     color:#fcd34d;background:linear-gradient(90deg,#451a03,#3b1e00);
-    border-top-color:#92400e;border-left-color:#d97706}}
+    border-top-color:#92400e;border-left-color:#d97706}
+
 /* ── Empty / notices ── */
 .empty-msg{color:var(--text-muted);font-style:italic;padding:.8rem 0;font-size:.88rem}
 .bounded-notice{
@@ -307,7 +323,8 @@ nav[aria-label="Views"] button[aria-current="page"]{
   border:2px solid var(--border);border-radius:var(--radius-sm);
   padding:.9rem 1.1rem;background:rgba(244,245,249,.5);
   overflow-x:auto;max-width:75ch;line-height:1.6}
-@media(prefers-color-scheme:dark){.record-content{background:rgba(15,17,23,.4)}}
+:root[data-theme="dark"] .record-content{background:rgba(15,17,23,.4)}
+
 /* Record-content headings — smaller than the h1/h2 page headings */
 .record-content h3{font-size:1.2rem;margin:.7rem 0 .3rem;font-weight:600;color:var(--text)}
 .record-content h4{font-size:1.05rem;margin:.55rem 0 .25rem;font-weight:600;color:var(--text)}
@@ -332,6 +349,10 @@ nav[aria-label="Views"] button[aria-current="page"]{
 .record-content th,.record-content td{
   border:1px solid var(--border);padding:.28rem .45rem;text-align:left;vertical-align:top}
 .record-content th{background:rgba(229,231,235,.35);font-size:.78rem;font-weight:600}
+:root[data-theme="dark"] .record-content pre,
+:root[data-theme="dark"] .record-content code{background:rgba(255,255,255,.08)}
+:root[data-theme="dark"] .record-content pre code{background:none}
+:root[data-theme="dark"] .record-content th{background:rgba(255,255,255,.06)}
 .record-content hr{border:0;border-top:1px solid var(--border);margin:.65rem 0}
 .md-link-target{font-size:.83em;color:var(--text-muted)}
 .md-image-alt{font-style:italic;color:var(--text-muted)}
@@ -343,11 +364,11 @@ nav[aria-label="Views"] button[aria-current="page"]{
 .lineage-wrap svg,.chain-svg-wrap svg{display:block;max-width:100%;height:auto}
 .lineage-axis{font-size:.78rem;color:var(--text-muted);margin:.2rem 0 .4rem;white-space:pre-wrap}
 /* The diagram palette is light; in dark mode it sits on a light canvas. */
-@media(prefers-color-scheme:dark){
-  .lineage-wrap,.chain-svg-wrap{background:#f8fafc;border-radius:var(--radius-sm);padding:.4rem}
-  .title-gradient{background:linear-gradient(90deg,#93c5fd 0%,#c4b5fd 50%,#67e8f9 100%);
+  :root[data-theme="dark"] .lineage-wrap,:root[data-theme="dark"] .chain-svg-wrap{background:#f8fafc;border-radius:var(--radius-sm);padding:.4rem}
+  :root[data-theme="dark"] .title-gradient{background:linear-gradient(90deg,#93c5fd 0%,#c4b5fd 50%,#67e8f9 100%);
     -webkit-background-clip:text;background-clip:text;color:#93c5fd}
-  .kind-pill.active,nav[aria-label="Views"] button[aria-current="page"]{color:#0b1220}}
+  :root[data-theme="dark"] .kind-pill.active,:root[data-theme="dark"] nav[aria-label="Views"] button[aria-current="page"]{color:#0b1220}
+
 .error-panel{margin:1rem 0;padding:.8rem 1rem;border:2px solid #b91c1c;border-radius:var(--radius-sm);
   background:var(--surface);color:var(--text);font-weight:600}
 .lineage-legend{
@@ -399,10 +420,10 @@ nav[aria-label="Views"] button[aria-current="page"]{
 /* ── Responsive — no horizontal scroll at 640 and 320 px ── */
 @media(max-width:40rem){
   :root{--pad:var(--pad-sm)}
-  .stat-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.3rem;padding:.6rem var(--pad)}
+  .stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(4.6rem,1fr));gap:.3rem;padding:.6rem var(--pad)}
   .stat-card{min-width:0;padding:.35rem .3rem;box-shadow:none}
   .stat-num{font-size:1.05rem}
-  .stat-label{font-size:.6rem;letter-spacing:.02em;overflow-wrap:anywhere}
+  .stat-label{font-size:.6rem;letter-spacing:.02em}
   .controls{flex-direction:column;align-items:stretch}
   .controls>*{max-width:100%;box-sizing:border-box}
   nav[aria-label="Views"]{flex-wrap:wrap;width:100%;border-radius:var(--radius-sm)}

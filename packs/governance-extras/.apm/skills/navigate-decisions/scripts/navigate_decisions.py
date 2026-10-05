@@ -126,16 +126,19 @@ _TOKEN_RE = re.compile(r"\b((?:ADR|RFC)-[0-9]{4})\b")
 # D-ID: D followed by 1–4 decimal digits, no leading zero.
 _DID_RE = re.compile(r"^D([1-9][0-9]{0,3})$")
 
-# Bidi and non-printing controls to escape in display_value.
+# Bidi and non-printing controls to escape in display_value. The browser
+# runtime's UNSAFE_RE in explorer_assets/markdown.js mirrors this set.
 _UNSAFE_CHARS: frozenset[str] = frozenset(
-    "‪‫‬‭‮"  # LRE RLE PDF LRO RLO
-    "⁦⁧⁨⁩"         # LRI RLI FSI PDI
-    "​‌‍"               # ZWSP ZWNJ ZWJ
-    "﻿"                           # BOM
-    + "".join(chr(c) for c in range(0x09))   # NUL .. BS
-    + "".join(chr(c) for c in range(0x0b, 0x0d))   # VT FF (skip HT LF)
-    + "".join(chr(c) for c in range(0x0e, 0x20))   # SO .. US
-    + "\x7f"                           # DEL
+    "\u061c\u200e\u200f"                        # ALM LRM RLM
+    "\u202a\u202b\u202c\u202d\u202e"          # LRE RLE PDF LRO RLO
+    "\u2066\u2067\u2068\u2069"                # LRI RLI FSI PDI
+    "\u200b\u200c\u200d"                      # ZWSP ZWNJ ZWJ
+    "\u2060\u2061\u2062\u2063\u2064"          # WJ and invisible operators
+    "\ufeff"                                  # BOM
+    + "".join(chr(c) for c in range(0x09))  # NUL .. BS
+    + "".join(chr(c) for c in range(0x0B, 0x0D))  # VT FF (skip HT LF)
+    + "".join(chr(c) for c in range(0x0E, 0x20))  # SO .. US
+    + "".join(chr(c) for c in range(0x7F, 0xA0))  # DEL and C1 controls
 )
 
 # Bounds (spec § Corpus and query contract).

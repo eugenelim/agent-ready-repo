@@ -588,6 +588,11 @@ def _build_html(
         '<div class="eyebrow-row">\n'
         '<div class="grad-mark" aria-hidden="true"></div>\n'
         '<span class="eyebrow">DECISION CORPUS &middot; ADR &amp; RFC</span>\n'
+        '<div id="theme-toggle" class="theme-toggle" role="group" aria-label="Colour theme">\n'
+        '<button type="button" data-theme-choice="auto" aria-pressed="true">Auto</button>\n'
+        '<button type="button" data-theme-choice="light" aria-pressed="false">Light</button>\n'
+        '<button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>\n'
+        "</div>\n"
         "</div>\n"
         '<h1><span class="title-gradient">Decision Records</span> &mdash; Navigator</h1>\n'
         f'<p class="lede">{total} records &middot; read-only snapshot</p>\n'

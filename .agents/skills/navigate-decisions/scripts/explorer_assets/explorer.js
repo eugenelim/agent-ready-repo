@@ -1,5 +1,26 @@
 !function(){
 'use strict';
+// ── Colour theme: Auto follows the system; Light and Dark override it. ──────
+var THEME_KEY='decision-nav-theme';
+var darkMq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+function storedTheme(){
+try{var v=localStorage.getItem(THEME_KEY);return v==='light'||v==='dark'?v:'auto';}
+catch(se){return 'auto';}}
+function applyTheme(choice){
+var dark=choice==='dark'||(choice==='auto'&&!!(darkMq&&darkMq.matches));
+document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+document.querySelectorAll('[data-theme-choice]').forEach(function(b){
+b.setAttribute('aria-pressed',b.getAttribute('data-theme-choice')===choice?'true':'false');});}
+var themeChoice=storedTheme();
+applyTheme(themeChoice);
+if(darkMq&&darkMq.addEventListener)darkMq.addEventListener('change',function(){
+if(themeChoice==='auto')applyTheme('auto');});
+document.querySelectorAll('[data-theme-choice]').forEach(function(b){
+b.addEventListener('click',function(){
+themeChoice=b.getAttribute('data-theme-choice');
+try{if(themeChoice==='auto')localStorage.removeItem(THEME_KEY);
+else localStorage.setItem(THEME_KEY,themeChoice);}catch(se){}
+applyTheme(themeChoice);});});
 var dataEl=document.getElementById('nav-data');
 var D;
 try{D=JSON.parse(dataEl?dataEl.textContent:'');}
@@ -119,6 +140,7 @@ var d=document.getElementById('view-'+v);
 if(d)d.hidden=state.view!==v;});
 var c=document.getElementById('view-'+state.view);
 if(!c)return;c.textContent='';
+var eab=document.getElementById('expand-all-btn');if(eab)eab.textContent='Expand all';
 if(state.view==='list')renderList(c);
 else if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
@@ -156,13 +178,17 @@ state.q='';state.kind='';state.status='';
 if(searchEl)searchEl.value='';
 setKindPill('');
 if(statusEl)statusEl.value='';
-render();});
+render();focusViewHeading();});
 c.appendChild(rb);}
 updateLive(msg);return;}
 var ul=el('ul','record-list');
 fr.forEach(function(r){
-var isSuperseded=r.superseded_by&&r.superseded_by.length>0;
-var liCls='record-item'+(r.id===state.sel?' selected':'')+(isSuperseded?' is-superseded':'');
+// Strike-through is reserved for full supersession; a record superseded only
+// in part stays in force and gets the lighter "in part" treatment.
+var supAll=r.superseded_by||[];
+var supCls=supAll.some(function(s){return !s.partial;})?' is-superseded':
+supAll.length?' is-superseded-part':'';
+var liCls='record-item'+(r.id===state.sel?' selected':'')+supCls;
 var li=el('li',liCls);
 var b=el('button','record-btn');
 if(r.id===state.sel)b.setAttribute('aria-current','true');
@@ -209,9 +235,13 @@ var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
 var h2=el('h2',null,rec?'Guidance context: '+rec.id:'Guidance context');
 c.appendChild(h2);
 if(!rec){
-c.appendChild(el('p','empty-msg',
+c.appendChild(el('p','empty-msg',state.sel?
+state.sel+' is not in this export.':
 'Select a record from the corpus list, then switch to this view.'));
 updateLive('');return;}
+var ctxHead=el('p','ctx-record',(rec.display_title||rec.title)+' · '+lc(rec));
+c.appendChild(ctxHead);
+(rec.superseded_by||[]).forEach(function(s){c.appendChild(supBanner(s,true));});
 var ctx=rels.filter(function(r){
 return r.trust_class==='contextual'&&(r.from===rec.id||r.to===rec.id);});
 c.appendChild(el('h3',null,
@@ -381,10 +411,10 @@ if(expandAllBtn){
 expandAllBtn.addEventListener('click',function(){
 var viewEl=document.getElementById('view-'+state.view);if(!viewEl)return;
 var dets=viewEl.querySelectorAll('details');
-var anyOpen=false;
-for(var di=0;di<dets.length;di++){if(dets[di].open){anyOpen=true;break;}}
-for(var dj=0;dj<dets.length;dj++){dets[dj].open=!anyOpen;}
-expandAllBtn.textContent=anyOpen?'Expand all':'Collapse all';});}
+var allOpen=dets.length>0;
+for(var di=0;di<dets.length;di++){if(!dets[di].open){allOpen=false;break;}}
+for(var dj=0;dj<dets.length;dj++){dets[dj].open=!allOpen;}
+expandAllBtn.textContent=allOpen?'Expand all':'Collapse all';});}
 window.addEventListener('popstate',function(){parseHash();render();focusViewHeading();});
 var provPre=document.getElementById('prov-pre');
 if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);
