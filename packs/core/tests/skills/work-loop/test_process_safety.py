@@ -2020,3 +2020,86 @@ class TestRedactionOverlap:
         out = result.stdout_redacted
         assert b"live9secret" not in out and b"tokenvalue" not in out, out
         assert result.output_was_redacted
+
+
+class TestRedactionAtTheCapAndAtScale:
+    """Cut-off values leave no fragment, and redaction stays linear in output size."""
+
+    @staticmethod
+    def _bounded(ps: ModuleType, raw: bytes, sensitive: list[bytes], bound: int) -> bytes:
+        """Apply the launch's overflow handling: drop a cut-off tail, then redact to the bound."""
+        trimmed = ps._drop_sensitive_tail_prefix(raw, sensitive)
+        out, _ = ps._redact_bytes(trimmed, sensitive, bound)
+        return out
+
+    def test_cut_off_value_containing_a_short_value_leaves_no_fragment(
+        self, process_safety: ModuleType
+    ) -> None:
+        ps = process_safety
+        secret = b"sk1live9secret1tokenvalue" + b"x" * 25
+        raw = (secret + secret + b"f" * 30 + secret)[:150]
+        out = self._bounded(ps, raw, [b"1", secret], 100)
+        for fragment in (b"sk1", b"live9", b"secret", b"token"):
+            assert fragment not in out, out
+
+    def test_longest_partial_prefix_is_dropped(self, process_safety: ModuleType) -> None:
+        ps = process_safety
+        value = b"abcab" + b"Z" * 45
+        assert ps._drop_sensitive_tail_prefix(b"output abcab", [value]) == b"output "
+
+    def test_redaction_matches_a_brute_force_reference(self, process_safety: ModuleType) -> None:
+        import random
+
+        ps = process_safety
+        rng = random.Random(11)
+        for _ in range(3000):
+            values = [
+                bytes(rng.choice(b"ab1") for _ in range(rng.randint(1, 6)))
+                for _ in range(rng.randint(1, 4))
+            ]
+            data = bytes(rng.choice(b"ab1") for _ in range(rng.randint(0, 60)))
+            covered = [False] * len(data)
+            for value in values:
+                for i in range(len(data) - len(value) + 1):
+                    if data[i:i + len(value)] == value:
+                        covered[i:i + len(value)] = [True] * len(value)
+            expected = bytearray()
+            i = 0
+            while i < len(data):
+                if covered[i]:
+                    expected += b"[REDACTED]"
+                    while i < len(data) and covered[i]:
+                        i += 1
+                else:
+                    expected.append(data[i])
+                    i += 1
+            assert ps._redact_bytes(data, values)[0] == bytes(expected), (data, values)
+
+    def test_periodic_value_redacts_in_linear_time(self, process_safety: ModuleType) -> None:
+        import time
+
+        ps = process_safety
+        value = b"a" * (1024 * 1024)
+        started = time.monotonic()
+        out, redacted = ps._redact_bytes(value + value, [value, value])
+        assert redacted and out == b"[REDACTED]"
+        assert time.monotonic() - started < 5.0
+
+    def test_echoed_periodic_stdin_is_redacted_promptly(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        import time
+
+        ps = process_safety
+        _, sink = _recording_sink()
+        stdin = b"ab" * (256 * 1024)
+        spec = _spec(
+            str(tmp_path),
+            argv=["-c", "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())"],
+            stdin_mode="bounded-bytes",
+            output_bound_bytes=len(stdin),
+        )
+        started = time.monotonic()
+        result = _launch(ps, spec, audit_sink=sink, stdin_bytes=stdin)
+        assert result.stdout_redacted == b"[REDACTED]"
+        assert time.monotonic() - started < 20.0

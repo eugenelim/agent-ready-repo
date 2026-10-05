@@ -332,3 +332,17 @@ orders, plus a real launch. Against the pre-fix code, 5 of its 6 tests fail;
 the sixth is an order the old code already handled. The Nit, the effect
 broker's unchecked operation and grant IDs, falls inside the audit-hygiene
 class and goes to a follow-up backlog item under the stop rule.
+
+The focused redaction re-check, security round 8, upheld 2 Concerns in that
+change, both still in the redaction fix the owner approved. First, a value cut
+off at the hard cap could still surface as fragments, because truncation ran
+after redaction and the tail drop removed the shortest matching prefix. Second,
+the span search stepped one byte at a time, so a repeating value made redaction
+quadratic. The fix has three parts. When the capture overflowed, each raw
+stream's longest tail that is a strict prefix of any sensitive value is dropped
+before redaction. Redaction emits only raw bytes before the output bound.
+Overlapping occurrences of one value are covered as a single periodic run, so
+the search is linear, and duplicate values are removed. Against the committed
+code, the cut-off-value and longest-prefix tests fail. The old code takes 1.21 s
+on 40 KB of repeating input. The new code redacts 1 MiB inside the test's 5 s
+bound and passes 3,000 randomized cases against a brute-force reference.

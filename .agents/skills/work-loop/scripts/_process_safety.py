@@ -458,63 +458,104 @@ def _kill_process_tree(proc: subprocess.Popen) -> None:  # type: ignore[type-arg
 _REDACTED_MARKER: Final[bytes] = b"[REDACTED]"
 
 
-def _redact_bytes(data: bytes, sensitive: list[bytes]) -> tuple[bytes, bool]:
-    """Replace every occurrence of a sensitive value in *data* with ``[REDACTED]``.
+def _smallest_period(value: bytes) -> int:
+    """Return the smallest p with value[i] == value[i - p] for every i >= p."""
+    failure = [0] * len(value)
+    matched = 0
+    for i in range(1, len(value)):
+        while matched and value[i] != value[matched]:
+            matched = failure[matched - 1]
+        if value[i] == value[matched]:
+            matched += 1
+        failure[i] = matched
+    return len(value) - failure[-1]
 
-    Every occurrence of every value is located in the original bytes first,
-    and spans that overlap, nest, or touch are merged before any replacement.
-    Replacing values one at a time would let a short value split a longer one
-    that contains it, so the longer one would never match and most of it would
-    leak; working on spans makes the result independent of value order.
-    Skips empty byte sequences.  Returns ``(result, was_redacted)``.
+
+def _periodic_run_end(data: bytes, start: int, period: int) -> int:
+    """Return the first index at or after *start* where data stops repeating with *period*."""
+    end, size_limit, chunk = start, len(data), 1 << 16
+    while end < size_limit:
+        size = min(chunk, size_limit - end)
+        if data[end:end + size] == data[end - period:end - period + size]:
+            end += size
+        elif size == 1:
+            break
+        else:
+            chunk = max(1, size // 2)
+    return end
+
+
+def _occurrence_spans(data: bytes, value: bytes) -> list[tuple[int, int]]:
+    """Return spans covering every occurrence of *value*, in time linear in ``len(data)``.
+
+    Overlapping occurrences sit inside a run that repeats with the value's
+    period, so one span covers the whole run instead of one search per byte.
     """
+    length = len(value)
+    period = _smallest_period(value)
     spans: list[tuple[int, int]] = []
-    for val in sensitive:
-        if not val:
-            continue
-        start = data.find(val)
-        while start != -1:
-            spans.append((start, start + len(val)))
-            start = data.find(val, start + 1)
-    if not spans:
-        return data, False
+    start = data.find(value)
+    while start != -1:
+        run_end = _periodic_run_end(data, start + length, period)
+        last_start = start + ((run_end - start - length) // period) * period
+        spans.append((start, last_start + length))
+        start = data.find(value, last_start + 1)
+    return spans
+
+
+def _redact_bytes(
+    data: bytes, sensitive: list[bytes], raw_limit: int | None = None
+) -> tuple[bytes, bool]:
+    """Replace every sensitive value in *data*, emitting raw bytes only before *raw_limit*.
+
+    Every occurrence of every distinct value is located in the original bytes
+    first, and spans that overlap, nest, or touch are merged before any
+    replacement, so the result does not depend on value order or overlap.
+    Only raw bytes before *raw_limit* are emitted: a span starting before the
+    limit becomes one marker even if it runs past it, and nothing at or after
+    the limit is returned.  Returns ``(result, was_redacted)``.
+    """
+    limit = len(data) if raw_limit is None else min(raw_limit, len(data))
+    spans: list[tuple[int, int]] = []
+    for value in {v for v in sensitive if v}:
+        spans.extend(_occurrence_spans(data, value))
     spans.sort()
-    merged: list[list[int]] = [list(spans[0])]
-    for begin, end in spans[1:]:
-        if begin <= merged[-1][1]:
+    merged: list[list[int]] = []
+    for begin, end in spans:
+        if merged and begin <= merged[-1][1]:
             merged[-1][1] = max(merged[-1][1], end)
         else:
             merged.append([begin, end])
     parts: list[bytes] = []
     cursor = 0
+    was_redacted = False
     for begin, end in merged:
+        if begin >= limit:
+            break
         parts.append(data[cursor:begin])
         parts.append(_REDACTED_MARKER)
+        was_redacted = True
         cursor = end
-    parts.append(data[cursor:])
-    return b"".join(parts), True
+    if cursor < limit:
+        parts.append(data[cursor:limit])
+    return b"".join(parts), was_redacted
 
 
 def _drop_sensitive_tail_prefix(data: bytes, sensitive: list[bytes]) -> bytes:
-    """Drop any tail of *data* that is a non-empty strict prefix of a sensitive value.
+    """Drop the longest tail of *data* that is a strict prefix of any sensitive value.
 
-    After redaction, truncating the output stream might still leave a fragment
-    at the tail when the truncation point falls inside a sensitive value whose
-    length exceeds the gap between the capture hard-cap and the output bound.
-    Dropping such a tail is belt-and-suspenders insurance: the hard-cap
-    calculation already ensures the full secret was available for redaction, but
-    this pass catches any edge where the redacted stream's length shift moves a
-    prefix back into view.
+    A capture stopped by the hard cap can end part-way through a value; that
+    partial value would never match whole, and a shorter value inside it could
+    still split it.  Dropping the longest such tail before redaction leaves no
+    fragment behind.
     """
-    for val in sensitive:
-        if not val:
-            continue
-        # Check every strict prefix of this sensitive value (length 1..len-1).
-        for prefix_len in range(1, len(val)):
-            prefix = val[:prefix_len]
-            if data.endswith(prefix):
-                return data[:-prefix_len]
-    return data
+    longest = 0
+    for value in {v for v in sensitive if v}:
+        for prefix_len in range(min(len(value) - 1, len(data)), longest, -1):
+            if data.endswith(value[:prefix_len]):
+                longest = prefix_len
+                break
+    return data[:-longest] if longest else data
 
 
 def _collect_sensitive(
@@ -1206,19 +1247,26 @@ def _launch_safe_process_unguarded(
                 "still running; all children killed, no output returned",
             )
 
-        # Redact the FULL captured stream BEFORE any truncation.
-        # This prevents a sensitive value that straddles the output bound from
-        # surviving as an unredacted prefix in the returned bytes.
-        stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw)
-        stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw)
+        # A capture stopped by the hard cap may end inside a sensitive value:
+        # drop that partial tail first, so it can never surface as fragments.
+        if overflowed and sensitive_raw:
+            raw_stdout = _drop_sensitive_tail_prefix(raw_stdout, sensitive_raw)
+            raw_stderr = _drop_sensitive_tail_prefix(raw_stderr, sensitive_raw)
+
+        # Redact the full captured stream, emitting only raw bytes before the
+        # bound.  The hard cap captures every value that starts before the
+        # bound, so each is replaced whole; nothing after the bound is returned.
+        stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw, bound)
+        stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw, bound)
         was_redacted = redacted1 or redacted2
 
         # Bound combined redacted stdout + stderr.
         # ``overflowed`` means the reader stopped before EOF (more output existed),
         # so the output is always considered truncated in that case.
-        truncated: bool = overflowed
+        truncated: bool = (
+            overflowed or len(raw_stdout) > bound or len(raw_stderr) > bound
+        )
         if bound == 0:
-            truncated = truncated or bool(stdout_red or stderr_red)
             stdout_red = b""
             stderr_red = b""
         elif len(stdout_red) + len(stderr_red) > bound:
@@ -1227,13 +1275,6 @@ def _launch_safe_process_unguarded(
             stdout_red = stdout_red[:out_take]
             stderr_red = stderr_red[:err_take]
             truncated = True
-
-        # Belt-and-suspenders: drop any tail that is a strict prefix of a sensitive
-        # value.  Redaction already handled the in-band case; this catches any edge
-        # where the redacted stream's length shift moves a fragment into view.
-        if sensitive_raw and truncated:
-            stdout_red = _drop_sensitive_tail_prefix(stdout_red, sensitive_raw)
-            stderr_red = _drop_sensitive_tail_prefix(stderr_red, sensitive_raw)
 
         # Signal the process group while the unreaped leader still reserves its
         # ID, so no background child survives and the signal cannot reach an
