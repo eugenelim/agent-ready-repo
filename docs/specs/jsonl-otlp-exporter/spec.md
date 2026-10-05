@@ -1,6 +1,6 @@
 # Spec: jsonl-otlp-exporter
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
@@ -67,9 +67,9 @@ reaches every backend that has a Collector in front of it.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| User-facing promise | Applicable — a published package's public contract | `packages/jsonl-otlp-exporter/README-pypi.md` | spec owner | Capability, payload, destination and profile interface documented | Renders on PyPI; AC-0030 green |
+| User-facing promise | Applicable — a published package's public contract | `packages/jsonl-otlp-exporter/README-pypi.md` | spec owner | Capability, payload, destination and profile interface documented | AC-0030 green. Rendering on PyPI is owned by [`jsonl-otlp-exporter-first-publish`](../jsonl-otlp-exporter-first-publish/spec.md), which cannot be observed before publication |
 | Interface compatibility | Applicable — the profile interface is a published extension point | `packages/jsonl-otlp-exporter/docs/profiles.md` | spec owner | Interface and its compatibility status stated | AC-0031 and AC-0032 green |
-| Release history | Applicable — a published distribution | `packages/jsonl-otlp-exporter/CHANGELOG.md` | release workflow | Version bump with entry; tag matches `pyproject` | Tag published |
+| Release history | Applicable — a published distribution | `packages/jsonl-otlp-exporter/CHANGELOG.md` | [`jsonl-otlp-exporter-first-publish`](../jsonl-otlp-exporter-first-publish/spec.md) | Version entry written; AC-0046 pins tag-to-`pyproject` agreement in the workflow | The dated release heading and the published tag are that spec's AC-0001 and AC-0002; no criterion here requires a publication |
 | Maintainer procedure | Applicable — a distribution with its own release path | `packages/jsonl-otlp-exporter/AGENTS.md` | spec owner | Test command and release coupling | File accurate |
 | Decision rationale | Not applicable — ADR-0115 already records why a separate distribution exists; this spec adds no reversal | — | — | — | — |
 
@@ -147,9 +147,9 @@ assurance gap this plan carries into EXECUTE.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** With no endpoint resolvable from any source, the command opens
+- [x] **AC-0001.** With no endpoint resolvable from any source, the command opens
   no socket.
-- [ ] **AC-0033.** With no endpoint resolvable from any source, the command exits
+- [x] **AC-0033.** With no endpoint resolvable from any source, the command exits
   0, unless an argument it was given was itself refused. A refused `--config`,
   `--user-config`, `--profile` or `--from-cursor` exits 1 whether or not an
   endpoint resolves. `--user-config` joined the list on 2026-09-16 with the flag
@@ -163,10 +163,10 @@ assurance gap this plan carries into EXECUTE.
   carve-out this criterion contradicts `cli.py`'s ordering, which shipped in
   #1293. Off-by-default is unaffected — a refused argument sends nothing, and
   this criterion was only ever about the exit status.
-- [ ] **AC-0060.** With no endpoint resolvable from any source, the command writes
+- [x] **AC-0060.** With no endpoint resolvable from any source, the command writes
   a line to stderr naming that no endpoint is configured.
 
-- [ ] **AC-0002.** The endpoint used is the first present of, in order:
+- [x] **AC-0002.** The endpoint used is the first present of, in order:
   `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`,
   `[telemetry].endpoint` in the TOML file given by `--config`, then
   `[telemetry].endpoint` in the TOML file given by `--user-config`. The fourth
@@ -174,32 +174,32 @@ assurance gap this plan carries into EXECUTE.
   caller holding two configuration scopes previously had to read both itself to
   decide which single file to pass, and reading them is what made every caller
   of this command depend on a package to invoke it.
-- [ ] **AC-0003.** A value resolved from `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` is
+- [x] **AC-0003.** A value resolved from `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` is
   requested unmodified.
-- [ ] **AC-0004.** A value resolved from any other source is requested with
+- [x] **AC-0004.** A value resolved from any other source is requested with
   `/v1/logs` appended.
-- [ ] **AC-0005.** For the recorded three-line fixture under the reference
+- [x] **AC-0005.** For the recorded three-line fixture under the reference
   profile, the emitted request body equals the committed golden byte for byte.
-- [ ] **AC-0006.** A conforming OTLP/HTTP receiver, configured to record what it
+- [x] **AC-0006.** A conforming OTLP/HTTP receiver, configured to record what it
   accepts, records three log records in which the field the active profile names
   as its timestamp appears as `timeUnixNano`, the field it names as severity
   appears as `severityNumber`, and each field the profile's allowlist admits
   appears as a log-record attribute.
 
-- [ ] **AC-0034.** A field present in the input, absent from the active profile's
+- [x] **AC-0034.** A field present in the input, absent from the active profile's
   `allowlist`, and not named by its `timestamp_field`, `severity_field` or
   `identity` appears nowhere in the emitted request body.
-- [ ] **AC-0053.** A field named by the profile's `timestamp_field`,
+- [x] **AC-0053.** A field named by the profile's `timestamp_field`,
   `severity_field` or `identity` is emitted at its declared destination whether
   or not the `allowlist` also names it, and is not additionally emitted as a
   duplicate attribute.
 
-- [ ] **AC-0035.** A profile declares exactly these six keys and no others:
+- [x] **AC-0035.** A profile declares exactly these six keys and no others:
   `timestamp_field`, `timestamp_format`, `severity_field`, `severity_map`,
   `identity`, `allowlist`. A profile missing any of them, or carrying any
   additional key, is refused before any request is sent and exits 1.
 
-- [ ] **AC-0007.** Every emitted log record carries a `service.name` resource
+- [x] **AC-0007.** Every emitted log record carries a `service.name` resource
   attribute taking the first present of, in order: `--service-name`,
   `[telemetry].service_name` from `--config`, `[telemetry].service_name` from
   `--user-config`, then the stem of the `--profile` filename. The two file
@@ -208,34 +208,34 @@ assurance gap this plan carries into EXECUTE.
   overridable. The final default is the filename and not a profile-declared name
   because AC-0035 closes a profile at six keys and none of them is a name, so a
   name-valued default would be unsatisfiable by every conforming profile.
-- [ ] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
+- [x] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
   retry.
-- [ ] **AC-0036.** A response carrying a non-empty `partialSuccess` reports its
+- [x] **AC-0036.** A response carrying a non-empty `partialSuccess` reports its
   rejected-record count on stderr.
-- [ ] **AC-0054.** A response carrying a non-empty `partialSuccess` exits 1.
+- [x] **AC-0054.** A response carrying a non-empty `partialSuccess` exits 1.
 
-- [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, the next
+- [x] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, the next
   request is issued no earlier than `min(N, 30)` seconds after that response was
   received, measured on a monotonic clock, and no later than the run bound in
   AC-0055 permits. An absent, negative or unparseable value is treated as 0.
 
-- [ ] **AC-0010.** At most 3 send attempts are made per run, counted across all
+- [x] **AC-0010.** At most 3 send attempts are made per run, counted across all
   requests the run issues.
 
-- [ ] **AC-0011.** A single request carries at most 512 log records, counted from
+- [x] **AC-0011.** A single request carries at most 512 log records, counted from
   the parsed lines of the input file; record 513 begins the next request.
-- [ ] **AC-0012.** Send failure after the retry budget exits 1, and exits 0 when
+- [x] **AC-0012.** Send failure after the retry budget exits 1, and exits 0 when
   `--best-effort` is passed.
-- [ ] **AC-0013.** An unrecognised command-line flag exits 1, not 2.
-- [ ] **AC-0014.** The process status the command returns is one of exactly 0, 1
+- [x] **AC-0013.** An unrecognised command-line flag exits 1, not 2.
+- [x] **AC-0014.** The process status the command returns is one of exactly 0, 1
   or 130, for every invocation in the closed set of exit-producing states the
   `### Exit codes` table enumerates.
 
-- [ ] **AC-0015.** SIGINT exits 130.
-- [ ] **AC-0016.** A line that does not parse as JSON is skipped, and the
+- [x] **AC-0015.** SIGINT exits 130.
+- [x] **AC-0016.** A line that does not parse as JSON is skipped, and the
   remaining lines are still sent.
-- [ ] **AC-0038.** A skipped line is reported on stderr with its line number.
-- [ ] **AC-0039.** A run in which no line yields a valid record exits 1, unless
+- [x] **AC-0038.** A skipped line is reported on stderr with its line number.
+- [x] **AC-0039.** A run in which no line yields a valid record exits 1, unless
   it was given no mode flag and read no line because a resume cursor, honoured
   at a non-zero offset, was already at the end of its input; that one case exits 0 and its criterion lives
   with the resume contract. The carve-out is stated as an exception rather than
@@ -245,99 +245,99 @@ assurance gap this plan carries into EXECUTE.
   because this criterion's predicate is `emitted == 0`, which cannot tell an
   all-invalid input from an empty read; the two were nearly the same condition
   until a run could start part-way through the file.
-- [ ] **AC-0017.** The command opens the path given by `--input` with no-follow
+- [x] **AC-0017.** The command opens the path given by `--input` with no-follow
   semantics and sends nothing unless the opened descriptor is a regular file
   whose identity resolves inside the directory given by `--root`, which defaults
   to the working directory. Refusal is decided on the opened object, never on the
   pathname alone.
-- [ ] **AC-0018.** A line longer than 64 KiB measured to and excluding its
+- [x] **AC-0018.** A line longer than 64 KiB measured to and excluding its
   terminating newline is refused before it is decoded, and the remaining lines
   are still sent.
-- [ ] **AC-0019.** A request body is at most 8 MiB measured on the encoded bytes
+- [x] **AC-0019.** A request body is at most 8 MiB measured on the encoded bytes
   about to be sent, and a batch that would exceed it is split before sending.
   This is the bound that fires first: the 64 MiB OTLP protocol limit is never
   reached because no request is issued above 8 MiB.
 
-- [ ] **AC-0040.** A single request is abandoned 30 seconds after that request's
+- [x] **AC-0040.** A single request is abandoned 30 seconds after that request's
   destination resolution begins, measured on a monotonic clock and covering
   resolution, connection setup, write and read.
-- [ ] **AC-0055.** A run issues no request after 120 seconds from its first
+- [x] **AC-0055.** A run issues no request after 120 seconds from its first
   destination resolution, and abandons any request still in flight at that
   deadline, measured on a monotonic clock. Both bounds apply under
   `--best-effort`.
 
-- [ ] **AC-0041.** At most 1 MiB plus one byte of a response body is read; a body
+- [x] **AC-0041.** At most 1 MiB plus one byte of a response body is read; a body
   that reaches that length is refused without further reading and without
   decoding.
 
-- [ ] **AC-0020.** With no mode flag the command runs one-shot: it reads the file
+- [x] **AC-0020.** With no mode flag the command runs one-shot: it reads the file
   once, sends, and exits without waiting for further lines.
-- [ ] **AC-0021.** Under `--follow`, a line appended after start is sent without
+- [x] **AC-0021.** Under `--follow`, a line appended after start is sent without
   restarting the process.
-- [ ] **AC-0042.** `--for` accepts a duration as an integer number of seconds and
+- [x] **AC-0042.** `--for` accepts a duration as an integer number of seconds and
   ends the run that many seconds after the first read begins.
-- [ ] **AC-0022.** Under `--follow`, started against a file holding one valid
+- [x] **AC-0022.** Under `--follow`, started against a file holding one valid
   record and then subjected in turn to truncation to zero, replacement by a new
   inode, and a trailing line with no newline, the command sends that first
   record exactly once, sends no record for the conditions themselves, and exits
   0 when `--for` elapses.
 
-- [ ] **AC-0043.** Started against an absent `--input` path, the command sends
+- [x] **AC-0043.** Started against an absent `--input` path, the command sends
   nothing and exits 1.
-- [ ] **AC-0023.** Every emitted log record carries the attributes the active
+- [x] **AC-0023.** Every emitted log record carries the attributes the active
   profile declares as its record identity, which together identify a record for a
   consumer deduplicating at-least-once delivery.
-- [ ] **AC-0024.** An `https` endpoint is accepted at any host, and its
+- [x] **AC-0024.** An `https` endpoint is accepted at any host, and its
   certificate chain and hostname are verified against the system trust store.
-- [ ] **AC-0044.** An endpoint whose scheme is neither `https` nor `http` is
+- [x] **AC-0044.** An endpoint whose scheme is neither `https` nor `http` is
   refused before any request is sent and exits 1; those two are the complete
   accepted set.
-- [ ] **AC-0025.** An `http` endpoint is accepted only when every address its
+- [x] **AC-0025.** An `http` endpoint is accepted only when every address its
   host resolves to is a loopback address, and the request is issued to one of
   those verified addresses without re-resolving the host.
-- [ ] **AC-0026.** An `http` endpoint any of whose resolved addresses is not a
+- [x] **AC-0026.** An `http` endpoint any of whose resolved addresses is not a
   loopback address is refused before any request is sent and exits 1.
-- [ ] **AC-0045.** Any message naming an endpoint or a redirect target renders it
+- [x] **AC-0045.** Any message naming an endpoint or a redirect target renders it
   through one representation that omits user-info, query and fragment, and that
   contains no C0 or C1 control character.
 
-- [ ] **AC-0027.** A redirect response is not followed, and the run exits 1.
-- [ ] **AC-0028.** An endpoint whose netloc carries user-info is refused before
+- [x] **AC-0027.** A redirect response is not followed, and the run exits 1.
+- [x] **AC-0028.** An endpoint whose netloc carries user-info is refused before
   any request is sent and exits 1.
-- [ ] **AC-0029.** `--version` prints the installed distribution version.
-- [ ] **AC-0046.** A release whose git tag names a version differing from
+- [x] **AC-0029.** `--version` prints the installed distribution version.
+- [x] **AC-0046.** A release whose git tag names a version differing from
   `pyproject.toml`'s is refused by the release workflow.
-- [ ] **AC-0030.** `README-pypi.md` contains a level-2 heading `## What this
+- [x] **AC-0030.** `README-pypi.md` contains a level-2 heading `## What this
   sends`, and the section under it contains each of the literal strings
   `OTLP logs`, `--config`, and `sends nothing until an endpoint is configured`.
 
-- [ ] **AC-0031.** `docs/profiles.md` contains a fenced `toml` block that parses
+- [x] **AC-0031.** `docs/profiles.md` contains a fenced `toml` block that parses
   as a profile satisfying AC-0035, and names each of the six keys outside that
   block.
 
-- [ ] **AC-0032.** `README-pypi.md` contains the literal strings `semantic
+- [x] **AC-0032.** `README-pypi.md` contains the literal strings `semantic
   versioning` and `the profile format is provisional while the version is 0.x`.
 
 
-- [ ] **AC-0047.** The command imports no Python module as a profile and
+- [x] **AC-0047.** The command imports no Python module as a profile and
   evaluates no part of a profile; a profile is parsed as TOML and nothing else.
-- [ ] **AC-0048.** `--profile` selects a profile file, which is opened under the
+- [x] **AC-0048.** `--profile` selects a profile file, which is opened under the
   same discipline AC-0017 requires of `--input`: no-follow open, and the opened
   descriptor proven a regular file inside the resolved root.
-- [ ] **AC-0049.** A `timestamp_format` value other than `rfc3339`,
+- [x] **AC-0049.** A `timestamp_format` value other than `rfc3339`,
   `epoch-millis` or `epoch-seconds` is refused before any request is sent and
   exits 1.
-- [ ] **AC-0050.** A profile whose `timestamp_field` or `severity_field` is not a
+- [x] **AC-0050.** A profile whose `timestamp_field` or `severity_field` is not a
   string, whose `severity_map` has any non-integer value, or whose `identity` or
   `allowlist` is not a list of strings, is refused before any request is sent and
   exits 1.
 
-- [ ] **AC-0051.** A profile file larger than 64 KiB, or one that does not parse
+- [x] **AC-0051.** A profile file larger than 64 KiB, or one that does not parse
   as TOML, is refused before any request is sent and exits 1.
-- [ ] **AC-0052.** With no `--profile` given, the command sends nothing and exits
+- [x] **AC-0052.** With no `--profile` given, the command sends nothing and exits
   1; no profile is built in.
 
-- [ ] **AC-0056.** A configuration file supplied by `--config` or by
+- [x] **AC-0056.** A configuration file supplied by `--config` or by
   `--user-config` is refused, with nothing sent and exit 1, when its complete
   content exceeds 64 KiB; a file whose complete content is exactly 64 KiB is
   accepted and parsed. Refusal is decided on the file the reader actually
@@ -348,7 +348,7 @@ assurance gap this plan carries into EXECUTE.
   AC-0062, on 2026-09-16 and was missed here, and the sampled-size measure left
   a file grown between the sample and the read to have its truncated prefix
   parsed as though it were the whole file.
-- [ ] **AC-0077.** Configuration acquisition — opening and reading every
+- [x] **AC-0077.** Configuration acquisition — opening and reading every
   configuration file the command was given, whichever of `--config` and
   `--user-config` were supplied — is abandoned 5 seconds after that acquisition
   begins, measured on a monotonic clock, with nothing sent and exit 1 naming the
@@ -360,7 +360,7 @@ assurance gap this plan carries into EXECUTE.
   already been read, so neither bound's clock ever runs during this I/O. The
   bound fires on a configuration path whose open, whose descriptor proof, or
   whose read does not return.
-- [ ] **AC-0062.** A file given by `--config` or by `--user-config` is opened
+- [x] **AC-0062.** A file given by `--config` or by `--user-config` is opened
   no-follow and the opened descriptor is proven a regular file that is neither a
   reparse point nor multiply linked before any byte of it is parsed; a symbolic
   link, a FIFO, a device, a directory, a reparse point or a hard link at that
@@ -373,45 +373,45 @@ assurance gap this plan carries into EXECUTE.
   configuration file outside the root the normal case rather than the tolerated
   one, and both new rejections are `stat` results already available on the open
   descriptor.
-- [ ] **AC-0057.** The release workflow publishes through OIDC trusted
+- [x] **AC-0057.** The release workflow publishes through OIDC trusted
   publishing, with no long-lived credential present in the workflow.
-- [ ] **AC-0058.** Every third-party action the release workflow uses is pinned to
+- [x] **AC-0058.** Every third-party action the release workflow uses is pinned to
   a full-length commit SHA.
-- [ ] **AC-0059.** The release workflow installs the built wheel into a fresh
+- [x] **AC-0059.** The release workflow installs the built wheel into a fresh
   virtual environment and runs the console script before publishing.
-- [ ] **AC-0061.** After any run, the input file's content, size and modification
+- [x] **AC-0061.** After any run, the input file's content, size and modification
   time are unchanged from before the run.
-- [ ] **AC-0064.** Under `timestamp_format = "rfc3339"` the timestamp field
+- [x] **AC-0064.** Under `timestamp_format = "rfc3339"` the timestamp field
   admits a JSON string carrying a date, a time and an explicit offset — `Z` or
   `±HH:MM` — with zero to nine fractional-second digits, and the emitted
   `timeUnixNano` is that instant's exact nanosecond count since the Unix epoch. A
   string carrying no offset is not admitted and is never assumed to be UTC.
 
-- [ ] **AC-0065.** Under `timestamp_format = "epoch-millis"` or
+- [x] **AC-0065.** Under `timestamp_format = "epoch-millis"` or
   `"epoch-seconds"` the timestamp field admits a JSON integer, or a JSON string
   of ASCII digits with an optional leading `-`, and does not admit a value
   carrying a fractional part. The emitted `timeUnixNano` is that value multiplied
   by 1,000,000 or 1,000,000,000 respectively, computed in integer arithmetic.
 
-- [ ] **AC-0066.** A record whose timestamp field is absent, is not admitted by
+- [x] **AC-0066.** A record whose timestamp field is absent, is not admitted by
   the active `timestamp_format`, or converts to a value below 0 or at or above
   2^63 sends no log record; its line number is reported on stderr and the run
   continues, sending the remaining records.
 
-- [ ] **AC-0067.** A profile whose `severity_map` carries any value outside the
+- [x] **AC-0067.** A profile whose `severity_map` carries any value outside the
   closed range 1 through 24 is refused before any request is sent and exits 1.
 
-- [ ] **AC-0068.** A record whose severity field is absent, is JSON `null`, or
+- [x] **AC-0068.** A record whose severity field is absent, is JSON `null`, or
   carries a value the active `severity_map` does not name is still sent, with
   both `severityNumber` and `severityText` absent from the emitted record. The
   run reports each distinct unmapped value once on stderr with the number of
   records it affected, and that condition alone does not change the exit status.
 
-- [ ] **AC-0069.** A record whose severity field carries a value the active
+- [x] **AC-0069.** A record whose severity field carries a value the active
   `severity_map` names emits `severityNumber` as the mapped integer and
   `severityText` as that field's original string value.
 
-- [ ] **AC-0070.** Each emitted attribute value is wrapped in exactly one
+- [x] **AC-0070.** Each emitted attribute value is wrapped in exactly one
   `AnyValue` member chosen by its JSON type: a string emits `stringValue`; `true`
   or `false` emits `boolValue`; a number with no fractional part and no exponent
   that fits a signed 64-bit integer emits `intValue` as a quoted decimal string;
@@ -419,30 +419,30 @@ assurance gap this plan carries into EXECUTE.
   are converted by these same rules; an object emits `kvlistValue` whose members
   are converted by these same rules.
 
-- [ ] **AC-0071.** A JSON `null` emits no attribute: its key is absent from the
+- [x] **AC-0071.** A JSON `null` emits no attribute: its key is absent from the
   emitted record rather than present carrying an empty value.
 
-- [ ] **AC-0072.** A value nested more than 8 levels below an attribute's top
+- [x] **AC-0072.** A value nested more than 8 levels below an attribute's top
   level emits no attribute for that key, and the run reports that key once on
   stderr.
 
-- [ ] **AC-0073.** A line that parses as JSON but whose top-level value is not an
+- [x] **AC-0073.** A line that parses as JSON but whose top-level value is not an
   object sends no record; its line number is reported on stderr and the run
   continues, sending the remaining records.
 
-- [ ] **AC-0063.** At no instant during a run does the command hold more than 512
+- [x] **AC-0063.** At no instant during a run does the command hold more than 512
   parsed records resident, asserted over an input of at least 10,000 records. The
   command processes incrementally; no run materialises its whole input before
   sending. This is the bound that makes the others reachable: AC-0055's run clock
   starts at the first destination resolution, so without it an arbitrarily large
   file is read and retained before any deadline applies.
 
-- [ ] **AC-0074.** Each `[telemetry]` setting resolves independently across the
+- [x] **AC-0074.** Each `[telemetry]` setting resolves independently across the
   two configuration files: a setting the `--config` file declares takes that
   value, and a setting it omits takes the `--user-config` file's value. A file
   declaring some settings and not others contributes exactly the ones it
   declares.
-- [ ] **AC-0075.** The `[telemetry]` table admits exactly the settings
+- [x] **AC-0075.** The `[telemetry]` table admits exactly the settings
   `endpoint` and `service_name`. Any other key in that table, in either file, is
   refused with nothing sent and exit 1, and the message names each file the key
   appeared in and lists the admitted settings. A value that is not a non-empty
@@ -450,7 +450,7 @@ assurance gap this plan carries into EXECUTE.
   Refusing rather than ignoring is what makes a sender older than the
   configuration it is given fail loudly instead of dropping a setting the author
   believes is in effect.
-- [ ] **AC-0076.** Both supplied configuration files are read and validated on
+- [x] **AC-0076.** Both supplied configuration files are read and validated on
   every run, whatever resolves the endpoint. A run whose endpoint comes from
   `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, from `OTEL_EXPORTER_OTLP_ENDPOINT`, from
   `--config` or from `--user-config` refuses an inadmissible key identically.
@@ -474,6 +474,13 @@ the obligation is not missing — it has an owner.
 - AC-0037
 
 ## Follow-ons
+
+- spec owner: [`jsonl-otlp-exporter-first-publish`](../jsonl-otlp-exporter-first-publish/spec.md)
+  — the first publication of this distribution to PyPI and the verification of
+  the published artifact. No criterion in this spec requires a publication, and
+  the gesture is the maintainer's rather than an agent's, so it is owned there
+  rather than held open here. Every closeout condition above that only
+  publication can satisfy names that spec.
 
 - spec owner: [`loop-telemetry-export`](../loop-telemetry-export/spec.md) — the
   integration that supplies the `work_loop` profile, declares this distribution

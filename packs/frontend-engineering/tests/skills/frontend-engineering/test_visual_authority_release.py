@@ -84,13 +84,14 @@ def test_the_pack_pins_the_shipped_version() -> None:
     Moved from 0.4.0 to 0.4.1 when the visual-target rung precondition
     delivery landed, to 0.4.2 when the golden-path eval cases landed, and to
     0.4.3 when those cases were calibrated against codex runs, and to 0.4.4 when
-    a taxonomy-silent domain became an upstream gap.
+    a taxonomy-silent domain became an upstream gap, and to 0.4.5 when the
+    manifest began listing each held gap.
     This file owns the frontend visual-authority release surface, so its pin
     moves with that release and not with unrelated pack metadata churn.
     """
     version = _pack()["pack"]["version"]
-    assert version == "0.4.4", (
-        f"pack.toml carries {version!r}, not the 0.4.4 this delivery ships at. A "
+    assert version == "0.4.5", (
+        f"pack.toml carries {version!r}, not the 0.4.5 this delivery ships at. A "
         f"later delivery moves this pin with its own bump; it is not a value "
         f"to change on its own."
     )

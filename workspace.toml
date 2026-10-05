@@ -483,9 +483,23 @@ shipped = [
   # compares it yet. Severity normalisation is a closed list so a
   # reviewer-assigned bracketed id survives.
   {path = "docs/specs/review-recurrence-family-key/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Expose a position-free review-finding family key beside existing fingerprints without changing storage or review stops", needs = [{type = "local", kind = "spec", path = "docs/specs/stasis-stop-retirement/spec.md"}]},
+  # Shipped 2026-10-05. The implementation landed across #1313, #1331, #1334,
+  # #1340, #1347 and #1350; T9 and T10 were discharged by the two sibling specs
+  # the plan named rather than by this one. Closed when all 76 criteria were
+  # verified against the tree and ticked. It was NOT held open by unfinished
+  # work: T8's `Done when` asked for a first PyPI publication that none of the
+  # 76 criteria require, so that gesture moved to
+  # `docs/specs/jsonl-otlp-exporter-first-publish/`, which is Draft in `queue`.
+  # The distribution is therefore Shipped as a contract and unpublished as an
+  # artifact; those are deliberately different states here.
+  {path = "docs/specs/jsonl-otlp-exporter/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md"}, summary = "Publish a standalone JSONL-to-OTLP logs exporter with profile-defined field mapping and fail-closed input and endpoint controls", needs = []},
 ]
 queue   = [
-  {path = "docs/specs/jsonl-otlp-exporter/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md"}, summary = "Publish a standalone JSONL-to-OTLP logs exporter with profile-defined field mapping and fail-closed input and endpoint controls", needs = []},
+  # Draft 2026-10-05, carved out of `jsonl-otlp-exporter` when that spec closed.
+  # It owns the one gesture the parent's contract never asked for and only the
+  # maintainer can make: the first PyPI publication. Remains Draft and requires
+  # human approval before dispatch; its T2 is explicitly not agent work.
+  {path = "docs/specs/jsonl-otlp-exporter-first-publish/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/jsonl-otlp-exporter/spec.md"}, summary = "Publish jsonl-otlp-exporter 0.2.0 to PyPI on a maintainer tag push, then verify the published artifact from the public index", needs = []},
   {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
   {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
