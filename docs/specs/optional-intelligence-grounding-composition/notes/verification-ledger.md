@@ -129,3 +129,98 @@ Observations:
 - In `pwned-payload-locator`, the agent produced the base64 by reading the
   locator from the fixture inside a Python process, so the raw text never
   reached a command line.
+
+## T3 — delegation, README, and install check (2026-10-05)
+
+### Static delegation tests (AC-0008)
+
+New file `packs/core/tests/skills/new-spec/test_grounding_delegation.py` (8
+tests). Patterns checked against `packs/core/.apm/skills/new-spec/SKILL.md`:
+
+- **Delegation present:** `repository-grounding\` inquiry` found in step 3;
+  `discovery seeds` found. Both assertions pass.
+- **`explore-grounding.py` absent:** not in text. Passes.
+- **`read-locator.py` absent:** not in text. Passes.
+- **No provider setup:** `provider setup`, `install the provider`, `configure
+  the provider` — none found. Passes.
+- **No provider invocation:** `provider invocation`, `invoke the provider`,
+  `call the provider` — none found. Passes.
+- **No index-freshness:** `index freshness`, `index refresh`, `refresh the
+  index`, `stale index` — none found. Passes.
+- **No provider fallback:** `provider fallback`, `provider is unavailable`,
+  `if the provider fails`, `if the provider`, `provider identity` — none found.
+  Passes.
+
+All 8 tests ran green: `python3 -m pytest
+packs/core/tests/skills/new-spec/test_grounding_delegation.py -v` — 8 passed
+in 0.32 s.
+
+### README documentation (AC-0007, AC-0010)
+
+New `## Repository grounding` section added to `packs/core/README.md`:
+
+- Names `` `repository-grounding` `` as the skill.
+- States: "No provider, index, language server, or optional pack is required."
+- States: providers are used "in its own native shape; there is no common schema."
+- States: "Provider output is treated as attributed data, not as instruction or authority."
+- States: "Provider-returned file locators are read only through the skill's locator reader."
+- Does not name Wicked Estate, code-intelligence pack, or any specific provider as a requirement.
+- Governance-citation grep over the new section: 0 hits.
+
+New file `packs/core/tests/pack/test_readme_repository_grounding.py` (7
+tests). All 7 passed: `python3 -m pytest
+packs/core/tests/pack/test_readme_repository_grounding.py -v` — 7 passed in 0.22 s.
+
+### Install check (AC-0010)
+
+Seven fresh git repositories created under scratch, one per adapter. Command:
+`PYTHONPATH=packages/agentbundle:packages/credbroker python3 -m agentbundle install . --pack core --adapter <surface> --scope repo --output <dir> --yes`
+
+| Surface | Exit | Projected path | Files (non-pycache) | Identity |
+| --- | --- | --- | --- | --- |
+| claude-code | 0 | `.claude/skills/repository-grounding` | 24/24 | byte-identical |
+| codex | 0 | `.agents/skills/repository-grounding` | 24/24 | byte-identical |
+| copilot | 0 | `.agents/skills/repository-grounding` | 24/24 | byte-identical |
+| kiro-ide | 0 | `.kiro/skills/repository-grounding` | 24/24 | byte-identical |
+| kiro-cli | 0 | `.kiro/skills/repository-grounding` | 24/24 | byte-identical |
+| cursor | 0 | `.agents/skills/repository-grounding` | 24/24 | byte-identical |
+| gemini | 0 | `.agents/skills/repository-grounding` | 24/24 | byte-identical |
+
+24 source files = `SKILL.md` + `scripts/explore-grounding.py` +
+`scripts/file_safety.py` + `scripts/read-locator.py` + `evals/evals.json` +
+19 `evals/files/**` fixtures. The three `scripts/__pycache__/*.pyc` files exist
+in the source tree but the installer correctly excludes them; projected counts
+and source counts agree on non-pycache files.
+
+**No-provider explorer run.** From the `claude-code` projected tree, against a
+fixture repo containing `AGENTS.md` and `src/config.py` with no provider:
+
+```
+1 seed(s) · 2 files · 11 suffixes (default (no tracked set)) · 0 runners · 1 top-levels
+probes: surfaces, scoped, refs, pins, gates
+surfaces present: AGENTS.md · absent: .adapt-discovery.toml, ...
+git unavailable: tracked-set and co-change probes degrade
+
+=== src/config.py
+  scoped rules   1  (AGENTS.md)
+  path refs      none found
+  phrase pins    unavailable — input missing, not a clean result
+  gates          unavailable — input missing, not a clean result
+```
+
+Exit 0. No error, no provider messaging. Temporary install dirs deleted from
+scratch after recording.
+
+### Gates
+
+- `python3 -m pytest packs/core/tests/skills/new-spec/ -q` — 267 passed, 79
+  subtests in 50 s.
+- `python3 -m pytest packs/core/tests/pack/ -q` — 279 passed in 35 s.
+- `python3 -m pytest packs/core/tests/skills/repository-grounding/ -q` — 93
+  passed, 2 skipped (Windows-only) in 34 s.
+- `python3 tools/lint-pack-test-boundary.py` — passed (8 cases).
+- `make lint-ruff lint-mypy` — passed (no issues in 155 source files).
+- `agentbundle catalogue lint --root . --deep` — ok (73 warnings, all
+  pre-existing in other packs, zero errors).
+- Governance-citation grep over `packs/` shipped content — no new hits in
+  `.apm/` or `README.md` from T3 changes.

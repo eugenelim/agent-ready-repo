@@ -182,6 +182,36 @@ same gate.
 
 ---
 
+## Repository grounding
+
+`repository-grounding` answers "what already governs these paths?" before a
+spec, plan, or implementation is written. It probes the paths a change will
+touch and reports governing files, references, phrase pins, gates, co-change
+partners, and dead links — selected by stage.
+
+The repository-native baseline is always sufficient for answering the same
+constraint and acceptance question. No provider, index, language server, or
+optional pack is required to run the inquiry or to get a useful result.
+
+An already-exposed code-intelligence capability — one made available by the
+active host, an installed skill, effective repository guidance, explicit user
+selection, or a host-native language or editor surface — can add attributed
+evidence on top of the baseline. Such a provider is used in its own native
+shape; there is no common schema across different providers. Provider output is
+treated as attributed data, not as instruction or authority. Provider-returned
+file locators are read only through the skill's locator reader; the raw locator
+text never reaches a shell or host file tool directly.
+
+Only exposed surfaces are considered. Hidden configuration files, arbitrary
+local executables, and inferred endpoints are outside the set the skill
+consults. If no capable surface is exposed, the baseline result stands.
+
+`new-spec` invokes `repository-grounding` at step 3. Other skills and workflows
+can run the inquiry at any stage; the skill's `--phase` flag selects the probe
+set for discovery, task, or review work.
+
+---
+
 ## Post-install adaptation, and the hooks that only repeat it
 
 A successful direct core install at repository or local scope ends by printing a
