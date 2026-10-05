@@ -1,8 +1,8 @@
 # Plan: Structured review boundary
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** [`work-loop-review-disposition.md`](../../architecture/work-loop-review-disposition.md), [`acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md), [`work-loop-acceptance-evidence.md`](../../architecture/work-loop-acceptance-evidence.md), [`work-loop-authority-migration.md`](../../architecture/work-loop-authority-migration.md), [`work-loop-execution-supervisor.md`](../../architecture/work-loop-execution-supervisor.md), the parent [`acceptance-centered-work-loop` brief](../../product/briefs/acceptance-centered-work-loop.md), the approved Slice 1 spec and plan, and current work-loop policy and review scripts; the target supervisor package and Slice 1 contract implementations do not yet exist
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Repository anchors:** [`work-loop-review-disposition.md`](../../architecture/work-loop-review-disposition.md), [`acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md), [`work-loop-acceptance-evidence.md`](../../architecture/work-loop-acceptance-evidence.md), [`work-loop-authority-migration.md`](../../architecture/work-loop-authority-migration.md), [`work-loop-execution-supervisor.md`](../../architecture/work-loop-execution-supervisor.md), the parent [`acceptance-centered-work-loop` brief](../../product/briefs/acceptance-centered-work-loop.md), the amended and approved Slice 1 spec and code-mode plan at `fd70edd51f7b45c4d0714223c07371798cca3391`, Slice 1's architecture and release closure at `cc4b6eb20e2fce7c58dac8958de27eb6c8a4e146`, and current work-loop policy and review scripts; Slice 1's contract, service, architecture, and release outputs exist, but Slice 2 execution remains gated until Slice 1's post-gates hardening and review freeze the final approved shape
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
@@ -28,15 +28,23 @@ task/cohort writers, procedure authority, or runtime provider selection.
 
 ## Constraints
 
-- The approved Slice 1 spec and plan are the authoring predecessor. Their
-  contract inventory and semantics supply acceptance authority, the
-  reviewed-execution envelope, protected-mutation classification, delivery
-  subject, evidence transaction, verdict, and shared content-safety
-  interfaces. Their `spec-plan` terminal intent leaves the canonical schemas
-  and callable ports unimplemented, so T1 must stop until those implementations
-  exist and conform to the approved inventory. Mutable task reprojection and
-  removal of the legacy plan lock are excluded because Slice 4 owns them.
-- The parent brief is Ready at `sha256-bytes-v1:8e2cf33151320b16cf8a12bf852531f262e57b5470dc8105ed121087b0347410`, the architecture set is reviewed at `sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02`, the first-three slice cut is confirmed, and Slice 1's spec and plan are approved.
+- The approved Slice 1 spec and code-mode plan are the authoring and execution
+  predecessor. Their contract inventory and semantics supply acceptance
+  authority, the reviewed-execution envelope, protected-mutation
+  classification, delivery subject, evidence transaction, verdict, and shared
+  content-safety interfaces. Their canonical schemas and callable ports now
+  exist and conform to the approved inventory, so T1 can resolve imports
+  against them. Slice 2 execution still waits for Slice 1 closeout because its
+  post-gates security hardening and review remain in flight. Mutable task
+  reprojection and removal of the legacy plan lock are excluded because Slice
+  4 owns them.
+- The parent brief passed its Ready gate at
+  `sha256-bytes-v1:8e2cf33151320b16cf8a12bf852531f262e57b5470dc8105ed121087b0347410`
+  and is now `Executing` because Slice 1 moved to implementation. The
+  architecture set is reviewed at
+  `sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02`,
+  the first-three slice cut is confirmed, and Slice 1's spec and plan are
+  approved.
 - The parent brief's Architecture coverage table is the sole cross-document
   mapping for the ten architecture owners. Slice 2 cites that map and updates
   only its review-owned durable surfaces instead of copying the matrix here.
@@ -51,23 +59,36 @@ task/cohort writers, procedure authority, or runtime provider selection.
   presence cannot gate its review closure, cutover, or reversal.
 - The current work-loop facade, repository test framework, shared confinement,
   and shared content-safety primitives are reused without a new dependency or
-  top-level package.
-- Exact modules and symbols under the future supervisor package remain an
-  implementation discovery until Slice 1 establishes its package seam. The
-  discovery must find one reusable service boundary that works from both the
-  current engine and the later supervisor; otherwise implementation stops for a
-  plan amendment.
+  top-level package. Core runtime modules remain self-contained standard-library
+  scripts and import only sibling modules in the `work-loop` skill; build and
+  test tooling cannot become a runtime dependency.
+- `contracts/delivery/` remains the only delivery-schema source. Review schemas
+  are test-time contracts: Core runtime scripts validate the same behavior in
+  code and neither copy nor load those schemas at runtime.
+- Slice 1 T9b reconciled its owned architecture pages with the implemented
+  script seam and no-copy contract. The still-Draft review-disposition and
+  execution-supervisor pages retain package-owned review-module and
+  embedded-schema examples for later slices. Slice 2 T1 resolves its own
+  review-module placement against the approved Core constraints, and T7 makes
+  the review-owned architecture current; neither task rewrites later
+  supervisor ownership. If a self-contained sibling service cannot satisfy the
+  review contract without an `agentbundle` import or runtime schema copy,
+  implementation stops for a plan amendment.
+- The implemented Slice 1 service seam is grounded in sibling modules under
+  `packs/core/.apm/skills/work-loop/scripts/`: `_acceptance.py`,
+  `_policy_import.py`, `_subject_source.py`, `_subject_projection.py`,
+  `_evidence_store.py`, `_content_safety.py`, `_security_events.py`,
+  `_security_capability.py`, `_confined_mutation.py`, `_process_safety.py`,
+  `_containment.py`, `_effect_broker.py`, and `_compat_facade.py`. Slice 2
+  reuses those modules without a runtime import from `agentbundle`. Its own
+  review-module decomposition remains T1 implementation discovery and is made
+  durable by T7; a conflicting final owner or unusable shared seam requires a
+  plan amendment before execution.
 - The Slice 2 approval record remains repository-durable at this spec directory
   once approved. Its legacy plan digest is active lock provenance through Slice
   2; a Slice 1 `initial-plan-review.v1` copy of that digest is baseline audit
   evidence only. After closeout, authoritative schemas, architecture pages,
   tests, and release history own current review-boundary truth.
-- A 2026-10-01 read-only pre-review probe found `approve-plan`, `plan-locked`,
-  reviewer transitions, `finding-adjudicator`, and reviewer-format knowledge
-  co-resident in the current engine/cohort scripts. This disconfirms a direct
-  generic seam today and grounds both the compatibility adapter and VI-1018's
-  authority-isolation comparison; it does not prove the proposed extraction is
-  complete.
 
 ## Construction tests
 
@@ -80,9 +101,9 @@ VI-1013; this summary adds no second statement of either obligation.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Interface compatibility / review contract files resolved against the approved Slice 1 imports | T1 | VI-1001–VI-1003 schema and traceability results | Contract files are authoritative, linked from the spec, and covered by compatibility tests |
+| Interface compatibility / review contract files resolved against the approved Slice 1 imports | T1 | VI-1001–VI-1003 schema, no-copy, and traceability results | Contract files are authoritative, linked from the spec, have no copies, and are covered by compatibility tests |
 | Current architecture / review-disposition and parent architecture pages | T7 | VI-1016 durable-output trace | Pages name the shipped owner, compatibility state, and remaining cutover work |
-| Maintainer procedure / canonical work-loop policy and review references | T6, T7 | VI-1012, VI-1014–VI-1018 integration, authority-isolation, policy, pack, and durable-output checks | Published guidance contains only the opaque review boundary and preserves every authority outside Slice 2 |
+| Maintainer procedure / canonical work-loop policy and review references | T6, T7 | VI-1012, VI-1014–VI-1019 integration, authority-isolation, self-containment, policy, pack, and durable-output checks | Published guidance contains only the opaque review boundary and preserves every authority outside Slice 2 |
 | Release history / `docs/product/changelog.md` | T7 | VI-1016 durable-output trace | Release entry identifies the shipped boundary and verification result |
 
 ## Design (LLD)
@@ -96,7 +117,7 @@ Owned by: T1, T2, T3, T4, T5, T6, T7
   delivery policy. Traces to: AC-0001–AC-0011.
 - Store semantic reports and dispositions, but derive current obligation and
   readiness views. Attempts, retries, and raw reviewer sessions remain outside
-  delivery authority. Traces to: AC-0005, AC-0009, AC-0010.
+  delivery authority. Traces to: AC-0005, AC-0009, AC-0010, AC-0014, AC-0015.
 - Use the exact approved Slice 1 acceptance and security ports instead of local
   copies. Consume its reviewed-envelope and protected-mutation result as
   external authority facts; never turn either into a review-local planning
@@ -128,12 +149,12 @@ Owned by: T1, T2, T4, T5
   tool, retry, or session controls. Traces to: AC-0001, AC-0004, AC-0010.
 - The Slice 1 evidence bridge is the only path by which a supported review
   failure affects criterion evidence; dispositions cannot write a supported
-  acceptance verdict. Traces to: AC-0008, AC-0009.
+  acceptance verdict. Traces to: AC-0008, AC-0009, AC-0014, AC-0015.
 - Canonical review schemas use JSON Schema 2020-12 under the semantic
-  `contracts/delivery/` family selected by Slice 1. Exact shared imports,
-  registry conventions, and callable validator surfaces remain blocked on the
-  implementation of that approved inventory; T1 owns review-schema resolution
-  and registry links.
+  `contracts/delivery/` family selected by Slice 1 and remain test-time
+  contracts with no runtime copies. Shared imports and callable in-code
+  validators are grounded in the canonical Slice 1 schemas and sibling service
+  modules; T1 owns only the review-schema resolution and registry links.
 
 ### Component / module decomposition
 
@@ -182,7 +203,7 @@ Owned by: T3, T4, T6
   fact. Traces to: AC-0003–AC-0005, AC-0007, AC-0011, AC-0012.
 - A crash cannot expose a report or assessment without its required Slice 1
   evidence delta. Recovery replays from durable semantic identities, not from
-  reviewer sessions. Traces to: AC-0008, AC-0011.
+  reviewer sessions. Traces to: AC-0008, AC-0011, AC-0014, AC-0015.
 
 ### Quality attributes (NFRs)
 
@@ -191,7 +212,7 @@ Owned by: T2, T4, T6
 - Runtime neutrality is demonstrated by the synthetic reviewer and the
   current-engine/synthetic-adapter truth-table suites. Determinism is measured
   by byte-identical normalized decisions for the same canonical inputs. Traces
-  to: AC-0001–AC-0003, AC-0006, AC-0011.
+  to: AC-0001–AC-0003, AC-0006, AC-0011, AC-0016.
 
 ### Dependencies & integration
 
@@ -199,11 +220,12 @@ Owned by: T1, T6, T7
 
 - Slice 1 supplies acceptance authority, the reviewed envelope,
   protected-mutation classification, canonical subject, evidence, verdict,
-  content-safety, confinement, and capability contracts. The current work-loop
-  engine is the first caller; Slice 4 later introduces mutable task projection
-  and procedure ownership without changing review meaning. Pi remains outside
-  Core as an optional later consumer of the neutral runtime contracts. Traces
-  to: AC-0001, AC-0008, AC-0009, AC-0011–AC-0013.
+  content-safety, confinement, and capability contracts through the grounded
+  sibling service seam named in Constraints. The current work-loop engine is
+  the first caller; Slice 4 later introduces mutable task projection and
+  procedure ownership without changing review meaning. Pi remains outside Core
+  as an optional later consumer of the neutral runtime contracts. Traces to:
+  AC-0001, AC-0008, AC-0009, AC-0011–AC-0016.
 
 ## Tasks
 
@@ -215,23 +237,30 @@ Owned by: T1, T6, T7
   contract destination; spec/contract traceability.
 - **Verification mode:** TDD
 - **Tests:**
-  - **VI-1001 (AC-0004):** schema corpus accepts one complete current report and rejects
-    a separate fixture for each missing or malformed required field.
+  - **VI-1001 (AC-0004):** schema corpus accepts one complete current report,
+    rejects a separate fixture for each missing or malformed required field,
+    and the delivery-contract scan finds no schema copy outside
+    `contracts/delivery/`.
   - **VI-1002 (AC-0004, AC-0005):** version and lineage corpus rejects unknown majors,
     duplicate sequences, and forks while retaining one current safe tip.
   - **VI-1003 (AC-0012):** shared content-safety corpus accepts inert bounded prose and
     rejects each protected, oversized, or executable/authority-shaped report as
     one transaction.
-  - **Stub:** `no stub (implementation-discovered)` — discovery predicate: the
-    approved Slice 1 inventory exposes the canonical schema imports and test
-    validator; constraint: no provisional schema path or copied validator;
-    required outcome: one executable schema assertion per AC-0004/AC-0005/AC-0012 contract
-    surface; verification mode: TDD; proof obligation: the first T1 change
-    records a compilable red test before contract implementation.
-- **Grounding:** discovery predicate — approved Slice 1 exposes reusable schema,
-  content-safety, and transaction imports; constraint — no copied identity or
-  validator; required outcome — one authoritative schema per record family;
-  kill condition — any required predecessor contract is missing or ambiguous.
+  - **Stub:** `no stub (implementation-discovered)` — discovery predicate: T1
+    must resolve the exact review-record families, schema identities and
+    references, registry keys, and callable validator entry points against the
+    implemented Slice 1 seam before an importable review contract surface
+    exists; constraint: no provisional schema path, invented symbol, or copied
+    validator; required outcome: one executable assertion per
+    AC-0004/AC-0005/AC-0012 contract surface; verification mode: TDD; proof
+    obligation: the first T1 change records a compilable red assertion before
+    implementing its review contract.
+- **Grounding:** `contracts/delivery/` and the Slice 1 sibling services provide
+  the reusable schema, content-safety, and transaction boundaries; constraint —
+  no copied identity or validator; required outcome — one authoritative schema
+  per record family with no schema copy or runtime schema load; kill condition —
+  Slice 1 closeout removes, materially changes, or leaves ambiguous a required
+  predecessor contract.
 - **Done when:** VI-1001–VI-1003 pass and the interface-compatibility durable output has a
   resolved destination and backward link.
 
@@ -288,16 +317,20 @@ Owned by: T1, T6, T7
 ### T4: Assess actual failures
 
 - **Depends on:** T1, T3
-- **Spec behavior:** Reachable actual-failure classification; TDD.
+- **Spec behavior:** Reachable actual-failure classification and evidence-bridge
+  lifecycle; TDD.
 - **Touches:** finding evaluator, independent-assessment port, and Slice 1
   evidence bridge.
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-1008 (AC-0006, AC-0007):** table-driven suite exercises every Finding truth-table
     row, including a supported path with controlled evidence for every edge.
-  - **VI-1009 (AC-0007, AC-0008):** transaction suite proves supported assessments create
-    the required review-failure evidence delta while unsupported and
-    indeterminate transitions remove or refuse current disposition eligibility.
+  - **VI-1009 (AC-0007, AC-0008, AC-0014, AC-0015):** transaction suite proves supported
+    assessments atomically create the required deterministic review-failure
+    receipt set; report replacement or invalidation and supported-assessment
+    replacement atomically supersede every derived receipt, including
+    supported-to-unsupported and supported-to-indeterminate outcomes; those
+    outcomes also remove or refuse current disposition eligibility.
   - **Stub:** `no stub (implementation-discovered)` — discovery predicate: T1
     exposes the approved evidence transaction and supersession call surface;
     constraint: assessment and receipt delta share that atomic boundary;
@@ -337,7 +370,8 @@ Owned by: T1, T6, T7
 
 - **Depends on:** T3, T4, T5
 - **Spec behavior:** Synthetic reviewer integration and legacy parity;
-  non-review authority isolation; goal-based integration checks.
+  non-review authority isolation; runtime self-containment; goal-based
+  integration checks.
 - **Touches:** current review-artifact, loop-engine, and loop-cohort seams plus
   the bundled service entry point discovered after Slice 1.
 - **Verification mode:** goal-based check
@@ -352,12 +386,21 @@ Owned by: T1, T6, T7
     and after Slice 2 wiring, proves `initial-plan-review.v1` is never consumed
     as task approval, and proves no Slice 2 caller can request or acknowledge a
     mutable-task projection.
-- **Grounding:** existing sources are
-  `packs/core/.apm/skills/work-loop/scripts/review-artifact.py`,
-  `loop-engine.py`, and `loop-cohort.py`; stop if integration requires a
-  reviewer-role branch in any shared policy path.
-- **Done when:** VI-1012, VI-1013, and VI-1018 pass with the old authorities
-  enabled and the new records reconstruct the same admitted review results.
+  - **VI-1019 (AC-0016):** clean-environment integration runs the synthetic
+    reviewer and closed Compatibility corpus after proving `agentbundle` and
+    other repository packages are unavailable; a static import check permits
+    only the standard library or sibling `work-loop` modules, and a runtime
+    filesystem spy observes zero reads under `contracts/delivery/` while
+    leaving build and test tooling free to validate the canonical schemas.
+- **Grounding:** discovery predicate — locate the active approval, reviewer
+  transition, finding-assessment, task/cohort-writer, and procedure-authority
+  owners in `packs/core/.apm/skills/work-loop/scripts/review-artifact.py`,
+  `loop-engine.py`, and `loop-cohort.py`; required outcome — one generic review
+  seam that preserves every non-review authority; stop if the seam is absent or
+  integration requires a reviewer-role branch in a shared policy path.
+- **Done when:** VI-1012, VI-1013, VI-1018, and VI-1019 pass with the old
+  authorities enabled and the new records reconstruct the same admitted review
+  results from a self-contained Core runtime.
 
 ### T7: Remove reviewer mechanics from policy and refresh durable outputs
 
@@ -380,15 +423,15 @@ Owned by: T1, T6, T7
   - **VI-1015 (AC-0001, AC-0010, AC-0013):** pack and projection tests prove
     the public invocation and non-review authority surfaces are unchanged and
     generated copies match their source.
-  - **VI-1016 (AC-0001–AC-0013):** durable-output review traces the shipped contracts,
+  - **VI-1016 (AC-0001–AC-0016):** durable-output review traces the shipped contracts,
     architecture, maintainer procedure, and release entry to their owning tests.
 - **Grounding:** edit the canonical pack source and regenerate projections per
   repository guidance; do not hand-edit generated copies or remove the active
   legacy plan-lock and task/cohort paths.
-- **Done when:** VI-1014–VI-1017 pass, VI-1018 still passes after policy cleanup,
-  the authority-cutover receipt remains current for the shipped review-policy
-  and contract fingerprints and parity evidence, and every Durable-output map
-  row meets its closeout evidence condition.
+- **Done when:** VI-1014–VI-1017 pass, VI-1018 and VI-1019 still pass after
+  policy cleanup, the authority-cutover receipt remains current for the shipped
+  review-policy and contract fingerprints and parity evidence, and every
+  Durable-output map row meets its closeout evidence condition.
 
 ## Rollout
 
@@ -401,10 +444,10 @@ Owned by: T1, T6, T7
 - **External-system integration:** none; reviewer implementations remain opaque
   adapters selected by repository policy. Core has no Pi integration or
   dependency in this slice.
-- **Deployment sequencing:** start only after the approved Slice 1 contract and
-  service implementation is available while the legacy plan lock remains active;
-  land T1–T5 services; run T6 dual-path parity, authority-isolation, and crash
-  recovery; record the approved review-path switch and accepted reversal
+- **Deployment sequencing:** start only after Slice 1 closeout freezes the
+  implemented contract and service seam while the legacy plan lock remains
+  active; land T1–T5 services; run T6 dual-path parity, authority-isolation, and
+  crash recovery; record the approved review-path switch and accepted reversal
   evidence in VI-1017; then perform T7 review-policy cleanup and durable-output
   refresh.
 
@@ -431,3 +474,5 @@ Owned by: T1, T6, T7
 - YYYY-MM-DD: spec approved by <handle>
 - YYYY-MM-DD: plan approved by <handle>
 -->
+- 2026-10-04: spec approved by owner
+- 2026-10-04: plan approved by owner

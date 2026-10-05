@@ -1,12 +1,12 @@
 # Spec: Structured review boundary
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none
-- **Contract:** `contracts/delivery/` (planned canonical delivery-contract bundle)
+- **Contract:** `contracts/delivery/` (canonical bundle; Slice 2 review schemas planned)
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -54,13 +54,14 @@ protected-mutation classification, semantic evidence transaction, delivery
 subject, and shared content-safety contracts without redefining them. It does
 not introduce mutable task reprojection, remove the legacy plan lock, change
 terminal intent, transfer procedure or cohort authority, or import, bundle,
-install, or select Pi.
+install, or select Pi. It keeps the Core review path self-contained and does
+not make `agentbundle` or another repository package a runtime dependency.
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Interface compatibility | Review reports, findings, assessments, and dispositions cross a producer boundary | `contracts/delivery/`, `contracts/README.md`, and `contracts/REGISTRY.md`; review-boundary schemas are authored by this slice and import only the approved Slice 1 shared contracts | Delivery-contract maintainers | JSON Schema 2020-12 validation, reader/writer compatibility, and synthetic-producer conformance | Every shipped record type has one authoritative schema, registered ownership, and bidirectional spec traceability |
+| Interface compatibility | Review reports, findings, assessments, and dispositions cross a producer boundary | `contracts/delivery/`, `contracts/README.md`, and `contracts/REGISTRY.md`; review-boundary schemas are authored by this slice and import only the approved Slice 1 shared contracts | Delivery-contract maintainers | JSON Schema 2020-12 validation, a no-copy check, reader/writer compatibility, and synthetic-producer conformance | Every shipped record type has one authoritative schema under `contracts/delivery/`, registered ownership, no schema copy, and bidirectional spec traceability |
 | Current architecture | The target review boundary becomes implemented architecture | [`docs/architecture/work-loop-review-disposition.md`](../../architecture/work-loop-review-disposition.md) and [`docs/architecture/acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md) | Platform Core | Implementation mapping and parity evidence match the shipped boundary | Both pages describe the active owner, compatibility path, and remaining cutover state |
 | Maintainer procedure | Work-loop policy consumes the new review facts | Canonical work-loop skill source and owned review references | Core pack maintainers | Pack tests and generated-projection checks | Published work-loop guidance contains no reviewer-specific procedure or retired authority |
 | Release history | The shipped review boundary changes maintainer-visible behavior | `docs/product/changelog.md` | Release owner | Release entry links the shipped contract and verification | Closeout confirms the release record names the new boundary and its compatibility state |
@@ -95,6 +96,11 @@ install, or select Pi.
   the current engine; Slice 4 owns those changes.
 - Import, bundle, install, or select Pi in Core, or make Pi availability part
   of review selection, closure, cutover, or reversal.
+- Import `agentbundle` from the Core review runtime or require another
+  repository package for review selection, closure, cutover, or reversal.
+- Copy a delivery schema outside `contracts/delivery/` or make the Core review
+  runtime load a delivery schema instead of validating contract behavior in
+  its self-contained code.
 - Treat a stale, malformed, forked, missing, or `unable` report as satisfying a
   mandatory obligation.
 - Turn opinion, duplication, stale evidence, or a failure already controlled on
@@ -109,7 +115,7 @@ install, or select Pi.
   because the same subject and policy must always return the same decision.
 - **Report identity and refusal (AC-0004, AC-0005):** TDD over valid, stale, malformed, forked,
   missing, and unknown-version fixtures, because every case has a closed result.
-- **Finding assessment and disposition (AC-0006, AC-0007, AC-0008):** TDD over the finding truth table,
+- **Finding assessment and disposition (AC-0006, AC-0007, AC-0008, AC-0014, AC-0015):** TDD over the finding truth table and review-to-evidence bridge lifecycle,
   including positive reachable failures and the four non-blocking negative
   classes, because a wrong classification must make a fixture fail.
 - **Reviewer opacity (AC-0001):** goal-based integration check with a synthetic reviewer,
@@ -128,6 +134,10 @@ install, or select Pi.
 - **Report content safety (AC-0012):** TDD through the shared content-safety
   corpus, because an accepted inert report and each whole-report refusal need
   independent positive and negative fixtures.
+- **Runtime self-containment (AC-0016):** goal-based clean-environment, import,
+  and runtime-read checks over the projected Core review path, because package
+  independence and the no-runtime-schema rule are visible only at the complete
+  runtime boundary.
 
 ## Acceptance Criteria
 
@@ -224,6 +234,19 @@ install, or select Pi.
   active legacy plan lock, task/cohort writer, and procedure authority
   unchanged; no Slice 2 path treats `initial-plan-review.v1` as task approval
   or admits mutable task reprojection.
+- [ ] **AC-0014.** A current supported finding assessment atomically emits one
+  deterministic Slice 1 `review-failure` evidence receipt per affected
+  criterion in the same semantic evidence transaction as the assessment; a
+  crash exposes both the assessment and its complete receipt set or neither.
+- [ ] **AC-0015.** When a source report or supported assessment ceases to be
+  current, the review bridge atomically supersedes every receipt derived from
+  that source, leaving no live `review-failure` receipt from a non-current
+  report or assessment.
+- [ ] **AC-0016.** The projected Core review path completes the synthetic
+  reviewer and compatibility corpus when `agentbundle` and other repository
+  packages are unavailable; its runtime modules import only the Python standard
+  library or sibling `work-loop` modules, and the run opens no file under
+  `contracts/delivery/`.
 
 ## Follow-ons
 
