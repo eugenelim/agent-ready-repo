@@ -339,10 +339,11 @@ def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
         ["status", "--porcelain", "docs/adr", "docs/rfc"], cwd
     )
     working_tree_clean = status_out is not None and status_out.strip() == ""
-    # Check (2): HEAD must appear in at least one remote tracking branch.
+    # Check (2): HEAD must be on a tracking branch of origin, the remote the
+    # link points to; a commit only on another remote may not exist there.
     remote_contains = _run_git(["branch", "-r", "--contains", "HEAD"], cwd)
-    head_on_remote = (
-        remote_contains is not None and remote_contains.strip() != ""
+    head_on_remote = remote_contains is not None and any(
+        b.strip().startswith("origin/") for b in remote_contains.splitlines()
     )
 
     identity: tuple[str, str] | None = None
@@ -1117,7 +1118,7 @@ def _publish_explorer_inner(
                 "error": {
                     "code": "input_too_large",
                     "message": f"register file exceeds 2 MiB: {rel_path}",
-                    "limits": {},
+                    "limits": {"max_register_bytes": nav._MAX_REGISTER_BYTES},
                     "observed": {},
                 },
             }

@@ -11,10 +11,10 @@ var _d=0;   // current nesting depth
 var _err=false; // depth-exceeded flag
 
 // Visible-escape bidi/zero-width/control chars (mirrors Python _escape_display).
-var UNSAFE_RE=/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g;
+var UNSAFE_RE=/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\xAD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}]/gu;
 function vis(s){
   return String(s).replace(UNSAFE_RE,function(c){
-    var h=c.charCodeAt(0).toString(16).toUpperCase();
+    var h=c.codePointAt(0).toString(16).toUpperCase();
     while(h.length<4)h='0'+h;
     return '[U+'+h+']';});}
 

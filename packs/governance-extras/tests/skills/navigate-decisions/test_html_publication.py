@@ -11,6 +11,7 @@ ACs covered: AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014,
 Boundary: pack tests may not read outside their pack tree except via run_query
 against the fixtures/mixed corpus; all destinations are under tmp_path.
 """
+
 from __future__ import annotations
 
 import base64
@@ -95,7 +96,7 @@ def _extract_runtime_js(html: str) -> str:
     # The JS runtime is in the last <script> block (no type attribute). Keep
     # every byte between the tags: the browser hashes exactly that text.
     matches = re.findall(
-        r'<script(?! type)(?![^>]*type)[^>]*>(.*?)</script>',
+        r"<script(?! type)(?![^>]*type)[^>]*>(.*?)</script>",
         html,
         re.DOTALL,
     )
@@ -108,7 +109,9 @@ def _extract_runtime_js(html: str) -> str:
 
 def test_fact_parity_record_ids(tmp_path: pathlib.Path) -> None:
     """Embedded JSON record IDs match run_query summary membership."""
-    query_result = NAV.run_query(FIXTURE, {"operation": "search", "selectors": [{"kind": "ADR"}, {"kind": "RFC"}]})
+    query_result = NAV.run_query(
+        FIXTURE, {"operation": "search", "selectors": [{"kind": "ADR"}, {"kind": "RFC"}]}
+    )
     assert query_result["status"] == "ok"
     query_ids = {r["id"] for r in query_result["records"]}
 
@@ -157,21 +160,23 @@ def test_fact_parity_relationship_tuples(tmp_path: pathlib.Path) -> None:
             r.get("basis"),
             r.get("trust_class"),
             r.get("resolution_state"),
+            r.get("source"),
         )
         for r in data["relationships"]
         if r.get("trust_class") != "navigation_only"
     )
 
     # Aggregate all relationships from the query by querying every record.
-    search_result = NAV.run_query(FIXTURE, {"operation": "search", "selectors": [{"kind": "ADR"}, {"kind": "RFC"}]})
+    search_result = NAV.run_query(
+        FIXTURE, {"operation": "search", "selectors": [{"kind": "ADR"}, {"kind": "RFC"}]}
+    )
     assert search_result["status"] == "ok", f"search failed: {search_result}"
     all_ids = [r["id"] for r in search_result["records"]]
 
     query_rels_key: set = set()
     for rec_id in all_ids:
         rec_result = NAV.run_query(FIXTURE, {"operation": "record", "id": rec_id})
-        if rec_result["status"] != "ok":
-            continue
+        assert rec_result["status"] == "ok", (rec_id, rec_result)
         for r in rec_result["relationships"]:
             query_rels_key.add((
                 r.get("from"),
@@ -182,13 +187,14 @@ def test_fact_parity_relationship_tuples(tmp_path: pathlib.Path) -> None:
                 r.get("basis"),
                 r.get("trust_class"),
                 r.get("resolution_state"),
+                r.get("source"),
             ))
 
-    # Every query relationship must be present in the HTML data island.
-    missing = query_rels_key - html_rels_key
-    assert not missing, (
-        f"{len(missing)} query relationships missing from HTML data island: "
-        f"{list(missing)[:3]}..."
+    # The sets are equal: nothing missing from the HTML, nothing extra in it.
+    assert query_rels_key, "the fixture must produce relationships"
+    assert html_rels_key == query_rels_key, (
+        f"missing from HTML: {sorted(query_rels_key - html_rels_key, key=str)[:3]}; "
+        f"extra in HTML: {sorted(html_rels_key - query_rels_key, key=str)[:3]}"
     )
 
 
@@ -200,7 +206,7 @@ def test_hostile_script_tag_escaped(tmp_path: pathlib.Path) -> None:
     # The mixed fixture's ADR-0001 title has no script tag, but we use the
     # fixture's own content and verify the escaping invariant via the
     # safe_json function directly.
-    hostile_input = '</script><script>alert(1)</script>'
+    hostile_input = "</script><script>alert(1)</script>"
     safe = EXPLORER._safe_json({"t": hostile_input})
     # Must not contain a literal closing script tag.
     assert "</script>" not in safe
@@ -348,9 +354,11 @@ def test_bounded_mode_omits_body(tmp_path: pathlib.Path) -> None:
         assert not body.get("available", True), (
             f"Record {rec['id']} has available body in bounded mode"
         )
-        assert body.get("omission_reason") in ("bounded_mode", "not_requested", "body_too_large"), (
-            f"Unexpected omission reason for {rec['id']}: {body.get('omission_reason')}"
-        )
+        assert body.get("omission_reason") in (
+            "bounded_mode",
+            "not_requested",
+            "body_too_large",
+        ), f"Unexpected omission reason for {rec['id']}: {body.get('omission_reason')}"
 
 
 def test_bounded_mode_has_full_record_inventory(tmp_path: pathlib.Path) -> None:
@@ -458,9 +466,10 @@ def test_refuses_non_html_name(tmp_path: pathlib.Path) -> None:
     assert result["error"]["code"] == "invalid_destination", (
         f"Expected invalid_destination code, got: {result['error']!r}"
     )
-    assert ".html" in result["error"]["message"].lower() or "html" in result["error"]["message"].lower(), (
-        f"Expected .html name refusal, got: {result['error']!r}"
-    )
+    assert (
+        ".html" in result["error"]["message"].lower()
+        or "html" in result["error"]["message"].lower()
+    ), f"Expected .html name refusal, got: {result['error']!r}"
 
 
 def test_refuses_multi_segment_name(tmp_path: pathlib.Path) -> None:
@@ -478,9 +487,7 @@ def test_refuses_symlinked_parent(tmp_path: pathlib.Path) -> None:
     link = tmp_path / "link"
     link.symlink_to(real)
     result = EXPLORER.publish_explorer(FIXTURE, destination=link)
-    assert result["status"] == "error", (
-        "Expected refusal for symlinked destination directory"
-    )
+    assert result["status"] == "error", "Expected refusal for symlinked destination directory"
     assert result["error"]["code"] in ("invalid_destination", "corpus_error"), (
         f"Expected machine-readable code for symlink refusal, got: {result['error']!r}"
     )
@@ -605,9 +612,7 @@ def test_temp_sibling_mode_0600_before_write(tmp_path: pathlib.Path) -> None:
     write_indices = [i for i, e in enumerate(events) if e[0] == "write"]
     assert fchmod_indices, "os.fchmod(fd, 0o600) was never called"
     assert write_indices, "write was never called"
-    assert min(fchmod_indices) < min(write_indices), (
-        "fchmod(0o600) must be called before write"
-    )
+    assert min(fchmod_indices) < min(write_indices), "fchmod(0o600) must be called before write"
     # Verify actual filesystem mode, not just the argument passed to fchmod.
     assert any(m == 0o600 for m in actual_modes_at_fchmod), (
         f"Actual file mode after fchmod was not 0o600; got {[oct(m) for m in actual_modes_at_fchmod]}"
@@ -665,9 +670,7 @@ def test_fchmod_failure_closes_fd(tmp_path: pathlib.Path) -> None:
     except OSError:
         pass  # Closed as expected.
     else:
-        pytest.fail(
-            f"fd {leaked_fd} was not closed after fchmod failure — descriptor leaked"
-        )
+        pytest.fail(f"fd {leaked_fd} was not closed after fchmod failure — descriptor leaked")
 
 
 # ── SEC-7: Temp file identity validated before link ──────────────────────────
@@ -742,7 +745,10 @@ def test_publish_atomically_rejects_extra_hard_link(tmp_path: pathlib.Path) -> N
             return fake
         return st
 
-    with _mock.patch.object(os, "stat", patched_stat), pytest.raises(OSError, match="links before os.link"):
+    with (
+        _mock.patch.object(os, "stat", patched_stat),
+        pytest.raises(OSError, match="links before os.link"),
+    ):
         EXPLORER._publish_atomically(target_dir, target_path, b"content")
 
 
@@ -773,9 +779,7 @@ def test_no_partial_file_on_link_failure(tmp_path: pathlib.Path) -> None:
 
     assert result["status"] == "error"
     # os.link must have been called — if it wasn't, the test proves nothing.
-    assert called_paths, (
-        "os.link was never called; test did not reach the atomic-publish path"
-    )
+    assert called_paths, "os.link was never called; test did not reach the atomic-publish path"
     # No file at any of the attempted destination paths.
     for p in called_paths:
         assert not p.exists(), f"Partial file left at {p}"
@@ -853,16 +857,16 @@ def test_dot_segment_degrades_to_inert() -> None:
     sl = links.get(hostile, {})
     # Should either be inert (url=None) or produce a URL without raw '..'.
     url = sl.get("url", "") or ""
-    assert ".." not in url.split("/"), (
-        f"Dot-segment traversal found in URL: {url!r}"
-    )
+    assert ".." not in url.split("/"), f"Dot-segment traversal found in URL: {url!r}"
 
 
 def test_non_allowlisted_host_degrades_to_inert(tmp_path: pathlib.Path) -> None:
     """A remote URL on a non-allowlisted host produces inert provenance, not a link."""
     import unittest.mock as _mock
 
-    with _mock.patch.object(EXPLORER, "_run_git", return_value="https://bitbucket.org/owner/repo.git"):
+    with _mock.patch.object(
+        EXPLORER, "_run_git", return_value="https://bitbucket.org/owner/repo.git"
+    ):
         links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
 
     sl = links.get("docs/adr/0001-alpha.md", {})
@@ -942,7 +946,9 @@ def test_validate_rejects_dotdot_name(tmp_path: pathlib.Path) -> None:
 
 
 def test_validate_accepts_valid_name(tmp_path: pathlib.Path) -> None:
-    resolved_dir, full, _identity = EXPLORER._validate_destination(tmp_path, "decisions.html", FIXTURE)
+    resolved_dir, full, _identity = EXPLORER._validate_destination(
+        tmp_path, "decisions.html", FIXTURE
+    )
     assert full == tmp_path / "decisions.html"
     assert resolved_dir == tmp_path.resolve()
 
@@ -1050,13 +1056,9 @@ def test_export_refuses_unsafe_register(tmp_path: pathlib.Path) -> None:
     if reg_file.exists() or reg_file.is_symlink():
         reg_file.unlink()
     reg_file.symlink_to("/absolutely/nonexistent/dangling/target")
-    assert reg_file.is_symlink() and not reg_file.exists(), (
-        "register must be a dangling symlink"
-    )
+    assert reg_file.is_symlink() and not reg_file.exists(), "register must be a dangling symlink"
     result = EXPLORER.publish_explorer(corpus, destination=tmp_path / "dest")
-    assert result["status"] == "error", (
-        "dangling symlink register must refuse the export"
-    )
+    assert result["status"] == "error", "dangling symlink register must refuse the export"
     assert result["error"]["code"] in ("unsafe_input", "corpus_error"), (
         f"expected unsafe_input or corpus_error; got {result['error']!r}"
     )
@@ -1098,9 +1100,7 @@ def test_export_two_table_register_sum(tmp_path: pathlib.Path) -> None:
     html = pathlib.Path(result["path"]).read_text(encoding="utf-8")
     data = _extract_json_data(html)
     row_count = data["summary"]["register_files"]["rfc_candidates"]["row_count"]
-    assert row_count == 3, (
-        f"two-table register (1 + 2 data rows) must count 3; got {row_count}"
-    )
+    assert row_count == 3, f"two-table register (1 + 2 data rows) must count 3; got {row_count}"
 
 
 def test_export_summary_parity_with_query_summary(tmp_path: pathlib.Path) -> None:
@@ -1158,9 +1158,7 @@ def test_full_export_embeds_body_larger_than_1_mib(tmp_path: pathlib.Path) -> No
     # Body is 1.5 MiB (above the 1 MiB query limit, below the 2 MiB admission limit).
     big_body = "x" * (1024 * 1024 + 512 * 1024)
     content = (
-        "# ADR-0001: Big body record\n\n"
-        "- **Status:** Accepted\n\n"
-        f"## Context\n\n{big_body}\n"
+        f"# ADR-0001: Big body record\n\n- **Status:** Accepted\n\n## Context\n\n{big_body}\n"
     )
     (adr_dir / "0001-big.md").write_text(content)
     dest = tmp_path / "dest"
@@ -1170,9 +1168,7 @@ def test_full_export_embeds_body_larger_than_1_mib(tmp_path: pathlib.Path) -> No
     html = pathlib.Path(result["path"]).read_text(encoding="utf-8")
     data = _extract_json_data(html)
     body = data["records"][0]["body"]
-    assert body.get("available") is True, (
-        f"full export must embed 1.5 MiB body; got {body!r}"
-    )
+    assert body.get("available") is True, f"full export must embed 1.5 MiB body; got {body!r}"
     assert isinstance(body.get("content"), str) and big_body in body["content"], (
         "full export must carry the 1.5 MiB body text itself, not only an availability flag"
     )
@@ -1305,9 +1301,7 @@ def test_dot_segment_owner_repo_degrades_to_inert() -> None:
     that normalises to an unintended path on the forge.
     """
     result = EXPLORER._parse_github_identity("https://github.com/../..")
-    assert result is None, (
-        f"dot-segment owner/repo must be refused; got {result!r}"
-    )
+    assert result is None, f"dot-segment owner/repo must be refused; got {result!r}"
 
     import unittest.mock as _mock
 
@@ -1356,8 +1350,7 @@ def test_caller_assertions_in_relationships_data_island(tmp_path: pathlib.Path) 
         "data island must not carry 'embedded_assertions'; assertions go in relationships"
     )
     nav_only = [
-        r for r in data.get("relationships", [])
-        if r.get("trust_class") == "navigation_only"
+        r for r in data.get("relationships", []) if r.get("trust_class") == "navigation_only"
     ]
     assert len(nav_only) == 1, f"expected 1 navigation_only relationship; got {nav_only!r}"
     a = nav_only[0]
@@ -1454,9 +1447,7 @@ def test_support_refs_in_data_island_mixed(tmp_path: pathlib.Path) -> None:
     # Corpus-level support refs (README.md).
     corpus_refs = data.get("corpus_support_refs", [])
     readme_refs = [sr for sr in corpus_refs if sr.get("kind") == "readme"]
-    assert readme_refs, (
-        f"corpus_support_refs should include a readme; got {corpus_refs!r}"
-    )
+    assert readme_refs, f"corpus_support_refs should include a readme; got {corpus_refs!r}"
     readme_paths = [sr["path"] for sr in readme_refs]
     assert any("README.md" in p for p in readme_paths), (
         f"README.md path expected in corpus refs; got {readme_paths!r}"
@@ -1474,16 +1465,10 @@ def test_support_refs_paths_are_inert_strings(tmp_path: pathlib.Path) -> None:
         all_refs.extend(rec.get("support_refs", []))
     for sr in all_refs:
         # Each support ref must have path (str) and kind (str).
-        assert isinstance(sr.get("path"), str), (
-            f"support ref path must be a string; got {sr!r}"
-        )
-        assert isinstance(sr.get("kind"), str), (
-            f"support ref kind must be a string; got {sr!r}"
-        )
+        assert isinstance(sr.get("path"), str), f"support ref path must be a string; got {sr!r}"
+        assert isinstance(sr.get("kind"), str), f"support ref kind must be a string; got {sr!r}"
         # No URL field — inert references only.
-        assert "url" not in sr, (
-            f"support refs must not have a url field; got {sr!r}"
-        )
+        assert "url" not in sr, f"support refs must not have a url field; got {sr!r}"
 
 
 def test_provenance_not_interpolated_in_html(tmp_path: pathlib.Path) -> None:
@@ -1521,9 +1506,7 @@ def test_status_filter_options_use_display_value(tmp_path: pathlib.Path) -> None
     The JS must build status <option> elements with o.textContent = display_value
     so bidi-corrupted or hostile status values show their escaped form.
     """
-    js = _extract_runtime_js(
-        _html(tmp_path, fixture=FIXTURE)
-    )
+    js = _extract_runtime_js(_html(tmp_path, fixture=FIXTURE))
     # The JS must read display_value when building status options.
     assert "display_value" in js, (
         "JS runtime must reference 'display_value' for status filter options"
@@ -1541,9 +1524,7 @@ def test_hostile_export_csp_no_script_execution(tmp_path: pathlib.Path) -> None:
     assert r["status"] == "ok", r.get("error")
     html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
     # CSP must be present — both patterns are equivalent; match the canonical form.
-    csp_m = re.search(
-        r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html
-    )
+    csp_m = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html)
     assert csp_m, "CSP meta tag not found in hostile export"
     csp = csp_m.group(1)
     # script-src must exist in the CSP.
@@ -1574,13 +1555,9 @@ def test_bidi_export_data_island_contains_display_value(tmp_path: pathlib.Path) 
     raw = lc.get("raw_value", "")
     display = lc.get("display_value", "")
     # Raw value must preserve the bidi control (U+202E).
-    assert "‮" in raw, (
-        f"raw_value must preserve U+202E bidi override; got {raw!r}"
-    )
+    assert "‮" in raw, f"raw_value must preserve U+202E bidi override; got {raw!r}"
     # Display value must not contain the raw bidi override character.
-    assert "‮" not in display, (
-        f"display_value must escape U+202E bidi override; got {display!r}"
-    )
+    assert "‮" not in display, f"display_value must escape U+202E bidi override; got {display!r}"
 
 
 def test_trust_labels_in_own_elements_js(tmp_path: pathlib.Path) -> None:
@@ -1633,9 +1610,7 @@ def test_markdown_renderer_no_unsafe_apis(tmp_path: pathlib.Path) -> None:
         'setAttribute("on',
     ]
     for api in forbidden:
-        assert api not in js, (
-            f"Forbidden API {api!r} found in inlined JS runtime"
-        )
+        assert api not in js, f"Forbidden API {api!r} found in inlined JS runtime"
 
 
 # ── T7 stage 2a: ITEM 3 — CSP has all required directives ────────────────────
@@ -1655,9 +1630,7 @@ def test_csp_all_directives_present(tmp_path: pathlib.Path) -> None:
         "form-action 'none'",
     ]
     for directive in required:
-        assert directive in csp, (
-            f"CSP directive {directive!r} missing; full CSP: {csp!r}"
-        )
+        assert directive in csp, f"CSP directive {directive!r} missing; full CSP: {csp!r}"
 
 
 # ── T7 stage 2a: ITEM 4 — superseded_by derives from checked relationships ───
@@ -1698,10 +1671,11 @@ def test_csp_provenance_not_in_static_html(tmp_path: pathlib.Path) -> None:
     # Strip the data island entirely.
     data_m = re.search(
         r'(<script type="application/json" id="nav-data">)(.*?)(</script>)',
-        html, re.DOTALL,
+        html,
+        re.DOTALL,
     )
     assert data_m, "nav-data block not found"
-    html_without_data = html[:data_m.start(2)] + html[data_m.end(2):]
+    html_without_data = html[: data_m.start(2)] + html[data_m.end(2) :]
     # The word "untrusted_data" is a provenance-only key and must not appear in static HTML.
     assert "untrusted_data" not in html_without_data, (
         "provenance key 'untrusted_data' must not be interpolated into static HTML; "
@@ -1806,19 +1780,13 @@ def test_parse_github_identity_non_allowlisted_host_returns_none() -> None:
     """
     # HTTPS non-allowlisted host.
     result = EXPLORER._parse_github_identity("https://gitlab.com/owner/repo.git")
-    assert result is None, (
-        f"gitlab.com is not in allowlist; expected None, got {result!r}"
-    )
+    assert result is None, f"gitlab.com is not in allowlist; expected None, got {result!r}"
     # SSH non-allowlisted host.
     result2 = EXPLORER._parse_github_identity("git@bitbucket.org:owner/repo.git")
-    assert result2 is None, (
-        f"bitbucket.org is not in allowlist; expected None, got {result2!r}"
-    )
+    assert result2 is None, f"bitbucket.org is not in allowlist; expected None, got {result2!r}"
     # Allowlisted host still works.
     result3 = EXPLORER._parse_github_identity("https://github.com/owner/repo.git")
-    assert result3 == ("owner", "repo"), (
-        f"github.com must be accepted; got {result3!r}"
-    )
+    assert result3 == ("owner", "repo"), f"github.com must be accepted; got {result3!r}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1827,10 +1795,12 @@ def test_parse_github_identity_non_allowlisted_host_returns_none() -> None:
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX-only dir-swap test")
+@pytest.mark.parametrize("swap_phase", ["mkstemp", "os.link"])
 def test_directory_swap_between_validation_and_publish_refused(
-    tmp_path: pathlib.Path,
+    tmp_path: pathlib.Path, swap_phase: str
 ) -> None:
-    """A directory swapped between validation and mkstemp is detected and refused.
+    """A directory swapped before mkstemp, or after it and before os.link, is
+    detected by that phase's identity re-check and refused with publish_failed.
 
     _validate_destination records (st_dev, st_ino) of the directory.
     _publish_atomically re-checks the identity before mkstemp; if it has changed,
@@ -1850,7 +1820,7 @@ def test_directory_swap_between_validation_and_publish_refused(
     real_check_dir_identity = EXPLORER._check_dir_identity
 
     def swapping_check(dir_path, expected, phase):  # type: ignore[no-untyped-def]
-        if phase == "mkstemp" and not swap_done["done"]:
+        if phase == swap_phase and not swap_done["done"]:
             swap_done["done"] = True
             # Rename the real directory away and put a new one in its place.
             real_dir.rename(swapped_dir)
@@ -1865,9 +1835,9 @@ def test_directory_swap_between_validation_and_publish_refused(
             mode="bounded",
         )
 
-    assert result["status"] == "error", (
-        f"directory swap must cause a refusal; got {result!r}"
-    )
+    assert result["status"] == "error", f"directory swap must cause a refusal; got {result!r}"
+    assert swap_done["done"], "the swap must have happened at the named phase"
+    assert result["error"]["code"] == "publish_failed", result
     # No file in the swapped-in directory.
     assert not list(real_dir.glob("*.html")), (
         "no HTML file must be present in the swapped-in directory"
@@ -1892,9 +1862,7 @@ def test_display_source_present_on_records(tmp_path: pathlib.Path) -> None:
     html = _html(tmp_path, mode="bounded")
     data = _extract_json_data(html)
     for rec in data.get("records", []):
-        assert "display_source" in rec, (
-            f"record {rec.get('id')} missing display_source"
-        )
+        assert "display_source" in rec, f"record {rec.get('id')} missing display_source"
         # display_source must be a string.
         assert isinstance(rec["display_source"], str), (
             f"display_source must be a string; got {type(rec['display_source'])!r}"
@@ -1916,9 +1884,7 @@ def test_display_path_present_on_support_refs(tmp_path: pathlib.Path) -> None:
                 f"support_ref for {rec.get('id')} missing display_path: {sref!r}"
             )
     for sref in data.get("corpus_support_refs", []):
-        assert "display_path" in sref, (
-            f"corpus_support_ref missing display_path: {sref!r}"
-        )
+        assert "display_path" in sref, f"corpus_support_ref missing display_path: {sref!r}"
 
 
 def test_assertion_tuple_has_display_from_display_to(tmp_path: pathlib.Path) -> None:
@@ -1928,7 +1894,7 @@ def test_assertion_tuple_has_display_from_display_to(tmp_path: pathlib.Path) -> 
     display_from/display_to field but preserved as-is in 'from'/'to'.
     """
     bidi_from = "ADR‮0001"  # RLO before "0001"
-    bidi_to = "RFC-​0050"   # ZWS in the middle
+    bidi_to = "RFC-​0050"  # ZWS in the middle
     r = EXPLORER.publish_explorer(
         FIXTURE,
         destination=tmp_path,
@@ -1938,8 +1904,7 @@ def test_assertion_tuple_has_display_from_display_to(tmp_path: pathlib.Path) -> 
     html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
     data = _extract_json_data(html)
     nav_only = [
-        rel for rel in data.get("relationships", [])
-        if rel.get("trust_class") == "navigation_only"
+        rel for rel in data.get("relationships", []) if rel.get("trust_class") == "navigation_only"
     ]
     assert nav_only, "no navigation_only relationship in data island"
     a = nav_only[0]
@@ -1952,9 +1917,7 @@ def test_assertion_tuple_has_display_from_display_to(tmp_path: pathlib.Path) -> 
     assert "‮" not in a["display_from"], (
         f"display_from must escape U+202E; got {a['display_from']!r}"
     )
-    assert "​" not in a["display_to"], (
-        f"display_to must escape U+200B; got {a['display_to']!r}"
-    )
+    assert "​" not in a["display_to"], f"display_to must escape U+200B; got {a['display_to']!r}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2030,14 +1993,10 @@ def test_assertion_tuple_parity_query_vs_export(tmp_path: pathlib.Path) -> None:
     )
     assert q["status"] == "ok", f"context query failed: {q!r}"
     query_nav = [
-        r for r in q.get("relationships", [])
-        if r.get("trust_class") == "navigation_only"
+        r for r in q.get("relationships", []) if r.get("trust_class") == "navigation_only"
     ]
     assert query_nav, "query context must include navigation_only relationship"
-    q_tuple = {
-        k: v for k, v in query_nav[0].items()
-        if not k.startswith("display_")
-    }
+    q_tuple = {k: v for k, v in query_nav[0].items() if not k.startswith("display_")}
 
     # Export side.
     r = EXPLORER.publish_explorer(
@@ -2050,14 +2009,10 @@ def test_assertion_tuple_parity_query_vs_export(tmp_path: pathlib.Path) -> None:
     html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
     data = _extract_json_data(html)
     export_nav = [
-        rel for rel in data.get("relationships", [])
-        if rel.get("trust_class") == "navigation_only"
+        rel for rel in data.get("relationships", []) if rel.get("trust_class") == "navigation_only"
     ]
     assert export_nav, "export data island must include navigation_only relationship"
-    e_tuple = {
-        k: v for k, v in export_nav[0].items()
-        if not k.startswith("display_")
-    }
+    e_tuple = {k: v for k, v in export_nav[0].items() if not k.startswith("display_")}
 
     # Tuples must match on all non-display fields.
     assert q_tuple == e_tuple, (
@@ -2079,17 +2034,11 @@ def test_export_over_budget_error_has_limits_observed(tmp_path: pathlib.Path) ->
         r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path)
 
     assert r["status"] == "error", f"over-budget export must be refused; got {r!r}"
-    assert r["error"]["code"] == "over_budget", (
-        f"expected over_budget; got {r['error']['code']!r}"
-    )
+    assert r["error"]["code"] == "over_budget", f"expected over_budget; got {r['error']['code']!r}"
     assert "limits" in r["error"], "over_budget error must carry 'limits'"
     assert "observed" in r["error"], "over_budget error must carry 'observed'"
-    assert "budget_bytes" in r["error"]["limits"], (
-        "limits must carry budget_bytes"
-    )
-    assert "estimated_bytes" in r["error"]["observed"], (
-        "observed must carry estimated_bytes"
-    )
+    assert "budget_bytes" in r["error"]["limits"], "limits must carry budget_bytes"
+    assert "estimated_bytes" in r["error"]["observed"], "observed must carry estimated_bytes"
 
 
 def test_export_invalid_destination_error_has_limits_observed(
@@ -2108,3 +2057,51 @@ def test_export_invalid_destination_error_has_limits_observed(
     )
     assert "limits" in r["error"], "error must carry 'limits'"
     assert "observed" in r["error"], "error must carry 'observed'"
+
+
+@pytest.mark.parametrize(
+    ("remote_branches", "expected"),
+    [("  upstream/main\n  fork/feature", "branch_latest"), ("  origin/main", "commit_pinned")],
+    ids=["only-on-other-remote", "on-origin"],
+)
+def test_commit_pinned_requires_head_on_origin(remote_branches: str, expected: str) -> None:
+    """The link points at origin, so a commit-pinned link needs HEAD on an origin
+    tracking branch; a HEAD only on another remote gets the may-be-newer label."""
+    import unittest.mock as _mock
+
+    def mock_git(args: list, cwd: str, timeout: int = 5) -> str | None:
+        if args == ["config", "--get", "remote.origin.url"]:
+            return "https://github.com/owner/repo.git"
+        if args == ["rev-parse", "HEAD"]:
+            return "e" * 40
+        if args[0] == "status":
+            return ""
+        if args[:3] == ["branch", "-r", "--contains"]:
+            return remote_branches
+        return None
+
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
+        links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
+    assert links["docs/adr/0001-alpha.md"]["kind"] == expected
+
+
+def test_export_register_refusal_carries_the_query_limit(tmp_path: pathlib.Path) -> None:
+    """An oversized register refuses the export with the same limit the query
+    reports, max_register_bytes."""
+    import shutil
+
+    root = tmp_path / "corpus"
+    shutil.copytree(FIXTURE, root)
+    reg = root / "docs" / "product" / "findings" / "rfc-candidates.md"
+    reg.parent.mkdir(parents=True, exist_ok=True)
+    reg.write_text("| a |\n| - |\n" + "| x |\n" * 700_000, encoding="utf-8")
+    out = tmp_path / "out"
+    out.mkdir()
+    result = EXPLORER.publish_explorer(root, destination=out, name="r.html", mode="bounded")
+    query = NAV.run_query(root, {"operation": "summary"})
+    assert result["status"] == "error" and query["status"] == "error", (result, query)
+    assert result["error"]["code"] == query["error"]["code"] == "input_too_large"
+    assert result["error"]["limits"] == query["error"]["limits"], (result, query)

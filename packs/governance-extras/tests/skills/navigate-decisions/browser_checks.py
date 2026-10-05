@@ -1244,8 +1244,8 @@ def test_theme_toggle_sets_and_remembers_the_theme(
 
 
 def test_links_are_readable_in_both_themes(browser: object, export_mixed: pathlib.Path) -> None:
-    """AC-0025: the superseded-by link inside the banner, and the source link in
-    detail, reach 4.5:1 contrast in light and dark themes."""
+    """AC-0025: the superseded-by link inside the list banner reaches 4.5:1
+    contrast in light and dark themes. (Test exports have no source links.)"""
     page = _open_page(browser, export_mixed)
     page.wait_for_selector("li.record-item")
     for choice in ("light", "dark"):
@@ -1393,7 +1393,7 @@ def export_bidi_paths(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
     adr.mkdir(parents=True)
     head = (
         "- **Status:** Accepted\n- **Date:** 2024-03-15\n- **Supersedes:** none\n"
-        "- **Superseded by:** none\n"
+        "- **Superseded by:** none\n- **Related:** a wrapped value\n  that continues here\n"
     )
     (adr / "0001-left‏right؜.md").write_text(
         "# ADR-0001: Marked name\n\n" + head + "\n## Context\n\nBody.\n", encoding="utf-8"
@@ -1451,6 +1451,8 @@ def test_detail_shows_every_header_field_exactly(
           .map(tr => [tr.cells[0].textContent, tr.cells[1].textContent])"""
     )
     assert ["Date", "2024-03-15"] in rows, rows
+    assert ["Related", "a wrapped value\n  that continues here"] in rows, rows
+    assert [r[0] for r in rows].count("Status") == 1, rows
     assert ["Supersedes", "none"] in rows, rows
     assert ["Superseded by", "none"] in rows, rows
 
@@ -1469,3 +1471,239 @@ def test_caller_assertion_is_drawn_and_listed_in_the_graph(
         ".map(li => li.textContent)"
     )
     assert any("[navigation_only · caller_asserted]" in t for t in listed), listed
+
+
+# ── Review round 3 ─────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def export_chain_assertions(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """ADR-0002 supersedes ADR-0001; ADR-0003 stands alone. Assertions join two
+    chain members (0002→0001) and a chain member to an outside record (0002→0003)."""
+    root = tmp_path_factory.mktemp("chain_assert_fixture")
+    _build_corpus(
+        root,
+        [
+            (1, "Old", "- **Status:** Superseded\n- **Superseded by:** ADR-0002\n"),
+            (2, "New", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+            (3, "Other", "- **Status:** Accepted\n"),
+        ],
+    )
+    out = tmp_path_factory.mktemp("browser_chain_assert")
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        root,
+        destination=out,
+        mode="full",
+        name="chain_assert.html",
+        assertions=[
+            {"from": "ADR-0002", "to": "ADR-0001", "text": "in chain"},
+            {"from": "ADR-0002", "to": "ADR-0003", "text": "outside"},
+        ],
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+def test_caller_assertions_are_drawn_in_chain_and_as_satellites(
+    browser: object, export_chain_assertions: pathlib.Path
+) -> None:
+    """AC-0026: both caller assertions touching the selected record are drawn in
+    the diagram — one between chain members, one to a satellite — and listed with
+    the same identities in the text equivalent."""
+    page = _open_page(browser, export_chain_assertions)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0002")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    drawn = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph svg [data-rel]')]"
+        ".map(e => e.dataset.rel)"
+    )
+    listed = page.evaluate(
+        "() => [...document.querySelectorAll('.lineage-text li.lt-rel')].map(e => e.dataset.rel)"
+    )
+    assert sorted(drawn) == sorted(listed), (drawn, listed)
+    assert "ADR-0002|guidance|ADR-0001|navigation_only" in drawn, drawn
+    assert "ADR-0002|guidance|ADR-0003|navigation_only" in drawn, drawn
+
+
+def test_partial_edges_differ_by_line_style_in_focus_and_atlas(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0026: partial supersession is a hollow double line with an "in part"
+    label in the focused diagram and in the atlas, not colour alone."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    widths = page.evaluate(
+        """() => Object.fromEntries([...document.querySelectorAll('#view-graph svg [data-rel]')]
+          .map(e => [e.dataset.rel.split('|')[1], e.getAttribute('stroke-width')]))"""
+    )
+    assert widths.get("supersedes_in_part") == "4", widths
+    page.click("button.atlas-back")
+    page.wait_for_selector(".chain-card svg")
+    info = page.evaluate(
+        """() => { const card = [...document.querySelectorAll('.chain-card')]
+            .find(c => c.querySelector('[data-node-id="ADR-0020"]'));
+          return { labels: [...card.querySelectorAll('text')].map(t => t.textContent),
+            wide: card.querySelectorAll('path[stroke-width="3.5"]').length }; }"""
+    )
+    assert "in part" in info["labels"] and info["wide"] == 1, info
+
+
+@pytest.fixture(scope="module")
+def export_bidi_status(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """One record whose Status carries an RLO control."""
+    root = tmp_path_factory.mktemp("bidi_status_fixture")
+    _build_corpus(root, [(1, "Bidi status", "- **Status:** Acc‮epted\n")])
+    return _export(tmp_path_factory, root, "bidi_status")
+
+
+def test_status_filter_text_is_escaped_in_no_results(
+    browser: object, export_bidi_status: pathlib.Path
+) -> None:
+    """AC-0006/AC-0010: the active status shown in the no-results message and the
+    live region uses the visible escape, never the raw control."""
+    page = _open_page(browser, export_bidi_status)
+    page.wait_for_selector("li.record-item")
+    page.select_option("#status-filter", index=1)
+    page.locator("#search-input").fill("zzzz-no-match")
+    page.wait_for_selector(".empty-msg")
+    msg = page.locator(".empty-msg").text_content() or ""
+    live = page.locator("#live-region").text_content() or ""
+    for text in (msg, live):
+        assert "‮" not in text and "Acc[U+202E]epted" in text, text
+
+
+def test_unknown_route_id_is_escaped_and_capped(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """A record ID taken from the URL is untrusted: its controls are escaped and
+    its length capped in every not-in-export message."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    hostile = "ADR-‮" + "x" * 300
+    for view in ("graph", "context", "detail"):
+        page.evaluate(
+            "([v, h]) => { location.hash = '#' + v + '/' + encodeURIComponent(h); }",
+            [view, hostile],
+        )
+        page.wait_for_function(
+            f"() => document.getElementById('view-{view}').textContent"
+            ".includes('is not in this export.')"
+        )
+        text = page.locator(f"#view-{view} .empty-msg").first.text_content() or ""
+        assert "‮" not in text and "[U+202E]" in text, (view, text[:80])
+        assert len(text) < 100, (view, len(text))
+
+
+def test_damaged_data_island_shows_a_recovery_alert(
+    browser: object, export_mixed: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    """FE-F4: an export whose data island cannot be parsed shows a role=alert
+    message inside the main area and raises no page error."""
+    html = export_mixed.read_text(encoding="utf-8")
+    start = html.index('<script type="application/json" id="nav-data">')
+    end = html.index("</script>", start)
+    damaged = html[:start] + '<script type="application/json" id="nav-data">{bad' + html[end:]
+    target = tmp_path / "damaged.html"
+    target.write_text(damaged, encoding="utf-8")
+    page = _open_page(browser, target)
+    alert = page.locator('#app-main [role="alert"]')
+    alert.wait_for()
+    assert "Run the export again" in (alert.text_content() or "")
+    assert not page._errors  # type: ignore[attr-defined]
+
+
+def test_expand_label_follows_sections_toggled_by_hand(
+    browser: object, export_long_and_related: pathlib.Path
+) -> None:
+    """After Expand all, closing one section by hand flips the label back to
+    Expand all, so the button always names what it will do."""
+    page = _open_page(browser, export_long_and_related)
+    page.wait_for_selector("li.record-item")
+    _render_body(page)
+    page.wait_for_selector("#view-detail .rel-details")
+    page.click("#expand-all-btn")
+    assert page.locator("#expand-all-btn").text_content() == "Collapse all"
+    page.locator("#view-detail .rel-details summary").click()
+    page.wait_for_function(
+        "() => document.getElementById('expand-all-btn').textContent === 'Expand all'"
+    )
+
+
+def test_supersession_state_is_named_and_marked_in_both_graph_views(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """Graph nodes name their supersession state in their accessible name, and
+    the atlas marks IDs like the list: struck through for full, underlined for
+    partial."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    label = page.get_attribute('[data-node-id="ADR-0001"]', "aria-label") or ""
+    assert label.endswith(", superseded in part"), label
+    page.click("button.atlas-back")
+    page.wait_for_selector(".chain-card svg")
+    deco = page.evaluate(
+        """() => Object.fromEntries(['ADR-0001', 'ADR-0002', 'ADR-0020'].map(id =>
+          [id, document.querySelector(`.chain-card [data-node-id="${id}"] text`)
+            .getAttribute('text-decoration')]))"""
+    )
+    assert deco == {"ADR-0001": "underline", "ADR-0002": "line-through", "ADR-0020": None}, deco
+
+
+@pytest.fixture(scope="module")
+def export_tag_title(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """One record whose title hides ASCII in Unicode tag characters."""
+    root = tmp_path_factory.mktemp("tag_title_fixture")
+    _build_corpus(root, [(1, "Visible\U000e0068\U000e0069 title", "- **Status:** Accepted\n")])
+    return _export(tmp_path_factory, root, "tag_title")
+
+
+def test_tag_characters_are_visibly_escaped(
+    browser: object, export_tag_title: pathlib.Path
+) -> None:
+    """Tag characters (above U+FFFF) render as visible escapes in list and detail."""
+    page = _open_page(browser, export_tag_title)
+    page.wait_for_selector("li.record-item")
+    for view in ("list", "detail"):
+        page.evaluate(f"() => {{ location.hash = '#{view}/ADR-0001'; }}")
+        page.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
+        text = page.locator(f"#view-{view}").text_content() or ""
+        assert "\U000e0068" not in text and "[U+E0068]" in text, (view, text[:200])
+
+
+def test_bounded_notice_is_readable_in_dark_mode(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """The bounded-mode body notice and its source link keep 4.5:1 contrast in the
+    dark theme. Git is faked so the export carries a source link."""
+    import unittest.mock as _mock
+
+    def fake_git(args: list, cwd: str, timeout: int = 5) -> str | None:
+        if args == ["config", "--get", "remote.origin.url"]:
+            return "https://github.com/owner/repo.git"
+        if args == ["rev-parse", "HEAD"]:
+            return "e" * 40
+        if args[0] == "status":
+            return " M docs/adr/0001-alpha.md"
+        if args[:3] == ["branch", "-r", "--contains"]:
+            return ""
+        return None
+
+    out = tmp_path_factory.mktemp("browser_bounded")
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=fake_git),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
+        r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+            FIXTURE_MIXED, destination=out, mode="bounded", name="bounded.html"
+        )
+    assert r["status"] == "ok", r.get("error")
+    page = _open_page(browser, pathlib.Path(r["path"]))
+    page.wait_for_selector("li.record-item")
+    page.click("[data-theme-choice=dark]")
+    page.evaluate("() => { location.hash = '#detail/ADR-0001'; }")
+    page.wait_for_selector("#view-detail .bounded-notice a")
+    assert _contrast(page, "#view-detail .bounded-notice") >= 4.5
+    assert _contrast(page, "#view-detail .bounded-notice a") >= 4.5

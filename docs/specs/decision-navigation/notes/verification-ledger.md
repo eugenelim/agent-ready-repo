@@ -434,7 +434,8 @@ with sync_playwright() as pw:
     res["network_requests_beyond_file"] = [u for u in reqs if not u.startswith("file:")]
     body = p.inner_text("body")
     res["policy_boundary_shown"] = "not a complete statement of the policy" in body.lower()
-    res["counts_shown"] = "238" in body
+    total = p.evaluate("JSON.parse(document.getElementById('nav-data').textContent).records.length")
+    res["counts_shown"] = f"{total}" in p.inner_text("#stat-cards")
     # keyboard: tab through, collect focused elements
     seen = []
     for _ in range(12):

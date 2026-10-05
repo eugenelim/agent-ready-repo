@@ -36,6 +36,23 @@
     --s-deprecated-bg:#450a0a;--s-deprecated-fg:#fca5a5;
     --s-default-bg:#1f2937;--s-default-fg:#d1d5db;
   }
+/* Before the script sets data-theme, follow the system so dark users see no light flash. */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme]){
+    --bg:#0f1117;
+    --surface:#1c1f2e;
+    --border:#2d3148;
+    --text:#e5e7eb;
+    --text-muted:#9ca3af;
+    --id-color:#60a5fa;
+    --accent:#60a5fa;
+    --s-accepted-bg:#052e16;--s-accepted-fg:#86efac;
+    --s-proposed-bg:#1e3a5f;--s-proposed-fg:#93c5fd;
+    --s-superseded-bg:#1f2937;--s-superseded-fg:#d1d5db;
+    --s-deprecated-bg:#450a0a;--s-deprecated-fg:#fca5a5;
+    --s-default-bg:#1f2937;--s-default-fg:#d1d5db;
+  }
+}
 
 /* ── Reset ── */
 *,*::before,*::after{box-sizing:border-box}
@@ -193,6 +210,12 @@ nav[aria-label="Views"] button[aria-current="page"]{
 .record-item.is-superseded .rtitle{color:var(--text-muted)}
 .record-item.is-superseded .rid{text-decoration:line-through}
 .record-item.is-superseded-part .rid{text-decoration:underline dashed;text-underline-offset:3px}
+.bounded-notice a{color:#1e3a8a}
+:root[data-theme="dark"] .bounded-notice{background:#3b2200;color:#fcd34d}
+:root[data-theme="dark"] .bounded-notice a{color:#bfdbfe}
+.lt-node-btn{background:none;border:0;padding:.2rem .3rem;font:inherit;text-align:left;
+  color:var(--id-color);cursor:pointer;min-height:24px}
+.lt-node-btn:hover{text-decoration:underline}
 .ctx-record{margin:.1rem 0 .5rem;color:var(--text-muted);font-size:.88rem}
 /* Links take the theme accent; the browser default blue is unreadable on dark. */
 :root{color-scheme:light}
@@ -454,3 +477,5 @@ a{color:var(--accent)}
 .atlas-back{margin:0 0 .6rem}
 .chain-atlas{display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start}
 .chain-atlas .chain-card{flex:1 1 auto;max-width:100%;margin:0}
+/* Header values keep their recorded line breaks. */
+.meta-table td{white-space:pre-wrap}

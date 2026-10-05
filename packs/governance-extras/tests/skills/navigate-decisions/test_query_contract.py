@@ -26,6 +26,7 @@ Verification discipline:
 Spec references are cited as ``spec:<section-line>`` where line numbers are
 approximate and the section name is the authoritative reference.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -115,13 +116,9 @@ def test_positive_rfc_records_exist() -> None:
 def test_support_material_present_in_adr_dir() -> None:
     """Support-material files exist: README.md, *-research.md, and NNNN-notes/."""
     assert (_ADR_DIR / "README.md").is_file(), "missing README.md support file"
-    assert (_ADR_DIR / "0002-x-research.md").is_file(), (
-        "missing *-research.md support file"
-    )
+    assert (_ADR_DIR / "0002-x-research.md").is_file(), "missing *-research.md support file"
     assert (_ADR_DIR / "0001-notes").is_dir(), "missing NNNN-notes/ subdirectory"
-    assert (_ADR_DIR / "0001-notes" / "some-note.md").is_file(), (
-        "missing file inside NNNN-notes/"
-    )
+    assert (_ADR_DIR / "0001-notes" / "some-note.md").is_file(), "missing file inside NNNN-notes/"
 
 
 def test_register_files_exist() -> None:
@@ -132,6 +129,7 @@ def test_register_files_exist() -> None:
 
 def test_register_files_have_table_rows() -> None:
     """rfc-candidates.md has 3 data rows and roadmap-intents.md has 2 data rows."""
+
     def _count_rows(path: pathlib.Path) -> int:
         rows = 0
         in_table = False
@@ -153,12 +151,8 @@ def test_register_files_have_table_rows() -> None:
 
     candidates_rows = _count_rows(_FINDINGS_DIR / "rfc-candidates.md")
     intents_rows = _count_rows(_FINDINGS_DIR / "roadmap-intents.md")
-    assert candidates_rows == 3, (
-        f"rfc-candidates.md: expected 3 data rows, got {candidates_rows}"
-    )
-    assert intents_rows == 2, (
-        f"roadmap-intents.md: expected 2 data rows, got {intents_rows}"
-    )
+    assert candidates_rows == 3, f"rfc-candidates.md: expected 3 data rows, got {candidates_rows}"
+    assert intents_rows == 2, f"roadmap-intents.md: expected 2 data rows, got {intents_rows}"
 
 
 def test_adr_0001_has_qualified_status() -> None:
@@ -201,9 +195,7 @@ def test_adr_0030_has_no_status_field() -> None:
         if past_h1:
             header_lines.append(line)
     header = "\n".join(header_lines)
-    assert "**Status:**" not in header, (
-        "ADR-0030 must have no Status field in its header region"
-    )
+    assert "**Status:**" not in header, "ADR-0030 must have no Status field in its header region"
 
 
 def test_adr_0001_related_forms_all_present() -> None:
@@ -254,12 +246,8 @@ def test_full_supersession_mirrors_present() -> None:
     """ADR-0002 and ADR-0003 have mirrored full supersession entries."""
     adr0002 = (_ADR_DIR / "0002-charlie.md").read_text(encoding="utf-8")
     adr0003 = (_ADR_DIR / "0003-bravo.md").read_text(encoding="utf-8")
-    assert "Superseded by:** ADR-0003" in adr0002, (
-        "ADR-0002 must have 'Superseded by: ADR-0003'"
-    )
-    assert "Supersedes:** ADR-0002" in adr0003, (
-        "ADR-0003 must have 'Supersedes: ADR-0002'"
-    )
+    assert "Superseded by:** ADR-0003" in adr0002, "ADR-0002 must have 'Superseded by: ADR-0003'"
+    assert "Supersedes:** ADR-0002" in adr0003, "ADR-0003 must have 'Supersedes: ADR-0002'"
 
 
 def test_unstated_scope_partial_mirrors_present() -> None:
@@ -359,9 +347,7 @@ def test_two_status_has_two_status_lines_in_header() -> None:
 def test_duplicate_ordinal_both_parse_as_adr_0001() -> None:
     """Both duplicate-ordinal fixture files have H1 ordinal 0001."""
     for name in ("0001-alpha.md", "0001-beta.md"):
-        text = (_NEG_DIR / "duplicate-ordinal" / "docs" / "adr" / name).read_text(
-            encoding="utf-8"
-        )
+        text = (_NEG_DIR / "duplicate-ordinal" / "docs" / "adr" / name).read_text(encoding="utf-8")
         assert text.startswith("# ADR-0001:"), (
             f"duplicate-ordinal/{name} must have H1 saying 'ADR-0001'"
         )
@@ -380,17 +366,13 @@ def test_unparseable_fixture_has_two_entries_in_one_field() -> None:
 
 def test_hostile_fixture_contains_script_tag() -> None:
     """The hostile fixture has script-tag content in title or body."""
-    text = (_NEG_DIR / "hostile" / "docs" / "adr" / "0001-hostile.md").read_text(
-        encoding="utf-8"
-    )
+    text = (_NEG_DIR / "hostile" / "docs" / "adr" / "0001-hostile.md").read_text(encoding="utf-8")
     assert "<script>" in text, "hostile fixture must contain '<script>' content"
 
 
 def test_bidi_fixture_contains_bidi_control() -> None:
     """The bidi fixture contains at least one bidirectional Unicode control."""
-    text = (_NEG_DIR / "bidi" / "docs" / "adr" / "0001-bidi.md").read_text(
-        encoding="utf-8"
-    )
+    text = (_NEG_DIR / "bidi" / "docs" / "adr" / "0001-bidi.md").read_text(encoding="utf-8")
     # U+202E RIGHT-TO-LEFT OVERRIDE or U+202C POP DIRECTIONAL FORMATTING
     bidi_controls = {"‮", "‬", "⁦", "⁩", "​", "﻿"}
     found = any(c in text for c in bidi_controls)
@@ -489,8 +471,16 @@ def test_record_response_envelope() -> None:
     provenance. A success adds records, relationships, and omissions."
     """
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
-    for key in ("schema", "status", "query", "boundary", "provenance",
-                "records", "relationships", "omissions"):
+    for key in (
+        "schema",
+        "status",
+        "query",
+        "boundary",
+        "provenance",
+        "records",
+        "relationships",
+        "omissions",
+    ):
         assert key in payload, f"response missing '{key}'"
 
 
@@ -504,9 +494,7 @@ def test_record_adr_0001_qualified_status_raw_value() -> None:
     """
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
     record = payload["records"][0]
-    assert record["lifecycle"]["raw_value"] == (
-        "Accepted (superseded in part by ADR-0020 for D3)"
-    )
+    assert record["lifecycle"]["raw_value"] == ("Accepted (superseded in part by ADR-0020 for D3)")
 
 
 def test_record_adr_0020_trailing_comment_stripped_from_raw_value() -> None:
@@ -564,9 +552,7 @@ def test_record_fields_include_id_kind_title_source() -> None:
     assert rec["kind"] == "ADR"
     assert isinstance(rec["title"], str) and rec["title"]
     assert "source" in rec
-    assert "header_fields" in rec, (
-        "record must carry 'header_fields' as an ordered list"
-    )
+    assert "header_fields" in rec, "record must carry 'header_fields' as an ordered list"
     assert isinstance(rec["header_fields"], list), (
         f"header_fields must be a list; got {type(rec['header_fields'])}"
     )
@@ -595,13 +581,9 @@ def test_record_header_fields_contains_supersession_entries() -> None:
     assert isinstance(hf, list), f"header_fields must be a list; got {type(hf)}"
     labels = [e["label"] for e in hf]
     # Date field pinned (added to fixture).
-    assert "Date" in labels, (
-        f"header_fields must include a 'Date' entry; got labels {labels}"
-    )
+    assert "Date" in labels, f"header_fields must include a 'Date' entry; got labels {labels}"
     date_entry = next(e for e in hf if e["label"] == "Date")
-    assert date_entry["raw_value"] == "2024-03-15", (
-        f"Date raw_value mismatch: {date_entry}"
-    )
+    assert date_entry["raw_value"] == "2024-03-15", f"Date raw_value mismatch: {date_entry}"
     assert date_entry["display_value"] == "2024-03-15", (
         f"Date display_value mismatch: {date_entry}"
     )
@@ -614,7 +596,12 @@ def test_record_header_fields_contains_supersession_entries() -> None:
         f"Supersedes raw_value must be 'none'; got {sup_entry!r}"
     )
     # At least one supersession label present.
-    supersession_labels = {"Supersedes", "Supersedes in part", "Superseded by", "Superseded in part"}
+    supersession_labels = {
+        "Supersedes",
+        "Supersedes in part",
+        "Superseded by",
+        "Superseded in part",
+    }
     present = supersession_labels & set(labels)
     assert present, (
         f"ADR-0001 declares supersession fields; header_fields must carry "
@@ -644,14 +631,17 @@ def test_record_returns_all_relationships_for_record() -> None:
     rels = payload["relationships"]
     # Must include the checked partial edge (ADR-0020 supersedes_in_part ADR-0001)
     assert any(
-        r.get("from") == "ADR-0020" and r.get("relation") == "supersedes_in_part"
+        r.get("from") == "ADR-0020"
+        and r.get("relation") == "supersedes_in_part"
         and r.get("to") == "ADR-0001"
         for r in rels
     ), "record must include checked partial edge from ADR-0020"
     # Must include the unresolved contextual reference to ADR-9999
     assert any(
-        r.get("from") == "ADR-0001" and r.get("relation") == "related"
-        and r.get("to") == "ADR-9999" and r.get("resolution_state") == "unresolved"
+        r.get("from") == "ADR-0001"
+        and r.get("relation") == "related"
+        and r.get("to") == "ADR-9999"
+        and r.get("resolution_state") == "unresolved"
         for r in rels
     ), "record must include unresolved contextual reference to ADR-9999"
 
@@ -727,13 +717,8 @@ def test_lineage_traverses_only_checked_relationships() -> None:
     )
     # The unresolved edge itself must still be reported with a non-checked trust class.
     rels = payload.get("relationships", [])
-    edge_to_002 = [
-        r for r in rels
-        if r.get("from") == "ADR-0001" and r.get("to") == "ADR-0002"
-    ]
-    assert edge_to_002, (
-        "lineage must include the one-sided edge from ADR-0001 as untraversed"
-    )
+    edge_to_002 = [r for r in rels if r.get("from") == "ADR-0001" and r.get("to") == "ADR-0002"]
+    assert edge_to_002, "lineage must include the one-sided edge from ADR-0001 as untraversed"
     assert edge_to_002[0].get("trust_class") != "checked", (
         "lineage must not classify an unresolved edge as checked"
     )
@@ -754,12 +739,11 @@ def test_lineage_includes_unchecked_relationships_as_untraversed() -> None:
     if payload["status"] == "ok":
         rels = payload.get("relationships", [])
         unresolved = [
-            r for r in rels
+            r
+            for r in rels
             if r.get("from") == "ADR-0001" and r.get("resolution_state") == "unresolved"
         ]
-        assert unresolved, (
-            "lineage must include the unresolved supersession entry from ADR-0001"
-        )
+        assert unresolved, "lineage must include the unresolved supersession entry from ADR-0001"
 
 
 def test_lineage_depth_limit_respected() -> None:
@@ -779,9 +763,7 @@ def test_lineage_depth_limit_respected() -> None:
     )
     assert payload_d1["status"] == "ok", f"lineage depth=1 failed: {payload_d1}"
     ids_d1 = {r["id"] for r in payload_d1["records"]}
-    assert "ADR-0002" in ids_d1, (
-        f"depth=1 from ADR-0003 must reach ADR-0002; got {ids_d1}"
-    )
+    assert "ADR-0002" in ids_d1, f"depth=1 from ADR-0003 must reach ADR-0002; got {ids_d1}"
     assert "ADR-0001" not in ids_d1, (
         f"depth=1 must not reach ADR-0001 (two hops away); got {ids_d1}"
     )
@@ -792,9 +774,7 @@ def test_lineage_depth_limit_respected() -> None:
     )
     assert payload_d2["status"] == "ok", f"lineage depth=2 failed: {payload_d2}"
     ids_d2 = {r["id"] for r in payload_d2["records"]}
-    assert "ADR-0001" in ids_d2, (
-        f"depth=2 must reach ADR-0001 (two hops); got {ids_d2}"
-    )
+    assert "ADR-0001" in ids_d2, f"depth=2 must reach ADR-0001 (two hops); got {ids_d2}"
 
 
 def test_lineage_partial_edge_with_scope() -> None:
@@ -808,8 +788,10 @@ def test_lineage_partial_edge_with_scope() -> None:
     )
     assert payload["status"] == "ok"
     partial_edges = [
-        r for r in payload["relationships"]
-        if r.get("from") == "ADR-0020" and r.get("to") == "ADR-0001"
+        r
+        for r in payload["relationships"]
+        if r.get("from") == "ADR-0020"
+        and r.get("to") == "ADR-0001"
         and r.get("relation") == "supersedes_in_part"
     ]
     assert partial_edges, "lineage must include the partial edge from ADR-0020 to ADR-0001"
@@ -830,8 +812,10 @@ def test_lineage_unstated_scope_partial_edge() -> None:
     )
     assert payload["status"] == "ok"
     partial_edges = [
-        r for r in payload["relationships"]
-        if r.get("from") == "ADR-0010" and r.get("to") == "ADR-0011"
+        r
+        for r in payload["relationships"]
+        if r.get("from") == "ADR-0010"
+        and r.get("to") == "ADR-0011"
         and r.get("relation") == "supersedes_in_part"
     ]
     assert partial_edges, "lineage must include unstated-scope partial edge ADR-0010->ADR-0011"
@@ -915,9 +899,7 @@ def test_search_non_list_selectors_fails() -> None:
     would cause this to crash or match the whole corpus.
     """
     payload = NAV.run_query(FIXTURE, {"operation": "search", "selectors": "ADR"})
-    assert payload["status"] == "error", (
-        "non-list selectors must be refused with an error"
-    )
+    assert payload["status"] == "error", "non-list selectors must be refused with an error"
     assert "error" in payload
     assert "code" in payload["error"]
 
@@ -954,9 +936,7 @@ def test_search_non_dict_selector_element_fails() -> None:
         FIXTURE,
         {"operation": "search", "selectors": ["ADR"]},
     )
-    assert payload["status"] == "error", (
-        "a non-dict selector element must be refused"
-    )
+    assert payload["status"] == "error", "a non-dict selector element must be refused"
 
 
 # ── context operation ─────────────────────────────────────────────────────────
@@ -980,8 +960,10 @@ def test_context_carries_resolved_relationships_between_returned_records() -> No
     rels = payload["relationships"]
     # The checked partial edge between ADR-0020 and ADR-0001 must appear
     checked = [
-        r for r in rels
-        if r.get("from") == "ADR-0020" and r.get("to") == "ADR-0001"
+        r
+        for r in rels
+        if r.get("from") == "ADR-0020"
+        and r.get("to") == "ADR-0001"
         and r.get("trust_class") == "checked"
     ]
     assert checked, "context must include the checked partial edge ADR-0020 -> ADR-0001"
@@ -1002,7 +984,8 @@ def test_context_includes_unresolved_relationships_from_returned_records() -> No
     )
     assert payload["status"] == "ok"
     unresolved = [
-        r for r in payload["relationships"]
+        r
+        for r in payload["relationships"]
         if r.get("from") == "ADR-0001" and r.get("resolution_state") == "unresolved"
     ]
     assert unresolved, "context must include unresolved reference to ADR-9999 from ADR-0001"
@@ -1026,8 +1009,7 @@ def test_context_caller_assertion_trust_class() -> None:
     )
     assert payload["status"] == "ok"
     caller_rels = [
-        r for r in payload["relationships"]
-        if r.get("trust_class") == "navigation_only"
+        r for r in payload["relationships"] if r.get("trust_class") == "navigation_only"
     ]
     assert caller_rels, "context must include caller assertions with trust_class=navigation_only"
     for rel in caller_rels:
@@ -1045,8 +1027,10 @@ def test_relationship_closed_value_set_checked_full() -> None:
     """
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0003"})
     checked_full = [
-        r for r in payload["relationships"]
-        if r.get("from") == "ADR-0003" and r.get("to") == "ADR-0002"
+        r
+        for r in payload["relationships"]
+        if r.get("from") == "ADR-0003"
+        and r.get("to") == "ADR-0002"
         and r.get("relation") == "supersedes"
     ]
     assert checked_full, "ADR-0003 record must include the checked full supersession relationship"
@@ -1067,8 +1051,10 @@ def test_relationship_closed_value_set_checked_partial() -> None:
     """
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0020"})
     checked_partial = [
-        r for r in payload["relationships"]
-        if r.get("from") == "ADR-0020" and r.get("to") == "ADR-0001"
+        r
+        for r in payload["relationships"]
+        if r.get("from") == "ADR-0020"
+        and r.get("to") == "ADR-0001"
         and r.get("relation") == "supersedes_in_part"
         and r.get("trust_class") == "checked"
     ]
@@ -1090,8 +1076,10 @@ def test_relationship_closed_value_set_contextual_reference() -> None:
     """
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
     contextual = [
-        r for r in payload["relationships"]
-        if r.get("from") == "ADR-0001" and r.get("relation") == "related"
+        r
+        for r in payload["relationships"]
+        if r.get("from") == "ADR-0001"
+        and r.get("relation") == "related"
         and r.get("to") == "ADR-0002"
     ]
     assert contextual, "ADR-0001 record must include contextual reference to ADR-0002"
@@ -1113,7 +1101,8 @@ def test_relationship_unresolved_contextual_reference() -> None:
     """
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
     unresolved_ctx = [
-        r for r in payload["relationships"]
+        r
+        for r in payload["relationships"]
         if r.get("from") == "ADR-0001" and r.get("to") == "ADR-9999"
     ]
     assert unresolved_ctx, "ADR-0001 must have unresolved reference to ADR-9999"
@@ -1131,8 +1120,10 @@ def test_relationship_source_is_superseding_record_for_checked_pair() -> None:
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0002"})
     # The checked full edge has ADR-0003 as the superseding record
     checked = [
-        r for r in payload["relationships"]
-        if r.get("from") == "ADR-0003" and r.get("to") == "ADR-0002"
+        r
+        for r in payload["relationships"]
+        if r.get("from") == "ADR-0003"
+        and r.get("to") == "ADR-0002"
         and r.get("trust_class") == "checked"
     ]
     assert checked, "ADR-0002 record must include the checked full edge from ADR-0003"
@@ -1204,9 +1195,7 @@ def test_relationships_sort_order() -> None:
     assert rels[0]["to"] is None, (
         "null to must sort before non-null to within the same from/relation/scope group"
     )
-    assert rels[1]["to"] == "ADR-0002", (
-        "non-null to must follow null to in sorted result"
-    )
+    assert rels[1]["to"] == "ADR-0002", "non-null to must follow null to in sorted result"
 
 
 def test_scope_sort_empty_before_stated() -> None:
@@ -1246,9 +1235,7 @@ def test_scope_sort_empty_before_stated() -> None:
     assert rels[0]["scope"] == [], (
         "scope=[] must sort before scope=['D3'] for the same from/relation/to"
     )
-    assert rels[1]["scope"] == ["D3"], (
-        "scope=['D3'] must follow scope=[] in sorted result"
-    )
+    assert rels[1]["scope"] == ["D3"], "scope=['D3'] must follow scope=[] in sorted result"
 
 
 # ── corpus admission failures ─────────────────────────────────────────────────
@@ -1303,8 +1290,7 @@ def test_one_sided_supersession_is_unresolved() -> None:
     assert payload["status"] == "ok"
     rels = payload["relationships"]
     supersedes_rels = [
-        r for r in rels
-        if r.get("from") == "ADR-0001" and r.get("relation") == "supersedes"
+        r for r in rels if r.get("from") == "ADR-0001" and r.get("relation") == "supersedes"
     ]
     assert supersedes_rels, "one-sided Supersedes entry must appear as a relationship"
     for rel in supersedes_rels:
@@ -1324,7 +1310,8 @@ def test_contradictory_scope_supersession_is_unresolved() -> None:
     payload = NAV.run_query(corpus, {"operation": "record", "id": "ADR-0001"})
     assert payload["status"] == "ok"
     partial_rels = [
-        r for r in payload["relationships"]
+        r
+        for r in payload["relationships"]
         if r.get("relation") == "supersedes_in_part" and r.get("from") == "ADR-0001"
     ]
     assert partial_rels, "contradictory partial supersession must appear as a relationship"
@@ -1393,7 +1380,9 @@ def test_unparseable_entries_never_merged() -> None:
     payload = NAV.run_query(corpus, {"operation": "record", "id": "ADR-0001"})
     assert payload["status"] == "ok"
     rels = payload["relationships"]
-    null_to_rels = [r for r in rels if r.get("to") is None and r.get("resolution_state") == "unresolved"]
+    null_to_rels = [
+        r for r in rels if r.get("to") is None and r.get("resolution_state") == "unresolved"
+    ]
     assert len(null_to_rels) >= 2, (
         f"two unparseable entries must produce two distinct unresolved relationships; "
         f"got {len(null_to_rels)}"
@@ -1455,19 +1444,11 @@ def test_bidi_raw_value_preserved_display_value_escaped() -> None:
     raw = lc["raw_value"]
     display = lc["display_value"]
     # raw_value must preserve the literal bidi control characters from the fixture.
-    assert "‮" in raw, (
-        "raw_value must preserve U+202E RIGHT-TO-LEFT OVERRIDE"
-    )
-    assert "‬" in raw, (
-        "raw_value must preserve U+202C POP DIRECTIONAL FORMATTING"
-    )
+    assert "‮" in raw, "raw_value must preserve U+202E RIGHT-TO-LEFT OVERRIDE"
+    assert "‬" in raw, "raw_value must preserve U+202C POP DIRECTIONAL FORMATTING"
     # display_value must visibly escape bidi controls — raw chars must not appear.
-    assert "‮" not in display, (
-        "display_value must not contain raw U+202E; it must be escaped"
-    )
-    assert "‬" not in display, (
-        "display_value must not contain raw U+202C; it must be escaped"
-    )
+    assert "‮" not in display, "display_value must not contain raw U+202E; it must be escaped"
+    assert "‬" not in display, "display_value must not contain raw U+202C; it must be escaped"
     # The escaped notation must be present so the user sees the literal code point.
     assert "[U+202E]" in display or "202E" in display, (
         "display_value must visibly annotate the escaped U+202E control"
@@ -1482,8 +1463,10 @@ def test_related_self_reference_excluded() -> None:
     payload = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
     rels = payload["relationships"]
     self_refs = [
-        r for r in rels
-        if r.get("from") == "ADR-0001" and r.get("to") == "ADR-0001"
+        r
+        for r in rels
+        if r.get("from") == "ADR-0001"
+        and r.get("to") == "ADR-0001"
         and r.get("relation") == "related"
     ]
     assert not self_refs, "self-reference ADR-0001 must not appear as a contextual reference"
@@ -1503,7 +1486,10 @@ def test_oversized_candidate_fails_with_input_too_large(tmp_path: pathlib.Path) 
     adr_dir.mkdir(parents=True)
     # Write a 2 MiB + 1 byte file named as a valid ADR candidate
     oversized = adr_dir / "0001-oversized.md"
-    oversized.write_bytes(b"# ADR-0001: Oversized\n\n- **Status:** Accepted\n\n## Context\n\n" + b"x" * (2 * 1024 * 1024))
+    oversized.write_bytes(
+        b"# ADR-0001: Oversized\n\n- **Status:** Accepted\n\n## Context\n\n"
+        + b"x" * (2 * 1024 * 1024)
+    )
     payload = NAV.run_query(tmp_path, {"operation": "summary"})
     assert payload["status"] == "error"
     assert payload["error"]["code"] == "input_too_large"
@@ -1840,7 +1826,9 @@ _BOUNDARY_QUERIES = [
 ]
 
 
-@pytest.mark.parametrize("query", _BOUNDARY_QUERIES, ids=[q["operation"] for q in _BOUNDARY_QUERIES])
+@pytest.mark.parametrize(
+    "query", _BOUNDARY_QUERIES, ids=[q["operation"] for q in _BOUNDARY_QUERIES]
+)
 def test_reference_policy_boundary_present_in_response(query: dict) -> None:
     """Every query response carries a 'boundary' field with the exact policy note.
 
@@ -1951,9 +1939,15 @@ def test_cli_query_unknown_record_exits_one() -> None:
     import contextlib
 
     with contextlib.redirect_stdout(buf):
-        code = NAV.main(
-            ["query", "--root", str(FIXTURE), "--operation", "record", "--id", "ADR-9999"]
-        )
+        code = NAV.main([
+            "query",
+            "--root",
+            str(FIXTURE),
+            "--operation",
+            "record",
+            "--id",
+            "ADR-9999",
+        ])
     assert code == 1, f"expected exit 1 for unknown record, got {code}"
     out = buf.getvalue()
     payload = json.loads(out)
@@ -1969,10 +1963,15 @@ def test_cli_query_invalid_selectors_json_exits_two() -> None:
     import contextlib
 
     with contextlib.redirect_stderr(err_buf):
-        code = NAV.main(
-            ["query", "--root", str(FIXTURE), "--operation", "search",
-             "--selectors", "{bad json"]
-        )
+        code = NAV.main([
+            "query",
+            "--root",
+            str(FIXTURE),
+            "--operation",
+            "search",
+            "--selectors",
+            "{bad json",
+        ])
     assert code == 2, f"expected exit 2 for invalid selectors JSON, got {code}"
 
 
@@ -1985,17 +1984,24 @@ def test_cli_query_operation_routes_to_run_query() -> None:
     import contextlib
 
     with contextlib.redirect_stdout(buf):
-        code = NAV.main(
-            ["query", "--root", str(FIXTURE), "--operation", "lineage",
-             "--id", "ADR-0003", "--direction", "older", "--depth", "1"]
-        )
+        code = NAV.main([
+            "query",
+            "--root",
+            str(FIXTURE),
+            "--operation",
+            "lineage",
+            "--id",
+            "ADR-0003",
+            "--direction",
+            "older",
+            "--depth",
+            "1",
+        ])
     assert code == 0
     payload = json.loads(buf.getvalue())
     assert payload["status"] == "ok"
     record_ids = {r["id"] for r in payload["records"]}
-    assert "ADR-0002" in record_ids, (
-        "lineage older depth=1 from ADR-0003 must include ADR-0002"
-    )
+    assert "ADR-0002" in record_ids, "lineage older depth=1 from ADR-0003 must include ADR-0002"
 
 
 def test_cli_export_dotdot_name_exits_two() -> None:
@@ -2011,9 +2017,7 @@ def test_cli_export_dotdot_name_exits_two() -> None:
 
     err_buf = io.StringIO()
     with contextlib.redirect_stderr(err_buf):
-        code = NAV.main(
-            ["export", "--root", str(FIXTURE), "--name", "../escape.html"]
-        )
+        code = NAV.main(["export", "--root", str(FIXTURE), "--name", "../escape.html"])
     assert code == 2, (
         f"expected exit 2 for dot-segment --name; got {code}\nstderr: {err_buf.getvalue()!r}"
     )
@@ -2029,9 +2033,7 @@ def test_cli_export_absolute_name_exits_two() -> None:
 
     err_buf = io.StringIO()
     with contextlib.redirect_stderr(err_buf):
-        code = NAV.main(
-            ["export", "--root", str(FIXTURE), "--name", "/etc/passwd.html"]
-        )
+        code = NAV.main(["export", "--root", str(FIXTURE), "--name", "/etc/passwd.html"])
     assert code == 2, (
         f"expected exit 2 for absolute --name; got {code}\nstderr: {err_buf.getvalue()!r}"
     )
@@ -2114,15 +2116,12 @@ def test_context_valid_assertion_accepted() -> None:
         {
             "operation": "context",
             "selectors": [{"kind": "ADR"}],
-            "assertions": [
-                {"from": "ADR-0001", "to": "ADR-0002", "text": "informs design"}
-            ],
+            "assertions": [{"from": "ADR-0001", "to": "ADR-0002", "text": "informs design"}],
         },
     )
     assert payload["status"] == "ok", f"valid assertion must be accepted; got {payload!r}"
     nav_only = [
-        r for r in payload.get("relationships", [])
-        if r.get("trust_class") == "navigation_only"
+        r for r in payload.get("relationships", []) if r.get("trust_class") == "navigation_only"
     ]
     assert nav_only, "caller assertion must appear as navigation_only relationship"
 
@@ -2148,9 +2147,7 @@ def test_h1_not_first_line_fails_whole_operation() -> None:
         content = "\n# ADR-0001: Record\n\n- **Status:** Accepted\n\n## Context\n\nBody.\n"
         (adr_dir / "0001-blank-first.md").write_text(content)
         payload = NAV.run_query(td_path, {"operation": "summary"})
-    assert payload["status"] == "error", (
-        "H1 not on first line must fail the whole operation"
-    )
+    assert payload["status"] == "error", "H1 not on first line must fail the whole operation"
     assert payload["error"]["code"] == "malformed_record", (
         f"expected malformed_record; got {payload['error']['code']!r}"
     )
@@ -2189,9 +2186,7 @@ def test_repeated_d_ids_form_set() -> None:
     """
     parseable, scope = NAV._parse_did_list(["D3", "D3", "D1", "D1"])
     assert parseable is True, "valid D-IDs with duplicates must be parseable"
-    assert scope == ["D1", "D3"], (
-        f"repeated D-IDs must be deduplicated; got {scope!r}"
-    )
+    assert scope == ["D1", "D3"], f"repeated D-IDs must be deduplicated; got {scope!r}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2212,9 +2207,7 @@ def test_query_refusal_has_documented_error_shape() -> None:
     err = payload["error"]
     assert isinstance(err, dict), f"error must be a dict; got {type(err)}"
     for field in ("code", "message", "limits", "observed"):
-        assert field in err, (
-            f"error dict must have '{field}' field; got keys: {list(err.keys())}"
-        )
+        assert field in err, f"error dict must have '{field}' field; got keys: {list(err.keys())}"
     assert isinstance(err["limits"], dict), "limits must be a dict"
     assert isinstance(err["observed"], dict), "observed must be a dict"
 
@@ -2247,9 +2240,7 @@ def test_dangling_symlink_register_is_unsafe_input() -> None:
             "fixture must be a dangling symlink"
         )
         payload = NAV.run_query(corpus, {"operation": "summary"})
-    assert payload["status"] == "error", (
-        "dangling symlink register must refuse the query"
-    )
+    assert payload["status"] == "error", "dangling symlink register must refuse the query"
     assert payload["error"]["code"] == "unsafe_input", (
         f"expected unsafe_input; got {payload['error']['code']!r}"
     )
@@ -2271,9 +2262,7 @@ def test_dangling_adr_dir_refuses_operation() -> None:
         adr_link.symlink_to("/nonexistent/path")
         assert adr_link.is_symlink() and not adr_link.exists()
         payload = NAV.run_query(td_path, {"operation": "summary"})
-    assert payload["status"] == "error", (
-        "dangling symlink corpus root must refuse the operation"
-    )
+    assert payload["status"] == "error", "dangling symlink corpus root must refuse the operation"
     assert payload["error"]["code"] in ("unsafe_input", "malformed_record"), (
         f"expected unsafe_input or malformed_record; got {payload['error']['code']!r}"
     )
@@ -2297,9 +2286,7 @@ def test_two_table_register_count_sums_all_tables() -> None:
         "| p | q |\n"
     )
     count = NAV._count_register_rows(text)
-    assert count == 3, (
-        f"two-table register (1 + 2 data rows) must count 3; got {count}"
-    )
+    assert count == 3, f"two-table register (1 + 2 data rows) must count 3; got {count}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2321,9 +2308,7 @@ def test_context_null_assertions_refused() -> None:
             "assertions": None,
         },
     )
-    assert payload["status"] == "error", (
-        f"assertions=None must be refused; got {payload!r}"
-    )
+    assert payload["status"] == "error", f"assertions=None must be refused; got {payload!r}"
     assert payload["error"]["code"] == "invalid_assertion", (
         f"expected invalid_assertion; got {payload['error']['code']!r}"
     )
@@ -2342,9 +2327,7 @@ def test_context_integer_assertions_refused() -> None:
             "assertions": 0,
         },
     )
-    assert payload["status"] == "error", (
-        f"assertions=0 must be refused; got {payload!r}"
-    )
+    assert payload["status"] == "error", f"assertions=0 must be refused; got {payload!r}"
     assert payload["error"]["code"] == "invalid_assertion", (
         f"expected invalid_assertion; got {payload['error']['code']!r}"
     )
@@ -2363,9 +2346,7 @@ def test_context_partial_dict_assertion_refused() -> None:
             "assertions": [{"from": "ADR-0001", "to": "ADR-0002"}],
         },
     )
-    assert payload["status"] == "error", (
-        f"partial assertion dict must be refused; got {payload!r}"
-    )
+    assert payload["status"] == "error", f"partial assertion dict must be refused; got {payload!r}"
     assert payload["error"]["code"] == "invalid_assertion", (
         f"expected invalid_assertion; got {payload['error']['code']!r}"
     )
@@ -2514,8 +2495,7 @@ def test_ac0021_conflict_resolution_both_records_returned(
     assert payload.get("status") == "ok", f"search failed: {payload!r}"
     ids = {r["id"] for r in payload.get("records", [])}
     assert "ADR-0001" in ids and "ADR-0002" in ids, (
-        "both conflicting records must be returned without a winner chosen; "
-        f"got ids {ids}"
+        f"both conflicting records must be returned without a winner chosen; got ids {ids}"
     )
 
 
@@ -2553,15 +2533,12 @@ def test_ac0021_grouping_edges_are_navigation_only(tmp_path: pathlib.Path) -> No
         {
             "operation": "context",
             "selectors": [{"kind": "ADR"}],
-            "assertions": [
-                {"from": "ADR-0001", "to": "ADR-0002", "text": "related by theme"}
-            ],
+            "assertions": [{"from": "ADR-0001", "to": "ADR-0002", "text": "related by theme"}],
         },
     )
     assert payload.get("status") == "ok", f"context with assertion failed: {payload!r}"
     nav_only = [
-        r for r in payload.get("relationships", [])
-        if r.get("trust_class") == "navigation_only"
+        r for r in payload.get("relationships", []) if r.get("trust_class") == "navigation_only"
     ]
     assert nav_only, "caller assertion must produce a navigation_only relationship"
     for r in nav_only:
@@ -2608,6 +2585,7 @@ def test_bounded_export_header_fields_include_date_and_supersedes_none(
     (corpus_dir / "docs" / "adr").mkdir(parents=True, exist_ok=True)
     # Copy the ADR file to the corpus subdirectory.
     import shutil as _shutil
+
     _shutil.copy2(
         str(adr_dir / "0001-alpha.md"),
         str(corpus_dir / "docs" / "adr" / "0001-alpha.md"),
@@ -2626,6 +2604,7 @@ def test_bounded_export_header_fields_include_date_and_supersedes_none(
 
     # Extract the data island JSON.
     import re as _re
+
     m = _re.search(
         r'<script type="application/json" id="nav-data">\s*(.*?)\s*</script>',
         html,
@@ -2642,11 +2621,79 @@ def test_bounded_export_header_fields_include_date_and_supersedes_none(
     labels = [e["label"] for e in hf]
     assert "Date" in labels, f"header_fields must include 'Date'; got {labels}"
     date_entry = next(e for e in hf if e["label"] == "Date")
-    assert date_entry["raw_value"] == "2024-06-01", (
-        f"Date raw_value mismatch: {date_entry}"
-    )
+    assert date_entry["raw_value"] == "2024-06-01", f"Date raw_value mismatch: {date_entry}"
     assert "Supersedes" in labels, f"header_fields must include 'Supersedes'; got {labels}"
     sup_entry = next(e for e in hf if e["label"] == "Supersedes")
     assert sup_entry["raw_value"] == "none", (
         f"Supersedes raw_value must be 'none'; got {sup_entry!r}"
     )
+
+
+@pytest.mark.parametrize(
+    "assertions",
+    ["5", '{"from": "ADR-0001"}', '[{"from": "ADR-0001", "to": 1, "text": "x"}]'],
+    ids=["number", "object", "non-string-field"],
+)
+def test_cli_export_refuses_malformed_assertions(
+    tmp_path: pathlib.Path, assertions: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The CLI export refuses a non-list assertions value or an element with a
+    non-string field with invalid_assertion, and publishes nothing."""
+    code = NAV.main([
+        "export",
+        "--root",
+        str(FIXTURE),
+        "--destination",
+        str(tmp_path),
+        "--name",
+        "refused.html",
+        "--assertions",
+        assertions,
+    ])
+    err = capsys.readouterr().err
+    assert code != 0, err
+    assert "invalid_assertion" in err, err
+    assert not list(tmp_path.iterdir()), "a refused export must publish nothing"
+
+
+def test_grouping_only_selector_is_refused() -> None:
+    """A selector whose only key is grouping filters nothing, so it is refused
+    instead of returning the whole corpus; grouping beside a filter is allowed."""
+    refused = NAV.run_query(FIXTURE, {"operation": "search", "selectors": [{"grouping": "auth"}]})
+    assert refused["status"] == "error", refused
+    assert refused["error"]["code"] == "invalid_selector", refused["error"]
+    allowed = NAV.run_query(
+        FIXTURE,
+        {"operation": "search", "selectors": [{"grouping": "auth", "kind": "ADR"}]},
+    )
+    assert allowed["status"] == "ok", allowed
+    assert allowed["records"] and all(r["kind"] == "ADR" for r in allowed["records"])
+
+
+def test_header_field_keeps_continuation_lines(tmp_path: pathlib.Path) -> None:
+    """A header field that wraps onto following lines, including nested bullets,
+    keeps its whole recorded value, as the Related grammar defines its extent."""
+    adr = tmp_path / "docs" / "adr"
+    adr.mkdir(parents=True)
+    (adr / "0001-wrapped.md").write_text(
+        "# ADR-0001: Wrapped\n\n- **Status:** Accepted\n- **Supersedes:** none\n"
+        "- **Related:** ADR-0002 (first line\n  continues here); ADR-0003\n"
+        "  - nested ADR-0004\n- **Date:** 2024-03-15\n\n## Context\n\nBody.\n",
+        encoding="utf-8",
+    )
+    payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
+    assert payload["status"] == "ok", payload
+    fields = {f["label"]: f["raw_value"] for f in payload["records"][0]["header_fields"]}
+    assert fields["Related"] == (
+        "ADR-0002 (first line\n  continues here); ADR-0003\n  - nested ADR-0004"
+    ), fields["Related"]
+    assert fields["Date"] == "2024-03-15"
+
+
+def test_escape_display_covers_tag_and_format_characters() -> None:
+    """Tag characters, soft hyphen, deprecated format controls and interlinear
+    annotation controls are shown as visible escapes."""
+    raw = "a\U000e0041b­c⁪d￹e᠎f"
+    shown = NAV._escape_display(raw)
+    for cp in ("E0041", "00AD", "206A", "FFF9", "180E"):
+        assert f"[U+{cp}]" in shown, (cp, shown)

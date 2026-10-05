@@ -136,6 +136,10 @@ _UNSAFE_CHARS: frozenset[str] = frozenset(
     + "".join(chr(c) for c in range(0x0B, 0x0D))  # VT FF (skip HT LF)
     + "".join(chr(c) for c in range(0x0E, 0x20))  # SO .. US
     + "".join(chr(c) for c in range(0x7F, 0xA0))  # DEL and C1 controls
+    + "\u00ad\u180e"  # soft hyphen, Mongolian vowel separator
+    + "".join(chr(c) for c in range(0x206A, 0x2070))  # deprecated format controls
+    + "\ufff9\ufffa\ufffb"  # interlinear annotation controls
+    + "".join(chr(c) for c in range(0xE0000, 0xE0080))  # tag characters
 )
 
 # Result and corpus bounds.
@@ -482,14 +486,23 @@ def _parse_record_text(
 
     # Build ordered header field list: every bold-labeled line in the header region,
     # preserving declaration order and including 'none' supersession values.
+    # A field's value continues through following lines (wrapped text and
+    # indented nested bullets) until a blank line or a column-0 line that starts
+    # with "- **", ">", "#" or "**" — the same extent the Related grammar uses.
     header_field_list: list[dict[str, str]] = []
+    current: dict[str, str] | None = None
     for line in header_lines:
         m3 = _BOLD_LABEL_RE.match(line)
-        if not m3:
+        if m3:
+            label = m3.group(1).rstrip(":")
+            current = {"label": label, "raw_value": _extract_header_field_value(line)}
+            header_field_list.append(current)
             continue
-        label = m3.group(1).rstrip(":")
-        raw_val = _extract_header_field_value(line)
-        header_field_list.append({"label": label, "raw_value": raw_val})
+        if not line or line.startswith(("- **", ">", "#", "**")):
+            current = None
+            continue
+        if current is not None:
+            current["raw_value"] += "\n" + line
 
     # Body: everything from first ## heading to end.
     body_text = "\n".join(lines[body_start_idx:]) if body_start_idx < len(lines) else ""
@@ -1207,10 +1220,15 @@ def _validate_selector(sel: Any) -> str | None:
     unknown = set(sel) - _SELECTOR_KEYS
     if unknown:
         return f"unknown selector keys: {sorted(unknown)!r}"
-    # A selector with no filter key beyond 'grouping' has no net effect.
-    # An empty dict has no recognised filter key at all.
-    if not (set(sel) - {"grouping"}) and not sel:
+    # 'grouping' only labels a request; it filters nothing. A selector with no
+    # filter key would match the whole corpus, so it is refused like an empty one.
+    if not sel:
         return "empty selector: each selector must have at least one key"
+    if not (set(sel) - {"grouping"}):
+        return (
+            "selector needs a filter key (kind, exact_status, text or identity)"
+            " besides grouping"
+        )
     for key in _SELECTOR_STRING_KEYS:
         if key in sel and not isinstance(sel[key], str):
             return f"selector key {key!r} must be a string; got {type(sel[key]).__name__!r}"
