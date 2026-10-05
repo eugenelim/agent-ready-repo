@@ -169,9 +169,15 @@ CORE_COLLECTIONS = {
     # Re-pinned 2026-10-02: 72 -> 73. One addition, nothing removed or renamed:
     # test_tombstone_keeps_slug_without_duplicating_reissued_intent, which pins
     # that an intent tombstone's retained `Slug:` yields no second `intent:` node.
+    # Re-pinned 2026-10-05: 73 -> 103. Thirty additions, nothing removed or
+    # renamed, and the surviving 73 keep their relative order. All thirty cover
+    # the lint reading feature-delivery edges from the shared delivery resolver:
+    # `test_vi1201_*` (snapshot-driven edges and diagnostics), `test_vi1203_*`
+    # (fail-closed resolver invocation), `test_defect_*` and `test_fix*_*`
+    # (no-fallback wiring, local contextual provenance, one break one class).
     SHARED_TESTS[2]: (
-        73,
-        "8099b6e1c8f83e1e0d42daaaff590c8d3651be8cef11cf31354b3d605848998b",
+        103,
+        "ba9e7ecfc2aeb17ea5f59f51f471d7831ac9e9c9a710821362b80ef33ab8c74b",
     ),
 }
 
