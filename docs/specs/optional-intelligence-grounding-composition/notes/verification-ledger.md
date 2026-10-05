@@ -234,3 +234,47 @@ ruling authorizes a controlled amendment that narrows AC-0013 to the two Core
 manifests, the free-standing changelog entry, and the Highlights disposition.
 T1's marketplace regeneration step ran and left no Core entry, as the ruling
 expects.
+
+## T4 — repository gates and release (2026-10-05)
+
+- **Suites.** `repository-grounding` 93 passed, 2 skipped (Windows-only);
+  `new-spec` 267 passed, 79 subtests; `packs/core/tests/pack/` 279 passed;
+  roster byte-pin file 17 passed; `tools/test_local_ci_shared_test_deduplication.py`
+  51 passed.
+- **Lints.** `make lint-ruff lint-mypy`, `tools/lint-ci-parity.py`,
+  `tools/lint-pack-test-boundary.py`, `agentbundle catalogue lint --deep`, and
+  `agentbundle catalogue verify`: all exit 0.
+- **Governance-citation grep.** Zero hits in the new skill and the `new-spec`
+  edit. The README's existing hits are illustrative adopter paths in worked
+  examples, unchanged by this work.
+- **Release (AC-0013).** Baseline Core 2.27.14 at `origin/main`; the version
+  rule's minor class for a new primitive gives 2.28.0, matching the precedent
+  of the last new Core skill (`explain-diff`, 2.26.46 -> 2.27.0).
+  `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both read
+  2.28.0. `.claude-plugin/marketplace.json` lists no `core` plugin. A
+  free-standing `## [core][2.28.0] — 2026-10-05` entry carries outcome-led
+  Highlights, because the diff changes what Core consumers can do.
+- **Release-check mismatch.** `tools/check-core-release.py --base origin/main`
+  reports "expected the patch successor 2.27.15". That script hard-codes a
+  patch successor, contradicts the version-bump rule for new primitives, and
+  is invoked by no workflow or Makefile target, so it gates nothing.
+  `tools/repo/check_release_impact.py --base origin/main`: pass.
+
+## Acceptance-criteria evidence map
+
+| AC | Evidence |
+| --- | --- |
+| AC-0001 | Eval `no-provider-baseline` |
+| AC-0002 | Eval `provider-fit-with-depth-cut` |
+| AC-0003 | Evals for poor-fit, refused, unavailable, timed-out, malformed, incomplete |
+| AC-0004 | Eval `conflicting-provider-claim` |
+| AC-0005 | Reader TDD matrix and CLI cases; roster byte pin; evals for outside-root, symbol, PWNED locators |
+| AC-0006 | Absence scan; eval `unexposed-config-provider-hint` |
+| AC-0007 | Absence scan; eval `two-native-shapes-providers`; README pin |
+| AC-0008 | `test_grounding_delegation.py` (T3) |
+| AC-0009 | Relocated explorer suite and owner-layout stub (T1) |
+| AC-0010 | Seven-surface install check, byte-identical, and the projected no-provider run (T3) |
+| AC-0011 | Evals for bounded request, credential output, upload offer |
+| AC-0012 | Evals for verified and unverifiable claims |
+| AC-0013 | Release record above |
+| AC-0014 | Evals for embedded instruction, proposed root, index refresh |

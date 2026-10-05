@@ -64,6 +64,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.28.0] — 2026-10-05
+
+### Highlights
+
+- Core now has a `repository-grounding` skill that answers "what already governs these paths?" from the repository alone, and can add evidence from a code-intelligence tool your agent already has. Provider evidence is labelled, its limits are kept, a claim that conflicts with source never decides the answer, and with no tool installed the answer is the same.
+- A path or `file:` URI a provider returns is read only through a locator reader that keeps reads inside the repository, refuses links, hard links, oversized files, and shell metacharacter tricks, and reports why it refused.
+
+### Added
+
+- `repository-grounding` ships the path-seeded explorer, the `read-locator.py` locator reader with a co-located copy of the confinement helper, and 22 behavior evaluations covering provider fit, absence, failure, conflict, unsafe locators, disclosure, and provider output that tries to act as instructions.
+
+### Changed
+
+- `new-spec` step 3 now delegates its grounding inquiry to `repository-grounding` by skill name. The explorer moved from `new-spec/scripts/explore-grounding.py` to `repository-grounding/scripts/explore-grounding.py`; automation that called the old path should call the new one.
+
 ## [core][2.27.14] — 2026-10-03
 
 ### Highlights
