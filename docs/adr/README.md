@@ -136,3 +136,8 @@
 | 0132 | [Visual-target confirmation is an explicit state, and selection never implies it](0132-visual-target-confirmation-is-an-explicit-state.md) | Accepted | 2026-09-29 |
 | 0133 | [An advisory with no published fix is acceptable, and it retires on the first fix rather than on a version floor](0133-an-unfixed-advisory-is-acceptable-and-retires-on-the-first-fix.md) | Accepted | 2026-09-30 |
 | 0134 | [Intent rename uses a sealed transaction with identity-bound recovery](0134-intent-rename-sealed-identity-bound-transaction.md) | Accepted | 2026-09-29 |
+| 0135 | [Catalogue authentication resolves through credbroker](0135-catalogue-auth-resolves-through-credbroker.md) | Accepted | 2026-09-30 |
+| 0136 | [Catalogue `.netrc` uses exact machine matches](0136-catalogue-netrc-uses-exact-machine-matches.md) | Accepted | 2026-09-30 |
+| 0137 | [Catalogue JFrog authentication delegates to JFrog CLI](0137-catalogue-jfrog-auth-delegates-to-jfrog-cli.md) | Accepted | 2026-09-30 |
+| 0138 | [Catalogue authentication selects one provider without fallback](0138-catalogue-auth-selects-one-provider-without-fallback.md) | Accepted | 2026-09-30 |
+| 0139 | [A taxonomy-silent domain is an upstream gap, never a build-time value](0139-a-taxonomy-silent-domain-is-an-upstream-gap.md) | Accepted | 2026-10-04 |

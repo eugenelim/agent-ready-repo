@@ -337,6 +337,9 @@ def test_sdist_skip_integrity_refuses_unrecognised_reasons(reason):
         # Observed verbatim on a loaded macOS host, 2026-09-01.
         "wall-clock not asserted: load/core 2.8 exceeds 2.0. CPU (2.58s) "
         "and memory (27.4 MiB) were asserted unconditionally.",
+        "AGENTBUNDLE_TEST_JF_EXECUTABLE, AGENTBUNDLE_TEST_JF_CA_CERT, and "
+        "AGENTBUNDLE_TEST_JF_CA_KEY must all be set to run the JFrog CLI "
+        "contract suite",
     ],
 )
 def test_sdist_skip_integrity_accepts_explicit_policy(reason):

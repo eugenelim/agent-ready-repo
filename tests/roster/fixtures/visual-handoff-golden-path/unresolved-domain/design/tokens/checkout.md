@@ -38,12 +38,12 @@ Fixture data for a roster test. No person or product is described.
 
 | Role | Job it does | Resolved value | Traces to |
 |---|---|---|---|
-| `surface.default` | page ground | #FBF8F3 | Chromatic intensity |
-| `text.default` | body copy | #1E2A26 | Chromatic intensity |
-| `text.muted` | secondary copy | #4F5D57 | Chromatic intensity |
-| `accent.action` | the pay action | #2F5D50 | Chromatic intensity |
-| `text.on-action` | label on the pay action | #FBF8F3 | Chromatic intensity |
-| `border.divider` | separators between groups | #D9D2C5 | Chromatic intensity |
+| `surface.default` | page ground | #fbf8f3 | Chromatic intensity |
+| `text.default` | body copy | #1e2a26 | Chromatic intensity |
+| `text.muted` | secondary copy | #4f5d57 | Chromatic intensity |
+| `accent.action` | the pay action | #2f5d50 | Chromatic intensity |
+| `text.on-action` | label on the pay action | #fbf8f3 | Chromatic intensity |
+| `border.divider` | separators between groups | #d9d2c5 | Chromatic intensity |
 
 ### Spacing and rhythm
 
@@ -58,6 +58,17 @@ Fixture data for a roster test. No person or product is described.
 | `space.4` | between groups | 20px | Whitespace distribution |
 | `space.5` | around the pay action | 28px | Calm assurance |
 | `space.6` | between the two regions | 40px | Whitespace distribution |
+
+### Shape and containment
+
+- **Relationship:** groups are separated by rules, not cards; controls are bounded.
+- **Borders and dividers:** 1px solid `border.divider` between groups; 1px solid `text.muted` around controls.
+- **Corner treatment:** square — 0 on every surface.
+
+### Spatial structure
+
+- **Column behaviour:** one column below 1152px; two columns at 1152px and above, split 3fr to 2fr, the payment form first.
+- **Alignment:** both regions share the page's top edge.
 
 ### Depth
 

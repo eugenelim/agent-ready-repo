@@ -100,6 +100,30 @@ Run `navigate-decisions summary` (or ask "how many RFCs are in each lifecycle st
 - `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
 - The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
 
+## [frontend-engineering][0.4.5] — 2026-10-04
+
+### Changed
+
+- The evidence manifest's `visual authority` field now lists every upstream gap the build held, with its axes, its operation kind and its route class — never the recorded owner or operation itself, which goes to the operator live — so a held axis is visible rather than read as an absence.
+- The `visual-authority-silent-domain` eval asks for the bound custom-property block and the gap record, so its fixed checks grade what the run produced.
+
+## [frontend-engineering][0.4.4] — 2026-10-04
+
+### Highlights
+
+- A token taxonomy that says nothing about a visual domain the surface needs — no value, and no `unresolved` record — is now an upstream gap. The build holds that axis and routes it to whoever produced the taxonomy, instead of inventing a type scale or stroke widths that read as resolved.
+
+### Added
+
+- A `visual-authority-silent-domain` eval case grades the hold, and the two golden-path cases now state typography, shape and layout values so they leave nothing silent.
+
+## [frontend-engineering][0.4.3] — 2026-10-04
+
+### Changed
+
+- The token-namespace rule now resolves in order: the naming a taxonomy's Binding section records, else the incumbent's own names, else `--ds-*` for a system this pack seeds. The manifest's `visual authority` field, not the prefix, records where values came from, and `frontend-reviewer` flags a parallel token system against that order rather than any `--ds-*` set.
+- The visual-authority eval cases are calibrated against live runs: the two gap cases and the standalone case start from what the handoff read extracted or name the product, every case asks for the `visual authority` line in the reply, hex values are lower-case, and fallback detection keys on the fallback's own values rather than the shared `--ds-*` names.
+
 ## [frontend-engineering][0.4.2] — 2026-10-03
 
 ### Added
@@ -109,6 +133,56 @@ Run `navigate-decisions summary` (or ask "how many RFCs are in each lifecycle st
 ### Changed
 
 - The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
+
+## [agentbundle][0.51.0] — 2026-10-03
+
+### Highlights
+
+- **Protected catalogue installation without manual token injection.** AgentBundle
+  now picks credentials automatically from a priority-ordered set: bearer token,
+  JFrog CLI 2.105.0+ profile, exact-machine `.netrc` record, and anonymous. Public
+  catalogues need no setup. A broken configured provider stops resolution; no
+  fallback across types. Set `AGENTBUNDLE_CA_BUNDLE` for the direct path; use
+  `SSL_CERT_FILE` or `SSL_CERT_DIR` to reach `jf api` on Linux.
+
+### Added
+
+- HTTPS catalogue acquisition resolves credentials automatically from four
+  providers in priority order: bearer token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`),
+  JFrog CLI profile (2.105.0+), exact-machine `.netrc`, and anonymous. Each
+  provider binds credentials to one normalized origin and does not forward them
+  to any other host.
+- JFrog CLI delegated fetches: 10 s discovery, 5 s version probe, 30 s per fetch,
+  75 s aggregate subprocess budget, endpoint confinement, list-form arguments.
+- Exact-machine `.netrc`: host or host:port keys; `default` is never matched;
+  permissions checked before reading.
+
+### Changed
+
+- A broken configured provider terminates resolution immediately. It never falls
+  back to a lower provider.
+- Requires `credbroker>=0.7,<0.8`.
+
+## [credbroker][0.7.0] — 2026-10-03
+
+### Added
+
+- `resolve_http_access(target_url, *, env)` — resolves target-bound HTTP access
+  from a priority-ordered provider set (bearer, JFrog CLI, exact-machine `.netrc`,
+  anonymous). Returns one of `BearerHttpAccess`, `JfrogCliHttpAccess`,
+  `NetrcHttpAccess`, or `AnonymousHttpAccess`. Raises `HttpAccessError` with a
+  stable non-secret `provider` and `code` for broken configured providers.
+- `HttpAccessError`, `BearerHttpAccess`, `JfrogCliHttpAccess`, `NetrcHttpAccess`,
+  `AnonymousHttpAccess` — five new public names added to `__all__`.
+
+## [credential-brokers][0.3.4] — 2026-10-03
+
+### Changed
+
+- The vendored `credbroker` user-library floor in `.apm/user-libs/credbroker/`
+  is updated to match the `credbroker` 0.7.0 source. A co-located pip-installed
+  0.7 takes precedence via normal `sys.path` ordering; the floor remains the
+  zero-pip fallback for user-scope skill resolution.
 
 ## [core][2.27.13] — 2026-10-02
 

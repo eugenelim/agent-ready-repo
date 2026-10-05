@@ -578,6 +578,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         CI_ONLY(
             "needs httpx>=0.27 (RFC-0035 step installs it)."
         ),
+    "pytest portable-catalogue-authentication packaging (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
@@ -936,6 +938,7 @@ _GATE_MAIN_CHECKS = (
     "pytest capture-rename guide contract (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
+    "pytest portable-catalogue-authentication packaging (roster-owned)",
     "pytest catalogue-test carve-out destinations (RFC-0082)",
     "pytest pack-test compatibility class characterization (ADR-0101)",
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)",

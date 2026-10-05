@@ -176,11 +176,11 @@ records both, and they name the same rung when one supplied everything.
 
 Because rung 1 supplies no values, step 2 resolves them from rung 2 downward.
 
-An upstream gap is not a rung: it means authority above implementation still
-owes the axis. Hold only that axis, stop that part of the implementation, and
-route it to the owner or operation the artifact records. What each rung binds,
-what visual authority never governs, why a refusal is never a demotion, and the
-full upstream-gap rules:
+An upstream gap is not a rung: authority above implementation still owes the
+axis. Hold only that axis, stop that part of the implementation, and route it to
+the owner or operation the artifact records — or, for a domain the taxonomy left
+silent, to whoever produced the taxonomy. What each rung binds, what visual
+authority never governs, why a refusal is never a demotion, and the full rules:
 [`references/visual-observation.md`](references/visual-observation.md).
 
 ### 1b. Genre routing (T2 — requires experience-design pack)
@@ -213,7 +213,7 @@ Values come from the highest source that supplies them. Never fork a system a
 higher source already answers.
 
 1. **The token taxonomy**, when one resolved in step 0. **Use a value it resolved as given** — resolved values remain as given; re-deriving one the design step already decided is how a surface drifts from its direction.
-   Relationships can still be resolved. An explicitly unresolved taxonomy domain is an upstream gap: hold that domain and route it upstream. An incumbent habit, platform habit, fallback, local premise, or category habit must not fill that domain.
+   Relationships can still be resolved. An explicitly unresolved taxonomy domain is an upstream gap: hold that domain and route it upstream. So is a domain the taxonomy leaves silent — no value the surface needs there and no unresolved record. An incumbent habit, platform habit, fallback, local premise, or category habit must not fill that domain or a silent one.
 2. **The incumbent token system** already in the repository. Extend it; do not
    fork it.
 3. **[`references/fallback-tokens.md`](references/fallback-tokens.md)** — read
@@ -221,10 +221,10 @@ higher source already answers.
    extend, and no upstream gap holds the axis. It does not depend on which rung
    supplied composition.
 
-**Record the token namespace you resolved** — `--ds-*` from the fallback,
-`--color-*` or whatever an incumbent system already uses. The craft rules and
-the token gates below mean *that* namespace, not a literal prefix: a surface
-extending an existing system passes by using the system it inherited.
+**Record the token namespace you resolved** — the naming a taxonomy's Binding
+section records; else the incumbent's own (`--color-*`, say); else `--ds-*` for a
+system this pack seeds. The prefix never records provenance; the manifest's
+`visual authority` field does. Craft rules and token gates mean *that* namespace.
 
 Define primitives once and reference them from a semantic layer:
 `Primitive → Semantic → Component`, one-way. Components read semantics, never
@@ -877,7 +877,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | viewports | The channels covered, each as the width predicate that defines it (e.g. `<480`, `>=480 <1152`, `>=1152` for breakpoints 480 and 1152), plus whether those channels came from declared breakpoints or from the fallback bands, the supported minimum width in force or none-declared, and any declared breakpoints the minimum discarded. Record the last two as plain numbers, never as predicates; the example above declares no minimum (worked example: minimum none-declared), so it records none-declared and discards nothing |
 | browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
 | states | Which of the 18 states were exercised during testing |
-| visual authority | Two rungs: the one that supplied **composition** and the one that supplied **values** — `approved-visual-target`, `direction-and-taxonomy`, `incumbent-system` or `local-premise` — naming the artifact or convention each came from. They are the same rung where one supplied both. Record the fallback rung explicitly; a blank field and an unconsidered one read alike. Where a direction recorded no human confirmation, say so. Record the token namespace resolved, and how a lower rung was reached |
+| visual authority | Two rungs: the one that supplied **composition** and the one that supplied **values** — `approved-visual-target`, `direction-and-taxonomy`, `incumbent-system` or `local-premise` — naming the artifact or convention each came from. They are the same rung where one supplied both. Record the fallback rung explicitly; a blank field and an unconsidered one read alike. Where a direction recorded no human confirmation, say so. Record the token namespace resolved, and how a lower rung was reached. List every upstream gap held, each with its axes, its fixed operation kind, and its route class only — the owner or operation the artifact records, or whoever produced the taxonomy; the owner or operation itself goes to the operator live, never into the manifest. |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |
 | inspection observations | What was seen in the captures, plus the rendered-page inspection **result state and verdict** (`completed`/`pass`, `completed`/`fail`, or a non-completed state). A value naming only filenames does not satisfy this field — `screenshots` already records that images exist; this field records what looking at them found. A completed inspection with nothing wrong is recorded as such, naming the routes and states inspected |
 | a11y result | Output of the accessibility gate (pa11y/axe-core, `wcag21aa`); include manual-check outcomes for WCAG 2.5.8 Target Size (AA) and 2.4.13 Focus Appearance (AAA enhancement), and the stated WCAG 2.2 AA gap (2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8) |

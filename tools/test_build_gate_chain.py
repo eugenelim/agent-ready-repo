@@ -559,7 +559,7 @@ class CiPytestProvisioningTest(unittest.TestCase):
         block = workflow.split("  gate-main:\n", 1)[1].split("\n  gate-sast:\n", 1)[0]
 
         install = block.index(
-            "run: python -m pip install -e packages/agentbundle/ pytest"
+            "run: python -m pip install -e ./packages/credbroker -e packages/agentbundle/ pytest"
         )
         build_check = block.index("- name: Run make build-check")
 

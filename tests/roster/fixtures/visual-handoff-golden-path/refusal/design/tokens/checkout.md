@@ -49,12 +49,12 @@ Fixture data for a roster test. No person or product is described.
 
 | Role | Job it does | Resolved value | Traces to |
 |---|---|---|---|
-| `surface.default` | page ground | #FBF8F3 | incumbent `--brand-paper` in src/styles/brand.css |
-| `text.default` | body copy | #1E2A26 | incumbent `--brand-ink-900` in src/styles/brand.css |
-| `text.muted` | secondary copy | #4F5D57 | incumbent `--brand-ink-600` in src/styles/brand.css |
-| `accent.action` | the pay action | #2F5D50 | incumbent `--brand-pine-700` in src/styles/brand.css |
-| `text.on-action` | label on the pay action | #FBF8F3 | incumbent `--brand-paper` in src/styles/brand.css |
-| `border.divider` | separators between groups | #D9D2C5 | incumbent `--brand-sand-300` in src/styles/brand.css |
+| `surface.default` | page ground | #fbf8f3 | incumbent `--brand-paper` in src/styles/brand.css |
+| `text.default` | body copy | #1e2a26 | incumbent `--brand-ink-900` in src/styles/brand.css |
+| `text.muted` | secondary copy | #4f5d57 | incumbent `--brand-ink-600` in src/styles/brand.css |
+| `accent.action` | the pay action | #2f5d50 | incumbent `--brand-pine-700` in src/styles/brand.css |
+| `text.on-action` | label on the pay action | #fbf8f3 | incumbent `--brand-paper` in src/styles/brand.css |
+| `border.divider` | separators between groups | #d9d2c5 | incumbent `--brand-sand-300` in src/styles/brand.css |
 
 ### Spacing and rhythm
 
@@ -69,6 +69,17 @@ Fixture data for a roster test. No person or product is described.
 | `space.4` | between groups | 20px | Whitespace distribution |
 | `space.5` | around the pay action | 28px | Calm assurance |
 | `space.6` | between the two regions | 40px | Whitespace distribution |
+
+### Shape and containment
+
+- **Relationship:** groups are separated by rules, not cards; controls are bounded.
+- **Borders and dividers:** 1px solid `border.divider` between groups; 1px solid `text.muted` around controls.
+- **Corner treatment:** square — 0 on every surface.
+
+### Spatial structure
+
+- **Column behaviour:** one column below 1152px; two columns at 1152px and above, split 3fr to 2fr, the payment form first.
+- **Alignment:** both regions share the page's top edge.
 
 ### Depth
 
@@ -103,7 +114,7 @@ Fixture data: the needs this system was checked against.
 
 | Role | Incumbent value | Resolved value | Why |
 |---|---|---|---|
-| `text.muted` | `--brand-ink-400` #8A968F | `--brand-ink-600` #4F5D57 | the incumbent muted text missed the body-text floor on the paper ground |
+| `text.muted` | `--brand-ink-400` #8a968f | `--brand-ink-600` #4f5d57 | the incumbent muted text missed the body-text floor on the paper ground |
 
 ## Binding
 
