@@ -5,8 +5,7 @@ Exposes ``run_query(root, query) -> dict`` and a CLI
 JSON on stdout.  The bounded query surface covers five semantic operations:
 ``summary``, ``search``, ``record``, ``lineage``, and ``context``.
 
-All corpus reads use the co-located ``file_safety.py`` projection of the
-blessed ``agentbundle.catalogue_tooling.file_safety`` helper.  Unsafe,
+All corpus reads use the co-located ``file_safety.py`` projection.  Unsafe,
 malformed, duplicate-ordinal, or oversized candidates fail the whole
 operation; partial truth is never returned.
 """
@@ -36,8 +35,6 @@ _file_safety_module: Any | None = None
 def _get_file_safety() -> Any:
     """Load the co-located file_safety.py projection at most once.
 
-    Follows the same loader discipline as
-    ``packs/core/.apm/skills/close-work/scripts/closure_index.py::_get_file_safety()``:
     lstat confirms it is a regular non-symlink file before loading, and the
     required symbols are asserted after exec.
 
@@ -141,7 +138,7 @@ _UNSAFE_CHARS: frozenset[str] = frozenset(
     + "".join(chr(c) for c in range(0x7F, 0xA0))  # DEL and C1 controls
 )
 
-# Bounds (spec § Corpus and query contract).
+# Result and corpus bounds.
 _MAX_CANDIDATE_BYTES = 2 * 1024 * 1024   # 2 MiB — whole-operation refusal
 _MAX_RECORDS = 200                        # non-detail result limit
 _MAX_RELATIONSHIPS = 400                  # non-detail result limit
@@ -217,7 +214,8 @@ def _parse_supersession_entry(raw: str) -> tuple[bool, str | None, list[str]]:
     Returns (parseable, target_id, scope).
     Unparseable entries have target_id=None, scope=[].
 
-    spec: RFC-0102 § 3 grammar adopted for parsing only.
+    Targets must be a record identity (KIND-NNNN) optionally followed by a
+    comma-separated list of D-IDs; ';' separates multiple entries.
     """
     text = raw.strip()
     if not text or text.lower() == "none":
@@ -254,7 +252,7 @@ def _parse_supersession_field(
     Parseable entries with same target+scope are merged (first raw_value kept).
     Unparseable entries are never merged.
 
-    spec: 'none means no entries; ; separates entries'
+    'none' means no entries; ';' separates entries.
     """
     stripped = field_value.strip()
     if stripped.lower() == "none":
@@ -290,9 +288,9 @@ def _parse_supersession_field(
 def _is_related_label(line: str) -> bool:
     """Return True if line starts a Related field.
 
-    spec: 'A Related field starts on a header field line whose bold label,
-    with any trailing colon removed, is exactly Related.'
-    Covers **Related:**, **Related** (…):, and **Related** —.
+    A Related field starts on a header field line whose bold label,
+    with any trailing colon removed, is exactly 'Related'.
+    Covers '**Related:**', '**Related** (…):', and '**Related** —'.
     """
     m = _BOLD_LABEL_RE.match(line)
     if not m:
@@ -308,9 +306,9 @@ def _parse_related_tokens(
 
     Returns deduplicated tokens in first-seen order, excluding self_id.
 
-    spec: 'A Related field continues through following lines, including
-    indented nested bullets, until the first line that is blank or that
-    starts at column 0 with - **, >, #, or **.'
+    A Related field continues through following lines, including indented
+    nested bullets, until the first line that is blank or that starts at
+    column 0 with '- **', '>', '#', or '**'.
     """
     seen: set[str] = set()
     result: list[str] = []
@@ -359,6 +357,21 @@ def _parse_related_tokens(
 # ── Record parsing ────────────────────────────────────────────────────────────
 
 
+def _extract_header_field_value(line: str) -> str:
+    """Extract the raw value from a bold-labeled header field line.
+
+    For '- **Label:** value' returns 'value'.
+    For '- **Label** (ext): value' returns 'value' (strips colon/space after **)
+    """
+    colon_pos = line.find(":**")
+    if colon_pos != -1:
+        return line[colon_pos + 3:].lstrip()
+    end_bold = line.find("**", 3)
+    if end_bold == -1:
+        return ""
+    return line[end_bold + 2:].lstrip(": ")
+
+
 def _parse_record_text(
     text: str, basename: str, source: str
 ) -> dict[str, Any]:
@@ -371,8 +384,8 @@ def _parse_record_text(
 
     Returns:
         Dict with keys: id, kind, ordinal, title, source, lifecycle,
-        supersession_entries, related_tokens, body_text, body_available,
-        raw_text.
+        supersession_entries, related_tokens, header_field_list,
+        body_text, body_available, raw_text.
 
     Raises:
         ValueError: If the record is malformed (absent or mismatched H1,
@@ -384,8 +397,7 @@ def _parse_record_text(
 
     lines = text.splitlines()
 
-    # The H1 must be the first line of the file (spec: "The first line is an H1").
-    # An absent or mismatched H1 is malformed.
+    # The H1 must be the first line of the file. An absent or mismatched H1 is malformed.
     h1_idx = 0 if lines and lines[0].startswith("# ") else None
 
     if h1_idx is None:
@@ -468,6 +480,17 @@ def _parse_record_text(
     # Parse Related field contextual references.
     related_tokens = _parse_related_tokens(header_lines, record_id)
 
+    # Build ordered header field list: every bold-labeled line in the header region,
+    # preserving declaration order and including 'none' supersession values.
+    header_field_list: list[dict[str, str]] = []
+    for line in header_lines:
+        m3 = _BOLD_LABEL_RE.match(line)
+        if not m3:
+            continue
+        label = m3.group(1).rstrip(":")
+        raw_val = _extract_header_field_value(line)
+        header_field_list.append({"label": label, "raw_value": raw_val})
+
     # Body: everything from first ## heading to end.
     body_text = "\n".join(lines[body_start_idx:]) if body_start_idx < len(lines) else ""
     body_available = len(body_text.encode("utf-8")) <= _MAX_BODY_BYTES
@@ -485,6 +508,7 @@ def _parse_record_text(
         },
         "supersession_entries": supersession_entries,
         "related_tokens": related_tokens,
+        "header_field_list": header_field_list,
         # Kept in full: the record query applies the 1 MiB limit; full export does not.
         "body_text": body_text,
         "body_available": body_available,
@@ -582,9 +606,9 @@ def _admit_corpus(root: Path) -> dict[str, Any]:
       - records: {record_id: record_dict}
       - error: None on success, or an error dict on failure
 
-    spec: 'malformed candidates, duplicate kind-plus-ordinal identities, and
+    Malformed candidates, duplicate kind-plus-ordinal identities, and
     identity changes fail the whole operation rather than falling out of
-    admission silently.'
+    admission silently.
     """
     fs = _get_file_safety()
     records: dict[str, dict[str, Any]] = {}
@@ -698,9 +722,9 @@ def _build_relationships(records: dict[str, dict[str, Any]]) -> list[dict[str, A
     references produce resolved or unresolved relationships based on whether
     the target is admitted.
 
-    spec: 'A full edge is checked when Supersedes and Superseded by mirror
-    each other; a partial edge is checked when Supersedes in part and
-    Superseded in part mirror each other with equal scopes.'
+    A full edge is checked when Supersedes and Superseded-by mirror each other;
+    a partial edge is checked when Supersedes-in-part and Superseded-in-part
+    mirror each other with equal scopes.
     """
     relationships: list[dict[str, Any]] = []
     checked_pairs: set[tuple[str, str, str, tuple[int, ...]]] = set()
@@ -878,8 +902,8 @@ def _sort_relationships(rels: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     Null 'to' sorts first within the same from/relation/scope group.
 
-    spec: 'relationships sort by from, relation, scope, to, then raw_value,
-    with a null to sorting first.'
+    Relationships sort by from, relation, scope, to, then raw_value,
+    with a null to sorting first.
     """
     def _key(r: dict[str, Any]) -> tuple:
         from_key = _to_sort_key(r.get("from"))
@@ -895,7 +919,7 @@ def _sort_relationships(rels: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _sort_records(recs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Sort records by kind, ordinal, then source.
 
-    spec: 'Records sort by kind, ordinal, then repository-relative source.'
+    Records sort by kind, ordinal, then repository-relative source.
     """
     return sorted(recs, key=lambda r: (r["kind"], r["ordinal"], r["source"]))
 
@@ -909,8 +933,8 @@ def _count_register_rows(text: str) -> int:
     A data row is a pipe-delimited line that is neither the header row nor
     a separator row.  Counts across all tables in the file.
 
-    spec: 'A register row is a Markdown table line that is neither a table\'s
-    header line nor its separator line; a file with no table counts zero rows.'
+    A register row is a Markdown table line that is neither a table's
+    header line nor its separator line; a file with no table counts zero rows.
     """
     count = 0
     # Within each table, skip the header (first non-separator row) and separators.
@@ -948,9 +972,9 @@ def _read_register_file(
         {'row_count': N} on success.
         Raises on unsafe or oversized file.
 
-    spec: 'A missing register file is reported as absent. An unsafe register
-    file refuses the operation with code unsafe_input, and an oversized one
-    with input_too_large.'
+    A missing register file is reported as absent. An unsafe register file
+    refuses the operation with code unsafe_input, and an oversized one with
+    input_too_large.
     """
     path = root / rel_path_str
     # A dangling symlink is an unsafe input, not an absent file.
@@ -960,12 +984,9 @@ def _read_register_file(
         )
     if not path.exists():
         return "absent"
-    try:
-        raw = fs.read_confined_regular_file(
-            root, path, max_bytes=_MAX_REGISTER_BYTES
-        )
-    except (fs.BoundExceeded, fs.UnsafeContentError):
-        raise  # caller translates to stable error
+    raw = fs.read_confined_regular_file(
+        root, path, max_bytes=_MAX_REGISTER_BYTES
+    )
 
     try:
         text = raw.decode("utf-8")
@@ -988,8 +1009,8 @@ def _check_non_detail_bounds(
 
     Returns an error response dict if any bound is exceeded, or None.
 
-    spec: 'A non-detail result is bounded to 200 records, 400 relationship
-    objects, four lineage hops, and 512 KiB of UTF-8 JSON.'
+    A non-detail result is bounded to 200 records, 400 relationship objects,
+    four lineage hops, and 512 KiB of UTF-8 JSON.
     """
     if len(relationships) > _MAX_RELATIONSHIPS:
         return _error(
@@ -1108,8 +1129,22 @@ def _record_to_api(
         lc_obj["raw_value"] = lifecycle["raw_value"]
         lc_obj["display_value"] = lifecycle["display_value"]
 
-    # Build header_fields: present structured fields from the header region.
-    # Supersession entries grouped by field name, plus Related tokens.
+    # header_fields: ordered list of every bold-labeled field present in the
+    # header region, exactly as recorded.  Each entry carries:
+    #   label: the exact label text (e.g. "Date", "Supersedes")
+    #   raw_value: the exact value text (e.g. "none", "ADR-0001 D3")
+    #   display_value: raw_value with unsafe bidi/control chars escaped
+    header_fields: list[dict[str, str]] = [
+        {
+            "label": hf["label"],
+            "raw_value": hf["raw_value"],
+            "display_value": _escape_display(hf["raw_value"]),
+        }
+        for hf in rec.get("header_field_list", [])
+    ]
+
+    # header_relations: structured supersession/related data for callers that
+    # need parsed relationships rather than the raw field list.
     supers_by_field: dict[str, list[dict[str, Any]]] = {}
     for entry in rec.get("supersession_entries", []):
         field = entry["field"]
@@ -1119,21 +1154,24 @@ def _record_to_api(
             "target_id": entry["target_id"],
             "scope": entry["scope"],
         })
-    header_fields: dict[str, Any] = {}
+    header_relations: dict[str, Any] = {}
     for field_key in ("supersedes", "supersedes_in_part", "superseded_by", "superseded_in_part"):
         if field_key in supers_by_field:
-            header_fields[field_key] = supers_by_field[field_key]
+            header_relations[field_key] = supers_by_field[field_key]
     related = rec.get("related_tokens", [])
     if related:
-        header_fields["related"] = related
+        header_relations["related"] = related
 
+    source = rec["source"]
     api: dict[str, Any] = {
         "id": rec["id"],
         "kind": rec["kind"],
         "title": rec["title"],
-        "source": rec["source"],
+        "source": source,
+        "display_source": _escape_display(source),
         "lifecycle": lc_obj,
         "header_fields": header_fields,
+        "header_relations": header_relations,
         "body": {},
     }
 
@@ -1235,9 +1273,9 @@ def _op_summary(
 ) -> dict[str, Any]:
     """Aggregate summary of the admitted corpus.
 
-    spec: 'summary aggregates the whole admitted population and returns no
-    record entries; its success result carries an empty records list and a
-    summary object.'
+    summary aggregates the whole admitted population and returns no record
+    entries; its success result carries an empty records list and a summary
+    object.
     """
     fs = _get_file_safety()
     env = _envelope({"operation": "summary"}, root, records)
@@ -1305,8 +1343,7 @@ def _op_record(
 ) -> dict[str, Any]:
     """Return one record and all its relationships.
 
-    spec: 'record carries every relationship whose from or to is the
-    requested record.'
+    record carries every relationship whose from or to is the requested record.
     """
     raw_id = query.get("id", "")
     if not isinstance(raw_id, str):
@@ -1369,14 +1406,21 @@ def _validate_selectors(selectors: Any) -> str | None:
 
 
 def _validate_assertions(assertions: Any) -> str | None:
-    """Validate an assertions value.  Returns an error message or None."""
+    """Validate an assertions value.  Returns an error message or None.
+
+    Every assertions value must be a list.  Each element must be a dict with
+    string-typed 'from', 'to', and 'text' keys.  Refuses non-list values
+    (including null), non-dict elements, and elements missing any required key.
+    """
     if not isinstance(assertions, list):
         return f"assertions must be a list; got {type(assertions).__name__!r}"
     for i, a in enumerate(assertions):
         if not isinstance(a, dict):
             return f"assertion[{i}] must be a dict; got {type(a).__name__!r}"
         for key in ("from", "to", "text"):
-            if key in a and not isinstance(a[key], str):
+            if key not in a:
+                return f"assertion[{i}] is missing required key {key!r}"
+            if not isinstance(a[key], str):
                 return (
                     f"assertion[{i}] key {key!r} must be a string; "
                     f"got {type(a[key]).__name__!r}"
@@ -1391,7 +1435,7 @@ def _op_search(
 ) -> dict[str, Any]:
     """Return records matching selectors, with no relationships.
 
-    spec: 'search carries none; its records are an inventory.'
+    search carries no relationships; its records are an inventory.
     """
     selectors = query.get("selectors", [])
     env = _envelope({"operation": "search", "selectors": selectors}, root, records)
@@ -1437,9 +1481,8 @@ def _op_lineage(
 ) -> dict[str, Any]:
     """Traverse checked supersession edges from a starting record.
 
-    spec: 'lineage traverses only checked relationships: older follows
-    from to to, newer follows to to from, and both follows either,
-    up to the requested depth.'
+    lineage traverses only checked relationships: older follows from→to,
+    newer follows to→from, and both follows either, up to the requested depth.
     """
     raw_id = query.get("id", "")
     direction = query.get("direction", "")
@@ -1534,6 +1577,18 @@ def _op_lineage(
         (records[rid] for rid in visited_ids if rid in records),
         key=lambda r: (r["kind"], r["ordinal"], r["source"]),
     )
+
+    # Apply the 200-record limit to lineage results.
+    if len(internal_result_records) > _MAX_RECORDS:
+        return _error(
+            env,
+            code="result_too_large",
+            message=f"result exceeds {_MAX_RECORDS} records",
+            limits={"max_records": _MAX_RECORDS},
+            observed={"count": len(internal_result_records)},
+            hint="Narrow the query with fewer hops or use direction='older'/'newer'.",
+        )
+
     result_records = [_record_to_api(r) for r in internal_result_records]
 
     # Include all traversed checked relationships.
@@ -1579,15 +1634,18 @@ def _op_context(
 ) -> dict[str, Any]:
     """Return records matching selectors with resolved and unresolved relationships.
 
-    spec: 'context carries every relationship whose from and to are both
-    returned records, plus every unresolved relationship whose from is a
-    returned record, plus the caller's assertions.'
+    context carries every relationship whose from and to are both returned
+    records, plus every unresolved relationship whose from is a returned
+    record, plus the caller's assertions.
     """
     selectors = query.get("selectors", [])
-    assertions = query.get("assertions", [])
+    # Detect whether the 'assertions' key is present at all (including null/0/false).
+    assertions_key_present = "assertions" in query
+    assertions_raw = query.get("assertions") if assertions_key_present else None
 
     env = _envelope(
-        {"operation": "context", "selectors": selectors, "assertions": assertions},
+        {"operation": "context", "selectors": selectors,
+         "assertions": assertions_raw},
         root, records,
     )
 
@@ -1602,10 +1660,14 @@ def _op_context(
     if sel_err:
         return _error(env, code="invalid_selector", message=sel_err)
 
-    if assertions:
-        ass_err = _validate_assertions(assertions)
+    if assertions_key_present:
+        # Validate whenever the key is present, including null/0/false values.
+        ass_err = _validate_assertions(assertions_raw)
         if ass_err:
             return _error(env, code="invalid_assertion", message=ass_err)
+        assertions: list[dict[str, Any]] = assertions_raw  # type: ignore[assignment]
+    else:
+        assertions = []
 
     matched = _filter_records(records, selectors)
     matched = _sort_records(matched)
@@ -1675,7 +1737,7 @@ def run_query(root: Any, query: dict[str, Any]) -> dict[str, Any]:
         query: Operation descriptor.  Required key ``operation`` selects one
             of five semantic operations: ``summary``, ``search``, ``record``,
             ``lineage``, or ``context``.  Additional keys depend on the
-            operation; names follow the spec's semantic descriptions:
+            operation; names follow the semantic descriptions below:
 
             - ``id`` (str): exact record identity for ``record`` and ``lineage``
             - ``direction`` (str): ``older``, ``newer``, or ``both`` for ``lineage``
@@ -1936,10 +1998,19 @@ def main(argv: list[str] | None = None) -> int:
         assertions: list[dict[str, Any]] | None = None
         if args.assertions:
             try:
-                assertions = json.loads(args.assertions)
+                parsed_assertions = json.loads(args.assertions)
             except json.JSONDecodeError as exc:
                 print(f"error: invalid --assertions JSON: {exc}", file=sys.stderr)
                 return 2
+            # Validate assertion schema before passing to publish_explorer.
+            ass_err = exp_mod._validate_assertions_for_export(parsed_assertions)
+            if ass_err:
+                print(
+                    f"error: [invalid_assertion] {ass_err}",
+                    file=sys.stderr,
+                )
+                return 1
+            assertions = parsed_assertions
 
         root = Path(args.root).resolve()
 
@@ -1976,9 +2047,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Mode: {result['mode']}", file=sys.stderr)
             print(result["path"])
             return 0
-        err = result.get("error", "unknown error")
-        err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
-        print(f"error: {err_msg}", file=sys.stderr)
+        err = result.get("error", {})
+        if isinstance(err, dict):
+            err_code = err.get("code", "unknown")
+            err_msg = err.get("message", str(err))
+            print(f"error: [{err_code}] {err_msg}", file=sys.stderr)
+        else:
+            print(f"error: {err}", file=sys.stderr)
         return 1
 
     return 1

@@ -33,7 +33,12 @@ ep.textContent='This export is damaged: its embedded data could not be read ('+S
 main.appendChild(ep);
 return;}
 var records=D.records||[],rels=D.relationships||[],mode=D.mode||'full';
-var srcLinks=D.source_links||{},embAsserts=D.embedded_assertions||[];
+var srcLinks=D.source_links||{};
+// Visible escaping for paths and caller text shown beside trust labels.
+var V=window.visEscape||function(x){return String(x);};
+function claimText(u){
+if(typeof u==='string')return V(u);
+return u?(u.display_value||V(u.raw_value||u.by||'')):'';}
 var state={view:'list',sel:null,kind:'',status:'',q:''};
 var VALID_VIEWS=['list','graph','context','detail'];
 var statusMap={};
@@ -140,11 +145,18 @@ var d=document.getElementById('view-'+v);
 if(d)d.hidden=state.view!==v;});
 var c=document.getElementById('view-'+state.view);
 if(!c)return;c.textContent='';
-var eab=document.getElementById('expand-all-btn');if(eab)eab.textContent='Expand all';
+
 if(state.view==='list')renderList(c);
 else if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
-else if(state.view==='detail')renderDetail(c);}
+else if(state.view==='detail')renderDetail(c);
+syncExpandLabel(c);}
+// The Expand all button names the action it will take on this view.
+function syncExpandLabel(c){
+var b=document.getElementById('expand-all-btn');if(!b)return;
+var d=c.querySelectorAll('details'),all=d.length>0;
+for(var i=0;i<d.length;i++){if(!d[i].open){all=false;break;}}
+b.textContent=all?'Collapse all':'Expand all';}
 // ── Supersession banner ──────────────────────────────────────────────────────
 function supBanner(entry,isDetail){
 var div=document.createElement('div');
@@ -208,7 +220,7 @@ if(supBy.length>0){
 supBy.forEach(function(s){li.appendChild(supBanner(s,false));});}
 else if(unresClaims.length>0){
 var sb2=document.createElement('div');sb2.className='supersede-banner is-unresolved';sb2.setAttribute('role','note');
-sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+unresClaims[0]));
+sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+claimText(unresClaims[0])));
 li.appendChild(sb2);}
 ul.appendChild(li);});
 c.appendChild(ul);
@@ -253,7 +265,7 @@ var ul=el('ul','ctx-list');
 ctx.forEach(function(r){
 var peer=r.from===rec.id?r.to:r.from;
 var dir=r.from===rec.id?'refers to':'referred to by';
-var label=dir+' '+peer+' [contextual · '+r.resolution_state+']';
+var label=dir+' '+V(peer||'?')+' [contextual · '+r.resolution_state+']';
 var li=el('li',null);
 var admitted=records.find(function(x){return x.id===peer;});
 if(admitted){
@@ -265,21 +277,19 @@ c.appendChild(ul);}
 var asserts=rels.filter(function(r){
 return r.trust_class==='navigation_only'
 &&(r.from===rec.id||r.to===rec.id);});
-var extra=embAsserts.filter(function(a){
-return a.from===rec.id||a.to===rec.id;});
 c.appendChild(el('h3',null,'Caller assertions (non-authoritative view input)'));
-if(asserts.length===0&&extra.length===0){
+if(asserts.length===0){
 c.appendChild(el('p','empty-msg','No caller assertions embedded for this record.'));}
 else{
 var ul2=el('ul','assert-list');
-asserts.concat(extra).forEach(function(a){
+asserts.forEach(function(a){
 var li=el('li',null);
 var tlEl=el('span','trust-label','[navigation_only · caller_asserted]');
 li.appendChild(tlEl);
 li.appendChild(document.createTextNode(' '));
-li.appendChild(document.createTextNode(a.display_raw_value||''));
-if(a.from)li.appendChild(document.createTextNode(' from: '+a.from));
-if(a.to)li.appendChild(document.createTextNode(' → '+a.to));
+li.appendChild(document.createTextNode(a.display_raw_value||V(a.raw_value||'')));
+if(a.from)li.appendChild(document.createTextNode(' from: '+V(a.from)));
+if(a.to)li.appendChild(document.createTextNode(' → '+V(a.to)));
 ul2.appendChild(li);});
 c.appendChild(ul2);}
 updateLive('');}
@@ -301,10 +311,14 @@ supBy.forEach(function(s){c.appendChild(supBanner(s,true));});}
 else if(unresClaims.length>0){
 unresClaims.forEach(function(u){
 var div=document.createElement('div');div.className='supersede-banner';div.setAttribute('role','note');
-div.appendChild(document.createTextNode('Unresolved supersession claim: '+u));
+div.appendChild(document.createTextNode('Unresolved supersession claim: '+claimText(u)));
 c.appendChild(div);});}
 var tbl=el('table','meta-table');
-[['Kind',rec.kind],['Status',lc(rec)],['Source',rec.source]].forEach(function(row){
+var metaRows=[['Kind',rec.kind],['Status',lc(rec)],['Source',V(rec.source)]];
+// Every header-region field, exactly as recorded (escaped for display).
+(Array.isArray(rec.header_fields)?rec.header_fields:[]).forEach(function(hf){
+if(hf&&hf.label)metaRows.push([V(hf.label),hf.display_value!=null?hf.display_value:V(hf.raw_value||'')]);});
+metaRows.forEach(function(row){
 var tr=document.createElement('tr');
 var th=el('th',null,row[0]);var td=el('td',null,row[1]);
 tr.appendChild(th);tr.appendChild(td);tbl.appendChild(tr);});
@@ -316,7 +330,7 @@ slTd.appendChild(sl);
 var sl2=srcLinks[rec.source];
 if(sl2&&sl2.kind==='branch_latest')
 slTd.appendChild(document.createTextNode(' (may be newer than this export)'));}
-else{slTd.textContent=rec.source+' (remote not on allowlist — inert provenance)';}
+else{slTd.textContent=V(rec.source)+' (remote not on allowlist — inert provenance)';}
 slTr.appendChild(slTh);slTr.appendChild(slTd);tbl.appendChild(slTr);
 c.appendChild(tbl);
 var recRels=rels.filter(function(r){return r.from===rec.id||r.to===rec.id;});
@@ -324,7 +338,8 @@ if(recRels.length>0){
 var rCnt={checked:0,candidate:0,contextual:0,navigation_only:0};
 recRels.forEach(function(r){var tc=r.trust_class;if(tc in rCnt)rCnt[tc]++;});
 var rSummary='Relationships — '+rCnt.checked+' checked · '
-+rCnt.candidate+' candidate · '+rCnt.contextual+' contextual';
++rCnt.candidate+' candidate · '+rCnt.contextual+' contextual · '
++rCnt.navigation_only+' navigation-only';
 var rDet=el('details','rel-details');
 var rSum=el('summary',null,rSummary);rDet.appendChild(rSum);
 var ul=el('ul','rel-list');
@@ -335,9 +350,9 @@ li.appendChild(tlEl);
 var scope=r.scope&&r.scope.length?r.scope.join(', '):'';
 if(r.relation==='supersedes_in_part'&&!(r.scope&&r.scope.length))
 scope='scope not stated';
-li.appendChild(document.createTextNode(' '+r.relation+': '+(r.from||'?')+' → '
-+(r.to||'(unparseable)')+(scope?' ('+scope+')':'')));
-li.appendChild(el('span','trust-source',' · source: '+(r.source||'caller')));
+li.appendChild(document.createTextNode(' '+r.relation+': '+V(r.from||'?')+' → '
++(r.to?V(r.to):'(unparseable)')+(scope?' ('+scope+')':'')));
+li.appendChild(el('span','trust-source',' · source: '+(r.source?V(r.source):'caller')));
 li.appendChild(document.createTextNode(' · '));
 li.appendChild(document.createTextNode(r.display_raw_value||''));
 ul.appendChild(li);});
@@ -350,7 +365,7 @@ srDet.appendChild(srSum);
 var srUl=el('ul',null);
 supRefs.forEach(function(sr){
 var li=el('li',null);
-li.appendChild(document.createTextNode(sr.path+' ['+sr.kind+']'));
+li.appendChild(document.createTextNode(V(sr.path)+' ['+sr.kind+']'));
 srUl.appendChild(li);});
 srDet.appendChild(srUl);c.appendChild(srDet);}
 c.appendChild(el('h3',null,'Record body'+(mode==='bounded'?' (omitted in bounded mode)':'')));
@@ -364,9 +379,9 @@ notice.textContent='Body omitted in bounded mode. ';
 if(body.source_action){
 var lnk=makeLink(body.source_action.path);
 if(lnk){notice.appendChild(lnk);}
-else{notice.appendChild(document.createTextNode(body.source_action.path));}}}
+else{notice.appendChild(document.createTextNode(V(body.source_action.path)));}}}
 else if(reason==='body_too_large'){
-notice.textContent='Body too large to embed. Source: '+rec.source;}
+notice.textContent='Body too large to embed. Source: '+V(rec.source);}
 else{notice.textContent='Body not included. Reason: '+reason;}
 c.appendChild(notice);}
 else{
@@ -425,7 +440,7 @@ var csr=D.corpus_support_refs;
 if(csr.length===0){siUl.appendChild(el('li',null,'None found.'));}
 else{csr.forEach(function(sr){
 var li=el('li',null);
-li.appendChild(document.createTextNode(sr.path+' ['+sr.kind+']'));
+li.appendChild(document.createTextNode(V(sr.path)+' ['+sr.kind+']'));
 siUl.appendChild(li);});}
 supInvEl.appendChild(siUl);}
 // ── Boot ─────────────────────────────────────────────────────────────────────

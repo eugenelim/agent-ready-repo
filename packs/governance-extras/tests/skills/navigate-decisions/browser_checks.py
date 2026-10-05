@@ -216,13 +216,16 @@ def test_no_network_requests(browser: object, export_mixed: pathlib.Path) -> Non
 
 
 def test_hash_routing_empty_hash_shows_list(browser: object, export_mixed: pathlib.Path) -> None:
-    """QE-14/FE-F1: Empty hash navigates to list view without errors."""
+    """QE-14/FE-F1: Back from a detail route to the no-hash entry shows the list."""
     page = _open_page(browser, export_mixed)
-    page.evaluate("window.location.hash = ''")
-    page.wait_for_timeout(200)
-    # The list view must be visible.
-    list_view = page.locator("#view-list")
-    assert list_view.is_visible(), "list view must be visible after empty hash"
+    page.locator(".record-btn").first.click()
+    page.wait_for_selector("#view-detail h2.detail-heading")
+    assert page.locator("#view-list").is_hidden()
+    page.go_back()
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    assert page.evaluate("location.hash") == ""
+    assert page.locator("#view-list h2").text_content() == "Corpus list"
+    assert page.locator("#view-detail").is_hidden()
 
 
 def test_hash_routing_bogus_hash_shows_list(browser: object, export_mixed: pathlib.Path) -> None:
@@ -291,9 +294,8 @@ def test_live_region_updates_on_filter(browser: object, export_mixed: pathlib.Pa
     page.locator("#search-input").fill("zzzzz-no-match")
     page.wait_for_timeout(300)
     updated_text = live.text_content() or ""
-    assert updated_text != initial_text or "0" in updated_text, (
-        f"live region must update after filter; got {updated_text!r}"
-    )
+    assert initial_text.endswith("records shown."), initial_text
+    assert updated_text == 'No records match search: "zzzzz-no-match".', updated_text
 
 
 def test_no_results_shows_reset_control(browser: object, export_mixed: pathlib.Path) -> None:
@@ -328,12 +330,12 @@ def test_missing_id_shows_not_in_export(browser: object, export_mixed: pathlib.P
 
 
 def test_24px_min_targets(browser: object, export_mixed: pathlib.Path) -> None:
-    """FE-F6: All buttons have at least 24×24 CSS px computed size."""
+    """FE-F6: every visible button, link, select and input in the list view is at
+    least 24×24 CSS px."""
     page = _open_page(browser, export_mixed)
-    # Navigate to a record detail to expose all button types.
-    page.locator("#btn-graph").click()
-    page.wait_for_timeout(200)
-    buttons = page.locator("button").all()
+    page.wait_for_selector("li.record-item")
+    buttons = page.locator("button, a, select, input").all()
+    assert len(buttons) > 10
     for btn in buttons:
         box = btn.bounding_box()
         if box is None:
@@ -354,17 +356,27 @@ def test_relationships_section_folded_by_default(
     page.wait_for_timeout(300)
     # Check that rel-details is present and closed.
     rel_details = page.locator(".rel-details")
-    if rel_details.count() == 0:
-        pytest.skip("No relationships for this record")
+    assert rel_details.count() == 1, (
+        "the first record has relationships, so the section must exist"
+    )
     open_attr = rel_details.first.get_attribute("open")
     assert open_attr is None, (
         "Relationships <details> must be closed by default; found open attribute"
     )
     # Summary must contain counts.
     summary_text = rel_details.first.locator("summary").text_content() or ""
-    assert "Relationships" in summary_text, (
-        f"Relationships summary must say 'Relationships'; got {summary_text!r}"
+    counts = page.evaluate(
+        """() => { const d = JSON.parse(document.getElementById('nav-data').textContent);
+          const id = d.records[0].id, c = {checked: 0, candidate: 0, contextual: 0,
+            navigation_only: 0};
+          d.relationships.forEach(r => { if (r.from === id || r.to === id) c[r.trust_class]++; });
+          return c; }"""
     )
+    expected = (
+        f"Relationships — {counts['checked']} checked · {counts['candidate']} candidate · "
+        f"{counts['contextual']} contextual · {counts['navigation_only']} navigation-only"
+    )
+    assert summary_text == expected, summary_text
 
 
 def test_long_body_folded(browser: object, export_pathological: pathlib.Path) -> None:
@@ -374,7 +386,10 @@ def test_long_body_folded(browser: object, export_pathological: pathlib.Path) ->
     page.wait_for_timeout(300)
     # The body must be inside a <details> element (body-details class).
     body_details = page.locator(".body-details")
-    assert body_details.count() > 0, "Long record body must be wrapped in a <details> element"
+    assert body_details.count() == 1, "a long record body must sit in one <details> element"
+    assert body_details.get_attribute("open") is not None, "the record body opens by default"
+    summary = body_details.locator("summary").text_content() or ""
+    assert summary.startswith("Record content (") and summary.endswith(" chars)"), summary
 
 
 def test_no_horizontal_overflow_640px(browser: object, export_mixed: pathlib.Path) -> None:
@@ -894,6 +909,14 @@ def test_graph_text_equivalent_matches_svg_nodes(
         ".map(li => li.textContent)"
     )
     assert "ADR-0020 supersedes in part (D3) ADR-0001" in rel_lines, rel_lines
+    drawn = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph svg [data-rel]')]"
+        ".map(e => e.dataset.rel)"
+    )
+    listed = page.evaluate(
+        "() => [...document.querySelectorAll('.lineage-text li.lt-rel')].map(e => e.dataset.rel)"
+    )
+    assert drawn and sorted(drawn) == sorted(listed), (drawn, listed)
     assert not page._errors  # type: ignore[attr-defined]
 
 
@@ -906,8 +929,8 @@ def test_graph_atlas_shows_one_card_per_chain(browser: object, export_mixed: pat
     card_count = page.evaluate(  # type: ignore[union-attr]
         "document.querySelectorAll('.chain-card').length"
     )
-    # Mixed fixture has one checked chain: ADR-0001 ↔ ADR-0020 (partial supersession)
-    assert card_count >= 1, f"atlas must show ≥1 chain card; got {card_count}"
+    # The mixed fixture has three checked chains: ADR-0001/0020, ADR-0002/0003, ADR-0010/0011.
+    assert card_count == 3, f"atlas must show one card per chain; got {card_count}"
     # Each card contains an SVG
     svgs_in_cards = page.evaluate(  # type: ignore[union-attr]
         "() => Array.from(document.querySelectorAll('.chain-card'))"
@@ -1086,3 +1109,363 @@ def test_back_from_focused_graph_restores_atlas(
     page.go_back()  # type: ignore[union-attr]
     page.wait_for_selector(".chain-card")  # type: ignore[union-attr]
     assert page.locator("button.atlas-back").count() == 0  # type: ignore[union-attr]
+
+
+# ── Review round 2: renderer bounds, theming, and view-state checks ───────────
+
+
+def _inline_pathological_body() -> str:
+    """A near-2 MiB body that stays under the nesting limit, so every inline and
+    heading path runs: long heading whitespace, unmatched openers of every kind."""
+    parts = [
+        ("# a" + " " * 2000 + "#a\n") * 100,
+        "\n" + "[" * 200_000 + "\n\n",
+        "![x" * 60_000 + "\n\n",
+        "<" * 200_000 + "\n\n",
+        "_a" * 100_000 + "\n\n",
+        "".join("`" * (k % 40 + 1) + "x " for k in range(20_000)) + "\n\n",
+        "[a](" * 50_000 + "\n\n",
+    ]
+    text = "".join(parts)
+    pad = 2 * 1024 * 1024 - 4096 - len(text.encode("utf-8"))
+    return text + ("word " * (pad // 5 + 1))[:pad]
+
+
+@pytest.fixture(scope="module")
+def export_inline_pathological(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """Export one record whose body exercises every inline scan near 2 MiB."""
+    fixture_dir = tmp_path_factory.mktemp("inline_pathological_fixture")
+    _write_single_record(fixture_dir, _inline_pathological_body())
+    return _export(tmp_path_factory, fixture_dir, "inline_pathological")
+
+
+def test_inline_pathological_body_renders_in_linear_time(
+    browser: object, export_inline_pathological: pathlib.Path
+) -> None:
+    """AC-0010: heading whitespace and unmatched [, ![, <, _, ` and ]( openers in a
+    near-2 MiB body render within 2 s, without the plain-text fallback."""
+    page = _open_page(browser, export_inline_pathological)
+    page.wait_for_selector("li.record-item")
+    start = time.monotonic()
+    _render_body(page)
+    elapsed_ms = (time.monotonic() - start) * 1000
+    info = page.evaluate(
+        """() => { const c = document.querySelector('.record-content');
+        return { length: c.textContent.length, headings: c.querySelectorAll('h3').length,
+          fallback: c.textContent.includes('nesting deeper than 32 levels') }; }"""
+    )
+    assert elapsed_ms < 2000, f"rendered in {elapsed_ms:.0f} ms"
+    assert not info["fallback"], "this body must parse, not fall back to plain text"
+    assert info["headings"] == 100, info
+    # The 200,000 characters of heading padding are trimmed; the rest is all text.
+    assert info["length"] > 1_650_000, info["length"]
+
+
+@pytest.fixture(scope="module")
+def export_wrapped_list(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """Export one record whose list items wrap onto indented continuation lines."""
+    body = (
+        "- **Reviewer brief** — entry points with two modes of\n"
+        "    operation, each wrapped onto a continuation line\n"
+        "- second item\n"
+        "  continues here too\n\n"
+        "After the list.\n"
+    )
+    fixture_dir = tmp_path_factory.mktemp("wrapped_list_fixture")
+    _write_single_record(fixture_dir, body)
+    return _export(tmp_path_factory, fixture_dir, "wrapped_list")
+
+
+def test_wrapped_list_item_stays_in_its_bullet(
+    browser: object, export_wrapped_list: pathlib.Path
+) -> None:
+    """AC-0010: an indented continuation line joins its list item instead of
+    becoming a code block or a separate paragraph."""
+    page = _open_page(browser, export_wrapped_list)
+    page.wait_for_selector("li.record-item")
+    _render_body(page)
+    info = page.evaluate(
+        """() => { const c = document.querySelector('.record-content');
+        return { items: [...c.querySelectorAll('li')].map(l => l.textContent),
+          pres: c.querySelectorAll('pre').length }; }"""
+    )
+    assert info["pres"] == 0, info
+    assert info["items"] == [
+        "Reviewer brief — entry points with two modes of operation, each wrapped onto a "
+        "continuation line",
+        "second item continues here too",
+    ], info["items"]
+
+
+def _contrast(page: object, selector: str) -> float:
+    """WCAG contrast ratio between an element's text colour and the nearest
+    opaque background behind it."""
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        """(sel) => { const el = document.querySelector(sel);
+        const rgb = s => s.match(/[\\d.]+/g).map(Number);
+        const lum = c => { const v = c.slice(0, 3).map(x => { x /= 255;
+          return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+          return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+        let bg = null, n = el;
+        while (n && n.nodeType === 1) { const c = rgb(getComputedStyle(n).backgroundColor);
+          if (c.length < 4 || c[3] > 0.95) { if (c.length >= 3 && !(c.length === 4 && c[3] === 0))
+            { bg = c; break; } } n = n.parentElement; }
+        if (!bg) bg = rgb(getComputedStyle(document.body).backgroundColor);
+        const fg = rgb(getComputedStyle(el).color);
+        const a = lum(fg), b = lum(bg);
+        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); }""",
+        selector,
+    )
+
+
+def test_theme_toggle_sets_and_remembers_the_theme(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """Owner request: Auto/Light/Dark toggle overrides the system setting and
+    persists across reloads; Auto follows the system again."""
+    context = browser.new_context(offline=True, color_scheme="light")  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.record-item")
+    theme = "() => document.documentElement.dataset.theme"
+    assert page.evaluate(theme) == "light"
+    page.click("[data-theme-choice=dark]")
+    assert page.evaluate(theme) == "dark"
+    assert page.get_attribute("[data-theme-choice=dark]", "aria-pressed") == "true"
+    page.reload()
+    page.wait_for_selector("li.record-item")
+    assert page.evaluate(theme) == "dark", "the choice must survive a reload"
+    page.emulate_media(color_scheme="dark")
+    page.click("[data-theme-choice=light]")
+    assert page.evaluate(theme) == "light", "Light overrides a dark system setting"
+    page.click("[data-theme-choice=auto]")
+    assert page.evaluate(theme) == "dark", "Auto follows the system setting"
+    context.close()
+
+
+def test_links_are_readable_in_both_themes(browser: object, export_mixed: pathlib.Path) -> None:
+    """AC-0025: the superseded-by link inside the banner, and the source link in
+    detail, reach 4.5:1 contrast in light and dark themes."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    for choice in ("light", "dark"):
+        page.click(f"[data-theme-choice={choice}]")
+        assert page.evaluate("() => document.documentElement.dataset.theme") == choice
+        ratio = _contrast(page, "li.record-item .supersede-banner a")
+        assert ratio >= 4.5, f"{choice}: banner link contrast {ratio:.2f}"
+    page.click("[data-theme-choice=auto]")
+
+
+def test_unknown_record_shows_not_in_export_in_every_view(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0016: an unknown record ID says it is not in this export in the graph,
+    context and detail views."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    for view in ("graph", "context", "detail"):
+        page.evaluate(f"() => {{ location.hash = '#{view}/ADR-9999'; }}")
+        page.wait_for_function(
+            f"() => document.getElementById('view-{view}').textContent.includes('ADR-9999')"
+        )
+        text = page.locator(f"#view-{view}").text_content() or ""
+        assert "ADR-9999 is not in this export." in text, (view, text[:200])
+
+
+@pytest.fixture(scope="module")
+def export_long_and_related(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """ADR-0001 has a long body (opened by default) and is superseded by ADR-0002,
+    so its detail view mixes an open body with a closed relationships section."""
+    root = tmp_path_factory.mktemp("long_related_fixture")
+    adr = root / "docs" / "adr"
+    adr.mkdir(parents=True)
+    head = "- **Status:** Accepted\n- **Supersedes:** {s}\n- **Superseded by:** {b}\n"
+    (adr / "0001-old.md").write_text(
+        "# ADR-0001: Old\n\n"
+        + head.format(s="none", b="ADR-0002")
+        + "\n## Context\n\n"
+        + "Long body text. " * 400
+        + "\n",
+        encoding="utf-8",
+    )
+    (adr / "0002-new.md").write_text(
+        "# ADR-0002: New\n\n" + head.format(s="ADR-0001", b="none") + "\n## Context\n\nNew.\n",
+        encoding="utf-8",
+    )
+    return _export(tmp_path_factory, root, "long_related")
+
+
+def test_expand_all_opens_every_section_on_first_click(
+    browser: object, export_long_and_related: pathlib.Path
+) -> None:
+    """AC-0016: with the long body open and relationships closed, the button says
+    Expand all and its first activation opens every section."""
+    page = _open_page(browser, export_long_and_related)
+    page.wait_for_selector("li.record-item")
+    _render_body(page)
+    page.wait_for_selector("#view-detail .rel-details")
+    assert page.locator("#expand-all-btn").text_content() == "Expand all"
+    page.click("#expand-all-btn")
+    still_closed = page.evaluate(
+        "() => [...document.querySelectorAll('#view-detail details')].filter(d => !d.open).length"
+    )
+    assert still_closed == 0
+    assert page.locator("#expand-all-btn").text_content() == "Collapse all"
+
+
+def test_reset_filters_keeps_keyboard_focus(browser: object, export_mixed: pathlib.Path) -> None:
+    """AC-0016: after Reset filters removes itself, focus lands on the view heading."""
+    page = _open_page(browser, export_mixed)
+    page.locator("#search-input").fill("zzzzz-no-match")
+    page.locator(".reset-btn").focus()
+    page.keyboard.press("Enter")
+    page.wait_for_selector("li.record-item")
+    focused = page.evaluate(
+        "() => [document.activeElement.tagName, document.activeElement.textContent]"
+    )
+    assert focused == ["H2", "Corpus list"], focused
+
+
+def test_strike_through_marks_full_supersession_only(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """A record superseded only in part stays in force: its ID is not struck
+    through, while a fully superseded record's ID is."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    deco = page.evaluate(
+        """() => Object.fromEntries([...document.querySelectorAll('li.record-item')].map(li =>
+          [li.querySelector('.rid').textContent,
+           getComputedStyle(li.querySelector('.rid')).textDecorationLine]))"""
+    )
+    assert deco["ADR-0002"] == "line-through", deco  # fully superseded by ADR-0003
+    assert deco["ADR-0001"] == "underline", deco  # superseded in part by ADR-0020
+    assert deco["ADR-0005" if "ADR-0005" in deco else "ADR-0030"] == "none", deco
+
+
+def test_atlas_draws_and_labels_cycle_relationships(
+    browser: object, export_cycle: pathlib.Path
+) -> None:
+    """AC-0026: a cyclic chain's atlas card draws its cycle relationships and
+    labels each one "cycle"."""
+    page = _open_page(browser, export_cycle)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page)
+    page.wait_for_selector(".chain-card svg")
+    info = page.evaluate(
+        """() => { const svg = document.querySelector('.chain-card svg');
+        return { arcs: svg.querySelectorAll('path[stroke-dasharray]').length,
+          labels: [...svg.querySelectorAll('text')].filter(t => t.textContent === 'cycle'
+            && !t.closest('[data-node-id]')).length }; }"""
+    )
+    assert info["arcs"] == 3 and info["labels"] == 3, info
+
+
+def test_hostile_titles_and_status_stay_inert_in_every_view(
+    browser: object, export_hostile: pathlib.Path
+) -> None:
+    """Hostile H1 and Status values render as literal text in list, graph,
+    context and detail, and never execute or load anything."""
+    page = _open_page(browser, export_hostile)
+    page.wait_for_selector("li.record-item")
+    for view in ("list", "graph", "context", "detail"):
+        page.evaluate(f"() => {{ location.hash = '#{view}/ADR-0001'; }}")
+        page.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
+        info = page.evaluate(
+            f"""() => {{ const v = document.getElementById('view-{view}');
+            return {{ scripts: v.querySelectorAll('script, img, iframe').length,
+              text: v.textContent }}; }}"""
+        )
+        assert info["scripts"] == 0, view
+        if view in ("list", "detail"):
+            assert '<script>alert("xss")</script>' in info["text"], view
+    assert page.evaluate("() => document.cookie") == ""
+    assert not page._errors  # type: ignore[attr-defined]
+    assert not page._non_file_requests  # type: ignore[attr-defined]
+
+
+@pytest.fixture(scope="module")
+def export_bidi_paths(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """A record whose file name carries RLM and ALM marks, exported with a caller
+    assertion whose endpoint carries an RLM mark."""
+    root = tmp_path_factory.mktemp("bidi_paths_fixture")
+    adr = root / "docs" / "adr"
+    adr.mkdir(parents=True)
+    head = (
+        "- **Status:** Accepted\n- **Date:** 2024-03-15\n- **Supersedes:** none\n"
+        "- **Superseded by:** none\n"
+    )
+    (adr / "0001-left‏right؜.md").write_text(
+        "# ADR-0001: Marked name\n\n" + head + "\n## Context\n\nBody.\n", encoding="utf-8"
+    )
+    (adr / "0002-plain.md").write_text(
+        "# ADR-0002: Plain\n\n" + head + "\n## Context\n\nBody.\n", encoding="utf-8"
+    )
+    out = tmp_path_factory.mktemp("browser_bidi_paths")
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        root,
+        destination=out,
+        mode="full",
+        name="bidi_paths.html",
+        assertions=[{"from": "ADR-0002", "to": "ADR-0001‏", "text": "wider‎guidance"}],
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+def test_paths_and_assertion_endpoints_escape_directional_marks(
+    browser: object, export_bidi_paths: pathlib.Path
+) -> None:
+    """AC-0010: source paths and caller-assertion endpoints beside trust labels show
+    RLM, ALM and LRM as visible escapes in detail and context views."""
+    page = _open_page(browser, export_bidi_paths)
+    page.wait_for_selector("li.record-item")
+    raw = "‏‎؜"
+    for view in ("detail", "context"):
+        for rid in ("ADR-0001", "ADR-0002"):
+            page.evaluate(f"() => {{ location.hash = '#{view}/{rid}'; }}")
+            page.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
+            text = page.locator(f"#view-{view}").text_content() or ""
+            assert not any(c in text for c in raw), (view, rid)
+    page.evaluate("() => { location.hash = '#detail/ADR-0001'; }")
+    page.wait_for_function("() => !document.getElementById('view-detail').hidden")
+    detail = page.locator("#view-detail").text_content() or ""
+    assert "0001-left[U+200F]right[U+061C].md" in detail, detail[:400]
+    page.evaluate("() => { location.hash = '#context/ADR-0002'; }")
+    page.wait_for_function("() => !document.getElementById('view-context').hidden")
+    context = page.locator("#view-context .assert-list").text_content() or ""
+    assert "ADR-0001[U+200F]" in context and "wider[U+200E]guidance" in context, context
+
+
+def test_detail_shows_every_header_field_exactly(
+    browser: object, export_bidi_paths: pathlib.Path
+) -> None:
+    """Exact headers: the detail view lists each header-region field by its label
+    and recorded value, including `none` supersession values."""
+    page = _open_page(browser, export_bidi_paths)
+    page.wait_for_selector("li.record-item")
+    page.evaluate("() => { location.hash = '#detail/ADR-0002'; }")
+    page.wait_for_selector("#view-detail .meta-table")
+    rows = page.evaluate(
+        """() => [...document.querySelectorAll('#view-detail .meta-table tr')]
+          .map(tr => [tr.cells[0].textContent, tr.cells[1].textContent])"""
+    )
+    assert ["Date", "2024-03-15"] in rows, rows
+    assert ["Supersedes", "none"] in rows, rows
+    assert ["Superseded by", "none"] in rows, rows
+
+
+def test_caller_assertion_is_drawn_and_listed_in_the_graph(
+    browser: object, export_bidi_paths: pathlib.Path
+) -> None:
+    """AC-0026: a caller assertion reaches the graph view as a navigation-only
+    relationship, drawn and listed with the same identity."""
+    page = _open_page(browser, export_bidi_paths)
+    page.wait_for_selector("li.record-item")
+    page.evaluate("() => { location.hash = '#graph/ADR-0002'; }")
+    page.wait_for_selector("#view-graph .graph-note")
+    listed = page.evaluate(
+        "() => [...document.querySelectorAll('.lineage-text-list li, .lineage-text li.lt-rel')]"
+        ".map(li => li.textContent)"
+    )
+    assert any("[navigation_only · caller_asserted]" in t for t in listed), listed

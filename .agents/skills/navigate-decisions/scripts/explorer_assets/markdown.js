@@ -232,4 +232,6 @@ function renderMarkdown(text,container){
   container.appendChild(frag);}
 
 window.renderMarkdown=renderMarkdown;
+// Shared with the explorer runtime so every human-facing string escapes the same way.
+window.visEscape=vis;
 }();

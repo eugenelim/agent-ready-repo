@@ -198,7 +198,7 @@ nav[aria-label="Views"] button[aria-current="page"]{
 :root{color-scheme:light}
 :root[data-theme="dark"]{color-scheme:dark}
 a{color:var(--accent)}
-.supersede-banner a{color:#1e3a8a;font-weight:700}
+.supersede-banner a{color:#1e3a8a;font-weight:700;display:inline-block;min-height:24px;line-height:24px}
 :root[data-theme="dark"] .supersede-banner a{color:#bfdbfe}
 .record-btn{
   width:100%;text-align:left;padding:.65rem var(--pad-sm);

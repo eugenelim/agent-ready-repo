@@ -65,29 +65,48 @@ python3 scripts/navigate_decisions.py query \
   --assertions '[{"from": "ADR-0001", "to": "ADR-0002", "text": "guides"}]'
 ```
 
-The response always carries `schema: decision-navigation.query.v1`, `status`
-(`ok` or `error`), `records`, `relationships`, `omissions`, `boundary`, and
-`provenance`.  A `summary` object is added for the `summary` operation.
+Every response carries `schema: decision-navigation.query.v1`, `boundary`,
+`query`, `provenance`, and `status` (`ok` or `error`).  Success responses also
+carry `records`, `relationships`, and `omissions`; the `summary` operation adds
+a `summary` object.  Error responses carry an `error` object with fields `code`,
+`message`, `limits`, and `observed`, and no records or relationships.
+
+Each record carries `header_fields`: every field in its header region, in order,
+as `{label, raw_value, display_value}`, kept exactly in query results and in both
+export modes. A caller assertion must be a list of `{from, to, text}` objects;
+anything else is refused with `invalid_assertion`. Accepted assertions appear as
+`navigation_only` / `caller_asserted` relationships with relation `guidance`.
 
 ## Export
 
 The `export` subcommand builds a self-contained, offline HTML explorer from the
-corpus and writes it atomically to a file you name:
+corpus and writes it atomically to the OS temporary directory by default:
 
 ```bash
-# Full export — record bodies embedded (default).
+# Full export to the OS temp directory — record bodies embedded (default).
+python3 scripts/navigate_decisions.py export \
+  --root <repo-root> \
+  --name decisions.html
+
+# Bounded export to the OS temp directory — bodies omitted, inventory and relationships intact.
+python3 scripts/navigate_decisions.py export \
+  --root <repo-root> \
+  --name decisions-bounded.html \
+  --mode bounded
+```
+
+Supply `--destination` only when the user's own request names a specific
+directory outside the repository:
+
+```bash
 python3 scripts/navigate_decisions.py export \
   --root <repo-root> \
   --destination <directory-outside-repo> \
   --name decisions.html
-
-# Bounded export — bodies omitted, inventory and relationships intact.
-python3 scripts/navigate_decisions.py export \
-  --root <repo-root> \
-  --destination <directory-outside-repo> \
-  --name decisions-bounded.html \
-  --mode bounded
 ```
+
+The explorer offers an Auto / Light / Dark theme control; Auto follows the
+system setting, and a chosen theme is remembered by the browser.
 
 The file is written atomically: a temp file is created, synced, then hard-linked
 into place.  The destination must not already exist, must have a `.html` suffix,

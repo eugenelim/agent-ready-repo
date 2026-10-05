@@ -1,5 +1,6 @@
 # ADR-0001: Alpha record for navigation tests
 
+- **Date:** 2024-03-15
 - **Status:** Accepted (superseded in part by ADR-0020 for D3)
 - **Supersedes:** none
 - **Supersedes in part:** none

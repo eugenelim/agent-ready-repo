@@ -373,8 +373,44 @@ function appendLegend(container){
   d.appendChild(ul);container.appendChild(d);
 }
 
+// ── Relationships drawn around the chain for the selected record. The diagram
+// and its text equivalent both read this one definition, so they cannot drift.
+function extrasFor(selectedId,cn,allRels){
+  var touches=function(r){return r.from===selectedId||r.to===selectedId;};
+  var peer=function(r){return r.from===selectedId?r.to:r.from;};
+  return{
+    oneSided:allRels.filter(function(r){
+      return r.from===selectedId&&r.trust_class==='candidate'&&r.resolution_state==='unresolved'
+        &&(r.relation==='supersedes'||r.relation==='supersedes_in_part')
+        &&(!r.to||cn.indexOf(r.to)<0);}),
+    asserted:allRels.filter(function(r){
+      return r.trust_class==='navigation_only'&&touches(r)&&cn.indexOf(peer(r))<0;}),
+    contextual:allRels.filter(function(r){
+      return r.trust_class==='contextual'&&touches(r);})
+  };
+}
+
+// Identity of a relationship, stamped on its diagram element and its text line.
+function relKey(r){return (r.from||'?')+'|'+r.relation+'|'+(r.to||'?')+'|'+r.trust_class;}
+
+// One line of text for a relationship, using escaped display copies.
+function relText(r){
+  var f=r.display_from||r.from,t=r.display_to||r.to||'?';
+  if(r.trust_class==='candidate')return f+' '+r.relation.replace(/_/g,' ')+' '+t+' [one-sided · unresolved]';
+  if(r.trust_class==='navigation_only')return f+' → '+t+' [navigation_only · caller_asserted]'+
+    (r.display_raw_value?': '+r.display_raw_value:'');
+  return f+' related to '+t+' [contextual · '+r.resolution_state+']';
+}
+
+function appendExtrasText(ul,extras){
+  ['oneSided','asserted','contextual'].forEach(function(k){
+    extras[k].forEach(function(r){
+      var li=document.createElement('li');li.className='lt-rel lt-'+k;li.dataset.rel=relKey(r);
+      li.textContent=relText(r);ul.appendChild(li);});});
+}
+
 // ── Text equivalent (synchronized list of nodes and relationships)
-function appendTextEquiv(container,chainNodes,chainCheckedRels,allRels,allRecords,selectedId,sccList,n2s){
+function appendTextEquiv(container,chainNodes,chainCheckedRels,extras,allRecords,sccList,n2s,navigate){
   var det=document.createElement('details');det.className='lineage-text';
   var s=document.createElement('summary');s.textContent='Lineage as text';det.appendChild(s);
   // On narrow screens the scaled-down diagram is hard to read, so lead with the text.
@@ -385,24 +421,22 @@ function appendTextEquiv(container,chainNodes,chainCheckedRels,allRels,allRecord
     var lcv=(rec&&rec.lifecycle&&!rec.lifecycle.missing&&(rec.lifecycle.display_value||rec.lifecycle.raw_value))||'(missing)';
     var isCyc=sccList&&n2s&&sccList[n2s[nid]]&&sccList[n2s[nid]].length>1;
     var li=document.createElement('li');li.className='lt-node';
-    li.textContent=nid+': '+((rec&&(rec.display_title||rec.title))||'')+' ['+lcv+']'+(isCyc?' [cycle member]':'');
-    ul.appendChild(li);
+    // Each node is a button, so the text list is a full alternative to the diagram.
+    var b=document.createElement('button');b.type='button';b.className='lt-node-btn';
+    b.textContent=nid+': '+((rec&&(rec.display_title||rec.title))||'')+' ['+lcv+']'+(isCyc?' [cycle member]':'');
+    b.addEventListener('click',function(){navigate('graph',nid);});
+    li.appendChild(b);ul.appendChild(li);
   });
   chainCheckedRels.forEach(function(r){
     if(chainNodes.indexOf(r.from)<0||chainNodes.indexOf(r.to)<0)return;
     var scope=r.scope&&r.scope.length?r.scope.join(', '):'scope not stated';
     var rel=r.relation==='supersedes_in_part'?'supersedes in part ('+scope+')':'supersedes';
     var isCyc=n2s&&n2s[r.from]===n2s[r.to];
-    var li=document.createElement('li');li.className='lt-rel';
+    var li=document.createElement('li');li.className='lt-rel';li.dataset.rel=relKey(r);
     li.textContent=r.from+' '+rel+' '+r.to+(isCyc?' [cycle]':'');
     ul.appendChild(li);
   });
-  // Unchecked from selected
-  allRels.forEach(function(r){
-    if(r.from!==selectedId||r.trust_class!=='candidate'||r.resolution_state!=='unresolved')return;
-    var li=document.createElement('li');
-    li.textContent=r.from+' → '+(r.to||'?')+' [one-sided · unresolved]';ul.appendChild(li);
-  });
+  appendExtrasText(ul,extras);
   det.appendChild(ul);container.appendChild(det);
 }
 
@@ -420,18 +454,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var note=document.createElement('p');note.className='graph-note';
     note.textContent=selectedId+' has no checked supersession lineage.';
     container.appendChild(note);
-    var unres=allRels.filter(function(r){
-      return r.from===selectedId&&r.trust_class==='candidate';
-    });
-    if(unres.length){
-      var ul0=document.createElement('ul');
-      unres.forEach(function(r){
-        var li=document.createElement('li');
-        li.textContent=r.from+' → '+(r.to||'?')+' [one-sided · unresolved]';
-        ul0.appendChild(li);
-      });
-      container.appendChild(ul0);
-    }
+    var ex0=extrasFor(selectedId,[selectedId],allRels);
+    var ul0=document.createElement('ul');ul0.className='lineage-text-list';
+    appendExtrasText(ul0,ex0);
+    if(ul0.childNodes.length)container.appendChild(ul0);
     return;
   }
 
@@ -445,18 +471,8 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   cn.forEach(function(n){if(np[n]&&np[n].row>maxRow)maxRow=np[n].row;});
 
   // Pre-count satellite nodes to size the SVG
-  var unresRels=allRels.filter(function(r){
-    return r.from===selectedId&&r.trust_class==='candidate'&&r.resolution_state==='unresolved'
-      &&(r.relation==='supersedes'||r.relation==='supersedes_in_part')
-      &&(!r.to||cn.indexOf(r.to)<0);
-  });
-  var assertedRels=allRels.filter(function(r){
-    return r.trust_class==='navigation_only'&&(r.from===selectedId||r.to===selectedId)
-      &&cn.indexOf(r.from===selectedId?r.to:r.from)<0;
-  });
-  var ctxRels=allRels.filter(function(r){
-    return r.trust_class==='contextual'&&(r.from===selectedId||r.to===selectedId);
-  });
+  var extras=extrasFor(selectedId,cn,allRels);
+  var unresRels=extras.oneSided,assertedRels=extras.asserted,ctxRels=extras.contextual;
   var satCount=unresRels.length+assertedRels.length;
   var ctxCount=Object.keys(ctxRels.reduce(function(acc,r){
     var pid=r.from===selectedId?r.to:r.from;acc[pid]=1;return acc;},{})  ).length;
@@ -501,14 +517,14 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       sa(arc,'d','M '+xn+','+y1c+' Q '+arcX+','+arcY+' '+xn+','+y2c);
       sa(arc,'fill','none');sa(arc,'stroke','#374151');sa(arc,'stroke-width','1.5');
       sa(arc,'stroke-dasharray','8 4');sa(arc,'marker-end','url(#'+pfx+'af)');
-      eg.appendChild(arc);
+      arc.dataset.rel=relKey(r);eg.appendChild(arc);
       var lt=svgEl('text');sa(lt,'x',arcX+4);sa(lt,'y',arcY);
       sa(lt,'font-size','10');sa(lt,'fill','#b45309');lt.textContent='cycle';eg.appendChild(lt);
     }else{
       // FROM is newer (right), TO is older (left)
       var x1=PX+fp.col*(NW+XG),y1=PY+fp.row*(NH+YG)+ports[ri].y1;
       var x2=PX+tp.col*(NW+XG)+NW,y2=PY+tp.row*(NH+YG)+ports[ri].y2;
-      drawEdge(eg,x1,y1,x2,y2,stroke,'2',null,'url(#'+pfx+'af)');
+      drawEdge(eg,x1,y1,x2,y2,stroke,'2',null,'url(#'+pfx+'af)').dataset.rel=relKey(r);
       if(isPartial){
         var sc2='in part · '+(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated');
         edgeLabel(lg,x1,y1,x2,y2,sc2,'#1d4ed8');
@@ -528,10 +544,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     eg.appendChild(sg);
     var st=svgEl('text');sa(st,'x',sx+5);sa(st,'y',sy+NH/2);
     sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill','#9ca3af');
-    st.textContent=r.to||'?';eg.appendChild(st);
+    st.textContent=r.display_to||r.to||'?';eg.appendChild(st);
     var sp=np[selectedId];if(!sp)return;
     var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH/2;
-    drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#9ca3af','1.5','6 4','url(#'+pfx+'ao)');
+    drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#9ca3af','1.5','6 4','url(#'+pfx+'ao)').dataset.rel=relKey(r);
     edgeLabel(eg,ex1,ey1,sx,sy+NH/2,'one-sided','#9ca3af');
   });
 
@@ -544,10 +560,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     eg.appendChild(sg);
     var st=svgEl('text');sa(st,'x',sx+5);sa(st,'y',sy+NH/2);
     sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill','#7c3aed');
-    st.textContent=peerId||'?';eg.appendChild(st);
+    st.textContent=(r.from===selectedId?(r.display_to||r.to):(r.display_from||r.from))||'?';eg.appendChild(st);
     var sp=np[selectedId];if(!sp)return;
     var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH/2;
-    drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#a78bfa','1.5','8 3 2 3','url(#'+pfx+'ah)');
+    drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#a78bfa','1.5','8 3 2 3','url(#'+pfx+'ah)').dataset.rel=relKey(r);
     edgeLabel(eg,ex1,ey1,sx,sy+NH/2,'asserted','#7c3aed');
   });
 
@@ -574,7 +590,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var ep=svgEl('path');
     sa(ep,'d','M '+ex1+','+ey1+' L '+cp.x+','+(cp.y+Math.round(NH*0.4)));
     sa(ep,'fill','none');sa(ep,'stroke','#d1d5db');sa(ep,'stroke-width','1');
-    sa(ep,'stroke-dasharray','2 3');ctxG.appendChild(ep);
+    sa(ep,'stroke-dasharray','2 3');ep.dataset.rel=relKey(r);ctxG.appendChild(ep);
   });
   svg.appendChild(ctxG);
 
@@ -619,7 +635,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   }
 
   appendLegend(container);
-  appendTextEquiv(container,cn,chainCheckedRels,allRels,allRecords,selectedId,sccList,n2s);
+  appendTextEquiv(container,cn,chainCheckedRels,extras,allRecords,sccList,n2s,navigate);
 }
 
 // ── Atlas: render all chains as small cards

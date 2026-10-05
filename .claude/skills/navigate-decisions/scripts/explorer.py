@@ -138,11 +138,19 @@ _nav_module: Any | None = None
 
 
 def _get_nav() -> Any:
+    """Load navigate_decisions.py at most once.
+
+    Uses the same discipline as _get_file_safety: lstat confirms a regular
+    non-symlink file, required symbols are asserted after exec.
+    """
     global _nav_module
     if _nav_module is not None:
         return _nav_module
     path = _SCRIPT_DIR / "navigate_decisions.py"
-    st = os.lstat(path)
+    try:
+        st = os.lstat(path)
+    except OSError as exc:
+        raise ImportError(f"required module unavailable: {path.name}") from exc
     if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
         raise ImportError("navigate_decisions.py is not a regular file")
     prev = sys.dont_write_bytecode
@@ -161,6 +169,18 @@ def _get_nav() -> Any:
         raise
     finally:
         sys.dont_write_bytecode = prev
+    _required_nav = {
+        "_admit_corpus", "_build_relationships", "BOUNDARY_NOTICE",
+        "_record_to_api", "_sort_records", "_sort_relationships",
+        "_read_register_file", "_escape_display", "_validate_assertions",
+    }
+    missing = _required_nav - set(vars(mod))
+    if missing:
+        sys.modules.pop("_explorer_navigate_decisions", None)
+        raise ImportError(
+            f"navigate_decisions.py is incomplete: "
+            f"{', '.join(sorted(missing))}"
+        )
     _nav_module = mod
     return mod
 
@@ -228,33 +248,37 @@ def _run_git(args: list[str], cwd: str, timeout: int = 5) -> str | None:
 
 
 def _parse_github_identity(url: str) -> tuple[str, str] | None:
-    """Return (owner, repo) for a github.com remote URL, or None.
+    """Return (owner, repo) for a remote URL whose host is on the allowlist, or None.
 
+    Extracts the host from the URL and checks it against _SOURCE_HOST_ALLOWLIST.
     Rejects owner or repo names that are dot-segments (``.`` or ``..``), which
-    would change the resolved path on the host.  The host is validated against
-    _SOURCE_HOST_ALLOWLIST before any link is emitted.
+    would change the resolved path on the host.
     """
+    # Parse HTTPS form: https://HOST/owner/repo[.git]
+    m = re.match(
+        r"^https://([A-Za-z0-9._-]+)/([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$",
+        url,
+    )
+    if m:
+        host, owner, repo = m.group(1), m.group(2), m.group(3)
+    else:
+        # Parse SSH form: git@HOST:owner/repo[.git]
+        m2 = re.match(
+            r"^git@([A-Za-z0-9._-]+):([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$",
+            url,
+        )
+        if not m2:
+            return None
+        host, owner, repo = m2.group(1), m2.group(2), m2.group(3)
+
     # Only exact hosts in the allowlist are permitted.
-    host = "github.com"
     if host not in _SOURCE_HOST_ALLOWLIST:
         return None  # allowlist governs; reject unrecognised host
 
-    m = re.match(
-        r"^https://github\.com/([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$",
-        url,
-    )
-    if not m:
-        m = re.match(
-            r"^git@github\.com:([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$",
-            url,
-        )
-    if m:
-        owner, repo = m.group(1), m.group(2)
-        # Reject dot-segment names.
-        if owner in (".", "..") or repo in (".", ".."):
-            return None
-        return owner, repo
-    return None
+    # Reject dot-segment names.
+    if owner in (".", "..") or repo in (".", ".."):
+        return None
+    return owner, repo
 
 
 def _encode_path(repo_relative: str) -> str:
@@ -307,14 +331,19 @@ def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
     remote_url = _run_git(["config", "--get", "remote.origin.url"], cwd)
     head_sha = _run_git(["rev-parse", "HEAD"], cwd)
 
-    # A commit-pinned link is safe only when the working tree has no
-    # uncommitted changes under the exported record paths.  Check with
-    # ``git status --porcelain docs/adr docs/rfc``.  Any output means
-    # the working tree differs from HEAD for those paths.
+    # A commit-pinned link is safe only when:
+    # 1. The working tree has no uncommitted changes under the exported paths.
+    # 2. HEAD is reachable on a remote tracking branch (i.e. it has been pushed).
+    # Check (1) with 'git status --porcelain docs/adr docs/rfc'.
     status_out = _run_git(
         ["status", "--porcelain", "docs/adr", "docs/rfc"], cwd
     )
     working_tree_clean = status_out is not None and status_out.strip() == ""
+    # Check (2): HEAD must appear in at least one remote tracking branch.
+    remote_contains = _run_git(["branch", "-r", "--contains", "HEAD"], cwd)
+    head_on_remote = (
+        remote_contains is not None and remote_contains.strip() != ""
+    )
 
     identity: tuple[str, str] | None = None
     if remote_url:
@@ -334,7 +363,10 @@ def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
             links[src] = {"url": None, "label": src, "kind": "inert"}
             continue
 
-        if head_sha and re.match(r"^[0-9a-f]{40}$", head_sha) and working_tree_clean:
+        if (
+            head_sha and re.match(r"^[0-9a-f]{40}$", head_sha)
+            and working_tree_clean and head_on_remote
+        ):
             url = (
                 f"https://github.com/{urllib.parse.quote(owner, safe='')}/"
                 f"{urllib.parse.quote(repo, safe='')}/blob/{head_sha}/{encoded}"
@@ -356,29 +388,85 @@ def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
 # ── Caller assertion normalization ────────────────────────────────────────────
 
 
-def _normalize_assertion(a: Any) -> dict[str, Any]:
-    """Normalize a caller assertion to a guidance/navigation_only/caller_asserted tuple.
+def _validate_assertions_for_export(assertions: Any) -> str | None:
+    """Validate caller assertions for the export path.
 
-    Every caller assertion is embedded as a structured tuple with a fixed
-    trust_class and resolution_state so the JS runtime can render them without
-    relying on the shape of the raw caller dict.
+    Returns an error message string on failure, or None on success.
+    Delegates to navigate_decisions._validate_assertions to ensure parity.
+    """
+    nav = _get_nav()
+    return nav._validate_assertions(assertions)
+
+
+def _normalize_assertion(a: Any) -> dict[str, Any]:
+    """Normalize a validated caller assertion to the same tuple _op_context builds.
+
+    Caller must ensure 'a' is a validated dict with string 'from', 'to', 'text'.
+    This function builds exactly the relationship tuple that _op_context emits:
+      relation: 'guidance', basis: 'caller_assertion', source: None,
+      direction: 'wider_to_narrower', trust_class: 'navigation_only',
+      resolution_state: 'caller_asserted'.
+
+    Kept for backward compatibility with tests; the export path calls
+    _build_assertion_tuple directly.
     """
     if not isinstance(a, dict):
         return {
             "from": "",
             "to": "",
             "relation": "guidance",
+            "scope": [],
+            "raw_value": str(a),
+            "basis": "caller_assertion",
+            "source": None,
+            "direction": "wider_to_narrower",
             "trust_class": "navigation_only",
             "resolution_state": "caller_asserted",
-            "raw_value": str(a),
         }
+    from_id = str(a.get("from", ""))
+    to_id = str(a.get("to", ""))
+    text = str(a.get("text", a.get("raw_value", "")))
     return {
-        "from": str(a.get("from", "")),
-        "to": str(a.get("to", "")),
-        "relation": str(a.get("relation", "guidance")),
+        "from": from_id,
+        "to": to_id,
+        "relation": "guidance",
+        "scope": [],
+        "raw_value": text,
+        "basis": "caller_assertion",
+        "source": None,
+        "direction": "wider_to_narrower",
         "trust_class": "navigation_only",
         "resolution_state": "caller_asserted",
-        "raw_value": str(a.get("raw_value", a.get("text", ""))),
+    }
+
+
+def _build_assertion_tuple(a: dict[str, Any], vis: Any) -> dict[str, Any]:
+    """Build an assertion relationship tuple matching _op_context's output exactly.
+
+    Args:
+        a: Validated assertion dict with string 'from', 'to', 'text'.
+        vis: _escape_display function for display copies.
+
+    Returns a complete relationship tuple with display_from, display_to, and
+    display_raw_value added for the HTML data island.
+    """
+    from_id = a["from"]
+    to_id = a["to"]
+    text = a["text"]
+    return {
+        "from": from_id,
+        "to": to_id,
+        "relation": "guidance",
+        "scope": [],
+        "raw_value": text,
+        "basis": "caller_assertion",
+        "source": None,
+        "direction": "wider_to_narrower",
+        "trust_class": "navigation_only",
+        "resolution_state": "caller_asserted",
+        "display_from": vis(from_id),
+        "display_to": vis(to_id),
+        "display_raw_value": vis(text),
     }
 
 
@@ -504,7 +592,6 @@ def _build_html(
     boundary: str,
     provenance: dict[str, Any],
     summary: dict[str, Any],
-    embedded_assertions: list[dict[str, Any]],
     now: datetime,
 ) -> str:
     """Build the complete self-contained HTML string."""
@@ -526,6 +613,8 @@ def _build_html(
     )
 
     # Embed all data as safe JSON in a data island.
+    # Caller assertions are embedded as navigation_only tuples in relationships,
+    # not as a separate embedded_assertions key.
     corpus_support_refs = summary.get("corpus_support_refs", [])
     data_obj = {
         "records": records,
@@ -535,7 +624,6 @@ def _build_html(
         "boundary": boundary,
         "provenance": provenance,
         "summary": summary,
-        "embedded_assertions": embedded_assertions,
         "corpus_support_refs": corpus_support_refs,
     }
     json_data = _safe_json(data_obj)
@@ -687,10 +775,11 @@ def _validate_destination(
     dest_dir: Path | None,
     name: str,
     repo_root: Path,
-) -> tuple[Path, Path]:
+) -> tuple[Path, Path, tuple[int, int]]:
     """Validate destination directory and output name.
 
-    Returns (resolved_dir, full_path).
+    Returns (resolved_dir, full_path, dir_identity) where dir_identity is
+    (st_dev, st_ino) of the resolved directory, recorded at validation time.
     Raises ValueError with a stable reason on any refusal.
     """
     fs = _get_file_safety()
@@ -761,19 +850,66 @@ def _validate_destination(
     if full_path.parent.resolve() != resolved_dir:
         raise ValueError("destination path escapes the destination directory")
 
-    return resolved_dir, full_path
+    # Record the validated directory's identity (device, inode) without following
+    # symlinks. This is used by _publish_atomically to detect any swap.
+    try:
+        _dir_st = os.lstat(str(resolved_dir))
+    except OSError as exc:
+        raise ValueError(
+            f"destination directory cannot be stat'd: {resolved_dir}: {exc}"
+        ) from exc
+    dir_identity: tuple[int, int] = (_dir_st.st_dev, _dir_st.st_ino)
+
+    return resolved_dir, full_path, dir_identity
 
 
 # ── Atomic publication ────────────────────────────────────────────────────────
 
 
-def _publish_atomically(target_dir: Path, target_path: Path, content: bytes) -> None:
+def _check_dir_identity(
+    dir_path: Path,
+    expected: tuple[int, int],
+    phase: str,
+) -> None:
+    """Verify the directory at dir_path still has the expected (st_dev, st_ino).
+
+    Raises OSError if the identity has changed since validation, indicating a
+    directory swap between validation and publication.
+    """
+    try:
+        st = os.lstat(str(dir_path))
+    except OSError as exc:
+        raise OSError(
+            f"destination directory cannot be inspected at {phase}: {exc}"
+        ) from exc
+    actual = (st.st_dev, st.st_ino)
+    if actual != expected:
+        raise OSError(
+            f"destination directory identity changed between validation and "
+            f"{phase} (expected {expected!r}, got {actual!r}); refusing publication"
+        )
+
+
+def _publish_atomically(
+    target_dir: Path,
+    target_path: Path,
+    content: bytes,
+    dir_identity: tuple[int, int] | None = None,
+) -> None:
     """Write content to target_path via an owner-scoped temporary sibling.
 
-    Follows the same discipline as publish_explanation.py:
     mkstemp → fchmod 0o600 → write → fsync → os.link (no-replace) → unlink temp.
     Leaves no partial output on any failure path.
+
+    When dir_identity is provided (st_dev, st_ino from _validate_destination),
+    the directory's identity is verified immediately before mkstemp and before
+    os.link to detect any directory swap between validation and publication.
+    On POSIX the check uses lstat without following symlinks.
     """
+    # Verify directory identity before mkstemp.
+    if dir_identity is not None and _IS_POSIX:
+        _check_dir_identity(target_dir, dir_identity, "mkstemp")
+
     descriptor, tmp_name = tempfile.mkstemp(
         prefix=".nav-decisions-",
         suffix=".tmp",
@@ -806,6 +942,9 @@ def _publish_atomically(target_dir: Path, target_path: Path, content: bytes) -> 
                     f"temporary file has {tmp_st.st_nlink} links before os.link; "
                     "expected 1"
                 )
+        # Re-check directory identity immediately before os.link.
+        if dir_identity is not None and _IS_POSIX:
+            _check_dir_identity(target_dir, dir_identity, "os.link")
         os.link(tmp_name, str(target_path))
         published = True
     except FileExistsError as exc:
@@ -861,6 +1000,39 @@ def publish_explorer(
         request and never from record content or caller assertions.  See
         SKILL.md § Export for the full user-only destination rule.
     """
+    try:
+        return _publish_explorer_inner(
+            root=root,
+            destination=destination,
+            name=name,
+            mode=mode,
+            confirm_over_budget=confirm_over_budget,
+            assertions=assertions,
+            now=now,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "status": "error",
+            "error": {
+                "code": "internal_error",
+                "message": f"unexpected error during export: {exc}",
+                "limits": {},
+                "observed": {},
+            },
+        }
+
+
+def _publish_explorer_inner(
+    root: Any,
+    *,
+    destination: Any = None,
+    name: str | None = None,
+    mode: str = "full",
+    confirm_over_budget: bool = False,
+    assertions: list[dict[str, Any]] | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Inner implementation for publish_explorer; all exceptions propagate."""
     # Load navigate_decisions by path (same discipline as test loader).
     nav = _get_nav()
     _admit_corpus_fn = nav._admit_corpus
@@ -870,11 +1042,25 @@ def publish_explorer(
     _sort_records_fn = nav._sort_records
     _sort_relationships_fn = nav._sort_relationships
     _read_register_file_fn = nav._read_register_file
+    fs = _get_file_safety()
 
     root_path = Path(root) if not isinstance(root, Path) else root
     now_ = now or datetime.now(UTC)
-    # Normalize every caller assertion to a structured tuple before embedding.
-    assertions_ = [_normalize_assertion(a) for a in (assertions or [])]
+
+    # Validate caller assertions before any corpus work.  Refuse any non-list
+    # value or any element missing string 'from', 'to', 'text'.
+    if assertions is not None:
+        ass_err = nav._validate_assertions(assertions)
+        if ass_err:
+            return {
+                "status": "error",
+                "error": {
+                    "code": "invalid_assertion",
+                    "message": ass_err,
+                    "limits": {},
+                    "observed": {},
+                },
+            }
 
     if mode not in ("full", "bounded"):
         return {
@@ -882,6 +1068,8 @@ def publish_explorer(
             "error": {
                 "code": "invalid_mode",
                 "message": f"mode must be 'full' or 'bounded'; got {mode!r}",
+                "limits": {},
+                "observed": {},
             },
         }
 
@@ -892,9 +1080,10 @@ def publish_explorer(
         return {
             "status": "error",
             "error": {
-                "code": "corpus_error",
-                "message": f"corpus admission failed [{err['code']}]: {err['message']}",
-                "upstream_code": err["code"],
+                "code": err.get("code", "corpus_error"),
+                "message": err.get("message", "corpus admission failed"),
+                "limits": err.get("limits", {}),
+                "observed": err.get("observed", {}),
             },
         }
     records_raw = admission["records"]
@@ -914,7 +1103,6 @@ def publish_explorer(
     unresolved_count = sum(
         1 for r in all_rels if r["resolution_state"] == "unresolved"
     )
-    fs = _get_file_safety()
     register: dict[str, Any] = {}
     for key, rel_path in (
         ("rfc_candidates", "docs/product/findings/rfc-candidates.md"),
@@ -923,25 +1111,26 @@ def publish_explorer(
         try:
             result = _read_register_file_fn(fs, root_path, rel_path)
             register[key] = result
-        except Exception as exc:
-            cls_name = type(exc).__name__
-            if cls_name == "BoundExceeded":
-                return {
-                    "status": "error",
-                    "error": {
-                        "code": "input_too_large",
-                        "message": f"register file exceeds 2 MiB: {rel_path}",
-                    },
-                }
-            if cls_name == "UnsafeContentError":
-                return {
-                    "status": "error",
-                    "error": {
-                        "code": "unsafe_input",
-                        "message": f"register file is unsafe: {rel_path}: {exc}",
-                    },
-                }
-            raise
+        except fs.BoundExceeded:
+            return {
+                "status": "error",
+                "error": {
+                    "code": "input_too_large",
+                    "message": f"register file exceeds 2 MiB: {rel_path}",
+                    "limits": {},
+                    "observed": {},
+                },
+            }
+        except fs.UnsafeContentError as exc:
+            return {
+                "status": "error",
+                "error": {
+                    "code": "unsafe_input",
+                    "message": f"register file is unsafe: {rel_path}: {exc}",
+                    "limits": {},
+                    "observed": {},
+                },
+            }
 
     summary = {
         "by_kind": by_kind,
@@ -977,7 +1166,8 @@ def publish_explorer(
     # record and for the corpus directories.  Inert references only — no links.
     per_record_refs, corpus_refs = _collect_support_refs(root_path, api_records)
     for api_rec in api_records:
-        api_rec["support_refs"] = per_record_refs.get(api_rec["id"], [])
+        refs = per_record_refs.get(api_rec["id"], [])
+        api_rec["support_refs"] = refs
     summary["corpus_support_refs"] = corpus_refs
 
     sorted_rels = _sort_relationships_fn(all_rels)
@@ -988,20 +1178,38 @@ def publish_explorer(
     _vis = nav._escape_display
     for api_rec in api_records:
         api_rec["display_title"] = _vis(api_rec.get("title") or "")
+        # display_source is added by _record_to_api; add it here too for safety.
+        if "display_source" not in api_rec:
+            api_rec["display_source"] = _vis(api_rec.get("source") or "")
+        # Add display_path to every support ref.
+        for sref in api_rec.get("support_refs", []):
+            if "display_path" not in sref:
+                sref["display_path"] = _vis(sref.get("path") or "")
+    for sref in summary.get("corpus_support_refs", []):
+        if "display_path" not in sref:
+            sref["display_path"] = _vis(sref.get("path") or "")
     for rel in sorted_rels:
         rel["display_raw_value"] = _vis(rel.get("raw_value") or "")
-    for assertion in assertions_:
-        assertion["display_raw_value"] = _vis(assertion.get("raw_value") or "")
+
+    # Build assertion tuples and append them to sorted_rels.  Caller assertions
+    # are represented as navigation_only relationship tuples with the same shape
+    # that _op_context builds, so every view (list, graph, lineage) reads them
+    # from the same relationships array.
+    assertion_tuples: list[dict[str, Any]] = []
+    for a in (assertions or []):
+        tup = _build_assertion_tuple(a, _vis)
+        assertion_tuples.append(tup)
+    sorted_rels = _sort_relationships_fn(sorted_rels + assertion_tuples)
 
     # Add superseded_by (from checked relationships only) and unresolved_claims
     # per record so the JS can render accurate supersession banners.
+    # Unparseable superseded-by entries have to=None; include them as unresolved
+    # claims on the declaring record so the UI shows an accurate marker.
     _sup_by: dict[str, list[dict[str, Any]]] = {}
-    _unres: dict[str, list[str]] = {}
+    _unres: dict[str, list[dict[str, Any]]] = {}
     for r in all_rels:
         rec_id = r.get("to")
-        if not rec_id:
-            continue
-        if r.get("trust_class") == "checked":
+        if r.get("trust_class") == "checked" and rec_id:
             _sup_by.setdefault(rec_id, []).append({
                 "by": r["from"],
                 "partial": r["relation"] == "supersedes_in_part",
@@ -1014,9 +1222,15 @@ def publish_explorer(
         ):
             # This record itself declared a superseded_by/superseded_in_part
             # entry that is unresolved — the declaring record is in "from".
+            # This covers both parseable (to set) and unparseable (to=None) entries.
             declaring = r.get("from")
             if declaring:
-                _unres.setdefault(declaring, []).append(_vis(r.get("raw_value") or ""))
+                raw_v = r.get("raw_value") or ""
+                _unres.setdefault(declaring, []).append({
+                    "by": rec_id,  # may be None for unparseable entries
+                    "raw_value": raw_v,
+                    "display_value": _vis(raw_v),
+                })
     for api_rec in api_records:
         rid = api_rec["id"]
         api_rec["superseded_by"] = _sup_by.get(rid, [])
@@ -1043,7 +1257,8 @@ def publish_explorer(
         ),
     }
 
-    # Build HTML.
+    # Build HTML.  Assertion tuples are already in sorted_rels as navigation_only
+    # entries; no separate embedded_assertions key is used.
     html_str = _build_html(
         records=api_records,
         relationships=sorted_rels,
@@ -1052,7 +1267,6 @@ def publish_explorer(
         boundary=BOUNDARY,
         provenance=provenance,
         summary=summary,
-        embedded_assertions=assertions_,
         now=now_,
     )
     content = html_str.encode("utf-8")
@@ -1069,8 +1283,8 @@ def publish_explorer(
                     f"budget {BUDGET_BYTES:,} bytes ({_BUDGET_LABEL}). "
                     "Use bounded mode or pass confirm_over_budget=True."
                 ),
-                "estimated_bytes": estimated_bytes,
-                "budget_bytes": BUDGET_BYTES,
+                "limits": {"budget_bytes": BUDGET_BYTES},
+                "observed": {"estimated_bytes": estimated_bytes},
             },
         }
 
@@ -1095,22 +1309,35 @@ def publish_explorer(
             dest_dir = dest_path.parent
             out_name = dest_path.name
 
-    # Validate destination.
+    # Validate destination; unpack the 3-tuple (resolved_dir, full_path, dir_identity).
     try:
-        resolved_dir, full_path = _validate_destination(dest_dir, out_name, root_path)
+        resolved_dir, full_path, dir_identity = _validate_destination(
+            dest_dir, out_name, root_path
+        )
     except ValueError as exc:
         return {
             "status": "error",
-            "error": {"code": "invalid_destination", "message": str(exc)},
+            "error": {
+                "code": "invalid_destination",
+                "message": str(exc),
+                "limits": {},
+                "observed": {},
+            },
         }
 
-    # Publish atomically.
+    # Publish atomically.  Pass dir_identity so swaps between validation and
+    # publication are detected and refused.
     try:
-        _publish_atomically(resolved_dir, full_path, content)
+        _publish_atomically(resolved_dir, full_path, content, dir_identity=dir_identity)
     except (OSError, ValueError) as exc:
         return {
             "status": "error",
-            "error": {"code": "publish_failed", "message": f"publication failed: {exc}"},
+            "error": {
+                "code": "publish_failed",
+                "message": f"publication failed: {exc}",
+                "limits": {},
+                "observed": {},
+            },
         }
 
     return {

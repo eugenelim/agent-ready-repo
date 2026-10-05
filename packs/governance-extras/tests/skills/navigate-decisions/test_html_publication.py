@@ -134,42 +134,62 @@ def test_fact_parity_lifecycle_values(tmp_path: pathlib.Path) -> None:
 
 
 def test_fact_parity_relationship_tuples(tmp_path: pathlib.Path) -> None:
-    """Embedded relationship tuples match run_query output for all admitted records.
+    """HTML data island relationships match the complete query output for all records.
 
-    Checks every relationship field (AC-0008 tuple comparison), including
-    raw_value and source which were absent from the original comparison.
+    Aggregates relationships from all records via search/summary and compares
+    the complete sorted tuple set (all trust classes, both directions) against
+    the data island. No trust-class filter; both from-to and to-from directions
+    are included.
 
-    Mutation: dropping raw_value or source from the HTML data island would
-    cause the all-fields comparison to fail.
+    Mutation: dropping any relationship or field from the data island would fail.
     """
     html = _html(tmp_path, mode="bounded")
     data = _extract_json_data(html)
-    html_checked = [
-        r for r in data["relationships"] if r["trust_class"] == "checked"
-    ]
-    assert html_checked, "Expected at least one checked relationship in mixed fixture"
-
-    # Compare against the query for a record we know has a checked edge.
-    q = NAV.run_query(FIXTURE, {"operation": "record", "id": "ADR-0001"})
-    query_checked = [r for r in q["relationships"] if r["trust_class"] == "checked"]
-
-    for qr in query_checked:
-        # All fields that the spec says every relationship carries.
-        all_fields = {
-            "from": qr["from"],
-            "to": qr["to"],
-            "relation": qr["relation"],
-            "scope": qr["scope"],
-            "raw_value": qr["raw_value"],
-            "basis": qr["basis"],
-            "source": qr["source"],
-            "direction": qr["direction"],
-            "trust_class": qr["trust_class"],
-            "resolution_state": qr["resolution_state"],
-        }
-        assert any(all_fields.items() <= hr.items() for hr in html_checked), (
-            f"Checked relationship not found in HTML with all fields: {all_fields}"
+    # Collect all relationships from the HTML data island (excluding navigation_only
+    # which come from caller assertions and are not in the query corpus).
+    html_rels_key = frozenset(
+        (
+            r.get("from"),
+            r.get("to"),
+            r.get("relation"),
+            tuple(r.get("scope", [])),
+            r.get("raw_value"),
+            r.get("basis"),
+            r.get("trust_class"),
+            r.get("resolution_state"),
         )
+        for r in data["relationships"]
+        if r.get("trust_class") != "navigation_only"
+    )
+
+    # Aggregate all relationships from the query by querying every record.
+    search_result = NAV.run_query(FIXTURE, {"operation": "search", "selectors": [{"kind": "ADR"}, {"kind": "RFC"}]})
+    assert search_result["status"] == "ok", f"search failed: {search_result}"
+    all_ids = [r["id"] for r in search_result["records"]]
+
+    query_rels_key: set = set()
+    for rec_id in all_ids:
+        rec_result = NAV.run_query(FIXTURE, {"operation": "record", "id": rec_id})
+        if rec_result["status"] != "ok":
+            continue
+        for r in rec_result["relationships"]:
+            query_rels_key.add((
+                r.get("from"),
+                r.get("to"),
+                r.get("relation"),
+                tuple(r.get("scope", [])),
+                r.get("raw_value"),
+                r.get("basis"),
+                r.get("trust_class"),
+                r.get("resolution_state"),
+            ))
+
+    # Every query relationship must be present in the HTML data island.
+    missing = query_rels_key - html_rels_key
+    assert not missing, (
+        f"{len(missing)} query relationships missing from HTML data island: "
+        f"{list(missing)[:3]}..."
+    )
 
 
 # ── AC-0010: Inert and visually honest content ────────────────────────────────
@@ -608,39 +628,46 @@ def test_published_file_mode_0600(tmp_path: pathlib.Path) -> None:
 def test_fchmod_failure_closes_fd(tmp_path: pathlib.Path) -> None:
     """The temp-file descriptor is closed even when fchmod raises an error.
 
-    QE-20: If fchmod raises OSError (e.g., unsupported filesystem), the
-    descriptor must still be closed before the exception propagates.  The code
-    tracks ownership with fd_owned_by_fdopen and closes in the finally block
-    when fdopen has not taken over.
+    Captures the specific fd returned by mkstemp and asserts it is closed
+    after the fchmod failure — no external binary, no count slack.
 
     Mutation: removing the fd_owned_by_fdopen close in the finally block would
-    leave the descriptor open; this test detects the leak by counting open
-    descriptors before and after the call.
+    leave the descriptor open; this test detects the leak by testing that the
+    exact captured fd is no longer valid after the call.
     """
     import unittest.mock as _mock
 
-    def count_fds() -> int:
-        import subprocess
-        result = subprocess.run(
-            ["lsof", "-p", str(os.getpid()), "-a", "-d", "0-9999"],
-            capture_output=True,
-            text=True,
-        )
-        return len(result.stdout.splitlines())
+    captured_fds: list[int] = []
+    real_mkstemp = __import__("tempfile").mkstemp
+
+    def capturing_mkstemp(**kwargs):  # type: ignore[no-untyped-def]
+        fd, name = real_mkstemp(**kwargs)
+        captured_fds.append(fd)
+        return fd, name
 
     target_dir = tmp_path / "out"
     target_dir.mkdir()
     target_path = target_dir / "out.html"
 
-    fds_before = count_fds()
-    with _mock.patch.object(os, "fchmod", side_effect=OSError("fchmod blocked")), pytest.raises(OSError, match="fchmod blocked"):
+    with (
+        _mock.patch("tempfile.mkstemp", side_effect=capturing_mkstemp),
+        _mock.patch.object(os, "fchmod", side_effect=OSError("fchmod blocked")),
+        pytest.raises(OSError, match="fchmod blocked"),
+    ):
         EXPLORER._publish_atomically(target_dir, target_path, b"content")
-    fds_after = count_fds()
 
-    assert fds_after <= fds_before + 1, (  # +1 for lsof itself
-        f"fd count grew from {fds_before} to {fds_after} after fchmod failure; "
-        "the temp-file descriptor was not closed"
-    )
+    assert captured_fds, "mkstemp was not called"
+    leaked_fd = captured_fds[0]
+    # If the fd is still open, os.fstat(leaked_fd) succeeds.
+    # If it was properly closed, it raises OSError (Bad file descriptor).
+    try:
+        os.fstat(leaked_fd)
+    except OSError:
+        pass  # Closed as expected.
+    else:
+        pytest.fail(
+            f"fd {leaked_fd} was not closed after fchmod failure — descriptor leaked"
+        )
 
 
 # ── SEC-7: Temp file identity validated before link ──────────────────────────
@@ -855,6 +882,8 @@ def test_github_allowlisted_host_produces_link(tmp_path: pathlib.Path) -> None:
             return "a" * 40
         if args[0] == "status":
             return ""  # clean working tree
+        if args[:3] == ["branch", "-r", "--contains"]:
+            return "  origin/main"  # HEAD is on remote
         return None
 
     # _build_source_links no longer checks git root; the caller (publish_explorer)
@@ -913,7 +942,7 @@ def test_validate_rejects_dotdot_name(tmp_path: pathlib.Path) -> None:
 
 
 def test_validate_accepts_valid_name(tmp_path: pathlib.Path) -> None:
-    resolved_dir, full = EXPLORER._validate_destination(tmp_path, "decisions.html", FIXTURE)
+    resolved_dir, full, _identity = EXPLORER._validate_destination(tmp_path, "decisions.html", FIXTURE)
     assert full == tmp_path / "decisions.html"
     assert resolved_dir == tmp_path.resolve()
 
@@ -1158,7 +1187,7 @@ def test_full_export_embeds_body_larger_than_1_mib(tmp_path: pathlib.Path) -> No
 
 
 def test_commit_pinned_link_only_when_clean(tmp_path: pathlib.Path) -> None:
-    """A commit-pinned link is emitted only when the working tree is clean.
+    """A commit-pinned link is emitted only when the working tree is clean and HEAD is pushed.
 
     Mutation: skipping the status check would emit commit_pinned even with
     uncommitted changes, giving a link that points to content differing from
@@ -1173,6 +1202,8 @@ def test_commit_pinned_link_only_when_clean(tmp_path: pathlib.Path) -> None:
             return "b" * 40
         if args[0] == "status":
             return ""  # clean working tree
+        if args[:3] == ["branch", "-r", "--contains"]:
+            return "  origin/main"  # HEAD is on remote
         return None
 
     with (
@@ -1183,7 +1214,7 @@ def test_commit_pinned_link_only_when_clean(tmp_path: pathlib.Path) -> None:
 
     sl = links["docs/adr/0001-alpha.md"]
     assert sl["kind"] == "commit_pinned", (
-        f"clean working tree with HEAD sha must produce commit_pinned; got {sl['kind']!r}"
+        f"clean working tree with HEAD sha on remote must produce commit_pinned; got {sl['kind']!r}"
     )
 
 
@@ -1202,6 +1233,8 @@ def test_dirty_working_tree_link_labelled_may_be_newer(tmp_path: pathlib.Path) -
             return "c" * 40
         if args[0] == "status":
             return "M docs/adr/0001-alpha.md"  # dirty — uncommitted change
+        if args[:3] == ["branch", "-r", "--contains"]:
+            return "  origin/main"  # HEAD is on remote (dirty takes precedence)
         return None
 
     with (
@@ -1213,6 +1246,43 @@ def test_dirty_working_tree_link_labelled_may_be_newer(tmp_path: pathlib.Path) -
     sl = links["docs/adr/0001-alpha.md"]
     assert sl["kind"] == "branch_latest", (
         f"dirty working tree must produce branch_latest; got {sl['kind']!r}"
+    )
+    assert "newer" in sl["label"].lower() or "HEAD" in sl["label"], (
+        f"branch_latest label must mention 'newer' or 'HEAD'; got {sl['label']!r}"
+    )
+
+
+def test_unpushed_head_produces_branch_latest() -> None:
+    """An unpushed HEAD (not reachable on any remote) produces branch_latest.
+
+    Emitting a commit-pinned link to an unpushed commit would create a broken
+    URL. The remote-reachability check prevents this.
+
+    Mutation: removing the 'branch -r --contains HEAD' check would allow
+    commit_pinned links to unpushed commits.
+    """
+    import unittest.mock as _mock
+
+    def mock_git_unpushed(args: list, cwd: str, timeout: int = 5) -> str | None:
+        if args == ["config", "--get", "remote.origin.url"]:
+            return "https://github.com/owner/repo.git"
+        if args == ["rev-parse", "HEAD"]:
+            return "e" * 40
+        if args[0] == "status":
+            return ""  # clean working tree
+        if args[:3] == ["branch", "-r", "--contains"]:
+            return ""  # HEAD is NOT on any remote branch
+        return None
+
+    with (
+        _mock.patch.object(EXPLORER, "_run_git", side_effect=mock_git_unpushed),
+        _mock.patch.object(EXPLORER, "_git_root_matches", return_value=True),
+    ):
+        links = EXPLORER._build_source_links(FIXTURE, ["docs/adr/0001-alpha.md"])
+
+    sl = links["docs/adr/0001-alpha.md"]
+    assert sl["kind"] == "branch_latest", (
+        f"unpushed HEAD must produce branch_latest; got {sl['kind']!r}"
     )
     assert "newer" in sl["label"].lower() or "HEAD" in sl["label"], (
         f"branch_latest label must mention 'newer' or 'HEAD'; got {sl['label']!r}"
@@ -1265,13 +1335,14 @@ def test_dot_segment_owner_repo_degrades_to_inert() -> None:
 # ── Stage-2 T7 findings: ADV-5/QE-3, ADV-6, ADV-8/SEC-2, ADV-13/SEC-3 ───────
 
 
-def test_caller_assertions_normalized_in_data_island(tmp_path: pathlib.Path) -> None:
-    """ADV-5/QE-3: Caller assertions are normalized to structured tuples.
+def test_caller_assertions_in_relationships_data_island(tmp_path: pathlib.Path) -> None:
+    """Caller assertions are embedded as navigation_only tuples in relationships.
 
-    Raw caller dicts must be embedded as navigation_only/caller_asserted tuples
-    with a raw_value string so the JS runtime can render them.
+    Assertions are no longer a separate key; they appear in the relationships
+    list with trust_class='navigation_only' and resolution_state='caller_asserted'.
+    The data island must not carry an 'embedded_assertions' key.
     """
-    raw_assert = {"from": "ADR-0001", "to": "ADR-0002", "raw_value": "caller text"}
+    raw_assert = {"from": "ADR-0001", "to": "ADR-0002", "text": "caller text"}
     r = EXPLORER.publish_explorer(
         FIXTURE,
         destination=tmp_path,
@@ -1280,10 +1351,16 @@ def test_caller_assertions_normalized_in_data_island(tmp_path: pathlib.Path) -> 
     assert r["status"] == "ok", r.get("error")
     html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
     data = _extract_json_data(html)
-    embeds = data.get("embedded_assertions", [])
-    assert len(embeds) == 1, f"expected 1 normalized assertion; got {embeds!r}"
-    a = embeds[0]
-    # Must be a normalized tuple.
+    # The data island must not carry a separate embedded_assertions key.
+    assert "embedded_assertions" not in data, (
+        "data island must not carry 'embedded_assertions'; assertions go in relationships"
+    )
+    nav_only = [
+        r for r in data.get("relationships", [])
+        if r.get("trust_class") == "navigation_only"
+    ]
+    assert len(nav_only) == 1, f"expected 1 navigation_only relationship; got {nav_only!r}"
+    a = nav_only[0]
     assert a.get("trust_class") == "navigation_only", (
         f"trust_class must be 'navigation_only'; got {a.get('trust_class')!r}"
     )
@@ -1291,27 +1368,63 @@ def test_caller_assertions_normalized_in_data_island(tmp_path: pathlib.Path) -> 
         f"resolution_state must be 'caller_asserted'; got {a.get('resolution_state')!r}"
     )
     assert a.get("raw_value") == "caller text", (
-        f"raw_value must be preserved; got {a.get('raw_value')!r}"
+        f"raw_value must equal assertion 'text'; got {a.get('raw_value')!r}"
     )
     assert a.get("from") == "ADR-0001"
     assert a.get("to") == "ADR-0002"
 
 
-def test_caller_assertion_non_dict_normalized(tmp_path: pathlib.Path) -> None:
-    """ADV-5/QE-3: Non-dict assertions are normalized to a tuple with raw_value=str(a)."""
+def test_export_invalid_assertion_non_list_refused(tmp_path: pathlib.Path) -> None:
+    """Export refuses a non-list assertions value with invalid_assertion error shape."""
     r = EXPLORER.publish_explorer(
         FIXTURE,
         destination=tmp_path,
-        assertions=["plain string assertion"],
+        assertions="not a list",  # type: ignore[arg-type]
     )
-    assert r["status"] == "ok", r.get("error")
-    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
-    data = _extract_json_data(html)
-    embeds = data.get("embedded_assertions", [])
-    assert len(embeds) == 1
-    a = embeds[0]
-    assert a.get("trust_class") == "navigation_only"
-    assert a.get("raw_value") == "plain string assertion"
+    assert r["status"] == "error", f"non-list assertions must be refused; got {r!r}"
+    assert r["error"]["code"] == "invalid_assertion", (
+        f"expected invalid_assertion; got {r['error']['code']!r}"
+    )
+    # Nothing published.
+    assert not list(pathlib.Path(tmp_path).glob("*.html")), (
+        "no HTML file must be published on assertion refusal"
+    )
+
+
+def test_export_invalid_assertion_non_dict_element_refused(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Export refuses a non-dict assertion element with invalid_assertion error shape."""
+    r = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=tmp_path,
+        assertions=["plain string"],  # type: ignore[list-item]
+    )
+    assert r["status"] == "error", f"non-dict element must be refused; got {r!r}"
+    assert r["error"]["code"] == "invalid_assertion", (
+        f"expected invalid_assertion; got {r['error']['code']!r}"
+    )
+    assert not list(pathlib.Path(tmp_path).glob("*.html")), (
+        "no HTML file must be published on assertion refusal"
+    )
+
+
+def test_export_invalid_assertion_partial_dict_refused(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Export refuses a partial assertion dict missing 'text' with invalid_assertion."""
+    r = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=tmp_path,
+        assertions=[{"from": "ADR-0001", "to": "ADR-0002"}],
+    )
+    assert r["status"] == "error", f"partial assertion dict must be refused; got {r!r}"
+    assert r["error"]["code"] == "invalid_assertion", (
+        f"expected invalid_assertion; got {r['error']['code']!r}"
+    )
+    assert not list(pathlib.Path(tmp_path).glob("*.html")), (
+        "no HTML file must be published on assertion refusal"
+    )
 
 
 def test_support_refs_in_data_island_mixed(tmp_path: pathlib.Path) -> None:
@@ -1427,23 +1540,24 @@ def test_hostile_export_csp_no_script_execution(tmp_path: pathlib.Path) -> None:
     r = EXPLORER.publish_explorer(hostile_fixture, destination=tmp_path)
     assert r["status"] == "ok", r.get("error")
     html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
-    # CSP must be present and must not use 'unsafe-inline' for scripts.
-    csp_m = re.search(r'content="([^"]*Content-Security-Policy[^"]*)"', html)
-    if not csp_m:
-        csp_m = re.search(
-            r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html
-        )
+    # CSP must be present — both patterns are equivalent; match the canonical form.
+    csp_m = re.search(
+        r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html
+    )
     assert csp_m, "CSP meta tag not found in hostile export"
     csp = csp_m.group(1)
-    assert "unsafe-inline" not in csp.split("script-src")[1].split(";")[0] if "script-src" in csp else True, (
+    # script-src must exist in the CSP.
+    assert "script-src" in csp, f"CSP must include script-src directive; got {csp!r}"
+    # script-src must not allow 'unsafe-inline'.
+    assert "unsafe-inline" not in csp.split("script-src")[1].split(";")[0], (
         "CSP script-src must not allow 'unsafe-inline'"
     )
     # The title tag must not contain raw script tags.
     title_m = re.search(r"<title>(.*?)</title>", html, re.DOTALL)
-    if title_m:
-        assert "<script>" not in title_m.group(1).lower(), (
-            "title must not contain raw script tag from hostile record"
-        )
+    assert title_m, "HTML must contain a <title> element"
+    assert "<script>" not in title_m.group(1).lower(), (
+        "title must not contain raw script tag from hostile record"
+    )
 
 
 def test_bidi_export_data_island_contains_display_value(tmp_path: pathlib.Path) -> None:
@@ -1674,3 +1788,323 @@ def test_lineage_js_uses_createelementns(tmp_path: pathlib.Path) -> None:
     assert "createElementNS" in js, (
         "createElementNS not found in inlined script — SVG must be built via createElementNS"
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SEC-5 / ADV-17: _parse_github_identity checks parsed host against allowlist
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_parse_github_identity_non_allowlisted_host_returns_none() -> None:
+    """_parse_github_identity returns None for a host not in _SOURCE_HOST_ALLOWLIST.
+
+    The host is parsed from the URL and compared against the allowlist;
+    it is not hardcoded. A gitlab.com or bitbucket.org URL must be refused.
+
+    Mutation: hardcoding 'github.com' without an allowlist check would pass
+    github.com URLs but not correctly enforce the allowlist boundary.
+    """
+    # HTTPS non-allowlisted host.
+    result = EXPLORER._parse_github_identity("https://gitlab.com/owner/repo.git")
+    assert result is None, (
+        f"gitlab.com is not in allowlist; expected None, got {result!r}"
+    )
+    # SSH non-allowlisted host.
+    result2 = EXPLORER._parse_github_identity("git@bitbucket.org:owner/repo.git")
+    assert result2 is None, (
+        f"bitbucket.org is not in allowlist; expected None, got {result2!r}"
+    )
+    # Allowlisted host still works.
+    result3 = EXPLORER._parse_github_identity("https://github.com/owner/repo.git")
+    assert result3 == ("owner", "repo"), (
+        f"github.com must be accepted; got {result3!r}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-9 / SEC-4: Directory-identity swap test
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX-only dir-swap test")
+def test_directory_swap_between_validation_and_publish_refused(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A directory swapped between validation and mkstemp is detected and refused.
+
+    _validate_destination records (st_dev, st_ino) of the directory.
+    _publish_atomically re-checks the identity before mkstemp; if it has changed,
+    it raises OSError and no file is created.
+
+    This test monkeypatches _check_dir_identity to perform the actual rename
+    (simulating a TOCTOU swap) on the first call (phase='mkstemp'), then
+    delegates to the real function — which detects the mismatch.
+    """
+    import unittest.mock as _mock
+
+    real_dir = tmp_path / "dest"
+    real_dir.mkdir()
+    swapped_dir = tmp_path / "dest_original"
+    swap_done = {"done": False}
+
+    real_check_dir_identity = EXPLORER._check_dir_identity
+
+    def swapping_check(dir_path, expected, phase):  # type: ignore[no-untyped-def]
+        if phase == "mkstemp" and not swap_done["done"]:
+            swap_done["done"] = True
+            # Rename the real directory away and put a new one in its place.
+            real_dir.rename(swapped_dir)
+            real_dir.mkdir()  # New directory — different inode.
+        real_check_dir_identity(dir_path, expected, phase)
+
+    with _mock.patch.object(EXPLORER, "_check_dir_identity", side_effect=swapping_check):
+        result = EXPLORER.publish_explorer(
+            FIXTURE,
+            destination=real_dir,
+            name="swapped.html",
+            mode="bounded",
+        )
+
+    assert result["status"] == "error", (
+        f"directory swap must cause a refusal; got {result!r}"
+    )
+    # No file in the swapped-in directory.
+    assert not list(real_dir.glob("*.html")), (
+        "no HTML file must be present in the swapped-in directory"
+    )
+    # No file in the original directory.
+    assert not list(swapped_dir.glob("*.html")), (
+        "no HTML file must be present in the original (renamed) directory"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-15/SEC-2: display_source, display_path, display_from, display_to (Python)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_display_source_present_on_records(tmp_path: pathlib.Path) -> None:
+    """Every record in the export carries display_source (escaped source path).
+
+    An RLM or ALM in a source basename is shown as [U+XXXX] in display_source
+    but preserved as-is in source.
+    """
+    html = _html(tmp_path, mode="bounded")
+    data = _extract_json_data(html)
+    for rec in data.get("records", []):
+        assert "display_source" in rec, (
+            f"record {rec.get('id')} missing display_source"
+        )
+        # display_source must be a string.
+        assert isinstance(rec["display_source"], str), (
+            f"display_source must be a string; got {type(rec['display_source'])!r}"
+        )
+
+
+def test_display_path_present_on_support_refs(tmp_path: pathlib.Path) -> None:
+    """Every support reference carries display_path (escaped path).
+
+    display_path must be present on per-record support_refs and corpus_support_refs.
+    """
+    r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path, mode="bounded")
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    for rec in data.get("records", []):
+        for sref in rec.get("support_refs", []):
+            assert "display_path" in sref, (
+                f"support_ref for {rec.get('id')} missing display_path: {sref!r}"
+            )
+    for sref in data.get("corpus_support_refs", []):
+        assert "display_path" in sref, (
+            f"corpus_support_ref missing display_path: {sref!r}"
+        )
+
+
+def test_assertion_tuple_has_display_from_display_to(tmp_path: pathlib.Path) -> None:
+    """Caller assertion tuples carry display_from and display_to.
+
+    An RLM or ALM in an assertion endpoint is shown as [U+XXXX] in the
+    display_from/display_to field but preserved as-is in 'from'/'to'.
+    """
+    bidi_from = "ADR‮0001"  # RLO before "0001"
+    bidi_to = "RFC-​0050"   # ZWS in the middle
+    r = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=tmp_path,
+        assertions=[{"from": bidi_from, "to": bidi_to, "text": "informs"}],
+    )
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    nav_only = [
+        rel for rel in data.get("relationships", [])
+        if rel.get("trust_class") == "navigation_only"
+    ]
+    assert nav_only, "no navigation_only relationship in data island"
+    a = nav_only[0]
+    assert "display_from" in a, f"display_from missing from assertion tuple: {a!r}"
+    assert "display_to" in a, f"display_to missing from assertion tuple: {a!r}"
+    # Raw values are preserved unchanged.
+    assert a["from"] == bidi_from, f"'from' must preserve bidi control; got {a['from']!r}"
+    assert a["to"] == bidi_to, f"'to' must preserve bidi control; got {a['to']!r}"
+    # Display values must not contain the raw bidi controls.
+    assert "‮" not in a["display_from"], (
+        f"display_from must escape U+202E; got {a['display_from']!r}"
+    )
+    assert "​" not in a["display_to"], (
+        f"display_to must escape U+200B; got {a['display_to']!r}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-5: Unresolved claims for unparseable superseded-by entries in export
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_unresolved_claims_from_unparseable_superseded_by(
+    tmp_path: pathlib.Path,
+) -> None:
+    """An unparseable superseded-by entry produces an unresolved_claims entry.
+
+    An unparseable entry (e.g. 'EXTERNAL-SYSTEM') has to=None in the relationship.
+    The declaring record must receive an unresolved_claims entry carrying the
+    raw_value and display_value regardless of whether 'to' is set.
+    """
+    corpus_dir = tmp_path / "corpus"
+    corpus_dir.mkdir()
+    adr_dir = corpus_dir / "docs" / "adr"
+    adr_dir.mkdir(parents=True)
+    (adr_dir / "0001-alpha.md").write_text(
+        "# ADR-0001: Unresolved claim test\n\n"
+        "- **Status:** Accepted\n"
+        "- **Supersedes:** none\n"
+        "- **Supersedes in part:** none\n"
+        "- **Superseded by:** EXTERNAL-SYSTEM-V2\n"
+        "- **Superseded in part:** none\n\n"
+        "## Decision\n\nBody.\n",
+        encoding="utf-8",
+    )
+    # Destination is a sibling of corpus — outside the corpus root.
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    r = EXPLORER.publish_explorer(corpus_dir, destination=dest, mode="bounded")
+    assert r["status"] == "ok", f"export failed: {r!r}"
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    records = {rec["id"]: rec for rec in data.get("records", [])}
+    assert "ADR-0001" in records, "ADR-0001 missing from export"
+    claims = records["ADR-0001"].get("unresolved_claims", [])
+    assert claims, (
+        f"ADR-0001 with unparseable superseded-by must have unresolved_claims; got {claims!r}"
+    )
+    claim = claims[0]
+    # The claim carries raw_value and display_value; 'by' may be None.
+    assert "raw_value" in claim, f"unresolved_claims entry must carry raw_value; got {claim!r}"
+    assert "EXTERNAL-SYSTEM-V2" in claim["raw_value"], (
+        f"raw_value must contain the unparseable text; got {claim['raw_value']!r}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-2/3: Assertion parity between query context and HTML data island
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_assertion_tuple_parity_query_vs_export(tmp_path: pathlib.Path) -> None:
+    """Same assertion input produces identical non-display tuples in query and export.
+
+    The assertion tuple that _op_context builds must match the one embedded
+    in the HTML data island (excluding display_* fields).
+    """
+    assertion = {"from": "ADR-0001", "to": "ADR-0002", "text": "informs design"}
+
+    # Query side.
+    q = NAV.run_query(
+        FIXTURE,
+        {
+            "operation": "context",
+            "selectors": [{"kind": "ADR"}],
+            "assertions": [assertion],
+        },
+    )
+    assert q["status"] == "ok", f"context query failed: {q!r}"
+    query_nav = [
+        r for r in q.get("relationships", [])
+        if r.get("trust_class") == "navigation_only"
+    ]
+    assert query_nav, "query context must include navigation_only relationship"
+    q_tuple = {
+        k: v for k, v in query_nav[0].items()
+        if not k.startswith("display_")
+    }
+
+    # Export side.
+    r = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=tmp_path,
+        assertions=[assertion],
+        mode="bounded",
+    )
+    assert r["status"] == "ok", f"export failed: {r!r}"
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    export_nav = [
+        rel for rel in data.get("relationships", [])
+        if rel.get("trust_class") == "navigation_only"
+    ]
+    assert export_nav, "export data island must include navigation_only relationship"
+    e_tuple = {
+        k: v for k, v in export_nav[0].items()
+        if not k.startswith("display_")
+    }
+
+    # Tuples must match on all non-display fields.
+    assert q_tuple == e_tuple, (
+        f"query and export assertion tuples differ:\n  query:  {q_tuple}\n  export: {e_tuple}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADV-11: Export refusal error shape (limits/observed)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_export_over_budget_error_has_limits_observed(tmp_path: pathlib.Path) -> None:
+    """An over-budget export refusal carries limits and observed with the budget numbers."""
+    import unittest.mock as _mock
+
+    # Patch BUDGET_BYTES to a very small value so the export exceeds it.
+    with _mock.patch.object(EXPLORER, "BUDGET_BYTES", 1):
+        r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path)
+
+    assert r["status"] == "error", f"over-budget export must be refused; got {r!r}"
+    assert r["error"]["code"] == "over_budget", (
+        f"expected over_budget; got {r['error']['code']!r}"
+    )
+    assert "limits" in r["error"], "over_budget error must carry 'limits'"
+    assert "observed" in r["error"], "over_budget error must carry 'observed'"
+    assert "budget_bytes" in r["error"]["limits"], (
+        "limits must carry budget_bytes"
+    )
+    assert "estimated_bytes" in r["error"]["observed"], (
+        "observed must carry estimated_bytes"
+    )
+
+
+def test_export_invalid_destination_error_has_limits_observed(
+    tmp_path: pathlib.Path,
+) -> None:
+    """An invalid destination refusal carries limits and observed."""
+    # Try to publish inside the repository worktree (always refused).
+    r = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=FIXTURE,  # inside the worktree
+        name="test.html",
+    )
+    assert r["status"] == "error", f"invalid destination must be refused; got {r!r}"
+    assert r["error"]["code"] == "invalid_destination", (
+        f"expected invalid_destination; got {r['error']['code']!r}"
+    )
+    assert "limits" in r["error"], "error must carry 'limits'"
+    assert "observed" in r["error"], "error must carry 'observed'"

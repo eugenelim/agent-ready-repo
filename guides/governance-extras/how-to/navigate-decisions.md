@@ -75,7 +75,7 @@ Real output (trimmed):
 }
 ```
 
-Selectors can be combined. Each object in the list applies independently (OR logic for kinds/statuses; use multiple selectors for intersection). Valid selector keys: `kind` (ADR or RFC), `exact_status`, `text` (title/body keyword), `identity` (record ID).
+Selectors are combined with OR logic: a record matching any selector is returned. Valid selector keys: `kind` (ADR or RFC), `exact_status`, `text` (title and lifecycle status keyword — does not search the body), `identity` (record ID), `grouping` (caller-supplied group label; no filter effect).
 
 ### Record — fetch a specific decision with its body
 
@@ -188,6 +188,10 @@ This is not a disclaimer to skip. The navigator reports what ADRs and RFCs say. 
 ## Offline HTML export
 
 The `export` subcommand produces one self-contained HTML file with corpus list, lifecycle-graph, guidance-context, and record-detail views. The file performs no network or file reads after creation.
+
+### Light and dark themes
+
+The explorer's header has an **Auto / Light / Dark** control. Auto follows your system appearance setting; Light or Dark overrides it, and the browser remembers your choice for that file.
 
 ### Default destination (outside the repo)
 
