@@ -1206,6 +1206,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             _PACK_HOOK_LINUX,
             _WHY_FILTERED_AND_CONDITIONAL,
         ),
+    'packs/core/tests/skills/repository-grounding/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
     'packs/core/tests/skills/work-intake/':
         PR_GATED_IF(
             _PACK_HOOK_LINUX,

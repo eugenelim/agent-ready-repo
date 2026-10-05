@@ -943,11 +943,24 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # that had already gone stale. The baseline is bare `origin/main`, which this
 # branch is rebased onto and whose Makefile differs from this worktree's by the
 # three lines above and nothing else.
+# Bumped 2026-10-05 for the `repository-grounding` skill (T1), which adds one
+# `run-test-suite` line: `$(PYTHON) -m pytest
+# packs/core/tests/skills/repository-grounding/ -q`. It lands at plan index 29
+# in each plan (standalone 74 -> 75, composed 73 -> 74), and deleting exactly
+# that one line from the new plans recomputes `d5ce59c0…` and `74e76e14…` —
+# the superseded pins — element for element, so nothing else moved, was
+# reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is untouched: the suite
+# is a pack path, not a root tool path, so `_root_tool_pytest_groups` sees no
+# change.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `d5ce59c0…` and `74e76e14…` still in place
+# returns an empty error list, so this supersedes live values rather than a pin
+# that had already gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "d5ce59c02638aa0c8e8c08234c5b020813f992681d52a298b1886faa11ea3b1e"
+    "b8b11581a7c775d69a2338c222bb0d7e547e8bff93e06e25e371993d866e2b7b"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "74e76e144715a853d8bb2a9caab4a54ce1bb89a30d035cfdc3494d8cdb899696"
+    "ccb889478dcc56ee2fbb4803199c97f102c8559dde92da19012a16be1921374e"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
