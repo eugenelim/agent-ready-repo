@@ -111,20 +111,28 @@ def _has_splitlines_char(text: str) -> bool:
     return "".join(text.splitlines()) != text
 
 
-def _has_parent_segment(path_text: str) -> bool:
-    """Return True if any segment could act as a parent step on some platform.
+def _segments(path_text: str) -> list[str]:
+    """Split a path on both / and \\, the separators any platform may honour."""
+    return path_text.replace("\\", "/").split("/")
 
-    Both / and \\ separate segments. Besides an exact '..', a segment made only
-    of dots and spaces, or ending in a dot or a space, is refused: Windows can
-    trim trailing dots and spaces, so such a spelling might open as '..' or '.'.
-    A lone '.' stays accepted because it never leaves its directory.
+
+def _has_parent_segment(path_text: str) -> bool:
+    """Return True if path_text contains an exact '..' segment."""
+    return ".." in _segments(path_text)
+
+
+def _has_trimmable_segment(path_text: str) -> bool:
+    """Return True if a segment ends in a dot or a space, other than a lone '.'.
+
+    Windows can trim trailing dots and spaces, so such a segment might open as
+    '..' or '.'. The check runs only on the part of a locator below its matched
+    root: the root is trusted input, and only provider-supplied segments can be
+    shaped to exploit trimming.
     """
-    for segment in path_text.replace("\\", "/").split("/"):
-        if segment == ".":
-            continue
-        if segment == ".." or segment.endswith((".", " ")):
-            return True
-    return False
+    return any(
+        segment != "." and segment.endswith((".", " "))
+        for segment in _segments(path_text)
+    )
 
 
 def _strip_line_suffix(text: str) -> str:
@@ -296,6 +304,8 @@ def read_locator(
 
     if matched is None:
         return LocatorResult("refused", "outside-roots", None, None, None)
+    if _has_trimmable_segment(matched[1]):
+        return LocatorResult("refused", "parent-segment", None, None, None)
 
     # ── step 5: read through the co-located file_safety helper ──────────────
     # The helper refuses a root that is itself a link, so it receives the
