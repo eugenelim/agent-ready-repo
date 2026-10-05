@@ -117,6 +117,26 @@
         "Presents an evidence packet with the required fields",
         "States that the check writes no status — the human confirms first"
       ]
+    },
+    {
+      "id": 16,
+      "prompt": "Run the closure eligibility check on this feature intent. The delivery resolver at .agentbundle/bin/intent_delivery_relations.py is absent.",
+      "expected_output": "The check returns a refuse verdict with reason delivery-resolver-unavailable. It does not fall back to a local inversion of Discovery: or Brief: fields. No status is written.",
+      "assertions": [
+        "Returns refuse with delivery-resolver-unavailable reason",
+        "Performs no local Discovery: or Brief: field inversion",
+        "Writes no status"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Run the closure eligibility check on a feature intent whose delivery snapshot reports delivery-target-missing. The intent has Decomposed: pointing to a spec route but no spec's Discovery: field names it.",
+      "expected_output": "The check returns a refuse verdict citing delivery-diagnostic: delivery-target-missing. It reads the delivery diagnostic from the canonical snapshot and does not attempt to resolve the delivery set independently.",
+      "assertions": [
+        "Returns refuse citing delivery-diagnostic",
+        "Sources diagnostic from the canonical snapshot, not from local field inversion",
+        "Writes no status"
+      ]
     }
   ]
 }

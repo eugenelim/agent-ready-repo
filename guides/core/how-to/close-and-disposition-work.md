@@ -58,7 +58,7 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 
 | Verdict | What it means | What you decide |
 | --- | --- | --- |
-| **refuse** | A required precondition is absent — the ancestor is not yet `Accepted`, is already closed, has no ratified `Decomposed:` value, or its terminus is inconsistent with the actual descendant set | Resolve the named precondition, then re-run closeout |
+| **refuse** | A required precondition is absent — the ancestor is not yet `Accepted`, is already closed, has no ratified `Decomposed:` value, its terminus is inconsistent with the actual descendant set, or a feature's delivery mapping is missing, ambiguous, or contradictory (named by a `delivery-…` code). `delivery-resolver-unavailable` means the repo-scope resolver at `.agentbundle/bin/intent_delivery_relations.py` is missing or failed | Resolve the named precondition, then re-run closeout. For `delivery-resolver-unavailable`, reinstall Core at repository scope |
 | **not-eligible** | At least one descendant in the full closure remains in a non-terminal state; each live descendant is named with its current state | Wait for the named descendants to complete, or close them first, then re-run closeout |
 | **eligible** | Every descendant in the full closure is terminal; an evidence packet is presented with the date, ratified decomposition, and each descendant's final state | Confirm the closure by supplying your name and the evidence you reviewed |
 

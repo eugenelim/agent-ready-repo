@@ -203,23 +203,6 @@ def read_stated_outcome(text: str) -> str:
     return " ".join(out).strip()
 
 
-def _spec_slug(path: Path) -> str:
-    """A spec's identity is its directory name, not a preamble field.
-
-    Specs carry no ``Slug:``: measured 2026-09-27, 0 of 487 in this repository
-    do. The shipped convention is ``<specs-base>/<slug>/spec.md`` with the
-    directory naming the feature, which is how ``lint-traceability`` recognises
-    a spec node. Reading a ``Slug:`` field here skips every real spec before
-    its up-edge is examined, and a fixture that invents the field hides that.
-
-    Returns ``""`` for a path that is not a ``spec.md`` inside a feature
-    directory, so a stray file in the specs base contributes no node.
-    """
-    if path.name != "spec.md":
-        return ""
-    return path.parent.name
-
-
 def _is_parent_edge(value: str, parent_slug: str) -> bool:
     """True when a ``Parent intent:`` value points at ``parent_slug``.
 
@@ -302,6 +285,46 @@ Returns the name of the matching product-bet disposition row (e.g.
 ``"cool-30-days"``), or ``None`` when no eligibility clause reaches the artifact.
 """
 
+SnapshotProvider = Callable[[Path], "dict[str, Any]"]
+"""Callable: repository root → validated delivery snapshot dict.
+
+Raises ``ValueError`` on any failure (resolver unavailable, bad schema, etc.).
+The stable code ``delivery-resolver-unavailable`` is the only user-visible output.
+"""
+
+# ── Delivery resolver constants ───────────────────────────────────────────────
+
+_RESOLVER_TIMEOUT: int = 60  # subprocess wall-clock budget in seconds
+_MAX_SNAPSHOT_BYTES: int = 16_777_216  # 16 MiB; mirrors resolver MAX_JSON_BYTES
+
+_DELIVERY_DIAGNOSTIC_CODES: frozenset[str] = frozenset({
+    "delivery-target-missing",
+    "delivery-projection-mismatch",
+    "delivery-relation-ambiguous",
+    "delivery-reference-malformed",
+})
+
+_SNAPSHOT_REQUIRED_KEYS: frozenset[str] = frozenset({
+    "schema_version",
+    "complete",
+    "relations",
+    "classifications",
+    "provenance",
+    "diagnostics",
+})
+
+
+class _ClosureDeliveryRefusal(Exception):
+    """Raised inside _build_descendant_closure when delivery resolution fails.
+
+    Caught by check_ancestor_closure, which converts it to a ClosureRefuse.
+    Carrying the stable reason string keeps the conversion trivial.
+    """
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
 
 # ── Field-parsing helpers (no cross-skill import) ────────────────────────────
 
@@ -309,7 +332,6 @@ _COMMENT_SUFFIX = re.compile(r"\s*<!--.*?-->\s*$", re.DOTALL)
 _FIELD_LINE = re.compile(r"^- \*\*([^*:]+):\*\*\s*(.*)$")
 _HEADING_PREFIX = "## "
 _DECOMPOSED_TERMINUS = re.compile(r"^\d{4}-\d{2}-\d{2}\s+(\S+)")
-_MARKDOWN_LINK_TARGET = re.compile(r"^\[.*?\]\((.+?)\)\s*$")
 
 
 def _normalize(raw: str) -> str:
@@ -343,23 +365,6 @@ def _terminus_from_decomposed(value: str) -> str:
     return m.group(1) if m else ""
 
 
-def _resolve_discovery_path(value: str, root: Path) -> Path | None:
-    """Resolve a ``Discovery:`` field value to a filesystem path.
-
-    Handles three corpus forms: markdown link, backtick-quoted bare path,
-    and bare path. Returns ``None`` for ``none``, empty, or unparseable values.
-    """
-    if not value or value.lower() == "none":
-        return None
-    m = _MARKDOWN_LINK_TARGET.match(value)
-    path_str = m.group(1).strip() if m else value
-    # Strip backticks that _normalize didn't touch (they surround the path
-    # rather than the whole value in some corpus forms).
-    if len(path_str) >= 2 and path_str[0] == "`" and path_str[-1] == "`":
-        path_str = path_str[1:-1].strip()
-    return root / path_str if path_str else None
-
-
 # ── Collection directory helpers ──────────────────────────────────────────────
 
 
@@ -376,6 +381,23 @@ def _briefs_dir(root: Path) -> Path:
 def _specs_dir(root: Path) -> Path:
     """``docs/specs/`` relative to root."""
     return root / "docs" / "specs"
+
+
+def _is_intents_rel_path(target: str) -> bool:
+    """Return True when *target* is a safe repository-relative intent path.
+
+    Accepts only ``docs/product/intents/<file>.md`` with no ``..`` segments,
+    no leading ``/``, and no nested subdirectories inside ``intents/``.
+    This is the form the delivery-resolver stores for bare-path and
+    backtick-path Discovery: values that name a non-feature intent.
+    """
+    if not target.startswith("docs/product/intents/"):
+        return False
+    if not target.endswith(".md"):
+        return False
+    # Remaining segment must be a plain filename (no further slashes).
+    tail = target[len("docs/product/intents/"):]
+    return not ("/" in tail or ".." in tail or not tail)
 
 
 # ── Default implementations of the injectable seams ──────────────────────────
@@ -513,6 +535,89 @@ def _make_default_freshness_checker(root: Path) -> FreshnessChecker:
     return _check
 
 
+# ── Delivery resolver invocation ──────────────────────────────────────────────
+
+
+def _parse_and_validate_snapshot(text: str) -> dict[str, Any]:
+    """Parse and strictly validate a snapshot JSON text.
+
+    Returns the snapshot dict on success.
+    Raises ``ValueError`` on any structural or schema violation, including
+    NaN/Infinity in the payload, wrong schema_version, incomplete flag, or
+    missing/extra keys.
+    """
+    import json as _json
+
+    try:
+        data = _json.loads(text)
+    except (ValueError, _json.JSONDecodeError):
+        raise ValueError("delivery-resolver-unavailable: bad JSON") from None
+
+    # Reject NaN/Infinity by round-tripping through a strict encoder.
+    try:
+        _json.dumps(data, allow_nan=False)
+    except (ValueError, TypeError):
+        raise ValueError("delivery-resolver-unavailable: NaN/Infinity in payload") from None
+
+    if not isinstance(data, dict):
+        raise ValueError("delivery-resolver-unavailable: top-level not a dict")
+    if set(data.keys()) != _SNAPSHOT_REQUIRED_KEYS:
+        raise ValueError("delivery-resolver-unavailable: wrong keys")
+    if data["schema_version"] != 1:
+        raise ValueError("delivery-resolver-unavailable: unsupported schema_version")
+    if data["complete"] is not True:
+        raise ValueError("delivery-resolver-unavailable: incomplete snapshot")
+    for _k in ("relations", "classifications", "provenance", "diagnostics"):
+        if not isinstance(data[_k], list):
+            raise ValueError(f"delivery-resolver-unavailable: {_k} not a list")
+    return data
+
+
+def _run_resolver(root: Path) -> dict[str, Any]:
+    """Run the projected resolver subprocess and return a validated snapshot.
+
+    Raises ``ValueError`` on any failure: missing file, non-zero exit, timeout,
+    OSError, oversize stdout, bad UTF-8, bad JSON, wrong schema, or incomplete
+    result. The error message always begins with 'delivery-resolver-unavailable'
+    and never includes captured stderr, tracebacks, or absolute paths.
+    """
+    import subprocess  # stdlib; imported here for minimal module-level deps
+
+    resolver_path = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
+    try:
+        _st = resolver_path.lstat()
+    except OSError:
+        raise ValueError("delivery-resolver-unavailable: resolver not found") from None
+    if not _stat.S_ISREG(_st.st_mode) or _stat.S_ISLNK(_st.st_mode):
+        raise ValueError("delivery-resolver-unavailable: resolver not a regular file")
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(resolver_path), "--root", str(root)],
+            capture_output=True,
+            timeout=_RESOLVER_TIMEOUT,
+            shell=False,
+        )
+    except subprocess.TimeoutExpired:
+        raise ValueError("delivery-resolver-unavailable: subprocess timed out") from None
+    except OSError:
+        raise ValueError("delivery-resolver-unavailable: subprocess OSError") from None
+
+    if proc.returncode != 0:
+        raise ValueError("delivery-resolver-unavailable: non-zero exit")
+
+    stdout: bytes = proc.stdout
+    if len(stdout) > _MAX_SNAPSHOT_BYTES:
+        raise ValueError("delivery-resolver-unavailable: stdout exceeds size limit")
+
+    try:
+        text = stdout.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        raise ValueError("delivery-resolver-unavailable: stdout not valid UTF-8") from None
+
+    return _parse_and_validate_snapshot(text)
+
+
 # ── Packet-building helpers ───────────────────────────────────────────────────
 
 
@@ -645,14 +750,16 @@ def _build_descendant_closure(
     *,
     _reader: Reader | None = None,
     _dir_lister: DirLister | None = None,
+    _snapshot_provider: SnapshotProvider | None = None,
 ) -> dict[str, DescendantRecord]:
     """Build the full descendant closure for one decision.
 
     Returns ``slug → DescendantRecord`` for every artifact in the closure.
     Each call builds a fresh index; nothing is cached between calls (AC-0021).
 
-    ``_reader`` and ``_dir_lister`` are test seams. Production callers pass
-    neither and the defaults read from the real filesystem.
+    ``_reader``, ``_dir_lister``, and ``_snapshot_provider`` are test seams.
+    Production callers pass none of these and the defaults run against the
+    real filesystem and the projected resolver.
 
     **AC-0024**: each artifact is physically opened at most once. The
     ``visited`` set prevents the reader from being called twice for the same
@@ -660,7 +767,9 @@ def _build_descendant_closure(
     the cached fields are returned without calling the reader.
 
     **AC-0025**: dir_lister is called only for collection directories named by
-    the termini encountered along the closure. No other directory is listed.
+    the termini encountered along the closure. Delivery termini (``spec`` and
+    ``brief``) read only the specific files named in the canonical snapshot,
+    never enumerating an entire collection. No other directory is listed.
     The ``dir_cache`` prevents a second dir_lister call for the same directory.
 
     **AC-0037**: because each file is read at most once and only named
@@ -669,6 +778,10 @@ def _build_descendant_closure(
 
     **AC-0023**: no file is written and no environment variable is set. The
     returned dict is the sole output; its lifetime is the caller's frame.
+
+    Raises ``_ClosureDeliveryRefusal`` when a delivery terminus is encountered
+    but the canonical snapshot cannot be obtained or names a delivery diagnostic
+    for the feature intent being resolved.
     """
     # Default reader is root-confined via file_safety.py (trust boundary).
     # An injected _reader bypasses confinement and is trusted for test use.
@@ -680,6 +793,20 @@ def _build_descendant_closure(
     field_cache: dict[Path, dict[str, str]] = {}  # preamble fields per opened path
     dir_cache: dict[Path, list[Path]] = {}  # collection dir → file list (AC-0025)
     result: dict[str, DescendantRecord] = {}
+
+    # Lazy delivery snapshot — fetched at most once, on first delivery terminus.
+    _snapshot_cache: list[dict[str, Any]] = []
+
+    def _get_snapshot() -> dict[str, Any]:
+        """Fetch and cache the delivery snapshot for this decision."""
+        if not _snapshot_cache:
+            provider = _snapshot_provider if _snapshot_provider is not None else _run_resolver
+            try:
+                snap = provider(root)
+            except Exception as _exc:
+                raise _ClosureDeliveryRefusal("delivery-resolver-unavailable") from _exc
+            _snapshot_cache.append(snap)
+        return _snapshot_cache[0]
 
     def _list_dir(d: Path) -> list[Path]:
         """List a collection directory at most once; subsequent calls use the cache."""
@@ -710,17 +837,6 @@ def _build_descendant_closure(
             field_cache[key] = _preamble(text)
         return field_cache.get(key, {})
 
-    def _resolve_discovery_slug(discovery_value: str) -> str | None:
-        """Return the slug the ``Discovery:`` value names, or ``None``.
-
-        Resolves the path and reads the target artifact at most once.
-        """
-        target = _resolve_discovery_path(discovery_value, root)
-        if target is None:
-            return None
-        fields = _get_fields(target)
-        return fields.get("Slug") or None
-
     def _add_descendant(slug: str, kind: str, fields: dict[str, str]) -> None:
         """Add an artifact to the result and enqueue further descent if needed."""
         if slug in result:
@@ -743,7 +859,8 @@ def _build_descendant_closure(
             continue
 
         if terminus == "children":
-            # Invert ``Parent intent: <kind>:<parent_slug>`` over the intents collection.
+            # Invert ``Parent intent: <kind>:<parent_slug>`` over the intents
+            # collection. This is NOT feature delivery; it stays local.
             for path in _list_dir(_intents_dir(root)):
                 fields = _get_fields(path)
                 slug = fields.get("Slug", "")
@@ -753,50 +870,79 @@ def _build_descendant_closure(
                     _add_descendant(slug, "intent", fields)
 
         elif terminus == "brief":
-            # Phase 1: invert ``Parent intent:`` over briefs.
-            found_brief_slugs: set[str] = set()
-            for path in _list_dir(_briefs_dir(root)):
-                fields = _get_fields(path)
-                slug = fields.get("Slug", "")
-                if not slug:
-                    continue
-                if _is_parent_edge(fields.get("Parent intent", ""), parent_slug):
-                    status = fields.get("Status", "")
-                    # Briefs carry no ``Decomposed:`` field; they do not drive
-                    # further descent from their own terminus.
-                    if slug not in result:
-                        result[slug] = DescendantRecord(
-                            slug=slug, kind="brief", status=status, terminus=""
-                        )
-                    found_brief_slugs.add(slug)
+            # Coordinated delivery: look up the canonical snapshot for
+            # coordinated-delivery relations whose intent is this feature.
+            # The snapshot owns brief-and-spec membership; close-work reads
+            # only each artifact's Status/Decomposed for closure evaluation.
+            snap = _get_snapshot()
+            feat_id = f"intent:{parent_slug}"
+            # Check for delivery diagnostics that block closure.
+            for _diag in snap.get("diagnostics", []):
+                if (
+                    _diag.get("subject") == feat_id
+                    and _diag.get("code") in _DELIVERY_DIAGNOSTIC_CODES
+                ):
+                    raise _ClosureDeliveryRefusal(
+                        f"delivery-diagnostic: {_diag['code']}"
+                    )
+            seen_brief_slugs: set[str] = set()
+            for rel in snap.get("relations", []):
+                if (
+                    rel.get("type") == "coordinated-delivery"
+                    and rel.get("intent") == feat_id
+                ):
+                    brief_ref = rel.get("brief", "")
+                    spec_ref = rel.get("spec", "")
 
-            # Phase 2: invert ``Brief: brief:<brief_slug>`` over specs.
-            if found_brief_slugs:
-                for path in _list_dir(_specs_dir(root)):
-                    slug = _spec_slug(path)
-                    if not slug:
-                        continue
-                    fields = _get_fields(path)
-                    brief_ptr = fields.get("Brief", "")
-                    # ``Brief:`` format is ``brief:<slug>``.
-                    if (
-                        brief_ptr.startswith("brief:")
-                        and brief_ptr[len("brief:"):] in found_brief_slugs
-                    ):
-                        _add_descendant(slug, "spec", fields)
+                    if brief_ref.startswith("brief:"):
+                        brief_slug_val = brief_ref[len("brief:"):]
+                        if brief_slug_val not in seen_brief_slugs:
+                            seen_brief_slugs.add(brief_slug_val)
+                            brief_path = _briefs_dir(root) / f"{brief_slug_val}.md"
+                            b_fields = _get_fields(brief_path)
+                            b_status = b_fields.get("Status", "")
+                            if brief_slug_val not in result:
+                                result[brief_slug_val] = DescendantRecord(
+                                    slug=brief_slug_val,
+                                    kind="brief",
+                                    status=b_status,
+                                    terminus="",
+                                )
+
+                    if spec_ref.startswith("spec:"):
+                        spec_slug_val = spec_ref[len("spec:"):]
+                        spec_path = _specs_dir(root) / spec_slug_val / "spec.md"
+                        s_fields = _get_fields(spec_path)
+                        _add_descendant(spec_slug_val, "spec", s_fields)
 
         elif terminus == "spec":
-            # Invert ``Discovery:`` over specs: find specs whose Discovery: resolves
-            # to the parent slug.
-            for path in _list_dir(_specs_dir(root)):
-                slug = _spec_slug(path)
-                if not slug:
-                    continue
-                fields = _get_fields(path)
-                discovery_val = fields.get("Discovery", "")
-                resolved_slug = _resolve_discovery_slug(discovery_val)
-                if resolved_slug == parent_slug:
-                    _add_descendant(slug, "spec", fields)
+            # Direct delivery: look up the canonical snapshot for direct-delivery
+            # relations with route 'spec' whose intent is this feature.
+            # The snapshot owns spec membership; close-work reads only each
+            # spec's Status/Decomposed for closure evaluation.
+            snap = _get_snapshot()
+            feat_id = f"intent:{parent_slug}"
+            # Check for delivery diagnostics that block closure.
+            for _diag in snap.get("diagnostics", []):
+                if (
+                    _diag.get("subject") == feat_id
+                    and _diag.get("code") in _DELIVERY_DIAGNOSTIC_CODES
+                ):
+                    raise _ClosureDeliveryRefusal(
+                        f"delivery-diagnostic: {_diag['code']}"
+                    )
+            for rel in snap.get("relations", []):
+                if (
+                    rel.get("type") == "direct-delivery"
+                    and rel.get("route") == "spec"
+                    and rel.get("intent") == feat_id
+                ):
+                    spec_ref = rel.get("spec", "")
+                    if spec_ref.startswith("spec:"):
+                        spec_slug_val = spec_ref[len("spec:"):]
+                        spec_path = _specs_dir(root) / spec_slug_val / "spec.md"
+                        s_fields = _get_fields(spec_path)
+                        _add_descendant(spec_slug_val, "spec", s_fields)
 
     return result
 
@@ -1095,6 +1241,7 @@ def resolve_intent_ancestors(
     *,
     _reader: Reader | None = None,
     _dir_lister: DirLister | None = None,
+    _snapshot_provider: SnapshotProvider | None = None,
 ) -> list[tuple[str, str, str]]:
     """Resolve the intent ancestor chain of a transitioning artifact.
 
@@ -1102,21 +1249,25 @@ def resolve_intent_ancestors(
     tuple per intent ancestor found, walking upward until no declared up-edge
     remains. A brief is walked through but never returned as an ancestor.
 
-    Up-edges by artifact kind (AC-0002):
+    Up-edges by artifact kind:
 
-    - ``spec``: ``Discovery:`` (resolved to a path in the intents directory)
-      OR ``Brief:`` → that brief's ``Parent intent:``.  A ``Brief: none`` spec
-      reaches its ancestor only through ``Discovery:``, covering the 12 of 24
-      decomposed corpus intents whose termini are ``spec``.
+    - ``spec``: feature-delivery relations from the canonical snapshot (both
+      direct-delivery and coordinated-delivery name the feature intent directly).
+      Non-feature Discovery: references are preserved via snapshot provenance
+      records. This is the only implementation; no local file inversion remains.
     - ``brief``: ``Parent intent:``.
     - ``intent``: ``Parent intent:``.
 
-    A ``Discovery:`` value whose resolved path is not in the intents directory
-    contributes no edge rather than failing the decision (AC-0003).
+    The intent→intent ``Parent intent:`` upward walk remains local (not feature
+    delivery) and uses the existing confined reader.
+
+    Raises ``_ClosureDeliveryRefusal`` with reason
+    ``delivery-resolver-unavailable`` when a spec's snapshot cannot be obtained;
+    the caller reports that code rather than treating the chain as empty.
 
     Called from close-work's closeout procedure alongside
     ``check_ancestor_closure`` to fire the check on every intent ancestor of
-    the transitioning artifact (AC-0001).
+    the transitioning artifact.
     """
     reader: Reader = _reader if _reader is not None else _make_confined_reader(root)
     dir_lister: DirLister = (
@@ -1127,7 +1278,6 @@ def resolve_intent_ancestors(
     visited_slugs: set[str] = {slug}
 
     intents_dir = _intents_dir(root)
-    briefs_dir = _briefs_dir(root)
 
     def _scan_for_slug(
         collection_dir: Path, target_slug: str
@@ -1146,14 +1296,19 @@ def resolve_intent_ancestors(
     def _add_intent_and_recurse(
         intent_slug: str, intent_fields: dict[str, str]
     ) -> None:
-        """Add an intent ancestor and walk upward via its ``Parent intent:``."""
+        """Add an intent ancestor and walk upward via its ``Parent intent:``.
+
+        The upward walk (intent → intent) stays local: it is not feature delivery.
+        Only ``intent:`` typed parent edges are followed (not capability/outcome/
+        opportunity) so that the walk correctly traverses the real parent chain.
+        """
         if intent_slug in visited_slugs:
             return
         visited_slugs.add(intent_slug)
         status = intent_fields.get("Status", "")
         terminus = _terminus_from_decomposed(intent_fields.get("Decomposed", ""))
         ancestors.append((intent_slug, status, terminus))
-        # Walk upward from this intent to find further ancestors.
+        # Walk upward from this intent to find further ancestors (local, non-delivery).
         parent_val = intent_fields.get("Parent intent", "")
         if parent_val.startswith("intent:"):
             parent_slug = parent_val[len("intent:"):]
@@ -1162,37 +1317,72 @@ def resolve_intent_ancestors(
                 _add_intent_and_recurse(parent_slug, parent_fields)
 
     if kind == "spec":
-        # Discovery: route — direct path to an intent file (AC-0002, AC-0003).
-        disc_val = fields.get("Discovery", "")
-        if disc_val and disc_val.lower() != "none":
-            target_path = _resolve_discovery_path(disc_val, root)
-            if target_path is not None and target_path.parent == intents_dir:
-                # Only follow if the target is in the intents directory (AC-0003).
-                try:
-                    text = reader(target_path)
-                    target_fields = _preamble(text)
-                    target_slug = target_fields.get("Slug", "")
-                    if target_slug:
-                        _add_intent_and_recurse(target_slug, target_fields)
-                except (OSError, ValueError):
-                    pass  # confined violation or unreadable file → no edge
+        # The spec→feature step is feature-delivery parsing; derive it from the
+        # canonical snapshot. Both direct-delivery and coordinated-delivery
+        # relations carry the feature intent identifier directly.
+        provider = _snapshot_provider if _snapshot_provider is not None else _run_resolver
+        try:
+            snap = provider(root)
+        except Exception as _exc:
+            # Resolver failure is not a no-delivery signal.  Surface it so
+            # the caller receives delivery-resolver-unavailable.
+            raise _ClosureDeliveryRefusal("delivery-resolver-unavailable") from _exc
 
-        # Brief: route — via the brief's Parent intent: (AC-0002).
-        brief_val = fields.get("Brief", "")
-        if brief_val.startswith("brief:"):
-            brief_slug = brief_val[len("brief:"):]
-            brief_fields = _scan_for_slug(briefs_dir, brief_slug)
-            if brief_fields:
-                parent_val = brief_fields.get("Parent intent", "")
-                if parent_val.startswith("intent:"):
-                    parent_slug = parent_val[len("intent:"):]
-                    if parent_slug not in visited_slugs:
-                        parent_fields = _scan_for_slug(intents_dir, parent_slug)
-                        if parent_fields:
-                            _add_intent_and_recurse(parent_slug, parent_fields)
+        if snap is not None:
+            spec_id = f"spec:{slug}"
+            seen_feature_slugs: set[str] = set()
+
+            # Feature ancestors via delivery relations.
+            for rel in snap.get("relations", []):
+                if rel.get("spec") == spec_id and rel.get("type") in (
+                    "direct-delivery",
+                    "coordinated-delivery",
+                ):
+                    intent_ref = rel.get("intent", "")
+                    if intent_ref.startswith("intent:"):
+                        feat_slug = intent_ref[len("intent:"):]
+                        if feat_slug not in seen_feature_slugs and feat_slug not in visited_slugs:
+                            seen_feature_slugs.add(feat_slug)
+                            feat_fields = _scan_for_slug(intents_dir, feat_slug)
+                            if feat_fields:
+                                _add_intent_and_recurse(feat_slug, feat_fields)
+
+            # Non-feature Discovery: references from contextual-provenance records.
+            # A spec whose Discovery: names a non-feature intent contributes that
+            # intent as an ancestor via the provenance record (field "Discovery").
+            for prov in snap.get("provenance", []):
+                if prov.get("subject") == spec_id and prov.get("field") == "Discovery":
+                    target = prov.get("target", "")
+                    # Resolve "intent:<slug>" provenance targets to a slug.
+                    if target.startswith("intent:"):
+                        prov_slug = target[len("intent:"):]
+                        if prov_slug not in seen_feature_slugs and prov_slug not in visited_slugs:
+                            seen_feature_slugs.add(prov_slug)
+                            prov_fields = _scan_for_slug(intents_dir, prov_slug)
+                            if prov_fields:
+                                _add_intent_and_recurse(prov_slug, prov_fields)
+                    elif _is_intents_rel_path(target):
+                        # Path-form target: bare or backtick Discovery: values
+                        # that name a non-feature intent (resolver normalizes
+                        # backticks to bare path before storing in provenance).
+                        # Read the file through the confined reader to get Slug.
+                        target_path = root / target
+                        try:
+                            text = reader(target_path)
+                            path_fields = _preamble(text)
+                            path_slug = path_fields.get("Slug", "")
+                        except (OSError, ValueError):
+                            path_slug = ""
+                        if (
+                            path_slug
+                            and path_slug not in seen_feature_slugs
+                            and path_slug not in visited_slugs
+                        ):
+                            seen_feature_slugs.add(path_slug)
+                            _add_intent_and_recurse(path_slug, path_fields)
 
     elif kind in ("brief", "intent"):
-        # Parent intent: route (AC-0002).
+        # Parent intent: route — local, not feature delivery.
         parent_val = fields.get("Parent intent", "")
         if parent_val.startswith("intent:"):
             parent_slug = parent_val[len("intent:"):]
@@ -1215,6 +1405,7 @@ def check_ancestor_closure(
     _reader: Reader | None = None,
     _dir_lister: DirLister | None = None,
     _freshness_checker: FreshnessChecker | None = None,
+    _snapshot_provider: SnapshotProvider | None = None,
     # Packet-building parameters (AC-0027, AC-0028, AC-0031, AC-0034, AC-0035).
     # All are optional; callers that omit _decider receive a verdict with
     # packet=None, preserving full backward compatibility.
@@ -1295,13 +1486,18 @@ def check_ancestor_closure(
     # absent the packet states the absence rather than dropping the field.
     ancestor_fields: dict[str, str] = dict(_ancestor_fields or {})
 
-    descendants = _build_descendant_closure(
-        ancestor_slug,
-        ancestor_terminus,
-        root,
-        _reader=_reader,
-        _dir_lister=_dir_lister,
-    )
+    try:
+        descendants = _build_descendant_closure(
+            ancestor_slug,
+            ancestor_terminus,
+            root,
+            _reader=_reader,
+            _dir_lister=_dir_lister,
+            _snapshot_provider=_snapshot_provider,
+        )
+    except _ClosureDeliveryRefusal as _ref:
+        return ClosureRefuse(ancestor_slug, _ref.reason)
+
     verdict: ClosureVerdict = _classify_ancestor(
         ancestor_slug, ancestor_status, ancestor_terminus, descendants, ct
     )

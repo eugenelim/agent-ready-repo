@@ -1325,7 +1325,7 @@ def resolve_intent_ancestors(
             snap = provider(root)
         except Exception as _exc:
             # Resolver failure is not a no-delivery signal.  Surface it so
-            # the caller receives delivery-resolver-unavailable (AC-0018).
+            # the caller receives delivery-resolver-unavailable.
             raise _ClosureDeliveryRefusal("delivery-resolver-unavailable") from _exc
 
         if snap is not None:

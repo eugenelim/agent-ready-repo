@@ -64,6 +64,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.30.0] — 2026-10-07
+
+### Highlights
+
+- Installed Core now answers "which specs and briefs deliver this feature intent?" one way. A single repo-scope resolver reads artifact headers and returns typed direct and coordinated delivery links, and both `close-work` and the traceability lint use its answer. A missing, contradictory, or unsafe mapping is reported by a stable code instead of being guessed.
+
+### Added
+
+- `.agentbundle/bin/intent_delivery_relations.py` returns a deterministic JSON snapshot of feature delivery: typed links, per-feature classification, contextual provenance, and diagnostics. It reads only confined artifact headers and refuses an unsafe or oversized corpus as an incomplete result.
+
+### Changed
+
+- `close-work` takes a feature intent's delivery descendants from that snapshot and refuses closure when the mapping is missing, ambiguous, or contradictory.
+- The `work-loop` traceability lint wires feature-delivery edges from the snapshot and reports delivery diagnostics as informational, failing under `--strict` for contradictory or unsafe mappings.
+- Both consumers fail closed with `delivery-resolver-unavailable` when the resolver is absent, fails, or returns an incomplete snapshot. Neither falls back to its own scan.
+- The Core pack eval harness now covers shared delivery descendants and the fail-closed outcome for both consumers.
+
 ## [core][2.29.1] — 2026-10-07
 
 No `Highlights`: this release adds maintainer-only shadow acceptance services behind an opt-in flag and changes no skill outcome or user task; adopters receive no new invocation. The omission is a recorded decision rather than an oversight.
