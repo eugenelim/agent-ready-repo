@@ -119,5 +119,8 @@ def test_the_manifest_lists_each_held_gap_with_its_kind_and_route() -> None:
         line for line in read(SKILL).splitlines() if line.strip().startswith("| visual authority |")
     )
     assert "every upstream gap held" in row
-    for part in ("axes", "operation kind", "routed"):
+    for part in ("axes", "fixed operation kind", "route class only"):
         assert part in row, part
+    # The route is a class, never the recorded owner or operation itself.
+    assert "never into the manifest" in row
+    assert "reached List" not in row

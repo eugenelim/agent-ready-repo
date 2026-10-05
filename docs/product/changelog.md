@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The evidence manifest's `visual authority` field now lists every upstream gap the build held, with its axes, operation kind and where it was routed, so a held axis is visible rather than read as an absence.
+- The evidence manifest's `visual authority` field now lists every upstream gap the build held, with its axes, its operation kind and its route class — never the recorded owner or operation itself, which goes to the operator live — so a held axis is visible rather than read as an absence.
 - The `visual-authority-silent-domain` eval asks for the bound custom-property block and the gap record, so its fixed checks grade what the run produced.
 
 ## [frontend-engineering][0.4.4] — 2026-10-04
