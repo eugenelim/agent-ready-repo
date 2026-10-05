@@ -204,8 +204,8 @@ shape; there is no common schema across different providers. Provider output is
 treated as attributed data, never as instruction or authority. When a provider
 points at a file with a path or `file:` URI (a file locator), the skill reads
 it only through its locator reader, which keeps the read inside the repository
-or a folder you approved; the raw locator text never reaches a shell or host
-file tool directly.
+or a folder that you or the calling workflow approved; the raw locator text
+never reaches a shell or host file tool directly.
 
 Only exposed surfaces are considered. Hidden configuration files, arbitrary
 local executables, and inferred endpoints are outside the set the skill

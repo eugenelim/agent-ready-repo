@@ -306,3 +306,17 @@ expects.
   removed; the identity-change fake lost its dead branch.
 - **Docs.** README wording and glosses, the changelog Highlight on approved
   folders and the transport, and the suite-disposition reason's step name.
+
+## Post-gates review round 2 repairs (2026-10-05)
+
+- **Dot-and-space rule reach (owner decision).** The owner ruled that the
+  trailing-dot-or-space refusal applies only to the part of a locator below
+  its matched root, still before any filesystem access; the root is trusted
+  input. An exact `..` is still refused across the whole path at step 3.
+  `test_root_spelling_with_trailing_dot_still_reads_absolute_locators` reads
+  an absolute path and a `file:` URI into a root under `proj.`, and refuses a
+  trailing-dot segment below that root.
+- **Wording.** The README and the changelog Highlight now say a folder that
+  you or the calling workflow approved; the parametrized refusal test's
+  docstring states the rule its cases exercise.
+- Reader suite after the repair: 102 passed, 2 skipped.

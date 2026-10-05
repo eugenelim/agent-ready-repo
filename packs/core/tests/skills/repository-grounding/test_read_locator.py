@@ -367,7 +367,10 @@ def test_refused_nul_byte(tmp_path: Path) -> None:
     ("src/name /x", "segment ending in a space"),
 ])
 def test_refused_parent_segment_in_path(tmp_path: Path, locator: str, label: str) -> None:
-    """A path containing a .. segment (with / or \\ separators) is refused."""
+    """A segment that is exactly .. or ends in a dot or a space is refused.
+
+    Segments split on both / and \\; every case is refused as parent-segment.
+    """
     reader = _reader()
     result = reader.read_locator(tmp_path, locator)
     assert result.status == "refused", label
@@ -1133,3 +1136,20 @@ def test_lone_dot_segment_is_still_accepted(tmp_path: Path) -> None:
     (repo / "src.py").write_text("y = 2\n", encoding="utf-8")
     result = reader.read_locator(repo, "./src.py")
     assert (result.status, result.data) == ("read", b"y = 2\n")
+
+
+@pytest.mark.skipif(os.name == "nt", reason="a trailing-dot directory name is not creatable on Windows")
+def test_root_spelling_with_trailing_dot_still_reads_absolute_locators(tmp_path: Path) -> None:
+    """The trimming rule applies below the root, so a root under `proj.` still works."""
+    reader = _reader()
+    repo = tmp_path / "proj." / "repo"
+    repo.mkdir(parents=True)
+    (repo / "a.py").write_text("z = 3\n", encoding="utf-8")
+
+    absolute = reader.read_locator(repo, str(repo / "a.py"))
+    as_uri = reader.read_locator(repo, (repo / "a.py").as_uri())
+    below = reader.read_locator(repo, str(repo / "pkg." / "a.py"))
+
+    assert (absolute.status, absolute.data) == ("read", b"z = 3\n")
+    assert (as_uri.status, as_uri.data) == ("read", b"z = 3\n")
+    assert (below.status, below.reason) == ("refused", "parent-segment")
