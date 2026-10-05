@@ -866,6 +866,16 @@ def test_projected_file_safety_matches_the_agentbundle_canonical(skill: str) -> 
     assert projected.read_bytes() == FILE_SAFETY_PATH.read_bytes()
 
 
+def test_adapter_root_bins_file_safety_matches_agentbundle_canonical() -> None:
+    """Parity: adapter-root-bins/_file_safety.py is byte-identical to the engine helper.
+
+    The resolver loads this co-located copy so it runs without agentbundle on
+    the sys.path. The copy must stay pinned to the canonical source.
+    """
+    projected = ROOT / "packs/core/.apm/adapter-root-bins/_file_safety.py"
+    assert projected.read_bytes() == FILE_SAFETY_PATH.read_bytes()
+
+
 def test_wave4_spec_plan_and_workspace_lifecycle_are_aligned() -> None:
     spec_path = (
         ROOT / "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"

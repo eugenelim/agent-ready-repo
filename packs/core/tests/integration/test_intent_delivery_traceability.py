@@ -159,10 +159,12 @@ def _make_spec(
 
 
 def _install_resolver(root: Path) -> None:
-    """Install the resolver source at root/.agentbundle/bin/."""
-    dest = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(_RESOLVER_SRC, dest)
+    """Install the resolver source and its co-located helper at root/.agentbundle/bin/."""
+    dest_dir = root / ".agentbundle" / "bin"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(_RESOLVER_SRC, dest_dir / "intent_delivery_relations.py")
+    _helper_src = _APM / "adapter-root-bins" / "_file_safety.py"
+    shutil.copy2(_helper_src, dest_dir / "_file_safety.py")
 
 
 def _run_resolver_cli(root: Path) -> tuple[int, dict[str, Any]]:

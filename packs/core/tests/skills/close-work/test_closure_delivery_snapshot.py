@@ -108,6 +108,7 @@ def _snapshot(
         "classifications": [],
         "provenance": provenance or [],
         "diagnostics": diagnostics or [],
+        "artifacts": {},
     }
 
 
@@ -426,6 +427,7 @@ def test_vi1103_parse_validates_incomplete_snapshot() -> None:
         "classifications": [],
         "provenance": [],
         "diagnostics": [],
+        "artifacts": {},
     })
     with pytest.raises(ValueError, match="incomplete snapshot"):
         ci._parse_and_validate_snapshot(bad_text)
@@ -442,6 +444,7 @@ def test_vi1103_parse_validates_wrong_schema_version() -> None:
         "classifications": [],
         "provenance": [],
         "diagnostics": [],
+        "artifacts": {},
     })
     with pytest.raises(ValueError, match="unsupported schema_version"):
         ci._parse_and_validate_snapshot(bad_text)
@@ -511,6 +514,7 @@ def test_vi1103_parse_and_validate_snapshot_rejects_nan() -> None:
         "classifications": [],
         "provenance": [],
         "diagnostics": [],
+        "artifacts": {},
     }).replace('"relations": []', '"relations": [{"value": NaN}]')
     # NaN in JSON is non-standard; json.loads on CPython may accept it.
     # Confirm the validator raises ValueError.
@@ -537,11 +541,13 @@ def test_vi1103_real_subprocess_produces_valid_snapshot(tmp_path: Path) -> None:
     Satisfies the plan requirement: 'at least one test running through the real
     subprocess path.'
     """
-    # ── Install the resolver ──────────────────────────────────────────────────
+    # ── Install the resolver and its co-located helper ────────────────────────
     bin_dir = tmp_path / ".agentbundle" / "bin"
     bin_dir.mkdir(parents=True)
     resolver_dst = bin_dir / "intent_delivery_relations.py"
     shutil.copy2(str(_RESOLVER_SRC), str(resolver_dst))
+    helper_src = _RESOLVER_SRC.parent / "_file_safety.py"
+    shutil.copy2(str(helper_src), str(bin_dir / "_file_safety.py"))
 
     # ── Write a minimal fixture: one feature intent (spec terminus), one spec ─
     intents_dir = tmp_path / "docs" / "product" / "intents"

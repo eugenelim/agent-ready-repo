@@ -311,6 +311,7 @@ _SNAPSHOT_REQUIRED_KEYS: frozenset[str] = frozenset({
     "classifications",
     "provenance",
     "diagnostics",
+    "artifacts",
 })
 
 
@@ -570,6 +571,8 @@ def _parse_and_validate_snapshot(text: str) -> dict[str, Any]:
     for _k in ("relations", "classifications", "provenance", "diagnostics"):
         if not isinstance(data[_k], list):
             raise ValueError(f"delivery-resolver-unavailable: {_k} not a list")
+    if not isinstance(data["artifacts"], dict):
+        raise ValueError("delivery-resolver-unavailable: artifacts not a dict")
     return data
 
 

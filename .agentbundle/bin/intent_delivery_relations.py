@@ -3,9 +3,9 @@
 
 Builds a typed, deterministic delivery-relation snapshot from confined
 preamble headers in a repository's intent, brief, and spec artifacts.
-Every read is confined to the repository root via the agentbundle
-file-safety contract. The result is deterministic: identical artifact
-trees produce identical serialized bytes.
+Every read is confined to the repository root via the repository
+file-safety contract loaded co-located. The result is deterministic:
+identical artifact trees produce identical serialized bytes.
 
 Relations:
 - direct-delivery: a feature intent with route 'spec' (or 'brief' via
@@ -21,13 +21,70 @@ do not yield delivery relations. Diagnostics report structural problems.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
+import os
 import re
+import stat as _stat
 import sys
 from pathlib import Path
 from typing import Any
 
-from agentbundle.catalogue_tooling import file_safety
+# ---------------------------------------------------------------------------
+# Co-located file-safety helper loader
+# ---------------------------------------------------------------------------
+
+_SCRIPT_DIR: Path = Path(__file__).resolve().parent
+_file_safety_module: object | None = None
+
+
+def _get_file_safety() -> Any:
+    """Load the co-located _file_safety.py helper at most once.
+
+    Uses the same discipline as close-work's file_safety loader: lstat
+    confirms the helper is a regular non-symlink file before loading, and
+    required symbols are asserted after exec.
+    """
+    global _file_safety_module
+    if _file_safety_module is not None:
+        return _file_safety_module
+
+    path = _SCRIPT_DIR / "_file_safety.py"
+    try:
+        st = os.lstat(path)
+    except OSError as exc:
+        raise ImportError(f"required helper unavailable: {path.name}") from exc
+    if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
+        raise ImportError(f"required helper is not a regular file: {path.name}")
+
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location("_resolver_file_safety", path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"required helper cannot be loaded: {path.name}")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+    except BaseException:
+        sys.modules.pop("_resolver_file_safety", None)
+        raise
+    finally:
+        sys.dont_write_bytecode = prev
+
+    _required = {
+        "UnsafeContentError", "BoundExceeded",
+        "walk_confined_regular_files", "read_confined_regular_file",
+    }
+    missing = _required - set(vars(mod))
+    if missing:
+        sys.modules.pop("_resolver_file_safety", None)
+        raise ImportError(
+            f"required helper is incomplete: {path.name}: {', '.join(sorted(missing))}"
+        )
+    _file_safety_module = mod
+    return mod
+
 
 # Reconfigure streams to UTF-8 before any I/O.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")  # type: ignore[union-attr]
@@ -67,6 +124,44 @@ _PARENT_INTENT_KINDS: tuple[str, ...] = (
     "capability",
     "intent",
 )
+
+# ---------------------------------------------------------------------------
+# Artifact-root path safety check
+# ---------------------------------------------------------------------------
+
+
+def _check_root_path(root: Path, dir_path: Path) -> str:
+    """Check existence and safety of an artifact-root directory path.
+
+    Returns "ok" (exists, no symlinks on the path), "missing" (absent with
+    no symlinks on the way), or "unsafe" (a symlink at some component or an
+    unexpected OS error accessing it).
+    """
+    try:
+        st = os.lstat(dir_path)
+    except FileNotFoundError:
+        # Could be truly missing or a dangling/intermediate symlink.
+        # Walk components from root to dir_path to distinguish them.
+        try:
+            rel = dir_path.relative_to(root)
+        except ValueError:
+            return "unsafe"
+        current = root
+        for part in rel.parts:
+            current = current / part
+            try:
+                cst = os.lstat(current)
+                if _stat.S_ISLNK(cst.st_mode):
+                    return "unsafe"
+            except FileNotFoundError:
+                return "missing"
+        return "missing"
+    except OSError:
+        return "unsafe"
+    if _stat.S_ISLNK(st.st_mode):
+        return "unsafe"
+    return "ok"
+
 
 # ---------------------------------------------------------------------------
 # Preamble helpers
@@ -228,9 +323,11 @@ def resolve_repository(
 ) -> dict[str, Any]:
     """Build and return the delivery relation snapshot for the repository at root.
 
-    Returns a dict with schema_version, complete, relations,
-    classifications, provenance, and diagnostics.
+    Returns a dict with schema_version, complete, relations, classifications,
+    provenance, diagnostics, and artifacts.
     """
+    file_safety = _get_file_safety()
+
     lim: dict[str, int] = {
         "entries": MAX_ENTRIES,
         "files": MAX_FILES,
@@ -256,6 +353,7 @@ def resolve_repository(
                     "root": root_rel,
                 }
             ],
+            "artifacts": {},
         }
 
     def _unsafe_incomplete() -> dict[str, Any]:
@@ -266,6 +364,7 @@ def resolve_repository(
             "classifications": [],
             "provenance": [],
             "diagnostics": [],
+            "artifacts": {},
         }
 
     intents_root = root / "docs" / "product" / "intents"
@@ -290,12 +389,13 @@ def resolve_repository(
         ("briefs", briefs_root),
         ("specs", specs_root),
     ]:
-        # Missing root is empty, not an error.
-        try:
-            dir_path.lstat()
-        except FileNotFoundError:
+        # Missing root is empty; a symlink at any component is unsafe.
+        root_status = _check_root_path(root, dir_path)
+        if root_status == "missing":
             corpus_files[dir_key] = []
             continue
+        if root_status == "unsafe":
+            return _unsafe_incomplete()
 
         try:
             walk = file_safety.walk_confined_regular_files(
@@ -364,6 +464,8 @@ def resolve_repository(
         slug = _first(fields, "Slug")
         if not slug or _first(fields, "Tombstone"):
             continue
+        if not _SLUG_RE.match(slug):
+            continue
 
         rel_path = f.relative_to(root).as_posix()
         slug_paths.setdefault(slug, []).append(rel_path)
@@ -378,6 +480,7 @@ def resolve_repository(
 
     # Build brief index
     brief_by_slug: dict[str, dict[str, Any]] = {}
+    brief_slug_paths: dict[str, list[str]] = {}  # slug -> [rel_path, ...]
 
     for f in corpus_files.get("briefs", []):
         if f.parent != briefs_root or f.suffix != ".md" or f.name.startswith("_"):
@@ -394,12 +497,17 @@ def resolve_repository(
         slug = _first(fields, "Slug")
         if not slug:
             continue
-        brief_by_slug[slug] = {
-            "id": f"brief:{slug}",
-            "path": f,
-            "rel_path": f.relative_to(root).as_posix(),
-            "fields": fields,
-        }
+        if not _SLUG_RE.match(slug):
+            continue
+        rel_path = f.relative_to(root).as_posix()
+        brief_slug_paths.setdefault(slug, []).append(rel_path)
+        if slug not in brief_by_slug:
+            brief_by_slug[slug] = {
+                "id": f"brief:{slug}",
+                "path": f,
+                "rel_path": rel_path,
+                "fields": fields,
+            }
 
     # Build spec index
     spec_by_id: dict[str, dict[str, Any]] = {}
@@ -417,6 +525,8 @@ def resolve_repository(
 
         fields = _preamble_all(text)
         dir_name = f.parent.name
+        if dir_name.startswith("_"):
+            continue
         spec_id = f"spec:{dir_name}"
         spec_by_id[spec_id] = {
             "id": spec_id,
@@ -431,7 +541,7 @@ def resolve_repository(
     provenance: list[dict[str, Any]] = []
     diagnostics: list[dict[str, Any]] = []
 
-    # Corpus-level ambiguous slugs (two files claiming the same slug)
+    # Corpus-level ambiguous intent slugs (two files claiming the same slug)
     ambiguous_slugs: dict[str, list[str]] = {
         slug: sorted(paths)
         for slug, paths in slug_paths.items()
@@ -444,6 +554,19 @@ def resolve_repository(
         })
         # Remove from usable index
         intent_by_slug.pop(slug, None)
+
+    # Corpus-level ambiguous brief slugs (two files claiming the same slug)
+    ambiguous_brief_slugs: dict[str, list[str]] = {
+        slug: sorted(paths)
+        for slug, paths in brief_slug_paths.items()
+        if len(paths) > 1
+    }
+    for slug, sorted_paths in sorted(ambiguous_brief_slugs.items()):
+        diagnostics.append({
+            "code": "delivery-relation-ambiguous",
+            "targets": sorted_paths,
+        })
+        brief_by_slug.pop(slug, None)
 
     # Identify feature intents and their delivery routes
     # slug -> {id, route, fields}
@@ -619,8 +742,13 @@ def resolve_repository(
                                     prov["target"] = t
                                 provenance.append(prov)
                         else:
-                            # Resolves to a non-feature intent => provenance
-                            prov = {"subject": spec_id, "field": "Discovery"}
+                            # Resolves to a non-feature intent => provenance with intent
+                            intent_id_ref = f"intent:{slug}"
+                            prov = {
+                                "subject": spec_id,
+                                "field": "Discovery",
+                                "intent": intent_id_ref,
+                            }
                             t = _safe_provenance_target(dv)
                             if t:
                                 prov["target"] = t
@@ -636,6 +764,13 @@ def resolve_repository(
 
         for bv in distinct_brief:
             if not bv or bv.lower() == "none":
+                continue
+            if _is_unsafe_ref(bv):
+                diagnostics.append({
+                    "code": "delivery-reference-unsafe",
+                    "subject": spec_id,
+                    "field": "Brief",
+                })
                 continue
             if not bv.startswith("brief:"):
                 diagnostics.append({
@@ -690,6 +825,13 @@ def resolve_repository(
 
         for pv in distinct_parents:
             if not pv or pv.lower().startswith("none"):
+                continue
+            if _is_unsafe_ref(pv):
+                diagnostics.append({
+                    "code": "delivery-reference-unsafe",
+                    "subject": f"brief:{brief_slug}",
+                    "field": "Parent intent",
+                })
                 continue
             matched_kind = None
             for kind in _PARENT_INTENT_KINDS:
@@ -872,6 +1014,38 @@ def resolve_repository(
                         "route": route,
                     })
 
+    # Build artifacts map: every identifier that appears in a relation or
+    # provenance record, mapped to its repo-relative artifact path.
+    def _get_artifact_path(ident: str) -> str | None:
+        if ident.startswith("intent:"):
+            slug = ident[len("intent:"):]
+            entry = intent_by_slug.get(slug)
+            return entry["rel_path"] if entry else None
+        if ident.startswith("spec:"):
+            entry = spec_by_id.get(ident)
+            return entry["rel_path"] if entry else None
+        if ident.startswith("brief:"):
+            slug = ident[len("brief:"):]
+            entry = brief_by_slug.get(slug)
+            return entry["rel_path"] if entry else None
+        return None
+
+    artifacts: dict[str, str] = {}
+    for rel in relations:
+        for key in ("intent", "spec", "brief"):
+            val = rel.get(key)
+            if val and val not in artifacts:
+                p = _get_artifact_path(val)
+                if p:
+                    artifacts[val] = p
+    for prov_rec in provenance:
+        for key in ("subject", "intent"):
+            val = prov_rec.get(key)
+            if val and val not in artifacts:
+                p = _get_artifact_path(val)
+                if p:
+                    artifacts[val] = p
+
     # Assemble and check JSON size
     snapshot: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -880,6 +1054,7 @@ def resolve_repository(
         "classifications": _sorted_list(classifications),
         "provenance": _sorted_list(provenance),
         "diagnostics": _sorted_list(diagnostics),
+        "artifacts": dict(sorted(artifacts.items())),
     }
 
     json_str = (
@@ -927,10 +1102,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="intent_delivery_relations.py",
         description=(
-            "Resolve delivery relations for a repository from confined "
-            "preamble headers. Prints a JSON snapshot to stdout. "
+            "What delivery relations does this repository declare? "
+            "Resolves relations from confined preamble headers and prints a "
+            "JSON snapshot to stdout. "
             "Exit 0: complete snapshot. Exit 1: incomplete snapshot "
-            "(JSON still printed). Exit 2: usage error or unexpected failure."
+            "(JSON still printed; caused by a resource limit or an unsafe "
+            "corpus entry). Exit 2: usage error or required helper missing."
         ),
     )
     parser.add_argument(
@@ -939,7 +1116,15 @@ def main(argv: list[str] | None = None) -> int:
         default=".",
         help="Repository root directory (default: current directory).",
     )
-    args = parser.parse_args(argv)
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit:
+        raise
+    try:
+        _get_file_safety()
+    except ImportError as exc:
+        sys.stderr.write(f"intent_delivery_relations: {exc}\n")
+        return 2
     root = Path(args.root).resolve()
     snapshot = resolve_repository(root)
     sys.stdout.write(serialize(snapshot))

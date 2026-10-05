@@ -167,6 +167,8 @@ _SIDECAR_RELPATH = ("_state", "traceability.json")
 _RESOLVER_TIMEOUT: int = 60
 # Maximum stdout accepted from the resolver (16 MiB, mirrors resolver limit).
 _MAX_SNAPSHOT_BYTES: int = 16_777_216
+# The one delivery-snapshot schema version this lint consumes.
+_SNAPSHOT_SCHEMA_VERSION: int = 1
 # Required top-level keys in a valid snapshot.
 _SNAPSHOT_REQUIRED_KEYS: frozenset[str] = frozenset({
     "schema_version",
@@ -175,6 +177,7 @@ _SNAPSHOT_REQUIRED_KEYS: frozenset[str] = frozenset({
     "classifications",
     "provenance",
     "diagnostics",
+    "artifacts",
 })
 
 # Module-level injectable seam.  When not None, ``build_standalone`` calls
@@ -1281,7 +1284,7 @@ def _parse_and_validate_snapshot(text: str) -> dict:
         raise ValueError("delivery-resolver-unavailable: top-level not a dict")
     if set(data.keys()) != _SNAPSHOT_REQUIRED_KEYS:
         raise ValueError("delivery-resolver-unavailable: wrong keys")
-    if data["schema_version"] != 1:
+    if data["schema_version"] != _SNAPSHOT_SCHEMA_VERSION:
         raise ValueError(
             "delivery-resolver-unavailable: unsupported schema_version"
         )
@@ -1292,6 +1295,8 @@ def _parse_and_validate_snapshot(text: str) -> dict:
             raise ValueError(
                 f"delivery-resolver-unavailable: {_k} not a list"
             )
+    if not isinstance(data["artifacts"], dict):
+        raise ValueError("delivery-resolver-unavailable: artifacts not a dict")
     return data
 
 

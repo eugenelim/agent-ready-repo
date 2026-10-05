@@ -75,6 +75,7 @@ def _snapshot(
         "classifications": [],
         "provenance": provenance or [],
         "diagnostics": diagnostics or [],
+        "artifacts": {},
     }
 
 

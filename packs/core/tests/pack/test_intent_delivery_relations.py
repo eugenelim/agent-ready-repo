@@ -167,14 +167,18 @@ def test_ac0002_spec_route_no_matching_spec(tmp_path: Path) -> None:
     """Route=spec with zero matching specs => delivery-target-missing."""
     _make_intent(tmp_path, slug="alpha", decomposed="2026-01-01 spec")
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-target-missing" in codes
-    assert snap["relations"] == []
-    cls = snap["classifications"]
-    assert len(cls) == 1
-    assert cls[0]["intent"] == "intent:alpha"
-    assert cls[0]["classification"] == "unresolved"
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "unresolved", "intent": "intent:alpha", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [{"code": "delivery-target-missing", "subject": "intent:alpha"}],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0002_positive_control_one_spec(tmp_path: Path) -> None:
@@ -182,11 +186,29 @@ def test_ac0002_positive_control_one_spec(tmp_path: Path) -> None:
     _make_intent(tmp_path, slug="alpha", decomposed="2026-01-01 spec")
     _make_spec(tmp_path, dir_name="alpha-spec", discovery="`intent:alpha`")
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    assert len(snap["relations"]) == 1
-    assert snap["relations"][0]["type"] == "direct-delivery"
-    cls = snap["classifications"]
-    assert cls[0]["classification"] == "direct-delivery"
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"intent": "Decomposed", "spec": "Discovery"},
+                "intent": "intent:alpha",
+                "route": "spec",
+                "spec": "spec:alpha-spec",
+                "type": "direct-delivery",
+            },
+        ],
+        "classifications": [
+            {"classification": "direct-delivery", "intent": "intent:alpha", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "intent:alpha": "docs/product/intents/alpha.md",
+            "spec:alpha-spec": "docs/specs/alpha-spec/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0003_spec_route_multiple_matching_specs(tmp_path: Path) -> None:
@@ -195,13 +217,24 @@ def test_ac0003_spec_route_multiple_matching_specs(tmp_path: Path) -> None:
     _make_spec(tmp_path, dir_name="alpha-spec-1", discovery="`intent:alpha`")
     _make_spec(tmp_path, dir_name="alpha-spec-2", discovery="`intent:alpha`")
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-projection-mismatch" in codes
-    mismatch = next(d for d in snap["diagnostics"] if d["code"] == "delivery-projection-mismatch")
-    assert sorted(mismatch["targets"]) == ["spec:alpha-spec-1", "spec:alpha-spec-2"]
-    assert snap["relations"] == []
-    assert snap["classifications"][0]["classification"] == "unresolved"
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "unresolved", "intent": "intent:alpha", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [
+            {
+                "code": "delivery-projection-mismatch",
+                "subject": "intent:alpha",
+                "targets": ["spec:alpha-spec-1", "spec:alpha-spec-2"],
+            },
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0004_brief_route_coordinated_delivery(tmp_path: Path) -> None:
@@ -211,20 +244,40 @@ def test_ac0004_brief_route_coordinated_delivery(tmp_path: Path) -> None:
     _make_spec(tmp_path, dir_name="spec-one", brief="`brief:feat-brief`")
     _make_spec(tmp_path, dir_name="spec-two", brief="`brief:feat-brief`")
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    coord = [r for r in snap["relations"] if r["type"] == "coordinated-delivery"]
-    assert len(coord) == 2
-    spec_ids = sorted(r["spec"] for r in coord)
-    assert spec_ids == ["spec:spec-one", "spec:spec-two"]
-    for r in coord:
-        assert r["intent"] == "intent:feat"
-        assert r["brief"] == "brief:feat-brief"
-        assert r["basis"] == {
-            "brief": "Parent intent",
-            "intent": "Decomposed",
-            "spec": "Brief",
-        }
-        assert "parent" not in r
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+                "brief": "brief:feat-brief",
+                "intent": "intent:feat",
+                "route": "brief",
+                "spec": "spec:spec-one",
+                "type": "coordinated-delivery",
+            },
+            {
+                "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+                "brief": "brief:feat-brief",
+                "intent": "intent:feat",
+                "route": "brief",
+                "spec": "spec:spec-two",
+                "type": "coordinated-delivery",
+            },
+        ],
+        "classifications": [
+            {"classification": "coordinated-delivery", "intent": "intent:feat", "route": "brief"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "brief:feat-brief": "docs/product/briefs/feat-brief.md",
+            "intent:feat": "docs/product/intents/feat.md",
+            "spec:spec-one": "docs/specs/spec-one/spec.md",
+            "spec:spec-two": "docs/specs/spec-two/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0004_positive_basis_fields(tmp_path: Path) -> None:
@@ -233,30 +286,67 @@ def test_ac0004_positive_basis_fields(tmp_path: Path) -> None:
     _make_brief(tmp_path, slug="feat-brief", parent_intent="intent:feat")
     _make_spec(tmp_path, dir_name="spec-one", brief="`brief:feat-brief`")
     snap = _resolve(tmp_path)
-    r = snap["relations"][0]
-    assert set(r["basis"].keys()) == {"intent", "brief", "spec"}
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+                "brief": "brief:feat-brief",
+                "intent": "intent:feat",
+                "route": "brief",
+                "spec": "spec:spec-one",
+                "type": "coordinated-delivery",
+            },
+        ],
+        "classifications": [
+            {"classification": "coordinated-delivery", "intent": "intent:feat", "route": "brief"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "brief:feat-brief": "docs/product/briefs/feat-brief.md",
+            "intent:feat": "docs/product/intents/feat.md",
+            "spec:spec-one": "docs/specs/spec-one/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0005_direct_light_classification(tmp_path: Path) -> None:
     """Route=direct-light => no-durable-child, no missing-target."""
     _make_intent(tmp_path, slug="feat", decomposed="2026-01-01 direct-light")
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    assert snap["relations"] == []
-    assert not any(d["code"] == "delivery-target-missing" for d in snap["diagnostics"])
-    cls = snap["classifications"]
-    assert cls[0]["classification"] == "no-durable-child"
-    assert cls[0]["route"] == "direct-light"
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "no-durable-child", "intent": "intent:feat", "route": "direct-light"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0005_closed_empty_classification(tmp_path: Path) -> None:
     """Route=closed-empty => no-durable-child, no missing-target."""
     _make_intent(tmp_path, slug="feat", decomposed="2026-01-01 closed-empty")
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    assert not any(d["code"] == "delivery-target-missing" for d in snap["diagnostics"])
-    assert snap["classifications"][0]["classification"] == "no-durable-child"
-    assert snap["classifications"][0]["route"] == "closed-empty"
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "no-durable-child", "intent": "intent:feat", "route": "closed-empty"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0006_dual_provenance_same_intent(tmp_path: Path) -> None:
@@ -272,12 +362,38 @@ def test_ac0006_dual_provenance_same_intent(tmp_path: Path) -> None:
         brief="`brief:feat-brief`",
     )
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    types = sorted(r["type"] for r in snap["relations"])
-    assert types == ["coordinated-delivery", "direct-delivery"]
-    # No unqualified parent field
-    for r in snap["relations"]:
-        assert "parent" not in r
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+                "brief": "brief:feat-brief",
+                "intent": "intent:feat",
+                "route": "brief",
+                "spec": "spec:my-spec",
+                "type": "coordinated-delivery",
+            },
+            {
+                "basis": {"intent": "Decomposed", "spec": "Discovery"},
+                "intent": "intent:feat",
+                "route": "brief",
+                "spec": "spec:my-spec",
+                "type": "direct-delivery",
+            },
+        ],
+        "classifications": [
+            {"classification": "coordinated-delivery", "intent": "intent:feat", "route": "brief"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "brief:feat-brief": "docs/product/briefs/feat-brief.md",
+            "intent:feat": "docs/product/intents/feat.md",
+            "spec:my-spec": "docs/specs/my-spec/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0006_different_intents_dual(tmp_path: Path) -> None:
@@ -295,30 +411,76 @@ def test_ac0006_different_intents_dual(tmp_path: Path) -> None:
         brief="`brief:b-brief`",
     )
     snap = _resolve(tmp_path)
-    types = sorted(r["type"] for r in snap["relations"])
-    assert "direct-delivery" in types
-    assert "coordinated-delivery" in types
-    intents_in_relations = {r["intent"] for r in snap["relations"]}
-    assert "intent:feat-a" in intents_in_relations
-    assert "intent:feat-b" in intents_in_relations
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+                "brief": "brief:b-brief",
+                "intent": "intent:feat-b",
+                "route": "brief",
+                "spec": "spec:dual-spec",
+                "type": "coordinated-delivery",
+            },
+            {
+                "basis": {"intent": "Decomposed", "spec": "Discovery"},
+                "intent": "intent:feat-a",
+                "route": "spec",
+                "spec": "spec:dual-spec",
+                "type": "direct-delivery",
+            },
+        ],
+        "classifications": [
+            {"classification": "coordinated-delivery", "intent": "intent:feat-b", "route": "brief"},
+            {"classification": "direct-delivery", "intent": "intent:feat-a", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "brief:b-brief": "docs/product/briefs/b-brief.md",
+            "intent:feat-a": "docs/product/intents/feat-a.md",
+            "intent:feat-b": "docs/product/intents/feat-b.md",
+            "spec:dual-spec": "docs/specs/dual-spec/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0007_contract_is_provenance(tmp_path: Path) -> None:
     """Contract: value other than none produces contextual-provenance."""
     _make_spec(tmp_path, dir_name="foo", contract="some-contract-ref")
     snap = _resolve(tmp_path)
-    assert snap["complete"] is True
-    provs = snap["provenance"]
-    assert any(p["field"] == "Contract" and p["subject"] == "spec:foo" for p in provs)
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [
+            {"field": "Contract", "subject": "spec:foo", "target": "some-contract-ref"},
+        ],
+        "diagnostics": [],
+        "artifacts": {"spec:foo": "docs/specs/foo/spec.md"},
+    }
+    assert snap == expected
 
 
 def test_ac0007_non_intent_discovery_is_provenance(tmp_path: Path) -> None:
     """Non-intent-shaped Discovery: value becomes contextual-provenance."""
     _make_spec(tmp_path, dir_name="foo", discovery="some-tool-ref")
     snap = _resolve(tmp_path)
-    provs = snap["provenance"]
-    assert any(p["field"] == "Discovery" for p in provs)
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [
+            {"field": "Discovery", "subject": "spec:foo", "target": "some-tool-ref"},
+        ],
+        "diagnostics": [],
+        "artifacts": {"spec:foo": "docs/specs/foo/spec.md"},
+    }
+    assert snap == expected
 
 
 def test_ac0007_discovery_resolves_to_non_feature_is_provenance(tmp_path: Path) -> None:
@@ -326,15 +488,42 @@ def test_ac0007_discovery_resolves_to_non_feature_is_provenance(tmp_path: Path) 
     _make_intent(tmp_path, slug="not-feat", level="outcome", decomposed="2026-01-01 children")
     _make_spec(tmp_path, dir_name="foo", discovery="`intent:not-feat`")
     snap = _resolve(tmp_path)
-    assert any(p["field"] == "Discovery" for p in snap["provenance"])
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [
+            {
+                "field": "Discovery",
+                "intent": "intent:not-feat",
+                "subject": "spec:foo",
+                "target": "intent:not-feat",
+            },
+        ],
+        "diagnostics": [],
+        "artifacts": {
+            "intent:not-feat": "docs/product/intents/not-feat.md",
+            "spec:foo": "docs/specs/foo/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0007_contract_none_is_not_provenance(tmp_path: Path) -> None:
     """Contract: none does not produce provenance."""
     _make_spec(tmp_path, dir_name="foo", contract="none")
     snap = _resolve(tmp_path)
-    assert snap["provenance"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0008_ambiguous_discovery_two_intents(tmp_path: Path) -> None:
@@ -352,12 +541,28 @@ def test_ac0008_ambiguous_discovery_two_intents(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-relation-ambiguous" in codes
-    ambig = next(d for d in snap["diagnostics"] if d["code"] == "delivery-relation-ambiguous"
-                 and d.get("field") == "Discovery")
-    assert sorted(ambig["targets"]) == ["intent:alpha", "intent:beta"]
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "unresolved", "intent": "intent:alpha", "route": "spec"},
+            {"classification": "unresolved", "intent": "intent:beta", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [
+            {
+                "code": "delivery-relation-ambiguous",
+                "field": "Discovery",
+                "subject": "spec:multi",
+                "targets": ["intent:alpha", "intent:beta"],
+            },
+            {"code": "delivery-target-missing", "subject": "intent:alpha"},
+            {"code": "delivery-target-missing", "subject": "intent:beta"},
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0008_identical_discovery_not_ambiguous(tmp_path: Path) -> None:
@@ -373,8 +578,29 @@ def test_ac0008_identical_discovery_not_ambiguous(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     snap = _resolve(tmp_path)
-    assert not any(d["code"] == "delivery-relation-ambiguous" for d in snap["diagnostics"])
-    assert len(snap["relations"]) == 1
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"intent": "Decomposed", "spec": "Discovery"},
+                "intent": "intent:alpha",
+                "route": "spec",
+                "spec": "spec:dup",
+                "type": "direct-delivery",
+            },
+        ],
+        "classifications": [
+            {"classification": "direct-delivery", "intent": "intent:alpha", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "intent:alpha": "docs/product/intents/alpha.md",
+            "spec:dup": "docs/specs/dup/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0008_same_intent_two_forms_not_ambiguous(tmp_path: Path) -> None:
@@ -390,10 +616,29 @@ def test_ac0008_same_intent_two_forms_not_ambiguous(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     snap = _resolve(tmp_path)
-    ambig = [d for d in snap["diagnostics"] if d["code"] == "delivery-relation-ambiguous"
-             and d.get("field") == "Discovery"]
-    assert ambig == [], "same-target forms must not trigger ambiguity"
-    assert len(snap["relations"]) == 1
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"intent": "Decomposed", "spec": "Discovery"},
+                "intent": "intent:alpha",
+                "route": "spec",
+                "spec": "spec:same",
+                "type": "direct-delivery",
+            },
+        ],
+        "classifications": [
+            {"classification": "direct-delivery", "intent": "intent:alpha", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "intent:alpha": "docs/product/intents/alpha.md",
+            "spec:same": "docs/specs/same/spec.md",
+        },
+    }
+    assert snap == expected
 
 
 def test_ac0008_ambiguous_decomposed(tmp_path: Path) -> None:
@@ -410,20 +655,41 @@ def test_ac0008_ambiguous_decomposed(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-relation-ambiguous" in codes
-    ambig = next(d for d in snap["diagnostics"] if d["code"] == "delivery-relation-ambiguous"
-                 and d.get("field") == "Decomposed")
-    assert ambig["subject"] == "intent:feat"
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [],
+        "diagnostics": [
+            {
+                "code": "delivery-relation-ambiguous",
+                "field": "Decomposed",
+                "subject": "intent:feat",
+                "targets": ["2026-01-01 spec", "2026-01-02 brief"],
+            },
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0009_malformed_discovery(tmp_path: Path) -> None:
     """Malformed Discovery value => delivery-reference-malformed."""
     _make_spec(tmp_path, dir_name="foo", discovery="`intent:Bad-SLUG`")
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-reference-malformed" in codes
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [],
+        "diagnostics": [
+            {"code": "delivery-reference-malformed", "field": "Discovery", "subject": "spec:foo"},
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0009_malformed_markdown_link_discovery(tmp_path: Path) -> None:
@@ -431,9 +697,21 @@ def test_ac0009_malformed_markdown_link_discovery(tmp_path: Path) -> None:
     _make_intent(tmp_path, slug="alpha", decomposed="2026-01-01 spec")
     _make_spec(tmp_path, dir_name="foo", discovery="[alpha](docs/product/intents/alpha.md)")
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-reference-malformed" in codes
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "unresolved", "intent": "intent:alpha", "route": "spec"},
+        ],
+        "provenance": [],
+        "diagnostics": [
+            {"code": "delivery-reference-malformed", "field": "Discovery", "subject": "spec:foo"},
+            {"code": "delivery-target-missing", "subject": "intent:alpha"},
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0010_absolute_discovery_unsafe(tmp_path: Path) -> None:
@@ -441,18 +719,36 @@ def test_ac0010_absolute_discovery_unsafe(tmp_path: Path) -> None:
     # An absolute path containing the intents directory is intent-shaped but unsafe.
     _make_spec(tmp_path, dir_name="foo", discovery="`/docs/product/intents/alpha.md`")
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-reference-unsafe" in codes
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [],
+        "diagnostics": [
+            {"code": "delivery-reference-unsafe", "field": "Discovery", "subject": "spec:foo"},
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0010_parent_traversal_discovery_unsafe(tmp_path: Path) -> None:
     """Parent-traversing Discovery reference => delivery-reference-unsafe."""
     _make_spec(tmp_path, dir_name="foo", discovery="`docs/product/intents/../../../etc/passwd`")
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-reference-unsafe" in codes
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [],
+        "diagnostics": [
+            {"code": "delivery-reference-unsafe", "field": "Discovery", "subject": "spec:foo"},
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0011_body_change_does_not_affect_snapshot(tmp_path: Path) -> None:
@@ -483,9 +779,18 @@ def test_ac0019_brief_route_no_brief(tmp_path: Path) -> None:
     """Route=brief with no matching brief => delivery-target-missing."""
     _make_intent(tmp_path, slug="feat", decomposed="2026-01-01 brief")
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-target-missing" in codes
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "unresolved", "intent": "intent:feat", "route": "brief"},
+        ],
+        "provenance": [],
+        "diagnostics": [{"code": "delivery-target-missing", "subject": "intent:feat"}],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_ac0019_brief_route_multiple_briefs(tmp_path: Path) -> None:
@@ -494,11 +799,24 @@ def test_ac0019_brief_route_multiple_briefs(tmp_path: Path) -> None:
     _make_brief(tmp_path, slug="brief-one", parent_intent="intent:feat")
     _make_brief(tmp_path, slug="brief-two", parent_intent="intent:feat")
     snap = _resolve(tmp_path)
-    codes = [d["code"] for d in snap["diagnostics"]]
-    assert "delivery-projection-mismatch" in codes
-    mismatch = next(d for d in snap["diagnostics"] if d["code"] == "delivery-projection-mismatch")
-    assert sorted(mismatch["targets"]) == ["brief:brief-one", "brief:brief-two"]
-    assert snap["relations"] == []
+    expected: dict[str, Any] = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [
+            {"classification": "unresolved", "intent": "intent:feat", "route": "brief"},
+        ],
+        "provenance": [],
+        "diagnostics": [
+            {
+                "code": "delivery-projection-mismatch",
+                "subject": "intent:feat",
+                "targets": ["brief:brief-one", "brief:brief-two"],
+            },
+        ],
+        "artifacts": {},
+    }
+    assert snap == expected
 
 
 def test_non_feature_intent_no_delivery(tmp_path: Path) -> None:
@@ -719,8 +1037,6 @@ def test_ac0016_unsafe_identity_change_via_monkeypatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """UnsafeContentError from file_safety => complete=False, no diagnostic payload."""
-    from agentbundle.catalogue_tooling import file_safety as fs
-
     intents = tmp_path / "docs" / "product" / "intents"
     intents.mkdir(parents=True)
     (intents / "alpha.md").write_text(
@@ -729,16 +1045,17 @@ def test_ac0016_unsafe_identity_change_via_monkeypatch(
         encoding="utf-8",
     )
 
-    original = fs.read_confined_regular_file
+    mod = _load_resolver()
+    # Force-load the co-located helper so we can patch it.
+    fs = mod._get_file_safety()
 
     def _raise(*args: object, **kwargs: object) -> bytes:
         raise fs.UnsafeContentError("simulated identity change")
 
     monkeypatch.setattr(fs, "read_confined_regular_file", _raise)
-    snap = _resolve(tmp_path)
+    snap = mod.resolve_repository(tmp_path)
     assert snap["complete"] is False
     assert snap["diagnostics"] == []
-    monkeypatch.setattr(fs, "read_confined_regular_file", original)
 
 
 def test_ac0016_relation_naming_refused_entry_gives_no_unsafe_diag(
@@ -930,14 +1247,16 @@ def test_ac0018_no_raw_malformed_content_in_output(tmp_path: Path) -> None:
 # Projected CLI test (VI-1003 kill condition)
 
 def test_vi1003_projected_cli_produces_valid_json(tmp_path: Path) -> None:
-    """Copying the resolver alone to a tmp bin/ and running it returns valid JSON."""
+    """Copying the resolver and its co-located helper to a tmp bin/ returns valid JSON."""
     _make_intent(tmp_path, slug="feat", decomposed="2026-01-01 spec")
     _make_spec(tmp_path, dir_name="feat-spec", discovery="`intent:feat`")
 
-    # Set up projected layout
+    # Set up projected layout (resolver + co-located helper)
     bin_dir = tmp_path / ".agentbundle" / "bin"
     bin_dir.mkdir(parents=True)
     shutil.copy2(SOURCE, bin_dir / "intent_delivery_relations.py")
+    helper_src = SOURCE.parent / "_file_safety.py"
+    shutil.copy2(helper_src, bin_dir / "_file_safety.py")
 
     result = subprocess.run(
         [sys.executable, str(bin_dir / "intent_delivery_relations.py"),
@@ -966,6 +1285,8 @@ def test_vi1003_projected_cli_incomplete_exit_1(tmp_path: Path) -> None:
     bin_dir = tmp_path / ".agentbundle" / "bin"
     bin_dir.mkdir(parents=True)
     shutil.copy2(SOURCE, bin_dir / "intent_delivery_relations.py")
+    helper_src = SOURCE.parent / "_file_safety.py"
+    shutil.copy2(helper_src, bin_dir / "_file_safety.py")
     # Create a corpus that will breach entries
     _make_many_intents(tmp_path, 4)
 

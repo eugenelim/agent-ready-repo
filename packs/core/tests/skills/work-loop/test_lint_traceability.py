@@ -60,7 +60,7 @@ def symlink_or_skip(
 
 
 def _ensure_resolver(root: Path) -> None:
-    """Install the resolver binary under root/.agentbundle/bin/ if not present.
+    """Install the resolver binary and its helper under root/.agentbundle/bin/ if not present.
 
     Required because the spec mandates that an absent binary is a hard violation
     when a chain anchor exists.  All subprocess-based tests that write anchors
@@ -70,14 +70,15 @@ def _ensure_resolver(root: Path) -> None:
     """
     dest = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
     if not dest.exists():
-        src = (
+        src_dir = (
             Path(__file__).resolve().parents[3]
             / ".apm"
             / "adapter-root-bins"
-            / "intent_delivery_relations.py"
         )
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(src.read_bytes())
+        dest.write_bytes((src_dir / "intent_delivery_relations.py").read_bytes())
+        helper_dest = dest.parent / "_file_safety.py"
+        helper_dest.write_bytes((src_dir / "_file_safety.py").read_bytes())
 
 
 def run_raw(root: Path, *extra: str) -> tuple[int, str, str]:
@@ -1732,6 +1733,7 @@ _EMPTY_SNAPSHOT: dict = {
     "classifications": [],
     "provenance": [],
     "diagnostics": [],
+    "artifacts": {},
 }
 
 
@@ -1745,10 +1747,12 @@ def _load_linter(suffix: str) -> object:
 
 
 def _install_resolver(root: Path) -> None:
-    """Install the resolver source under tmp_path/.agentbundle/bin/ for subprocess tests."""
+    """Install the resolver source and its helper under tmp_path/.agentbundle/bin/."""
     dest = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(_RESOLVER_SOURCE.read_bytes())
+    helper_src = _RESOLVER_SOURCE.parent / "_file_safety.py"
+    (dest.parent / "_file_safety.py").write_bytes(helper_src.read_bytes())
 
 
 def write_feature_intent(root: Path, slug: str, route: str = "spec") -> None:
@@ -2155,11 +2159,11 @@ def test_vi1203_incomplete_snapshot_is_hard_violation(tmp_path: Path) -> None:
 @pytest.mark.parametrize("bad_text,label", [
     ("not json {{{", "malformed-json"),
     ('{"schema_version":1,"complete":true,"relations":[],"classifications":[],'
-     '"provenance":[],"diagnostics":[],"extra":1}', "extra-key"),
+     '"provenance":[],"diagnostics":[],"artifacts":{},"extra":1}', "extra-key"),
     ('{"schema_version":2,"complete":true,"relations":[],"classifications":[],'
-     '"provenance":[],"diagnostics":[]}', "wrong-schema-version"),
+     '"provenance":[],"diagnostics":[],"artifacts":{}}', "wrong-schema-version"),
     ('{"schema_version":1,"complete":true,"relations":"not-a-list",'
-     '"classifications":[],"provenance":[],"diagnostics":[]}', "non-list-relations"),
+     '"classifications":[],"provenance":[],"diagnostics":[],"artifacts":{}}', "non-list-relations"),
 ], ids=["malformed-json", "extra-key", "wrong-schema-version", "non-list-relations"])
 def test_vi1203_parse_and_validate_rejects_bad_input(
     bad_text: str, label: str
@@ -2183,7 +2187,7 @@ def test_vi1203_nan_in_snapshot_is_rejected(tmp_path: Path) -> None:
     # Build JSON with NaN using allow_nan=True (Python's json can produce it)
     nan_text = _json.dumps(
         {"schema_version": 1, "complete": True, "relations": [float("nan")],
-         "classifications": [], "provenance": [], "diagnostics": []},
+         "classifications": [], "provenance": [], "diagnostics": [], "artifacts": {}},
         allow_nan=True,
     )
     raised = False
