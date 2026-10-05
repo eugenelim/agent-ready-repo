@@ -222,7 +222,7 @@ The HTML explorer is one self-contained file embedded with data, styles, and scr
 
 ### Measured full-versus-bounded rule
 
-The full-versus-bounded selection rule is evidence-backed. Chrome scale evidence recorded in the verification ledger shows the current corpus (238 records, ~5.7 MiB) is practical in full mode; the 100 MiB file-size threshold is the measured limit at which desktop Chrome stops being practical. Bounded mode is a first-class representation, not a partial-failure fallback: it retains the complete record inventory, exact headers, checked graph, contextual references, and provenance while omitting bodies.
+The full-versus-bounded selection rule is evidence-backed. Chrome scale evidence recorded in the verification ledger shows the current corpus (243 records, ~6.2 MiB) is practical in full mode; the 100 MiB file-size threshold is the measured limit at which desktop Chrome stops being practical. Bounded mode is a first-class representation, not a partial-failure fallback: it retains the complete record inventory, exact headers, checked graph, contextual references, and provenance while omitting bodies.
 
 ### Reference-policy boundary
 

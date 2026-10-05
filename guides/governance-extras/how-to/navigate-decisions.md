@@ -237,7 +237,7 @@ On POSIX the published file is readable and writable only by its owner (`-rw----
 
 ### Full versus bounded — the 100 MiB rule
 
-**Full mode** (default) embeds every admitted ADR and RFC body. At the current corpus size (238 records, ~5.7 MiB) full mode is practical in desktop Chrome. Full mode is refused when the estimated output would exceed 100 MiB.
+**Full mode** (default) embeds every admitted ADR and RFC body. At the current corpus size (243 records, ~6.2 MiB) full mode is practical in desktop Chrome. Full mode is refused when the estimated output would exceed 100 MiB.
 
 **Bounded mode** retains the complete record inventory, exact headers, checked lineage, contextual references, provenance, and trust labels, but omits record bodies. Each omitted body carries its source path for direct inspection. Bounded mode is always within budget.
 
