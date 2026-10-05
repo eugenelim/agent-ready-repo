@@ -132,3 +132,62 @@ VI-1009 assertions with it — the suite-inheritance case and the
 stale-exemption case. Restored by editing the condition back; both return to
 green. The guard is therefore load-bearing for both verification items rather
 than only the stub that introduced it.
+
+## T2 — lock generation, in the order AC-0015 requires
+
+2026-10-05, Node v24.21.0 via nvm with npm 11.19.0. Local default Node is
+v26.7.0; the plan pins Node 24 and `test-corpus.yml` sets `node-version: "24"`,
+so generation used the pinned line rather than the shell default.
+
+The controls ran before any fetch, in this order, and all four passed:
+
+1. Filename-only `.npmrc` scan — no match, confirmed independently with `find`.
+2. `NPM_CONFIG_REGISTRY=https://registry.npmjs.org/` and
+   `NPM_CONFIG_REPLACE_REGISTRY_HOST=never` set, then read back through
+   `npm config get`: `https://registry.npmjs.org/` and `never`.
+3. User and global config neutralized. First attempt pointed both at
+   `/dev/null` and npm refused — `double-loading config "/dev/null" as
+   "global", previously loaded as "user"` — so two distinct empty files were
+   used instead. Worth knowing: the obvious neutralization does not work.
+4. Effective configuration carries no scoped-registry override and no auth key.
+
+Generated with `npm install --package-lock-only --ignore-scripts --no-audit`.
+Result: `markdown-to-html` 2 non-root entries, `render-proof` 126, both
+`lockfileVersion` 3.
+
+### The first lockfile shipped a live advisory, and the gate caught it
+
+`tools/audit-npm.py` reported against the freshly generated tree:
+
+```
+✖ packs/converters/.apm/skills/render-proof: 1 blocking advisory(ies)
+    GHSA-55q2-fjhq-7xh7 (moderate) dompurify: IN_PLACE hook removal leaves a
+    detached subtree executable, causing XSS
+```
+
+This is ADR-0083's leg working on content that did not exist until this task
+created it, and it is the whole argument for admitting canonical pack lockfiles
+into that walk: the advisory was present the moment the lock was written.
+
+Resolved with `npm audit fix --package-lock-only --ignore-scripts`, which moved
+the transitive resolution only. The manifest was byte-compared before and after
+and is unchanged apart from the `allowScripts` key added separately, so no
+direct dependency range moved and the spec's ask-first rule on ranges is not
+engaged. Re-audited: both projects report no blocking advisories.
+
+### allowScripts is empty, explicitly
+
+No entry in either lockfile sets `hasInstallScript`, so both manifests carry
+`"allowScripts": {}` rather than omitting the key. AC-0007 requires the map to
+be present; VI-1006 requires an empty set to produce an explicit empty map. The
+distinction matters because an absent key and an empty map read the same to a
+human and differently to the lint.
+
+### VI-1007, observed rather than argued
+
+Before the `.gitignore` change both lock paths reported ignored; after it both
+report committable, while `node_modules` beneath either skill stays ignored.
+The negation is written as `!packs/*/.apm/skills/*/package-lock.json` — a shape
+rather than two named projects — so a new canonical project joins the committed
+set without editing `.gitignore`, matching the roster-free rule AC-0004 states
+for discovery.

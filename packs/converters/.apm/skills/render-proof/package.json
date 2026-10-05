@@ -9,5 +9,6 @@
     "shiki": "^1.0",
     "dompurify": "^3.0",
     "jsdom": "^25.0"
-  }
+  },
+  "allowScripts": {}
 }
