@@ -35,7 +35,7 @@ answered through the repository-native baseline when no provider is usable.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Portable grounding behavior | The method must install with Core and remain useful alone | `packs/core/.apm/skills/repository-grounding/` | Core pack | Script tests, recorded behavior-evaluation runs, and adapter projection inventory | Built adapters contain the same provider-neutral behavior |
-| Core release pipeline | A new Core skill requires a coordinated pack release | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and `docs/product/changelog.md` | Core pack | Version-rule derivation, manifest parity, generated marketplace check, release entry, and Highlights disposition | Every required release surface agrees on the derived target and the consumer outcome is published or explicitly dispositioned |
+| Core release pipeline | A new Core skill requires a coordinated pack release | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, and `docs/product/changelog.md` | Core pack | Version-rule derivation, manifest parity, release entry, and Highlights disposition | Every required release surface agrees on the derived target and the consumer outcome is published or explicitly dispositioned |
 | Existing authoring integration | `new-spec` already consumes the path-seeded inquiry | `packs/core/.apm/skills/new-spec/SKILL.md` | `new-spec` | Delegation and no-provider regression tests | The main procedure names no provider-specific lifecycle |
 | Maintainer and adopter truth | The optional boundary is a public Core behavior | `packs/core/README.md` | Core pack | Documentation review and link checks | README states baseline, discovery boundary, and native-shape rule |
 | Reusable learning | The implementation may establish constraints useful beyond this slice | `docs/product/research/` through `project-knowledge` or work intake when warranted | Closeout owner | Named capture receipt or explicit no-capture result | Closeout records the disposition without creating a placeholder |
@@ -164,8 +164,9 @@ label provider evidence separately from repository source.
   verified provider claim and of a claim whose check is unavailable, plus their
   recorded runs.
 - **VI-0013 — release pipeline (AC-0013):** version-rule derivation,
-  baseline-to-target and manifest-parity checks, generated marketplace output,
-  free-standing changelog entry, and Highlights-disposition evidence.
+  baseline-to-target and manifest-parity checks, free-standing changelog
+  entry, and Highlights-disposition evidence. Core is a repository-only pack,
+  so it has no Claude marketplace entry to check.
 - **VI-0014 — provider output stays data (AC-0014):** three behavior
   evaluations with recorded runs, whose provider output respectively embeds an
   instruction, proposes an approved root, and requests an index refresh. Each
@@ -246,12 +247,13 @@ label provider evidence separately from repository source.
   satisfy an acceptance condition; if that check cannot be completed, the
   claim is labelled unresolved and cannot be sole proof of the condition.
 - [ ] **AC-0013.** The target Core version is derived from the approved-baseline
-  versions and `packs/AGENTS.md#version-bump-rule`; `packs/core/pack.toml`,
-  `packs/core/.claude-plugin/plugin.json`, and the regenerated
-  `.claude-plugin/marketplace.json` agree on that target; and a free-standing
-  Core entry in `docs/product/changelog.md` includes outcome-led `Highlights`
-  when the verified diff changes what consumers can do, or the PR records the
-  required explicit no-`Highlights` reason.
+  versions and `packs/AGENTS.md#version-bump-rule`; `packs/core/pack.toml` and
+  `packs/core/.claude-plugin/plugin.json` agree on that target; and a
+  free-standing Core entry in `docs/product/changelog.md` includes outcome-led
+  `Highlights` when the verified diff changes what consumers can do, or the PR
+  records the required explicit no-`Highlights` reason. Core is a
+  repository-only pack, so `.claude-plugin/marketplace.json` carries no Core
+  entry.
 - [ ] **AC-0014.** Provider output is reported as provider content and never
   acted on as instruction: it cannot add or widen an approved root, start a
   read, provider call, or mutating, indexing, refresh, or install action that

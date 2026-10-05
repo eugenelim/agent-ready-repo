@@ -62,7 +62,7 @@ run and confirm the consuming `new-spec` procedure contains no provider step.
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | `packs/core/.apm/skills/repository-grounding/` | T1, T2 | Script tests and recorded behavior-evaluation runs | Core render inventory and shipped skill inventory |
-| Core release pipeline surfaces | T1, T4 | Version-rule derivation, manifest parity, generated marketplace, changelog, and Highlights-disposition checks | Required release surfaces agree on the target and consumer outcome |
+| Core release pipeline surfaces | T1, T4 | Version-rule derivation, manifest parity, changelog, and Highlights-disposition checks | Required release surfaces agree on the target and consumer outcome |
 | `packs/core/.apm/skills/new-spec/SKILL.md` | T3 | Delegation and absence assertions | Main-flow review finds no provider lifecycle branch |
 | `packs/core/README.md` | T3 | Documentation assertions and link check | Public description matches shipped behavior |
 | Reusable-learning disposition | T4 | Capture receipt or explicit no-capture note | Closeout records one disposition |
@@ -507,7 +507,8 @@ records.
 - The free-standing Core entry is written in `docs/product/changelog.md`, and
   its Highlights disposition is decided by reading the complete release diff
   and its verification evidence. Release verification records the baseline
-  versions, version-rule derivation, matching manifest and marketplace target,
+  versions, version-rule derivation, matching manifest target, that
+  `.claude-plugin/marketplace.json` carries no Core entry,
   the entry, and that disposition (AC-0013).
 - The governance-citation grep from `packs/AGENTS.local.md` returns no
   internal citation in shipped content.
@@ -574,4 +575,13 @@ persistent state or migration.
   JSON escaping, and a repeated `--locator-b64` is rejected and tested.
 - 2026-10-05: amended spec approved by eugenelim after clean pre-EXECUTE
   adversarial and security reviews (round 8).
+- 2026-10-05: amended plan approved by eugenelim.
+- 2026-10-05: controlled amendment after T1-T3 completed, on the owner's ruling
+  (ledger, "Owner ruling — AC-0013 marketplace clause"): the release criterion
+  and its verification item no longer require a Claude marketplace entry,
+  because Core is repository-only;
+  T4's release check records that no Core entry exists. Completed tasks T1-T3
+  are unchanged.
+- 2026-10-05: amended spec approved by eugenelim after a clean amendment
+  review.
 - 2026-10-05: amended plan approved by eugenelim.
