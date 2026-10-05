@@ -318,7 +318,7 @@ checks 71 passed in 95 s; unit suites 277 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
-Date: 2026-10-05. Branch: `eugenelim/adr-summary`. Files changed:
+Date: 2026-10-05. Branch: this feature branch. Files changed:
 `explorer.css`, `explorer.js`, `explorer.py` (`_build_html` only).
 
 ### WCAG 2.2 AA contrast pairs (light theme)
@@ -357,7 +357,7 @@ Date: 2026-10-05. Branch: `eugenelim/adr-summary`. Files changed:
 
 ## T7 stage 3 evidence — SVG lineage diagram and chain atlas (AC-0026)
 
-Date: 2026-10-05. Branch: `eugenelim/adr-summary`. Files changed:
+Date: 2026-10-05. Branch: this feature branch. Files changed:
 `explorer_assets/lineage.js` (new), `explorer.js` (`renderGraph` only),
 `explorer.css` (lineage styles), `explorer.py` (asset list + script block),
 `tests/skills/navigate-decisions/test_html_publication.py` (4 new tests),
