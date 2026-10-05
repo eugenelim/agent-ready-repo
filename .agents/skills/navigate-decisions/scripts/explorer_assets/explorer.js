@@ -22,6 +22,7 @@ var liveEl=document.getElementById('live-region');
 Object.keys(statusMap).sort().forEach(function(rv){
 var o=document.createElement('option');
 o.value=rv;o.textContent=statusMap[rv]||rv;statusEl.appendChild(o);});
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function lc(r){
 var l=r.lifecycle;if(!l||l.missing)return'(missing)';
 return l.display_value||l.raw_value||'(missing)';}
@@ -32,6 +33,43 @@ function attr(e,k,v){if(v!=null)e.setAttribute(k,v);return e;}
 function btn(cls,txt,handler){
 var b=el('button',cls,txt);b.addEventListener('click',handler);return b;}
 function updateLive(msg){if(liveEl)liveEl.textContent=msg;}
+// Map lifecycle raw_value to a status CSS class
+function statusClass(rv){
+if(!rv)return'status-default';
+var v=rv.toLowerCase();
+if(v.indexOf('accepted')>=0||v.indexOf('active')>=0)return'status-accepted';
+if(v.indexOf('proposed')>=0||v.indexOf('draft')>=0||v.indexOf('open')>=0)return'status-proposed';
+if(v.indexOf('superseded')>=0)return'status-superseded';
+if(v.indexOf('deprecated')>=0||v.indexOf('rejected')>=0||v.indexOf('withdrawn')>=0)return'status-deprecated';
+return'status-default';}
+// ── Stat cards ───────────────────────────────────────────────────────────────
+function renderStatCards(){
+var sc=document.getElementById('stat-cards');if(!sc)return;
+sc.textContent='';
+var bk=(D.summary&&D.summary.by_kind)||{};
+var unresCnt=(D.summary&&D.summary.unresolved_reference_count)||0;
+var supCnt=records.filter(function(r){return r.superseded_by&&r.superseded_by.length>0;}).length;
+var stats=[
+  {n:records.length,l:'total'},
+  {n:bk.ADR||0,l:'ADRs'},
+  {n:bk.RFC||0,l:'RFCs'},
+  {n:supCnt,l:'superseded'},
+  {n:unresCnt,l:'unresolved'}];
+stats.forEach(function(s){
+var card=document.createElement('div');card.className='stat-card';
+var num=document.createElement('div');num.className='stat-num';
+num.textContent=String(s.n);
+var lbl=document.createElement('div');lbl.className='stat-label';
+lbl.textContent=s.l;
+card.appendChild(num);card.appendChild(lbl);sc.appendChild(card);});}
+// ── Kind pill helper ─────────────────────────────────────────────────────────
+function setKindPill(kind){
+if(!kindEl)return;
+kindEl.querySelectorAll('button.kind-pill').forEach(function(b){
+var bk=b.getAttribute('data-kind')||'';
+if(bk===kind){b.classList.add('active');}
+else{b.classList.remove('active');}});}
+// ── Routing ──────────────────────────────────────────────────────────────────
 function parseHash(){
 try{
 var h=location.hash.slice(1);
@@ -80,8 +118,8 @@ else if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
 else if(state.view==='detail')renderDetail(c);
 focusViewHeading();}
+// ── Supersession banner ──────────────────────────────────────────────────────
 function supBanner(entry,isDetail){
-// entry: {by, partial, scope}
 var div=document.createElement('div');
 div.className='supersede-banner';div.setAttribute('role','note');
 div.appendChild(document.createTextNode(entry.partial?'Superseded in part by ':'Superseded by '));
@@ -92,6 +130,7 @@ if(entry.partial){
 var sc=entry.scope&&entry.scope.length?'('+entry.scope.join(', ')+')':'(scope not stated)';
 div.appendChild(document.createTextNode(' '+sc));}
 return div;}
+// ── List view ────────────────────────────────────────────────────────────────
 function renderList(c){
 var fr=filtered();
 var h2=el('h2',null,'Corpus list');c.appendChild(h2);
@@ -110,21 +149,25 @@ if(activeFilters.length>0){
 var rb=btn('reset-btn','Reset filters',function(){
 state.q='';state.kind='';state.status='';
 if(searchEl)searchEl.value='';
-if(kindEl)kindEl.value='';
+setKindPill('');
 if(statusEl)statusEl.value='';
 render();});
 c.appendChild(rb);}
 updateLive(msg);return;}
 var ul=el('ul','record-list');
 fr.forEach(function(r){
-var li=el('li','record-item'+(r.id===state.sel?' selected':''));
+var isSuperseded=r.superseded_by&&r.superseded_by.length>0;
+var liCls='record-item'+(r.id===state.sel?' selected':'')+(isSuperseded?' is-superseded':'');
+var li=el('li',liCls);
 var b=el('button','record-btn');
 if(r.id===state.sel)b.setAttribute('aria-current','true');
-var badge=el('span','badge badge-'+r.kind.toLowerCase(),r.kind);
 var ridEl=el('span','rid',r.id);
 var ttEl=el('span','rtitle',r.title);
-var stEl=el('span','rstatus',lc(r));
-b.appendChild(badge);b.appendChild(ridEl);b.appendChild(ttEl);b.appendChild(stEl);
+var badge=el('span','badge badge-'+r.kind.toLowerCase(),r.kind);
+var lcv=(r.lifecycle&&!r.lifecycle.missing&&r.lifecycle.raw_value)||null;
+var stEl=el('span','rstatus '+statusClass(lcv),lc(r));
+var chev=el('span','chevron','▼');
+b.appendChild(ridEl);b.appendChild(ttEl);b.appendChild(badge);b.appendChild(stEl);b.appendChild(chev);
 // Supersession banners from checked relationships only
 var supBy=r.superseded_by||[];
 var unresClaims=r.unresolved_claims||[];
@@ -138,6 +181,7 @@ b.addEventListener('click',function(){navigate('detail',r.id);});
 li.appendChild(b);ul.appendChild(li);});
 c.appendChild(ul);
 updateLive(fr.length+' of '+records.length+' records shown.');}
+// ── Graph view ───────────────────────────────────────────────────────────────
 function renderGraph(c){
 var h2=el('h2',null,'Lifecycle graph');c.appendChild(h2);
 var checked=rels.filter(function(r){return r.trust_class==='checked';});
@@ -174,6 +218,7 @@ li.appendChild(document.createTextNode(r.raw_value||''));
 ul2.appendChild(li);});
 c.appendChild(ul2);}
 updateLive('');}
+// ── Context view ─────────────────────────────────────────────────────────────
 function renderContext(c){
 var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
 var h2=el('h2',null,rec?'Guidance context: '+rec.id:'Guidance context');
@@ -222,6 +267,7 @@ if(a.to)li.appendChild(document.createTextNode(' → '+a.to));
 ul2.appendChild(li);});
 c.appendChild(ul2);}
 updateLive('');}
+// ── Detail view ──────────────────────────────────────────────────────────────
 function renderDetail(c){
 var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
 var h2=el('h2',null,rec?rec.id+': '+rec.title:'Record detail');
@@ -328,15 +374,31 @@ renderMarkdown(content,sec2);
 bodyEl=sec2;}
 c.appendChild(bodyEl);}
 updateLive(rec.id+': '+rec.title);}
+// ── Event bindings ───────────────────────────────────────────────────────────
 VALID_VIEWS.forEach(function(v){
 var b=document.getElementById('btn-'+v);
 if(b)b.addEventListener('click',function(){navigate(v,state.sel);});});
 if(searchEl)searchEl.addEventListener('input',function(){
 state.q=this.value;render();});
-if(kindEl)kindEl.addEventListener('change',function(){
-state.kind=this.value;render();});
+// Kind filter: pill buttons (not a select)
+if(kindEl){
+kindEl.querySelectorAll('button.kind-pill').forEach(function(b){
+b.addEventListener('click',function(){
+state.kind=b.getAttribute('data-kind')||'';
+setKindPill(state.kind);
+render();});});}
 if(statusEl)statusEl.addEventListener('change',function(){
 state.status=this.value;render();});
+// Expand-all pill: toggles all <details> in the current view
+var expandAllBtn=document.getElementById('expand-all-btn');
+if(expandAllBtn){
+expandAllBtn.addEventListener('click',function(){
+var viewEl=document.getElementById('view-'+state.view);if(!viewEl)return;
+var dets=viewEl.querySelectorAll('details');
+var anyOpen=false;
+for(var di=0;di<dets.length;di++){if(dets[di].open){anyOpen=true;break;}}
+for(var dj=0;dj<dets.length;dj++){dets[dj].open=!anyOpen;}
+expandAllBtn.textContent=anyOpen?'Expand all':'Collapse all';});}
 window.addEventListener('popstate',function(){parseHash();render();});
 var provPre=document.getElementById('prov-pre');
 if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);
@@ -350,5 +412,7 @@ var li=el('li',null);
 li.appendChild(document.createTextNode(sr.path+' ['+sr.kind+']'));
 siUl.appendChild(li);});}
 supInvEl.appendChild(siUl);}
+// ── Boot ─────────────────────────────────────────────────────────────────────
+renderStatCards();
 parseHash();render();
 }();

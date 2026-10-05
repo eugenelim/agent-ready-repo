@@ -540,11 +540,7 @@ def _build_html(
     json_data = _safe_json(data_obj)
 
     counts = summary.get("by_kind", {})
-    unresolved = summary.get("unresolved_reference_count", 0)
     total = sum(counts.values())
-    counts_str = " · ".join(
-        f"{k}: {v}" for k, v in sorted(counts.items())
-    ) or "0"
     mode_notice = (
         '<div class="mode-notice">'
         "Bounded export: full record inventory and graph included; "
@@ -587,27 +583,36 @@ def _build_html(
         "</script>\n"
         '<div id="app">\n'
         '<header id="app-header">\n'
-        "<h1>Decision Navigator</h1>\n"
-        f'<p class="boundary-notice">{_html_escape(boundary)}</p>\n'
-        f'<div class="corpus-meta">Total: {total} ({counts_str}) · '
-        f"Unresolved references: {unresolved}</div>\n"
-        f"{mode_notice}\n"
-        '<div class="controls">\n'
-        '<label>Search: <input type="search" id="search-input" '
-        'aria-label="Search titles and statuses"></label>\n'
-        '<label>Kind: <select id="kind-filter"><option value="">All kinds</option>'
-        '<option value="ADR">ADR</option>'
-        '<option value="RFC">RFC</option></select></label>\n'
-        '<label>Status: <select id="status-filter">'
-        '<option value="">All statuses</option></select></label>\n'
+        '<div class="eyebrow-row">\n'
+        '<div class="grad-mark" aria-hidden="true"></div>\n'
+        '<span class="eyebrow">DECISION CORPUS &middot; ADR &amp; RFC</span>\n'
         "</div>\n"
-        '<nav aria-label="Views">\n'
-        '<button id="btn-list">Corpus list</button>\n'
-        '<button id="btn-graph">Lifecycle graph</button>\n'
-        '<button id="btn-context">Guidance context</button>\n'
-        '<button id="btn-detail">Record detail</button>\n'
-        "</nav>\n"
+        '<h1><span class="title-gradient">Decision Records</span> &mdash; Navigator</h1>\n'
+        f'<p class="lede">{total} records &middot; read-only snapshot</p>\n'
+        f'<div class="info-panel">{_html_escape(boundary)}</div>\n'
+        f"{mode_notice}\n"
         "</header>\n"
+        '<div class="stat-cards" id="stat-cards"></div>\n'
+        '<div class="controls">\n'
+        '<div id="kind-filter" class="kind-pills" role="group" aria-label="Filter by kind">\n'
+        '<button class="kind-pill active" data-kind="">All</button>\n'
+        '<button class="kind-pill" data-kind="ADR">ADR</button>\n'
+        '<button class="kind-pill" data-kind="RFC">RFC</button>\n'
+        "</div>\n"
+        '<label class="ctrl-label">Status '
+        '<select id="status-filter">'
+        '<option value="">All statuses</option></select></label>\n'
+        '<label class="ctrl-label">Search '
+        '<input type="search" id="search-input" '
+        'aria-label="Search titles and statuses"></label>\n'
+        '<nav aria-label="Views">\n'
+        '<button id="btn-list">List</button>\n'
+        '<button id="btn-graph">Graph</button>\n'
+        '<button id="btn-context">Context</button>\n'
+        '<button id="btn-detail">Detail</button>\n'
+        "</nav>\n"
+        '<button id="expand-all-btn" class="pill-btn">Expand all</button>\n'
+        "</div>\n"
         '<main id="app-main">\n'
         '<div id="view-list" role="region" aria-label="Corpus list"></div>\n'
         '<div id="view-graph" role="region" aria-label="Lifecycle graph" hidden></div>\n'

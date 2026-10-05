@@ -167,6 +167,45 @@ set; only the Status column changes here.
 | FE-F10 | Nit | An unknown record ID in the route shows the `nothing selected` guidance instead of saying the record is missing. | scripted Chrome check | closed — `test_unknown_record_id_shows_message` passes: detail view for an ID not in the export shows text matching `{id} is not in this export.`; JS `renderDetail()` checks `if(!rec)` and sets the main area to that message via textContent. |
 | FE-F11 | Nit | Long record bodies have no progressive disclosure, and orientation scrolls away. | scripted Chrome check | closed — `test_long_body_folded` passes: a record with a 900 KB body renders its content inside a `details.body-details` element that is closed by default; JS `renderDetail()` wraps `content.length > 3000` in `<details class="body-details"><summary>Body …</summary>…</details>`. |
 
+## T7 stage 2b evidence — explorer visual redesign
+
+Date: 2026-10-05. Branch: `eugenelim/adr-summary`. Files changed:
+`explorer.css`, `explorer.js`, `explorer.py` (`_build_html` only).
+
+### WCAG 2.2 AA contrast pairs (light theme)
+
+| Pair | Foreground | Background | Ratio | Pass |
+| --- | --- | --- | --- | --- |
+| Body text | `#111827` | `#ffffff` | 18.1:1 | AA ✓ |
+| Muted text | `#4b5563` | `#ffffff` | 7.4:1 | AA ✓ |
+| Monospace ID | `#1d4ed8` | `rgba(29,78,216,.09)` on white | ~5.1:1 | AA ✓ |
+| Active nav btn | `#ffffff` | `#1d4ed8` | 6.6:1 | AA ✓ |
+| Accepted status pill | `#166534` | `#dcfce7` | 5.9:1 | AA ✓ |
+| Proposed status pill | `#1e40af` | `#dbeafe` | 6.1:1 | AA ✓ |
+| Superseded status pill | `#374151` | `#f3f4f6` | 8.0:1 | AA ✓ |
+| Deprecated status pill | `#991b1b` | `#fee2e2` | 5.6:1 | AA ✓ |
+| Supersede banner text | `#92400e` | `#fff7ed` gradient start | 5.8:1 | AA ✓ |
+| Info panel text | `#374151` | `#f0f4ff` | 7.2:1 | AA ✓ |
+
+### Verification results
+
+- **Unit tests:** `python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions -q -p no:cacheprovider` → 196 passed.
+- **Browser checks:** `python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py -q -p no:cacheprovider` → 20 passed (Chrome 154.0.8037.93 on macOS 26.5.2).
+- **Lint:** `make lint-ruff lint-mypy` → 0 errors.
+- **Build:** `make build-self FORCE=1` → ok; `make build-self-dry-run` → ok.
+- **No horizontal overflow:** 640px and 320px both false (confirmed by Playwright).
+
+### Key design choices
+
+- `#app { max-width: 1100px; overflow-x: hidden }` — centered white column over grid background.
+- Grid: two overlapping 1-px `linear-gradient` at 48-px repeat on `body`.
+- Gradient title: `-webkit-background-clip: text` on `<span class="title-gradient">`.
+- `blockquote`: background tint + italic, `border: none` — no left-border rail; confirmed distinct from evidence-rail (4 px left solid/dashed/dotted/double) and supersede banner (3 px left amber).
+- `.record-content { border: 2px solid var(--border) }` — borderLeftWidth = 2px, not 4px; test `test_record_content_border_differs_from_evidence_rail` confirms.
+- Kind filter changed from `<select>` to pill buttons (`<div id="kind-filter" class="kind-pills">`); JS updated accordingly.
+- Stat cards filled from `D.summary` at boot via `renderStatCards()`.
+- Expand-all button toggles all `<details>` in the current view.
+
 ## Deviations from completed task text
 
 - **T2 verification artifact (ADV-16):** T2 names `test_filesystem_safety.py`,
