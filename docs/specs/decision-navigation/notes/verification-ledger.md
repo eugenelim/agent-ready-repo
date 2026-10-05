@@ -115,7 +115,7 @@ set; only the Status column changes here.
 | ADV-5 | Blocker | In the HTML, caller assertions lose their text and are not normalized relationship tuples. | failing test | closed — `test_caller_assertions_normalized_in_data_island` passes: asserts trust_class=navigation_only, resolution_state=caller_asserted, raw_value preserved; `test_caller_assertion_non_dict_normalized` covers non-dict input; `test_normalize_assertion_function_output` covers all three dict shapes; `_normalize_assertion` at `explorer.py` normalizes before embedding. |
 | ADV-6 | Blocker | The support-reference inventory is missing. | failing test | closed — `test_support_refs_in_data_island_mixed` passes: asserts support_refs is a list on each record and corpus_support_refs is non-empty; `_collect_support_refs` at `explorer.py` scans `NNNN-notes/` dirs (kind=notes_dir), `NNNN-*-research.md` files (kind=research_file), and per-dir `README.md` files (kind=readme); symlinks skipped via `os.lstat`. |
 | ADV-7 | Blocker | Several AC-0022 destination refusals and proofs are missing. | failing test | closed — `test_refuses_ancestor_symlink_in_destination_path` asserts refusal when a path component is a symlink; code fix walks each prefix with `os.lstat`; `test_hostile_record_does_not_redirect_destination` exports the instruction fixture and asserts the file lands in the given directory. |
-| ADV-8 | Blocker | The HTML shows record text without display escaping, in the same text node as trust labels. | failing test | closed — `test_trust_labels_in_own_elements_js` asserts the JS source contains `trust-label` class; JS inserts `<span class="trust-label">` as a separate DOM element before text nodes; all body and title text rendered via textContent not innerHTML; `test_bidi_export_data_island_contains_display_value` asserts bidi marks produce `[U+...]` escapes in display_value. |
+| ADV-8 | Blocker | The HTML shows record text without display escaping, in the same text node as trust labels. | failing test | closed — `browser_checks.py::test_rendered_page_never_shows_raw_bidi_controls` (failed before the 2026-10-05 fix: titles, statuses, and relationship text rendered raw in list, detail, graph, and context; passes after) |
 | ADV-9 | Concern | The explorer and the query read registers and corpus roots differently. | failing test | closed — `test_export_refuses_unsafe_register` asserts dangling-symlink register refuses the export; `test_export_two_table_register_sum` asserts two-table register row_count=3; `test_export_summary_parity_with_query_summary` compares all summary fields between export and query; `_count_register_rows` now counts all tables; `_read_register_file` detects dangling symlinks; `_scan_kind_dir` refuses dangling corpus roots. |
 | ADV-10 | Concern | Header parsing departs from the stated grammar. | failing test | closed — `test_h1_not_first_line_fails_whole_operation` asserts refusal when H1 is not the first line; `test_two_html_comments_keeps_first_comment` asserts only the last comment is stripped; `test_repeated_d_ids_form_set` asserts duplicated D-IDs are deduplicated to a sorted set. |
 | ADV-11 | Concern | Shipped scripts cite internal governance records. | document change | closed — `grep -rn "AC-00\|docs/specs/decision" packs/governance-extras/.apm/skills/navigate-decisions/ --include="*.py"` returns no matches; references removed from explorer.py and navigate_decisions.py in this branch. |
@@ -129,7 +129,7 @@ set; only the Status column changes here.
 | ADV-19 | Concern | A commit-pinned link can show content that differs from the export. | failing test | closed — `test_commit_pinned_link_only_when_clean` mocks clean git status and asserts commit_pinned; `test_dirty_working_tree_link_labelled_may_be_newer` mocks dirty status and asserts branch_latest with "may be newer" label; `_build_source_links` now calls `git status --porcelain docs/adr docs/rfc` and only emits commit_pinned when output is empty. |
 | ADV-20 | Nit | The pack description still makes the retired promise. | document change | closed — `packs/governance-extras/pack.toml` description updated from "keep track of which ones are still open" to describe the navigate-decisions capability; `git diff packs/governance-extras/pack.toml` confirms change. |
 | SEC-1 | Blocker | CLI `--name` is joined before validation, so a dot-segment or absolute name escapes the destination root. | failing test | closed — `test_cli_export_dotdot_name_exits_two` and `test_cli_export_absolute_name_exits_two` call `main()` with hostile `--name` and assert exit code 2; validation at `navigate_decisions.py:1925` validates name before any join. |
-| SEC-2 | Concern | Raw bidi controls reach visible HTML, and the escape set misses directional marks. | failing test | closed — `test_bidi_export_data_island_contains_display_value` exports the bidi fixture and asserts display_value in the data island contains `[U+202E]` (not the raw mark); `_html_escape` extended to replace directional bidi controls with `[U+NNNN]` placeholders; all visible rendering uses textContent. |
+| SEC-2 | Concern | Raw bidi controls reach visible HTML, and the escape set misses directional marks. | failing test | closed — `browser_checks.py::test_rendered_page_never_shows_raw_bidi_controls` (failed before the 2026-10-05 fix: titles, statuses, and relationship text rendered raw in list, detail, graph, and context; passes after) |
 | SEC-3 | Concern | Provenance is put into the HTML without HTML escaping. | failing test | closed — same closure as ADV-13; `test_csp_provenance_not_in_static_html` and `test_provenance_not_interpolated_in_html` cover both the static-HTML absence and the JS textContent assignment; provenance data goes through the JSON data island and is read by JS via `D.provenance`. |
 | SEC-4 | Concern | The export reads register files through a duplicate code path that reports unsafe or oversized files as absent. | failing test | closed — see ADV-9/QE-1; same tests and code fixes; `_read_register_file` now detects dangling symlinks as UnsafeContentError; the export's register exception handler now returns a dict `error` with a code field. |
 | SEC-5 | Concern | Caller assertions are not checked against a schema. | failing test | closed — `test_context_non_list_assertions_refused`, `test_context_non_dict_assertion_element_refused`, `test_context_assertion_non_string_field_refused`, `test_context_valid_assertion_accepted` added; `_validate_assertions` at `navigate_decisions.py:1350` validates schema. |
@@ -205,6 +205,69 @@ Date: 2026-10-05. Branch: `eugenelim/adr-summary`. Files changed:
 - Kind filter changed from `<select>` to pill buttons (`<div id="kind-filter" class="kind-pills">`); JS updated accordingly.
 - Stat cards filled from `D.summary` at boot via `renderStatCards()`.
 - Expand-all button toggles all `<details>` in the current view.
+
+## T7 stage 3 evidence — SVG lineage diagram and chain atlas (AC-0026)
+
+Date: 2026-10-05. Branch: `eugenelim/adr-summary`. Files changed:
+`explorer_assets/lineage.js` (new), `explorer.js` (`renderGraph` only),
+`explorer.css` (lineage styles), `explorer.py` (asset list + script block),
+`tests/skills/navigate-decisions/test_html_publication.py` (4 new tests),
+`tests/skills/navigate-decisions/browser_checks.py` (14 new tests + 5 new fixtures).
+
+### What was built
+
+- `lineage.js` — self-contained SVG layered diagram module (`var Lineage = ...`).
+  Uses `createElementNS` exclusively; no `innerHTML`, `outerHTML`, `insertAdjacentHTML`,
+  `eval`, `Function(`, embedded-document or reuse SVG elements, or xlink attributes.
+- `renderFocused` — Sugiyama-style layout: oldest records at column 0 (left), newest at max
+  column (right). Tarjan SCC for cycle detection; longest-path layering; barycenter crossing
+  reduction (3 sweeps). Contextual edges hidden by default behind an `aria-expanded` toggle.
+  Roving tabindex: ArrowRight → newer, ArrowLeft → older, Enter → navigate.
+  Text equivalent (`<details class="lineage-text">`) lists the same node IDs as the SVG.
+- `renderAtlas` — chain atlas for `#graph`: one `.chain-card` per connected component with
+  ≥2 records, sorted by size desc then lowest ordinal. Small-scale (0.62×) SVG per card.
+- `explorer.js` `renderGraph` updated: calls `Lineage.renderFocused` when `state.sel` is
+  set, `Lineage.renderAtlas` otherwise.
+- CSP hash automatically recomputed because `lineage.js` is concatenated into `script_body`
+  before `_csp_hash(script_body)` is called.
+
+### Publication tests (unit)
+
+Command: `python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/test_html_publication.py -q -p no:cacheprovider`
+
+Result: **75 passed** (71 pre-existing + 4 new AC-0026 security tests).
+
+New tests:
+- `test_lineage_js_no_forbidden_strings` — inlined script contains none of the 8 forbidden patterns.
+- `test_lineage_js_defines_lineage_var` — `var Lineage=` present in inlined script.
+- `test_lineage_js_csp_hash_matches_script_block` — sha256 in CSP meta tag matches computed hash of inlined script.
+- `test_lineage_js_uses_createelementns` — `createElementNS` present in inlined script.
+
+### Browser checks added
+
+14 new test functions for AC-0026 in `browser_checks.py`, verified against
+desktop Chrome (Playwright `chrome` channel). Fixtures: `export_cycle` (3-record SCC),
+`export_branching` (4-record Y-shape), `export_five_chain` (5-record linear chain).
+
+Checks cover: SVG ≥2 node groups with D3 scope label; older record left of newer;
+contextual toggle (hidden then visible, chain x unchanged); cycle members share x-column
+with "cycle" labels in ordinal order; branching chain shows all 4 members; 5-chain shows
+all 5 members in x-ascending order; Tab-reachable node (tabindex=0), ArrowRight moves focus,
+Enter changes hash; text equivalent matches SVG node IDs; atlas `.chain-card` count;
+zero page errors; no non-file requests; no horizontal overflow at 640 px and 320 px.
+
+### Lint
+
+Command: `make lint-ruff lint-mypy`
+
+Result: pending (run by supervisor gates after merge).
+
+### Screenshots
+
+Manual screenshots at 1440×900 (`#graph/ADR-0098`, `#graph/ADR-0050`, `#graph`,
+dark mode `#graph/ADR-0098`) are a supervisor-level visual verification step,
+not a hard gate for this task. The scripted browser checks above serve as
+the primary AC-0026 gate.
 
 ## Deviations from completed task text
 
@@ -453,3 +516,13 @@ Command: `python3 -m pytest packs/governance-extras/tests/skills/navigate-decisi
 - `test_markdown_renders_allowlisted_structure` — headings, lists, quotes, code, tables, rules, emphasis render as allowlisted elements; only `class` and `aria-label` attributes; no `img` or `a`; link targets and alt text shown as text.
 - `test_pathological_body_renders_fully_and_inertly` — a near-2 MiB hostile body renders within 2 s, shows the 32-level fallback note, keeps `<script>` literal, has no attributes, and makes no requests. This check caught a defect: bodies over 1 MiB were embedded as `null` in full exports; fixed in `navigate_decisions.py` with `test_full_export_embeds_body_larger_than_1_mib` strengthened to assert the body text.
 - `test_supersession_banners_in_list_and_detail` — "Superseded in part by ADR-0020 (D3)" and "Superseded by ADR-0003" appear in list rows and detail, and the banner link opens ADR-0020.
+
+### Correction (2026-10-05)
+
+ADV-8 and SEC-2 had been marked closed on tests that inspected the data island and
+the script source only. A rendered-page check showed raw bidirectional and
+zero-width controls in record titles, statuses, and relationship text across the
+list, detail, graph, and context views. The page now renders `display_title`,
+`display_value`, and `display_raw_value`, and the closing evidence for both rows is
+the rendered-page check above. The same session fixed a long-status layout defect
+reported by the owner on RFC-0099 (`test_long_qualified_status_does_not_squeeze_title`).

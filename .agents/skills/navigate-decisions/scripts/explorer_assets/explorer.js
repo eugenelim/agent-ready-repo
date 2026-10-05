@@ -161,7 +161,7 @@ var li=el('li',liCls);
 var b=el('button','record-btn');
 if(r.id===state.sel)b.setAttribute('aria-current','true');
 var ridEl=el('span','rid',r.id);
-var ttEl=el('span','rtitle',r.title);
+var ttEl=el('span','rtitle',r.display_title||r.title);
 var badge=el('span','badge badge-'+r.kind.toLowerCase(),r.kind);
 var lcv=(r.lifecycle&&!r.lifecycle.missing&&r.lifecycle.raw_value)||null;
 var stEl=el('span','rstatus '+statusClass(lcv),lc(r));
@@ -184,39 +184,15 @@ updateLive(fr.length+' of '+records.length+' records shown.');}
 // ── Graph view ───────────────────────────────────────────────────────────────
 function renderGraph(c){
 var h2=el('h2',null,'Lifecycle graph');c.appendChild(h2);
-var checked=rels.filter(function(r){return r.trust_class==='checked';});
+if(state.sel){
+// Focused view: SVG lineage diagram for the selected record
+Lineage.renderFocused(c,state.sel,rels,records,navigate);
+}else{
+// Atlas: all checked-supersession chains
 c.appendChild(el('p','graph-note',
-'Checked edges: both sides declare. Partial edges show scope.'
-+' Unresolved entries are reported but not traversed.'));
-if(checked.length===0){
-c.appendChild(el('p','empty-msg','No checked supersession edges in this corpus.'));}
-else{
-var ul=el('ul','graph-list');
-checked.forEach(function(r){
-var li=el('li','graph-edge');
-var isPartial=r.relation==='supersedes_in_part';
-var scopeLabel=isPartial?
-(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated'):'';
-var lbl=r.from+' → '+r.to
-+' ['+(isPartial?'partial':'full')
-+(scopeLabel?' · '+scopeLabel:'')+']';
-var b=btn('edge-btn',lbl,function(){navigate('detail',r.from);});
-li.appendChild(b);ul.appendChild(li);});
-c.appendChild(ul);}
-var unres=rels.filter(function(r){
-return r.trust_class==='candidate'&&r.resolution_state==='unresolved';});
-if(unres.length>0){
-c.appendChild(el('h3',null,'Unresolved supersession entries (not traversed)'));
-var ul2=el('ul','graph-list');
-unres.forEach(function(r){
-var li=el('li','rel-item rel-candidate');
-var tlEl=el('span','trust-label','[candidate · unresolved]');
-li.appendChild(tlEl);
-li.appendChild(document.createTextNode(' '+(r.from||'?')+' → '
-+(r.to||'(unparseable)')+' · '));
-li.appendChild(document.createTextNode(r.raw_value||''));
-ul2.appendChild(li);});
-c.appendChild(ul2);}
+'Every chain of records joined by checked supersession. Click a node to focus.'));
+Lineage.renderAtlas(c,rels,records,navigate);
+}
 updateLive('');}
 // ── Context view ─────────────────────────────────────────────────────────────
 function renderContext(c){
@@ -261,7 +237,7 @@ var li=el('li',null);
 var tlEl=el('span','trust-label','[navigation_only · caller_asserted]');
 li.appendChild(tlEl);
 li.appendChild(document.createTextNode(' '));
-li.appendChild(document.createTextNode(a.raw_value||''));
+li.appendChild(document.createTextNode(a.display_raw_value||''));
 if(a.from)li.appendChild(document.createTextNode(' from: '+a.from));
 if(a.to)li.appendChild(document.createTextNode(' → '+a.to));
 ul2.appendChild(li);});
@@ -270,7 +246,7 @@ updateLive('');}
 // ── Detail view ──────────────────────────────────────────────────────────────
 function renderDetail(c){
 var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
-var h2=el('h2',null,rec?rec.id+': '+rec.title:'Record detail');
+var h2=el('h2',null,rec?rec.id+': '+(rec.display_title||rec.title):'Record detail');
 h2.className='detail-heading';c.appendChild(h2);
 if(!rec){
 var p=el('p','empty-msg');
@@ -323,7 +299,7 @@ li.appendChild(document.createTextNode(' '+r.relation+': '+(r.from||'?')+' → '
 +(r.to||'(unparseable)')+(scope?' ('+scope+')':'')));
 li.appendChild(el('span','trust-source',' · source: '+(r.source||'caller')));
 li.appendChild(document.createTextNode(' · '));
-li.appendChild(document.createTextNode(r.raw_value||''));
+li.appendChild(document.createTextNode(r.display_raw_value||''));
 ul.appendChild(li);});
 rDet.appendChild(ul);c.appendChild(rDet);}
 var supRefs=rec.support_refs||[];
@@ -373,7 +349,7 @@ sec2.className='record-content';
 renderMarkdown(content,sec2);
 bodyEl=sec2;}
 c.appendChild(bodyEl);}
-updateLive(rec.id+': '+rec.title);}
+updateLive(rec.id+': '+(rec.display_title||rec.title));}
 // ── Event bindings ───────────────────────────────────────────────────────────
 VALID_VIEWS.forEach(function(v){
 var b=document.getElementById('btn-'+v);

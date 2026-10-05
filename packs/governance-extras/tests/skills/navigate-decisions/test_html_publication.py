@@ -1593,3 +1593,84 @@ def test_csp_provenance_not_in_static_html(tmp_path: pathlib.Path) -> None:
         "provenance key 'untrusted_data' must not be interpolated into static HTML; "
         "use textContent rendering from D.provenance instead"
     )
+
+
+# ── T7 stage 3: lineage.js security checks (AC-0026) ─────────────────────────
+
+
+def _extract_lineage_js(html: str) -> str:
+    """Extract the inlined lineage.js content from the script block."""
+    m = re.search(r"<script>(.*?)</script>", html, re.DOTALL)
+    assert m, "script block not found in HTML"
+    # lineage.js defines 'var Lineage='; extract its section from the script block
+    return m.group(1)
+
+
+def test_lineage_js_no_forbidden_strings(tmp_path: pathlib.Path) -> None:
+    """AC-0026: lineage.js must not contain forbidden DOM-mutation or SVG-injection APIs."""
+    html = _html(tmp_path)
+    js = _extract_lineage_js(html)
+    # These strings are forbidden in the inlined script.
+    # The comment check targets code patterns, not comment text — so we look for the
+    # actual API call patterns that would constitute policy violations.
+    forbidden_patterns = [
+        ".innerHTML",
+        ".insertAdjacentHTML",
+        ".outerHTML",
+        "eval(",
+        "Function(",
+        "foreignObject",
+        "<use",
+        "xlink:href",
+    ]
+    for pat in forbidden_patterns:
+        assert pat not in js, (
+            f"Forbidden pattern {pat!r} found in inlined script (lineage.js or runtime)"
+        )
+
+
+def test_lineage_js_defines_lineage_var(tmp_path: pathlib.Path) -> None:
+    """AC-0026: lineage.js is inlined and defines the Lineage global."""
+    html = _html(tmp_path)
+    js = _extract_lineage_js(html)
+    assert "var Lineage=" in js or "var Lineage =" in js, (
+        "Lineage global not found in inlined script — lineage.js may not be included"
+    )
+
+
+def test_lineage_js_csp_hash_matches_script_block(tmp_path: pathlib.Path) -> None:
+    """AC-0026: CSP sha256 hash in the meta tag matches the actual inlined script block."""
+    import base64
+    import hashlib
+
+    r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path)
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    # Extract CSP hash from <meta> tag
+    csp_m = re.search(r"http-equiv=\"Content-Security-Policy\"[^>]*content=\"([^\"]+)\"", html)
+    assert csp_m, "CSP meta tag not found"
+    csp = csp_m.group(1)
+    hash_m = re.search(r"'sha256-([^']+)'", csp)
+    assert hash_m, f"sha256 hash not found in CSP: {csp!r}"
+    csp_hash = hash_m.group(1)
+    # Extract the actual script block content
+    script_m = re.search(r"<script>(.*?)</script>", html, re.DOTALL)
+    assert script_m, "script block not found"
+    script_content = script_m.group(1)
+    # Compute expected hash
+    digest = hashlib.sha256(script_content.encode("utf-8")).digest()
+    expected_hash = base64.b64encode(digest).decode("ascii")
+    assert csp_hash == expected_hash, (
+        f"CSP hash {csp_hash!r} does not match computed hash {expected_hash!r} "
+        "of the inlined script block — lineage.js may have been added without "
+        "recomputing the hash"
+    )
+
+
+def test_lineage_js_uses_createelementns(tmp_path: pathlib.Path) -> None:
+    """AC-0026: lineage.js builds SVG via createElementNS, not innerHTML."""
+    html = _html(tmp_path)
+    js = _extract_lineage_js(html)
+    assert "createElementNS" in js, (
+        "createElementNS not found in inlined script — SVG must be built via createElementNS"
+    )

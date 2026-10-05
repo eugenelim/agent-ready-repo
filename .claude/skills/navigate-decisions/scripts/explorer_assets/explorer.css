@@ -335,6 +335,39 @@ nav[aria-label="Views"] button[aria-current="page"]{
 .record-content hr{border:0;border-top:1px solid var(--border);margin:.65rem 0}
 .md-link-target{font-size:.83em;color:var(--text-muted)}
 .md-image-alt{font-style:italic;color:var(--text-muted)}
+/* ── Lineage SVG diagram ── */
+.lineage-caption{
+  font-size:.78rem;font-weight:600;color:var(--text-muted);
+  margin-bottom:.4rem;font-style:italic}
+.lineage-wrap{overflow-x:auto;max-width:100%;margin-bottom:.6rem}
+.lineage-wrap svg{display:block}
+.lineage-legend{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin:.45rem 0;font-size:.78rem}
+.lineage-legend summary{
+  padding:.35rem .65rem;cursor:pointer;font-weight:600;color:var(--text-muted)}
+.lineage-legend ul{margin:.2rem 0 .4rem 1.4rem;padding:0}
+.lineage-legend li{margin:.15rem 0}
+.lineage-text{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin:.45rem 0;font-size:.78rem}
+.lineage-text summary{
+  padding:.35rem .65rem;cursor:pointer;font-weight:600;color:var(--text-muted)}
+.lineage-text ul{margin:.2rem 0 .4rem 1.4rem;padding:0}
+.lineage-text li{margin:.15rem 0;font-family:ui-monospace,monospace}
+/* Atlas chain cards */
+.chain-card{
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  margin-bottom:.65rem;background:var(--surface);box-shadow:var(--shadow);
+  overflow:hidden}
+.chain-card-label{
+  padding:.3rem .65rem;font-size:.72rem;font-weight:600;
+  color:var(--text-muted);border-bottom:1px solid var(--border);
+  background:rgba(229,231,235,.18)}
+.chain-svg-wrap{overflow-x:auto;max-width:100%;padding:.5rem .65rem}
+.chain-svg-wrap svg{display:block}
+/* Contextual toggle — reuses .pill-btn */
+.ctx-toggle{margin:.4rem 0}
 /* ── Reset button ── */
 .reset-btn{
   margin-top:.45rem;padding:.3rem .75rem;border:1.5px solid var(--border);
@@ -383,3 +416,6 @@ nav[aria-label="Views"] button[aria-current="page"]{
 #status-filter{width:auto;max-width:min(26rem,100%)}
 /* List banners sit under the card's button as a full-width strip */
 .record-item>.supersede-banner{border-radius:0}
+/* Long qualified lifecycle values wrap inside their pill; the title keeps room */
+.rtitle{flex:1 1 18rem}
+.rstatus{white-space:normal;max-width:22rem;line-height:1.35;text-align:left}

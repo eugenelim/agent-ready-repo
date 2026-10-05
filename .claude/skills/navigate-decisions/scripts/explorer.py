@@ -511,9 +511,10 @@ def _build_html(
     # Load CSS and JS assets from explorer_assets/ via the confined file_safety helper.
     css_content = _load_asset("explorer.css")
     md_content = _load_asset("markdown.js")
+    lineage_content = _load_asset("lineage.js")
     js_content = _load_asset("explorer.js")
-    # The script block contains the Markdown renderer followed by the main runtime.
-    script_body = "\n" + md_content + js_content + "\n"
+    # Script block: Markdown renderer, then lineage diagram, then main runtime.
+    script_body = "\n" + md_content + lineage_content + js_content + "\n"
     # The browser hashes every byte between <script> and </script>.
     js_hash = _csp_hash(script_body)
     csp = (
@@ -975,6 +976,17 @@ def publish_explorer(
 
     sorted_rels = _sort_relationships_fn(all_rels)
 
+    # Human-facing copies of record-controlled strings with bidirectional and
+    # invisible controls shown as visible [U+XXXX] markers. Raw values stay
+    # unchanged for filtering and parity; the page renders only these copies.
+    _vis = nav._escape_display
+    for api_rec in api_records:
+        api_rec["display_title"] = _vis(api_rec.get("title") or "")
+    for rel in sorted_rels:
+        rel["display_raw_value"] = _vis(rel.get("raw_value") or "")
+    for assertion in assertions_:
+        assertion["display_raw_value"] = _vis(assertion.get("raw_value") or "")
+
     # Add superseded_by (from checked relationships only) and unresolved_claims
     # per record so the JS can render accurate supersession banners.
     _sup_by: dict[str, list[dict[str, Any]]] = {}
@@ -998,7 +1010,7 @@ def publish_explorer(
             # entry that is unresolved — the declaring record is in "from".
             declaring = r.get("from")
             if declaring:
-                _unres.setdefault(declaring, []).append(r.get("raw_value", ""))
+                _unres.setdefault(declaring, []).append(_vis(r.get("raw_value") or ""))
     for api_rec in api_records:
         rid = api_rec["id"]
         api_rec["superseded_by"] = _sup_by.get(rid, [])
