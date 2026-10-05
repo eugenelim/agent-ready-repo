@@ -233,6 +233,11 @@ landed in `c08d99a61` and `4f360a2e1`. Rows that reopen a T7 row point to it;
 | R2-EXP-8 | Nit | The context view omits the record's status and banner. | The context view shows title, exact status and the superseded-by banners. |
 | R2-EXP-10 | Nit | Stat labels break mid-word. | See R2-FE-8. |
 
+Full browser run: `python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py -q`
+at `f76931033` (2026-10-05, desktop Chrome 154.0.8037.93): 52 passed in 118 s. Unit
+suites at the same commit: 261 passed. These checks run only by direct
+invocation; no CI job collects `browser_checks.py`.
+
 The owner also asked for an Auto / Light / Dark theme control in this round;
 `browser_checks.py::test_theme_toggle_sets_and_remembers_the_theme` covers it.
 
