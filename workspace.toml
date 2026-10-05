@@ -524,6 +524,13 @@ queue   = [
   # during execution: the `[Unreleased]` release transition, the fragment
   # reader's numeric bounds, and the build-cost instrument-validity predicate.
   {path = "docs/specs/product-changelog-fragments/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0123-product-changelog-per-update-sources-and-generated-views.md"}, summary = "Author new product changelog updates as independent reviewed fragments, freeze the historical file, and generate every complete view from one shared model", needs = []},
+  # Registered 2026-10-05 to close a Type 1 reconciliation finding: the spec and
+  # plan were both approved on 2026-10-02 and have been live on disk since, with
+  # no workspace membership, so nothing could dispatch them and no canonical
+  # evaluation existed. Platform Core owns it because the change is repository
+  # CI and `tools/` discovery; the Converters pack content it bumps is a
+  # consequence of that, not its home.
+  {path = "docs/specs/pack-javascript-ci-workflow/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/pack-javascript-ci-workflow.md"}, summary = "Give pack JavaScript a dedicated path-scoped remote workflow that installs every canonical pack npm project from a committed lockfile and runs the render-proof suites, while npm audit stays with make sast", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
