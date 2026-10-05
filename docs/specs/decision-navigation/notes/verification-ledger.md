@@ -63,11 +63,11 @@ the first argument; script reproduced under [Evidence scripts](#evidence-scripts
 
 ## AC-0016 and AC-0023 interaction evidence
 
-Scripted run (2026-10-05, commit `116dc1096`, Chrome 154.0.8037.93, offline
+Scripted run (2026-10-05, commit `0b812f14b`, Chrome 154.0.8037.93, offline
 browser context) of the 1× full export (243 records), using `ux.py` exactly as
 reproduced under [Evidence scripts](#evidence-scripts). Every line below is the
 script's observed value; the script reads the expected record count from the
-export's own data. It replaces the runs at `3ed1f797`, `d2f93902f` and `4f360a2e1`.
+export's own data. It replaces the runs at `3ed1f797`, `d2f93902f`, `4f360a2e1` and `116dc1096`.
 
 - **Offline:** zero requests other than the `file:` page itself; zero page errors.
 - **Orientation:** corpus counts and the boundary sentence "It is not a
@@ -96,10 +96,10 @@ review of visual focus contrast. Those stay with the human AC-0016 review.
 
 ## AC-0022 case-insensitive destination evidence
 
-2026-10-05, commit `4f360a2e1`, which contains the final destination checks
-(ancestor-symlink walk and directory-identity binding), macOS 26.5.2 (APFS,
+2026-10-05, commit `0b812f14b`, which contains the final destination checks
+(ancestor-symlink walk and descriptor-bound publication), macOS 26.5.2 (APFS,
 case-insensitive temporary directory: a file created as `A` is found as `a`).
-It replaces the 2026-10-04 run at `3ed1f797`. Command:
+It replaces the runs at `3ed1f797` and `4f360a2e1`. Command:
 
 `python3 -m pytest "packs/governance-extras/tests/skills/navigate-decisions/test_html_publication.py::test_refuses_case_variant_inside_worktree" -v -p no:cacheprovider`
 
@@ -123,7 +123,7 @@ set; only the Status column changes here.
 | ADV-4 | Blocker | Malformed selectors and assertions return the whole corpus or crash instead of refusing. | failing test | closed — `test_search_non_list_selectors_fails`, `test_search_selector_with_only_unknown_keys_fails`, `test_search_non_dict_selector_element_fails` added; all assert `status == "error"`; validation enforced at `navigate_decisions.py:1144`. |
 | ADV-5 | Blocker | In the HTML, caller assertions lose their text and are not normalized relationship tuples. | failing test | reopened by the round-2 review; closed at `4f360a2e1` — `test_caller_assertions_in_relationships_data_island` and `test_assertion_tuple_parity_query_vs_export` (same input gives identical tuples in query and HTML, inside `relationships`); `browser_checks.py::test_caller_assertion_is_drawn_and_listed_in_the_graph`. All failed on the previous code. |
 | ADV-6 | Blocker | The support-reference inventory is missing. | failing test | closed — `test_support_refs_in_data_island_mixed` passes: asserts support_refs is a list on each record and corpus_support_refs is non-empty; `_collect_support_refs` at `explorer.py` scans `NNNN-notes/` dirs (kind=notes_dir), `NNNN-*-research.md` files (kind=research_file), and per-dir `README.md` files (kind=readme); symlinks skipped via `os.lstat`. |
-| ADV-7 | Blocker | Several AC-0022 destination refusals and proofs are missing. | failing test | reopened by the round-3 review; closed at `116dc1096` — `test_directory_swap_between_validation_and_publish_refused` runs twice: once swapping before `mkstemp`, once after `mkstemp` and before `os.link`. Each asserts `publish_failed` and no output in either directory; removing the pre-link re-check fails the second case. Both re-checks `lstat` the path and then use the path, so a check-then-use window of one system call remains; it is accepted for a destination the user names, and the default per-user temporary directory is not exposed to it. |
+| ADV-7 | Blocker | Several AC-0022 destination refusals and proofs are missing. | failing test | reopened by the round-4 review; closed at `0b812f14b` — publication runs relative to one descriptor for the validated directory: the temporary file is created, linked and removed through it, and the path must still name that directory just before the link. `test_directory_swap_between_validation_and_publish_refused[open]` swaps right after the descriptor opens and proves the swap is refused before any file exists; `[os.link]` swaps after the temporary file is written, where the descriptor-relative link would otherwise succeed into the renamed directory, so it proves the pre-link path check refuses it (a recorded mutation that makes that check a no-op fails the case). Both assert `publish_failed` and that neither directory holds a file of any name; both failed before. No check-then-use window remains for the write itself; non-POSIX hosts publish by path after the same validation. |
 | ADV-8 | Blocker | The HTML shows record text without display escaping, in the same text node as trust labels. | failing test | reopened by the round-2 review; closed at `4f360a2e1` — `browser_checks.py::test_rendered_page_never_shows_raw_bidi_controls` stands; `test_paths_and_assertion_endpoints_escape_directional_marks` adds RLM, ALM and LRM in a source basename and an assertion endpoint and failed on the previous code. |
 | ADV-9 | Concern | The explorer and the query read registers and corpus roots differently. | failing test | closed — `test_export_refuses_unsafe_register` asserts dangling-symlink register refuses the export; `test_export_two_table_register_sum` asserts two-table register row_count=3; `test_export_summary_parity_with_query_summary` compares all summary fields between export and query; `_count_register_rows` now counts all tables; `_read_register_file` detects dangling symlinks; `_scan_kind_dir` refuses dangling corpus roots. |
 | ADV-10 | Concern | Header parsing departs from the stated grammar. | failing test | closed — `test_h1_not_first_line_fails_whole_operation` asserts refusal when H1 is not the first line; `test_two_html_comments_keeps_first_comment` asserts only the last comment is stripped; `test_repeated_d_ids_form_set` asserts duplicated D-IDs are deduplicated to a sorted set. |
@@ -155,7 +155,7 @@ set; only the Status column changes here.
 | QE-8 | Concern | Most refusal tests check that an error happened, not which error. | mutation red | closed — `test_unsafe_filesystem_symlink_refuses_operation`, `test_unsafe_filesystem_hard_link_refuses_operation`, `test_unsafe_filesystem_fifo_refuses_operation`, `test_traversal_attempt_refuses_operation` all now assert `payload["error"]["code"] == "unsafe_input"`. |
 | QE-9 | Concern | Several inertness and encoding tests are tautologies or run on fixtures that cannot trigger them. | mutation red | closed — `test_bidi_raw_value_preserved_display_value_escaped` asserts `"‮" in raw`, `"‮" not in display`, and `"[U+202E]" in display`; fixture contains literal bidi controls; cannot pass on a fixture without them. |
 | QE-10 | Concern | The no-partial-file test never reaches `os.link`. | mutation red | closed — `test_no_partial_file_on_link_failure` now calls `publish_explorer(FIXTURE, destination=tmp_path, name="no_partial.html", mode="bounded")` with valid args to reach `os.link`; `assert called_paths` ensures the mock was hit. |
-| QE-11 | Concern | The parity test compares only part of the relationship data. | mutation red | reopened by the round-2 review; closed at `4f360a2e1` — `test_fact_parity_relationship_tuples` compares the complete sorted tuple set across all records and trust classes in both directions; the recorded mutation that drops one exported relationship fails it. |
+| QE-11 | Concern | The parity test compares only part of the relationship data. | mutation red | reopened by the round-2 and round-3 reviews; closed at `116dc1096` — `test_fact_parity_relationship_tuples` asserts the query and data-island tuple sets are equal (all records, all trust classes, `raw_value` and `source` included) and fails on any record query that is not `ok`; recorded mutations dropping one exported relationship and adding an invented one both fail it. |
 | QE-12 | Nit | Export refusals carry prose only, with no machine-readable code. | failing test | closed — `publish_explorer` now returns `{"code": "...", "message": "..."}` dict for all error cases; `test_export_refusal_carries_machine_readable_code` asserts dict with `code` and `message` keys. |
 | QE-13 | Concern | Source links trust whatever git repository encloses `root`, and the HTML tests run real git. | failing test | closed — `_git_root_matches(root)` extracted; `publish_explorer` uses `_git_root_matches` to decide whether to build links; HTML tests mock `_git_root_matches` directly rather than running real git. |
 | QE-14 | Concern | A malformed or unknown URL hash leaves the explorer blank. | scripted Chrome check | reopened by the round-2 review; closed at `4f360a2e1` — `browser_checks.py::test_hash_routing_bogus_hash_shows_list` and `test_hash_routing_uri_error_safe`. |
@@ -226,7 +226,7 @@ landed in `c08d99a61` and `4f360a2e1`. Rows that reopen a T7 row point to it;
 | R2-QE-8 | Concern | Export accepts malformed assertions and raises tracebacks. | See SEC-5 and ADV-17; `publish_explorer` returns the error object for any failure. |
 | R2-QE-9 | Nit | The hostile export is never rendered; CSP test has pass-through branches. | `browser_checks.py::test_hostile_titles_and_status_stay_inert_in_every_view`; the CSP test asserts unconditionally. |
 | R2-QE-11 | Nit | QE-18 and QE-19 closures do not hold. | See QE-18 and QE-19. |
-| R2-EXP-1 | Blocker | Supersession and source links are unreadable in dark mode. | See R2-FE-1. |
+| R2-EXP-1 | Blocker | Supersession and source links are unreadable in dark mode. | See R2-FE-1: the list-banner link (both themes) and the bounded-notice link (dark) are measured; test exports carry no detail source links, so the detail source link is not measured. |
 | R2-EXP-6 | Nit | Partial-edge labels collide. | See R2-FE-9. |
 | R2-EXP-7 | Nit | Partial supersession is struck through like full. | Strike-through for full only, dashed underline for partial, in list and graph; `browser_checks.py::test_strike_through_marks_full_supersession_only` (failed before). |
 | R2-EXP-8 | Nit | The context view omits the record's status and banner. | The context view shows title, exact status and the superseded-by banners. |
@@ -278,6 +278,43 @@ after adjudication, one of them resolved by an owner decision. Fixes landed in
 
 Full browser run at `116dc1096` (2026-10-05, desktop Chrome 154.0.8037.93):
 61 passed in 126 s. Unit suites at the same commit: 271 passed.
+
+## Round-4 review corrections
+
+The fourth post-gates review (2026-10-05, head `169e0b5a2`) sustained 20 findings,
+closed under plan task T8 by the modes it pins. Fixes landed in `0b812f14b`.
+"Failed before" means the test failed on the code at `169e0b5a2`.
+
+| ID | Severity | Finding | Closes by | Status |
+| --- | --- | --- | --- | --- |
+| R4-ADV-1 | Blocker | The grouping-only refusal contradicts the spec and guide. | document change | closed — the amended spec (selector rule) and the guide state that a selector whose only key is `grouping` is refused with `invalid_selector`; `test_grouping_only_selector_is_refused` pins the shipped refusal. |
+| R4-ADV-2 | Concern | Detail hides a recorded Status the lifecycle row does not show. | scripted Chrome check | closed — `browser_checks.py::test_wrapped_status_shows_its_own_row` (a wrapped Status shows two Status rows, a one-line Status with a comment shows one; failed before). |
+| R4-ADV-3 | Concern | Supersession fields read only their first line. | failing test | closed — `test_wrapped_supersession_field_yields_every_entry` (failed before). |
+| R4-ADV-4 | Nit | Arrowheads scale and fan-in labels overlap. | scripted Chrome check | closed — see R4-FE-1 and R4-FE-2. |
+| R4-ADV-5 | Nit | The QE-11 and R2-EXP-1 rows were stale. | document change | closed — both rows above now state what their checks measure. |
+| R4-ADV-6 | Nit | No bounded-export check of a multi-line header; stale docstring. | failing test | closed — `test_bounded_export_keeps_a_multi_line_header_value` pins the value (the bounded export already kept it, so it pins behaviour rather than failing before); the swap-test docstring describes both phases. |
+| R4-SEC-1 | Concern | Header continuation lines were joined in quadratic time. | failing test | closed — values are built from line lists joined once; `test_admission_time_bound_on_a_near_2_mib_supersession_header` (2,000,086 bytes, 200,000 token-carrying lines, under 2 s; failed before). The AC-0001 condition names the `ubuntu-latest` / Python 3.11 runner; that run is recorded below once dispatched. |
+| R4-FE-1 | Concern | Fan-in `in part` labels stack in the atlas. | scripted Chrome check | closed — labels step down one plate height per target side; `browser_checks.py::test_fan_in_labels_stay_clear_in_focus_and_atlas` (no plate meets another plate, a node box or an arrowhead box in either view; failed before). |
+| R4-FE-2 | Nit | Partial-edge arrowheads scale with stroke width. | scripted Chrome check | closed — `markerUnits="userSpaceOnUse"`; `browser_checks.py::test_arrowheads_keep_one_size_on_full_and_partial_edges` (failed before). |
+| R4-FE-3 | Concern | In-chain asserted edges run beneath other nodes. | scripted Chrome check | closed — routed through the column gutters and the row gap; `browser_checks.py::test_in_chain_assertion_never_passes_beneath_a_node` (no path point inside another node; plate clear; failed before). |
+| R4-FE-4 | Nit | Expand all mislabels itself on the list view. | scripted Chrome check | closed — `browser_checks.py::test_expand_all_label_is_unchanged_on_a_view_without_sections` (failed before). |
+| R4-FE-5 | Nit | Text-list bullets align to the last line. | scripted Chrome check | closed — `browser_checks.py::test_text_list_node_buttons_align_to_the_top` (failed before). |
+| R4-QE-1 | Concern | A swap after the temporary file left it behind. | failing test | closed — see ADV-7: cleanup goes through the directory descriptor; both swap cases assert no file of any name remains. |
+| R4-QE-2 | Concern | The link-phase swap case passed with a no-op check. | failing test | closed — see ADV-7. |
+| R4-QE-3 | Nit | The QE-11 row was stale. | document change | closed — see R4-ADV-5. |
+| R4-QE-4 | Nit | The hollow stroke and focused label were unchecked. | scripted Chrome check | closed — `browser_checks.py::test_partial_edges_are_hollow_and_labelled_in_both_views` (failed before). |
+| R4-EXP-1 | Concern | The graph focus ring failed 3:1 and merged with the supersession ring. | scripted Chrome check | closed — a dark outer ring with an amber inner ring, outside the supersession ring; `browser_checks.py::test_graph_focus_ring_reaches_3_to_1_and_clears_the_supersession_ring` (both themes; failed before). |
+| R4-EXP-2 | Nit | Dark first paint covered only the tokens. | scripted Chrome check | closed — every component dark rule is mirrored for an unset theme under the system preference; `browser_checks.py::test_dark_first_paint_without_scripts` (failed before). |
+| R4-EXP-3 | Nit | Atlas labels stack on fan-in. | scripted Chrome check | closed — see R4-FE-1. |
+| R4-EXP-4 | Nit | The partial ID underline style differed by view. | scripted Chrome check | closed — `browser_checks.py::test_partial_id_underline_style_matches_across_views` (failed before). |
+
+Status-field amendment tests: `test_lifecycle_value_from_the_status_label_line`
+(`**Status**:` yields `Accepted`, failed before; a wrapped Status keeps its
+label-line value, already true) and `test_both_status_label_forms_make_a_record_malformed`
+(failed before).
+
+Full runs at `0b812f14b` (2026-10-05, desktop Chrome 154.0.8037.93): browser
+checks 71 passed in 95 s; unit suites 277 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
