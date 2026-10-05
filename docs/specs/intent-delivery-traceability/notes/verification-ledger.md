@@ -56,3 +56,47 @@ as adjudicated; the decisions above settle the open entries:
 - Adversarial reviewer finding 5 (no evidence that a real projection was
   invoked): settled by the sustained quality-engineer finding 4, which requires
   a test against a real clean Core repo-scope projection.
+
+## 2026-10-05 — Helper renamed to `_file_safety.py` (review revision)
+
+The pre-EXECUTE adversarial review of the amendment (round 1, finding 6)
+showed that a non-prefixed `.py` file in `adapter-root-bins/` is published as
+a pack execution entry and claims a shared basename in `.agentbundle/bin/`.
+The plan revision therefore names the co-located helper `_file_safety.py`, the
+private-helper form other packs use. The owner's decision 1 is unchanged in
+substance; the name is the controller's revision, pending the owner's
+ratification at the next plan approval.
+
+## 2026-10-05 — Owner decision 4: fix the two unsafe corpus links here (eugenelim)
+
+Two specs carried a `Discovery:` markdown link of the form
+`../../product/intents/<slug>.md`, which AC-0010 reports as
+`delivery-reference-unsafe`: `docs/specs/capture-work-alias-removal/spec.md`
+and `docs/specs/rendered-page-visual-inspection/spec.md`. Under AC-0020 those
+two diagnostics would make close-work refuse closure of every `spec`-route
+feature in this repository, 22 features including this one. The owner chose
+to fix both links in this change. Each now reads `intent:<slug>`, naming the
+same intent file the link pointed at.
+
+- Observed after the fix: the resolver reports `complete: true` with no
+  `delivery-reference-unsafe` diagnostic; `delivery-target-missing` fell from
+  9 to 8 because `rendered-page-visual-inspection` now resolves to its spec.
+
+## 2026-10-05 — Features still refused by their own delivery diagnostics
+
+After owner decision 4, no spec or brief carries a delivery diagnostic of its
+own, so AC-0020 refuses nothing in this corpus. Close-work still refuses a
+feature whose own subject carries a delivery diagnostic (AC-0012). Observed on
+the resolver run after commit `8ffa61de9`, ten features:
+
+- `delivery-projection-mismatch`: `intent:cut-before-adding-solution-ladder`,
+  `intent:work-item-capture-contract`.
+- `delivery-target-missing`: `intent:cross-pack-experience-eval`,
+  `intent:digital-product-guides-update`,
+  `intent:product-engineering-shaping-doctrine`,
+  `intent:product-strategy-adoption-doctrine`,
+  `intent:tracker-native-value-before-adoption`,
+  `intent:xd-design-system-foundations`, `intent:xd-ia-archetypes-objects`,
+  `intent:xd-state-reviewer-doctrine`.
+
+Repairing those mappings is a corpus edit outside this delivery.
