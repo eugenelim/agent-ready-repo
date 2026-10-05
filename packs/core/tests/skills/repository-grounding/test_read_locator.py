@@ -90,9 +90,9 @@ def test_confined_file_uri_is_read_and_outside_root_is_refused(tmp_path: Path) -
     reader = _reader()
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "src.py").write_text("x = 1\n", encoding="utf-8")
+    (repo / "src.py").write_text("x = 1\n", encoding="utf-8", newline="\n")
     outside = tmp_path / "secret.txt"
-    outside.write_text("token\n", encoding="utf-8")
+    outside.write_text("token\n", encoding="utf-8", newline="\n")
 
     accepted = reader.read_locator(repo, (repo / "src.py").as_uri())
     assert accepted.status == "read"
@@ -111,7 +111,7 @@ def test_accepted_root_relative_path(tmp_path: Path) -> None:
     reader = _reader()
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "README.md").write_text("# hello\n", encoding="utf-8")
+    (repo / "README.md").write_text("# hello\n", encoding="utf-8", newline="\n")
 
     result = reader.read_locator(repo, "README.md")
     assert result.status == "read"
@@ -124,7 +124,7 @@ def test_accepted_absolute_path(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "mod.py"
-    target.write_text("y = 2\n", encoding="utf-8")
+    target.write_text("y = 2\n", encoding="utf-8", newline="\n")
 
     result = reader.read_locator(repo, str(target))
     assert result.status == "read"
@@ -137,7 +137,7 @@ def test_accepted_file_uri_empty_authority(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("z = 3\n", encoding="utf-8")
+    target.write_text("z = 3\n", encoding="utf-8", newline="\n")
 
     result = reader.read_locator(repo, target.as_uri())
     assert result.status == "read"
@@ -150,7 +150,7 @@ def test_accepted_file_uri_localhost(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("w = 4\n", encoding="utf-8")
+    target.write_text("w = 4\n", encoding="utf-8", newline="\n")
 
     # Build a localhost URI manually
     uri = target.as_uri().replace("file:///", "file://localhost/", 1)
@@ -165,7 +165,7 @@ def test_accepted_path_with_line_suffix(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("a = 1\n", encoding="utf-8")
+    target.write_text("a = 1\n", encoding="utf-8", newline="\n")
 
     result = reader.read_locator(repo, "src.py:3")
     assert result.status == "read"
@@ -178,7 +178,7 @@ def test_accepted_nested_path_with_col_suffix(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     (repo / "pkg").mkdir(parents=True)
     target = repo / "pkg" / "mod.py"
-    target.write_text("b = 2\n", encoding="utf-8")
+    target.write_text("b = 2\n", encoding="utf-8", newline="\n")
 
     result = reader.read_locator(repo, "pkg/mod.py:3:7")
     assert result.status == "read"
@@ -191,7 +191,7 @@ def test_accepted_uri_with_hash_l_fragment(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("c = 3\n", encoding="utf-8")
+    target.write_text("c = 3\n", encoding="utf-8", newline="\n")
 
     uri = target.as_uri() + "#L5"
     result = reader.read_locator(repo, uri)
@@ -205,7 +205,7 @@ def test_accepted_uri_with_line_suffix(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("d = 4\n", encoding="utf-8")
+    target.write_text("d = 4\n", encoding="utf-8", newline="\n")
 
     uri = target.as_uri() + ":3"
     result = reader.read_locator(repo, uri)
@@ -221,7 +221,7 @@ def test_accepted_absolute_under_relative_root(
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("e = 5\n", encoding="utf-8")
+    target.write_text("e = 5\n", encoding="utf-8", newline="\n")
     monkeypatch.chdir(tmp_path)
 
     result = reader.read_locator("repo", str(target))
@@ -236,7 +236,7 @@ def test_root_reached_through_a_link_matches_both_spellings(tmp_path: Path) -> N
     reader = _reader()
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "src.py").write_text("f = 6\n", encoding="utf-8")
+    (repo / "src.py").write_text("f = 6\n", encoding="utf-8", newline="\n")
     link = tmp_path / "link"
     link.symlink_to(repo, target_is_directory=True)
 
@@ -255,7 +255,7 @@ def test_link_inside_the_root_is_never_resolved(tmp_path: Path) -> None:
     outside = tmp_path / "outside"
     repo.mkdir()
     outside.mkdir()
-    (outside / "secret.txt").write_text("token\n", encoding="utf-8")
+    (outside / "secret.txt").write_text("token\n", encoding="utf-8", newline="\n")
     (repo / "escape").symlink_to(outside, target_is_directory=True)
 
     result = reader.read_locator(repo, str(repo / "escape" / "secret.txt"))
@@ -272,7 +272,7 @@ def test_accepted_approved_root_names_serving_root(tmp_path: Path) -> None:
     repo.mkdir()
     docs.mkdir()
     target = docs / "guide.md"
-    target.write_text("# Guide\n", encoding="utf-8")
+    target.write_text("# Guide\n", encoding="utf-8", newline="\n")
 
     result = reader.read_locator(repo, str(target), approved_roots=[docs])
     assert result.status == "read"
@@ -313,7 +313,7 @@ def test_refused_line_break_via_uri_percent_decode(
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("ok\n", encoding="utf-8")
+    target.write_text("ok\n", encoding="utf-8", newline="\n")
 
     # Embed the encoded character in the URI path
     uri = f"file:///{repo.as_posix()}/src{encoded}py"
@@ -399,7 +399,7 @@ def test_refused_absolute_path_outside_all_roots(tmp_path: Path) -> None:
     other = tmp_path / "other"
     other.mkdir()
     target = other / "file.txt"
-    target.write_text("secret\n", encoding="utf-8")
+    target.write_text("secret\n", encoding="utf-8", newline="\n")
 
     result = reader.read_locator(repo, str(target))
     assert result.status == "refused"
@@ -414,7 +414,7 @@ def test_refused_file_under_unapproved_second_root(tmp_path: Path) -> None:
     repo.mkdir()
     docs.mkdir()
     target = docs / "guide.md"
-    target.write_text("# Guide\n", encoding="utf-8")
+    target.write_text("# Guide\n", encoding="utf-8", newline="\n")
 
     # docs is NOT in approved_roots
     result = reader.read_locator(repo, str(target))
@@ -459,7 +459,7 @@ def test_refused_encoded_hash_in_uri_path(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     # Create src.py but NOT "src.py#L5"
-    (repo / "src.py").write_text("ok\n", encoding="utf-8")
+    (repo / "src.py").write_text("ok\n", encoding="utf-8", newline="\n")
     uri = repo.as_uri() + "/src.py%23L5"
     result = reader.read_locator(repo, uri)
     assert result.status == "refused"
@@ -498,7 +498,7 @@ def test_refused_symlinked_file(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     real = repo / "real.py"
-    real.write_text("ok\n", encoding="utf-8")
+    real.write_text("ok\n", encoding="utf-8", newline="\n")
     link = repo / "link.py"
     try:
         link.symlink_to(real)
@@ -520,7 +520,7 @@ def test_refused_symlinked_directory(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     real_dir = repo / "real_pkg"
     real_dir.mkdir(parents=True)
-    (real_dir / "mod.py").write_text("ok\n", encoding="utf-8")
+    (real_dir / "mod.py").write_text("ok\n", encoding="utf-8", newline="\n")
     link_dir = repo / "link_pkg"
     try:
         link_dir.symlink_to(real_dir)
@@ -539,7 +539,7 @@ def test_refused_hard_link(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     real = repo / "real.py"
-    real.write_text("ok\n", encoding="utf-8")
+    real.write_text("ok\n", encoding="utf-8", newline="\n")
     link = repo / "hardlink.py"
     try:
         os.link(real, link)
@@ -574,7 +574,7 @@ def test_refused_identity_change(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "target.py"
-    target.write_text("x = 1\n", encoding="utf-8")
+    target.write_text("x = 1\n", encoding="utf-8", newline="\n")
 
     # Ensure file_safety is loaded
     reader.read_locator(repo, "target.py")
@@ -586,11 +586,18 @@ def test_refused_identity_change(tmp_path: Path) -> None:
     def fake_fstat(fd: int) -> os.stat_result:
         """Report a different inode on every fstat, as a swapped file would."""
         real = original_fstat(fd)
+        # Keep platform-only fields (Windows file attributes, reparse tag) that
+        # the helper reads, so only the inode differs.
+        extra = {
+            name: getattr(real, name)
+            for name in ("st_file_attributes", "st_reparse_tag")
+            if hasattr(real, name)
+        }
         return os.stat_result((
             real.st_mode, real.st_ino + 99999, real.st_dev, real.st_nlink,
             real.st_uid, real.st_gid, real.st_size,
             real.st_atime, real.st_mtime, real.st_ctime,
-        ))
+        ), extra)
 
     original = fs.os.fstat
     fs.os.fstat = fake_fstat
@@ -635,7 +642,7 @@ def test_accepted_windows_path_as_uri(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("win\n", encoding="utf-8")
+    target.write_text("win\n", encoding="utf-8", newline="\n")
 
     # Path.as_uri() on Windows gives file:///C:/...
     result = reader.read_locator(repo, target.as_uri())
@@ -650,7 +657,7 @@ def test_accepted_windows_uri_encoded_colon(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("win2\n", encoding="utf-8")
+    target.write_text("win2\n", encoding="utf-8", newline="\n")
 
     # Build URI with lowercase drive and encoded colon
     drive = str(target)[0].lower()
@@ -784,7 +791,7 @@ def test_main_read_prints_ascii_only_root_and_source(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
-    target.write_text("ok\n", encoding="utf-8")
+    target.write_text("ok\n", encoding="utf-8", newline="\n")
     b64 = _b64("src.py")
 
     code, out = _capture_main(reader, [
@@ -815,7 +822,9 @@ def test_main_writes_header_lines_before_file_bytes(
     repo.mkdir()
     (repo / "a.txt").write_bytes(b"hello\n")
     raw = io.BytesIO()
-    stdout = io.TextIOWrapper(raw, encoding="utf-8", line_buffering=False)
+    stdout = io.TextIOWrapper(
+        raw, encoding="utf-8", newline="\n", line_buffering=False
+    )
     monkeypatch.setattr(sys, "stdout", stdout)
 
     code = reader.main(["--root", str(repo), "--locator-b64", _b64("a.txt")])
@@ -1121,7 +1130,7 @@ def test_dot_only_segment_refusal_does_not_depend_on_the_target(tmp_path: Path) 
     reader = _reader()
     repo = tmp_path / "repo"
     repo.mkdir()
-    (tmp_path / "present.txt").write_text("x\n", encoding="utf-8")
+    (tmp_path / "present.txt").write_text("x\n", encoding="utf-8", newline="\n")
     present = reader.read_locator(repo, "src/.. /.. /present.txt")
     absent = reader.read_locator(repo, "src/.. /.. /absent.txt")
     assert (present.status, present.reason) == ("refused", "parent-segment")
@@ -1133,7 +1142,7 @@ def test_lone_dot_segment_is_still_accepted(tmp_path: Path) -> None:
     reader = _reader()
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "src.py").write_text("y = 2\n", encoding="utf-8")
+    (repo / "src.py").write_text("y = 2\n", encoding="utf-8", newline="\n")
     result = reader.read_locator(repo, "./src.py")
     assert (result.status, result.data) == ("read", b"y = 2\n")
 
@@ -1144,7 +1153,7 @@ def test_root_spelling_with_trailing_dot_still_reads_absolute_locators(tmp_path:
     reader = _reader()
     repo = tmp_path / "proj." / "repo"
     repo.mkdir(parents=True)
-    (repo / "a.py").write_text("z = 3\n", encoding="utf-8")
+    (repo / "a.py").write_text("z = 3\n", encoding="utf-8", newline="\n")
 
     absolute = reader.read_locator(repo, str(repo / "a.py"))
     as_uri = reader.read_locator(repo, (repo / "a.py").as_uri())

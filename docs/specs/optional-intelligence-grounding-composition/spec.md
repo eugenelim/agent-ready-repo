@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079 and ADR-0037
 - **Brief:** none
-- **Discovery:** FEAT-0029
+- **Discovery:** docs/product/intents/FEAT-0029-optional-intelligence-grounding-composition.md
 - **Contract:** none
 - **Shape:** integration
 

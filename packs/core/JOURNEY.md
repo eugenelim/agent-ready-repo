@@ -35,6 +35,9 @@ skills:
   - name: new-spec
     description: "Authors a Draft spec and Drafting plan before the build loop starts. These are explicit project-knowledge non-gates."
     humanTouches: 1
+  - name: repository-grounding
+    description: "Answers what already governs the paths a change touches, from the repository alone, and can add labelled evidence from an already-exposed code-intelligence tool."
+    humanTouches: 0
   - name: bug-fix
     description: "Diagnoses and fixes a bug with a targeted root-cause analysis before writing a line of code."
     humanTouches: 1

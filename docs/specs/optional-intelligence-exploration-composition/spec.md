@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079
 - **Brief:** none
-- **Discovery:** FEAT-0030
+- **Discovery:** docs/product/intents/FEAT-0030-optional-intelligence-exploration-composition.md
 - **Contract:** none
 - **Shape:** integration
 
