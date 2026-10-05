@@ -482,7 +482,8 @@ def _parse_record_text(
         },
         "supersession_entries": supersession_entries,
         "related_tokens": related_tokens,
-        "body_text": body_text if body_available else None,
+        # Kept in full: the record query applies the 1 MiB limit; full export does not.
+        "body_text": body_text,
         "body_available": body_available,
         "raw_text": text,
     }

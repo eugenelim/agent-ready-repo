@@ -1144,6 +1144,9 @@ def test_full_export_embeds_body_larger_than_1_mib(tmp_path: pathlib.Path) -> No
     assert body.get("available") is True, (
         f"full export must embed 1.5 MiB body; got {body!r}"
     )
+    assert isinstance(body.get("content"), str) and big_body in body["content"], (
+        "full export must carry the 1.5 MiB body text itself, not only an availability flag"
+    )
     assert "omission_reason" not in body or body.get("omission_reason") is None, (
         f"full export must not omit admitted body; got {body!r}"
     )
@@ -1497,6 +1500,80 @@ def test_normalize_assertion_function_output() -> None:
     # Dict without raw_value but with text.
     result3 = fn({"text": "fallback text"})
     assert result3["raw_value"] == "fallback text"
+
+
+# ── T7 stage 2a: ITEM 2 — safe Markdown renderer has no forbidden APIs ────────
+
+
+def test_markdown_renderer_no_unsafe_apis(tmp_path: pathlib.Path) -> None:
+    """The inlined JS runtime must not contain forbidden DOM-mutation APIs."""
+    html = _html(tmp_path)
+    js = _extract_runtime_js(html)
+    forbidden = [
+        "innerHTML",
+        "outerHTML",
+        "insertAdjacentHTML",
+        "eval(",
+        "Function(",
+        "setAttribute('on",
+        'setAttribute("on',
+    ]
+    for api in forbidden:
+        assert api not in js, (
+            f"Forbidden API {api!r} found in inlined JS runtime"
+        )
+
+
+# ── T7 stage 2a: ITEM 3 — CSP has all required directives ────────────────────
+
+
+def test_csp_all_directives_present(tmp_path: pathlib.Path) -> None:
+    """CSP must carry all five required directives including base-uri and form-action."""
+    html = _html(tmp_path)
+    m = re.search(r'http-equiv="Content-Security-Policy"[^>]*content="([^"]*)"', html)
+    assert m, "CSP meta tag not found"
+    csp = m.group(1)
+    required = [
+        "default-src 'none'",
+        "script-src 'sha256-",
+        "style-src 'unsafe-inline'",
+        "base-uri 'none'",
+        "form-action 'none'",
+    ]
+    for directive in required:
+        assert directive in csp, (
+            f"CSP directive {directive!r} missing; full CSP: {csp!r}"
+        )
+
+
+# ── T7 stage 2a: ITEM 4 — superseded_by derives from checked relationships ───
+
+
+def test_superseded_by_from_checked_only(tmp_path: pathlib.Path) -> None:
+    """Records must carry superseded_by derived from checked relationships only."""
+    data = _extract_json_data(_html(tmp_path))
+    rec_by_id = {r["id"]: r for r in data["records"]}
+
+    # ADR-0001 is superseded in part by ADR-0020 in scope D3 (checked).
+    r1 = rec_by_id["ADR-0001"]
+    sup1 = r1.get("superseded_by", [])
+    assert len(sup1) == 1, f"ADR-0001 superseded_by expected 1 entry, got {sup1!r}"
+    assert sup1[0]["by"] == "ADR-0020", f"ADR-0001 superseder: {sup1[0]!r}"
+    assert sup1[0]["partial"] is True, f"ADR-0001 must be partial: {sup1[0]!r}"
+    assert sup1[0]["scope"] == ["D3"], f"ADR-0001 scope must be [D3]: {sup1[0]!r}"
+
+    # ADR-0002 is superseded (fully) by ADR-0003 (checked — both sides agree).
+    r2 = rec_by_id["ADR-0002"]
+    sup2 = r2.get("superseded_by", [])
+    assert len(sup2) == 1, f"ADR-0002 superseded_by expected 1 entry, got {sup2!r}"
+    assert sup2[0]["by"] == "ADR-0003", f"ADR-0002 superseder: {sup2[0]!r}"
+    assert sup2[0]["partial"] is False, f"ADR-0002 must be full supersession: {sup2[0]!r}"
+
+    # ADR-0003 supersedes others; it is not itself superseded.
+    r3 = rec_by_id["ADR-0003"]
+    assert r3.get("superseded_by", []) == [], (
+        f"ADR-0003 must have empty superseded_by; got {r3.get('superseded_by')!r}"
+    )
 
 
 def test_csp_provenance_not_in_static_html(tmp_path: pathlib.Path) -> None:

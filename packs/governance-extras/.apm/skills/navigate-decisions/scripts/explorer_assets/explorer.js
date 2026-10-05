@@ -1,0 +1,354 @@
+!function(){
+'use strict';
+var dataEl=document.getElementById('nav-data');
+var D;
+try{D=JSON.parse(dataEl?dataEl.textContent:'');}
+catch(e){
+document.body.textContent='Integrity error: data island could not be parsed. '+String(e);
+return;}
+var records=D.records||[],rels=D.relationships||[],mode=D.mode||'full';
+var srcLinks=D.source_links||{},embAsserts=D.embedded_assertions||[];
+var state={view:'list',sel:null,kind:'',status:'',q:''};
+var VALID_VIEWS=['list','graph','context','detail'];
+var statusMap={};
+records.forEach(function(r){
+var l=r.lifecycle;if(!l||l.missing)return;
+var rv=l.raw_value;
+if(rv!=null&&!(rv in statusMap))statusMap[rv]=l.display_value||rv;});
+var searchEl=document.getElementById('search-input');
+var kindEl=document.getElementById('kind-filter');
+var statusEl=document.getElementById('status-filter');
+var liveEl=document.getElementById('live-region');
+Object.keys(statusMap).sort().forEach(function(rv){
+var o=document.createElement('option');
+o.value=rv;o.textContent=statusMap[rv]||rv;statusEl.appendChild(o);});
+function lc(r){
+var l=r.lifecycle;if(!l||l.missing)return'(missing)';
+return l.display_value||l.raw_value||'(missing)';}
+function el(tag,cls,txt){
+var e=document.createElement(tag);
+if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function attr(e,k,v){if(v!=null)e.setAttribute(k,v);return e;}
+function btn(cls,txt,handler){
+var b=el('button',cls,txt);b.addEventListener('click',handler);return b;}
+function updateLive(msg){if(liveEl)liveEl.textContent=msg;}
+function parseHash(){
+try{
+var h=location.hash.slice(1);
+if(!h){state.view='list';state.sel=null;return;}
+var i=h.indexOf('/');
+var v=i<0?h:h.slice(0,i);
+if(VALID_VIEWS.indexOf(v)<0){state.view='list';state.sel=null;return;}
+state.view=v;
+if(i>=0){try{state.sel=decodeURIComponent(h.slice(i+1));}
+catch(ue){state.sel=null;}}
+}catch(ex){state.view='list';state.sel=null;}}
+function pushState(){
+var h='#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel):'');
+if(location.hash!==h)history.pushState(null,'',h);}
+function filtered(){return records.filter(function(r){
+if(state.kind&&r.kind!==state.kind)return false;
+if(state.status&&(r.lifecycle.missing||
+r.lifecycle.raw_value!==state.status))return false;
+if(state.q){var q=state.q.toLowerCase();
+if(r.title.toLowerCase().indexOf(q)<0&&
+lc(r).toLowerCase().indexOf(q)<0)return false;}
+return true;});}
+function srcLink(src){var sl=srcLinks[src];if(!sl||!sl.url)return null;return sl;}
+function makeLink(src){
+var sl=srcLink(src);if(!sl)return null;
+var a=el('a',null,sl.label);
+attr(a,'href',sl.url);attr(a,'rel','noopener noreferrer');return a;}
+function focusViewHeading(){
+var c=document.getElementById('view-'+state.view);if(!c)return;
+var h=c.querySelector('h2,h1');
+if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
+function navigate(view,id){
+state.view=view;if(id!==undefined)state.sel=id;pushState();render();}
+function render(){
+VALID_VIEWS.forEach(function(v){
+var b=document.getElementById('btn-'+v);
+if(b){if(state.view===v){b.setAttribute('aria-current','page');}
+else{b.removeAttribute('aria-current');}}});
+VALID_VIEWS.forEach(function(v){
+var d=document.getElementById('view-'+v);
+if(d)d.hidden=state.view!==v;});
+var c=document.getElementById('view-'+state.view);
+if(!c)return;c.textContent='';
+if(state.view==='list')renderList(c);
+else if(state.view==='graph')renderGraph(c);
+else if(state.view==='context')renderContext(c);
+else if(state.view==='detail')renderDetail(c);
+focusViewHeading();}
+function supBanner(entry,isDetail){
+// entry: {by, partial, scope}
+var div=document.createElement('div');
+div.className='supersede-banner';div.setAttribute('role','note');
+div.appendChild(document.createTextNode(entry.partial?'Superseded in part by ':'Superseded by '));
+var a=document.createElement('a');
+a.href='#detail/'+encodeURIComponent(entry.by);a.textContent=entry.by;
+div.appendChild(a);
+if(entry.partial){
+var sc=entry.scope&&entry.scope.length?'('+entry.scope.join(', ')+')':'(scope not stated)';
+div.appendChild(document.createTextNode(' '+sc));}
+return div;}
+function renderList(c){
+var fr=filtered();
+var h2=el('h2',null,'Corpus list');c.appendChild(h2);
+if(fr.length===0){
+var activeFilters=[];
+if(state.q)activeFilters.push('search: "'+state.q+'"');
+if(state.kind)activeFilters.push('kind: '+state.kind);
+if(state.status)activeFilters.push('status: '+state.status);
+var msg=records.length===0?
+'No canonical ADR or RFC records were admitted. Check the corpus boundary.':
+activeFilters.length>0?
+'No records match '+activeFilters.join(', ')+'.':
+'No records match the active filters.';
+c.appendChild(el('p','empty-msg',msg));
+if(activeFilters.length>0){
+var rb=btn('reset-btn','Reset filters',function(){
+state.q='';state.kind='';state.status='';
+if(searchEl)searchEl.value='';
+if(kindEl)kindEl.value='';
+if(statusEl)statusEl.value='';
+render();});
+c.appendChild(rb);}
+updateLive(msg);return;}
+var ul=el('ul','record-list');
+fr.forEach(function(r){
+var li=el('li','record-item'+(r.id===state.sel?' selected':''));
+var b=el('button','record-btn');
+if(r.id===state.sel)b.setAttribute('aria-current','true');
+var badge=el('span','badge badge-'+r.kind.toLowerCase(),r.kind);
+var ridEl=el('span','rid',r.id);
+var ttEl=el('span','rtitle',r.title);
+var stEl=el('span','rstatus',lc(r));
+b.appendChild(badge);b.appendChild(ridEl);b.appendChild(ttEl);b.appendChild(stEl);
+// Supersession banners from checked relationships only
+var supBy=r.superseded_by||[];
+var unresClaims=r.unresolved_claims||[];
+if(supBy.length>0){
+supBy.forEach(function(s){b.appendChild(supBanner(s,false));});}
+else if(unresClaims.length>0){
+var sb2=document.createElement('div');sb2.className='supersede-banner';sb2.setAttribute('role','note');
+sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+unresClaims[0]));
+b.appendChild(sb2);}
+b.addEventListener('click',function(){navigate('detail',r.id);});
+li.appendChild(b);ul.appendChild(li);});
+c.appendChild(ul);
+updateLive(fr.length+' of '+records.length+' records shown.');}
+function renderGraph(c){
+var h2=el('h2',null,'Lifecycle graph');c.appendChild(h2);
+var checked=rels.filter(function(r){return r.trust_class==='checked';});
+c.appendChild(el('p','graph-note',
+'Checked edges: both sides declare. Partial edges show scope.'
++' Unresolved entries are reported but not traversed.'));
+if(checked.length===0){
+c.appendChild(el('p','empty-msg','No checked supersession edges in this corpus.'));}
+else{
+var ul=el('ul','graph-list');
+checked.forEach(function(r){
+var li=el('li','graph-edge');
+var isPartial=r.relation==='supersedes_in_part';
+var scopeLabel=isPartial?
+(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated'):'';
+var lbl=r.from+' → '+r.to
++' ['+(isPartial?'partial':'full')
++(scopeLabel?' · '+scopeLabel:'')+']';
+var b=btn('edge-btn',lbl,function(){navigate('detail',r.from);});
+li.appendChild(b);ul.appendChild(li);});
+c.appendChild(ul);}
+var unres=rels.filter(function(r){
+return r.trust_class==='candidate'&&r.resolution_state==='unresolved';});
+if(unres.length>0){
+c.appendChild(el('h3',null,'Unresolved supersession entries (not traversed)'));
+var ul2=el('ul','graph-list');
+unres.forEach(function(r){
+var li=el('li','rel-item rel-candidate');
+var tlEl=el('span','trust-label','[candidate · unresolved]');
+li.appendChild(tlEl);
+li.appendChild(document.createTextNode(' '+(r.from||'?')+' → '
++(r.to||'(unparseable)')+' · '));
+li.appendChild(document.createTextNode(r.raw_value||''));
+ul2.appendChild(li);});
+c.appendChild(ul2);}
+updateLive('');}
+function renderContext(c){
+var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
+var h2=el('h2',null,rec?'Guidance context: '+rec.id:'Guidance context');
+c.appendChild(h2);
+if(!rec){
+c.appendChild(el('p','empty-msg',
+'Select a record from the corpus list, then switch to this view.'));
+updateLive('');return;}
+var ctx=rels.filter(function(r){
+return r.trust_class==='contextual'&&(r.from===rec.id||r.to===rec.id);});
+c.appendChild(el('h3',null,
+'Contextual references — Related field (weaker than checked lineage)'));
+if(ctx.length===0){
+c.appendChild(el('p','empty-msg','No contextual references for this record.'));}
+else{
+var ul=el('ul','ctx-list');
+ctx.forEach(function(r){
+var peer=r.from===rec.id?r.to:r.from;
+var label=peer+' [contextual · '+r.resolution_state+']';
+var li=el('li',null);
+var admitted=records.find(function(x){return x.id===peer;});
+if(admitted){
+var b=btn('ctx-btn',label,function(){navigate('detail',peer);});
+li.appendChild(b);}
+else{li.textContent=label+' — not admitted';}
+ul.appendChild(li);});
+c.appendChild(ul);}
+var asserts=rels.filter(function(r){
+return r.trust_class==='navigation_only'
+&&(r.from===rec.id||r.to===rec.id);});
+var extra=embAsserts.filter(function(a){
+return a.from===rec.id||a.to===rec.id;});
+c.appendChild(el('h3',null,'Caller assertions (non-authoritative view input)'));
+if(asserts.length===0&&extra.length===0){
+c.appendChild(el('p','empty-msg','No caller assertions embedded for this record.'));}
+else{
+var ul2=el('ul','assert-list');
+asserts.concat(extra).forEach(function(a){
+var li=el('li',null);
+var tlEl=el('span','trust-label','[navigation_only · caller_asserted]');
+li.appendChild(tlEl);
+li.appendChild(document.createTextNode(' '));
+li.appendChild(document.createTextNode(a.raw_value||''));
+if(a.from)li.appendChild(document.createTextNode(' from: '+a.from));
+if(a.to)li.appendChild(document.createTextNode(' → '+a.to));
+ul2.appendChild(li);});
+c.appendChild(ul2);}
+updateLive('');}
+function renderDetail(c){
+var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
+var h2=el('h2',null,rec?rec.id+': '+rec.title:'Record detail');
+h2.className='detail-heading';c.appendChild(h2);
+if(!rec){
+var p=el('p','empty-msg');
+if(state.sel){p.textContent=state.sel+' is not in this export.';}
+else{p.textContent='Select a record from the corpus list to see its detail.';}
+c.appendChild(p);updateLive('');return;}
+// Supersession banners from checked relationships only — at top of detail
+var supBy=rec.superseded_by||[];
+var unresClaims=rec.unresolved_claims||[];
+if(supBy.length>0){
+supBy.forEach(function(s){c.appendChild(supBanner(s,true));});}
+else if(unresClaims.length>0){
+unresClaims.forEach(function(u){
+var div=document.createElement('div');div.className='supersede-banner';div.setAttribute('role','note');
+div.appendChild(document.createTextNode('Unresolved supersession claim: '+u));
+c.appendChild(div);});}
+var tbl=el('table','meta-table');
+[['Kind',rec.kind],['Status',lc(rec)],['Source',rec.source]].forEach(function(row){
+var tr=document.createElement('tr');
+var th=el('th',null,row[0]);var td=el('td',null,row[1]);
+tr.appendChild(th);tr.appendChild(td);tbl.appendChild(tr);});
+var slTr=document.createElement('tr');
+var slTh=el('th',null,'Source link');var slTd=el('td',null);
+var sl=makeLink(rec.source);
+if(sl){
+slTd.appendChild(sl);
+var sl2=srcLinks[rec.source];
+if(sl2&&sl2.kind==='branch_latest')
+slTd.appendChild(document.createTextNode(' (may be newer than this export)'));}
+else{slTd.textContent=rec.source+' (remote not on allowlist — inert provenance)';}
+slTr.appendChild(slTh);slTr.appendChild(slTd);tbl.appendChild(slTr);
+c.appendChild(tbl);
+var recRels=rels.filter(function(r){return r.from===rec.id||r.to===rec.id;});
+if(recRels.length>0){
+var rCnt={checked:0,candidate:0,contextual:0,navigation_only:0};
+recRels.forEach(function(r){var tc=r.trust_class;if(tc in rCnt)rCnt[tc]++;});
+var rSummary='Relationships — '+rCnt.checked+' checked · '
++rCnt.candidate+' candidate · '+rCnt.contextual+' contextual';
+var rDet=el('details','rel-details');
+var rSum=el('summary',null,rSummary);rDet.appendChild(rSum);
+var ul=el('ul','rel-list');
+recRels.forEach(function(r){
+var li=el('li','rel-item rel-'+r.trust_class.replace(/_/g,'-'));
+var tlEl=el('span','trust-label','['+r.trust_class+' · '+r.resolution_state+']');
+li.appendChild(tlEl);
+var scope=r.scope&&r.scope.length?r.scope.join(', '):'';
+if(r.relation==='supersedes_in_part'&&!(r.scope&&r.scope.length))
+scope='scope not stated';
+li.appendChild(document.createTextNode(' '+r.relation+': '+(r.from||'?')+' → '
++(r.to||'(unparseable)')+(scope?' ('+scope+')':'')));
+li.appendChild(el('span','trust-source',' · source: '+(r.source||'caller')));
+li.appendChild(document.createTextNode(' · '));
+li.appendChild(document.createTextNode(r.raw_value||''));
+ul.appendChild(li);});
+rDet.appendChild(ul);c.appendChild(rDet);}
+var supRefs=rec.support_refs||[];
+if(supRefs.length>0){
+var srDet=el('details','sr-details');
+var srSum=el('summary',null,'Support references ('+supRefs.length+')');
+srDet.appendChild(srSum);
+var srUl=el('ul',null);
+supRefs.forEach(function(sr){
+var li=el('li',null);
+li.appendChild(document.createTextNode(sr.path+' ['+sr.kind+']'));
+srUl.appendChild(li);});
+srDet.appendChild(srUl);c.appendChild(srDet);}
+c.appendChild(el('h3',null,'Record body'+(mode==='bounded'?' (omitted in bounded mode)':'')));
+var body=rec.body;
+if(!body){c.appendChild(el('p','empty-msg','Body not available.'));}
+else if(!body.available){
+var reason=body.omission_reason||'not_available';
+var notice=el('p','bounded-notice');
+if(reason==='bounded_mode'||reason==='not_requested'){
+notice.textContent='Body omitted in bounded mode. ';
+if(body.source_action){
+var lnk=makeLink(body.source_action.path);
+if(lnk){notice.appendChild(lnk);}
+else{notice.appendChild(document.createTextNode(body.source_action.path));}}}
+else if(reason==='body_too_large'){
+notice.textContent='Body too large to embed. Source: '+rec.source;}
+else{notice.textContent='Body not included. Reason: '+reason;}
+c.appendChild(notice);}
+else{
+var FOLD_THRESHOLD=3000;
+var content=body.content||'';
+var bodyEl;
+if(content.length>FOLD_THRESHOLD){
+var bd=el('details','body-details');
+var bs=el('summary',null,'Record content ('+content.length+' chars)');
+bd.appendChild(bs);
+var sec=document.createElement('section');
+sec.setAttribute('aria-label','Record content');
+sec.className='record-content';
+renderMarkdown(content,sec);
+bd.appendChild(sec);bodyEl=bd;}
+else{
+var sec2=document.createElement('section');
+sec2.setAttribute('aria-label','Record content');
+sec2.className='record-content';
+renderMarkdown(content,sec2);
+bodyEl=sec2;}
+c.appendChild(bodyEl);}
+updateLive(rec.id+': '+rec.title);}
+VALID_VIEWS.forEach(function(v){
+var b=document.getElementById('btn-'+v);
+if(b)b.addEventListener('click',function(){navigate(v,state.sel);});});
+if(searchEl)searchEl.addEventListener('input',function(){
+state.q=this.value;render();});
+if(kindEl)kindEl.addEventListener('change',function(){
+state.kind=this.value;render();});
+if(statusEl)statusEl.addEventListener('change',function(){
+state.status=this.value;render();});
+window.addEventListener('popstate',function(){parseHash();render();});
+var provPre=document.getElementById('prov-pre');
+if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);
+var supInvEl=document.getElementById('sup-inv');
+if(supInvEl&&D.corpus_support_refs){
+var siUl=el('ul',null);
+var csr=D.corpus_support_refs;
+if(csr.length===0){siUl.appendChild(el('li',null,'None found.'));}
+else{csr.forEach(function(sr){
+var li=el('li',null);
+li.appendChild(document.createTextNode(sr.path+' ['+sr.kind+']'));
+siUl.appendChild(li);});}
+supInvEl.appendChild(siUl);}
+parseHash();render();
+}();

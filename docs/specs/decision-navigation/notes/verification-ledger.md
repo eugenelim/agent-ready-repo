@@ -369,3 +369,48 @@ make lint-ruff lint-mypy → All checks passed! / Success: no issues found in 14
 python3 tools/lint-pack-test-boundary.py </dev/null → exit 0
 python3 tools/lint-ci-parity.py </dev/null → exit 0
 ```
+
+---
+
+## T7 stage 2a evidence
+
+**Date:** 2026-10-04
+
+**Items shipped:** ITEM 1 (asset file extraction), ITEM 2 (safe Markdown renderer),
+ITEM 3 (full CSP), ITEM 4 (supersession banners from checked relationships).
+
+Python test suite:
+
+```bash
+python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions -q -p no:cacheprovider
+```
+
+```
+196 passed in 111.15s
+```
+
+New tests added (3):
+- `test_markdown_renderer_no_unsafe_apis` — inlined JS carries no forbidden DOM-mutation APIs
+- `test_csp_all_directives_present` — all five CSP directives present including `base-uri` and `form-action`
+- `test_superseded_by_from_checked_only` — ADR-0001 `superseded_by=[{by:ADR-0020,partial:true,scope:[D3]}]`; ADR-0002 `[{by:ADR-0003,partial:false}]`; ADR-0003 empty
+
+Lint gates:
+
+```
+make lint-ruff lint-mypy → All checks passed! / Success: no issues found in 149 source files
+python3 tools/lint-pack-test-boundary.py </dev/null → exit 0 (8 cases passed)
+make build-self-dry-run → catalogue self-host --check: ok
+```
+
+Asset files: CSS and JS moved from Python string constants to
+`packs/governance-extras/.apm/skills/navigate-decisions/scripts/explorer_assets/`
+(`explorer.css`, `explorer.js`, `markdown.js`). Loaded at export time via
+`read_confined_regular_file`; hash of inlined script bytes used for CSP `script-src`.
+
+### T7 stage 2a browser checks (2026-10-04, desktop Chrome 154.0.8037.93)
+
+Command: `python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py -q -p no:cacheprovider` → 20 passed, 0 skipped.
+
+- `test_markdown_renders_allowlisted_structure` — headings, lists, quotes, code, tables, rules, emphasis render as allowlisted elements; only `class` and `aria-label` attributes; no `img` or `a`; link targets and alt text shown as text.
+- `test_pathological_body_renders_fully_and_inertly` — a near-2 MiB hostile body renders within 2 s, shows the 32-level fallback note, keeps `<script>` literal, has no attributes, and makes no requests. This check caught a defect: bodies over 1 MiB were embedded as `null` in full exports; fixed in `navigate_decisions.py` with `test_full_export_embeds_body_larger_than_1_mib` strengthened to assert the body text.
+- `test_supersession_banners_in_list_and_detail` — "Superseded in part by ADR-0020 (D3)" and "Superseded by ADR-0003" appear in list rows and detail, and the banner link opens ADR-0020.
