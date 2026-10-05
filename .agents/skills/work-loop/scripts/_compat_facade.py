@@ -345,7 +345,9 @@ def _confined_jsonl_append(
     cm: ModuleType,
 ) -> None:
     """Append one JSON record to a confined JSONL file, creating if absent."""
-    content = (json.dumps(record, ensure_ascii=True, sort_keys=True) + "\n").encode("utf-8")
+    # allow_nan=False: a NaN would write a bare token that is not valid JSON.
+    text = json.dumps(record, ensure_ascii=True, sort_keys=True, allow_nan=False)
+    content = (text + "\n").encode("utf-8")
     try:
         cm.confined_create(spec_dir, path, content)
     except cm.MutationDenied as exc:
@@ -362,7 +364,9 @@ def _confined_json_write(
     cm: ModuleType,
 ) -> None:
     """Atomically write a JSON record to a confined file."""
-    content = (json.dumps(record, ensure_ascii=True, sort_keys=True) + "\n").encode("utf-8")
+    # allow_nan=False: a NaN would write a bare token that is not valid JSON.
+    text = json.dumps(record, ensure_ascii=True, sort_keys=True, allow_nan=False)
+    content = (text + "\n").encode("utf-8")
     cm.confined_atomic_replace(spec_dir, path, content)
 
 

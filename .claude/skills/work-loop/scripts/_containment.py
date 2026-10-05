@@ -159,6 +159,7 @@ ATTESTATION_DENIAL_CODES: Final[frozenset[str]] = frozenset({
     "denied-audit-sink-unavailable",
     "denied-unverified-grant",
     "denied-invalid-attestation-field",
+    "denied-containment-check-failed",
 })
 
 # Closed nested objects of containment-attestation.v1: name -> (required keys,
@@ -279,6 +280,11 @@ _SAME_PROCESS_MECHANISMS: Final[frozenset[str]] = frozenset({
 })
 
 
+def _safe_correlation(value: object) -> str:
+    """Return *value* as an audit correlation only if it is a non-empty string."""
+    return value if isinstance(value, str) and value else "unknown"
+
+
 def validate_attestation_dict(d: object) -> tuple[bool, str]:
     """Validate *d* without ever raising: any unexpected value refuses.
 
@@ -357,7 +363,7 @@ def _validate_attestation_dict_checked(d: object) -> tuple[bool, str]:
     # Nested objects are closed and typed; a NaN, boolean, or string limit can
     # never stand in for a proven integer bound.
     for name, (required, allowed) in _ATTESTATION_NESTED_KEYS.items():
-        if name not in d or d[name] is None:
+        if name not in d:
             continue
         nested = d[name]
         if not isinstance(nested, dict):
@@ -367,9 +373,12 @@ def _validate_attestation_dict_checked(d: object) -> tuple[bool, str]:
             return False, "denied-invalid-attestation-field"
         if "allowed" in nested and not isinstance(nested["allowed"], bool):
             return False, "denied-invalid-attestation-field"
+    limits = d["limits"]
     for key, minimum in _ATTESTATION_LIMIT_MINIMUMS.items():
-        value = (d.get("limits") or {}).get(key)
-        if value is not None and (not _is_plain_int(value) or value < minimum):
+        if key not in limits:
+            continue
+        value = limits[key]
+        if not _is_plain_int(value) or value < minimum:
             return False, "denied-invalid-attestation-field"
 
     return True, "ok"
@@ -741,7 +750,7 @@ def launch_untrusted(
             se.SecurityEvent(  # type: ignore[attr-defined]
                 schema_version=1,
                 operation_id=event_operation_id,
-                correlation_id=str(getattr(grant, "grant_id", "unknown")),
+                correlation_id=_safe_correlation(getattr(grant, "grant_id", None)),
                 event_type="containment-launch",
                 outcome="denied",
                 reason_code=denial_code,
@@ -750,54 +759,70 @@ def launch_untrusted(
         )
         return ContainmentRefused(denial_code, message)
 
-    # When an issuer is provided, verify the grant before trusting any of its
-    # fields.  A caller-built grant or a revoked grant fails verification and
-    # is refused with an audited denial before any host interaction.
-    if issuer is not None and not issuer.verify_grant(grant):
-        raise refuse(
-            "denied-unverified-grant",
-            "grant could not be verified with its issuer; refusing untrusted launch",
+    def check_before_launch() -> tuple[str, ...]:
+        """Run every pre-launch check; return the grant roots to confine cwd to."""
+        # When an issuer is provided, verify the grant before trusting any of its
+        # fields.  A caller-built grant or a revoked grant fails verification and
+        # is refused with an audited denial before any host interaction.
+        if issuer is not None and not issuer.verify_grant(grant):
+            raise refuse(
+                "denied-unverified-grant",
+                "grant could not be verified with its issuer; refusing untrusted launch",
+            )
+
+        # Ask the host for a verified containment attestation.
+        raw_attestation = resolved_host.get_attestation(spec_dict, grant)
+        if raw_attestation is None:
+            raise refuse(
+                "denied-no-verified-containment",
+                "host supplies no verified containment attestation; refusing untrusted launch",
+            )
+
+        # Validate the attestation dict against the containment-attestation.v1 schema.
+        ok, denial_code = validate_attestation_dict(raw_attestation)
+        if not ok:
+            raise refuse(
+                denial_code,
+                f"attestation schema validation failed: {denial_code}",
+            )
+
+        # Build a typed ContainmentAttestation from the validated dict.
+        attestation = ContainmentAttestation(
+            schema_version=raw_attestation["schema_version"],
+            host_mechanism=raw_attestation["host_mechanism"],
+            principal_or_sandbox=raw_attestation["principal_or_sandbox"],
+            roots=tuple(raw_attestation.get("roots", ())),
+            limits=raw_attestation.get("limits", {}),
+            read_enforcement=raw_attestation.get("read_enforcement"),
+            trace_coverage=raw_attestation.get("trace_coverage"),
+            network=raw_attestation.get("network"),
+            children=raw_attestation.get("children"),
         )
 
-    # Ask the host for a verified containment attestation.
-    raw_attestation = resolved_host.get_attestation(spec_dict, grant)
-    if raw_attestation is None:
-        raise refuse(
-            "denied-no-verified-containment",
-            "host supplies no verified containment attestation; refusing untrusted launch",
-        )
+        # Attestation must not be broader than the grant on any axis.
+        try:
+            ok, denial_code = check_attestation_within_grant(attestation, grant)
+        except Exception:  # noqa: BLE001 — any check failure refuses, audited
+            ok, denial_code = False, "denied-invalid-attestation-field"
+        if not ok:
+            raise refuse(
+                denial_code,
+                f"attestation is broader than the grant: {denial_code}",
+            )
+        return tuple(grant.roots)  # type: ignore[attr-defined]
 
-    # Validate the attestation dict against the containment-attestation.v1 schema.
-    ok, denial_code = validate_attestation_dict(raw_attestation)
-    if not ok:
-        raise refuse(
-            denial_code,
-            f"attestation schema validation failed: {denial_code}",
-        )
-
-    # Build a typed ContainmentAttestation from the validated dict.
-    attestation = ContainmentAttestation(
-        schema_version=raw_attestation["schema_version"],
-        host_mechanism=raw_attestation["host_mechanism"],
-        principal_or_sandbox=raw_attestation["principal_or_sandbox"],
-        roots=tuple(raw_attestation.get("roots", ())),
-        limits=raw_attestation.get("limits", {}),
-        read_enforcement=raw_attestation.get("read_enforcement"),
-        trace_coverage=raw_attestation.get("trace_coverage"),
-        network=raw_attestation.get("network"),
-        children=raw_attestation.get("children"),
-    )
-
-    # Attestation must not be broader than the grant on any axis.
+    # Every pre-launch step runs inside one guard: an exception from the host,
+    # the issuer, validation, or the comparison still ends in an audited
+    # refusal, never an unaudited escape.
     try:
-        ok, denial_code = check_attestation_within_grant(attestation, grant)
-    except Exception:  # noqa: BLE001 — any check failure refuses, audited
-        ok, denial_code = False, "denied-invalid-attestation-field"
-    if not ok:
+        cwd_roots = check_before_launch()
+    except ContainmentRefused:
+        raise
+    except Exception:  # noqa: BLE001 — any pre-launch failure refuses, audited
         raise refuse(
-            denial_code,
-            f"attestation is broader than the grant: {denial_code}",
-        )
+            "denied-containment-check-failed",
+            "a containment pre-launch check failed; refusing untrusted launch",
+        ) from None
 
     # All containment checks pass — delegate to the process safety primitive.
     # Loaded lazily to avoid imposing _process_safety's import cost when only
@@ -805,7 +830,7 @@ def launch_untrusted(
     _ps = _load_sibling("_ps_cont_launch", "_process_safety.py")
     return _ps.launch_safe_process(  # type: ignore[attr-defined]
         spec_dict,
-        cwd_roots=tuple(grant.roots),
+        cwd_roots=cwd_roots,
         audit_sink=audit_sink,
         operation_id=operation_id,
     )

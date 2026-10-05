@@ -716,7 +716,73 @@ def _emit_allow(
 # ── Public launch API ─────────────────────────────────────────────────────────
 
 
+def _safe_correlation(*candidates: object) -> str:
+    """Return the first candidate that is a non-empty string, else ``"unknown"``.
+
+    Keeps every stored event's correlation ID a schema-valid string whatever a
+    caller passed.
+    """
+    for value in candidates:
+        if isinstance(value, str) and value:
+            return value
+    return "unknown"
+
+
 def launch_safe_process(
+    spec_dict: dict,
+    *,
+    cwd_roots: tuple[str, ...],
+    env_values: dict[str, str] | None = None,
+    stdin_bytes: bytes | None = None,
+    stdin_path: str | None = None,
+    stdin_root: str | None = None,
+    stdin_bound_bytes: int | None = None,
+    sensitive_values: list[str] | None = None,
+    audit_sink: Callable | None = None,
+    operation_id: str | None = None,
+    correlation_id: str | None = None,
+) -> ProcessResult:
+    """Launch a safe process according to a safe-process.v1 spec_dict.
+
+    A guard around the launch steps: a ``ProcessDenied`` passes through, and
+    any other exception from any step becomes an audited ``ProcessDenied``
+    with a stable code, so no refusal leaves without a stored denial event.
+    See ``_launch_safe_process_unguarded`` for the full contract.
+    """
+    try:
+        return _launch_safe_process_unguarded(
+            spec_dict,
+            cwd_roots=cwd_roots,
+            env_values=env_values,
+            stdin_bytes=stdin_bytes,
+            stdin_path=stdin_path,
+            stdin_root=stdin_root,
+            stdin_bound_bytes=stdin_bound_bytes,
+            sensitive_values=sensitive_values,
+            audit_sink=audit_sink,
+            operation_id=operation_id,
+            correlation_id=correlation_id,
+        )
+    except ProcessDenied:
+        raise
+    except Exception:  # noqa: BLE001 — any unexpected failure refuses, audited
+        if audit_sink is not None:
+            grant_id = spec_dict.get("grant_id") if isinstance(spec_dict, dict) else None
+            _emit_event(
+                audit_sink,
+                operation_id if isinstance(operation_id, str) and operation_id
+                else _se.make_operation_id(),  # type: ignore[attr-defined]
+                _safe_correlation(correlation_id, grant_id),
+                "denied",
+                PROCESS_DENY_REASON,
+            )
+        raise ProcessDenied(
+            "denied-launch-failed",
+            "process launch failed before completion; refusing",
+        ) from None
+
+
+def _launch_safe_process_unguarded(
     spec_dict: dict,
     *,
     cwd_roots: tuple[str, ...],
@@ -786,20 +852,23 @@ def launch_safe_process(
             "audit sink is unavailable; process launch refused without emitting an event",
         )
 
-    op_id = operation_id or _se.make_operation_id()  # type: ignore[attr-defined]
+    op_id = (
+        operation_id
+        if isinstance(operation_id, str) and operation_id
+        else _se.make_operation_id()  # type: ignore[attr-defined]
+    )
 
     # Validate spec dict; emit a denial event on any schema violation.
     ok, code = validate_process_spec_dict(spec_dict)
     if not ok:
-        corr_id = (
-            correlation_id
-            or (spec_dict.get("grant_id") if isinstance(spec_dict, dict) else None)
-            or "unknown"
+        corr_id = _safe_correlation(
+            correlation_id,
+            spec_dict.get("grant_id") if isinstance(spec_dict, dict) else None,
         )
         _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
         raise ProcessDenied(code, f"spec validation failed: {code}")
 
-    corr_id = correlation_id or spec_dict["grant_id"]
+    corr_id = _safe_correlation(correlation_id, spec_dict["grant_id"])
 
     # Validate caller-declared stdin ceiling before any further checks.
     # stdin_bound_bytes may only lower MAX_STDIN_BYTES; a value above the

@@ -10,6 +10,7 @@ refusal with no stored denial, fails the test.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import os
@@ -83,6 +84,26 @@ def _spec(cwd: str) -> dict:
     }
 
 
+def _assert_schema_valid_events(events: list, context: object) -> None:
+    """Every stored event is a valid ``security-event.v1`` record that encodes as JSON."""
+    import json
+    import math
+
+    for event in events:
+        record = {
+            "schema_version": event.schema_version, "operation_id": event.operation_id,
+            "correlation_id": event.correlation_id, "event_type": event.event_type,
+            "outcome": event.outcome, "reason_code": event.reason_code,
+            "timestamp": event.timestamp,
+        }
+        assert record["schema_version"] == 1 and record["schema_version"] is not True, context
+        for key in ("operation_id", "correlation_id", "event_type", "reason_code", "timestamp"):
+            assert isinstance(record[key], str) and record[key], (context, key, record[key])
+        assert record["outcome"] in {"allowed", "denied"}, context
+        assert not any(isinstance(v, float) and math.isnan(v) for v in record.values())
+        json.dumps(record, allow_nan=False)
+
+
 class _Host:
     def __init__(self, attestation: object) -> None:
         self._attestation = attestation
@@ -140,6 +161,7 @@ def test_untrusted_launch_refuses_every_malformed_attestation_with_an_audit(
         kind = type(exc_info.value).__name__
         assert kind in {"ContainmentRefused", "ProcessDenied"}, (field, value, kind)
         assert any(e.outcome == "denied" for e in events), (field, value)
+        _assert_schema_valid_events(events, (field, value))
 
 
 def test_safe_launch_refuses_every_malformed_spec_with_an_audit(
@@ -153,3 +175,67 @@ def test_safe_launch_refuses_every_malformed_spec_with_an_audit(
             ps.launch_safe_process(record, cwd_roots=(str(tmp_path),), audit_sink=events.append)
         except ps.ProcessDenied:
             assert any(e.outcome == "denied" for e in events), (field, value)
+        _assert_schema_valid_events(events, (field, value))
+
+
+class _RaisingHost:
+    def get_attestation(self, spec_dict: dict, grant: object) -> object:
+        raise RuntimeError("host failure /private/detail")
+
+
+class _RaisingIssuer:
+    def verify_grant(self, grant: object) -> bool:
+        raise RuntimeError("issuer failure")
+
+
+class _GrantWithoutId:
+    roots = ("/work",)
+
+
+@pytest.mark.parametrize(
+    ("host", "issuer", "grant_kind"),
+    [
+        (_RaisingHost(), None, "issued"),
+        (None, _RaisingIssuer(), "issued"),
+        (None, "real", "no-id"),
+    ],
+)
+def test_untrusted_launch_audits_host_and_issuer_failures(
+    cn: ModuleType, sc: ModuleType, host: object, issuer: object, grant_kind: str
+) -> None:
+    """A raising host, a raising issuer, or an unverifiable grant still ends audited."""
+    real_issuer = sc.CapabilityIssuer()
+    grant: object = (
+        real_issuer.issue_root_grant(
+            roots=["/work"], operations=["read"], trust_class="untrusted",
+            writes_allowed_roots=[], control_denies=[],
+        )
+        if grant_kind == "issued" else _GrantWithoutId()
+    )
+    events: list = []
+    with pytest.raises(cn.ContainmentRefused):
+        cn.launch_untrusted(
+            {}, grant,
+            host=host if host is not None else _Host(_attestation()),
+            issuer=real_issuer if issuer == "real" else issuer,
+            audit_sink=events.append,
+        )
+    assert [e.outcome for e in events] == ["denied"], events
+    _assert_schema_valid_events(events, (host, issuer, grant_kind))
+
+
+@pytest.mark.parametrize("value", ODD_VALUES)
+def test_safe_launch_never_stores_a_malformed_correlation(
+    ps: ModuleType, tmp_path: Path, value: object
+) -> None:
+    """Odd caller correlation and operation IDs never reach a stored event."""
+    record = _spec(str(tmp_path))
+    record["grant_id"] = value
+    events: list = []
+    with contextlib.suppress(ps.ProcessDenied):
+        ps.launch_safe_process(
+            record, cwd_roots=(str(tmp_path),), audit_sink=events.append,
+            correlation_id=value, operation_id=value,
+        )
+    assert events, value
+    _assert_schema_valid_events(events, value)

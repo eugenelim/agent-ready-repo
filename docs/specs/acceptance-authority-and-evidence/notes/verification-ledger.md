@@ -294,3 +294,18 @@ records through 15 wrong-type and edge values. It checks the validators and
 both launch boundaries, and requires each refusal to be audited. All four of
 its tests fail against the pre-fix code. Recovery on hosts without `fcntl`
 now also refuses to replace a file whose identity differs from the one read.
+
+A seventh override on 2026-10-04 followed security review round 5, which upheld
+1 Concern and 2 Nits. The Concern was another exception path: a raising host or
+issuer could leave `launch_untrusted` without an audit. The owner chose to guard
+each launch boundary as a whole, not patch each call site.
+`launch_untrusted` runs every pre-launch step inside one guard, so any exception
+ends in an audited `denied-containment-check-failed` refusal.
+`launch_safe_process` is now a guard around the launch steps: any exception
+other than `ProcessDenied` becomes an audited `ProcessDenied`. Every stored
+event's correlation and operation IDs are non-empty strings, with a fixed
+placeholder otherwise. The durable shadow sinks refuse NaN, so the event log
+stays valid JSON. A present-but-null `network`, `children`, `max_bytes`, or
+`timeout_s` is now refused, so every attestation field really is type-checked.
+`test_validator_totality.py` adds raising hosts and issuers and schema checks
+on every stored event. Its new cases fail against the pre-fix code.
