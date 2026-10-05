@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one repo-scope primitive instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -461,3 +461,5 @@ The resolver, both consumers, and the Core projection ship in one pack release. 
 - 2026-10-05: amendment revised from the pre-EXECUTE review: snapshot paths move to a top-level `artifacts` key so delivered relation records keep their shape; T5–T7 each carry a validated stub; the helper is the private `_file_safety.py`; AC-0010 names which references it covers and AC-0020 fixes one refusal set per broken field; every sustained round-1 finding maps to a T5–T8 test or Done-when clause.
 - 2026-10-05: second pre-EXECUTE revision: T5 moves both consumers' key sets and the delivered fixtures to the seven-key snapshot (VI-1505) so every task boundary stays green and T7's stub keeps its red; stubs are named after the criteria they pin with one materialization file each; T5 and T7 Done-when cover the `--help` text and the fail-closed comments; Risks records owner decision 4.
 - 2026-10-05: third pre-EXECUTE revision: Risks separates AC-0020 refusals (none) from the ten AC-0012 own-subject refusals the ledger names; VI-1401's scope is stated once under Construction tests.
+- 2026-10-05: amended spec approved by eugenelim
+- 2026-10-05: amended plan approved by eugenelim, ratifying the private `_file_safety.py` helper name

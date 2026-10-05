@@ -100,3 +100,10 @@ the resolver run after commit `8ffa61de9`, ten features:
   `intent:xd-state-reviewer-doctrine`.
 
 Repairing those mappings is a corpus edit outside this delivery.
+
+## 2026-10-05 — Amended spec and plan approved (eugenelim)
+
+The owner approved the amended spec and plan, which ratifies the private
+`_file_safety.py` helper name. Tasks T1–T4 were delivered before the run
+reset, in commits `a2b0f6140`, `336745737`, `d028d1b41`, and `ec7d1a605`; the
+fresh run accounts for them against those commits rather than rebuilding them.
