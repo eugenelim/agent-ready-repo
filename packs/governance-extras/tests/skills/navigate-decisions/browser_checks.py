@@ -1707,3 +1707,300 @@ def test_bounded_notice_is_readable_in_dark_mode(
     page.wait_for_selector("#view-detail .bounded-notice a")
     assert _contrast(page, "#view-detail .bounded-notice") >= 4.5
     assert _contrast(page, "#view-detail .bounded-notice a") >= 4.5
+
+
+# ── Review round 4 (T8) ───────────────────────────────────────────────────────
+
+_BOXES_JS = """(scope) => {
+  const root = document.querySelector(scope);
+  const box = e => { const b = e.getBBox(); return {x: b.x, y: b.y, w: b.width, h: b.height}; };
+  const plates = [...root.querySelectorAll('rect')].filter(r =>
+    r.nextSibling && r.nextSibling.classList && r.nextSibling.classList.contains('edge-label'))
+    .map(box);
+  const nodes = [...root.querySelectorAll('[data-node-id] > rect:first-child')].map(box);
+  const heads = [...root.querySelectorAll('path[marker-end]')].map(p => {
+    const n = p.getTotalLength(), a = p.getPointAtLength(n);
+    const b = p.getPointAtLength(Math.max(0, n - 10));
+    return {x: Math.min(a.x, b.x), y: Math.min(a.y, b.y) - 3.5,
+            w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) + 7}; });
+  return {plates, nodes, heads};
+}"""
+
+
+def _hit(a: dict, b: dict) -> bool:
+    return (
+        a["x"] < b["x"] + b["w"]
+        and b["x"] < a["x"] + a["w"]
+        and a["y"] < b["y"] + b["h"]
+        and b["y"] < a["y"] + a["h"]
+    )
+
+
+def _assert_plates_clear(geo: dict, where: str) -> None:
+    plates = geo["plates"]
+    assert plates, f"{where}: no label plates drawn"
+    for i, p in enumerate(plates):
+        for q in plates[i + 1 :]:
+            assert not _hit(p, q), (where, "plate overlaps plate", p, q)
+        for n in geo["nodes"]:
+            assert not _hit(p, n), (where, "plate overlaps node", p, n)
+        for h in geo["heads"]:
+            assert not _hit(p, h), (where, "plate overlaps arrowhead", p, h)
+
+
+@pytest.fixture(scope="module")
+def export_fan_in(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """ADR-0001 is superseded in part by ADR-0002..ADR-0005, each with its own
+    scope, so four partial edges enter one node."""
+    root = tmp_path_factory.mktemp("fan_in_fixture")
+    parts = "; ".join(f"ADR-000{k} D{k}" for k in range(2, 6))
+    records = [(1, "Base", f"- **Status:** Accepted\n- **Superseded in part:** {parts}\n")]
+    records += [
+        (k, f"Part {k}", f"- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D{k}\n")
+        for k in range(2, 6)
+    ]
+    _build_corpus(root, records)
+    return _export(tmp_path_factory, root, "fan_in")
+
+
+def test_fan_in_labels_stay_clear_in_focus_and_atlas(
+    browser: object, export_fan_in: pathlib.Path
+) -> None:
+    """R4-FE-1: on fan-in, no two `in part` plates intersect, and no plate meets a
+    node box or an arrowhead box, in the focused graph and the atlas."""
+    page = _open_page(browser, export_fan_in)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    _assert_plates_clear(page.evaluate(_BOXES_JS, "#view-graph .lineage-wrap svg"), "focused")
+    page.click("button.atlas-back")
+    page.wait_for_selector(".chain-card svg")
+    _assert_plates_clear(page.evaluate(_BOXES_JS, ".chain-card svg"), "atlas")
+
+
+def test_arrowheads_keep_one_size_on_full_and_partial_edges(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """R4-FE-2: markers use user-space units, so partial (thicker) edges do not
+    get larger arrowheads than full edges."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    units = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph marker')]"
+        ".map(m => m.getAttribute('markerUnits'))"
+    )
+    assert units and set(units) == {"userSpaceOnUse"}, units
+
+
+@pytest.fixture(scope="module")
+def export_column_assertion(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """ADR-0004 supersedes ADR-0001..0003, which share one column; a caller
+    assertion joins ADR-0001 and ADR-0003 with ADR-0002 between them."""
+    root = tmp_path_factory.mktemp("column_assert_fixture")
+    recs = [
+        (k, f"Old {k}", "- **Status:** Superseded\n- **Superseded by:** ADR-0004\n")
+        for k in range(1, 4)
+    ]
+    recs.append((
+        4,
+        "New",
+        "- **Status:** Accepted\n- **Supersedes:** ADR-0001; ADR-0002; ADR-0003\n",
+    ))
+    _build_corpus(root, recs)
+    out = tmp_path_factory.mktemp("browser_column_assert")
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        root,
+        destination=out,
+        mode="full",
+        name="column_assert.html",
+        assertions=[{"from": "ADR-0001", "to": "ADR-0003", "text": "same column"}],
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+def test_in_chain_assertion_never_passes_beneath_a_node(
+    browser: object, export_column_assertion: pathlib.Path
+) -> None:
+    """R4-FE-3: an asserted edge between two same-column chain members has no
+    point inside another node's box, and its label plate is clear."""
+    page = _open_page(browser, export_column_assertion)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    inside = page.evaluate(
+        """() => { const svg = document.querySelector('#view-graph .lineage-wrap svg');
+          const p = svg.querySelector('[data-rel="ADR-0001|guidance|ADR-0003|navigation_only"]');
+          const others = [...svg.querySelectorAll('[data-node-id]')]
+            .filter(g => !['ADR-0001', 'ADR-0003'].includes(g.dataset.nodeId))
+            .map(g => g.querySelector('rect').getBBox());
+          const n = p.getTotalLength(), hits = [];
+          for (let s = 0; s <= n; s += 2) { const q = p.getPointAtLength(s);
+            for (const b of others)
+              if (q.x > b.x && q.x < b.x + b.width && q.y > b.y && q.y < b.y + b.height)
+                hits.push([q.x, q.y]); }
+          return hits; }"""
+    )
+    assert inside == [], inside[:5]
+    _assert_plates_clear(page.evaluate(_BOXES_JS, "#view-graph .lineage-wrap svg"), "asserted")
+
+
+def test_expand_all_label_is_unchanged_on_a_view_without_sections(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """R4-FE-4: on the list view there is nothing to expand, so the label stays."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    page.click("#expand-all-btn")
+    assert page.locator("#expand-all-btn").text_content() == "Expand all"
+
+
+def test_text_list_node_buttons_align_to_the_top(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """R4-FE-5: node buttons in the text list align to the top of their item."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    align = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.lt-node-btn')).verticalAlign"
+    )
+    assert align == "top", align
+
+
+def test_partial_edges_are_hollow_and_labelled_in_both_views(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """R4-QE-4: partial edges carry the white inner stroke and an `in part` label
+    in the focused graph and the atlas; full edges carry neither."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    focused = page.evaluate(
+        """() => { const svg = document.querySelector('#view-graph .lineage-wrap svg');
+          return { inner: svg.querySelectorAll('[data-inner="part"]').length,
+            labels: [...svg.querySelectorAll('.edge-label')].map(t => t.textContent) }; }"""
+    )
+    assert focused["inner"] == 1, focused
+    assert any(t.startswith("in part") for t in focused["labels"]), focused
+    page.click("button.atlas-back")
+    page.wait_for_selector(".chain-card svg")
+    atlas = page.evaluate(
+        """() => [...document.querySelectorAll('.chain-card')].map(c => ({
+          ids: [...c.querySelectorAll('[data-node-id]')].map(g => g.dataset.nodeId),
+          inner: c.querySelectorAll('[data-inner="part"]').length,
+          labels: [...c.querySelectorAll('.edge-label')].map(t => t.textContent) }))"""
+    )
+    part = next(c for c in atlas if "ADR-0020" in c["ids"])
+    full = next(c for c in atlas if "ADR-0003" in c["ids"])
+    assert part["inner"] == 1 and "in part" in part["labels"], part
+    assert full["inner"] == 0 and not full["labels"], full
+
+
+def test_graph_focus_ring_reaches_3_to_1_and_clears_the_supersession_ring(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """R4-EXP-1: the focus indicator's outer ring reaches 3:1 against the canvas
+    in both themes and sits outside the selected node's supersession ring."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    for choice in ("light", "dark"):
+        page.click(f"[data-theme-choice={choice}]")
+        _navigate_graph(page, "ADR-0001")
+        info = page.evaluate(
+            """() => { const g = document.querySelector('#view-graph [data-node-id="ADR-0001"]');
+              const outer = g.querySelector('.focus-ring rect');
+              const ring = g.querySelector('.sup-ring');
+              const wrap = document.querySelector('#view-graph .lineage-wrap');
+              let bg = getComputedStyle(wrap).backgroundColor;
+              const viewBg = getComputedStyle(document.querySelector('#view-graph'));
+              if (bg === 'rgba(0, 0, 0, 0)') bg = viewBg.backgroundColor;
+              if (bg === 'rgba(0, 0, 0, 0)') bg = getComputedStyle(document.body).backgroundColor;
+              return { stroke: outer.getAttribute('stroke'), bg,
+                gap: ring ? +ring.getAttribute('x') - (+outer.getAttribute('x') + 1) : 99 }; }"""
+        )
+        rgb = [int(info["stroke"][i : i + 2], 16) for i in (1, 3, 5)]
+        bg = [float(v) for v in info["bg"][info["bg"].index("(") + 1 : -1].split(",")[:3]]
+
+        def lum(c: list[float]) -> float:
+            v = [x / 255 for x in c]
+            v = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in v]
+            return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+
+        a, b = lum(rgb), lum(bg)
+        ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
+        assert ratio >= 3, (choice, info, ratio)
+        assert info["gap"] >= 1, (choice, info)
+    page.click("[data-theme-choice=auto]")
+
+
+def test_dark_first_paint_without_scripts(browser: object, export_mixed: pathlib.Path) -> None:
+    """R4-EXP-2: with scripts off and a dark system preference, the page paints
+    its dark styles: color-scheme, info panel and title."""
+    context = browser.new_context(  # type: ignore[union-attr]
+        offline=True, java_script_enabled=False, color_scheme="dark"
+    )
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    info = page.evaluate(
+        """() => ({ scheme: getComputedStyle(document.documentElement).colorScheme,
+          panel: getComputedStyle(document.querySelector('.info-panel')).backgroundColor,
+          title: getComputedStyle(document.querySelector('.title-gradient')).color })"""
+    )
+    context.close()
+    assert info["scheme"] == "dark", info
+    assert info["panel"] == "rgb(26, 32, 64)", info
+    assert info["title"] == "rgb(147, 197, 253)", info
+
+
+def test_partial_id_underline_style_matches_across_views(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """R4-EXP-4: the partially superseded ID uses a solid underline in the list
+    and in both graph views."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    style = page.evaluate(
+        """() => { const rid = [...document.querySelectorAll('li.record-item .rid')]
+            .find(e => e.textContent === 'ADR-0001');
+          const cs = getComputedStyle(rid);
+          return [cs.textDecorationLine, cs.textDecorationStyle]; }"""
+    )
+    assert style == ["underline", "solid"], style
+    _navigate_graph(page, "ADR-0001")
+    deco = page.evaluate(
+        "() => document.querySelector('#view-graph [data-node-id=\"ADR-0001\"] text')"
+        ".getAttribute('text-decoration')"
+    )
+    assert deco == "underline", deco
+
+
+def test_wrapped_status_shows_its_own_row(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """R4-ADV-2: a wrapped Status shows the header Status row beside the
+    lifecycle row; a one-line Status shows a single Status row."""
+    root = tmp_path_factory.mktemp("wrapped_status_fixture")
+    _build_corpus(
+        root,
+        [
+            (1, "Wrapped", "- **Status:** Accepted\n  with a wrapped qualifier\n"),
+            (2, "Plain", "- **Status:** Accepted <!-- note -->\n"),
+        ],
+    )
+    page = _open_page(browser, _export(tmp_path_factory, root, "wrapped_status"))
+    page.wait_for_selector("li.record-item")
+    counts = {}
+    for rid in ("ADR-0001", "ADR-0002"):
+        page.evaluate(f"() => {{ location.hash = '#detail/{rid}'; }}")
+        page.wait_for_function(
+            "(rid) => (document.querySelector('#view-detail h2') || {}).textContent"
+            "?.startsWith(rid)",
+            arg=rid,
+        )
+        counts[rid] = page.evaluate(
+            """() => [...document.querySelectorAll('#view-detail .meta-table tr')]
+              .filter(tr => tr.cells[0].textContent === 'Status').length"""
+        )
+    assert counts == {"ADR-0001": 2, "ADR-0002": 1}, counts

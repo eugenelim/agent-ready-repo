@@ -36,6 +36,11 @@ var records=D.records||[],rels=D.relationships||[],mode=D.mode||'full';
 var srcLinks=D.source_links||{};
 // Visible escaping for paths and caller text shown beside trust labels.
 var V=window.visEscape||function(x){return String(x);};
+// The header Status row repeats the lifecycle row only when both show the same
+// value; otherwise (another label form, a wrapped value) it stays visible.
+function statusShownAs(hf,rec){
+var lv=rec.lifecycle&&!rec.lifecycle.missing?rec.lifecycle.raw_value:null;
+return lv!==null&&hf.raw_value.replace(/\s*<!--[\s\S]*?-->\s*$/,'').trim()===lv;}
 // A record ID from the URL is untrusted: escape it and cap its length.
 function shownId(x){var t=V(String(x));return t.length>64?t.slice(0,63)+'…':t;}
 function claimText(u){
@@ -319,7 +324,7 @@ var tbl=el('table','meta-table');
 var metaRows=[['Kind',rec.kind],['Status',lc(rec)],['Source',V(rec.source)]];
 // Every header-region field, exactly as recorded (escaped for display).
 (Array.isArray(rec.header_fields)?rec.header_fields:[]).forEach(function(hf){
-if(hf&&hf.label&&hf.label.toLowerCase()!=='status')metaRows.push([V(hf.label),hf.display_value!=null?hf.display_value:V(hf.raw_value||'')]);});
+if(hf&&hf.label&&!(hf.label.toLowerCase()==='status'&&statusShownAs(hf,rec)))metaRows.push([V(hf.label),hf.display_value!=null?hf.display_value:V(hf.raw_value||'')]);});
 metaRows.forEach(function(row){
 var tr=document.createElement('tr');
 var th=el('th',null,row[0]);var td=el('td',null,row[1]);
@@ -424,7 +429,8 @@ if(expandAllBtn){
 expandAllBtn.addEventListener('click',function(){
 var viewEl=document.getElementById('view-'+state.view);if(!viewEl)return;
 var dets=viewEl.querySelectorAll('details');
-var allOpen=dets.length>0;
+if(!dets.length)return; // nothing to expand on this view; keep the label
+var allOpen=true;
 for(var di=0;di<dets.length;di++){if(!dets[di].open){allOpen=false;break;}}
 for(var dj=0;dj<dets.length;dj++){dets[dj].open=!allOpen;}
 expandAllBtn.textContent=allOpen?'Expand all':'Collapse all';});}

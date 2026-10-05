@@ -2697,3 +2697,86 @@ def test_escape_display_covers_tag_and_format_characters() -> None:
     shown = NAV._escape_display(raw)
     for cp in ("E0041", "00AD", "206A", "FFF9", "180E"):
         assert f"[U+{cp}]" in shown, (cp, shown)
+
+
+def _write(root: pathlib.Path, name: str, text: str) -> None:
+    adr = root / "docs" / "adr"
+    adr.mkdir(parents=True, exist_ok=True)
+    (adr / name).write_text(text, encoding="utf-8")
+
+
+def test_admission_time_bound_on_a_near_2_mib_supersession_header(
+    tmp_path: pathlib.Path,
+) -> None:
+    """AC-0001: a candidate of at least 1.9 MiB whose header is one Superseded by
+    field followed by 200,000 token-carrying continuation lines, within the 2 MiB
+    bound, is admitted in under 2 seconds."""
+    import time
+
+    text = (
+        "# ADR-0001: Big\n\n- **Status:** Accepted\n- **Superseded by:** ADR-0002;\n"
+        + "ADR-0002;\n" * 200_000
+        + "\n## Context\n\nx\n"
+    )
+    size = len(text.encode("utf-8"))
+    assert int(1.9 * 1024 * 1024) <= size <= 2 * 1024 * 1024, size
+    _write(tmp_path, "0001-big.md", text)
+    _write(tmp_path, "0002-other.md", "# ADR-0002: Other\n\n- **Status:** Accepted\n\n## Context\n\ny\n")
+    start = time.monotonic()
+    payload = NAV.run_query(tmp_path, {"operation": "summary"})
+    elapsed = time.monotonic() - start
+    assert payload["status"] == "ok", payload.get("error")
+    assert elapsed < 2.0, f"admission took {elapsed:.2f} s"
+
+
+def test_wrapped_supersession_field_yields_every_entry(tmp_path: pathlib.Path) -> None:
+    """A supersession field's entries are read from its whole extent, so an
+    identity on a continuation line becomes a relationship too."""
+    _write(
+        tmp_path,
+        "0001-old.md",
+        "# ADR-0001: Old\n\n- **Status:** Accepted\n- **Superseded by:** ADR-0010;\n"
+        "  ADR-0011\n\n## Context\n\nx\n",
+    )
+    payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
+    assert payload["status"] == "ok", payload.get("error")
+    targets = sorted(
+        r["to"] for r in payload["relationships"] if r["relation"] == "superseded_by"
+    )
+    assert targets == ["ADR-0010", "ADR-0011"], targets
+
+
+@pytest.mark.parametrize(
+    ("status_lines", "expected"),
+    [
+        ("- **Status**: Accepted\n", "Accepted"),
+        ("- **Status:** Accepted <!-- c -->\n  wrapped continuation\n", "Accepted"),
+    ],
+    ids=["colon-after-bold", "wrapped"],
+)
+def test_lifecycle_value_from_the_status_label_line(
+    tmp_path: pathlib.Path, status_lines: str, expected: str
+) -> None:
+    """Either Status label form is the Status field; the lifecycle raw_value is
+    its label line only, never the missing-state marker, while the header field
+    keeps the whole extent."""
+    _write(tmp_path, "0001-a.md", "# ADR-0001: A\n\n" + status_lines + "\n## Context\n\nx\n")
+    payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
+    assert payload["status"] == "ok", payload.get("error")
+    rec = payload["records"][0]
+    assert rec["lifecycle"].get("missing") is not True, rec["lifecycle"]
+    assert rec["lifecycle"]["raw_value"] == expected, rec["lifecycle"]
+    status_field = next(f for f in rec["header_fields"] if f["label"] == "Status")
+    assert status_field["raw_value"] == status_lines.split("**", 2)[2].lstrip(":").lstrip().rstrip("\n")
+
+
+def test_both_status_label_forms_make_a_record_malformed(tmp_path: pathlib.Path) -> None:
+    """A header holding both `**Status:**` and `**Status**:` has two Status
+    fields, so the whole operation refuses as malformed."""
+    _write(
+        tmp_path,
+        "0001-a.md",
+        "# ADR-0001: A\n\n- **Status:** Accepted\n- **Status**: Superseded\n\n## Context\n\nx\n",
+    )
+    payload = NAV.run_query(tmp_path, {"operation": "summary"})
+    assert payload["status"] == "error", payload

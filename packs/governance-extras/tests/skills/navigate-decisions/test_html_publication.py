@@ -633,7 +633,7 @@ def test_published_file_mode_0600(tmp_path: pathlib.Path) -> None:
 def test_fchmod_failure_closes_fd(tmp_path: pathlib.Path) -> None:
     """The temp-file descriptor is closed even when fchmod raises an error.
 
-    Captures the specific fd returned by mkstemp and asserts it is closed
+    Captures the specific fd opened for the temporary file and asserts it is closed
     after the fchmod failure — no external binary, no count slack.
 
     Mutation: removing the fd_owned_by_fdopen close in the finally block would
@@ -643,25 +643,26 @@ def test_fchmod_failure_closes_fd(tmp_path: pathlib.Path) -> None:
     import unittest.mock as _mock
 
     captured_fds: list[int] = []
-    real_mkstemp = __import__("tempfile").mkstemp
+    real_open = os.open
 
-    def capturing_mkstemp(**kwargs):  # type: ignore[no-untyped-def]
-        fd, name = real_mkstemp(**kwargs)
-        captured_fds.append(fd)
-        return fd, name
+    def capturing_open(path, flags, mode=0o777, *, dir_fd=None):  # type: ignore[no-untyped-def]
+        fd = real_open(path, flags, mode, dir_fd=dir_fd)
+        if str(path).endswith(".tmp"):
+            captured_fds.append(fd)
+        return fd
 
     target_dir = tmp_path / "out"
     target_dir.mkdir()
     target_path = target_dir / "out.html"
 
     with (
-        _mock.patch("tempfile.mkstemp", side_effect=capturing_mkstemp),
+        _mock.patch.object(os, "open", side_effect=capturing_open),
         _mock.patch.object(os, "fchmod", side_effect=OSError("fchmod blocked")),
         pytest.raises(OSError, match="fchmod blocked"),
     ):
         EXPLORER._publish_atomically(target_dir, target_path, b"content")
 
-    assert captured_fds, "mkstemp was not called"
+    assert captured_fds, "the temporary file was never opened"
     leaked_fd = captured_fds[0]
     # If the fd is still open, os.fstat(leaked_fd) succeeds.
     # If it was properly closed, it raises OSError (Bad file descriptor).
@@ -765,8 +766,8 @@ def test_no_partial_file_on_link_failure(tmp_path: pathlib.Path) -> None:
 
     called_paths: list[pathlib.Path] = []
 
-    def failing_link(src: str, dst: str) -> None:
-        called_paths.append(pathlib.Path(dst))
+    def failing_link(src: str, dst: str, **kwargs: object) -> None:
+        called_paths.append(tmp_path / dst)
         raise OSError("injected link failure")
 
     with _mock.patch.object(os, "link", failing_link):
@@ -789,7 +790,7 @@ def test_no_temp_sibling_left_on_failure(tmp_path: pathlib.Path) -> None:
     """Temp sibling must be cleaned up even when publication fails."""
     import unittest.mock as _mock
 
-    def failing_link(src: str, dst: str) -> None:
+    def failing_link(src: str, dst: str, **kwargs: object) -> None:
         raise OSError("injected link failure")
 
     # Record what files exist in tmp_path before and after.
@@ -1795,20 +1796,20 @@ def test_parse_github_identity_non_allowlisted_host_returns_none() -> None:
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX-only dir-swap test")
-@pytest.mark.parametrize("swap_phase", ["mkstemp", "os.link"])
+@pytest.mark.parametrize("swap_phase", ["open", "os.link"])
 def test_directory_swap_between_validation_and_publish_refused(
     tmp_path: pathlib.Path, swap_phase: str
 ) -> None:
-    """A directory swapped before mkstemp, or after it and before os.link, is
-    detected by that phase's identity re-check and refused with publish_failed.
+    """A directory swapped after validation is refused with publish_failed and
+    leaves no file of any name in either directory.
 
-    _validate_destination records (st_dev, st_ino) of the directory.
-    _publish_atomically re-checks the identity before mkstemp; if it has changed,
-    it raises OSError and no file is created.
-
-    This test monkeypatches _check_dir_identity to perform the actual rename
-    (simulating a TOCTOU swap) on the first call (phase='mkstemp'), then
-    delegates to the real function — which detects the mismatch.
+    Phase "open": the swap happens right after the directory descriptor opens,
+    before the temporary file exists. Phase "os.link": the swap happens after
+    the temporary file is written. Publication works relative to the validated
+    directory's descriptor, so at "os.link" the link itself would succeed (into
+    the renamed, validated directory); only the pre-link path check refuses it,
+    so this case fails when that check is a no-op. The temporary file is removed
+    through the same descriptor, so nothing is left behind.
     """
     import unittest.mock as _mock
 
@@ -1838,14 +1839,8 @@ def test_directory_swap_between_validation_and_publish_refused(
     assert result["status"] == "error", f"directory swap must cause a refusal; got {result!r}"
     assert swap_done["done"], "the swap must have happened at the named phase"
     assert result["error"]["code"] == "publish_failed", result
-    # No file in the swapped-in directory.
-    assert not list(real_dir.glob("*.html")), (
-        "no HTML file must be present in the swapped-in directory"
-    )
-    # No file in the original directory.
-    assert not list(swapped_dir.glob("*.html")), (
-        "no HTML file must be present in the original (renamed) directory"
-    )
+    assert not list(real_dir.iterdir()), list(real_dir.iterdir())
+    assert not list(swapped_dir.iterdir()), list(swapped_dir.iterdir())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2105,3 +2100,23 @@ def test_export_register_refusal_carries_the_query_limit(tmp_path: pathlib.Path)
     assert result["status"] == "error" and query["status"] == "error", (result, query)
     assert result["error"]["code"] == query["error"]["code"] == "input_too_large"
     assert result["error"]["limits"] == query["error"]["limits"], (result, query)
+
+
+def test_bounded_export_keeps_a_multi_line_header_value(tmp_path: pathlib.Path) -> None:
+    """AC-0014: a bounded export carries a wrapped header value exactly, line
+    breaks and the continuation's own indentation included."""
+    corpus = tmp_path / "corpus"
+    adr = corpus / "docs" / "adr"
+    adr.mkdir(parents=True)
+    (adr / "0001-wrapped.md").write_text(
+        "# ADR-0001: Wrapped\n\n- **Status:** Accepted\n"
+        "- **Related:** ADR-0002 (first line\n  continues here)\n\n## Context\n\nx\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "out"
+    out.mkdir()
+    result = EXPLORER.publish_explorer(corpus, destination=out, name="b.html", mode="bounded")
+    assert result["status"] == "ok", result.get("error")
+    data = _extract_json_data(pathlib.Path(result["path"]).read_text(encoding="utf-8"))
+    fields = {f["label"]: f["raw_value"] for f in data["records"][0]["header_fields"]}
+    assert fields["Related"] == "ADR-0002 (first line\n  continues here)", fields

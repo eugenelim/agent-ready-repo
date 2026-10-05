@@ -899,43 +899,48 @@ def _publish_atomically(
 ) -> None:
     """Write content to target_path via an owner-scoped temporary sibling.
 
-    mkstemp → fchmod 0o600 → write → fsync → os.link (no-replace) → unlink temp.
-    Leaves no partial output on any failure path.
+    create temp (0o600, exclusive) → write → fsync → os.link (no-replace) →
+    unlink temp. Leaves no partial output on any failure path.
 
-    When dir_identity is provided (st_dev, st_ino from _validate_destination),
-    the directory's identity is verified immediately before mkstemp and before
-    os.link to detect any directory swap between validation and publication.
-    On POSIX the check uses lstat without following symlinks.
+    On POSIX every step runs relative to one descriptor for the destination
+    directory, opened without following links and checked against the identity
+    recorded at validation. A rename or swap of the directory's path after that
+    cannot redirect the write, the link or the cleanup: all of them act on the
+    validated directory. Immediately before the link, the path must still name
+    that directory, so the reported location stays true; otherwise publication
+    is refused and the temporary file is removed through the same descriptor.
     """
-    # Verify directory identity before mkstemp.
-    if dir_identity is not None and _IS_POSIX:
-        _check_dir_identity(target_dir, dir_identity, "mkstemp")
-
-    descriptor, tmp_name = tempfile.mkstemp(
-        prefix=".nav-decisions-",
-        suffix=".tmp",
-        dir=str(target_dir),
-    )
-    tmp_path = Path(tmp_name)
-    published = False
-    # Track whether fdopen has taken ownership of descriptor.
-    fd_owned_by_fdopen = False
+    if not _IS_POSIX:
+        _publish_by_path(target_dir, target_path, content)
+        return
+    dir_fd = os.open(str(target_dir), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        if _IS_POSIX:
+        if dir_identity is not None:
+            st = os.fstat(dir_fd)
+            if (st.st_dev, st.st_ino) != dir_identity:
+                raise OSError(
+                    "destination directory identity changed between validation and "
+                    "open; refusing publication"
+                )
+            _check_dir_identity(target_dir, dir_identity, "open")
+        name = target_path.name
+        tmp_name = f".nav-decisions-{os.urandom(8).hex()}.tmp"
+        descriptor = os.open(
+            tmp_name,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+            dir_fd=dir_fd,
+        )
+        published = False
+        fd_owned_by_fdopen = False
+        try:
             os.fchmod(descriptor, 0o600)
-        with os.fdopen(descriptor, "wb") as handle:
-            fd_owned_by_fdopen = True
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        if _IS_POSIX and _stat.S_IMODE(tmp_path.stat().st_mode) != 0o600:
-            raise OSError("temporary file permissions are not owner-only after fchmod")
-        # Validate the temp file identity before linking: it must be a regular
-        # file with exactly one hard link (nlink == 1) so the link will create
-        # exactly two references before we unlink the temp.  This ties the
-        # publication to the identity of the file we wrote, not a replacement.
-        if _IS_POSIX:
-            tmp_st = Path(tmp_name).stat()
+            with os.fdopen(descriptor, "wb") as handle:
+                fd_owned_by_fdopen = True
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
+            tmp_st = os.stat(tmp_name, dir_fd=dir_fd, follow_symlinks=False)
             if not _stat.S_ISREG(tmp_st.st_mode):
                 raise OSError("temporary file is not a regular file before link")
             if tmp_st.st_nlink != 1:
@@ -943,24 +948,54 @@ def _publish_atomically(
                     f"temporary file has {tmp_st.st_nlink} links before os.link; "
                     "expected 1"
                 )
-        # Re-check directory identity immediately before os.link.
-        if dir_identity is not None and _IS_POSIX:
-            _check_dir_identity(target_dir, dir_identity, "os.link")
+            if _stat.S_IMODE(tmp_st.st_mode) != 0o600:
+                raise OSError("temporary file permissions are not owner-only")
+            if dir_identity is not None:
+                _check_dir_identity(target_dir, dir_identity, "os.link")
+            os.link(
+                tmp_name, name, src_dir_fd=dir_fd, dst_dir_fd=dir_fd, follow_symlinks=False
+            )
+            published = True
+        except FileExistsError as exc:
+            raise ValueError("destination already exists (race condition)") from exc
+        finally:
+            if not fd_owned_by_fdopen:
+                with contextlib.suppress(OSError):
+                    os.close(descriptor)
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_name, dir_fd=dir_fd)
+        if published:
+            final_st = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            if _stat.S_IMODE(final_st.st_mode) != 0o600:
+                with contextlib.suppress(OSError):
+                    os.unlink(name, dir_fd=dir_fd)
+                raise OSError("published file permissions are not owner-only")
+    finally:
+        os.close(dir_fd)
+
+
+def _publish_by_path(target_dir: Path, target_path: Path, content: bytes) -> None:
+    """Non-POSIX publication: the same steps by path (no directory descriptors)."""
+    descriptor, tmp_name = tempfile.mkstemp(
+        prefix=".nav-decisions-", suffix=".tmp", dir=str(target_dir)
+    )
+    tmp_path = Path(tmp_name)
+    fd_owned_by_fdopen = False
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            fd_owned_by_fdopen = True
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
         os.link(tmp_name, str(target_path))
-        published = True
     except FileExistsError as exc:
         raise ValueError("destination already exists (race condition)") from exc
     finally:
-        # Close the fd only when fdopen has not already taken ownership.
         if not fd_owned_by_fdopen:
             with contextlib.suppress(OSError):
                 os.close(descriptor)
         with contextlib.suppress(OSError):
             tmp_path.unlink()
-    if published and _IS_POSIX and _stat.S_IMODE(target_path.stat().st_mode) != 0o600:
-        with contextlib.suppress(OSError):
-            target_path.unlink()
-        raise OSError("published file permissions are not owner-only")
 
 
 # ── publish_explorer ──────────────────────────────────────────────────────────

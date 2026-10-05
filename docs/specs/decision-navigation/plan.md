@@ -259,9 +259,44 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 
 **Done when:** Every row of the T7 corrections table is closed by its listed mode and marked closed, the Chrome evidence is re-recorded, and the T3 and T5 gates still pass.
 
+### T8 — Round-4 review corrections and the header and selector amendment
+
+**Depends on:** T7
+
+**Touches:** `packs/governance-extras/.apm/skills/navigate-decisions/**`, `packs/governance-extras/tests/skills/navigate-decisions/**`, `guides/governance-extras/how-to/navigate-decisions.md`, `docs/specs/decision-navigation/notes/verification-ledger.md`, owned generated projections
+
+**Verification mode:** TDD for query, parsing and publication; scripted desktop Chrome checks for the explorer — `test_query_contract.py`, `test_html_publication.py`, `browser_checks.py`, and the verification ledger.
+
+**Tests:**
+
+- Close each of the 20 findings sustained by the fourth post-gates review by the mode below, using the pass conditions defined under T7, and record each closure in the ledger's "Round-4 review corrections" section, a table with the T7 table's columns (ID, Severity, Finding, Closes by, Status). Within that section only each row's Status may change; any change to this set, a mode, or a pass condition needs a controlled amendment.
+  - R4-ADV-1 (document change): the spec and the guide state that a selector whose only key is a caller grouping is refused with `invalid_selector`, matching the shipped refusal.
+  - R4-ADV-2 (scripted Chrome check): detail shows the Status header field's row when its carried value, with one trailing HTML comment and trailing whitespace removed, differs from the lifecycle `raw_value`, as for a wrapped Status; a one-line Status shows a single Status row.
+  - R4-ADV-3 (failing test): a wrapped supersession field yields an entry for every identity in its whole extent.
+  - R4-ADV-4 (scripted Chrome check): see R4-FE-1 and R4-FE-2.
+  - R4-ADV-5 (document change): the QE-11 row records the round-3 closure, and the R2-EXP-1 row names only the links a check measures.
+  - R4-ADV-6 (failing test): a bounded export keeps a multi-line header value exactly; the swap-test docstring describes both phases.
+  - R4-SEC-1 (failing test): the AC-0001 admission-time condition holds.
+  - R4-FE-1 (scripted Chrome check): no two `in part` label plates intersect, and no plate intersects a node box or an arrowhead box, in the focused graph and the atlas, on a fixture where four partial edges enter one node.
+  - R4-FE-2 (scripted Chrome check): full and partial edge arrowheads have the same rendered size.
+  - R4-FE-3 (scripted Chrome check): a caller-asserted edge between two chain members in one column with a node between them has no point inside any other node's box, and its `asserted` label plate intersects no node box, arrowhead box or other label plate.
+  - R4-FE-4 (scripted Chrome check): on a view without sections, activating Expand all leaves its label unchanged.
+  - R4-FE-5 (scripted Chrome check): text-list node buttons align to the top of their list item.
+  - R4-QE-1 (failing test): after a refused publication at either phase, neither the validated nor the swapped-in directory holds a file of any name.
+  - R4-QE-2 (failing test): a swap before the link is refused even when the link would otherwise succeed, so the case fails when the pre-link check is a no-op; the ADV-7 row states what each swap case proves.
+  - R4-QE-3 (document change): see R4-ADV-5.
+  - R4-QE-4 (scripted Chrome check): partial edges carry the hollow inner stroke and an `in part` label in both views, and differ from full edges.
+  - R4-EXP-1 (scripted Chrome check): the node focus indicator reaches 3:1 against the canvas in both themes and does not touch the supersession ring.
+  - R4-EXP-2 (scripted Chrome check): with scripts disabled and a dark system preference, the banner, info panel, form controls and title use their dark styles.
+  - R4-EXP-3 (scripted Chrome check): see R4-FE-1.
+  - R4-EXP-4 (scripted Chrome check): the partially superseded ID uses one underline style in the list, focused graph and atlas.
+- A wrapped Status keeps its label-line lifecycle value and its whole header extent, a header whose only Status line is `- **Status**: Accepted` yields the lifecycle `raw_value` `Accepted` and never the missing-state marker, and a header holding both `**Status:**` and `**Status**:` is malformed, pinned in query tests (**AC-0001, AC-0006**).
+
+**Done when:** All 20 round-4 findings are closed by their modes and marked closed in the ledger, the AC-0016 evidence and the AC-0022 case-variant run are recorded on a commit containing T8's final code, and the T3 and T5 gates still pass.
+
 ### T6 — Measured outcome evidence and completion gates pass
 
-**Depends on:** T3-T5, T7
+**Depends on:** T3-T5, T7, T8
 
 **Touches:** `docs/specs/decision-navigation/notes/verification-ledger.md`; a correction outside the T1–T5 Touches returns through controlled plan amendment
 
@@ -305,3 +340,6 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 - 2026-10-04 — Controlled amendment after post-gates review: added T7 for the explorer redesign and all sustained review corrections; AC-0010 now admits safe Markdown rendering with parse, styling, escaping, and content-security-policy limits; added AC-0025 (supersession markers) and AC-0026 (visual lineage, chains, and cycles); T7 closes the tracked corrections table in the ledger. Owner authorized in-session.
 - 2026-10-04 — Amended spec approved (scope decision) by the repository owner: Markdown in AC-0010, AC-0025, and AC-0026.
 - 2026-10-04 — Amended plan approved (build-strategy decision) by the repository owner: T7 and its 58 pinned corrections.
+- 2026-10-05 — Controlled amendment during review round 4 (`owner-session-2026-10-05-grouping-and-header-extent-amendment`): the spec states one extent for every header field's value and reads supersession entries from it, and refuses a selector whose only key is a caller grouping (owner decision the same day). T8 is added for the round-4 corrections; T6 now depends on T8.
+- 2026-10-05 — Amended spec approved (scope decision) by the repository owner.
+- 2026-10-05 — Amended plan approved (build-strategy decision) by the repository owner.

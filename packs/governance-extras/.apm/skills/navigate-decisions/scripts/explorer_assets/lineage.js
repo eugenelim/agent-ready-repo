@@ -173,19 +173,19 @@ function addDefs(svg,pfx){
   // Filled arrowhead (checked)
   var m1=svgEl('marker');
   sa(m1,'id',pfx+'af');sa(m1,'markerWidth','10');sa(m1,'markerHeight','7');
-  sa(m1,'refX','9');sa(m1,'refY','3.5');sa(m1,'orient','auto');
+  sa(m1,'refX','9');sa(m1,'refY','3.5');sa(m1,'orient','auto');sa(m1,'markerUnits','userSpaceOnUse');
   var p1=svgEl('polygon');sa(p1,'points','0 0, 10 3.5, 0 7');sa(p1,'fill','#374151');
   m1.appendChild(p1);d.appendChild(m1);
   // Open arrowhead (unresolved)
   var m2=svgEl('marker');
   sa(m2,'id',pfx+'ao');sa(m2,'markerWidth','10');sa(m2,'markerHeight','7');
-  sa(m2,'refX','9');sa(m2,'refY','3.5');sa(m2,'orient','auto');
+  sa(m2,'refX','9');sa(m2,'refY','3.5');sa(m2,'orient','auto');sa(m2,'markerUnits','userSpaceOnUse');
   var p2=svgEl('polyline');sa(p2,'points','0 0, 10 3.5, 0 7');sa(p2,'fill','none');
   sa(p2,'stroke','#9ca3af');sa(p2,'stroke-width','1.5');m2.appendChild(p2);d.appendChild(m2);
   // Hollow arrowhead (asserted)
   var m3=svgEl('marker');
   sa(m3,'id',pfx+'ah');sa(m3,'markerWidth','10');sa(m3,'markerHeight','7');
-  sa(m3,'refX','9');sa(m3,'refY','3.5');sa(m3,'orient','auto');
+  sa(m3,'refX','9');sa(m3,'refY','3.5');sa(m3,'orient','auto');sa(m3,'markerUnits','userSpaceOnUse');
   var p3=svgEl('polygon');sa(p3,'points','0 0, 10 3.5, 0 7');sa(p3,'fill','white');
   sa(p3,'stroke','#a78bfa');sa(p3,'stroke-width','1.2');m3.appendChild(p3);d.appendChild(m3);
   svg.appendChild(d);
@@ -233,6 +233,11 @@ function edgeLabel(g,x1,y1,x2,y2,txt,fill){
     var tt=svgEl('title');tt.textContent=txt;t.appendChild(tt);
     txt=txt.slice(0,MAX_LABEL-1)+'…';
   }
+  // Labels that land on the same target side step down one plate height each,
+  // so fan-in labels never cover one another.
+  var slots=g._labelSlots||(g._labelSlots={}),key=Math.round(x2),used=slots[key]||(slots[key]=[]);
+  while(used.some(function(u){return Math.abs(u-y2)<13;}))y2+=13;
+  used.push(y2);
   // A plate behind the text keeps crossing edges from running through it.
   var plate=svgEl('rect');
   sa(plate,'x',x2+11);sa(plate,'y',y2-6);sa(plate,'width',txt.length*6+6);sa(plate,'height',12);
@@ -303,9 +308,16 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   var titleEl=svgEl('title');titleEl.textContent=nid+': '+titleTxt+' ('+lcv+')';
   g.appendChild(titleEl);
   // Visible focus ring
-  var fr=svgEl('rect');
-  sa(fr,'x',x-3);sa(fr,'y',y-3);sa(fr,'width',nw+6);sa(fr,'height',nh+6);
-  sa(fr,'rx','9');sa(fr,'fill','none');sa(fr,'stroke','#f59e0b');sa(fr,'stroke-width','3');
+  // A dark outer ring guarantees 3:1 on the light canvas; the amber inner ring
+  // keeps the familiar focus colour. Both sit outside the supersession ring.
+  var fr=svgEl('g');fr.setAttribute('class','focus-ring');
+  var fo=svgEl('rect');
+  sa(fo,'x',x-9);sa(fo,'y',y-9);sa(fo,'width',nw+18);sa(fo,'height',nh+18);
+  sa(fo,'rx','12');sa(fo,'fill','none');sa(fo,'stroke','#111827');sa(fo,'stroke-width','2');
+  var fi=svgEl('rect');
+  sa(fi,'x',x-7);sa(fi,'y',y-7);sa(fi,'width',nw+14);sa(fi,'height',nh+14);
+  sa(fi,'rx','10');sa(fi,'fill','none');sa(fi,'stroke','#f59e0b');sa(fi,'stroke-width','2');
+  fr.appendChild(fo);fr.appendChild(fi);
   fr.style.display='none';g.appendChild(fr);
   g.addEventListener('click',function(){navigate_fn('graph',nid);});
   g.addEventListener('keydown',function(e){
@@ -547,7 +559,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       var x2=PX+tp.col*(NW+XG)+NW,y2=PY+tp.row*(NH+YG)+ports[ri].y2;
       drawEdge(eg,x1,y1,x2,y2,stroke,isPartial?'4':'2',null,'url(#'+pfx+'af)').dataset.rel=relKey(r);
       // Partial supersession reads as a hollow double line, not colour alone.
-      if(isPartial)drawEdge(eg,x1,y1,x2,y2,'#ffffff','1.5',null,null);
+      if(isPartial)drawEdge(eg,x1,y1,x2,y2,'#ffffff','1.5',null,null).setAttribute('data-inner','part');
       if(isPartial){
         var sc2='in part · '+(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated');
         edgeLabel(lg,x1,y1,x2,y2,sc2,'#1d4ed8');
@@ -580,17 +592,20 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var peerId=r.from===selectedId?r.to:r.from;
     var pp=np[peerId],sp0=np[selectedId];
     if(pp&&sp0){
+      // Route through the free gutter right of each column and the free gap
+      // above the target row, so the edge never passes beneath another node.
       var fpA=np[r.from],tpA=np[r.to];
-      var ax1=PX+fpA.col*(NW+XG)+NW/2,ay1=PY+fpA.row*(NH+YG)+(fpA.row<=tpA.row?NH:0);
-      var ax2=PX+tpA.col*(NW+XG)+NW/2,ay2=PY+tpA.row*(NH+YG)+(fpA.row<=tpA.row?0:NH);
-      if(fpA.row===tpA.row){ay1=PY+fpA.row*(NH+YG)+NH;ay2=ay1;}
+      var fx=PX+fpA.col*(NW+XG)+NW,fy=PY+fpA.row*(NH+YG)+NH*0.7;
+      var tx=PX+tpA.col*(NW+XG)+NW,ty=PY+tpA.row*(NH+YG)+NH*0.3;
+      var gf=fx+XG*0.3,gt=tx+XG*0.3,gapY=PY+tpA.row*(NH+YG)-YG/2;
+      if(tpA.row===0)gapY=PY/2;
       var ap=svgEl('path');
-      var my=Math.max(ay1,ay2)+(fpA.row===tpA.row?30:0);
-      sa(ap,'d','M '+ax1+','+ay1+' C '+ax1+','+my+' '+ax2+','+my+' '+ax2+','+ay2);
+      sa(ap,'d','M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+gapY+' L '+gt+','+gapY+
+        ' L '+gt+','+ty+' L '+tx+','+ty);
       sa(ap,'fill','none');sa(ap,'stroke','#7c3aed');sa(ap,'stroke-width','1.5');
       sa(ap,'stroke-dasharray','8 3 2 3');sa(ap,'marker-end','url(#'+pfx+'ah)');
       ap.dataset.rel=relKey(r);eg.appendChild(ap);
-      edgeLabel(lg,ax1,ay1,(ax1+ax2)/2-40,my-(fpA.row===tpA.row?0:6),'asserted','#7c3aed');
+      edgeLabel(lg,fx,fy,gt+4,ty-4,'asserted','#7c3aed');
       return;
     }
     var sx=satX,sy=satY;satY+=NH+YG;
@@ -748,7 +763,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
       var partA=r.relation==='supersedes_in_part';
       drawEdge(eg2,x1,y1,x2,y2,partA?'#1d4ed8':'#374151',partA?'3.5':'1.5',null,'url(#'+pfx+'af)');
       if(partA){
-        drawEdge(eg2,x1,y1,x2,y2,'#ffffff','1.2',null,null);
+        drawEdge(eg2,x1,y1,x2,y2,'#ffffff','1.2',null,null).setAttribute('data-inner','part');
         edgeLabel(lg2,x1,y1,x2,y2,'in part','#1d4ed8');
       }
     });

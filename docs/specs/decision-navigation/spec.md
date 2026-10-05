@@ -59,11 +59,13 @@ Admission reads only a candidate's header region: the lines after its H1 and
 before its first `## ` heading. ADR and RFC shapes are deliberately minimal and
 identical apart from the prefix. The first line is an H1 of the form
 `# ADR-NNNN: <title>` or `# RFC-NNNN: <title>` whose `NNNN` equals the basename
-ordinal, and the header region holds at most one `**Status:**` field. A missing
+ordinal, and the header region holds at most one Status field. A missing
 Status field yields the missing-state marker; any present value is admitted as
 its `raw_value`, whether or not a template lists it. A candidate is malformed
 only when its H1 is absent or disagrees with its basename, or its header region
-holds more than one `**Status:**` field. Supersession entries that are
+holds more than one Status field. A Status field is any header field labelled
+`Status` under the label rule below, whether written `**Status:**` or
+`**Status**:`. Supersession entries that are
 unparseable, one-sided, contradictory, or point to a missing endpoint never make
 a candidate malformed; they become unresolved evidence. `lint-adr-shape.py`
 checks, including its cross-record checks, remain authoring gates and are not
@@ -91,12 +93,18 @@ scopes, including two equal unstated scopes, which the view labels
 "scope not stated". Every other supersession entry is a relationship with
 `resolution_state=unresolved`.
 
-A header field line starts at column 0 with `- **`. A `Related` field starts on
-a header field line whose bold label, with any trailing colon removed, is
-exactly `Related`; this covers `**Related:**`, `**Related** (…):`, and
-`**Related** —`. The field continues through following lines, including
-indented nested bullets, until the first line that is blank or that starts at
-column 0 with `- **`, `>`, `#`, or `**`. Each distinct token matching
+A header field line starts at column 0 with `- **`. Its label is the bold text
+with one trailing colon removed, so `**Label:**` and `**Label**:` both have the
+label `Label`. A field's extent is the rest of its line after the field's whole
+bold span and at most one colon directly after it, plus each following line, wrapped text and indented nested bullets
+included, up to the first line that is blank or that starts at column 0 with
+`- **`, `>`, `#`, or `**`. Records carry every header field by label and value:
+the extent's lines joined by line breaks, with leading whitespace removed from the
+first line and nothing else changed. A supersession field's entries are read from
+its whole extent with line breaks treated as spaces. A `Related` field starts on
+a header field line whose label is exactly `Related`; this covers
+`**Related:**`, `**Related** (…):`, and `**Related** —`, and its references are
+read from the field's whole extent. Each distinct token matching
 `ADR-NNNN` or `RFC-NNNN` in that text, bare or inside a link, is one contextual
 reference from that record, except a token naming the record itself; paths,
 intent identities, research links, and other text are not references. A
@@ -107,8 +115,10 @@ kind, supersession and contextual, with `resolution_state=unresolved`. A candida
 than 2 MiB is refused with code `input_too_large` under the same
 whole-operation rule.
 
-A lifecycle `raw_value` is the `**Status:**` field text after its label, with
-surrounding whitespace and one trailing HTML comment (`<!-- … -->`) removed.
+A lifecycle `raw_value` is the text on the Status field's label line after its
+whole bold span and at most one colon directly after it, and only that line, with surrounding whitespace and one trailing HTML comment (`<!-- … -->`)
+removed; continuation lines belong to the Status header field's extent but not to
+the lifecycle value.
 Every other character is kept byte for byte, so a qualifier such as
 `Accepted (superseded in part by ADR-0111 …)` stays part of the value.
 
@@ -116,7 +126,10 @@ Every other character is kept byte for byte, so a qualifier such as
 CLI argument names: `summary`, `search`, `record`, `lineage`, and `context`.
 `record` takes one exact identity. `lineage` takes one exact identity, a
 direction of `older`, `newer`, or `both`, and a depth from 1 through 4. `search` and `context` take at least one explicit
-kind, exact-status, text, identity, or caller-grouping selector. `summary`
+selector; each selector holds at least one kind, exact-status, text, or identity
+key. A caller-grouping key only labels a selector beside one of those keys; a
+selector whose only key is a caller grouping filters nothing and is refused with
+`invalid_selector`. `summary`
 aggregates the whole admitted population and returns no record entries: its
 success result carries an empty `records` list and a `summary` object with
 counts by kind and exact lifecycle value, the unresolved-reference count, and
@@ -256,14 +269,14 @@ and a validated ref, each percent-encoded one segment at a time.
 ## Testing Strategy
 
 - **Scripted Chrome check (AC-0010, AC-0025, AC-0026):** A scripted desktop-Chrome run of a hostile-fixture export walks the rendered record body and diagram DOM and asserts the element allowlist, text-node-only record text, inert links, unloaded images, literal raw HTML, visible escaping of link targets and image alt text, the 32-level nesting fallback, supersession markers, and diagram layering. It also renders a 2 MiB pathological body (deeply nested quotes and lists, unclosed emphasis, and long backtick runs) and passes only if the body finishes rendering within 2 seconds without a stack error, and it reads computed styles to prove the record-content container and its headings share no border, colour, or marker style with the evidence rails or AC-0025 markers and that body headings are smaller than page headings.
-- **TDD (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0013, AC-0017, AC-0018, AC-0019, AC-0021, AC-0022, AC-0024):** Contract tests own record population, filters, bounded defaults, the versioned query envelope, exact lifecycle values, checked and unresolved lineage, explicit detail, deterministic failure, confined reads, destination safety, inert content, cross-view fact parity, trust labels, and activation routing.
+- **TDD (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0013, AC-0017, AC-0018, AC-0019, AC-0021, AC-0022, AC-0024):** Contract tests own record population and its admission-time bound, filters, bounded defaults, the versioned query envelope, exact lifecycle values, checked and unresolved lineage, explicit detail, deterministic failure, confined reads, destination safety, inert content, cross-view fact parity, trust labels, and activation routing.
 - **Goal-based checks (AC-0012, AC-0014, AC-0015):** Full and bounded exports from the same mixed corpus prove self-containment, disclosed omissions, source handoff, multi-form navigation, and the selected representation rule.
 - **Visual and manual QA (AC-0016, AC-0023, AC-0025, AC-0026):** Desktop Chrome verifies offline list, lifecycle-graph, guidance-context, and detail views; browser history navigation; keyboard flow; visible focus; high-zoom reflow; reduced-motion handling; single activation; required states; relationship trust labels; support references; and source labelling.
 - **Comparative task evidence (AC-0020):** Freeze and run the comparative panel, session mix, scoring, and pass thresholds defined by AC-0020.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Population and filters: Given a mixed fixture corpus, discovery and filtering implement the admitted population, exclusions, selectors, and whole-corpus failure rules defined by the Corpus and query contract. Returned counts and members exactly match that contract; a candidate cannot disappear silently because it is malformed, oversized, duplicated, unsafe, or identity-changing. The live repository corpus passes admission under the stated ADR and RFC shapes.
+- [ ] **AC-0001.** Population and filters: Given a mixed fixture corpus, discovery and filtering implement the admitted population, exclusions, selectors, and whole-corpus failure rules defined by the Corpus and query contract. Returned counts and members exactly match that contract; a candidate cannot disappear silently because it is malformed, oversized, duplicated, unsafe, or identity-changing. The live repository corpus passes admission under the stated ADR and RFC shapes. A candidate of at least 1.9 MiB whose header is one `Superseded by` field followed by at least 200,000 continuation lines that each carry an identity token, and that stays within the 2 MiB bound, is admitted in under 2 seconds by the contract test under Python 3.11 on the `ubuntu-latest` CI runner.
 - [ ] **AC-0002.** Bounded default and detail: Every query enforces the body-availability rules, limits, ordering, oversized-record behavior, and over-limit refusal defined by the Corpus and query contract. No successful or refused result silently truncates or returns partial records.
 - [ ] **AC-0003.** Versioned query shape: Successful and refused agent queries conform exactly to the versioned operations, selectors, envelopes, record fields, relationship projection fields, ordering, and error variants defined by the Corpus and query contract. Projection facts add no required field to a source ADR or RFC.
 - [ ] **AC-0004.** Checked lineage: A full or partial supersession edge is emitted only when both endpoints exist and reciprocal metadata agrees on relation and scope. A valid partial edge retains its scope label. Fixtures with a leading-zero D-ID and with a D-ID longer than four digits prove such entries are unparseable, stay unresolved, and never yield a checked edge.

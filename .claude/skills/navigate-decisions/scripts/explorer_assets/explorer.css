@@ -209,11 +209,11 @@ nav[aria-label="Views"] button[aria-current="page"]{
 /* Superseded: muted visual */
 .record-item.is-superseded .rtitle{color:var(--text-muted)}
 .record-item.is-superseded .rid{text-decoration:line-through}
-.record-item.is-superseded-part .rid{text-decoration:underline dashed;text-underline-offset:3px}
+.record-item.is-superseded-part .rid{text-decoration:underline;text-underline-offset:3px}
 .bounded-notice a{color:#1e3a8a}
 :root[data-theme="dark"] .bounded-notice{background:#3b2200;color:#fcd34d}
 :root[data-theme="dark"] .bounded-notice a{color:#bfdbfe}
-.lt-node-btn{background:none;border:0;padding:.2rem .3rem;font:inherit;text-align:left;
+.lt-node-btn{vertical-align:top;background:none;border:0;padding:.2rem .3rem;font:inherit;text-align:left;
   color:var(--id-color);cursor:pointer;min-height:24px}
 .lt-node-btn:hover{text-decoration:underline}
 .ctx-record{margin:.1rem 0 .5rem;color:var(--text-muted);font-size:.88rem}
@@ -479,3 +479,23 @@ a{color:var(--accent)}
 .chain-atlas .chain-card{flex:1 1 auto;max-width:100%;margin:0}
 /* Header values keep their recorded line breaks. */
 .meta-table td{white-space:pre-wrap}
+/* System dark preference before the script sets data-theme: component rules. */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme]){color-scheme:dark}
+  :root:not([data-theme]) .theme-toggle button[aria-pressed="true"]{color:#0b1220}
+  :root:not([data-theme]) .info-panel{background:#1a2040;border-color:#2d3a6e;color:#9ca3af}
+  :root:not([data-theme]) .mode-notice{background:#3b2200;border-color:#92400e;color:#fcd34d}
+  :root:not([data-theme]) .bounded-notice{background:#3b2200;color:#fcd34d}
+  :root:not([data-theme]) .bounded-notice a{color:#bfdbfe}
+  :root:not([data-theme]) .supersede-banner a{color:#bfdbfe}
+  :root:not([data-theme]) .supersede-banner{color:#fcd34d;background:linear-gradient(90deg,#451a03,#3b1e00);
+    border-top-color:#92400e;border-left-color:#d97706}
+  :root:not([data-theme]) .record-content{background:rgba(15,17,23,.4)}
+  :root:not([data-theme]) .record-content pre,:root:not([data-theme]) .record-content code{background:rgba(255,255,255,.08)}
+  :root:not([data-theme]) .record-content pre code{background:none}
+  :root:not([data-theme]) .record-content th{background:rgba(255,255,255,.06)}
+  :root:not([data-theme]) .lineage-wrap,:root:not([data-theme]) .chain-svg-wrap{background:#f8fafc;border-radius:var(--radius-sm);padding:.4rem}
+  :root:not([data-theme]) .title-gradient{background:linear-gradient(90deg,#93c5fd 0%,#c4b5fd 50%,#67e8f9 100%);
+    -webkit-background-clip:text;background-clip:text;color:#93c5fd}
+  :root:not([data-theme]) .kind-pill.active,:root:not([data-theme]) nav[aria-label="Views"] button[aria-current="page"]{color:#0b1220}
+}

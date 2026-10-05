@@ -101,7 +101,8 @@ _RESEARCH_RE = re.compile(r"-research\.md$")
 
 # Header-region patterns.
 _H1_RE = re.compile(r"^# (ADR|RFC)-([0-9]{4}): (.+)$")
-_STATUS_RE = re.compile(r"^- \*\*Status:\*\*\s*(.*)$")
+# The Status field in either label form: **Status:** or **Status**:
+_STATUS_RE = re.compile(r"^- \*\*Status(?::\*\*|\*\*:)\s*(.*)$")
 _FIELD_START_RE = re.compile(r"^- \*\*")
 # Bold label (content between first pair of **).
 _BOLD_LABEL_RE = re.compile(r"^- \*\*([^*]+)\*\*")
@@ -459,50 +460,39 @@ def _parse_record_text(
         missing_status = False
         display_lifecycle = _escape_display(raw_lifecycle)
 
-    # Parse supersession fields.
-    supersession_entries: list[dict[str, Any]] = []
-    for line in header_lines:
-        m2 = _BOLD_LABEL_RE.match(line)
-        if not m2:
-            continue
-        bold_label = m2.group(1).rstrip(":")
-        if bold_label not in _SUPERS_LABELS:
-            continue
-        field_key = _SUPERS_LABELS[bold_label]
-        # Value is the rest of the line after the ** closing ** and colon.
-        # Pattern: - **Label:** value  OR  - **Label:** value
-        colon_pos = line.find(":**")
-        if colon_pos != -1:
-            rest = line[colon_pos + 3:].lstrip()
-        else:
-            # - **Label** value (no colon after label)
-            end_bold = line.find("**", 3)
-            rest = line[end_bold + 2:].lstrip(": ")
-        entries = _parse_supersession_field(field_key, rest)
-        supersession_entries.extend(entries)
-
-    # Parse Related field contextual references.
-    related_tokens = _parse_related_tokens(header_lines, record_id)
-
-    # Build ordered header field list: every bold-labeled line in the header region,
-    # preserving declaration order and including 'none' supersession values.
-    # A field's value continues through following lines (wrapped text and
-    # indented nested bullets) until a blank line or a column-0 line that starts
-    # with "- **", ">", "#" or "**" — the same extent the Related grammar uses.
-    header_field_list: list[dict[str, str]] = []
-    current: dict[str, str] | None = None
+    # Header fields: each value is the label line's text plus every following
+    # line up to a blank line or a column-0 line starting with "- **", ">", "#"
+    # or "**". Lines are collected in lists and joined once, so a field with a
+    # million continuation lines still parses in linear time.
+    field_parts: list[tuple[str, list[str]]] = []
+    current_parts: list[str] | None = None
     for line in header_lines:
         m3 = _BOLD_LABEL_RE.match(line)
         if m3:
-            label = m3.group(1).rstrip(":")
-            current = {"label": label, "raw_value": _extract_header_field_value(line)}
-            header_field_list.append(current)
+            current_parts = [_extract_header_field_value(line)]
+            field_parts.append((m3.group(1).rstrip(":"), current_parts))
             continue
         if not line or line.startswith(("- **", ">", "#", "**")):
-            current = None
+            current_parts = None
             continue
-        if current is not None:
-            current["raw_value"] += "\n" + line
+        if current_parts is not None:
+            current_parts.append(line)
+    header_field_list: list[dict[str, str]] = [
+        {"label": label, "raw_value": "\n".join(parts)} for label, parts in field_parts
+    ]
+
+    # Supersession entries are read from each supersession field's whole value,
+    # with line breaks treated as spaces.
+    supersession_entries: list[dict[str, Any]] = []
+    for field in header_field_list:
+        field_key = _SUPERS_LABELS.get(field["label"])
+        if field_key is None:
+            continue
+        whole = " ".join(field["raw_value"].split("\n"))
+        supersession_entries.extend(_parse_supersession_field(field_key, whole))
+
+    # Parse Related field contextual references.
+    related_tokens = _parse_related_tokens(header_lines, record_id)
 
     # Body: everything from first ## heading to end.
     body_text = "\n".join(lines[body_start_idx:]) if body_start_idx < len(lines) else ""

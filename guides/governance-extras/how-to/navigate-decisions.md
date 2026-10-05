@@ -75,7 +75,7 @@ Real output (trimmed):
 }
 ```
 
-Selectors are combined with OR logic: a record matching any selector is returned. Valid selector keys: `kind` (ADR or RFC), `exact_status`, `text` (title and lifecycle status keyword — does not search the body), `identity` (record ID), `grouping` (caller-supplied group label; no filter effect).
+Selectors are combined with OR logic: a record matching any selector is returned. Valid selector keys: `kind` (ADR or RFC), `exact_status`, `text` (title and lifecycle status keyword — does not search the body), `identity` (record ID), `grouping` (caller-supplied group label; no filter effect). A selector whose only key is `grouping` filters nothing, so it is refused with `invalid_selector`; put `grouping` beside a `kind`, `exact_status`, `text` or `identity` key.
 
 ### Record — fetch a specific decision with its body
 
