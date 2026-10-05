@@ -1,0 +1,7 @@
+Tool: code-search
+Description: Search the indexed codebase for symbol definitions, references, and
+usage patterns. Returns matches with file locations and surrounding context.
+Limitation: the index covers at most two directory levels from the repository root;
+files in subdirectories deeper than two levels are not indexed and will not appear
+in results. Index freshness is not guaranteed; recently added or renamed files may
+be absent.
