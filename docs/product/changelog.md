@@ -80,6 +80,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
 - The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
 
+## [frontend-engineering][0.4.5] — 2026-10-04
+
+### Changed
+
+- The evidence manifest's `visual authority` field now lists every upstream gap the build held, with its axes, operation kind and where it was routed, so a held axis is visible rather than read as an absence.
+- The `visual-authority-silent-domain` eval asks for the bound custom-property block and the gap record, so its fixed checks grade what the run produced.
+
 ## [frontend-engineering][0.4.4] — 2026-10-04
 
 ### Highlights

@@ -1085,6 +1085,7 @@ def test_the_silent_domain_eval_grades_the_hold(skills: Path, eval_cases: dict[s
     case = eval_cases.get("visual-authority-silent-domain")
     assert case is not None, "visual-authority-silent-domain is not installed"
     assert "no typography values" in case["prompt"]
+    assert "custom-property block you bound" in case["prompt"]
     assertions = case["assertions"]
     assert any(a.startswith("Does not") and "silent typography domain" in a for a in assertions)
     assert any(not a.startswith("Does not") and "upstream gap" in a for a in assertions)
