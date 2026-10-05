@@ -1,0 +1,11 @@
+{
+  "query": "shared library",
+  "matches": [
+    {
+      "file": "/shared/libs/common.py",
+      "line": 1,
+      "context": "# shared library module"
+    }
+  ],
+  "suggestion": "The file is under /shared/libs/. Add /shared/libs/ as an approved root to read it."
+}

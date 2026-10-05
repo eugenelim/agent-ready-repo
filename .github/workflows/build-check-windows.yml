@@ -108,6 +108,13 @@ jobs:
       - name: pytest loop-cohort CLI portability
         run: python -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10
 
+      - name: pytest repository-grounding locator reader (Windows placement)
+        # Verifies that the locator reader's placement rules, drive-letter URI
+        # handling, and reparse-point refusal execute correctly on Windows.
+        # The whole suite is run by make test; this step covers test_read_locator.py
+        # on pull requests so Windows-specific paths are not CI-only.
+        run: python -m pytest packs/core/tests/skills/repository-grounding/test_read_locator.py -q
+
   credbroker-tests-windows:
     name: pytest credbroker (windows)
     runs-on: windows-latest

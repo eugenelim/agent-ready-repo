@@ -35,7 +35,7 @@ from pathlib import Path
 
 import pytest
 
-_SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "new-spec"
+_SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "repository-grounding"
 EXPLORER = _SKILL_DIR / "scripts" / "explore-grounding.py"
 if not EXPLORER.is_file():  # wrong parents[] depth after a move
     raise SystemExit(f"subject not found at {EXPLORER} — check the parents[] depth")
@@ -54,7 +54,7 @@ def _subject():
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
-        "packs_core_new_spec_explore_grounding", EXPLORER)
+        "packs_core_repository_grounding_explore_grounding", EXPLORER)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
