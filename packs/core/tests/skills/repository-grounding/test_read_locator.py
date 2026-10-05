@@ -211,19 +211,55 @@ def test_accepted_uri_with_line_suffix(tmp_path: Path) -> None:
     assert result.data == b"d = 4\n"
 
 
-def test_accepted_absolute_under_relative_root(tmp_path: Path) -> None:
+def test_accepted_absolute_under_relative_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """An absolute locator under a relative --root is accepted."""
     reader = _reader()
     repo = tmp_path / "repo"
     repo.mkdir()
     target = repo / "src.py"
     target.write_text("e = 5\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
 
-    # Use a relative root (simulate what the CLI would do with Path)
-    result = reader.read_locator(repo, str(target))
+    result = reader.read_locator("repo", str(target))
     assert result.status == "read"
     assert result.root is not None
     assert result.data == b"e = 5\n"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinked roots need POSIX symlinks")
+def test_root_reached_through_a_link_matches_both_spellings(tmp_path: Path) -> None:
+    """A root given through a link matches its own spelling and its real one."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "src.py").write_text("f = 6\n", encoding="utf-8")
+    link = tmp_path / "link"
+    link.symlink_to(repo, target_is_directory=True)
+
+    via_link = reader.read_locator(link, str(link / "src.py"))
+    via_real = reader.read_locator(link, str(repo / "src.py"))
+    assert (via_link.status, via_link.data) == ("read", b"f = 6\n")
+    assert (via_real.status, via_real.data) == ("read", b"f = 6\n")
+    assert via_link.root == via_real.root == repo.resolve()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinks need POSIX")
+def test_link_inside_the_root_is_never_resolved(tmp_path: Path) -> None:
+    """A provider path through an in-root link to an outside file is refused."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    outside = tmp_path / "outside"
+    repo.mkdir()
+    outside.mkdir()
+    (outside / "secret.txt").write_text("token\n", encoding="utf-8")
+    (repo / "escape").symlink_to(outside, target_is_directory=True)
+
+    result = reader.read_locator(repo, str(repo / "escape" / "secret.txt"))
+    assert result.status == "refused"
+    assert result.reason == "unsafe-file"
+    assert result.data is None
 
 
 def test_accepted_approved_root_names_serving_root(tmp_path: Path) -> None:

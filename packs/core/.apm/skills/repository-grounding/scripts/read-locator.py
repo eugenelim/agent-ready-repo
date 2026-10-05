@@ -149,8 +149,8 @@ def read_locator(
     Parameters
     ----------
     root:
-        Repository root. Made absolute with os.path.abspath (no link resolution
-        inside it).
+        Repository root. Made absolute with os.path.abspath; only the root's
+        own spelling is ever resolved, never a component inside it.
     locator:
         Decoded locator text. The CLI decodes it from base64+UTF-8; callers
         pass the already-decoded string.
@@ -248,9 +248,10 @@ def read_locator(
         return LocatorResult("refused", "parent-segment", None, None, None)
 
     # ── step 4: place the path ──────────────────────────────────────────────
-    abs_root = str(Path(root).resolve())
+    # abspath follows no link, so no component inside a root is ever resolved.
+    abs_root = os.path.abspath(root)  # noqa: PTH100
     all_roots: list[str] = [abs_root] + [
-        str(Path(r).resolve()) for r in approved_roots
+        os.path.abspath(r) for r in approved_roots  # noqa: PTH100
     ]
 
     # On POSIX, a drive-letter path or a drive-letter URI path (e.g. /C:/x
@@ -264,34 +265,33 @@ def read_locator(
         path_str if Path(path_str).is_absolute() else str(Path(abs_root) / path_str)
     )
 
-    # Match candidate against each root (absolute and realpath spellings)
-    matched_root: str | None = None
+    # Match the candidate against each root's absolute spelling, then its
+    # realpath spelling. Only the root's own prefix is translated: the remainder
+    # is re-joined onto the root as given, so the helper sees one consistent
+    # spelling and no component inside the root is resolved.
+    fold = os.path.normcase if os.name == "nt" else (lambda text: text)
+    folded = fold(candidate)
+    matched: tuple[str, str] | None = None
     for r in all_roots:
-        abs_r = r
-        real_r = os.path.realpath(abs_r)
-        if os.name == "nt":
-            # Windows: case-insensitive comparison via normcase
-            cand_nc = os.path.normcase(candidate)
-            abs_r_nc = os.path.normcase(abs_r)
-            real_r_nc = os.path.normcase(real_r)
-            if cand_nc in (abs_r_nc, real_r_nc) or cand_nc.startswith(
-                (abs_r_nc + os.sep, real_r_nc + os.sep)
-            ):
-                matched_root = r
+        for spelling in (r, os.path.realpath(r)):
+            prefix = fold(spelling)
+            if folded == prefix:
+                matched = (r, "")
+            elif folded.startswith(prefix.rstrip(os.sep) + os.sep):
+                matched = (r, candidate[len(spelling.rstrip(os.sep)) + 1:])
+            if matched:
                 break
-        else:
-            if candidate in (abs_r, real_r) or candidate.startswith(
-                (abs_r + os.sep, real_r + os.sep)
-            ):
-                matched_root = r
-                break
+        if matched:
+            break
 
-    if matched_root is None:
+    if matched is None:
         return LocatorResult("refused", "outside-roots", None, None, None)
 
     # ── step 5: read through the co-located file_safety helper ──────────────
-    root_path = Path(matched_root)
-    file_path = Path(candidate)
+    # The helper refuses a root that is itself a link, so it receives the
+    # root's real spelling; the remainder inside the root stays unresolved.
+    root_path = Path(os.path.realpath(matched[0]))
+    file_path = root_path / matched[1]
 
     try:
         data = read_confined_regular_file(
