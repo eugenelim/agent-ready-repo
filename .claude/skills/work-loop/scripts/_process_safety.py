@@ -458,8 +458,8 @@ def _kill_process_tree(proc: subprocess.Popen) -> None:  # type: ignore[type-arg
 _REDACTED_MARKER: Final[bytes] = b"[REDACTED]"
 
 
-def _smallest_period(value: bytes) -> int:
-    """Return the smallest p with value[i] == value[i - p] for every i >= p."""
+def _prefix_function(value: bytes) -> list[int]:
+    """Return the KMP prefix function of *value* (longest proper border of each prefix)."""
     failure = [0] * len(value)
     matched = 0
     for i in range(1, len(value)):
@@ -468,34 +468,49 @@ def _smallest_period(value: bytes) -> int:
         if value[i] == value[matched]:
             matched += 1
         failure[i] = matched
-    return len(value) - failure[-1]
+    return failure
 
 
 def _periodic_run_end(data: bytes, start: int, period: int) -> int:
-    """Return the first index at or after *start* where data stops repeating with *period*."""
-    end, size_limit, chunk = start, len(data), 1 << 16
+    """Return the first index at or after *start* where data stops repeating with *period*.
+
+    The comparison window starts small and doubles while it matches, so the
+    cost tracks the bytes actually examined rather than a fixed chunk size.
+    """
+    end, size_limit, chunk = start, len(data), 16
     while end < size_limit:
         size = min(chunk, size_limit - end)
         if data[end:end + size] == data[end - period:end - period + size]:
             end += size
-        elif size == 1:
-            break
-        else:
-            chunk = max(1, size // 2)
+            chunk = min(chunk * 2, 1 << 16)
+            continue
+        matched, mismatched = 0, size  # a prefix of length `matched` repeats
+        while mismatched - matched > 1:
+            middle = (matched + mismatched) // 2
+            if data[end:end + middle] == data[end - period:end - period + middle]:
+                matched = middle
+            else:
+                mismatched = middle
+        return end + matched
     return end
 
 
-def _occurrence_spans(data: bytes, value: bytes) -> list[tuple[int, int]]:
+def _occurrence_spans(data: bytes, value: bytes, failure: list[int]) -> list[tuple[int, int]]:
     """Return spans covering every occurrence of *value*, in time linear in ``len(data)``.
 
     Overlapping occurrences sit inside a run that repeats with the value's
-    period, so one span covers the whole run instead of one search per byte.
+    smallest period, so one span covers the whole run; a value with no shorter
+    period cannot overlap itself, so the search resumes after each match.
     """
     length = len(value)
-    period = _smallest_period(value)
+    period = length - failure[-1]
     spans: list[tuple[int, int]] = []
     start = data.find(value)
     while start != -1:
+        if period == length:
+            spans.append((start, start + length))
+            start = data.find(value, start + length)
+            continue
         run_end = _periodic_run_end(data, start + length, period)
         last_start = start + ((run_end - start - length) // period) * period
         spans.append((start, last_start + length))
@@ -503,22 +518,53 @@ def _occurrence_spans(data: bytes, value: bytes) -> list[tuple[int, int]]:
     return spans
 
 
+def _cut_off_start(data: bytes, value: bytes, failure: list[int]) -> int | None:
+    """Return where the longest tail of *data* that is a strict prefix of *value* starts.
+
+    Runs the prefix-function matcher over the last ``len(value) - 1`` bytes, so
+    the cost is linear in the value length.  Returns ``None`` when no tail is a
+    prefix of the value.
+    """
+    if len(value) < 2:
+        return None
+    matched = 0
+    for byte in data[-(len(value) - 1):]:
+        while matched and byte != value[matched]:
+            matched = failure[matched - 1]
+        if byte == value[matched]:
+            matched += 1
+    return len(data) - matched if matched else None
+
+
 def _redact_bytes(
-    data: bytes, sensitive: list[bytes], raw_limit: int | None = None
+    data: bytes,
+    sensitive: list[bytes],
+    raw_limit: int | None = None,
+    overflowed: bool = False,
 ) -> tuple[bytes, bool]:
     """Replace every sensitive value in *data*, emitting raw bytes only before *raw_limit*.
 
-    Every occurrence of every distinct value is located in the original bytes
-    first, and spans that overlap, nest, or touch are merged before any
-    replacement, so the result does not depend on value order or overlap.
-    Only raw bytes before *raw_limit* are emitted: a span starting before the
-    limit becomes one marker even if it runs past it, and nothing at or after
-    the limit is returned.  Returns ``(result, was_redacted)``.
+    Every occurrence of every distinct value in the full raw capture becomes a
+    span.  When the capture *overflowed* the hard cap, its longest tail that is
+    a strict prefix of any value may be a value cut off by the cap, so that
+    tail becomes one more span; nothing is cut away beforehand, so a complete
+    occurrence that shares bytes with the tail is still covered whole.  Spans
+    that overlap, nest, or touch are merged and each replaced by one marker,
+    so the result does not depend on value order or overlap.  A span starting
+    before the limit becomes a marker even if it runs past it, and no raw byte
+    at or after the limit is returned.  Returns ``(result, was_redacted)``.
     """
-    limit = len(data) if raw_limit is None else min(raw_limit, len(data))
     spans: list[tuple[int, int]] = []
+    tail_start = len(data)
     for value in {v for v in sensitive if v}:
-        spans.extend(_occurrence_spans(data, value))
+        failure = _prefix_function(value)
+        spans.extend(_occurrence_spans(data, value, failure))
+        if overflowed:
+            cut = _cut_off_start(data, value, failure)
+            if cut is not None:
+                tail_start = min(tail_start, cut)
+    if tail_start < len(data):
+        spans.append((tail_start, len(data)))
     spans.sort()
     merged: list[list[int]] = []
     for begin, end in spans:
@@ -526,6 +572,7 @@ def _redact_bytes(
             merged[-1][1] = max(merged[-1][1], end)
         else:
             merged.append([begin, end])
+    limit = len(data) if raw_limit is None else min(raw_limit, len(data))
     parts: list[bytes] = []
     cursor = 0
     was_redacted = False
@@ -539,23 +586,6 @@ def _redact_bytes(
     if cursor < limit:
         parts.append(data[cursor:limit])
     return b"".join(parts), was_redacted
-
-
-def _drop_sensitive_tail_prefix(data: bytes, sensitive: list[bytes]) -> bytes:
-    """Drop the longest tail of *data* that is a strict prefix of any sensitive value.
-
-    A capture stopped by the hard cap can end part-way through a value; that
-    partial value would never match whole, and a shorter value inside it could
-    still split it.  Dropping the longest such tail before redaction leaves no
-    fragment behind.
-    """
-    longest = 0
-    for value in {v for v in sensitive if v}:
-        for prefix_len in range(min(len(value) - 1, len(data)), longest, -1):
-            if data.endswith(value[:prefix_len]):
-                longest = prefix_len
-                break
-    return data[:-longest] if longest else data
 
 
 def _collect_sensitive(
@@ -1247,17 +1277,12 @@ def _launch_safe_process_unguarded(
                 "still running; all children killed, no output returned",
             )
 
-        # A capture stopped by the hard cap may end inside a sensitive value:
-        # drop that partial tail first, so it can never surface as fragments.
-        if overflowed and sensitive_raw:
-            raw_stdout = _drop_sensitive_tail_prefix(raw_stdout, sensitive_raw)
-            raw_stderr = _drop_sensitive_tail_prefix(raw_stderr, sensitive_raw)
-
         # Redact the full captured stream, emitting only raw bytes before the
-        # bound.  The hard cap captures every value that starts before the
-        # bound, so each is replaced whole; nothing after the bound is returned.
-        stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw, bound)
-        stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw, bound)
+        # bound.  A capture stopped by the hard cap may end inside a value, so
+        # an overflowed stream also covers its possible cut-off tail; nothing
+        # is trimmed first, so complete occurrences are always covered whole.
+        stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw, bound, overflowed)
+        stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw, bound, overflowed)
         was_redacted = redacted1 or redacted2
 
         # Bound combined redacted stdout + stderr.

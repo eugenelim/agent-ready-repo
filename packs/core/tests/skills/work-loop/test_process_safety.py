@@ -2023,14 +2023,70 @@ class TestRedactionOverlap:
 
 
 class TestRedactionAtTheCapAndAtScale:
-    """Cut-off values leave no fragment, and redaction stays linear in output size."""
+    """Cover, never cut: cut-off tails are covered, complete values stay whole, and cost is linear."""
+
+    W = b"secretpasswordX"
+    V = b"XQQQQQ"
 
     @staticmethod
-    def _bounded(ps: ModuleType, raw: bytes, sensitive: list[bytes], bound: int) -> bytes:
-        """Apply the launch's overflow handling: drop a cut-off tail, then redact to the bound."""
-        trimmed = ps._drop_sensitive_tail_prefix(raw, sensitive)
-        out, _ = ps._redact_bytes(trimmed, sensitive, bound)
-        return out
+    def _reference(data: bytes, values: list[bytes], limit: int, overflowed: bool) -> bytes:
+        """Brute-force definition: mark every covered byte, then emit raw bytes before *limit*."""
+        covered = [False] * len(data)
+        for value in {v for v in values if v}:
+            for i in range(len(data) - len(value) + 1):
+                if data[i:i + len(value)] == value:
+                    covered[i:i + len(value)] = [True] * len(value)
+        if overflowed:
+            for start in range(len(data)):
+                tail = data[start:]
+                if any(len(v) > len(tail) and v.startswith(tail) for v in values if v):
+                    covered[start:] = [True] * (len(data) - start)
+                    break
+        out = bytearray()
+        i = 0
+        while i < min(limit, len(data)):
+            if covered[i]:
+                out += b"[REDACTED]"
+                while i < len(data) and covered[i]:
+                    i += 1
+            else:
+                out.append(data[i])
+                i += 1
+        return bytes(out)
+
+    def test_matches_the_reference_with_bounds_and_overflow(
+        self, process_safety: ModuleType
+    ) -> None:
+        import random
+
+        ps = process_safety
+        rng = random.Random(3)
+        for _ in range(5000):
+            values = [
+                bytes(rng.choice(b"ab1") for _ in range(rng.randint(1, 6)))
+                for _ in range(rng.randint(1, 4))
+            ]
+            data = bytes(rng.choice(b"ab1") for _ in range(rng.randint(0, 50)))
+            limit = rng.randint(0, len(data) + 3)
+            overflowed = rng.random() < 0.5
+            got, _ = ps._redact_bytes(data, values, limit, overflowed)
+            assert got == self._reference(data, values, limit, overflowed), (
+                data, values, limit, overflowed,
+            )
+
+    def test_complete_value_ending_in_another_values_prefix_stays_covered(
+        self, process_safety: ModuleType
+    ) -> None:
+        ps = process_safety
+        out, redacted = ps._redact_bytes(b"hello secretpasswordXQQ", [self.W, self.V], 100, True)
+        assert redacted and b"secret" not in out and b"password" not in out, out
+
+    def test_self_overlapping_value_at_the_cut_stays_covered(
+        self, process_safety: ModuleType
+    ) -> None:
+        ps = process_safety
+        out, _ = ps._redact_bytes(b"xx abcab", [b"abcab"], 100, True)
+        assert b"abc" not in out and b"ab" not in out.replace(b"[REDACTED]", b""), out
 
     def test_cut_off_value_containing_a_short_value_leaves_no_fragment(
         self, process_safety: ModuleType
@@ -2038,52 +2094,62 @@ class TestRedactionAtTheCapAndAtScale:
         ps = process_safety
         secret = b"sk1live9secret1tokenvalue" + b"x" * 25
         raw = (secret + secret + b"f" * 30 + secret)[:150]
-        out = self._bounded(ps, raw, [b"1", secret], 100)
+        out, _ = ps._redact_bytes(raw, [b"1", secret], 100, True)
         for fragment in (b"sk1", b"live9", b"secret", b"token"):
             assert fragment not in out, out
 
-    def test_longest_partial_prefix_is_dropped(self, process_safety: ModuleType) -> None:
+    def test_overflowed_launch_never_emits_part_of_a_complete_value(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
         ps = process_safety
-        value = b"abcab" + b"Z" * 45
-        assert ps._drop_sensitive_tail_prefix(b"output abcab", [value]) == b"output "
+        _, sink = _recording_sink()
+        payload = "'h' * 28 + 'secretpasswordX' + 'QQ' + 'z' * 100"
+        spec = _spec(
+            str(tmp_path),
+            argv=["-c", f"import sys; sys.stdout.write({payload})"],
+            output_bound_bytes=30,
+        )
+        result = _launch(
+            ps, spec, audit_sink=sink, sensitive_values=[self.W.decode(), self.V.decode()],
+        )
+        assert b"se" not in result.stdout_redacted.replace(b"[REDACTED]", b""), result
+        assert result.output_was_redacted
 
-    def test_redaction_matches_a_brute_force_reference(self, process_safety: ModuleType) -> None:
-        import random
-
+    def test_stderr_filling_the_cap_cannot_expose_stdout_fragments(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
         ps = process_safety
-        rng = random.Random(11)
-        for _ in range(3000):
-            values = [
-                bytes(rng.choice(b"ab1") for _ in range(rng.randint(1, 6)))
-                for _ in range(rng.randint(1, 4))
-            ]
-            data = bytes(rng.choice(b"ab1") for _ in range(rng.randint(0, 60)))
-            covered = [False] * len(data)
-            for value in values:
-                for i in range(len(data) - len(value) + 1):
-                    if data[i:i + len(value)] == value:
-                        covered[i:i + len(value)] = [True] * len(value)
-            expected = bytearray()
-            i = 0
-            while i < len(data):
-                if covered[i]:
-                    expected += b"[REDACTED]"
-                    while i < len(data) and covered[i]:
-                        i += 1
-                else:
-                    expected.append(data[i])
-                    i += 1
-            assert ps._redact_bytes(data, values)[0] == bytes(expected), (data, values)
+        _, sink = _recording_sink()
+        payload = (
+            "import sys; sys.stderr.write('e' * 25); sys.stderr.flush(); "
+            "sys.stdout.write('secretpasswordX' * 3)"
+        )
+        spec = _spec(str(tmp_path), argv=["-c", payload], output_bound_bytes=30)
+        result = _launch(ps, spec, audit_sink=sink, sensitive_values=[self.W.decode()])
+        visible = result.stdout_redacted.replace(b"[REDACTED]", b"")
+        for fragment in (b"sec", b"pass", b"word"):
+            assert fragment not in visible, result
 
-    def test_periodic_value_redacts_in_linear_time(self, process_safety: ModuleType) -> None:
+    @pytest.mark.parametrize(
+        ("label", "data", "values", "overflowed"),
+        [
+            ("many short occurrences", b"abcX" * (1 << 18), [b"abc"], False),
+            ("env value 1 everywhere", b"x1" * (1 << 19), [b"1"], False),
+            ("one long periodic run", b"a" * (2 << 20), [b"a" * (1 << 20)], False),
+            ("large stdin, overflowed", b"z" * (1 << 20), [bytes(range(256)) * 4096], True),
+            ("crafted tail, overflowed", b"a" * (1 << 20), [b"a" * ((1 << 20) - 1) + b"b"], True),
+        ],
+    )
+    def test_redaction_cost_stays_linear(
+        self, process_safety: ModuleType, label: str, data: bytes,
+        values: list[bytes], overflowed: bool,
+    ) -> None:
         import time
 
         ps = process_safety
-        value = b"a" * (1024 * 1024)
         started = time.monotonic()
-        out, redacted = ps._redact_bytes(value + value, [value, value])
-        assert redacted and out == b"[REDACTED]"
-        assert time.monotonic() - started < 5.0
+        ps._redact_bytes(data, values, len(data), overflowed)
+        assert time.monotonic() - started < 5.0, label
 
     def test_echoed_periodic_stdin_is_redacted_promptly(
         self, process_safety: ModuleType, tmp_path

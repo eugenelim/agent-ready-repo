@@ -346,3 +346,19 @@ the search is linear, and duplicate values are removed. Against the committed
 code, the cut-off-value and longest-prefix tests fail. The old code takes 1.21 s
 on 40 KB of repeating input. The new code redacts 1 MiB inside the test's 5 s
 bound and passes 3,000 randomized cases against a brute-force reference.
+
+The redaction re-check, security round 9, upheld 2 Concerns, both in the
+round-8 fix. First, the overflow tail drop could cut through a complete value
+that ended in another value's prefix, and leave its first part unredacted.
+Second, each separate occurrence paid a fixed 64 KiB comparison, and the tail
+check was quadratic in value length. Redaction now follows one rule: cover,
+never cut. Every complete occurrence in the full raw capture is a span. On an
+overflowed capture, the longest tail that is a strict prefix of any value is
+one more span, so nothing is trimmed away before matching. Spans merge, and only
+raw bytes before the bound are emitted. The run scan starts small and doubles,
+and the tail check uses the prefix function, so both are linear.
+`TestRedactionAtTheCapAndAtScale` checks 5,000 randomized cases against a
+brute-force definition that includes bounds and overflow. It covers the
+reviewer's launch-level repro and stderr filling the combined cap, and timing
+bounds keep every slow case under 5 s. Against the committed code, the
+complete-value, self-overlap, and overflowed-launch tests fail.
