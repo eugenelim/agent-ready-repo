@@ -1037,3 +1037,35 @@ def test_rendered_page_never_shows_raw_bidi_controls(
         assert not leaked, f"{frag}: raw controls {leaked} visible"
         assert "[U+202E]" in text, f"{frag}: the escaped marker is missing"
     assert not page._errors  # type: ignore[attr-defined]
+
+
+def test_lineage_edges_run_between_facing_sides(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0026: a checked edge leaves the newer node's left side and ends at the
+    older node's right side, so no edge crosses its own endpoints."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    _navigate_graph(page, "ADR-0001")
+    geo = page.evaluate(  # type: ignore[union-attr]
+        """() => { const box = id => document.querySelector(`[data-node-id="${id}"] rect`)
+            .getBBox();
+          const newer = box('ADR-0020'), older = box('ADR-0001');
+          const path = [...document.querySelectorAll('#view-graph svg path[marker-end]')][0];
+          const len = path.getTotalLength();
+          const a = path.getPointAtLength(0), b = path.getPointAtLength(len);
+          return { newerLeft: newer.x, olderRight: older.x + older.width,
+                   start: a.x, end: b.x }; }"""
+    )
+    assert abs(geo["start"] - geo["newerLeft"]) < 2, geo
+    assert abs(geo["end"] - geo["olderRight"]) < 2, geo
+
+
+def test_focused_graph_returns_to_atlas(browser: object, export_mixed: pathlib.Path) -> None:
+    """AC-0026: the atlas of every chain stays reachable after a record is focused."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    _navigate_graph(page, "ADR-0001")
+    page.click("button.atlas-back")  # type: ignore[union-attr]
+    page.wait_for_selector(".chain-card")  # type: ignore[union-attr]
+    assert page.evaluate("location.hash") == "#graph"  # type: ignore[union-attr]

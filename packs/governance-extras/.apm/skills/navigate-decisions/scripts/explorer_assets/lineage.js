@@ -8,7 +8,7 @@ var Lineage=(function(){'use strict';
 var NS='http://www.w3.org/2000/svg';
 function svgEl(t){return document.createElementNS(NS,t);}
 function sa(e,k,v){e.setAttribute(k,String(v));return e;}
-var NW=160,NH=48,XG=80,YG=16,PX=20,PY=20;
+var NW=160,NH=48,XG=112,YG=16,PX=20,PY=20;
 
 // ── Connected component over checked edges (undirected)
 function chainOf(startId,rels){
@@ -203,12 +203,41 @@ function drawEdge(g,x1,y1,x2,y2,stroke,sw,dash,markerEnd){
   g.appendChild(path);return path;
 }
 
-// ── Text label above a path midpoint
+// ── Spread edge ends along each node's side so fanned edges stay apart.
+// Returns, per relationship index, the y offsets of its start and end within
+// a node of height nh; ends are ordered by the other node's row.
+function edgePorts(rels,np,nh){
+  var outs={},ins={},res=[];
+  rels.forEach(function(r,i){
+    var fp=np[r.from],tp=np[r.to];
+    if(!fp||!tp||fp.scc===tp.scc)return;
+    (outs[r.from]=outs[r.from]||[]).push(i);(ins[r.to]=ins[r.to]||[]).push(i);
+    res[i]={};
+  });
+  function spread(map,key,other){
+    Object.keys(map).forEach(function(n){
+      var list=map[n];
+      list.sort(function(a,b){return np[rels[a][other]].row-np[rels[b][other]].row;});
+      list.forEach(function(ri,k){res[ri][key]=nh*(k+1)/(list.length+1);});
+    });
+  }
+  spread(outs,'y1','to');spread(ins,'y2','from');
+  return res;
+}
+
+// ── Scope label beside the arrowhead; the halo keeps it legible over edges
+var MAX_LABEL=18;
 function edgeLabel(g,x1,y1,x2,y2,txt,fill){
   var t=svgEl('text');
-  sa(t,'x',(x1+x2)/2);sa(t,'y',Math.min(y1,y2)-5);
-  sa(t,'text-anchor','middle');sa(t,'font-size','10');sa(t,'fill',fill||'#4b5563');
-  t.textContent=txt;g.appendChild(t);
+  if(txt.length>MAX_LABEL){
+    var tt=svgEl('title');tt.textContent=txt;t.appendChild(tt);
+    txt=txt.slice(0,MAX_LABEL-1)+'…';
+  }
+  sa(t,'x',x2+14);sa(t,'y',y2-4);
+  sa(t,'text-anchor','start');sa(t,'font-size','10');sa(t,'font-weight','600');
+  sa(t,'fill',fill||'#4b5563');sa(t,'stroke','#ffffff');sa(t,'stroke-width','3');
+  sa(t,'paint-order','stroke');sa(t,'class','edge-label');
+  t.appendChild(document.createTextNode(txt));g.appendChild(t);
 }
 
 // ── Node group (<g role="button">)
@@ -443,7 +472,8 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   var eg=svgEl('g');sa(eg,'aria-hidden','true');
 
   // Draw checked edges within the chain
-  chainCheckedRels.forEach(function(r){
+  var ports=edgePorts(chainCheckedRels,np,NH);
+  chainCheckedRels.forEach(function(r,ri){
     var fp=np[r.from],tp=np[r.to];
     if(!fp||!tp)return;
     var isCyc=fp.scc===tp.scc;
@@ -464,8 +494,8 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       sa(lt,'font-size','10');sa(lt,'fill','#b45309');lt.textContent='cycle';eg.appendChild(lt);
     }else{
       // FROM is newer (right), TO is older (left)
-      var x1=PX+fp.col*(NW+XG)+NW,y1=PY+fp.row*(NH+YG)+NH/2;
-      var x2=PX+tp.col*(NW+XG),y2=PY+tp.row*(NH+YG)+NH/2;
+      var x1=PX+fp.col*(NW+XG),y1=PY+fp.row*(NH+YG)+ports[ri].y1;
+      var x2=PX+tp.col*(NW+XG)+NW,y2=PY+tp.row*(NH+YG)+ports[ri].y2;
       drawEdge(eg,x1,y1,x2,y2,stroke,'2',null,'url(#'+pfx+'af)');
       if(isPartial){
         var sc2=r.scope&&r.scope.length?r.scope.join(', '):'scope not stated';
@@ -602,6 +632,8 @@ function renderAtlas(container,allRels,allRecords,navigate){
   var scale=0.62;
   var nw=Math.round(NW*scale),nh=Math.round(NH*scale);
   var xg=Math.round(XG*scale),yg=Math.round(YG*scale);
+  var grid=document.createElement('div');grid.className='chain-atlas';
+  container.appendChild(grid);
   chains.forEach(function(cn){
     var card=document.createElement('div');card.className='chain-card';
     var lbl=document.createElement('div');lbl.className='chain-card-label';
@@ -621,11 +653,12 @@ function renderAtlas(container,allRels,allRecords,navigate){
     sa(svg,'role','group');sa(svg,'aria-label','Chain: '+cn.join(', '));
     addDefs(svg,pfx);
     var eg2=svgEl('g');sa(eg2,'aria-hidden','true');
-    cRels.forEach(function(r){
+    var ports2=edgePorts(cRels,np2,nh);
+    cRels.forEach(function(r,ri){
       var fp=np2[r.from],tp=np2[r.to];if(!fp||!tp)return;
       if(fp.scc===tp.scc)return; // cycle arcs omitted in atlas compact view
-      var x1=PX+fp.col*(nw+xg)+nw,y1=PY+fp.row*(nh+yg)+nh/2;
-      var x2=PX+tp.col*(nw+xg),y2=PY+tp.row*(nh+yg)+nh/2;
+      var x1=PX+fp.col*(nw+xg),y1=PY+fp.row*(nh+yg)+ports2[ri].y1;
+      var x2=PX+tp.col*(nw+xg)+nw,y2=PY+tp.row*(nh+yg)+ports2[ri].y2;
       drawEdge(eg2,x1,y1,x2,y2,'#374151','1.5',null,'url(#'+pfx+'af)');
     });
     svg.appendChild(eg2);
@@ -640,7 +673,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
     var wrap2=document.createElement('div');
     wrap2.className='chain-svg-wrap';wrap2.style.overflowX='auto';
     wrap2.appendChild(svg);card.appendChild(wrap2);
-    container.appendChild(card);
+    grid.appendChild(card);
   });
 }
 

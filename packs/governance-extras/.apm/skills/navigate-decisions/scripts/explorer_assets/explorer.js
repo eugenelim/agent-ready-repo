@@ -186,6 +186,9 @@ function renderGraph(c){
 var h2=el('h2',null,'Lifecycle graph');c.appendChild(h2);
 if(state.sel){
 // Focused view: SVG lineage diagram for the selected record
+var back=el('button','atlas-back pill-btn','← All chains');back.type='button';
+back.addEventListener('click',function(){navigate('graph',null);});
+c.appendChild(back);
 Lineage.renderFocused(c,state.sel,rels,records,navigate);
 }else{
 // Atlas: all checked-supersession chains

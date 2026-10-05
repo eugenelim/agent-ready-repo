@@ -419,3 +419,6 @@ nav[aria-label="Views"] button[aria-current="page"]{
 /* Long qualified lifecycle values wrap inside their pill; the title keeps room */
 .rtitle{flex:1 1 18rem}
 .rstatus{white-space:normal;max-width:22rem;line-height:1.35;text-align:left}
+.atlas-back{margin:0 0 .6rem}
+.chain-atlas{display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start}
+.chain-atlas .chain-card{flex:1 1 auto;max-width:100%;margin:0}
