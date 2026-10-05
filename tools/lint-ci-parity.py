@@ -1208,8 +1208,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/core/tests/skills/repository-grounding/':
         NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
+            "the full suite directory; it reaches CI only through the dispatch-only "
+            "test-corpus.yml. The path-filtered build-check-windows.yml pull-request step "
+            "(`pytest loop-cohort CLI portability` job) also runs test_read_locator.py on a "
+            "pull request, providing Windows placement and reparse-point coverage for that "
+            "file."
         ),
     'packs/core/tests/skills/work-intake/':
         PR_GATED_IF(

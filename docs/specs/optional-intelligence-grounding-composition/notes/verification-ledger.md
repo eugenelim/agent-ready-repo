@@ -30,3 +30,36 @@ was observed, not what the contract requires.
   core entry to compare. Raised for the owner at closeout.
 - **Gates.** `make lint-ruff lint-mypy` passed. `agentbundle catalogue lint
   --deep`: zero errors. Governance-citation grep over shipped content: 0 hits.
+
+## T2 — locator reader (2026-10-05)
+
+- **Stub red.** `test_confined_file_uri_is_read_and_outside_root_is_refused` was
+  materialized byte-identical from the plan block. Before `read-locator.py`
+  existed it failed on `FileNotFoundError` (1 failed); after the script was
+  created it passed.
+- **Full suite green.** `packs/core/tests/skills/repository-grounding/`: 91
+  passed, 2 skipped. Skipped are the two Windows-only tests
+  (`test_windows_drive_letter_*`), which require `os.name == "nt"`.
+- **lint-pack-test-boundary.** Replaced `SKILL_ROOT / rel` (dynamic loop
+  variable, flagged as `_UnresolvedPath`) with an explicit `_EVALS_FILES` tuple
+  of literal paths; also added `_EVALS_PY_FILES` and a consistency check. 154
+  cases passed after fix.
+- **SKILL.md pattern check.** `test_ac0006_skill_md_has_no_probe_instructions`
+  failed initially because "Do not probe hidden configuration files" contained
+  the pattern `probe hidden`. Rephrased to "Hidden configuration files, arbitrary
+  local executables, and inferred endpoints are outside this set and are not
+  consulted." Zero AC-0006 and AC-0007 pattern hits after fix.
+- **file_safety.py byte pin.** Roster test
+  `test_projected_file_safety_matches_the_agentbundle_canonical` passes;
+  `repository-grounding` added to the parametrize list.
+- **Windows step.** `build-check-windows.yml` carries a new
+  `pytest repository-grounding locator reader (Windows placement)` step.
+- **Evals.** `evals/evals.json` with 22 cases and 19 fixture files in
+  `evals/files/`. `gitleaks dir <evals-dir>`: no leaks found.
+- **Governance-citation grep** over shipped `.apm/` content: 0 hits.
+- **Projections.** `make build-self` to be run after source commit (same
+  two-commit discipline as T1).
+- **Gates.** `make lint-ruff lint-mypy`: pass. `agentbundle catalogue lint
+  --deep`: ok (73 warnings, all pre-existing in other packs, zero errors).
+  `python3 tools/lint-ci-parity.py`: ok. `python3
+  tools/test-lint-pack-test-boundary.py`: 154 passed.
