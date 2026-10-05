@@ -112,15 +112,15 @@ set; only the Status column changes here.
 | ADV-2 | Blocker | Records carry no structured header fields, so no output has `exact headers`. | failing test | closed — `test_record_fields_include_id_kind_title_source` now asserts `header_fields` key is present and is a dict; `test_record_header_fields_contains_supersession_entries` asserts at least one supersession key is present for ADR-0001; code builds `header_fields` at `navigate_decisions.py:1101`. |
 | ADV-3 | Blocker | The relationship, result-byte and lineage bounds are never enforced. | failing test | closed — `test_relationship_limit_enforced` calls `_check_non_detail_bounds` with 401 relationships and asserts `result_too_large`; `test_result_byte_limit_enforced` calls it with records totalling over 512 KiB and asserts `result_too_large`; code enforces both limits at `navigate_decisions.py:960`. |
 | ADV-4 | Blocker | Malformed selectors and assertions return the whole corpus or crash instead of refusing. | failing test | closed — `test_search_non_list_selectors_fails`, `test_search_selector_with_only_unknown_keys_fails`, `test_search_non_dict_selector_element_fails` added; all assert `status == "error"`; validation enforced at `navigate_decisions.py:1144`. |
-| ADV-5 | Blocker | In the HTML, caller assertions lose their text and are not normalized relationship tuples. | failing test | open |
-| ADV-6 | Blocker | The support-reference inventory is missing. | failing test | open |
+| ADV-5 | Blocker | In the HTML, caller assertions lose their text and are not normalized relationship tuples. | failing test | closed — `test_caller_assertions_normalized_in_data_island` passes: asserts trust_class=navigation_only, resolution_state=caller_asserted, raw_value preserved; `test_caller_assertion_non_dict_normalized` covers non-dict input; `test_normalize_assertion_function_output` covers all three dict shapes; `_normalize_assertion` at `explorer.py` normalizes before embedding. |
+| ADV-6 | Blocker | The support-reference inventory is missing. | failing test | closed — `test_support_refs_in_data_island_mixed` passes: asserts support_refs is a list on each record and corpus_support_refs is non-empty; `_collect_support_refs` at `explorer.py` scans `NNNN-notes/` dirs (kind=notes_dir), `NNNN-*-research.md` files (kind=research_file), and per-dir `README.md` files (kind=readme); symlinks skipped via `os.lstat`. |
 | ADV-7 | Blocker | Several AC-0022 destination refusals and proofs are missing. | failing test | closed — `test_refuses_ancestor_symlink_in_destination_path` asserts refusal when a path component is a symlink; code fix walks each prefix with `os.lstat`; `test_hostile_record_does_not_redirect_destination` exports the instruction fixture and asserts the file lands in the given directory. |
-| ADV-8 | Blocker | The HTML shows record text without display escaping, in the same text node as trust labels. | failing test | open |
+| ADV-8 | Blocker | The HTML shows record text without display escaping, in the same text node as trust labels. | failing test | closed — `test_trust_labels_in_own_elements_js` asserts the JS source contains `trust-label` class; JS inserts `<span class="trust-label">` as a separate DOM element before text nodes; all body and title text rendered via textContent not innerHTML; `test_bidi_export_data_island_contains_display_value` asserts bidi marks produce `[U+...]` escapes in display_value. |
 | ADV-9 | Concern | The explorer and the query read registers and corpus roots differently. | failing test | closed — `test_export_refuses_unsafe_register` asserts dangling-symlink register refuses the export; `test_export_two_table_register_sum` asserts two-table register row_count=3; `test_export_summary_parity_with_query_summary` compares all summary fields between export and query; `_count_register_rows` now counts all tables; `_read_register_file` detects dangling symlinks; `_scan_kind_dir` refuses dangling corpus roots. |
 | ADV-10 | Concern | Header parsing departs from the stated grammar. | failing test | closed — `test_h1_not_first_line_fails_whole_operation` asserts refusal when H1 is not the first line; `test_two_html_comments_keeps_first_comment` asserts only the last comment is stripped; `test_repeated_d_ids_form_set` asserts duplicated D-IDs are deduplicated to a sorted set. |
 | ADV-11 | Concern | Shipped scripts cite internal governance records. | document change | closed — `grep -rn "AC-00\|docs/specs/decision" packs/governance-extras/.apm/skills/navigate-decisions/ --include="*.py"` returns no matches; references removed from explorer.py and navigate_decisions.py in this branch. |
 | ADV-12 | Concern | The ledger commits a personal local path. | document change | closed — the hardcoded home-directory path was replaced with `Path(sys.argv[1]).resolve()` in `bench.py` embedded in this ledger. |
-| ADV-13 | Concern | The provenance block is inserted into the HTML without escaping. | failing test | open |
+| ADV-13 | Concern | The provenance block is inserted into the HTML without escaping. | failing test | closed — `test_provenance_not_interpolated_in_html` asserts the static HTML body contains no raw `{` characters from provenance interpolation; `test_csp_provenance_not_in_static_html` asserts CSP hash is present and provenance content absent from static HTML; JS fills `#prov-pre` via `provPre.textContent = JSON.stringify(D.provenance, null, 2)`. |
 | ADV-14 | Concern | The guide, design doc and skill contradict shipped behavior. | document change | closed — `guides/governance-extras/how-to/navigate-decisions.md` lineage example updated to show all 10 relationship fields with explanatory text; confirmed guide matches code output. |
 | ADV-15 | Concern | Some tests cannot fail, and the AC-0021 fixtures are missing. | mutation red | closed — `test_reference_policy_boundary_present_in_response` parameterized over all 5 operations with exact boundary sentinel; `test_lineage_traverses_only_checked_relationships` strengthened with `assert "ADR-0002" not in record_ids`; lineage-chain fixture added for 3-hop depth test. |
 | ADV-16 | Concern | Plan T2 names a verification file that does not exist. | ledger deviation | closed — deviation recorded in "Deviations from completed task text": T2's `test_filesystem_safety.py` maps to the confinement cases in `test_query_contract.py`. |
@@ -129,8 +129,8 @@ set; only the Status column changes here.
 | ADV-19 | Concern | A commit-pinned link can show content that differs from the export. | failing test | closed — `test_commit_pinned_link_only_when_clean` mocks clean git status and asserts commit_pinned; `test_dirty_working_tree_link_labelled_may_be_newer` mocks dirty status and asserts branch_latest with "may be newer" label; `_build_source_links` now calls `git status --porcelain docs/adr docs/rfc` and only emits commit_pinned when output is empty. |
 | ADV-20 | Nit | The pack description still makes the retired promise. | document change | closed — `packs/governance-extras/pack.toml` description updated from "keep track of which ones are still open" to describe the navigate-decisions capability; `git diff packs/governance-extras/pack.toml` confirms change. |
 | SEC-1 | Blocker | CLI `--name` is joined before validation, so a dot-segment or absolute name escapes the destination root. | failing test | closed — `test_cli_export_dotdot_name_exits_two` and `test_cli_export_absolute_name_exits_two` call `main()` with hostile `--name` and assert exit code 2; validation at `navigate_decisions.py:1925` validates name before any join. |
-| SEC-2 | Concern | Raw bidi controls reach visible HTML, and the escape set misses directional marks. | failing test | open |
-| SEC-3 | Concern | Provenance is put into the HTML without HTML escaping. | failing test | open |
+| SEC-2 | Concern | Raw bidi controls reach visible HTML, and the escape set misses directional marks. | failing test | closed — `test_bidi_export_data_island_contains_display_value` exports the bidi fixture and asserts display_value in the data island contains `[U+202E]` (not the raw mark); `_html_escape` extended to replace directional bidi controls with `[U+NNNN]` placeholders; all visible rendering uses textContent. |
+| SEC-3 | Concern | Provenance is put into the HTML without HTML escaping. | failing test | closed — same closure as ADV-13; `test_csp_provenance_not_in_static_html` and `test_provenance_not_interpolated_in_html` cover both the static-HTML absence and the JS textContent assignment; provenance data goes through the JSON data island and is read by JS via `D.provenance`. |
 | SEC-4 | Concern | The export reads register files through a duplicate code path that reports unsafe or oversized files as absent. | failing test | closed — see ADV-9/QE-1; same tests and code fixes; `_read_register_file` now detects dangling symlinks as UnsafeContentError; the export's register exception handler now returns a dict `error` with a code field. |
 | SEC-5 | Concern | Caller assertions are not checked against a schema. | failing test | closed — `test_context_non_list_assertions_refused`, `test_context_non_dict_assertion_element_refused`, `test_context_assertion_non_string_field_refused`, `test_context_valid_assertion_accepted` added; `_validate_assertions` at `navigate_decisions.py:1350` validates schema. |
 | SEC-6 | Concern | SKILL.md does not declare the `filesystem_write` boundary its script crosses. | document change | closed — `packs/governance-extras/.apm/skills/navigate-decisions/SKILL.md` boundaries updated from `[filesystem_read_untrusted]` to `[filesystem_read_untrusted, filesystem_write]`; `git diff` confirms change. |
@@ -138,7 +138,7 @@ set; only the Status column changes here.
 | SEC-8 | Nit | The repository-identity parser accepts dot-segment owner and repo names, and the host allowlist constant is never read. | failing test | closed — `test_dot_segment_owner_repo_degrades_to_inert` asserts `_parse_github_identity("https://github.com/../..")` returns None and the resulting link is inert; `_SOURCE_HOST_ALLOWLIST` is checked at line 207; dot-segment owner/repo check was already present. |
 | QE-1 | Blocker | The export recomputes the summary and turns register refusals into `absent`. | failing test | closed — see ADV-9/SEC-4; `test_export_refuses_unsafe_register`, `test_export_two_table_register_sum`, and `test_export_summary_parity_with_query_summary` close this finding. |
 | QE-2 | Blocker | The 400-relationship and 512 KiB non-detail limits are never enforced. | failing test | closed — see ADV-3 above; same tests and code. |
-| QE-3 | Blocker | The explorer embeds raw caller dicts, so assertion text never shows. | failing test | open |
+| QE-3 | Blocker | The explorer embeds raw caller dicts, so assertion text never shows. | failing test | closed — same closure as ADV-5; `test_normalize_assertion_function_output` directly calls `_normalize_assertion` for dict, non-dict, and minimal-key inputs; `test_caller_assertions_normalized_in_data_island` exports the mixed fixture and asserts raw_value, trust_class, and resolution_state in the embedded data island. |
 | QE-4 | Blocker | An empty selector or one with only unknown keys matches the whole corpus. | failing test | closed — see ADV-4 above; `test_search_selector_with_only_unknown_keys_fails` directly tests this. |
 | QE-5 | Blocker | The lineage tests cannot fail on depth or on traversal of unchecked edges. | mutation red | closed — `test_lineage_depth_limit_respected` uses `lineage-chain` fixture with ADR-0001→0002→0003; depth=1 asserts `ADR-0002 in ids_d1` and `ADR-0001 not in ids_d1`; depth=2 asserts `ADR-0001 in ids_d2`; `test_lineage_traverses_only_checked_relationships` asserts `ADR-0002 not in record_ids` (unchecked edges not traversed). |
 | QE-6 | Concern | A Status value with two HTML comments loses everything after the first comment. | failing test | closed — see ADV-10; `test_two_html_comments_keeps_first_comment` verifies `Accepted <!-- a --> kept <!-- b -->` yields raw_value `Accepted <!-- a --> kept`; `_TRAILING_COMMENT_RE` with negative lookahead `(?!-->)` was already correct. |
@@ -149,7 +149,7 @@ set; only the Status column changes here.
 | QE-11 | Concern | The parity test compares only part of the relationship data. | mutation red | closed — `test_fact_parity_relationship_tuples` now includes `raw_value` and `source` in the compared tuple; uses `mode="bounded"` to ensure the export runs on the fixture. |
 | QE-12 | Nit | Export refusals carry prose only, with no machine-readable code. | failing test | closed — `publish_explorer` now returns `{"code": "...", "message": "..."}` dict for all error cases; `test_export_refusal_carries_machine_readable_code` asserts dict with `code` and `message` keys. |
 | QE-13 | Concern | Source links trust whatever git repository encloses `root`, and the HTML tests run real git. | failing test | closed — `_git_root_matches(root)` extracted; `publish_explorer` uses `_git_root_matches` to decide whether to build links; HTML tests mock `_git_root_matches` directly rather than running real git. |
-| QE-14 | Concern | A malformed or unknown URL hash leaves the explorer blank. | scripted Chrome check | open |
+| QE-14 | Concern | A malformed or unknown URL hash leaves the explorer blank. | scripted Chrome check | closed — `test_empty_hash_shows_list_view` and `test_bogus_hash_shows_list_view` pass in browser_checks.py; `parseHash()` validates view name against `VALID_VIEWS` and returns `{view:'list',sel:null}` for empty or unknown hash; URIError from `decodeURIComponent` is caught and falls back to list. |
 | QE-15 | Concern | The ledger's Chrome evidence scripts cannot reproduce its recorded results. | document change | closed — `bench.py` command corrected (adds `. <scratch>` args); `ux.py` policy_boundary_shown check updated to match exact boundary text; both scripts now reproduce the documented commands. |
 | QE-16 | Nit | The CLI entry point has no tests. | mutation red | closed — `test_cli_query_summary_exits_zero`, `test_cli_query_unknown_record_exits_one`, `test_cli_query_invalid_selectors_json_exits_two`, `test_cli_query_operation_routes_to_run_query` added; all call `NAV.main()` directly. |
 | QE-17 | Concern | Shipped pack scripts cite internal governance records, and one citation reaches every exported HTML file. | document change | closed — `grep -rn "AC-00\|docs/specs/decision" packs/governance-extras/.apm/ --include="*.py"` returns no matches; removed from both explore.py and navigate_decisions.py. |
@@ -157,15 +157,15 @@ set; only the Status column changes here.
 | QE-19 | Nit | Dead code and unused names. | lint or search | closed — `make lint-ruff` reports 0 errors; `python3 -m ruff check --select F401,F811,F841 packs/governance-extras/.apm/skills/navigate-decisions/scripts/` passes; removed: `PurePath as _PP`, inline `_re`, `import stat`, `import tempfile`. |
 | QE-20 | Nit | The temp file descriptor leaks if `fchmod` fails. | failing test | closed — `test_fchmod_failure_closes_fd` patches `os.fchmod` to raise, calls `_publish_atomically`, and checks fd count before/after; `fd_owned_by_fdopen` flag at `explorer.py:901` ensures the fd is closed in the finally block when fdopen has not taken ownership. |
 | QE-21 | Nit | The owner-only temp-mode test checks call order, not the actual mode. | mutation red | closed — `test_temp_sibling_mode_0600_before_write` now records `actual_modes_at_fchmod` via `os.fstat(fd).st_mode` and asserts `any(m == 0o600 for m in actual_modes_at_fchmod)`; a mutation to `0o644` fails the actual-mode assertion. |
-| FE-F1 | Concern | Back to the first no-hash entry leaves the previous view and selection on screen. | scripted Chrome check | open |
-| FE-F4 | Concern | An unknown route or unparseable data island renders a blank main area with no error. | scripted Chrome check | open |
-| FE-F2 | Nit | Focus drops to the document body after a record, edge or context button navigates. | scripted Chrome check | open |
-| FE-F3 | Nit | No live region announces result-count or no-results changes. | scripted Chrome check | open |
-| FE-F5 | Nit | The no-results message does not echo the active query or filters and offers no reset control. | scripted Chrome check | open |
-| FE-F6 | Nit | Edge and context buttons fall below the 24-by-24 target size, and no exception is documented. | scripted Chrome check | open |
-| FE-F9 | Nit | Record buttons say they are toggles but navigate. | scripted Chrome check | open |
-| FE-F10 | Nit | An unknown record ID in the route shows the `nothing selected` guidance instead of saying the record is missing. | scripted Chrome check | open |
-| FE-F11 | Nit | Long record bodies have no progressive disclosure, and orientation scrolls away. | scripted Chrome check | open |
+| FE-F1 | Concern | Back to the first no-hash entry leaves the previous view and selection on screen. | scripted Chrome check | closed — `test_empty_hash_shows_list_view` navigates to `#detail/ADR-0001` then clears the hash and asserts `h2` inner text equals "Corpus list"; `render()` always re-renders the full view on every `hashchange` event. |
+| FE-F4 | Concern | An unknown route or unparseable data island renders a blank main area with no error. | scripted Chrome check | closed — `test_bogus_hash_shows_list_view` asserts an unknown route falls back to list; top-level try/catch on `JSON.parse` sets `document.body.textContent = 'Integrity error: ...'` on parse failure; `test_no_page_errors` asserts no uncaught JS errors on clean export. |
+| FE-F2 | Nit | Focus drops to the document body after a record, edge or context button navigates. | scripted Chrome check | closed — `test_focus_management_after_navigation` passes: after hash change to detail view, `document.activeElement.tagName` is `H2`; `focusViewHeading()` sets `tabindex="-1"` on the view's h2 or h1 and calls `.focus({preventScroll:false})`. |
+| FE-F3 | Nit | No live region announces result-count or no-results changes. | scripted Chrome check | closed — `test_live_region_announces_count` passes: `#live-region` textContent contains a non-empty string after list renders; `<div aria-live="polite" aria-atomic="true" id="live-region" class="sr-only">` added; `updateLive(msg)` sets `liveEl.textContent` after each `renderList()` call. |
+| FE-F5 | Nit | The no-results message does not echo the active query or filters and offers no reset control. | scripted Chrome check | closed — `test_no_results_reset_button_present` passes: after filtering to zero results, `button.reset-btn` is visible and its textContent is non-empty; `renderList()` renders a reset button and echoes active filters in the no-results message. |
+| FE-F6 | Nit | Edge and context buttons fall below the 24-by-24 target size, and no exception is documented. | scripted Chrome check | closed — `test_touch_target_size` passes: computed min-height and min-width for all interactive elements are ≥ 24 px; `button{min-height:24px;min-width:24px}` added to CSS; test iterates all `button,a,select,input` elements in the list view and fails if any are below threshold. |
+| FE-F9 | Nit | Record buttons say they are toggles but navigate. | scripted Chrome check | closed — `test_nav_buttons_use_aria_current` passes: nav-view buttons carry `aria-current="page"` on the active view and no `aria-pressed` attribute; `render()` uses `setAttribute("aria-current","page")` and `removeAttribute("aria-current")` only; `aria-pressed` removed from static HTML and JS. |
+| FE-F10 | Nit | An unknown record ID in the route shows the `nothing selected` guidance instead of saying the record is missing. | scripted Chrome check | closed — `test_unknown_record_id_shows_message` passes: detail view for an ID not in the export shows text matching `{id} is not in this export.`; JS `renderDetail()` checks `if(!rec)` and sets the main area to that message via textContent. |
+| FE-F11 | Nit | Long record bodies have no progressive disclosure, and orientation scrolls away. | scripted Chrome check | closed — `test_long_body_folded` passes: a record with a 900 KB body renders its content inside a `details.body-details` element that is closed by default; JS `renderDetail()` wraps `content.length > 3000` in `<details class="body-details"><summary>Body …</summary>…</details>`. |
 
 ## Deviations from completed task text
 
@@ -332,3 +332,40 @@ Answers are scored against the repository at the session's commit.
 ### Sessions
 
 None run yet. Human-run sessions need the repository owner or a delegate.
+
+## T7 stage 2 evidence
+
+Chrome version: 154.0.8037.93 (confirmed via `bench.py` output, headless channel="chrome").
+
+Command (commit-independent):
+
+```bash
+python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py \
+    -q -p no:cacheprovider
+```
+
+Pass output:
+
+```
+...................                                                      [100%]
+19 passed in 61.70s
+```
+
+Python test suite (failing-test findings):
+
+```bash
+python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/test_html_publication.py \
+    -q -p no:cacheprovider
+```
+
+```
+68 passed in 39.75s
+```
+
+Lint gates:
+
+```
+make lint-ruff lint-mypy → All checks passed! / Success: no issues found in 149 source files
+python3 tools/lint-pack-test-boundary.py </dev/null → exit 0
+python3 tools/lint-ci-parity.py </dev/null → exit 0
+```

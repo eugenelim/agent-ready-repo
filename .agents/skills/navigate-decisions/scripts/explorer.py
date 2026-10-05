@@ -321,6 +321,136 @@ def _build_source_links(root: Path, sources: list[str]) -> dict[str, Any]:
     return links
 
 
+# ── Caller assertion normalization ────────────────────────────────────────────
+
+
+def _normalize_assertion(a: Any) -> dict[str, Any]:
+    """Normalize a caller assertion to a guidance/navigation_only/caller_asserted tuple.
+
+    Every caller assertion is embedded as a structured tuple with a fixed
+    trust_class and resolution_state so the JS runtime can render them without
+    relying on the shape of the raw caller dict.
+    """
+    if not isinstance(a, dict):
+        return {
+            "from": "",
+            "to": "",
+            "relation": "guidance",
+            "trust_class": "navigation_only",
+            "resolution_state": "caller_asserted",
+            "raw_value": str(a),
+        }
+    return {
+        "from": str(a.get("from", "")),
+        "to": str(a.get("to", "")),
+        "relation": str(a.get("relation", "guidance")),
+        "trust_class": "navigation_only",
+        "resolution_state": "caller_asserted",
+        "raw_value": str(a.get("raw_value", a.get("text", ""))),
+    }
+
+
+# ── Support reference discovery ───────────────────────────────────────────────
+
+_ORDINAL_PREFIX_RE = re.compile(r"^(\d{4})-")
+
+
+def _collect_support_refs(
+    root: Path,
+    api_records: list[dict[str, Any]],
+) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
+    """Discover support material alongside each record.
+
+    Looks in the same directory as each record for:
+    - NNNN-notes/ subdirectory (kind "notes_dir")
+    - NNNN-*-research.md files (kind "research_file")
+    - README.md in the corpus directory (kind "readme", per directory, not per record)
+
+    Returns (per_record, corpus_refs) where per_record maps record ID → list of
+    support ref dicts, and corpus_refs is the list of corpus-wide support refs
+    (README.md files, one per corpus directory).
+    """
+    per_record: dict[str, list[dict[str, Any]]] = {}
+    corpus_refs: list[dict[str, Any]] = []
+    seen_dirs: set[str] = set()
+
+    for rec in api_records:
+        source = rec.get("source", "")
+        record_id = rec.get("id", "")
+        if not source:
+            per_record[record_id] = []
+            continue
+        source_path = root / source
+        parent_dir = source_path.parent
+        m = _ORDINAL_PREFIX_RE.match(source_path.name)
+        if not m:
+            per_record[record_id] = []
+            continue
+        prefix = m.group(1)
+        refs: list[dict[str, Any]] = []
+
+        # NNNN-notes/ directory.
+        notes_dir = parent_dir / f"{prefix}-notes"
+        try:
+            nst = os.lstat(notes_dir)
+            if _stat.S_ISDIR(nst.st_mode) and not _stat.S_ISLNK(nst.st_mode):
+                try:
+                    rel = str(notes_dir.relative_to(root)) + "/"
+                    refs.append({"path": rel, "kind": "notes_dir"})
+                except ValueError:
+                    pass
+        except OSError:
+            pass
+
+        # NNNN-*-research.md files.
+        try:
+            with os.scandir(parent_dir) as it:
+                for entry in sorted(it, key=lambda e: e.name):
+                    n = entry.name
+                    if (
+                        n.startswith(prefix + "-")
+                        and n.endswith("-research.md")
+                    ):
+                        try:
+                            est = entry.stat(follow_symlinks=False)
+                            if _stat.S_ISREG(est.st_mode) and not _stat.S_ISLNK(
+                                est.st_mode
+                            ):
+                                try:
+                                    rel = str(
+                                        Path(entry.path).relative_to(root)
+                                    )
+                                    refs.append(
+                                        {"path": rel, "kind": "research_file"}
+                                    )
+                                except ValueError:
+                                    pass
+                        except OSError:
+                            pass
+        except OSError:
+            pass
+
+        per_record[record_id] = refs
+
+        # README.md — one per corpus directory.
+        dir_key = str(parent_dir.resolve())
+        if dir_key not in seen_dirs:
+            seen_dirs.add(dir_key)
+            readme = parent_dir / "README.md"
+            try:
+                rst = os.lstat(readme)
+                if _stat.S_ISREG(rst.st_mode) and not _stat.S_ISLNK(rst.st_mode):
+                    try:
+                        rel = str(readme.relative_to(root))
+                        corpus_refs.append({"path": rel, "kind": "readme"})
+                    except ValueError:
+                        pass
+            except OSError:
+                pass
+
+    return per_record, corpus_refs
+
+
 # ── CSS ───────────────────────────────────────────────────────────────────────
 
 _CSS = """\
@@ -330,6 +460,7 @@ body{margin:0;font-family:system-ui,sans-serif;line-height:1.5;color:#111;backgr
 a{color:#0057b8;text-underline-offset:.2em}
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{
   outline:3px solid #0057b8;outline-offset:2px}
+button{min-height:24px;min-width:24px}
 #app{display:flex;flex-direction:column;min-height:100vh}
 #app-header{background:#fff;border-bottom:1px solid #d0d0d0;padding:.75rem 1rem}
 #app-header h1{margin:0 0 .25rem;font-size:1.25rem}
@@ -345,14 +476,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{
 nav[aria-label="Views"]{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.5rem}
 nav[aria-label="Views"] button{padding:.3rem .7rem;border:1px solid #aaa;border-radius:3px;
   background:#eee;cursor:pointer;font-size:.9rem}
-nav[aria-label="Views"] button[aria-pressed="true"]{background:#0057b8;
+nav[aria-label="Views"] button[aria-current="page"]{background:#0057b8;
   color:#fff;border-color:#0057b8}
 #app-main{flex:1;padding:1rem;max-width:100%}
 .record-list{list-style:none;margin:0;padding:0}
 .record-item{border:1px solid #ddd;border-radius:4px;margin-bottom:.4rem;background:#fff}
 .record-item.selected{border-color:#0057b8;background:#f0f5ff}
 .record-btn{width:100%;text-align:left;padding:.5rem .75rem;background:none;border:none;
-  cursor:pointer;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;font-size:.9rem}
+  cursor:pointer;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;font-size:.9rem;
+  min-height:24px}
 .badge{padding:.1rem .4rem;border-radius:3px;font-size:.75rem;
   font-weight:700;text-transform:uppercase}
 .badge-adr{background:#d6e8ff;color:#003b7a}
@@ -364,6 +496,7 @@ nav[aria-label="Views"] button[aria-pressed="true"]{background:#0057b8;
 .bounded-notice{color:#7a4000;background:#fff3cd;padding:.4rem .6rem;border-radius:3px}
 .record-body{white-space:pre-wrap;word-break:break-word;background:#fff;border:1px solid #ddd;
   padding:.75rem;border-radius:4px;overflow-x:auto;font-size:.85rem;font-family:monospace}
+.record-content{border:2px solid #d0d0d0;border-radius:4px}
 .meta-table{border-collapse:collapse;margin-bottom:1rem;font-size:.9rem;width:100%;max-width:60rem}
 .meta-table th,.meta-table td{border:1px solid #ddd;padding:.3rem .5rem;text-align:left;
   vertical-align:top}
@@ -371,27 +504,42 @@ nav[aria-label="Views"] button[aria-pressed="true"]{background:#0057b8;
 .rel-list{list-style:none;margin:0;padding:0}
 .rel-item{padding:.3rem .5rem;border:1px solid #eee;border-radius:3px;
   margin-bottom:.25rem;font-size:.85rem;font-family:monospace;word-break:break-all}
-.rel-checked{border-color:#00501a;background:#f0faf3}
-.rel-candidate{border-color:#d09000;background:#fffbf0}
-.rel-contextual{border-color:#7a4080;background:#faf0ff}
-.rel-navigation-only{border-color:#555;background:#f5f5f5}
+.rel-checked{border-left:4px solid #00501a;background:#f0faf3}
+.rel-candidate{border-left:4px dashed #d09000;background:#fffbf0}
+.rel-contextual{border-left:4px dotted #7a4080;background:#faf0ff}
+.rel-navigation-only{border-left:4px double #555;background:#f5f5f5}
+.trust-label{font-weight:700;font-size:.75rem;background:#eee;border-radius:2px;
+  padding:.1rem .3rem;margin-right:.3rem;white-space:nowrap}
+.trust-source{color:#666;font-size:.8rem}
 .graph-list{list-style:none;margin:0;padding:0}
 .graph-edge{padding:.3rem .5rem;margin-bottom:.25rem;background:#fff;
   border:1px solid #ddd;border-radius:3px}
 .graph-list.unresolved .rel-item{color:#7a4000}
 .edge-btn{background:none;border:none;cursor:pointer;text-align:left;
-  font-family:monospace;font-size:.85rem;color:#0057b8;padding:0}
+  font-family:monospace;font-size:.85rem;color:#0057b8;padding:.2rem .3rem;
+  min-height:24px;min-width:24px;display:inline-flex;align-items:center}
 .graph-note{color:#555;font-size:.85rem;font-style:italic;margin:.25rem 0 .5rem}
 .ctx-btn{background:none;border:none;cursor:pointer;color:#0057b8;
-  text-decoration:underline;font-size:.9rem;padding:0}
+  text-decoration:underline;font-size:.9rem;padding:.2rem .3rem;
+  min-height:24px;min-width:24px;display:inline-flex;align-items:center}
 .ctx-list,.assert-list{list-style:none;margin:0;padding:0}
 .ctx-list li,.assert-list li{padding:.25rem 0;font-size:.9rem;border-bottom:1px solid #eee}
+.sup-banner{display:block;font-size:.8rem;color:#7a4000;background:#fff3cd;
+  padding:.2rem .5rem;border-radius:3px;margin-top:.2rem}
+.sup-banner-detail{margin:.5rem 0;padding:.5rem .75rem;background:#fff3cd;
+  border:2px solid #ffc107;border-radius:4px;font-weight:600;color:#7a4000}
+.reset-btn{margin-top:.5rem;padding:.3rem .7rem;border:1px solid #aaa;border-radius:3px;
+  background:#eee;cursor:pointer;font-size:.9rem;min-height:24px}
+.detail-heading{position:sticky;top:0;background:#f8f8f8;padding:.25rem 0;
+  z-index:10;border-bottom:1px solid #d0d0d0;margin-bottom:.5rem}
 #app-footer{padding:.75rem 1rem;border-top:1px solid #d0d0d0;background:#fff}
 #app-footer details{margin-bottom:.5rem}
 #app-footer summary{cursor:pointer;font-weight:600;font-size:.9rem}
 #app-footer ul{margin:.25rem 0 0 1rem;font-size:.85rem}
 #app-footer pre{font-size:.75rem;white-space:pre-wrap;word-break:break-all;
   background:#f0f0f0;padding:.4rem;border-radius:3px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:40rem){
   .controls{flex-direction:column;align-items:flex-start}
   .meta-table{font-size:.8rem}
@@ -407,24 +555,31 @@ nav[aria-label="Views"] button[aria-pressed="true"]{background:#0057b8;
 
 _JS_RUNTIME = """\
 !function(){
-var D=JSON.parse(document.getElementById('nav-data').textContent);
-var records=D.records,rels=D.relationships,mode=D.mode,srcLinks=D.source_links||{};
-var embAsserts=D.embedded_assertions||[];
+'use strict';
+var dataEl=document.getElementById('nav-data');
+var D;
+try{D=JSON.parse(dataEl?dataEl.textContent:'');}
+catch(e){
+document.body.textContent='Integrity error: data island could not be parsed. '+String(e);
+return;}
+var records=D.records||[],rels=D.relationships||[],mode=D.mode||'full';
+var srcLinks=D.source_links||{},embAsserts=D.embedded_assertions||[];
 var state={view:'list',sel:null,kind:'',status:'',q:''};
-var statusSet=[];
+var VALID_VIEWS=['list','graph','context','detail'];
+var statusMap={};
 records.forEach(function(r){
-var v=r.lifecycle&&!r.lifecycle.missing?r.lifecycle.raw_value:'';
-if(v&&statusSet.indexOf(v)<0)statusSet.push(v);});
-statusSet.sort();
+var l=r.lifecycle;if(!l||l.missing)return;
+var rv=l.raw_value;
+if(rv!=null&&!(rv in statusMap))statusMap[rv]=l.display_value||rv;});
 var searchEl=document.getElementById('search-input');
 var kindEl=document.getElementById('kind-filter');
 var statusEl=document.getElementById('status-filter');
-statusSet.forEach(function(s){
+var liveEl=document.getElementById('live-region');
+Object.keys(statusMap).sort().forEach(function(rv){
 var o=document.createElement('option');
-o.value=o.textContent=s;statusEl.appendChild(o);});
+o.value=rv;o.textContent=statusMap[rv]||rv;statusEl.appendChild(o);});
 function lc(r){
-var l=r.lifecycle;
-if(!l||l.missing)return'(missing)';
+var l=r.lifecycle;if(!l||l.missing)return'(missing)';
 return l.display_value||l.raw_value||'(missing)';}
 function el(tag,cls,txt){
 var e=document.createElement(tag);
@@ -432,34 +587,46 @@ if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 function attr(e,k,v){if(v!=null)e.setAttribute(k,v);return e;}
 function btn(cls,txt,handler){
 var b=el('button',cls,txt);b.addEventListener('click',handler);return b;}
+function updateLive(msg){if(liveEl)liveEl.textContent=msg;}
 function parseHash(){
-var h=location.hash.slice(1);if(!h)return;
+try{
+var h=location.hash.slice(1);
+if(!h){state.view='list';state.sel=null;return;}
 var i=h.indexOf('/');
-if(i<0){state.view=h;}
-else{state.view=h.slice(0,i);state.sel=decodeURIComponent(h.slice(i+1));}}
+var v=i<0?h:h.slice(0,i);
+if(VALID_VIEWS.indexOf(v)<0){state.view='list';state.sel=null;return;}
+state.view=v;
+if(i>=0){try{state.sel=decodeURIComponent(h.slice(i+1));}
+catch(ue){state.sel=null;}}
+}catch(ex){state.view='list';state.sel=null;}}
 function pushState(){
 var h='#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel):'');
 if(location.hash!==h)history.pushState(null,'',h);}
 function filtered(){return records.filter(function(r){
 if(state.kind&&r.kind!==state.kind)return false;
 if(state.status&&(r.lifecycle.missing||
-  r.lifecycle.raw_value!==state.status))return false;
+r.lifecycle.raw_value!==state.status))return false;
 if(state.q){var q=state.q.toLowerCase();
 if(r.title.toLowerCase().indexOf(q)<0&&
-  lc(r).toLowerCase().indexOf(q)<0)return false;}
+lc(r).toLowerCase().indexOf(q)<0)return false;}
 return true;});}
 function srcLink(src){var sl=srcLinks[src];if(!sl||!sl.url)return null;return sl;}
 function makeLink(src){
 var sl=srcLink(src);if(!sl)return null;
 var a=el('a',null,sl.label);
 attr(a,'href',sl.url);attr(a,'rel','noopener noreferrer');return a;}
+function focusViewHeading(){
+var c=document.getElementById('view-'+state.view);if(!c)return;
+var h=c.querySelector('h2,h1');
+if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
 function navigate(view,id){
 state.view=view;if(id!==undefined)state.sel=id;pushState();render();}
 function render(){
-['list','graph','context','detail'].forEach(function(v){
+VALID_VIEWS.forEach(function(v){
 var b=document.getElementById('btn-'+v);
-if(b)b.setAttribute('aria-pressed',state.view===v?'true':'false');});
-['list','graph','context','detail'].forEach(function(v){
+if(b){if(state.view===v){b.setAttribute('aria-current','page');}
+else{b.removeAttribute('aria-current');}}});
+VALID_VIEWS.forEach(function(v){
 var d=document.getElementById('view-'+v);
 if(d)d.hidden=state.view!==v;});
 var c=document.getElementById('view-'+state.view);
@@ -467,36 +634,59 @@ if(!c)return;c.textContent='';
 if(state.view==='list')renderList(c);
 else if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
-else if(state.view==='detail')renderDetail(c);}
+else if(state.view==='detail')renderDetail(c);
+focusViewHeading();}
 function renderList(c){
 var fr=filtered();
+var h2=el('h2',null,'Corpus list');c.appendChild(h2);
 if(fr.length===0){
-var p=el('p','empty-msg');
-p.textContent=records.length===0?
+var activeFilters=[];
+if(state.q)activeFilters.push('search: "'+state.q+'"');
+if(state.kind)activeFilters.push('kind: '+state.kind);
+if(state.status)activeFilters.push('status: '+state.status);
+var msg=records.length===0?
 'No canonical ADR or RFC records were admitted. Check the corpus boundary.':
-'No records match the active search and filters. Clear to see all '
-+records.length+' records.';
-c.appendChild(p);return;}
+activeFilters.length>0?
+'No records match '+activeFilters.join(', ')+'.':
+'No records match the active filters.';
+c.appendChild(el('p','empty-msg',msg));
+if(activeFilters.length>0){
+var rb=btn('reset-btn','Reset filters',function(){
+state.q='';state.kind='';state.status='';
+if(searchEl)searchEl.value='';
+if(kindEl)kindEl.value='';
+if(statusEl)statusEl.value='';
+render();});
+c.appendChild(rb);}
+updateLive(msg);return;}
 var ul=el('ul','record-list');
 fr.forEach(function(r){
 var li=el('li','record-item'+(r.id===state.sel?' selected':''));
 var b=el('button','record-btn');
-attr(b,'aria-pressed',r.id===state.sel?'true':'false');
+if(r.id===state.sel)b.setAttribute('aria-current','true');
 var badge=el('span','badge badge-'+r.kind.toLowerCase(),r.kind);
 var ridEl=el('span','rid',r.id);
 var ttEl=el('span','rtitle',r.title);
 var stEl=el('span','rstatus',lc(r));
-b.appendChild(badge);b.appendChild(ridEl);
-b.appendChild(ttEl);b.appendChild(stEl);
+b.appendChild(badge);b.appendChild(ridEl);b.appendChild(ttEl);b.appendChild(stEl);
+var supBy=r.header_fields&&r.header_fields.superseded_by;
+if(supBy&&supBy.length>0&&supBy[0].parseable){
+var firstSup=supBy[0].target_id;
+var supPart=r.header_fields&&r.header_fields.superseded_in_part;
+var isPart=(supPart&&supPart.length>0&&supPart[0].parseable);
+var sb=el('span','sup-banner',
+(isPart?'Superseded in part by ':'Superseded by ')+firstSup);
+b.appendChild(sb);}
 b.addEventListener('click',function(){navigate('detail',r.id);});
 li.appendChild(b);ul.appendChild(li);});
-c.appendChild(ul);}
+c.appendChild(ul);
+updateLive(fr.length+' of '+records.length+' records shown.');}
 function renderGraph(c){
+var h2=el('h2',null,'Lifecycle graph');c.appendChild(h2);
 var checked=rels.filter(function(r){return r.trust_class==='checked';});
-var h2=el('h2',null,'Checked supersession graph');c.appendChild(h2);
-var noteText='Checked edges: both sides declare. Partial edges show scope.'
-+' Unresolved entries are reported but not traversed.';
-var note=el('p','graph-note',noteText);c.appendChild(note);
+c.appendChild(el('p','graph-note',
+'Checked edges: both sides declare. Partial edges show scope.'
++' Unresolved entries are reported but not traversed.'));
 if(checked.length===0){
 c.appendChild(el('p','empty-msg','No checked supersession edges in this corpus.'));}
 else{
@@ -515,25 +705,28 @@ c.appendChild(ul);}
 var unres=rels.filter(function(r){
 return r.trust_class==='candidate'&&r.resolution_state==='unresolved';});
 if(unres.length>0){
-var h3=el('h3',null,'Unresolved supersession entries (not traversed)');
-c.appendChild(h3);
+c.appendChild(el('h3',null,'Unresolved supersession entries (not traversed)'));
 var ul2=el('ul','graph-list');
 unres.forEach(function(r){
 var li=el('li','rel-item rel-candidate');
-li.textContent=(r.from||'?')+' → '+(r.to||'(unparseable)')
-+' ['+r.relation+' · unresolved] · '+r.raw_value;
+var tlEl=el('span','trust-label','[candidate · unresolved]');
+li.appendChild(tlEl);
+li.appendChild(document.createTextNode(' '+(r.from||'?')+' → '
++(r.to||'(unparseable)')+' · '));
+li.appendChild(document.createTextNode(r.raw_value||''));
 ul2.appendChild(li);});
-c.appendChild(ul2);}}
+c.appendChild(ul2);}
+updateLive('');}
 function renderContext(c){
 var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
+var h2=el('h2',null,rec?'Guidance context: '+rec.id:'Guidance context');
+c.appendChild(h2);
 if(!rec){
 c.appendChild(el('p','empty-msg',
 'Select a record from the corpus list, then switch to this view.'));
-return;}
-c.appendChild(el('h2',null,'Guidance context: '+rec.id));
+updateLive('');return;}
 var ctx=rels.filter(function(r){
-return r.trust_class==='contextual'
-&&(r.from===rec.id||r.to===rec.id);});
+return r.trust_class==='contextual'&&(r.from===rec.id||r.to===rec.id);});
 c.appendChild(el('h3',null,
 'Contextual references — Related field (weaker than checked lineage)'));
 if(ctx.length===0){
@@ -558,25 +751,43 @@ var extra=embAsserts.filter(function(a){
 return a.from===rec.id||a.to===rec.id;});
 c.appendChild(el('h3',null,'Caller assertions (non-authoritative view input)'));
 if(asserts.length===0&&extra.length===0){
-c.appendChild(el('p','empty-msg',
-'No caller assertions embedded for this record.'));}
+c.appendChild(el('p','empty-msg','No caller assertions embedded for this record.'));}
 else{
 var ul2=el('ul','assert-list');
 asserts.concat(extra).forEach(function(a){
 var li=el('li',null);
-li.textContent='[navigation only · caller_asserted] '
-+(a.raw_value||'')
-+(a.from?' from: '+a.from:'')
-+(a.to?' → '+a.to:'');
+var tlEl=el('span','trust-label','[navigation_only · caller_asserted]');
+li.appendChild(tlEl);
+li.appendChild(document.createTextNode(' '));
+li.appendChild(document.createTextNode(a.raw_value||''));
+if(a.from)li.appendChild(document.createTextNode(' from: '+a.from));
+if(a.to)li.appendChild(document.createTextNode(' → '+a.to));
 ul2.appendChild(li);});
-c.appendChild(ul2);}}
+c.appendChild(ul2);}
+updateLive('');}
 function renderDetail(c){
 var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
+var h2=el('h2',null,rec?rec.id+': '+rec.title:'Record detail');
+h2.className='detail-heading';c.appendChild(h2);
 if(!rec){
-c.appendChild(el('p','empty-msg',
-'Select a record from the corpus list to see its detail.'));
-return;}
-c.appendChild(el('h2',null,rec.id+': '+rec.title));
+var p=el('p','empty-msg');
+if(state.sel){p.textContent=state.sel+' is not in this export.';}
+else{p.textContent='Select a record from the corpus list to see its detail.';}
+c.appendChild(p);updateLive('');return;}
+var supBy=rec.header_fields&&rec.header_fields.superseded_by;
+if(supBy&&supBy.length>0&&supBy[0].parseable){
+var firstSup=supBy[0].target_id;
+var supPart=rec.header_fields&&rec.header_fields.superseded_in_part;
+var isPart=(supPart&&supPart.length>0&&supPart[0].parseable);
+var banDiv=el('div','sup-banner-detail');
+banDiv.appendChild(document.createTextNode(
+isPart?'Superseded in part by ':'Superseded by '));
+var supRec=records.find(function(r){return r.id===firstSup;});
+if(supRec){
+var supBtn=btn('ctx-btn',firstSup,function(){navigate('detail',firstSup);});
+banDiv.appendChild(supBtn);}
+else{banDiv.appendChild(document.createTextNode(firstSup+' (not in this export)'));}
+c.appendChild(banDiv);}
 var tbl=el('table','meta-table');
 [['Kind',rec.kind],['Status',lc(rec)],['Source',rec.source]].forEach(function(row){
 var tr=document.createElement('tr');
@@ -590,27 +801,44 @@ slTd.appendChild(sl);
 var sl2=srcLinks[rec.source];
 if(sl2&&sl2.kind==='branch_latest')
 slTd.appendChild(document.createTextNode(' (may be newer than this export)'));}
-else{
-slTd.textContent=rec.source+' (remote not on allowlist — inert provenance)';}
+else{slTd.textContent=rec.source+' (remote not on allowlist — inert provenance)';}
 slTr.appendChild(slTh);slTr.appendChild(slTd);tbl.appendChild(slTr);
 c.appendChild(tbl);
 var recRels=rels.filter(function(r){return r.from===rec.id||r.to===rec.id;});
 if(recRels.length>0){
-c.appendChild(el('h3',null,'Relationships'));
+var rCnt={checked:0,candidate:0,contextual:0,navigation_only:0};
+recRels.forEach(function(r){var tc=r.trust_class;if(tc in rCnt)rCnt[tc]++;});
+var rSummary='Relationships — '+rCnt.checked+' checked · '
++rCnt.candidate+' candidate · '+rCnt.contextual+' contextual';
+var rDet=el('details','rel-details');
+var rSum=el('summary',null,rSummary);rDet.appendChild(rSum);
 var ul=el('ul','rel-list');
 recRels.forEach(function(r){
 var li=el('li','rel-item rel-'+r.trust_class.replace(/_/g,'-'));
+var tlEl=el('span','trust-label','['+r.trust_class+' · '+r.resolution_state+']');
+li.appendChild(tlEl);
 var scope=r.scope&&r.scope.length?r.scope.join(', '):'';
-if(r.relation==='supersedes_in_part'&&!r.scope.length)
+if(r.relation==='supersedes_in_part'&&!(r.scope&&r.scope.length))
 scope='scope not stated';
-li.textContent='['+r.trust_class+' · '+r.resolution_state+'] '
-+r.relation+': '+(r.from||'?')+' → '
-+(r.to||'(unparseable)')+(scope?' ('+scope+')':'')
-+' · source: '+(r.source||'caller')+' · '+r.raw_value;
+li.appendChild(document.createTextNode(' '+r.relation+': '+(r.from||'?')+' → '
++(r.to||'(unparseable)')+(scope?' ('+scope+')':'')));
+li.appendChild(el('span','trust-source',' · source: '+(r.source||'caller')));
+li.appendChild(document.createTextNode(' · '));
+li.appendChild(document.createTextNode(r.raw_value||''));
 ul.appendChild(li);});
-c.appendChild(ul);}
-c.appendChild(el('h3',null,'Body'
-+(mode==='bounded'?' (omitted in bounded mode)':'')));
+rDet.appendChild(ul);c.appendChild(rDet);}
+var supRefs=rec.support_refs||[];
+if(supRefs.length>0){
+var srDet=el('details','sr-details');
+var srSum=el('summary',null,'Support references ('+supRefs.length+')');
+srDet.appendChild(srSum);
+var srUl=el('ul',null);
+supRefs.forEach(function(sr){
+var li=el('li',null);
+li.appendChild(document.createTextNode(sr.path+' ['+sr.kind+']'));
+srUl.appendChild(li);});
+srDet.appendChild(srUl);c.appendChild(srDet);}
+c.appendChild(el('h3',null,'Record body'+(mode==='bounded'?' (omitted in bounded mode)':'')));
 var body=rec.body;
 if(!body){c.appendChild(el('p','empty-msg','Body not available.'));}
 else if(!body.available){
@@ -621,16 +849,26 @@ notice.textContent='Body omitted in bounded mode. ';
 if(body.source_action){
 var lnk=makeLink(body.source_action.path);
 if(lnk){notice.appendChild(lnk);}
-else{notice.appendChild(
-document.createTextNode(body.source_action.path));}}}
+else{notice.appendChild(document.createTextNode(body.source_action.path));}}}
 else if(reason==='body_too_large'){
 notice.textContent='Body too large to embed. Source: '+rec.source;}
 else{notice.textContent='Body not included. Reason: '+reason;}
 c.appendChild(notice);}
 else{
-var pre=el('pre','record-body');pre.textContent=body.content;
-c.appendChild(pre);}}
-['list','graph','context','detail'].forEach(function(v){
+var FOLD_THRESHOLD=3000;
+var content=body.content||'';
+var bodyEl;
+if(content.length>FOLD_THRESHOLD){
+var bd=el('details','body-details');
+var bs=el('summary',null,'Record content ('+content.length+' chars)');
+bd.appendChild(bs);
+var pre=el('pre','record-body record-content');pre.textContent=content;
+bd.appendChild(pre);bodyEl=bd;}
+else{
+var pre2=el('pre','record-body record-content');pre2.textContent=content;bodyEl=pre2;}
+c.appendChild(bodyEl);}
+updateLive(rec.id+': '+rec.title);}
+VALID_VIEWS.forEach(function(v){
 var b=document.getElementById('btn-'+v);
 if(b)b.addEventListener('click',function(){navigate(v,state.sel);});});
 if(searchEl)searchEl.addEventListener('input',function(){
@@ -640,6 +878,18 @@ state.kind=this.value;render();});
 if(statusEl)statusEl.addEventListener('change',function(){
 state.status=this.value;render();});
 window.addEventListener('popstate',function(){parseHash();render();});
+var provPre=document.getElementById('prov-pre');
+if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);
+var supInvEl=document.getElementById('sup-inv');
+if(supInvEl&&D.corpus_support_refs){
+var siUl=el('ul',null);
+var csr=D.corpus_support_refs;
+if(csr.length===0){siUl.appendChild(el('li',null,'None found.'));}
+else{csr.forEach(function(sr){
+var li=el('li',null);
+li.appendChild(document.createTextNode(sr.path+' ['+sr.kind+']'));
+siUl.appendChild(li);});}
+supInvEl.appendChild(siUl);}
 parseHash();render();
 }();\
 """
@@ -679,6 +929,7 @@ def _build_html(
     )
 
     # Embed all data as safe JSON in a data island.
+    corpus_support_refs = summary.get("corpus_support_refs", [])
     data_obj = {
         "records": records,
         "relationships": relationships,
@@ -688,6 +939,7 @@ def _build_html(
         "provenance": provenance,
         "summary": summary,
         "embedded_assertions": embedded_assertions,
+        "corpus_support_refs": corpus_support_refs,
     }
     json_data = _safe_json(data_obj)
 
@@ -715,13 +967,11 @@ def _build_html(
             return str(v.get("row_count", 0)) + " rows"
         return str(v)
 
-    support_html = (
-        f"<ul>"
-        f"<li>RFC candidates register: {_reg_cell('rfc_candidates')}</li>"
-        f"<li>Roadmap intents register: {_reg_cell('roadmap_intents')}</li>"
-        f"</ul>"
-    )
-    prov_text = _html_escape(json.dumps(provenance, indent=2, ensure_ascii=False))
+    # Register row counts are controlled integers/strings, safe for direct embed.
+    rfc_count = _html_escape(_reg_cell("rfc_candidates"))
+    roadmap_count = _html_escape(_reg_cell("roadmap_intents"))
+    # Provenance and per-record support refs are rendered from the data island
+    # via textContent in the JS runtime (no raw interpolation).
 
     title = f"Decision Navigator — {total} records — {now.strftime('%Y-%m-%dT%H:%M:%SZ')}"
 
@@ -735,13 +985,14 @@ def _build_html(
         f"<style>\n{_CSS}</style>\n"
         "</head>\n"
         "<body>\n"
+        '<div aria-live="polite" aria-atomic="true" id="live-region" class="sr-only"></div>\n'
         '<script type="application/json" id="nav-data">\n'
         f"{json_data}\n"
         "</script>\n"
         '<div id="app">\n'
         '<header id="app-header">\n'
         "<h1>Decision Navigator</h1>\n"
-        f'<p class="boundary-notice">{boundary}</p>\n'
+        f'<p class="boundary-notice">{_html_escape(boundary)}</p>\n'
         f'<div class="corpus-meta">Total: {total} ({counts_str}) · '
         f"Unresolved references: {unresolved}</div>\n"
         f"{mode_notice}\n"
@@ -755,10 +1006,10 @@ def _build_html(
         '<option value="">All statuses</option></select></label>\n'
         "</div>\n"
         '<nav aria-label="Views">\n'
-        '<button id="btn-list" aria-pressed="true">Corpus list</button>\n'
-        '<button id="btn-graph" aria-pressed="false">Lifecycle graph</button>\n'
-        '<button id="btn-context" aria-pressed="false">Guidance context</button>\n'
-        '<button id="btn-detail" aria-pressed="false">Record detail</button>\n'
+        '<button id="btn-list">Corpus list</button>\n'
+        '<button id="btn-graph">Lifecycle graph</button>\n'
+        '<button id="btn-context">Guidance context</button>\n'
+        '<button id="btn-detail">Record detail</button>\n'
         "</nav>\n"
         "</header>\n"
         '<main id="app-main">\n'
@@ -769,17 +1020,21 @@ def _build_html(
         "</main>\n"
         '<footer id="app-footer">\n'
         "<details><summary>Legend</summary><ul>\n"
-        "<li><strong>Checked:</strong> Both sides of the supersession entry"
-        " confirm the edge.</li>\n"
-        "<li><strong>Candidate/Unresolved:</strong> Only one side declares,"
-        " or the endpoint is missing.</li>\n"
-        "<li><strong>Contextual:</strong> A Related field reference."
-        " Not checked lineage.</li>\n"
-        "<li><strong>Navigation only:</strong> A caller assertion."
-        " Non-authoritative view input.</li>\n"
+        "<li><strong>Checked (solid left border):</strong> Both sides of the"
+        " supersession entry confirm the edge.</li>\n"
+        "<li><strong>Candidate/Unresolved (dashed left border):</strong> Only"
+        " one side declares, or the endpoint is missing.</li>\n"
+        "<li><strong>Contextual (dotted left border):</strong> A Related field"
+        " reference. Not checked lineage.</li>\n"
+        "<li><strong>Navigation only (double left border):</strong> A caller"
+        " assertion. Non-authoritative view input.</li>\n"
         "</ul></details>\n"
-        f"<details><summary>Support reference inventory</summary>{support_html}</details>\n"
-        f"<details><summary>Provenance</summary><pre>{prov_text}</pre></details>\n"
+        "<details><summary>Support reference inventory</summary>"
+        f"<ul><li>RFC candidates register: {rfc_count}</li>"
+        f"<li>Roadmap intents register: {roadmap_count}</li></ul>"
+        '<div id="sup-inv"></div>'
+        "</details>\n"
+        "<details><summary>Provenance</summary><pre id=\"prov-pre\"></pre></details>\n"
         "</footer>\n"
         "</div>\n"
         f"<script>{script_body}</script>\n"
@@ -1010,7 +1265,8 @@ def publish_explorer(
 
     root_path = Path(root) if not isinstance(root, Path) else root
     now_ = now or datetime.now(UTC)
-    assertions_ = assertions or []
+    # Normalize every caller assertion to a structured tuple before embedding.
+    assertions_ = [_normalize_assertion(a) for a in (assertions or [])]
 
     if mode not in ("full", "bounded"):
         return {
@@ -1108,6 +1364,13 @@ def publish_explorer(
                 },
             }
         api_records.append(api_rec)
+
+    # Collect support material (notes dirs, research files, READMEs) for each
+    # record and for the corpus directories.  Inert references only — no links.
+    per_record_refs, corpus_refs = _collect_support_refs(root_path, api_records)
+    for api_rec in api_records:
+        api_rec["support_refs"] = per_record_refs.get(api_rec["id"], [])
+    summary["corpus_support_refs"] = corpus_refs
 
     sorted_rels = _sort_relationships_fn(all_rels)
 

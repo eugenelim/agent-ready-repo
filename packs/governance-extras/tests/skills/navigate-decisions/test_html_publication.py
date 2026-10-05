@@ -1257,3 +1257,262 @@ def test_dot_segment_owner_repo_degrades_to_inert() -> None:
     assert sl.get("url") is None or sl.get("kind") == "inert", (
         f"dot-segment remote URL must produce inert link; got {sl!r}"
     )
+
+
+# ── Stage-2 T7 findings: ADV-5/QE-3, ADV-6, ADV-8/SEC-2, ADV-13/SEC-3 ───────
+
+
+def test_caller_assertions_normalized_in_data_island(tmp_path: pathlib.Path) -> None:
+    """ADV-5/QE-3: Caller assertions are normalized to structured tuples.
+
+    Raw caller dicts must be embedded as navigation_only/caller_asserted tuples
+    with a raw_value string so the JS runtime can render them.
+    """
+    raw_assert = {"from": "ADR-0001", "to": "ADR-0002", "raw_value": "caller text"}
+    r = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=tmp_path,
+        assertions=[raw_assert],
+    )
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    embeds = data.get("embedded_assertions", [])
+    assert len(embeds) == 1, f"expected 1 normalized assertion; got {embeds!r}"
+    a = embeds[0]
+    # Must be a normalized tuple.
+    assert a.get("trust_class") == "navigation_only", (
+        f"trust_class must be 'navigation_only'; got {a.get('trust_class')!r}"
+    )
+    assert a.get("resolution_state") == "caller_asserted", (
+        f"resolution_state must be 'caller_asserted'; got {a.get('resolution_state')!r}"
+    )
+    assert a.get("raw_value") == "caller text", (
+        f"raw_value must be preserved; got {a.get('raw_value')!r}"
+    )
+    assert a.get("from") == "ADR-0001"
+    assert a.get("to") == "ADR-0002"
+
+
+def test_caller_assertion_non_dict_normalized(tmp_path: pathlib.Path) -> None:
+    """ADV-5/QE-3: Non-dict assertions are normalized to a tuple with raw_value=str(a)."""
+    r = EXPLORER.publish_explorer(
+        FIXTURE,
+        destination=tmp_path,
+        assertions=["plain string assertion"],
+    )
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    embeds = data.get("embedded_assertions", [])
+    assert len(embeds) == 1
+    a = embeds[0]
+    assert a.get("trust_class") == "navigation_only"
+    assert a.get("raw_value") == "plain string assertion"
+
+
+def test_support_refs_in_data_island_mixed(tmp_path: pathlib.Path) -> None:
+    """ADV-6: Support references are discovered and embedded in the data island.
+
+    The mixed fixture has:
+    - docs/adr/0001-notes/ → notes_dir for ADR-0001
+    - docs/adr/0002-x-research.md → research_file for ADR-0002
+    - docs/adr/README.md → readme in corpus_support_refs
+    """
+    r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path, mode="bounded")
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+
+    # Per-record support refs.
+    records = {rec["id"]: rec for rec in data["records"]}
+    adr1_refs = records.get("ADR-0001", {}).get("support_refs", [])
+    assert any(sr["kind"] == "notes_dir" for sr in adr1_refs), (
+        f"ADR-0001 should have a notes_dir support ref; got {adr1_refs!r}"
+    )
+    adr2_refs = records.get("ADR-0002", {}).get("support_refs", [])
+    assert any(sr["kind"] == "research_file" for sr in adr2_refs), (
+        f"ADR-0002 should have a research_file support ref; got {adr2_refs!r}"
+    )
+
+    # Corpus-level support refs (README.md).
+    corpus_refs = data.get("corpus_support_refs", [])
+    readme_refs = [sr for sr in corpus_refs if sr.get("kind") == "readme"]
+    assert readme_refs, (
+        f"corpus_support_refs should include a readme; got {corpus_refs!r}"
+    )
+    readme_paths = [sr["path"] for sr in readme_refs]
+    assert any("README.md" in p for p in readme_paths), (
+        f"README.md path expected in corpus refs; got {readme_paths!r}"
+    )
+
+
+def test_support_refs_paths_are_inert_strings(tmp_path: pathlib.Path) -> None:
+    """ADV-6: Support ref paths are plain strings, not clickable links."""
+    r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path, mode="bounded")
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    all_refs: list = list(data.get("corpus_support_refs", []))
+    for rec in data["records"]:
+        all_refs.extend(rec.get("support_refs", []))
+    for sr in all_refs:
+        # Each support ref must have path (str) and kind (str).
+        assert isinstance(sr.get("path"), str), (
+            f"support ref path must be a string; got {sr!r}"
+        )
+        assert isinstance(sr.get("kind"), str), (
+            f"support ref kind must be a string; got {sr!r}"
+        )
+        # No URL field — inert references only.
+        assert "url" not in sr, (
+            f"support refs must not have a url field; got {sr!r}"
+        )
+
+
+def test_provenance_not_interpolated_in_html(tmp_path: pathlib.Path) -> None:
+    """ADV-13/SEC-3: Provenance is not interpolated into the HTML template.
+
+    The provenance must be in the data island only (D.provenance) and rendered
+    into #prov-pre via textContent, never raw-interpolated into the HTML body.
+    """
+    r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path)
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+
+    # The provenance <pre> must be empty in the static HTML (JS fills it).
+    assert 'id="prov-pre"' in html, "prov-pre element must be present"
+    # The raw provenance JSON key 'generated_at' must only appear inside the
+    # data island script block, not anywhere else in the HTML.
+    data_m = re.search(
+        r'<script type="application/json" id="nav-data">(.*?)</script>',
+        html,
+        re.DOTALL,
+    )
+    assert data_m, "nav-data block not found"
+    data_block = data_m.group(1)
+    # Strip the data island, remaining HTML must not contain provenance keys.
+    html_without_data = html.replace(data_block, "")
+    assert "generated_at" not in html_without_data, (
+        "provenance key 'generated_at' must not be interpolated into the HTML "
+        "outside the data island; render via textContent from D.provenance instead"
+    )
+
+
+def test_status_filter_options_use_display_value(tmp_path: pathlib.Path) -> None:
+    """ADV-8/SEC-2: Status filter option labels use display_value, not raw_value.
+
+    The JS must build status <option> elements with o.textContent = display_value
+    so bidi-corrupted or hostile status values show their escaped form.
+    """
+    js = _extract_runtime_js(
+        _html(tmp_path, fixture=FIXTURE)
+    )
+    # The JS must read display_value when building status options.
+    assert "display_value" in js, (
+        "JS runtime must reference 'display_value' for status filter options"
+    )
+    # Must not set both value and textContent to the raw_value (old pattern).
+    assert "o.value=o.textContent=s" not in js, (
+        "status filter must use display_value for option text, not raw_value"
+    )
+
+
+def test_hostile_export_csp_no_script_execution(tmp_path: pathlib.Path) -> None:
+    """ADV-8/SEC-2: Hostile fixture export has a valid CSP that blocks script injection."""
+    hostile_fixture = HERE / "fixtures/negative/hostile"
+    r = EXPLORER.publish_explorer(hostile_fixture, destination=tmp_path)
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    # CSP must be present and must not use 'unsafe-inline' for scripts.
+    csp_m = re.search(r'content="([^"]*Content-Security-Policy[^"]*)"', html)
+    if not csp_m:
+        csp_m = re.search(
+            r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html
+        )
+    assert csp_m, "CSP meta tag not found in hostile export"
+    csp = csp_m.group(1)
+    assert "unsafe-inline" not in csp.split("script-src")[1].split(";")[0] if "script-src" in csp else True, (
+        "CSP script-src must not allow 'unsafe-inline'"
+    )
+    # The title tag must not contain raw script tags.
+    title_m = re.search(r"<title>(.*?)</title>", html, re.DOTALL)
+    if title_m:
+        assert "<script>" not in title_m.group(1).lower(), (
+            "title must not contain raw script tag from hostile record"
+        )
+
+
+def test_bidi_export_data_island_contains_display_value(tmp_path: pathlib.Path) -> None:
+    """SEC-2: Bidi fixture export encodes display_value with escaped bidi controls."""
+    bidi_fixture = HERE / "fixtures/negative/bidi"
+    r = EXPLORER.publish_explorer(bidi_fixture, destination=tmp_path)
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    data = _extract_json_data(html)
+    records = data.get("records", [])
+    assert records, "bidi export must have at least one record"
+    lc = records[0].get("lifecycle", {})
+    # display_value must be present and different from raw_value when bidi is present.
+    raw = lc.get("raw_value", "")
+    display = lc.get("display_value", "")
+    # Raw value must preserve the bidi control (U+202E).
+    assert "‮" in raw, (
+        f"raw_value must preserve U+202E bidi override; got {raw!r}"
+    )
+    # Display value must not contain the raw bidi override character.
+    assert "‮" not in display, (
+        f"display_value must escape U+202E bidi override; got {display!r}"
+    )
+
+
+def test_trust_labels_in_own_elements_js(tmp_path: pathlib.Path) -> None:
+    """ADV-8: JS runtime uses separate span elements for trust labels, not mixed text nodes."""
+    js = _extract_runtime_js(_html(tmp_path, fixture=FIXTURE))
+    # The new JS creates a span with class trust-label for every trust class label.
+    assert "trust-label" in js, (
+        "JS runtime must render trust labels in their own .trust-label span elements"
+    )
+    # Must not set the entire rel-item content via a single textContent assignment
+    # that mixes the trust label with the record data.
+    assert "li.textContent='['+r.trust_class" not in js, (
+        "trust label must not be mixed with record data in a single textContent assignment"
+    )
+
+
+def test_normalize_assertion_function_output() -> None:
+    """ADV-5/QE-3: _normalize_assertion produces the expected tuple structure."""
+    fn = EXPLORER._normalize_assertion
+    # Dict with raw_value.
+    result = fn({"from": "A", "to": "B", "raw_value": "text"})
+    assert result["trust_class"] == "navigation_only"
+    assert result["resolution_state"] == "caller_asserted"
+    assert result["raw_value"] == "text"
+    assert result["from"] == "A"
+    assert result["to"] == "B"
+    # Non-dict.
+    result2 = fn("bare string")
+    assert result2["trust_class"] == "navigation_only"
+    assert result2["raw_value"] == "bare string"
+    # Dict without raw_value but with text.
+    result3 = fn({"text": "fallback text"})
+    assert result3["raw_value"] == "fallback text"
+
+
+def test_csp_provenance_not_in_static_html(tmp_path: pathlib.Path) -> None:
+    """SEC-3: Provenance fields must not appear verbatim in the static HTML outside the data island."""
+    r = EXPLORER.publish_explorer(FIXTURE, destination=tmp_path)
+    assert r["status"] == "ok", r.get("error")
+    html = pathlib.Path(r["path"]).read_text(encoding="utf-8")
+    # Strip the data island entirely.
+    data_m = re.search(
+        r'(<script type="application/json" id="nav-data">)(.*?)(</script>)',
+        html, re.DOTALL,
+    )
+    assert data_m, "nav-data block not found"
+    html_without_data = html[:data_m.start(2)] + html[data_m.end(2):]
+    # The word "untrusted_data" is a provenance-only key and must not appear in static HTML.
+    assert "untrusted_data" not in html_without_data, (
+        "provenance key 'untrusted_data' must not be interpolated into static HTML; "
+        "use textContent rendering from D.provenance instead"
+    )
