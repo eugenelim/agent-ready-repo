@@ -461,14 +461,38 @@ _REDACTED_MARKER: Final[bytes] = b"[REDACTED]"
 def _redact_bytes(data: bytes, sensitive: list[bytes]) -> tuple[bytes, bool]:
     """Replace every occurrence of a sensitive value in *data* with ``[REDACTED]``.
 
+    Every occurrence of every value is located in the original bytes first,
+    and spans that overlap, nest, or touch are merged before any replacement.
+    Replacing values one at a time would let a short value split a longer one
+    that contains it, so the longer one would never match and most of it would
+    leak; working on spans makes the result independent of value order.
     Skips empty byte sequences.  Returns ``(result, was_redacted)``.
     """
-    was_redacted = False
+    spans: list[tuple[int, int]] = []
     for val in sensitive:
-        if val and val in data:
-            data = data.replace(val, _REDACTED_MARKER)
-            was_redacted = True
-    return data, was_redacted
+        if not val:
+            continue
+        start = data.find(val)
+        while start != -1:
+            spans.append((start, start + len(val)))
+            start = data.find(val, start + 1)
+    if not spans:
+        return data, False
+    spans.sort()
+    merged: list[list[int]] = [list(spans[0])]
+    for begin, end in spans[1:]:
+        if begin <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([begin, end])
+    parts: list[bytes] = []
+    cursor = 0
+    for begin, end in merged:
+        parts.append(data[cursor:begin])
+        parts.append(_REDACTED_MARKER)
+        cursor = end
+    parts.append(data[cursor:])
+    return b"".join(parts), True
 
 
 def _drop_sensitive_tail_prefix(data: bytes, sensitive: list[bytes]) -> bytes:

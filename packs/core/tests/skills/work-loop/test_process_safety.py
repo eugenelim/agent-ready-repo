@@ -1974,3 +1974,49 @@ class TestGroupKillBeforeReap:
         assert observed and observed[-1], (
             "the group must be signalled before the exited leader is reaped"
         )
+
+
+class TestRedactionOverlap:
+    """No part of any sensitive value survives, whatever the overlap or order."""
+
+    TOKEN = b"sk1live9secret1tokenvalue"
+
+    @pytest.mark.parametrize(
+        ("values", "must_vanish"),
+        [
+            ([b"1", TOKEN], [b"live9secret", b"tokenvalue"]),
+            ([TOKEN, b"1"], [b"live9secret", b"tokenvalue"]),
+            ([b"secret1token", TOKEN], [b"live9", b"value"]),
+            ([b"abcdef", b"defghi"], [b"abc", b"ghi"]),
+            ([b"defghi", b"abcdef"], [b"abc", b"ghi"]),
+        ],
+    )
+    def test_overlapping_values_leave_no_fragment(
+        self, process_safety: ModuleType, values: list[bytes], must_vanish: list[bytes]
+    ) -> None:
+        ps = process_safety
+        data = b"before " + self.TOKEN + b" mid abcdefghi after"
+        redacted, was_redacted = ps._redact_bytes(data, values)
+        assert was_redacted
+        for fragment in [*values, *must_vanish]:
+            assert fragment not in redacted, (values, redacted)
+        assert redacted.startswith(b"before ") and redacted.endswith(b" after")
+
+    def test_nested_env_value_does_not_split_a_credential_in_launch_output(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """An allowlisted short value ahead of a credential still redacts the whole credential."""
+        ps = process_safety
+        _, sink = _recording_sink()
+        spec = _spec(
+            str(tmp_path),
+            argv=["-c", "import os; print('token=' + os.environ['TOKEN'])"],
+            environment_allowlist=["DEBUG", "TOKEN"],
+        )
+        result = _launch(
+            ps, spec, audit_sink=sink,
+            env_values={"DEBUG": "1", "TOKEN": "sk1live9secret1tokenvalue"},
+        )
+        out = result.stdout_redacted
+        assert b"live9secret" not in out and b"tokenvalue" not in out, out
+        assert result.output_was_redacted

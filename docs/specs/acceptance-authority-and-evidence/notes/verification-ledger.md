@@ -320,3 +320,15 @@ override, which fixes round 6, the owner set a stop rule. One final security
 round runs. Any finding it raises in this audit-hygiene class at Concern or
 below goes to a recorded follow-up backlog item, not another override. A
 Blocker, or a finding outside this class, still stops the loop as usual.
+
+The final security round, round 7, upheld 1 Concern outside the stop rule's
+class and 1 Nit inside it. The Concern: redaction replaced sensitive values one
+at a time, so a short value such as `1` could split a longer credential that
+contains it and leak most of it. Under the ninth override, `_redact_bytes` now
+finds every occurrence of every value in the original output, merges spans that
+overlap, nest, or touch, and replaces each merged span once.
+`TestRedactionOverlap` covers nested and partly overlapping values in both
+orders, plus a real launch. Against the pre-fix code, 5 of its 6 tests fail;
+the sixth is an order the old code already handled. The Nit, the effect
+broker's unchecked operation and grant IDs, falls inside the audit-hygiene
+class and goes to a follow-up backlog item under the stop rule.
