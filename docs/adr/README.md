@@ -140,3 +140,4 @@
 | 0136 | [Catalogue `.netrc` uses exact machine matches](0136-catalogue-netrc-uses-exact-machine-matches.md) | Accepted | 2026-09-30 |
 | 0137 | [Catalogue JFrog authentication delegates to JFrog CLI](0137-catalogue-jfrog-auth-delegates-to-jfrog-cli.md) | Accepted | 2026-09-30 |
 | 0138 | [Catalogue authentication selects one provider without fallback](0138-catalogue-auth-selects-one-provider-without-fallback.md) | Accepted | 2026-09-30 |
+| 0139 | [A taxonomy-silent domain is an upstream gap, never a build-time value](0139-a-taxonomy-silent-domain-is-an-upstream-gap.md) | Accepted | 2026-10-04 |

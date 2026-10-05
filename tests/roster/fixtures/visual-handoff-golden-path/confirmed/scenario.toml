@@ -1,3 +1,4 @@
 slug = "checkout"
 incumbent_system = true
 conditional_states = ["narrow-channel"]
+needed_domains = ["Typography", "Color", "Spacing and rhythm", "Shape and containment", "Spatial structure"]

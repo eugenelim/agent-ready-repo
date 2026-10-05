@@ -37,6 +37,7 @@ SCENARIOS = (
     "unresolved-domain",
     "standalone",
     "refusal",
+    "silent-domain",
 )
 PACKS = ("experience-design", "frontend-engineering")
 FALLBACK = "references/fallback-tokens.md"
@@ -289,6 +290,7 @@ def walk(rules: Rules, scenario: str, *, tree: Path | None = None) -> Route:
     # Gap sources, as the installed gap-sources cell names them.
     sources = rules.gaps["gap-sources"]
     assert "named skip" in sources and "needed domain unresolved" in sources, sources
+    assert "leaves a domain silent" in sources, sources
     kinds = re.findall(r"`([a-z-]+)`", rules.gaps["gap-record-contents"])
     supply_kind, completion_kind = kinds[0], kinds[1]
     fields_match = re.search(
@@ -301,7 +303,18 @@ def walk(rules: Rules, scenario: str, *, tree: Path | None = None) -> Route:
     if direction and taxonomy is None and not incumbent:
         held = [(d, supply_kind) for d in rules.domains]
     elif taxonomy is not None:
-        held = [(d, completion_kind) for d in _unresolved_domains(taxonomy)]
+        unresolved = _unresolved_domains(taxonomy)
+        held = [(d, completion_kind) for d in unresolved]
+        # A needed domain the taxonomy neither gives values for nor records
+        # unresolved is silent. A `### <Domain>` commitments section stands in
+        # for "gives values"; every fixture section carries the values its
+        # implementation sets. Need is fixture data, with no default.
+        assert "needed_domains" in facts, f"{tree.name}: a resolving taxonomy needs needed_domains"
+        held += [
+            (d, completion_kind)
+            for d in facts["needed_domains"]
+            if d not in unresolved and f"\n### {d}\n" not in taxonomy["body"]
+        ]
 
     def holds(token: str, row_index: int) -> bool:
         token = token.strip()
@@ -1007,3 +1020,114 @@ def test_existing_gap_and_standalone_cases_carry_deterministic_criteria(
         assert _fallback_excludes(skills) <= set(excludes), case_id
     standalone = eval_cases["visual-authority-standalone"].get("expect", {})
     assert "local-premise" in standalone.get("output_contains", [])
+
+
+# ── a taxonomy-silent domain (silent-domain-gap AC-0005, AC-0006, AC-0011) ───
+
+
+def test_a_silent_needed_domain_is_held(rules: Rules) -> None:
+    """AC-0005: Typography is listed in the Authority table but given no
+    values, and nothing records it unresolved."""
+    route = walk(rules, "silent-domain")
+    assert route.domains["Typography"] == "domain-completion-required"
+    facts = tomllib.loads(
+        (FIXTURES / "silent-domain" / "scenario.toml").read_text(encoding="utf-8")
+    )
+    for domain in facts["needed_domains"]:
+        if domain != "Typography":
+            assert route.domains[domain] == "taxonomy", (domain, route.domains[domain])
+    assert FALLBACK not in route.loaded
+    assert route.gap_records == [
+        {"axes held": ["Typography"], "operation kind": "domain-completion-required"}
+    ]
+
+
+def test_an_unneeded_silent_domain_is_not_held(rules: Rules) -> None:
+    """AC-0011: Graphic language has no values and is not needed."""
+    facts = tomllib.loads(
+        (FIXTURES / "silent-domain" / "scenario.toml").read_text(encoding="utf-8")
+    )
+    taxonomy = (FIXTURES / "silent-domain" / "design" / "tokens" / "checkout.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Graphic language" not in facts["needed_domains"]
+    assert "\n### Graphic language\n" not in taxonomy
+    held = {d for d, v in walk(rules, "silent-domain").domains.items() if v != "taxonomy"}
+    assert "Graphic language" not in held
+
+
+def test_every_resolving_fixture_declares_its_needs_and_holds_none_silent(
+    rules: Rules, tmp_path: Path
+) -> None:
+    """AC-0006, with the mutation that proves the check can red."""
+    for scenario in ("confirmed", "unconfirmed", "unresolved-domain"):
+        facts = tomllib.loads((FIXTURES / scenario / "scenario.toml").read_text(encoding="utf-8"))
+        assert facts.get("needed_domains"), f"{scenario} declares no needed_domains"
+    refusal = tomllib.loads((FIXTURES / "refusal" / "scenario.toml").read_text(encoding="utf-8"))
+    assert refusal.get("needed_domains"), "refusal declares no needed_domains"
+    for scenario in ("confirmed", "unconfirmed"):
+        assert not walk(rules, scenario).gap_records, scenario
+
+    tree = tmp_path / "confirmed"
+    shutil.copytree(FIXTURES / "confirmed", tree)
+    taxonomy = tree / "design" / "tokens" / "checkout.md"
+    text = taxonomy.read_text(encoding="utf-8")
+    stripped = re.sub(r"### Typography\n.*?(?=### Color)", "", text, flags=re.S)
+    assert stripped != text
+    taxonomy.write_text(stripped, encoding="utf-8")
+    assert (
+        walk(rules, "confirmed", tree=tree).domains["Typography"] == "domain-completion-required"
+    )
+
+
+def test_the_silent_domain_eval_grades_the_hold(skills: Path, eval_cases: dict[str, dict]) -> None:
+    """silent-domain-gap AC-0007."""
+    case = eval_cases.get("visual-authority-silent-domain")
+    assert case is not None, "visual-authority-silent-domain is not installed"
+    assert "no typography values" in case["prompt"]
+    assertions = case["assertions"]
+    assert any(a.startswith("Does not") and "silent typography domain" in a for a in assertions)
+    assert any(not a.startswith("Does not") and "upstream gap" in a for a in assertions)
+    expect = case["expect"]
+    assert "domain-completion-required" in expect["output_contains"]
+    assert "#2f5d50" in expect["output_contains"] and "#2f5d50" in case["prompt"]
+    assert _fallback_excludes(skills) <= set(expect["output_excludes"])
+
+
+def test_golden_prompts_state_type_shape_and_layout_values(eval_cases: dict[str, dict]) -> None:
+    """silent-domain-gap AC-0008: each golden prompt states its own fixture's
+    Typography role values and its Shape and containment and Spatial structure
+    commitments, verbatim."""
+    for case_id, scenario in GOLDEN_CASES.items():
+        if scenario is None:
+            continue
+        text = (FIXTURES / scenario / "design" / "tokens" / "checkout.md").read_text(
+            encoding="utf-8"
+        )
+        prompt = eval_cases[case_id]["prompt"]
+        for value, _ in _role_table(text, "### Typography").values():
+            assert value in prompt, f"{case_id}: typography {value!r} missing"
+        for heading in ("### Shape and containment", "### Spatial structure"):
+            commitments = [
+                ln.split(":**", 1)[1].strip().rstrip(".")
+                for ln in _section(text, heading).splitlines()
+                if ln.startswith("- **") and not ln.startswith("- **Relationship:**")
+            ]
+            assert commitments, f"{scenario}: {heading} commits nothing"
+            for commitment in commitments:
+                assert commitment in prompt, f"{case_id}: {heading} {commitment!r} missing"
+
+
+def test_the_golden_implementation_sets_the_taxonomy_type_and_shape(taxonomy: str) -> None:
+    """The confirmed fixture needs Typography and Shape and containment, so its
+    golden implementation sets them: each Typography role's size, weight and
+    line height, the control border, and square corners."""
+    html = (CONFIRMED / "implementation" / "index.html").read_text(encoding="utf-8")
+    fonts = re.findall(r"font:\s*([^;]+);", html)
+    for role, (value, _) in _role_table(taxonomy, "### Typography").items():
+        size, weight, leading = (part.strip() for part in value.split(",")[1:4])
+        assert any(f"{weight} {size}/{leading}" in font for font in fonts), (role, value, fonts)
+    control = re.search(r"\binput \{([^}]*)\}", html)
+    assert control, "the golden implementation styles no input control"
+    assert "border: 1px solid var(--color-text-muted)" in control.group(1)
+    assert re.search(r"border-radius:\s*0\s*(;|$)", control.group(1).strip()), control.group(1)

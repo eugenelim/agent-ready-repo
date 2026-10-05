@@ -70,6 +70,17 @@ Fixture data for a roster test. No person or product is described.
 | `space.5` | around the pay action | 28px | Calm assurance |
 | `space.6` | between the two regions | 40px | Whitespace distribution |
 
+### Shape and containment
+
+- **Relationship:** groups are separated by rules, not cards; controls are bounded.
+- **Borders and dividers:** 1px solid `border.divider` between groups; 1px solid `text.muted` around controls.
+- **Corner treatment:** square — 0 on every surface.
+
+### Spatial structure
+
+- **Column behaviour:** one column below 1152px; two columns at 1152px and above, split 3fr to 2fr, the payment form first.
+- **Alignment:** both regions share the page's top edge.
+
 ### Depth
 
 - **Levels:** none — the surface is flat.
