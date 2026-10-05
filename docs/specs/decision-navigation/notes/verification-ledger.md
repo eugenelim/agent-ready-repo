@@ -433,7 +433,30 @@ Answers are scored against the repository at the session's commit.
 
 ### Sessions
 
-None run yet. Human-run sessions need the repository owner or a delegate.
+Two agent-run sessions ran on 2026-10-05 at commit `d2f93902f`, each a fresh
+general-purpose subagent with no help. Session A ran the navigator first on
+every task; session B ran direct browsing first. Effort is the agent's tool
+calls in the run; the one-time `SKILL.md` read counts in the first navigator
+run.
+
+| Task | A navigator | A direct | B navigator | B direct | Median navigator | Median direct | Navigator lower |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1. Orientation | 3 | 2 | 4 | 3 | 3.5 | 2.5 | no |
+| 2. Exact status | 1 | 1 | 1 | 1 | 1 | 1 | no (tie) |
+| 3. Partial supersession | 1 | 1 | 1 | 1 | 1 | 1 | no (tie) |
+| 4. Guidance context | 1 | 1 | 1 | 1 | 1 | 1 | no (tie) |
+| 5. Handoff | 2 | 1 | 1 | 1 | 1.5 | 1 | no |
+
+- **Correctness:** all 20 runs correct; zero incorrect claims.
+- **Unaided:** 10 of 10 navigator runs (100%).
+- **Effort:** the navigator is lower on 0 of 5 tasks. The pass rule needs 4.
+- **Answer key:** task 3's frozen key names ADR-0019 and ADR-0076 only. The
+  corpus records five checked partial supersessions (ADR-0009 D2, ADR-0019 D6,
+  D7, ADR-0076 D1, D2, ADR-0077 D1, ADR-0078 D6); every run named all five.
+
+**Status: AC-0020 fails on effort for agent runs.** In this corpus one `grep`
+or `cat` answers each task in about one call, so the navigator cannot beat it.
+Human-run sessions (owner or delegate) have not run.
 
 ## T7 stage 2 evidence
 

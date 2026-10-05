@@ -661,7 +661,8 @@ def _navigate_graph(page: object, record_id: str | None = None) -> None:
 def test_graph_focused_svg_has_nodes_and_d3_label(
     browser: object, export_mixed: pathlib.Path
 ) -> None:
-    """AC-0026: focused #graph/ADR-0001 renders ≥2 node groups and the 'D3' scope label."""
+    """AC-0026: focused #graph/ADR-0001 renders ≥2 node groups and a visible
+    'in part · D3' label that sets partial supersession apart from full."""
     page = _open_page(browser, export_mixed)
     page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
@@ -670,13 +671,13 @@ def test_graph_focused_svg_has_nodes_and_d3_label(
         "document.querySelectorAll('[data-node-id]').length"
     )
     assert node_count >= 2, f"expected ≥2 node groups in focused graph, got {node_count}"
-    # "D3" scope label on the partial supersession edge
+    # Partial supersession is named in words on the edge, with its scope
     has_d3 = page.evaluate(  # type: ignore[union-attr]
         "() => { var texts = document.querySelectorAll('svg text');"
-        " for (var t of texts) { if (t.textContent.trim() === 'D3') return true; }"
+        " for (var t of texts) { if (t.textContent.trim() === 'in part · D3') return true; }"
         " return false; }"
     )
-    assert has_d3, "Edge label 'D3' not found in focused graph SVG"
+    assert has_d3, "Edge label 'in part · D3' not found in focused graph SVG"
     assert not page._errors  # type: ignore[attr-defined]
 
 

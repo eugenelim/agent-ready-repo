@@ -226,7 +226,7 @@ function edgePorts(rels,np,nh){
 }
 
 // ── Scope label beside the arrowhead; the halo keeps it legible over edges
-var MAX_LABEL=18;
+var MAX_LABEL=16;
 function edgeLabel(g,x1,y1,x2,y2,txt,fill){
   var t=svgEl('text');
   if(txt.length>MAX_LABEL){
@@ -500,7 +500,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       var x2=PX+tp.col*(NW+XG)+NW,y2=PY+tp.row*(NH+YG)+ports[ri].y2;
       drawEdge(eg,x1,y1,x2,y2,stroke,'2',null,'url(#'+pfx+'af)');
       if(isPartial){
-        var sc2=r.scope&&r.scope.length?r.scope.join(', '):'scope not stated';
+        var sc2='in part · '+(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated');
         edgeLabel(eg,x1,y1,x2,y2,sc2,'#1d4ed8');
       }
     }
