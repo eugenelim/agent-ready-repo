@@ -133,6 +133,15 @@ roster test `tests/roster/test_content_safety_boundary_matrix.py`.
 | `semantic-evidence-transaction.v1` | Structured control |
 | `evidence-receipt.v1` | Evidence embedded record |
 | `evidence-supersession.v1` | Evidence embedded record |
+| `delivery-subject.v1` | Structured control |
+| `acceptance-property.v1` | Structured control |
+| `acceptance-verdict.v1` | Structured control |
+
+The last three are written only by the opt-in shadow compatibility path. Each
+shadow record passes its profile before it is written. A `delivery-subject.v1`
+manifest larger than the Structured control cap of 64 KiB is refused, so the
+shadow path records no subject for a large repository. The subject is optional
+there and does not feed the verdict.
 
 The delivery observation projector also applies the Knowledge observation
 profile, but it is not a semantic writer. Its decision is ephemeral: delivery

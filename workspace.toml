@@ -616,6 +616,7 @@ open = [
   # resolvable after its successor spec moves to Platform Core's ready queue.
   # The approved spec owns implementation; this note is only the historical
   # anchor and retires through a governed amendment of that shipped spec.
+  {path = "docs/specs/acceptance-authority-and-evidence/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "Clean the caller-supplied operation and correlation IDs at the effect broker (request_effect) so an odd value is never stored or escapes unaudited, and take any later launch-boundary audit-hygiene finding routed here by the security review stop rule", needs = []},
   {path = "docs/specs/work-intake-migration-docs/notes/capture-work-alias-removal.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md"}, summary = "Preserve the historical capture-work-alias-removal deferral anchor while the approved removal spec is queued for Platform Core", needs = []},
   # The consumer half of the decomposed visual-target contract. Registered here
   # because `visual-target-field` ships a frontmatter field that nothing reads,

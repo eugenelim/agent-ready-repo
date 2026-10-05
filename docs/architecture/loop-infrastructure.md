@@ -613,9 +613,18 @@ python3 -m pytest packs/core/tests/skills/work-loop/test_compat_facade.py -q
 
 ### Cross-adapter conformance
 
-Run the conformance roll-up to verify that projected Core pack copies are
-byte-identical to source (so every pack-suite assertion covers the projected
-copies) and that the cross-adapter corpora pass:
+Run the cross-adapter forgery corpus to verify that every adapter refuses the
+same control-plane writes, direct-syscall attempts, protected-ref writes, and
+broker bypasses, and that containment refuses unattested or broader-than-grant
+launches:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_containment_broker.py -q
+```
+
+Run the conformance roll-up to verify that the projected Core pack copies are
+byte-identical to the source, so every pack-suite assertion also covers the
+projected copies, and that each shadow record matches its canonical schema:
 
 ```bash
 python3 -m pytest tests/roster/test_t9a_conformance_rollup.py -q
@@ -629,15 +638,31 @@ mode completes in a subprocess where `agentbundle` is not importable:
 python3 -m pytest tests/roster/test_t9a_clean_env_fence.py -q
 ```
 
-Run the full new-module suite for a complete Slice 1 evidence pass:
+Run every suite the acceptance evidence map cites for a complete evidence pass:
 
 ```bash
 python3 -m pytest \
+  packs/core/tests/skills/work-loop/test_acceptance.py \
   packs/core/tests/skills/work-loop/test_policy_import.py \
+  packs/core/tests/skills/work-loop/test_subject_projection.py \
   packs/core/tests/skills/work-loop/test_evidence_store.py \
+  packs/core/tests/skills/work-loop/test_content_safety.py \
+  packs/core/tests/skills/work-loop/test_security_primitives.py \
+  packs/core/tests/skills/work-loop/test_process_safety.py \
+  packs/core/tests/skills/work-loop/test_containment_broker.py \
+  packs/core/tests/skills/work-loop/test_capability_intersection.py \
+  packs/core/tests/skills/work-loop/test_audit_boundary_invariant.py \
+  packs/core/tests/skills/work-loop/test_validator_totality.py \
   packs/core/tests/skills/work-loop/test_compat_facade.py \
   packs/core/tests/skills/work-loop/test_acceptance_benchmark.py \
   packs/core/tests/skills/work-loop/test_cold_rehydration_benchmark.py \
+  tests/roster/test_delivery_contract_bundle.py \
+  tests/roster/test_content_safety_boundary_matrix.py \
+  tests/roster/test_security_primitives_schema_parity.py \
+  tests/roster/test_acceptance_schema_parity.py \
+  tests/roster/test_delivery_subject_parity.py \
+  tests/roster/test_containment_attestation_parity.py \
+  tests/roster/test_evidence_store_schema_parity.py \
   tests/roster/test_t9a_conformance_rollup.py \
   tests/roster/test_t9a_clean_env_fence.py \
   -q

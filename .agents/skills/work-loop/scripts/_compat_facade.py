@@ -150,6 +150,7 @@ _security_events_module_cache: ModuleType | None = None
 _policy_import_module_cache: ModuleType | None = None
 _evidence_store_module_cache: ModuleType | None = None
 _subject_source_module_cache: ModuleType | None = None
+_content_safety_module_cache: ModuleType | None = None
 
 _CM_UNAVAILABLE = object()  # sentinel — _confined_mutation load failed
 
@@ -238,6 +239,14 @@ def _security_events() -> ModuleType:
             "_cf_security_events", "_security_events.py"
         )
     return _security_events_module_cache
+
+
+def _content_safety_mod() -> ModuleType:
+    """Lazily load ``_content_safety.py`` for the writer-boundary profile check."""
+    global _content_safety_module_cache
+    if _content_safety_module_cache is None:
+        _content_safety_module_cache = _load_sibling("_cf_content_safety", "_content_safety.py")
+    return _content_safety_module_cache
 
 
 def _policy_import_mod() -> ModuleType:
@@ -357,16 +366,56 @@ def _confined_jsonl_append(
             raise
 
 
-def _confined_json_write(
+_CONTENT_SAFETY_DENIAL_CODES: Final[dict[str, str]] = {
+    "rejected-credential": "denied-credential",
+    "rejected-personal-data": "denied-personal-data",
+    "rejected-encoding": "denied-encoding",
+    "rejected-size": "denied-size-exceeded",
+}
+
+
+def _shadow_record_write(
     spec_dir: Path,
+    shadow_dir: Path,
     path: Path,
     record: dict,
+    record_type: str,
     cm: ModuleType,
 ) -> None:
-    """Atomically write a JSON record to a confined file."""
-    # allow_nan=False: a NaN would write a bare token that is not valid JSON.
+    """Write one shadow record as its own writer port: profile, audit, then write.
+
+    The record type must be in the writer-boundary registry; its assigned
+    content-safety profile is applied to the exact bytes to be written.  The
+    allow event is stored before the write, so an unavailable audit sink
+    refuses the write; a refusal stores a denial event and raises.
+    """
+    cs = _content_safety_mod()
+    se = _security_events()
+    sink = _durable_sink(spec_dir, shadow_dir, cm)
     text = json.dumps(record, ensure_ascii=True, sort_keys=True, allow_nan=False)
     content = (text + "\n").encode("utf-8")
+
+    def event(outcome: str, reason_code: str) -> object:
+        return se.SecurityEvent(
+            schema_version=1,
+            operation_id=se.make_operation_id(),
+            correlation_id="shadow-compat-facade",
+            event_type="file-write",
+            outcome=outcome,
+            reason_code=reason_code,
+            timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
+
+    profile = cs.SLICE_1_WRITER_BOUNDARIES.get(record_type)
+    if profile is None:
+        se.emit_denial_best_effort(sink, event("denied", "denied-unknown-class"))
+        raise ValueError("shadow record type has no registered content-safety profile")
+    decision = cs.check_content_safety(profile, content, source_record_id=path.name)
+    if not decision.accepted:
+        code = _CONTENT_SAFETY_DENIAL_CODES.get(decision.decision_code, "denied-structure")
+        se.emit_denial_best_effort(sink, event("denied", code))
+        raise ValueError("shadow record refused by its content-safety profile")
+    se.emit_security_event(sink, event("allowed", "allowed-file-write"))
     cm.confined_atomic_replace(spec_dir, path, content)
 
 
@@ -532,7 +581,7 @@ def _do_shadow_on_transition(
 
     log_path = shadow_dir / _EVIDENCE_LOG
     store = es_mod.EvidenceStore(log_path)
-    store.open()
+    store.open(audit_sink=_durable_sink(spec_dir, shadow_dir, cm))
 
     receipt = _build_shadow_evidence_receipt(spec_dir, pending_data)
     store.append_receipt(
@@ -586,7 +635,9 @@ def _try_project_legacy_subject(
                 f"compat-shadow:evidence-policy:{approved_spec_hash[:16]}"
             ),
         )
-        _confined_json_write(spec_dir, shadow_dir / _SUBJECT_FILE, subject, cm)
+        _shadow_record_write(
+            spec_dir, shadow_dir, shadow_dir / _SUBJECT_FILE, subject, "delivery-subject.v1", cm
+        )
     except Exception:  # noqa: BLE001 — subject projection is optional
         pass
 
@@ -657,13 +708,19 @@ def _do_shadow_on_plan_locked(
     )
 
     # Step 3 — persist approval-record.v1 and initial-plan-review.v1.
-    _confined_json_write(spec_dir, shadow_dir / _APPROVAL_FILE, approval_record, cm)
-    _confined_json_write(spec_dir, shadow_dir / _REVIEW_FILE, initial_review, cm)
+    _shadow_record_write(
+        spec_dir, shadow_dir, shadow_dir / _APPROVAL_FILE, approval_record,
+        "approval-record.v1", cm,
+    )
+    _shadow_record_write(
+        spec_dir, shadow_dir, shadow_dir / _REVIEW_FILE, initial_review,
+        "initial-plan-review.v1", cm,
+    )
 
     # Step 4 — open EvidenceStore to collect receipts from prior transitions.
     es_mod = _evidence_store_mod()
     store = es_mod.EvidenceStore(shadow_dir / _EVIDENCE_LOG)
-    store.open()
+    store.open(audit_sink=_durable_sink(spec_dir, shadow_dir, cm))
     receipts = store.get_all_active_receipts()
 
     # Step 5 — optional legacy subject projection (best-effort).
@@ -696,7 +753,10 @@ def _do_shadow_on_plan_locked(
         "contradiction_rule": {"expression": "none"},
         "policy_version": "shadow-compat-1",
     }
-    _confined_json_write(spec_dir, shadow_dir / _PROPERTY_FILE, property_record, cm)
+    _shadow_record_write(
+        spec_dir, shadow_dir, shadow_dir / _PROPERTY_FILE, property_record,
+        "acceptance-property.v1", cm,
+    )
     verdict = acc.evaluate_verdict(
         property_record=property_record,
         receipts=receipts,
@@ -705,7 +765,9 @@ def _do_shadow_on_plan_locked(
     )
 
     # Step 7 — persist acceptance-verdict.v1.
-    _confined_json_write(spec_dir, shadow_dir / _VERDICT_FILE, verdict, cm)
+    _shadow_record_write(
+        spec_dir, shadow_dir, shadow_dir / _VERDICT_FILE, verdict, "acceptance-verdict.v1", cm
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -62,8 +62,11 @@ logic into versioned, reusable infrastructure capabilities.
    and the attempt serializes.
 3. The contained child sends approved outward requests to the effect broker;
    it cannot reach the original repository control plane by direct syscall.
-4. The primitive or broker validates, performs the bounded effect, and emits a
-   redacted security event before acknowledging success.
+4. The primitive or broker validates and performs the bounded effect. The
+   writer port that calls it emits the redacted security event: an allow
+   before the effect is acknowledged, and a denial for a refused effect. The
+   confined file-mutation primitive is I/O only. Its callers (the evidence
+   store, approval import, and the shadow facade) audit their own file writes.
 5. The adapter returns containment, `access-attestation.v1`, and effect receipts.
 
 **Failure and recovery sequence**

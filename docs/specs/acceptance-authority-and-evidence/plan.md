@@ -500,6 +500,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
   text is unchanged; both files return to Draft/Drafting for re-approval.
 - 2026-10-01: spec re-approved by owner after the corpus-benchmark amendment
 - 2026-10-01: plan re-approved by owner (benchmarks inside the test corpus)
+- 2026-10-05: owner recorded two accepted residual risks in the spec's Accepted Risk (macOS exec-identity window; group-kill ID reuse on Pythons without `waitid`), both first accepted during post-gates security review on 2026-10-04
 
 <!-- Approval entries are added only at their human gates.
 

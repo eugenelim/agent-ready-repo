@@ -705,8 +705,12 @@ class EvidenceStore:
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
-    def open(self) -> None:
+    def open(self, audit_sink: Callable[[Any], None] | None = None) -> None:
         """Open the store: create the log if absent, replay, truncate, build indexes.
+
+        When *audit_sink* is given, creating the log is audited as this writer
+        port's own file effect: an allow event is stored before the log is
+        created, and a refused creation stores a denial event.
 
         Idempotent: calling ``open()`` on an already-open store re-reads the log
         and rebuilds indexes (equivalent to ``rebuild_indexes()``).
@@ -743,9 +747,23 @@ class EvidenceStore:
             )
 
         if log_info is None:
+            se = _security_events() if audit_sink is not None else None
+            if se is not None:
+                try:
+                    se.emit_security_event(audit_sink, self._file_event(se, "allowed",
+                                                                        "allowed-file-create"))
+                except Exception as exc:  # noqa: BLE001 — a sink failure from any module load
+                    raise EvidenceStoreRefused(
+                        "denied-audit-sink-unavailable",
+                        "audit sink unavailable; failing closed",
+                    ) from exc
             try:
                 cm.confined_create(self._root, self._log_path, b"")
             except cm.MutationDenied as exc:
+                if se is not None:
+                    se.emit_denial_best_effort(
+                        audit_sink, self._file_event(se, "denied", "denied-staging-failed")
+                    )
                 raise EvidenceStoreRefused(
                     "denied-create-failed",
                     f"cannot create evidence log: {exc.denial_code}",
@@ -753,6 +771,19 @@ class EvidenceStore:
         self._load_and_truncate()
         self._opened = True
         self._poisoned = False  # fresh replay — state is now known.
+
+    @staticmethod
+    def _file_event(se: ModuleType, outcome: str, reason_code: str) -> object:
+        """Build the security event for this store's own log-file effect."""
+        return se.SecurityEvent(
+            schema_version=1,
+            operation_id=se.make_operation_id(),
+            correlation_id="evidence-store",
+            event_type="file-write",
+            outcome=outcome,
+            reason_code=reason_code,
+            timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
 
     def rebuild_indexes(self) -> None:
         """Rebuild all derived indexes from the log without changing any record.

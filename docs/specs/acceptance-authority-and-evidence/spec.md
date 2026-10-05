@@ -134,7 +134,17 @@ Non-goals until every Acceptance Criterion is satisfied.
 
 ## Accepted Risk
 
-none
+- On macOS, which cannot execute a verified descriptor, a short window
+  remains between the process primitive's final device-and-inode check and
+  exec. Exploiting it needs write access to the executable's directory, which
+  the trust model excludes. Accepted by the owner on 2026-10-04; see the
+  verification ledger, "Executable identity pinning".
+- On Python builds without `os.waitid` and `WNOWAIT` (macOS Python 3.11 and
+  3.12), the success-path group kill runs after the leader is reaped. A freed
+  group ID could then be reused by another of the same user's process groups
+  within microseconds. The kill stays in place, so no backgrounded child
+  outlives a launch. Accepted by the owner on 2026-10-04; see the verification
+  ledger, "Group kill on hosts without `waitid`".
 
 ## Assumptions
 

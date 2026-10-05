@@ -87,6 +87,8 @@ BOUNDARY_PROFILES: Final[dict[str, dict]] = {
 # Evidence-store writers: semantic-evidence-transaction.v1 (frame), evidence-receipt.v1,
 #                         evidence-supersession.v1
 # Security-event writer: security-event.v1
+# Shadow facade writers: delivery-subject.v1, acceptance-property.v1,
+#                        acceptance-verdict.v1
 SLICE_1_WRITER_BOUNDARIES: Final[dict[str, str]] = {
     "initial-plan-review.v1": "structured-control",
     "approval-record.v1": "structured-control",
@@ -95,6 +97,9 @@ SLICE_1_WRITER_BOUNDARIES: Final[dict[str, str]] = {
     "semantic-evidence-transaction.v1": "structured-control",
     "evidence-receipt.v1": "evidence-embedded-record",
     "evidence-supersession.v1": "evidence-embedded-record",
+    "delivery-subject.v1": "structured-control",
+    "acceptance-property.v1": "structured-control",
+    "acceptance-verdict.v1": "structured-control",
 }
 
 # ── Classification vocabulary ─────────────────────────────────────────────────

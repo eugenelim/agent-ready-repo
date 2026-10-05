@@ -1720,3 +1720,60 @@ class TestStructural:
         event = captured[0]
         assert getattr(event, "outcome", None) == "denied", event
         assert getattr(event, "reason_code", None) == facade.SHADOW_DIVERGENCE_CODE, event
+
+
+class TestShadowWriterPort:
+    """Each shadow record passes its registered content-safety profile and is audited."""
+
+    _PENDING = {"seq": 1, "event": "spec-ready", "from": "A", "to": "B",
+                "run_id": "port-run", "at": "2026-01-01T00:00:00Z"}
+
+    def test_every_persisted_record_type_is_registered(self, facade: ModuleType) -> None:
+        import re
+
+        cs = facade._content_safety_mod()
+        source = FACADE.read_text(encoding="utf-8")
+        calls = re.findall(r"_shadow_record_write\(([^)]*)\)", source, flags=re.S)
+        types = {t for call in calls for t in re.findall(r'"([a-z-]+\.v1)"', call)}
+        assert types, "the facade must write through _shadow_record_write"
+        missing = types - set(cs.SLICE_1_WRITER_BOUNDARIES)
+        assert not missing, f"unregistered shadow record types: {sorted(missing)}"
+
+    def test_full_run_audits_every_write_and_the_log_creation(self, tmp_path: Path) -> None:
+        root = tmp_path / "repo"
+        root.mkdir()
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        results = _run_full_sequence(root, "port-feature", shadow="1")
+        assert results.get("plan_locked_rc") == 0, results
+        events = [
+            json.loads(line)
+            for line in (results["shadow_dir"] / "shadow-security-events.jsonl")
+            .read_text("utf-8").splitlines()
+        ]
+        codes = [e["reason_code"] for e in events if e["event_type"] == "file-write"]
+        assert "allowed-file-create" in codes, codes
+        assert codes.count("allowed-file-write") >= 4, codes
+
+    def test_refused_record_is_not_written_and_is_audited(
+        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        cs = facade._content_safety_mod()
+
+        class Refused:
+            accepted = False
+            decision_code = "rejected-credential"
+
+        monkeypatch.setattr(cs, "check_content_safety", lambda *a, **k: Refused())
+        spec_dir = tmp_path / "refuse-spec"
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        shadow_dir.mkdir(parents=True)
+        cm = facade._cm()
+        target = shadow_dir / "shadow-verdict.json"
+        with pytest.raises(ValueError):
+            facade._shadow_record_write(
+                spec_dir, shadow_dir, target, {"verdict": "supported"},
+                "acceptance-verdict.v1", cm,
+            )
+        assert not target.exists()
+        events = (shadow_dir / "shadow-security-events.jsonl").read_text("utf-8")
+        assert "denied-credential" in events

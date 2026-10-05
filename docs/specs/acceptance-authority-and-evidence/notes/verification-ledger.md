@@ -52,15 +52,21 @@ work-loop pack suite, and the printed AC-0018 p95 and AC-0019 cold-rehydration
 figures into this ledger, because the job log expires under the repository's
 log-retention setting (deferred round-13 adversarial Nit).
 
-Recorded evidence: `test-corpus.yml` run 37096863910, head commit
-`d53bbc3af4ddfabc34a0e31a655cebe135764f3c`, completed 2026-10-03 on
-`ubuntu-latest`. The workflow file at that commit is byte-identical to the
-default branch's copy. Shard 2/4 ran the work-loop pack suite and passed:
+Binding evidence: `test-corpus.yml` run 37339103075, head commit
+`9fd5b5e6af1e43e15eba66e3f20f8730a88f10c0`, completed 2026-10-05 on
+`ubuntu-latest`. All four shards passed. The workflow file at that commit is
+byte-identical to the default branch's copy. Shard 2/4 ran the work-loop pack
+suite:
 
-- AC-0018: 1,000 criteria and 100,000 receipts, 5 warm-up and 100 timed runs,
-  p95 88.4 ms and p50 76.5 ms against the 2,000 ms bound.
-- AC-0019: 1,000 criteria, 100,000 receipts and 100,000 log frames rehydrated
-  to 1,000 verdicts in 2.076 s against the 10 s bound.
+- AC-0018: 1,000 criteria and 100,000 receipts, 5 warm-up runs and 100 timed
+  runs. p95 was 101.2 ms and p50 97.7 ms, against the 2,000 ms bound.
+- AC-0019: 1,000 criteria, 100,000 receipts, and 100,000 log frames rehydrated
+  to 1,000 verdicts in 2.949 s, against the 10 s bound.
+
+This replaces the earlier record of run 37096863910 at `d53bbc3af`. That run
+concluded as a failure on shard 4/4, from the then-pending version bump and
+workspace finding, and it predates the later evidence-store changes on the
+rehydration path.
 
 ## T9a acceptance evidence map
 
@@ -92,8 +98,8 @@ copies are byte-identical to the pack source and importable.
 | AC-0015 | `test_content_safety.py` (no-payload and inert-data cases); credential-shaped correlation IDs redacted on denial in `test_containment_broker.py::TestBrokerAuditBoundary` and `test_process_safety.py::TestAuditSinkUnavailable` |
 | AC-0016 | `test_compat_facade.py::TestAC0016ShadowOff`, `::TestAC0016ShadowOn`, `::TestAC0016FullTransitionSequence`; the engine and cohort suites in the full work-loop pack suite; the T9a real invocation below |
 | AC-0017 | `test_policy_import.py::TestReverseReader`; `test_compat_facade.py::TestAC0017Governance` |
-| AC-0018 | `test_acceptance_benchmark.py` (asserts p95 within 2 s); binding run: the `test-corpus.yml` dispatch, pending owner confirmation |
-| AC-0019 | `test_cold_rehydration_benchmark.py` (asserts within 10 s); binding run: the `test-corpus.yml` dispatch, pending owner confirmation |
+| AC-0018 | `test_acceptance_benchmark.py` (asserts p95 within 2 s); binding run: `test-corpus.yml` run 37339103075 at `9fd5b5e6a`, p95 101.2 ms |
+| AC-0019 | `test_cold_rehydration_benchmark.py` (asserts within 10 s); binding run: `test-corpus.yml` run 37339103075 at `9fd5b5e6a`, 2.949 s |
 | AC-0020 | `test_security_primitives.py::TestSecurityEventWriterAuthority`; `test_policy_import.py::TestWriterAuthorityRefusals`; `test_evidence_store.py::TestProducerCapabilityChecks`; `test_containment_broker.py::TestBrokerCapabilityFailures` |
 | AC-0021 | `test_security_primitives.py::TestSecurityEvents`; `test_process_safety.py::TestAuditSinkUnavailable`, `::TestAuditEventOrder`; `test_evidence_store.py::TestAuditSinkBehavior`; `test_compat_facade.py::TestShadowAuditDurability`; `test_security_primitives.py::TestSingleAuditEmitter`; `test_containment_broker.py::TestBrokerAuditBoundary`; `test_audit_boundary_invariant.py` (all classes) |
 
@@ -331,7 +337,8 @@ overlap, nest, or touch, and replaces each merged span once.
 orders, plus a real launch. Against the pre-fix code, 5 of its 6 tests fail;
 the sixth is an order the old code already handled. The Nit, the effect
 broker's unchecked operation and grant IDs, falls inside the audit-hygiene
-class and goes to a follow-up backlog item under the stop rule.
+class and goes to a follow-up backlog item under the stop rule. That item is
+the `[backlog].open` defect entry in `workspace.toml` whose path is this ledger.
 
 The focused redaction re-check, security round 8, upheld 2 Concerns in that
 change, both still in the redaction fix the owner approved. First, a value cut
@@ -374,3 +381,20 @@ for the process boundary is refused before the allow event.
 `TestRedactionMatchesTheBoundaryEncoding` checks the collected forms and runs a
 launch that echoes a surrogate-escaped value. Both tests fail against the
 committed code.
+
+Adversarial review round 8 upheld 3 Concerns and 3 Nits. Under the tenth
+override the fixes are as follows. The three shadow record types,
+`delivery-subject.v1`, `acceptance-property.v1`, and `acceptance-verdict.v1`,
+are registered under Structured control in both the code registry and the
+delivery-content-safety §4 table. Each shadow record now passes its profile
+before it is written. The owner chose that the calling writer port, not the
+confined-mutation primitive, audits file writes. The shadow facade writes
+through `_shadow_record_write`, which stores an allow event before each write
+and a denial for each refusal. The evidence store's log creation is audited
+when a sink is given, and the runtime-security-primitives page says so.
+`TestShadowWriterPort` covers these, and all three of its tests fail against
+the pre-fix code. The maintainer procedure in `loop-infrastructure.md` §10 now
+runs the forgery corpus for cross-adapter conformance and lists every suite the
+evidence map cites. The benchmark evidence above is the run that passed on all
+four shards. The follow-up backlog entry exists. The spec's Accepted Risk now
+records both owner-accepted residual risks.
