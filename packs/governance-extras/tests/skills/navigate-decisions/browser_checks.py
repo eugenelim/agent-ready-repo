@@ -1723,7 +1723,8 @@ _BOXES_JS = """(scope) => {
     const b = p.getPointAtLength(Math.max(0, n - 10));
     return {x: Math.min(a.x, b.x), y: Math.min(a.y, b.y) - 3.5,
             w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) + 7}; });
-  return {plates, nodes, heads};
+  const vb = root.viewBox.baseVal;
+  return {plates, nodes, heads, view: {x: vb.x, y: vb.y, w: vb.width, h: vb.height}};
 }"""
 
 
@@ -1746,6 +1747,14 @@ def _assert_plates_clear(geo: dict, where: str) -> None:
             assert not _hit(p, n), (where, "plate overlaps node", p, n)
         for h in geo["heads"]:
             assert not _hit(p, h), (where, "plate overlaps arrowhead", p, h)
+        v = geo["view"]
+        inside = (
+            p["x"] >= v["x"]
+            and p["y"] >= v["y"]
+            and p["x"] + p["w"] <= v["x"] + v["w"]
+            and p["y"] + p["h"] <= v["y"] + v["h"]
+        )
+        assert inside, (where, "plate clipped by the drawing edge", p, v)
 
 
 @pytest.fixture(scope="module")

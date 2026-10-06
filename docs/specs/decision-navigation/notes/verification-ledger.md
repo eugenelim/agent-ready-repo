@@ -345,8 +345,13 @@ not fingerprinted. They are closed here all the same.
 | R5-QE-5 | Nit | Two checks read a declared property only. | closed — see R4-FE-2 and R4-FE-5. |
 | R5-QE-6 | Nit | The two-Status refusal accepted any error. | closed — `test_both_status_label_forms_make_a_record_malformed` asserts `malformed_record`. |
 
+Label placement also treats a spot outside the drawing as taken, because the
+vertical fallback could lift a top-row label above the drawing. Every plate
+check now asserts each plate lies inside the drawing; no current fixture
+reached that fallback, so this pins the property rather than failing before.
+
 Full runs on the round-5 tree (2026-10-05, desktop Chrome 154.0.8037.93):
-browser checks 82 passed in 121 s; unit suites 242 passed in 37 s.
+browser checks 82 passed in 131 s; unit suites 242 passed in 37 s.
 
 ## T7 stage 2b evidence — explorer visual redesign
 

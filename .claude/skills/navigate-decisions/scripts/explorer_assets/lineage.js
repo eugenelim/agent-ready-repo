@@ -260,7 +260,11 @@ function placeLabel(g,x1,y1,x2,y2,txt,fill,path){
   }
   var taken=g._labelBoxes||(g._labelBoxes=[]);
   var blocked=g._blockBoxes||[];
-  var hits=function(b){return taken.concat(blocked).some(function(o){
+  // A spot outside the drawing would be clipped, so it counts as taken.
+  var vb=g.ownerSVGElement&&g.ownerSVGElement.viewBox&&g.ownerSVGElement.viewBox.baseVal;
+  var outside=function(b){return vb&&vb.width>0&&(b.x<vb.x||b.y<vb.y||
+    b.x+b.w>vb.x+vb.width||b.y+b.h>vb.y+vb.height);};
+  var hits=function(b){return outside(b)||taken.concat(blocked).some(function(o){
     return b.x<o.x+o.w&&o.x<b.x+b.w&&b.y<o.y+o.h&&o.y<b.y+b.h;});};
   var box={x:cx-w/2,y:cy-h/2,w:w,h:h};
   var tries=[0.5,0.38,0.62,0.28,0.72,0.2,0.8];
