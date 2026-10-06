@@ -40,6 +40,7 @@ _EVALS_FILES = (
     SKILL_ROOT / "evals/files/novel-action-descriptor.json",
     SKILL_ROOT / "evals/files/novel-action-output.json",
     SKILL_ROOT / "evals/files/directive-tool-descriptor.json",
+    SKILL_ROOT / "evals/files/directive-tool-output.json",
     SKILL_ROOT / "evals/files/refresh-mutating-output.json",
     SKILL_ROOT / "evals/files/unexposed-config-hint.json",
     SKILL_ROOT / "evals/files/credential-provider-output.json",
@@ -228,7 +229,10 @@ _PINNED_EVAL_CASES: dict[str, tuple[tuple[str, ...], str]] = {
         "c24a93f2070e7384efba349b7d84ecf204d853496330ecfa596f64b2a0cb980d",
     ),
     "directive-in-tool-description": (
-        ("evals/files/directive-tool-descriptor.json",),
+        (
+            "evals/files/directive-tool-descriptor.json",
+            "evals/files/directive-tool-output.json",
+        ),
         "ed1675b68f6144f0f007d42f75b3090d57b9d35e45c25f072fc93007b09bf372",
     ),
     "unexposed-config-provider-hint": (
