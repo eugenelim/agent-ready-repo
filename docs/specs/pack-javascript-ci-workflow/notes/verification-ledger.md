@@ -256,3 +256,31 @@ number or run ID. It contains no `pull_request_target`, no `secrets.`
 reference, no cache action, no `npm audit`, no `npm install`, and no
 pull-request-controlled expression — no `pull_request.title`, `body`,
 `head.ref`, or `github.head_ref`.
+
+## T5 — release state and current documentation
+
+2026-10-05. The Converters pack and Claude plugin version pair now both read
+`0.9.7`; `pack.toml`'s separate `[pack.adapter-contract]` version remains
+`0.8`. The non-cosmetic pack-content change includes the two committed
+lockfiles and their manifest edits, so the patch bump follows `packs/AGENTS.md`.
+
+The repository's root `.claude-plugin/marketplace.json` is a generated
+projection: `packages/agentbundle/agentbundle/build/self_host.py` aggregates
+the pack plugin manifests in `_aggregate_marketplace`. It is not hand-edited.
+`make build-self` must regenerate it before VI-1014 can be recorded green.
+
+The changelog has a free-standing `## [converters][0.9.7] — 2026-10-05` entry
+directly below `[Unreleased]`. It intentionally has no `Highlights` subsection:
+this delivery changes maintainer verification and dependency reproducibility,
+not a skill outcome or user task.
+
+`docs/architecture/verification-graph.md` now records `pack-javascript.yml` as
+path-scoped and dispatchable, with pack installation and render-proof suites as
+its responsibility. It explicitly keeps npm audit with `make sast`. Root
+`AGENTS.md` now gives the matching `gh workflow run pack-javascript.yml --ref
+"$B"` command and labels its result as scoped evidence, not a full gate.
+
+VI-1017 assessment: this delivery adds no prompt, activation surface, rendering
+behavior, or output-contract change to Converters. The mandatory eval-harness
+rule therefore needs the owner's no-change waiver rather than a harness edit.
+No waiver is recorded here.
