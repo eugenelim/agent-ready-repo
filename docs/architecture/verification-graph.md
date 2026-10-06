@@ -249,7 +249,7 @@ whose unblock condition is a parse-success assertion per ratcheted target.
 
 ## 3. The remote workflow fleet
 
-Sixteen workflows. Every `uses:` in the fleet is pinned to a 40-character
+Eighteen workflows. Every `uses:` in the fleet is pinned to a 40-character
 commit SHA; `.github/zizmor.yml` requires pinning rather than suppressing
 `unpinned-uses`, and `.github/dependabot.yml` records that `github-actions`
 updates are deliberately disabled for that reason.
@@ -264,12 +264,16 @@ updates are deliberately disabled for that reason.
 | `docs.yml` | `pull_request`, `push` | Nine documentation and governance lints, including ADR immutability |
 | `pages.yml` | `push`, `pull_request` on `main` (path-filtered), `workflow_dispatch` | Site build, rendered-link audit, docs-site plugin suite, web unit suite, Playwright browser gate, then deployment |
 | `pack-evals.yml` | `schedule`, `workflow_dispatch` | Report-only activation evaluation against a metered model API; [RFC-0037](../rfc/0037-pack-activation-evals.md) keeps it off the pull-request path |
+| `pack-javascript.yml` | path-scoped `pull_request`, `workflow_dispatch` | Installs canonical pack npm projects from committed lockfiles and runs the render-proof JavaScript suites. It is dispatchable scoped evidence, separate from `make sast`, which remains the npm-audit owner. |
 | `iac-release-loop-canary.yml` | `push`, `pull_request`, `workflow_dispatch` | Operational-safety module references |
 | `iac-staleness.yml` | weekly `schedule`, `workflow_dispatch` | Terraform and OpenTofu example validation |
 | `publish-catalogue.yml` | `workflow_dispatch`, `workflow_call` | Packaging and Artifactory upload |
 | `publish-claude-plugins.yml` | `push` on `main` (`paths:` allowlist — the 15 published pack directories, every pack's two scope-declaring manifests, and the ten other paths the job consumes), `workflow_dispatch` | Claude plugin publication. The job is gated on the `claude-plugin-publish` environment, so a push that cannot change the published tree would otherwise open a deployment approval; `tools/lint-plugin-roster.py` fails when the allowlist and its `PUBLISHED` roster disagree in either direction |
 | `release-agentbundle.yml` | `push`, `pull_request` | Build, smoke, pre-release gates, PyPI and Artifactory publication |
 | `release-credbroker.yml` | `push`, `pull_request` | The same shape for CredBroker |
+| `release-jsonl-otlp-exporter.yml` | `pull_request`, `push` on a `jsonl-otlp-exporter-v*` tag | Build and wheel smoke on every pull request; the publish job is tag-gated and uses OIDC trusted publishing with no stored credential |
+| `test-corpus.yml` | `workflow_dispatch` | Four-shard remote execution of `make test`; it is scoped evidence, not a required status check |
+| `test-roster.yml` | `workflow_dispatch` | Parallel execution of the roster suite only; it does not stand in for `make test` or a required status check |
 
 ### 3.1 Workflow-posture tests
 
@@ -361,7 +365,7 @@ own limitation bounds what a clean run proves:
 > step changes nothing the roster sees.
 
 Only `build-check.yml` is in scope for that linter. `WORKFLOW_SCOPE` classifies
-the other fifteen as out of scope, each with a reason, and fails on an
+the other seventeen as out of scope, each with a reason, and fails on an
 unclassified new workflow.
 
 ### 4.2 Semantic checks in the repository that `make ci` does not reach
@@ -372,6 +376,7 @@ unclassified new workflow.
 | `make site-sync`, `site-build`, `site-link-check` | Separate site-generation targets; require `make bootstrap-sites`, and build order is load-bearing because the web build cleans `build/` before docs write `build/docs/` |
 | `make web-browser-gate` | Needs a leased preview port and a downloaded Playwright Chromium |
 | `npm test --prefix web` (unit suite) | No Make target invokes it; only `pages.yml` runs it |
+| Canonical pack npm installation and render-proof JavaScript suites | No Make target invokes them; only the path-scoped, dispatchable `pack-javascript.yml` runs them, while `make sast` retains npm audit |
 | `tools/check-site-plugin-offers.py` | No Make target invokes it |
 | The 30-subprocess pack-compatibility characterization | Deliberately omitted from local `make test`; `build-check.yml` runs it instead |
 | Windows self-host compatibility | `agentbundle catalogue self-host --check --windows --root .` cannot be reproduced by a POSIX `make ci` |

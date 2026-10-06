@@ -200,6 +200,15 @@ def main() -> int:
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+    root = fixture_root("npm-allow-canonical-")
+    try:
+        write_project(root, project="packs/fixture/.apm/skills/demo")
+        proc = run(root)
+        check("canonical project exits 0", proc.returncode == 0, combined(proc))
+        check("canonical project is named", "packs/fixture/.apm/skills/demo/package-lock.json" in combined(proc), combined(proc))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
     root = fixture_root("npm-allow-stale-")
     try:
         write_project(

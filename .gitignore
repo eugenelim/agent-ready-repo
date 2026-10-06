@@ -68,6 +68,13 @@ package-lock.json
 # their lockfiles ARE committed so CI's `npm ci` is reproducible.
 !web/package-lock.json
 !docs-site/package-lock.json
+# Canonical pack npm projects (packs/<pack>/.apm/skills/<skill>/) commit their
+# lockfiles too: the pack JavaScript workflow installs them with `npm ci`, which
+# requires one. Written as a shape rather than two named projects so a new
+# canonical project joins the committed set without editing this file — the same
+# roster-free rule AC-0004 states for discovery. The `node_modules/` rule above
+# still ignores the installed trees beneath them.
+!packs/*/.apm/skills/*/package-lock.json
 
 # Virtual environments.
 .venv/

@@ -507,6 +507,14 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-npm-allow-scripts",
             "tools", "lint-npm-allow-scripts.py",
         ),
+        _script_step(
+            "test-lint-pack-npm-projects",
+            "tools", "test-lint-pack-npm-projects.py",
+        ),
+        _script_step(
+            "lint-pack-npm-projects",
+            "tools", "lint-pack-npm-projects.py",
+        ),
         # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
         # is the canonical statement of the rule and of why this runs here
         # rather than in `make sast`. Correction (ADR-0086 / AC14): it DOES need a

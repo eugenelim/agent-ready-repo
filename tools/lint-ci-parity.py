@@ -188,6 +188,10 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "pack-evals.yml":
         "Runs live model evals against a metered API; deliberately not a local "
         "gate.",
+    "pack-javascript.yml":
+        "Remote-only, path-scoped JavaScript verification for canonical pack npm "
+        "projects. It deliberately has no local counterpart and is not a general "
+        "pull-request gate.",
     "pages.yml":
         "Deploy workflow. Its built-output `check-site-plugin-offers.py` "
         "assertion is intentionally non-blocking because it requires the full "

@@ -72,6 +72,9 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
+from npm_project_discovery import DiscoveryError
+from npm_project_discovery import discover_lockfiles as _discover_projects
+
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
@@ -149,38 +152,10 @@ def discover_lockfiles(root: Path) -> list[Path]:
     Prunes `node_modules/` and dot-directories. Pruning happens on the walk, not
     as a post-filter, so an installed `node_modules` tree costs nothing to skip.
     """
-    found: list[Path] = []
-    stack = [root]
-    while stack:
-        current = stack.pop()
-        try:
-            entries = list(current.iterdir())
-        except OSError as exc:
-            # A partial walk could skip a project and report a clean audit over
-            # an under-covered tree, so it is a tool error rather than a warning.
-            raise AuditError(f"cannot read {current}: {exc}") from exc
-        for entry in entries:
-            try:
-                is_directory = entry.is_dir()
-                is_symlink = entry.is_symlink()
-            except OSError as exc:
-                # A directory may list successfully but deny traversal, making
-                # per-child classification fail after iterdir() has succeeded.
-                raise AuditError(f"cannot classify {entry}: {exc}") from exc
-            if is_directory:
-                # Symlinked directories are skipped for loop safety; symlinked
-                # *files* are not, so a lockfile linked into place is still
-                # audited rather than silently dropped.
-                if (
-                    is_symlink
-                    or entry.name in _PRUNED_DIR_NAMES
-                    or entry.name.startswith(".")
-                ):
-                    continue
-                stack.append(entry)
-            elif entry.name == LOCKFILE_NAME:
-                found.append(entry)
-    return sorted(found)
+    try:
+        return _discover_projects(root)
+    except DiscoveryError as exc:
+        raise AuditError(str(exc)) from exc
 
 
 def load_allowlist(path: Path) -> dict[str, dict[str, str]]:

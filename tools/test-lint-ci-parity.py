@@ -489,6 +489,18 @@ _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])
 
 def main() -> int:
     _utf8_streams()
+    pack_javascript_scope = M.WORKFLOW_SCOPE.get("pack-javascript.yml")
+    _check_true(
+        "pack-javascript-is-explicitly-remote-only-and-path-scoped",
+        isinstance(pack_javascript_scope, str)
+        and "Remote-only" in pack_javascript_scope
+        and "path-scoped JavaScript" in pack_javascript_scope,
+    )
+    _check(
+        "pack-javascript-is-not-in-parity-scope",
+        pack_javascript_scope is M.IN_SCOPE,
+        False,
+    )
     # ── extract_step_targets ────────────────────────────────────────────────
     _check("step-script-token",
            M.extract_step_targets("python3 tools/lint-x.py --root ."),

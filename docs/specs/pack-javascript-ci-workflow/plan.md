@@ -1,8 +1,8 @@
 # Plan: Pack JavaScript CI workflow
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
-- **Repository anchors:** [ADR-0083](../../adr/0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md); [`docs/architecture/reference.md`](../../architecture/reference.md); [`docs/architecture/verification-graph.md`](../../architecture/verification-graph.md); [`docs/architecture/pack-layout.md`](../../architecture/pack-layout.md); `.github/workflows/test-corpus.yml` and its posture pattern; `tools/audit-npm.py`, `tools/lint-npm-allow-scripts.py`, and their self-tests; `tools/lint-pack-test-boundary.py`; the two canonical Converters npm manifests and three render-proof JavaScript suites. Named deviation: repository-wide npm discovery prunes every dot-directory, so the canonical `.apm` route needs an explicit admission rather than a broader walk.
+- **Status:** Done
+- **Repository anchors:** [ADR-0083](../../adr/0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md); [`docs/architecture/reference.md`](../../architecture/reference.md); [`docs/architecture/verification-graph.md`](../../architecture/verification-graph.md); [`docs/architecture/pack-layout.md`](../../architecture/pack-layout.md); `.github/workflows/test-corpus.yml` and its posture pattern; `tools/audit-npm.py`, `tools/lint-npm-allow-scripts.py`, and their self-tests; `tools/lint-pack-test-boundary.py`; the two canonical Converters npm manifests and three render-proof JavaScript suites. Named deviations: (1) repository-wide npm discovery prunes every dot-directory, so the canonical `.apm` route needs an explicit admission rather than a broader walk. (2) `tools/npm_project_discovery.py` confines its own traversal with the standard library rather than the root `AGENTS.md`-blessed `agentbundle.catalogue_tooling.file_safety`, on one ground only: `tools/AGENTS.md` requires pure-stdlib additions under `tools/`, and the two consumers this factors out — `tools/audit-npm.py` and `tools/lint-npm-allow-scripts.py` — already carry stdlib pruning that this change preserves rather than introduces. It is NOT grounded on the helper being unreachable from `tools/`: `tools/check-output-readability.py` loads `file_safety.py` by path through `importlib.util.spec_from_file_location` precisely so a `tools/` file can use it without a package import, and `tools/repo/build_gate_chain.py` already resolves `packages/agentbundle` for chain steps. Because the helper is reachable, its *confinement* refusals are stated as acceptance criteria instead of being assumed: AC-0005 and AC-0006 carry the per-route traversal rules and the regular-file-and-no-link rule for each discovered manifest and lockfile, and AC-0015 carries the `.npmrc` scan's own scope. Its *budget* refusals are not restated and are consciously accepted: `file_safety` raises `BoundExceeded` on entry count, depth, file count, per-file bytes and total bytes, and no criterion here states a ceiling. The accepted residual is that AC-0015's deliberately unpruned repository-wide walk runs unbounded inside the build-check gate on a fork `pull_request`; it is bounded only by that job's own `timeout-minutes: 25`, which this spec does not own. Revisit if that walk is ever moved to a surface with no job timeout.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
@@ -22,7 +22,7 @@ Teach one shared, standard-library discovery layer to admit lockfiles only under
 ## Constraints
 
 - [ADR-0083](../../adr/0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md) remains unchanged: `tools/audit-npm.py` runs through `make sast`, and the new workflow never invokes it.
-- Existing workflows and default local gates gain no new step, dependency installation, or JavaScript test. Their existing npm policy steps may inspect the newly admitted lockfiles.
+- Existing workflows and default local gates gain no pack dependency installation and no JavaScript test. Their existing npm policy steps may inspect the newly admitted lockfiles, and the build-check chain gains the canonical pack-project policy step this delivery adds — a repository-only static check that installs nothing and runs no JavaScript, which AC-0002 admits by name.
 - `tools/AGENTS.md` requires pure-stdlib additions and shared lint/self-test harnesses for a new single-rule lint.
 - `packs/AGENTS.md` keeps `.apm/` as authored source, requires a non-cosmetic Converters patch bump and eval-harness disposition, and requires a self-host build. `packs/AGENTS.local.md` requires matching pack/plugin versions, a free-standing release entry, and a `Highlights` decision.
 - The workflow follows the fleet posture: SHA-pinned actions already used in the repository, read-only permissions, standard hosted runner, no secret or cache surface, finite timeout, and non-persisted checkout credentials.
@@ -76,7 +76,7 @@ The workflow uses the repository's Node 24 line, npm's committed-lockfile mode, 
 
 **Depends on:** none
 
-**Touches:** `tools/npm_project_discovery.py`, `tools/audit-npm.py`, `tools/test-audit-npm.py`, `tools/lint-npm-allow-scripts.py`, `tools/test-lint-npm-allow-scripts.py`, `tools/lint-pack-npm-projects.py`, `tools/test-lint-pack-npm-projects.py`
+**Touches:** `tools/npm_project_discovery.py`, `tools/audit-npm.py`, `tools/test-audit-npm.py`, `tools/lint-npm-allow-scripts.py`, `tools/test-lint-npm-allow-scripts.py`, `tools/lint-pack-npm-projects.py`, `tools/test-lint-pack-npm-projects.py`, `tools/repo/build_gate_chain.py`, `tools/test_build_gate_chain.py`
 
 **Review shape:** DEEP but localized supply-chain boundary; review the shared traversal and all three consumers together.
 
@@ -92,7 +92,7 @@ The workflow uses the repository's Node 24 line, npm's committed-lockfile mode, 
 
 **Approach:** Extract only traversal and canonical-project classification into the shared helper. Keep advisory parsing and install-script comparison in their current owners, and implement the parity rule on the shared inventory through the repository lint harness.
 
-**Done when:** VI-1001–VI-1004 are green, both existing policy tools retain their current visible-project behavior, and their real-repository output names every canonical pack lockfile.
+**Done when:** VI-1001–VI-1004 are green, both existing policy tools retain their current visible-project behavior, their real-repository output names every canonical pack lockfile, and `tools/lint-pack-npm-projects.py` has a standing gate home: it is chained into the build-check gate in `tools/repo/build_gate_chain.py` as a `_script_step` pair — its self-test first, then the lint — matching the `test-lint-npm-allow-scripts` / `lint-npm-allow-scripts` precedent, with the pairing pinned in `tools/test_build_gate_chain.py`. A hyphenated `tools/test-*.py` is collected by no sweep, so without this the control would run once by hand and never again.
 
 ### T2: Converters carries reproducible npm state without dependency-script execution
 
@@ -149,6 +149,12 @@ BOUNDARY_PATH = (
 
 
 def _load_boundary():
+    # NOT `selftest_harness.load`: that helper never registers the module in
+    # `sys.modules`, and `lint-pack-test-boundary.py` declares a frozen
+    # dataclass at import time, which CPython resolves through
+    # `sys.modules[cls.__module__]`. The shared loader therefore raises
+    # `AttributeError: 'NoneType' object has no attribute '__dict__'` on this
+    # subject. The registration line below is the whole difference.
     spec = importlib.util.spec_from_file_location("pack_js_boundary", BOUNDARY_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -181,6 +187,8 @@ if __name__ == "__main__":
 ```
 
   Validation on 2026-10-02: `python3 -m py_compile` exits 0, and direct execution from disposable scratch reports the one case red because the current parser ignores explicit Node test commands.
+
+  Loader deviation measured 2026-10-05, after spec-stage review asked why the stub does not use the shared loader. Substituting `selftest_harness.load("lint-pack-test-boundary.py")` and running from disposable scratch raises `AttributeError: 'NoneType' object has no attribute '__dict__'` at `tools/lint-pack-test-boundary.py:315`, because `load()` omits the `sys.modules` registration that CPython's `dataclasses._is_type` needs to resolve a frozen dataclass declared at import time. The shared loader serves subjects without that shape; it cannot serve this one. The local `_load_boundary` is kept with the reason recorded at the line.
 
 - **VI-1009 (AC-0010):** `no stub (goal-based construction check)` — extend the existing boundary self-test so a Node step without a pack-test working directory is not a runner, each explicit Node suite line is recognized, a missing runner without an exemption fails, and a runner plus exemption fails.
 
@@ -263,3 +271,47 @@ if __name__ == "__main__":
 
 - 2026-10-02: spec approved by eugenelim.
 - 2026-10-02: plan approved by eugenelim.
+- 2026-10-05: revised from nine sustained pre-EXECUTE review findings (one
+  Blocker, eight Concerns) across an adversarial and a secure-design pass, both
+  adjudicated. Spec: AC-0014 gained a vacuous-pass guard and a `sha512`
+  integrity floor; AC-0015 gained a stated scan scope and user/global/scoped
+  /auth configuration neutralization; AC-0003 gained an expression-interpolation
+  prohibition; AC-0001 gained the two shared harness drivers as a path class;
+  two Agent Rules and two Testing Strategy lines were walked to match. Plan: T1
+  gained its build-check gate home and the two chain files in `Touches`; the
+  named-deviation line records why `tools/npm_project_discovery.py` confines
+  with the standard library rather than the blessed helper; VI-1008 records the
+  measured reason the shared self-test loader cannot load this subject. The
+  change set needs re-approval before `plan-locked`.
+- 2026-10-05: round 2 revised from four further sustained Concerns, both passes
+  adjudicated; round 2's two reported Blockers were both refuted on evidence.
+  AC-0002's unbounded "adding a step is not" contradicted the gate home round 1
+  had just mandated, so it is now bounded to pack dependency-installation and
+  JavaScript-suite steps, with the matching `Ask first` rule and the plan's
+  Constraints line aligned. AC-0005 and AC-0006 gained a regular-file-and-no-
+  link requirement for each discovered manifest and lockfile, which the
+  existing walk does not supply because it admits a symlinked file by design.
+  AC-0014 gained a locator-to-identity binding, because npm verifies integrity
+  against the bytes it fetched rather than the name it requested. The named-
+  deviation line dropped a `packages/`-import claim the repository contradicts
+  and now rests on the `tools/AGENTS.md` pure-stdlib rule alone.
+- 2026-10-05: round 3 revised from one sustained Concern and one sustained
+  advisory; three further findings were refuted. Round 2's regular-file rule
+  had collided with AC-0005's own prune rule — a canonical lockfile under a
+  symlinked directory segment fell in both classes, so the two self-tests the
+  criterion mandates would have asserted opposite exit codes. AC-0005 now
+  partitions by route: the visible-tree walk prunes silently, the canonical
+  `.apm/skills/` route is an explicit admission where nothing is pruned and a
+  refusal fails closed naming the path. The matching `Never do` rule and
+  Testing Strategy line were walked to the same partition, and the
+  symlinked-directory fixture now appears on both routes with opposite expected
+  exit codes. Separately, the named deviation's "every refusal is restated"
+  claim was narrowed: `file_safety`'s `BoundExceeded` budgets are NOT restated,
+  and the residual — AC-0015's unpruned walk running unbounded in build-check,
+  held only by that job's own 25-minute timeout — is now recorded as
+  consciously accepted with a revisit trigger, rather than covered by an
+  overbroad sentence.
+- 2026-10-05: revised spec re-approved by eugenelim after four adversarial and
+  four secure-design rounds, every report adjudicated, both round-4 reviewers
+  returning the direct-clean sentinel.
+- 2026-10-05: revised plan re-approved by eugenelim in the same decision.
