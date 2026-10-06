@@ -339,23 +339,14 @@ def _confined_ensure_shadow_dir(spec_dir: Path, shadow_dir: Path, cm: ModuleType
     # Write self-ignoring .gitignore via confined_create (idempotent).
     # This also validates the path through _open_confined_parent (O_NOFOLLOW
     # walk), catching any symlink placed after the lstat checks above.
-    # Creating it is audited like every other facade file effect: an allow
-    # before the create, and a denial with the same operation ID on refusal.
+    # It is not audited: the security-event log lives in this folder, so the
+    # .gitignore must exist before any event is written, or a refused create
+    # would leave an un-ignored log behind.
     gitignore = shadow_dir / ".gitignore"
-    se = _security_events()
-    sink = _durable_sink(spec_dir, shadow_dir, cm)
-    operation_id = se.make_operation_id()
-    if not os.path.lexists(gitignore):
-        se.emit_security_event(
-            sink, _facade_file_event(se, operation_id, "allowed", "allowed-file-create")
-        )
     try:
         cm.confined_create(spec_dir, gitignore, b"*\n")
     except cm.MutationDenied as exc:
         if exc.denial_code != "denied-already-exists":
-            se.emit_denial_best_effort(
-                sink, _facade_file_event(se, operation_id, "denied", _known_denial_code(se, exc))
-            )
             raise
 
 

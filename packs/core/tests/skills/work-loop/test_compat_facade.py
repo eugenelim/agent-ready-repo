@@ -533,7 +533,6 @@ class TestAC0016ShadowOn:
         # security-event.v1 divergence record must exist
         div_path = spec_dir / facade.SHADOW_SUBDIR / "shadow-security-events.jsonl"
         assert div_path.exists(), "security-event divergence file must be written"
-        # The shadow .gitignore creation is audited first; the divergence follows.
         entries = [json.loads(line) for line in div_path.read_text("utf-8").splitlines()]
         divergences = [e for e in entries if e["event_type"] == "capability-check"]
         assert len(divergences) == 1, entries
@@ -1816,9 +1815,10 @@ class TestShadowWriterPort:
         assert (denial["outcome"], denial["reason_code"]) == ("denied", "denied-path-violation")
         assert denial["operation_id"] == allow["operation_id"]
 
-    def test_gitignore_creation_is_audited_once(
+    def test_gitignore_exists_before_any_shadow_event(
         self, facade: ModuleType, tmp_path: Path
     ) -> None:
+        """The self-ignoring .gitignore is created first and is not itself audited."""
         spec_dir = tmp_path / "gitignore-spec"
         spec_dir.mkdir()
         shadow_dir = spec_dir / facade.SHADOW_SUBDIR
@@ -1826,12 +1826,12 @@ class TestShadowWriterPort:
         facade._confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
         facade._confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
         assert (shadow_dir / ".gitignore").read_bytes() == b"*\n"
-        events = self._file_events(shadow_dir)
-        assert [e["reason_code"] for e in events] == ["allowed-file-create"], events
+        assert self._file_events(shadow_dir) == []
 
-    def test_refused_gitignore_creation_stores_denial_for_same_operation(
+    def test_refused_gitignore_leaves_no_unignored_shadow_file(
         self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """A refused .gitignore create raises and leaves no other file in the shadow folder."""
         cm = facade._cm()
         create = cm.confined_create
 
@@ -1846,7 +1846,4 @@ class TestShadowWriterPort:
         monkeypatch.setattr(cm, "confined_create", refuse_gitignore)
         with pytest.raises(cm.MutationDenied):
             facade._confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
-        allow, denial = self._file_events(shadow_dir)
-        assert allow["reason_code"] == "allowed-file-create"
-        assert (denial["outcome"], denial["reason_code"]) == ("denied", "denied-path-violation")
-        assert denial["operation_id"] == allow["operation_id"]
+        assert list(shadow_dir.iterdir()) == []

@@ -412,6 +412,18 @@ resulting wording of this residual and the group-ID reuse residual on
 Rounds 14 and 15 also corrected the wording of the two 2026-10-04 residuals
 above, and the owner confirmed both acceptances still hold.
 
+## Shadow `.gitignore` is the audit store's bootstrap (owner decision, 2026-10-06)
+
+Post-gates adversarial round 10 found that auditing the shadow folder's
+`.gitignore` wrote the security-event log into the folder before the
+`.gitignore` existed, so a refused or interrupted create left an un-ignored
+file behind. The owner overrode the retry cap again and chose to exempt it.
+The `.gitignore` is now created first and is not audited, and the
+runtime-security-primitives page names it with the audit-log append as the
+two unaudited writes. `test_refused_gitignore_leaves_no_unignored_shadow_file`
+fails against the earlier code. The process primitive's module docstring now
+states the narrowed process-group guarantees.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on

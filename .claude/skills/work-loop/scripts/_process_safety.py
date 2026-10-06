@@ -2,15 +2,20 @@
 
 Implements the safe-process.v1 contract.
 
-No PATH search, shell reinterpretation, ambient environment, open stdin,
-orphan child, or unredacted durable output.  Identity drift, ungranted env
-or cwd, unsupported tree kill, timeout, launch error, or bound breach refuses.
+No PATH search, shell reinterpretation, ambient environment, open stdin, or
+unredacted durable output, and no orphan child that stayed in the launch's
+process group.  Identity drift, ungranted env or cwd, unsupported tree kill,
+timeout, launch error, or bound breach refuses.
 
 Every managed process uses an identity-pinned absolute executable, fixed
 argument vector, confined working directory, allowlisted environment, explicit
-bounded stdin, full process-tree timeout, bounded output, and redaction of every
+bounded stdin, a process-group timeout, bounded output, and redaction of every
 value supplied through environment and stdin.  Any validation or runtime breach
-terminates the tree and records no durable success or unredacted output.
+kills the launch's process group and records no durable success or unredacted
+output.  The kill reaches only the process group: a descendant that leaves it
+(setsid or setpgid) is not killed.  The identity pin checks only the
+executable's own bytes, once, before launch, and interrupt handling is best
+effort.
 
 Output is read incrementally up to a hard cap (output bound plus the length of
 the longest sensitive value).  Exceeding the hard cap terminates the process

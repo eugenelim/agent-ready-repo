@@ -68,9 +68,10 @@ logic into versioned, reusable infrastructure capabilities.
    confined file-mutation primitive is I/O only. Its two callers, the
    evidence store and the shadow facade, audit every file write they make,
    with the allow and any denial sharing one operation ID. That covers log
-   creation, appends, recovery truncation, shadow records, and the shadow
-   `.gitignore`. The one write not audited is the append that stores a
-   security event, because that append is the audit record.
+   creation, appends, recovery truncation, and shadow records. Two writes are
+   not audited: the append that stores a security event, because that append
+   is the audit record, and the shadow folder's self-ignoring `.gitignore`,
+   which must exist before the audit log can be written into that folder.
 5. The adapter returns containment, `access-attestation.v1`, and effect receipts.
 
 **Failure and recovery sequence**
