@@ -1,6 +1,6 @@
 # Spec: Intent delivery traceability
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0077, RFC-0103
@@ -23,7 +23,7 @@ Maintainers and delivery agents receive one route-qualified view of the delivery
 
 ## What Changes
 
-- A canonical typed relation resolver becomes a Core repo-scope runtime primitive.
+- A canonical typed relation resolver ships with each consuming Core skill as a byte-identical copy of one source, so every install route delivers it.
 - `close-work` consumes the canonical relation snapshot for delivery descendants.
 - `lint-traceability.py` consumes the same snapshot for feature-delivery edges while retaining its non-delivery graph checks.
 - Core tests, eval evidence, architecture guidance, release history, versions, and self-hosted projections move with the runtime change.
@@ -61,7 +61,7 @@ Maintainers and delivery agents receive one route-qualified view of the delivery
 
 - **TDD — relation semantics (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0019):** pure resolver fixtures compare the complete typed snapshot for positive, empty, missing, contradictory, provenance, and unsafe inputs because these rules are deterministic over repository headers.
 - **TDD integration — consumer convergence (AC-0012, AC-0013, AC-0014, AC-0020):** integration fixtures run each real consumer against the same repository tree and compare its delivery subset with the canonical snapshot for equality; caller-inventory assertions prove the retired paths are unreachable; broken-spec fixtures prove close-work refuses every feature the spec could belong to.
-- **Goal-based integration — installed runtime (AC-0015):** a clean Core projection invokes the installed resolver CLI and compares its JSON with the source function because projection and execution, not another unit assertion, are the behavior at risk.
+- **Goal-based integration — installed runtime (AC-0015):** a clean repo-scope `agentbundle install` of Core runs each installed resolver copy where `agentbundle` cannot be imported and compares its JSON with the source function, because the adopter install route, not the self-host projection, is the behavior at risk.
 - **TDD — security envelope (AC-0016, AC-0017, AC-0018):** boundary fixtures exercise corpus-entry refusals, every first-over-budget input, incomplete-snapshot rejection, and every user-visible diagnostic channel because fail-closed behavior and disclosure limits must hold before consumer policy runs.
 
 ## Acceptance Criteria
@@ -79,8 +79,8 @@ Maintainers and delivery agents receive one route-qualified view of the delivery
 - [ ] **AC-0011.** Changing headings, field-shaped text, or references below the canonical preamble of an otherwise identical artifact leaves the relation snapshot byte-for-byte unchanged.
 - [ ] **AC-0012.** For every direct, coordinated, explicit-empty, dual-provenance, missing-direct, missing-brief, direct-projection-mismatch, and brief-projection-mismatch fixture, `close-work` derives its delivery descendants from the canonical snapshot and preserves its existing status, freshness, and closure verdicts.
 - [ ] **AC-0013.** For the same fixture set, `lint-traceability.py` derives feature-delivery edges and delivery diagnostics from the canonical snapshot while its non-delivery producer, component, dangling-target, cycle, and orphan checks keep their existing results.
-- [ ] **AC-0014.** A caller inventory finds exactly one production implementation that parses and inverts feature delivery relations; neither consumer contains a reachable fallback for those relations.
-- [ ] **AC-0015.** A clean Core repo-scope projection installs the resolver under `.agentbundle/bin/`; invoking it with the current Python interpreter returns valid JSON identical to the source resolver's snapshot for the same confined fixture.
+- [ ] **AC-0014.** A caller inventory finds exactly one source implementation that parses and inverts feature delivery relations; each consumer runs a byte-identical copy of that source, pinned to it by a parity test, and neither consumer contains a reachable fallback for those relations.
+- [ ] **AC-0015.** A clean `agentbundle install --pack core --scope repo` places the resolver and its confinement helper beside each consumer's scripts; invoking either installed copy with the current Python interpreter, with `agentbundle` not importable, returns valid JSON identical to the source resolver's snapshot for the same confined fixture.
 - [ ] **AC-0016.** Every artifact-root enumeration and preamble read is canonicalized beneath the repository root and uses the repository file-safety contract. A symlinked, hard-linked, non-regular, inaccessible, oversized, or identity-changing corpus entry makes the snapshot incomplete, is never opened as artifact content, and contributes no relation, classification, diagnostic payload, or provenance. This corpus refusal precedes relation-level validation when a relation names that entry: `delivery-reference-unsafe` is absent and the incomplete result is the only outcome.
 - [ ] **AC-0017.** Across the union of admitted intent, brief, and spec roots, the resolver refuses before processing the first input that would exceed 50,000 enumerated entries, 10,000 regular artifact files, depth 8 below an artifact root, 1,000,000 bytes for one artifact, 67,108,864 aggregate artifact bytes, or 16,777,216 serialized JSON bytes. It returns an incomplete snapshot with `delivery-resource-limit` naming only the breached limit and bounded repository-relative root; both consumers reject that snapshot without a fallback.
 - [ ] **AC-0018.** Resolver JSON and every close-work or traceability diagnostic expose only stable diagnostic codes plus bounded repository-relative context. They are strict and deterministic and never expose captured stderr verbatim, a stack trace, a secret, an absolute host path, or raw malformed or unsafe relation content; resolver invocation failure yields `delivery-resolver-unavailable` from each consumer without a fallback.

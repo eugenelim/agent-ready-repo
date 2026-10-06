@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one repo-scope primitive instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -40,39 +40,39 @@ The resolver is a pure TDD surface. Consumer wiring stays TDD but uses an implem
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Interface compatibility — resolver source, help, and tests | T1-T8 | Resolver fixtures, consumer parity, and installed invocation | One active delivery-inversion owner and matching consumer results |
-| Current architecture — `docs/architecture/work-intake-and-artifact-routing.md` | T4, T8 | Whole-page diff review against the shipped paths | The page points to the owner and consumers without copying their vocabulary |
-| Release history — `docs/product/changelog.md` | T4, T8 | Changelog and pack-version gates | The Core release entry names the adopter-visible change |
+| Interface compatibility — resolver source, help, and tests | T1-T13 | Resolver fixtures, consumer parity, and installed invocation | One active delivery-inversion owner and matching consumer results |
+| Current architecture — `docs/architecture/work-intake-and-artifact-routing.md` | T4, T8, T13 | Whole-page diff review against the shipped paths | The page points to the owner and consumers without copying their vocabulary |
+| Release history — `docs/product/changelog.md` | T4, T8, T13 | Changelog and pack-version gates | The Core release entry names the adopter-visible change |
 
 ## Design (LLD)
 
 ### Design decisions
 
-Owned by: T1, T2, T3, T5
+Owned by: T1, T2, T3, T5, T9
 
-The canonical owner is `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py`. A repo-scope adapter-root primitive survives every Core adapter projection at `<repository>/.agentbundle/bin/`, while a sibling-skill import and the specialised `shared-libs` rail do not satisfy the repository's skill portability rules.
+The canonical source is `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` with its private `_file_safety.py`. Each consuming skill ships byte-identical copies of both in its own `scripts/` folder (`close-work` and `work-loop`), pinned to the source by parity tests, and runs its own copy. The approved assumption that a repo-scope adapter-root primitive reaches `<repository>/.agentbundle/bin/` proved false: `agentbundle install` delivers adapter-root binaries only at user scope, and Core installs only at repo scope (verification ledger, 2026-10-06). Skill-local copies travel with every install route, while a sibling-skill import and the specialised `shared-libs` rail would not satisfy the skill portability rules.
 
 The resolver's in-process `resolve_repository(root)` result and CLI JSON share one dictionary shape: `schema_version`, `complete`, `relations`, `classifications`, `provenance`, and `diagnostics`. The amendment adds a seventh top-level key, `artifacts`, mapping each identifier any relation or provenance record names to its repository-relative artifact path, so a consumer reads exactly the artifact the resolver matched. Relation records keep their delivered shape — canonical endpoint identifiers, relation type, route, and a field-basis map — so the delivered AC-0001 equality holds unchanged. A provenance record whose target resolves to an admitted intent also carries that intent's identifier. Only an artifact whose `Slug:` matches the slug grammar becomes an identifier. Lists are sorted before strict serialization so an identical tree yields identical bytes.
 
 ### Interfaces & contracts
 
-Owned by: T1, T2, T3, T5, T6, T7
+Owned by: T1, T2, T3, T5, T6, T7, T9, T10, T11
 
-Both consumers invoke the projected resolver with the current Python interpreter, the repository root, JSON output, a bounded timeout, and captured standard streams. They validate the schema version, completeness flag, the exact seven top-level keys, output-size ceiling, the record shape of every item (a dict whose consumed fields are strings of the expected grammar), and every `artifacts` path against its identifier's type root and file grammar, before use. Absence, an incomplete result, non-zero exit, timeout, invalid UTF-8, malformed JSON, or an unsupported schema version produces the consumer-authored `delivery-resolver-unavailable` code and no consumer-specific fallback; captured stderr is never forwarded.
+Each consumer invokes the resolver copy in its own skill `scripts/` folder, located from its own resolved file path and never from the repository root, with the current Python interpreter, the repository root, JSON output, a bounded timeout, and captured standard streams. They validate the schema version, completeness flag, the exact seven top-level keys, output-size ceiling, the record shape of every item (a dict whose consumed fields are strings of the expected grammar), and every `artifacts` path against its identifier's type root and file grammar, before use. Absence, an incomplete result, non-zero exit, timeout, invalid UTF-8, malformed JSON, or an unsupported schema version produces the consumer-authored `delivery-resolver-unavailable` code and no consumer-specific fallback; captured stderr is never forwarded.
 
 This is an internal Core runtime seam, not a portable service or API contract, so the spec names `Contract: none`. The source, help output, typed construction fixtures, and architecture page own its compatibility surface.
 
 ### Failure, edge cases & resilience
 
-Owned by: T1, T2, T3, T5, T6, T7
+Owned by: T1, T2, T3, T5, T6, T7, T9, T10, T11
 
 The resolver distinguishes absent mappings, direct-route multiplicity, incompatible same-type targets, malformed references, unsafe lexical references, and explicit empty routes according to the spec criteria. The co-located, parity-pinned `_file_safety.py` — the resolver's only confinement source — validates each artifact root, bounds enumeration, and performs every preamble read before relation validation; therefore an unsafe corpus entry produces only the AC-0016 incomplete result, while AC-0010 handles absolute and parent-traversing reference text that never reaches corpus admission. Every admitted file is opened at most once per snapshot, and body text cannot affect the result. The resolver enforces the six AC-0017 budgets before materializing the next entry, file, byte range, or serialized result. A refused corpus or breached budget returns `complete: false` with no partial delivery data. Diagnostic rendering admits only stable codes, limit names, and identifiers or repository-relative paths that match the canonical grammar under a length cap; anything else is omitted. Every absolute or parent-traversing relation reference — any `Brief:` or `Parent intent:` value, or an intent-shaped `Discovery:` value — reports `delivery-reference-unsafe`; a non-intent-shaped `Discovery:` stays contextual provenance and is emitted without its target. Duplicate brief slugs are ambiguous, as duplicate intent slugs are. `_`-prefixed spec directories are not delivery artifacts. A link at any part of an artifact-root path makes the snapshot incomplete. The resolver reads only the default artifact roots, so the lint fails closed with `delivery-resolver-unavailable` when its configured or discovered spec or intent base differs from them. A consumer failure never falls back to its retired scanner because that would restore split answers.
 
 ### Dependencies & integration
 
-Owned by: T1, T2, T3, T4, T5, T8
+Owned by: T1, T2, T3, T4, T5, T8, T9, T13
 
-The Core pack already projects adapter-root binaries to `.agentbundle/bin/`; no new dependency or adapter-contract version is introduced. T1's kill condition fired in review: a documented pipx or zipapp install cannot import `agentbundle` from repo-scope scripts. The owner chose the co-located, parity-pinned copy pattern already used by three Core skills, projected as the private helper `_file_safety.py`, so confinement logic is projected unchanged rather than vendored or weakened. `close-work` retains ownership of status, freshness, and closure verdicts. `lint-traceability.py` retains the general product graph, endpoint, cycle, and orphan checks. The resolver owns only feature-delivery relation parsing, inversion, classification, and strict serialization.
+No new dependency or adapter-contract version is introduced: the resolver reaches adopters inside the two skills that use it. T1's kill condition fired in review: a documented pipx or zipapp install cannot import `agentbundle` from repo-scope scripts. The owner chose the co-located, parity-pinned copy pattern already used by three Core skills, projected as the private helper `_file_safety.py`, so confinement logic is projected unchanged rather than vendored or weakened. `close-work` retains ownership of status, freshness, and closure verdicts. `lint-traceability.py` retains the general product graph, endpoint, cycle, and orphan checks. The resolver owns only feature-delivery relation parsing, inversion, classification, and strict serialization.
 
 ## Tasks
 
@@ -443,9 +443,233 @@ def test_ac0013_diagnosed_spec_keeps_component_dangling_check(tmp_path: Path) ->
 
 **Done when:** VI-1801 through VI-1803 pass and the affected pack, projection, lint, type, and documentation gates pass.
 
+### T9: Each consumer skill ships and runs its own resolver copy
+
+**Depends on:** T8
+
+**Mode:** TDD
+
+**Touches:** `packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/_file_safety.py`, `packs/core/.apm/skills/work-loop/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/work-loop/scripts/_file_safety.py` (byte-identical copies), the resolver-location code in `closure_index.py` and `lint-traceability.py`, `packs/core/tests/pack/test_intent_delivery_relations_copies.py` (stub materialization file), and every delivered test or fixture that installs the resolver at `.agentbundle/bin/` or asserts that location
+
+**Tests:**
+
+- **VI-1901.** `test_ac0015_each_consumer_skill_ships_the_resolver` asserts each consuming skill's `scripts/` folder holds the resolver and helper byte-identical to the source (AC-0014, AC-0015), `stub: true`.
+- **VI-1902.** Each consumer locates the resolver from its own resolved file path; a resolver absent beside the consumer, or a non-regular or linked one, is `delivery-resolver-unavailable`, proved through a narrow test seam for the location rather than by deleting the real copy (AC-0014, AC-0018).
+- **VI-1903.** One test runs a real `agentbundle install --pack core --scope repo` into a clean temporary repository with the in-tree `agentbundle`, then runs each installed copy under `python -I -S` on a fixture and asserts its stdout equals the source's serialized snapshot byte-for-byte; it also runs the installed lint on a fixture with an anchor and asserts no `delivery-resolver-unavailable` (AC-0015).
+- Stub validation: syntax and intended red ("close-work ships no intent_delivery_relations.py") passed on 2026-10-06 from a disposable scratch mirror of `packs/core/`; no repository test file was created.
+
+```python
+# STUB: AC-0015
+from __future__ import annotations
+
+from pathlib import Path
+
+CORE = Path(__file__).resolve().parents[2]
+BINS = CORE / ".apm" / "adapter-root-bins"
+SOURCE = BINS / "intent_delivery_relations.py"
+HELPER = BINS / "_file_safety.py"
+
+
+def test_ac0015_each_consumer_skill_ships_the_resolver() -> None:
+    for skill in ("close-work", "work-loop"):
+        scripts = CORE / ".apm" / "skills" / skill / "scripts"
+        for source in (SOURCE, HELPER):
+            copy = scripts / source.name
+            assert copy.is_file(), f"{skill} ships no {source.name}"
+            assert copy.read_bytes() == source.read_bytes()
+```
+
+**Approach:** Copy the source and helper into both skills, point each consumer at its sibling copy, and move every delivered `.agentbundle/bin/` fixture to the new location or the seam.
+
+**Done when:** VI-1901 through VI-1903 pass and no consumer or test still looks for the resolver under `.agentbundle/bin/`.
+
+### T10: Resolver and lint emit only canonical diagnostic content
+
+**Depends on:** T9
+
+**Mode:** TDD
+
+**Touches:** `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` and its two skill copies, `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/tests/pack/test_intent_delivery_relations_hostile_targets.py` (stub materialization file), and the lint and close-work validator tests
+
+**Tests:**
+
+- **VI-2001.** `test_ac0018_ambiguous_targets_carry_no_raw_artifact_text` asserts every diagnostic target the resolver emits for an ambiguous `Decomposed:` field is printable (AC-0018), `stub: true`. Green extends it to ambiguous `Discovery:` targets and checks decoded values: a target is only a canonical identifier, `docs/product/intents/<artifact file>`, or `<date> <route in the closed route set>`; anything else is omitted.
+- **VI-2002.** Every provenance record whose target resolves to an admitted intent carries that intent's identifier, whatever the intent's route; an absolute provenance target, including a drive-letter or backslash form, is emitted without its target for both `Contract:` and `Discovery:` (AC-0001, AC-0010, AC-0018).
+- **VI-2003.** Both consumers reject a diagnostic `field` outside the closed field set and a target outside the canonical forms, and a lint line prints only the code, a validated subject, a closed-set field, and canonical targets; an unhashable value in any closed-set field is `delivery-resolver-unavailable` in both consumers with no traceback, proved by one malformed-record table run against both (AC-0018).
+- Stub validation: syntax and intended red (a raw control or bidi character reaches a target) passed on 2026-10-06 from a disposable scratch mirror of `packs/core/`; no repository test file was created.
+
+```python
+# STUB: AC-0018
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
+SOURCE = (
+    Path(__file__).resolve().parents[2]
+    / ".apm"
+    / "adapter-root-bins"
+    / "intent_delivery_relations.py"
+)
+
+
+def _load_resolver():
+    module_spec = importlib.util.spec_from_file_location(
+        "_core_intent_delivery_relations_ac0018",
+        SOURCE,
+    )
+    assert module_spec is not None and module_spec.loader is not None
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
+
+
+def test_ac0018_ambiguous_targets_carry_no_raw_artifact_text(tmp_path: Path) -> None:
+    intents = tmp_path / "docs" / "product" / "intents"
+    intents.mkdir(parents=True)
+    (intents / "alpha.md").write_text(
+        "# Alpha\n\n"
+        "- **Slug:** `alpha`\n"
+        "- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-06 spec\x1b[31m\n"
+        "- **Decomposed:** 2026-10-06 brief‮\n",
+        encoding="utf-8",
+    )
+
+    snapshot = _load_resolver().resolve_repository(tmp_path)
+
+    ambiguous = [
+        d for d in snapshot["diagnostics"]
+        if d["code"] == "delivery-relation-ambiguous" and d.get("subject") == "intent:alpha"
+    ]
+    assert ambiguous
+    targets = [target for d in snapshot["diagnostics"] for target in d.get("targets", [])]
+    assert all(target.isprintable() for target in targets)
+```
+
+**Approach:** Canonicalize targets where the resolver builds diagnostics, mirror the same closed sets in both consumer validators, and add the string guard to the lint's closed-set check.
+
+**Done when:** VI-2001 through VI-2003 pass and the three resolver copies stay byte-identical.
+
+### T11: Close-work refuses exactly the AC-0020 sets on both routes
+
+**Depends on:** T10
+
+**Mode:** TDD
+
+**Touches:** `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/tests/skills/close-work/test_closure_ambiguous_refusal.py` (stub materialization file), and `packs/core/tests/skills/close-work/`
+
+**Tests:**
+
+- **VI-2101.** `test_ac0020_path_form_ambiguous_discovery_refuses_named_feature` uses the real resolver and asserts a feature named by the path form of an ambiguous `Discovery:` is refused with `delivery-relation-ambiguous` (AC-0020), `stub: true`.
+- **VI-2102.** With real-resolver snapshots, one test per AC-0020 row, each placing the broken artifact on an unrelated spec or brief: an ambiguous `Discovery:` refuses each named feature on either route; an ambiguous `Brief:` refuses the feature named by each named brief's `Parent intent:`, or every `brief`-route feature when none resolves; malformed, unsafe, and missing-target spec `Brief:` each refuse every `brief`-route feature; a brief-subject diagnostic refuses every `brief`-route feature; every refusal names the stable code (AC-0020).
+- **VI-2103.** An ancestor reached through provenance follows only the record's `intent` identifier, so the `intent:<slug>` and path forms of one reference give the same ancestor (AC-0001, AC-0012).
+- **VI-2104.** Close-work's real `_run_resolver`, driven through stub resolvers, returns exactly `delivery-resolver-unavailable` for a linked resolver, a test-lowered timeout, oversized stdout, non-UTF-8 stdout, and hostile stderr, with no stub output in the reason (AC-0017, AC-0018).
+- Stub validation: syntax and intended red (the named feature is judged `ClosureEligible`) passed on 2026-10-06 from a disposable scratch mirror of `packs/core/`; no repository test file was created.
+
+```python
+# STUB: AC-0020
+from __future__ import annotations
+
+import importlib.util
+import sys
+from pathlib import Path
+
+APM = Path(__file__).resolve().parents[3] / ".apm"
+
+
+def _load(name: str, path: Path):
+    module_spec = importlib.util.spec_from_file_location(name, path)
+    assert module_spec is not None and module_spec.loader is not None
+    module = importlib.util.module_from_spec(module_spec)
+    sys.modules[module_spec.name] = module
+    module_spec.loader.exec_module(module)
+    return module
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_ac0020_path_form_ambiguous_discovery_refuses_named_feature(tmp_path: Path) -> None:
+    resolver = _load(
+        "_core_intent_delivery_relations_ac0020",
+        APM / "adapter-root-bins" / "intent_delivery_relations.py",
+    )
+    closure = _load(
+        "_core_close_work_closure_index_ac0020_path",
+        APM / "skills" / "close-work" / "scripts" / "closure_index.py",
+    )
+    for slug in ("alpha", "beta"):
+        _write(
+            tmp_path / f"docs/product/intents/{slug}.md",
+            f"# {slug}\n\n- **Slug:** `{slug}`\n- **Level:** feature\n"
+            "- **Status:** Accepted\n- **Decomposed:** 2026-10-06 spec\n",
+        )
+        _write(
+            tmp_path / f"docs/specs/{slug}-delivery/spec.md",
+            f"# Spec\n\n- **Status:** Shipped\n- **Discovery:** `intent:{slug}`\n",
+        )
+    _write(
+        tmp_path / "docs/specs/broken/spec.md",
+        "# Spec\n\n- **Status:** Draft\n"
+        "- **Discovery:** `intent:alpha`\n"
+        "- **Discovery:** `docs/product/intents/beta.md`\n",
+    )
+
+    verdict = closure.check_ancestor_closure(
+        "beta",
+        "Accepted",
+        "spec",
+        tmp_path,
+        _freshness_checker=lambda: True,
+        _snapshot_provider=resolver.resolve_repository,
+    )
+
+    assert isinstance(verdict, closure.ClosureRefuse)
+    assert "delivery-relation-ambiguous" in verdict.reason
+```
+
+**Approach:** Compute each broken field's refusal set from the snapshot alone, normalizing path-form targets through `artifacts` to identifiers.
+
+**Done when:** VI-2101 through VI-2104 pass.
+
+### T12: Lint and integration tests fail for the behaviour they name
+
+**Depends on:** T10
+
+**Mode:** Goal-based check
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/tests/skills/work-loop/`, `packs/core/tests/integration/test_intent_delivery_traceability.py`, `packs/core/.apm/skills/close-work/scripts/closure_index.py` (constants only)
+
+**Tests:**
+
+- **VI-2201.** `no stub (mode: goal-based)`; the configured-layout cases install a working resolver and assert the configured-base outcome for both the spec base and the intent base, and the default-bases control asserts exit 0 (AC-0013).
+- **VI-2202.** `no stub (mode: goal-based)`; production `check()` reads no module-global provider, a `None` provider result is `delivery-resolver-unavailable`, the timeout case asserts through `check()`, and superseded tests that cannot fail for their stated behaviour are rewritten or removed (AC-0018).
+- **VI-2203.** `no stub (mode: goal-based)`; each VI-1401 case spawns the resolver once and feeds that snapshot to both consumers' in-process seams.
+
+**Done when:** VI-2201 through VI-2203 pass; one definition per constant, no unused sets, and no repeated top-level check remain in the touched consumer code.
+
+### T13: Release 2.29.0 records agree with the shipped behaviour
+
+**Depends on:** T9, T10, T11, T12
+
+**Mode:** Goal-based check
+
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `guides/core/how-to/close-and-disposition-work.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `packs/core/.apm/skills/close-work/evals/evals.json`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `tools/test_local_ci_shared_test_deduplication.py`, self-host projections
+
+**Tests:**
+
+- **VI-2301.** `no stub (mode: goal-based)`; Core is `2.29.0` in both manifests, the changelog entry, and the architecture page; the changelog states each consumer's resolver condition as its code applies it and drops the `.agentbundle/bin/` claims.
+- **VI-2302.** `no stub (mode: goal-based)`; the how-to gives both outcomes of a direct resolver run, every cause of `delivery-target-missing`, every field that produces `delivery-reference-malformed` with its accepted form, and a remedy that points at the skill-local resolver; the architecture page states each consumer's call frequency; the resolver `--help` explains its terms in plain words and says where an exit-1 cause is reported.
+- **VI-2303.** `no stub (mode: goal-based)`; no acceptance-criterion, verification-item, or task citation added by this feature remains under `packs/core/.apm/`, and the plan-digest pins re-pin with a disposition against `origin/main`.
+
+**Done when:** VI-2301 through VI-2303 pass and the full gate set passes.
+
 ## Rollout
 
-The resolver, both consumers, and the Core projection ship in one pack release. There is no persisted state or migration. Rollback reverts the source changes and regenerates the self-host projection; corpus files remain untouched.
+The resolver, both consumers, and their skill-local copies ship in one Core release, `2.29.0`. There is no persisted state or migration. Rollback reverts the source changes and regenerates the self-host projection; corpus files remain untouched.
 
 ## Risks
 
@@ -463,3 +687,4 @@ The resolver, both consumers, and the Core projection ship in one pack release. 
 - 2026-10-05: third pre-EXECUTE revision: Risks separates AC-0020 refusals (none) from the ten AC-0012 own-subject refusals the ledger names; VI-1401's scope is stated once under Construction tests.
 - 2026-10-05: amended spec approved by eugenelim
 - 2026-10-05: amended plan approved by eugenelim, ratifying the private `_file_safety.py` helper name
+- 2026-10-06: second controlled amendment after post-build review. A real repo-scope install never delivers adapter-root binaries, so each consuming skill ships its own parity-pinned resolver copy (owner decision 5); Core moves to `2.29.0` after rebasing onto `main` (owner decision 6). Adds T9–T13 for those decisions and the sustained findings; T1–T8 are delivered and unchanged. Authority: `notes/verification-ledger.md`.
