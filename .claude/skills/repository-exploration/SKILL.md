@@ -7,7 +7,7 @@ metadata:
 
 # Skill: repository-exploration
 
-Answer an open question about repository behavior, dependencies, impact, or context. The caller keeps its own question, stopping rule, and decision. This skill selects by semantic fit, invokes natively, and returns attributed evidence; no provider is required and none becomes a phase. Path-seeded "what governs these paths?" questions belong to repository-grounding, not here.
+Answer an open question about repository behavior, dependencies, impact, or context. The caller keeps its own question, stopping rule, and decision. This skill selects by semantic fit, invokes natively, and returns attributed evidence; no provider is required and no tool is ever a required step. Path-seeded "what governs these paths?" questions belong to repository-grounding, not here.
 
 ## Output rendering
 
@@ -102,7 +102,7 @@ A run without this record fails its grading.
 
 ## Ask first before any of the following
 
-- Installing, authenticating, indexing, refreshing, uploading broad repository content, permitting provider-side persistence, or using a mutating action.
+- Installing, authenticating, indexing, refreshing, uploading content, calling a hosted service beyond existing authority, permitting broad repository upload or provider-side persistence, or using a mutating action.
 - Adding provider handling directly to a consuming debugging, review, implementation, architecture, authoring, or work-loop procedure.
 - Turning an illustrative question or current provider pattern into a required or exhaustive taxonomy.
 
