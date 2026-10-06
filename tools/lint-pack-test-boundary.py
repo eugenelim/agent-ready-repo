@@ -1229,6 +1229,7 @@ _RUNNER_FILES = (
     ".github/workflows/build-check.yml",
     ".github/workflows/catalogue-tooling-ci-gates.yml",
     ".github/workflows/docs.yml",
+    ".github/workflows/pack-javascript.yml",
     "tools/test-all.py",
     "packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py",
 )
@@ -1243,6 +1244,9 @@ _DEST_PARTS = re.compile(
 )
 _PART = re.compile(r'"([A-Za-z0-9_-]+)"')
 _PYTEST = re.compile(r"(?:^|[\s\"'])pytest(?:$|[\s\"'])")
+_NODE_SUITE = re.compile(
+    r"(?:^|[\s\"'])node\s+[A-Za-z0-9_.-]+\.(?:test|spec)\.js(?:$|[\s\"'])"
+)
 
 # This loop executes one literal suite per process, but its ``"$d"`` argument
 # cannot be proved by the runner parser.  Keep the exception explicit: removing
@@ -1263,8 +1267,6 @@ _NO_RUNNER = {
     "packs/atlassian/tests/skills/jira-align": "never gated",
     "packs/atlassian/tests/skills/jira-team-status":
         "run by tools/check-atlassian-phase3-readiness.py, which no workflow invokes",
-    "packs/converters/tests/skills/render-proof":
-        "no CI exists for pack-level JavaScript",
     "packs/figma/tests/skills/figma": "never gated",
     "packs/governance-extras/tests/skills/new-adr": "never gated",
     "packs/governance-extras/tests/skills/new-rfc": "never gated",
@@ -1366,7 +1368,7 @@ def _workflow_runner_lines(
     rel: str,
     source: str,
 ) -> list[RunnerInvocation]:
-    """Pytest commands in a workflow, paired with their step working directory."""
+    """Recognized test commands in a workflow and their step working directory."""
     out: list[RunnerInvocation] = []
     working_tokens: set[str] = set()
     lines = source.splitlines()
@@ -1385,6 +1387,11 @@ def _workflow_runner_lines(
             pytest_helpers.add(definition.group(1))
 
     for lineno, line in _joined_lines(source):
+        # A step boundary clears the inherited directory. Keyed on `- name:`
+        # deliberately: every workflow step in this repository names itself, and
+        # a looser indent-based rule leaks one step's `working-directory` into
+        # the pytest lines of the steps that follow it, which reds the real
+        # build-check.yml analysis with thirteen spurious cross-pack findings.
         if re.match(r"^\s*-\s+name:", line):
             working_tokens = set()
         if re.match(r"^\s*working-directory:", line):
@@ -1395,7 +1402,7 @@ def _workflow_runner_lines(
             None,
         )
         if not stripped.startswith("#") and (
-            _PYTEST.search(line) or helper_call is not None
+            _PYTEST.search(line) or _NODE_SUITE.search(line) or helper_call is not None
         ):
             tokens = _path_tokens(line) | working_tokens
             unresolved = _unresolvable_path(line, makefile=False)

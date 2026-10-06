@@ -230,6 +230,15 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  # Registered 2026-10-05 to close a Type 1 reconciliation finding: spec and
+  # plan were approved 2026-10-02 and had no workspace membership, so nothing
+  # could dispatch them. Moved queue -> active the same day when the spec went
+  # `Implementing`: a spec in `queue` must be Draft or Approved, and leaving it
+  # in queue while Implementing is an `impossible_transition` that fails
+  # `test_no_fail_closed_lifecycle_findings`. Platform Core owns it because the
+  # change is repository CI and `tools/` discovery; the Converters pack content
+  # it bumps is a consequence of that, not its home.
+  {path = "docs/specs/pack-javascript-ci-workflow/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/pack-javascript-ci-workflow.md"}, summary = "Give pack JavaScript a dedicated path-scoped remote workflow that installs every canonical pack npm project from a committed lockfile and runs the render-proof suites, while npm audit stays with make sast", needs = []},
 ]
 shipped = [
   {path = "docs/specs/optional-intelligence-grounding-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0029-optional-intelligence-grounding-composition.md", revision = "working-tree-2026-10-04"}, summary = "Give Core grounding a provider-neutral owner that can add native evidence while preserving its no-provider result", needs = []},
