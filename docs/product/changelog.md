@@ -64,16 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [converters][0.9.7] — 2026-10-05
-
-No `Highlights`: this release changes maintainer verification and dependency
-reproducibility, not a skill outcome or a user task. The omission is a recorded
-decision rather than an oversight.
-
-### Changed
-
-- Converters now carries committed lockfiles for its canonical JavaScript projects, so maintainer verification can reproduce dependencies without running dependency scripts.
-
 ## [core][2.28.0] — 2026-10-05
 
 ### Highlights
@@ -88,6 +78,16 @@ decision rather than an oversight.
 ### Changed
 
 - `new-spec` step 3 now delegates its grounding inquiry to `repository-grounding` by skill name. The explorer moved from `new-spec/scripts/explore-grounding.py` to `repository-grounding/scripts/explore-grounding.py`; automation that called the old path should call the new one.
+
+## [converters][0.9.7] — 2026-10-05
+
+No `Highlights`: this release changes maintainer verification and dependency
+reproducibility, not a skill outcome or a user task. The omission is a recorded
+decision rather than an oversight.
+
+### Changed
+
+- Converters now carries committed lockfiles for its canonical JavaScript projects, so maintainer verification can reproduce dependencies without running dependency scripts.
 
 ## [core][2.27.14] — 2026-10-03
 
