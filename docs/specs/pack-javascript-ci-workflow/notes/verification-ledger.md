@@ -344,3 +344,58 @@ added and both counts corrected, verified by comparing the table's row count to
 `.github/workflows/*.yml` — 18 and 18. These are ride-alongs: a roster that
 states an exact count cannot be left stating a false one by a change that adds
 a row to it.
+
+## T6 — the three remote runs AC-0013 requires
+
+2026-10-06. All three were observed against the same implementation revision,
+`798cb5945d2224de825a1904f4d3c5c34cc26729`.
+
+| Evidence | Run | Result |
+| --- | --- | --- |
+| VI-1018 automatic pull-request run | [37474070520](https://github.com/eugenelim/agent-ready-repo/actions/runs/37474070520) on PR #1506 | success, 27s |
+| VI-1019 existing `gate-sast` run | [37474070483](https://github.com/eugenelim/agent-ready-repo/actions/runs/37474070483) | success; its npm-audit output names both pack lockfiles |
+| VI-1020 post-default-branch dispatch | [37476602088](https://github.com/eugenelim/agent-ready-repo/actions/runs/37476602088), `event=workflow_dispatch`, `--ref main` | success |
+
+What each run actually showed, rather than only its colour:
+
+**The automatic run proved the configuration fix is live.** Its log shows
+`NPM_CONFIG_USERCONFIG` and `NPM_CONFIG_GLOBALCONFIG` resolving to two distinct
+paths under `/home/runner/work/_...`. Had the original `/dev/null` pair
+survived, npm would have exited before resolving any configuration and the job
+could not have reached its first install.
+
+**Both canonical projects installed from their committed lockfiles**: `added 2
+packages` and `added 125 packages`, by the glob loop rather than a hand-written
+roster. All three suites ran as separately named steps — `renderer suite`,
+`security suite`, `pipeline suite`.
+
+**`gate-sast` named the pack lockfiles and both were clean**:
+
+```
+✓ packs/converters/.apm/skills/markdown-to-html: no blocking advisories
+✓ packs/converters/.apm/skills/render-proof: no blocking advisories
+lint-npm-allow-scripts: .../markdown-to-html/package-lock.json: ok — install-script entries match allowScripts (none)
+lint-npm-allow-scripts: .../render-proof/package-lock.json: ok — install-script entries match allowScripts (none)
+```
+
+**The pack JavaScript workflow invoked no npm audit.** Grepping its complete
+log for `npm audit` returns 0 on both the pull-request run and the dispatch
+run, which is the clause of AC-0013 that keeps ADR-0083's split honest.
+
+### The path filter was proved by a real negative, not a fixture
+
+VI-1018 also asks that an unrelated change not start the workflow. PR #1511
+landed `docs-site/package-lock.json`, `web/package-lock.json` and
+`tools/npm-audit-allowlist.toml` — three dependency files, none in the
+workflow's enumerated path classes — and `pack-javascript` did not appear among
+its checks at all. That is stronger evidence than a synthetic fixture: a real
+pull request with plausibly-related-looking files failed to trigger it.
+
+### A note on the local semgrep leg
+
+`make sast` could not be completed locally during this delivery: its semgrep
+`--strict` leg emitted timeout diagnostics at load average 78.94. That is the
+load-sensitive behaviour `semgrep-registry-ruleset-pinning` records in
+`[backlog].open`, measured there as 3, 14, 3 then 0 diagnostics over one
+unchanged tree. CI's quiet runner passed the same gate on PRs #1511 and #1506,
+which is the control the gate's own diagnostic text asks for.

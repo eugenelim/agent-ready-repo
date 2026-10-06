@@ -230,17 +230,17 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  # Registered 2026-10-05 to close a Type 1 reconciliation finding: spec and
-  # plan were approved 2026-10-02 and had no workspace membership, so nothing
-  # could dispatch them. Moved queue -> active the same day when the spec went
-  # `Implementing`: a spec in `queue` must be Draft or Approved, and leaving it
-  # in queue while Implementing is an `impossible_transition` that fails
-  # `test_no_fail_closed_lifecycle_findings`. Platform Core owns it because the
-  # change is repository CI and `tools/` discovery; the Converters pack content
-  # it bumps is a consequence of that, not its home.
-  {path = "docs/specs/pack-javascript-ci-workflow/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/pack-javascript-ci-workflow.md"}, summary = "Give pack JavaScript a dedicated path-scoped remote workflow that installs every canonical pack npm project from a committed lockfile and runs the render-proof suites, while npm audit stays with make sast", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-06. Delivered across #1506 (waves 1-4) and its closeout.
+  # Registered 2026-10-05 from a Type 1 finding — the spec and plan were
+  # approved 2026-10-02 with no workspace membership, so nothing could dispatch
+  # them. AC-0013 was the last criterion to close and could only close after
+  # merge: it needs an automatic pull-request run, a `gate-sast` run naming the
+  # pack lockfiles, and a `workflow_dispatch` against the default branch. All
+  # three are recorded in notes/verification-ledger.md against
+  # 798cb5945d2224de825a1904f4d3c5c34cc26729.
+  {path = "docs/specs/pack-javascript-ci-workflow/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/pack-javascript-ci-workflow.md"}, summary = "Give pack JavaScript a dedicated path-scoped remote workflow that installs every canonical pack npm project from a committed lockfile and runs the render-proof suites, while npm audit stays with make sast", needs = []},
   {path = "docs/specs/optional-intelligence-grounding-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0029-optional-intelligence-grounding-composition.md", revision = "working-tree-2026-10-04"}, summary = "Give Core grounding a provider-neutral owner that can add native evidence while preserving its no-provider result", needs = []},
   # Shipped 2026-09-28 after owner ratification of the delivered standalone
   # 16-obligation contract. Delivery event: f2b1f5ab4 (PR #1276).
