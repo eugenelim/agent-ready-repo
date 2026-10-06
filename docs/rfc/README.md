@@ -80,7 +80,7 @@
 | 0076 | [Catalogue Contracts, Composition, Semantics, and Discovery](0076-catalogue-contracts-composition-semantics-discovery.md) | Accepted | 2026-07-29 | 2026-07-29 |
 | 0077 | [Project knowledge lifecycle](0077-distill-knowledge.md) | Accepted | 2026-08-02 | 2026-08-13 |
 | 0078 | [workspace-mcp — ACP-observable skill runtime for the core pack](0078-workspace-mcp.md) | Accepted | 2026-08-03 | 2026-08-03 |
-| 0079 | [`codebase-context` Pack — Semantic Graph Indexing as an Optional Add-On](0079-codebase-context-pack.md) | Draft | 2026-08-03 | — |
+| 0079 | [Optional Code Intelligence through Core Grounding and Exploration](0079-codebase-context-pack.md) | Accepted | 2026-08-03 | 2026-10-04 |
 | 0080 | [Local scope install](0080-local-scope-install.md) | Accepted | 2026-08-04 |  |
 | 0082 | [Test ownership boundaries and per-surface inclusion](0082-test-ownership-boundaries-and-inclusion.md) | Accepted | 2026-08-07 | 2026-08-08 |
 | 0083 | [Work intake and artifact routing](0083-work-intake-and-artifact-routing.md) | Accepted | 2026-08-08 | 2026-08-08 |
