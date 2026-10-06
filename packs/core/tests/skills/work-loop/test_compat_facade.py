@@ -633,10 +633,14 @@ class TestShadowAuditDurability:
         """A failed confined append reaches the emitter as its fail-closed signal."""
         spec_dir = tmp_path / "audit-signal-spec"
         shadow_dir = spec_dir / facade.SHADOW_SUBDIR
-        shadow_dir.mkdir(parents=True)
+        spec_dir.mkdir()
         cm = facade._cm()
+        # A fully initialised store, so the patched append is the only failure.
+        facade._confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
+        appended: list[Path] = []
 
         def failing_append(spec: Path, path: Path, record: dict, cm_: ModuleType) -> None:
+            appended.append(path)
             raise cm_.MutationDenied("denied-staging-failed", "audit store unavailable")
 
         monkeypatch.setattr(facade, "_confined_jsonl_append", failing_append)
@@ -648,6 +652,7 @@ class TestShadowAuditDurability:
         )
         with pytest.raises(se.AuditSinkUnavailable):
             se.emit_security_event(facade._durable_sink(spec_dir, shadow_dir, cm), event)
+        assert appended, "the sink must reach the append it patches"
 
 
 class TestAC0011Confinement:
