@@ -122,6 +122,23 @@ _INTENTS_PATH_RE = re.compile(r"^docs/product/intents/([^/]+\.md)$")
 
 _DELIVERY_ROUTES: frozenset[str] = frozenset({"spec", "brief", "direct-light", "closed-empty"})
 
+# Canonical diagnostic target forms:
+# (a) identifier:   intent/brief:<slug>, spec:<dir>
+# (b) artifact path: docs/product/intents/<name>.md or docs/product/briefs/<name>.md
+#     (brief paths are emitted by corpus-level slug-ambiguity diagnostics and
+#      are already grammar-checked by _ARTIFACT_FILE_RE during traversal)
+# (c) date-route:   YYYY-MM-DD <closed-route>  (exactly one space, route in _DELIVERY_ROUTES)
+_CANONICAL_IDENTIFIER_RE = re.compile(
+    r"^(?:(?:intent|brief):[a-z0-9]+(?:-[a-z0-9]+)*"
+    r"|spec:[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)$"
+)
+_CANONICAL_DATE_ROUTE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2} (?:spec|brief|direct-light|closed-empty)$"
+)
+_BRIEFS_PATH_TARGET_RE = re.compile(
+    r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
+)
+
 _PARENT_INTENT_KINDS: tuple[str, ...] = (
     "outcome",
     "opportunity",
@@ -216,6 +233,28 @@ def _is_unsafe_ref(target: str) -> bool:
     return ".." in parts
 
 
+def _is_canonical_target(t: str) -> bool:
+    """Return True iff ``t`` matches a canonical diagnostic target form.
+
+    (a) A canonical identifier: ``intent/<brief>:<slug>`` or ``spec:<dir>``.
+    (b) An artifact path: ``docs/product/intents/<name>.md`` or
+        ``docs/product/briefs/<name>.md`` where ``<name>`` matches
+        ``_ARTIFACT_FILE_RE``.  Brief paths appear in corpus-level slug-ambiguity
+        diagnostics; their filenames are already grammar-checked by
+        ``_ARTIFACT_FILE_RE`` during traversal.
+    (c) A date-route string: ``YYYY-MM-DD <route>`` with route in
+        ``_DELIVERY_ROUTES`` and exactly one space separator.
+    """
+    if _CANONICAL_IDENTIFIER_RE.fullmatch(t):
+        return True
+    m = _INTENTS_PATH_RE.fullmatch(t)
+    if m and _ARTIFACT_FILE_RE.fullmatch(m.group(1)):
+        return True
+    if _BRIEFS_PATH_TARGET_RE.fullmatch(t):
+        return True
+    return bool(_CANONICAL_DATE_ROUTE_RE.fullmatch(t))
+
+
 def _classify_discovery(value: str) -> tuple[str, str | None]:
     """Classify a normalized Discovery value.
 
@@ -286,15 +325,16 @@ def _parse_decomposed(value: str) -> tuple[str | None, bool]:
 
 
 def _safe_provenance_target(value: str) -> str | None:
-    """Return value if safe for inclusion in a provenance target field, else None."""
+    """Return value if safe for inclusion in a provenance target field, else None.
+
+    Applies the same absolute-path rule as ``_is_unsafe_ref``, covering leading
+    slash, backslash, drive letters (``C:``), and ``..`` segments.
+    """
     if not value:
         return None
     if not _PROVENANCE_TARGET_RE.match(value):
         return None
-    if value.startswith("/"):
-        return None
-    parts = value.split("/")
-    if ".." in parts:
+    if _is_unsafe_ref(value):
         return None
     return value
 
@@ -552,9 +592,12 @@ def resolve_repository(
         if len(paths) > 1
     }
     for slug, sorted_paths in sorted(ambiguous_slugs.items()):
+        # Keep only canonical target forms (intent paths are form-b; file names
+        # must match _ARTIFACT_FILE_RE).
+        canonical_ts = [p for p in sorted_paths if _is_canonical_target(p)]
         diagnostics.append({
             "code": "delivery-relation-ambiguous",
-            "targets": sorted_paths,
+            "targets": canonical_ts,
         })
         # Remove from usable index
         intent_by_slug.pop(slug, None)
@@ -566,9 +609,12 @@ def resolve_repository(
         if len(paths) > 1
     }
     for slug, sorted_paths in sorted(ambiguous_brief_slugs.items()):
+        # Brief paths (docs/product/briefs/…) are canonical form-b targets;
+        # filenames were already validated by _ARTIFACT_FILE_RE during traversal.
+        canonical_ts = [p for p in sorted_paths if _is_canonical_target(p)]
         diagnostics.append({
             "code": "delivery-relation-ambiguous",
-            "targets": sorted_paths,
+            "targets": canonical_ts,
         })
         brief_by_slug.pop(slug, None)
 
@@ -587,11 +633,16 @@ def resolve_repository(
         distinct_dec = list(dict.fromkeys(decomposed_values))
 
         if len(distinct_dec) > 1:
+            # Emit only canonical "YYYY-MM-DD <route>" forms; reconstruct
+            # from parsed components to exclude hostile whitespace or chars.
             safe_targets = []
             for dv in distinct_dec:
-                _, malformed = _parse_decomposed(dv)
-                if not malformed:
-                    safe_targets.append(dv)
+                m = _DECOMPOSED_DATE_ROUTE.match(dv)
+                if m:
+                    route_token = m.group(1)
+                    if route_token in _DELIVERY_ROUTES:
+                        date_part = dv[:10]  # "YYYY-MM-DD" is always 10 chars
+                        safe_targets.append(f"{date_part} {route_token}")
             diagnostics.append({
                 "code": "delivery-relation-ambiguous",
                 "subject": intent_id,
@@ -716,8 +767,15 @@ def resolve_repository(
                     canonical_ids.append(f"\x00not-found\x00{dv}")
 
             if len(set(canonical_ids)) > 1:
-                # Ambiguous Discovery: multiple distinct targets
-                safe_targets = [dv for dv, slug, cls in valid_disc]
+                # Ambiguous Discovery: emit only canonical identifier or path forms.
+                # For resolved entries use the canonical identifier; for not-found
+                # entries keep the raw value only when it already is canonical.
+                safe_targets = []
+                for dv, slug, cls in valid_disc:
+                    if cls == "resolved" and slug is not None:
+                        safe_targets.append(f"intent:{slug}")
+                    elif _is_canonical_target(dv):
+                        safe_targets.append(dv)
                 diagnostics.append({
                     "code": "delivery-relation-ambiguous",
                     "subject": spec_id,
@@ -739,8 +797,14 @@ def resolve_repository(
                             if route in ("spec", "brief"):
                                 delivery_feature_slugs.add(slug)
                             else:
-                                # Feature with non-delivery route => provenance
-                                prov = {"subject": spec_id, "field": "Discovery"}
+                                # Feature with non-delivery route (direct-light,
+                                # closed-empty) => contextual provenance with
+                                # the resolved intent identifier.
+                                prov: dict[str, Any] = {
+                                    "subject": spec_id,
+                                    "field": "Discovery",
+                                    "intent": feature_intents[slug]["id"],
+                                }
                                 t = _safe_provenance_target(dv)
                                 if t:
                                     prov["target"] = t

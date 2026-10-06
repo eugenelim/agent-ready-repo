@@ -444,6 +444,37 @@ _SNAPSHOT_DIAGNOSTIC_CODES: frozenset[str] = frozenset({
 # is identified by its directory, so its path is exact.
 _INTENT_PATH_RE = re.compile(r"^docs/product/intents/[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
 _BRIEF_PATH_RE = re.compile(r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
+# Closed set of field names a diagnostic item may carry.
+_DIAG_FIELD_VALUES: frozenset[str] = frozenset(
+    {"Decomposed", "Discovery", "Brief", "Parent intent"}
+)
+# Canonical date-route form for Decomposed ambiguity diagnostics:
+# "YYYY-MM-DD <route>" with exactly one space.
+_CANONICAL_DATE_ROUTE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2} (?:spec|brief|direct-light|closed-empty)$"
+)
+# Brief artifact paths appear in corpus-level slug-ambiguity diagnostics and
+# are grammar-checked by _ARTIFACT_FILE_RE during resolver traversal.
+_BRIEFS_PATH_TARGET_RE = re.compile(
+    r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
+)
+
+
+def _is_canonical_target(t: str) -> bool:
+    """Return True iff ``t`` is a canonical diagnostic target form.
+
+    (a) A canonical identifier: ``intent/<brief>:<slug>`` or ``spec:<dir>``.
+    (b) An artifact path: ``docs/product/intents/<name>.md`` or
+        ``docs/product/briefs/<name>.md``.
+    (c) A date-route string: ``YYYY-MM-DD <route>`` (exactly one space).
+    """
+    if _IDENTIFIER_RE.fullmatch(t):
+        return True
+    if _INTENT_PATH_RE.fullmatch(t):
+        return True
+    if _BRIEFS_PATH_TARGET_RE.fullmatch(t):
+        return True
+    return bool(_CANONICAL_DATE_ROUTE_RE.fullmatch(t))
 
 
 def _artifact_path_matches(key: str, path: str) -> bool:
@@ -540,11 +571,11 @@ def _validate_snapshot_dict(data: object) -> dict[str, Any]:
         _require_member(_item.get("code"), _SNAPSHOT_DIAGNOSTIC_CODES, "diagnostic code")
         if "subject" in _item:
             _require_identifier(_item["subject"], "diagnostic subject")
-        if "field" in _item and not isinstance(_item["field"], str):
-            raise ValueError("delivery-resolver-unavailable: bad diagnostic field")
+        if "field" in _item:
+            _require_member(_item["field"], _DIAG_FIELD_VALUES, "diagnostic field")
         _targets = _item.get("targets", [])
         if not isinstance(_targets, list) or not all(
-            isinstance(_x, str) for _x in _targets
+            isinstance(_x, str) and _is_canonical_target(_x) for _x in _targets
         ):
             raise ValueError("delivery-resolver-unavailable: bad diagnostic targets")
 

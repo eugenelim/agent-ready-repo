@@ -225,6 +225,20 @@ _INTENT_PATH_RE: re.Pattern[str] = re.compile(
 _BRIEF_PATH_RE: re.Pattern[str] = re.compile(
     r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
 )
+# Closed set of field names a diagnostic item may carry.
+_DIAG_FIELD_VALUES: frozenset[str] = frozenset(
+    {"Decomposed", "Discovery", "Brief", "Parent intent"}
+)
+# Canonical date-route form for Decomposed ambiguity diagnostics:
+# "YYYY-MM-DD <route>" with exactly one space.
+_CANONICAL_DATE_ROUTE_RE: re.Pattern[str] = re.compile(
+    r"^\d{4}-\d{2}-\d{2} (?:spec|brief|direct-light|closed-empty)$"
+)
+# Brief artifact paths appear in corpus-level slug-ambiguity diagnostics and
+# are grammar-checked by _ARTIFACT_FILE_RE during resolver traversal.
+_BRIEFS_PATH_TARGET_RE: re.Pattern[str] = re.compile(
+    r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
+)
 
 # Module-level injectable seam.  When not None, ``build_standalone`` calls
 # this callable instead of ``_run_resolver``.  Tests set it on the module
@@ -1306,6 +1320,23 @@ def _has_briefs(root: Path, layout: dict) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def _is_canonical_target(t: str) -> bool:
+    """Return True iff ``t`` is a canonical diagnostic target form.
+
+    (a) A canonical identifier: ``intent/<brief>:<slug>`` or ``spec:<dir>``.
+    (b) An artifact path: ``docs/product/intents/<name>.md`` or
+        ``docs/product/briefs/<name>.md``.
+    (c) A date-route string: ``YYYY-MM-DD <route>`` (exactly one space).
+    """
+    if _IDENTIFIER_RE.fullmatch(t):
+        return True
+    if _INTENT_PATH_RE.fullmatch(t):
+        return True
+    if _BRIEFS_PATH_TARGET_RE.fullmatch(t):
+        return True
+    return bool(_CANONICAL_DATE_ROUTE_RE.fullmatch(t))
+
+
 def _require_identifier(value: object, what: str) -> None:
     """Raise ``ValueError`` when ``value`` is not a grammar-valid identifier string.
 
@@ -1320,13 +1351,14 @@ def _require_identifier(value: object, what: str) -> None:
 
 
 def _require_member(value: object, allowed: frozenset[str], what: str) -> None:
-    """Raise ``ValueError`` when ``value`` is not in the ``allowed`` set.
+    """Raise ``ValueError`` when ``value`` is not a string in the ``allowed`` set.
 
-    Only ``what`` (a trusted field name) appears in the error message; the
-    untrusted value is never echoed so hostile resolver output cannot reach
-    ``g.dangling``.
+    The ``isinstance`` guard prevents ``TypeError`` from unhashable values
+    (lists, dicts) that a malfunctioning resolver could inject.  Only ``what``
+    (a trusted field name) appears in the error message; the untrusted value is
+    never echoed so hostile resolver output cannot reach ``g.dangling``.
     """
-    if value not in allowed:
+    if not isinstance(value, str) or value not in allowed:
         raise ValueError(
             f"delivery-resolver-unavailable: {what} has an unrecognised value"
         )
@@ -1440,11 +1472,11 @@ def _validate_snapshot_dict(data: dict[str, Any]) -> None:
         _require_member(_item.get("code"), _SNAPSHOT_DIAGNOSTIC_CODES, "diagnostic code")
         if "subject" in _item:
             _require_identifier(_item["subject"], "diagnostic subject")
-        if "field" in _item and not isinstance(_item["field"], str):
-            raise ValueError("delivery-resolver-unavailable: bad diagnostic field")
+        if "field" in _item:
+            _require_member(_item["field"], _DIAG_FIELD_VALUES, "diagnostic field")
         _targets = _item.get("targets", [])
         if not isinstance(_targets, list) or not all(
-            isinstance(_x, str) for _x in _targets
+            isinstance(_x, str) and _is_canonical_target(_x) for _x in _targets
         ):
             raise ValueError("delivery-resolver-unavailable: bad diagnostic targets")
 
@@ -1728,9 +1760,11 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                     # Parent intent: wiring below; g.edges is a set, no harm.
                     g.add_edge(_intent_id, _brief_id)
 
-        # Apply snapshot diagnostics with sanitized output (all values were
-        # validated by _validate_snapshot_dict, so codes and identifiers are
-        # already grammar-valid).
+        # Apply snapshot diagnostics with sanitized output.  _validate_snapshot_dict
+        # has already checked: codes against the closed code set, subjects as
+        # canonical identifiers, fields against the closed field set, and every
+        # target against the three canonical target forms.  No untrusted value
+        # reaches the label.
         # Collect spec IDs for the two qualifying codes that indicate a
         # delivery-routing break for the spec itself:
         #   delivery-projection-mismatch — specs listed as `targets` that the
@@ -1755,16 +1789,19 @@ def build_standalone(root: Path, layout: dict, g: Graph,
             elif _code == "delivery-reference-unsafe" and _subject.startswith("spec:"):
                 _delivery_diag_specs.add(_subject)
 
-            # Build a label: codes and identifiers already validated.
+            # Build a label: code, subject, field, and targets are all
+            # validated by _validate_snapshot_dict; print only the closed-set
+            # field and canonical targets.
             _label_parts = [_code] if _code else ["delivery-diagnostic"]
             if _subject:
                 _label_parts.append(f"subject={_subject}")
             if _field:
                 _label_parts.append(f"field={_field}")
             if isinstance(_targets, list):
+                # Targets are already canonical; sort for deterministic output.
                 _safe_ts = sorted(
-                    str(t) for t in _targets
-                    if isinstance(t, str) and len(t) <= 200
+                    t for t in _targets
+                    if isinstance(t, str)
                 )
                 if _safe_ts:
                     _label_parts.append(f"targets=[{', '.join(_safe_ts)}]")
