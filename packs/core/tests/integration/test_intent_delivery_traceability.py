@@ -53,7 +53,6 @@ import os
 import shutil
 import subprocess
 import sys
-import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -802,31 +801,20 @@ def _subtest_resource_limit(root: Path) -> None:
     )
     assert "delivery-resolver-unavailable" in verdict.reason
 
-    # lint-traceability subprocess with a stub resolver that outputs incomplete JSON + exit 1.
-    stub_resolver_content = textwrap.dedent(
-        """\
-        import json, sys
-        sys.stdout.reconfigure(encoding="utf-8")
-        print(json.dumps({
-            "schema_version": 1, "complete": False,
-            "relations": [], "classifications": [], "provenance": [],
-            "diagnostics": [{"code": "delivery-resource-limit",
-                             "limit": "entries", "root": "."}]
-        }))
-        sys.exit(1)
-        """
+    # lint-traceability in-process: inject the same stub provider that raises.
+    # After T9 the linter finds its resolver beside its own scripts/ directory;
+    # the only way to inject a failing resolver is through the snapshot_provider seam.
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=_stub_provider
     )
-    dest = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(stub_resolver_content, encoding="utf-8")
-
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 1, (
-        f"resource-limit: lint-traceability must exit 1 when resolver exits non-zero; "
-        f"got {lt_rc}\nstdout={lt_out}\nstderr={lt_err}"
+    assert exit_hint == 1, (
+        f"resource-limit: lint-traceability must signal exit 1 when resolver raises; "
+        f"got {exit_hint}\nhard={hard!r}"
     )
-    assert "delivery-resolver-unavailable" in lt_err, (
-        "resource-limit: delivery-resolver-unavailable must appear in lint stderr"
+    assert any("delivery-resolver-unavailable" in h for h in hard), (
+        f"resource-limit: delivery-resolver-unavailable must appear in hard violations; "
+        f"got {hard!r}"
     )
 
 
@@ -891,16 +879,24 @@ def _subtest_broken_spec_reference(root: Path) -> None:
 
 
 def _subtest_resolver_unavailable(root: Path) -> None:
-    """Resolver-unavailable: no resolver installed at .agentbundle/bin/.
+    """Resolver-unavailable: both consumers fail closed when the resolver raises.
 
-    Both consumers report delivery-resolver-unavailable and do not fall back.
+    After T9 the resolver copy ships beside each consumer, so the "absent binary"
+    case is exercised through the snapshot-provider seam (VI-1902 in the copies
+    test file proves the binary-absent path directly).  Here we inject a provider
+    that raises ValueError to prove neither consumer falls back.
     """
     _make_intent(root, "feat-unavail", decomposed="2026-10-05 spec")
     _make_brief(root, "anchor-brief")
-    # Do NOT install resolver.
 
+    def _unavail(_root: Any) -> dict[str, Any]:
+        raise ValueError("delivery-resolver-unavailable: simulated unavailable")
+
+    # close-work: ClosureRefuse with delivery-resolver-unavailable.
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(ci, "feat-unavail", "Accepted", "spec", root)
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-unavail", "Accepted", "spec", root, _unavail
+    )
     assert isinstance(verdict, ci.ClosureRefuse), (
         f"resolver-unavailable: expected ClosureRefuse, got {verdict!r}"
     )
@@ -909,13 +905,18 @@ def _subtest_resolver_unavailable(root: Path) -> None:
         f"got {verdict.reason!r}"
     )
 
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 1, (
-        f"resolver-unavailable: lint-traceability must exit 1; "
-        f"got {lt_rc}\nstdout={lt_out}\nstderr={lt_err}"
+    # lint-traceability: delivery-resolver-unavailable DANGLING, exit 1.
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=_unavail
     )
-    assert "delivery-resolver-unavailable" in lt_err, (
-        "resolver-unavailable: delivery-resolver-unavailable must appear in lint stderr"
+    assert exit_hint == 1, (
+        f"resolver-unavailable: lint must signal exit 1; got {exit_hint}\n"
+        f"hard={hard!r}"
+    )
+    assert any("delivery-resolver-unavailable" in h for h in hard), (
+        f"resolver-unavailable: delivery-resolver-unavailable must appear in hard "
+        f"violations; got {hard!r}"
     )
 
 
@@ -955,28 +956,24 @@ def test_vi1401_resolver_and_consumers_share_delivery_snapshot(
 
 
 def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
-    """VI-1402 — Only adapter-root-bins/intent_delivery_relations.py implements
-    feature-delivery parsing and inversion.
+    """VI-1402 — After T9, only the adapter-root-bins source and its two
+    byte-identical skill copies produce delivery-relation types.  Each consumer
+    locates the resolver beside its own file via ``_RESOLVER_PATH``.  Retired
+    consumer-local inversion entry points are absent.
 
     Static markers for delivery production (assigning relation type as a value):
     - A source that assigns ``"direct-delivery"`` or ``"coordinated-delivery"``
-      as a string value in source code is producing delivery relations.
-      Only the canonical resolver does this.
+      as a string value is producing delivery relations.
+    - Accepted: adapter-root-bins source + close-work copy + work-loop copy
+      (each byte-identical to the source).
 
     Retired consumer-local entry points that must be absent:
-    - ``closure_index.py`` must NOT define ``_resolve_discovery_path`` (the
-      pre-T2 function that inverted Discovery: from spec files; present at
-      commit ``a2b0f6140``).
+    - ``closure_index.py`` must NOT define ``_resolve_discovery_path``.
     - ``lint-traceability.py`` must NOT include ``"Discovery"`` in
-      ``_SPEC_UP_FIELDS`` (the pre-T3 local delivery inversion path; present
-      at commit ``a2b0f6140``).
-
-    Both consumers must reference the installed resolver path
-    ``.agentbundle/bin/intent_delivery_relations.py``.
+      ``_SPEC_UP_FIELDS``.
 
     AC-0014.
     """
-    # Collect all production .py files under packs/core/.apm/
     apm_root = _APM
     assert apm_root.is_dir(), f"APM root not found: {apm_root}"
 
@@ -986,11 +983,7 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
     )
     assert production_files, "No production .py files found under .apm/"
 
-    # ── Assertion 1: Only the canonical resolver produces delivery relation types ──
-    # A "producer" of delivery relations assigns "direct-delivery" or
-    # "coordinated-delivery" as a string value in source code.
-    # We identify this by looking for ast.Constant nodes with these values
-    # that appear as values in a dict (i.e., dict key "type" → value "direct-delivery").
+    # ── Assertion 1: Only the source + two byte-identical copies produce ────────
     _DELIVERY_TYPE_LITERALS = {"direct-delivery", "coordinated-delivery"}
     producers: list[Path] = []
 
@@ -1000,10 +993,7 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
             tree = ast.parse(source, filename=str(path))
         except (OSError, SyntaxError):
             continue
-
         for node in ast.walk(tree):
-            # Look for dict literals: {"type": "direct-delivery", ...} or
-            # assignments: d["type"] = "direct-delivery"
             if isinstance(node, ast.Dict):
                 for key, val in zip(node.keys, node.values, strict=False):
                     if (
@@ -1015,61 +1005,50 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
                         producers.append(path)
                         break
 
-    resolver_rel = _RESOLVER_SRC.relative_to(_APM)
-    non_resolver_producers = [
+    # Accepted: source + 2 byte-identical skill copies.
+    _cw_copy = _APM / "skills" / "close-work" / "scripts" / "intent_delivery_relations.py"
+    _wl_copy = _APM / "skills" / "work-loop" / "scripts" / "intent_delivery_relations.py"
+    accepted_relpaths = {
+        _RESOLVER_SRC.relative_to(_APM),
+        _cw_copy.relative_to(_APM),
+        _wl_copy.relative_to(_APM),
+    }
+    non_accepted = [
         p for p in producers
-        if p.relative_to(_APM) != resolver_rel
+        if p.relative_to(_APM) not in accepted_relpaths
     ]
-    assert not non_resolver_producers, (
-        "VI-1402: Only the canonical resolver may produce delivery relation types "
-        "('direct-delivery', 'coordinated-delivery'); "
-        "non-resolver producers found: "
-        + ", ".join(str(p.relative_to(_APM)) for p in non_resolver_producers)
+    assert not non_accepted, (
+        "VI-1402: Only the source and its two skill copies may produce delivery "
+        "relation types; unexpected producers: "
+        + ", ".join(str(p.relative_to(_APM)) for p in non_accepted)
     )
-    assert any(p.relative_to(_APM) == resolver_rel for p in producers), (
-        "VI-1402: The canonical resolver must produce delivery relation types "
-        "(sanity check: resolver source should contain these literals)"
-    )
+    assert any(
+        p.relative_to(_APM) == _RESOLVER_SRC.relative_to(_APM) for p in producers
+    ), "VI-1402: canonical resolver source must produce delivery relation types"
 
-    # ── Assertion 2: Both consumers reference the installed resolver binary ──
-    # Both files construct the path as root / ".agentbundle" / "bin" /
-    # "intent_delivery_relations.py", so the filename string is the verifiable
-    # marker for each; the ".agentbundle" and "bin" segments are also present.
-    resolver_binary = "intent_delivery_relations.py"
-    resolver_dir_segment = ".agentbundle"
+    # Byte identity of each skill copy.
+    source_bytes = _RESOLVER_SRC.read_bytes()
+    for copy_path in (_cw_copy, _wl_copy):
+        assert copy_path.read_bytes() == source_bytes, (
+            f"VI-1402: {copy_path.relative_to(_APM)} must be byte-identical to source"
+        )
 
+    # ── Assertion 2: Each consumer locates resolver via _RESOLVER_PATH ──────────
     closure_source = _CLOSURE_INDEX_SRC.read_text(encoding="utf-8")
-    assert resolver_binary in closure_source, (
-        f"VI-1402: closure_index.py must reference '{resolver_binary}'"
-    )
-    assert resolver_dir_segment in closure_source, (
-        "VI-1402: closure_index.py must reference the '.agentbundle' install prefix"
-    )
-
     lint_source = _LINT_TRACEABILITY_SRC.read_text(encoding="utf-8")
-    assert resolver_binary in lint_source, (
-        f"VI-1402: lint-traceability.py must reference '{resolver_binary}'"
+
+    assert "_RESOLVER_PATH" in closure_source, (
+        "VI-1402: closure_index.py must define _RESOLVER_PATH"
     )
-    assert resolver_dir_segment in lint_source, (
-        "VI-1402: lint-traceability.py must reference the '.agentbundle' install prefix"
+    assert "_RESOLVER_PATH" in lint_source, (
+        "VI-1402: lint-traceability.py must define _RESOLVER_PATH"
     )
 
     # ── Assertion 3: Retired consumer-local inversion entry points are absent ──
-
-    # 3a: _resolve_discovery_path was in pre-T2 closure_index.py (commit a2b0f6140).
-    # It was the module-level function that inverted Discovery: from spec files.
-    # After T2, this function was removed — delivery inversion is the resolver's job.
     assert "_resolve_discovery_path" not in closure_source, (
         "VI-1402: _resolve_discovery_path (retired pre-T2 local inversion function) "
         "must not be present in closure_index.py"
     )
-
-    # 3b: "Discovery" was in _SPEC_UP_FIELDS in pre-T3 lint-traceability.py (commit
-    # a2b0f6140). Its removal prevents the local winner-selection path from wiring
-    # feature-delivery Discovery: edges. After T3, "Discovery" is NOT in _SPEC_UP_FIELDS.
-    # We check the source for the specific assignment pattern.
-    # The pre-T3 form was: _SPEC_UP_FIELDS = ("Contract", "Discovery", "Brief", "Parent intent")
-    # The post-T3 form is: _SPEC_UP_FIELDS = ("Contract", "Brief", "Parent intent")
     try:
         lint_tree = ast.parse(lint_source, filename=str(_LINT_TRACEABILITY_SRC))
     except SyntaxError as exc:
@@ -1083,13 +1062,11 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
             and isinstance(node.targets[0], ast.Name)
             and node.targets[0].id == "_SPEC_UP_FIELDS"
         ):
-            # Check if "Discovery" is in the tuple/list assigned.
             if isinstance(node.value, (ast.Tuple, ast.List)):
                 for elt in node.value.elts:
                     if isinstance(elt, ast.Constant) and elt.value == "Discovery":
                         spec_up_fields_has_discovery = True
             break
-
     assert not spec_up_fields_has_discovery, (
         "VI-1402: 'Discovery' must not be in _SPEC_UP_FIELDS in lint-traceability.py "
         "(retired pre-T3 local delivery-inversion path)"

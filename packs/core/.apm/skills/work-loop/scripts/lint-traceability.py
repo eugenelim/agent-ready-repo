@@ -164,6 +164,13 @@ _SIDECAR_RELPATH = ("_state", "traceability.json")
 # Delivery resolver — subprocess invocation constants and injectable seam
 # ---------------------------------------------------------------------------
 
+# Script directory — used to locate the sibling resolver copy.
+_SCRIPT_DIR: Path = Path(__file__).resolve().parent
+
+# Resolver copy shipped beside this file; never derived from the analysed root.
+# Tests may pass a different path via _run_resolver's _resolver_path keyword.
+_RESOLVER_PATH: Path = _SCRIPT_DIR / "intent_delivery_relations.py"
+
 # Wall-clock budget for the resolver subprocess (seconds).
 _RESOLVER_TIMEOUT: int = 60
 # Maximum stdout accepted from the resolver (16 MiB, mirrors resolver limit).
@@ -1492,26 +1499,32 @@ def _parse_and_validate_snapshot(text: str) -> dict[str, Any]:
     return data
 
 
-def _run_resolver(root: Path) -> dict[str, Any]:
-    """Invoke the projected resolver subprocess and return a validated snapshot.
+def _run_resolver(
+    root: Path,
+    *,
+    _resolver_path: Path | None = None,
+) -> dict[str, Any]:
+    """Invoke the co-located resolver subprocess and return a validated snapshot.
 
     Raises ``ValueError`` with a ``delivery-resolver-unavailable:`` prefix on
-    any failure: binary absent (including when ``.agentbundle/bin/`` itself is
-    absent), non-zero exit, timeout, OSError, oversized stdout, bad UTF-8, bad
-    JSON, wrong schema, or incomplete snapshot.  Captured stderr is never
-    forwarded.
+    any failure: binary absent, non-zero exit, timeout, OSError, oversized
+    stdout, bad UTF-8, bad JSON, wrong schema, or incomplete snapshot.
+    Captured stderr is never forwarded.
+
+    ``_resolver_path`` overrides the module-level ``_RESOLVER_PATH`` constant.
+    Pass a custom path in tests to exercise absent or non-regular resolver cases
+    without removing the real sibling copy.
 
     The caller (``build_standalone``) gates invocation behind ``_has_any_anchor``
     so that repos with no discovery-side artifacts never reach this function;
     the "delivery not configured" opt-out is at that level, not here.
     """
-    resolver_path = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
+    resolver_path = _resolver_path if _resolver_path is not None else _RESOLVER_PATH
     try:
         resolver_path.lstat()
     except FileNotFoundError:
         raise ValueError(
-            "delivery-resolver-unavailable: "
-            ".agentbundle/bin/intent_delivery_relations.py is absent"
+            "delivery-resolver-unavailable: resolver absent beside consumer"
         ) from None
     except OSError:
         raise ValueError(
@@ -1562,7 +1575,8 @@ def build_standalone(root: Path, layout: dict, g: Graph,
     ``snapshot_provider`` is the injectable seam for tests.  When ``None``,
     ``_run_resolver`` is used.  The provider is called only when a chain anchor
     exists.  ``_run_resolver`` raises ``ValueError`` on any failure (including
-    absent binary or absent ``.agentbundle/bin/``); the caller records it as a
+    a resolver missing from beside this script, or not a regular file); the
+    caller records it as a
     hard DANGLING violation and continues non-delivery checks.  When no valid
     snapshot exists and the resolver failed, specs are wired only from Contract:
     and Parent intent: (not Brief: — delivery status is unknown).  When delivery

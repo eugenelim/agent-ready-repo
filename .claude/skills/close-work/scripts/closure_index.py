@@ -294,6 +294,10 @@ The stable code ``delivery-resolver-unavailable`` is the only user-visible outpu
 
 # ── Delivery resolver constants ───────────────────────────────────────────────
 
+# Resolver copy shipped beside this file; never derived from the analysed root.
+# Tests may pass a different path via _run_resolver's _resolver_path keyword.
+_RESOLVER_PATH: Path = _SCRIPT_DIR / "intent_delivery_relations.py"
+
 _RESOLVER_TIMEOUT: int = 60  # subprocess wall-clock budget in seconds
 _MAX_SNAPSHOT_BYTES: int = 16_777_216  # 16 MiB; mirrors resolver MAX_JSON_BYTES
 
@@ -720,17 +724,25 @@ def _parse_and_validate_snapshot(text: str) -> dict[str, Any]:
     return _validate_snapshot_dict(data)
 
 
-def _run_resolver(root: Path) -> dict[str, Any]:
-    """Run the projected resolver subprocess and return a validated snapshot.
+def _run_resolver(
+    root: Path,
+    *,
+    _resolver_path: Path | None = None,
+) -> dict[str, Any]:
+    """Run the co-located resolver subprocess and return a validated snapshot.
 
     Raises ``ValueError`` on any failure: missing file, non-zero exit, timeout,
     OSError, oversize stdout, bad UTF-8, bad JSON, wrong schema, or incomplete
     result. The error message always begins with 'delivery-resolver-unavailable'
     and never includes captured stderr, tracebacks, or absolute paths.
+
+    ``_resolver_path`` overrides the module-level ``_RESOLVER_PATH`` constant.
+    Pass a custom path in tests to exercise absent or non-regular resolver cases
+    without removing the real sibling copy.
     """
     import subprocess  # stdlib; imported here for minimal module-level deps
 
-    resolver_path = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
+    resolver_path = _resolver_path if _resolver_path is not None else _RESOLVER_PATH
     try:
         _st = resolver_path.lstat()
     except OSError:

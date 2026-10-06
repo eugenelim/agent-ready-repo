@@ -59,26 +59,13 @@ def symlink_or_skip(
     return True
 
 
-def _ensure_resolver(root: Path) -> None:
-    """Install the resolver binary and its helper under root/.agentbundle/bin/ if not present.
+def _ensure_resolver(root: Path) -> None:  # noqa: ARG001
+    """After T9 the linter finds its resolver beside its own scripts/ directory.
 
-    Required because the spec mandates that an absent binary is a hard violation
-    when a chain anchor exists.  All subprocess-based tests that write anchors
-    (briefs, rollup, discovery-layer files) must have the resolver present so the
-    delivery check is configured — without changing their asserted outcomes (the
-    resolver returns an empty snapshot for fixture repos with no delivery intents).
+    Subprocess-based tests no longer need to install anything into
+    root/.agentbundle/bin/; the sibling copy ships with the skill.  This
+    function is kept as a no-op so call sites don't need to change.
     """
-    dest = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    if not dest.exists():
-        src_dir = (
-            Path(__file__).resolve().parents[3]
-            / ".apm"
-            / "adapter-root-bins"
-        )
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes((src_dir / "intent_delivery_relations.py").read_bytes())
-        helper_dest = dest.parent / "_file_safety.py"
-        helper_dest.write_bytes((src_dir / "_file_safety.py").read_bytes())
 
 
 def run_raw(root: Path, *extra: str) -> tuple[int, str, str]:
@@ -1746,13 +1733,13 @@ def _load_linter(suffix: str) -> object:
     return mod
 
 
-def _install_resolver(root: Path) -> None:
-    """Install the resolver source and its helper under tmp_path/.agentbundle/bin/."""
-    dest = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(_RESOLVER_SOURCE.read_bytes())
-    helper_src = _RESOLVER_SOURCE.parent / "_file_safety.py"
-    (dest.parent / "_file_safety.py").write_bytes(helper_src.read_bytes())
+def _install_resolver(root: Path) -> None:  # noqa: ARG001
+    """After T9 the linter finds its resolver beside its own scripts/ directory.
+
+    In-process tests that need a specific resolver path use the _resolver_path
+    seam on _run_resolver.  This function is kept as a no-op so call sites that
+    no longer need the installation can be updated at their own pace.
+    """
 
 
 def write_feature_intent(root: Path, slug: str, route: str = "spec") -> None:
@@ -2054,12 +2041,14 @@ def test_vi1201_delivery_diag_strict_exit_one(tmp_path: Path) -> None:
 
 
 def test_vi1201_real_subprocess_resolver_installed(tmp_path: Path) -> None:
-    """At least one test exercises the real subprocess path: install the resolver
-    binary under tmp_path/.agentbundle/bin/ and run lint-traceability.py as a
-    subprocess against a fixture corpus with delivery relations."""
+    """At least one test exercises the real subprocess path: run lint-traceability.py
+    as a subprocess against a fixture corpus with delivery relations.
+
+    After T9 the linter ships its own resolver copy beside its scripts/ directory;
+    no explicit installation into tmp_path is needed.
+    """
     assert _RESOLVER_SOURCE.exists(), "resolver source not found"
 
-    _install_resolver(tmp_path)
     # Feature intent with direct route
     write_feature_intent(tmp_path, "resolved-feat")
     write_spec(tmp_path, "resolved-spec", discovery="intent:resolved-feat")
@@ -2197,12 +2186,13 @@ def test_vi1203_nan_in_snapshot_is_rejected(tmp_path: Path) -> None:
 
 
 def test_vi1203_oversize_stdout_rejected_by_run_resolver(tmp_path: Path) -> None:
-    """A resolver that emits > 16 MiB of stdout is rejected by _run_resolver."""
+    """A resolver that emits > 16 MiB of stdout is rejected by _run_resolver.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at the stub.
+    """
     assert _RESOLVER_SOURCE.exists(), "resolver source not found"
 
-    # Install a stub that emits oversize output instead of the real resolver.
-    stub = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    stub.parent.mkdir(parents=True, exist_ok=True)
+    stub = tmp_path / "oversize_resolver.py"
     stub.write_text(
         "import sys\n"
         "sys.stdout.reconfigure(encoding='utf-8')\n"
@@ -2213,7 +2203,7 @@ def test_vi1203_oversize_stdout_rejected_by_run_resolver(tmp_path: Path) -> None
     mod = _load_linter("oversize")
     raised = False
     try:
-        mod._run_resolver(tmp_path)
+        mod._run_resolver(tmp_path, _resolver_path=stub)
     except ValueError as exc:
         raised = True
         expect("delivery-resolver-unavailable" in str(exc),
@@ -2222,15 +2212,17 @@ def test_vi1203_oversize_stdout_rejected_by_run_resolver(tmp_path: Path) -> None
 
 
 def test_vi1203_nonzero_exit_rejected_by_run_resolver(tmp_path: Path) -> None:
-    """A resolver subprocess that exits non-zero → delivery-resolver-unavailable."""
-    stub = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    stub.parent.mkdir(parents=True, exist_ok=True)
+    """A resolver subprocess that exits non-zero → delivery-resolver-unavailable.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at the stub.
+    """
+    stub = tmp_path / "nonzero_resolver.py"
     stub.write_text("import sys; sys.exit(1)\n", encoding="utf-8")
 
     mod = _load_linter("nonzero")
     raised = False
     try:
-        mod._run_resolver(tmp_path)
+        mod._run_resolver(tmp_path, _resolver_path=stub)
     except ValueError as exc:
         raised = True
         expect("delivery-resolver-unavailable" in str(exc),
@@ -2239,14 +2231,18 @@ def test_vi1203_nonzero_exit_rejected_by_run_resolver(tmp_path: Path) -> None:
 
 
 def test_vi1203_binary_absent_is_hard_violation(tmp_path: Path) -> None:
-    """_run_resolver always raises ValueError on any absent-binary failure,
-    including when .agentbundle/bin/ itself is absent.  The opt-out from
-    delivery checking is at the _has_any_anchor level in build_standalone, not
-    inside _run_resolver — so _run_resolver never silently returns None."""
+    """_run_resolver always raises ValueError on any absent-binary failure.
+    The opt-out from delivery checking is at the _has_any_anchor level in
+    build_standalone, not inside _run_resolver — so _run_resolver never
+    silently returns None.
+
+    After T9 the seam (_resolver_path kwarg) is used to point _run_resolver
+    at a nonexistent path, exercising the absent-resolver branch.
+    """
     mod = _load_linter("absent")
-    # No .agentbundle/bin/ directory → hard violation (same as binary absent)
+    nonexistent = tmp_path / "no_such_resolver.py"
     with pytest.raises(ValueError, match="delivery-resolver-unavailable"):
-        mod._run_resolver(tmp_path)
+        mod._run_resolver(tmp_path, _resolver_path=nonexistent)
 
 
 def test_vi1203_non_delivery_checks_run_when_resolver_fails(tmp_path: Path) -> None:
@@ -2301,13 +2297,16 @@ def test_vi1203_no_retired_fallback_when_resolver_fails(tmp_path: Path) -> None:
 
 
 def test_defect_bin_dir_exists_binary_absent_is_hard_violation(tmp_path: Path) -> None:
-    """When .agentbundle/bin/ directory exists but the binary is absent,
-    _run_resolver must raise ValueError (hard violation), not return None."""
+    """_run_resolver must raise ValueError (hard violation) when the resolver path
+    is absent, not return None.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at a
+    nonexistent path regardless of what exists in .agentbundle/bin/.
+    """
     mod = _load_linter("bindir_absent_binary")
-    # Create the bin directory but NOT the resolver binary.
-    (tmp_path / ".agentbundle" / "bin").mkdir(parents=True)
+    nonexistent = tmp_path / "no_such_resolver.py"
     with pytest.raises(ValueError, match="delivery-resolver-unavailable"):
-        mod._run_resolver(tmp_path)
+        mod._run_resolver(tmp_path, _resolver_path=nonexistent)
 
 
 def test_defect_no_brief_wired_when_no_valid_snapshot(tmp_path: Path) -> None:
@@ -2386,12 +2385,18 @@ def test_fix2_delivery_diagnostic_spec_excluded_from_orphan(tmp_path: Path) -> N
 
 
 def test_fix3_bin_dir_absent_is_hard_violation(tmp_path: Path) -> None:
-    """An absent .agentbundle/bin/ directory must raise delivery-resolver-unavailable —
-    the same as any other failure.  The 'no anchor' early exit still wins at the
-    build_standalone / check() level; _run_resolver itself always fails closed."""
+    """_run_resolver must raise delivery-resolver-unavailable when the resolver
+    path is absent — the same as any other failure.  The 'no anchor' early exit
+    still wins at the build_standalone / check() level; _run_resolver itself
+    always fails closed.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at a
+    nonexistent path so this branch can be exercised without touching the
+    sibling copy.
+    """
     mod = _load_linter("fix3_no_bindir")
-    # No .agentbundle/ directory at all → hard violation from _run_resolver
+    nonexistent = tmp_path / "no_such_resolver.py"
     with pytest.raises(ValueError, match="delivery-resolver-unavailable") as raised:
-        mod._run_resolver(tmp_path)
+        mod._run_resolver(tmp_path, _resolver_path=nonexistent)
     # AC-0018: the message carries repository-relative context only.
     assert str(tmp_path) not in str(raised.value)

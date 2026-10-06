@@ -26,7 +26,6 @@ Verification mode: TDD integration (implementation-discovered seam).
 from __future__ import annotations
 
 import importlib.util
-import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -550,10 +549,9 @@ def test_vi1103_real_subprocess_produces_valid_snapshot(tmp_path: Path) -> None:
     """Running the real resolver subprocess returns a valid delivery snapshot.
 
     This is the one test that exercises the actual subprocess path from
-    ``_run_resolver``. It installs the resolver under
-    ``.agentbundle/bin/intent_delivery_relations.py`` in ``tmp_path``, builds a
-    minimal fixture tree with one direct-delivery pair, invokes the resolver via
-    ``_run_resolver``, and validates the returned snapshot shape.
+    ``_run_resolver``. After T9 the resolver copy ships beside the consumer
+    script; ``_run_resolver`` finds it via ``_RESOLVER_PATH`` without any
+    installation step.
 
     The close-work walk then uses the same snapshot via the seam to find the
     spec descendant — confirming the real end-to-end path from resolver
@@ -562,14 +560,6 @@ def test_vi1103_real_subprocess_produces_valid_snapshot(tmp_path: Path) -> None:
     Satisfies the plan requirement: 'at least one test running through the real
     subprocess path.'
     """
-    # ── Install the resolver and its co-located helper ────────────────────────
-    bin_dir = tmp_path / ".agentbundle" / "bin"
-    bin_dir.mkdir(parents=True)
-    resolver_dst = bin_dir / "intent_delivery_relations.py"
-    shutil.copy2(str(_RESOLVER_SRC), str(resolver_dst))
-    helper_src = _RESOLVER_SRC.parent / "_file_safety.py"
-    shutil.copy2(str(helper_src), str(bin_dir / "_file_safety.py"))
-
     # ── Write a minimal fixture: one feature intent (spec terminus), one spec ─
     intents_dir = tmp_path / "docs" / "product" / "intents"
     specs_dir = tmp_path / "docs" / "specs"

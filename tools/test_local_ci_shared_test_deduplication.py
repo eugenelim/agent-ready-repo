@@ -992,15 +992,15 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # returns an empty error list. The baseline is bare `origin/main`, which this
 # branch is merged up to and whose Makefile differs from this worktree's by the
 # single line above and nothing else.
-# Bumped 2026-10-05 for Core's new cross-consumer integration suite.
+# Bumped 2026-10-06 for Core's new cross-consumer integration suite.
 # (1) Sole cause: `git diff origin/main -- Makefile` is one added
 # `run-test-suite` line, `$(PYTHON) -m pytest packs/core/tests/integration/ -q`,
 # and none removed or reordered. It is a new process, so it takes plan index 17
-# in each plan (standalone 73 -> 74, composed 72 -> 73) and shifts every later
+# in each plan (standalone 74 -> 75, composed 73 -> 74) and shifts every later
 # entry; deleting exactly that line from the new plans reproduces the
 # superseded plans element for element.
 # (2) Prior pins were current: `_effective_composition_errors` over
-# `origin/main:Makefile` with `d5ce59c0…` and `74e76e14…` in place returns an
+# `origin/main:Makefile` with `b8b11581…` and `ccb88947…` in place returns an
 # empty error list.
 APPROVED_STANDALONE_PLAN_DIGEST = (
     "26c57c1925a0d4b2d4949a166e24a4ed6fada6dbe42864e1d18a3cab32163be8"

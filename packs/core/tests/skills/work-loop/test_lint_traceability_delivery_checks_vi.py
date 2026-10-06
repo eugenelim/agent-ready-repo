@@ -225,18 +225,16 @@ def test_vi1703_no_anchor_still_exits_zero(tmp_path: Path) -> None:
 
 
 def test_vi1703_default_bases_do_not_fail_closed(tmp_path: Path) -> None:
-    """Default bases (no config) do not trigger fail-closed."""
+    """Default bases (no config) do not trigger fail-closed.
+
+    After T9 the linter finds its resolver beside its own scripts/ directory;
+    no installation into .agentbundle/bin/ is needed.
+    """
     # Default bases: docs/specs, docs/product/intents — create anchor only
     _write(
         tmp_path / "docs/product/briefs/anchor.md",
         "# Brief\n\n- **Slug:** `anchor`\n",
     )
-    # Install resolver
-    dest = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(_RESOLVER_SOURCE.read_bytes())
-    helper_src = _RESOLVER_SOURCE.parent / "_file_safety.py"
-    (dest.parent / "_file_safety.py").write_bytes(helper_src.read_bytes())
 
     proc = subprocess.run(
         [sys.executable, str(LINTER), "--root", str(tmp_path)],
@@ -351,14 +349,13 @@ def test_vi1705_check_accepts_snapshot_provider_kwarg(tmp_path: Path) -> None:
 
 def test_vi1705_stub_hostile_stderr_not_forwarded(tmp_path: Path) -> None:
     """A stub resolver that writes hostile stderr content: no hostile marker
-    reaches lint-traceability stdout or stderr."""
-    _write(
-        tmp_path / "docs/product/briefs/anchor.md",
-        "# Brief\n\n- **Slug:** `anchor`\n",
-    )
-    # Install a stub resolver that writes hostile stderr and exits non-zero
-    stub = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    stub.parent.mkdir(parents=True, exist_ok=True)
+    reaches _run_resolver's ValueError message.
+
+    After T9 the linter finds its resolver beside its own scripts/ directory.
+    The seam (_resolver_path kwarg) points _run_resolver at the stub so the
+    test does not modify the sibling copy.
+    """
+    stub = tmp_path / "hostile_resolver.py"
     stub.write_text(
         "import sys\n"
         "sys.stderr.write('/absolute/path/to/secret\\n')\n"
@@ -368,55 +365,44 @@ def test_vi1705_stub_hostile_stderr_not_forwarded(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    proc = subprocess.run(
-        [sys.executable, str(LINTER), "--root", str(tmp_path)],
-        capture_output=True, text=True, timeout=120,
-    )
-    blob = proc.stdout + proc.stderr
+    mod = _load_linter("vi1705_hostile")
+    raised = False
+    exc_msg = ""
+    try:
+        mod._run_resolver(tmp_path, _resolver_path=stub)
+    except ValueError as exc:
+        raised = True
+        exc_msg = str(exc)
+    assert raised, "_run_resolver must raise ValueError for hostile/failing stub"
+    assert "delivery-resolver-unavailable" in exc_msg
     for hostile in ["/absolute/path/to/secret", "TOKEN=abc123"]:
-        assert hostile not in blob, (
-            f"hostile marker {hostile!r} must not appear in output: {blob!r}"
+        assert hostile not in exc_msg, (
+            f"hostile marker {hostile!r} must not appear in error message: {exc_msg!r}"
         )
-    assert proc.returncode == 1, (
-        f"stub failure → exit 1 (DANGLING), got {proc.returncode}"
-    )
-    assert "delivery-resolver-unavailable" in proc.stderr, (
-        f"delivery-resolver-unavailable in stderr: {proc.stderr}"
-    )
 
 
 def test_vi1705_stub_invalid_json_fails_closed(tmp_path: Path) -> None:
     """A stub resolver that emits invalid JSON → delivery-resolver-unavailable."""
-    _write(
-        tmp_path / "docs/product/briefs/anchor.md",
-        "# Brief\n\n- **Slug:** `anchor`\n",
-    )
-    stub = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    stub.parent.mkdir(parents=True, exist_ok=True)
+    stub = tmp_path / "invalid_json_resolver.py"
     stub.write_text(
         "import sys\n"
+        "sys.stdout.reconfigure(encoding='utf-8')\n"
         "sys.stdout.write('not valid json {{{\\n')\n",
         encoding="utf-8",
     )
 
-    proc = subprocess.run(
-        [sys.executable, str(LINTER), "--root", str(tmp_path)],
-        capture_output=True, text=True, timeout=120,
-    )
-    assert proc.returncode == 1, (
-        f"invalid JSON → exit 1, got {proc.returncode}: {proc.stderr}"
-    )
-    assert "delivery-resolver-unavailable" in proc.stderr, (
-        f"delivery-resolver-unavailable in stderr: {proc.stderr}"
-    )
+    mod = _load_linter("vi1705_invalid_json")
+    raised = False
+    try:
+        mod._run_resolver(tmp_path, _resolver_path=stub)
+    except ValueError as exc:
+        raised = True
+        assert "delivery-resolver-unavailable" in str(exc)
+    assert raised, "_run_resolver must raise ValueError for invalid JSON"
 
 
 def test_vi1705_stub_complete_false_fails_closed(tmp_path: Path) -> None:
     """A stub resolver that emits complete:false → delivery-resolver-unavailable."""
-    _write(
-        tmp_path / "docs/product/briefs/anchor.md",
-        "# Brief\n\n- **Slug:** `anchor`\n",
-    )
     incomplete_payload = json.dumps({
         "schema_version": 1,
         "complete": False,
@@ -426,47 +412,44 @@ def test_vi1705_stub_complete_false_fails_closed(tmp_path: Path) -> None:
         "diagnostics": [],
         "artifacts": {},
     })
-    stub = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    stub.parent.mkdir(parents=True, exist_ok=True)
+    stub = tmp_path / "incomplete_resolver.py"
     stub.write_text(
-        f"import sys\nsys.stdout.write({incomplete_payload!r})\n",
+        "import sys\n"
+        "sys.stdout.reconfigure(encoding='utf-8')\n"
+        f"sys.stdout.write({incomplete_payload!r})\n",
         encoding="utf-8",
     )
 
-    proc = subprocess.run(
-        [sys.executable, str(LINTER), "--root", str(tmp_path)],
-        capture_output=True, text=True, timeout=120,
-    )
-    assert proc.returncode == 1, (
-        f"complete:false → exit 1, got {proc.returncode}: {proc.stderr}"
-    )
-    assert "delivery-resolver-unavailable" in proc.stderr, (
-        f"delivery-resolver-unavailable in stderr: {proc.stderr}"
-    )
+    mod = _load_linter("vi1705_incomplete")
+    raised = False
+    try:
+        mod._run_resolver(tmp_path, _resolver_path=stub)
+    except ValueError as exc:
+        raised = True
+        assert "delivery-resolver-unavailable" in str(exc)
+    assert raised, "_run_resolver must raise ValueError for complete:false"
 
 
 def test_vi1705_timeout_lowered_and_fails_closed(tmp_path: Path) -> None:
     """A stub resolver that sleeps past a test-lowered timeout →
     delivery-resolver-unavailable. The timeout is a module constant so the
-    test can monkeypatch it."""
-    _write(
-        tmp_path / "docs/product/briefs/anchor.md",
-        "# Brief\n\n- **Slug:** `anchor`\n",
-    )
-    stub = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    stub.parent.mkdir(parents=True, exist_ok=True)
+    test can monkeypatch it.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at the stub.
+    """
+    stub = tmp_path / "sleeping_resolver.py"
     stub.write_text(
         "import time\ntime.sleep(10)\n",
         encoding="utf-8",
     )
 
     mod = _load_linter("vi1705_timeout")
-    # Monkeypatch the timeout constant to 1 second so the test is fast
+    # Lower the timeout so the test is fast.
     mod._RESOLVER_TIMEOUT = 1
 
     raised = False
     try:
-        mod._run_resolver(tmp_path)
+        mod._run_resolver(tmp_path, _resolver_path=stub)
     except ValueError as exc:
         raised = True
         assert "delivery-resolver-unavailable" in str(exc), (
