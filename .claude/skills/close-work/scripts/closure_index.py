@@ -415,23 +415,55 @@ def _is_safe_artifact_path(path: str) -> bool:
     return ".." not in parts
 
 
-def _expected_artifact_path(key: str) -> str:
-    """Return the canonical repository-relative artifact path for a snapshot key.
+# Closed value sets the snapshot may carry; anything else is an unusable snapshot.
+_IDENTIFIER_RE = re.compile(
+    r"^(?:(?:intent|brief):[a-z0-9]+(?:-[a-z0-9]+)*"
+    r"|spec:[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)$"
+)
+_RELATION_TYPES: frozenset[str] = frozenset({"direct-delivery", "coordinated-delivery"})
+_DELIVERY_ROUTE_VALUES: frozenset[str] = frozenset(
+    {"spec", "brief", "direct-light", "closed-empty"}
+)
+_CLASSIFICATION_VALUES: frozenset[str] = frozenset(
+    {"direct-delivery", "coordinated-delivery", "no-durable-child", "unresolved"}
+)
+_SNAPSHOT_DIAGNOSTIC_CODES: frozenset[str] = frozenset({
+    "delivery-target-missing",
+    "delivery-projection-mismatch",
+    "delivery-relation-ambiguous",
+    "delivery-reference-malformed",
+    "delivery-reference-unsafe",
+    "delivery-resource-limit",
+})
+# An intent or brief is identified by its `Slug:` field, not its file name, so
+# its path is checked against its type's directory and file form only. A spec
+# is identified by its directory, so its path is exact.
+_INTENT_PATH_RE = re.compile(r"^docs/product/intents/[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
+_BRIEF_PATH_RE = re.compile(r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
 
-    Raises ``ValueError`` when the key does not start with a known type prefix.
-    The path grammar mirrors what ``intent_delivery_relations.py`` stores in
-    its ``artifacts`` dict.
-    """
-    if key.startswith("spec:"):
-        slug = key[5:]
-        return f"docs/specs/{slug}/spec.md"
-    if key.startswith("brief:"):
-        slug = key[6:]
-        return f"docs/product/briefs/{slug}.md"
-    if key.startswith("intent:"):
-        slug = key[7:]
-        return f"docs/product/intents/{slug}.md"
-    raise ValueError(f"unknown identifier prefix in artifacts key: {key!r}")
+
+def _artifact_path_matches(key: str, path: str) -> bool:
+    """True when *path* is a valid artifact location for identifier *key*."""
+    kind, _, slug = key.partition(":")
+    if kind == "spec":
+        return path == f"docs/specs/{slug}/spec.md"
+    if kind == "intent":
+        return _INTENT_PATH_RE.fullmatch(path) is not None
+    if kind == "brief":
+        return _BRIEF_PATH_RE.fullmatch(path) is not None
+    return False
+
+
+def _require_identifier(value: object, what: str) -> None:
+    """Raise unless *value* is a canonical identifier string."""
+    if not isinstance(value, str) or _IDENTIFIER_RE.fullmatch(value) is None:
+        raise ValueError(f"delivery-resolver-unavailable: bad {what}")
+
+
+def _require_member(value: object, allowed: frozenset[str], what: str) -> None:
+    """Raise unless *value* is a string in the closed set *allowed*."""
+    if not isinstance(value, str) or value not in allowed:
+        raise ValueError(f"delivery-resolver-unavailable: bad {what}")
 
 
 def _validate_snapshot_dict(data: object) -> dict[str, Any]:
@@ -464,53 +496,63 @@ def _validate_snapshot_dict(data: object) -> dict[str, Any]:
     for _item in data["relations"]:
         if not isinstance(_item, dict):
             raise ValueError("delivery-resolver-unavailable: relation item not a dict")
-        for _fld in ("type", "route", "intent", "spec", "brief"):
-            _val = _item.get(_fld)
-            if _val is not None and not isinstance(_val, str):
-                raise ValueError(
-                    f"delivery-resolver-unavailable: relation.{_fld} not a string"
-                )
+        _require_member(_item.get("type"), _RELATION_TYPES, "relation type")
+        _require_member(_item.get("route"), _DELIVERY_ROUTE_VALUES, "relation route")
+        _require_identifier(_item.get("intent"), "relation intent")
+        _require_identifier(_item.get("spec"), "relation spec")
+        if _item["type"] == "coordinated-delivery":
+            _require_identifier(_item.get("brief"), "relation brief")
 
     for _item in data["classifications"]:
         if not isinstance(_item, dict):
             raise ValueError(
                 "delivery-resolver-unavailable: classification item not a dict"
             )
+        _require_identifier(_item.get("intent"), "classification intent")
+        _require_member(_item.get("route"), _DELIVERY_ROUTE_VALUES, "classification route")
+        _require_member(
+            _item.get("classification"), _CLASSIFICATION_VALUES, "classification"
+        )
 
     for _item in data["provenance"]:
         if not isinstance(_item, dict):
             raise ValueError(
                 "delivery-resolver-unavailable: provenance item not a dict"
             )
+        _require_identifier(_item.get("subject"), "provenance subject")
+        _require_member(
+            _item.get("field"), frozenset({"Contract", "Discovery"}), "provenance field"
+        )
+        if "intent" in _item:
+            _require_identifier(_item["intent"], "provenance intent")
+        if "target" in _item and not isinstance(_item["target"], str):
+            raise ValueError("delivery-resolver-unavailable: bad provenance target")
 
     for _item in data["diagnostics"]:
         if not isinstance(_item, dict):
             raise ValueError(
                 "delivery-resolver-unavailable: diagnostic item not a dict"
             )
+        _require_member(_item.get("code"), _SNAPSHOT_DIAGNOSTIC_CODES, "diagnostic code")
+        if "subject" in _item:
+            _require_identifier(_item["subject"], "diagnostic subject")
+        if "field" in _item and not isinstance(_item["field"], str):
+            raise ValueError("delivery-resolver-unavailable: bad diagnostic field")
+        _targets = _item.get("targets", [])
+        if not isinstance(_targets, list) or not all(
+            isinstance(_x, str) for _x in _targets
+        ):
+            raise ValueError("delivery-resolver-unavailable: bad diagnostic targets")
 
     # Artifacts path grammar: every key must be a valid identifier and every
     # path must be safe (no escaping) and match the canonical grammar for its
     # type prefix.
     for _key, _path in data["artifacts"].items():
-        if not isinstance(_key, str) or not isinstance(_path, str):
-            raise ValueError(
-                "delivery-resolver-unavailable: artifacts entry not strings"
-            )
-        if not _is_safe_artifact_path(_path):
-            raise ValueError(
-                f"delivery-resolver-unavailable: artifacts path unsafe: {_key!r}"
-            )
-        try:
-            _expected = _expected_artifact_path(_key)
-        except ValueError:
-            raise ValueError(
-                f"delivery-resolver-unavailable: artifacts key unknown prefix: {_key!r}"
-            ) from None
-        if _path != _expected:
-            raise ValueError(
-                f"delivery-resolver-unavailable: artifacts path grammar mismatch: {_key!r}"
-            )
+        _require_identifier(_key, "artifacts key")
+        if not isinstance(_path, str) or not _is_safe_artifact_path(_path):
+            raise ValueError("delivery-resolver-unavailable: artifacts path unsafe")
+        if not _artifact_path_matches(_key, _path):
+            raise ValueError("delivery-resolver-unavailable: artifacts path mismatch")
 
     return data  # type: ignore[return-value]
 

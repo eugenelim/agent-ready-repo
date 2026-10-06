@@ -337,9 +337,9 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
     the cached fields without a second reader call, keeping B's count at 1.
     """
     # Ancestor A (children terminus)
-    a_slug = "ancestor-A"
-    b_slug = "child-B"
-    c_slug = "child-C"
+    a_slug = "ancestor-a"
+    b_slug = "child-b"
+    c_slug = "child-c"
     s_b_slug = "spec-of-B"
     s_c_slug = "spec-of-C"
     shared_slug = "shared-candidate"

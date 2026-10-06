@@ -112,6 +112,10 @@ _COMMENT_SUFFIX = re.compile(r"\s*<!--.*?-->\s*$", re.DOTALL)
 _HEADING_PREFIX = "## "
 _DECOMPOSED_DATE_ROUTE = re.compile(r"^\d{4}-\d{2}-\d{2}\s+(\S+)$")
 _SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+# A spec is named by its directory; an intent or brief file by its file name.
+# Anything outside these forms is not admitted, so it never reaches output.
+_SPEC_DIR_RE = re.compile(r"^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*$")
+_ARTIFACT_FILE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
 _MARKDOWN_LINK = re.compile(r"^\[.*?\]\((.+?)\)\s*$")
 _PROVENANCE_TARGET_RE = re.compile(r"^[A-Za-z0-9._/:@#-]{1,200}$")
 _INTENTS_PATH_RE = re.compile(r"^docs/product/intents/([^/]+\.md)$")
@@ -450,7 +454,7 @@ def resolve_repository(
     slug_paths: dict[str, list[str]] = {}
 
     for f in corpus_files.get("intents", []):
-        if f.parent != intents_root or f.suffix != ".md":
+        if f.parent != intents_root or not _ARTIFACT_FILE_RE.fullmatch(f.name):
             continue
         text = _read(f)
         if text == _LIMIT_ARTIFACT:
@@ -483,7 +487,7 @@ def resolve_repository(
     brief_slug_paths: dict[str, list[str]] = {}  # slug -> [rel_path, ...]
 
     for f in corpus_files.get("briefs", []):
-        if f.parent != briefs_root or f.suffix != ".md" or f.name.startswith("_"):
+        if f.parent != briefs_root or not _ARTIFACT_FILE_RE.fullmatch(f.name):
             continue
         text = _read(f)
         if text == _LIMIT_ARTIFACT:
@@ -525,7 +529,7 @@ def resolve_repository(
 
         fields = _preamble_all(text)
         dir_name = f.parent.name
-        if dir_name.startswith("_"):
+        if not _SPEC_DIR_RE.fullmatch(dir_name):
             continue
         spec_id = f"spec:{dir_name}"
         spec_by_id[spec_id] = {

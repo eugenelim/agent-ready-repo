@@ -400,3 +400,66 @@ def test_vi1504_hostile_decomposed_value_not_in_output(tmp_path: Path) -> None:
     assert hostile_dec not in out
     assert "\x00" not in out
     assert "\x1b" not in out
+
+
+# ── Real-corpus artifact names ────────────────────────────────────────────────
+
+
+def test_ordinal_prefixed_intent_file_and_capitalised_spec_dir_resolve(
+    tmp_path: Path,
+) -> None:
+    """An ordinal-prefixed intent file and a capitalised, dotted spec dir resolve."""
+    d = tmp_path / "docs" / "product" / "intents"
+    d.mkdir(parents=True)
+    (d / "FEAT-0012-alpha.md").write_text(
+        "# Alpha\n\n- **Slug:** `alpha`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-05 spec\n",
+        encoding="utf-8",
+    )
+    _make_spec(tmp_path, dir_name="spec-A-alpha-0.1", discovery="`intent:alpha`")
+
+    snap = _load_resolver().resolve_repository(tmp_path)
+
+    assert snap["relations"] == [
+        {
+            "basis": {"intent": "Decomposed", "spec": "Discovery"},
+            "intent": "intent:alpha",
+            "route": "spec",
+            "spec": "spec:spec-A-alpha-0.1",
+            "type": "direct-delivery",
+        }
+    ]
+    assert snap["artifacts"] == {
+        "intent:alpha": "docs/product/intents/FEAT-0012-alpha.md",
+        "spec:spec-A-alpha-0.1": "docs/specs/spec-A-alpha-0.1/spec.md",
+    }
+
+
+@pytest.mark.parametrize(
+    "dir_name", ["bad\x1bname", "bad name", "-leading"], ids=["control", "space", "dash"]
+)
+def test_spec_dir_outside_grammar_is_not_admitted(tmp_path: Path, dir_name: str) -> None:
+    """A spec directory whose name breaks the spec grammar never becomes an identity."""
+    _make_intent(tmp_path, slug="alpha", decomposed="2026-10-05 spec")
+    _make_spec(tmp_path, dir_name=dir_name, discovery="`intent:alpha`")
+
+    snap = _load_resolver().resolve_repository(tmp_path)
+
+    assert snap["relations"] == []
+    assert all(dir_name not in key for key in snap["artifacts"])
+    assert {"code": "delivery-target-missing", "subject": "intent:alpha"} in snap["diagnostics"]
+
+
+def test_intent_file_name_outside_grammar_is_not_admitted(tmp_path: Path) -> None:
+    """An intent file whose name breaks the file grammar is not admitted."""
+    d = tmp_path / "docs" / "product" / "intents"
+    d.mkdir(parents=True)
+    (d / "alpha\x1b.md").write_text(
+        "# Alpha\n\n- **Slug:** `alpha`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-05 spec\n",
+        encoding="utf-8",
+    )
+
+    snap = _load_resolver().resolve_repository(tmp_path)
+
+    assert snap == _empty_snap()

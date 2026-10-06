@@ -148,7 +148,7 @@ def _write_brief(root: Path, slug: str, status: str = "Executing", parent: str |
 
 
 def test_ac0020_broken_spec_reference_refuses_closure(tmp_path: Path) -> None:
-    """Stub: a spec-subject delivery-reference-unsafe diagnostic refuses the spec-route feature."""
+    ci = _load()
     spec_dir = tmp_path / "docs" / "specs" / "done-spec"
     spec_dir.mkdir(parents=True)
     (spec_dir / "spec.md").write_text("# Spec\n\n- **Status:** Shipped\n", encoding="utf-8")
@@ -605,3 +605,84 @@ def test_vi1603_provenance_uses_intent_field_not_path(tmp_path: Path) -> None:
     )
     assert len(ancestors) == 1
     assert ancestors[0][0] == "cap"
+
+
+# ── Real-corpus artifact shapes ───────────────────────────────────────────────
+
+
+def _corpus_shape_snapshot(intent_path: str, spec_id: str) -> dict[str, Any]:
+    """A seven-key snapshot naming one intent file and one spec directory."""
+    slug = spec_id.removeprefix("spec:")
+    return {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [
+            {
+                "basis": {"intent": "Decomposed", "spec": "Discovery"},
+                "intent": "intent:alpha",
+                "route": "spec",
+                "spec": spec_id,
+                "type": "direct-delivery",
+            }
+        ],
+        "classifications": [
+            {"classification": "direct-delivery", "intent": "intent:alpha", "route": "spec"}
+        ],
+        "provenance": [],
+        "diagnostics": [],
+        "artifacts": {
+            "intent:alpha": intent_path,
+            spec_id: f"docs/specs/{slug}/spec.md",
+        },
+    }
+
+
+def test_ordinal_prefixed_intent_file_and_capitalised_spec_dir_are_accepted(
+    tmp_path: Path,
+) -> None:
+    """An intent's file name need not equal its slug; a spec dir may carry capitals."""
+    _write_spec(tmp_path, "spec-A-alpha-delivery")
+    snapshot = _corpus_shape_snapshot(
+        "docs/product/intents/FEAT-0012-alpha.md", "spec:spec-A-alpha-delivery"
+    )
+
+    verdict = ci.check_ancestor_closure(
+        "alpha",
+        "Accepted",
+        "spec",
+        tmp_path,
+        _freshness_checker=lambda: True,
+        _snapshot_provider=lambda _root: snapshot,
+    )
+
+    assert isinstance(verdict, ci.ClosureEligible)
+
+
+@pytest.mark.parametrize(
+    "intent_path",
+    [
+        "docs/product/intents/alpha\x1b[31m.md",
+        "docs/product/intents/sub/alpha.md",
+        "docs/product/briefs/alpha.md",
+    ],
+    ids=["control-character", "subdirectory", "wrong-root"],
+)
+def test_artifacts_path_outside_its_type_grammar_is_unavailable(
+    tmp_path: Path, intent_path: str
+) -> None:
+    """An artifacts path that breaks its type's file grammar fails closed."""
+    _write_spec(tmp_path, "alpha-delivery")
+    snapshot = _corpus_shape_snapshot(intent_path, "spec:alpha-delivery")
+
+    verdict = ci.check_ancestor_closure(
+        "alpha",
+        "Accepted",
+        "spec",
+        tmp_path,
+        _freshness_checker=lambda: True,
+        _snapshot_provider=lambda _root: snapshot,
+    )
+
+    assert isinstance(verdict, ci.ClosureRefuse)
+    assert verdict.reason == "delivery-resolver-unavailable"
+    assert "\x1b" not in verdict.reason
