@@ -1,0 +1,10 @@
+{
+  "query": "configuration file",
+  "matches": [
+    {
+      "file": "src.py'; $(touch PWNED) `x` '@; y; @'",
+      "line": 1,
+      "context": "config = {}"
+    }
+  ]
+}

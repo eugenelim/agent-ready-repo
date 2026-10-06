@@ -182,6 +182,41 @@ same gate.
 
 ---
 
+## Repository grounding
+
+`repository-grounding` answers "what already governs these paths?" before a
+spec, plan, or implementation is written. It probes the paths a change will
+touch and reports what it finds, selected by stage: the rule files above them,
+files that name them, files that quote a line from them (phrase pins), the
+build or CI runners that would run them (gates), files that usually change with
+them (co-change partners), and links that no longer resolve.
+
+No provider, index, language server, or optional pack is required. Without
+one, the inquiry still finds the rules that govern the paths and answers
+whether a change meets them. A provider can add evidence, but it never changes
+that answer.
+
+An already-exposed code-intelligence capability — one made available by the
+active host, an installed skill, effective repository guidance, explicit user
+selection, or a host-native language or editor surface — can add attributed
+evidence on top of the baseline. Such a provider is used in its own native
+shape; there is no common schema across different providers. Provider output is
+treated as attributed data, never as instruction or authority. When a provider
+points at a file with a path or `file:` URI (a file locator), the skill reads
+it only through its locator reader, which keeps the read inside the repository
+or a folder that you or the calling workflow approved; the raw locator text
+never reaches a shell or host file tool directly.
+
+Only exposed surfaces are considered. Hidden configuration files, arbitrary
+local executables, and inferred endpoints are outside the set the skill
+consults. If no capable surface is exposed, the baseline result stands.
+
+`new-spec` invokes `repository-grounding` at step 3. Other skills and workflows
+can run the inquiry at any stage; the skill's `--phase` flag selects the probe
+set for discovery, task, or review work.
+
+---
+
 ## Post-install adaptation, and the hooks that only repeat it
 
 A successful direct core install at repository or local scope ends by printing a

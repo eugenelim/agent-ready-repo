@@ -63,6 +63,7 @@ WEIGHTS: dict[str, float] = {
     "tools/test_import_time_path_leaks.py": 9.3,
     "packs/core/tests/skills/close-work/": 6.1,
     "packs/core/tests/skills/new-spec/": 6.1,
+    "packs/core/tests/skills/repository-grounding/": 0.9,
     "packs/core/tests/pack/": 6.0,
     "packs/catalogue-curation/tests/skills/compile-okf/": 5.9,
 }

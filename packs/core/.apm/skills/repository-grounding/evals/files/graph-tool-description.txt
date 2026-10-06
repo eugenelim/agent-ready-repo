@@ -1,0 +1,5 @@
+Tool: dependency-graph
+Description: Query the repository dependency graph for import relationships,
+module dependencies, and transitive closure. Returns results as a graph with
+nodes (modules) and edges (import relationships). The graph is rebuilt on each
+query from the current repository state.

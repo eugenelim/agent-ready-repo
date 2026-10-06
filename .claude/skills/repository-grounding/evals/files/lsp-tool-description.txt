@@ -1,0 +1,5 @@
+Tool: language-server
+Description: Query the active language server for symbol definitions, hover
+information, and references using the Language Server Protocol (LSP). Returns
+results in LSP TextDocumentPosition and Location format. The language server
+must be running and the workspace must be open.

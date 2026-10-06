@@ -1214,6 +1214,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             _PACK_HOOK_LINUX,
             _WHY_FILTERED_AND_CONDITIONAL,
         ),
+    'packs/core/tests/skills/repository-grounding/':
+        NO_PR_GATE(
+            "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
+            "the full suite directory; it reaches CI only through the dispatch-only "
+            "test-corpus.yml. The path-filtered build-check-windows.yml step `pytest "
+            "repository-grounding locator reader (Windows placement)`, in the job "
+            "`AgentBundle compatibility (windows)`, also runs test_read_locator.py on a "
+            "pull request, providing Windows placement and reparse-point coverage for that "
+            "file."
+        ),
     'packs/core/tests/skills/work-intake/':
         PR_GATED_IF(
             _PACK_HOOK_LINUX,

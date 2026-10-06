@@ -97,15 +97,17 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    | `unstarted-task-method` — it could change only the local method of a task that has not started, **and no test can decide it directly** | Put it in that task as a discovery predicate, a constraint, a required outcome, a verification mode, and a **kill condition**. Do not guess a helper, fixture, module, path, or symbol. |
    | `cheap-with-an-oracle` — it is a cheap, reversible detail and a test can decide it directly. Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract | Settle it in code. It does not belong in design prose, and a spike for it is wasted work. |
 
-   **Resolve repository anchors before generating candidates.** Read the
-   effective root and scoped `AGENTS.md` for the affected area and follow any
-   mapped repository sources for architecture, decisions, coding conventions,
-   and verified commands. When no usable map exists, locate existing guidance
-   by common names and repository references. For structural work only, inspect
-   one or two analogous production implementations and their corresponding
-   tests or construction path. Surface contradictions or absence of precedent;
-   ask before specifying an unanchored load-bearing mechanism. Keep this search
-   bounded to evidence the feature will actually use.
+   **Resolve repository anchors before generating candidates.** Run the
+   `repository-grounding` inquiry with the paths this spec touches as
+   discovery seeds; it reports what already governs those surfaces.
+   Then read the effective root and scoped `AGENTS.md` for the affected area
+   and follow any mapped repository sources for architecture, decisions, coding
+   conventions, and verified commands. When no usable map exists, locate
+   existing guidance by common names and repository references. For structural
+   work only, inspect one or two analogous production implementations and their
+   corresponding tests or construction path. Surface contradictions or absence
+   of precedent; ask before specifying an unanchored load-bearing mechanism.
+   Keep this search bounded to evidence the feature will actually use.
 
    Before reading a discovered local anchor, canonicalize and symlink-resolve
    its path. Reject and surface any absolute path, parent traversal, or symlink
@@ -708,9 +710,6 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      artifact's retired list, that every item reference resolves, and that a
      criterion is named by a task entry. It reports rather than blocks on a
      reworded criterion whose assertion did not follow.
-   - `explore-grounding.py` — run at step 3, when resolving what already governs
-     the surfaces the work touches. It answers from a seed set of paths and
-     reports; it decides nothing and never fails a run.
    - `lint-finding-coverage.py` — run at step 4, over a check whose findings a
      criterion is about to rest on. It reports a rule whose message no test
      observes, which is the shape that makes a criterion look verified by a
