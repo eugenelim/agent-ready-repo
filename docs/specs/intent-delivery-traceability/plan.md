@@ -449,7 +449,7 @@ def test_ac0013_diagnosed_spec_keeps_component_dangling_check(tmp_path: Path) ->
 
 **Mode:** TDD
 
-**Touches:** `packs/core/tests/integration/test_intent_delivery_traceability.py` (VI-1402 inventory), `packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/_file_safety.py`, `packs/core/.apm/skills/work-loop/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/work-loop/scripts/_file_safety.py` (byte-identical copies), the resolver-location code in `closure_index.py` and `lint-traceability.py`, `packs/core/tests/pack/test_intent_delivery_relations_copies.py` (stub materialization file), and every delivered test or fixture that installs the resolver at `.agentbundle/bin/` or asserts that location
+**Touches:** `packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/_file_safety.py`, `packs/core/.apm/skills/work-loop/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/work-loop/scripts/_file_safety.py`, `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/tests/pack/test_intent_delivery_relations_copies.py`, `packs/core/tests/integration/test_intent_delivery_traceability.py`, `packs/core/tests/**`, `tests/roster/**` (the four copies are byte-identical to the source; the copies test file is the stub materialization file; the integration file holds the VI-1402 inventory; the test globs cover every delivered test or fixture that installs the resolver at `.agentbundle/bin/` or asserts that location)
 
 **Tests:**
 
@@ -658,7 +658,7 @@ def test_ac0020_path_form_ambiguous_discovery_refuses_named_feature(tmp_path: Pa
 
 **Mode:** Goal-based check
 
-**Touches:** `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` and its two skill copies, `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `guides/core/how-to/close-and-disposition-work.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `packs/core/.apm/skills/close-work/evals/evals.json`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `tools/test_local_ci_shared_test_deduplication.py`, self-host projections
+**Touches:** `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/work-loop/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `guides/core/how-to/close-and-disposition-work.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `packs/core/.apm/skills/close-work/evals/evals.json`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `tools/test_local_ci_shared_test_deduplication.py`, `.claude/**`, `.agents/**`, `.agentbundle/**` (the last three are self-host projections)
 
 **Tests:**
 
