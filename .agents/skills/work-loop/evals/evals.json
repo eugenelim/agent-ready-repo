@@ -1180,6 +1180,29 @@
         "Performs no local Discovery: or Brief: field inversion",
         "Does not treat the absent resolver as informational"
       ]
+    },
+    {
+      "id": "lint-traceability-malformed-snapshot-record-is-hard-violation",
+      "prompt": "The traceability lint receives a delivery snapshot where one collection item is not a dict (for example, relations contains an integer instead of a relation object). The repository has a brief anchor so the delivery check is active.",
+      "expected_output": "The lint exits with a hard violation and reports delivery-resolver-unavailable. It does not reach the per-field get() calls, does not produce a degraded exit 0, and does not emit an unhandled AttributeError. Non-delivery structural checks still run.",
+      "assertions": [
+        "Exits non-zero with a hard violation",
+        "Reports delivery-resolver-unavailable",
+        "Does not produce a degraded exit 0",
+        "Does not raise an unhandled AttributeError",
+        "Non-delivery orphan checks still run and report their findings"
+      ]
+    },
+    {
+      "id": "lint-traceability-configured-layout-fails-closed",
+      "prompt": "The traceability lint runs in a repository with an agentbundle-layout.toml that sets the spec base to a custom path different from the resolver default docs/specs. The repository has a brief anchor so the delivery check is active.",
+      "expected_output": "The lint exits with a hard violation and reports delivery-resolver-unavailable, because the configured spec base differs from the resolver defaults and the resolver would silently operate on different paths. Non-delivery structural checks still run. When no anchor is present, no violation is emitted.",
+      "assertions": [
+        "Exits non-zero with a hard violation when an anchor is present",
+        "Reports delivery-resolver-unavailable",
+        "Non-delivery checks still run",
+        "Does not emit a violation when no anchor is present"
+      ]
     }
   ]
 }

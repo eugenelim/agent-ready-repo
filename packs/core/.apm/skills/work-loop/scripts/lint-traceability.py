@@ -88,6 +88,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -179,6 +180,44 @@ _SNAPSHOT_REQUIRED_KEYS: frozenset[str] = frozenset({
     "diagnostics",
     "artifacts",
 })
+
+# ---------------------------------------------------------------------------
+# Delivery snapshot — per-item validation constants (mirrored from the
+# close-work skill; cross-skill import is banned, so re-implemented here).
+# ---------------------------------------------------------------------------
+
+# Stable identifier grammar: intent/brief slugs are lower-kebab; spec slugs
+# are title-case-tolerant with dots and hyphens (mirrors resolver).
+_IDENTIFIER_RE: re.Pattern[str] = re.compile(
+    r"^(?:(?:intent|brief):[a-z0-9]+(?:-[a-z0-9]+)*"
+    r"|spec:[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)$"
+)
+# Accepted `type` values for relation items.
+_RELATION_TYPES: frozenset[str] = frozenset({"direct-delivery", "coordinated-delivery"})
+# Accepted `route` values for relation items.
+_DELIVERY_ROUTE_VALUES: frozenset[str] = frozenset(
+    {"spec", "brief", "direct-light", "closed-empty"}
+)
+# Accepted `classification` values for classification items.
+_CLASSIFICATION_VALUES: frozenset[str] = frozenset(
+    {"direct-delivery", "coordinated-delivery", "no-durable-child", "unresolved"}
+)
+# Accepted `code` values for diagnostic items.
+_SNAPSHOT_DIAGNOSTIC_CODES: frozenset[str] = frozenset({
+    "delivery-target-missing",
+    "delivery-projection-mismatch",
+    "delivery-relation-ambiguous",
+    "delivery-reference-malformed",
+    "delivery-reference-unsafe",
+    "delivery-resource-limit",
+})
+# Valid artifact-path patterns (intent files and brief files).
+_INTENT_PATH_RE: re.Pattern[str] = re.compile(
+    r"^docs/product/intents/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
+)
+_BRIEF_PATH_RE: re.Pattern[str] = re.compile(
+    r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
+)
 
 # Module-level injectable seam.  When not None, ``build_standalone`` calls
 # this callable instead of ``_run_resolver``.  Tests set it on the module
@@ -1260,18 +1299,170 @@ def _has_briefs(root: Path, layout: dict) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _parse_and_validate_snapshot(text: str) -> dict:
+def _require_identifier(value: object, what: str) -> None:
+    """Raise ``ValueError`` when ``value`` is not a grammar-valid identifier string.
+
+    Accepts intent, brief, and spec identifiers per ``_IDENTIFIER_RE``.  Only
+    ``what`` (a trusted field name) appears in the error message; the untrusted
+    value is never echoed so hostile resolver output cannot reach ``g.dangling``.
+    """
+    if not isinstance(value, str) or not _IDENTIFIER_RE.fullmatch(value):
+        raise ValueError(
+            f"delivery-resolver-unavailable: {what} is not a valid identifier"
+        )
+
+
+def _require_member(value: object, allowed: frozenset[str], what: str) -> None:
+    """Raise ``ValueError`` when ``value`` is not in the ``allowed`` set.
+
+    Only ``what`` (a trusted field name) appears in the error message; the
+    untrusted value is never echoed so hostile resolver output cannot reach
+    ``g.dangling``.
+    """
+    if value not in allowed:
+        raise ValueError(
+            f"delivery-resolver-unavailable: {what} has an unrecognised value"
+        )
+
+
+def _is_safe_artifact_path(path: str) -> bool:
+    """Return True when ``path`` is a safe, non-escaping relative artifact path.
+
+    Rejects empty paths, absolute paths, backslash-containing paths, and paths
+    with any ``..`` segment.  Does not validate against the filesystem —
+    confinement is the caller's responsibility.
+    """
+    if not path:
+        return False
+    if path.startswith(("/", "\\")):
+        return False
+    parts = path.replace("\\", "/").split("/")
+    return ".." not in parts
+
+
+def _artifact_path_matches(key: str, path: str) -> bool:
+    """True when ``path`` is a valid artifact location for identifier ``key``.
+
+    Mirrors close-work's ``_artifact_path_matches`` exactly (cross-skill import
+    is banned, so re-implemented here).  Spec identifiers must map to
+    ``docs/specs/<slug>/spec.md``; intent and brief identifiers must match
+    their respective directory patterns.
+    """
+    kind, _, slug = key.partition(":")
+    if kind == "spec":
+        return path == f"docs/specs/{slug}/spec.md"
+    if kind == "intent":
+        return bool(_INTENT_PATH_RE.fullmatch(path))
+    if kind == "brief":
+        return bool(_BRIEF_PATH_RE.fullmatch(path))
+    return False
+
+
+def _validate_snapshot_dict(data: dict[str, Any]) -> None:
+    """Validate the full shape of a snapshot dict, including per-item records.
+
+    Mirrors close-work's ``_validate_snapshot_dict`` exactly (cross-skill import
+    is banned, so re-implemented here).  Raises ``ValueError`` with a
+    ``delivery-resolver-unavailable:`` prefix on any violation.
+
+    Applies to both the text-parsing path (called from
+    ``_parse_and_validate_snapshot`` after basic structure checks) and injected
+    test providers (called from ``build_standalone`` on the raw provider return
+    value, performing ALL checks including top-level structure).
+    """
+    if not isinstance(data, dict):
+        raise ValueError("delivery-resolver-unavailable: top-level not a dict")
+    if set(data.keys()) != _SNAPSHOT_REQUIRED_KEYS:
+        raise ValueError("delivery-resolver-unavailable: wrong keys")
+    if data["schema_version"] != _SNAPSHOT_SCHEMA_VERSION:
+        raise ValueError("delivery-resolver-unavailable: unsupported schema_version")
+    if data["complete"] is not True:
+        raise ValueError("delivery-resolver-unavailable: incomplete snapshot")
+    for _k in ("relations", "classifications", "provenance", "diagnostics"):
+        if not isinstance(data[_k], list):
+            raise ValueError(f"delivery-resolver-unavailable: {_k} not a list")
+    if not isinstance(data["artifacts"], dict):
+        raise ValueError("delivery-resolver-unavailable: artifacts not a dict")
+
+    # --- relations -----------------------------------------------------------
+    for _item in data["relations"]:
+        if not isinstance(_item, dict):
+            raise ValueError("delivery-resolver-unavailable: relation item not a dict")
+        _require_member(_item.get("type"), _RELATION_TYPES, "relation type")
+        _require_member(_item.get("route"), _DELIVERY_ROUTE_VALUES, "relation route")
+        _require_identifier(_item.get("intent"), "relation intent")
+        _require_identifier(_item.get("spec"), "relation spec")
+        if _item["type"] == "coordinated-delivery":
+            _require_identifier(_item.get("brief"), "relation brief")
+
+    # --- classifications -----------------------------------------------------
+    for _item in data["classifications"]:
+        if not isinstance(_item, dict):
+            raise ValueError(
+                "delivery-resolver-unavailable: classification item not a dict"
+            )
+        _require_identifier(_item.get("intent"), "classification intent")
+        _require_member(_item.get("route"), _DELIVERY_ROUTE_VALUES, "classification route")
+        _require_member(
+            _item.get("classification"), _CLASSIFICATION_VALUES, "classification"
+        )
+
+    # --- provenance ----------------------------------------------------------
+    for _item in data["provenance"]:
+        if not isinstance(_item, dict):
+            raise ValueError(
+                "delivery-resolver-unavailable: provenance item not a dict"
+            )
+        _require_identifier(_item.get("subject"), "provenance subject")
+        _require_member(
+            _item.get("field"),
+            frozenset({"Contract", "Discovery"}),
+            "provenance field",
+        )
+        if "intent" in _item:
+            _require_identifier(_item["intent"], "provenance intent")
+        if "target" in _item and not isinstance(_item["target"], str):
+            raise ValueError("delivery-resolver-unavailable: bad provenance target")
+
+    # --- diagnostics ---------------------------------------------------------
+    for _item in data["diagnostics"]:
+        if not isinstance(_item, dict):
+            raise ValueError(
+                "delivery-resolver-unavailable: diagnostic item not a dict"
+            )
+        _require_member(_item.get("code"), _SNAPSHOT_DIAGNOSTIC_CODES, "diagnostic code")
+        if "subject" in _item:
+            _require_identifier(_item["subject"], "diagnostic subject")
+        if "field" in _item and not isinstance(_item["field"], str):
+            raise ValueError("delivery-resolver-unavailable: bad diagnostic field")
+        _targets = _item.get("targets", [])
+        if not isinstance(_targets, list) or not all(
+            isinstance(_x, str) for _x in _targets
+        ):
+            raise ValueError("delivery-resolver-unavailable: bad diagnostic targets")
+
+    # --- artifacts -----------------------------------------------------------
+    for _key, _path in data["artifacts"].items():
+        _require_identifier(_key, "artifacts key")
+        if not isinstance(_path, str) or not _is_safe_artifact_path(_path):
+            raise ValueError("delivery-resolver-unavailable: artifacts path unsafe")
+        if not _artifact_path_matches(_key, _path):
+            raise ValueError("delivery-resolver-unavailable: artifacts path mismatch")
+
+
+def _parse_and_validate_snapshot(text: str) -> dict[str, Any]:
     """Parse and strictly validate a resolver JSON snapshot.
 
     Returns the snapshot dict on success.  Raises ``ValueError`` with a
     ``delivery-resolver-unavailable:`` prefix on any structural or schema
     violation: bad JSON, NaN/Infinity payload, wrong schema_version,
-    incomplete flag, missing or extra keys, or a non-list collection.
-    Never raises for a structurally valid complete snapshot.
+    incomplete flag, missing or extra keys, non-list collection, or a
+    malformed per-item record.  Never raises for a structurally valid
+    complete snapshot.
     """
     try:
         data = json.loads(text)
-    except (ValueError, json.JSONDecodeError):
+    except ValueError:
         raise ValueError("delivery-resolver-unavailable: bad JSON") from None
     # Reject NaN/Infinity by round-tripping through a strict encoder.
     try:
@@ -1297,10 +1488,11 @@ def _parse_and_validate_snapshot(text: str) -> dict:
             )
     if not isinstance(data["artifacts"], dict):
         raise ValueError("delivery-resolver-unavailable: artifacts not a dict")
+    _validate_snapshot_dict(data)
     return data
 
 
-def _run_resolver(root: Path) -> dict | None:
+def _run_resolver(root: Path) -> dict[str, Any]:
     """Invoke the projected resolver subprocess and return a validated snapshot.
 
     Raises ``ValueError`` with a ``delivery-resolver-unavailable:`` prefix on
@@ -1425,11 +1617,13 @@ def build_standalone(root: Path, layout: dict, g: Graph,
 
     # -----------------------------------------------------------------------
     # Delivery snapshot: invoke the canonical resolver to get typed delivery
-    # relations.  Only attempted when a chain anchor exists.  Binary absent →
-    # skip silently (opt-in delivery check).  Binary present but failing →
-    # hard DANGLING; non-delivery checks continue using local _spec_up_values.
+    # relations.  Only attempted when a chain anchor exists.  Resolver absent
+    # or failing → hard DANGLING; non-delivery checks continue.
+    # When no valid snapshot exists and the resolver failed, specs are wired
+    # only from Contract: and Parent intent: (not Brief: — delivery status is
+    # unknown).
     # -----------------------------------------------------------------------
-    _snapshot: dict | None = None
+    _snapshot: dict[str, Any] | None = None
     _resolver_failed = False
     _has_any_anchor = (
         bool(rollup)
@@ -1437,28 +1631,65 @@ def build_standalone(root: Path, layout: dict, g: Graph,
         or bool(g.populated & _DISCOVERY_LAYERS)
     )
     if _has_any_anchor:
-        _provider = snapshot_provider if snapshot_provider is not None else _run_resolver
-        try:
-            _snapshot = _provider(root)  # None = binary absent; dict = valid snapshot
-        except ValueError as _exc:
-            _msg = str(_exc)
-            _safe = (
-                _msg
-                if _msg.startswith("delivery-resolver-unavailable")
-                else "delivery-resolver-unavailable"
+        # VI-1703: if the resolved spec or intent base differs from the
+        # resolver's fixed defaults, the resolver would silently operate on
+        # different paths than the lint. Fail closed with a hard DANGLING
+        # violation so non-delivery checks still run but delivery edges are
+        # not silently dropped.
+        _spec_default = _confined_path(root / Path(*_DEFAULT_BASES["spec"]), root)
+        _intent_default = _confined_path(
+            root / Path(*_DEFAULT_BASES["outcome"]), root
+        )
+        _configured_spec_differs = (
+            bases.get("spec") is not None
+            and _spec_default is not None
+            and bases["spec"] != _spec_default
+        )
+        _configured_intent_differs = (
+            bases.get("outcome") is not None
+            and _intent_default is not None
+            and bases["outcome"] != _intent_default
+        )
+        if _configured_spec_differs or _configured_intent_differs:
+            g.dangling.append(
+                "delivery-resolver-unavailable: configured spec or intent base "
+                "differs from resolver defaults; delivery edges are unavailable"
             )
-            g.dangling.append(_safe)
             _resolver_failed = True
+        else:
+            _effective_provider = (
+                snapshot_provider if snapshot_provider is not None else _run_resolver
+            )
+            try:
+                _raw_snapshot = _effective_provider(root)
+                # Validate dict shape for injected providers; _run_resolver
+                # already validates via _parse_and_validate_snapshot.
+                if snapshot_provider is not None and _raw_snapshot is not None:
+                    _validate_snapshot_dict(_raw_snapshot)
+                _snapshot = _raw_snapshot
+            except ValueError as _exc:
+                _msg = str(_exc)
+                _safe = (
+                    _msg
+                    if _msg.startswith("delivery-resolver-unavailable")
+                    else "delivery-resolver-unavailable"
+                )
+                g.dangling.append(_safe)
+                _resolver_failed = True
 
     # Spec ids that have a delivery relation in the snapshot.  For these specs,
     # delivery edges come from the snapshot; _wire_up receives only non-delivery
     # candidates (Contract:, Parent intent:, contextual-provenance local values).
     _delivery_spec_ids: set[str] = set()
-    # Fix 2: spec IDs mentioned in any delivery diagnostic — excluded from
-    # up-edge wiring and backward-orphan reporting (one break, one class).
+    # Spec IDs mentioned in a qualifying delivery diagnostic (delivery-
+    # projection-mismatch or delivery-reference-unsafe) — added to dangling_in
+    # so they are excluded from backward-orphan reporting (one break, one class).
+    # Component: wiring and other non-delivery checks still run for these specs.
     _delivery_diag_specs: set[str] = set()
-    # Fix 1: per-spec map of fields the snapshot classified as contextual.
-    # The lint reads local text for these fields instead of using provenance `target`.
+    # Per-spec map of fields the snapshot classified as contextual.
+    # The lint reads local text for these fields instead of using provenance
+    # `target`. Provenance `target` values are NOT used as candidates (one
+    # source rule): local text is the single source of truth.
     _contextual_prov: dict[str, set[str]] = {}
 
     if _snapshot is not None:
@@ -1483,17 +1714,18 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                     # Parent intent: wiring below; g.edges is a set, no harm.
                     g.add_edge(_intent_id, _brief_id)
 
-        # Apply snapshot diagnostics with bounded, sanitized output.
-        # Fix 2: collect spec IDs that the resolver placed in a delivery
-        # diagnostic where the spec's delivery status is the reported break.
-        # Two codes qualify — others (e.g. delivery-reference-malformed for a
-        # structural Brief: field) do not indicate a delivery-routing break and
-        # must not suppress structural orphan or dangling reporting:
+        # Apply snapshot diagnostics with sanitized output (all values were
+        # validated by _validate_snapshot_dict, so codes and identifiers are
+        # already grammar-valid).
+        # Collect spec IDs for the two qualifying codes that indicate a
+        # delivery-routing break for the spec itself:
         #   delivery-projection-mismatch — specs listed as `targets` that the
         #     intent claims to deliver but whose routes do not match.
         #   delivery-reference-unsafe   — specs whose Discovery: value resolves
         #     to a delivery intent but cannot be used safely.
-        _delivery_diag_specs: set[str] = set()
+        # Other codes (e.g. delivery-reference-malformed for a structural
+        # Brief: field) do not indicate a delivery-routing break and must not
+        # suppress Component: wiring or structural orphan checks.
         for _diag in _snapshot["diagnostics"]:
             _code = str(_diag.get("code", ""))
             _subject = str(_diag.get("subject", ""))
@@ -1509,7 +1741,7 @@ def build_standalone(root: Path, layout: dict, g: Graph,
             elif _code == "delivery-reference-unsafe" and _subject.startswith("spec:"):
                 _delivery_diag_specs.add(_subject)
 
-            # Build a label that contains only stable codes and bounded ids.
+            # Build a label: codes and identifiers already validated.
             _label_parts = [_code] if _code else ["delivery-diagnostic"]
             if _subject:
                 _label_parts.append(f"subject={_subject}")
@@ -1536,19 +1768,13 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                 if _code in ("delivery-projection-mismatch", "delivery-reference-unsafe"):
                     g.delivery_strict_diagnostics.append(_label)
 
-        # Fix 2: mark delivery-diagnostic specs as dangling_in so they are excluded
-        # from backward-orphan reporting.
+        # Mark delivery-diagnostic specs as dangling_in so they are excluded
+        # from backward-orphan reporting (one break, one class). All other
+        # edge checks (Component:, _wire_up) still run for these specs.
         for _dds in _delivery_diag_specs:
             g.dangling_in.add(_dds)
 
-        # Fix 1: build a map of contextual-provenance fields per spec.  A provenance
-        # record carries the field the resolver classified as contextual (e.g.
-        # "Discovery") but omits or sanitises the unsafe target value; the lint reads
-        # the spec's local field value instead.  This preserves the structural edges
-        # the old local-parsing path provided without treating contextual references as
-        # feature-delivery pointers.  Provenance `target` values are NOT used as
-        # candidates (one source rule): local text is the single source of truth.
-        _contextual_prov: dict[str, set[str]] = {}
+        # Build the contextual-provenance field map per spec.
         for _prov in _snapshot["provenance"]:
             _ps = _prov.get("subject", "")
             _pf = _prov.get("field", "")
@@ -1563,14 +1789,12 @@ def build_standalone(root: Path, layout: dict, g: Graph,
     # delivery edges already came from the snapshot; _wire_up receives only
     # non-delivery candidates so that feature-delivery Discovery:/Brief:
     # pointers are never fed into the local winner-selection path.
-    # Specs named in delivery diagnostics are skipped entirely (Fix 2).
+    # Specs in _delivery_diag_specs keep their dangling_in guard (backward-
+    # orphan suppression) but continue through all edge checks — the `continue`
+    # that used to skip them entirely was the VI-1701 bug.
     # -----------------------------------------------------------------------
     for slug, path in spec_paths.items():
         spec_id = _slug_id("spec", slug)
-
-        # Fix 2: spec already reported via delivery diagnostic; skip all edges.
-        if spec_id in _delivery_diag_specs:
-            continue
 
         text = _read(path) or ""
         for line in text.splitlines():
@@ -1582,8 +1806,8 @@ def build_standalone(root: Path, layout: dict, g: Graph,
         if _snapshot is not None and spec_id in _delivery_spec_ids:
             # Delivery spec: snapshot supplied the delivery edge.  Wire only
             # non-delivery structural candidates — Contract: and Parent intent:
-            # from spec text.  (Fix 1) Contextual-provenance fields are read
-            # locally; provenance `target` is never used as a candidate.
+            # from spec text. Contextual-provenance fields are read locally;
+            # provenance `target` is never used as a candidate.
             # Brief: is excluded: for a delivery spec the brief is captured via
             # coordinated-delivery edges.
             _candidates: list[str] = []
@@ -1591,7 +1815,7 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                 _fval = _first(text, field_re(_label_field))
                 if _fval:
                     _candidates.append(_fval)
-            # Fix 1: add local values for contextual-provenance fields not already
+            # Add local values for contextual-provenance fields not already
             # covered by the delivery candidate set (e.g. "Discovery").
             for _cp_field in _contextual_prov.get(spec_id, set()):
                 if _cp_field not in {"Contract", "Parent intent"}:
@@ -1621,7 +1845,7 @@ def build_standalone(root: Path, layout: dict, g: Graph,
             # retains its structural role.  Discovery: is excluded (removed from
             # _SPEC_UP_FIELDS); only the snapshot may wire feature-delivery edges.
             _nd_candidates: list[str] = list(_spec_up_values(text))
-            # Fix 1: add local values for contextual-provenance fields not already
+            # Add local values for contextual-provenance fields not already
             # covered by _spec_up_values (e.g. "Discovery").
             if _snapshot is not None:
                 for _cp_field in _contextual_prov.get(spec_id, set()):
@@ -1745,11 +1969,21 @@ def _wire(g: Graph, *, origin: str, target: str, local_ids: set[str],
     g.add_edge(origin, resolved)
 
 
-def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
+def check(
+    root: Path,
+    strict: bool,
+    *,
+    snapshot_provider=None,
+) -> tuple[list[str], list[str], int]:
     """Run the lint. Returns (stdout-lines, stderr-violations, exit-hint).
 
     exit-hint: 0 unless a hard violation (dangling/cycle, always) or — under
-    `--strict` — a structural orphan."""
+    `--strict` — a structural orphan.
+
+    ``snapshot_provider`` overrides the module-level ``_delivery_snapshot_provider``
+    seam when supplied.  Tests pass an inline callable here so individual test
+    functions are isolated without mutating module-level state.
+    """
     layout = load_layout(root)
     g = Graph()
 
@@ -1760,9 +1994,14 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
 
     rollup = load_rollup_ids(root, layout)
 
+    _effective_provider = (
+        snapshot_provider
+        if snapshot_provider is not None
+        else _delivery_snapshot_provider
+    )
     if not using_sidecar:
         build_standalone(root, layout, g, rollup,
-                         snapshot_provider=_delivery_snapshot_provider)
+                         snapshot_provider=_effective_provider)
     else:
         # Resolve any cross-repo edge endpoint against the rollup so a federated
         # sidecar's external leaf is a reachability terminus, not a dangling edge.

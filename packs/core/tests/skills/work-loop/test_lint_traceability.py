@@ -1613,7 +1613,7 @@ def test_stdlib_only() -> None:
     import ast
     tree = ast.parse(LINTER.read_text(encoding="utf-8"))
     stdlib = {"__future__", "argparse", "json", "re", "subprocess", "sys",
-              "pathlib", "tomllib", "os", "importlib"}
+              "pathlib", "tomllib", "os", "importlib", "typing"}
     mods: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -1988,10 +1988,6 @@ def test_vi1201_direct_projection_mismatch_informational_default_fail_strict(
             "targets": ["spec:foo", "spec:bar"],
         }],
     }
-
-    out_lines, hard, exit_default = mod.check.__wrapped__(tmp_path, False) if hasattr(
-        mod.check, "__wrapped__"
-    ) else (None, None, None)
 
     # Use build_standalone directly to check delivery_diagnostics.
     g = mod.Graph()
