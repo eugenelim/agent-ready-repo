@@ -228,3 +228,94 @@ The full per-run records are in [`eval-runs.md`](eval-runs.md).
   `outside-roots`; the one successful read is the flat
   `reader-directive-file.txt`. The reader's other read paths are covered by
   the T1 matrix.
+
+## T3 — README, absence scan, and install check (2026-10-06)
+
+### README section (AC-0008, AC-0009, AC-0010)
+
+New `## Repository exploration` section added to `packs/core/README.md`,
+placed immediately after `## Repository grounding`:
+
+- Names `` `repository-exploration` `` as the skill.
+- States: "The skill is optional and caller-invoked — nothing runs it automatically."
+- States: "The caller keeps its own question, stopping rule, and decision."
+- States: "No provider, index, language server, or optional pack is required."
+- States: providers are used "in its own native shape; there is no common schema."
+- States: "The question types and provider shapes the skill documents are illustrative."
+- States: "Path-seeded 'what governs these paths?' questions belong to
+  `repository-grounding`, not here."
+- States: provider-returned locators are read "only through its locator reader."
+- Governance-citation grep over new section: 0 hits (pre-existing illustrative
+  example paths in other sections are unchanged).
+
+New file `packs/core/tests/pack/test_readme_repository_exploration.py` (8 tests).
+All 8 passed: `python3 -m pytest
+packs/core/tests/pack/test_readme_repository_exploration.py -v` — 8 passed in
+0.21s.
+
+**Failsafe verification (two assertions proved fail on removal):**
+
+- `test_readme_states_skill_is_optional_and_caller_invoked`: removing
+  "optional" and "caller-invoked" from the section causes 1 failed in 0.21s.
+- `test_readme_states_locators_read_through_locator_reader`: replacing
+  "locator reader" with "locator handler" causes 1 failed in 0.21s.
+
+README restored after each check.
+
+### Absence scan (AC-0008)
+
+New file `packs/core/tests/pack/test_exploration_consumer_boundary.py` (6
+tests). Subject files: `work-loop/SKILL.md`, `new-spec/SKILL.md`,
+`bug-fix/SKILL.md`, `explain-diff/SKILL.md`, `adversarial-reviewer.md`,
+`quality-engineer.md`, `security-reviewer.md`, `shaping-reviewer.md`,
+`finding-adjudicator.md`. Phrase sets: provider setup, invocation, freshness,
+and fallback from `test_grounding_delegation.py` plus `repository-exploration`
+name check. All 6 tests passed.
+
+**Architect grep (recorded, no test added outside core pack):**
+
+`grep -rnE 'repository-exploration|provider setup|install the provider|
+configure the provider|provider invocation|invoke the provider|call the
+provider|index freshness|index refresh|refresh the index|stale index|
+provider fallback|provider is unavailable|if the provider fails|provider
+identity' packs/architect/.apm/skills/`
+
+Result: 1 hit — `architect-design/SKILL.md:143`: "lacks provider identity" in
+a pre-existing instruction about refusing metadata lacking provenance;
+unrelated to exploration wiring. No hit for `repository-exploration`.
+
+### Install check (AC-0010)
+
+Seven fresh git repositories created under `$TMPDIR/t3-install-<ts>/`,
+one per adapter. Command:
+`PYTHONPATH=packages/agentbundle:packages/credbroker python3 -m agentbundle
+install . --pack core --adapter <surface> --scope repo --output <dir> --yes`
+
+| Surface | Exit | Projected path | repository-grounding | Exploration files | Identity | Reader exit | received: / root: / source: |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| claude-code | 0 | `.claude/skills` | present | 32/32 | byte-identical | 0 | `"fixture.txt"` / fixture-repo path / `"fixture.txt"` |
+| codex | 0 | `.agents/skills` | present | 32/32 | byte-identical | 0 | same |
+| copilot | 0 | `.agents/skills` | present | 32/32 | byte-identical | 0 | same |
+| kiro-ide | 0 | `.kiro/skills` | present | 32/32 | byte-identical | 0 | same |
+| kiro-cli | 0 | `.kiro/skills` | present | 32/32 | byte-identical | 0 | same |
+| cursor | 0 | `.agents/skills` | present | 32/32 | byte-identical | 0 | same |
+| gemini | 0 | `.agents/skills` | present | 32/32 | byte-identical | 0 | same |
+
+32 exploration source files = `SKILL.md` + `scripts/read-locator.py` +
+`evals/evals.json` + 28 `evals/files/**` fixtures + 1 `evals/eval-runs.md`
+(excluded: `__pycache__` files). Grounding files: 24 (unchanged from T3
+grounding record). Reader fixture: `fixture.txt` containing
+"test-fixture-content"; locator b64 = `Zml4dHVyZS50eHQ=`. All installs:
+exit 0, `received: "fixture.txt"`, correct root, `source: "fixture.txt"`.
+Scratch directories deleted after recording.
+
+### Gates (AC-0010)
+
+- `python3 -m pytest packs/core/tests/pack/ -q` — **293 passed** in 44.69s.
+- `python3 -m pytest packs/core/tests/skills/repository-exploration/ -q` —
+  **38 passed** in 0.45s.
+- `python3 tools/lint-pack-test-boundary.py` — **passed** (8 cases).
+- `make lint-ruff lint-mypy` — **passed** (no issues in 155 source files).
+- `PYTHONPATH=packages/agentbundle:packages/credbroker python3 -m agentbundle
+  catalogue lint --root . --deep` — **ok** (73 pre-existing warnings, zero
+  errors).
