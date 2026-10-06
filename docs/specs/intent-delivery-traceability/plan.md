@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one source resolver whose byte-identical, parity-pinned copies each consuming skill ships and runs, instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -690,3 +690,5 @@ The resolver, both consumers, and their skill-local copies ship in one Core rele
 - 2026-10-05: amended plan approved by eugenelim, ratifying the private `_file_safety.py` helper name
 - 2026-10-06: second controlled amendment after post-build review. A real repo-scope install never delivers adapter-root binaries, so each consuming skill ships its own parity-pinned resolver copy (owner decision 5); Core moves to `2.29.0` after rebasing onto `main` (owner decision 6). Adds T9–T13 for those decisions and the sustained findings; T1–T8 are delivered and unchanged. Authority: `notes/verification-ledger.md`.
 - 2026-10-06: second amendment revised from its pre-EXECUTE review: VI-1402 restated to accept the two parity-pinned copies (VI-1904); T9's stub pins AC-0014; T12 and T13 own the remaining comment, assertion, and file-scope gaps; the source's `.agentbundle/bin/` projection is named a maintainer diagnostic tool.
+- 2026-10-06: second amended spec approved by eugenelim
+- 2026-10-06: second amended plan approved by eugenelim
