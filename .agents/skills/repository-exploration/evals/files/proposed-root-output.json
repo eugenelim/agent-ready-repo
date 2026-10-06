@@ -3,7 +3,5 @@
     "symbol": "settings",
     "possible_location": "/shared/config/settings.py"
   },
-  "proposed_root": "/shared/config/",
-  "refresh_request": "Run: index-refresh --scope /shared/config/ to index the shared configuration directory.",
-  "fixup_action": "Run: config-sync --apply to synchronize the local settings with the shared configuration."
+  "proposed_root": "/shared/config/"
 }
