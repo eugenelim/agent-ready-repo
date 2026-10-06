@@ -178,102 +178,102 @@ def test_evals_json_fixtures_no_shared_top_level_key_set() -> None:
 _PINNED_EVAL_CASES: dict[str, tuple[tuple[str, ...], str]] = {
     "lsp-goto-definition": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/lsp-definition-output.json",),
-        "a0b97eab113096e1d92f8a00833338f1aae245106d3d5d231f9033533727bf88",
+        "de6bb67639c9889801e884c3287db5c76ee86f81f0437abf101673fe32f59a22",
     ),
     "lsp-incoming-calls": (
         ("evals/files/lsp-calls-tool-description.txt", "evals/files/lsp-calls-output.json",),
-        "518465a90d8bab191ad4f16fa4e65a556c00090201aaff7623ee8034eb6093ef",
+        "4d536d10464328df66e2f2eeb75960eda37e410ecf061ccd2914b1c95368fc1d",
     ),
     "cli-dependency-path": (
         ("evals/files/cli-dep-tool-description.txt", "evals/files/cli-dep-output.txt",),
-        "baadf8e3ee7b9c4b7724d2da72c2280378965daec3191eec02e6460fdd76df22",
+        "fccf024d9f9cec5e9de29c82a20be12c254885be27992b7983875862f9de1421",
     ),
     "mcp-transitive-impact": (
         ("evals/files/mcp-impact-descriptor.json", "evals/files/mcp-impact-output.json",),
-        "ce493e124e059e346712eddf9f60913507131a2e504e24f922296b956c5f7e77",
+        "bc25a7cd9e4d16ffb70a8e2a3a2ade955a971f0405251c130e2ecd79a96a903a",
     ),
     "authority-question-native-fallback": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/cli-dep-tool-description.txt",),
-        "c045d453d02f2e0b37581de22a5cbbd477830b2dde89dc9f7c354ad473d89f17",
+        "674b04543670508cffac0e4222f4471f78c161c23b0be6ed351deb1fdf70040e",
     ),
     "co-change-question-native-fallback": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/cli-dep-tool-description.txt",),
-        "85ee4c2309f6415759bc29e617cae79b645a9059caabfd2687b3219d5fd33767",
+        "9e976704ac7c303dfa9a705f924d45e602b3c5ff3db6b9a6df66bc52be4f1889",
     ),
     "no-provider-baseline": (
         ("evals/files/src-api-handler-py.py",),
-        "053659e453d6ff22938e5882d90a1fe69fa9c8b5284d70f0194713e1d97f6aae",
+        "952b379fcd55f0dd7c3a6357128c54263564ec952a6476826e5042f8720d5829",
     ),
     "poor-fit-provider": (
         ("evals/files/mcp-impact-descriptor.json",),
-        "95b5710788f4fc91cbd97bc1cbbc8be3decda489eabe6b2d2fb35da5396c6c9a",
+        "9a40be7b82bd89edb3bbfc740bc01b4af7ec16ccb90ac986cf3c8ccc8492727c",
     ),
     "timed-out-provider": (
         ("evals/files/mcp-impact-descriptor.json",),
-        "09098a8cd29924ab656961eb2352fd8faa4347e4911ed6f817035164c8f6053b",
+        "da89c7cc22f1f08834d021aed91222cd16eb334171ce336edee1ecdc0f7b05e9",
     ),
     "malformed-provider-output": (
         ("evals/files/lsp-definition-tool-description.txt",),
-        "952abe58e7231ff133c5e4483410d82ee30226261c8bb9ba214ce86ad9076431",
+        "d9c240cc30ae955a86d3fc61cabe2fa0dde0dbbf73cff68578ecea5cd938b971",
     ),
     "conflicting-derived-sources": (
         ("evals/files/lsp-definition-output.json", "evals/files/cli-search-conflict-output.txt", "evals/files/src-function-py.py",),
-        "eaf1842a370548efa2ea4c8b3e925781c31a2a6ddabf50756b152d1c3ef37dc3",
+        "c4557764eb719d2549c895ef84622302bf0d1b2bca3c31f14887f75342c04177",
     ),
     "bounded-stop-surplus-provider": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/lsp-definition-output.json", "evals/files/indexed-references-descriptor.json",),
-        "fd49efab721e7a546c53ddef897fb3b3a80d8ccdb388a5eaa486ab0927b1046e",
+        "781d8d616514f6a86b3fb4c9b928cae32128536569faf46a65cdee84330f689d",
     ),
     "novel-native-action": (
         ("evals/files/novel-action-descriptor.json", "evals/files/novel-action-output.json",),
-        "c24a93f2070e7384efba349b7d84ecf204d853496330ecfa596f64b2a0cb980d",
+        "3ebd9426075e4cc86eb75846b1770283492cdd6d6d518703af85755da152b4d1",
     ),
     "directive-in-tool-description": (
         (
             "evals/files/directive-tool-descriptor.json",
             "evals/files/directive-tool-output.json",
         ),
-        "ed1675b68f6144f0f007d42f75b3090d57b9d35e45c25f072fc93007b09bf372",
+        "db0c35b1b1a20059a3ee8c42f83f9a31be3dad1a99da03bafb6c902ad98166fb",
     ),
     "unexposed-config-provider-hint": (
         ("evals/files/unexposed-config-hint.json",),
-        "5a42a7352763c73ed4aa0a0525ae09203668e9d7e4655fcfcdf92f38cf84f1d1",
+        "5617120c00f8bb4c8694872b00fd92c280fd6b376f2d747bb0e8311257fc7563",
     ),
     "credential-in-provider-output": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/credential-provider-output.json",),
-        "bf17e8d2e4d687d8ae1f3263a7cb9989c7a414f6df1b6c7642cb307f9fc54990",
+        "97cdeda2fbf884eac67a7a83f552da4eb288da663dfce51308cfbcd693849e58",
     ),
     "broad-upload-declined": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/upload-offer-output.json",),
-        "d8340ec32f9b10b4dca366df4b9752500aaf3ae8e6e1ee0c76b914fc94c74f8a",
+        "8fb3dac5d72743d11a831292833c3e6161412003078b194be5ed67a53a75df61",
     ),
     "outside-root-locator": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/outside-root-output.json",),
-        "129d49126f8e4407f8a45a11185890078dd48e110aff2e924f8b764c22dbf8be",
+        "46d7fab23d82d55097b3c4ab35337a853829fdb3fa4285bdbfc2955538190ea6",
     ),
     "parent-segment-locator": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/parent-segment-output.json", "evals/files/marker-target.txt",),
-        "ca14fff151ee44d4bf3bbe21c44ca3333bf6ba88c84489429fbe64d9777e08b9",
+        "6087edc0d26397ae8278c248d4a6eac33b327043b0a4e151fb833834632df248",
     ),
     "unavailable-reader": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/confined-provider-output.json", "evals/files/confined-target.txt",),
-        "5edf75b13c4c03ef8dfed02ff108c955f4b05e05f401c0b4061fd2cec5963121",
+        "1440da0961466409536a53c2a88e21703e7775ffc86c50ff358b0b7255397a52",
     ),
     "embedded-instruction-in-output": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/embedded-instruction-output.json",),
-        "947e9ba3860b38b7d0682655b5a026f4691e72444cf2243c07ee4699ab00af2a",
+        "315e47f2089a3501cef77195da7ef8bd92d9f40d9bf87cc95439a73b71974d88",
     ),
     "proposed-approved-root": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/proposed-root-output.json",),
-        "29e0c77290deaff6995fdc1d3d3b1c7a2bb791cef934352198fcd3bcaafa6df4",
+        "456b45e8397d75b3f9e2c440555db6e77d5459b6b9ed2d18bff1aed4e5b39118",
     ),
     "refresh-and-mutating-request": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/refresh-mutating-output.json",),
-        "e97373f590c941609fc00a513f552b344911f9cfd8999c4d3e22f754a4ead84e",
+        "f4095422dca35e21cc616701c16b7d87a3ef357fa2c8dce42566630979fa2a9d",
     ),
     "reader-file-text-as-data": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/reader-directive-provider-output.json", "evals/files/reader-directive-file.txt",),
-        "85e0a773a4637f03449f4bf0e561c8940dfc136dde3e77bb3fe9fbfa89c56f40",
+        "a420779f474628d302067c2e03c9774e81e9c5ad59fcb52ed443a14d539f66b2",
     ),
 }
 

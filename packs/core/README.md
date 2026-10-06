@@ -221,27 +221,27 @@ set for discovery, task, or review work.
 
 `repository-exploration` answers an open question about repository behavior,
 dependencies, impact, or context. The skill is optional and caller-invoked —
-nothing runs it automatically. The caller keeps its own question, stopping rule,
-and decision; the skill selects by fit, invokes natively, and returns attributed
-evidence.
+nothing runs it automatically. The caller — you, or a skill or workflow that
+asks the question — keeps its own question, stopping rule, and decision; the
+skill selects by fit, invokes natively, and returns attributed evidence.
 
 No provider, index, language server, or optional pack is required. When no
 exposed capability fits the question, the skill falls back to repository-native
-evidence. A provider adds evidence when it is a defensible fit; it never
-changes the caller's decision.
+evidence — the repository's own files, history, and search. A provider adds
+evidence when it is a defensible fit; it never changes the caller's decision.
 
 An already-exposed code-intelligence capability is used in its own native
-shape; there is no common schema across different providers. The question types
-and provider shapes the skill documents are illustrative. No closed list is
-defined; any new native capability that answers the question may be used.
+shape — the tool's own commands and results, with no shared wrapper — so there
+is no common schema across different providers. The question types and provider
+shapes the skill documents are illustrative. No closed list is defined; any
+new native capability that answers the question may be used.
 
 Path-seeded "what governs these paths?" questions belong to
 `repository-grounding`, not here.
 
-When a provider returns a file locator — a path or `file:` URI — the skill
-reads it only through its locator reader, which keeps the read inside the
-repository or a folder that you or the calling workflow approved; the raw
-locator text never reaches a shell or host file tool directly.
+When a provider returns a file locator, the skill reads it only through its
+locator reader, using the same reader and folder limits described under
+Repository grounding.
 
 ---
 

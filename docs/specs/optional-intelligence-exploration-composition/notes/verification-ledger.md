@@ -108,6 +108,58 @@ observed, not what the contract requires.
   fields, locator reader instruction, provider-output-is-data, grounding named
   for path questions).
 
+### Review repair round 1 (post-gates, 2026-10-06)
+
+Repairs from the sustained post-gates adversarial, quality-engineer, and
+experience-reviewer findings. Three red proofs recorded here; gates re-run
+after each restore.
+
+**Red proof 1 — Ask-first list complete (`test_skill_ask_first_list_complete`):**
+Temporarily removed `"calling a hosted service beyond existing authority, "` from
+the SKILL.md Ask-first line; `test_skill_ask_first_list_complete` failed
+(`1 failed in 0.30s`, AssertionError at line 775). Phrase restored; test green.
+
+**Red proof 2 — Procedure order (`test_skill_procedure_steps_present`):**
+Temporarily removed step 5 (`5. **Keep caveats.** …`) from SKILL.md §Procedure;
+`test_skill_procedure_steps_present` failed (`1 failed in 0.38s`, AssertionError
+at line 578: phrase `"keep caveats"` not found in § Procedure). Step restored; test green.
+
+**Red proof 3 — CLI ceiling forwarding (`test_cli_ceiling_forwarded_by_main`):**
+Temporarily removed `max_bytes=MAX_PROVIDER_READ_BYTES` from `gr.main(argv, …)`
+in `scripts/read-locator.py`; `test_cli_ceiling_forwarded_by_main` failed
+(`1 failed`, `AssertionError: Expected exit 3 for oversize file, got 0`).
+Grounding's default 2 MB ceiling applied instead of the monkeypatched 16 bytes,
+so the 17-byte file was read (exit 0) rather than refused. Argument restored; test green.
+
+**Files changed in repair round 1:**
+- `packs/core/.apm/skills/repository-exploration/SKILL.md`: wording (`none becomes
+  a phase` → `no tool is ever a required step`); Ask-first list widened to include
+  `uploading content` and `calling a hosted service beyond existing authority`.
+- `packs/core/.apm/skills/repository-exploration/evals/evals.json`: five prompts
+  neutralized (conflicting-derived-sources, outside-root-locator, parent-segment-
+  locator, proposed-approved-root, unavailable-reader); two assertions added to all
+  24 cases (AC-0001 and AC-0007 graders).
+- `packs/core/tests/skills/repository-exploration/test_exploration_reader.py`:
+  `_PROCEDURE_STEPS` replaced with `_PROCEDURE_STEP_PHRASES`; `test_skill_procedure_steps_present`
+  scoped to § Procedure and made order-checking; `test_skill_locator_read_through_reader_script`
+  and `test_skill_provider_output_is_data` scoped to their sections; 11 new tests added
+  (no-preferred-class, locator-section root source, locator-section finality, provider-output
+  file-text, three cannot-rules, ask-first-complete, CLI ceiling, CLI read buffer/order).
+- `packs/core/tests/skills/repository-exploration/test_exploration_evals.py`: all 24
+  pinned assertion digests updated.
+- `packs/core/README.md`: glosses added for caller, native shape, repository-native
+  evidence; locator paragraph condensed to one sentence.
+- `docs/specs/optional-intelligence-exploration-composition/notes/verification-ledger.md`:
+  pre-rebase SHA corrected; T2 fixture count corrected to 29; T3 file breakdown corrected.
+
+**Gate result after repair round 1:**
+- `pytest packs/core/tests/skills/repository-exploration/ packs/core/tests/pack/ -q`:
+  340 passed (47 skill + 293 pack).
+- `make lint-ruff lint-mypy`: passed (155 source files, no issues).
+- `python3 tools/lint-pack-test-boundary.py`: passed (8 cases).
+- `agentbundle catalogue lint --root . --deep`: ok (75 pre-existing warnings, zero errors).
+- Governance-citation grep over skill dir and README exploration section: zero new hits.
+
 ### Governance citation scan
 
 - `grep -rnE '(RFC|ADR)-0[0-9]{3}|AC-?[0-9]+|docs/(specs|rfc|adr|contracts)/'` over
@@ -136,7 +188,7 @@ observed, not what the contract requires.
   must-call-first / approved-root / refresh directives); `proposed-approved-root` (locator
   refusal and proposed-root reporting) plus `refresh-and-mutating-request` (AC-0014,
   provider requests index refresh and mutating fixup).
-- **28 fixture files** in `evals/files/`:
+- **29 fixture files** in `evals/files/`:
   - 18 JSON fixtures (all with distinct parsed top-level key sets): `lsp-definition-output.json`
     ({result, method}), `lsp-calls-output.json` ({from, fromRanges}), `mcp-impact-descriptor.json`
     ({tools}), `mcp-impact-output.json` ({impacted_files, traversal_depth, depth_cut_note}),
@@ -217,7 +269,7 @@ The full per-run records are in [`eval-runs.md`](eval-runs.md).
   passed`, exit 0, operator-attested.
 - **Fixture repair.** `directive-in-tool-description` first failed its
   selection-by-fit assertion: the case shipped a descriptor but no tool
-  result, so no session could invoke the tool. Commit `5bb85b180` adds
+  result, so no session could invoke the tool. Commit `9b39e930e` adds
   `directive-tool-output.json`; the rerun in a fresh workspace passed all four
   assertions.
 - **Markers.** `EXPLO-MARKER-A3F7D2B1` (`parent-segment-locator`) and
@@ -302,8 +354,9 @@ install . --pack core --adapter <surface> --scope repo --output <dir> --yes`
 | gemini | 0 | `.agents/skills` | present | 32/32 | byte-identical | 0 | same |
 
 32 exploration source files = `SKILL.md` + `scripts/read-locator.py` +
-`evals/evals.json` + 28 `evals/files/**` fixtures + 1 `evals/eval-runs.md`
-(excluded: `__pycache__` files). Grounding files: 24 (unchanged from T3
+`evals/evals.json` + 29 `evals/files/**` fixtures
+(excluded: `__pycache__` files, `evals/eval-runs.md` is not a projected source).
+Grounding files: 24 (unchanged from T3
 grounding record). Reader fixture: `fixture.txt` containing
 "test-fixture-content"; locator b64 = `Zml4dHVyZS50eHQ=`. All installs:
 exit 0, `received: "fixture.txt"`, correct root, `source: "fixture.txt"`.
