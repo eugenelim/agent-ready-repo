@@ -1073,7 +1073,15 @@ def _build_descendant_closure(
             snap = _get_snapshot()
             feat_id = f"intent:{parent_slug}"
             _artifacts = snap["artifacts"]
-            # AC-0012: own-subject delivery diagnostics block closure.
+            # Reverse map for resolving path-form targets to identifiers.
+            _path_to_id: dict[str, str] = {v: k for k, v in _artifacts.items()}
+            # All known feature intent identifiers from the snapshot's classifications.
+            _feature_intent_ids: set[str] = {
+                cl.get("intent", "")
+                for cl in snap["classifications"]
+                if isinstance(cl, dict) and cl.get("intent")
+            }
+            # A feature with its own delivery diagnostic cannot proceed to closure.
             for _diag in snap["diagnostics"]:
                 if (
                     _diag.get("subject") == feat_id
@@ -1082,10 +1090,11 @@ def _build_descendant_closure(
                     raise _ClosureDeliveryRefusal(
                         f"delivery-diagnostic: {_diag['code']}"
                     )
-            # AC-0020: brief-subject diagnostics refuse every brief-route feature.
-            # Spec-subject Brief: field diagnostics refuse the feature whose brief
-            # the diagnostic's ambiguous targets name (or every brief-route feature
-            # when no named target maps to this feature's brief).
+            # A brief-subject diagnostic means the brief cannot be validated, so
+            # every brief-route feature it could belong to is refused. An ambiguous
+            # spec Discovery: names which brief-route feature intents to refuse. A
+            # broken spec Brief: field names which feature via the brief's Parent
+            # intent:, or refuses every brief-route feature when none resolve.
             _brief_route_codes: frozenset[str] = (
                 _DELIVERY_DIAGNOSTIC_CODES | frozenset({"delivery-reference-unsafe"})
             )
@@ -1099,6 +1108,25 @@ def _build_descendant_closure(
                     # Any delivery diagnostic on a brief subject refuses every
                     # brief-route feature — the brief cannot be validated.
                     raise _ClosureDeliveryRefusal(_code)
+                if (
+                    _subject.startswith("spec:")
+                    and _field == "Discovery"
+                    and _code == "delivery-relation-ambiguous"
+                ):
+                    # An ambiguous spec Discovery: refuses each named target that is a
+                    # feature intent regardless of route; normalize path-form targets
+                    # to identifiers through the artifacts map before matching.
+                    _targets = _diag.get("targets") or []
+                    _named_feat_intents_b: list[str] = []
+                    for t in _targets:
+                        if not isinstance(t, str):
+                            continue
+                        if t in _feature_intent_ids:
+                            _named_feat_intents_b.append(t)
+                        elif t in _path_to_id and _path_to_id[t] in _feature_intent_ids:
+                            _named_feat_intents_b.append(_path_to_id[t])
+                    if _named_feat_intents_b and feat_id in _named_feat_intents_b:
+                        raise _ClosureDeliveryRefusal(_code)
                 if _subject.startswith("spec:") and _field == "Brief":
                     if _code in (
                         "delivery-reference-unsafe",
@@ -1107,24 +1135,26 @@ def _build_descendant_closure(
                     ):
                         raise _ClosureDeliveryRefusal(_code)
                     if _code == "delivery-relation-ambiguous":
-                        # Named targets that belong to this feature's brief.
+                        # Map each named brief to its feature via coordinated-delivery
+                        # relations; refuse when this feature is named, or when none
+                        # of the named briefs resolves to any feature intent.
                         _targets = _diag.get("targets") or []
-                        _this_feat_briefs: set[str] = {
-                            rel.get("brief", "")
-                            for rel in snap["relations"]
-                            if (
-                                rel.get("type") == "coordinated-delivery"
-                                and rel.get("intent") == feat_id
-                                and rel.get("brief", "").startswith("brief:")
-                            )
-                        }
-                        _named_in_this_feat = [
-                            t for t in _targets
-                            if isinstance(t, str) and t in _this_feat_briefs
-                        ]
-                        if _named_in_this_feat or not [
-                            t for t in _targets if isinstance(t, str)
-                        ]:
+                        _brief_to_feats: dict[str, set[str]] = {}
+                        for _rel in snap["relations"]:
+                            if _rel.get("type") == "coordinated-delivery":
+                                _bref = _rel.get("brief", "")
+                                _iref = _rel.get("intent", "")
+                                if _bref and _iref:
+                                    _brief_to_feats.setdefault(_bref, set()).add(_iref)
+                        _named_features: set[str] = set()
+                        for t in _targets:
+                            if isinstance(t, str):
+                                _named_features.update(_brief_to_feats.get(t, set()))
+                        if _named_features:
+                            if feat_id in _named_features:
+                                raise _ClosureDeliveryRefusal(_code)
+                        else:
+                            # None of the named briefs resolves to a feature intent.
                             raise _ClosureDeliveryRefusal(_code)
             seen_brief_slugs: set[str] = set()
             for rel in snap["relations"]:
@@ -1174,7 +1204,7 @@ def _build_descendant_closure(
             snap = _get_snapshot()
             feat_id = f"intent:{parent_slug}"
             _artifacts = snap["artifacts"]
-            # AC-0012: own-subject delivery diagnostics block closure.
+            # A feature with its own delivery diagnostic cannot proceed to closure.
             for _diag in snap["diagnostics"]:
                 if (
                     _diag.get("subject") == feat_id
@@ -1183,14 +1213,16 @@ def _build_descendant_closure(
                     raise _ClosureDeliveryRefusal(
                         f"delivery-diagnostic: {_diag['code']}"
                     )
-            # AC-0020: spec-subject Discovery: field diagnostics refuse every
-            # spec-route feature (or only the named feature intent for ambiguous
-            # references where the targets are all feature intents).
+            # A spec with a broken Discovery: field may prevent closing any feature
+            # that could belong to it. The refusal set depends on the diagnostic code
+            # and whether specific feature intents are named as targets.
             _feature_intent_ids: set[str] = {
                 cl.get("intent", "")
                 for cl in snap["classifications"]
                 if isinstance(cl, dict) and cl.get("intent")
             }
+            # Reverse map for resolving any path-form targets to identifiers.
+            _path_to_id_s: dict[str, str] = {v: k for k, v in _artifacts.items()}
             for _diag in snap["diagnostics"]:
                 _code = _diag.get("code", "")
                 _subject = _diag.get("subject", "")
@@ -1207,14 +1239,19 @@ def _build_descendant_closure(
                     "delivery-reference-malformed",
                     "delivery-target-missing",
                 ):
-                    # Indeterminate Discovery: refuses every spec-route feature.
+                    # An indeterminate Discovery: target refuses every spec-route feature.
                     raise _ClosureDeliveryRefusal(_code)
                 if _code == "delivery-relation-ambiguous":
                     _targets = _diag.get("targets") or []
-                    _named_feat_intents = [
-                        t for t in _targets
-                        if isinstance(t, str) and t in _feature_intent_ids
-                    ]
+                    # Normalize path-form targets to identifiers through the artifacts map.
+                    _named_feat_intents = []
+                    for t in _targets:
+                        if not isinstance(t, str):
+                            continue
+                        if t in _feature_intent_ids:
+                            _named_feat_intents.append(t)
+                        elif t in _path_to_id_s and _path_to_id_s[t] in _feature_intent_ids:
+                            _named_feat_intents.append(_path_to_id_s[t])
                     if _named_feat_intents:
                         # Only refuse features explicitly named as targets.
                         if feat_id in _named_feat_intents:
@@ -1645,15 +1682,13 @@ def resolve_intent_ancestors(
 
         # Non-feature Discovery: references from contextual-provenance records.
         # A spec whose Discovery: names a non-feature intent contributes that
-        # intent as an ancestor via the provenance record.  The resolver stores
-        # the resolved intent identifier in the ``intent`` field; fall back to
-        # ``target`` when ``intent`` is absent (older record shape).  Path-form
-        # targets are no longer stored by the resolver (T2); the branch is
-        # removed to keep this function consistent with the canonical snapshot.
+        # intent as an ancestor via the provenance record. The resolver stores
+        # the resolved intent identifier in the ``intent`` field; following only
+        # that field ensures the path form and the identifier form of the same
+        # reference yield the same ancestor.
         for prov in snap["provenance"]:
             if prov.get("subject") == spec_id and prov.get("field") == "Discovery":
-                # Prefer the resolved intent identifier stored in ``intent``.
-                intent_ref = prov.get("intent", "") or prov.get("target", "")
+                intent_ref = prov.get("intent", "")
                 if intent_ref.startswith("intent:"):
                     prov_slug = intent_ref[len("intent:"):]
                     if prov_slug not in seen_feature_slugs and prov_slug not in visited_slugs:

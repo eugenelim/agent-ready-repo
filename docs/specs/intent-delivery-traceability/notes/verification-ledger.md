@@ -132,3 +132,20 @@ self-host projection was the only route that delivered it.
 
 These settle the two indeterminate entries in the 2026-10-06 post-gates
 adjudications (`adversarial-reviewer` 1 and 4, `quality-engineer` 1).
+
+## 2026-10-06 — T11 stub went green before T11 production code
+
+The T11 stub (`test_ac0020_path_form_ambiguous_discovery_refuses_named_feature`)
+earned its red on 2026-10-06 during planning, against the tree before T10.
+T10 then made the resolver emit only canonical diagnostic targets, which
+changed the snapshot this stub feeds to close-work; when T11 started, the stub
+already passed. It was materialized byte-identical and kept as the AC-0020
+path-form regression.
+
+Run against close-work as it stood before T11, two of the 17 tests T11 added
+in `test_closure_t11_vi.py` fail, and they are the two under-refusals the
+post-build review found: an ambiguous `Discovery:` naming a `brief`-route
+feature (`test_named_brief_route_feature_is_refused`), and an ambiguous
+`Brief:` whose named briefs do not resolve
+(`test_no_resolving_target_refuses_every_brief_route_feature`). The other 15
+pass on that tree because T5–T10 already delivered the behaviour they pin.
