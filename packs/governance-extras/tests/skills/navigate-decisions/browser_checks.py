@@ -2304,6 +2304,35 @@ _LABEL_GEOMETRY_JS = """(scope) => {
             own: own ? dist(own.pts, x, y) : null, other}; });
 }"""
 
+_HARD_CROSSINGS_JS = """(scope) => {
+  const svg = document.querySelector(scope);
+  const plates = [...svg.querySelectorAll('rect')].filter(r =>
+    r.nextSibling && r.nextSibling.classList && r.nextSibling.classList.contains('edge-label'));
+  const out = [];
+  for (const p of svg.querySelectorAll('path[data-trunk], path[data-sat]')) {
+    if (getComputedStyle(p.closest('g')).display === 'none') continue;
+    const n = p.getTotalLength();
+    for (let s = 0; s <= n; s += 1) { const q = p.getPointAtLength(s);
+      for (const r of plates) { if (r.nextSibling.dataset.for === p.dataset.rel) continue;
+        const b = r.getBBox();
+        const inX = q.x > b.x + 0.5 && q.x < b.x + b.width - 0.5;
+        if (inX && q.y > b.y + 0.5 && q.y < b.y + b.height - 0.5) {
+          out.push({line: p.dataset.trunk || p.dataset.sat, label: r.nextSibling.textContent});
+          s = n + 1; break; } } } }
+  return out; }"""
+
+_NEAREST_END_JS = """(scope) => {
+  const svg = document.querySelector(scope);
+  const ends = [...svg.querySelectorAll('path[data-rel][marker-end]')].map(p => {
+    const e = p.getPointAtLength(p.getTotalLength());
+    return {rel: p.dataset.rel, x: e.x, y: e.y}; });
+  return [...svg.querySelectorAll('.edge-label[data-for]')].map(t => {
+    const x = +t.getAttribute('x'), y = +t.getAttribute('y');
+    const near = ends.map(e => [Math.hypot(e.x - x, e.y - y), e.rel])
+      .sort((a, b) => a[0] - b[0])[0];
+    return {own: t.dataset.for, nearest: near && near[1], text: t.firstChild.textContent}; });
+}"""
+
 _RINGS_JS = """(scope) => [...document.querySelectorAll(scope + ' .sup-ring')].map(r => {
   const b = r.getBBox(); return {x: b.x, y: b.y, w: b.width, h: b.height}; })"""
 
@@ -2318,6 +2347,12 @@ def _assert_labels_sound(page: object, scope: str, where: str) -> list[dict]:
     for ring in page.evaluate(_RINGS_JS, scope):  # type: ignore[union-attr]
         for plate in geo["plates"]:
             assert not _hit(plate, ring), (where, "plate overlaps a supersession ring", plate)
+    crossings = page.evaluate(_HARD_CROSSINGS_JS, scope)  # type: ignore[union-attr]
+    assert crossings == [], (
+        where,
+        "a bus, satellite or contextual line crosses a plate",
+        crossings,
+    )
     labels = page.evaluate(_LABEL_GEOMETRY_JS, scope)  # type: ignore[union-attr]
     for label in labels:
         assert label["own"] is not None, (where, "label names no drawn edge", label)
@@ -2370,6 +2405,10 @@ def test_crowded_labels_stay_on_their_own_edges(
     _navigate_graph(page, selected)
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", selected)
+    # Each label sits nearest an arrowhead at the record its own edge points at.
+    for near in page.evaluate(_NEAREST_END_JS, "#view-graph .lineage-wrap svg"):
+        target = near["own"].split("|")[2]
+        assert near["nearest"].split("|")[2] == target, (selected, "label by another record", near)
     markers = [x for x in labels if x["text"].isdigit()]
     key = page.evaluate(
         "() => [...document.querySelectorAll('#view-graph .lineage-key li')]"
@@ -2606,33 +2645,105 @@ def test_an_incoming_assertion_points_at_the_selected_record(
 def test_shown_contextual_links_never_cross_a_label(
     browser: object, tmp_path_factory: pytest.TempPathFactory
 ) -> None:
-    """With contextual links shown, they hang off the bus, add their height
-    only then, and never cross a label or sit nearer it than its own edge."""
+    """Contextual links hang off the bus: hidden, they reserve no height; shown,
+    the canvas grows to hold them, no bus or contextual line crosses a label,
+    and the toggle, above the diagram, does not move on screen."""
+    peers = "; ".join(f"ADR-00{k}" for k in range(10, 16))
+    records = [
+        (
+            1,
+            "Base",
+            "- **Status:** Accepted\n- **Superseded in part:** ADR-0002 D1; ADR-0003 D2\n"
+            f"- **Related:** {peers}\n",
+        ),
+        (2, "New", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D1\n"),
+        (3, "Newer", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D2\n"),
+    ] + [(k, f"Peer {k}", "- **Status:** Accepted\n") for k in range(10, 16)]
+    export = _publish_with(tmp_path_factory, "ctx_shown", records, [])
+    page = _satellite_page(browser, export, "ADR-0001")
+    height = (
+        "() => +document.querySelector('#view-graph .lineage-wrap svg').getAttribute('height')"
+    )
+    top = "() => document.querySelector('button.ctx-toggle').getBoundingClientRect().top"
+    hidden = page.evaluate(height)
+    rows = page.evaluate(
+        "() => Math.max(...[...document.querySelectorAll('#view-graph [data-node-id] rect')]"
+        ".map(r => r.getBBox().y + r.getBBox().height))"
+    )
+    assert hidden <= rows + 60, (hidden, rows)  # no room is held for hidden peers
+    page.focus("button.ctx-toggle")
+    before = page.evaluate(top)
+    page.keyboard.press("Enter")
+    shown = page.evaluate(height)
+    assert shown > hidden, (hidden, shown)
+    assert abs(page.evaluate(top) - before) < 1, "the toggle moved when links were shown"
+    _assert_satellites_clear(page, "contextual shown")
+    page.keyboard.press("Enter")
+    assert page.evaluate(height) == hidden
+    assert abs(page.evaluate(top) - before) < 1, "the toggle moved when links were hidden"
+
+
+def test_an_in_chain_assertion_never_runs_on_the_contextual_bus(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """With contextual links but no satellites, an in-chain assertion still
+    keeps out of the bus's row gap once the links are shown."""
     export = _publish_with(
         tmp_path_factory,
-        "ctx_shown",
+        "ctx_in_chain",
         [
             (
                 1,
                 "Base",
-                "- **Status:** Accepted\n- **Superseded in part:** ADR-0002 D1\n"
-                "- **Related:** ADR-0003\n",
+                "- **Status:** Superseded\n- **Superseded by:** ADR-0003; ADR-0004\n"
+                "- **Related:** ADR-0009\n",
             ),
-            (2, "New", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D1\n"),
-            (3, "Peer", "- **Status:** Accepted\n"),
+            (3, "Three", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+            (4, "Four", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+            (9, "Peer", "- **Status:** Accepted\n"),
+        ],
+        [{"from": "ADR-0001", "to": "ADR-0004", "text": "in chain"}],
+    )
+    page = _satellite_page(browser, export, "ADR-0001")
+    page.click("button.ctx-toggle")
+    _assert_satellites_clear(page, "contextual with an in-chain assertion")
+
+
+def test_a_two_record_cycle_labels_both_relationships(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """Each relationship of a two-record cycle has its own `cycle` label, or a
+    keyed number, on its own arc."""
+    export = _publish_with(
+        tmp_path_factory,
+        "two_cycle",
+        [
+            (
+                1,
+                "One",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0002\n"
+                "- **Superseded by:** ADR-0002\n",
+            ),
+            (
+                2,
+                "Two",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"
+                "- **Superseded by:** ADR-0001\n",
+            ),
         ],
         [],
     )
     page = _satellite_page(browser, export, "ADR-0001")
-    before = page.evaluate(
-        "() => document.querySelector('#view-graph .lineage-wrap svg').getAttribute('height')"
+    per_rel = page.evaluate(
+        """() => { const svg = document.querySelector('#view-graph .lineage-wrap svg');
+          return [...svg.querySelectorAll('path[data-rel]')].map(p => ({rel: p.dataset.rel,
+            labels: [...svg.querySelectorAll('.edge-label')]
+              .filter(t => t.dataset.for === p.dataset.rel).map(t => t.textContent)})); }"""
     )
-    page.click("button.ctx-toggle")
-    after = page.evaluate(
-        "() => document.querySelector('#view-graph .lineage-wrap svg').getAttribute('height')"
-    )
-    assert float(after) >= float(before), (before, after)
-    _assert_satellites_clear(page, "contextual shown")
+    assert len(per_rel) == 2, per_rel
+    for rel in per_rel:
+        assert len(rel["labels"]) == 1 and rel["labels"][0] in ("cycle", "1", "2"), per_rel
+    _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "two-record cycle")
 
 
 def test_many_one_sided_targets_render_the_focused_view_quickly(

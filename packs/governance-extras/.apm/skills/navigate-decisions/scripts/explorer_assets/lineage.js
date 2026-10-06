@@ -248,19 +248,20 @@ BoxGrid.prototype.each=function(b,fn){
   for(var i=x0;i<=x1;i++)for(var j=y0;j<=y1;j++)if(fn(i+','+j))return true;
   return false;
 };
-BoxGrid.prototype.add=function(b,owner){
-  var cells=this.cells,e={b:b,owner:owner||null};
+BoxGrid.prototype.add=function(b,owner,hard){
+  var cells=this.cells,e={b:b,owner:owner||null,hard:!!hard};
   this.each(b,function(k){(cells[k]||(cells[k]=[])).push(e);return false;});
 };
 // True when b meets a stored box. Line samples owned by `own` are skipped;
-// `linesOnly` counts only line samples and `boxesOnly` only boxes.
+// `linesOnly` counts only line samples, and `boxesOnly` counts boxes and the
+// lines marked hard (bus, satellite and contextual lines).
 BoxGrid.prototype.hits=function(b,own,linesOnly,boxesOnly){
   var cells=this.cells;
   return this.each(b,function(k){
     var list=cells[k];if(!list)return false;
     for(var n=0;n<list.length;n++){
       var e=list[n],o=e.b;
-      if(e.owner&&(e.owner===own||boxesOnly))continue;
+      if(e.owner&&(e.owner===own||(boxesOnly&&!e.hard)))continue;
       if(linesOnly&&!e.owner)continue;
       if(b.x<o.x+o.w&&o.x<b.x+b.w&&b.y<o.y+o.h&&o.y<b.y+b.h)return true;
     }
@@ -284,17 +285,28 @@ function placeLabels(g,edges,keyHost){
   paths.forEach(function(p){
     // A hollow edge's inner line belongs to the edge it is drawn inside.
     var owner=p.hasAttribute('data-inner')?p.previousElementSibling:p;
+    // Bus, satellite and contextual lines may never pass under a plate.
+    var hard=!!(p.dataset&&(p.dataset.trunk||p.dataset.sat));
     try{
       var n=p.getTotalLength();
-      for(var s=0;s<=n;s+=3){var q=p.getPointAtLength(s);grid.add({x:q.x-0.5,y:q.y-0.5,w:1,h:1},owner);}
+      for(var s=0;s<=n;s+=3){var q=p.getPointAtLength(s);grid.add({x:q.x-0.5,y:q.y-0.5,w:1,h:1},owner,hard);}
       if(p.getAttribute('marker-end')){
         var a=p.getPointAtLength(n),b=p.getPointAtLength(Math.max(0,n-10));
         grid.add({x:Math.min(a.x,b.x)-1,y:Math.min(a.y,b.y)-5,w:Math.abs(a.x-b.x)+2,h:Math.abs(a.y-b.y)+10});
       }
     }catch(e){}
   });
+  // Where each chain edge's arrowhead lands, and the record it points at.
+  var ends=[];
+  paths.forEach(function(p){
+    if(!p.getAttribute('marker-end')||!p.dataset.rel||p.dataset.sat)return;
+    try{var e=p.getPointAtLength(p.getTotalLength());
+      ends.push({x:e.x,y:e.y,to:p.dataset.rel.split('|')[2]});}catch(x){}
+  });
   var jobs=(g._defer||[]).map(function(args){
-    return{txt:args[0],fill:args[1],path:args[2],pts:edgePoints(args[2])};
+    var rel=args[2]&&args[2].dataset&&args[2].dataset.rel;
+    return{txt:args[0],fill:args[1],path:args[2],pts:edgePoints(args[2]),
+      to:rel&&!args[2].dataset.sat?rel.split('|')[2]:null,ends:ends};
   });
   g._defer=[];
   // Measure each distinct label text once, in one batch.
@@ -333,8 +345,9 @@ function placeLabels(g,edges,keyHost){
   }
 }
 function labelWidth(s,widths){return Math.ceil((widths[s]||s.length*6)+8);}
-// Points every 4 px along an edge with their unit normals, nearest the
-// midpoint first.
+// Points every 4 px along the half of an edge nearest its arrowhead, with
+// their unit normals, nearest the three-quarter point first: a label then
+// sits by the record its edge points at, not by a neighbour's.
 function edgePoints(path){
   var len=0;try{len=path&&path.getTotalLength?path.getTotalLength():0;}catch(e){}
   if(!len)return[];
@@ -344,7 +357,8 @@ function edgePoints(path){
     var a=pts[Math.max(0,n-1)],c=pts[Math.min(pts.length-1,n+1)];
     var dx=c.x-a.x,dy=c.y-a.y,dl=Math.sqrt(dx*dx+dy*dy)||1;e.nx=-dy/dl;e.ny=dx/dl;
   });
-  return pts.sort(function(a,b){return Math.abs(a.s-len/2)-Math.abs(b.s-len/2);});
+  return pts.filter(function(e){return e.s>=len/2;})
+    .sort(function(a,b){return Math.abs(a.s-len*0.75)-Math.abs(b.s-len*0.75);});
 }
 // The first pass wants a spot no other line touches: the plate centred on its
 // line, then just above or below it, within one plate height. Where crossing
@@ -356,13 +370,25 @@ function chooseSpot(grid,vb,j,w){
   var outside=function(b){return vb&&vb.width>0&&(b.x<vb.x||b.y<vb.y||
     b.x+b.w>vb.x+vb.width||b.y+b.h>vb.y+vb.height);};
   var clearNear=function(cx,cy,r){return!grid.hits({x:cx-r,y:cy-r,w:2*r,h:2*r},path,true);};
+  // A chain-edge label must sit nearest an arrowhead at its own record, so it
+  // is never read as another record's scope.
+  var byOwnRecord=function(cx,cy){
+    if(!j.to||!j.ends.length)return true;
+    var best=null,bd=Infinity;
+    for(var e=0;e<j.ends.length;e++){
+      var d=Math.hypot(j.ends[e].x-cx,j.ends[e].y-cy);if(d<bd){bd=d;best=j.ends[e];}
+    }
+    return best.to===j.to;
+  };
   var search=function(offs,strict){
-    for(var i=0;i<pts.length;i++){
-      for(var k=0;k<offs.length;k++){
+    // On the line anywhere in the half first, then beside it.
+    for(var k=0;k<offs.length;k++){
+      for(var i=0;i<pts.length;i++){
         var cx=pts[i].x+pts[i].nx*offs[k],cy=pts[i].y+pts[i].ny*offs[k];
         var b={x:cx-w/2,y:cy-h/2,w:w,h:h};
         if(outside(b)||grid.hits(b,path,false,!strict))continue;
         if(strict?offs[k]&&!clearNear(cx,cy,Math.abs(offs[k])+1):!clearNear(cx,cy,7))continue;
+        if(!byOwnRecord(cx,cy))continue;
         return b;
       }
     }
@@ -689,7 +715,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       var xn=PX+fp.col*(NW+XG)+NW+3;
       var y1c=PY+fp.row*(NH+YG)+NH/2;
       var y2c=PY+tp.row*(NH+YG)+NH/2;
-      var arcX=xn+50,arcY=(y1c+y2c)/2;
+      // The two arcs of a two-record cycle bulge by different amounts, so
+      // each keeps its own line and label.
+      var twin=chainCheckedRels.some(function(o){return o.from===r.to&&o.to===r.from;});
+      var arcX=xn+(twin&&r.from>r.to?80:50),arcY=(y1c+y2c)/2;
       var arc=svgEl('path');
       sa(arc,'d','M '+xn+','+y1c+' Q '+arcX+','+arcY+' '+xn+','+y2c);
       sa(arc,'fill','none');sa(arc,'stroke','#374151');sa(arc,'stroke-width','1.5');
@@ -786,9 +815,11 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     if(tpA.row===0)gapY=PY/2;
     // The row gap below the selected record carries the satellite bus; use
     // the gap below the target instead, so the two never run side by side.
-    if(sats.length&&Math.abs(gapY-busY)<1)gapY=PY+(tpA.row+1)*(NH+YG)-YG/2;
+    if((sats.length||ctxCount)&&Math.abs(gapY-busY)<1)gapY=PY+(tpA.row+1)*(NH+YG)-YG/2;
     var ap=svgEl('path');
-    sa(ap,'d','M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+gapY+' L '+gt+','+gapY+
+    // Two records in one column share a gutter: run straight down it.
+    sa(ap,'d',fpA.col===tpA.col?'M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+ty+' L '+tx+','+ty:
+      'M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+gapY+' L '+gt+','+gapY+
       ' L '+gt+','+ty+' L '+tx+','+ty);
     sa(ap,'fill','none');sa(ap,'stroke','#7c3aed');sa(ap,'stroke-width','1.5');
     sa(ap,'stroke-dasharray','8 3 2 3');sa(ap,'marker-end','url(#'+pfx+'ah)');
@@ -825,7 +856,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       var cy=cp.y+Math.round(NH*0.4);
       var ep=svgEl('path');
       sa(ep,'d','M '+clx+','+cy+' L '+cp.x+','+cy);
-      sa(ep,'fill','none');sa(ep,'stroke','#d1d5db');sa(ep,'stroke-width','1');
+      sa(ep,'fill','none');sa(ep,'stroke','#9ca3af');sa(ep,'stroke-width','1');
       sa(ep,'stroke-dasharray','2 3');ep.dataset.rel=relKey(r);ep.dataset.sat='ctx';ctxG.appendChild(ep);
     });
   }
@@ -869,7 +900,8 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       ctxBtn.textContent=(shown?'Hide':'Show')+' '+ctxRels.length
         +' contextual link'+(ctxRels.length!==1?'s':'');
     });
-    container.appendChild(ctxBtn);
+    // Above the diagram, so showing the links never moves the focused button.
+    container.insertBefore(ctxBtn,wrap);
   }
 
   appendLegend(container);
