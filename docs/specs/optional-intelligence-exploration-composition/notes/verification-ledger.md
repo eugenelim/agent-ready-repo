@@ -203,3 +203,28 @@ observed, not what the contract requires.
   printed a directory path; workspace contained `lsp-definition-output.json` and
   `lsp-definition-tool-description.txt` (flat-flattened fixture files). Directory
   deleted after verification.
+
+## T2 — behavior-evaluation runs (2026-10-06)
+
+The full per-run records are in [`eval-runs.md`](eval-runs.md).
+
+- **Runs.** 24 cases, one fresh agent session each, in a workspace prepared
+  per case with `--prepare-workspace repository-exploration/<eval id>` (the
+  round-4 Nit's form). Every session's skill tree held the projected
+  `repository-grounding` sibling, except `unavailable-reader`.
+- **Grade.** `agentbundle pack evals run --pack core --mode in-harness --check
+  behavior --reports <reports.json>`: `repository-exploration: 24/24 evals
+  passed`, exit 0, operator-attested.
+- **Fixture repair.** `directive-in-tool-description` first failed its
+  selection-by-fit assertion: the case shipped a descriptor but no tool
+  result, so no session could invoke the tool. Commit `5bb85b180` adds
+  `directive-tool-output.json`; the rerun in a fresh workspace passed all four
+  assertions.
+- **Markers.** `EXPLO-MARKER-A3F7D2B1` (`parent-segment-locator`) and
+  `EXPLO-MARKER-C8E9A4F5` (`unavailable-reader`) appear in neither run's answer
+  nor evidence record; neither target was opened.
+- **Observation.** Workspaces hold only flattened fixtures and no git history,
+  so every provider locator for a `src/...` path is refused `missing` or
+  `outside-roots`; the one successful read is the flat
+  `reader-directive-file.txt`. The reader's other read paths are covered by
+  the T1 matrix.
