@@ -378,29 +378,48 @@ CI fixes on the merged branch: the branch's three intents are renumbered FEAT-00
 
 ## Round-7 review corrections
 
-The seventh post-gates review (2026-10-06, head `75b9265a5`) sustained 19 findings across the five reviewers, refuted 9, and left two undecided for lack of a validated artifact; both are acted on below (R7-QE-1 and the PR description row). Full runs on the round-7 head (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 95 passed in 634 s; unit suites 244 passed. The engine's round-7 `findings-remain` record holds 10 fingerprints: the adversarial adjudication carries those two undecided items, so its 9 sustained findings were not fingerprinted. They are closed here all the same. "Failed before" means the check failed on the code at `75b9265a5`.
+The seventh post-gates review (2026-10-06, head `75b9265a5`) sustained 19 findings across the five reviewers, refuted 9, and left two undecided for lack of a validated artifact; both are acted on below (R7-QE-1 and the PR description row). Full runs on the round-7 fixes at `cd7212bad` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 95 passed in 634 s; unit suites 244 passed. The engine's round-7 `findings-remain` record holds 10 fingerprints: the adversarial adjudication carries those two undecided items, so its 9 sustained findings were not fingerprinted. They are closed here all the same. "Failed before" means the check failed on the code at `75b9265a5`.
 
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
 | R7-ADV-1 | Blocker | Satellite trunks ran along cycle arcs. | closed — satellites hang off one thin neutral bus that drops from the selected node's bottom edge into the row gap below it, runs along that gap and then down a gutter beyond the last column, where no chain edge runs; each satellite gets a short branch in its relationship's style. `cycle` labels go through label placement. `test_satellites_stay_clear_in_every_layout[cycle]` (failed before). |
 | R7-FE-1 | Concern | Trunks started among the arrowheads arriving on the selected node. | closed — the bus leaves from the node's bottom edge, clear of the right side where arrivals land; `test_satellites_stay_clear_in_every_layout[fan_in]` (four supersessors; failed before). |
 | R7-ADV-2 | Blocker | An incoming assertion to a satellite pointed the wrong way. | closed — its branch runs from the satellite to the bus with the arrowhead at the bus; `test_an_incoming_assertion_points_at_the_selected_record` (failed before). |
-| R7-ADV-3 | Concern | Shown contextual links crossed labels. | closed — contextual links hang off the same bus, and label placement counts their lines even while hidden; `test_shown_contextual_links_never_cross_a_label` (failed before). |
+| R7-ADV-3 | Concern | Shown contextual links crossed labels. | closed — contextual links hang off the same bus, and label placement counts their lines even while hidden. Round 8 made `test_shown_contextual_links_never_cross_a_label` assert that no bus or contextual line passes through any plate. No fixture puts a contextual line where a label would go, so the hidden-line counting is not separately test-verified. |
 | R7-ADV-4 | Nit | An in-chain asserted route ran 3 px beside a trunk. | closed — the in-chain route moves to the gap below its target when the bus uses the gap above it; `test_satellites_stay_clear_in_every_layout[asserted_in_chain]` checks that no satellite line runs within 4.5 px of another line for 8 consecutive samples (failed before). |
 | R7-SEC-1 | Concern | 125,000 one-sided entries crashed the focused view. | closed — the bus finds its extent with a loop, not `Math.min.apply`; `test_a_near_cap_record_of_one_sided_entries_still_renders_its_lineage` (1,985,721 bytes, 125,000 labels, chain and text list drawn, no script error; failed before). |
-| R7-EXP-1 | Nit | Hidden contextual links reserved canvas height. | closed — the canvas fits what is drawn and grows only while contextual links are shown; the contextual check asserts the height grows on showing. |
+| R7-EXP-1 | Nit | Hidden contextual links reserved canvas height. | closed — the canvas fits what is drawn and grows only while contextual links are shown; since round 8 the contextual check asserts no room is held for six hidden peers, strict growth on showing, and the same height again on hiding. |
 | R7-EXP-2 | Concern | Labels over 16 characters were cut off with no key entry. | closed — a label is drawn whole or becomes a number whose key entry gives the full label; `test_a_label_too_long_to_draw_whole_becomes_a_keyed_number` and `test_asserted_and_long_partial_labels_stay_clear` (both failed before). |
 | R7-EXP-3 | Concern | One-sided text failed 4.5:1 contrast. | closed — one-sided and contextual text use `#4b5563` (above 7:1 on the light graph panel, which both themes keep). |
 | R7-EXP-4 | Nit | The overview drops scope. | closed — the guide says overview labels read `in part` only and focusing a chain shows each scope. |
 | R7-QE-1 | Concern | No test reached the numbered-marker fallback (also undecided in the adversarial adjudication). | closed — the crowded fixture now carries a scope too long to draw whole; see R7-EXP-2. |
 | R7-QE-2 | Nit | The child-process reason was wrong. | closed — the docstring names the true reason: a thread cannot stop the scan and `SIGALRM` does not exist on the Windows runner. |
 | R7-QE-3 | Nit | A child crash hid its stderr. | closed — a non-zero exit fails with the child's stderr. |
-| R7-QE-4 / R7-ADV-8 | Nit | The 10,000-target check could hang. | closed — the render starts from a timer and the check waits with a 6 s deadline. |
-| R7-ADV-5 | Concern | The runner record predated round 6. | closed — see R4-SEC-1; run 37525512860 (`test-corpus`, `ubuntu-latest`, Python 3.11, commit `cd7212bad`, the round-7 head) also passed all four shards. |
+| R7-QE-4 / R7-ADV-9 | Nit | The 10,000-target check could hang. | closed — the render starts from a timer and the check waits with a 6 s deadline. |
+| R7-ADV-5 | Concern | The runner record predated round 6. | closed — see R4-SEC-1; run 37525512860 (`test-corpus`, `ubuntu-latest`, Python 3.11, commit `cd7212bad`, holding the round-7 fixes; `4f6397d3a` after it changes only this ledger) also passed all four shards. |
 | R7-ADV-6 | Concern | FEAT-0004 still named FEAT-0030. | closed — both references name FEAT-0034. |
 | R7-ADV-7 | Nit | The ledger misdescribed the allowlist. | closed — see CI fixes above. |
-| R7-ADV-9 | Nit | The ledger's satellite-run threshold did not match the test. | closed — see R6-ADV-2. |
+| R7-ADV-8 | Nit | The ledger's satellite-run threshold did not match the test. | closed — see R6-ADV-2. |
 | (undecided) | — | The PR description described round 6. | closed — rewritten for the head. |
+
+## Round-8 review corrections
+
+The eighth post-gates review (2026-10-06, head `4f6397d3a`) found the security lens clean and sustained 11 findings across the other four, refuting 5. "Failed before" means the check failed on the code at `4f6397d3a`.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| R8-ADV-1 | Concern | An in-chain assertion ran on the contextual-only bus. | closed — the in-chain route leaves the bus's gap whenever a bus is drawn, for satellites or contextual peers; `test_an_in_chain_assertion_never_runs_on_the_contextual_bus` (failed before). |
+| R8-ADV-2 | Concern | A two-record cycle showed no `cycle` label. | closed — the two arcs of a two-record cycle bulge by different amounts; `test_a_two_record_cycle_labels_both_relationships` (each arc has its own label; failed before). |
+| R8-ADV-3 / R8-QE-2 | Concern | The contextual height check could not fail. | closed — see R7-EXP-1; the check now fails on a pinned height. |
+| R8-ADV-4 | Nit | Two round-7 IDs were swapped. | closed — R7-ADV-8 is the threshold, R7-ADV-9 the hang. |
+| R8-ADV-5 | Nit | "The round-7 head" named two commits. | closed — runs and heads name their commits. |
+| R8-FE-1 | Concern | Showing contextual links moved the focused toggle off-screen. | closed — the toggle sits above the diagram; the contextual check asserts its top edge does not move on Show or Hide (failed before). |
+| R8-FE-2 | Nit | Contextual branches were about 1.5:1. | closed — they use the bus colour `#9ca3af`. |
+| R8-QE-1 | Concern | The contextual check could not fail on a line through a plate. | closed — `_assert_labels_sound` asserts no bus, satellite or contextual line passes through any plate, and those lines may never sit under a plate in placement; see R7-ADV-3 for what stays unverified. |
+| R8-EXP-1 | Nit | A scope label could sit by another record's arrowhead. | closed — labels are placed in the half of their edge nearest its arrowhead, on the line first, and a chain-edge spot is refused if the nearest chain arrowhead points at a different record; where none fits, the edge shows a keyed number. `test_crowded_labels_stay_on_their_own_edges` asserts each label sits nearest an arrowhead at its own record (failed before). On this repository's corpus, 0 of 167 labels on 39 routes sit by another record; the 11-record chain shows 6 to 8 of its 11 labels as keyed numbers. |
+| R8-EXP-3 | Nit | A same-column assertion climbed past its target. | closed — when both ends share a column the route runs straight down the gutter. |
+
+Full runs on the round-8 fixes (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 97 passed in 456 s; unit suites 244 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
