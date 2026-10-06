@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting
-- **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one repo-scope primitive instead of preserving either consumer as the owner.
+- **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one source resolver whose byte-identical, parity-pinned copies each consuming skill ships and runs, instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
@@ -11,7 +11,7 @@
 
 ## Approach
 
-Add a standard-library Core adapter-root CLI that builds one immutable relation snapshot from confined artifact preambles. Drive it with pure fixture tests, then replace the delivery-specific scans in `close-work` and `lint-traceability.py` with checked subprocess consumption of that snapshot before updating the Core projection, architecture page, eval evidence, versions, and changelog. The riskiest part is removing each private inversion without changing the unrelated closure and product-graph behavior around it.
+Add one standard-library resolver source that builds an immutable relation snapshot from confined artifact preambles, ship byte-identical copies of it with each consuming skill, drive it with pure fixture tests, then replace the delivery-specific scans in `close-work` and `lint-traceability.py` with checked subprocess consumption of their own copy before updating eval evidence, versions, the architecture page, and the changelog. The riskiest part is removing each private inversion without changing the unrelated closure and product-graph behavior around it.
 
 The cheapest disconfirming probe ran the existing generic adapter-root projection case on 2026-10-04. Its projection assertion completed without a product failure; the test failed afterward in `TemporaryDirectory` cleanup with the sandbox's known `PermissionError`, so final projection proof remains assigned to CI rather than being claimed from this local run.
 
@@ -32,7 +32,7 @@ The resolver is a pure TDD surface. Consumer wiring stays TDD but uses an implem
 
 **Integration tests:** **VI-1401** is owned by T4, extended by T8, and placed at `packs/core/tests/integration/test_intent_delivery_traceability.py::test_vi1401_resolver_and_consumers_share_delivery_snapshot`. It runs the direct, coordinated, explicit-empty, dual-provenance, missing-direct, missing-brief, direct-projection-mismatch, brief-projection-mismatch, broken-spec-reference, unsafe-corpus, resource-limit, and resolver-unavailable corpus through the resolver and both consumers, then compares each consumer's delivery edge or descendant set for equality with the resolver result, and its fail-closed diagnostics and AC-0020 refusals with the resolver's diagnostics (AC-0012, AC-0013, AC-0014, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020).
 
-**Caller inventory:** **VI-1402** is owned by T4 and placed at `packs/core/tests/integration/test_intent_delivery_traceability.py::test_vi1402_only_canonical_delivery_inverter_exists`. It inventories production Python sources under `packs/core/.apm/`, asserts that only `adapter-root-bins/intent_delivery_relations.py` implements feature-delivery parsing and inversion, asserts that both consumers invoke that resolver, and rejects the retired consumer-local parser and inversion entry points. The T2 and T3 forced-fallback tests remain the behavioral proof that those retired paths are unreachable (AC-0014).
+**Caller inventory:** **VI-1402** is owned by T4, restated by T9, and placed at `packs/core/tests/integration/test_intent_delivery_traceability.py::test_vi1402_only_canonical_delivery_inverter_exists`. It inventories production Python sources under `packs/core/.apm/` and accepts as delivery-relation producers only `adapter-root-bins/intent_delivery_relations.py` and its two byte-identical copies in the `close-work` and `work-loop` skill `scripts/` folders, rejecting any other producer; it asserts each consumer runs the copy beside its own file, and rejects the retired consumer-local parser and inversion entry points. The T2 and T3 forced-fallback tests remain the behavioral proof that those retired paths are unreachable (AC-0014).
 
 **Manual verification:** none; every accepted outcome has a deterministic parser, process, or projection oracle.
 
@@ -50,7 +50,7 @@ The resolver is a pure TDD surface. Consumer wiring stays TDD but uses an implem
 
 Owned by: T1, T2, T3, T5, T9
 
-The canonical source is `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` with its private `_file_safety.py`. Each consuming skill ships byte-identical copies of both in its own `scripts/` folder (`close-work` and `work-loop`), pinned to the source by parity tests, and runs its own copy. The approved assumption that a repo-scope adapter-root primitive reaches `<repository>/.agentbundle/bin/` proved false: `agentbundle install` delivers adapter-root binaries only at user scope, and Core installs only at repo scope (verification ledger, 2026-10-06). Skill-local copies travel with every install route, while a sibling-skill import and the specialised `shared-libs` rail would not satisfy the skill portability rules.
+The canonical source is `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` with its private `_file_safety.py`. Each consuming skill ships byte-identical copies of both in its own `scripts/` folder (`close-work` and `work-loop`), pinned to the source by parity tests, and runs its own copy. The approved assumption that a repo-scope adapter-root primitive reaches `<repository>/.agentbundle/bin/` proved false: `agentbundle install` delivers adapter-root binaries only at user scope, and Core installs only at repo scope (verification ledger, 2026-10-06). The source's own `.agentbundle/bin/` projection, produced by the self-host build, remains a maintainer diagnostic tool in this repository, not an adopter route; adopter-facing records name only the skill-local copies. Skill-local copies travel with every install route, while a sibling-skill import and the specialised `shared-libs` rail would not satisfy the skill portability rules.
 
 The resolver's in-process `resolve_repository(root)` result and CLI JSON share one dictionary shape: `schema_version`, `complete`, `relations`, `classifications`, `provenance`, and `diagnostics`. The amendment adds a seventh top-level key, `artifacts`, mapping each identifier any relation or provenance record names to its repository-relative artifact path, so a consumer reads exactly the artifact the resolver matched. Relation records keep their delivered shape — canonical endpoint identifiers, relation type, route, and a field-basis map — so the delivered AC-0001 equality holds unchanged. A provenance record whose target resolves to an admitted intent also carries that intent's identifier. Only an artifact whose `Slug:` matches the slug grammar becomes an identifier. Lists are sorted before strict serialization so an identical tree yields identical bytes.
 
@@ -449,17 +449,18 @@ def test_ac0013_diagnosed_spec_keeps_component_dangling_check(tmp_path: Path) ->
 
 **Mode:** TDD
 
-**Touches:** `packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/_file_safety.py`, `packs/core/.apm/skills/work-loop/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/work-loop/scripts/_file_safety.py` (byte-identical copies), the resolver-location code in `closure_index.py` and `lint-traceability.py`, `packs/core/tests/pack/test_intent_delivery_relations_copies.py` (stub materialization file), and every delivered test or fixture that installs the resolver at `.agentbundle/bin/` or asserts that location
+**Touches:** `packs/core/tests/integration/test_intent_delivery_traceability.py` (VI-1402 inventory), `packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/_file_safety.py`, `packs/core/.apm/skills/work-loop/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/work-loop/scripts/_file_safety.py` (byte-identical copies), the resolver-location code in `closure_index.py` and `lint-traceability.py`, `packs/core/tests/pack/test_intent_delivery_relations_copies.py` (stub materialization file), and every delivered test or fixture that installs the resolver at `.agentbundle/bin/` or asserts that location
 
 **Tests:**
 
-- **VI-1901.** `test_ac0015_each_consumer_skill_ships_the_resolver` asserts each consuming skill's `scripts/` folder holds the resolver and helper byte-identical to the source (AC-0014, AC-0015), `stub: true`.
+- **VI-1901.** `test_ac0014_each_consumer_skill_ships_the_resolver` asserts each consuming skill's `scripts/` folder holds the resolver and helper byte-identical to the source (AC-0014), `stub: true`.
 - **VI-1902.** Each consumer locates the resolver from its own resolved file path; a resolver absent beside the consumer, or a non-regular or linked one, is `delivery-resolver-unavailable`, proved through a narrow test seam for the location rather than by deleting the real copy (AC-0014, AC-0018).
+- **VI-1904.** The VI-1402 caller inventory, restated under Construction tests, passes with the two copies in place and fails when any other production file produces a delivery relation (AC-0014).
 - **VI-1903.** One test runs a real `agentbundle install --pack core --scope repo` into a clean temporary repository with the in-tree `agentbundle`, then runs each installed copy under `python -I -S` on a fixture and asserts its stdout equals the source's serialized snapshot byte-for-byte; it also runs the installed lint on a fixture with an anchor and asserts no `delivery-resolver-unavailable` (AC-0015).
-- Stub validation: syntax and intended red ("close-work ships no intent_delivery_relations.py") passed on 2026-10-06 from a disposable scratch mirror of `packs/core/`; no repository test file was created.
+- Stub validation: syntax and intended red ("close-work ships no intent_delivery_relations.py") passed on 2026-10-06, re-run after the stub was renamed to the criterion it pins, from a disposable scratch mirror of `packs/core/`; no repository test file was created.
 
 ```python
-# STUB: AC-0015
+# STUB: AC-0014
 from __future__ import annotations
 
 from pathlib import Path
@@ -470,7 +471,7 @@ SOURCE = BINS / "intent_delivery_relations.py"
 HELPER = BINS / "_file_safety.py"
 
 
-def test_ac0015_each_consumer_skill_ships_the_resolver() -> None:
+def test_ac0014_each_consumer_skill_ships_the_resolver() -> None:
     for skill in ("close-work", "work-loop"):
         scripts = CORE / ".apm" / "skills" / skill / "scripts"
         for source in (SOURCE, HELPER):
@@ -481,7 +482,7 @@ def test_ac0015_each_consumer_skill_ships_the_resolver() -> None:
 
 **Approach:** Copy the source and helper into both skills, point each consumer at its sibling copy, and move every delivered `.agentbundle/bin/` fixture to the new location or the seam.
 
-**Done when:** VI-1901 through VI-1903 pass and no consumer or test still looks for the resolver under `.agentbundle/bin/`.
+**Done when:** VI-1901 through VI-1904 pass and no consumer or test still looks for the resolver under `.agentbundle/bin/`.
 
 ### T10: Resolver and lint emit only canonical diagnostic content
 
@@ -649,7 +650,7 @@ def test_ac0020_path_form_ambiguous_discovery_refuses_named_feature(tmp_path: Pa
 - **VI-2202.** `no stub (mode: goal-based)`; production `check()` reads no module-global provider, a `None` provider result is `delivery-resolver-unavailable`, the timeout case asserts through `check()`, and superseded tests that cannot fail for their stated behaviour are rewritten or removed (AC-0018).
 - **VI-2203.** `no stub (mode: goal-based)`; each VI-1401 case spawns the resolver once and feeds that snapshot to both consumers' in-process seams.
 
-**Done when:** VI-2201 through VI-2203 pass; one definition per constant, no unused sets, and no repeated top-level check remain in the touched consumer code.
+**Done when:** VI-2201 through VI-2203 pass; one definition per constant, no unused sets, and no repeated top-level check remain in the touched consumer code; no lint comment says the resolver can return `None`; and no assertion checks for content its fixture never contained.
 
 ### T13: Release 2.29.0 records agree with the shipped behaviour
 
@@ -657,11 +658,11 @@ def test_ac0020_path_form_ambiguous_discovery_refuses_named_feature(tmp_path: Pa
 
 **Mode:** Goal-based check
 
-**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `guides/core/how-to/close-and-disposition-work.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `packs/core/.apm/skills/close-work/evals/evals.json`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `tools/test_local_ci_shared_test_deduplication.py`, self-host projections
+**Touches:** `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` and its two skill copies, `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `guides/core/how-to/close-and-disposition-work.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `packs/core/.apm/skills/close-work/evals/evals.json`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `tools/test_local_ci_shared_test_deduplication.py`, self-host projections
 
 **Tests:**
 
-- **VI-2301.** `no stub (mode: goal-based)`; Core is `2.29.0` in both manifests, the changelog entry, and the architecture page; the changelog states each consumer's resolver condition as its code applies it and drops the `.agentbundle/bin/` claims.
+- **VI-2301.** `no stub (mode: goal-based)`; Core is `2.29.0` in both manifests, the changelog entry, and the architecture page; the changelog states each consumer's resolver condition as its code applies it, names the skill-local copies as what ships, and drops the `.agentbundle/bin/` claims.
 - **VI-2302.** `no stub (mode: goal-based)`; the how-to gives both outcomes of a direct resolver run, every cause of `delivery-target-missing`, every field that produces `delivery-reference-malformed` with its accepted form, and a remedy that points at the skill-local resolver; the architecture page states each consumer's call frequency; the resolver `--help` explains its terms in plain words and says where an exit-1 cause is reported.
 - **VI-2303.** `no stub (mode: goal-based)`; no acceptance-criterion, verification-item, or task citation added by this feature remains under `packs/core/.apm/`, and the plan-digest pins re-pin with a disposition against `origin/main`.
 
@@ -688,3 +689,4 @@ The resolver, both consumers, and their skill-local copies ship in one Core rele
 - 2026-10-05: amended spec approved by eugenelim
 - 2026-10-05: amended plan approved by eugenelim, ratifying the private `_file_safety.py` helper name
 - 2026-10-06: second controlled amendment after post-build review. A real repo-scope install never delivers adapter-root binaries, so each consuming skill ships its own parity-pinned resolver copy (owner decision 5); Core moves to `2.29.0` after rebasing onto `main` (owner decision 6). Adds T9–T13 for those decisions and the sustained findings; T1–T8 are delivered and unchanged. Authority: `notes/verification-ledger.md`.
+- 2026-10-06: second amendment revised from its pre-EXECUTE review: VI-1402 restated to accept the two parity-pinned copies (VI-1904); T9's stub pins AC-0014; T12 and T13 own the remaining comment, assertion, and file-scope gaps; the source's `.agentbundle/bin/` projection is named a maintainer diagnostic tool.
