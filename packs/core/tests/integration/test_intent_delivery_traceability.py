@@ -1,13 +1,14 @@
-"""Integration tests for intent delivery traceability (VI-1401, VI-1402).
+"""Integration tests for intent delivery traceability (VI-1401, VI-1402, VI-1802).
 
 **VI-1401** — ``test_vi1401_resolver_and_consumers_share_delivery_snapshot``
-Runs 11 delivery fixture cases — direct, coordinated, explicit-empty,
+Runs 12 delivery fixture cases — direct, coordinated, explicit-empty,
 dual-provenance, missing-direct, missing-brief, direct-projection-mismatch,
-brief-projection-mismatch, unsafe-corpus, resource-limit, and
-resolver-unavailable — through the canonical resolver CLI, close-work's
-``check_ancestor_closure``, and lint-traceability (as a subprocess). Asserts
-that both consumers' delivery subsets and fail-closed diagnostics match the
-resolver's snapshot for every case.
+brief-projection-mismatch, broken-spec-reference, unsafe-corpus, resource-limit,
+and resolver-unavailable — through the canonical resolver CLI, close-work's
+``check_ancestor_closure``, and lint-traceability (as a subprocess or in-process).
+For positive cases, asserts each consumer's delivery edge or descendant set equals
+the set derived from the resolver snapshot. For fail-closed cases, asserts
+``delivery-resolver-unavailable`` or the correct diagnostic code.
 
 **VI-1402** — ``test_vi1402_only_canonical_delivery_inverter_exists``
 Inventories every production ``.py`` source under ``packs/core/.apm/`` and
@@ -22,6 +23,14 @@ asserts:
   ``_resolve_discovery_path`` from the pre-T2 ``closure_index.py`` (present
   at commit ``a2b0f6140``) and ``"Discovery"`` in lint-traceability's
   ``_SPEC_UP_FIELDS`` (present at commit ``a2b0f6140``).
+
+**VI-1802** — ``test_vi1802_real_projection_installs_and_matches_source``
+Uses the in-tree ``agentbundle.build.adapter_root_bins.apply_projection`` to
+project the resolver to a clean temporary repository's ``.agentbundle/bin/``,
+then invokes the projected binary with ``sys.executable -I -S`` (no
+``agentbundle`` import path) and asserts its JSON equals
+``serialize(resolve_repository(fixture))`` byte-for-byte. Also asserts that a
+symlinked corpus entry forces exit 1.
 
 Justification for the static markers used in VI-1402:
   The string literals ``"direct-delivery"`` and ``"coordinated-delivery"`` are
@@ -88,9 +97,92 @@ def _load_closure_index() -> Any:
     return mod
 
 
+def _load_lint_traceability() -> Any:
+    """Load lint-traceability.py under a unique module name (pack + skill prefix)."""
+    key = "_integration_t8_core_work_loop_lint_traceability"
+    if key in sys.modules:
+        return sys.modules[key]
+    spec = importlib.util.spec_from_file_location(key, _LINT_TRACEABILITY_SRC)
+    assert spec and spec.loader, f"lint-traceability not found at {_LINT_TRACEABILITY_SRC}"
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[key] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 # Load once for the session.
 _resolver_mod = _load_resolver()
 _ci_mod = _load_closure_index()
+_lint_mod = _load_lint_traceability()
+
+
+# ── Delivery edge and descendant helpers ──────────────────────────────────────
+
+
+def _delivery_edges_from_snapshot(snapshot: dict[str, Any]) -> set[tuple[str, str]]:
+    """Compute expected (producer, consumer) delivery edges from a snapshot.
+
+    Mirrors the edge-building logic in lint-traceability's build_standalone:
+    - direct-delivery: (intent_id, spec_id)
+    - coordinated-delivery: (brief_id, spec_id) and (intent_id, brief_id)
+    """
+    edges: set[tuple[str, str]] = set()
+    for rel in snapshot.get("relations", []):
+        rtype = rel.get("type", "")
+        intent_id = rel.get("intent", "")
+        spec_id = rel.get("spec", "")
+        brief_id = rel.get("brief", "")
+        if rtype == "direct-delivery" and intent_id and spec_id:
+            edges.add((intent_id, spec_id))
+        elif rtype == "coordinated-delivery" and brief_id and spec_id:
+            edges.add((brief_id, spec_id))
+            if intent_id:
+                edges.add((intent_id, brief_id))
+    return edges
+
+
+def _lint_delivery_edges(root: Path, snapshot: dict[str, Any]) -> set[tuple[str, str]]:
+    """Run lint build_standalone with an injected snapshot; return g.edges.
+
+    Uses the lint's Graph directly so the result reflects exactly the edges the
+    lint wires from the resolver snapshot, without spawning a subprocess.
+    """
+    lint = _lint_mod
+    layout = lint.load_layout(root)
+    g = lint.Graph()
+    rollup = lint.load_rollup_ids(root, layout)
+    lint.build_standalone(root, layout, g, rollup, snapshot_provider=lambda _: snapshot)
+    return set(g.edges)
+
+
+def _expected_descendants_from_snapshot(
+    snapshot: dict[str, Any],
+    intent_slug: str,
+    terminus: str,
+) -> set[str]:
+    """Compute expected descendant slugs for close-work from the snapshot.
+
+    Returns the set of slug strings (without the type prefix) that the resolver
+    snapshot's relations would produce as descendants for the given feature.
+    """
+    intent_id = f"intent:{intent_slug}"
+    descendants: set[str] = set()
+    for rel in snapshot.get("relations", []):
+        if rel.get("intent") != intent_id:
+            continue
+        rtype = rel.get("type", "")
+        if terminus == "spec" and rtype == "direct-delivery":
+            spec_id = rel.get("spec", "")
+            if spec_id.startswith("spec:"):
+                descendants.add(spec_id[5:])
+        elif terminus == "brief" and rtype == "coordinated-delivery":
+            brief_id = rel.get("brief", "")
+            spec_id = rel.get("spec", "")
+            if brief_id.startswith("brief:"):
+                descendants.add(brief_id[6:])
+            if spec_id.startswith("spec:"):
+                descendants.add(spec_id[5:])
+    return descendants
 
 
 # ── Fixture builders ──────────────────────────────────────────────────────────
@@ -238,9 +330,8 @@ def _subtest_direct(root: Path) -> None:
     """Direct-delivery: intent(spec) → spec.
 
     Resolver returns a complete snapshot with a direct-delivery relation.
-    close-work finds exactly the declared spec in its closure.
-    lint-traceability exits 0 (no dangling, delivery edge wired from snapshot).
-    VI-1302: CLI stdout matches in-process serialization byte-for-byte.
+    close-work finds exactly the declared spec in its closure (equality check).
+    lint-traceability exits 0 with delivery edges matching the snapshot (equality check).
     """
     _make_intent(root, "feat-direct", decomposed="2026-10-05 spec")
     _make_spec(root, "feat-direct-spec", discovery="intent:feat-direct", status="Shipped")
@@ -248,32 +339,16 @@ def _subtest_direct(root: Path) -> None:
     _make_brief(root, "anchor-brief")
     _install_resolver(root)
 
-    # Resolver snapshot.
+    # Resolver snapshot — spawned once per case.
     rc, snapshot = _run_resolver_cli(root)
     assert rc == 0, f"direct: resolver should succeed; got exit {rc}"
     assert snapshot["complete"] is True
-    rel_types = {r["type"] for r in snapshot["relations"]}
-    assert "direct-delivery" in rel_types, "direct: snapshot must have direct-delivery"
     direct_rels = [r for r in snapshot["relations"] if r["type"] == "direct-delivery"]
-    spec_ids = {r["spec"] for r in direct_rels}
-    assert "spec:feat-direct-spec" in spec_ids, "direct: spec must be in relations"
-
-    # VI-1302: compare installed CLI stdout with in-process serialization.
-    # The installed copy is byte-identical to the source loaded as _resolver_mod,
-    # so in-process calls use _resolver_mod directly. Both scan the same root.
-    installed_path = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
-    in_process_snap = _resolver_mod.resolve_repository(root)
-    in_process_json = _resolver_mod.serialize(in_process_snap)
-    proc_stdout = subprocess.run(
-        [sys.executable, str(installed_path), "--root", str(root)],
-        capture_output=True,
-        timeout=60,
-    ).stdout.decode("utf-8")
-    assert proc_stdout == in_process_json, (
-        "VI-1302: installed CLI stdout must be byte-identical to in-process serialization"
+    assert any(r["spec"] == "spec:feat-direct-spec" for r in direct_rels), (
+        "direct: spec must appear in direct-delivery relations"
     )
 
-    # close-work: ClosureEligible with spec in descendants.
+    # close-work: ClosureEligible with descendant set equal to snapshot relations.
     ci = _ci_mod
     verdict = _check_ancestor_with_real_resolver(ci, "feat-direct", "Accepted", "spec", root)
     assert isinstance(verdict, ci.ClosureEligible), (
@@ -281,19 +356,26 @@ def _subtest_direct(root: Path) -> None:
     )
     assert verdict.packet is not None
     descendant_slugs = {v[0] for v in verdict.packet.per_descendant_verdicts}
-    assert "feat-direct-spec" in descendant_slugs, (
-        f"direct: spec must be in descendants; got {descendant_slugs!r}"
+    expected_descendants = _expected_descendants_from_snapshot(snapshot, "feat-direct", "spec")
+    assert descendant_slugs == expected_descendants, (
+        f"direct: close-work descendants {descendant_slugs!r} != "
+        f"expected from snapshot {expected_descendants!r}"
     )
 
-    # lint-traceability: exit 0 (delivery edge from snapshot, no dangling).
+    # lint-traceability: exit 0, delivery edge set equals snapshot.
     lt_rc, lt_out, lt_err = _run_lint_traceability(root)
     assert lt_rc == 0, (
         f"direct: lint-traceability must exit 0; got {lt_rc}\n"
         f"stdout={lt_out}\nstderr={lt_err}"
     )
-    # Verify no delivery-resolver-unavailable in output.
     assert "delivery-resolver-unavailable" not in lt_out + lt_err, (
         "direct: delivery-resolver-unavailable must not appear when resolver is present"
+    )
+    expected_edges = _delivery_edges_from_snapshot(snapshot)
+    actual_edges = _lint_delivery_edges(root, snapshot)
+    assert actual_edges == expected_edges, (
+        f"direct: lint delivery edges {actual_edges!r} != "
+        f"expected from snapshot {expected_edges!r}"
     )
 
 
@@ -301,8 +383,8 @@ def _subtest_coordinated(root: Path) -> None:
     """Coordinated-delivery: intent(brief) → brief → spec.
 
     Resolver returns coordinated-delivery relations.
-    close-work finds brief + spec in its closure.
-    lint-traceability exits 0 with edges from snapshot.
+    close-work descendant set equals snapshot relations (equality check).
+    lint-traceability exits 0 with delivery edges matching the snapshot (equality check).
     """
     _make_intent(root, "feat-coord", decomposed="2026-10-05 brief")
     _make_brief(root, "coord-b", parent="intent:feat-coord", status="Shipped")
@@ -324,11 +406,10 @@ def _subtest_coordinated(root: Path) -> None:
     )
     assert verdict.packet is not None
     descendant_slugs = {v[0] for v in verdict.packet.per_descendant_verdicts}
-    assert "coord-b" in descendant_slugs, (
-        f"coordinated: brief must be in descendants; got {descendant_slugs!r}"
-    )
-    assert "coord-spec" in descendant_slugs, (
-        f"coordinated: spec must be in descendants; got {descendant_slugs!r}"
+    expected_descendants = _expected_descendants_from_snapshot(snapshot, "feat-coord", "brief")
+    assert descendant_slugs == expected_descendants, (
+        f"coordinated: close-work descendants {descendant_slugs!r} != "
+        f"expected from snapshot {expected_descendants!r}"
     )
 
     lt_rc, lt_out, lt_err = _run_lint_traceability(root)
@@ -337,6 +418,12 @@ def _subtest_coordinated(root: Path) -> None:
         f"stdout={lt_out}\nstderr={lt_err}"
     )
     assert "delivery-resolver-unavailable" not in lt_out + lt_err
+    expected_edges = _delivery_edges_from_snapshot(snapshot)
+    actual_edges = _lint_delivery_edges(root, snapshot)
+    assert actual_edges == expected_edges, (
+        f"coordinated: lint delivery edges {actual_edges!r} != "
+        f"expected from snapshot {expected_edges!r}"
+    )
 
 
 def _subtest_explicit_empty(root: Path) -> None:
@@ -372,6 +459,12 @@ def _subtest_explicit_empty(root: Path) -> None:
     assert lt_rc == 0, (
         f"explicit-empty: lint-traceability must exit 0; got {lt_rc}\n"
         f"stdout={lt_out}\nstderr={lt_err}"
+    )
+    expected_edges = _delivery_edges_from_snapshot(snapshot)
+    actual_edges = _lint_delivery_edges(root, snapshot)
+    assert actual_edges == expected_edges, (
+        f"explicit-empty: lint delivery edges {actual_edges!r} != "
+        f"expected from snapshot {expected_edges!r}"
     )
 
 
@@ -413,24 +506,38 @@ def _subtest_dual_provenance(root: Path) -> None:
     assert coord_rels[0]["intent"] == "intent:feat-dual2"
 
     ci = _ci_mod
-    # feat-dual1 (spec terminus): spec must be a descendant.
+    # feat-dual1 (spec terminus): descendant set equals snapshot relations.
     v1 = _check_ancestor_with_real_resolver(ci, "feat-dual1", "Accepted", "spec", root)
     assert isinstance(v1, ci.ClosureEligible)
     assert v1.packet is not None
-    assert "dual-spec" in {x[0] for x in v1.packet.per_descendant_verdicts}
+    desc1 = {x[0] for x in v1.packet.per_descendant_verdicts}
+    expected_desc1 = _expected_descendants_from_snapshot(snapshot, "feat-dual1", "spec")
+    assert desc1 == expected_desc1, (
+        f"dual-provenance: feat-dual1 descendants {desc1!r} != "
+        f"expected from snapshot {expected_desc1!r}"
+    )
 
-    # feat-dual2 (brief terminus): brief and spec must be descendants.
+    # feat-dual2 (brief terminus): descendant set equals snapshot relations.
     v2 = _check_ancestor_with_real_resolver(ci, "feat-dual2", "Accepted", "brief", root)
     assert isinstance(v2, ci.ClosureEligible)
     assert v2.packet is not None
     desc2 = {x[0] for x in v2.packet.per_descendant_verdicts}
-    assert "dual-b" in desc2
-    assert "dual-spec" in desc2
+    expected_desc2 = _expected_descendants_from_snapshot(snapshot, "feat-dual2", "brief")
+    assert desc2 == expected_desc2, (
+        f"dual-provenance: feat-dual2 descendants {desc2!r} != "
+        f"expected from snapshot {expected_desc2!r}"
+    )
 
     lt_rc, lt_out, lt_err = _run_lint_traceability(root)
     assert lt_rc == 0, (
         f"dual-provenance: lint-traceability must exit 0; got {lt_rc}\n"
         f"stdout={lt_out}\nstderr={lt_err}"
+    )
+    expected_edges = _delivery_edges_from_snapshot(snapshot)
+    actual_edges = _lint_delivery_edges(root, snapshot)
+    assert actual_edges == expected_edges, (
+        f"dual-provenance: lint delivery edges {actual_edges!r} != "
+        f"expected from snapshot {expected_edges!r}"
     )
 
 
@@ -723,6 +830,66 @@ def _subtest_resource_limit(root: Path) -> None:
     )
 
 
+def _subtest_broken_spec_reference(root: Path) -> None:
+    """Broken-spec-reference: a spec carries a traversing Discovery: field.
+
+    The feature also has one valid, shipped spec, so it resolves cleanly and
+    would be closable on its own; only the broken spec's own
+    delivery-reference-unsafe diagnostic (AC-0020) can refuse it.
+    lint-traceability: the diagnostic is informational in default mode (exit 0),
+    and the informational line appears in stdout.
+    """
+    _make_intent(root, "feat-broken", decomposed="2026-10-05 spec")
+    # Traversing Discovery: reference — contains product/intents/ AND ..
+    _make_spec(
+        root,
+        "broken-ref-spec",
+        discovery="../product/intents/feat-broken.md",
+        status="Shipped",
+    )
+    _make_spec(root, "good-spec", discovery="intent:feat-broken", status="Shipped")
+    _make_brief(root, "anchor-brief")
+    _install_resolver(root)
+
+    rc, snapshot = _run_resolver_cli(root)
+    assert rc == 0, f"broken-spec-ref: resolver should succeed; got exit {rc}"
+    assert not [
+        d for d in snapshot["diagnostics"] if d.get("subject") == "intent:feat-broken"
+    ], "broken-spec-ref: the feature itself must resolve cleanly"
+    assert snapshot["complete"] is True
+    unsafe_diags = [
+        d for d in snapshot["diagnostics"]
+        if d.get("code") == "delivery-reference-unsafe"
+        and d.get("subject") == "spec:broken-ref-spec"
+        and d.get("field") == "Discovery"
+    ]
+    assert unsafe_diags, (
+        f"broken-spec-ref: delivery-reference-unsafe (spec subject) expected; "
+        f"diagnostics={snapshot['diagnostics']!r}"
+    )
+
+    # close-work: AC-0020 refuses the spec-route feature on the broken spec's
+    # own diagnostic, although its only resolved descendant is terminal.
+    ci = _ci_mod
+    verdict = _check_ancestor_with_real_resolver(ci, "feat-broken", "Accepted", "spec", root)
+    assert isinstance(verdict, ci.ClosureRefuse), (
+        f"broken-spec-ref: expected ClosureRefuse, got {verdict!r}"
+    )
+    assert "delivery-reference-unsafe" in verdict.reason, (
+        f"broken-spec-ref: reason must name the broken spec's code; got {verdict.reason!r}"
+    )
+
+    # lint-traceability: informational in default mode (exit 0); line appears in stdout.
+    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
+    assert lt_rc == 0, (
+        f"broken-spec-ref: lint-traceability must exit 0 in default mode; "
+        f"got {lt_rc}\nstdout={lt_out}\nstderr={lt_err}"
+    )
+    assert "delivery-reference-unsafe" in lt_out, (
+        "broken-spec-ref: delivery-reference-unsafe must appear in lint stdout"
+    )
+
+
 def _subtest_resolver_unavailable(root: Path) -> None:
     """Resolver-unavailable: no resolver installed at .agentbundle/bin/.
 
@@ -758,16 +925,17 @@ def _subtest_resolver_unavailable(root: Path) -> None:
 def test_vi1401_resolver_and_consumers_share_delivery_snapshot(
     tmp_path: Path,
 ) -> None:
-    """VI-1401 — For 11 fixture cases, the resolver CLI, close-work's closure check,
+    """VI-1401 — For 12 fixture cases, the resolver CLI, close-work's closure check,
     and lint-traceability all derive their delivery subsets and fail-closed diagnostics
-    from the same canonical snapshot.
+    from the same canonical snapshot. For positive cases, consumer edge and descendant
+    sets are asserted equal to the sets derived from the resolver snapshot's relations.
 
     Fixture cases: direct, coordinated, explicit-empty, dual-provenance,
     missing-direct, missing-brief, direct-projection-mismatch,
-    brief-projection-mismatch, unsafe-corpus, resource-limit,
-    resolver-unavailable.
+    brief-projection-mismatch, broken-spec-reference, unsafe-corpus,
+    resource-limit, resolver-unavailable.
 
-    AC-0012, AC-0013, AC-0014, AC-0016, AC-0017, AC-0018, AC-0019.
+    AC-0012, AC-0013, AC-0014, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020.
     """
     _subtest_direct(tmp_path / "direct")
     _subtest_coordinated(tmp_path / "coordinated")
@@ -777,6 +945,7 @@ def test_vi1401_resolver_and_consumers_share_delivery_snapshot(
     _subtest_missing_brief(tmp_path / "missing-brief")
     _subtest_direct_projection_mismatch(tmp_path / "direct-mismatch")
     _subtest_brief_projection_mismatch(tmp_path / "brief-mismatch")
+    _subtest_broken_spec_reference(tmp_path / "broken-spec-ref")
     _subtest_unsafe_corpus(tmp_path / "unsafe-corpus")
     _subtest_resource_limit(tmp_path / "resource-limit")
     _subtest_resolver_unavailable(tmp_path / "resolver-unavailable")
@@ -924,4 +1093,85 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
     assert not spec_up_fields_has_discovery, (
         "VI-1402: 'Discovery' must not be in _SPEC_UP_FIELDS in lint-traceability.py "
         "(retired pre-T3 local delivery-inversion path)"
+    )
+
+
+# ── Real-projection test ──────────────────────────────────────────────────────
+
+
+def test_vi1802_real_projection_installs_and_matches_source(tmp_path: Path) -> None:
+    """VI-1802 — apply_projection delivers the resolver to .agentbundle/bin/;
+    the installed binary invoked with ``sys.executable -I -S`` (isolated mode,
+    no site-packages — so ``agentbundle`` is not importable) produces JSON
+    byte-identical to ``serialize(resolve_repository(fixture))``.
+
+    Proves the projected resolver is self-contained via its co-located
+    ``_file_safety.py`` helper (decision 1) and does not silently import
+    ``agentbundle`` from the environment.
+
+    Also asserts a symlinked corpus entry forces exit 1 (incomplete snapshot).
+    """
+    from agentbundle.build.adapter_root_bins import apply_projection  # type: ignore[import]
+
+    # Minimal fixture repository.
+    _make_intent(tmp_path, "feat-proj", decomposed="2026-10-05 spec")
+    _make_spec(tmp_path, "proj-spec", discovery="intent:feat-proj", status="Shipped")
+    _make_brief(tmp_path, "anchor-brief")
+
+    # Project adapter-root-bins from the real packs tree to tmp_path.
+    packs_dir = _PACK_ROOT.parent  # packs/core/ → packs/
+    apply_projection(tmp_path, packs_dir)
+
+    projected = tmp_path / ".agentbundle" / "bin" / "intent_delivery_relations.py"
+    assert projected.exists(), f"VI-1802: projected resolver not found at {projected}"
+    helper = tmp_path / ".agentbundle" / "bin" / "_file_safety.py"
+    assert helper.exists(), f"VI-1802: projected _file_safety.py not found at {helper}"
+
+    # Invoke with -I -S: isolated (no user site-packages, no PYTHONPATH) and
+    # no site module — agentbundle must not be importable.
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", str(projected), "--root", str(tmp_path)],
+        capture_output=True,
+        timeout=60,
+        cwd=str(tmp_path),
+    )
+    assert result.returncode == 0, (
+        f"VI-1802: projected CLI must exit 0 for a complete snapshot; "
+        f"got {result.returncode}\n"
+        f"stderr={result.stderr.decode('utf-8', errors='replace')}"
+    )
+
+    # Byte-identical comparison with in-process serialization.
+    in_process_snap = _resolver_mod.resolve_repository(tmp_path)
+    expected_json = _resolver_mod.serialize(in_process_snap)
+    actual_json = result.stdout.decode("utf-8")
+    assert actual_json == expected_json, (
+        "VI-1802: projected CLI stdout must be byte-identical to "
+        "serialize(resolve_repository(fixture))"
+    )
+
+    # Symlinked corpus entry forces exit 1 (incomplete snapshot).
+    intents_dir = tmp_path / "docs" / "product" / "intents"
+    real_file = tmp_path / "real_intent_for_symlink.md"
+    real_file.write_text(
+        "# Real\n\n- **Slug:** `real-sl`\n- **Level:** feature\n", encoding="utf-8"
+    )
+    try:
+        (intents_dir / "symlinked.md").symlink_to(real_file)
+    except OSError:
+        pytest.skip("VI-1802: symlinks unavailable on this platform")
+
+    result2 = subprocess.run(
+        [sys.executable, "-I", "-S", str(projected), "--root", str(tmp_path)],
+        capture_output=True,
+        timeout=60,
+        cwd=str(tmp_path),
+    )
+    assert result2.returncode == 1, (
+        f"VI-1802: projected CLI must exit 1 for incomplete snapshot; "
+        f"got {result2.returncode}"
+    )
+    snap2 = json.loads(result2.stdout.decode("utf-8"))
+    assert snap2["complete"] is False, (
+        "VI-1802: snapshot must be incomplete when corpus contains a symlink"
     )

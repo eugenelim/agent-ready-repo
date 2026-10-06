@@ -58,9 +58,20 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 
 | Verdict | What it means | What you decide |
 | --- | --- | --- |
-| **refuse** | A required precondition is absent — the ancestor is not yet `Accepted`, is already closed, has no ratified `Decomposed:` value, its terminus is inconsistent with the actual descendant set, or a feature's delivery mapping is missing, ambiguous, or contradictory (named by a `delivery-…` code). `delivery-resolver-unavailable` means the repo-scope resolver at `.agentbundle/bin/intent_delivery_relations.py` is missing or failed | Resolve the named precondition, then re-run closeout. For `delivery-resolver-unavailable`, reinstall Core at repository scope |
+| **refuse** | A required precondition is absent; the refusal names it | Resolve the named precondition and re-run closeout |
 | **not-eligible** | At least one descendant in the full closure remains in a non-terminal state; each live descendant is named with its current state | Wait for the named descendants to complete, or close them first, then re-run closeout |
 | **eligible** | Every descendant in the full closure is terminal; an evidence packet is presented with the date, ratified decomposition, and each descendant's final state | Confirm the closure by supplying your name and the evidence you reviewed |
+
+**Delivery codes that `close-work` can name:**
+
+- `delivery-resolver-unavailable` — The resolver at `.agentbundle/bin/intent_delivery_relations.py` is absent, failed, or returned an incomplete snapshot. To fix an absent resolver, reinstall Core at repository scope — that is, install Core so `.agentbundle/bin/` exists in this repository. To diagnose an incomplete snapshot (caused by a resource limit or an unsafe corpus entry), run `python3 .agentbundle/bin/intent_delivery_relations.py --root .` and read the `diagnostics` field.
+- `delivery-target-missing` — No spec (for a `spec`-route feature) or brief (for a `brief`-route feature) names this feature. Add a `Discovery: intent:<slug>` field to a spec, or a `Parent intent: intent:<slug>` field to a brief.
+- `delivery-projection-mismatch` — More than one spec or brief claims this feature when only one is expected. Fix the duplicate `Discovery:` or `Parent intent:` fields so only one artifact names this feature.
+- `delivery-relation-ambiguous` — One artifact gives two different values for the same delivery field (`Discovery:`, `Brief:`, `Parent intent:`, or `Decomposed:`), or two intents or briefs share a slug. Keep one value, or give each artifact its own slug.
+- `delivery-reference-malformed` — A spec's `Discovery:` or brief's `Parent intent:` field is not a valid `intent:<slug>` or repository-relative path. Fix the field value to the correct form.
+- `delivery-reference-unsafe` — A `Brief:` or `Parent intent:` value, or a `Discovery:` value that points at an intent, contains an absolute path or a `..` traversal. Change it to the typed form: `intent:<slug>` or `brief:<slug>`.
+
+When the broken field belongs to a spec or brief rather than to the feature itself, `close-work` refuses every feature that artifact could belong to and names the code. Fix that artifact's field, then re-run closeout.
 
 ## Choose the immediate disposition
 

@@ -1280,29 +1280,45 @@ def test_vi1003_projected_cli_produces_valid_json(tmp_path: Path) -> None:
 
 
 def test_vi1003_projected_cli_incomplete_exit_1(tmp_path: Path) -> None:
-    """Projected CLI exits 1 when snapshot is incomplete."""
-    # Empty root with tiny entries limit: force incomplete
+    """Projected CLI exits exactly 1 when the snapshot is incomplete.
+
+    Forces incompleteness via a symlinked corpus entry (AC-0016): the
+    co-located resolver detects the link and returns complete=False,
+    which causes CLI exit code 1.
+    """
     bin_dir = tmp_path / ".agentbundle" / "bin"
     bin_dir.mkdir(parents=True)
     shutil.copy2(SOURCE, bin_dir / "intent_delivery_relations.py")
     helper_src = SOURCE.parent / "_file_safety.py"
     shutil.copy2(helper_src, bin_dir / "_file_safety.py")
-    # Create a corpus that will breach entries
-    _make_many_intents(tmp_path, 4)
+
+    # Plant a symlinked intent to force an incomplete snapshot.
+    intents_dir = tmp_path / "docs" / "product" / "intents"
+    intents_dir.mkdir(parents=True)
+    real = tmp_path / "real_intent.md"
+    real.write_text(
+        "# Real\n\n- **Slug:** `real`\n- **Level:** feature\n",
+        encoding="utf-8",
+    )
+    try:
+        (intents_dir / "symlinked.md").symlink_to(real)
+    except OSError:
+        pytest.skip("symlinks unavailable on this platform")
 
     result = subprocess.run(
         [sys.executable, str(bin_dir / "intent_delivery_relations.py"),
          "--root", str(tmp_path)],
         capture_output=True,
         cwd=str(tmp_path),
-        env={**os.environ, "PYTHONSTARTUP": ""},
-        # Pass a env var to force tiny limit — use actual module with small limit override
+        env=os.environ.copy(),
     )
-    # With 4 intents the normal run should succeed; just verify the CLI works
-    # (proper limit is tested via resolve_repository with limits=)
-    assert result.returncode in (0, 1)
+    # Incomplete snapshot → exit 1 (not 0, not 2).
+    assert result.returncode == 1, (
+        f"expected exit 1 for incomplete snapshot; got {result.returncode}\n"
+        f"stdout={result.stdout.decode()!r}\nstderr={result.stderr.decode()!r}"
+    )
     snap = json.loads(result.stdout.decode("utf-8"))
-    assert "schema_version" in snap
+    assert snap["complete"] is False
 
 
 def test_vi1003_projected_cli_usage_error_exit_2(tmp_path: Path) -> None:
