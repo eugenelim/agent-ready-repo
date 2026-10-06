@@ -702,15 +702,18 @@ class EvidenceStore:
         # Used by _truncate_log_safe to refuse a truncation when the file
         # at the log path is not the file that was read.
         self._log_identity: tuple[int, int] | None = None
+        # The audit sink given to open(); recovery truncation audits through it.
+        self._audit_sink: Callable[[Any], None] | None = None
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
     def open(self, audit_sink: Callable[[Any], None] | None = None) -> None:
         """Open the store: create the log if absent, replay, truncate, build indexes.
 
-        When *audit_sink* is given, creating the log is audited as this writer
-        port's own file effect: an allow event is stored before the log is
-        created, and a refused creation stores a denial event.
+        When *audit_sink* is given, this writer port audits its own log-file
+        effects: creating the log, and truncating an incomplete final frame on
+        recovery.  An allow event is stored before each effect, and a refused
+        effect stores a denial event with the same operation ID.
 
         Idempotent: calling ``open()`` on an already-open store re-reads the log
         and rebuilds indexes (equivalent to ``rebuild_indexes()``).
@@ -727,6 +730,7 @@ class EvidenceStore:
                 or cannot be created (denied-* code).
         """
         cm = _confined_mutation()
+        self._audit_sink = audit_sink
 
         # Validate the log path without following symlinks: it must be absent
         # (about to be created) or a regular file.  A symlink or directory is
@@ -748,10 +752,13 @@ class EvidenceStore:
 
         if log_info is None:
             se = _security_events() if audit_sink is not None else None
+            operation_id = se.make_operation_id() if se is not None else ""
             if se is not None:
                 try:
-                    se.emit_security_event(audit_sink, self._file_event(se, "allowed",
-                                                                        "allowed-file-create"))
+                    se.emit_security_event(
+                        audit_sink,
+                        self._file_event(se, operation_id, "allowed", "allowed-file-create"),
+                    )
                 except Exception as exc:  # noqa: BLE001 — a sink failure from any module load
                     raise EvidenceStoreRefused(
                         "denied-audit-sink-unavailable",
@@ -762,7 +769,8 @@ class EvidenceStore:
             except cm.MutationDenied as exc:
                 if se is not None:
                     se.emit_denial_best_effort(
-                        audit_sink, self._file_event(se, "denied", "denied-staging-failed")
+                        audit_sink,
+                        self._file_event(se, operation_id, "denied", "denied-staging-failed"),
                     )
                 raise EvidenceStoreRefused(
                     "denied-create-failed",
@@ -773,11 +781,13 @@ class EvidenceStore:
         self._poisoned = False  # fresh replay — state is now known.
 
     @staticmethod
-    def _file_event(se: ModuleType, outcome: str, reason_code: str) -> object:
+    def _file_event(
+        se: ModuleType, operation_id: str, outcome: str, reason_code: str
+    ) -> object:
         """Build the security event for this store's own log-file effect."""
         return se.SecurityEvent(
             schema_version=1,
-            operation_id=se.make_operation_id(),
+            operation_id=operation_id,
             correlation_id="evidence-store",
             event_type="file-write",
             outcome=outcome,
@@ -912,6 +922,49 @@ class EvidenceStore:
             ) from exc
 
     def _truncate_log_safe(self, complete_bytes: bytes, *, bytes_read: int) -> None:
+        """Truncate the log to complete_bytes, audited when open() was given a sink.
+
+        The allow event is stored immediately before the truncation itself, so
+        a skipped truncation stores none; a refused truncation stores a denial
+        with the same operation ID.  An unavailable sink refuses the truncation.
+        """
+        sink = self._audit_sink
+        if sink is None:
+            self._truncate_log_unaudited(complete_bytes, bytes_read=bytes_read)
+            return
+        se = _security_events()
+        operation_id = se.make_operation_id()
+
+        def allow() -> None:
+            try:
+                se.emit_security_event(
+                    sink, self._file_event(se, operation_id, "allowed", "allowed-file-write")
+                )
+            except Exception as exc:  # noqa: BLE001 — a sink failure from any module load
+                raise EvidenceStoreRefused(
+                    "denied-audit-sink-unavailable",
+                    "audit sink unavailable; failing closed",
+                ) from exc
+
+        try:
+            self._truncate_log_unaudited(
+                complete_bytes, bytes_read=bytes_read, before_effect=allow
+            )
+        except EvidenceStoreError as exc:
+            # An unavailable sink cannot store the denial either.
+            if getattr(exc, "denial_code", None) != "denied-audit-sink-unavailable":
+                se.emit_denial_best_effort(
+                    sink, self._file_event(se, operation_id, "denied", "denied-staging-failed")
+                )
+            raise
+
+    def _truncate_log_unaudited(
+        self,
+        complete_bytes: bytes,
+        *,
+        bytes_read: int,
+        before_effect: Callable[[], None] = lambda: None,
+    ) -> None:
         """Truncate the log to complete_bytes under an exclusive advisory lock.
 
         Acquires the lock, re-checks the file size, and truncates in-place
@@ -937,6 +990,7 @@ class EvidenceStore:
                 raise EvidenceStoreError(
                     "evidence log identity changed during recovery; refusing to truncate"
                 )
+            before_effect()
             self._truncate_log(complete_bytes)
             return
         try:
@@ -947,6 +1001,7 @@ class EvidenceStore:
                 if current_size > bytes_read:
                     # A concurrent appender committed a new frame; do not remove it.
                     return
+                before_effect()
                 os.ftruncate(lock_fd, len(complete_bytes))
         except OSError as exc:
             raise EvidenceStoreError(

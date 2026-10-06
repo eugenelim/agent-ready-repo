@@ -552,3 +552,65 @@ class TestRecoveryIdentityBinding:
         with pytest.raises(es.EvidenceStoreError):
             store.open()
         assert log_path.read_bytes() == b'{"partial', "the log must be left intact"
+
+
+class TestEvidenceLogEffectsAudited:
+    """The store's own log effects pair each allow with a same-operation denial."""
+
+    def test_refused_log_creation_denial_shares_the_allow_operation(
+        self, es: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        cm = es._confined_mutation()
+
+        def refuse(*_args: object, **_kwargs: object) -> None:
+            raise cm.MutationDenied("denied-path-violation", "planted link")
+
+        monkeypatch.setattr(cm, "confined_create", refuse)
+        events: list = []
+        with pytest.raises(es.EvidenceStoreRefused):
+            es.EvidenceStore(tmp_path / "ev.log").open(audit_sink=events.append)
+        allow, denial = events
+        assert (allow.outcome, allow.reason_code) == ("allowed", "allowed-file-create")
+        assert denial.outcome == "denied"
+        assert denial.operation_id == allow.operation_id
+
+    def test_recovery_truncation_is_audited(self, es: ModuleType, tmp_path: Path) -> None:
+        log_path = tmp_path / "ev.log"
+        log_path.write_bytes(b'{"partial')  # a torn final frame
+        events: list = []
+        es.EvidenceStore(log_path).open(audit_sink=events.append)
+        assert log_path.read_bytes() == b""
+        assert [(e.outcome, e.reason_code) for e in events] == [
+            ("allowed", "allowed-file-write")
+        ]
+
+    def test_refused_recovery_truncation_denial_shares_the_allow_operation(
+        self, es: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        log_path = tmp_path / "ev.log"
+        log_path.write_bytes(b'{"partial')
+
+        def refuse(*_args: object) -> None:
+            raise OSError("read-only file system")
+
+        monkeypatch.setattr(es.os, "ftruncate", refuse)
+        events: list = []
+        with pytest.raises(es.EvidenceStoreError):
+            es.EvidenceStore(log_path).open(audit_sink=events.append)
+        allow, denial = events
+        assert allow.reason_code == "allowed-file-write"
+        assert denial.outcome == "denied"
+        assert denial.operation_id == allow.operation_id
+        assert log_path.read_bytes() == b'{"partial'
+
+    def test_recovery_refused_before_the_effect_stores_only_a_denial(
+        self, es: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        log_path = tmp_path / "ev.log"
+        log_path.write_bytes(b'{"partial')
+        identities = iter([(1, 1), (1, 2)])
+        monkeypatch.setattr(es, "_regular_file_identity", lambda path: next(identities))
+        events: list = []
+        with pytest.raises(es.EvidenceStoreError):
+            es.EvidenceStore(log_path).open(audit_sink=events.append)
+        assert [e.outcome for e in events] == ["denied"]

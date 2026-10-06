@@ -18,6 +18,7 @@ import contextlib
 import hashlib
 import importlib.util
 import os
+import signal
 import stat
 import subprocess
 import sys
@@ -1625,6 +1626,115 @@ class TestBoundedPostKillDrain:
             "denied event must be stored after timeout"
         )
 
+    @_NEEDS_KILL
+    @pytest.mark.parametrize("escape", [False, True], ids=["in-group", "escaped"])
+    def test_stdin_holder_past_timeout_is_a_timeout_and_returns_promptly(
+        self, process_safety: ModuleType, tmp_path, escape: bool
+    ) -> None:
+        """A descendant holding stdin that cannot all be written cannot turn a timeout into success.
+
+        The leader starts a child that inherits stdin but not the output pipes,
+        never reads, and outlives the timeout; the leader exits at once.  The
+        stdin payload is larger than a pipe buffer, so it is never all written
+        into the pipe (input that fits counts as delivered, read or not).
+        An escaped child (own session) must not delay the refusal either.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        child = "import os, time; " + ("os.setsid(); " if escape else "") + "time.sleep(30)"
+        code = (
+            "import subprocess, sys\n"
+            f"subprocess.Popen([sys.executable, '-c', {child!r}],\n"
+            "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+        )
+        start = time.monotonic()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(
+                    str(tmp_path), argv=["-c", code], process_tree_timeout_s=2,
+                    stdin_mode="bounded-bytes",
+                ),
+                stdin_bytes=b"x" * (512 * 1024),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-timeout"
+        assert time.monotonic() - start < 10
+        assert [e.outcome for e in events][-1] == "denied"
+
+    @_NEEDS_KILL
+    def test_cap_flood_by_a_descendant_after_leader_exit_refuses(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """Passing the output cap while a descendant still writes is a flood, not truncated success."""
+        ps = process_safety
+        events, sink = _recording_sink()
+        code = (
+            "import subprocess, sys, time\n"
+            "subprocess.Popen([sys.executable, '-c',\n"
+            "    'import sys\\nwhile True: sys.stdout.write(\"y\" * 4096)'])\n"
+            "time.sleep(0.3)\n"
+        )
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(str(tmp_path), argv=["-c", code], output_bound_bytes=1024),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-output-cap-exceeded"
+        assert [e.outcome for e in events][-1] == "denied"
+
+    @_NEEDS_KILL
+    def test_early_leader_exit_timeout_holds_without_waitid(
+        self, process_safety: ModuleType, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The poll() fallback used where os.waitid is missing reaches the same refusal."""
+        ps = process_safety
+        monkeypatch.delattr(os, "waitid", raising=False)
+        code = (
+            "import sys, subprocess\n"
+            "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'],\n"
+            "    close_fds=False)\n"
+        )
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(str(tmp_path), argv=["-c", code], process_tree_timeout_s=2),
+                audit_sink=_recording_sink()[1],
+            )
+        assert exc_info.value.denial_code == "denied-timeout"
+
+    @_NEEDS_KILL
+    def test_early_leader_exit_with_pipe_held_past_timeout_is_a_timeout(
+        self, process_safety: ModuleType, tmp_path
+    ) -> None:
+        """A leader that exits early does not turn a tree that outruns its timeout into success.
+
+        The leader starts an in-group child that inherits the output pipes,
+        writes, and sleeps past the timeout, then exits at once.  The launch
+        must refuse as a timeout and return no output.
+        """
+        ps = process_safety
+        events, sink = _recording_sink()
+        code = (
+            "import sys, subprocess\n"
+            "subprocess.Popen(\n"
+            "    [sys.executable, '-c',\n"
+            "     'import sys, time; sys.stdout.write(\"x\"); sys.stdout.flush(); time.sleep(30)'],\n"
+            "    close_fds=False,\n"
+            ")\n"
+        )
+        start = time.monotonic()
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps,
+                _spec(str(tmp_path), argv=["-c", code], process_tree_timeout_s=2),
+                audit_sink=sink,
+            )
+        assert exc_info.value.denial_code == "denied-timeout"
+        assert time.monotonic() - start < 15
+        assert any(e.outcome == "denied" for e in events)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Finding 11: process spec type validation before the allow event
@@ -1924,6 +2034,128 @@ class TestProcessGroupCleanup:
             f"process group {pgid} survived after launch_safe_process returned; "
             "success-path process-group kill may be missing"
         )
+
+    @_NEEDS_KILL
+    def test_refusal_after_settle_still_kills_the_group(
+        self, process_safety: ModuleType, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A failure after the tree settles (here in redaction) leaves no in-group child.
+
+        The success-path group kill runs before redaction and truncation, so a
+        refusal raised there comes after the kill.  Reordering redaction before
+        the kill fails this test.
+        """
+        ps = process_safety
+        pid_file = tmp_path / "pgid"
+        code = (
+            "import os, subprocess, sys\n"
+            "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'],\n"
+            "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+            f"open({str(pid_file)!r}, 'w').write(str(os.getpid()))\n"
+        )
+
+        def broken_redaction(*_args: object, **_kwargs: object) -> object:
+            raise RuntimeError("redaction failed")
+
+        monkeypatch.setattr(ps, "_redact_bytes", broken_redaction)
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(
+                ps, _spec(str(tmp_path), argv=["-c", code]),
+                audit_sink=_recording_sink()[1],
+            )
+        # The outer guard's code: the failure came after the tree settled.
+        assert exc_info.value.denial_code == "denied-launch-failed"
+        pgid = int(pid_file.read_text())
+        deadline = time.monotonic() + 3.0
+        while time.monotonic() < deadline:
+            try:
+                os.killpg(pgid, 0)
+            except (ProcessLookupError, OSError):
+                return
+            time.sleep(0.05)
+        os.killpg(pgid, signal.SIGKILL)
+        pytest.fail(f"process group {pgid} survived a refusal raised after the tree settled")
+
+    @_NEEDS_KILL
+    def test_interrupt_during_io_kills_the_group(
+        self, process_safety: ModuleType, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A KeyboardInterrupt during the I/O exchange still ends the process group."""
+        ps = process_safety
+        pid_file = tmp_path / "pgid"
+        code = (
+            "import os, time\n"
+            f"open({str(pid_file)!r}, 'w').write(str(os.getpid()))\n"
+            "time.sleep(30)\n"
+        )
+
+        def interrupted(*_args: object, **_kwargs: object) -> object:
+            deadline = time.monotonic() + 5.0
+            while not pid_file.exists() and time.monotonic() < deadline:
+                time.sleep(0.02)
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(ps, "_communicate_bounded", interrupted)
+        events, sink = _recording_sink()
+        with pytest.raises(KeyboardInterrupt):
+            _launch(ps, _spec(str(tmp_path), argv=["-c", code]), audit_sink=sink)
+        assert [e.outcome for e in events] == ["allowed", "denied"], events
+        pgid = int(pid_file.read_text())
+        deadline = time.monotonic() + 3.0
+        while time.monotonic() < deadline:
+            try:
+                os.killpg(pgid, 0)
+            except (ProcessLookupError, OSError):
+                return
+            time.sleep(0.05)
+        os.killpg(pgid, signal.SIGKILL)
+        pytest.fail(f"process group {pgid} survived an interrupt during the I/O exchange")
+
+    @_NEEDS_KILL
+    @pytest.mark.parametrize("path", ["timeout", "output-cap"])
+    def test_refusal_signals_the_group_exactly_once(
+        self, process_safety: ModuleType, tmp_path, monkeypatch: pytest.MonkeyPatch, path: str
+    ) -> None:
+        """A refusal kills the group once, before its reap, and never signals the freed ID again."""
+        ps = process_safety
+        real_killpg = os.killpg
+        signalled: list[int] = []
+
+        def recording_killpg(pgid: int, sig: int) -> None:
+            if sig == signal.SIGKILL:
+                signalled.append(pgid)
+            real_killpg(pgid, sig)
+
+        monkeypatch.setattr(os, "killpg", recording_killpg)
+        if path == "timeout":
+            spec = _spec(str(tmp_path), argv=["-c", "import time; time.sleep(30)"],
+                         process_tree_timeout_s=1)
+            expected = "denied-timeout"
+        else:
+            spec = _spec(str(tmp_path), output_bound_bytes=1024, argv=[
+                "-c", "import sys\nwhile True: sys.stdout.write('y' * 4096)"])
+            expected = "denied-output-cap-exceeded"
+        with pytest.raises(ps.ProcessDenied) as exc_info:
+            _launch(ps, spec, audit_sink=_recording_sink()[1])
+        assert exc_info.value.denial_code == expected
+        assert len(signalled) == 1, signalled
+
+    def test_late_failure_denial_shares_the_allow_operation_id(
+        self, process_safety: ModuleType, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A failure after the tree settles stores one denial under the allow event's ID."""
+        ps = process_safety
+
+        def broken_redaction(*_args: object, **_kwargs: object) -> object:
+            raise RuntimeError("redaction failed")
+
+        monkeypatch.setattr(ps, "_redact_bytes", broken_redaction)
+        events, sink = _recording_sink()
+        with pytest.raises(ps.ProcessDenied):
+            _launch(ps, _spec(str(tmp_path)), audit_sink=sink)
+        allow, denial = events
+        assert (allow.outcome, denial.outcome) == ("allowed", "denied")
+        assert denial.operation_id == allow.operation_id
 
 
 class TestSpecIdentifierFields:

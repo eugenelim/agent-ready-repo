@@ -500,6 +500,19 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
   text is unchanged; both files return to Draft/Drafting for re-approval.
 - 2026-10-01: spec re-approved by owner after the corpus-benchmark amendment
 - 2026-10-01: plan re-approved by owner (benchmarks inside the test corpus)
+- 2026-10-05: controlled contract amendment with T1 through T9a completed.
+  Owner decision: record the process-primitive residual risks in the spec's
+  Accepted Risk. Two were accepted during post-gates security review on
+  2026-10-04 (the exec window on hosts without `/proc/self/fd` exec, and
+  group-ID reuse on Pythons without `waitid`); their wording was corrected
+  and reconfirmed on 2026-10-05. Three more were accepted on 2026-10-05
+  after pre-execute review rounds 14 to 26 (the identity pin covers only the
+  executable's own bytes, once, before launch; a child that leaves the
+  process group; and interrupt handling is best effort). The same rounds
+  found and fixed process-primitive defects in timeout, stdin, output-cap,
+  and group-kill handling, recorded in the verification ledger. No task, AC,
+  or scope changes;
+  both files return to Draft/Drafting for re-approval.
 
 <!-- Approval entries are added only at their human gates.
 

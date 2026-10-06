@@ -43,11 +43,11 @@ import contextlib
 import hashlib
 import importlib.util
 import os
+import selectors
 import signal
 import stat
 import subprocess
 import sys
-import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -190,8 +190,9 @@ TREE_KILL_SUPPORTED: Final[bool] = (
 
 # True when /proc/self/fd is available for fd-based exec.
 # On Linux, Popen executes the verified descriptor directly via
-# executable="/proc/self/fd/<n>" + pass_fds=(n,), so the kernel runs exactly
-# the inode that was hashed — no TOCTOU window between verification and exec.
+# executable="/proc/self/fd/<n>" + pass_fds=(n,), so the kernel runs the inode
+# that was hashed and the path cannot be swapped.  The content is not pinned:
+# a writer can still rewrite the file in place (an accepted residual risk).
 # Elsewhere (macOS, …) a path-based exec is used with a final identity re-check.
 _USE_PROC_FD: Final[bool] = (
     sys.platform.startswith("linux") and Path("/proc/self/fd").is_dir()
@@ -383,13 +384,15 @@ def _open_and_verify_executable(path: str) -> tuple[str, int, int, int]:
     - Linux with /proc/self/fd (_USE_PROC_FD is True): the file descriptor is
       kept open and returned.  The caller executes
       ``executable="/proc/self/fd/<n>"`` with ``pass_fds=(n,)`` so the kernel
-      runs exactly the inode that was hashed — no TOCTOU window.
+      runs the inode that was hashed, so the path cannot be swapped.  The
+      content is not pinned: a writer can still rewrite the file in place.
     - Elsewhere (macOS and others): the descriptor is closed before this
       function returns (returned fd is -1).  The caller performs a final
       ``os.stat(path, follow_symlinks=False)`` immediately before Popen and
       refuses if the inode identity has changed.  A narrow TOCTOU window
       remains on these platforms; exploiting it requires write access to the
-      executable's directory.
+      executable or any directory traversed to resolve its path, including
+      symlink targets.
 
     Returns:
         (hex_digest, fd_or_neg1, st_dev, st_ino) — SHA-256 hex digest, open
@@ -647,126 +650,118 @@ def _leader_exited(proc: subprocess.Popen) -> bool:  # type: ignore[type-arg]
     return proc.poll() is not None
 
 
+# Bounded post-kill reap: after SIGKILL to the process group, this side of every
+# pipe is closed and the leader is reaped within this bound, so a descendant that
+# left the group cannot delay any return path.
+_DRAIN_TIMEOUT_S: Final[int] = 5
+
+# Poll granularity for the I/O loop, and how long a capped capture may wait for
+# the whole tree to finish before the cap breach counts as a flood.
+_IO_POLL_S: Final[float] = 0.02
+_CAP_SETTLE_S: Final[float] = 0.2
+
+
 def _communicate_bounded(
     proc: subprocess.Popen,  # type: ignore[type-arg]
     stdin_input: bytes | None,
     timeout_s: int,
     hard_cap: int,
-) -> tuple[bytes, bytes, bool]:
-    """Read stdout/stderr up to *hard_cap* combined bytes; write stdin; wait.
+) -> tuple[bytes, bytes, bool, bool]:
+    """Exchange stdin, stdout, and stderr with the tree under one deadline.
 
-    Uses threads to read stdout and stderr concurrently so that large output
-    does not accumulate unbounded in memory.  Each reader thread appends data
-    to its target list up to ``hard_cap`` total bytes, then stops.  The cap is
-    enforced inside the lock so the combined total never overshoots.
+    One thread multiplexes all three pipes with non-blocking I/O, so no read or
+    write can outlive the deadline: a descendant that holds any pipe open, or
+    never reads its stdin, cannot stall the launch.  The tree has *settled*
+    when this side of every pipe has closed (both outputs at EOF and all stdin
+    input delivered) and the leader has exited.  Only this side is visible: a
+    descendant that keeps the read end of a fully delivered stdin is not.
+    Stdin input counts as delivered once it is written into the pipe, whether
+    or not anything reads it.
 
-    Returns ``(stdout_bytes, stderr_bytes, cap_exceeded)`` where
-    ``cap_exceeded`` is True when combined bytes read hit the hard cap.  The
-    caller uses ``proc.poll()`` to distinguish a still-running flood from a
-    process that simply exited after producing more output than expected.
+    Returns ``(stdout_bytes, stderr_bytes, cap_exceeded, settled)``.  Once the
+    combined output passes *hard_cap*, later output is read and discarded for
+    at most ``_CAP_SETTLE_S`` while waiting for the tree to settle; the caller
+    refuses a capped capture whose tree did not settle.
 
-    Raises ``subprocess.TimeoutExpired`` when the process does not finish within
-    *timeout_s* seconds.
-
-    Hard-cap semantics: when cap_exceeded is True AND the process is still
-    running, the caller should kill the process tree (flood attack).  When
-    cap_exceeded is True but the process already exited, truncation handles the
-    extra output and no kill is needed.
+    Raises ``subprocess.TimeoutExpired`` when the tree has not settled within
+    *timeout_s* seconds.  The deadline covers draining every pipe, so a tree
+    whose pipes are still open at the deadline is a timeout even when its
+    leader has already exited.
     """
-    stdout_parts: list[bytes] = []
-    stderr_parts: list[bytes] = []
-    total_read: list[int] = [0]
-    capped: list[bool] = [False]
-    lock = threading.Lock()
-
-    def _drain(pipe: object, target: list) -> None:
-        """Read from *pipe* into *target* up to the shared hard cap.
-
-        Uses ``read1`` (one raw syscall worth of data) so that a process which
-        has written data and is now sleeping does not leave the thread blocked
-        on a ``read(N)`` call that waits for N bytes before returning.
-        Falls back to ``read`` if ``read1`` is not available on the object.
-        """
-        while True:
-            try:
-                chunk = pipe.read1(65536)  # type: ignore[attr-defined]
-            except AttributeError:
-                # read1 not available (e.g. a raw file object in tests).
-                try:
-                    chunk = pipe.read(65536)  # type: ignore[attr-defined]
-                except OSError:
-                    break
-            except OSError:
-                break
-            if not chunk:
-                break
-            with lock:
-                if capped[0]:
-                    # Another stream already hit the cap; stop reading.
-                    break
-                new_total = total_read[0] + len(chunk)
-                if new_total > hard_cap:
-                    # Append only what fits within the cap, then stop.
-                    allowed = hard_cap - total_read[0]
-                    if allowed > 0:
-                        target.append(chunk[:allowed])
-                    total_read[0] = new_total
-                    capped[0] = True
-                    break
-                total_read[0] = new_total
-                target.append(chunk)
-
-    out_t = threading.Thread(target=_drain, args=(proc.stdout, stdout_parts), daemon=True)
-    err_t = threading.Thread(target=_drain, args=(proc.stderr, stderr_parts), daemon=True)
-
-    if stdin_input is not None:
-        def _send() -> None:
-            try:
-                proc.stdin.write(stdin_input)  # type: ignore[attr-defined]
-                proc.stdin.close()  # type: ignore[attr-defined]
-            except OSError:
-                pass
-        in_t: threading.Thread | None = threading.Thread(target=_send, daemon=True)
-    else:
-        in_t = None
-
-    if in_t is not None:
-        in_t.start()
-    out_t.start()
-    err_t.start()
-
-    # Poll until the cap fires, the process exits, or the timeout elapses.
-    # Polling (rather than blocking on proc.wait) lets us break out early when
-    # the cap fires while the process is still running.
-    _POLL_S = 0.02  # 20 ms poll granularity
     deadline = time.monotonic() + timeout_s
-    while True:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0.0:
-            # Timeout: join threads briefly so the caller can proceed to kill.
-            out_t.join(timeout=0.5)
-            err_t.join(timeout=0.5)
-            if in_t is not None:
-                in_t.join(timeout=0.5)
-            raise subprocess.TimeoutExpired(proc.args, timeout_s)  # type: ignore[arg-type]
-        if capped[0]:
-            # Cap hit; drain threads have already stopped.  Let them finish and
-            # return to the caller, which will check proc.poll() to decide.
-            out_t.join(timeout=0.5)
-            err_t.join(timeout=0.5)
-            if in_t is not None:
-                in_t.join(timeout=0.5)
-            break
-        if _leader_exited(proc):
-            # Process exited; let drain threads consume any remaining pipe data.
-            out_t.join(timeout=max(0.0, deadline - time.monotonic()))
-            err_t.join(timeout=max(0.0, deadline - time.monotonic()))
-            if in_t is not None:
-                in_t.join(timeout=max(0.0, deadline - time.monotonic()))
-            break
-        time.sleep(min(_POLL_S, remaining))
+    parts: dict[int, list[bytes]] = {}
+    pending = memoryview(stdin_input or b"")
+    total = 0
+    capped = False
+    limit = deadline
+    sel = selectors.DefaultSelector()
+    try:
+        for pipe in (proc.stdout, proc.stderr):
+            fd = pipe.fileno()  # type: ignore[union-attr]
+            parts[fd] = []
+            sel.register(fd, selectors.EVENT_READ)
+        if proc.stdin is not None:
+            if pending:
+                os.set_blocking(proc.stdin.fileno(), False)
+                sel.register(proc.stdin.fileno(), selectors.EVENT_WRITE)
+            else:
+                proc.stdin.close()  # nothing to send: deliver EOF now
+        while True:
+            if not sel.get_map() and _leader_exited(proc):
+                out_fd, err_fd = proc.stdout.fileno(), proc.stderr.fileno()  # type: ignore[union-attr]
+                return b"".join(parts[out_fd]), b"".join(parts[err_fd]), capped, True
+            remaining = limit - time.monotonic()
+            if remaining <= 0.0:
+                if capped:
+                    out_fd, err_fd = proc.stdout.fileno(), proc.stderr.fileno()  # type: ignore[union-attr]
+                    return b"".join(parts[out_fd]), b"".join(parts[err_fd]), True, False
+                raise subprocess.TimeoutExpired(proc.args, timeout_s)  # type: ignore[arg-type]
+            wait_s = min(_IO_POLL_S, remaining)
+            if not sel.get_map():
+                # Every pipe is closed; only the leader's exit is outstanding.
+                time.sleep(wait_s)
+                continue
+            for key, _events in sel.select(timeout=wait_s):
+                if key.events & selectors.EVENT_WRITE:
+                    try:
+                        written = os.write(key.fd, pending[:65536])
+                    except BlockingIOError:
+                        continue
+                    except BrokenPipeError:
+                        written = len(pending)  # the tree closed stdin: stop sending
+                    pending = pending[written:]
+                    if not pending:
+                        sel.unregister(key.fd)
+                        proc.stdin.close()  # type: ignore[union-attr]
+                    continue
+                chunk = os.read(key.fd, 65536)
+                if not chunk:
+                    sel.unregister(key.fd)
+                    continue
+                if capped:
+                    continue  # past the cap: drain and discard while settling
+                parts[key.fd].append(chunk[: max(0, hard_cap - total)])
+                total += len(chunk)
+                if total > hard_cap:
+                    capped = True
+                    limit = min(deadline, time.monotonic() + _CAP_SETTLE_S)
+    finally:
+        sel.close()
 
-    return b"".join(stdout_parts), b"".join(stderr_parts), capped[0]
+
+def _close_pipes_and_reap(proc: subprocess.Popen, timeout_s: float) -> None:  # type: ignore[type-arg]
+    """Close this side of every pipe, then reap the leader within *timeout_s*.
+
+    Closing first means a descendant outside the group that still holds a pipe
+    cannot delay the return; the leader itself cannot leave its session's
+    group, so the group kill that precedes this always reaches it.
+    """
+    for pipe in (proc.stdin, proc.stdout, proc.stderr):
+        if pipe is not None:
+            with contextlib.suppress(OSError, ValueError):
+                pipe.close()
+    with contextlib.suppress(subprocess.TimeoutExpired, OSError):
+        proc.wait(timeout=timeout_s)
 
 
 def _emit_event(
@@ -858,7 +853,12 @@ def launch_safe_process(
     with a stable code, so no refusal leaves without a stored denial event.
     See ``_launch_safe_process_unguarded`` for the full contract.
     """
+    # One operation ID for the whole launch, so a denial stored here pairs with
+    # the allow event the launch stored before it failed.
+    op_id: str | None = operation_id if isinstance(operation_id, str) and operation_id else None
     try:
+        if op_id is None:
+            op_id = _se.make_operation_id()  # type: ignore[attr-defined]
         return _launch_safe_process_unguarded(
             spec_dict,
             cwd_roots=cwd_roots,
@@ -869,7 +869,7 @@ def launch_safe_process(
             stdin_bound_bytes=stdin_bound_bytes,
             sensitive_values=sensitive_values,
             audit_sink=audit_sink,
-            operation_id=operation_id,
+            operation_id=op_id,
             correlation_id=correlation_id,
         )
     except ProcessDenied:
@@ -879,8 +879,7 @@ def launch_safe_process(
             grant_id = spec_dict.get("grant_id") if isinstance(spec_dict, dict) else None
             _emit_event(
                 audit_sink,
-                operation_id if isinstance(operation_id, str) and operation_id
-                else _se.make_operation_id(),  # type: ignore[attr-defined]
+                op_id or _se.make_operation_id(),  # type: ignore[attr-defined]
                 _safe_correlation(correlation_id, grant_id),
                 "denied",
                 PROCESS_DENY_REASON,
@@ -1163,11 +1162,12 @@ def _launch_safe_process_unguarded(
         # Launch the process in a new session so its entire process group can be
         # killed.  The exec mechanism depends on platform (see _USE_PROC_FD):
         # - Linux (/proc/self/fd available): execute the verified descriptor
-        #   directly so the kernel runs exactly the inode that was hashed.
+        #   directly so the kernel runs the inode that was hashed.
         # - macOS / others: perform a final no-follow stat to confirm the inode
         #   at the original path has not changed since verification, then run
         #   the original path.  A narrow TOCTOU window remains on these platforms
-        #   (exploiting it requires write access to the executable's directory).
+        #   (exploiting it requires write access to the executable or any
+        #   directory traversed to resolve its path, including symlink targets).
         argv_list = [spec_dict["executable"]] + list(spec_dict["argv"])
         _exec_path: str
         _pass_fds: tuple[int, ...] = ()
@@ -1197,146 +1197,168 @@ def _launch_safe_process_unguarded(
                 )
             _exec_path = spec_dict["executable"]
 
+        proc: subprocess.Popen | None = None  # type: ignore[type-arg]
+        group_ended = [False]
+        denial_stored = [False]
+
+        def _end_group() -> None:
+            """Kill the launch's process group once, so never after this code reaps the leader.
+
+            The flag is set after the kill, so an interrupt inside this call still
+            leaves the group signalled before the guard reaps; no reap happens
+            between a caller's kill and its own reap, so a repeat stays before it.
+            """
+            if proc is not None and not group_ended[0]:
+                _kill_process_tree(proc)
+                group_ended[0] = True
+
+        def _deny() -> None:
+            """Store this launch's single terminal denial (best effort under an interrupt)."""
+            if not denial_stored[0]:
+                denial_stored[0] = True
+                _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+
         try:
-            proc = subprocess.Popen(
-                argv_list,
-                executable=_exec_path,
-                env=env,
-                cwd=cwd_str,
-                stdin=stdin_fd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                start_new_session=True,
-                close_fds=True,
-                pass_fds=_pass_fds,
+            try:
+                proc = subprocess.Popen(
+                    argv_list,
+                    executable=_exec_path,
+                    env=env,
+                    cwd=cwd_str,
+                    stdin=stdin_fd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True,
+                    close_fds=True,
+                    pass_fds=_pass_fds,
+                )
+            except OSError as exc:
+                _deny()
+                raise ProcessDenied(
+                    "denied-launch-failed",
+                    f"process launch failed: {exc}",
+                ) from exc
+            except Exception:
+                # Any non-OSError (e.g. ValueError from an unexpected field type)
+                # must also store a denial event and surface as ProcessDenied
+                # without leaking exception text.
+                _deny()
+                raise ProcessDenied(
+                    "denied-launch-failed",
+                    "process launch failed",
+                ) from None
+            finally:
+                # Close the verified descriptor now that the child has started
+                # (or Popen failed).  The kernel keeps the binary mapped in the
+                # child's address space independently of this fd.
+                if exec_fd >= 0:
+                    with contextlib.suppress(OSError):
+                        os.close(exec_fd)
+                    exec_fd = -1
+
+            # Read output incrementally with the hard cap; write stdin concurrently.
+            timeout_s: int = spec_dict["process_tree_timeout_s"]
+            try:
+                raw_stdout, raw_stderr, overflowed, settled = _communicate_bounded(
+                    proc, stdin_input, timeout_s, hard_cap
+                )
+            except subprocess.TimeoutExpired:
+                _end_group()
+                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                _deny()
+                raise ProcessDenied(
+                    "denied-timeout",
+                    f"process tree timeout exceeded ({timeout_s}s); "
+                    "all children killed, no output returned",
+                ) from None
+            except OSError as exc:
+                _end_group()
+                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                _deny()
+                raise ProcessDenied(
+                    "denied-launch-failed",
+                    f"process I/O error: {exc}",
+                ) from exc
+            except Exception:
+                # Any non-OSError from _communicate_bounded must also kill the tree,
+                # store a denial event, and surface as ProcessDenied without leaking
+                # exception text.
+                _end_group()
+                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                _deny()
+                raise ProcessDenied(
+                    "denied-launch-failed",
+                    "process I/O error",
+                ) from None
+
+            # Output cap breach: a capped capture is a truncated success only when
+            # the whole tree settled (every pipe closed, leader exited) within the
+            # settle window; anything still holding a pipe is a flood and refuses.
+            if overflowed and not settled:
+                _end_group()
+                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                _deny()
+                raise ProcessDenied(
+                    "denied-output-cap-exceeded",
+                    f"process output exceeded the hard cap ({hard_cap} bytes) while "
+                    "still running; all children killed, no output returned",
+                )
+
+            # Signal the process group so no child that stayed in it survives, before
+            # any further work, so every refusal or return after launch has ended the group.  With
+            # os.waitid and WNOWAIT the leader is still unreaped here, so its ID
+            # cannot have been reused; without them exit detection just reaped it (an
+            # accepted residual risk).  A child that left the group is not reached.
+            # start_new_session=True makes the group ID equal proc.pid.  Then reap
+            # the leader for its exit code.
+            _end_group()
+            _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+
+            # Redact the full captured stream, emitting only raw bytes before the
+            # bound.  A capture stopped by the hard cap may end inside a value, so
+            # an overflowed stream also covers its possible cut-off tail; nothing
+            # is trimmed first, so complete occurrences are always covered whole.
+            stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw, bound, overflowed)
+            stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw, bound, overflowed)
+            was_redacted = redacted1 or redacted2
+
+            # Bound combined redacted stdout + stderr.
+            # ``overflowed`` means the reader stopped before EOF (more output existed),
+            # so the output is always considered truncated in that case.
+            truncated: bool = (
+                overflowed or len(raw_stdout) > bound or len(raw_stderr) > bound
             )
-        except OSError as exc:
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-launch-failed",
-                f"process launch failed: {exc}",
-            ) from exc
-        except Exception:
-            # Any non-OSError (e.g. ValueError from an unexpected field type)
-            # must also store a denial event and surface as ProcessDenied
-            # without leaking exception text.
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-launch-failed",
-                "process launch failed",
-            ) from None
-        finally:
-            # Close the verified descriptor now that the child has started
-            # (or Popen failed).  The kernel keeps the binary mapped in the
-            # child's address space independently of this fd.
-            if exec_fd >= 0:
-                with contextlib.suppress(OSError):
-                    os.close(exec_fd)
-                exec_fd = -1
+            if bound == 0:
+                stdout_red = b""
+                stderr_red = b""
+            elif len(stdout_red) + len(stderr_red) > bound:
+                out_take = min(len(stdout_red), bound)
+                err_take = bound - out_take
+                stdout_red = stdout_red[:out_take]
+                stderr_red = stderr_red[:err_take]
+                truncated = True
 
-        # Read output incrementally with the hard cap; write stdin concurrently.
-        timeout_s: int = spec_dict["process_tree_timeout_s"]
-        # Bounded post-kill drain timeout: after SIGKILL to the process group, a
-        # descendant that left the group and holds the pipes could block
-        # communicate() forever.  A small fixed bound ensures this path returns.
-        _DRAIN_TIMEOUT_S = 5
-        try:
-            raw_stdout, raw_stderr, overflowed = _communicate_bounded(
-                proc, stdin_input, timeout_s, hard_cap
+            _result = ProcessResult(
+                exit_code=proc.returncode,
+                stdout_redacted=stdout_red,
+                stderr_redacted=stderr_red,
+                output_was_truncated=truncated,
+                output_was_redacted=was_redacted,
             )
-        except subprocess.TimeoutExpired:
-            _kill_process_tree(proc)
-            with contextlib.suppress(Exception):
-                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-timeout",
-                f"process tree timeout exceeded ({timeout_s}s); "
-                "all children killed, no output returned",
-            ) from None
-        except OSError as exc:
-            _kill_process_tree(proc)
-            with contextlib.suppress(Exception):
-                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-launch-failed",
-                f"process I/O error: {exc}",
-            ) from exc
-        except Exception:
-            # Any non-OSError from _communicate_bounded must also kill the tree,
-            # store a denial event, and surface as ProcessDenied without leaking
-            # exception text.
-            _kill_process_tree(proc)
-            with contextlib.suppress(Exception):
-                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-launch-failed",
-                "process I/O error",
-            ) from None
-
-        # Output cap breach: determine whether the process is still running.
-        # A process that already wrote all its output and is in the process of
-        # exiting may not yet be reaped when poll() is first called.  Give it a
-        # small deterministic window before treating the cap breach as a flood.
-        if overflowed and not _leader_exited(proc):
-            grace_deadline = time.monotonic() + 0.2
-            while not _leader_exited(proc) and time.monotonic() < grace_deadline:
-                time.sleep(0.01)
-        # If still running after the grace window, kill and refuse.
-        if overflowed and not _leader_exited(proc):
-            _kill_process_tree(proc)
-            with contextlib.suppress(Exception):
-                proc.communicate(timeout=_DRAIN_TIMEOUT_S)
-            _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
-            raise ProcessDenied(
-                "denied-output-cap-exceeded",
-                f"process output exceeded the hard cap ({hard_cap} bytes) while "
-                "still running; all children killed, no output returned",
-            )
-
-        # Redact the full captured stream, emitting only raw bytes before the
-        # bound.  A capture stopped by the hard cap may end inside a value, so
-        # an overflowed stream also covers its possible cut-off tail; nothing
-        # is trimmed first, so complete occurrences are always covered whole.
-        stdout_red, redacted1 = _redact_bytes(raw_stdout, sensitive_raw, bound, overflowed)
-        stderr_red, redacted2 = _redact_bytes(raw_stderr, sensitive_raw, bound, overflowed)
-        was_redacted = redacted1 or redacted2
-
-        # Bound combined redacted stdout + stderr.
-        # ``overflowed`` means the reader stopped before EOF (more output existed),
-        # so the output is always considered truncated in that case.
-        truncated: bool = (
-            overflowed or len(raw_stdout) > bound or len(raw_stderr) > bound
-        )
-        if bound == 0:
-            stdout_red = b""
-            stderr_red = b""
-        elif len(stdout_red) + len(stderr_red) > bound:
-            out_take = min(len(stdout_red), bound)
-            err_take = bound - out_take
-            stdout_red = stdout_red[:out_take]
-            stderr_red = stderr_red[:err_take]
-            truncated = True
-
-        # Signal the process group while the unreaped leader still reserves its
-        # ID, so no background child survives and the signal cannot reach an
-        # unrelated group that reused the ID.  start_new_session=True makes the
-        # group ID equal proc.pid.  Then reap the leader for its exit code.
-        if hasattr(os, "killpg"):
-            with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
-                os.killpg(proc.pid, signal.SIGKILL)
-        with contextlib.suppress(Exception):
-            proc.wait(timeout=_DRAIN_TIMEOUT_S)
-
-        _result = ProcessResult(
-            exit_code=proc.returncode,
-            stdout_redacted=stdout_red,
-            stderr_redacted=stderr_red,
-            output_was_truncated=truncated,
-            output_was_redacted=was_redacted,
-        )
+        except BaseException as exc:
+            # Any exit after launch ends the tree, including an interrupt
+            # (KeyboardInterrupt, SystemExit): start_new_session=True keeps the
+            # terminal's signal from reaching it.  The group is killed at most
+            # once, so a refusal path that already killed and reaped is left alone.
+            if proc is not None:
+                _end_group()
+                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                if not isinstance(exc, Exception):
+                    # An interrupt is not a refusal, but the allowed launch still
+                    # gets a terminal event; best effort, so the interrupt propagates.
+                    with contextlib.suppress(Exception):
+                        _deny()
+            raise
 
     finally:
         # Ensure the verified descriptor is closed if any step raised before

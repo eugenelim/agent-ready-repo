@@ -65,8 +65,12 @@ logic into versioned, reusable infrastructure capabilities.
 4. The primitive or broker validates and performs the bounded effect. The
    writer port that calls it emits the redacted security event: an allow
    before the effect is acknowledged, and a denial for a refused effect. The
-   confined file-mutation primitive is I/O only. Its callers (the evidence
-   store, approval import, and the shadow facade) audit their own file writes.
+   confined file-mutation primitive is I/O only. Its two callers, the
+   evidence store and the shadow facade, audit every file write they make,
+   with the allow and any denial sharing one operation ID. That covers log
+   creation, appends, recovery truncation, shadow records, and the shadow
+   `.gitignore`. The one write not audited is the append that stores a
+   security event, because that append is the audit record.
 5. The adapter returns containment, `access-attestation.v1`, and effect receipts.
 
 **Failure and recovery sequence**
@@ -101,9 +105,19 @@ captured output is bounded and redacted before any durable write.
 | --- | --- | --- | --- | --- | --- |
 | `security-capability.v1` | Issuer → adapter, primitive, launcher, broker | Grant, roots, operations, trust, writes, product-read proof mode, control denies, network, children, limits | Security owners approve; omitted network/children deny; unknown versions refuse | Missing containment or grant refuses | Delegation cannot widen authority or claim unsupported read coverage |
 | `confined-file.v1` | Adapter or broker client → path and mutation primitives | Canonical root plus relative path | Security maintainers approve changes; additive bounds may tighten only through a new grant; unknown versions refuse | Unsafe or changed identity refuses | Resolved target stays inside root |
-| `safe-process.v1` | Adapter or broker client → process primitive | Absolute executable plus identity, fixed argv, grant, confined cwd, environment allowlist, stdin mode, process-tree and output bounds | Security maintainers approve changes; readers deploy before writers; unknown versions refuse; ambient environment inheritance defaults to none | Identity drift, ungranted env or cwd, unsupported tree kill, timeout, launch error, or bound breach refuses | No `PATH` search, shell reinterpretation, ambient environment, open stdin, orphan child, or unredacted durable output |
+| `safe-process.v1` | Adapter or broker client → process primitive | Absolute executable plus identity, fixed argv, grant, confined cwd, environment allowlist, stdin mode, process-tree and output bounds | Security maintainers approve changes; readers deploy before writers; unknown versions refuse; ambient environment inheritance defaults to none | Identity drift, ungranted env or cwd, unsupported tree kill, timeout, launch error, or bound breach refuses | No `PATH` search, shell reinterpretation, ambient environment, open stdin, orphan child that stayed in the process group, or unredacted durable output |
 | `containment-attestation.v1` | Verified launcher → supervisor and broker | Host mechanism, principal/sandbox, roots, read enforcement or trace coverage, network, children, limits | Security owners approve guarantees; adapters cannot omit required denial or coverage | Missing, unverifiable, or broader enforcement refuses | Authority is narrower than the grant; only verified read coverage can support complete access attestation |
 | `security-event.v1` | Primitive or broker → audit sink | Operation and correlation IDs | Security maintainers approve redaction schema; sinks ignore additive fields and reject unknown major versions | Audit failure cannot turn denial into allow | Sensitive payloads never enter diagnostics |
+
+The `safe-process.v1` identity check and tree kill have owner-accepted
+residuals, recorded in the Accepted Risk section of the
+[acceptance authority and evidence spec](../specs/acceptance-authority-and-evidence/spec.md#accepted-risk):
+- the pin checks only the executable's own bytes, once, before launch, so
+  it does not protect them afterwards or cover anything loaded by path;
+- a path swap before exec on hosts without `/proc/self/fd` exec;
+- a child that leaves the process group;
+- group-ID reuse on Pythons without `os.waitid`;
+- interrupt handling is best effort.
 
 The primitive preserves the repository's blessed helper behavior in
 `file_safety.py` (the work-loop skill's local copy at
@@ -160,7 +174,7 @@ protected ref.
 | Worker writes Git metadata or the protected product ref | Grant and host containment deny direct mutation | Zero integration-boundary bypasses | Git-ref and object-store forgery fixture |
 | Launcher proposes network, child-process, or resource bounds broader than the grant | Attestation comparison refuses launch | Zero host-selected overgrant and deny-all omission behavior | Network, process-tree, CPU, memory, time, output, and process-count fixtures |
 | Parallel task reads an undeclared product path | Enforced allowlist denies it or complete tracing records it; other hosts mark access incomplete | Zero false complete attestations | Cross-adapter undeclared-read and trace-gap fixtures |
-| Process request relies on ambient state or outlives timeout | Primitive rejects undeclared env, cwd, executable, or stdin and kills the full tree on breach | Zero inherited variables, orphan children, or unbounded durable bytes | Environment, cwd escape, executable-swap, stdin, process-tree kill, and redaction fixtures |
+| Process request relies on ambient state or outlives timeout | Primitive rejects undeclared env, cwd, executable, or stdin and kills the full process group on breach | Zero inherited variables, unbounded durable bytes, or orphan children that stayed in the process group (see the accepted residuals in §4) | Environment, cwd escape, executable-swap, stdin, process-tree kill, and redaction fixtures |
 
 ## 8. Implementation Mapping
 

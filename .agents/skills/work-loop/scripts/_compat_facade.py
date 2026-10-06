@@ -339,11 +339,23 @@ def _confined_ensure_shadow_dir(spec_dir: Path, shadow_dir: Path, cm: ModuleType
     # Write self-ignoring .gitignore via confined_create (idempotent).
     # This also validates the path through _open_confined_parent (O_NOFOLLOW
     # walk), catching any symlink placed after the lstat checks above.
+    # Creating it is audited like every other facade file effect: an allow
+    # before the create, and a denial with the same operation ID on refusal.
     gitignore = shadow_dir / ".gitignore"
+    se = _security_events()
+    sink = _durable_sink(spec_dir, shadow_dir, cm)
+    operation_id = se.make_operation_id()
+    if not os.path.lexists(gitignore):
+        se.emit_security_event(
+            sink, _facade_file_event(se, operation_id, "allowed", "allowed-file-create")
+        )
     try:
         cm.confined_create(spec_dir, gitignore, b"*\n")
     except cm.MutationDenied as exc:
         if exc.denial_code != "denied-already-exists":
+            se.emit_denial_best_effort(
+                sink, _facade_file_event(se, operation_id, "denied", _known_denial_code(se, exc))
+            )
             raise
 
 
@@ -374,6 +386,27 @@ _CONTENT_SAFETY_DENIAL_CODES: Final[dict[str, str]] = {
 }
 
 
+def _facade_file_event(
+    se: ModuleType, operation_id: str, outcome: str, reason_code: str
+) -> object:
+    """Build the security event for one of the facade's own file effects."""
+    return se.SecurityEvent(
+        schema_version=1,
+        operation_id=operation_id,
+        correlation_id="shadow-compat-facade",
+        event_type="file-write",
+        outcome=outcome,
+        reason_code=reason_code,
+        timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+
+
+def _known_denial_code(se: ModuleType, exc: Exception) -> str:
+    """Return the refused primitive's denial code, or a generic one it does not register."""
+    code = getattr(exc, "denial_code", "")
+    return code if code in se.KNOWN_REASON_CODES else "denied-staging-failed"
+
+
 def _shadow_record_write(
     spec_dir: Path,
     shadow_dir: Path,
@@ -394,17 +427,11 @@ def _shadow_record_write(
     sink = _durable_sink(spec_dir, shadow_dir, cm)
     text = json.dumps(record, ensure_ascii=True, sort_keys=True, allow_nan=False)
     content = (text + "\n").encode("utf-8")
+    # One operation ID binds the allow event to any denial that follows it.
+    operation_id = se.make_operation_id()
 
     def event(outcome: str, reason_code: str) -> object:
-        return se.SecurityEvent(
-            schema_version=1,
-            operation_id=se.make_operation_id(),
-            correlation_id="shadow-compat-facade",
-            event_type="file-write",
-            outcome=outcome,
-            reason_code=reason_code,
-            timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        )
+        return _facade_file_event(se, operation_id, outcome, reason_code)
 
     profile = cs.SLICE_1_WRITER_BOUNDARIES.get(record_type)
     if profile is None:
@@ -416,7 +443,11 @@ def _shadow_record_write(
         se.emit_denial_best_effort(sink, event("denied", code))
         raise ValueError("shadow record refused by its content-safety profile")
     se.emit_security_event(sink, event("allowed", "allowed-file-write"))
-    cm.confined_atomic_replace(spec_dir, path, content)
+    try:
+        cm.confined_atomic_replace(spec_dir, path, content)
+    except cm.MutationDenied as exc:
+        se.emit_denial_best_effort(sink, event("denied", _known_denial_code(se, exc)))
+        raise
 
 
 def _confined_read_json(spec_dir: Path, file_path: Path) -> dict:

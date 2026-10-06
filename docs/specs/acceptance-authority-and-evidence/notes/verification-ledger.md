@@ -239,11 +239,14 @@ regular-file descriptor before launch. The owner chose to pin by file identity
 rather than run a private temp copy, because a relocated copy breaks binaries
 that locate libraries or helpers relative to their own path. On Linux the
 verified descriptor itself is executed through `/proc/self/fd`, so the kernel
-runs exactly the hashed file. On macOS, which has no equivalent, the original
-path runs after a final no-follow check that its device and inode still match
-the verified file. Accepted residual risk: on macOS a short window remains
-between that check and exec. Exploiting it needs write access to the
-executable's directory, which the trust model excludes.
+runs the inode that was hashed. Elsewhere (macOS, other non-Linux POSIX hosts,
+and Linux without a mounted `/proc/self/fd`) the original path runs after a
+final no-follow check that its device and inode still match the verified file.
+Accepted residual risk: on those hosts a window remains between that check and
+exec. Exploiting it needs write access to the executable or to any directory
+traversed to resolve its path, including symlink targets. The owner confirmed this wording on 2026-10-05. Running the
+same inode does not pin its content; see "What the identity pin covers, on every host" under
+Further process-primitive residuals below.
 
 A fourth override on 2026-10-04 followed security review round 2, which found
 no Blockers and upheld 5 Concerns and 1 Nit, and refuted 1 Nit. The owner chose
@@ -280,14 +283,39 @@ because the grant allows no network.
 ## Group kill on hosts without `waitid` (owner decision, 2026-10-04)
 
 `os.waitid` with `WNOWAIT` can see that a process exited without reaping it.
-On hosts that have it, the success-path group kill signals the launch's
-process group while the exited leader still reserves the group ID. macOS
+On hosts that have it, the group kill that ends a launch signals the launch's
+process group while the exited leader still reserves the group ID. The
+primitive checks the leader's exit only after every pipe has closed, and every
+exit after launch kills the group before any further work, so a refusal raised
+before the tree settles kills the group before any reap. macOS
 builds of Python 3.11 and 3.12 do not have it, and this repository supports
-3.11. On those hosts the leader is reaped before the group kill. The owner
-accepted the remaining risk: exploiting it needs the freed ID to be reused by
-another of the same user's process groups within microseconds. The kill stays
-in place there, because removing it would let a backgrounded child outlive a
-successful launch.
+3.11. On those hosts a launch whose tree settled reaps the leader at exit
+detection, and the group kill follows at once, whether the launch then
+succeeds or is refused. The owner
+accepted the remaining risk: another of the same user's process groups could
+reuse the freed ID before the kill, or any user's group when the launcher runs
+as root. The window runs from that reap to the kill. Pre-execute round 19
+found the earlier wording described a refusal-path window the I/O rewrite
+had closed. Round 20 found that redaction ran before the success-path kill,
+so the kill now runs first; `test_refusal_after_settle_still_kills_the_group`
+fails against the earlier order. Round 22 found that an interrupt
+(`KeyboardInterrupt`, `SystemExit`) during the launch skipped the kill, so all
+post-launch work, from the `Popen` call on, now runs under a guard that tries
+to end the group, reap, and store a denial on an interrupt (best effort; see
+the interrupt residual below);
+`test_interrupt_during_io_kills_the_group` fails against the earlier code.
+Round 23 found that this guard signalled the group a second time after a
+refusal path had already reaped the leader. The group is now killed at most
+once per launch, so it is never signalled after this code reaps the leader;
+`test_refusal_signals_the_group_exactly_once` fails when the kill is
+repeated. Round 24 found three narrower interrupt gaps; the kill flag is now
+set after the kill, a launch stores at most one denial, and a late failure's
+denial shares the allow event's operation ID
+(`test_late_failure_denial_shares_the_allow_operation_id` fails against the
+earlier code). The rest is the accepted "interrupts are best effort"
+residual below. The owner confirmed this wording on 2026-10-05. The kill stays in place
+there, because removing it would let a backgrounded child that remains in the
+group outlive a successful launch.
 
 A sixth override on 2026-10-04 followed security review round 4, which upheld
 1 Concern and 3 Nits. All four came from validators that raised on an
@@ -315,6 +343,83 @@ stays valid JSON. A present-but-null `network`, `children`, `max_bytes`, or
 `timeout_s` is now refused, so every attestation field really is type-checked.
 `test_validator_totality.py` adds raising hosts and issuers and schema checks
 on every stored event. Its new cases fail against the pre-fix code.
+
+## Further process-primitive residuals (owner decision, 2026-10-05)
+
+Pre-execute review rounds 14 to 26 of the contract amendment that records
+these risks in the spec found three more residuals, and the owner accepted
+all three on 2026-10-05.
+
+- What the identity pin covers, on every host. The pin hashes the bytes read
+  from a read-only descriptor, once, before launch. Linux with `/proc/self/fd`
+  exec then runs that inode, and other hosts run a path whose device and inode
+  still match; neither pins the content. So the pin does not protect the
+  executable's bytes after the check, or anything it loads by path: the `#!`
+  interpreter, the dynamic loader, shared libraries, and interpreter modules.
+  A principal who can write the executable, a file it loads, or any directory
+  searched to find either can make unchecked code run with the launch's
+  arguments, environment, and grant.
+  Rounds 14 to 16 found cases of this one at a time (a rewrite before exec, a
+  `#!` script read after exec, a native binary rewritten while it runs on
+  macOS, a library loaded by path), so the owner accepted it as one general
+  statement on 2026-10-05. Closing even the first case on Linux would mean
+  running a sealed in-memory copy, which breaks binaries that locate files
+  through their own path, as the private temp copy did.
+- A child that leaves the launch's process group, on every host. The tree kill
+  signals the process group, so a descendant that calls `setsid` or `setpgid`
+  survives it. The standard library has no portable way to track such a
+  descendant. The primitive sees only its own end of each pipe. If stdout or
+  stderr is still open, or stdin input is still waiting to be written into
+  the pipe, at the launch timeout, the launch is refused as an audited timeout
+  within a fixed bound. Input written into the pipe counts as delivered
+  whether or not anything reads it.
+  Otherwise the launch can succeed while the descendant keeps running,
+  including one that keeps the read end of a stdin whose input was all
+  delivered. Pre-execute rounds 19 and 20 found that case and its wording,
+  and the owner confirmed this wording on 2026-10-05.
+
+Pre-execute rounds 17 and 18 found that the primitive treated the leader's
+exit as the whole tree finishing. A tree whose leader exited early, with a
+descendant holding stdout, stderr, or stdin input still waiting to be written
+into the pipe past the timeout, was
+reported as success. A refusal could also hang while a blocked stdin write
+held the pipe's lock, for as long as an escaped descendant lived. And a
+descendant flooding past the output cap after the leader exited got a
+truncated success. The owner chose to fix all three on 2026-10-05. One thread
+now drives all three pipes with non-blocking I/O against the deadline. The
+tree has finished only when this side of every pipe has closed (output at
+EOF, stdin input delivered) and the leader has exited.
+A capped capture is a truncated success only if the tree finishes within
+0.2 s, and is refused otherwise. Every return path closes this side of the
+pipes before a bounded reap. Five tests fail against the earlier code, one of
+which forces the fallback used where `os.waitid` is missing:
+`test_early_leader_exit_with_pipe_held_past_timeout_is_a_timeout`, both cases
+of `test_stdin_holder_past_timeout_is_a_timeout_and_returns_promptly`,
+`test_cap_flood_by_a_descendant_after_leader_exit_refuses`, and
+`test_early_leader_exit_timeout_holds_without_waitid`. The owner confirmed the
+resulting wording of this residual and the group-ID reuse residual on
+2026-10-05.
+
+- Interrupts are best effort, on every host. On a `KeyboardInterrupt` or
+  `SystemExit` (which any process running as the launcher's user can cause by
+  signalling it), the primitive tries to kill the group, reap the leader, and
+  store one denial. Pure Python cannot make every moment interrupt-proof, so
+  this is not guaranteed: an interrupt at any point during a launch can leave
+  the allowed launch without its terminal audit event and, once the child has
+  been forked, the tree running. Pre-execute rounds 24 to 26 found such gaps, and the owner accepted the rest as best
+  effort on 2026-10-05 after the cheap ones were closed.
+
+Rounds 14 and 15 also corrected the wording of the two 2026-10-04 residuals
+above, and the owner confirmed both acceptances still hold.
+
+## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
+
+The owner re-approved the spec and the plan at their human gates on
+2026-10-05, after pre-execute round 28 came back clean. The cohort re-pinned
+both (`approved_spec_hash` `2bd45af18615…`, `approved_plan_hash`
+`15bcaba7827e…`) and rescheduled the one unfinished task, T9b. The approvals
+are recorded here rather than in the plan's Changelog because adding them
+there after `approve-plan` would change the pinned plan.
 
 ## Security review stop rule (owner decision, 2026-10-04)
 
@@ -396,5 +501,5 @@ when a sink is given, and the runtime-security-primitives page says so.
 the pre-fix code. The maintainer procedure in `loop-infrastructure.md` §10 now
 runs the forgery corpus for cross-adapter conformance and lists every suite the
 evidence map cites. The benchmark evidence above is the run that passed on all
-four shards. The follow-up backlog entry exists. The spec's Accepted Risk now
-records both owner-accepted residual risks.
+four shards. The follow-up backlog entry exists. The spec's Accepted Risk
+records every owner-accepted residual risk.

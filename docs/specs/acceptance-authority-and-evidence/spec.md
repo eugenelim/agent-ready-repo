@@ -134,17 +134,65 @@ Non-goals until every Acceptance Criterion is satisfied.
 
 ## Accepted Risk
 
-- On macOS, which cannot execute a verified descriptor, a short window
-  remains between the process primitive's final device-and-inode check and
-  exec. Exploiting it needs write access to the executable's directory, which
-  the trust model excludes. Accepted by the owner on 2026-10-04; see the
-  verification ledger, "Executable identity pinning".
-- On Python builds without `os.waitid` and `WNOWAIT` (macOS Python 3.11 and
-  3.12), the success-path group kill runs after the leader is reaped. A freed
-  group ID could then be reused by another of the same user's process groups
-  within microseconds. The kill stays in place, so no backgrounded child
-  outlives a launch. Accepted by the owner on 2026-10-04; see the verification
-  ledger, "Group kill on hosts without `waitid`".
+The owner accepted these residual risks in the process primitive. Each is
+recorded in the [verification ledger](notes/verification-ledger.md).
+
+- **Exec window on hosts without `/proc/self/fd` exec.** Where the verified
+  descriptor cannot be executed through `/proc/self/fd` (macOS, other
+  non-Linux POSIX hosts, and Linux without a mounted `/proc/self/fd`), the
+  original path runs after a final no-follow device-and-inode check. A
+  principal with write access to the executable, or to any directory
+  traversed to resolve its path (including symlink targets), can swap the
+  file in the window between that check and exec. Accepted by the owner on
+  2026-10-04 and confirmed with this wording on 2026-10-05; see [Executable
+  identity
+  pinning](notes/verification-ledger.md#executable-identity-pinning-owner-decision-2026-10-04).
+- **What the identity pin covers, on every host.** The pin checks only the
+  executable file's own bytes, once, before launch. It does not protect those
+  bytes after the check, or anything the executable loads by path: the `#!`
+  interpreter, the dynamic loader, shared libraries, and interpreter modules.
+  A principal who can write the executable, a file it loads, or any directory
+  searched to find either can make unchecked code run with the launch's
+  arguments, environment, and grant.
+  Accepted by the owner on 2026-10-05 as one general statement; see [Further
+  process-primitive
+  residuals](notes/verification-ledger.md#further-process-primitive-residuals-owner-decision-2026-10-05).
+- **Group-ID reuse on Pythons without `os.waitid` and `WNOWAIT`** (macOS
+  Python 3.11 and 3.12). The primitive checks the leader's exit only after
+  every pipe has closed, and every refusal or return after launch kills the
+  group before any further work. A refusal raised before the tree settles kills the group
+  before any reap. Once the tree has settled, exit detection reaps the leader
+  and the group kill follows at once, whether the launch then succeeds or is
+  refused. A freed group ID reused in that brief window by another of the same user's process groups would
+  receive the kill; a launcher running as root could kill any user's reused
+  group. The kill stays in place, so no child that remains in the launch's
+  process group outlives the launch. Accepted by the owner on 2026-10-04 and
+  confirmed with this wording on 2026-10-05; see [Group kill on hosts without
+  `waitid`](notes/verification-ledger.md#group-kill-on-hosts-without-waitid-owner-decision-2026-10-04).
+- **A child that leaves the process group, on every host.** The tree kill
+  signals the launch's process group. A descendant that calls `setsid` or
+  `setpgid` leaves it and survives the kill. The primitive sees only its own
+  end of each pipe. If stdout or stderr is still open, or stdin input is
+  still waiting to be written into the pipe, at the launch timeout, the
+  launch is refused as an audited timeout within a fixed bound, because this
+  side of every pipe is closed before the leader is reaped. Input written
+  into the pipe counts as delivered whether or not anything reads it.
+  Otherwise the launch can succeed while the descendant keeps running,
+  including one that keeps the read end of a stdin whose input was all
+  delivered. Accepted by
+  the owner on 2026-10-05 and confirmed with this wording the same day; see
+  [Further
+  process-primitive
+  residuals](notes/verification-ledger.md#further-process-primitive-residuals-owner-decision-2026-10-05).
+- **Interrupts are best effort, on every host.** On a `KeyboardInterrupt`
+  or `SystemExit` (which any process running as the launcher's user can
+  cause by signalling it), the primitive tries to kill the group, reap the
+  leader, and store one denial. Pure Python cannot make every moment
+  interrupt-proof, so this is not guaranteed: an interrupt at any point
+  during a launch can leave the allowed launch without its terminal audit
+  event and, once the child has been forked, the tree running. Accepted by the owner on
+  2026-10-05; see [Further process-primitive
+  residuals](notes/verification-ledger.md#further-process-primitive-residuals-owner-decision-2026-10-05).
 
 ## Assumptions
 
