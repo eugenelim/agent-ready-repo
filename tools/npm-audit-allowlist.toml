@@ -39,16 +39,6 @@
 #   unblocked_when = "example-pkg ships >=2.4.1, which repins the vulnerable transitive dep"
 
 [[allow]]
-id = "GHSA-ch52-4w7c-c8xp"
-reason = """
-Transitive dependency of astro in docs-site and web. Both sites build to static
-files with no server adapter, so no shared HTTP cache serves one user's cached
-response to another; the max-stale flaw needs that shared cache to disclose
-anything. No patched http-cache-semantics release exists (affected: <= 4.2.0).
-"""
-unblocked_when = "http-cache-semantics publishes a release that patches GHSA-ch52-4w7c-c8xp"
-
-[[allow]]
 id = "GHSA-vfj7-8cjw-p6xm"
 reason = """
 Transitive dependency of stylelint (via micromatch) in web, used only at lint
@@ -57,3 +47,15 @@ such as src/**/*.{css,astro}, so no untrusted, deeply nested pattern reaches
 it. No patched braces release exists (affected: <= 3.0.3).
 """
 unblocked_when = "braces publishes a release that patches GHSA-vfj7-8cjw-p6xm"
+
+[[allow]]
+id = "GHSA-rj75-hqrm-r3gf"
+reason = """
+Transitive dependency of @astrojs/starlight in docs-site (via expressive-code's
+postcss-nested 6.2.0, which requires postcss-selector-parser ^6.1.1), used only
+when the static docs site is built. The only selectors it parses are the
+repository's own committed stylesheets and theme CSS, so no untrusted selector
+reaches it. The patched release is 7.1.6, outside postcss-nested's range, so
+`npm audit fix` offers only a breaking starlight downgrade.
+"""
+unblocked_when = "postcss-nested (or expressive-code) accepts postcss-selector-parser >=7.1.6"
