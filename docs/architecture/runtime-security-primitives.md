@@ -72,6 +72,9 @@ logic into versioned, reusable infrastructure capabilities.
    not audited: the append that stores a security event, because that append
    is the audit record, and the shadow folder's self-ignoring `.gitignore`,
    which must exist before the audit log can be written into that folder.
+   Until it exists the shadow audit store is unavailable, so a refused
+   `.gitignore` create fails closed with the primitive's stable denial code
+   and stores no event.
 5. The adapter returns containment, `access-attestation.v1`, and effect receipts.
 
 **Failure and recovery sequence**

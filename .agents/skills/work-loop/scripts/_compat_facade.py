@@ -513,6 +513,9 @@ def _durable_sink(spec_dir: Path, shadow_dir: Path, cm: ModuleType) -> Callable[
     security-event log through the confined append helper.  A failed append
     raises, so the calling service fails closed and the facade records a
     divergence instead of acknowledging an event that was never stored.
+
+    The store is unavailable until the folder's self-ignoring ``.gitignore``
+    exists, so no event can leave an un-ignored log behind.
     """
 
     def sink(event: object) -> None:
@@ -525,6 +528,9 @@ def _durable_sink(spec_dir: Path, shadow_dir: Path, cm: ModuleType) -> Callable[
             record = event
         if not isinstance(record, dict):
             raise OSError("security event must be a dataclass or a mapping")
+        gitignore = shadow_dir / ".gitignore"
+        if not gitignore.is_file() or gitignore.is_symlink():
+            raise OSError("shadow security-event store is not initialised")
         try:
             _confined_jsonl_append(spec_dir, shadow_dir / _SECURITY_EVENTS_FILE, record, cm)
         except OSError:

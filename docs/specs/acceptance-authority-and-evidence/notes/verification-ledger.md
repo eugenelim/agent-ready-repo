@@ -424,6 +424,14 @@ two unaudited writes. `test_refused_gitignore_leaves_no_unignored_shadow_file`
 fails against the earlier code. The process primitive's module docstring now
 states the narrowed process-group guarantees.
 
+Post-gates round 11 asked whether this exemption narrows AC-0021. The owner
+decided on 2026-10-06 that it does not: until the `.gitignore` exists, the
+shadow audit store is unavailable, so a refused create falls under AC-0021's
+fail-closed branch (a stable denial code, no effect success, and no claim
+that an event was stored). The shadow sink now refuses any event while the
+`.gitignore` is missing, and `test_sink_refuses_until_the_gitignore_exists`
+fails against the earlier code.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on

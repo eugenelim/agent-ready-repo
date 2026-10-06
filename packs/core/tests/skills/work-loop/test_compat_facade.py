@@ -1773,7 +1773,8 @@ class TestShadowWriterPort:
         monkeypatch.setattr(cs, "check_content_safety", lambda *a, **k: Refused())
         spec_dir = tmp_path / "refuse-spec"
         shadow_dir = spec_dir / facade.SHADOW_SUBDIR
-        shadow_dir.mkdir(parents=True)
+        spec_dir.mkdir()
+        facade._confined_ensure_shadow_dir(spec_dir, shadow_dir, facade._cm())
         cm = facade._cm()
         target = shadow_dir / "shadow-verdict.json"
         with pytest.raises(ValueError):
@@ -1803,7 +1804,8 @@ class TestShadowWriterPort:
 
         spec_dir = tmp_path / "post-allow-spec"
         shadow_dir = spec_dir / facade.SHADOW_SUBDIR
-        shadow_dir.mkdir(parents=True)
+        spec_dir.mkdir()
+        facade._confined_ensure_shadow_dir(spec_dir, shadow_dir, facade._cm())
         monkeypatch.setattr(cm, "confined_atomic_replace", refuse)
         with pytest.raises(cm.MutationDenied):
             facade._shadow_record_write(
@@ -1846,4 +1848,17 @@ class TestShadowWriterPort:
         monkeypatch.setattr(cm, "confined_create", refuse_gitignore)
         with pytest.raises(cm.MutationDenied):
             facade._confined_ensure_shadow_dir(spec_dir, shadow_dir, cm)
+        assert list(shadow_dir.iterdir()) == []
+
+    def test_sink_refuses_until_the_gitignore_exists(
+        self, facade: ModuleType, tmp_path: Path
+    ) -> None:
+        """The shadow audit store is unavailable until its self-ignoring .gitignore exists."""
+        spec_dir = tmp_path / "sink-spec"
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        shadow_dir.mkdir(parents=True)
+        cm = facade._cm()
+        sink = facade._durable_sink(spec_dir, shadow_dir, cm)
+        with pytest.raises(OSError):
+            sink({"schema_version": 1})
         assert list(shadow_dir.iterdir()) == []
