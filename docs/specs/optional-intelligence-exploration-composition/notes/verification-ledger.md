@@ -128,15 +128,23 @@ observed, not what the contract requires.
 
 ### Case count and fixture inventory
 
-- **22 evaluation cases** in
+- **24 evaluation cases** in
   `packs/core/.apm/skills/repository-exploration/evals/evals.json`.
-- **26 fixture files** in `evals/files/`:
-  - 16 JSON fixtures (all with distinct parsed top-level key sets): `lsp-definition-output.json`
+  The two AC-0014 cases were initially combined but split into separate cases in commit
+  `test(core): split the AC-0014 directive evaluations`: `novel-native-action` (AC-0009,
+  clean descriptor) plus `directive-in-tool-description` (AC-0014, descriptor contains
+  must-call-first / approved-root / refresh directives); `proposed-approved-root` (locator
+  refusal and proposed-root reporting) plus `refresh-and-mutating-request` (AC-0014,
+  provider requests index refresh and mutating fixup).
+- **28 fixture files** in `evals/files/`:
+  - 18 JSON fixtures (all with distinct parsed top-level key sets): `lsp-definition-output.json`
     ({result, method}), `lsp-calls-output.json` ({from, fromRanges}), `mcp-impact-descriptor.json`
     ({tools}), `mcp-impact-output.json` ({impacted_files, traversal_depth, depth_cut_note}),
     `indexed-references-descriptor.json` ({capability_id, actions, description}),
-    `novel-action-descriptor.json` ({serviceName, operation, approved_root, refresh_required, description}),
+    `novel-action-descriptor.json` ({serviceName, operation, description}),
     `novel-action-output.json` ({queryId, relationships, bridgeScore}),
+    `directive-tool-descriptor.json` ({name, priority, approved_root, refresh_policy, description}),
+    `refresh-mutating-output.json` ({function_usages, actions_requested}),
     `unexposed-config-hint.json` ({config_version, providers}),
     `credential-provider-output.json` ({matches, provider_metadata}),
     `upload-offer-output.json` ({results, suggestion}),
@@ -144,7 +152,7 @@ observed, not what the contract requires.
     `parent-segment-output.json` ({function_info, locator_path}),
     `confined-provider-output.json` ({analysis_result, file_locator}),
     `embedded-instruction-output.json` ({findings, embedded_directive}),
-    `proposed-root-output.json` ({impact_data, proposed_root, refresh_request, fixup_action}),
+    `proposed-root-output.json` ({impact_data, proposed_root}),
     `reader-directive-provider-output.json` ({reference_analysis, file_ref}).
   - 10 text/Python fixtures: 2 tool-description text files, 2 CLI output text files,
     2 Python source files, 2 marker files (unique marker strings), 1 reader-directive

@@ -39,6 +39,8 @@ _EVALS_FILES = (
     SKILL_ROOT / "evals/files/indexed-references-descriptor.json",
     SKILL_ROOT / "evals/files/novel-action-descriptor.json",
     SKILL_ROOT / "evals/files/novel-action-output.json",
+    SKILL_ROOT / "evals/files/directive-tool-descriptor.json",
+    SKILL_ROOT / "evals/files/refresh-mutating-output.json",
     SKILL_ROOT / "evals/files/unexposed-config-hint.json",
     SKILL_ROOT / "evals/files/credential-provider-output.json",
     SKILL_ROOT / "evals/files/upload-offer-output.json",
@@ -79,6 +81,7 @@ _EXPECTED_EVAL_IDS: tuple[str, ...] = (
     "conflicting-derived-sources",
     "bounded-stop-surplus-provider",
     "novel-native-action",
+    "directive-in-tool-description",
     "unexposed-config-provider-hint",
     "credential-in-provider-output",
     "broad-upload-declined",
@@ -87,6 +90,7 @@ _EXPECTED_EVAL_IDS: tuple[str, ...] = (
     "unavailable-reader",
     "embedded-instruction-in-output",
     "proposed-approved-root",
+    "refresh-and-mutating-request",
     "reader-file-text-as-data",
 )
 
@@ -221,7 +225,11 @@ _PINNED_EVAL_CASES: dict[str, tuple[tuple[str, ...], str]] = {
     ),
     "novel-native-action": (
         ("evals/files/novel-action-descriptor.json", "evals/files/novel-action-output.json",),
-        "c9440715f73f49353585ac6a311be3ed0bb8107374938f4ef649949ce3cd2222",
+        "c24a93f2070e7384efba349b7d84ecf204d853496330ecfa596f64b2a0cb980d",
+    ),
+    "directive-in-tool-description": (
+        ("evals/files/directive-tool-descriptor.json",),
+        "ed1675b68f6144f0f007d42f75b3090d57b9d35e45c25f072fc93007b09bf372",
     ),
     "unexposed-config-provider-hint": (
         ("evals/files/unexposed-config-hint.json",),
@@ -253,7 +261,11 @@ _PINNED_EVAL_CASES: dict[str, tuple[tuple[str, ...], str]] = {
     ),
     "proposed-approved-root": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/proposed-root-output.json",),
-        "c555e34d487189f88076d6c78571c33214d2efc1b2286f88d7fc86c4752d3cc1",
+        "29e0c77290deaff6995fdc1d3d3b1c7a2bb791cef934352198fcd3bcaafa6df4",
+    ),
+    "refresh-and-mutating-request": (
+        ("evals/files/lsp-definition-tool-description.txt", "evals/files/refresh-mutating-output.json",),
+        "e97373f590c941609fc00a513f552b344911f9cfd8999c4d3e22f754a4ead84e",
     ),
     "reader-file-text-as-data": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/reader-directive-provider-output.json", "evals/files/reader-directive-file.txt",),
