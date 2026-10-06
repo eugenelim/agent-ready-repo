@@ -956,11 +956,28 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `d5ce59c0…` and `74e76e14…` still in place
 # returns an empty error list, so this supersedes live values rather than a pin
 # that had already gone stale.
+# Bumped 2026-10-06 for spec/decision-navigation, which appends one
+# `run-test-suite` line so the governance-extras `navigate-decisions` suite
+# runs under `make test`.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added line and
+# none removed or reordered — `$(PYTHON) -m pytest
+# packs/governance-extras/tests/skills/navigate-decisions/ -q`, after the
+# `design-system` line. It is a new pytest process, so it takes plan index 39
+# in each plan (standalone 74 -> 75, composed 73 -> 74), and deleting exactly
+# that line from the new plans recomputes `b8b11581…` and `ccb88947…` — the
+# superseded pins — element for element, so nothing else moved, was
+# reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is untouched: it is a
+# pack path, not a root tool path.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `b8b11581…` and `ccb88947…` still in place
+# returns an empty error list. The baseline is bare `origin/main`, which this
+# branch is merged up to and whose Makefile differs from this worktree's by the
+# single line above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "b8b11581a7c775d69a2338c222bb0d7e547e8bff93e06e25e371993d866e2b7b"
+    "ea3402f38c5f048fa65a0ba3bf9efba244bba9ff065a3ebb31b75bb62bc1760d"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "ccb889478dcc56ee2fbb4803199c97f102c8559dde92da19012a16be1921374e"
+    "0d16adcb7118f67fac72ae39acda670307e5c02e325dd990d5a8fcd7bdad1b62"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
