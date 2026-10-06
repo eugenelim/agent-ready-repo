@@ -191,3 +191,68 @@ The negation is written as `!packs/*/.apm/skills/*/package-lock.json` — a shap
 rather than two named projects — so a new canonical project joins the committed
 set without editing `.gitignore`, matching the roster-free rule AC-0004 states
 for discovery.
+
+## T4 — the workflow shipped with a configuration that could never have run
+
+2026-10-05. The first `.github/workflows/pack-javascript.yml` set both npm
+config slots to the same path at job level:
+
+```yaml
+NPM_CONFIG_GLOBALCONFIG: /dev/null
+NPM_CONFIG_USERCONFIG: /dev/null
+```
+
+That is the exact form T2 had already measured as broken four hours earlier:
+npm refuses with `double-loading config "/dev/null" as "global", previously
+loaded as "user"` and exits before resolving any configuration, so every npm
+command in the job dies. Reproduced again under npm 11.19.0 before changing
+anything.
+
+The job would have failed rather than passed unsafely — the verify step's
+`test "$(npm config get userconfig)" = /dev/null` compares against npm's error
+text — so the consequence was a workflow that could never go green, not a
+silent hole. Replaced with a step that writes two distinct empty files under
+`$RUNNER_TEMP` and exports their paths through `$GITHUB_ENV`. `$RUNNER_TEMP` is
+platform-issued and carries no pull-request-controlled value.
+
+The construction test had pinned the broken form as a required setting, so it
+was asserting that the workflow must be unusable. It now asserts the working
+neutralization and carries an explicit regression case: collapsing both slots
+onto one path must be reported as a contract violation.
+
+### Three fixture corpora had to learn the new runner file
+
+AC-0010 puts `.github/workflows/pack-javascript.yml` in `_RUNNER_FILES`, and
+the lint refuses a named runner file that does not exist. Three synthetic
+corpora build their own catalogues and none of them built it:
+`tools/test-lint-pack-test-boundary.py` (via the golden fixture builder),
+`tools/test-lint-boundary-golden.py`'s `_FIXTURE_RUNNER_FILES` and its workflow
+writer, and `tools/test-lint-boundary-structural.py`'s `_build_min_fixture`.
+
+The last one failed through a byte-exact anchor — `the
+every-suite-dir-has-a-runner summary is byte-exact` — because a check with
+findings returns no summary at all, so the assertion saw `None`.
+
+A first attempt filtered `runner_files` down to entries the fixture happens to
+build. That went green and was wrong: it silently defeated the
+`missing-runner-file` plant, whose entire job is to prove the lint notices an
+absent runner file. Reverted. The corpora now build the workflow, which is what
+mirrors the production inventory rather than hiding a divergence from it.
+
+`tools/test-lint-boundary-golden.py` and `tools/test-lint-boundary-structural.py`
+are outside T4's pinned `Touches`. They are admitted as ride-alongs: each change
+is a one-line fixture-corpus mirror of an inventory entry the task is required
+to add, it alters no behaviour and resolves no design question, and it is
+verified by the suite that owns it returning green. Without them AC-0010 cannot
+be satisfied and the gate cannot pass.
+
+### External validation
+
+`actionlint .github/workflows/pack-javascript.yml` exits 0. `zizmor` reports no
+findings. The parsed workflow carries exactly `workflow_dispatch` (no inputs)
+and `pull_request` with paths, `permissions: contents: read`, `ubuntu-latest`
+with `timeout-minutes: 20`, and concurrency keyed on the platform-issued PR
+number or run ID. It contains no `pull_request_target`, no `secrets.`
+reference, no cache action, no `npm audit`, no `npm install`, and no
+pull-request-controlled expression — no `pull_request.title`, `body`,
+`head.ref`, or `github.head_ref`.

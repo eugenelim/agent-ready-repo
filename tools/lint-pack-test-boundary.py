@@ -1229,6 +1229,7 @@ _RUNNER_FILES = (
     ".github/workflows/build-check.yml",
     ".github/workflows/catalogue-tooling-ci-gates.yml",
     ".github/workflows/docs.yml",
+    ".github/workflows/pack-javascript.yml",
     "tools/test-all.py",
     "packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py",
 )
@@ -1266,8 +1267,6 @@ _NO_RUNNER = {
     "packs/atlassian/tests/skills/jira-align": "never gated",
     "packs/atlassian/tests/skills/jira-team-status":
         "run by tools/check-atlassian-phase3-readiness.py, which no workflow invokes",
-    "packs/converters/tests/skills/render-proof":
-        "no CI exists for pack-level JavaScript",
     "packs/figma/tests/skills/figma": "never gated",
     "packs/governance-extras/tests/skills/new-adr": "never gated",
     "packs/governance-extras/tests/skills/new-rfc": "never gated",
