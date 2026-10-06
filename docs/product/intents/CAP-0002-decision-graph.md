@@ -151,14 +151,14 @@ validation_hook:
 
 ## Decomposition
 
-- [Decision navigation](FEAT-0029-decision-navigation.md) — list, lifecycle graph, scoped-guidance context, record detail, bounded agent queries, and a portable single-file human view over the ADR and RFC corpus.
-- [Decision context checks](FEAT-0031-decision-context-checks.md) — lightweight use of bounded decision context during human and agent planning, implementation, review, and future decision authoring, with citations and explicit uncertainty rather than policy resolution.
+- [Decision navigation](FEAT-0033-decision-navigation.md) — list, lifecycle graph, scoped-guidance context, record detail, bounded agent queries, and a portable single-file human view over the ADR and RFC corpus.
+- [Decision context checks](FEAT-0035-decision-context-checks.md) — lightweight use of bounded decision context during human and agent planning, implementation, review, and future decision authoring, with citations and explicit uncertainty rather than policy resolution.
 - **Decision evolution evidence — not yet admitted as a child.** Conflicts, exceptions, and outcomes may later justify a distinct feature, but the current evidence does not show that it needs machinery beyond cited input to normal ADR and RFC authoring.
 
 ### Decomposition decisions
 
 - **Views are one navigation outcome.** List, lifecycle graph, guidance context, and record detail are projections over the same corpus, not separate skills or core schemas.
-- **Navigation and use remain separate.** FEAT-0029 makes the graph legible and queryable. FEAT-0031 owns when and how work checks that context.
+- **Navigation and use remain separate.** FEAT-0033 makes the graph legible and queryable. FEAT-0035 owns when and how work checks that context.
 - **No policy resolver sits between them.** Context checks consume bounded navigation results and leave judgment with the actor.
 - **Authoring remains outside both children.** `new-adr` and `new-rfc` retain their separate admission and authoring contracts.
 - **Evolution remains evidence-led and authorized.** Observations may inform a new or superseding record but cannot mutate the graph.

@@ -230,9 +230,9 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  # Implementing (FEAT-0029, RFC-0105): delivered as an intermediate unit;
+  # Implementing (FEAT-0033, RFC-0105): delivered as an intermediate unit;
   # AC-0020's human comparison sessions remain open.
-  {path = "docs/specs/decision-navigation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0029-decision-navigation.md"}, summary = "Replace rfc-status with bounded ADR/RFC queries and list, lifecycle, guidance-context, and detail views in one safe offline explorer", needs = []},
+  {path = "docs/specs/decision-navigation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0033-decision-navigation.md"}, summary = "Replace rfc-status with bounded ADR/RFC queries and list, lifecycle, guidance-context, and detail views in one safe offline explorer", needs = []},
 ]
 shipped = [
   {path = "docs/specs/optional-intelligence-grounding-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0029-optional-intelligence-grounding-composition.md", revision = "working-tree-2026-10-04"}, summary = "Give Core grounding a provider-neutral owner that can add native evidence while preserving its no-provider result", needs = []},
@@ -2203,7 +2203,7 @@ open = [
   { path = "docs/specs/flow-distribution-sample-honest/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/delivery-state-and-flow-visibility.md", parent = "docs/product/briefs/delivery-state-and-flow-visibility.md" }, summary = "Cycle time, throughput and percentiles over those observations, reporting the strongest claim the sample supports and naming it", needs = [{type = "local", kind = "spec", path = "docs/specs/delivery-state-observation/spec.md"}] },
   { path = "docs/specs/delivery-forecast-with-uncertainty/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "A delivery forecast carrying its range and its sample, distinguishable from a committed date", needs = [{type = "local", kind = "spec", path = "docs/specs/flow-distribution-sample-honest/spec.md"}] },
   { path = "docs/specs/progress-review-two-answers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "Place the forecast beside the intent's declared outcome, read verbatim from its Outcome section, with both separations intact", needs = [{type = "local", kind = "spec", path = "docs/specs/delivery-forecast-with-uncertainty/spec.md"}] },
-  { path = "docs/product/intents/FEAT-0031-decision-context-checks.md", kind = "intent", source = { mode = "repo-origin", ref = "docs/product/intents/CAP-0002-decision-graph.md" }, summary = "Test lightweight decision-context checks that cite bounded reference policy without inferring applicability, enforcing behavior, or burdening ordinary maintenance", needs = [] },
+  { path = "docs/product/intents/FEAT-0035-decision-context-checks.md", kind = "intent", source = { mode = "repo-origin", ref = "docs/product/intents/CAP-0002-decision-graph.md" }, summary = "Test lightweight decision-context checks that cite bounded reference policy without inferring applicability, enforcing behavior, or burdening ordinary maintenance", needs = [] },
   # Work-item capture and disposition — delivery for CAP-0005 and its four
   # feature intents, all Accepted and therefore de-registered. These specs are
   # where the work stays visible. Each names exactly one parent feature intent

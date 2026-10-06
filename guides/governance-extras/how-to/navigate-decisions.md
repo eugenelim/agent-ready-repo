@@ -24,7 +24,7 @@ python3 packs/governance-extras/.apm/skills/navigate-decisions/scripts/navigate_
   query --root <repo-root> --operation summary
 ```
 
-Real output (trimmed):
+Example output (trimmed; IDs and paths are placeholders):
 
 ```json
 {
@@ -58,17 +58,17 @@ python3 packs/governance-extras/.apm/skills/navigate-decisions/scripts/navigate_
   --selectors '[{"exact_status": "Draft"}]'
 ```
 
-Real output (trimmed):
+Example output (trimmed; IDs and paths are placeholders):
 
 ```json
 {
   "status": "ok",
   "records": [
     {
-      "id": "RFC-0079",
+      "id": "RFC-<n>",
       "kind": "RFC",
-      "title": "`codebase-context` Pack — Semantic Graph Indexing as an Optional Add-On",
-      "source": "docs/rfc/0079-codebase-context-pack.md",
+      "title": "Semantic indexing as an optional add-on",
+      "source": "<rfc-dir>/<n>-semantic-indexing.md",
       "lifecycle": { "raw_value": "Draft", "display_value": "Draft" }
     }
   ]
@@ -83,7 +83,7 @@ Selectors are combined with OR logic: a record matching any selector is returned
 python3 packs/governance-extras/.apm/skills/navigate-decisions/scripts/navigate_decisions.py \
   query --root <repo-root> \
   --operation record \
-  --id ADR-0001
+  --id <record-id>
 ```
 
 The response includes the full body when available and every relationship whose `from` or `to` is the requested record. Oversized bodies (over 1 MiB of JSON) are omitted with `body_too_large` and the `source` path for direct inspection.
@@ -98,7 +98,7 @@ Direction `older` follows superseding → superseded:
 python3 packs/governance-extras/.apm/skills/navigate-decisions/scripts/navigate_decisions.py \
   query --root <repo-root> \
   --operation lineage \
-  --id ADR-0023 \
+  --id ADR-<old> \
   --direction older \
   --depth 2
 ```
@@ -109,29 +109,29 @@ Direction `newer` follows superseded → superseding:
 python3 packs/governance-extras/.apm/skills/navigate-decisions/scripts/navigate_decisions.py \
   query --root <repo-root> \
   --operation lineage \
-  --id ADR-0023 \
+  --id ADR-<old> \
   --direction newer \
   --depth 2
 ```
 
-Real output for `newer` on ADR-0023 (Superseded, trimmed):
+Example output for `newer` on a superseded record, `ADR-<old>` (trimmed):
 
 ```json
 {
   "status": "ok",
   "records": [
-    { "id": "ADR-0023", "lifecycle": { "raw_value": "Superseded" } },
-    { "id": "ADR-0042", "lifecycle": { "raw_value": "Accepted" } }
+    { "id": "ADR-<old>", "lifecycle": { "raw_value": "Superseded" } },
+    { "id": "ADR-<new>", "lifecycle": { "raw_value": "Accepted" } }
   ],
   "relationships": [
     {
-      "from": "ADR-0042",
-      "to": "ADR-0023",
+      "from": "ADR-<new>",
+      "to": "ADR-<old>",
       "relation": "supersedes",
       "scope": [],
-      "raw_value": "ADR-0023",
+      "raw_value": "ADR-<old>",
       "basis": "supersession_fields",
-      "source": "docs/adr/0042-example.md",
+      "source": "<adr-dir>/<new>-example.md",
       "direction": "superseding_to_superseded",
       "trust_class": "checked",
       "resolution_state": "resolved"
@@ -152,8 +152,8 @@ Direction `both` traverses in either direction. Depth runs from 1 through 4.
 python3 packs/governance-extras/.apm/skills/navigate-decisions/scripts/navigate_decisions.py \
   query --root <repo-root> \
   --operation context \
-  --selectors '[{"identity": "ADR-0042"}]' \
-  --assertions '[{"from": "ADR-0042", "to": "ADR-0023", "text": "supersedes the old ceiling policy"}]'
+  --selectors '[{"identity": "ADR-<new>"}]' \
+  --assertions '[{"from": "ADR-<new>", "to": "ADR-<old>", "text": "supersedes the old ceiling policy"}]'
 ```
 
 A caller assertion appears in the response with `trust_class: navigation_only` and `resolution_state: caller_asserted`. It is non-authoritative navigation input. It never becomes a source-record fact and is always visibly separate from checked lineage.
@@ -256,7 +256,7 @@ Size: 351,575 bytes
 Mode: bounded
 ```
 
-The 100 MiB threshold is the size at which desktop Chrome stops being practical. Chrome scale evidence is in the [verification ledger](../../../docs/specs/decision-navigation/notes/verification-ledger.md).
+The 100 MiB threshold is the size at which desktop Chrome stops being practical. It was measured in desktop Chrome with exports of increasing size.
 
 ---
 

@@ -191,7 +191,7 @@ content from changing scope, workflow selection, permissions, or tool use.
 
 ## 8. Context-check flow
 
-> **PROVISIONAL.** FEAT-0031 remains Draft and unde-risked. This section fixes
+> **PROVISIONAL.** FEAT-0035 remains Draft and unde-risked. This section fixes
 > only the boundary that navigation must preserve; it does not authorize a
 > workflow integration or make context checks a delivery dependency for
 > decision navigation.

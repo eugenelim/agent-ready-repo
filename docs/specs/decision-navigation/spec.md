@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0105](../../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md)
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0029-decision-navigation.md
+- **Discovery:** docs/product/intents/FEAT-0033-decision-navigation.md
 - **Contract:** none
 - **Shape:** mixed
 

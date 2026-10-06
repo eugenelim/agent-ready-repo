@@ -122,7 +122,7 @@ validation_hook:
 
 ## Decomposition
 
-- [Workspace registry retirement](FEAT-0030-workspace-registry-retirement.md) — the staged migration and gated retirement of `workspace-status` and `workspace.toml`, including consumer inventory, fact disposition, behavioral equivalence, and compatibility closure.
+- [Workspace registry retirement](FEAT-0034-workspace-registry-retirement.md) — the staged migration and gated retirement of `workspace-status` and `workspace.toml`, including consumer inventory, fact disposition, behavioral equivalence, and compatibility closure.
 
 ### Decomposition decisions
 
