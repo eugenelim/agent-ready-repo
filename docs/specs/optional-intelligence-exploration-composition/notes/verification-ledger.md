@@ -319,3 +319,56 @@ Scratch directories deleted after recording.
 - `PYTHONPATH=packages/agentbundle:packages/credbroker python3 -m agentbundle
   catalogue lint --root . --deep` — **ok** (73 pre-existing warnings, zero
   errors).
+
+## T4 — repository gates and release (2026-10-06)
+
+### Repository gates
+
+| Gate | Result | Count | Runtime |
+| --- | --- | --- | --- |
+| `pytest packs/core/tests/skills/repository-exploration/ packs/core/tests/skills/repository-grounding/ -q` | pass | 143 passed, 2 skipped | 62.90s |
+| `pytest packs/core/tests/pack/ -q` | pass | 293 passed | 37.90s |
+| `pytest tests/roster/test_skill_census.py -q` | pass | 1 passed | 0.28s |
+| `pytest tools/test_local_ci_shared_test_deduplication.py -q` | pass | 51 passed | 127.70s |
+| `pytest tools/test_intent_corpus_gate.py tools/test_check_core_release.py -q` | pass | 34 passed | 69.25s |
+| `make lint-ruff lint-mypy` | pass | 155 source files, no issues | ~8s |
+| `python3 tools/lint-ci-parity.py` | pass | 74 recipe lines, 127 targets, all dispositioned | — |
+| `python3 tools/lint-pack-test-boundary.py` | pass | 8 cases | — |
+| `agentbundle catalogue lint --root . --deep` | pass | 73 pre-existing warnings, zero errors | — |
+| `agentbundle catalogue verify --root .` | pass | ok | — |
+| `python3 .claude/skills/work-loop/scripts/lint-spec-status.py --root .` | pass | 2 of 530 specs changed, metadata clean | — |
+| `python3 tools/repo/check_release_impact.py --base origin/main` | pass | 116 changed files, none release-impacting | — |
+| Governance-citation grep over `packs/core/.apm/skills/repository-exploration/` | pass | zero hits | — |
+| `pytest tools/test_build_site_routing.py::test_the_generator_projects_the_real_changelog_into_a_valid_payload -q` | pass | 1 passed | 0.74s |
+
+### Release record
+
+- **Baseline:** Core 2.28.0 at `origin/main` (the `## [core][2.28.0] — 2026-10-05` entry).
+- **Derivation:** `repository-exploration` is a new primitive → minor class → 2.28.0 + minor = **2.29.0**.
+- **Manifests:** `packs/core/pack.toml` version = `2.29.0`; `packs/core/.claude-plugin/plugin.json` version = `2.29.0`. Both agree.
+- **Marketplace:** `.claude-plugin/marketplace.json` lists 16 plugins; `core` is absent (Core is a repository-only pack).
+- **Changelog entry:** Free-standing `## [core][2.29.0] — 2026-10-06` inserted directly above `## [core][2.28.0] — 2026-10-05` in `docs/product/changelog.md`.
+- **Highlights disposition:** Consumer-visible change — adds `repository-exploration` skill that consumers can invoke → Highlights written (two bullets: the exploration method and tool-output-stays-data). Test `test_the_generator_projects_the_real_changelog_into_a_valid_payload` passes with the new entry, confirming projection.
+
+### Acceptance-criteria evidence map
+
+| AC | Description (short) | Evidence |
+| --- | --- | --- |
+| AC-0001 | Question-led method | Evals: `lsp-goto-definition`, `lsp-incoming-calls`, `dep-path`, `transitive-impact`, `authority-question`, `co-change-question`, `no-provider`, `poor-fit-provider`, `timeout-provider`, `malformed-provider`, `conflict-resolution`, `bounded-stopping`, `novel-native-action`, `directive-in-tool-description`; SKILL.md construction test (procedure-steps); evidence-record-fields test |
+| AC-0002 | Exposed-only discovery | Eval `unexposed-config-hint`; SKILL.md construction test (no-probe-instructions); bounded hidden-probe absence scan |
+| AC-0003 | Task fit controls invocation | Evals: `lsp-goto-definition`, `lsp-incoming-calls`, `dep-path`, `poor-fit-provider`, `timeout-provider`, `malformed-provider`; SKILL.md construction test (no-normalized-schema) |
+| AC-0004 | Native shapes intact | Evals: `lsp-goto-definition`, `lsp-incoming-calls`, `dep-path`, `transitive-impact`, `novel-native-action`; construction test `test_no_shared_top_level_key_sets`; SKILL.md construction test |
+| AC-0005 | Deliberate fallback | Evals: `authority-question`, `co-change-question`, `poor-fit-provider`, `timeout-provider`, `malformed-provider`; SKILL.md construction test |
+| AC-0006 | Evidence advisory | Evals: `transitive-impact` (depth-cut caveat), `conflict-resolution`, `directive-in-tool-description`; SKILL.md construction test (evidence-record-fields) |
+| AC-0007 | Bounded stopping | Evals: `bounded-stopping`, `no-provider`; SKILL.md construction test (procedure-steps); evidence-record-fields test |
+| AC-0008 | No provider ceremony in consumers | Pack test `test_exploration_consumer_boundary.py` (6 tests, all pass); architect grep (0 `repository-exploration` hits); README pack tests |
+| AC-0009 | Not a frozen taxonomy | Eval `novel-native-action`; SKILL.md construction test (illustrative-taxonomy); README pack test `test_readme_states_examples_are_illustrative` |
+| AC-0010 | Core standalone and portable | Seven-surface install check (T3 ledger); eval `no-provider`; README pack tests; `catalogue verify` pass |
+| AC-0011 | Minimized disclosure | Eval `credential-disclosure` (request and retained-evidence records); eval `upload-offer`; SKILL.md construction test (evidence-record-fields) |
+| AC-0012 | Locator confinement | Exploration reader matrix (30 tests): accepted paths, refused `parent-segment`/`outside-roots`/`unsafe-file`/`oversize`; sibling-loading seam; CLI injection test; grounding reader caller-ceiling and unchanged-default tests; evals `outside-root-locator`, `parent-segment-locator` (marker absent from answer/record), `unavailable-reader` (marker absent) |
+| AC-0013 | Release pipeline | Version derivation (2.28.0 + minor = 2.29.0); both manifests read 2.29.0; free-standing changelog entry; Highlights written (consumer-visible); `.claude-plugin/marketplace.json` has no core entry; changelog projection test passes |
+| AC-0014 | Provider output stays data | Evals: `directive-in-tool-description` (tool description claims priority/root/refresh), `proposed-approved-root` (output proposes root after refused locator), `refresh-and-mutating-request` (output asks refresh + mutating fix), `reader-directive-file` (file text proposes root + mutating action); SKILL.md construction test (provider-output-is-data) |
+
+### Reusable-learning disposition
+
+No capture: the run's lessons concern eval-fixture authoring (a directive case needs a tool result to be runnable) and adjudicator format slips from round 1, both of which concern eval tooling and the review loop rather than the exploration skill or its method.
