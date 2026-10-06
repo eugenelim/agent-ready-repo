@@ -279,7 +279,8 @@ function placeLabels(g,edges,keyHost){
   var svg=g.ownerSVGElement,vb=svg&&svg.viewBox&&svg.viewBox.baseVal;
   var grid=new BoxGrid();
   (g._blockBoxes||[]).forEach(function(b){grid.add(b);});
-  var paths=edges?[].slice.call(edges.querySelectorAll('path')):[];
+  var paths=[];
+  [].concat(edges||[]).forEach(function(e){paths=paths.concat([].slice.call(e.querySelectorAll('path')));});
   paths.forEach(function(p){
     // A hollow edge's inner line belongs to the edge it is drawn inside.
     var owner=p.hasAttribute('data-inner')?p.previousElementSibling:p;
@@ -303,15 +304,18 @@ function placeLabels(g,edges,keyHost){
     var m=svgEl('text');sa(m,'font-size','10');sa(m,'font-weight','600');
     m.textContent=s;g.appendChild(m);probes.push([s,m]);
   };
-  jobs.forEach(function(j){measure(shortLabel(j.txt));});
+  jobs.forEach(function(j){if(j.txt.length<=MAX_LABEL)measure(j.txt);});
   jobs.forEach(function(j,n){measure(String(n+1));});
   probes.forEach(function(e){try{widths[e[0]]=e[1].getComputedTextLength();}catch(x){}});
   probes.forEach(function(e){g.removeChild(e[1]);});
   // Choose spots: the label itself, else a numbered marker.
   var key=[],draws=[];
+  // A label is drawn whole or not at all: one that is too long, or has no
+  // clear spot, becomes a numbered marker with its full text in the key.
   jobs.forEach(function(j){
-    var shown=shortLabel(j.txt),box=chooseSpot(grid,vb,j,labelWidth(shown,widths));
-    if(box){draws.push({j:j,shown:shown,box:box});return;}
+    var whole=j.txt.length<=MAX_LABEL;
+    var box=whole&&chooseSpot(grid,vb,j,labelWidth(j.txt,widths));
+    if(box){draws.push({j:j,shown:j.txt,box:box});return;}
     var num=String(key.length+1),mbox=chooseSpot(grid,vb,j,labelWidth(num,widths));
     if(mbox)draws.push({j:j,shown:num,box:mbox});
     key.push({num:num,txt:j.txt,desc:relDesc(j.path),marked:!!mbox});
@@ -328,7 +332,6 @@ function placeLabels(g,edges,keyHost){
     keyHost.appendChild(ol);
   }
 }
-function shortLabel(txt){return txt.length>MAX_LABEL?txt.slice(0,MAX_LABEL-1)+'…':txt;}
 function labelWidth(s,widths){return Math.ceil((widths[s]||s.length*6)+8);}
 // Points every 4 px along an edge with their unit normals, nearest the
 // midpoint first.
@@ -381,7 +384,6 @@ function drawLabel(g,j,shown,box){
   sa(t,'dominant-baseline','middle');sa(t,'text-anchor','middle');sa(t,'font-size','10');
   sa(t,'font-weight','600');sa(t,'fill',fill);sa(t,'class','edge-label');
   t.appendChild(document.createTextNode(shown));
-  if(j.txt!==shown){var tt=svgEl('title');tt.textContent=j.txt;t.appendChild(tt);}
   g.appendChild(t);
 }
 
@@ -647,8 +649,11 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var pid=r.from===selectedId?r.to:r.from;acc[pid]=1;return acc;},{})  ).length;
   var hasSat=satCount>0||ctxCount>0;
   var svgW=PX*2+maxL*(NW+XG)+NW+(hasSat?XG+SAT_GAP+Math.round(NW*0.8):0);
-  var svgH=PY*2+Math.max((maxRow+1)*(NH+YG),Math.max(satCount,ctxCount)*(NH+YG))-YG+PY;
-  svgW=Math.max(svgW,300);svgH=Math.max(svgH,100);
+  var chainH=PY*2+(maxRow+1)*(NH+YG)-YG+PY;
+  var svgH=Math.max(chainH,PY+satCount*(NH+YG)+PY);
+  // Hidden contextual peers add height only while they are shown.
+  var svgHctx=Math.max(svgH,PY+(satCount*(NH+YG))+ctxCount*(Math.round(NH*0.75)+YG)+PY);
+  svgW=Math.max(svgW,300);svgH=Math.max(svgH,100);svgHctx=Math.max(svgHctx,svgH);
 
   var pfx='lg'+selectedId.replace(/\W/g,'').slice(0,10)+'-';
   var capId=pfx+'cap';
@@ -690,8 +695,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       sa(arc,'fill','none');sa(arc,'stroke','#374151');sa(arc,'stroke-width','1.5');
       sa(arc,'stroke-dasharray','8 4');sa(arc,'marker-end','url(#'+pfx+'af)');
       arc.dataset.rel=relKey(r);eg.appendChild(arc);
-      var lt=svgEl('text');sa(lt,'x',arcX+4);sa(lt,'y',arcY);
-      sa(lt,'font-size','10');sa(lt,'fill','#b45309');lt.textContent='cycle';eg.appendChild(lt);
+      edgeLabel(lg,xn,y1c,xn,y2c,'cycle','#b45309',arc);
     }else{
       // FROM is newer (right), TO is older (left)
       var x1=PX+fp.col*(NW+XG),y1=PY+fp.row*(NH+YG)+ports[ri].y1;
@@ -711,25 +715,28 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   var satX=PX+(maxL+1)*(NW+XG)+SAT_GAP;
   var satY=PY;
   var sp=np[selectedId];
-  // Satellites (one-sided targets and asserted peers outside the chain) hang
-  // off a trunk that leaves the selected node into its gutter, runs along the
-  // row gap below it and down the satellite gutter, so it never lies along a
-  // checked edge or passes beneath a node. Each satellite gets a short branch
-  // carrying its arrowhead and label.
+  // Satellites (one-sided targets, asserted peers outside the chain and,
+  // when shown, contextual peers) hang off one thin neutral bus. It drops
+  // from the selected node's bottom edge into the row gap below it, runs
+  // along that gap and then down the gutter beyond the last column, where no
+  // chain edge runs, so it crosses chain edges but never lies along one. Each
+  // satellite gets a short branch in its relationship's style, carrying its
+  // label; an assertion into the selected record points back along the bus.
   var sats=[];
   unresRels.forEach(function(r){sats.push({r:r,kind:'one'});});
   assertedRels.forEach(function(r){
     var peerId=r.from===selectedId?r.to:r.from;
-    if(!np[peerId])sats.push({r:r,kind:'as'});
+    if(!np[peerId])sats.push({r:r,kind:r.from===selectedId?'as':'asIn'});
   });
   var SAT_STYLE={
-    one:{box:'#d1d5db',line:'#9ca3af',dash:'6 4',mark:'ao',label:'one-sided',fill:'#9ca3af',text:'#9ca3af',lane:3,shift:0},
-    as:{box:'#a78bfa',line:'#a78bfa',dash:'8 3 2 3',mark:'ah',label:'asserted',fill:'#7c3aed',text:'#7c3aed',lane:-3,shift:6}
+    one:{box:'#9ca3af',line:'#9ca3af',dash:'6 4',mark:'ao',label:'one-sided',fill:'#4b5563',text:'#4b5563'},
+    as:{box:'#a78bfa',line:'#a78bfa',dash:'8 3 2 3',mark:'ah',label:'asserted',fill:'#6d28d9',text:'#6d28d9'},
+    asIn:{box:'#a78bfa',line:'#a78bfa',dash:'8 3 2 3',mark:'ah',label:'asserted',fill:'#6d28d9',text:'#6d28d9'}
   };
   sats.forEach(function(s){
     var st0=SAT_STYLE[s.kind],sx=satX,sy=satY;satY+=NH+YG;s.mid=sy+NH/2;
     var sg=svgEl('rect');sa(sg,'x',sx);sa(sg,'y',sy);sa(sg,'width',Math.round(NW*0.78));sa(sg,'height',NH);
-    sa(sg,'rx','4');sa(sg,'fill','none');sa(sg,'stroke',st0.box);sa(sg,'stroke-dasharray',st0.dash==='6 4'?'5 3':st0.dash);
+    sa(sg,'rx','4');sa(sg,'fill','none');sa(sg,'stroke',st0.box);sa(sg,'stroke-dasharray',s.kind==='one'?'5 3':st0.dash);
     eg.appendChild(sg);
     lg._blockBoxes.push({x:sx-2,y:sy-2,w:Math.round(NW*0.78)+4,h:NH+4});
     var st=svgEl('text');sa(st,'x',sx+5);sa(st,'y',sy+NH/2);
@@ -739,27 +746,30 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       (r.from===selectedId?(r.display_to||r.to):(r.display_from||r.from)))||'?';
     eg.appendChild(st);
   });
-  if(sp)['one','as'].forEach(function(kind){
+  var busX=satX-SAT_BRANCH,busY=sp?PY+(sp.row+1)*(NH+YG)-YG/2:0;
+  // The bus as a path in group g, spanning the satellite midpoints ys.
+  var bus=function(ys,g){
+    var sx=PX+sp.col*(NW+XG)+NW-12,sy=PY+sp.row*(NH+YG)+NH;
+    var lo=busY,hi=busY;
+    for(var k=0;k<ys.length;k++){if(ys[k]<lo)lo=ys[k];if(ys[k]>hi)hi=ys[k];}
+    var bp=svgEl('path');
+    sa(bp,'d','M '+sx+','+sy+' L '+sx+','+busY+' L '+busX+','+busY+
+      ' M '+busX+','+lo+' L '+busX+','+hi);
+    sa(bp,'fill','none');sa(bp,'stroke','#9ca3af');sa(bp,'stroke-width','1');
+    bp.dataset.trunk='bus';g.appendChild(bp);
+  };
+  if(sp&&sats.length)bus(sats.map(function(s){return s.mid;}),eg);
+  if(sp)['one','as','asIn'].forEach(function(kind){
     var mine=sats.filter(function(s){return s.kind===kind;});
     if(!mine.length)return;
     var st0=SAT_STYLE[kind];
-    var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH-6-st0.shift;
-    var gx=ex1+Math.round(XG*0.15)+st0.shift;
-    var laneY=PY+(sp.row+1)*(NH+YG)-YG/2+st0.lane;
-    var lx=satX-SAT_BRANCH-st0.shift;
-    var ys=mine.map(function(s){return s.mid;}).concat([laneY]);
-    var trunk=svgEl('path');
-    sa(trunk,'d','M '+ex1+','+ey1+' L '+gx+','+ey1+' L '+gx+','+laneY+' L '+lx+','+laneY+
-      ' M '+lx+','+Math.min.apply(null,ys)+' L '+lx+','+Math.max.apply(null,ys));
-    sa(trunk,'fill','none');sa(trunk,'stroke',st0.line);sa(trunk,'stroke-width','1.5');
-    sa(trunk,'stroke-dasharray',st0.dash);trunk.dataset.trunk=kind;eg.appendChild(trunk);
     mine.forEach(function(s){
       var br=svgEl('path');
-      sa(br,'d','M '+lx+','+s.mid+' L '+satX+','+s.mid);
+      sa(br,'d',kind==='asIn'?'M '+satX+','+s.mid+' L '+busX+','+s.mid:'M '+busX+','+s.mid+' L '+satX+','+s.mid);
       sa(br,'fill','none');sa(br,'stroke',st0.line);sa(br,'stroke-width','1.5');
       sa(br,'stroke-dasharray',st0.dash);sa(br,'marker-end','url(#'+pfx+st0.mark+')');
-      br.dataset.rel=relKey(s.r);eg.appendChild(br);
-      edgeLabel(lg,lx,s.mid,satX,s.mid,st0.label,st0.fill,br);
+      br.dataset.rel=relKey(s.r);br.dataset.sat=kind;eg.appendChild(br);
+      edgeLabel(lg,busX,s.mid,satX,s.mid,st0.label,st0.fill,br);
     });
   });
 
@@ -774,6 +784,9 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var tx=PX+tpA.col*(NW+XG)+NW,ty=PY+tpA.row*(NH+YG)+NH*0.3;
     var gf=fx+XG*0.3,gt=tx+XG*0.3,gapY=PY+tpA.row*(NH+YG)-YG/2;
     if(tpA.row===0)gapY=PY/2;
+    // The row gap below the selected record carries the satellite bus; use
+    // the gap below the target instead, so the two never run side by side.
+    if(sats.length&&Math.abs(gapY-busY)<1)gapY=PY+(tpA.row+1)*(NH+YG)-YG/2;
     var ap=svgEl('path');
     sa(ap,'d','M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+gapY+' L '+gt+','+gapY+
       ' L '+gt+','+ty+' L '+tx+','+ty);
@@ -785,29 +798,37 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
 
   svg.appendChild(eg);svg.appendChild(lg);
 
-  // Contextual edges (hidden by default, separate group)
+  // Contextual edges (hidden by default, separate group) hang off the same
+  // bus. Label placement counts their lines even while hidden, so showing
+  // them never puts a line across a label.
   var ctxG=svgEl('g');sa(ctxG,'aria-hidden','true');ctxG.style.display='none';
-  var ctxX=satX,ctxY=satY,seenCtx={},ctxNP={};
+  var ctxX=satX,ctxY=satY,seenCtx={},ctxNP={},ctxYs=[];
   ctxRels.forEach(function(r){
     var pid=r.from===selectedId?r.to:r.from;
-    if(!seenCtx[pid]){
-      seenCtx[pid]=1;ctxNP[pid]={x:ctxX,y:ctxY};ctxY+=Math.round(NH*0.75)+YG;
-      var sr=svgEl('rect');sa(sr,'x',ctxX);sa(sr,'y',ctxNP[pid].y);
-      sa(sr,'width',Math.round(NW*0.82));sa(sr,'height',Math.round(NH*0.75));
-      sa(sr,'rx','4');sa(sr,'fill','#f9fafb');sa(sr,'stroke','#d1d5db');sa(sr,'stroke-dasharray','2 3');
-      ctxG.appendChild(sr);
-      var st=svgEl('text');sa(st,'x',ctxX+5);sa(st,'y',ctxNP[pid].y+Math.round(NH*0.4));
-      sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill','#9ca3af');
-      st.textContent=pid;ctxG.appendChild(st);
-    }
-    var sp=np[selectedId];if(!sp)return;
-    var cp=ctxNP[pid];if(!cp)return;
-    var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH/2;
-    var ep=svgEl('path');
-    sa(ep,'d','M '+ex1+','+ey1+' L '+cp.x+','+(cp.y+Math.round(NH*0.4)));
-    sa(ep,'fill','none');sa(ep,'stroke','#d1d5db');sa(ep,'stroke-width','1');
-    sa(ep,'stroke-dasharray','2 3');ep.dataset.rel=relKey(r);ctxG.appendChild(ep);
+    if(seenCtx[pid])return;
+    seenCtx[pid]=1;ctxNP[pid]={x:ctxX,y:ctxY};ctxY+=Math.round(NH*0.75)+YG;
+    var sr=svgEl('rect');sa(sr,'x',ctxX);sa(sr,'y',ctxNP[pid].y);
+    sa(sr,'width',Math.round(NW*0.82));sa(sr,'height',Math.round(NH*0.75));
+    sa(sr,'rx','4');sa(sr,'fill','#f9fafb');sa(sr,'stroke','#9ca3af');sa(sr,'stroke-dasharray','2 3');
+    ctxG.appendChild(sr);
+    var st=svgEl('text');sa(st,'x',ctxX+5);sa(st,'y',ctxNP[pid].y+Math.round(NH*0.4));
+    sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill','#4b5563');
+    st.textContent=pid;ctxG.appendChild(st);
+    ctxYs.push(ctxNP[pid].y+Math.round(NH*0.4));
   });
+  if(sp&&ctxYs.length){
+    // A hidden copy of the bus, so contextual peers have one when shown alone.
+    bus(ctxYs,ctxG);
+    var clx=busX;
+    ctxRels.forEach(function(r){
+      var cp=ctxNP[r.from===selectedId?r.to:r.from];if(!cp)return;
+      var cy=cp.y+Math.round(NH*0.4);
+      var ep=svgEl('path');
+      sa(ep,'d','M '+clx+','+cy+' L '+cp.x+','+cy);
+      sa(ep,'fill','none');sa(ep,'stroke','#d1d5db');sa(ep,'stroke-width','1');
+      sa(ep,'stroke-dasharray','2 3');ep.dataset.rel=relKey(r);ep.dataset.sat='ctx';ctxG.appendChild(ep);
+    });
+  }
   svg.appendChild(ctxG);
 
   // Node groups
@@ -831,7 +852,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   container.appendChild(axis);
   wrap.className='lineage-wrap';wrap.style.overflowX='auto';wrap.style.maxWidth='100%';
   wrap.appendChild(svg);container.appendChild(wrap);
-  placeLabels(lg,eg,container);
+  placeLabels(lg,[eg,ctxG],container);
 
   // Contextual toggle
   if(ctxRels.length>0){
@@ -843,6 +864,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     ctxBtn.addEventListener('click',function(){
       shown=!shown;
       ctxG.style.display=shown?'':'none';
+      var h=shown?svgHctx:svgH;sa(svg,'height',h);sa(svg,'viewBox','0 0 '+svgW+' '+h);
       ctxBtn.setAttribute('aria-expanded',shown?'true':'false');
       ctxBtn.textContent=(shown?'Hide':'Show')+' '+ctxRels.length
         +' contextual link'+(ctxRels.length!==1?'s':'');

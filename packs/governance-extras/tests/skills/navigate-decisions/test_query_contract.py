@@ -2704,10 +2704,10 @@ def _timed_admission(root: pathlib.Path, budget: float = 2.0) -> float:
     """Admit the corpus at root in a child process and return the admission time.
 
     This is the one place the suite pays for a process: a regular-expression
-    scan holds the interpreter lock until it finishes, so neither a thread nor
-    a signal handler can stop a super-linear regression in-process. The child is
-    stopped a few seconds past the budget, so the regression fails this test by
-    name instead of hanging the run.
+    scan holds the interpreter lock, so a thread cannot stop a super-linear
+    regression, and `signal.SIGALRM` does not exist on the Windows runner this
+    suite also uses. The child is stopped a few seconds past the budget, so the
+    regression fails this test by name instead of hanging the run.
     """
     import subprocess
 
@@ -2725,10 +2725,12 @@ def _timed_admission(root: pathlib.Path, budget: float = 2.0) -> float:
             capture_output=True,
             text=True,
             timeout=budget + 4,
-            check=True,
+            check=False,
         )
     except subprocess.TimeoutExpired:
         pytest.fail(f"admission did not finish within {budget + 4:.0f} s")
+    if done.returncode != 0:
+        pytest.fail(f"admission child exited {done.returncode}:\n{done.stderr}")
     status, elapsed = json.loads(done.stdout.strip().splitlines()[-1])
     assert status == "ok", done.stdout
     return float(elapsed)

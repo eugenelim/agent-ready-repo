@@ -2091,8 +2091,9 @@ def export_partial_and_asserted(tmp_path_factory: pytest.TempPathFactory) -> pat
 def test_asserted_and_long_partial_labels_stay_clear(
     browser: object, export_partial_and_asserted: pathlib.Path
 ) -> None:
-    """The `asserted` label and a long `in part` label on the same target node
-    never overlap each other, a node or an arrowhead."""
+    """The `asserted` label and the long `in part` label on the same target
+    node never overlap each other, a node or an arrowhead; the long label is
+    a number whose key entry gives its full scope."""
     page = _open_page(browser, export_partial_and_asserted)
     page.wait_for_selector("li.record-item")
     _navigate_graph(page, "ADR-0001")
@@ -2100,7 +2101,13 @@ def test_asserted_and_long_partial_labels_stay_clear(
     labels = page.evaluate(
         "() => [...document.querySelectorAll('#view-graph .edge-label')].map(t => t.textContent)"
     )
-    assert "asserted" in labels and any(t.startswith("in part") for t in labels), labels
+    assert sorted(labels) == ["1", "asserted"], labels
+    key = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph .lineage-key li')]"
+        ".map(l => l.textContent)"
+    )
+    full = "in part · D10, D11, D12, D13 — ADR-0003 supersedes in part ADR-0001"
+    assert key == [full], key
     _assert_plates_clear(page.evaluate(_BOXES_JS, "#view-graph .lineage-wrap svg"), "focused")
     _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "partial and asserted")
 
@@ -2322,8 +2329,9 @@ def _assert_labels_sound(page: object, scope: str, where: str) -> list[dict]:
 @pytest.fixture(scope="module")
 def export_fan_out(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
     """ADR-0005 supersedes three records in part, ADR-0004 also supersedes
-    ADR-0001 in part, and ADR-0006 supersedes ADR-0005 in part with a long
-    scope on one straight edge — the crowded shape of a real corpus."""
+    ADR-0001 in part with a scope too long to draw whole, and ADR-0006
+    supersedes ADR-0005 in part with a 16-character label on one straight
+    edge — the crowded shape of a real corpus."""
     root = tmp_path_factory.mktemp("fan_out_fixture")
     _build_corpus(
         root,
@@ -2331,19 +2339,20 @@ def export_fan_out(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
             (
                 1,
                 "One",
-                "- **Status:** Accepted\n- **Superseded in part:** ADR-0005 D6, D7; ADR-0004 D7\n",
+                "- **Status:** Accepted\n"
+                "- **Superseded in part:** ADR-0005 D6, D7; ADR-0004 D7, D8, D9\n",
             ),
             (2, "Two", "- **Status:** Accepted\n- **Superseded in part:** ADR-0005 D6\n"),
             (3, "Three", "- **Status:** Accepted\n- **Superseded in part:** ADR-0005 D2\n"),
-            (4, "Four", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D7\n"),
+            (4, "Four", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D7, D8, D9\n"),
             (
                 5,
                 "Five",
                 "- **Status:** Accepted\n"
                 "- **Supersedes in part:** ADR-0001 D6, D7; ADR-0002 D6; ADR-0003 D2\n"
-                "- **Superseded in part:** ADR-0006 D1, D2, D3\n",
+                "- **Superseded in part:** ADR-0006 D1, D2\n",
             ),
-            (6, "Six", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0005 D1, D2, D3\n"),
+            (6, "Six", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0005 D1, D2\n"),
         ],
     )
     return _export(tmp_path_factory, root, "fan_out")
@@ -2380,7 +2389,7 @@ def test_crowded_labels_stay_on_their_own_edges(
 def test_maximum_length_label_sits_on_a_straight_edge(
     browser: object, export_fan_out: pathlib.Path
 ) -> None:
-    """A label cut to the 16-character limit sits on a straight one-column edge."""
+    """A label at the 16-character limit sits whole on a straight one-column edge."""
     page = _open_page(browser, export_fan_out)
     page.wait_for_selector("li.record-item")
     _navigate_graph(page, "ADR-0006")
@@ -2427,36 +2436,203 @@ def export_satellites(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
     return pathlib.Path(r["path"])
 
 
+_SAT_RUNS_JS = """(scope) => {
+  const svg = document.querySelector(scope);
+  const sample = (p, step) => { const n = p.getTotalLength(), out = [];
+    for (let s = 0; s <= n; s += step) {
+      const q = p.getPointAtLength(s); out.push([q.x, q.y]); }
+    return out; };
+  const sats = [...svg.querySelectorAll('path[data-trunk], path[data-sat]')];
+  const others = [...svg.querySelectorAll('path')]
+    .filter(p => !p.closest('defs') && !p.dataset.trunk && !p.dataset.sat)
+    .map(p => ({key: p.dataset.rel || 'inner', pts: sample(p, 1)}));
+  const runOf = (limit) => { let longest = 0, worst = null;
+    for (const p of sats) {
+      const pts = sample(p, 2);
+      for (const o of others) { let run = 0;
+        for (const [x, y] of pts) {
+          run = o.pts.some(q => Math.hypot(q[0] - x, q[1] - y) < limit) ? run + 1 : 0;
+          if (run > longest) { longest = run; worst = o.key; } } } }
+    return {longest, worst}; };
+  const along = runOf(1.5), beside = runOf(4.5);
+  return {sats: sats.length, longest: along.longest, worst: along.worst,
+          beside: beside.longest, besideWorst: beside.worst}; }"""
+
+
+def _satellite_page(browser: object, export: pathlib.Path, selected: str) -> object:
+    page = _open_page(browser, export)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, selected)
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    return page
+
+
+def _assert_satellites_clear(page: object, where: str) -> None:
+    """No satellite line runs along any other line (4 consecutive 2 px samples
+    within 1.5 px, about 6 px) or beside one (8 consecutive samples within
+    4.5 px, about 14 px), and every label stays sound."""
+    runs = page.evaluate(_SAT_RUNS_JS, "#view-graph .lineage-wrap svg")  # type: ignore[union-attr]
+    assert runs["sats"] >= 1, (where, runs)
+    assert runs["longest"] < 4, (where, runs)
+    assert runs["beside"] < 8, (where, runs)
+    _assert_labels_sound(page, "#view-graph .lineage-wrap svg", where)
+
+
 def test_satellite_links_never_run_along_a_checked_edge(
     browser: object, export_satellites: pathlib.Path
 ) -> None:
     """With the oldest record selected, its one-sided and asserted satellite
-    links and their labels never lie along a checked edge."""
-    page = _open_page(browser, export_satellites)
-    page.wait_for_selector("li.record-item")
-    _navigate_graph(page, "ADR-0001")
-    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
-    labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "satellites")
-    assert {x["text"] for x in labels} == {"one-sided", "asserted"}, labels
-    runs = page.evaluate(
-        """() => { const svg = document.querySelector('#view-graph .lineage-wrap svg');
-          const sample = (p, step) => { const n = p.getTotalLength(), out = [];
-            for (let s = 0; s <= n; s += step) {
-              const q = p.getPointAtLength(s); out.push([q.x, q.y]); }
-            return out; };
-          const checked = [...svg.querySelectorAll('path[data-rel$="|checked"]')]
-            .map(p => sample(p, 1));
-          const sats = [...svg.querySelectorAll(
-            'path[data-trunk], path[marker-end*="ao)"], path[marker-end*="ah)"]')];
-          let longest = 0;
-          for (const p of sats) { let run = 0;
-            for (const [x, y] of sample(p, 2)) {
-              const near = checked.some(c => c.some(q => Math.hypot(q[0] - x, q[1] - y) < 1.5));
-              run = near ? run + 1 : 0; longest = Math.max(longest, run); } }
-          return {sats: sats.length, longest}; }"""
+    links and their labels never lie along another relationship's line."""
+    page = _satellite_page(browser, export_satellites, "ADR-0001")
+    labels = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph .edge-label')].map(t => t.textContent)"
     )
-    assert runs["sats"] >= 4, runs
-    assert runs["longest"] < 4, runs
+    assert sorted(labels) == ["asserted", "one-sided"], labels
+    _assert_satellites_clear(page, "chain")
+
+
+def _publish_with(
+    tmp_path_factory: pytest.TempPathFactory,
+    tag: str,
+    records: list[tuple[int, str, str]],
+    assertions: list[dict[str, str]],
+) -> pathlib.Path:
+    root = tmp_path_factory.mktemp(f"{tag}_fixture")
+    _build_corpus(root, records)
+    out = tmp_path_factory.mktemp(f"browser_{tag}")
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        root, destination=out, mode="full", name=f"{tag}.html", assertions=assertions
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+_SAT_LAYOUTS = {
+    # A cycle member with satellites, selected in the cycle's shared layer.
+    "cycle": (
+        [
+            (
+                1,
+                "One",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0003; ADR-0099\n"
+                "- **Superseded by:** ADR-0002\n",
+            ),
+            (
+                2,
+                "Two",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"
+                "- **Superseded by:** ADR-0003\n",
+            ),
+            (
+                3,
+                "Three",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0002\n"
+                "- **Superseded by:** ADR-0001\n",
+            ),
+        ],
+        [{"from": "ADR-0001", "to": "ADR-0077", "text": "out"}],
+    ),
+    # Four supersessors arrive on the selected record's right side.
+    "fan_in": (
+        [
+            (
+                1,
+                "Base",
+                "- **Status:** Superseded\n- **Supersedes:** ADR-0099\n"
+                "- **Superseded by:** ADR-0002; ADR-0003; ADR-0004; ADR-0005\n",
+            )
+        ]
+        + [
+            (k, f"New {k}", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n")
+            for k in range(2, 6)
+        ],
+        [
+            {"from": "ADR-0001", "to": "ADR-0077", "text": "out"},
+            {"from": "ADR-0078", "to": "ADR-0001", "text": "in"},
+        ],
+    ),
+    # An in-chain assertion whose route would share the bus's row gap.
+    "asserted_in_chain": (
+        [
+            (
+                1,
+                "Base",
+                "- **Status:** Superseded\n- **Supersedes:** ADR-0099\n"
+                "- **Superseded by:** ADR-0003; ADR-0004\n",
+            ),
+            (3, "Three", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+            (4, "Four", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+        ],
+        [{"from": "ADR-0001", "to": "ADR-0004", "text": "in chain"}],
+    ),
+}
+
+
+@pytest.mark.parametrize("layout", sorted(_SAT_LAYOUTS))
+def test_satellites_stay_clear_in_every_layout(
+    browser: object, tmp_path_factory: pytest.TempPathFactory, layout: str
+) -> None:
+    """In a cycle, under a fan-in and beside an in-chain assertion, no
+    satellite line runs along another relationship's line and every label,
+    `cycle` included, stays beside its own line."""
+    records, assertions = _SAT_LAYOUTS[layout]
+    export = _publish_with(tmp_path_factory, f"sat_{layout}", records, assertions)
+    page = _satellite_page(browser, export, "ADR-0001")
+    _assert_satellites_clear(page, layout)
+
+
+def test_an_incoming_assertion_points_at_the_selected_record(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """A satellite link draws each assertion in its own direction: an outgoing
+    one ends at the satellite, an incoming one ends at the bus that leads to
+    the selected record."""
+    records, assertions = _SAT_LAYOUTS["fan_in"]
+    export = _publish_with(tmp_path_factory, "sat_direction", records, assertions)
+    page = _satellite_page(browser, export, "ADR-0001")
+    ends = page.evaluate(
+        """() => [...document.querySelectorAll(
+            '#view-graph path[data-sat="as"], #view-graph path[data-sat="asIn"]')]
+          .map(p => { const n = p.getTotalLength();
+            const a = p.getPointAtLength(0), b = p.getPointAtLength(n);
+            return {rel: p.dataset.rel, dx: b.x - a.x,
+                    marker: !!p.getAttribute('marker-end')}; })"""
+    )
+    by_from = {e["rel"].split("|")[0]: e for e in ends}
+    assert by_from["ADR-0001"]["dx"] > 0 and by_from["ADR-0001"]["marker"], ends
+    assert by_from["ADR-0078"]["dx"] < 0 and by_from["ADR-0078"]["marker"], ends
+
+
+def test_shown_contextual_links_never_cross_a_label(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """With contextual links shown, they hang off the bus, add their height
+    only then, and never cross a label or sit nearer it than its own edge."""
+    export = _publish_with(
+        tmp_path_factory,
+        "ctx_shown",
+        [
+            (
+                1,
+                "Base",
+                "- **Status:** Accepted\n- **Superseded in part:** ADR-0002 D1\n"
+                "- **Related:** ADR-0003\n",
+            ),
+            (2, "New", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D1\n"),
+            (3, "Peer", "- **Status:** Accepted\n"),
+        ],
+        [],
+    )
+    page = _satellite_page(browser, export, "ADR-0001")
+    before = page.evaluate(
+        "() => document.querySelector('#view-graph .lineage-wrap svg').getAttribute('height')"
+    )
+    page.click("button.ctx-toggle")
+    after = page.evaluate(
+        "() => document.querySelector('#view-graph .lineage-wrap svg').getAttribute('height')"
+    )
+    assert float(after) >= float(before), (before, after)
+    _assert_satellites_clear(page, "contextual shown")
 
 
 def test_many_one_sided_targets_render_the_focused_view_quickly(
@@ -2481,11 +2657,70 @@ def test_many_one_sided_targets_render_the_focused_view_quickly(
     )
     page = _open_page(browser, _export(tmp_path_factory, root, "many_one_sided"))
     page.wait_for_selector("li.record-item")
-    elapsed = page.evaluate(
-        """() => { const t = performance.now(); location.hash = '#graph/ADR-0001';
-          window.dispatchEvent(new HashChangeEvent('hashchange'));
-          return performance.now() - t; }"""
+    page.evaluate(
+        """() => { window.__t0 = performance.now(); setTimeout(() => {
+          location.hash = '#graph/ADR-0001'; }, 0); }"""
     )
-    count = page.evaluate("() => document.querySelectorAll('#view-graph .edge-label').length")
-    assert count == 10_000, count
+    # A super-linear regression fails here by name instead of hanging the run.
+    page.wait_for_function(
+        "() => document.querySelectorAll('#view-graph .edge-label').length === 10000",
+        timeout=6000,
+    )
+    elapsed = page.evaluate("() => performance.now() - window.__t0")
     assert elapsed < 2000, elapsed
+
+
+def test_a_near_cap_record_of_one_sided_entries_still_renders_its_lineage(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """A record just under the 2 MiB cap naming 125,000 unknown target-and-scope
+    pairs still renders its checked edge, every satellite label and the text
+    list, with no script error."""
+    root = tmp_path_factory.mktemp("near_cap_fixture")
+    pairs = "; ".join(f"RFC-{1 + n // 9999:04d} D{1 + n % 9999}" for n in range(125_000))
+    _build_corpus(
+        root,
+        [
+            (
+                1,
+                "Old",
+                "- **Status:** Superseded\n- **Superseded by:** ADR-0002\n"
+                f"- **Supersedes in part:** {pairs}\n",
+            ),
+            (2, "New", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+        ],
+    )
+    page = _open_page(browser, _export(tmp_path_factory, root, "near_cap"))
+    page.wait_for_selector("li.record-item")
+    page.evaluate("() => { setTimeout(() => { location.hash = '#graph/ADR-0001'; }, 0); }")
+    page.wait_for_selector("#view-graph .lineage-text", state="attached", timeout=60_000)
+    drawn = page.evaluate(
+        """() => ({ nodes: document.querySelectorAll('#view-graph svg [data-node-id]').length,
+          labels: document.querySelectorAll('#view-graph .edge-label').length })"""
+    )
+    assert drawn == {"nodes": 2, "labels": 125_000}, drawn
+    assert page._errors == [], page._errors  # type: ignore[attr-defined]
+
+
+def test_a_label_too_long_to_draw_whole_becomes_a_keyed_number(
+    browser: object, export_fan_out: pathlib.Path
+) -> None:
+    """A label longer than 16 characters is never cut: its edge shows a number,
+    sitting on that edge, and the key under the graph gives the same number
+    with the full label and the relationship it belongs to."""
+    page = _open_page(browser, export_fan_out)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "keyed")
+    assert not any(x["text"].endswith("…") for x in labels), labels
+    four = [x for x in labels if x["for"].startswith("ADR-0004|")]
+    assert len(four) == 1 and four[0]["text"].isdigit(), labels
+    key = page.evaluate(
+        """() => [...document.querySelectorAll('#view-graph .lineage-key li')]
+          .map(l => ({value: l.value, text: l.textContent}))"""
+    )
+    entry = next(k for k in key if k["value"] == int(four[0]["text"]))
+    assert entry["text"].startswith(
+        "in part · D7, D8, D9 — ADR-0004 supersedes in part ADR-0001"
+    ), key
