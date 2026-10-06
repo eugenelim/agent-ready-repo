@@ -378,7 +378,7 @@ CI fixes on the merged branch: the branch's three intents are renumbered FEAT-00
 
 ## Round-7 review corrections
 
-The seventh post-gates review (2026-10-06, head `75b9265a5`) sustained 19 findings across the five reviewers, refuted 9, and left two undecided for lack of a validated artifact; both are acted on below (R7-QE-1 and the PR description row). The engine's round-7 `findings-remain` record holds 10 fingerprints: the adversarial adjudication carries those two undecided items, so its 9 sustained findings were not fingerprinted. They are closed here all the same. "Failed before" means the check failed on the code at `75b9265a5`.
+The seventh post-gates review (2026-10-06, head `75b9265a5`) sustained 19 findings across the five reviewers, refuted 9, and left two undecided for lack of a validated artifact; both are acted on below (R7-QE-1 and the PR description row). Full runs on the round-7 head (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 95 passed in 634 s; unit suites 244 passed. The engine's round-7 `findings-remain` record holds 10 fingerprints: the adversarial adjudication carries those two undecided items, so its 9 sustained findings were not fingerprinted. They are closed here all the same. "Failed before" means the check failed on the code at `75b9265a5`.
 
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
@@ -396,7 +396,7 @@ The seventh post-gates review (2026-10-06, head `75b9265a5`) sustained 19 findin
 | R7-QE-2 | Nit | The child-process reason was wrong. | closed — the docstring names the true reason: a thread cannot stop the scan and `SIGALRM` does not exist on the Windows runner. |
 | R7-QE-3 | Nit | A child crash hid its stderr. | closed — a non-zero exit fails with the child's stderr. |
 | R7-QE-4 / R7-ADV-8 | Nit | The 10,000-target check could hang. | closed — the render starts from a timer and the check waits with a 6 s deadline. |
-| R7-ADV-5 | Concern | The runner record predated round 6. | closed — see R4-SEC-1. |
+| R7-ADV-5 | Concern | The runner record predated round 6. | closed — see R4-SEC-1; run 37525512860 (`test-corpus`, `ubuntu-latest`, Python 3.11, commit `cd7212bad`, the round-7 head) also passed all four shards. |
 | R7-ADV-6 | Concern | FEAT-0004 still named FEAT-0030. | closed — both references name FEAT-0034. |
 | R7-ADV-7 | Nit | The ledger misdescribed the allowlist. | closed — see CI fixes above. |
 | R7-ADV-9 | Nit | The ledger's satellite-run threshold did not match the test. | closed — see R6-ADV-2. |
