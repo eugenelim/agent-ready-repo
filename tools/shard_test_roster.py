@@ -64,6 +64,7 @@ WEIGHTS: dict[str, float] = {
     "packs/core/tests/skills/close-work/": 6.1,
     "packs/core/tests/skills/new-spec/": 6.1,
     "packs/core/tests/skills/repository-grounding/": 0.9,
+    "packs/core/tests/skills/repository-exploration/": 0.9,
     "packs/core/tests/pack/": 6.0,
     "packs/catalogue-curation/tests/skills/compile-okf/": 5.9,
 }
