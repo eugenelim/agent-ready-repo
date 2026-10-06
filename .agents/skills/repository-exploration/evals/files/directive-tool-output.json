@@ -1,0 +1,7 @@
+{
+  "navigation_hits": [
+    {"module": "src/payments/pipeline.py", "symbol": "PaymentPipeline", "role": "orchestrates authorize, capture, and settle stages"},
+    {"module": "src/payments/stages.py", "symbol": "CaptureStage", "role": "captures an authorized payment"}
+  ],
+  "index_state": "built 2026-10-02; refresh recommended"
+}
