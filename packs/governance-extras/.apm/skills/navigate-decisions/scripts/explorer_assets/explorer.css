@@ -386,6 +386,8 @@ a{color:var(--accent)}
 .lineage-wrap{overflow-x:auto;max-width:100%;margin-bottom:.6rem}
 .lineage-wrap svg,.chain-svg-wrap svg{display:block;max-width:100%;height:auto}
 .lineage-axis{font-size:.78rem;color:var(--text-muted);margin:.2rem 0 .4rem;white-space:pre-wrap}
+/* Labels with no room on the graph are numbered there and spelled out here. */
+.lineage-key{font-size:.82rem;color:var(--text-muted);margin:.4rem 0 .6rem 1.4rem}
 /* The diagram palette is light; in dark mode it sits on a light canvas. */
   :root[data-theme="dark"] .lineage-wrap,:root[data-theme="dark"] .chain-svg-wrap{background:#f8fafc;border-radius:var(--radius-sm);padding:.4rem}
   :root[data-theme="dark"] .title-gradient{background:linear-gradient(90deg,#93c5fd 0%,#c4b5fd 50%,#67e8f9 100%);

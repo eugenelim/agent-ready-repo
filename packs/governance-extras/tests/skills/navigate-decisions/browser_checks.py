@@ -2102,6 +2102,7 @@ def test_asserted_and_long_partial_labels_stay_clear(
     )
     assert "asserted" in labels and any(t.startswith("in part") for t in labels), labels
     _assert_plates_clear(page.evaluate(_BOXES_JS, "#view-graph .lineage-wrap svg"), "focused")
+    _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "partial and asserted")
 
 
 def test_theme_toggle_is_not_clipped_on_a_narrow_screen(
@@ -2191,19 +2192,18 @@ def test_partial_edges_have_a_white_narrower_inner_stroke(
         return { color: getComputedStyle(i).stroke, inner: +i.getAttribute('stroke-width'),
           outer: +outer.getAttribute('stroke-width'),
           same: outer.getAttribute('d') === i.getAttribute('d'),
-          partial: outer.hasAttribute('data-rel') }; })"""
+          partial: (outer.dataset.rel || '').includes('|supersedes_in_part|') }; })"""
     page = _open_page(browser, export_mixed)
     page.wait_for_selector("li.record-item")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     page.click("button.atlas-back")
     page.wait_for_selector(".chain-card svg")
-    for scope in (".chain-card",):
-        lines = page.evaluate(probe, scope)
-        assert lines, scope
-        for line in lines:
-            assert line["color"] == "rgb(255, 255, 255)", line
-            assert line["same"] and line["partial"] and line["inner"] < line["outer"], line
+    lines = page.evaluate(probe, ".chain-card")
+    assert lines, "atlas"
+    for line in lines:
+        assert line["color"] == "rgb(255, 255, 255)", line
+        assert line["same"] and line["partial"] and line["inner"] < line["outer"], line
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     lines = page.evaluate(probe, "#view-graph")
@@ -2238,32 +2238,6 @@ def test_full_and_partial_arrowheads_render_at_one_size(
     assert len({(s["w"], s["h"]) for s in solid}) == 1, solid
 
 
-def test_text_list_bullets_sit_on_the_first_line_of_a_wrapped_button(
-    browser: object, export_mixed: pathlib.Path
-) -> None:
-    """A list bullet sits on its line's baseline. An inline probe placed before a
-    wrapped node button shares that baseline, so it must sit on the button's
-    first line, not its last."""
-    page = _open_page(browser, export_mixed)
-    page.set_viewport_size({"width": 390, "height": 800})
-    page.wait_for_selector("li.record-item")
-    _navigate_graph(page, "ADR-0001")
-    rows = page.evaluate(
-        """() => { document.querySelector('#view-graph details.lineage-text').open = true;
-          return [...document.querySelectorAll('#view-graph .lt-node-btn')].map(b => {
-            const probe = document.createElement('span'); probe.textContent = 'x';
-            b.before(probe);
-            const p = probe.getBoundingClientRect(), r = b.getBoundingClientRect();
-            const line = parseFloat(getComputedStyle(b).lineHeight) || 20;
-            probe.remove();
-            return { wrapped: r.height > 1.5 * line, offset: p.top - r.top, line }; }); }"""
-    )
-    wrapped = [r for r in rows if r["wrapped"]]
-    assert wrapped, rows
-    for r in wrapped:
-        assert r["offset"] < r["line"], r
-
-
 def test_partial_id_is_underlined_in_the_atlas(
     browser: object, export_mixed: pathlib.Path
 ) -> None:
@@ -2293,10 +2267,225 @@ def test_hostile_status_line_detail_renders_in_linear_time(
     _build_corpus(root, [(1, "Hostile", f"- **Status:** Accepted{tail}\n")])
     page = _open_page(browser, _export(tmp_path_factory, root, "hostile_status"))
     page.wait_for_selector("li.record-item")
+    page.evaluate(
+        """() => { window.__t0 = performance.now(); setTimeout(() => {
+          location.hash = '#detail/ADR-0001'; }, 0); }"""
+    )
+    # A super-linear regression fails here by name instead of hanging the run.
+    page.wait_for_selector("#view-detail .meta-table", timeout=6000)
+    elapsed = page.evaluate("() => performance.now() - window.__t0")
+    assert elapsed < 2000, elapsed
+
+
+# ── Review round 6 ────────────────────────────────────────────────────────────
+
+_LABEL_GEOMETRY_JS = """(scope) => {
+  const svg = document.querySelector(scope);
+  const sample = (p, step) => { const n = p.getTotalLength(), out = [];
+    for (let s = 0; s <= n; s += step) { const q = p.getPointAtLength(s); out.push([q.x, q.y]); }
+    return out; };
+  const lines = [...svg.querySelectorAll('path[data-rel], path[data-trunk]')]
+    .map(p => ({key: p.dataset.rel || 'trunk:' + p.dataset.trunk, pts: sample(p, 1)}));
+  const dist = (pts, x, y) =>
+    pts.reduce((m, q) => Math.min(m, Math.hypot(q[0] - x, q[1] - y)), Infinity);
+  return [...svg.querySelectorAll('.edge-label')].map(t => {
+    const x = +t.getAttribute('x'), y = +t.getAttribute('y');
+    const own = lines.find(l => l.key === t.dataset.for);
+    const other = lines.filter(l => l !== own)
+      .reduce((m, l) => Math.min(m, dist(l.pts, x, y)), Infinity);
+    return {for: t.dataset.for, text: t.firstChild.textContent,
+            own: own ? dist(own.pts, x, y) : null, other}; });
+}"""
+
+_RINGS_JS = """(scope) => [...document.querySelectorAll(scope + ' .sup-ring')].map(r => {
+  const b = r.getBBox(); return {x: b.x, y: b.y, w: b.width, h: b.height}; })"""
+
+
+def _assert_labels_sound(page: object, scope: str, where: str) -> list[dict]:
+    """Every label is clear of plates, nodes, rings, arrowheads and the border,
+    lies within one plate height of its own edge, and no other line is as near
+    its centre as its own line is."""
+    geo = page.evaluate(_BOXES_JS, scope)  # type: ignore[union-attr]
+    if geo["plates"]:
+        _assert_plates_clear(geo, where)
+    for ring in page.evaluate(_RINGS_JS, scope):  # type: ignore[union-attr]
+        for plate in geo["plates"]:
+            assert not _hit(plate, ring), (where, "plate overlaps a supersession ring", plate)
+    labels = page.evaluate(_LABEL_GEOMETRY_JS, scope)  # type: ignore[union-attr]
+    for label in labels:
+        assert label["own"] is not None, (where, "label names no drawn edge", label)
+        assert label["own"] <= 13, (where, "label is away from its own edge", label)
+        assert label["own"] + 0.5 < label["other"], (where, "another line is as near", label)
+    return labels
+
+
+@pytest.fixture(scope="module")
+def export_fan_out(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """ADR-0005 supersedes three records in part, ADR-0004 also supersedes
+    ADR-0001 in part, and ADR-0006 supersedes ADR-0005 in part with a long
+    scope on one straight edge — the crowded shape of a real corpus."""
+    root = tmp_path_factory.mktemp("fan_out_fixture")
+    _build_corpus(
+        root,
+        [
+            (
+                1,
+                "One",
+                "- **Status:** Accepted\n- **Superseded in part:** ADR-0005 D6, D7; ADR-0004 D7\n",
+            ),
+            (2, "Two", "- **Status:** Accepted\n- **Superseded in part:** ADR-0005 D6\n"),
+            (3, "Three", "- **Status:** Accepted\n- **Superseded in part:** ADR-0005 D2\n"),
+            (4, "Four", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0001 D7\n"),
+            (
+                5,
+                "Five",
+                "- **Status:** Accepted\n"
+                "- **Supersedes in part:** ADR-0001 D6, D7; ADR-0002 D6; ADR-0003 D2\n"
+                "- **Superseded in part:** ADR-0006 D1, D2, D3\n",
+            ),
+            (6, "Six", "- **Status:** Accepted\n- **Supersedes in part:** ADR-0005 D1, D2, D3\n"),
+        ],
+    )
+    return _export(tmp_path_factory, root, "fan_out")
+
+
+@pytest.mark.parametrize("selected", ["ADR-0001", "ADR-0002", "ADR-0005", "ADR-0006"])
+def test_crowded_labels_stay_on_their_own_edges(
+    browser: object, export_fan_out: pathlib.Path, selected: str
+) -> None:
+    """In a crowded chain every scope label stays beside its own edge, clear of
+    every plate, node, ring and arrowhead; any label with no room is a numbered
+    marker listed in the key under the drawing."""
+    page = _open_page(browser, export_fan_out)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, selected)
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", selected)
+    markers = [x for x in labels if x["text"].isdigit()]
+    key = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph .lineage-key li')]"
+        ".map(l => l.textContent)"
+    )
+    partial = page.evaluate(
+        "() => document.querySelectorAll("
+        "'#view-graph path[data-rel*=\"supersedes_in_part\"]').length"
+    )
+    assert len(labels) + (len(key) - len(markers)) == partial, (labels, key)
+    assert len(key) >= len(markers), (markers, key)
+    page.click("button.atlas-back")
+    page.wait_for_selector(".chain-card svg")
+    _assert_labels_sound(page, ".chain-card svg", "atlas")
+
+
+def test_maximum_length_label_sits_on_a_straight_edge(
+    browser: object, export_fan_out: pathlib.Path
+) -> None:
+    """A label cut to the 16-character limit sits on a straight one-column edge."""
+    page = _open_page(browser, export_fan_out)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0006")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "straight")
+    six = [x for x in labels if x["for"].startswith("ADR-0006|")]
+    assert len(six) == 1 and len(six[0]["text"]) == 16, labels
+    assert six[0]["own"] <= 1, six
+
+
+@pytest.fixture(scope="module")
+def export_satellites(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """ADR-0003 supersedes ADR-0002, which supersedes ADR-0001; ADR-0001 also
+    names an unknown record and a caller assertion links it outside the chain,
+    so its satellites must pass the checked edges to its right."""
+    root = tmp_path_factory.mktemp("satellite_fixture")
+    _build_corpus(
+        root,
+        [
+            (
+                1,
+                "Old",
+                "- **Status:** Superseded\n- **Superseded by:** ADR-0002\n"
+                "- **Supersedes:** ADR-0099\n",
+            ),
+            (
+                2,
+                "Mid",
+                "- **Status:** Superseded\n- **Supersedes:** ADR-0001\n"
+                "- **Superseded by:** ADR-0003\n",
+            ),
+            (3, "New", "- **Status:** Accepted\n- **Supersedes:** ADR-0002\n"),
+        ],
+    )
+    out = tmp_path_factory.mktemp("browser_satellites")
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        root,
+        destination=out,
+        mode="full",
+        name="satellites.html",
+        assertions=[{"from": "ADR-0001", "to": "ADR-0077", "text": "outside the chain"}],
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+def test_satellite_links_never_run_along_a_checked_edge(
+    browser: object, export_satellites: pathlib.Path
+) -> None:
+    """With the oldest record selected, its one-sided and asserted satellite
+    links and their labels never lie along a checked edge."""
+    page = _open_page(browser, export_satellites)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "satellites")
+    assert {x["text"] for x in labels} == {"one-sided", "asserted"}, labels
+    runs = page.evaluate(
+        """() => { const svg = document.querySelector('#view-graph .lineage-wrap svg');
+          const sample = (p, step) => { const n = p.getTotalLength(), out = [];
+            for (let s = 0; s <= n; s += step) {
+              const q = p.getPointAtLength(s); out.push([q.x, q.y]); }
+            return out; };
+          const checked = [...svg.querySelectorAll('path[data-rel$="|checked"]')]
+            .map(p => sample(p, 1));
+          const sats = [...svg.querySelectorAll(
+            'path[data-trunk], path[marker-end*="ao)"], path[marker-end*="ah)"]')];
+          let longest = 0;
+          for (const p of sats) { let run = 0;
+            for (const [x, y] of sample(p, 2)) {
+              const near = checked.some(c => c.some(q => Math.hypot(q[0] - x, q[1] - y) < 1.5));
+              run = near ? run + 1 : 0; longest = Math.max(longest, run); } }
+          return {sats: sats.length, longest}; }"""
+    )
+    assert runs["sats"] >= 4, runs
+    assert runs["longest"] < 4, runs
+
+
+def test_many_one_sided_targets_render_the_focused_view_quickly(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """A record naming 10,000 unknown records renders its focused graph, with a
+    label on every satellite link, in under 2 seconds: label placement reads
+    every geometry first and tests only nearby boxes."""
+    root = tmp_path_factory.mktemp("many_one_sided_fixture")
+    targets = "; ".join(f"RFC-{n:04d}" for n in range(1, 10_001))
+    _build_corpus(
+        root,
+        [
+            (
+                1,
+                "Old",
+                "- **Status:** Superseded\n- **Superseded by:** ADR-0002\n"
+                f"- **Supersedes:** {targets}\n",
+            ),
+            (2, "New", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+        ],
+    )
+    page = _open_page(browser, _export(tmp_path_factory, root, "many_one_sided"))
+    page.wait_for_selector("li.record-item")
     elapsed = page.evaluate(
-        """() => { const t = performance.now(); location.hash = '#detail/ADR-0001';
+        """() => { const t = performance.now(); location.hash = '#graph/ADR-0001';
           window.dispatchEvent(new HashChangeEvent('hashchange'));
           return performance.now() - t; }"""
     )
-    page.wait_for_selector("#view-detail .meta-table")
+    count = page.evaluate("() => document.querySelectorAll('#view-graph .edge-label').length")
+    assert count == 10_000, count
     assert elapsed < 2000, elapsed

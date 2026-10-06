@@ -2,10 +2,7 @@
 
 import pathlib
 
-SKILL = (
-    pathlib.Path(__file__).resolve().parents[3]
-    / ".apm/skills/navigate-decisions/SKILL.md"
-)
+SKILL = pathlib.Path(__file__).resolve().parents[3] / ".apm/skills/navigate-decisions/SKILL.md"
 TEXT = " ".join(SKILL.read_text(encoding="utf-8").split())
 
 

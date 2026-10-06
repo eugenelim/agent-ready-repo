@@ -34,6 +34,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import sys
 
 import pytest  # noqa: F401 — used for pytest.skip, pytest.param, and fixtures
@@ -2699,6 +2700,40 @@ def test_escape_display_covers_tag_and_format_characters() -> None:
         assert f"[U+{cp}]" in shown, (cp, shown)
 
 
+def _timed_admission(root: pathlib.Path, budget: float = 2.0) -> float:
+    """Admit the corpus at root in a child process and return the admission time.
+
+    This is the one place the suite pays for a process: a regular-expression
+    scan holds the interpreter lock until it finishes, so neither a thread nor
+    a signal handler can stop a super-linear regression in-process. The child is
+    stopped a few seconds past the budget, so the regression fails this test by
+    name instead of hanging the run.
+    """
+    import subprocess
+
+    child = (
+        "import importlib.util, json, pathlib, sys, time\n"
+        "spec = importlib.util.spec_from_file_location('nav', sys.argv[1])\n"
+        "nav = importlib.util.module_from_spec(spec); spec.loader.exec_module(nav)\n"
+        "start = time.monotonic()\n"
+        "payload = nav.run_query(pathlib.Path(sys.argv[2]), {'operation': 'summary'})\n"
+        "print(json.dumps([payload['status'], time.monotonic() - start]))\n"
+    )
+    try:
+        done = subprocess.run(
+            [sys.executable, "-c", child, str(SCRIPTS / "navigate_decisions.py"), str(root)],
+            capture_output=True,
+            text=True,
+            timeout=budget + 4,
+            check=True,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail(f"admission did not finish within {budget + 4:.0f} s")
+    status, elapsed = json.loads(done.stdout.strip().splitlines()[-1])
+    assert status == "ok", done.stdout
+    return float(elapsed)
+
+
 def _write(root: pathlib.Path, name: str, text: str) -> None:
     adr = root / "docs" / "adr"
     adr.mkdir(parents=True, exist_ok=True)
@@ -2711,8 +2746,6 @@ def test_admission_time_bound_on_a_near_2_mib_supersession_header(
     """AC-0001: a candidate of at least 1.9 MiB whose header is one Superseded by
     field followed by 200,000 token-carrying continuation lines, within the 2 MiB
     bound, is admitted in under 2 seconds."""
-    import time
-
     text = (
         "# ADR-0001: Big\n\n- **Status:** Accepted\n- **Superseded by:** ADR-0002;\n"
         + "ADR-0002;\n" * 200_000
@@ -2726,10 +2759,7 @@ def test_admission_time_bound_on_a_near_2_mib_supersession_header(
         "0002-other.md",
         "# ADR-0002: Other\n\n- **Status:** Accepted\n\n## Context\n\ny\n",
     )
-    start = time.monotonic()
-    payload = NAV.run_query(tmp_path, {"operation": "summary"})
-    elapsed = time.monotonic() - start
-    assert payload["status"] == "ok", payload.get("error")
+    elapsed = _timed_admission(tmp_path)
     assert elapsed < 2.0, f"admission took {elapsed:.2f} s"
 
 
@@ -2797,17 +2827,13 @@ def test_status_comment_strip_is_linear_on_hostile_lines(
 ) -> None:
     """AC-0001: a near-2 MiB Status line of a hostile shape (a long whitespace
     run, or many unclosed comment openers) is admitted in under 2 seconds."""
-    import time
 
     _write(
         tmp_path,
         "0001-a.md",
         "# ADR-0001: A\n\n- **Status:** Accepted" + status_tail + "\n\n## Context\n\nx\n",
     )
-    start = time.monotonic()
-    payload = NAV.run_query(tmp_path, {"operation": "summary"})
-    elapsed = time.monotonic() - start
-    assert payload["status"] == "ok", payload.get("error")
+    elapsed = _timed_admission(tmp_path)
     assert elapsed < 2.0, f"admission took {elapsed:.2f} s"
 
 
@@ -2858,3 +2884,36 @@ def test_status_field_is_found_by_label(tmp_path: pathlib.Path) -> None:
     refused = NAV.run_query(tmp_path, {"operation": "summary"})
     assert refused["status"] == "error", refused
     assert refused["error"]["code"] == "malformed_record", refused["error"]
+
+
+def test_doubled_colon_related_label_is_not_a_related_field(tmp_path: pathlib.Path) -> None:
+    """`**Related::**` is labelled `Related:` by the one-colon label rule, so it
+    yields a header field with that label and no contextual reference."""
+    _write(
+        tmp_path,
+        "0001-a.md",
+        "# ADR-0001: A\n\n- **Status:** Accepted\n- **Related::** ADR-0002\n\n## Context\n\nx\n",
+    )
+    _write(tmp_path, "0002-b.md", "# ADR-0002: B\n\n- **Status:** Accepted\n\n## Context\n\nx\n")
+    payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
+    assert payload["status"] == "ok", payload.get("error")
+    labels = [f["label"] for f in payload["records"][0]["header_fields"]]
+    assert "Related:" in labels, labels
+    contextual = [r for r in payload["relationships"] if r["relation"] == "related"]
+    assert contextual == [], contextual
+
+
+def test_status_comment_strip_agrees_with_the_reference_pattern() -> None:
+    """On 20,000 seeded short strings built from the characters that matter, the
+    linear strip removes exactly what the reference pattern for one trailing
+    comment removes. The pattern is quadratic, so it is used only here, on
+    short inputs."""
+    import random
+
+    reference = re.compile(r"\s*<!--(?:(?!-->).)*?-->\s*$")
+    rng = random.Random(20261006)
+    alphabet = [" ", "<", "!", "-", ">", "x", "<!--", "-->", "\t"]
+    for _ in range(20_000):
+        value = "Accepted" + "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 14)))
+        expected = reference.sub("", value).rstrip()
+        assert NAV._strip_trailing_comment(value).rstrip() == expected, repr(value)

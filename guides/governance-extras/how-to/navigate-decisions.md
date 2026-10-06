@@ -189,6 +189,10 @@ This is not a disclaimer to skip. The navigator reports what ADRs and RFCs say. 
 
 The `export` subcommand produces one self-contained HTML file with corpus list, lifecycle-graph, guidance-context, and record-detail views. The file performs no network or file reads after creation.
 
+### Reading the lifecycle graph
+
+Each label in the graph sits on or beside its own edge: `in part` with the scope for a partial supersession, `one-sided` for a reference to a record the export does not hold, and `asserted` for a caller assertion. Where a crowded graph leaves no room for a label, the edge shows a number instead, and a numbered list under the graph gives the full label and the relationship it belongs to. **Lineage as text** under the graph lists every record and relationship.
+
 ### Light and dark themes
 
 The explorer's header has an **Auto / Light / Dark** control. Auto follows your system appearance setting; Light or Dark overrides it, and the browser remembers your choice for that file.

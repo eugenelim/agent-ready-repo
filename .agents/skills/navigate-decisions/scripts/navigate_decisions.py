@@ -291,14 +291,12 @@ def _is_related_label(line: str) -> bool:
     """Return True if line starts a Related field.
 
     A Related field starts on a header field line whose bold label,
-    with any trailing colon removed, is exactly 'Related'.
-    Covers '**Related:**', '**Related** (…):', and '**Related** —'.
+    with one trailing colon removed, is exactly 'Related' — the same label
+    rule every header field uses. Covers '**Related:**', '**Related** (…):',
+    and '**Related** —'; '**Related::**' is labelled 'Related:' and is not one.
     """
-    m = _BOLD_LABEL_RE.match(line)
-    if not m:
-        return False
-    label = m.group(1).rstrip(":")
-    return label == "Related"
+    split = _split_header_field_line(line)
+    return split is not None and split[0] == "Related"
 
 
 def _parse_related_tokens(

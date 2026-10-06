@@ -9,6 +9,9 @@ var NS='http://www.w3.org/2000/svg';
 function svgEl(t){return document.createElementNS(NS,t);}
 function sa(e,k,v){e.setAttribute(k,String(v));return e;}
 var NW=160,NH=48,XG=112,YG=16,PX=20,PY=20;
+// Satellites sit SAT_GAP further out, so each branch into one is long enough
+// for its label.
+var SAT_GAP=40,SAT_BRANCH=96;
 
 // ── Connected component over checked edges (undirected)
 function chainOf(startId,rels){
@@ -225,62 +228,161 @@ function edgePorts(rels,np,nh){
   return res;
 }
 
-// ── Scope label beside the arrowhead; the halo keeps it legible over edges
-var MAX_LABEL=16;
-// Labels are placed after every edge is drawn and the diagram is in the page,
-// so each one can avoid every node, arrowhead and earlier label.
+// ── Edge labels
+// A label sits on or right beside its own edge and never touches a node, a
+// supersession ring, an arrowhead, another label or the drawing's border.
+// Another edge's line may pass under it only where it is centred on its own
+// line. Where no such spot exists it becomes a numbered marker on its edge,
+// keyed in a list under the drawing, so nothing is ever covered.
+var MAX_LABEL=16,LABEL_H=12;
+// Labels are placed after every edge is drawn and the diagram is in the page.
 function edgeLabel(g,x1,y1,x2,y2,txt,fill,path){
-  (g._defer||(g._defer=[])).push([x1,y1,x2,y2,txt,fill,path]);
+  (g._defer||(g._defer=[])).push([txt,fill,path]);
 }
-function placeLabels(g,edges){
-  (edges?edges.querySelectorAll('path[marker-end]'):[]).forEach(function(p){
+// A uniform grid over the drawing, so each collision test reads only the
+// boxes near the candidate and placement stays near-linear in edge count.
+function BoxGrid(){this.cells={};}
+BoxGrid.prototype.CELL=32;
+BoxGrid.prototype.each=function(b,fn){
+  var c=this.CELL,x0=Math.floor(b.x/c),x1=Math.floor((b.x+b.w)/c),y0=Math.floor(b.y/c),y1=Math.floor((b.y+b.h)/c);
+  for(var i=x0;i<=x1;i++)for(var j=y0;j<=y1;j++)if(fn(i+','+j))return true;
+  return false;
+};
+BoxGrid.prototype.add=function(b,owner){
+  var cells=this.cells,e={b:b,owner:owner||null};
+  this.each(b,function(k){(cells[k]||(cells[k]=[])).push(e);return false;});
+};
+// True when b meets a stored box. Line samples owned by `own` are skipped;
+// `linesOnly` counts only line samples and `boxesOnly` only boxes.
+BoxGrid.prototype.hits=function(b,own,linesOnly,boxesOnly){
+  var cells=this.cells;
+  return this.each(b,function(k){
+    var list=cells[k];if(!list)return false;
+    for(var n=0;n<list.length;n++){
+      var e=list[n],o=e.b;
+      if(e.owner&&(e.owner===own||boxesOnly))continue;
+      if(linesOnly&&!e.owner)continue;
+      if(b.x<o.x+o.w&&o.x<b.x+b.w&&b.y<o.y+o.h&&o.y<b.y+b.h)return true;
+    }
+    return false;
+  });
+};
+function relDesc(path){
+  var k=((path&&path.dataset&&path.dataset.rel)||'').split('|');
+  var esc=window.visEscape||String;
+  return k.length<3?'':esc(k[0])+' '+k[1].replace(/_/g,' ')+' '+esc(k[2]);
+}
+// Placement runs in three passes — read all geometry, choose every spot,
+// then draw — because reading geometry after any drawing forces a fresh
+// layout of the whole diagram, which made placement quadratic.
+function placeLabels(g,edges,keyHost){
+  var svg=g.ownerSVGElement,vb=svg&&svg.viewBox&&svg.viewBox.baseVal;
+  var grid=new BoxGrid();
+  (g._blockBoxes||[]).forEach(function(b){grid.add(b);});
+  var paths=edges?[].slice.call(edges.querySelectorAll('path')):[];
+  paths.forEach(function(p){
+    // A hollow edge's inner line belongs to the edge it is drawn inside.
+    var owner=p.hasAttribute('data-inner')?p.previousElementSibling:p;
     try{
-      var n=p.getTotalLength(),a=p.getPointAtLength(n),b=p.getPointAtLength(Math.max(0,n-10));
-      (g._blockBoxes||(g._blockBoxes=[])).push({x:Math.min(a.x,b.x)-1,y:Math.min(a.y,b.y)-5,
-        w:Math.abs(a.x-b.x)+2,h:Math.abs(a.y-b.y)+10});
+      var n=p.getTotalLength();
+      for(var s=0;s<=n;s+=3){var q=p.getPointAtLength(s);grid.add({x:q.x-0.5,y:q.y-0.5,w:1,h:1},owner);}
+      if(p.getAttribute('marker-end')){
+        var a=p.getPointAtLength(n),b=p.getPointAtLength(Math.max(0,n-10));
+        grid.add({x:Math.min(a.x,b.x)-1,y:Math.min(a.y,b.y)-5,w:Math.abs(a.x-b.x)+2,h:Math.abs(a.y-b.y)+10});
+      }
     }catch(e){}
   });
-  (g._defer||[]).forEach(function(args){placeLabel.apply(null,[g].concat(args));});
+  var jobs=(g._defer||[]).map(function(args){
+    return{txt:args[0],fill:args[1],path:args[2],pts:edgePoints(args[2])};
+  });
   g._defer=[];
+  // Measure each distinct label text once, in one batch.
+  var widths={},probes=[];
+  var measure=function(s){
+    if(s in widths)return;widths[s]=0;
+    var m=svgEl('text');sa(m,'font-size','10');sa(m,'font-weight','600');
+    m.textContent=s;g.appendChild(m);probes.push([s,m]);
+  };
+  jobs.forEach(function(j){measure(shortLabel(j.txt));});
+  jobs.forEach(function(j,n){measure(String(n+1));});
+  probes.forEach(function(e){try{widths[e[0]]=e[1].getComputedTextLength();}catch(x){}});
+  probes.forEach(function(e){g.removeChild(e[1]);});
+  // Choose spots: the label itself, else a numbered marker.
+  var key=[],draws=[];
+  jobs.forEach(function(j){
+    var shown=shortLabel(j.txt),box=chooseSpot(grid,vb,j,labelWidth(shown,widths));
+    if(box){draws.push({j:j,shown:shown,box:box});return;}
+    var num=String(key.length+1),mbox=chooseSpot(grid,vb,j,labelWidth(num,widths));
+    if(mbox)draws.push({j:j,shown:num,box:mbox});
+    key.push({num:num,txt:j.txt,desc:relDesc(j.path),marked:!!mbox});
+  });
+  draws.forEach(function(d){drawLabel(g,d.j,d.shown,d.box);});
+  if(key.length&&keyHost){
+    var ol=document.createElement('ol');ol.className='lineage-key';
+    ol.setAttribute('aria-label','Edge labels shown as numbers');
+    key.forEach(function(k){
+      var li=document.createElement('li');li.value=+k.num;
+      li.textContent=k.txt+(k.desc?' — '+k.desc:'')+(k.marked?'':' (no room to mark it on the diagram)');
+      ol.appendChild(li);
+    });
+    keyHost.appendChild(ol);
+  }
 }
-function placeLabel(g,x1,y1,x2,y2,txt,fill,path){
-  var t=svgEl('text');
-  if(path&&path.dataset&&path.dataset.rel)t.dataset.for=path.dataset.rel;
-  if(txt.length>MAX_LABEL){
-    var tt=svgEl('title');tt.textContent=txt;t.appendChild(tt);
-    txt=txt.slice(0,MAX_LABEL-1)+'…';
-  }
-  var w=txt.length*6+6,h=12;
-  // The label sits on its own edge, centred on the curve's midpoint, so it is
-  // read with that edge; where it would meet another label or a node it slides
-  // along its edge, then off it, to the nearest clear spot.
-  var cx=(x1+x2)/2,cy=(y1+y2)/2,len=0;
-  if(path&&path.getTotalLength){
-    try{len=path.getTotalLength();var mid=path.getPointAtLength(len/2);cx=mid.x;cy=mid.y;}catch(e){len=0;}
-  }
-  var taken=g._labelBoxes||(g._labelBoxes=[]);
-  var blocked=g._blockBoxes||[];
-  // A spot outside the drawing would be clipped, so it counts as taken.
-  var vb=g.ownerSVGElement&&g.ownerSVGElement.viewBox&&g.ownerSVGElement.viewBox.baseVal;
+function shortLabel(txt){return txt.length>MAX_LABEL?txt.slice(0,MAX_LABEL-1)+'…':txt;}
+function labelWidth(s,widths){return Math.ceil((widths[s]||s.length*6)+8);}
+// Points every 4 px along an edge with their unit normals, nearest the
+// midpoint first.
+function edgePoints(path){
+  var len=0;try{len=path&&path.getTotalLength?path.getTotalLength():0;}catch(e){}
+  if(!len)return[];
+  var pts=[];
+  for(var s=0;s<=len;s+=4){var q=path.getPointAtLength(s);pts.push({s:s,x:q.x,y:q.y});}
+  pts.forEach(function(e,n){
+    var a=pts[Math.max(0,n-1)],c=pts[Math.min(pts.length-1,n+1)];
+    var dx=c.x-a.x,dy=c.y-a.y,dl=Math.sqrt(dx*dx+dy*dy)||1;e.nx=-dy/dl;e.ny=dx/dl;
+  });
+  return pts.sort(function(a,b){return Math.abs(a.s-len/2)-Math.abs(b.s-len/2);});
+}
+// The first pass wants a spot no other line touches: the plate centred on its
+// line, then just above or below it, within one plate height. Where crossing
+// lines leave no such spot (a fan-in), the second pass centres the plate on
+// its own line and lets other lines pass under it, but none within 7 px of
+// its centre, so the line through its middle is always the one it names.
+function chooseSpot(grid,vb,j,w){
+  var h=LABEL_H,path=j.path,pts=j.pts;
   var outside=function(b){return vb&&vb.width>0&&(b.x<vb.x||b.y<vb.y||
     b.x+b.w>vb.x+vb.width||b.y+b.h>vb.y+vb.height);};
-  var hits=function(b){return outside(b)||taken.concat(blocked).some(function(o){
-    return b.x<o.x+o.w&&o.x<b.x+b.w&&b.y<o.y+o.h&&o.y<b.y+b.h;});};
-  var box={x:cx-w/2,y:cy-h/2,w:w,h:h};
-  var tries=[0.5,0.38,0.62,0.28,0.72,0.2,0.8];
-  for(var i=0;i<tries.length&&hits(box);i++){
-    if(len){var q=path.getPointAtLength(len*tries[i]);box={x:q.x-w/2,y:q.y-h/2,w:w,h:h};}
-  }
-  for(var k=1;k<40&&hits(box);k++){box={x:box.x,y:cy-h/2+(k%2?1:-1)*Math.ceil(k/2)*(h+2),w:w,h:h};}
-  taken.push(box);
+  var clearNear=function(cx,cy,r){return!grid.hits({x:cx-r,y:cy-r,w:2*r,h:2*r},path,true);};
+  var search=function(offs,strict){
+    for(var i=0;i<pts.length;i++){
+      for(var k=0;k<offs.length;k++){
+        var cx=pts[i].x+pts[i].nx*offs[k],cy=pts[i].y+pts[i].ny*offs[k];
+        var b={x:cx-w/2,y:cy-h/2,w:w,h:h};
+        if(outside(b)||grid.hits(b,path,false,!strict))continue;
+        if(strict?offs[k]&&!clearNear(cx,cy,Math.abs(offs[k])+1):!clearNear(cx,cy,7))continue;
+        return b;
+      }
+    }
+    return null;
+  };
+  var box=search([0,h/2+2,-(h/2+2),h,-h],true)||search([0],false);
+  if(box)grid.add(box);
+  return box;
+}
+function drawLabel(g,j,shown,box){
+  var fill=j.fill||'#4b5563';
   var plate=svgEl('rect');
-  sa(plate,'x',box.x);sa(plate,'y',box.y);sa(plate,'width',w);sa(plate,'height',h);
-  sa(plate,'rx','3');sa(plate,'fill','#ffffff');sa(plate,'stroke',fill||'#4b5563');sa(plate,'stroke-width','0.75');
+  sa(plate,'x',box.x);sa(plate,'y',box.y);sa(plate,'width',box.w);sa(plate,'height',box.h);
+  sa(plate,'rx','3');sa(plate,'fill','#ffffff');sa(plate,'stroke',fill);sa(plate,'stroke-width','0.75');
   g.appendChild(plate);
-  sa(t,'x',box.x+w/2);sa(t,'y',box.y+h/2);sa(t,'dominant-baseline','middle');
-  sa(t,'text-anchor','middle');sa(t,'font-size','10');sa(t,'font-weight','600');
-  sa(t,'fill',fill||'#4b5563');sa(t,'class','edge-label');
-  t.appendChild(document.createTextNode(txt));g.appendChild(t);
+  var t=svgEl('text');
+  if(j.path.dataset&&j.path.dataset.rel)t.dataset.for=j.path.dataset.rel;
+  sa(t,'x',box.x+box.w/2);sa(t,'y',box.y+box.h/2);
+  sa(t,'dominant-baseline','middle');sa(t,'text-anchor','middle');sa(t,'font-size','10');
+  sa(t,'font-weight','600');sa(t,'fill',fill);sa(t,'class','edge-label');
+  t.appendChild(document.createTextNode(shown));
+  if(j.txt!==shown){var tt=svgEl('title');tt.textContent=j.txt;t.appendChild(tt);}
+  g.appendChild(t);
 }
 
 // '' (in force), 'part' (superseded in part) or 'full' (fully superseded).
@@ -544,7 +646,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   var ctxCount=Object.keys(ctxRels.reduce(function(acc,r){
     var pid=r.from===selectedId?r.to:r.from;acc[pid]=1;return acc;},{})  ).length;
   var hasSat=satCount>0||ctxCount>0;
-  var svgW=PX*2+maxL*(NW+XG)+NW+(hasSat?XG+Math.round(NW*0.8):0);
+  var svgW=PX*2+maxL*(NW+XG)+NW+(hasSat?XG+SAT_GAP+Math.round(NW*0.8):0);
   var svgH=PY*2+Math.max((maxRow+1)*(NH+YG),Math.max(satCount,ctxCount)*(NH+YG))-YG+PY;
   svgW=Math.max(svgW,300);svgH=Math.max(svgH,100);
 
@@ -564,9 +666,9 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
 
   // Edge group (behind nodes)
   var lg=svgEl('g');sa(lg,'aria-hidden','true');
-  // Labels never cover a node box (inflated by 2 px).
+  // Labels never cover a node box or its supersession ring (4 px out).
   lg._blockBoxes=cn.filter(function(n){return np[n];}).map(function(n){
-    return{x:PX+np[n].col*(NW+XG)-2,y:PY+np[n].row*(NH+YG)-2,w:NW+4,h:NH+4};});
+    return{x:PX+np[n].col*(NW+XG)-5,y:PY+np[n].row*(NH+YG)-5,w:NW+10,h:NH+10};});
   var eg=svgEl('g');sa(eg,'aria-hidden','true');
 
   // Draw checked edges within the chain
@@ -606,59 +708,79 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   });
 
   // Satellite column x
-  var satX=PX+(maxL+1)*(NW+XG);
+  var satX=PX+(maxL+1)*(NW+XG)+SAT_GAP;
   var satY=PY;
-
-  // Unresolved (one-sided) edges from selected node
-  unresRels.forEach(function(r){
-    var sx=satX,sy=satY;satY+=NH+YG;
-    var sg=svgEl('rect');sa(sg,'x',sx);sa(sg,'y',sy);sa(sg,'width',Math.round(NW*0.78));sa(sg,'height',NH);
-    sa(sg,'rx','4');sa(sg,'fill','none');sa(sg,'stroke','#d1d5db');sa(sg,'stroke-dasharray','5 3');
-    eg.appendChild(sg);
-    var st=svgEl('text');sa(st,'x',sx+5);sa(st,'y',sy+NH/2);
-    sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill','#9ca3af');
-    st.textContent=r.display_to||r.to||'?';eg.appendChild(st);
-    var sp=np[selectedId];if(!sp)return;
-    var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH/2;
-    var oneP=drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#9ca3af','1.5','6 4','url(#'+pfx+'ao)');
-    oneP.dataset.rel=relKey(r);
-    edgeLabel(lg,ex1,ey1,sx,sy+NH/2,'one-sided','#9ca3af',oneP);
-  });
-
-  // Caller-asserted edges for selected node: drawn between nodes when both are
-  // in the chain, otherwise to a satellite box.
+  var sp=np[selectedId];
+  // Satellites (one-sided targets and asserted peers outside the chain) hang
+  // off a trunk that leaves the selected node into its gutter, runs along the
+  // row gap below it and down the satellite gutter, so it never lies along a
+  // checked edge or passes beneath a node. Each satellite gets a short branch
+  // carrying its arrowhead and label.
+  var sats=[];
+  unresRels.forEach(function(r){sats.push({r:r,kind:'one'});});
   assertedRels.forEach(function(r){
     var peerId=r.from===selectedId?r.to:r.from;
-    var pp=np[peerId],sp0=np[selectedId];
-    if(pp&&sp0){
-      // Route through the free gutter right of each column and the free gap
-      // above the target row, so the edge never passes beneath another node.
-      var fpA=np[r.from],tpA=np[r.to];
-      var fx=PX+fpA.col*(NW+XG)+NW,fy=PY+fpA.row*(NH+YG)+NH*0.7;
-      var tx=PX+tpA.col*(NW+XG)+NW,ty=PY+tpA.row*(NH+YG)+NH*0.3;
-      var gf=fx+XG*0.3,gt=tx+XG*0.3,gapY=PY+tpA.row*(NH+YG)-YG/2;
-      if(tpA.row===0)gapY=PY/2;
-      var ap=svgEl('path');
-      sa(ap,'d','M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+gapY+' L '+gt+','+gapY+
-        ' L '+gt+','+ty+' L '+tx+','+ty);
-      sa(ap,'fill','none');sa(ap,'stroke','#7c3aed');sa(ap,'stroke-width','1.5');
-      sa(ap,'stroke-dasharray','8 3 2 3');sa(ap,'marker-end','url(#'+pfx+'ah)');
-      ap.dataset.rel=relKey(r);eg.appendChild(ap);
-      edgeLabel(lg,fx,fy,gt,ty,'asserted','#7c3aed',ap);
-      return;
-    }
-    var sx=satX,sy=satY;satY+=NH+YG;
+    if(!np[peerId])sats.push({r:r,kind:'as'});
+  });
+  var SAT_STYLE={
+    one:{box:'#d1d5db',line:'#9ca3af',dash:'6 4',mark:'ao',label:'one-sided',fill:'#9ca3af',text:'#9ca3af',lane:3,shift:0},
+    as:{box:'#a78bfa',line:'#a78bfa',dash:'8 3 2 3',mark:'ah',label:'asserted',fill:'#7c3aed',text:'#7c3aed',lane:-3,shift:6}
+  };
+  sats.forEach(function(s){
+    var st0=SAT_STYLE[s.kind],sx=satX,sy=satY;satY+=NH+YG;s.mid=sy+NH/2;
     var sg=svgEl('rect');sa(sg,'x',sx);sa(sg,'y',sy);sa(sg,'width',Math.round(NW*0.78));sa(sg,'height',NH);
-    sa(sg,'rx','4');sa(sg,'fill','none');sa(sg,'stroke','#a78bfa');sa(sg,'stroke-dasharray','8 3 2 3');
+    sa(sg,'rx','4');sa(sg,'fill','none');sa(sg,'stroke',st0.box);sa(sg,'stroke-dasharray',st0.dash==='6 4'?'5 3':st0.dash);
     eg.appendChild(sg);
+    lg._blockBoxes.push({x:sx-2,y:sy-2,w:Math.round(NW*0.78)+4,h:NH+4});
     var st=svgEl('text');sa(st,'x',sx+5);sa(st,'y',sy+NH/2);
-    sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill','#7c3aed');
-    st.textContent=(r.from===selectedId?(r.display_to||r.to):(r.display_from||r.from))||'?';eg.appendChild(st);
-    var sp=np[selectedId];if(!sp)return;
-    var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH/2;
-    var asP=drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#a78bfa','1.5','8 3 2 3','url(#'+pfx+'ah)');
-    asP.dataset.rel=relKey(r);
-    edgeLabel(lg,ex1,ey1,sx,sy+NH/2,'asserted','#7c3aed',asP);
+    sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill',st0.text);
+    var r=s.r;
+    st.textContent=(s.kind==='one'?(r.display_to||r.to):
+      (r.from===selectedId?(r.display_to||r.to):(r.display_from||r.from)))||'?';
+    eg.appendChild(st);
+  });
+  if(sp)['one','as'].forEach(function(kind){
+    var mine=sats.filter(function(s){return s.kind===kind;});
+    if(!mine.length)return;
+    var st0=SAT_STYLE[kind];
+    var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH-6-st0.shift;
+    var gx=ex1+Math.round(XG*0.15)+st0.shift;
+    var laneY=PY+(sp.row+1)*(NH+YG)-YG/2+st0.lane;
+    var lx=satX-SAT_BRANCH-st0.shift;
+    var ys=mine.map(function(s){return s.mid;}).concat([laneY]);
+    var trunk=svgEl('path');
+    sa(trunk,'d','M '+ex1+','+ey1+' L '+gx+','+ey1+' L '+gx+','+laneY+' L '+lx+','+laneY+
+      ' M '+lx+','+Math.min.apply(null,ys)+' L '+lx+','+Math.max.apply(null,ys));
+    sa(trunk,'fill','none');sa(trunk,'stroke',st0.line);sa(trunk,'stroke-width','1.5');
+    sa(trunk,'stroke-dasharray',st0.dash);trunk.dataset.trunk=kind;eg.appendChild(trunk);
+    mine.forEach(function(s){
+      var br=svgEl('path');
+      sa(br,'d','M '+lx+','+s.mid+' L '+satX+','+s.mid);
+      sa(br,'fill','none');sa(br,'stroke',st0.line);sa(br,'stroke-width','1.5');
+      sa(br,'stroke-dasharray',st0.dash);sa(br,'marker-end','url(#'+pfx+st0.mark+')');
+      br.dataset.rel=relKey(s.r);eg.appendChild(br);
+      edgeLabel(lg,lx,s.mid,satX,s.mid,st0.label,st0.fill,br);
+    });
+  });
+
+  // Caller-asserted edges between two chain members route through the free
+  // gutter right of each column and the free gap above the target row, so the
+  // edge never passes beneath another node.
+  assertedRels.forEach(function(r){
+    var peerId=r.from===selectedId?r.to:r.from;
+    if(!np[peerId]||!sp)return;
+    var fpA=np[r.from],tpA=np[r.to];
+    var fx=PX+fpA.col*(NW+XG)+NW,fy=PY+fpA.row*(NH+YG)+NH*0.7;
+    var tx=PX+tpA.col*(NW+XG)+NW,ty=PY+tpA.row*(NH+YG)+NH*0.3;
+    var gf=fx+XG*0.3,gt=tx+XG*0.3,gapY=PY+tpA.row*(NH+YG)-YG/2;
+    if(tpA.row===0)gapY=PY/2;
+    var ap=svgEl('path');
+    sa(ap,'d','M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+gapY+' L '+gt+','+gapY+
+      ' L '+gt+','+ty+' L '+tx+','+ty);
+    sa(ap,'fill','none');sa(ap,'stroke','#7c3aed');sa(ap,'stroke-width','1.5');
+    sa(ap,'stroke-dasharray','8 3 2 3');sa(ap,'marker-end','url(#'+pfx+'ah)');
+    ap.dataset.rel=relKey(r);eg.appendChild(ap);
+    edgeLabel(lg,fx,fy,gt,ty,'asserted','#7c3aed',ap);
   });
 
   svg.appendChild(eg);svg.appendChild(lg);
@@ -709,7 +831,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   container.appendChild(axis);
   wrap.className='lineage-wrap';wrap.style.overflowX='auto';wrap.style.maxWidth='100%';
   wrap.appendChild(svg);container.appendChild(wrap);
-  placeLabels(lg,eg);
+  placeLabels(lg,eg,container);
 
   // Contextual toggle
   if(ctxRels.length>0){
@@ -783,7 +905,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
     var eg2=svgEl('g');sa(eg2,'aria-hidden','true');
     var lg2=svgEl('g');sa(lg2,'aria-hidden','true');
     lg2._blockBoxes=cn.filter(function(n){return np2[n];}).map(function(n){
-      return{x:PX+np2[n].col*(nw+xg)-2,y:PY+np2[n].row*(nh+yg)-2,w:nw+4,h:nh+4};});
+      return{x:PX+np2[n].col*(nw+xg)-5,y:PY+np2[n].row*(nh+yg)-5,w:nw+10,h:nh+10};});
     var ports2=edgePorts(cRels,np2,nh);
     cRels.forEach(function(r,ri){
       var fp=np2[r.from],tp=np2[r.to];if(!fp||!tp)return;
@@ -824,7 +946,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
     wrap2.className='chain-svg-wrap';wrap2.style.overflowX='auto';
     wrap2.appendChild(svg);card.appendChild(wrap2);
     grid.appendChild(card);
-    placeLabels(lg2,eg2);
+    placeLabels(lg2,eg2,card);
   });
 }
 
