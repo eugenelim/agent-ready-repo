@@ -1,0 +1,9 @@
+{
+  "impacted_files": [
+    "src/billing/invoice.py",
+    "src/billing/receipt.py",
+    "src/api/checkout.py"
+  ],
+  "traversal_depth": 3,
+  "depth_cut_note": "Traversal stopped at depth 3; files reachable only at depth 4 or deeper are not included in this result."
+}

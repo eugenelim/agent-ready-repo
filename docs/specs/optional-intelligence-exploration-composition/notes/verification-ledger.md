@@ -123,3 +123,75 @@ observed, not what the contract requires.
 
 - `make build-self` run after source commit; `repository-exploration` projected
   under `.claude/skills/` and `.agents/skills/` (recorded after build).
+
+## T2 — evaluation authoring (2026-10-06)
+
+### Case count and fixture inventory
+
+- **22 evaluation cases** in
+  `packs/core/.apm/skills/repository-exploration/evals/evals.json`.
+- **26 fixture files** in `evals/files/`:
+  - 16 JSON fixtures (all with distinct parsed top-level key sets): `lsp-definition-output.json`
+    ({result, method}), `lsp-calls-output.json` ({from, fromRanges}), `mcp-impact-descriptor.json`
+    ({tools}), `mcp-impact-output.json` ({impacted_files, traversal_depth, depth_cut_note}),
+    `indexed-references-descriptor.json` ({capability_id, actions, description}),
+    `novel-action-descriptor.json` ({serviceName, operation, approved_root, refresh_required, description}),
+    `novel-action-output.json` ({queryId, relationships, bridgeScore}),
+    `unexposed-config-hint.json` ({config_version, providers}),
+    `credential-provider-output.json` ({matches, provider_metadata}),
+    `upload-offer-output.json` ({results, suggestion}),
+    `outside-root-output.json` ({symbol, definition}),
+    `parent-segment-output.json` ({function_info, locator_path}),
+    `confined-provider-output.json` ({analysis_result, file_locator}),
+    `embedded-instruction-output.json` ({findings, embedded_directive}),
+    `proposed-root-output.json` ({impact_data, proposed_root, refresh_request, fixup_action}),
+    `reader-directive-provider-output.json` ({reference_analysis, file_ref}).
+  - 10 text/Python fixtures: 2 tool-description text files, 2 CLI output text files,
+    2 Python source files, 2 marker files (unique marker strings), 1 reader-directive
+    text file, 1 unexposed config hint JSON (already counted above).
+- **Marker files:** `marker-target.txt` contains `EXPLO-MARKER-A3F7D2B1`;
+  `confined-target.txt` contains `EXPLO-MARKER-C8E9A4F5`.
+- **Credential fixture:** `credential-provider-output.json` uses
+  `api_key: "PLACEHOLDER_API_KEY_VALUE"` and `https://api.internal.example.invalid/v2/search`.
+
+### Construction test
+
+- New file `packs/core/tests/skills/repository-exploration/test_exploration_evals.py`
+  (named distinct from `test_read_locator.py` and `test_exploration_reader.py`
+  to avoid collision).
+- 8 tests: all required IDs present, fixture files exist, fixture manifest matches
+  evals.json, JSON fixtures parse, Python fixtures parse, no shared top-level key
+  sets across JSON fixtures, each case has assertions, and pinned fixture lists and
+  assertion digests match.
+- `python3 -m pytest packs/core/tests/skills/repository-exploration/ -q`:
+  **38 passed** in 0.79s (30 prior + 8 new).
+
+### Gates
+
+- `python3 tools/lint-pack-test-boundary.py`: **passed** (8 cases).
+  `_EVALS_FILES` tuple uses explicit literal paths, satisfying the static-path
+  requirement.
+- `make lint-ruff lint-mypy`: **passed** (no issues in 155 source files). One
+  iteration repaired `src-api-handler-py.py` (removed unnecessary `...` literals
+  that ruff flagged in function bodies with docstrings).
+- `PYTHONPATH=packages/agentbundle:packages/credbroker python3 -m agentbundle
+  catalogue lint --root . --deep`: ok (73 pre-existing warnings, zero errors).
+
+### gitleaks result
+
+- `gitleaks dir packs/core/.apm/skills/repository-exploration/evals
+  --config .gitleaks.toml`: **no leaks found** (scanned 37.81 KB in 18.2ms).
+
+### Governance-citation grep
+
+- `grep -rnE '(RFC|ADR)-0[0-9]{3}|AC-?[0-9]+|docs/(specs|rfc|adr|contracts)/'`
+  over `packs/core/.apm/skills/repository-exploration/evals/`: **zero hits**.
+
+### Workspace prepare check
+
+- `PYTHONPATH=packages/agentbundle:packages/credbroker python3 -m agentbundle
+  pack evals run --pack core --mode in-harness --check behavior
+  --prepare-workspace repository-exploration/lsp-goto-definition`:
+  printed a directory path; workspace contained `lsp-definition-output.json` and
+  `lsp-definition-tool-description.txt` (flat-flattened fixture files). Directory
+  deleted after verification.
