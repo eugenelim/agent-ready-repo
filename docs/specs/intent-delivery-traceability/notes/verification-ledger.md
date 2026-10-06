@@ -107,3 +107,28 @@ The owner approved the amended spec and plan, which ratifies the private
 `_file_safety.py` helper name. Tasks T1–T4 were delivered before the run
 reset, in commits `a2b0f6140`, `336745737`, `d028d1b41`, and `ec7d1a605`; the
 fresh run accounts for them against those commits rather than rebuilding them.
+
+## 2026-10-06 — Post-build review: the repo-scope install never delivers the resolver
+
+Observed by the adversarial and quality reviewers and confirmed in source:
+`agentbundle install` delivers `adapter-root-bins/*.py` only at user scope,
+to `~/.agentbundle/bin/` (`packages/agentbundle/agentbundle/commands/install.py`,
+"Skipped at repo scope"), and Core installs only at repo scope. A real
+`agentbundle install --pack core --scope repo` therefore leaves no
+`.agentbundle/bin/`, and both consumers fail closed in every adopter
+repository. This falsifies the plan's design decision that a repo-scope
+adapter-root primitive reaches `<repository>/.agentbundle/bin/`; the
+self-host projection was the only route that delivered it.
+
+## 2026-10-06 — Owner decisions 5 and 6 (eugenelim)
+
+5. **Resolver delivery.** Ship byte-identical copies of the resolver and its
+   `_file_safety.py` helper inside each consuming skill's `scripts/` folder
+   (close-work and work-loop), pinned to one source by parity tests. Each
+   consumer runs its own copy. No agentbundle engine change.
+6. **Release version.** `main` released Core `2.28.0` from another change, so
+   this branch rebases onto `origin/main` and takes Core `2.29.0` everywhere it
+   states its version.
+
+These settle the two indeterminate entries in the 2026-10-06 post-gates
+adjudications (`adversarial-reviewer` 1 and 4, `quality-engineer` 1).
