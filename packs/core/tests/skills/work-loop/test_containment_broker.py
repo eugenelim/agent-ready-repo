@@ -349,28 +349,6 @@ class TestForgeryFixturesPerAdapter:
     """AC-0013: direct-syscall, git-metadata, protected-ref, broker-bypass, privilege-amplification
     and unsupported-host forgery fixture families, exercised per adapter."""
 
-    def _attempt_write_delivery_control(
-        self,
-        containment: ModuleType,
-        effect_broker: ModuleType,
-        session: object,
-        path: str,
-        adapter: str,
-    ) -> bool:
-        """Try a broker write to a delivery-control path.
-
-        Returns True if the write succeeded (bypass), False if refused.
-        """
-        events: list = []
-        result = effect_broker.request_effect(
-            session,
-            grant_id=session.grants[0].grant_id if session.grants else "no-grant",
-            operation="write",
-            path=path,
-            audit_sink=lambda e: events.append(e),
-        )
-        return result.success
-
     @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
     @pytest.mark.parametrize("delivery_path", [
         "packs/core/.apm/skills/work-loop/SKILL.md",
@@ -566,8 +544,14 @@ class TestForgeryFixturesPerAdapter:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestDirectSyscallForgery:
-    """AC-0013 direct-syscall fixture: delivery-control writes detected before any I/O."""
+class TestBrokerDeliveryControlRefusal:
+    """AC-0013 forgery fixture: broker refuses delivery-control writes even with a forged grant.
+
+    The grant explicitly claims to cover the delivery-control path (simulating
+    an attacker-constructed grant).  The broker's built-in guard still refuses
+    before any I/O, regardless of what the grant claims.  Zero bypass writes
+    reach the control-plane path.
+    """
 
     @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
     @pytest.mark.parametrize("delivery_path", [
@@ -575,7 +559,7 @@ class TestDirectSyscallForgery:
         ".claude/skills/work-loop/SKILL.md",
         ".kiro/skills/work-loop/SKILL.md",
         ".agents/skills/work-loop/SKILL.md",
-        # Creating a new skill copy via direct syscall
+        # Creating a new skill copy via a forged grant
         "packs/core/.apm/skills/work-loop/scripts/direct_syscall_forged.py",
         ".claude/skills/work-loop/injected_module.py",
     ])
@@ -586,11 +570,11 @@ class TestDirectSyscallForgery:
         delivery_path: str,
         adapter: str,
     ) -> None:
-        """Direct-syscall fixture: a write to a delivery-control path via broker is refused.
+        """Broker refuses a delivery-control path write even when the grant claims to cover it.
 
-        Models an untrusted process attempting a direct write syscall to a
-        delivery-control path.  The broker's built-in guard refuses before any
-        I/O, regardless of what the grant claims.  Zero bypass writes reach the
+        The grant's allowed_roots include the delivery-control path (simulating
+        an attacker constructing a grant that appears to allow the write).  The
+        broker must still refuse before any I/O.  Zero bypass writes reach the
         control-plane path.
         """
         eb = effect_broker

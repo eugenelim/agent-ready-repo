@@ -785,12 +785,12 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_conformance_rollup.py
 
-      # T9a clean-environment fence: three independent checks (static import
-      # analysis, subprocess agentbundle-free fence, agentbundle/ diff assertion)
-      # each with red evidence.  Uses git diff origin/main and subprocess, so it
-      # reads above any single pack tree — lint-pack-test-boundary forbids a pack
-      # home.  Sits ABOVE the carve-out step below whose `pytest tests/ -q` also
-      # collects it, so that a failure is attributed to this named step.
+      # T9a clean-environment fence: two independent checks (static import
+      # analysis, subprocess agentbundle-free fence) each with red evidence.
+      # Uses a subprocess, so it reads above any single pack tree —
+      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the carve-out
+      # step below whose `pytest tests/ -q` also collects it, so that a failure
+      # is attributed to this named step.
       - name: pytest T9a clean-environment fence (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_clean_env_fence.py

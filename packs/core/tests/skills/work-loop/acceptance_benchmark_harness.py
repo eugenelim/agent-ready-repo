@@ -186,10 +186,15 @@ def run_evaluator_benchmark(acc: ModuleType) -> dict:
     p95_seconds = sorted_durations[p95_index]
     p50_seconds = sorted_durations[TIMED_RUNS // 2]
 
-    # Verify verdicts are well-formed
+    # Verify the expected verdict distribution: the fixed corpus yields all supported.
     assert len(verdicts) == NUM_CRITERIA
+    verdict_distribution: dict[str, int] = {}
     for v in verdicts:
-        assert v["verdict"] in ("unapproved", "contradicted", "supported", "insufficient")
+        verdict_distribution[v["verdict"]] = verdict_distribution.get(v["verdict"], 0) + 1
+    assert verdict_distribution == {"supported": NUM_CRITERIA}, (
+        f"expected all {NUM_CRITERIA} verdicts to be 'supported'; "
+        f"got distribution {verdict_distribution}"
+    )
 
     return {
         "benchmark": "evaluator",
@@ -201,6 +206,7 @@ def run_evaluator_benchmark(acc: ModuleType) -> dict:
         "p50_seconds": p50_seconds,
         "min_seconds": sorted_durations[0],
         "max_seconds": sorted_durations[-1],
+        "verdict_distribution": verdict_distribution,
     }
 
 
@@ -274,7 +280,10 @@ with open(criteria_path, encoding="utf-8") as fh:
     criteria = json.load(fh)
 
 verdicts = store.evaluate_verdicts(criteria, current_fp, acc)
-print(len(verdicts))
+counts = {{}}
+for v in verdicts:
+    counts[v["verdict"]] = counts.get(v["verdict"], 0) + 1
+print(json.dumps(counts))
 '''
 
 
@@ -384,7 +393,9 @@ def run_cold_rehydration(acc: ModuleType) -> dict | None:
             )
             return None
 
-        verdict_count = int(proc.stdout.strip())
+        # Worker prints a JSON counter: {"supported": N, ...}
+        verdict_distribution: dict[str, int] = json.loads(proc.stdout.strip())
+        verdict_count = sum(verdict_distribution.values())
 
         return {
             "benchmark": "cold-rehydration",
@@ -392,6 +403,7 @@ def run_cold_rehydration(acc: ModuleType) -> dict | None:
             "num_receipts": NUM_RECEIPTS,
             "log_frames": sum(1 for _ in log_path.open("rb")),
             "verdict_count": verdict_count,
+            "verdict_distribution": verdict_distribution,
             "elapsed_seconds": elapsed_seconds,
         }
 

@@ -529,7 +529,18 @@ def _durable_sink(spec_dir: Path, shadow_dir: Path, cm: ModuleType) -> Callable[
         if not isinstance(record, dict):
             raise OSError("security event must be a dataclass or a mapping")
         gitignore = shadow_dir / ".gitignore"
-        if not gitignore.is_file() or gitignore.is_symlink():
+        if gitignore.is_symlink() or not gitignore.is_file():
+            raise OSError("shadow security-event store is not initialised")
+        # Bounded, no-follow content check: accept only exactly b"*\n".
+        try:
+            _gi_fd = os.open(str(gitignore), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            try:
+                _gi_bytes = os.read(_gi_fd, 3)  # b"*\n" is 2 bytes; 3 detects extra
+            finally:
+                os.close(_gi_fd)
+        except OSError:
+            raise OSError("shadow security-event store is not initialised") from None
+        if _gi_bytes != b"*\n":
             raise OSError("shadow security-event store is not initialised")
         try:
             _confined_jsonl_append(spec_dir, shadow_dir / _SECURITY_EVENTS_FILE, record, cm)

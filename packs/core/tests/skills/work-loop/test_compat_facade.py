@@ -985,87 +985,82 @@ class TestAC0007DualEmitCorpus:
             )
             assert r["observation"] == {"type": "engine-transition"}
 
-    def test_acceptance_verdict_deterministic_over_shadow_receipts(
-        self, acc: ModuleType, tmp_path: Path
+    def test_verdict_derives_from_evidence_log_ignoring_planted_cached_verdict(
+        self, facade: ModuleType, acc: ModuleType, tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """evaluate_verdict is pure: deleting mechanical state cannot change it.
+        """Verdict is re-derived from the evidence log; a planted cached-verdict is ignored.
 
-        Proves AC-0007: receipts with task-projection fields and mechanical state
-        files beside the store (cohort.json, engine-state.json, cached-verdict.json)
-        give the same verdict before and after those files are deleted.  Proved by
-        a temporary mutation: changing the receipt outcome changes the verdict.
+        Proves AC-0007 through the persisted path: shadow_call_on_transition writes
+        to the evidence log, EvidenceStore reads it back, and evaluate_verdict produces
+        'supported' even when shadow-verdict.json beside the log says 'unapproved'.
+        Deleting state.json and engine-state.json (mechanical state) does not change
+        the result.
         """
-        fingerprint = "sha256:frozen-corpus-fp-001"
+        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
+        spec_dir = tmp_path / "cached-ign-spec"
+        spec_dir.mkdir()
+        engine_state = {"feature": "cached-ign-spec", "run_id": "ci-run"}
+        pending = {
+            "seq": 1, "event": "spec-ready",
+            "from": "SPEC-PLAN-DRAFTING", "to": "SPEC-PLAN-REVIEW",
+            "run_id": "ci-run", "at": "2026-01-01T00:00:00Z",
+        }
+        facade.shadow_call_on_transition(spec_dir, engine_state, pending)
+
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        log_path = shadow_dir / "shadow-evidence.log"
+        assert log_path.exists(), "evidence log must be written by shadow_call_on_transition"
+
+        # Read receipts back through the persisted evidence log.
+        es_mod = _load_module("es_ci", SCRIPTS / "_evidence_store.py")
+        store = es_mod.EvidenceStore(log_path)
+        store.open()
+        receipts = store.get_all_active_receipts()
+        assert len(receipts) == 1, "one receipt per transition"
+        acceptance_fp = receipts[0]["acceptance_fingerprint"]
+
+        # Plant a cached-verdict file that disagrees — the evaluator must ignore it.
+        (shadow_dir / "shadow-verdict.json").write_text(
+            '{"verdict": "unapproved"}', encoding="utf-8"
+        )
+        # Plant then delete mechanical state files beside the store root.
+        for name in ("state.json", "engine-state.json"):
+            (spec_dir / name).write_text('{"state": "DONE"}', encoding="utf-8")
+        for name in ("state.json", "engine-state.json"):
+            (spec_dir / name).unlink()
+
         property_record = {
             "schema_version": 1,
-            "property_id": "prop-1",
-            "authority_ref": "spec-001",
+            "property_id": "prop-ci-001",
+            "authority_ref": "approval:ci-test:v1",
             "satisfaction_rule": {"expression": "any"},
             "required_observations": [
-                {"term": "implementation-done", "outcomes": ["complete"]},
+                {"term": "engine-transition:spec-ready", "outcomes": ["observed"]},
             ],
             "contradiction_rule": {"expression": "none"},
         }
-
-        # Receipt with the optional task_projection_revision field (allowed by schema)
-        receipt = {
-            "schema_version": 1,
-            "receipt_id": "r-det-001",
-            "acceptance_fingerprint": fingerprint,
-            "lineage": {"criterion_ref": "prop-1"},
-            "selector": {"term": "implementation-done"},
-            "freshness_mode": "exact-subject",
-            "observation": {"type": "engine-transition"},
-            "outcome": "complete",
-            "producer": {"class": "shadow-compat-facade", "identity": "shadow-compat-facade"},
-            "task_projection_revision": "rev-abc123",
-        }
-
-        # Write fake mechanical state files beside the store location
-        (tmp_path / "cohort.json").write_text('{"schema_version": 2}', encoding="utf-8")
-        (tmp_path / "engine-state.json").write_text(
-            '{"schema_version": 1, "state": "CODE-IMPLEMENTATION"}', encoding="utf-8"
-        )
-        (tmp_path / "cached-verdict.json").write_text(
-            '{"verdict": "supported"}', encoding="utf-8"
-        )
-
-        verdict1 = acc.evaluate_verdict(
+        verdict = acc.evaluate_verdict(
             property_record=property_record,
-            receipts=[receipt],
-            current_acceptance_fingerprint=fingerprint,
+            receipts=receipts,
+            current_acceptance_fingerprint=acceptance_fp,
             adapter="sequential-reference",
         )
-        assert verdict1["verdict"] == "supported"
+        assert verdict["verdict"] == "supported", (
+            "AC-0007: verdict from the persisted evidence log must be 'supported'; "
+            f"got {verdict['verdict']!r}; planted 'unapproved' in shadow-verdict.json is ignored"
+        )
 
-        # Delete the mechanical state — evaluator must not read those files
-        (tmp_path / "cohort.json").unlink()
-        (tmp_path / "engine-state.json").unlink()
-        (tmp_path / "cached-verdict.json").unlink()
-
-        verdict2 = acc.evaluate_verdict(
+        # Mutation proof: changing receipt outcome changes the verdict.
+        bad_receipt = {**receipts[0], "outcome": "not-observed"}
+        v_bad = acc.evaluate_verdict(
             property_record=property_record,
-            receipts=[receipt],
-            current_acceptance_fingerprint=fingerprint,
+            receipts=[bad_receipt],
+            current_acceptance_fingerprint=acceptance_fp,
             adapter="sequential-reference",
         )
-        assert verdict1["verdict"] == verdict2["verdict"], (
-            "AC-0007: verdict must be identical after deleting mechanical state"
-        )
-        assert verdict1["evaluation_fingerprint"] == verdict2["evaluation_fingerprint"], (
-            "AC-0007: evaluation fingerprint must be identical (deterministic)"
-        )
-
-        # Prove by mutation: varying the receipt outcome changes the verdict
-        modified_receipt = {**receipt, "outcome": "not-complete"}
-        verdict_modified = acc.evaluate_verdict(
-            property_record=property_record,
-            receipts=[modified_receipt],
-            current_acceptance_fingerprint=fingerprint,
-            adapter="sequential-reference",
-        )
-        assert verdict_modified["verdict"] != verdict1["verdict"], (
-            "AC-0007: changing receipt outcome must change the verdict (non-trivial)"
+        assert v_bad["verdict"] != "supported", (
+            "AC-0007: mutating receipt outcome must change the verdict"
         )
 
     def test_verdict_parity_across_supported_adapters(self, acc: ModuleType) -> None:
@@ -1584,11 +1579,15 @@ class TestAC0016FullTransitionSequence:
             "AC-0016: cohort state, including the plan pin, must be identical"
         )
 
-    def test_shadow_on_produces_verdict_record(self, tmp_path: Path) -> None:
+    def test_shadow_on_produces_verdict_record(
+        self, facade: ModuleType, tmp_path: Path
+    ) -> None:
         """With shadow ON, the shadow directory contains a derived verdict record.
 
         Proves AC-0016 shadow completeness: plan-locked fires the shadow service
-        which produces shadow-verdict.json under .shadow-acceptance/.
+        which produces shadow-verdict.json under .shadow-acceptance/.  The verdict
+        must be 'supported' for shadow:legacy-plan-locked and the security-event
+        log must contain no SHADOW_DIVERGENCE_CODE entries.
         """
         root = tmp_path / "repo-verdict"
         root.mkdir()
@@ -1610,6 +1609,21 @@ class TestAC0016FullTransitionSequence:
         assert "verdict" in verdict, (
             f"shadow-verdict.json must contain 'verdict'; got {list(verdict.keys())}"
         )
+        assert verdict["verdict"] == "supported", (
+            f"shadow verdict for 'shadow:legacy-plan-locked' must be 'supported'; "
+            f"got {verdict['verdict']!r}"
+        )
+        # No divergence entry in the security event log for a successful full run.
+        events_path = shadow_dir / "shadow-security-events.jsonl"
+        if events_path.exists():
+            for raw in events_path.read_text("utf-8").splitlines():
+                if not raw.strip():
+                    continue
+                entry = json.loads(raw)
+                assert entry.get("reason_code") != facade.SHADOW_DIVERGENCE_CODE, (
+                    "shadow-security-events.jsonl must have no SHADOW_DIVERGENCE_CODE "
+                    f"entry in a successful full-sequence run; got {entry!r}"
+                )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1867,3 +1881,24 @@ class TestShadowWriterPort:
         with pytest.raises(OSError):
             sink({"schema_version": 1})
         assert list(shadow_dir.iterdir()) == []
+
+    def test_sink_refuses_when_gitignore_ignores_nothing(
+        self, facade: ModuleType, tmp_path: Path
+    ) -> None:
+        """The sink refuses when .gitignore is present but does not contain exactly b\"*\\n\".
+
+        A planted .gitignore that ignores nothing (empty or \"!x\") must make the
+        sink raise OSError; no security-event log file may appear beside it.
+        """
+        for bad_content, label in [(b"", "empty"), (b"!x\n", "negated-pattern")]:
+            spec_dir = tmp_path / f"bad-gitignore-{label}"
+            shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+            shadow_dir.mkdir(parents=True)
+            (shadow_dir / ".gitignore").write_bytes(bad_content)
+            cm = facade._cm()
+            sink = facade._durable_sink(spec_dir, shadow_dir, cm)
+            with pytest.raises(OSError):
+                sink({"schema_version": 1})
+            assert not (shadow_dir / "shadow-security-events.jsonl").exists(), (
+                f"no log file must appear when .gitignore content is {label!r}"
+            )

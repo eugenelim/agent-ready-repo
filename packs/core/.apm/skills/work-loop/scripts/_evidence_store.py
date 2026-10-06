@@ -12,12 +12,28 @@ satisfaction.
 
 Producer authority: every append validates the named producer grant before
 staging bytes. Missing, expired, mismatched, or out-of-scope grant exposes no
-partial frame. Retry under the same transaction_id also fails if authority is
-invalid.
+partial frame.
+
+Idempotent retry: a retry with the same transaction_id and identical records
+produces no second frame; the committed transaction is returned unchanged.  A
+different record that reuses an already-admitted receipt_id, supersession_id,
+or transaction_id is refused with a stable denial code via the audited
+post-allow denial path.
+
+Duplicate detection on replay: a log that already contains a conflicting
+duplicate receipt_id, supersession_id, or transaction_id is treated as
+corruption (EvidenceStoreError, fail-closed, consistent with checksum-mismatch
+handling).  An idempotent in-memory retry prevents such duplicates from ever
+reaching the log under normal operation.
 
 Audit sink required: when the audit sink is unavailable the operation fails
 closed with a stable redacted denial code. No frame is appended and no
 protected data persists.
+
+Advisory lock deadline: the exclusive advisory lock (fcntl.flock) is acquired
+with a bounded deadline.  If the deadline expires before the lock is obtained,
+the operation is refused with ``denied-lock-timeout`` (EvidenceStoreRefused)
+and no bytes are staged.
 
 Frame format (one JSON line per frame, terminated with newline):
   {"tx": <semantic-evidence-transaction.v1>, "records": [<receipt or supersession>...]}
@@ -42,6 +58,7 @@ import json
 import os
 import stat
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
@@ -96,6 +113,13 @@ except ImportError:
 # while preventing unbounded reads in _load_and_truncate.
 _EVIDENCE_LOG_MAX_BYTES: Final[int] = 256 * 1024 * 1024  # 256 MiB
 
+# Advisory lock acquisition parameters.  The lock is very briefly held
+# (duration of a single confined_append call), so 5 s covers pathological
+# contention while still bounding the wait.  Tests may monkeypatch these
+# module-level constants to drive the timeout path without sleeping.
+_LOCK_TIMEOUT: float = 5.0   # seconds to wait before refusing with denied-lock-timeout
+_LOCK_POLL: float = 0.05     # poll interval (seconds) for the non-blocking retry loop
+
 
 def _regular_file_identity(path: Path) -> tuple[int, int] | None:
     """Return ``(st_dev, st_ino)`` for a regular file at *path*, without following links."""
@@ -121,8 +145,11 @@ def _advisory_lock(
     (st_dev, st_ino) differs from the identity recorded at read time.  A FIFO
     placed at the log path raises EvidenceStoreError without blocking.
 
-    The lock is released and the fd closed on exit regardless of exceptions.
-    Not called when _HAS_FCNTL is False.
+    The lock is acquired with a bounded deadline using a non-blocking retry
+    loop (``LOCK_EX | LOCK_NB``).  If ``_LOCK_TIMEOUT`` seconds elapse before
+    the lock is obtained, raises ``EvidenceStoreRefused`` with the stable code
+    ``denied-lock-timeout``.  The lock is released and the fd closed on exit
+    regardless of exceptions.  Not called when _HAS_FCNTL is False.
     """
     fs = _file_safety()
     try:
@@ -167,7 +194,24 @@ def _advisory_lock(
                 f"advisory lock target identity changed since read: {relative}"
             )
 
-        _fcntl.flock(fd, _fcntl.LOCK_EX)  # type: ignore[name-defined]
+        # Non-blocking retry loop with a deadline so the caller is never
+        # suspended indefinitely.  LOCK_NB causes flock to raise
+        # BlockingIOError (errno EWOULDBLOCK) immediately when the lock is
+        # held by another open-file-description; we sleep and retry until
+        # the deadline, then refuse with a stable code.
+        _deadline = time.monotonic() + _LOCK_TIMEOUT
+        while True:
+            try:
+                _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)  # type: ignore[name-defined]
+                break
+            except BlockingIOError:
+                if time.monotonic() >= _deadline:
+                    raise EvidenceStoreRefused(
+                        "denied-lock-timeout",
+                        f"advisory lock on {path.name!r} not acquired within "
+                        f"{_LOCK_TIMEOUT}s; failing closed",
+                    ) from None
+                time.sleep(_LOCK_POLL)
         try:
             yield fd
         finally:
@@ -877,6 +921,8 @@ class EvidenceStore:
             raw = complete_prefix
 
         # Parse each complete frame (lines without empty trailing element).
+        # Duplicate transaction_ids in the log are treated as corruption (fail-closed).
+        seen_tx_ids: set[str] = set()
         for line in raw.split(b"\n"):
             if not line:
                 continue
@@ -897,12 +943,28 @@ class EvidenceStore:
             # Verify checksum and record references — hard error on corruption.
             _verify_frame(tx, records)
 
+            # Duplicate transaction_id is corruption: fail-closed (consistent
+            # with checksum-mismatch handling).
+            tx_id = tx.get("transaction_id", "")
+            if tx_id in seen_tx_ids:
+                raise EvidenceStoreError(
+                    f"duplicate transaction_id {tx_id!r} in evidence log "
+                    "(fail-closed: treat the store as unrecoverable)"
+                )
+            seen_tx_ids.add(tx_id)
+
             self._transactions.append(tx)
             for record in records:
                 if "receipt_id" in record:
                     self._index_receipt(record)
                 elif "supersession_id" in record:
                     sup_id = record["supersession_id"]
+                    # Duplicate supersession_id is corruption: fail-closed.
+                    if sup_id in self._supersessions:
+                        raise EvidenceStoreError(
+                            f"duplicate supersession_id {sup_id!r} in evidence log "
+                            "(fail-closed: treat the store as unrecoverable)"
+                        )
                     self._supersessions[sup_id] = record
                     for rid in record.get("superseded_receipt_ids", []):
                         self._superseded.add(rid)
@@ -1022,12 +1084,26 @@ class EvidenceStore:
         """Append a receipt as a single-record transaction.
 
         Order of operations (authority verified and event emitted before any write):
+          0. Idempotent-retry and duplicate-identity check (no side effects).
           1. Verify producer authority (emit security event before proceeding).
+          1b. Post-allow duplicate checks: refuse a conflicting transaction_id
+              or receipt_id via the post-allow denial path.
           2. Apply content-safety profile to the receipt bytes.
           3. Validate the receipt record structure.
           4. Apply content-safety profile to the transaction header bytes.
           5. Serialize and append the complete frame.
           6. Update in-memory indexes.
+
+        Idempotent retry: a call with the same ``transaction_id`` and an
+        identical ``receipt`` (by canonical JSON) produces no second frame and
+        returns the previously committed transaction unchanged.
+
+        Duplicate identity refusal: a different receipt that reuses an
+        already-admitted ``receipt_id`` is refused with
+        ``denied-duplicate-receipt-id``; a different receipt under an
+        already-admitted ``transaction_id`` is refused with
+        ``denied-duplicate-transaction-id``.  Both refusals use the post-allow
+        denial path (the audit event shares ``op_id`` with the allow event).
 
         If any step before the filesystem write fails, no bytes are staged and
         the in-memory indexes are unchanged (all-or-none guarantee for
@@ -1038,14 +1114,16 @@ class EvidenceStore:
 
         Args:
             receipt:        A valid ``evidence-receipt.v1`` record dict.
-            transaction_id: Stable unique identifier for deduplication on retry.
+            transaction_id: Stable unique identifier; a retry with the same ID
+                            and identical record is idempotent.
             issuer:         ``CapabilityIssuer`` that owns the grant.
             grant:          ``CapabilityGrant`` with ``append`` in ``operations``.
             audit_sink:     Callable that accepts a ``SecurityEvent`` and stores it
                             durably. Unavailability fails closed.
 
         Returns:
-            The committed ``semantic-evidence-transaction.v1`` record.
+            The committed ``semantic-evidence-transaction.v1`` record (existing
+            transaction on idempotent retry, new transaction otherwise).
 
         Raises:
             EvidenceStoreRefused: on any refusal (stable denial_code).
@@ -1062,6 +1140,28 @@ class EvidenceStore:
                 "store is in a failed-closed state from a rollback error; reopen to recover",
             )
 
+        # Step 0: idempotent-retry and conflict pre-check (no side effects).
+        # Detects whether this transaction_id was already admitted and, if so,
+        # whether the records are identical (idempotent) or different (conflict).
+        _admitted_tx: dict | None = None
+        for _prev_tx in self._transactions:
+            if _prev_tx.get("transaction_id") == transaction_id:
+                _admitted_tx = _prev_tx
+                break
+        if _admitted_tx is not None:
+            # Check for idempotent retry: single-record tx with identical receipt.
+            _prev_ids = _admitted_tx.get("ordered_record_ids", [])
+            if len(_prev_ids) == 1:
+                _prev_record = self._receipts.get(_prev_ids[0])
+                if (
+                    _prev_record is not None
+                    and _canonical_json(_prev_record) == _canonical_json(receipt)
+                ):
+                    # Identical retry: return the committed transaction without any
+                    # side effect (no second frame, same visible state).
+                    return _admitted_tx
+            # Different record: fall through to authority check for post-allow denial.
+
         # Step 1: producer authority check. Emits security event before staging.
         # The returned operation_id links any post-allow denial to this allow event.
         op_id = _check_producer_authority(
@@ -1072,8 +1172,28 @@ class EvidenceStore:
             required_operations=["append"],
         )
 
-        # Step 2: content-safety check on the receipt.
+        # Step 1b: post-allow duplicate checks. Refuse with a stable code and
+        # emit a matching denial event (same op_id as the allow event above).
+        if _admitted_tx is not None:
+            denial_code = "denied-duplicate-transaction-id"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
+            raise EvidenceStoreRefused(
+                denial_code,
+                f"transaction_id {transaction_id!r} already admitted with a different record; "
+                "identical retries are idempotent, different records are refused",
+            )
+
         receipt_id = receipt.get("receipt_id", "unknown")
+        if receipt_id in self._receipts:
+            denial_code = "denied-duplicate-receipt-id"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
+            raise EvidenceStoreRefused(
+                denial_code,
+                f"receipt_id {receipt_id!r} already admitted; "
+                "reuse across transactions is refused",
+            )
+
+        # Step 2: content-safety check on the receipt.
         try:
             _check_record_safety(receipt, "evidence-receipt.v1", record_id=receipt_id)
         except EvidenceStoreRefused as exc:
@@ -1113,6 +1233,10 @@ class EvidenceStore:
                     cm.confined_append(self._root, self._log_path, frame_bytes)
             else:
                 cm.confined_append(self._root, self._log_path, frame_bytes)
+        except EvidenceStoreRefused as exc:
+            # Lock timeout or other pre-write refusal: emit post-allow denial.
+            _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+            raise
         except cm.MutationDenied as exc:
             if exc.denial_code == "denied-rollback-failed":
                 self._poisoned = True
@@ -1143,18 +1267,32 @@ class EvidenceStore:
     ) -> dict:
         """Append a supersession as a single-record transaction.
 
-        Same authority and content-safety guarantees as ``append_receipt``.
+        Same authority, content-safety, idempotent-retry, and duplicate-identity
+        guarantees as ``append_receipt``.
+
+        Idempotent retry: a call with the same ``transaction_id`` and an
+        identical ``supersession`` (by canonical JSON) produces no second frame
+        and returns the previously committed transaction unchanged.
+
+        Duplicate identity refusal: a different supersession that reuses an
+        already-admitted ``supersession_id`` is refused with
+        ``denied-duplicate-supersession-id``; a different supersession under an
+        already-admitted ``transaction_id`` is refused with
+        ``denied-duplicate-transaction-id``.  Both refusals use the post-allow
+        denial path (the audit event shares ``op_id`` with the allow event).
 
         Args:
             supersession:          A valid ``evidence-supersession.v1`` record dict.
-            transaction_id:        Stable unique identifier for deduplication on retry.
+            transaction_id:        Stable unique identifier; a retry with the same ID
+                                   and identical record is idempotent.
             acceptance_fingerprint: Acceptance fingerprint of the addressed subject.
             issuer:                ``CapabilityIssuer`` that owns the grant.
             grant:                 ``CapabilityGrant`` with ``append`` in ``operations``.
             audit_sink:            Callable that stores a ``SecurityEvent`` durably.
 
         Returns:
-            The committed ``semantic-evidence-transaction.v1`` record.
+            The committed ``semantic-evidence-transaction.v1`` record (existing
+            transaction on idempotent retry, new transaction otherwise).
 
         Raises:
             EvidenceStoreRefused: on any refusal (stable denial_code); a failed
@@ -1172,6 +1310,25 @@ class EvidenceStore:
                 "store is in a failed-closed state from a rollback error; reopen to recover",
             )
 
+        # Step 0: idempotent-retry and conflict pre-check (no side effects).
+        _admitted_tx: dict | None = None
+        for _prev_tx in self._transactions:
+            if _prev_tx.get("transaction_id") == transaction_id:
+                _admitted_tx = _prev_tx
+                break
+        if _admitted_tx is not None:
+            _prev_ids = _admitted_tx.get("ordered_record_ids", [])
+            if len(_prev_ids) == 1:
+                _prev_record = self._supersessions.get(_prev_ids[0])
+                if (
+                    _prev_record is not None
+                    and _canonical_json(_prev_record) == _canonical_json(supersession)
+                ):
+                    # Identical retry: return the committed transaction without any
+                    # side effect (no second frame, same visible state).
+                    return _admitted_tx
+            # Different record: fall through to authority check for post-allow denial.
+
         # Step 1: producer authority check. Emits security event before staging.
         # The returned operation_id links any post-allow denial to this allow event.
         op_id = _check_producer_authority(
@@ -1182,8 +1339,27 @@ class EvidenceStore:
             required_operations=["append"],
         )
 
-        # Step 2: content-safety check on the supersession.
+        # Step 1b: post-allow duplicate checks.
+        if _admitted_tx is not None:
+            denial_code = "denied-duplicate-transaction-id"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
+            raise EvidenceStoreRefused(
+                denial_code,
+                f"transaction_id {transaction_id!r} already admitted with a different record; "
+                "identical retries are idempotent, different records are refused",
+            )
+
         sup_id = supersession.get("supersession_id", "unknown")
+        if sup_id in self._supersessions:
+            denial_code = "denied-duplicate-supersession-id"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
+            raise EvidenceStoreRefused(
+                denial_code,
+                f"supersession_id {sup_id!r} already admitted; "
+                "reuse across transactions is refused",
+            )
+
+        # Step 2: content-safety check on the supersession.
         try:
             _check_record_safety(supersession, "evidence-supersession.v1", record_id=sup_id)
         except EvidenceStoreRefused as exc:
@@ -1222,6 +1398,10 @@ class EvidenceStore:
                     cm.confined_append(self._root, self._log_path, frame_bytes)
             else:
                 cm.confined_append(self._root, self._log_path, frame_bytes)
+        except EvidenceStoreRefused as exc:
+            # Lock timeout or other pre-write refusal: emit post-allow denial.
+            _emit_post_allow_denial(audit_sink, op_id, exc.denial_code)
+            raise
         except cm.MutationDenied as exc:
             if exc.denial_code == "denied-rollback-failed":
                 self._poisoned = True
@@ -1243,11 +1423,21 @@ class EvidenceStore:
     # ── Read ───────────────────────────────────────────────────────────────────
 
     def _index_receipt(self, receipt: dict) -> None:
-        """Record *receipt* in the receipt map and the per-criterion index."""
+        """Record *receipt* in the receipt map and the per-criterion index.
+
+        Raises ``EvidenceStoreError`` when the receipt_id is already present
+        in the index (fail-closed, consistent with checksum-mismatch handling).
+        Under normal operation the append path ensures receipt_ids are unique
+        before writing, so a duplicate here indicates log corruption.
+        """
         receipt_id = receipt["receipt_id"]
-        if receipt_id not in self._receipts:
-            criterion_ref = receipt.get("lineage", {}).get("criterion_ref")
-            self._receipts_by_criterion.setdefault(criterion_ref, []).append(receipt_id)
+        if receipt_id in self._receipts:
+            raise EvidenceStoreError(
+                f"duplicate receipt_id {receipt_id!r} in evidence log "
+                "(fail-closed: treat the store as unrecoverable)"
+            )
+        criterion_ref = receipt.get("lineage", {}).get("criterion_ref")
+        self._receipts_by_criterion.setdefault(criterion_ref, []).append(receipt_id)
         self._receipts[receipt_id] = receipt
 
     def get_active_receipts(self, criterion_ref: str) -> list[dict]:

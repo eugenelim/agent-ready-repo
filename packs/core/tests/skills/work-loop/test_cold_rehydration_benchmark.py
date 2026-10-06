@@ -100,3 +100,11 @@ def test_cold_rehydration_elapsed_within_bound(
     assert verdict_count == bm.NUM_CRITERIA, (
         f"expected {bm.NUM_CRITERIA} verdicts, got {verdict_count}"
     )
+
+    # AC-0019 corpus is fixed: all 1,000 verdicts must be 'supported'.
+    # This ensures the benchmark would fail if the evaluator short-circuited.
+    verdict_dist = crh.get("verdict_distribution", {})
+    assert verdict_dist == {"supported": bm.NUM_CRITERIA}, (
+        f"expected all {bm.NUM_CRITERIA} verdicts to be 'supported'; "
+        f"got distribution {verdict_dist}"
+    )

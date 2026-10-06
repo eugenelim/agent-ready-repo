@@ -374,10 +374,32 @@ class TestAtomicImport:
             approved_envelope_fingerprint=env_fp,
         )
         assert store.record_count() == 2, "successful import must expose exactly two records"
+        # Identify the two records by their distinguishing key fields.
         records = store.get_records()
-        # One is approval-record.v1, one is initial-plan-review.v1
-        record_types = {r["schema_version"] for r in records}
-        assert 1 in record_types
+        approvals = [r for r in records if "approval_id" in r]
+        reviews = [r for r in records if "review_id" in r]
+        assert len(approvals) == 1, "exactly one approval record must be stored"
+        assert len(reviews) == 1, "exactly one initial-plan-review record must be stored"
+        stored_approval = approvals[0]
+        stored_review = reviews[0]
+        # AC-0002: approval must carry the correct decision scope.
+        assert stored_approval["decision_scope"] == "spec-policy", (
+            "approval must have decision_scope == 'spec-policy'"
+        )
+        # AC-0002: review must bind envelope, terminal intent, and digest pins to
+        # the independently derived values — not read back from the same output.
+        assert stored_review["envelope_fingerprint"] == env_fp, (
+            "review envelope_fingerprint must equal the derived envelope fingerprint"
+        )
+        assert stored_review["authorized_terminal_intent"] == TERMINAL_INTENT, (
+            "review authorized_terminal_intent must equal the requested terminal intent"
+        )
+        assert stored_approval["spec_policy_fingerprint"] == spec_d, (
+            "approval spec_policy_fingerprint must equal the supplied approved spec digest"
+        )
+        assert stored_review["plan_hash"] == plan_d, (
+            "review plan_hash must equal the supplied approved plan digest"
+        )
 
     def test_interrupt_before_first_write_exposes_zero(
         self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
@@ -1296,6 +1318,13 @@ class TestReverseReader:
         )
         assert read_review["review_id"] == original_review["review_id"], (
             "reverse_read must reconstruct the original initial-plan-review record"
+        )
+        # AC-0017: reconstructed records must preserve the original digest pins.
+        assert read_approval["spec_policy_fingerprint"] == spec_d, (
+            "reverse_read approval spec_policy_fingerprint must equal the approved spec digest"
+        )
+        assert read_review["plan_hash"] == plan_d, (
+            "reverse_read review plan_hash must equal the approved plan digest"
         )
 
     def test_reverse_read_from_empty_store_refuses(

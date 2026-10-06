@@ -1476,3 +1476,498 @@ class TestAdvisoryLockConfinement:
         assert log_path.read_bytes() == b"new-content\n", (
             "replacement file must not be truncated after identity-change refusal"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 1: Duplicate receipt_id and transaction_id guards
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestDuplicateIdentityGuards:
+    """Duplicate receipt_id / transaction_id are refused; identical retries are idempotent.
+
+    Red evidence (before the fix): the pre-fix _index_receipt silently overwrote
+    an existing receipt, and neither append_receipt nor append_supersession
+    checked transaction_id for duplicates.  Replay did the same.  The tests
+    below assert:
+      - identical retry → no second frame, same tx returned (transaction_count=1)
+      - conflicting reuse → EvidenceStoreRefused with a stable denial code
+      - replay with duplicate IDs → EvidenceStoreError (fail-closed)
+    """
+
+    # ── Receipt: idempotent retry ──────────────────────────────────────────────
+
+    def test_idempotent_retry_receipt_no_second_frame(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """Identical receipt + transaction_id retry produces no second frame.
+
+        Red before: _index_receipt silently overwrote; transaction_count became 2.
+        Green after: the pre-check detects the idempotent case and returns the
+        committed tx without writing a second frame.
+        """
+        log_path = tmp_path / "ev-idem-receipt.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        receipt = _make_receipt("r-idem-001")
+
+        tx1 = store.append_receipt(
+            receipt, transaction_id="tx-idem-001", issuer=issuer, grant=grant,
+            audit_sink=_null_sink,
+        )
+        # Identical retry with the same transaction_id and same receipt.
+        tx2 = store.append_receipt(
+            receipt, transaction_id="tx-idem-001", issuer=issuer, grant=grant,
+            audit_sink=_null_sink,
+        )
+
+        # Idempotent: no second frame written.
+        assert store.transaction_count == 1, (
+            "idempotent retry must not write a second frame"
+        )
+        assert store.receipt_count == 1
+        # The returned tx must be the originally committed one.
+        assert tx1["transaction_id"] == tx2["transaction_id"]
+        assert tx1["checksum"] == tx2["checksum"]
+
+    def test_idempotent_retry_receipt_visible_state_unchanged(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """After an idempotent retry the re-opened store shows exactly one receipt."""
+        log_path = tmp_path / "ev-idem-reopen.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        receipt = _make_receipt("r-idem-002")
+
+        store.append_receipt(
+            receipt, transaction_id="tx-idem-002", issuer=issuer, grant=grant,
+            audit_sink=_null_sink,
+        )
+        store.append_receipt(
+            receipt, transaction_id="tx-idem-002", issuer=issuer, grant=grant,
+            audit_sink=_null_sink,
+        )
+
+        # Re-open from the log: must see exactly one receipt.
+        store2 = _open_fresh_store(es, log_path)
+        assert store2.receipt_count == 1
+        assert store2.transaction_count == 1
+
+    # ── Receipt: conflicting reuse ─────────────────────────────────────────────
+
+    def test_duplicate_transaction_id_different_receipt_refused(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A different receipt under an already-admitted transaction_id is refused.
+
+        Red before: no duplicate check; the second append silently overwrote
+        the first receipt in the in-memory index.  Green after: raises
+        EvidenceStoreRefused with denied-duplicate-transaction-id.
+        """
+        log_path = tmp_path / "ev-dup-tx.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        store.append_receipt(
+            _make_receipt("r-orig-001"),
+            transaction_id="tx-dup-001",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                _make_receipt("r-different-001"),  # different receipt_id
+                transaction_id="tx-dup-001",       # same transaction_id
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-duplicate-transaction-id", (
+            f"expected denied-duplicate-transaction-id, got {exc_info.value.denial_code!r}"
+        )
+        # Original receipt must still be the only one.
+        assert store.receipt_count == 1
+        assert store.transaction_count == 1
+
+    def test_duplicate_receipt_id_different_transaction_refused(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A receipt_id reused under a different transaction_id is refused.
+
+        Red before: _index_receipt silently overwrote the existing receipt;
+        no error was raised.  Green after: raises EvidenceStoreRefused with
+        denied-duplicate-receipt-id.
+        """
+        log_path = tmp_path / "ev-dup-rid.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        store.append_receipt(
+            _make_receipt("r-shared-001"),
+            transaction_id="tx-first",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                _make_receipt("r-shared-001"),  # same receipt_id
+                transaction_id="tx-second",     # different transaction_id
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-duplicate-receipt-id", (
+            f"expected denied-duplicate-receipt-id, got {exc_info.value.denial_code!r}"
+        )
+        assert store.receipt_count == 1
+        assert store.transaction_count == 1
+
+    def test_duplicate_conflict_uses_post_allow_denial_path(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A conflicting duplicate emits a post-allow denial event (same op_id).
+
+        Red before: no denial was emitted because no check existed.
+        Green after: _emit_post_allow_denial is called before EvidenceStoreRefused.
+        """
+        log_path = tmp_path / "ev-dup-event.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        emitted: list = []
+
+        def capturing_sink(event: object) -> None:
+            emitted.append(event)
+
+        store.append_receipt(
+            _make_receipt("r-dup-event-orig"),
+            transaction_id="tx-dup-event",
+            issuer=issuer, grant=grant, audit_sink=capturing_sink,
+        )
+        before_count = len(emitted)
+
+        with pytest.raises(es.EvidenceStoreRefused):
+            store.append_receipt(
+                _make_receipt("r-dup-event-conflict"),
+                transaction_id="tx-dup-event",  # same tx_id, different receipt
+                issuer=issuer, grant=grant, audit_sink=capturing_sink,
+            )
+
+        # At least one additional event (allow + denial) must have been emitted.
+        assert len(emitted) > before_count, (
+            "conflict refusal must emit security events via the post-allow denial path"
+        )
+        # The last event must be a denied outcome.
+        assert emitted[-1].outcome == "denied"
+
+    # ── Receipt: replay duplicate detection ───────────────────────────────────
+
+    def test_replay_duplicate_transaction_id_raises_store_error(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A log with duplicate transaction_ids fails on open (fail-closed corruption).
+
+        Red before: the replay loop silently overwrote the duplicate; no error
+        was raised.  Green after: EvidenceStoreError is raised by _load_and_truncate.
+        """
+        log_path = tmp_path / "ev-replay-dup-tx.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        # Write one valid frame.
+        store.append_receipt(
+            _make_receipt("r-replay-tx-001"),
+            transaction_id="tx-replay-dup",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        # Craft a second frame with the same transaction_id and append it directly
+        # (bypassing the in-memory duplicate check that append_receipt enforces).
+        second_receipt = _make_receipt("r-replay-tx-002")
+        second_records = [second_receipt]
+        second_tx_body = {
+            "schema_version": 1,
+            "transaction_id": "tx-replay-dup",  # same as the first!
+            "ordered_record_ids": ["r-replay-tx-002"],
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        second_checksum = es._compute_frame_checksum(second_tx_body, second_records)
+        second_tx = {**second_tx_body, "checksum": second_checksum}
+        second_frame = (es._canonical_json({"tx": second_tx, "records": second_records}) + "\n").encode("utf-8")
+        log_path.write_bytes(log_path.read_bytes() + second_frame)
+
+        # Re-opening the log must detect the duplicate and raise EvidenceStoreError.
+        store2 = es.EvidenceStore(log_path)
+        with pytest.raises(es.EvidenceStoreError, match="duplicate transaction_id"):
+            store2.open()
+
+    def test_replay_duplicate_receipt_id_raises_store_error(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A log with duplicate receipt_ids fails on open (fail-closed corruption).
+
+        Red before: _index_receipt silently overwrote the first receipt; no
+        error was raised on open.  Green after: EvidenceStoreError is raised.
+        """
+        log_path = tmp_path / "ev-replay-dup-rid.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        store.append_receipt(
+            _make_receipt("r-replay-dup"),
+            transaction_id="tx-replay-rid-001",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        # Craft a second frame with the same receipt_id under a different tx.
+        dup_receipt = _make_receipt("r-replay-dup")  # same receipt_id
+        dup_records = [dup_receipt]
+        dup_tx_body = {
+            "schema_version": 1,
+            "transaction_id": "tx-replay-rid-002",  # different tx_id
+            "ordered_record_ids": ["r-replay-dup"],
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        dup_checksum = es._compute_frame_checksum(dup_tx_body, dup_records)
+        dup_tx = {**dup_tx_body, "checksum": dup_checksum}
+        dup_frame = (es._canonical_json({"tx": dup_tx, "records": dup_records}) + "\n").encode("utf-8")
+        log_path.write_bytes(log_path.read_bytes() + dup_frame)
+
+        store2 = es.EvidenceStore(log_path)
+        with pytest.raises(es.EvidenceStoreError, match="duplicate receipt_id"):
+            store2.open()
+
+    # ── Supersession: idempotent retry ────────────────────────────────────────
+
+    def test_idempotent_retry_supersession_no_second_frame(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """Identical supersession + transaction_id retry produces no second frame."""
+        log_path = tmp_path / "ev-idem-sup.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        sup = _make_supersession("sup-idem-001", ["r-prev-001"])
+
+        tx1 = store.append_supersession(
+            sup, transaction_id="tx-sup-idem-001",
+            acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+        tx2 = store.append_supersession(
+            sup, transaction_id="tx-sup-idem-001",  # same
+            acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        assert store.transaction_count == 1, "idempotent supersession retry must not write a second frame"
+        assert store.supersession_count == 1
+        assert tx1["checksum"] == tx2["checksum"]
+
+    # ── Supersession: conflicting reuse ───────────────────────────────────────
+
+    def test_duplicate_supersession_id_different_transaction_refused(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A supersession_id reused under a different transaction_id is refused.
+
+        Red before: _supersessions[sup_id] was silently overwritten.
+        Green after: raises EvidenceStoreRefused with denied-duplicate-supersession-id.
+        """
+        log_path = tmp_path / "ev-dup-sup-id.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        store.append_supersession(
+            _make_supersession("sup-shared-001", ["r-prev-001"]),
+            transaction_id="tx-sup-first",
+            acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_supersession(
+                _make_supersession("sup-shared-001", ["r-prev-002"]),  # same sup_id, different content
+                transaction_id="tx-sup-second",
+                acceptance_fingerprint=_CURRENT_FP,
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-duplicate-supersession-id", (
+            f"expected denied-duplicate-supersession-id, got {exc_info.value.denial_code!r}"
+        )
+        assert store.supersession_count == 1
+        assert store.transaction_count == 1
+
+    def test_duplicate_sup_transaction_id_different_record_refused(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A different supersession under an already-admitted transaction_id is refused."""
+        log_path = tmp_path / "ev-dup-sup-tx.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        store.append_supersession(
+            _make_supersession("sup-orig-tx-001", ["r-prev-001"]),
+            transaction_id="tx-sup-dup-001",
+            acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_supersession(
+                _make_supersession("sup-diff-tx-001", ["r-prev-002"]),  # different sup_id
+                transaction_id="tx-sup-dup-001",  # same transaction_id
+                acceptance_fingerprint=_CURRENT_FP,
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-duplicate-transaction-id"
+        assert store.supersession_count == 1
+        assert store.transaction_count == 1
+
+    def test_replay_duplicate_supersession_id_raises_store_error(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        """A log with duplicate supersession_ids fails on open (fail-closed corruption)."""
+        log_path = tmp_path / "ev-replay-dup-sup.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        store.append_supersession(
+            _make_supersession("sup-replay-dup", ["r-prev-001"]),
+            transaction_id="tx-sup-replay-001",
+            acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+        # Craft a second frame with the same supersession_id under a different tx.
+        dup_sup = _make_supersession("sup-replay-dup", ["r-prev-002"])
+        dup_records = [dup_sup]
+        dup_tx_body = {
+            "schema_version": 1,
+            "transaction_id": "tx-sup-replay-002",
+            "ordered_record_ids": ["sup-replay-dup"],
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        dup_checksum = es._compute_frame_checksum(dup_tx_body, dup_records)
+        dup_tx = {**dup_tx_body, "checksum": dup_checksum}
+        dup_frame = (es._canonical_json({"tx": dup_tx, "records": dup_records}) + "\n").encode("utf-8")
+        log_path.write_bytes(log_path.read_bytes() + dup_frame)
+
+        store2 = es.EvidenceStore(log_path)
+        with pytest.raises(es.EvidenceStoreError, match="duplicate supersession_id"):
+            store2.open()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 7: Advisory lock timeout
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLockTimeout:
+    """The advisory lock is acquired with a bounded deadline.
+
+    Red evidence (before the fix): _advisory_lock called flock(LOCK_EX)
+    blocking indefinitely.  The patched flock raises BlockingIOError, which
+    the old code re-raised as EvidenceStoreError — not EvidenceStoreRefused
+    with denied-lock-timeout.  These tests assert:
+      - timeout → EvidenceStoreRefused with denied-lock-timeout
+      - post-allow denial event emitted before the refusal propagates
+    """
+
+    @staticmethod
+    def _require_fcntl(es: ModuleType) -> None:
+        if not getattr(es, "_HAS_FCNTL", False):
+            pytest.skip("fcntl not available; advisory lock not used on this platform")
+
+    def test_lock_timeout_on_append_refuses_with_stable_code(
+        self,
+        es: ModuleType,
+        sc: ModuleType,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """append_receipt raises EvidenceStoreRefused(denied-lock-timeout) on lock timeout.
+
+        Red before: flock(LOCK_EX) blocked indefinitely; when patched to raise
+        BlockingIOError the old code wrapped it as EvidenceStoreError (not
+        EvidenceStoreRefused), so the assertion on denial_code failed.
+        Green after: the non-blocking retry loop detects the deadline and raises
+        EvidenceStoreRefused('denied-lock-timeout').
+        """
+        self._require_fcntl(es)
+
+        # Shorten the deadline to near-zero so the test does not actually sleep 5 s.
+        monkeypatch.setattr(es, "_LOCK_TIMEOUT", 0.05)
+        monkeypatch.setattr(es, "_LOCK_POLL", 0.005)
+
+        _fcntl_mod = es._fcntl  # type: ignore[attr-defined]
+        _original_flock = _fcntl_mod.flock
+
+        def _always_contended(fd: int, op: int) -> None:
+            """Simulate another holder owning the exclusive lock."""
+            if op & _fcntl_mod.LOCK_EX:
+                raise BlockingIOError("simulated exclusive lock contention")
+            return _original_flock(fd, op)
+
+        monkeypatch.setattr(_fcntl_mod, "flock", _always_contended)
+
+        log_path = tmp_path / "ev-lock-timeout.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                _make_receipt("r-timeout"),
+                transaction_id="tx-timeout",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=_null_sink,
+            )
+
+        assert exc_info.value.denial_code == "denied-lock-timeout", (
+            f"expected denied-lock-timeout, got {exc_info.value.denial_code!r}"
+        )
+        assert store.receipt_count == 0, "no bytes must be staged on lock timeout"
+
+    def test_lock_timeout_emits_post_allow_denial_event(
+        self,
+        es: ModuleType,
+        sc: ModuleType,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A lock-timeout refusal emits a post-allow denial event (same audit sink)."""
+        self._require_fcntl(es)
+
+        monkeypatch.setattr(es, "_LOCK_TIMEOUT", 0.05)
+        monkeypatch.setattr(es, "_LOCK_POLL", 0.005)
+
+        _fcntl_mod = es._fcntl  # type: ignore[attr-defined]
+        _original_flock = _fcntl_mod.flock
+
+        def _always_contended(fd: int, op: int) -> None:
+            if op & _fcntl_mod.LOCK_EX:
+                raise BlockingIOError("simulated contention")
+            return _original_flock(fd, op)
+
+        monkeypatch.setattr(_fcntl_mod, "flock", _always_contended)
+
+        log_path = tmp_path / "ev-lock-timeout-event.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        emitted: list = []
+
+        def capturing_sink(event: object) -> None:
+            emitted.append(event)
+
+        with pytest.raises(es.EvidenceStoreRefused):
+            store.append_receipt(
+                _make_receipt("r-timeout-event"),
+                transaction_id="tx-timeout-event",
+                issuer=issuer,
+                grant=grant,
+                audit_sink=capturing_sink,
+            )
+
+        # At least two events: the allow event (from authority check) and the
+        # post-allow denial (from the lock-timeout refusal path).
+        assert len(emitted) >= 2, (
+            f"expected allow + denied events, got {len(emitted)} events"
+        )
+        outcomes = [e.outcome for e in emitted]
+        assert "allowed" in outcomes, "authority-check allow event must be emitted"
+        assert "denied" in outcomes, "post-allow denial event must be emitted on lock timeout"

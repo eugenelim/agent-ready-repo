@@ -723,10 +723,10 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # includes pytest tests/ -q, which discovers this roster file.
     "pytest T9a conformance roll-up (roster-owned)":
         LOCAL("test-after-build-check"),
-    # T9a clean-environment fence: static import analysis, subprocess
-    # agentbundle-free fence, and agentbundle/ diff assertion — each with red
-    # evidence.  LOCAL("test-after-build-check") is correct: that target's
-    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    # T9a clean-environment fence: static import analysis and subprocess
+    # agentbundle-free fence — each with red evidence.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
     "pytest T9a clean-environment fence (roster-owned)":
         LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here

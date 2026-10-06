@@ -96,3 +96,11 @@ def test_evaluator_p95_latency_benchmark(
         f"({bm.NUM_CRITERIA} criteria × {bm.NUM_RECEIPTS} receipts, "
         f"{bm.TIMED_RUNS} timed runs after {bm.WARMUP_RUNS} warm-up runs)"
     )
+
+    # AC-0018 corpus is fixed: all 1,000 verdicts must be 'supported'.
+    # This ensures the benchmark would fail if the evaluator short-circuited.
+    verdict_dist = ev.get("verdict_distribution", {})
+    assert verdict_dist == {"supported": bm.NUM_CRITERIA}, (
+        f"expected all {bm.NUM_CRITERIA} verdicts to be 'supported'; "
+        f"got distribution {verdict_dist}"
+    )

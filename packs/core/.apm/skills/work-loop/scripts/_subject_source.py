@@ -20,7 +20,10 @@ Traversal limits are the canonical numeric values for this module.  Test code
 must import them from here rather than repeating the numbers.
 
 All Git subprocess calls go through ``_process_safety.launch_safe_process``.
-All file reads for hashing go through ``file_safety.sha256_confined_regular_file``.
+All file reads for hashing go through ``_hash_file_with_budget``, a local helper
+that opens each file without following its final-component symlink, reads the byte
+count from the open descriptor via ``os.fstat``, and refuses before reading past
+the declared byte budget.
 
 Standard library only.  Loads sibling modules by path using the
 ``importlib.util.spec_from_file_location`` pattern.
@@ -210,6 +213,85 @@ def _hash_binary_file(path: str) -> str:
         for chunk in iter(lambda: fh.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _hash_file_with_budget(
+    repo_root: Path,
+    abs_path: Path,
+    remaining_budget: int,
+) -> tuple[int, str]:
+    """Open *abs_path* without following symlinks and hash it within the byte budget.
+
+    Opens the file through the skill's confined regular-file opener, which walks
+    every parent directory without following links and refuses a link, a
+    non-regular file, or a file replaced while opening, and reads the file size
+    from the open descriptor via ``os.fstat`` before any content is read.  The
+    size is never obtained via a separate ``stat()`` call — a file whose size cannot
+    be established from the descriptor is refused, not admitted with a synthetic zero
+    size.  The file is refused before reading any content when its size would exceed
+    *remaining_budget*.
+
+    Args:
+        repo_root: Absolute path to the repository root (confinement boundary).
+        abs_path: Absolute path to the file to hash; must resolve within *repo_root*.
+        remaining_budget: Maximum bytes still permitted before the traversal byte
+            budget is exhausted.  A file whose ``fstat`` size exceeds this value is
+            refused without reading its content.
+
+    Returns:
+        A ``(file_size, sha256_hexdigest)`` pair.  *file_size* comes from ``os.fstat``
+        on the open descriptor; *sha256_hexdigest* is the hex-encoded SHA-256 of the
+        file content streamed in 1 MiB chunks.
+
+    Raises:
+        SubjectRefused: ``"denied-path-violation"`` when the path is outside
+            *repo_root*, any component is a link, or the file is not a regular
+            file or changed while opening.
+        SubjectRefused: ``"denied-unreadable-path"`` when the file cannot be
+            opened or its size cannot be established from the descriptor.
+        SubjectRefused: ``"denied-byte-bound-exceeded"`` when the ``fstat`` size
+            exceeds *remaining_budget*, or the file grows past the budget during a
+            streaming read.
+    """
+    fs = _file_safety()
+    try:
+        rel = abs_path.relative_to(repo_root).as_posix()
+    except ValueError as exc:
+        raise SubjectRefused(
+            "denied-path-violation", f"path {abs_path!r} is outside repo root"
+        ) from exc
+    try:
+        with fs._open_confined_regular_file(  # noqa: SLF001 - this skill's own helper
+            repo_root, abs_path, max_bytes=remaining_budget
+        ) as handle:
+            file_size = os.fstat(handle.fileno()).st_size
+            # Stream and hash the content, capped against the budget in case the
+            # file grows during the read (e.g. an active log file tracked by git).
+            digest = hashlib.sha256()
+            bytes_read = 0
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                bytes_read += len(chunk)
+                if bytes_read > remaining_budget:
+                    raise SubjectRefused(
+                        "denied-byte-bound-exceeded",
+                        f"path {rel!r} grew past byte budget during streaming read",
+                    )
+                digest.update(chunk)
+    except fs.BoundExceeded as exc:
+        raise SubjectRefused(
+            "denied-byte-bound-exceeded",
+            f"path {rel!r} would exceed remaining byte budget ({remaining_budget} B)",
+        ) from exc
+    except fs.UnsafeContentError as exc:
+        raise SubjectRefused(
+            "denied-path-violation", f"path {rel!r} cannot be opened safely"
+        ) from exc
+    except OSError as exc:
+        raise SubjectRefused(
+            "denied-unreadable-path",
+            f"path {rel!r} cannot be read or its size cannot be established",
+        ) from exc
+    return file_size, digest.hexdigest()
 
 
 # ── Git subprocess via _process_safety ───────────────────────────────────────
@@ -498,7 +580,6 @@ def project_legacy_subject(
     )
 
     # Step 6 — traverse tracked files, apply exclusions, enforce limits
-    fs = _file_safety()
     manifest_pairs: list[tuple[str, str]] = []
     total_bytes = 0
     start_time = time.monotonic()
@@ -527,32 +608,12 @@ def project_legacy_subject(
 
         abs_path = repo_root / rel_path
 
-        # Confinement and hash via file_safety
-        try:
-            file_hash = fs.sha256_confined_regular_file(repo_root, abs_path)
-        except fs.UnsafeContentError as exc:  # type: ignore[attr-defined]
-            raise SubjectRefused(
-                "denied-path-violation",
-                f"path {rel_path!r} failed confinement check: {exc}",
-            ) from exc
-        except OSError as exc:
-            raise SubjectRefused(
-                "denied-unreadable-path",
-                f"path {rel_path!r} is unreadable: {exc}",
-            ) from exc
-
-        # Byte-count limit (based on file size reported by stat after open)
-        try:
-            file_size = abs_path.stat().st_size
-        except OSError:
-            file_size = 0
+        # Open without following symlinks, read size from fstat, check budget,
+        # then hash.  _hash_file_with_budget refuses before reading any content
+        # when the file size would exceed the remaining budget.
+        remaining = MAX_PRODUCT_BYTES - total_bytes
+        file_size, file_hash = _hash_file_with_budget(repo_root, abs_path, remaining)
         total_bytes += file_size
-        if total_bytes > MAX_PRODUCT_BYTES:
-            raise SubjectRefused(
-                "denied-byte-bound-exceeded",
-                f"product traversal exceeded {MAX_PRODUCT_BYTES} byte limit "
-                "(refusing before partial manifest)",
-            )
 
         manifest_pairs.append((rel_path, file_hash))
 

@@ -93,7 +93,7 @@ copies are byte-identical to the pack source and importable.
 | AC-0010 | `test_security_primitives.py::TestCapabilityIntersection`, `::TestCapabilityGrantLifecycle`; `test_containment_broker.py::TestAttestationWithinGrant` |
 | AC-0011 | `test_security_primitives.py::TestConfinedMutationHappyPath`, `::TestConfinedMutationAdversarial`; `test_compat_facade.py::TestAC0011Confinement` |
 | AC-0012 | `test_process_safety.py` (all classes) |
-| AC-0013 | `test_containment_broker.py::TestDeliveryControlPathGuard`, `::TestForgeryFixturesPerAdapter`, `::TestDirectSyscallForgery`, `::TestProtectedRefForgery`, `::TestBrokerBypassForgery`, `::TestLaunchUntrusted`; `test_containment_attestation_parity.py` |
+| AC-0013 | `test_containment_broker.py::TestDeliveryControlPathGuard`, `::TestForgeryFixturesPerAdapter`, `::TestBrokerDeliveryControlRefusal`, `::TestProtectedRefForgery`, `::TestBrokerBypassForgery`, `::TestLaunchUntrusted`; `test_containment_attestation_parity.py` |
 | AC-0014 | `test_content_safety.py`; `test_content_safety_boundary_matrix.py`; the content-profile refusals in `test_policy_import.py::TestAtomicImport` |
 | AC-0015 | `test_content_safety.py` (no-payload and inert-data cases); credential-shaped correlation IDs redacted on denial in `test_containment_broker.py::TestBrokerAuditBoundary` and `test_process_safety.py::TestAuditSinkUnavailable` |
 | AC-0016 | `test_compat_facade.py::TestAC0016ShadowOff`, `::TestAC0016ShadowOn`, `::TestAC0016FullTransitionSequence`; the engine and cohort suites in the full work-loop pack suite; the T9a real invocation below |
@@ -431,6 +431,32 @@ fail-closed branch (a stable denial code, no effect success, and no claim
 that an event was stored). The shadow sink now refuses any event while the
 `.gitignore` is missing, and `test_sink_refuses_until_the_gitignore_exists`
 fails against the earlier code.
+
+## Quality-engineer review fixes (owner decision, 2026-10-06)
+
+The quality-engineer review and post-gates security round 12 raised 15
+findings. The adjudicator sustained 12 and refuted 3: the adapter-label
+parametrization, a pinned AC-0001 baseline, and per-stage shadow
+diagnostics. The owner overrode the retry cap and chose to fix all 12 in
+one wave:
+
+- the evidence store makes a same-identity retry idempotent and refuses a
+  conflicting reused receipt or transaction ID, in memory and on replay, and
+  bounds its advisory-lock wait (`denied-lock-timeout`);
+- the subject projection hashes each file through the confined opener with
+  the remaining byte budget, refusing an oversized or unsizable file without
+  reading past the bound;
+- the shadow audit store counts as initialised only when its `.gitignore`
+  holds exactly `*`;
+- tests now pin the AC-0002 import bindings (scope, envelope, intent, both
+  digests), the AC-0017 reverse-read digests, the AC-0007 verdict through the
+  persisted path with a planted cached verdict ignored, the AC-0016 shadow-on
+  verdict and its absence of divergence, and the AC-0018 and AC-0019 verdict
+  distributions;
+- the stale CI comments, the misnamed broker-refusal test class, and two dead
+  test helpers are corrected.
+
+Each new test was checked against a mutation of the behaviour it guards.
 
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 

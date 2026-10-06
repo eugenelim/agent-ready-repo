@@ -609,17 +609,11 @@ class TestTraversalLimitsAC0006:
         # (without creating real files).
         fake_paths = [f"f{i:06d}.txt" for i in range(n)]
 
-        class FakeFS:
-            class UnsafeContentError(Exception):
-                pass
-
-            def sha256_confined_regular_file(self, root: Path, path: Path) -> str:
-                return "a" * 64
-
         monkeypatch.setattr(ss, "_list_tracked_files", lambda r, s: list(fake_paths))
         monkeypatch.setattr(ss, "_get_head_sha", lambda r, s: "deadbeef" * 5)
         monkeypatch.setattr(ss, "_check_product_drift", lambda r, s: None)
-        monkeypatch.setattr(ss, "_file_safety_module", FakeFS())
+        # Inject a no-I/O hash stub so MAX_PRODUCT_PATHS fake paths need no real files.
+        monkeypatch.setattr(ss, "_hash_file_with_budget", lambda r, p, b: (0, "a" * 64))
 
         # Edge: exactly MAX_PRODUCT_PATHS → must succeed
         subject = ss.project_legacy_subject(
@@ -653,17 +647,11 @@ class TestTraversalLimitsAC0006:
         n = ss.MAX_PRODUCT_PATHS + 1
         fake_paths = [f"f{i:06d}.txt" for i in range(n)]
 
-        class FakeFS:
-            class UnsafeContentError(Exception):
-                pass
-
-            def sha256_confined_regular_file(self, root: Path, path: Path) -> str:
-                return "a" * 64
-
         monkeypatch.setattr(ss, "_list_tracked_files", lambda r, s: list(fake_paths))
         monkeypatch.setattr(ss, "_get_head_sha", lambda r, s: "dead" * 10)
         monkeypatch.setattr(ss, "_check_product_drift", lambda r, s: None)
-        monkeypatch.setattr(ss, "_file_safety_module", FakeFS())
+        # Inject a no-I/O hash stub so MAX_PRODUCT_PATHS fake paths need no real files.
+        monkeypatch.setattr(ss, "_hash_file_with_budget", lambda r, p, b: (0, "a" * 64))
 
         with pytest.raises(ss.SubjectRefused) as exc_info:
             ss.project_legacy_subject(
@@ -696,53 +684,24 @@ class TestTraversalLimitsAC0006:
 
         max_bytes = ss.MAX_PRODUCT_BYTES
 
-        # One file path that appears to be MAX_PRODUCT_BYTES + 1 bytes in size
+        # One fake path.  _hash_file_with_budget is stubbed to simulate a file
+        # that is one byte over the budget; it must refuse before the loop adds
+        # the file to the manifest.
         fake_paths = ["big.bin"]
 
-        # Create a real file so stat() works but with manipulated size
-        big_file = repo / "big.bin"
-        big_file.write_bytes(b"x")
-
-        class FakeFS:
-            class UnsafeContentError(Exception):
-                pass
-
-            def sha256_confined_regular_file(self, root: Path, path: Path) -> str:
-                return "b" * 64
-
-        class FakePath:
-            """Intercepts stat() calls to report an oversized file."""
-
-            def __init__(self, p: Path):
-                self._p = p
-
-            def stat(self):
-                class St:
-                    st_size = max_bytes + 1
-                return St()
-
-            def __truediv__(self, other):
-                result = self._p / other
-                return FakePath(result)
+        def oversized_hash(
+            root: Path, path: Path, remaining: int
+        ) -> tuple[int, str]:
+            """Simulate _hash_file_with_budget reporting an over-budget file."""
+            raise ss.SubjectRefused(
+                "denied-byte-bound-exceeded",
+                f"test: file size {max_bytes + 1} exceeds budget {remaining}",
+            )
 
         monkeypatch.setattr(ss, "_list_tracked_files", lambda r, s: list(fake_paths))
         monkeypatch.setattr(ss, "_get_head_sha", lambda r, s: "dead" * 10)
         monkeypatch.setattr(ss, "_check_product_drift", lambda r, s: None)
-        monkeypatch.setattr(ss, "_file_safety_module", FakeFS())
-
-        # Patch abs_path.stat() by overriding Path.__truediv__ at repo_root level
-        # Since the module does `abs_path = repo_root / rel_path`, then `abs_path.stat()`,
-        # we patch the stat call on the specific path.
-        original_stat = Path.stat
-
-        def patched_stat(self_path, **kwargs):  # type: ignore[override]
-            if self_path.name == "big.bin" and "big.bin" in str(self_path):
-                class St:
-                    st_size = max_bytes + 1
-                return St()
-            return original_stat(self_path, **kwargs)
-
-        monkeypatch.setattr(Path, "stat", patched_stat)
+        monkeypatch.setattr(ss, "_hash_file_with_budget", oversized_hash)
 
         with pytest.raises(ss.SubjectRefused) as exc_info:
             ss.project_legacy_subject(
@@ -776,17 +735,9 @@ class TestTraversalLimitsAC0006:
         max_s = ss.MAX_TRAVERSAL_S
         fake_paths = ["f0.txt", "f1.txt"]  # 2 paths — time limit fires on first
 
-        class FakeFS:
-            class UnsafeContentError(Exception):
-                pass
-
-            def sha256_confined_regular_file(self, root: Path, path: Path) -> str:
-                return "c" * 64
-
         monkeypatch.setattr(ss, "_list_tracked_files", lambda r, s: list(fake_paths))
         monkeypatch.setattr(ss, "_get_head_sha", lambda r, s: "dead" * 10)
         monkeypatch.setattr(ss, "_check_product_drift", lambda r, s: None)
-        monkeypatch.setattr(ss, "_file_safety_module", FakeFS())
 
         # Patch time.monotonic so elapsed > MAX_TRAVERSAL_S on first iteration
         call_count = {"n": 0}
@@ -837,17 +788,11 @@ class TestTraversalLimitsAC0006:
         n = ss.MAX_PRODUCT_PATHS * 2
         fake_paths = [f"f{i:07d}.txt" for i in range(n)]
 
-        class FakeFS:
-            class UnsafeContentError(Exception):
-                pass
-
-            def sha256_confined_regular_file(self, root: Path, path: Path) -> str:
-                return "d" * 64
-
         monkeypatch.setattr(ss, "_list_tracked_files", lambda r, s: list(fake_paths))
         monkeypatch.setattr(ss, "_get_head_sha", lambda r, s: "dead" * 10)
         monkeypatch.setattr(ss, "_check_product_drift", lambda r, s: None)
-        monkeypatch.setattr(ss, "_file_safety_module", FakeFS())
+        # Inject a no-I/O hash stub so the path-count limit fires without real file I/O.
+        monkeypatch.setattr(ss, "_hash_file_with_budget", lambda r, p, b: (0, "d" * 64))
 
         with pytest.raises(ss.SubjectRefused) as exc_info:
             ss.project_legacy_subject(
@@ -860,6 +805,77 @@ class TestTraversalLimitsAC0006:
                 evidence_policy_ref="policy:v1",
             )
         assert exc_info.value.denial_code == "denied-path-bound-exceeded"
+
+    def test_unknown_file_size_is_refused(
+        self,
+        ss: ModuleType,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """A file whose size cannot be established is refused, never admitted.
+
+        AC-0006, AC-0011: when ``os.fstat`` fails the file is refused (the
+        confined opener refuses it, or the size read does), not admitted with a
+        synthetic zero size as the earlier code did after a failed ``stat()``.
+        """
+        target = tmp_path / "data.txt"
+        target.write_bytes(b"hello")
+
+        def failing_fstat(fd: int) -> object:
+            raise OSError("simulated fstat failure for test")
+
+        monkeypatch.setattr(os, "fstat", failing_fstat)
+
+        with pytest.raises(ss.SubjectRefused) as exc_info:
+            ss._hash_file_with_budget(tmp_path, target, ss.MAX_PRODUCT_BYTES)
+
+        assert exc_info.value.denial_code in {"denied-unreadable-path", "denied-path-violation"}
+
+    def test_oversized_file_refused_without_reading_past_bound(
+        self,
+        ss: ModuleType,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """An oversized file is refused before any content is read.
+
+        AC-0006, AC-0011: when the ``fstat`` size exceeds the remaining budget,
+        ``_hash_file_with_budget`` refuses immediately and the hash function is
+        never called (zero bytes hashed).  Fails against the pre-fix code, which
+        called ``sha256_confined_regular_file`` before the budget check and read
+        the entire file regardless of the byte limit.
+        """
+        import hashlib
+
+        target = tmp_path / "big.bin"
+        target.write_bytes(b"hello world")  # 11 real bytes; budget capped to 5
+
+        bytes_hashed: list[int] = []
+        original_sha256 = hashlib.sha256
+
+        class _TrackingSHA256:
+            """Wraps hashlib.sha256 and records the length of every update() call."""
+
+            def __init__(self) -> None:
+                self._inner = original_sha256()
+
+            def update(self, data: bytes) -> None:
+                bytes_hashed.append(len(data))
+                self._inner.update(data)
+
+            def hexdigest(self) -> str:
+                return self._inner.hexdigest()
+
+        monkeypatch.setattr(hashlib, "sha256", lambda: _TrackingSHA256())
+
+        # Budget (5) is smaller than file size (11) → must refuse without reading.
+        with pytest.raises(ss.SubjectRefused) as exc_info:
+            ss._hash_file_with_budget(tmp_path, target, remaining_budget=5)
+
+        assert exc_info.value.denial_code == "denied-byte-bound-exceeded"
+        assert sum(bytes_hashed) == 0, (
+            "no bytes should have been hashed when fstat size exceeds the budget"
+        )
 
 
 # ── Validate-subject-dict: in-code schema validation ─────────────────────────
@@ -920,3 +936,17 @@ class TestValidateSubjectDict:
         ok, code = ss.validate_subject_dict(record)
         assert ok
         assert code == "ok"
+
+    def test_symlinked_parent_directory_is_refused(
+        self, ss: ModuleType, tmp_path: Path
+    ) -> None:
+        """A link anywhere on the path, not only at the file itself, is refused."""
+        root = tmp_path / "repo"
+        root.mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "secret.txt").write_bytes(b"outside the root")
+        (root / "linked").symlink_to(outside, target_is_directory=True)
+        with pytest.raises(ss.SubjectRefused) as exc_info:
+            ss._hash_file_with_budget(root, root / "linked" / "secret.txt", ss.MAX_PRODUCT_BYTES)
+        assert exc_info.value.denial_code == "denied-path-violation"
