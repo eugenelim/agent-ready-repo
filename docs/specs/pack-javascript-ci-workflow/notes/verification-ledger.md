@@ -284,3 +284,63 @@ VI-1017 assessment: this delivery adds no prompt, activation surface, rendering
 behavior, or output-contract change to Converters. The mandatory eval-harness
 rule therefore needs the owner's no-change waiver rather than a harness edit.
 No waiver is recorded here.
+
+## T5 — VI-1017, the owner's no-change eval waiver
+
+2026-10-05. `packs/AGENTS.md` requires either a meaningful eval-harness change
+or an owner-approved no-change waiver for a pack release. The owner granted the
+waiver on the following assessment, which both the implementer and the
+supervisor reached independently:
+
+This delivery changed no prompt, no activation surface, no rendering behaviour
+and no output contract. What it changed is maintainer verification (a new
+path-scoped workflow and a parity/provenance lint), dependency state (two
+committed lockfiles and two explicit empty `allowScripts` maps), and
+documentation. The Converters skills themselves are untouched, so there is no
+skill-facing behaviour for an eval to cover and no eval whose expected result
+this change could alter.
+
+## T5 — the artifact AC-0012 names is built by `catalogue build`, not `catalogue package`
+
+2026-10-05, recorded because the first attempt reached the wrong conclusion
+with a clean-looking result.
+
+`agentbundle catalogue package --bundle converters` produces an archive holding
+no Converters content at all. `--bundle` names the output path only;
+`catalogue.toml`'s `[catalogue.package].include` is `["packs/core"]`, so the
+archive was core, 701 entries, zero `package-lock.json`. Read without checking
+the include list, that looks like AC-0012 failing.
+
+`agentbundle catalogue build --root . --output <dir>` is the command that emits
+the Converters tree. Under it AC-0012 holds on all three distribution routes:
+
+| Route | Lockfiles | Sibling manifest present |
+| --- | --- | --- |
+| `apm/converters/.apm/skills/` | 2 | yes |
+| `claude-plugins/converters/skills/` | 2 | yes |
+| `agent-plugins/converters/skills/` | 2 | yes |
+
+Six lockfiles, each beside its manifest, and no `node_modules`, `.npm`,
+`.yarn`, `.pnpm-store` or `.cache` entry anywhere in the artifact. After
+removing the build output the source tree was clean apart from the regenerated
+`.claude-plugin/marketplace.json`, which is the authored version pair's
+projection and is committed with it.
+
+## T5 — gate results
+
+| Gate | Result |
+| --- | --- |
+| `make build-self` | ok; marketplace 0.9.6 -> 0.9.7, no other generated drift |
+| `agentbundle catalogue verify --root .` | ok |
+| `make lint-ruff lint-mypy` | clean, 155 source files |
+| `lint-spec-status.py --root .` | spec metadata clean |
+| `pytest tools/test_documentation_entry_links.py` | 2 passed |
+| `pytest tools/ -k changelog` | 10 passed |
+
+The fleet roster in `verification-graph.md` claimed sixteen workflows against a
+tree holding eighteen: `test-corpus.yml`, `test-roster.yml` and
+`release-jsonl-otlp-exporter.yml` had never been rostered. All three rows were
+added and both counts corrected, verified by comparing the table's row count to
+`.github/workflows/*.yml` — 18 and 18. These are ride-alongs: a roster that
+states an exact count cannot be left stating a false one by a change that adds
+a row to it.
