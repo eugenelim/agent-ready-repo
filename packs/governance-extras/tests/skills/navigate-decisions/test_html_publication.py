@@ -1828,7 +1828,18 @@ def test_directory_swap_between_validation_and_publish_refused(
             real_dir.mkdir()  # New directory — different inode.
         real_check_dir_identity(dir_path, expected, phase)
 
-    with _mock.patch.object(EXPLORER, "_check_dir_identity", side_effect=swapping_check):
+    real_os_open = os.open
+    temp_files_created: list[str] = []
+
+    def recording_open(path, flags, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if str(path).endswith(".tmp"):
+            temp_files_created.append(str(path))
+        return real_os_open(path, flags, *args, **kwargs)
+
+    with (
+        _mock.patch.object(EXPLORER, "_check_dir_identity", side_effect=swapping_check),
+        _mock.patch.object(EXPLORER.os, "open", side_effect=recording_open),
+    ):
         result = EXPLORER.publish_explorer(
             FIXTURE,
             destination=real_dir,
@@ -1839,6 +1850,48 @@ def test_directory_swap_between_validation_and_publish_refused(
     assert result["status"] == "error", f"directory swap must cause a refusal; got {result!r}"
     assert swap_done["done"], "the swap must have happened at the named phase"
     assert result["error"]["code"] == "publish_failed", result
+    assert not list(real_dir.iterdir()), list(real_dir.iterdir())
+    assert not list(swapped_dir.iterdir()), list(swapped_dir.iterdir())
+    if swap_phase == "open":
+        # The open-phase check must refuse before any temporary file exists.
+        assert temp_files_created == [], temp_files_created
+
+
+def test_directory_swap_before_descriptor_open_refused(tmp_path: pathlib.Path) -> None:
+    """A directory swapped after validation but before its descriptor opens is
+    refused by the descriptor identity comparison, before the path check runs
+    and before any temporary file exists."""
+    import unittest.mock as _mock
+
+    real_dir = tmp_path / "dest"
+    real_dir.mkdir()
+    swapped_dir = tmp_path / "dest_original"
+    real_os_open = os.open
+    calls = {"swapped": False, "temp": 0}
+
+    def swapping_open(path, flags, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if str(path) == str(real_dir) and not calls["swapped"]:
+            calls["swapped"] = True
+            real_dir.rename(swapped_dir)
+            real_dir.mkdir()
+        if str(path).endswith(".tmp"):
+            calls["temp"] += 1
+        return real_os_open(path, flags, *args, **kwargs)
+
+    path_check = _mock.MagicMock(wraps=EXPLORER._check_dir_identity)
+    with (
+        _mock.patch.object(EXPLORER.os, "open", side_effect=swapping_open),
+        _mock.patch.object(EXPLORER, "_check_dir_identity", path_check),
+    ):
+        result = EXPLORER.publish_explorer(
+            FIXTURE, destination=real_dir, name="swapped.html", mode="bounded"
+        )
+
+    assert calls["swapped"], "the swap must have happened before the descriptor opened"
+    assert result["status"] == "error", result
+    assert result["error"]["code"] == "publish_failed", result
+    assert path_check.call_count == 0, "the descriptor comparison must refuse first"
+    assert calls["temp"] == 0
     assert not list(real_dir.iterdir()), list(real_dir.iterdir())
     assert not list(swapped_dir.iterdir()), list(swapped_dir.iterdir())
 

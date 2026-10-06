@@ -38,9 +38,21 @@ var srcLinks=D.source_links||{};
 var V=window.visEscape||function(x){return String(x);};
 // The header Status row repeats the lifecycle row only when both show the same
 // value; otherwise (another label form, a wrapped value) it stays visible.
+// A one-line Status field whose value, one trailing comment removed, equals
+// the lifecycle value adds nothing; a wrapped one always shows. String searches
+// only, so a huge hostile value costs linear time.
+function stripTrailingComment(v){
+var s=v.trimEnd();
+if(s.slice(-3)!=='-->')return s;
+var end=s.length-3,k=s.lastIndexOf('-->',end-3),lo=k<0?0:Math.max(0,k-3);
+for(;;){var st=s.indexOf('<!--',lo);
+if(st<0||st+4>end)return s;
+if(s.slice(st+4,end).indexOf('-->')<0)return s.slice(0,st).trimEnd();
+lo=st+1;}}
 function statusShownAs(hf,rec){
 var lv=rec.lifecycle&&!rec.lifecycle.missing?rec.lifecycle.raw_value:null;
-return lv!==null&&hf.raw_value.replace(/\s*<!--[\s\S]*?-->\s*$/,'').trim()===lv;}
+if(lv===null||hf.raw_value.indexOf('\n')>=0)return false;
+return stripTrailingComment(hf.raw_value).trim()===lv;}
 // A record ID from the URL is untrusted: escape it and cap its length.
 function shownId(x){var t=V(String(x));return t.length>64?t.slice(0,63)+'…':t;}
 function claimText(u){

@@ -2721,7 +2721,11 @@ def test_admission_time_bound_on_a_near_2_mib_supersession_header(
     size = len(text.encode("utf-8"))
     assert int(1.9 * 1024 * 1024) <= size <= 2 * 1024 * 1024, size
     _write(tmp_path, "0001-big.md", text)
-    _write(tmp_path, "0002-other.md", "# ADR-0002: Other\n\n- **Status:** Accepted\n\n## Context\n\ny\n")
+    _write(
+        tmp_path,
+        "0002-other.md",
+        "# ADR-0002: Other\n\n- **Status:** Accepted\n\n## Context\n\ny\n",
+    )
     start = time.monotonic()
     payload = NAV.run_query(tmp_path, {"operation": "summary"})
     elapsed = time.monotonic() - start
@@ -2740,9 +2744,7 @@ def test_wrapped_supersession_field_yields_every_entry(tmp_path: pathlib.Path) -
     )
     payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
     assert payload["status"] == "ok", payload.get("error")
-    targets = sorted(
-        r["to"] for r in payload["relationships"] if r["relation"] == "superseded_by"
-    )
+    targets = sorted(r["to"] for r in payload["relationships"] if r["relation"] == "superseded_by")
     assert targets == ["ADR-0010", "ADR-0011"], targets
 
 
@@ -2767,7 +2769,9 @@ def test_lifecycle_value_from_the_status_label_line(
     assert rec["lifecycle"].get("missing") is not True, rec["lifecycle"]
     assert rec["lifecycle"]["raw_value"] == expected, rec["lifecycle"]
     status_field = next(f for f in rec["header_fields"] if f["label"] == "Status")
-    assert status_field["raw_value"] == status_lines.split("**", 2)[2].lstrip(":").lstrip().rstrip("\n")
+    assert status_field["raw_value"] == status_lines.split("**", 2)[2].lstrip(":").lstrip().rstrip(
+        "\n"
+    )
 
 
 def test_both_status_label_forms_make_a_record_malformed(tmp_path: pathlib.Path) -> None:
@@ -2780,3 +2784,77 @@ def test_both_status_label_forms_make_a_record_malformed(tmp_path: pathlib.Path)
     )
     payload = NAV.run_query(tmp_path, {"operation": "summary"})
     assert payload["status"] == "error", payload
+    assert payload["error"]["code"] == "malformed_record", payload["error"]
+
+
+@pytest.mark.parametrize(
+    "status_tail",
+    [" " * 1_900_000 + "x", " " + "<!--" * 470_000],
+    ids=["whitespace-run", "unclosed-openers"],
+)
+def test_status_comment_strip_is_linear_on_hostile_lines(
+    tmp_path: pathlib.Path, status_tail: str
+) -> None:
+    """AC-0001: a near-2 MiB Status line of a hostile shape (a long whitespace
+    run, or many unclosed comment openers) is admitted in under 2 seconds."""
+    import time
+
+    _write(
+        tmp_path,
+        "0001-a.md",
+        "# ADR-0001: A\n\n- **Status:** Accepted" + status_tail + "\n\n## Context\n\nx\n",
+    )
+    start = time.monotonic()
+    payload = NAV.run_query(tmp_path, {"operation": "summary"})
+    elapsed = time.monotonic() - start
+    assert payload["status"] == "ok", payload.get("error")
+    assert elapsed < 2.0, f"admission took {elapsed:.2f} s"
+
+
+def test_status_comment_strip_matches_the_one_trailing_comment_rule() -> None:
+    """One trailing comment is removed: the earliest `<!--` whose comment runs
+    to the final `-->` with no `-->` inside it."""
+    strip = NAV._strip_trailing_comment
+    assert strip("Accepted <!-- note -->  ") == "Accepted"
+    assert strip("a <!-- b <!-- c -->") == "a"
+    assert strip("a <!-- x --> y -->") == "a <!-- x --> y -->"
+    assert strip("Accepted (qualified) <!--") == "Accepted (qualified) <!--"
+
+
+def test_header_value_starts_after_its_own_bold_label(tmp_path: pathlib.Path) -> None:
+    """A later bold `Note:` inside a value does not move where the value starts,
+    for a plain field and for a supersession field."""
+    _write(
+        tmp_path,
+        "0001-a.md",
+        "# ADR-0001: A\n\n- **Status:** Accepted\n"
+        "- **Owner**: team (see **Note:** x)\n"
+        "- **Superseded by**: ADR-0002 see **Note:** ADR-0003\n\n## Context\n\nx\n",
+    )
+    payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
+    assert payload["status"] == "ok", payload.get("error")
+    fields = {f["label"]: f["raw_value"] for f in payload["records"][0]["header_fields"]}
+    assert fields["Owner"] == "team (see **Note:** x)", fields
+    assert fields["Superseded by"] == "ADR-0002 see **Note:** ADR-0003", fields
+    targets = [r["to"] for r in payload["relationships"] if r["relation"] == "superseded_by"]
+    assert targets == [None], targets  # one unparseable entry, never ADR-0003
+
+
+def test_status_field_is_found_by_label(tmp_path: pathlib.Path) -> None:
+    """Any field labelled Status is the Status field: `**Status** (as of 2026):`
+    yields its label-line value, and it counts toward the at-most-one rule."""
+    _write(
+        tmp_path,
+        "0001-a.md",
+        "# ADR-0001: A\n\n- **Status** (as of 2026): Accepted\n\n## Context\n\nx\n",
+    )
+    payload = NAV.run_query(tmp_path, {"operation": "record", "id": "ADR-0001"})
+    assert payload["records"][0]["lifecycle"]["raw_value"] == "(as of 2026): Accepted"
+    _write(
+        tmp_path,
+        "0002-b.md",
+        "# ADR-0002: B\n\n- **Status:** Accepted\n- **Status** — Rejected\n\n## Context\n\nx\n",
+    )
+    refused = NAV.run_query(tmp_path, {"operation": "summary"})
+    assert refused["status"] == "error", refused
+    assert refused["error"]["code"] == "malformed_record", refused["error"]

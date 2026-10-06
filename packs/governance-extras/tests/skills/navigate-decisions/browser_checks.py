@@ -2004,3 +2004,290 @@ def test_wrapped_status_shows_its_own_row(
               .filter(tr => tr.cells[0].textContent === 'Status').length"""
         )
     assert counts == {"ADR-0001": 2, "ADR-0002": 1}, counts
+
+
+# ── Review round 5 ────────────────────────────────────────────────────────────
+
+_NEAREST_EDGE_JS = """(scope) => {
+  const root = document.querySelector(scope);
+  const paths = [...root.querySelectorAll('path[data-rel]')];
+  const dist = (p, x, y) => { const n = p.getTotalLength(); let best = Infinity;
+    for (let s = 0; s <= n; s += 1) { const q = p.getPointAtLength(s);
+      best = Math.min(best, Math.hypot(q.x - x, q.y - y)); }
+    return best; };
+  return [...root.querySelectorAll('.edge-label[data-for]')].map(t => {
+    const x = +t.getAttribute('x'), y = +t.getAttribute('y');
+    const nearest = paths.map(p => [dist(p, x, y), p.dataset.rel]).sort((a, b) => a[0] - b[0])[0];
+    return {own: t.dataset.for, nearest: nearest[1], text: t.textContent}; });
+}"""
+
+
+def test_fan_in_labels_sit_on_their_own_edges(
+    browser: object, export_fan_in: pathlib.Path
+) -> None:
+    """On fan-in, the edge nearest each scope label is the edge the label names,
+    and in the focused graph the label carries that edge's own scope."""
+    page = _open_page(browser, export_fan_in)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    focused = page.evaluate(_NEAREST_EDGE_JS, "#view-graph .lineage-wrap svg")
+    assert len(focused) == 4, focused
+    for label in focused:
+        assert label["nearest"] == label["own"], label
+        source = label["own"].split("|")[0]  # e.g. ADR-0003 carries scope D3
+        assert label["text"] == f"in part · D{int(source[-4:])}", label
+    page.click("button.atlas-back")
+    page.wait_for_selector(".chain-card svg")
+    atlas = page.evaluate(_NEAREST_EDGE_JS, ".chain-card svg")
+    assert len(atlas) == 4, atlas
+    for label in atlas:
+        assert label["nearest"] == label["own"], label
+
+
+@pytest.fixture(scope="module")
+def export_partial_and_asserted(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """ADR-0001 is superseded in part by ADR-0003 with a long scope; ADR-0002
+    shares ADR-0001's column, and a caller assertion targets ADR-0001 from it."""
+    root = tmp_path_factory.mktemp("partial_asserted_fixture")
+    _build_corpus(
+        root,
+        [
+            (
+                1,
+                "Base",
+                "- **Status:** Accepted\n- **Superseded in part:** ADR-0003 D10, D11, D12, D13\n",
+            ),
+            (2, "Sibling", "- **Status:** Superseded\n- **Superseded by:** ADR-0003\n"),
+            (
+                3,
+                "New",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0002\n"
+                "- **Supersedes in part:** ADR-0001 D10, D11, D12, D13\n",
+            ),
+        ],
+    )
+    out = tmp_path_factory.mktemp("browser_partial_asserted")
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        root,
+        destination=out,
+        mode="full",
+        name="partial_asserted.html",
+        assertions=[{"from": "ADR-0002", "to": "ADR-0001", "text": "same column"}],
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+def test_asserted_and_long_partial_labels_stay_clear(
+    browser: object, export_partial_and_asserted: pathlib.Path
+) -> None:
+    """The `asserted` label and a long `in part` label on the same target node
+    never overlap each other, a node or an arrowhead."""
+    page = _open_page(browser, export_partial_and_asserted)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    labels = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph .edge-label')].map(t => t.textContent)"
+    )
+    assert "asserted" in labels and any(t.startswith("in part") for t in labels), labels
+    _assert_plates_clear(page.evaluate(_BOXES_JS, "#view-graph .lineage-wrap svg"), "focused")
+
+
+def test_theme_toggle_is_not_clipped_on_a_narrow_screen(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """At 390 px wide, every theme button sits fully inside the toggle."""
+    page = _open_page(browser, export_mixed)
+    page.set_viewport_size({"width": 390, "height": 800})
+    page.wait_for_selector("li.record-item")
+    info = page.evaluate(
+        """() => { const t = document.querySelector('.theme-toggle');
+          const r = t.getBoundingClientRect();
+          return { overflow: t.scrollWidth - t.clientWidth,
+            out: [...t.querySelectorAll('button')].map(b => b.getBoundingClientRect())
+              .filter(b => b.right > r.right + 0.5 || b.left < r.left - 0.5).length }; }"""
+    )
+    assert info == {"overflow": 0, "out": 0}, info
+
+
+def test_every_dark_rule_has_a_system_dark_twin(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """Each `:root[data-theme="dark"]` rule has an identical rule for an unset
+    theme under a dark system preference, so first paint matches the toggle."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    result = page.evaluate(
+        """() => { const chosen = {}, system = {};
+          const walk = (rules, inDark) => { for (const r of rules) {
+            if (r.media) {
+              walk(r.cssRules, inDark || r.conditionText.includes('dark')); continue; }
+            if (!r.selectorText) continue;
+            const body = r.style.cssText;
+            if (!inDark && r.selectorText.includes(':root[data-theme="dark"]')) {
+              const k = r.selectorText
+                .replaceAll(':root[data-theme="dark"]', ':root:not([data-theme])');
+              chosen[k] = (chosen[k] || '') + body; }
+            if (inDark && r.selectorText.includes(':root:not([data-theme])'))
+              system[r.selectorText] = (system[r.selectorText] || '') + body; } };
+          for (const s of document.styleSheets) walk(s.cssRules, false);
+          return { count: Object.keys(chosen).length,
+            missing: Object.entries(chosen)
+              .filter(([k, v]) => system[k] !== v).map(([k]) => k) }; }"""
+    )
+    assert result["count"] >= 15, result
+    assert result["missing"] == [], result
+
+
+def test_dark_first_paint_matches_the_dark_toggle(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """With scripts off and a dark system preference, the banner, info panel,
+    title and form controls compute the same styles as the scripted dark theme."""
+    probe = """() => { const pick = s => { const e = document.querySelector(s);
+        if (!e) return null; const c = getComputedStyle(e);
+        return [c.color, c.backgroundColor, c.backgroundImage, c.colorScheme].join(' / '); };
+      return Object.fromEntries(['.supersede-banner', '.info-panel', '.title-gradient',
+        'input', 'select'].map(s => [s, pick(s)])); }"""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item .supersede-banner")
+    page.click("[data-theme-choice=dark]")
+    scripted = page.evaluate(probe)
+    assert all(scripted.values()), scripted
+    context = browser.new_context(  # type: ignore[union-attr]
+        offline=True, java_script_enabled=False, color_scheme="dark"
+    )
+    static = context.new_page()
+    static.goto(f"file://{export_mixed}")
+    # Without scripts no list renders, so the banner is checked on a copy of a
+    # scripted list item placed in the static page.
+    banner = page.evaluate("() => document.querySelector('li.record-item').outerHTML")
+    html = static.content().replace("</body>", f"<ul>{banner}</ul></body>")
+    static.set_content(html)
+    first_paint = static.evaluate(probe)
+    context.close()
+    page.click("[data-theme-choice=auto]")
+    assert first_paint == scripted, (first_paint, scripted)
+
+
+def test_partial_edges_have_a_white_narrower_inner_stroke(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """In both views the hollow line of a partial edge is a white stroke,
+    narrower than its edge, along the same path and drawn on top of it."""
+    probe = """(scope) => [...document.querySelectorAll(scope + ' [data-inner="part"]')].map(i => {
+        const outer = i.previousElementSibling;
+        return { color: getComputedStyle(i).stroke, inner: +i.getAttribute('stroke-width'),
+          outer: +outer.getAttribute('stroke-width'),
+          same: outer.getAttribute('d') === i.getAttribute('d'),
+          partial: outer.hasAttribute('data-rel') }; })"""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    page.click("button.atlas-back")
+    page.wait_for_selector(".chain-card svg")
+    for scope in (".chain-card",):
+        lines = page.evaluate(probe, scope)
+        assert lines, scope
+        for line in lines:
+            assert line["color"] == "rgb(255, 255, 255)", line
+            assert line["same"] and line["partial"] and line["inner"] < line["outer"], line
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    lines = page.evaluate(probe, "#view-graph")
+    assert len(lines) == 1, lines
+    line = lines[0]
+    assert line["color"] == "rgb(255, 255, 255)", line
+    assert line["same"] and line["partial"] and line["inner"] < line["outer"], line
+
+
+def test_full_and_partial_arrowheads_render_at_one_size(
+    browser: object, export_partial_and_asserted: pathlib.Path
+) -> None:
+    """The arrowhead drawn on a full edge and on a thicker partial edge has the
+    same rendered size: marker size times the stroke width when the marker
+    scales with the stroke, the marker size alone otherwise."""
+    page = _open_page(browser, export_partial_and_asserted)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0003")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    sizes = page.evaluate(
+        """() => [...document.querySelectorAll('#view-graph path[data-rel][marker-end]')]
+          .map(p => {
+          const id = p.getAttribute('marker-end').slice(5, -1);
+          const m = document.getElementById(id);
+          const k = m.getAttribute('markerUnits') === 'userSpaceOnUse' ? 1
+            : +p.getAttribute('stroke-width');
+          return { sw: +p.getAttribute('stroke-width'), solid: !p.getAttribute('stroke-dasharray'),
+            w: +m.getAttribute('markerWidth') * k, h: +m.getAttribute('markerHeight') * k }; })"""
+    )
+    solid = [s for s in sizes if s["solid"]]
+    assert {s["sw"] for s in solid} >= {2.0, 4.0}, sizes
+    assert len({(s["w"], s["h"]) for s in solid}) == 1, solid
+
+
+def test_text_list_bullets_sit_on_the_first_line_of_a_wrapped_button(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """A list bullet sits on its line's baseline. An inline probe placed before a
+    wrapped node button shares that baseline, so it must sit on the button's
+    first line, not its last."""
+    page = _open_page(browser, export_mixed)
+    page.set_viewport_size({"width": 390, "height": 800})
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    rows = page.evaluate(
+        """() => { document.querySelector('#view-graph details.lineage-text').open = true;
+          return [...document.querySelectorAll('#view-graph .lt-node-btn')].map(b => {
+            const probe = document.createElement('span'); probe.textContent = 'x';
+            b.before(probe);
+            const p = probe.getBoundingClientRect(), r = b.getBoundingClientRect();
+            const line = parseFloat(getComputedStyle(b).lineHeight) || 20;
+            probe.remove();
+            return { wrapped: r.height > 1.5 * line, offset: p.top - r.top, line }; }); }"""
+    )
+    wrapped = [r for r in rows if r["wrapped"]]
+    assert wrapped, rows
+    for r in wrapped:
+        assert r["offset"] < r["line"], r
+
+
+def test_partial_id_is_underlined_in_the_atlas(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """The partially superseded ID keeps the same underline in the atlas."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page)
+    page.wait_for_selector(".chain-card svg")
+    deco = page.evaluate(
+        "() => document.querySelector('.chain-card [data-node-id=\"ADR-0001\"] text')"
+        ".getAttribute('text-decoration')"
+    )
+    assert deco == "underline", deco
+
+
+@pytest.mark.parametrize(
+    "tail",
+    [" " * 1_900_000 + "x", " " + "<!--" * 470_000],
+    ids=["whitespace-run", "unclosed-openers"],
+)
+def test_hostile_status_line_detail_renders_in_linear_time(
+    browser: object, tmp_path_factory: pytest.TempPathFactory, tail: str
+) -> None:
+    """A near-2 MiB single-line Status value of a hostile shape renders its
+    detail view in under 2 seconds."""
+    root = tmp_path_factory.mktemp("hostile_status_fixture")
+    _build_corpus(root, [(1, "Hostile", f"- **Status:** Accepted{tail}\n")])
+    page = _open_page(browser, _export(tmp_path_factory, root, "hostile_status"))
+    page.wait_for_selector("li.record-item")
+    elapsed = page.evaluate(
+        """() => { const t = performance.now(); location.hash = '#detail/ADR-0001';
+          window.dispatchEvent(new HashChangeEvent('hashchange'));
+          return performance.now() - t; }"""
+    )
+    page.wait_for_selector("#view-detail .meta-table")
+    assert elapsed < 2000, elapsed

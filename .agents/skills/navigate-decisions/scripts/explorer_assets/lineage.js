@@ -227,24 +227,54 @@ function edgePorts(rels,np,nh){
 
 // ── Scope label beside the arrowhead; the halo keeps it legible over edges
 var MAX_LABEL=16;
-function edgeLabel(g,x1,y1,x2,y2,txt,fill){
+// Labels are placed after every edge is drawn and the diagram is in the page,
+// so each one can avoid every node, arrowhead and earlier label.
+function edgeLabel(g,x1,y1,x2,y2,txt,fill,path){
+  (g._defer||(g._defer=[])).push([x1,y1,x2,y2,txt,fill,path]);
+}
+function placeLabels(g,edges){
+  (edges?edges.querySelectorAll('path[marker-end]'):[]).forEach(function(p){
+    try{
+      var n=p.getTotalLength(),a=p.getPointAtLength(n),b=p.getPointAtLength(Math.max(0,n-10));
+      (g._blockBoxes||(g._blockBoxes=[])).push({x:Math.min(a.x,b.x)-1,y:Math.min(a.y,b.y)-5,
+        w:Math.abs(a.x-b.x)+2,h:Math.abs(a.y-b.y)+10});
+    }catch(e){}
+  });
+  (g._defer||[]).forEach(function(args){placeLabel.apply(null,[g].concat(args));});
+  g._defer=[];
+}
+function placeLabel(g,x1,y1,x2,y2,txt,fill,path){
   var t=svgEl('text');
+  if(path&&path.dataset&&path.dataset.rel)t.dataset.for=path.dataset.rel;
   if(txt.length>MAX_LABEL){
     var tt=svgEl('title');tt.textContent=txt;t.appendChild(tt);
     txt=txt.slice(0,MAX_LABEL-1)+'…';
   }
-  // Labels that land on the same target side step down one plate height each,
-  // so fan-in labels never cover one another.
-  var slots=g._labelSlots||(g._labelSlots={}),key=Math.round(x2),used=slots[key]||(slots[key]=[]);
-  while(used.some(function(u){return Math.abs(u-y2)<13;}))y2+=13;
-  used.push(y2);
-  // A plate behind the text keeps crossing edges from running through it.
+  var w=txt.length*6+6,h=12;
+  // The label sits on its own edge, centred on the curve's midpoint, so it is
+  // read with that edge; where it would meet another label or a node it slides
+  // along its edge, then off it, to the nearest clear spot.
+  var cx=(x1+x2)/2,cy=(y1+y2)/2,len=0;
+  if(path&&path.getTotalLength){
+    try{len=path.getTotalLength();var mid=path.getPointAtLength(len/2);cx=mid.x;cy=mid.y;}catch(e){len=0;}
+  }
+  var taken=g._labelBoxes||(g._labelBoxes=[]);
+  var blocked=g._blockBoxes||[];
+  var hits=function(b){return taken.concat(blocked).some(function(o){
+    return b.x<o.x+o.w&&o.x<b.x+b.w&&b.y<o.y+o.h&&o.y<b.y+b.h;});};
+  var box={x:cx-w/2,y:cy-h/2,w:w,h:h};
+  var tries=[0.5,0.38,0.62,0.28,0.72,0.2,0.8];
+  for(var i=0;i<tries.length&&hits(box);i++){
+    if(len){var q=path.getPointAtLength(len*tries[i]);box={x:q.x-w/2,y:q.y-h/2,w:w,h:h};}
+  }
+  for(var k=1;k<40&&hits(box);k++){box={x:box.x,y:cy-h/2+(k%2?1:-1)*Math.ceil(k/2)*(h+2),w:w,h:h};}
+  taken.push(box);
   var plate=svgEl('rect');
-  sa(plate,'x',x2+11);sa(plate,'y',y2-6);sa(plate,'width',txt.length*6+6);sa(plate,'height',12);
+  sa(plate,'x',box.x);sa(plate,'y',box.y);sa(plate,'width',w);sa(plate,'height',h);
   sa(plate,'rx','3');sa(plate,'fill','#ffffff');sa(plate,'stroke',fill||'#4b5563');sa(plate,'stroke-width','0.75');
   g.appendChild(plate);
-  sa(t,'x',x2+14);sa(t,'y',y2);sa(t,'dominant-baseline','middle');
-  sa(t,'text-anchor','start');sa(t,'font-size','10');sa(t,'font-weight','600');
+  sa(t,'x',box.x+w/2);sa(t,'y',box.y+h/2);sa(t,'dominant-baseline','middle');
+  sa(t,'text-anchor','middle');sa(t,'font-size','10');sa(t,'font-weight','600');
   sa(t,'fill',fill||'#4b5563');sa(t,'class','edge-label');
   t.appendChild(document.createTextNode(txt));g.appendChild(t);
 }
@@ -530,6 +560,9 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
 
   // Edge group (behind nodes)
   var lg=svgEl('g');sa(lg,'aria-hidden','true');
+  // Labels never cover a node box (inflated by 2 px).
+  lg._blockBoxes=cn.filter(function(n){return np[n];}).map(function(n){
+    return{x:PX+np[n].col*(NW+XG)-2,y:PY+np[n].row*(NH+YG)-2,w:NW+4,h:NH+4};});
   var eg=svgEl('g');sa(eg,'aria-hidden','true');
 
   // Draw checked edges within the chain
@@ -557,12 +590,13 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       // FROM is newer (right), TO is older (left)
       var x1=PX+fp.col*(NW+XG),y1=PY+fp.row*(NH+YG)+ports[ri].y1;
       var x2=PX+tp.col*(NW+XG)+NW,y2=PY+tp.row*(NH+YG)+ports[ri].y2;
-      drawEdge(eg,x1,y1,x2,y2,stroke,isPartial?'4':'2',null,'url(#'+pfx+'af)').dataset.rel=relKey(r);
+      var edgePath=drawEdge(eg,x1,y1,x2,y2,stroke,isPartial?'4':'2',null,'url(#'+pfx+'af)');
+      edgePath.dataset.rel=relKey(r);
       // Partial supersession reads as a hollow double line, not colour alone.
       if(isPartial)drawEdge(eg,x1,y1,x2,y2,'#ffffff','1.5',null,null).setAttribute('data-inner','part');
       if(isPartial){
         var sc2='in part · '+(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated');
-        edgeLabel(lg,x1,y1,x2,y2,sc2,'#1d4ed8');
+        edgeLabel(lg,x1,y1,x2,y2,sc2,'#1d4ed8',edgePath);
       }
     }
   });
@@ -582,8 +616,9 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     st.textContent=r.display_to||r.to||'?';eg.appendChild(st);
     var sp=np[selectedId];if(!sp)return;
     var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH/2;
-    drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#9ca3af','1.5','6 4','url(#'+pfx+'ao)').dataset.rel=relKey(r);
-    edgeLabel(eg,ex1,ey1,sx,sy+NH/2,'one-sided','#9ca3af');
+    var oneP=drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#9ca3af','1.5','6 4','url(#'+pfx+'ao)');
+    oneP.dataset.rel=relKey(r);
+    edgeLabel(lg,ex1,ey1,sx,sy+NH/2,'one-sided','#9ca3af',oneP);
   });
 
   // Caller-asserted edges for selected node: drawn between nodes when both are
@@ -605,7 +640,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       sa(ap,'fill','none');sa(ap,'stroke','#7c3aed');sa(ap,'stroke-width','1.5');
       sa(ap,'stroke-dasharray','8 3 2 3');sa(ap,'marker-end','url(#'+pfx+'ah)');
       ap.dataset.rel=relKey(r);eg.appendChild(ap);
-      edgeLabel(lg,fx,fy,gt+4,ty-4,'asserted','#7c3aed');
+      edgeLabel(lg,fx,fy,gt,ty,'asserted','#7c3aed',ap);
       return;
     }
     var sx=satX,sy=satY;satY+=NH+YG;
@@ -617,8 +652,9 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     st.textContent=(r.from===selectedId?(r.display_to||r.to):(r.display_from||r.from))||'?';eg.appendChild(st);
     var sp=np[selectedId];if(!sp)return;
     var ex1=PX+sp.col*(NW+XG)+NW,ey1=PY+sp.row*(NH+YG)+NH/2;
-    drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#a78bfa','1.5','8 3 2 3','url(#'+pfx+'ah)').dataset.rel=relKey(r);
-    edgeLabel(eg,ex1,ey1,sx,sy+NH/2,'asserted','#7c3aed');
+    var asP=drawEdge(eg,ex1,ey1,sx,sy+NH/2,'#a78bfa','1.5','8 3 2 3','url(#'+pfx+'ah)');
+    asP.dataset.rel=relKey(r);
+    edgeLabel(lg,ex1,ey1,sx,sy+NH/2,'asserted','#7c3aed',asP);
   });
 
   svg.appendChild(eg);svg.appendChild(lg);
@@ -669,6 +705,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   container.appendChild(axis);
   wrap.className='lineage-wrap';wrap.style.overflowX='auto';wrap.style.maxWidth='100%';
   wrap.appendChild(svg);container.appendChild(wrap);
+  placeLabels(lg,eg);
 
   // Contextual toggle
   if(ctxRels.length>0){
@@ -741,6 +778,8 @@ function renderAtlas(container,allRels,allRecords,navigate){
     addDefs(svg,pfx);
     var eg2=svgEl('g');sa(eg2,'aria-hidden','true');
     var lg2=svgEl('g');sa(lg2,'aria-hidden','true');
+    lg2._blockBoxes=cn.filter(function(n){return np2[n];}).map(function(n){
+      return{x:PX+np2[n].col*(nw+xg)-2,y:PY+np2[n].row*(nh+yg)-2,w:nw+4,h:nh+4};});
     var ports2=edgePorts(cRels,np2,nh);
     cRels.forEach(function(r,ri){
       var fp=np2[r.from],tp=np2[r.to];if(!fp||!tp)return;
@@ -753,7 +792,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
         sa(arc,'d','M '+cx+','+cy1+' Q '+ax+','+ay+' '+cx+','+cy2);
         sa(arc,'fill','none');sa(arc,'stroke','#374151');sa(arc,'stroke-width','1.5');
         sa(arc,'stroke-dasharray','6 3');sa(arc,'marker-end','url(#'+pfx+'af)');
-        eg2.appendChild(arc);
+        arc.dataset.rel=relKey(r);eg2.appendChild(arc);
         var cl=svgEl('text');sa(cl,'x',ax+3);sa(cl,'y',ay);sa(cl,'font-size','9');
         sa(cl,'fill','#b45309');cl.textContent='cycle';eg2.appendChild(cl);
         return;
@@ -761,10 +800,11 @@ function renderAtlas(container,allRels,allRecords,navigate){
       var x1=PX+fp.col*(nw+xg),y1=PY+fp.row*(nh+yg)+ports2[ri].y1;
       var x2=PX+tp.col*(nw+xg)+nw,y2=PY+tp.row*(nh+yg)+ports2[ri].y2;
       var partA=r.relation==='supersedes_in_part';
-      drawEdge(eg2,x1,y1,x2,y2,partA?'#1d4ed8':'#374151',partA?'3.5':'1.5',null,'url(#'+pfx+'af)');
+      var aP=drawEdge(eg2,x1,y1,x2,y2,partA?'#1d4ed8':'#374151',partA?'3.5':'1.5',null,'url(#'+pfx+'af)');
+      aP.dataset.rel=relKey(r);
       if(partA){
         drawEdge(eg2,x1,y1,x2,y2,'#ffffff','1.2',null,null).setAttribute('data-inner','part');
-        edgeLabel(lg2,x1,y1,x2,y2,'in part','#1d4ed8');
+        edgeLabel(lg2,x1,y1,x2,y2,'in part','#1d4ed8',aP);
       }
     });
     svg.appendChild(eg2);svg.appendChild(lg2);
@@ -780,6 +820,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
     wrap2.className='chain-svg-wrap';wrap2.style.overflowX='auto';
     wrap2.appendChild(svg);card.appendChild(wrap2);
     grid.appendChild(card);
+    placeLabels(lg2,eg2);
   });
 }
 

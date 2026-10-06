@@ -101,14 +101,11 @@ _RESEARCH_RE = re.compile(r"-research\.md$")
 
 # Header-region patterns.
 _H1_RE = re.compile(r"^# (ADR|RFC)-([0-9]{4}): (.+)$")
-# The Status field in either label form: **Status:** or **Status**:
-_STATUS_RE = re.compile(r"^- \*\*Status(?::\*\*|\*\*:)\s*(.*)$")
 _FIELD_START_RE = re.compile(r"^- \*\*")
 # Bold label (content between first pair of **).
 _BOLD_LABEL_RE = re.compile(r"^- \*\*([^*]+)\*\*")
 # Trailing HTML comment: remove only the final trailing comment from the value.
 # Uses a non-greedy match anchored at the end, so only the last comment is removed.
-_TRAILING_COMMENT_RE = re.compile(r"\s*<!--(?:(?!-->).)*?-->\s*$")
 
 # Supersession field labels (case-sensitive, as they appear in source).
 _SUPERS_LABELS: dict[str, str] = {
@@ -362,19 +359,42 @@ def _parse_related_tokens(
 # ── Record parsing ────────────────────────────────────────────────────────────
 
 
-def _extract_header_field_value(line: str) -> str:
-    """Extract the raw value from a bold-labeled header field line.
+def _split_header_field_line(line: str) -> tuple[str, str] | None:
+    """Split a header field line into (label, label-line value).
 
-    For '- **Label:** value' returns 'value'.
-    For '- **Label** (ext): value' returns 'value' (strips colon/space after **)
+    The label is the bold text with one trailing colon removed. The value is the
+    rest of the line after the whole bold span and at most one colon directly
+    after it, with leading whitespace removed. Returns None for other lines.
     """
-    colon_pos = line.find(":**")
-    if colon_pos != -1:
-        return line[colon_pos + 3:].lstrip()
-    end_bold = line.find("**", 3)
-    if end_bold == -1:
-        return ""
-    return line[end_bold + 2:].lstrip(": ")
+    m = _BOLD_LABEL_RE.match(line)
+    if not m:
+        return None
+    rest = line[m.end():]
+    if rest.startswith(":"):
+        rest = rest[1:]
+    return m.group(1).removesuffix(":"), rest.lstrip()
+
+
+def _strip_trailing_comment(value: str) -> str:
+    """Remove one trailing HTML comment and the whitespace around it.
+
+    Matches the earliest `<!--` whose comment runs to a final `-->` with no
+    `-->` inside it, using string searches only, so it runs in linear time on
+    any line within the 2 MiB bound.
+    """
+    s = value.rstrip()
+    if not s.endswith("-->"):
+        return value.rstrip()
+    body_end = len(s) - 3
+    k = s.rfind("-->", 0, body_end)
+    lo = 0 if k < 0 else max(0, k - 3)
+    while True:
+        start = s.find("<!--", lo, body_end + 3)
+        if start < 0 or start + 4 > body_end:
+            return s
+        if "-->" not in s[start + 4 : body_end]:
+            return s[:start].rstrip()
+        lo = start + 1
 
 
 def _parse_record_text(
@@ -435,31 +455,6 @@ def _parse_record_text(
             break
         header_lines.append(lines[i])
 
-    # Parse Status field: at most one permitted.
-    status_values: list[str] = []
-    for line in header_lines:
-        sm = _STATUS_RE.match(line)
-        if sm:
-            status_values.append(sm.group(1).strip())
-
-    if len(status_values) > 1:
-        raise ValueError(
-            f"malformed record: {len(status_values)} Status fields in header "
-            f"region of {basename!r} (at most one is allowed)"
-        )
-
-    # Build lifecycle value.
-    if not status_values:
-        raw_lifecycle: str | None = None
-        missing_status = True
-        display_lifecycle: str | None = None
-    else:
-        raw_with_comment = status_values[0]
-        # Strip one trailing HTML comment.
-        raw_lifecycle = _TRAILING_COMMENT_RE.sub("", raw_with_comment).rstrip()
-        missing_status = False
-        display_lifecycle = _escape_display(raw_lifecycle)
-
     # Header fields: each value is the label line's text plus every following
     # line up to a blank line or a column-0 line starting with "- **", ">", "#"
     # or "**". Lines are collected in lists and joined once, so a field with a
@@ -467,10 +462,10 @@ def _parse_record_text(
     field_parts: list[tuple[str, list[str]]] = []
     current_parts: list[str] | None = None
     for line in header_lines:
-        m3 = _BOLD_LABEL_RE.match(line)
-        if m3:
-            current_parts = [_extract_header_field_value(line)]
-            field_parts.append((m3.group(1).rstrip(":"), current_parts))
+        split = _split_header_field_line(line)
+        if split is not None:
+            current_parts = [split[1]]
+            field_parts.append((split[0], current_parts))
             continue
         if not line or line.startswith(("- **", ">", "#", "**")):
             current_parts = None
@@ -480,6 +475,25 @@ def _parse_record_text(
     header_field_list: list[dict[str, str]] = [
         {"label": label, "raw_value": "\n".join(parts)} for label, parts in field_parts
     ]
+
+    # The Status field is any header field labelled Status; at most one.
+    status_lines = [parts[0] for label, parts in field_parts if label == "Status"]
+    if len(status_lines) > 1:
+        raise ValueError(
+            f"malformed record: {len(status_lines)} Status fields in header "
+            f"region of {basename!r} (at most one is allowed)"
+        )
+    # The lifecycle value is the label line only, one trailing comment removed.
+    raw_lifecycle: str | None
+    display_lifecycle: str | None
+    if status_lines:
+        raw_lifecycle = _strip_trailing_comment(status_lines[0]).strip()
+        missing_status = False
+        display_lifecycle = _escape_display(raw_lifecycle)
+    else:
+        raw_lifecycle = None
+        missing_status = True
+        display_lifecycle = None
 
     # Supersession entries are read from each supersession field's whole value,
     # with line breaks treated as spaces.
