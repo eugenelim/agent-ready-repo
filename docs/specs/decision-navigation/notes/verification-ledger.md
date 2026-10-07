@@ -489,7 +489,7 @@ The thirteenth post-gates review (2026-10-06, head `d6d5f1dfc`) found the securi
 | R13-QE-2 / R13-ADV-1 | Nit | The round-12 run line named a commit made after the runs and a UTC date. | closed — it names the working tree committed unchanged as `7896e53aa` and the local date. Every full-run line from round 8 on reports runs on the working tree that was then committed unchanged as the named commit. |
 | R13-ADV-2 | Nit | CI for the round-12 head was unrecorded. | closed — run 37573201726 on `d6d5f1dfc`, in the round-12 run line and the PR body. |
 
-Full runs on the round-13 fixes (2026-10-07, desktop Chrome 154.0.8037.93), on the working tree committed unchanged with this ledger change: browser checks 112 passed in 326 s; unit suites 244 passed.
+Full runs on the round-13 fixes (2026-10-07, desktop Chrome 154.0.8037.93), on the working tree committed unchanged as `6915df9ba`: browser checks 112 passed in 326 s; unit suites 244 passed. CI run 37575098583 (`test-corpus`, `ubuntu-latest`, Python 3.11, `6915df9ba`) passed all four shards.
 
 ## Round-14 review corrections
 
@@ -498,6 +498,10 @@ The fourteenth post-gates review (2026-10-07, head `6915df9ba`) found the securi
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
 | R14-QE-1 | Nit | The tag-contrast check never confirmed a node was drawn as selected. | closed — it now fails unless ADR-0001 is the one node with the selected fill `#1d4ed8`. |
+
+Full runs on the round-14 fix at `2b7ae327d` (2026-10-07, desktop Chrome 154.0.8037.93): browser checks 112 passed in 233 s; unit suites 244 passed (unchanged by this test-only edit). CI run 37617024066 (`test-corpus`, `ubuntu-latest`, Python 3.11, `2b7ae327d`) passed all four shards.
+
+From here on, a commit that changes only this ledger is not given its own run line; its CI result is in the pull request's checks and description.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
