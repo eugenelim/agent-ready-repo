@@ -683,3 +683,191 @@ def test_ambiguous_brief_named_brief_is_read_from_its_matched_file(
     assert isinstance(verdict_alpha, _ci.ClosureRefuse), repr(verdict_alpha)
     assert "delivery-relation-ambiguous" in verdict_alpha.reason
     assert isinstance(verdict_ctrl, _ci.ClosureEligible), repr(verdict_ctrl)
+
+
+# ── VI-2402: broken spec Brief: refuses brief-route feature; spec-route control eligible ─
+
+
+@pytest.mark.parametrize(
+    "code,brief_value,description",
+    [
+        ("delivery-reference-malformed", "not-valid-id", "malformed"),
+        ("delivery-reference-unsafe", "/absolute/path.md", "unsafe"),
+        ("delivery-target-missing", "brief:nonexistent-x", "missing-target"),
+    ],
+    ids=["malformed", "unsafe", "missing-target"],
+)
+def test_vi2402_broken_spec_brief_refuses_brief_route_not_spec_route(
+    tmp_path: Path,
+    code: str,
+    brief_value: str,
+    description: str,
+) -> None:
+    """A broken spec Brief: (malformed/unsafe/missing-target) refuses every
+    brief-route feature while an unrelated spec-route control stays eligible.
+
+    The broken spec is on an unrelated spec.  Brief-route feature 'intent-br'
+    must be refused with the matching code.  Spec-route control 'intent-sp'
+    must stay ClosureEligible — AC-0020 does not extend these codes to spec-route.
+    """
+    # Brief-route feature
+    _write_intent(tmp_path, "intent-br", decomposed="brief")
+    _write_brief(tmp_path, "br-brief", parent="intent-br", status="Executing")
+    _write_spec(tmp_path, "br-spec", brief="brief:br-brief")
+
+    # Spec-route control
+    _write_intent(tmp_path, "intent-sp", decomposed="spec")
+    _write_spec(tmp_path, "sp-spec", discovery="intent:intent-sp")
+
+    # Unrelated broken spec carrying the bad Brief: value
+    _write(
+        tmp_path / "docs" / "specs" / "bad-spec" / "spec.md",
+        f"# Bad\n\n- **Status:** Draft\n- **Brief:** `{brief_value}`\n",
+    )
+
+    verdict_br = _check("intent-br", "brief", tmp_path)
+    verdict_sp = _check("intent-sp", "spec", tmp_path)
+
+    assert isinstance(verdict_br, _ci.ClosureRefuse), f"{description}: {verdict_br!r}"
+    assert code in verdict_br.reason, f"{description}: expected {code!r} in {verdict_br.reason!r}"
+
+    # Spec-route control must not be refused by a Brief: diagnostic.
+    assert isinstance(verdict_sp, _ci.ClosureEligible), (
+        f"{description}: spec-route control must stay eligible; got {verdict_sp!r}"
+    )
+
+
+def test_vi2402_ambiguous_brief_no_resolving_feature_refuses_brief_not_spec(
+    tmp_path: Path,
+) -> None:
+    """Ambiguous spec Brief: whose briefs resolve to no feature refuses brief-route
+    features but must not refuse an unrelated spec-route control.
+    """
+    # Brief-route feature
+    _write_intent(tmp_path, "intent-br", decomposed="brief")
+    _write_brief(tmp_path, "br-brief", parent="intent-br", status="Executing")
+    _write_spec(tmp_path, "br-spec", brief="brief:br-brief")
+
+    # Spec-route control
+    _write_intent(tmp_path, "intent-sp", decomposed="spec")
+    _write_spec(tmp_path, "sp-spec", discovery="intent:intent-sp")
+
+    # Unrelated broken spec: ambiguous Brief: with briefs that have no feature link
+    _write(
+        tmp_path / "docs" / "product" / "briefs" / "no-parent-a.md",
+        "# No Parent A\n\n- **Slug:** `no-parent-a`\n- **Status:** Draft\n",
+    )
+    _write(
+        tmp_path / "docs" / "product" / "briefs" / "no-parent-b.md",
+        "# No Parent B\n\n- **Slug:** `no-parent-b`\n- **Status:** Draft\n",
+    )
+    _write(
+        tmp_path / "docs" / "specs" / "bad-spec" / "spec.md",
+        "# Bad\n\n- **Status:** Draft\n"
+        "- **Brief:** `brief:no-parent-a`\n"
+        "- **Brief:** `brief:no-parent-b`\n",
+    )
+
+    verdict_br = _check("intent-br", "brief", tmp_path)
+    verdict_sp = _check("intent-sp", "spec", tmp_path)
+
+    assert isinstance(verdict_br, _ci.ClosureRefuse), repr(verdict_br)
+    assert "delivery-relation-ambiguous" in verdict_br.reason
+
+    assert isinstance(verdict_sp, _ci.ClosureEligible), (
+        "spec-route control must stay eligible when ambiguous Brief: names no feature; "
+        f"got {verdict_sp!r}"
+    )
+
+
+# ── VI-2403: brief: ambiguity refuses closed-empty/direct-light; Discovery: refuses DL ──
+
+
+def test_vi2403_ambiguous_brief_refuses_closed_empty_named_feature(
+    tmp_path: Path,
+) -> None:
+    """Ambiguous spec Brief: whose brief names a closed-empty feature via
+    Parent intent: must refuse that feature.  An unrelated closed-empty control
+    stays eligible.
+    """
+    # Feature A: closed-empty terminus
+    _write_intent(tmp_path, "intent-a", decomposed="closed-empty")
+    # Brief whose Parent intent: links it to intent-a
+    _write_brief(tmp_path, "brief-a", parent="intent-a")
+    # Control: closed-empty, no broken spec names it
+    _write_intent(tmp_path, "intent-z", decomposed="closed-empty")
+
+    # Unrelated broken spec: ambiguous Brief: names brief-a and a missing brief
+    _write(
+        tmp_path / "docs" / "specs" / "broken" / "spec.md",
+        "# Broken\n\n"
+        "- **Status:** Draft\n"
+        "- **Brief:** `brief:brief-a`\n"
+        "- **Brief:** `brief:missing-x`\n",
+    )
+
+    verdict_a = _check("intent-a", "closed-empty", tmp_path)
+    verdict_z = _check("intent-z", "closed-empty", tmp_path)
+
+    assert isinstance(verdict_a, _ci.ClosureRefuse), repr(verdict_a)
+    assert "delivery-relation-ambiguous" in verdict_a.reason
+    assert isinstance(verdict_z, _ci.ClosureEligible), repr(verdict_z)
+
+
+def test_vi2403_ambiguous_brief_refuses_direct_light_named_feature(
+    tmp_path: Path,
+) -> None:
+    """Ambiguous spec Brief: whose brief names a direct-light feature via
+    Parent intent: must refuse that feature.  An unrelated direct-light control
+    stays eligible.
+    """
+    # Feature A: direct-light terminus
+    _write_intent(tmp_path, "intent-a", decomposed="direct-light")
+    # Brief whose Parent intent: links it to intent-a
+    _write_brief(tmp_path, "brief-a", parent="intent-a")
+    # Control: direct-light, no broken spec names it
+    _write_intent(tmp_path, "intent-z", decomposed="direct-light")
+
+    # Unrelated broken spec: ambiguous Brief: names brief-a and a missing brief
+    _write(
+        tmp_path / "docs" / "specs" / "broken" / "spec.md",
+        "# Broken\n\n"
+        "- **Status:** Draft\n"
+        "- **Brief:** `brief:brief-a`\n"
+        "- **Brief:** `brief:missing-x`\n",
+    )
+
+    verdict_a = _check("intent-a", "direct-light", tmp_path)
+    verdict_z = _check("intent-z", "direct-light", tmp_path)
+
+    assert isinstance(verdict_a, _ci.ClosureRefuse), repr(verdict_a)
+    assert "delivery-relation-ambiguous" in verdict_a.reason
+    assert isinstance(verdict_z, _ci.ClosureEligible), repr(verdict_z)
+
+
+def test_vi2403_ambiguous_discovery_refuses_direct_light_named_feature(
+    tmp_path: Path,
+) -> None:
+    """An ambiguous spec Discovery: refuses a direct-light feature named as a target.
+    An unrelated direct-light control stays eligible.
+    """
+    # Feature A: direct-light terminus
+    _write_intent(tmp_path, "intent-a", decomposed="direct-light")
+    # Control: direct-light, not named in any broken spec
+    _write_intent(tmp_path, "intent-z", decomposed="direct-light")
+
+    # Unrelated broken spec: ambiguous Discovery: names intent-a
+    _write(
+        tmp_path / "docs" / "specs" / "broken" / "spec.md",
+        "# Broken\n\n"
+        "- **Status:** Draft\n"
+        "- **Discovery:** `intent:intent-a`\n"
+        "- **Discovery:** `intent:intent-q`\n",
+    )
+
+    verdict_a = _check("intent-a", "direct-light", tmp_path)
+    verdict_z = _check("intent-z", "direct-light", tmp_path)
+
+    assert isinstance(verdict_a, _ci.ClosureRefuse), repr(verdict_a)
+    assert "delivery-relation-ambiguous" in verdict_a.reason
+    assert isinstance(verdict_z, _ci.ClosureEligible), repr(verdict_z)

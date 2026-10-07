@@ -725,3 +725,146 @@ def test_vi2003_both_consumers_accept_base_records_unchanged() -> None:
                     f"[{consumer_label}] {label}: _validate_snapshot_dict "
                     f"rejected a valid base record: {exc}"
                 )
+
+
+# ── VI-2404: Parent intent provenance records ────────────────────────────────
+
+
+def _write_vi2404(path: Any, text: str) -> None:
+    """Write text to path, creating parents as needed."""
+    from pathlib import Path as _Path
+    p = _Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text, encoding="utf-8")
+
+
+def test_vi2404_resolver_emits_parent_intent_provenance_for_ambiguous_brief(
+    tmp_path: Any,
+) -> None:
+    """Resolver emits one Parent intent provenance record per feature intent named
+    by a brief that an ambiguous spec Brief: targets.
+
+    A brief with two valid Parent intent: values (intent:alpha and intent:beta)
+    is named in a two-value spec Brief: (ambiguous).  The resolver emits one
+    provenance record for each feature the brief names.  The brief's own
+    delivery-relation-ambiguous diagnostic (from its two distinct Parent intent:
+    slugs) is also present; the provenance records are emitted regardless.
+    """
+    resolver = _load_resolver("vi2404_prov")
+    _write_vi2404(
+        tmp_path / "docs/product/intents/alpha.md",
+        "# alpha\n\n- **Slug:** `alpha`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-07 spec\n",
+    )
+    _write_vi2404(
+        tmp_path / "docs/product/intents/beta.md",
+        "# beta\n\n- **Slug:** `beta`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-07 spec\n",
+    )
+    _write_vi2404(
+        tmp_path / "docs/product/briefs/shared-brief.md",
+        "# Shared\n\n- **Slug:** `shared`\n- **Status:** Executing\n"
+        "- **Parent intent:** intent:alpha\n"
+        "- **Parent intent:** intent:beta\n",
+    )
+    _write_vi2404(
+        tmp_path / "docs/specs/broken/spec.md",
+        "# Spec\n\n- **Status:** Draft\n"
+        "- **Brief:** `brief:shared`\n"
+        "- **Brief:** `brief:missing`\n",
+    )
+
+    snapshot = resolver.resolve_repository(tmp_path)
+    assert snapshot["complete"] is True
+
+    pi_provs = [
+        p for p in snapshot["provenance"]
+        if p.get("field") == "Parent intent"
+    ]
+    assert len(pi_provs) == 2, (
+        f"expected 2 Parent intent records, got {pi_provs!r}"
+    )
+    subjects = {p["subject"] for p in pi_provs}
+    intents = {p["intent"] for p in pi_provs}
+    assert subjects == {"brief:shared"}, f"wrong subjects: {subjects!r}"
+    assert intents == {"intent:alpha", "intent:beta"}, f"wrong intents: {intents!r}"
+
+
+def test_vi2404_consumers_accept_parent_intent_provenance(tmp_path: Any) -> None:
+    """Both consumers' _validate_snapshot_dict accept Parent intent provenance records."""
+    ci = _load_closure("vi2404_ci")
+    lint = _load_lint("vi2404_lint")
+
+    snapshot = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [
+            {
+                "subject": "brief:shared",
+                "field": "Parent intent",
+                "intent": "intent:alpha",
+            },
+        ],
+        "diagnostics": [],
+        "artifacts": {},
+    }
+    for consumer_label, module in [("close-work", ci), ("lint", lint)]:
+        try:
+            module._validate_snapshot_dict(copy.deepcopy(snapshot))
+        except (ValueError, TypeError) as exc:
+            pytest.fail(
+                f"[{consumer_label}] _validate_snapshot_dict rejected "
+                f"Parent intent provenance: {exc}"
+            )
+
+
+def test_vi2404_same_slug_different_kind_yields_one_record_no_ambiguity(
+    tmp_path: Any,
+) -> None:
+    """Parent intent: values of different kinds sharing one slug form one record
+    and no ambiguity diagnostic (AC-0008 deduplication by slug).
+    """
+    resolver = _load_resolver("vi2404_dedup")
+    _write_vi2404(
+        tmp_path / "docs/product/intents/x.md",
+        "# X\n\n- **Slug:** `x`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-07 spec\n",
+    )
+    _write_vi2404(
+        tmp_path / "docs/product/briefs/dup-brief.md",
+        "# Dup\n\n- **Slug:** `dup`\n- **Status:** Executing\n"
+        "- **Parent intent:** outcome:x\n"
+        "- **Parent intent:** capability:x\n",
+    )
+    # Ambiguous spec Brief: so the provenance records are emitted
+    _write_vi2404(
+        tmp_path / "docs/specs/broken/spec.md",
+        "# Spec\n\n- **Status:** Draft\n"
+        "- **Brief:** `brief:dup`\n"
+        "- **Brief:** `brief:other`\n",
+    )
+
+    snapshot = resolver.resolve_repository(tmp_path)
+    assert snapshot["complete"] is True
+
+    pi_provs = [
+        p for p in snapshot["provenance"]
+        if p.get("field") == "Parent intent"
+        and p.get("subject") == "brief:dup"
+    ]
+    assert len(pi_provs) == 1, (
+        f"same-slug different-kind values must yield one record; got {pi_provs!r}"
+    )
+    assert pi_provs[0]["intent"] == "intent:x"
+
+    # No ambiguity diagnostic for the brief
+    brief_ambig = [
+        d for d in snapshot["diagnostics"]
+        if d.get("subject") == "brief:dup"
+        and d.get("code") == "delivery-relation-ambiguous"
+    ]
+    assert not brief_ambig, (
+        f"same-slug deduplication must prevent ambiguity: {brief_ambig!r}"
+    )

@@ -539,13 +539,27 @@ def _validate_snapshot_dict(data: object) -> dict[str, Any]:
                 "delivery-resolver-unavailable: provenance item not a dict"
             )
         _require_identifier(_item.get("subject"), "provenance subject")
+        _pf = _item.get("field")
         _require_member(
-            _item.get("field"), frozenset({"Contract", "Discovery"}), "provenance field"
+            _pf, frozenset({"Contract", "Discovery", "Parent intent"}), "provenance field"
         )
-        if "intent" in _item:
-            _require_identifier(_item["intent"], "provenance intent")
-        if "target" in _item and not isinstance(_item["target"], str):
-            raise ValueError("delivery-resolver-unavailable: bad provenance target")
+        if _pf == "Parent intent":
+            # Parent intent records require a brief:-typed subject and a
+            # required intent:-typed intent field; no target field is used.
+            if not isinstance(_item.get("subject"), str) or not _item["subject"].startswith("brief:"):
+                raise ValueError(
+                    "delivery-resolver-unavailable: Parent intent provenance subject must be brief-typed"
+                )
+            _pi_intent = _item.get("intent")
+            if not isinstance(_pi_intent, str) or not _pi_intent.startswith("intent:"):
+                raise ValueError(
+                    "delivery-resolver-unavailable: Parent intent provenance requires intent-typed intent"
+                )
+        else:
+            if "intent" in _item:
+                _require_identifier(_item["intent"], "provenance intent")
+            if "target" in _item and not isinstance(_item["target"], str):
+                raise ValueError("delivery-resolver-unavailable: bad provenance target")
 
     for _item in data["diagnostics"]:
         if not isinstance(_item, dict):
@@ -1031,36 +1045,53 @@ def _build_descendant_closure(
             queue.append((slug, terminus))
 
     # AC-0020: non-collection termini (closed-empty, direct-light) must still
-    # refuse if an ambiguous spec Discovery: names this feature intent.  These
+    # refuse if an ambiguous spec Discovery: or an ambiguous spec Brief: (via
+    # Parent intent provenance records) names this feature intent.  These
     # termini never enter the collection loop, so the snapshot check runs here.
     if ancestor_terminus in ("closed-empty", "direct-light"):
         snap_dl = _get_snapshot()
         feat_id_dl = f"intent:{ancestor_slug}"
         _artifacts_dl = snap_dl["artifacts"]
         _path_to_id_dl: dict[str, str] = {v: k for k, v in _artifacts_dl.items()}
-        _feature_intent_ids_dl: set[str] = {
-            cl.get("intent", "")
-            for cl in snap_dl["classifications"]
-            if isinstance(cl, dict) and cl.get("intent")
-        }
+        # Build brief->feature map from Parent intent provenance records.
+        _brief_parent_feats_dl: dict[str, set[str]] = {}
+        for _prov in snap_dl["provenance"]:
+            if (
+                _prov.get("field") == "Parent intent"
+                and isinstance(_prov.get("subject"), str)
+                and _prov["subject"].startswith("brief:")
+                and isinstance(_prov.get("intent"), str)
+                and _prov["intent"].startswith("intent:")
+            ):
+                _brief_parent_feats_dl.setdefault(_prov["subject"], set()).add(
+                    _prov["intent"]
+                )
         for _diag in snap_dl["diagnostics"]:
             if (
                 _diag.get("code") == "delivery-relation-ambiguous"
                 and isinstance(_diag.get("subject"), str)
                 and _diag["subject"].startswith("spec:")
-                and _diag.get("field") == "Discovery"
             ):
-                _dl_targets = _diag.get("targets") or []
-                for t in _dl_targets:
-                    if not isinstance(t, str):
-                        continue
-                    if t == feat_id_dl:
-                        raise _ClosureDeliveryRefusal("delivery-relation-ambiguous")
-                    if (
-                        t in _path_to_id_dl
-                        and _path_to_id_dl[t] == feat_id_dl
-                    ):
-                        raise _ClosureDeliveryRefusal("delivery-relation-ambiguous")
+                _dl_field = _diag.get("field")
+                if _dl_field == "Discovery":
+                    _dl_targets = _diag.get("targets") or []
+                    for t in _dl_targets:
+                        if not isinstance(t, str):
+                            continue
+                        if t == feat_id_dl:
+                            raise _ClosureDeliveryRefusal("delivery-relation-ambiguous")
+                        if (
+                            t in _path_to_id_dl
+                            and _path_to_id_dl[t] == feat_id_dl
+                        ):
+                            raise _ClosureDeliveryRefusal("delivery-relation-ambiguous")
+                elif _dl_field == "Brief":
+                    _dl_targets = _diag.get("targets") or []
+                    for t in _dl_targets:
+                        if not isinstance(t, str) or not t.startswith("brief:"):
+                            continue
+                        if feat_id_dl in _brief_parent_feats_dl.get(t, set()):
+                            raise _ClosureDeliveryRefusal("delivery-relation-ambiguous")
 
     queue: list[tuple[str, str]] = [(ancestor_slug, ancestor_terminus)]
 
@@ -1109,11 +1140,26 @@ def _build_descendant_closure(
             # A brief-subject diagnostic means the brief cannot be validated, so
             # every brief-route feature it could belong to is refused. An ambiguous
             # spec Discovery: names which brief-route feature intents to refuse. A
-            # broken spec Brief: field names which feature via the brief's Parent
-            # intent:, or refuses every brief-route feature when none resolve.
+            # broken spec Brief: field names which feature via Parent intent
+            # provenance records, or refuses every brief-route feature when none
+            # resolve.
             _brief_route_codes: frozenset[str] = (
                 _DELIVERY_DIAGNOSTIC_CODES | frozenset({"delivery-reference-unsafe"})
             )
+            # Build brief->feature map from Parent intent provenance records so
+            # no brief file needs to be read on the AC-0020 refusal path.
+            _brief_parent_feats: dict[str, set[str]] = {}
+            for _prov in snap["provenance"]:
+                if (
+                    _prov.get("field") == "Parent intent"
+                    and isinstance(_prov.get("subject"), str)
+                    and _prov["subject"].startswith("brief:")
+                    and isinstance(_prov.get("intent"), str)
+                    and _prov["intent"].startswith("intent:")
+                ):
+                    _brief_parent_feats.setdefault(_prov["subject"], set()).add(
+                        _prov["intent"]
+                    )
             for _diag in snap["diagnostics"]:
                 _code = _diag.get("code", "")
                 _subject = _diag.get("subject", "")
@@ -1151,37 +1197,13 @@ def _build_descendant_closure(
                     ):
                         raise _ClosureDeliveryRefusal(_code)
                     if _code == "delivery-relation-ambiguous":
-                        # Map each named brief to its feature via the brief's
-                        # own Parent intent: field.  Coordinated-delivery
-                        # relations cannot be used here because the ambiguous
-                        # spec itself produces no such relation.  A brief that
-                        # is read from the artifacts map at the exact path the
-                        # resolver matched; a brief absent from it does not resolve.
+                        # Map each named brief to its feature via Parent intent
+                        # provenance records from the snapshot.
                         _targets = _diag.get("targets") or []
-                        _brief_to_feats: dict[str, set[str]] = {}
-                        for t in _targets:
-                            if not isinstance(t, str) or not t.startswith("brief:"):
-                                continue
-                            _brief_art = _artifacts.get(t, "")
-                            if not _brief_art or not _is_safe_artifact_path(_brief_art):
-                                continue
-                            _b_fields = _get_fields(root / _brief_art)
-                            _pi_val = _b_fields.get("Parent intent", "")
-                            if not _pi_val:
-                                continue
-                            for _kind in REFERENCE_KIND_VOCABULARY:
-                                if _pi_val.startswith(f"{_kind}:"):
-                                    _pi_slug = _pi_val[len(_kind) + 1:]
-                                    _pi_feat_id = f"intent:{_pi_slug}"
-                                    if _pi_feat_id in _feature_intent_ids:
-                                        _brief_to_feats.setdefault(t, set()).add(
-                                            _pi_feat_id
-                                        )
-                                    break
                         _named_features: set[str] = set()
                         for t in _targets:
-                            if isinstance(t, str):
-                                _named_features.update(_brief_to_feats.get(t, set()))
+                            if isinstance(t, str) and t.startswith("brief:"):
+                                _named_features.update(_brief_parent_feats.get(t, set()))
                         if _named_features:
                             if feat_id in _named_features:
                                 raise _ClosureDeliveryRefusal(_code)
@@ -1255,6 +1277,19 @@ def _build_descendant_closure(
             }
             # Reverse map for resolving any path-form targets to identifiers.
             _path_to_id_s: dict[str, str] = {v: k for k, v in _artifacts.items()}
+            # Build brief->feature map from Parent intent provenance records.
+            _brief_parent_feats_s: dict[str, set[str]] = {}
+            for _prov in snap["provenance"]:
+                if (
+                    _prov.get("field") == "Parent intent"
+                    and isinstance(_prov.get("subject"), str)
+                    and _prov["subject"].startswith("brief:")
+                    and isinstance(_prov.get("intent"), str)
+                    and _prov["intent"].startswith("intent:")
+                ):
+                    _brief_parent_feats_s.setdefault(_prov["subject"], set()).add(
+                        _prov["intent"]
+                    )
             for _diag in snap["diagnostics"]:
                 _code = _diag.get("code", "")
                 _subject = _diag.get("subject", "")
@@ -1293,52 +1328,19 @@ def _build_descendant_closure(
                             # No named feature targets → refuse every spec-route feature.
                             raise _ClosureDeliveryRefusal(_code)
                 elif _field == "Brief":
-                    if _code in (
-                        "delivery-reference-unsafe",
-                        "delivery-reference-malformed",
-                        "delivery-target-missing",
-                    ):
-                        # An indeterminate Brief: target refuses every spec-route feature
-                        # that could be named by any brief linked through that field.
-                        raise _ClosureDeliveryRefusal(_code)
+                    # Malformed/unsafe/missing-target spec Brief: refuses only
+                    # brief-route features, not spec-route features.
                     if _code == "delivery-relation-ambiguous":
-                        # Map each named brief to its feature via the brief's
-                        # own Parent intent: field; refuse when this feature is
-                        # named, or when none of the named briefs resolves to any
-                        # feature.  A brief referenced only by the ambiguous spec
-                        # is read from the artifacts map at the exact path the
-                        # resolver matched; a brief absent from it does not resolve.
+                        # Map each named brief to its feature via Parent intent
+                        # provenance records from the snapshot.
                         _targets = _diag.get("targets") or []
-                        _s_brief_to_feats: dict[str, set[str]] = {}
-                        for t in _targets:
-                            if not isinstance(t, str) or not t.startswith("brief:"):
-                                continue
-                            _brief_art = _artifacts.get(t, "")
-                            if not _brief_art or not _is_safe_artifact_path(_brief_art):
-                                continue
-                            _b_fields = _get_fields(root / _brief_art)
-                            _pi_val = _b_fields.get("Parent intent", "")
-                            if not _pi_val:
-                                continue
-                            for _kind in REFERENCE_KIND_VOCABULARY:
-                                if _pi_val.startswith(f"{_kind}:"):
-                                    _pi_slug = _pi_val[len(_kind) + 1:]
-                                    _pi_feat_id = f"intent:{_pi_slug}"
-                                    if _pi_feat_id in _feature_intent_ids:
-                                        _s_brief_to_feats.setdefault(t, set()).add(
-                                            _pi_feat_id
-                                        )
-                                    break
                         _s_named_feats: set[str] = set()
                         for t in _targets:
-                            if isinstance(t, str):
-                                _s_named_feats.update(_s_brief_to_feats.get(t, set()))
-                        if _s_named_feats:
-                            if feat_id in _s_named_feats:
-                                raise _ClosureDeliveryRefusal(_code)
-                        else:
-                            # None of the named briefs resolves to a feature intent.
+                            if isinstance(t, str) and t.startswith("brief:"):
+                                _s_named_feats.update(_brief_parent_feats_s.get(t, set()))
+                        if _s_named_feats and feat_id in _s_named_feats:
                             raise _ClosureDeliveryRefusal(_code)
+                        # When no briefs resolve to features, only brief-route is affected.
             for rel in snap["relations"]:
                 if (
                     rel.get("type") == "direct-delivery"

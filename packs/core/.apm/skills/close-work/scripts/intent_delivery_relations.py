@@ -882,8 +882,10 @@ def resolve_repository(
                 spec_brief_slugs[spec_id] = resolved_brief_slugs
 
     # Process each brief's Parent intent:
-    # brief_slug -> set of feature intent slugs it links to
+    # brief_slug -> set of feature intent slugs it links to (non-ambiguous)
     brief_feature_slugs: dict[str, set[str]] = {}
+    # brief_slug -> admitted feature intent slugs (all valid, for provenance records)
+    _brief_admitted_feat_slugs: dict[str, set[str]] = {}
 
     for brief_slug, brief in brief_by_slug.items():
         fields = brief["fields"]
@@ -923,11 +925,29 @@ def resolve_repository(
                 continue
             valid_parents.append((pv, intent_slug))
 
+        # Deduplicate by normalized intent slug: values of different kinds that
+        # share one slug count as one parent and raise no ambiguity diagnostic.
+        _seen_pi_slugs: set[str] = set()
+        _deduped_parents: list[tuple[str, str]] = []
+        for _pv, _slug in valid_parents:
+            if _slug not in _seen_pi_slugs:
+                _seen_pi_slugs.add(_slug)
+                _deduped_parents.append((_pv, _slug))
+        valid_parents = _deduped_parents
+
+        # Track all admitted feature slugs for this brief, used to emit
+        # Parent intent provenance records for ambiguous spec Brief: targets.
+        _admitted: set[str] = {
+            slug for _, slug in valid_parents if slug in feature_intents
+        }
+        if _admitted:
+            _brief_admitted_feat_slugs[brief_slug] = _admitted
+
         if len(valid_parents) > 1:
             # Emit only canonical intent identifiers as targets; raw values
             # like ``outcome:x`` are not in consumers' closed canonical set and
             # would invalidate the whole snapshot.  The slug is already
-            # validated at line 916; normalize every kind to ``intent:<slug>``.
+            # validated above; normalize every kind to ``intent:<slug>``.
             safe_targets = sorted({f"intent:{slug}" for _, slug in valid_parents})
             diagnostics.append({
                 "code": "delivery-relation-ambiguous",
@@ -942,6 +962,32 @@ def resolve_repository(
                     feat_slugs.add(intent_slug)
             if feat_slugs:
                 brief_feature_slugs[brief_slug] = feat_slugs
+
+    # Emit Parent intent provenance records for each brief named by an ambiguous
+    # spec Brief: diagnostic, one record per distinct admitted feature intent.
+    # These records allow consumers to map a named brief to its feature intent(s)
+    # from the snapshot alone, without reading the brief's file.
+    _emitted_pi_prov: set[tuple[str, str]] = set()
+    for _diag in diagnostics:
+        if (
+            _diag.get("code") == "delivery-relation-ambiguous"
+            and _diag.get("field") == "Brief"
+            and isinstance(_diag.get("subject"), str)
+            and _diag["subject"].startswith("spec:")
+        ):
+            for _target in _diag.get("targets", []):
+                if not isinstance(_target, str) or not _target.startswith("brief:"):
+                    continue
+                _b_slug = _target[len("brief:"):]
+                for _feat_slug in sorted(_brief_admitted_feat_slugs.get(_b_slug, set())):
+                    _pi_rec_key = (_target, f"intent:{_feat_slug}")
+                    if _pi_rec_key not in _emitted_pi_prov:
+                        _emitted_pi_prov.add(_pi_rec_key)
+                        provenance.append({
+                            "subject": _target,
+                            "field": "Parent intent",
+                            "intent": f"intent:{_feat_slug}",
+                        })
 
     # Derive relations and classifications for each feature intent
     for feat_slug, feat in sorted(feature_intents.items()):
@@ -1086,8 +1132,8 @@ def resolve_repository(
                         "route": route,
                     })
 
-    # Build artifacts map: every identifier that appears in a relation or
-    # provenance record, mapped to its repo-relative artifact path.
+    # Build artifacts map: every identifier that appears in a relation,
+    # provenance record, or diagnostic, mapped to its repo-relative artifact path.
     def _get_artifact_path(ident: str) -> str | None:
         if ident.startswith("intent:"):
             slug = ident[len("intent:"):]

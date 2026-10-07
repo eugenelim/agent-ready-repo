@@ -542,3 +542,92 @@ def test_vi1705_provider_kwarg_not_module_global(tmp_path: Path) -> None:
     assert not any("delivery-resolver-unavailable" in h for h in hard), (
         f"kwarg provider succeeds → no delivery failure: {hard!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# VI-2405: deeply nested payload and 200-char label truncation
+# ---------------------------------------------------------------------------
+
+
+def test_vi2405_deeply_nested_payload_yields_unavailable(tmp_path: Path) -> None:
+    """A resolver that outputs deeply nested JSON (RecursionError in json.loads)
+    yields delivery-resolver-unavailable with exit 1 and no traceback.
+
+    The stub writes JSON nested 5000 levels deep, exceeding Python's default
+    recursion limit.  _parse_and_validate_snapshot catches the RecursionError
+    and re-raises ValueError.  check() then adds the sanitized message to hard
+    violations.
+    """
+    _write(
+        tmp_path / "docs/product/briefs/anchor.md",
+        "# Brief\n\n- **Slug:** `anchor`\n",
+    )
+    stub = tmp_path / "deep_resolver.py"
+    stub.write_text(
+        "import sys\n"
+        "sys.stdout.reconfigure(encoding='utf-8')\n"
+        "depth = 5000\n"
+        "text = '{\"a\":' * depth + '\"x\"' + '}' * depth + '\\n'\n"
+        "sys.stdout.write(text)\n",
+        encoding="utf-8",
+    )
+
+    mod = _load_linter("vi2405_deep")
+
+    def deep_provider(root: Path) -> dict:
+        return mod._run_resolver(root, _resolver_path=stub)
+
+    out_lines, hard, exit_hint = mod.check(
+        tmp_path, False, snapshot_provider=deep_provider
+    )
+    assert exit_hint == 1, (
+        f"deeply nested payload → exit 1, got {exit_hint}: {hard!r}"
+    )
+    assert any("delivery-resolver-unavailable" in h for h in hard), (
+        f"deeply nested payload → delivery-resolver-unavailable in hard: {hard!r}"
+    )
+    all_output = "\n".join(out_lines + hard)
+    assert "Traceback" not in all_output, (
+        f"traceback must not appear in output: {all_output!r}"
+    )
+
+
+def test_vi2405_subject_longer_than_200_chars_is_truncated(tmp_path: Path) -> None:
+    """A diagnostic subject or target longer than 200 characters is truncated
+    to 200 characters with an ellipsis in the printed label.
+
+    The snapshot carries a valid delivery-target-missing diagnostic whose spec:
+    subject is 201 characters long.  The printed DANGLING label must contain the
+    truncated subject (first 200 chars + ellipsis).
+    """
+    _write(
+        tmp_path / "docs/product/briefs/anchor.md",
+        "# Brief\n\n- **Slug:** `anchor`\n",
+    )
+    # Construct a valid spec: identifier of length 201
+    long_slug = "a" * (201 - len("spec:"))  # 196 chars → spec: prefix → 201 total
+    long_subject = f"spec:{long_slug}"
+    assert len(long_subject) == 201
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [
+            {"code": "delivery-target-missing", "subject": long_subject},
+        ],
+    }
+
+    mod = _load_linter("vi2405_truncation")
+    out_lines, hard, exit_hint = mod.check(
+        tmp_path, False, snapshot_provider=lambda _: snapshot
+    )
+
+    # delivery-target-missing with a spec: subject → DANGLING → exit 1
+    assert exit_hint == 1, (
+        f"delivery-target-missing → exit 1; got {exit_hint}: {hard!r}"
+    )
+    dangling_text = " ".join(hard)
+    truncated = long_subject[:200] + "\u2026"
+    assert truncated in dangling_text, (
+        f"truncated label (first 200 chars + ellipsis) not found in hard; "
+        f"hard={hard!r}"
+    )

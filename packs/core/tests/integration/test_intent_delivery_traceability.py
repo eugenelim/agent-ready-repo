@@ -447,7 +447,8 @@ def _subtest_explicit_empty(root: Path) -> None:
     """Explicit-empty: direct-light classification produces no-durable-child.
 
     Resolver returns no-durable-child classification.
-    close-work returns ClosureEligible immediately (no snapshot needed for direct-light).
+    close-work returns ClosureEligible for direct-light (snapshot is used to check
+    AC-0020 refusals, but no ambiguous spec names this feature).
     lint-traceability exits 0.
     """
     _make_intent(root, "feat-empty", decomposed="2026-10-05 direct-light")

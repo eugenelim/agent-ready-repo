@@ -1441,15 +1441,32 @@ def _validate_snapshot_dict(data: dict[str, Any]) -> None:
                 "delivery-resolver-unavailable: provenance item not a dict"
             )
         _require_identifier(_item.get("subject"), "provenance subject")
+        _pf = _item.get("field")
         _require_member(
-            _item.get("field"),
-            frozenset({"Contract", "Discovery"}),
+            _pf,
+            frozenset({"Contract", "Discovery", "Parent intent"}),
             "provenance field",
         )
-        if "intent" in _item:
-            _require_identifier(_item["intent"], "provenance intent")
-        if "target" in _item and not isinstance(_item["target"], str):
-            raise ValueError("delivery-resolver-unavailable: bad provenance target")
+        if _pf == "Parent intent":
+            # Parent intent records require a brief:-typed subject and a
+            # required intent:-typed intent field; no target field is used.
+            _pi_subj = _item.get("subject")
+            if not isinstance(_pi_subj, str) or not _pi_subj.startswith("brief:"):
+                raise ValueError(
+                    "delivery-resolver-unavailable:"
+                    " Parent intent provenance subject must be brief-typed"
+                )
+            _pi_intent = _item.get("intent")
+            if not isinstance(_pi_intent, str) or not _pi_intent.startswith("intent:"):
+                raise ValueError(
+                    "delivery-resolver-unavailable:"
+                    " Parent intent provenance requires intent-typed intent"
+                )
+        else:
+            if "intent" in _item:
+                _require_identifier(_item["intent"], "provenance intent")
+            if "target" in _item and not isinstance(_item["target"], str):
+                raise ValueError("delivery-resolver-unavailable: bad provenance target")
 
     # --- diagnostics ---------------------------------------------------------
     for _item in data["diagnostics"]:
@@ -1810,10 +1827,13 @@ def build_standalone(root: Path, layout: dict, g: Graph,
             g.dangling_in.add(_dds)
 
         # Build the contextual-provenance field map per spec.
+        # Parent intent provenance records have brief: subjects and are not
+        # contextual-provenance entries for specs; skip them to leave lint
+        # results unchanged.
         for _prov in _snapshot["provenance"]:
             _ps = _prov.get("subject", "")
             _pf = _prov.get("field", "")
-            if _ps and _pf:
+            if _ps and _pf and _pf != "Parent intent":
                 _contextual_prov.setdefault(_ps, set()).add(_pf)
 
     # -----------------------------------------------------------------------
