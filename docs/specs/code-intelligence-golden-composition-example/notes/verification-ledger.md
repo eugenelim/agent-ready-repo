@@ -427,10 +427,23 @@ Five sustained findings from the round-4 post-gates review. Security review had 
 | Reviewer | # | Sev | Finding | Change |
 |---|---|-----|---------|--------|
 | Experience | 2 | Concern | Shared-limits bullet overstated what the graph shows for dynamic dispatch and reflection — claimed these always appear as `unresolved` edges, contradicting `gaps.md` § 12 (lines 229-230) which says they produce edgeless symbols and that absence of an edge is not proof of absence of use | Updated the bullet to say the graph may count some of these uses as `unresolved` and may show nothing at all for others, so a zero `unresolved` count does not rule them out; links `gaps.md` § 12 Completeness instead of restating it |
-| Experience | 4 | Nit | `SKILL.md` § Composition example shortened the question to "before changing `parse_config`", dropping "the signature of", making it broader than the example's actual question | Quoted the question exactly as the example states it: "before changing the signature of `parse_config`" |
+| Experience | 4 | Nit | `SKILL.md` § Composition example shortened the question to "before changing `parse_config`", dropping "the signature of", making it broader than the example's actual question | "the signature of" was restored and the question was reordered so that SKILL.md shares no run of ten or more words with the example, which `test_example_copies_no_canonical_detail` forbids |
 | Adversarial | 1 | Concern | Case `5` recorded as run-to-run variation, but one pass on `origin/main` and one branch re-run cannot establish that the round-7 failure was variation rather than a regression | `eval-runs.md` and `verification-ledger.md` (tally and observation (h)) updated to state one fail and one pass on the branch plus one `origin/main` pass, and that this evidence cannot separate variation from regression |
 | Adversarial | 2 | Nit | AC-0001 evidence row cited `composition-provider-fit` round 6, which is superseded; the graded record is round 7 | AC-0001 row updated to cite round 7 |
 | Adversarial | 3 | Nit | Observation (h) corrected a round-6 sentence ("The round-6 note above said every supplied-output case had re-run") that is no longer in the ledger — draft-time narration pointing at text a reader cannot find | Dropped that sentence; kept the current fact that cases `3`, `4`, `5`, and `7` first ran against the supplied-output sentence in round 7 |
+
+### (j) Review round 5
+
+Round-5 adversarial review raised one Nit — the ledger row in observation (i) recording the Experience|4 repair as "Quoted the question exactly as the example states it" — adjudicated and fixed: the row now states that "the signature of" was restored and the question was reordered so that SKILL.md shares no run of ten or more words with the example, which `test_example_copies_no_canonical_detail` forbids.
+
+Round-5 experience review raised two Nits, deferred unacted with their citations:
+
+- (a) `packs/code-intelligence/.apm/skills/code-intelligence/references/composition-example.md:98` — the graph-only `blast-radius` provenance note sits under the fallback path's shared-limits list rather than in the provider-fit path.
+- (b) `packs/code-intelligence/README.md:53` — the Composition example section opens with an unframed question.
+
+Neither (a) nor (b) is required by the accepted spec or shows an incorrect statement.
+
+Round-4 security review was clean. Round 5 did not re-run security review because the round-4 repair touched no security-relevant text.
 
 ## Acceptance-criteria evidence map
 
