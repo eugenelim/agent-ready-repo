@@ -230,11 +230,11 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  # Implementing (FEAT-0033, RFC-0105): delivered as an intermediate unit;
-  # AC-0020's human comparison sessions remain open.
-  {path = "docs/specs/decision-navigation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0033-decision-navigation.md"}, summary = "Replace rfc-status with bounded ADR/RFC queries and list, lifecycle, guidance-context, and detail views in one safe offline explorer", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-07 (FEAT-0033, RFC-0105). AC-0020 closed on the owner's
+  # accepted session after the 2026-10-07 amendment.
+  {path = "docs/specs/decision-navigation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0033-decision-navigation.md"}, summary = "Replace rfc-status with bounded ADR/RFC queries and list, lifecycle, guidance-context, and detail views in one safe offline explorer", needs = []},
   # Shipped 2026-10-06. Delivered across #1506 (waves 1-4) and its closeout.
   # Registered 2026-10-05 from a Type 1 finding — the spec and plan were
   # approved 2026-10-02 with no workspace membership, so nothing could dispatch

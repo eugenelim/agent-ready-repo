@@ -1,7 +1,7 @@
 # Plan: Decision navigation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/governance-extras/DESIGN.md`; `packs/governance-extras/.apm/skills/rfc-status/`; `packs/core/.apm/skills/explain-diff/references/html-authoring.md`; `packs/governance-extras/pack.toml`; divergence: decision navigation covers a corpus and two output modes, so `explain-diff` is a safety precedent rather than a required renderer or page structure.
 
 > **Plan contract:** this is the implementation strategy. It may change
