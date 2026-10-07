@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one source resolver whose byte-identical, parity-pinned copies each consuming skill ships and runs, instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -787,3 +787,5 @@ The resolver, both consumers, and their skill-local copies ship in one Core rele
 - 2026-10-06: second amended plan approved by eugenelim
 - 2026-10-07: third controlled amendment after post-build review round 3. Close-work mapped a named brief to its features by reading the brief's file, against AC-0014 and T11; the owner chose resolver-reported brief parents (owner decision 7). Adds T14 for that decision and the round-3 findings, and T13 now depends on it; T1–T12 are delivered and unchanged. Authority: `notes/verification-ledger.md`.
 - 2026-10-07: third amendment revised from its pre-EXECUTE review: T14's Done-when names the resolver comment and the unused set, scopes the no-brief-read rule to the AC-0020 refusal path, and the design counts one record per named intent.
+- 2026-10-07: third amended spec approved by eugenelim
+- 2026-10-07: third amended plan approved by eugenelim
