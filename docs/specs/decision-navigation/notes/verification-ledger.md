@@ -416,26 +416,41 @@ The eighth post-gates review (2026-10-06, head `4f6397d3a`) found the security l
 | R8-FE-1 | Concern | Showing contextual links moved the focused toggle off-screen. | closed — the toggle sits above the diagram; the contextual check asserts its top edge does not move on Show or Hide (failed before). |
 | R8-FE-2 | Nit | Contextual branches were about 1.5:1. | closed — they use the bus colour `#9ca3af`. |
 | R8-QE-1 | Concern | The contextual check could not fail on a line through a plate. | closed — `_assert_labels_sound` asserts no bus, satellite or contextual line passes through any plate. Placement also never lets those lines sit under a plate; no fixture makes placement try, so that rule is not separately test-verified (turning it off leaves every check green). |
-| R8-EXP-1 | Nit | A scope label could sit by another record's arrowhead. | closed — labels are placed in the half of their edge nearest its arrowhead, on the line first, and a chain-edge spot is refused if the nearest chain arrowhead points at a different record; where none fits, the edge shows a keyed number (since round 9 a number may sit anywhere clear on its edge). `test_crowded_labels_stay_on_their_own_edges` asserts each label sits nearest an arrowhead at its own record (failed before). On this repository's corpus, 0 of 167 labels on 39 routes sit by another record; the 11-record chain shows 6 to 8 of its 11 labels as keyed numbers. |
+| R8-EXP-1 | Nit | A scope label could sit by another record's arrowhead. | closed — labels are placed in the half of their edge nearest its arrowhead, on the line first, and a chain-edge spot is refused if the nearest chain arrowhead points at a different record; where none fits, the edge shows a keyed number (since round 10 a number may sit anywhere clear on its whole edge, by any record). `test_crowded_labels_stay_on_their_own_edges` asserts each label sits nearest an arrowhead at its own record (failed before). Measured at round 8: 0 of 167 labels on 39 routes sat by another record, and the 11-record chain showed 6 to 8 of its 11 labels as keyed numbers, depending on the selected record. Round 10's figures supersede these (see R10-ADV-2). |
 | R8-EXP-3 | Nit | A same-column assertion climbed past its target. | closed — when both ends share a column the route runs straight down the gutter. |
 
 Full runs on the round-8 fixes at `12384d7dc` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 97 passed in 456 s; unit suites 244 passed. CI run 37535333495 (`test-corpus`, `ubuntu-latest`, Python 3.11, `46a698340`) passed all four shards.
 
 ## Round-9 review corrections
 
-The ninth post-gates review (2026-10-06, head `46a698340`) found the security lens clean and sustained 6 findings across the other four, refuting 5. The quality-engineer adjudication left one item undecided (the untested hard-line rule); R8-QE-1 now states it as not test-verified, which is that item's own remedy. "Failed before" means the check failed on the code at `46a698340`.
+The ninth post-gates review (2026-10-06, head `46a698340`) found the security lens clean and sustained 6 findings across the other four, refuting 4. The quality-engineer adjudication left one item undecided (the untested hard-line rule); R8-QE-1 now states it as not test-verified, which is that item's own remedy. "Failed before" means the check failed on the code at `46a698340`.
 
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
 | R9-ADV-1 / R9-FE-2 | Blocker | A cycle in the newest column was clipped and lost its labels. | closed — the drawing reserves room past the last column whenever the chain has a cycle; `test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels[two]` and `[three]` (no satellites, every arc inside the drawing, one label each; both failed before). |
-| R9-FE-1 / R9-EXP-1 | Concern | Some edges, once the selected record's own, had no mark on the diagram. | closed — a keyed number may sit anywhere clear on its edge, and the selected record's edges are placed first; `test_every_edge_of_a_dense_chain_is_marked` (a chain shaped like this repository's densest, every one of its 11 selections; failed before) and the crowded check assert no "no room" entry. On this repository's corpus, 0 of 39 routes now leave an edge unmarked and 0 of 170 whole labels sit by another record. |
+| R9-FE-1 / R9-EXP-1 | Concern | Some edges, once the selected record's own, had no mark on the diagram. | closed — a keyed number may sit by any record (round 10 also lets it use its whole edge and drops the selected-record-first ordering, see R10-QE-1); `test_every_edge_of_a_dense_chain_is_marked` (a chain shaped like this repository's densest, every one of its 11 selections; failed before) and the crowded check assert no "no room" entry. Corpus figures: see R10-ADV-2. |
 | R9-ADV-3 | Nit | The round-8 refuted count was wrong. | closed — 4. |
 | R9-ADV-4 | Nit | The round-8 run line named no commit. | closed — `12384d7dc`, and CI run 37535333495 on `46a698340`. |
 | (undecided) | — | The hard-line placement rule had no failing check. | stated as not test-verified in R8-QE-1. |
 
 `test_a_same_column_assertion_runs_straight_between_its_records` also pins R8-EXP-3's route (it fails on the climbing route).
 
-Full runs on the round-9 fixes (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 336 s; unit suites 244 passed.
+Full runs on the round-9 fixes at `32b6c6cfc` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 336 s; unit suites 244 passed. CI run 37555604543 (`test-corpus`, `ubuntu-latest`, Python 3.11, `d61408489`) passed all four shards.
+
+## Round-10 review corrections
+
+The tenth post-gates review (2026-10-06, head `d61408489`) found the security and experience lenses clean and sustained 6 findings across the other three, refuting 1. Two adversarial items came back undecided for lack of a runtime measurement; both are measured and acted on below (R10-ADV-2, R10-ADV-3). The engine's round-10 `findings-remain` record holds 2 fingerprints: the adversarial adjudication carries those undecided items, so its 3 sustained findings were not fingerprinted. They are closed here all the same. "Failed before" means the check failed on the code at `d61408489`.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| R10-ADV-1 / R10-FE-1 | Concern | A keyed number was still held to the arrowhead half of its edge. | closed — a keyed number, and a `cycle` label, may use the whole edge; only a whole scope label keeps to the arrowhead half. The whole-edge search is not separately test-verified: turning it off leaves every check green. |
+| R10-ADV-2 | Concern | The corpus figure counted numbers as whole labels. | closed — on this repository's corpus, 37 focused routes draw 170 labels: 87 whole labels, none by another record's arrowhead, and 83 keyed numbers, of which 33 sit nearest another record's arrowhead. That is the accepted trade-off: each number's key entry names both records. No edge is unmarked. |
+| R10-ADV-3 | Concern | In a three-record newest-column cycle, two arcs showed numbers. | closed — `cycle` labels name no scope, so they skip the own-record rule and may use the whole edge; `test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels` now asserts each arc's label reads `cycle` (failed before). |
+| R10-QE-1 | Concern | Neither placement rule of R9-FE-1 was checked on its own. | closed — the selected-record-first ordering was not needed and is removed; with it gone, turning off the any-record rule for numbers fails `test_every_edge_of_a_dense_chain_is_marked[ADR-0010]`. |
+| R10-ADV-4 | Nit | The round-9 refuted count was wrong. | closed — 4. |
+| R10-ADV-5 | Nit | The round-9 run line named no commit. | closed — `32b6c6cfc`, and CI run 37555604543 on `d61408489`. |
+
+Full runs on the round-10 fixes (2026-10-06, desktop Chrome 154.0.8037.93; the fix commit follows this ledger change's parent `d61408489`): browser checks 111 passed in 319 s; unit suites 244 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
