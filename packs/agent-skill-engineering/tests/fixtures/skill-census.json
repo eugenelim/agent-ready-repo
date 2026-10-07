@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 133,
+  "population_size": 134,
   "entries": [
     {
       "pack": "_example",
@@ -470,6 +470,15 @@
       "families": [
         "compatibility-deprecation",
         "artifact-template-producer"
+      ],
+      "exception": null
+    },
+    {
+      "pack": "core",
+      "skill": "repository-exploration",
+      "families": [
+        "inline-procedure",
+        "orientation-read-model"
       ],
       "exception": null
     },

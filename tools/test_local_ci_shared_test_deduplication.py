@@ -956,28 +956,41 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `d5ce59c0…` and `74e76e14…` still in place
 # returns an empty error list, so this supersedes live values rather than a pin
 # that had already gone stale.
+# Bumped 2026-10-05 for the `repository-exploration` skill (T1), which adds one
+# `run-test-suite` line: `$(PYTHON) -m pytest
+# packs/core/tests/skills/repository-exploration/ -q`. It lands at plan index 30
+# in the standalone plan (75 -> 76) and at the matching position in the composed
+# plan (74 -> 75). Deleting exactly that one line from the new plans recomputes
+# `b8b11581…` and `ccb88947…` — the superseded pins — element for element,
+# so nothing else moved, was reordered, or was dropped.
+# `EXPECTED_ROOT_TOOL_PATHS` is untouched: the suite is a pack path, not a root
+# tool path, so `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over this
+# worktree's Makefile with `b8b11581…` and `ccb88947…` still in place and the
+# exploration line removed returns an empty error list, so this supersedes live
+# values rather than a pin that had already gone stale.
 # Bumped 2026-10-06 for spec/decision-navigation, which appends one
 # `run-test-suite` line so the governance-extras `navigate-decisions` suite
 # runs under `make test`.
 # (1) Sole cause: `git diff origin/main -- Makefile` is one added line and
 # none removed or reordered — `$(PYTHON) -m pytest
 # packs/governance-extras/tests/skills/navigate-decisions/ -q`, after the
-# `design-system` line. It is a new pytest process, so it takes plan index 39
-# in each plan (standalone 74 -> 75, composed 73 -> 74), and deleting exactly
-# that line from the new plans recomputes `b8b11581…` and `ccb88947…` — the
+# `design-system` line. It is a new pytest process, so it takes plan index 40
+# in each plan (standalone 75 -> 76, composed 74 -> 75), and deleting exactly
+# that line from the new plans recomputes `ce75814f…` and `4ab0b073…` — the
 # superseded pins — element for element, so nothing else moved, was
 # reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is untouched: it is a
 # pack path, not a root tool path.
 # (2) Prior pins were current: `_effective_composition_errors` over
-# `origin/main:Makefile` with `b8b11581…` and `ccb88947…` still in place
+# `origin/main:Makefile` with `ce75814f…` and `4ab0b073…` still in place
 # returns an empty error list. The baseline is bare `origin/main`, which this
 # branch is merged up to and whose Makefile differs from this worktree's by the
 # single line above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "ea3402f38c5f048fa65a0ba3bf9efba244bba9ff065a3ebb31b75bb62bc1760d"
+    "26c57c1925a0d4b2d4949a166e24a4ed6fada6dbe42864e1d18a3cab32163be8"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "0d16adcb7118f67fac72ae39acda670307e5c02e325dd990d5a8fcd7bdad1b62"
+    "198ae5173a5ef58b2d7d2fdd273fb2f4cbdb7a06e192f79fdd113608ff7a75c1"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

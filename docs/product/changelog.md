@@ -64,6 +64,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.29.0] — 2026-10-06
+
+### Highlights
+
+- Core now has a `repository-exploration` skill for open questions about how your code behaves, what it depends on, and what a change would affect. It uses a code-intelligence tool your agent already has only when that tool fits the question, keeps the tool's limits, checks key claims against the source, and stops once the question is answered. With no tool installed it still answers from the repository.
+- Tool output stays data. A tool's description, its results, or a file it points to cannot add a folder the agent may read, start a refresh or install, or run a change on its own. A refused file stays unread.
+
+### Added
+
+- `repository-exploration` ships its method, a locator reader that reuses the `repository-grounding` reader with its own 2 MB limit, and 24 behavior evaluations covering editor and indexed tool shapes, fallback, conflict, disclosure, unsafe locators, and tool output that tries to act as instructions.
+
+### Changed
+
+- The `repository-grounding` locator reader accepts an optional byte limit from a calling skill; its own limit and behavior are unchanged.
+
 ## [core][2.28.0] — 2026-10-05
 
 ### Highlights

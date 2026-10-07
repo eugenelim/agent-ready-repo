@@ -622,6 +622,7 @@ $(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/repository-grounding/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/repository-exploration/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/work-loop/ $(1) -q
 $(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q

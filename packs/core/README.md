@@ -217,6 +217,38 @@ set for discovery, task, or review work.
 
 ---
 
+## Repository exploration
+
+`repository-exploration` answers an open question about repository behavior,
+dependencies, impact, or context. The skill is optional and caller-invoked: it
+runs only when a caller — you, or a skill or workflow that asks the question —
+invokes it, and nothing runs it automatically. The caller keeps its own
+question, stopping rule, and decision. The skill picks a tool only when it
+suits the question, uses that tool as it is, and says where each piece of
+evidence came from.
+
+No provider, index, language server, or optional pack is required. When no
+exposed capability fits the question, the skill falls back to repository-native
+evidence — the repository's own files, history, and search. A provider adds
+evidence only when its own action directly answers the question; it never
+changes the caller's decision.
+
+A code-intelligence tool your agent already has — one of the exposed surfaces
+listed under Repository grounding — is used in its own native
+shape — the tool's own commands and results, with no shared wrapper — so there
+is no common schema across different providers. The question types and provider
+shapes the skill documents are illustrative. No closed list is defined; any
+new native capability that answers the question may be used.
+
+Path-seeded "what governs these paths?" questions belong to
+`repository-grounding`, not here.
+
+When a provider returns a file locator, the skill reads it only through its
+locator reader, using the same reader and folder limits described under
+Repository grounding.
+
+---
+
 ## Post-install adaptation, and the hooks that only repeat it
 
 A successful direct core install at repository or local scope ends by printing a

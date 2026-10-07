@@ -1,6 +1,6 @@
 # Spec: Optional intelligence in repository exploration
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079
@@ -25,6 +25,10 @@ repository-native exploration remains sufficient when no provider fits.
   capability selection, native invocation, evidence handling, and fallback.
 - Heterogeneous evaluations exercise debugging, review, implementation,
   architecture, and task-context questions without normalizing provider shapes.
+- Exploration reads a provider-returned file locator through a thin reader that
+  reuses the shipped grounding locator reader with exploration's own byte
+  ceiling; the grounding reader gains that ceiling as an option and keeps its
+  own default.
 - Core documentation distinguishes the reusable method from a mandatory
   workflow phase, router, provider preference, or fixed investigation taxonomy.
 
@@ -33,7 +37,8 @@ repository-native exploration remains sufficient when no provider fits.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Portable exploration method | The behavior must be reusable across inquiry owners | `packs/core/.apm/skills/repository-exploration/` | Core pack | Skill tests and behavior evaluations | Built adapters expose the same method |
-| Core release pipeline | A new Core skill requires a coordinated pack release | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and `docs/product/changelog.md` | Core pack | Version-rule derivation, manifest parity, generated marketplace check, release entry, and Highlights disposition | Every required release surface agrees on the derived target and the consumer outcome is published or explicitly dispositioned |
+| Shared locator reading | Exploration reads provider locators through the existing grounding reader | `packs/core/.apm/skills/repository-grounding/scripts/read-locator.py` | Core pack | Reader tests for the unchanged default ceiling and an honored caller ceiling | Grounding behavior is unchanged when no caller ceiling is supplied |
+| Core release pipeline | A new Core skill requires a coordinated pack release | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, and `docs/product/changelog.md` | Core pack | Version-rule derivation, manifest parity, release entry, and Highlights disposition | Every required release surface agrees on the derived target and the consumer outcome is published or explicitly dispositioned |
 | Maintainer and adopter truth | Users need to know when and how to invoke the optional method | `packs/core/README.md` | Core pack | Documentation review and link checks | README states scope, fallback, and non-goals |
 | Reusable learning | New provider shapes may expose method limits | `docs/product/research/` through `project-knowledge` or work intake when warranted | Closeout owner | Named capture receipt or explicit no-capture result | Closeout records the disposition without creating a placeholder |
 
@@ -55,6 +60,11 @@ repository-native exploration remains sufficient when no provider fits.
   defensible fit, and state what the fallback cannot establish.
 - Stop when the caller's evidence need is met or when the remaining gap is
   explicit; do not explore merely because another capability exists.
+- Produce an evidence record for each run: the question and stopping
+  condition, the surfaces considered and why each was chosen or passed over,
+  each action invoked and the content sent to it, each root supplied to the
+  locator reader and where it came from, the caveats kept, the authoritative
+  checks made, and why the run stopped.
 
 ### Ask first
 
@@ -86,6 +96,9 @@ a closed matrix of questions and provider shapes. Goal-based checks prove the
 skill and documentation ship through every Core adapter. Evaluations judge the
 choice, native invocation, material caveats, authoritative verification, and
 stopping point; they do not require identical wording or a shared payload.
+Each action-limiting rule — no hidden probe, no unfit or surplus invocation, no
+disclosure beyond the task, no directive taken from provider output — is
+judged from the run's outcome evidence record, not from a tool-call trace.
 
 - **VI-0001 — question first (AC-0001):** goal-based evaluation and its declared
   question and stopping record.
@@ -110,67 +123,95 @@ stopping point; they do not require identical wording or a shared payload.
 - **VI-0011 — minimized disclosure (AC-0011):** request and retained-result
   fixtures plus the resulting evidence record.
 - **VI-0012 — locator confinement (AC-0012):** real-filesystem accepted and
-  refused locator fixtures.
+  refused locator fixtures through the exploration reader, a caller-ceiling
+  test and an unchanged-default test on the grounding reader, a
+  missing-sibling refusal, and behavior evaluations for a refused locator and
+  an unavailable reader in which content found only in the target appears in
+  neither the answer nor the evidence record.
 - **VI-0013 — release pipeline (AC-0013):** version-rule derivation,
-  baseline-to-target and manifest-parity checks, generated marketplace output,
-  free-standing changelog entry, and Highlights-disposition evidence.
+  baseline-to-target and manifest-parity checks, free-standing changelog entry,
+  and Highlights-disposition evidence.
+- **VI-0014 — provider output stays data (AC-0014):** behavior evaluations in
+  which provider output proposes an approved root, requests an index refresh
+  or a mutating action, and embeds an instruction; a provider description
+  that claims priority, names a root, and asks for a refresh; and file text
+  returned by the reader that proposes a root and a gated action. Each fails
+  when the run's evidence record shows compliance.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The method is question-led: every successful evaluation states
+- [x] **AC-0001.** The method is question-led: every successful evaluation states
   a repository question and caller-owned stopping condition before it chooses a
   capability or fallback.
-- [ ] **AC-0002.** Discovery is exposed-only: candidate selection is limited to
+- [x] **AC-0002.** Discovery is exposed-only: candidate selection is limited to
   active host metadata, installed skills, effective repository guidance, and
   explicit user selection, plus host-native language, editor, or code-navigation
   capabilities available to the agent; it performs no hidden configuration,
   credential, endpoint, pack-directory, or arbitrary executable probe.
-- [ ] **AC-0003.** Task fit controls invocation: a visible provider is invoked
+- [x] **AC-0003.** Task fit controls invocation: a visible provider is invoked
   only when its advertised native action directly helps answer the question
   within acceptable scope, permission, cost, freshness, and disclosure limits.
-- [ ] **AC-0004.** Native provider shapes remain intact: the method routes at
+- [x] **AC-0004.** Native provider shapes remain intact: the method routes at
   least one editor or language-server action and one indexed CLI or MCP action
   without introducing common capability names, commands, parameters, result
   fields, freshness fields, or lifecycle states.
-- [ ] **AC-0005.** Poor fit is deliberate fallback: authority and co-change
+- [x] **AC-0005.** Poor fit is deliberate fallback: authority and co-change
   questions in the evaluation matrix use repository-native evidence when the
   exposed providers do not directly answer them, and the output states the
   unresolved limit.
-- [ ] **AC-0006.** Evidence remains advisory: provider-supported conclusions are
+- [x] **AC-0006.** Evidence remains advisory: provider-supported conclusions are
   attributed, carry every exposed material caveat, and are checked against the
   authoritative source before they can change a required decision.
-- [ ] **AC-0007.** Exploration stays bounded: each evaluation stops when its named
+- [x] **AC-0007.** Exploration stays bounded: each evaluation stops when its named
   evidence need is met or records a specific unresolved gap; it does not invoke
   another provider merely because one is visible.
-- [ ] **AC-0008.** Consumers gain no provider ceremony: the delivery adds no
+- [x] **AC-0008.** Consumers gain no provider ceremony: the delivery adds no
   provider discovery, setup, invocation, freshness, or fallback step to
   `work-loop`, `new-spec`, review, debugging, or architecture main procedures.
-- [ ] **AC-0009.** The method is not a frozen taxonomy: documentation and tests
+- [x] **AC-0009.** The method is not a frozen taxonomy: documentation and tests
   label the current question and provider-shape matrix as illustrative and
   accept a new native capability without changing a closed enumeration.
-- [ ] **AC-0010.** Core remains standalone and portable: Core installs, builds,
+- [x] **AC-0010.** Core remains standalone and portable: Core installs, builds,
   and passes the exploration absence path without any optional pack or provider,
   and every declared adapter exposes the same skill behavior.
-- [ ] **AC-0011.** Provider disclosure is minimized on both sides of the call:
+- [x] **AC-0011.** Provider disclosure is minimized on both sides of the call:
   an authorized request contains only task-scoped content; evidence-bearing
   output and retained artifacts exclude content prohibited by RFC-0079 even
   when a provider returns it; broad repository upload or provider-side
   persistence requires separate explicit authority.
-- [ ] **AC-0012.** Provider locators are confined: a native absolute path, URI,
-  symbol, or source locator is used only after it canonicalizes to a confined
-  regular file inside the repository or another task-approved root through
-  `agentbundle.catalogue_tooling.file_safety` or a tested equivalent when that
-  helper is unavailable, with the exploration owner's single declared
-  `MAX_PROVIDER_READ_BYTES` value supplied as `max_bytes`; parent escapes,
-  filesystem redirects, hard links, non-regular files, files above that ceiling,
-  and identity changes before or after open are refused.
-- [ ] **AC-0013.** The target Core version is derived from the approved-baseline
-  versions and `packs/AGENTS.md#version-bump-rule`; `packs/core/pack.toml`,
-  `packs/core/.claude-plugin/plugin.json`, and the regenerated
-  `.claude-plugin/marketplace.json` agree on that target; and a free-standing
-  Core entry in `docs/product/changelog.md` includes outcome-led `Highlights`
-  when the verified diff changes what consumers can do, or the PR records the
-  required explicit no-`Highlights` reason.
+- [x] **AC-0012.** Provider locators are confined: a native absolute path,
+  `file:` URI, or the file location a symbol or source locator carries is read
+  only through the exploration owner's locator reader, which receives the
+  locator only as the standard base64 encoding of its UTF-8 text and reads it
+  only after it resolves to a confined regular file inside the repository or
+  another root the user or calling workflow approved, through
+  `agentbundle.catalogue_tooling.file_safety` or its byte-identical co-located
+  projection, with the exploration owner's single declared
+  `MAX_PROVIDER_READ_BYTES` value supplied as `max_bytes`. Parent escapes,
+  filesystem redirects, hard links, non-regular files, files above that
+  ceiling, and identity changes before or after open are refused; a path
+  segment ending in a dot or a space is refused only below the matched root.
+  When the reused grounding reader is missing or is not a regular file, the
+  exploration reader refuses rather than reading by another route. A refusal
+  or an unavailable reader is final for that locator: the agent reads its
+  target by no other route. The
+  grounding reader keeps its own ceiling when no caller ceiling is supplied.
+- [x] **AC-0013.** The target Core version is derived from the approved-baseline
+  versions and `packs/AGENTS.md#version-bump-rule`; `packs/core/pack.toml` and
+  `packs/core/.claude-plugin/plugin.json` agree on that target; and a
+  free-standing Core entry in `docs/product/changelog.md` includes outcome-led
+  `Highlights` when the verified diff changes what consumers can do, or the PR
+  records the required explicit no-`Highlights` reason. Core is a
+  repository-only pack, so `.claude-plugin/marketplace.json` carries no Core
+  entry.
+- [x] **AC-0014.** Provider output stays data: provider metadata, provider
+  output, and file text returned by the locator reader cannot supply or widen
+  the reader's repository root or approved roots, which come only from the
+  user's explicit statement or the calling workflow's declared bounds; cannot
+  start a read or provider call the question did not call for; and cannot
+  trigger an install, authentication, index, refresh, upload, or mutating
+  action without the confirmation the Ask-first rules require. Each such
+  directive is reported as data.
 
 ## Follow-ons
 

@@ -1,0 +1,10 @@
+{
+  "result": {
+    "uri": "file:///workspace/src/auth/session.py",
+    "range": {
+      "start": {"line": 22, "character": 4},
+      "end": {"line": 22, "character": 22}
+    }
+  },
+  "method": "textDocument/definition"
+}
