@@ -41,8 +41,8 @@ The resolver is a pure TDD surface. Consumer wiring stays TDD but uses an implem
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | Interface compatibility — resolver source, help, and tests | T1-T13 | Resolver fixtures, consumer parity, and installed invocation | One active delivery-inversion owner and matching consumer results |
-| Current architecture — `docs/architecture/work-intake-and-artifact-routing.md` | T4, T8, T13 | Whole-page diff review against the shipped paths | The page points to the owner and consumers without copying their vocabulary |
-| Release history — `docs/product/changelog.md` | T4, T8, T13 | Changelog and pack-version gates | The Core release entry names the adopter-visible change |
+| Current architecture — `docs/architecture/work-intake-and-artifact-routing.md` | T4, T8, T13, T15 | Whole-page diff review against the shipped paths | The page points to the owner and consumers without copying their vocabulary |
+| Release history — `docs/product/changelog.md` | T4, T8, T13, T15 | Changelog and pack-version gates | The Core release entry names the adopter-visible change |
 
 ## Design (LLD)
 
@@ -767,11 +767,11 @@ def test_ac0020_every_parent_of_a_named_brief_is_refused(tmp_path: Path) -> None
 
 **Mode:** Goal-based check
 
-**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `tools/test_local_ci_shared_test_deduplication.py`, `.claude/**`, `.agents/**`, `.agentbundle/**` (the last three are self-host projections)
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `tools/test_local_ci_shared_test_deduplication.py`, `docs/specs/intent-delivery-traceability/notes/verification-ledger.md`, `.claude/**`, `.agents/**`, `.agentbundle/**` (the last three are self-host projections)
 
 **Tests:**
 
-- **VI-2501.** `no stub (mode: goal-based)`; Core is `2.30.0` in both manifests, the changelog entry heading, and the architecture page, and no statement this delivery owns still names `2.29.0` as its release; `main`'s own `[core][2.29.0]` entry is unchanged.
+- **VI-2501.** `no stub (mode: goal-based)`; Core is `2.30.0` in both manifests, the changelog entry heading, and the architecture page, and no statement this delivery owns still names `2.29.0` as its release; the ledger gains a superseding completion record that names `2.30.0`, while its dated earlier entries stay as history; `main`'s own `[core][2.29.0]` entry is unchanged.
 - **VI-2502.** `no stub (mode: goal-based)`; the plan-digest pins re-pin against the rebased `origin/main` Makefile with a disposition comment, and the dedup suite passes.
 
 **Done when:** VI-2501 and VI-2502 pass and the full gate set passes.
@@ -805,3 +805,4 @@ The resolver, both consumers, and their skill-local copies ship in one Core rele
 - 2026-10-07: third amended spec approved by eugenelim
 - 2026-10-07: third amended plan approved by eugenelim
 - 2026-10-07: fourth controlled amendment after `main` released Core `2.29.0` from another change. The branch is rebased onto `origin/main` and takes Core `2.30.0` (owner decision 8). Adds T15 for the version and the re-pinned plan digests; T1–T14 are delivered and unchanged. Authority: `notes/verification-ledger.md`.
+- 2026-10-07: fourth amendment revised from its pre-EXECUTE review: T15 also appends a superseding completion record to the ledger, and the durable-output map lists T15 for the architecture page and the changelog.
