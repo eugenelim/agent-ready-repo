@@ -1868,56 +1868,38 @@ class TestFindingBFixes:
         assert str(tmp_path) not in spec_ref
 
     def test_spec_ref_is_repo_relative_for_repo_spec(
-        self, pi: ModuleType, acc: ModuleType, sc: ModuleType
+        self, pi: ModuleType, acc: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """When the spec lives under the repository git root, spec_ref is repo-relative.
-
-        Uses actual spec files from the repository tree, which are under a .git
-        root that _repo_relative_spec_ref can detect.
-        """
-        # Use any real spec file that exists in the repository.
-        spec_path = SCRIPTS.parents[3] / "tests" / "skills" / "work-loop" / "fixtures" / "spec.md"
-        plan_path = SCRIPTS.parents[3] / "tests" / "skills" / "work-loop" / "fixtures" / "plan.md"
-        # If no fixture files exist, create synthetic ones and skip the relative assertion.
-        import tempfile
-        if not spec_path.exists() or not plan_path.exists():
-            # Fall back to using a temp directory under the repo root so the git walk finds .git.
-            repo_root = SCRIPTS.parents[5]  # packs/core/.apm/skills/work-loop/scripts → repo root
-            with tempfile.TemporaryDirectory(dir=repo_root) as td:
-                td_path = Path(td)
-                sp = td_path / "spec.md"
-                pp = td_path / "plan.md"
-                sp.write_text(_SPEC_TEXT_APPROVED, encoding="utf-8")
-                pp.write_text(_PLAN_TEXT_BASE, encoding="utf-8")
-                store = pi.ImportStore()
-                issuer, grant = _make_issuer_and_grant(sc)
-                spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, sp, pp, VALID_REFS)
-                approval, _ = pi.import_policy(
-                    spec_path=sp,
-                    plan_path=pp,
-                    refs=VALID_REFS,
-                    terminal_intent=TERMINAL_INTENT,
-                    writer_grant=grant,
-                    issuer=issuer,
-                    audit_sink=_null_sink,
-                    store=store,
-                    approval_identity=APPROVAL_IDENTITY,
-                    approval_role=APPROVAL_ROLE,
-                    reviewer_identity=REVIEWER_IDENTITY,
-                    reviewer_role=REVIEWER_ROLE,
-                    approved_spec_digest=spec_d,
-                    approved_plan_digest=plan_d,
-                    approved_envelope_fingerprint=env_fp,
-                )
-                ref = approval["lineage"]["spec_ref"]
-                assert not Path(ref).is_absolute(), (
-                    f"spec_ref must be repo-relative when the spec is under the git root; got {ref!r}"
-                )
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Finding 4 fix: approved_envelope_fingerprint is a required keyword
-# ═══════════════════════════════════════════════════════════════════════════════
+        """When the spec lives under a git root, spec_ref is that root-relative path."""
+        repo = tmp_path / "repo"
+        (repo / ".git").mkdir(parents=True)
+        spec_dir = repo / "docs" / "specs" / "feat"
+        spec_dir.mkdir(parents=True)
+        sp = spec_dir / "spec.md"
+        pp = spec_dir / "plan.md"
+        sp.write_text(_SPEC_TEXT_APPROVED, encoding="utf-8")
+        pp.write_text(_PLAN_TEXT_BASE, encoding="utf-8")
+        store = pi.ImportStore()
+        issuer, grant = _make_issuer_and_grant(sc)
+        spec_d, plan_d, env_fp = _compute_approved_pins(pi, acc, sp, pp, VALID_REFS)
+        approval, _ = pi.import_policy(
+            spec_path=sp,
+            plan_path=pp,
+            refs=VALID_REFS,
+            terminal_intent=TERMINAL_INTENT,
+            writer_grant=grant,
+            issuer=issuer,
+            audit_sink=_null_sink,
+            store=store,
+            approval_identity=APPROVAL_IDENTITY,
+            approval_role=APPROVAL_ROLE,
+            reviewer_identity=REVIEWER_IDENTITY,
+            reviewer_role=REVIEWER_ROLE,
+            approved_spec_digest=spec_d,
+            approved_plan_digest=plan_d,
+            approved_envelope_fingerprint=env_fp,
+        )
+        assert approval["lineage"]["spec_ref"] == "docs/specs/feat/spec.md"
 
 
 class TestEnvelopeFingerprintRequired:

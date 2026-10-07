@@ -400,7 +400,7 @@ _VALID_SAFE_PROCESS: dict = {
     "executable_identity": "a" * 64,
     "argv": [],
     "grant_id": "grant-parity-001",
-    "cwd": "/tmp",
+    "cwd": "/work",
     "environment_allowlist": [],
     "stdin_mode": "closed",
     "process_tree_timeout_s": 10,

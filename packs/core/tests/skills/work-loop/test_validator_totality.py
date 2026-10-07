@@ -32,9 +32,8 @@ ODD_VALUES: tuple[object, ...] = (
 )
 
 
-def _load(name: str, filename: str) -> ModuleType:
+def _load(name: str, path: Path) -> ModuleType:
     """Load a work-loop script by path under a unique name."""
-    path = SCRIPTS / filename
     assert stat.S_ISREG(os.lstat(path).st_mode), path
     spec = importlib.util.spec_from_file_location(name, str(path))
     assert spec is not None and spec.loader is not None
@@ -49,17 +48,17 @@ def _load(name: str, filename: str) -> ModuleType:
 
 @pytest.fixture(scope="module")
 def cn() -> ModuleType:
-    return _load("core_work_loop_totality_cn", "_containment.py")
+    return _load("core_work_loop_totality_cn", SCRIPTS / "_containment.py")
 
 
 @pytest.fixture(scope="module")
 def ps() -> ModuleType:
-    return _load("core_work_loop_totality_ps", "_process_safety.py")
+    return _load("core_work_loop_totality_ps", SCRIPTS / "_process_safety.py")
 
 
 @pytest.fixture(scope="module")
 def sc() -> ModuleType:
-    return _load("core_work_loop_totality_sc", "_security_capability.py")
+    return _load("core_work_loop_totality_sc", SCRIPTS / "_security_capability.py")
 
 
 def _attestation() -> dict:

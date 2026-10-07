@@ -37,9 +37,8 @@ SCRIPTS = (
 CREDENTIAL_SHAPED = "AKIAIOSFODNN7EXAMPLE"
 
 
-def _load(name: str, filename: str) -> ModuleType:
+def _load(name: str, path: Path) -> ModuleType:
     """Load a work-loop script by path under a unique name."""
-    path = SCRIPTS / filename
     assert stat.S_ISREG(os.lstat(path).st_mode), path
     spec = importlib.util.spec_from_file_location(name, str(path))
     assert spec is not None and spec.loader is not None
@@ -54,27 +53,27 @@ def _load(name: str, filename: str) -> ModuleType:
 
 @pytest.fixture(scope="module")
 def se() -> ModuleType:
-    return _load("core_work_loop_audit_inv_se", "_security_events.py")
+    return _load("core_work_loop_audit_inv_se", SCRIPTS / "_security_events.py")
 
 
 @pytest.fixture(scope="module")
 def sc() -> ModuleType:
-    return _load("core_work_loop_audit_inv_sc", "_security_capability.py")
+    return _load("core_work_loop_audit_inv_sc", SCRIPTS / "_security_capability.py")
 
 
 @pytest.fixture(scope="module")
 def es() -> ModuleType:
-    return _load("core_work_loop_audit_inv_es", "_evidence_store.py")
+    return _load("core_work_loop_audit_inv_es", SCRIPTS / "_evidence_store.py")
 
 
 @pytest.fixture(scope="module")
 def pi() -> ModuleType:
-    return _load("core_work_loop_audit_inv_pi", "_policy_import.py")
+    return _load("core_work_loop_audit_inv_pi", SCRIPTS / "_policy_import.py")
 
 
 @pytest.fixture(scope="module")
 def cn() -> ModuleType:
-    return _load("core_work_loop_audit_inv_cn", "_containment.py")
+    return _load("core_work_loop_audit_inv_cn", SCRIPTS / "_containment.py")
 
 
 def _forged_grant(sc: ModuleType, grant_id: str) -> object:
