@@ -931,6 +931,10 @@ class GuardsUnavailable(RuntimeError):
 _guards_module: object | None = None
 _cohort_mutator_module: object | None = None
 
+# Sentinel distinguishing "never tried" from "tried and failed".
+_FACADE_UNAVAILABLE = object()
+_compat_facade_module: object = None  # None → not yet tried; _FACADE_UNAVAILABLE → failed
+
 
 def _guards():
     """Load the sibling `_loop_guards.py` by path, once per process.
@@ -1065,6 +1069,78 @@ def _cohort_mutator():
         )
     _cohort_mutator_module = module
     return module
+
+
+def _compat_facade():
+    """Load ``_compat_facade.py`` by path, or return ``_FACADE_UNAVAILABLE``.
+
+    A load failure is warned once and then remembered as the unavailable sentinel
+    so every subsequent call is a fast path rather than a repeated attempt.
+    Shadow services are optional; an unavailable facade silently disables them.
+
+    ── NOT registered in ``sys.modules`` (avoids session-global singleton leaks in
+    ── the test harness, matching the ``_loop_guards`` and ``_statelock`` loaders).
+    """
+    global _compat_facade_module
+    if _compat_facade_module is not None:
+        # Either the loaded module or _FACADE_UNAVAILABLE — both are fast paths.
+        return _compat_facade_module
+    path = SCRIPT_DIR / "_compat_facade.py"
+    try:
+        info = os.lstat(path)
+        if not stat.S_ISREG(info.st_mode):
+            raise ImportError(f"not a regular file: {path}")
+        previous = sys.dont_write_bytecode
+        try:
+            sys.dont_write_bytecode = True
+            spec = importlib.util.spec_from_file_location("_compat_facade", str(path))
+            if spec is None or spec.loader is None:
+                raise ImportError(f"no import spec for {path}")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        finally:
+            sys.dont_write_bytecode = previous
+        if not getattr(module, "_MODULE_COMPLETE", False):
+            raise ImportError(f"{path}: module is truncated (no _MODULE_COMPLETE)")
+        _compat_facade_module = module
+        return module
+    except Exception as exc:  # noqa: BLE001 — shadow is optional
+        print(
+            f"loop-engine: warning — shadow facade unavailable "
+            f"({type(exc).__name__}: {_diag(exc)})",
+            file=sys.stderr,
+        )
+        _compat_facade_module = _FACADE_UNAVAILABLE
+        return _FACADE_UNAVAILABLE
+
+
+def _shadow_after_transition(
+    spec_dir: Path,
+    new_state: dict,
+    pending_data: dict,
+    *,
+    event: str,
+) -> None:
+    """Call the compatibility facade after a successful legacy transition.
+
+    Called AFTER the legacy commit (``engine-state.json`` written, pending
+    event appended).  Any exception at any layer is caught silently.
+
+    When ``WORK_LOOP_SHADOW_SERVICES`` is not ``"1"`` this is a no-op — the
+    engine's observable behavior (stdout, stderr, written files, exit code)
+    is byte-for-byte identical to the pre-facade engine.
+    """
+    if os.environ.get("WORK_LOOP_SHADOW_SERVICES") != "1":
+        return
+    facade = _compat_facade()
+    if facade is _FACADE_UNAVAILABLE:
+        return
+    try:
+        facade.shadow_call_on_transition(spec_dir, new_state, pending_data)
+        if event == "plan-locked":
+            facade.shadow_call_on_plan_locked(spec_dir, new_state)
+    except Exception:  # noqa: BLE001 — shadow must never affect legacy
+        pass
 
 
 # Each entry: (mode, event) → guard_fn(spec_dir, engine_state, event_args).
@@ -2370,6 +2446,10 @@ def cmd_transition(args: argparse.Namespace) -> int:
     print(
         f"loop-engine: transition {current_state!r} → {event!r} → {next_state!r} "
         f"(seq={new_seq}) for {spec_dir.name}"
+    )
+    # Shadow hook — AFTER the legacy commit and print.  Never changes legacy behavior.
+    _shadow_after_transition(
+        spec_dir, new_state, pending_data, event=event,
     )
     return 0
 

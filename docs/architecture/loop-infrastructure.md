@@ -547,7 +547,128 @@ not shipped.
 - [ADR-0074 — Work loop owns its state lock](../adr/0074-the-work-loop-owns-its-state-lock.md)
 - [ADR-0125 — Durable transitions make four cohort mutations engine-invoked](../adr/0125-engine-invoked-cohort-mutations.md)
 
-## 10. Last verified against commit
+## 10. Maintainer Procedure — Acceptance Shadow Services
+
+The following commands let maintainers verify parity, recovery, and reversal for
+the callable shadow acceptance services without reading the delivery
+spec. All commands run from the repository root.
+
+### Enable shadow mode
+
+Set `WORK_LOOP_SHADOW_SERVICES=1` before a `loop-engine transition` call to
+turn on the shadow services. After each committed transition, the engine
+appends an `evidence-receipt.v1` record through the evidence store. At
+`plan-locked`, it also imports the `approval-record.v1` and
+`initial-plan-review.v1` records against the approved spec and plan digests in
+`state.json`, projects a `delivery-subject.v1` record when the tree allows, and
+derives an `acceptance-verdict.v1` record. Everything is written under
+`<spec-dir>/.shadow-acceptance/`, which ignores itself in Git. The current
+engine keeps all authority. Every writer-authority allow and denial is stored
+as a `security-event.v1` line in `shadow-security-events.jsonl` before the
+service acknowledges it; if that line cannot be stored, the write is refused.
+A shadow failure is recorded there as a redacted divergence entry without
+changing the legacy result.
+
+```bash
+WORK_LOOP_SHADOW_SERVICES=1 python '<skill-dir>/scripts/loop-engine.py' transition …
+```
+
+### Policy import (approval and initial-plan-review)
+
+Run the policy-import suite to verify that legacy canonicalization matches the
+target, that atomic import exposes exactly zero or two records on failure, and
+that protected-change classification works without dispatching task state:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_policy_import.py -q
+```
+
+### Rehydration (cold-start verdict recovery)
+
+Run the cold-rehydration benchmark to verify that deleting derived indexes and
+replaying all evidence records from a fresh process reproduces the pre-interruption
+verdict within 10 seconds for 1,000 criteria and 100,000 receipts:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_cold_rehydration_benchmark.py -q
+```
+
+### Reversal (disable shadow services)
+
+To restore the legacy-only path, unset the environment variable. No shadow facts
+are deleted; the current engine resumes its authoritative path, and shadow records
+remain for later reinspection:
+
+```bash
+unset WORK_LOOP_SHADOW_SERVICES
+```
+
+The compatibility facade suite verifies that disabling target calls restores the
+legacy path and that a missing accepted governance record refuses every
+authority-switch attempt:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_compat_facade.py -q
+```
+
+### Cross-adapter conformance
+
+Run the cross-adapter forgery corpus to verify that every adapter refuses the
+same control-plane writes, direct-syscall attempts, protected-ref writes, and
+broker bypasses, and that containment refuses unattested or broader-than-grant
+launches:
+
+```bash
+python3 -m pytest packs/core/tests/skills/work-loop/test_containment_broker.py -q
+```
+
+Run the conformance roll-up to verify that the projected Core pack copies are
+byte-identical to the source, so every pack-suite assertion also covers the
+projected copies, and that each shadow record matches its canonical schema:
+
+```bash
+python3 -m pytest tests/roster/test_t9a_conformance_rollup.py -q
+```
+
+Run the clean-environment fence to verify that every work-loop runtime script
+imports only the standard library or its own sibling modules, and that shadow
+mode completes in a subprocess where `agentbundle` is not importable:
+
+```bash
+python3 -m pytest tests/roster/test_t9a_clean_env_fence.py -q
+```
+
+Run every suite the acceptance evidence map cites for a complete evidence pass:
+
+```bash
+python3 -m pytest \
+  packs/core/tests/skills/work-loop/test_acceptance.py \
+  packs/core/tests/skills/work-loop/test_policy_import.py \
+  packs/core/tests/skills/work-loop/test_subject_projection.py \
+  packs/core/tests/skills/work-loop/test_evidence_store.py \
+  packs/core/tests/skills/work-loop/test_content_safety.py \
+  packs/core/tests/skills/work-loop/test_security_primitives.py \
+  packs/core/tests/skills/work-loop/test_process_safety.py \
+  packs/core/tests/skills/work-loop/test_containment_broker.py \
+  packs/core/tests/skills/work-loop/test_capability_intersection.py \
+  packs/core/tests/skills/work-loop/test_audit_boundary_invariant.py \
+  packs/core/tests/skills/work-loop/test_validator_totality.py \
+  packs/core/tests/skills/work-loop/test_compat_facade.py \
+  packs/core/tests/skills/work-loop/test_acceptance_benchmark.py \
+  packs/core/tests/skills/work-loop/test_cold_rehydration_benchmark.py \
+  tests/roster/test_delivery_contract_bundle.py \
+  tests/roster/test_content_safety_boundary_matrix.py \
+  tests/roster/test_security_primitives_schema_parity.py \
+  tests/roster/test_acceptance_schema_parity.py \
+  tests/roster/test_delivery_subject_parity.py \
+  tests/roster/test_containment_attestation_parity.py \
+  tests/roster/test_evidence_store_schema_parity.py \
+  tests/roster/test_t9a_conformance_rollup.py \
+  tests/roster/test_t9a_clean_env_fence.py \
+  -q
+```
+
+## 11. Last verified against commit
 
 `8d30c6f6c` for the whole page. §§ 3, 4 and 6 were re-verified against the
 change that added the cohort-state identity check they now describe; the rest

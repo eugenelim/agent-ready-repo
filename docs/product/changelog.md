@@ -64,6 +64,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.29.1] — 2026-10-07
+
+No `Highlights`: this release adds maintainer-only shadow acceptance services behind an opt-in flag and changes no skill outcome or user task; adopters receive no new invocation. The omission is a recorded decision rather than an oversight.
+
+### Added
+
+- Callable shadow acceptance services now ship in `packs/core`. The services — acceptance projection, approval import, evidence transactions, subject projection, security primitives, content-safety guard, and the compatibility facade — are standard-library-only scripts in the `work-loop` skill. With `WORK_LOOP_SHADOW_SERVICES=1`, the engine records an evidence receipt after each transition. When the plan locks, it also imports the approval against the approved spec and plan digests, projects the delivery subject when the tree allows (it skips a dirty tree or an oversized manifest), and derives a verdict, all under the feature's `.shadow-acceptance/` folder. The current engine keeps all authority, and every result stays non-authoritative shadow evidence until a separately accepted governance record enables a cutover. Maintainers can verify parity, run import and reversal checks, and confirm cross-adapter conformance without reading the delivery spec.
+
 ## [core][2.29.0] — 2026-10-06
 
 ### Highlights

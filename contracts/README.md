@@ -48,6 +48,23 @@ disagree, `contracts/` is authoritative.
 | `jsonschema/work-intake-migration-confirmation.schema.json` | Human-authored, single-use apply/rollback confirmation | no |
 | `jsonschema/work-intake-migration-manifest.schema.json` | Repository-root reversible migration ledger | no |
 | `jsonschema/work-intake-migration-result.schema.json` | Closed workspace-status migration result object | no |
+| `delivery/delivery-subject.v1.schema.json` | Canonical delivery subject binding product, spec, evidence policy, exclusions, lineage, and acceptance fingerprint | no |
+| `delivery/acceptance-property.v1.schema.json` | Normalized acceptance property from approved spec criterion with authority, selector, observations, freshness, satisfaction, and contradiction rules | no |
+| `delivery/approval-record.v1.schema.json` | Spec-policy approval record binding authority, decision scope, base, lineage, and spec-policy fingerprint | no |
+| `delivery/reviewed-execution-envelope.v1.schema.json` | Pure projection fingerprinting ordered references to separately owned approvals for criteria, scope, authority, contracts, outputs, and risk | no |
+| `delivery/initial-plan-review.v1.schema.json` | Initial plan review record binding envelope fingerprint, plan hash, authorized terminal intent, reviewer, and decision | no |
+| `delivery/semantic-evidence-transaction.v1.schema.json` | Checksummed semantic evidence transaction with ordered record IDs, acceptance fingerprint, and checksum | no |
+| `delivery/evidence-receipt.v1.schema.json` | Evidence receipt from a producer through the evidence port, with acceptance fingerprint, lineage, selector, freshness mode, observation, outcome, and producer | no |
+| `delivery/evidence-supersession.v1.schema.json` | Evidence supersession withdrawing prior receipts, with authority and provenance | no |
+| `delivery/acceptance-verdict.v1.schema.json` | Derived acceptance verdict from the satisfaction evaluator, tracing criteria and receipts | no |
+| `delivery/security-capability.v1.schema.json` | Security capability grant covering roots, operations, trust class, writes, read proof mode, control denies, network, children, and limits | no |
+| `delivery/confined-file.v1.schema.json` | Confined file reference with canonical root and relative path for the path and mutation primitives | no |
+| `delivery/safe-process.v1.schema.json` | Safe process specification with absolute executable, identity, fixed argv, grant, confined cwd, environment allowlist, stdin mode, and process-tree and output bounds | no |
+| `delivery/containment-attestation.v1.schema.json` | Containment attestation from the verified launcher binding host mechanism, principal, roots, read enforcement, network, children, and limits | no |
+| `delivery/security-event.v1.schema.json` | Security event from the primitive or broker to the audit sink with operation ID, correlation ID, event type, outcome, reason code, and timestamp | no |
+| `delivery/content-safety-policy.v1.schema.json` | Content safety policy defining classification vocabulary, scanner corpus digest, and boundary profiles for every persistence boundary | no |
+| `delivery/content-safety-decision.v1.schema.json` | Content safety decision from the persistence guard with source record, policy, profile, normalized-record digest, and decision code | no |
+| `delivery/untrusted-data.v1.schema.json` | Typed inert-data wrapper for accepted free text ensuring downstream consumers treat content as data, not instructions or authority | no |
 
 ## Which design governs which file
 
@@ -74,6 +91,11 @@ disagree, `contracts/` is authoritative.
   [normalized intake/workspace contract][work-intake-contracts] and
   [migration contract][work-intake-migration]. They are public authored
   repository contracts, not declared AgentBundle CLI data copies.
+- **The canonical delivery schemas** under `delivery/` come from the
+  [acceptance authority and evidence spec][delivery-contracts]. They define the
+  portable record shapes for acceptance properties, approvals, evidence,
+  security primitives, and content safety decisions. These are test-time
+  contracts only; no schema copy ships in the Core pack at runtime.
 
 The authority model stated above comes from the
 [contracts composition, semantics, and discovery design][composition]. The
@@ -95,3 +117,4 @@ Future contracts land here too, each in its own PR.
 [routes]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0092-first-class-distribution-routes.md
 [work-intake-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/normalized-intake-workspace-contracts/spec.md
 [work-intake-migration]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/work-intake-migration-docs/spec.md
+[delivery-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/acceptance-authority-and-evidence/spec.md

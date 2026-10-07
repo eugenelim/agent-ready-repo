@@ -1,0 +1,2127 @@
+"""T3c TDD suite: containment and effect-broker conformance, control-plane forgery denial.
+
+Mode: TDD through end-to-end security conformance (plan.md T3c).
+
+Tests:
+
+AC-0010 — Launcher attestation vs grant: any attestation broader than the grant
+in roots, read enforcement, network, children, or limits is refused.
+
+AC-0013 — Control-plane forgery denial: direct-syscall, Git metadata,
+protected-ref, delivery-control, broker-bypass, privilege-amplification, and
+unsupported-host fixtures are exercised through every adapter in
+SUPPORTED_ADAPTERS.  Every delivery-control path is attempted, including
+creating a new copy, and zero bypass writes are observed.
+
+AC-0020/AC-0021 — Broker effect appends with missing, expired, and mismatched
+producer capabilities and with unavailable audit storage: available-sink denials
+persist their redacted event before acknowledgment; unavailable-sink attempts
+expose no partial record or effect, return a stable redacted denial code without
+a durable-event claim, and remain denied on retry.
+
+Follows the importlib.util.spec_from_file_location loader pattern from sibling
+suites.  No third-party imports at test collection time.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import os
+import stat
+import sys
+import time
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+
+# ── Path anchor ───────────────────────────────────────────────────────────────
+
+SCRIPTS = (
+    Path(__file__).resolve().parents[3]
+    / ".apm"
+    / "skills"
+    / "work-loop"
+    / "scripts"
+)
+
+# ── Module loader ─────────────────────────────────────────────────────────────
+
+
+def _load_module(name: str, path: Path) -> ModuleType:
+    """Load an unregistered copy of a scripts module via importlib."""
+    info = os.lstat(path)
+    assert stat.S_ISREG(info.st_mode), f"not a regular file: {path}"
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(name, str(path))
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[name] = mod
+        try:
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        finally:
+            sys.modules.pop(name, None)
+        return mod
+    finally:
+        sys.dont_write_bytecode = previous
+
+
+@pytest.fixture(scope="module")
+def containment() -> ModuleType:
+    """_containment.py loaded by path."""
+    return _load_module("cn_under_test", SCRIPTS / "_containment.py")
+
+
+@pytest.fixture(scope="module")
+def effect_broker() -> ModuleType:
+    """_effect_broker.py loaded by path."""
+    return _load_module("eb_under_test", SCRIPTS / "_effect_broker.py")
+
+
+@pytest.fixture(scope="module")
+def security_capability() -> ModuleType:
+    """_security_capability.py loaded by path."""
+    return _load_module("sc_under_test_t3c", SCRIPTS / "_security_capability.py")
+
+
+@pytest.fixture(scope="module")
+def acceptance() -> ModuleType:
+    """_acceptance.py loaded by path (for SUPPORTED_ADAPTERS)."""
+    return _load_module("ac_under_test_t3c", SCRIPTS / "_acceptance.py")
+
+
+@pytest.fixture(scope="module")
+def process_safety() -> ModuleType:
+    """_process_safety.py loaded by path (for ProcessDenied)."""
+    return _load_module("ps_under_test_t3c", SCRIPTS / "_process_safety.py")
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _make_root_grant(sc: ModuleType, **kwargs) -> tuple:
+    """Issue a root grant with sensible defaults. Returns (issuer, grant)."""
+    defaults: dict = {
+        "roots": ["/work"],
+        "operations": ["read", "write"],
+        "trust_class": "trusted-adapter",
+        "writes_allowed_roots": ["/work"],
+        "control_denies": [],
+    }
+    defaults.update(kwargs)
+    issuer = sc.CapabilityIssuer()
+    return issuer, issuer.issue_root_grant(**defaults)
+
+
+def _make_attestation(cn: ModuleType, **kwargs) -> object:
+    """Build a ContainmentAttestation with sensible defaults."""
+    defaults: dict = {
+        "schema_version": 1,
+        "host_mechanism": "os-sandbox",
+        "principal_or_sandbox": "test-sandbox-001",
+        "roots": ("/work",),
+        "limits": {},
+    }
+    defaults.update(kwargs)
+    return cn.ContainmentAttestation(**defaults)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0010: Launcher attestation vs grant comparison
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAttestationWithinGrant:
+    """AC-0010: attestation must not be broader than the grant in any axis."""
+
+    def test_equal_roots_allowed(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation with same roots as grant is allowed."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        attestation = _make_attestation(cn, roots=("/work",))
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"equal roots must be allowed; got code: {code!r}"
+
+    def test_narrower_roots_allowed(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation with roots inside the grant roots is allowed."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        attestation = _make_attestation(cn, roots=("/work/sub",))
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"narrower roots must be allowed; got code: {code!r}"
+
+    def test_broader_roots_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation claiming roots outside the grant is refused."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work/only"])
+        # Attestation claims /home which is outside the grant
+        attestation = _make_attestation(cn, roots=("/home/user",))
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, "broader roots must be refused"
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_attestation_network_when_grant_denies_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation claiming network when grant denies network is refused."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"], network=None)
+        attestation = _make_attestation(cn, network={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, "network claim when grant has no network must be refused"
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_attestation_no_network_allowed(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation without network is not broader than a grant with no network."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"], network=None)
+        # No network in attestation — not broader
+        attestation = _make_attestation(cn, network=None)
+        ok, _ = cn.check_attestation_within_grant(attestation, grant)
+        assert ok
+
+    def test_attestation_children_when_grant_denies_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation claiming children when grant denies them is refused."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"], children=None)
+        attestation = _make_attestation(cn, children={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, "children claim when grant has no children must be refused"
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_attestation_broader_limits_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation with more permissive limits than the grant is refused."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"],
+            limits=sc._Limits(max_bytes=1000, timeout_s=60),
+        )
+        # Attestation claims 2000 bytes — broader than 1000
+        attestation = _make_attestation(cn, limits={"max_bytes": 2000, "timeout_s": 60})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, "broader resource limits must be refused"
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_narrower_limits_allowed(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation with stricter limits than the grant is allowed."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"],
+            limits=sc._Limits(max_bytes=2000, timeout_s=120),
+        )
+        # Attestation claims 500 bytes — narrower
+        attestation = _make_attestation(cn, limits={"max_bytes": 500, "timeout_s": 30})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"narrower limits must be allowed; got: {code!r}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0013: Control-plane forgery denial — delivery-control paths
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestDeliveryControlPathGuard:
+    """AC-0013: every delivery-control path is protected; untrusted grants deny writes."""
+
+    def test_delivery_control_paths_constant_exists(
+        self, containment: ModuleType
+    ) -> None:
+        """DELIVERY_CONTROL_PATHS is defined and has at least two members."""
+        cn = containment
+        assert hasattr(cn, "DELIVERY_CONTROL_PATHS"), (
+            "DELIVERY_CONTROL_PATHS must be a module-level constant"
+        )
+        paths = cn.DELIVERY_CONTROL_PATHS
+        assert len(paths) >= 2, (
+            f"DELIVERY_CONTROL_PATHS must have at least 2 entries; got {list(paths)}"
+        )
+
+    def test_pack_source_is_delivery_control_path(
+        self, containment: ModuleType
+    ) -> None:
+        """The Core pack's work-loop source tree is a delivery-control path."""
+        cn = containment
+        # The pack source entry must be present
+        pack_source = next(
+            (p for p in cn.DELIVERY_CONTROL_PATHS if "packs/core" in p and "work-loop" in p),
+            None,
+        )
+        assert pack_source is not None, (
+            "DELIVERY_CONTROL_PATHS must include the pack source path "
+            f"(packs/core/...work-loop/); got {list(cn.DELIVERY_CONTROL_PATHS)!r}"
+        )
+
+    def test_is_delivery_control_path_detects_pack_source(
+        self, containment: ModuleType
+    ) -> None:
+        """is_delivery_control_path returns True for pack source paths."""
+        cn = containment
+        assert cn.is_delivery_control_path("packs/core/.apm/skills/work-loop/SKILL.md")
+        assert cn.is_delivery_control_path("packs/core/.apm/skills/work-loop/scripts/loop-engine.py")
+
+    def test_is_delivery_control_path_detects_claude_projection(
+        self, containment: ModuleType
+    ) -> None:
+        """is_delivery_control_path returns True for .claude/skills/work-loop/ paths."""
+        cn = containment
+        assert cn.is_delivery_control_path(".claude/skills/work-loop/SKILL.md")
+        assert cn.is_delivery_control_path(".claude/skills/work-loop/scripts/loop-engine.py")
+
+    def test_is_delivery_control_path_detects_kiro_projection(
+        self, containment: ModuleType
+    ) -> None:
+        """is_delivery_control_path returns True for .kiro/skills/work-loop/ paths."""
+        cn = containment
+        assert cn.is_delivery_control_path(".kiro/skills/work-loop/SKILL.md")
+
+    def test_is_delivery_control_path_detects_agents_projection(
+        self, containment: ModuleType
+    ) -> None:
+        """is_delivery_control_path returns True for .agents/skills/work-loop/ paths."""
+        cn = containment
+        assert cn.is_delivery_control_path(".agents/skills/work-loop/SKILL.md")
+
+    def test_unrelated_path_not_delivery_control(
+        self, containment: ModuleType
+    ) -> None:
+        """A normal work path is not a delivery-control path."""
+        cn = containment
+        assert not cn.is_delivery_control_path("/work/some-file.txt")
+        assert not cn.is_delivery_control_path(".claude/agents/my-agent.md")
+        assert not cn.is_delivery_control_path("/home/user/docs/readme.md")
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_all_adapters_have_same_delivery_control_constant(
+        self, containment: ModuleType, acceptance: ModuleType, adapter: str
+    ) -> None:
+        """DELIVERY_CONTROL_PATHS is the same constant regardless of which adapter evaluates it."""
+        cn = containment
+        # The constant is module-level and does not vary by adapter.
+        # This test verifies the two supported adapters both see the same set.
+        assert adapter in acceptance.SUPPORTED_ADAPTERS, (
+            f"adapter {adapter!r} must be in SUPPORTED_ADAPTERS"
+        )
+        paths = cn.DELIVERY_CONTROL_PATHS
+        assert isinstance(paths, tuple), "DELIVERY_CONTROL_PATHS must be a tuple"
+        assert all(isinstance(p, str) for p in paths), (
+            "all DELIVERY_CONTROL_PATHS entries must be strings"
+        )
+
+    @pytest.mark.parametrize("delivery_path", [
+        "packs/core/.apm/skills/work-loop/SKILL.md",
+        "packs/core/.apm/skills/work-loop/scripts/loop-engine.py",
+        "packs/core/.apm/skills/work-loop/scripts/_security_capability.py",
+        ".claude/skills/work-loop/SKILL.md",
+        ".claude/skills/work-loop/scripts/loop-engine.py",
+        ".kiro/skills/work-loop/SKILL.md",
+        ".agents/skills/work-loop/SKILL.md",
+        # Creating a new copy: attempting a new path under the projection root
+        "packs/core/.apm/skills/work-loop/scripts/new_forged_module.py",
+        ".claude/skills/work-loop/forged_copy.md",
+    ])
+    def test_delivery_control_path_detected_for_forgery_attempts(
+        self, containment: ModuleType, delivery_path: str
+    ) -> None:
+        """Every delivery-control path, including a new forged copy, is detected."""
+        cn = containment
+        assert cn.is_delivery_control_path(delivery_path), (
+            f"delivery-control path not detected: {delivery_path!r}"
+        )
+
+
+class TestForgeryFixturesPerAdapter:
+    """AC-0013: direct-syscall, git-metadata, protected-ref, broker-bypass, privilege-amplification
+    and unsupported-host forgery fixture families, exercised per adapter."""
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    @pytest.mark.parametrize("delivery_path", [
+        "packs/core/.apm/skills/work-loop/SKILL.md",
+        ".claude/skills/work-loop/SKILL.md",
+        ".kiro/skills/work-loop/SKILL.md",
+        ".agents/skills/work-loop/SKILL.md",
+        ".claude/skills/work-loop/scripts/new_copy.py",
+    ])
+    def test_delivery_control_write_refused_per_adapter(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        delivery_path: str,
+        adapter: str,
+    ) -> None:
+        """Every delivery-control path write attempt is refused for every adapter."""
+        eb = effect_broker
+        # Create a broker session whose grant appears to cover the delivery-control path.
+        # The broker must refuse regardless.
+        grant = eb.BrokerGrant(
+            grant_id="test-write-grant",
+            operations=("write",),
+            allowed_roots=(delivery_path,),  # grant even claims the path
+        )
+        session = eb.create_broker_session(
+            session_id="test-session-delivery",
+            grants=[grant],
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=delivery_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"broker must refuse write to delivery-control path {delivery_path!r} "
+            f"for adapter {adapter!r}; got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write; got {result.denial_code!r}"
+        )
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    @pytest.mark.parametrize("forgery_path", [
+        ".git/COMMIT_EDITMSG",
+        ".git/refs/heads/main",
+        ".git/objects/ab/cdef1234",
+    ])
+    def test_git_metadata_write_refused_per_adapter(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        forgery_path: str,
+        adapter: str,
+    ) -> None:
+        """Git metadata write attempts are refused through every adapter.
+
+        The broker grant does NOT cover .git/ paths — so the out-of-scope
+        denial fires.  Zero bypass writes reach the .git directory.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="test-git-meta-grant",
+            operations=("write",),
+            allowed_roots=("/work",),  # only covers /work, not .git/
+        )
+        session = eb.create_broker_session(
+            session_id="test-session-git-meta",
+            grants=[grant],
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=forgery_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"git metadata write must be refused for path {forgery_path!r} "
+            f"adapter {adapter!r}"
+        )
+        # The denial event must be emitted
+        assert len(events) >= 1, "denial event must be emitted"
+        assert all(e.outcome == "denied" for e in events)
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_same_process_wrapper_cannot_claim_os_isolation(
+        self, containment: ModuleType, adapter: str
+    ) -> None:
+        """No same-process wrapper may claim OS isolation (AC-0013 unsupported-host fixture)."""
+        cn = containment
+        # Validate an attestation that claims a same-process mechanism
+        bad_attestation = {
+            "schema_version": 1,
+            "host_mechanism": "same-process",  # forbidden
+            "principal_or_sandbox": "no-sandbox",
+            "roots": ["/work"],
+            "limits": {},
+        }
+        ok, code = cn.validate_attestation_dict(bad_attestation)
+        assert not ok, "same-process mechanism must be refused"
+        assert code == "denied-same-process-isolation-claim", (
+            f"expected denied-same-process-isolation-claim; got {code!r}"
+        )
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_privilege_amplification_via_grant_widening_refused(
+        self, containment: ModuleType, security_capability: ModuleType, adapter: str
+    ) -> None:
+        """A requested grant that is wider than the parent is refused (AC-0010)."""
+        cn, sc = containment, security_capability
+        issuer = sc.CapabilityIssuer()
+        parent = issuer.issue_root_grant(
+            roots=["/work/narrow"],
+            operations=["read"],
+            trust_class="trusted-adapter",
+            writes_allowed_roots=[],
+            control_denies=[],
+        )
+        # Requested child grant tries to widen roots — intersection is empty.
+        request = sc.CapabilityGrant(
+            schema_version=sc.SUPPORTED_SCHEMA_VERSION,
+            grant_id="escalation-attempt",
+            roots=("/etc",),
+            operations=("read",),
+            trust_class="trusted-adapter",
+            writes=sc._WritesGrant(allowed_roots=()),
+            control_denies=(),
+            limits=sc._Limits(),
+        )
+        child = issuer.issue_child_grant(parent, request)
+        assert child.roots == (), (
+            f"grant widening must produce empty intersection; got {child.roots!r}"
+        )
+        # An attestation claiming /etc is then refused vs the child grant.
+        attestation = cn.ContainmentAttestation(
+            schema_version=1,
+            host_mechanism="os-sandbox",
+            principal_or_sandbox="sandbox-001",
+            roots=("/etc",),
+            limits={},
+        )
+        ok, code = cn.check_attestation_within_grant(attestation, child)
+        assert not ok, "attestation for escalated root must be refused"
+        assert code == "denied-attestation-broader-than-grant"
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_host_reporting_no_sandbox_refuses_untrusted(
+        self, containment: ModuleType, security_capability: ModuleType, adapter: str
+    ) -> None:
+        """Sequential reference runtime reports no verified containment and refuses untrusted launch.
+
+        AC-0013 unsupported-host fixture: the default host supplies
+        verified_sandbox=False, restricted_principal=False, and
+        launch_untrusted raises ContainmentRefused with
+        denied-no-verified-containment before any process is started.
+        """
+        cn, sc = containment, security_capability
+
+        # The sequential reference runtime reports both axes as False.
+        axes = cn.report_host_containment_axes()
+        assert axes["verified_sandbox"] is False, (
+            "sequential reference runtime must report verified_sandbox=False"
+        )
+        assert axes["restricted_principal"] is False, (
+            "sequential reference runtime must report restricted_principal=False"
+        )
+        assert isinstance(axes["supported_mechanisms"], list)
+        assert axes["supported_mechanisms"] == [], (
+            "sequential reference runtime must report no supported mechanisms"
+        )
+
+        # Untrusted activation on the default host must refuse before any process starts.
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {"spec": "placeholder"},
+                grant,
+                # No host= arg → uses _DEFAULT_HOST (sequential reference runtime)
+                audit_sink=lambda e: None,
+            )
+        assert exc_info.value.denial_code == "denied-no-verified-containment", (
+            f"expected denied-no-verified-containment from default host; "
+            f"got {exc_info.value.denial_code!r}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0013 (continued): direct-syscall, protected-ref, broker-bypass fixtures
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestBrokerDeliveryControlRefusal:
+    """AC-0013 forgery fixture: broker refuses delivery-control writes even with a forged grant.
+
+    The grant explicitly claims to cover the delivery-control path (simulating
+    an attacker-constructed grant).  The broker's built-in guard still refuses
+    before any I/O, regardless of what the grant claims.  Zero bypass writes
+    reach the control-plane path.
+    """
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    @pytest.mark.parametrize("delivery_path", [
+        "packs/core/.apm/skills/work-loop/SKILL.md",
+        ".claude/skills/work-loop/SKILL.md",
+        ".kiro/skills/work-loop/SKILL.md",
+        ".agents/skills/work-loop/SKILL.md",
+        # Creating a new skill copy via a forged grant
+        "packs/core/.apm/skills/work-loop/scripts/direct_syscall_forged.py",
+        ".claude/skills/work-loop/injected_module.py",
+    ])
+    def test_direct_syscall_delivery_control_refused_per_adapter(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        delivery_path: str,
+        adapter: str,
+    ) -> None:
+        """Broker refuses a delivery-control path write even when the grant claims to cover it.
+
+        The grant's allowed_roots include the delivery-control path (simulating
+        an attacker constructing a grant that appears to allow the write).  The
+        broker must still refuse before any I/O.  Zero bypass writes reach the
+        control-plane path.
+        """
+        eb = effect_broker
+        # Grant claims to cover the delivery-control path (simulates
+        # an attacker constructing a grant that appears to allow the write).
+        forged_grant = eb.BrokerGrant(
+            grant_id="direct-syscall-grant",
+            operations=("write",),
+            allowed_roots=(delivery_path,),
+        )
+        session = eb.create_broker_session(
+            session_id="direct-syscall-session", grants=[forged_grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=forged_grant.grant_id,
+            operation="write",
+            path=delivery_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"direct-syscall to {delivery_path!r} must be refused for "
+            f"adapter {adapter!r}; got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write; got {result.denial_code!r}"
+        )
+
+
+class TestProtectedRefForgery:
+    """AC-0013 protected-ref fixture: writes to protected Git refs are refused."""
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    @pytest.mark.parametrize("protected_ref_path", [
+        ".git/refs/heads/main",
+        ".git/refs/heads/master",
+        ".git/refs/tags/v1.0.0",
+        ".git/refs/remotes/origin/main",
+        ".git/packed-refs",
+    ])
+    def test_protected_ref_write_refused_per_adapter(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        protected_ref_path: str,
+        adapter: str,
+    ) -> None:
+        """Protected-ref fixture: every protected Git ref write is refused for every adapter.
+
+        The broker grant covers /work only; the ref path is out-of-scope, so
+        out-of-scope denial fires and zero bypass writes reach any protected ref.
+        """
+        eb = effect_broker
+        # Grant covers /work only; protected ref paths are not in the grant.
+        grant = eb.BrokerGrant(
+            grant_id="protected-ref-grant",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(
+            session_id="protected-ref-session", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=protected_ref_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"protected-ref write to {protected_ref_path!r} must be refused "
+            f"for adapter {adapter!r}"
+        )
+        assert result.denial_code == "denied-out-of-scope", (
+            f"expected denied-out-of-scope; got {result.denial_code!r}"
+        )
+        assert len(events) >= 1, "denial event must be emitted"
+        assert all(e.outcome == "denied" for e in events)
+
+
+class TestBrokerBypassForgery:
+    """AC-0013 broker-bypass fixture: session construction or grant forgery is refused."""
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_broker_bypass_via_direct_session_construction_refused(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        adapter: str,
+    ) -> None:
+        """Broker-bypass fixture: directly constructing a BrokerSession with a
+        delivery-control grant still refuses.
+
+        An attacker may try to bypass ``create_broker_session`` by building a
+        ``BrokerSession`` directly.  The broker's runtime guards must refuse
+        regardless of how the session was assembled.  Zero bypass writes reach
+        the delivery-control plane.
+        """
+        eb = effect_broker
+        # Attacker constructs a BrokerSession directly with an escalated grant.
+        forged_grant = eb.BrokerGrant(
+            grant_id="broker-bypass-grant",
+            operations=("write", "read"),
+            allowed_roots=(".claude/skills/work-loop/",),
+        )
+        # Direct construction — not via create_broker_session.
+        forged_session = eb.BrokerSession(
+            session_id="broker-bypass-session",
+            grants=(forged_grant,),
+        )
+        events: list = []
+        result = eb.request_effect(
+            forged_session,
+            grant_id=forged_grant.grant_id,
+            operation="write",
+            path=".claude/skills/work-loop/SKILL.md",
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"broker-bypass via direct BrokerSession construction must be refused "
+            f"for adapter {adapter!r}"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write; got {result.denial_code!r}"
+        )
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_broker_bypass_via_forged_operation_id_refused(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        adapter: str,
+    ) -> None:
+        """Broker-bypass: supplying a custom operation_id does not bypass delivery-control guard."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="op-id-bypass-grant",
+            operations=("write",),
+            allowed_roots=(".agents/skills/work-loop/",),
+        )
+        session = eb.create_broker_session(
+            session_id="op-id-bypass-session", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=".agents/skills/work-loop/SKILL.md",
+            audit_sink=lambda e: events.append(e),
+            operation_id="attacker-controlled-op-id",  # forged operation_id
+        )
+        assert not result.success, (
+            f"broker-bypass via forged operation_id must be refused for adapter {adapter!r}"
+        )
+        assert result.denial_code == "denied-control-plane-write"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0013: launch_untrusted — containment launcher tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLaunchUntrusted:
+    """AC-0013: launch_untrusted refuses unless the host supplies a verified attestation
+    within the grant.  The module-default host (sequential reference runtime) always
+    refuses in Slice 1.
+    """
+
+    class _FixtureHost:
+        """Test fixture host that supplies a configurable attestation dict."""
+
+        def __init__(self, attestation: dict | None = None) -> None:
+            self._attestation = attestation
+
+        def get_attestation(self, spec_dict: dict, grant: object) -> dict | None:
+            return self._attestation
+
+    def _valid_attestation(self) -> dict:
+        return {
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-001",
+            "roots": ("/work",),
+            "limits": {},
+        }
+
+    def test_default_host_refuses_before_launch(
+        self,
+        containment: ModuleType,
+        security_capability: ModuleType,
+    ) -> None:
+        """Default host (sequential reference runtime) refuses before any process starts."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                # host= omitted → uses _DEFAULT_HOST
+                audit_sink=lambda e: None,
+            )
+        assert exc_info.value.denial_code == "denied-no-verified-containment", (
+            f"expected denied-no-verified-containment; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+
+    def test_audit_sink_unavailable_refuses_before_launch(
+        self,
+        containment: ModuleType,
+        security_capability: ModuleType,
+    ) -> None:
+        """Unavailable audit sink refuses with denied-audit-sink-unavailable, no process starts."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        host = self._FixtureHost(self._valid_attestation())
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=None,  # unavailable
+            )
+        assert exc_info.value.denial_code == "denied-audit-sink-unavailable", (
+            f"expected denied-audit-sink-unavailable; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+
+    def test_attestation_broader_than_grant_refuses_before_launch(
+        self,
+        containment: ModuleType,
+        security_capability: ModuleType,
+    ) -> None:
+        """A fixture attestation broader than the grant refuses before launch."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work/narrow"])
+        host = self._FixtureHost({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-001",
+            "roots": ("/etc",),   # broader than /work/narrow
+            "limits": {},
+        })
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=lambda e: None,
+            )
+        assert exc_info.value.denial_code == "denied-attestation-broader-than-grant", (
+            f"expected denied-attestation-broader-than-grant; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+
+    def test_valid_attestation_delegates_to_process_safety(
+        self,
+        containment: ModuleType,
+        security_capability: ModuleType,
+        process_safety: ModuleType,
+    ) -> None:
+        """A fixture attestation within the grant delegates to _process_safety.
+
+        Containment checks pass; _process_safety receives the spec and refuses
+        it (schema invalid) with ProcessDenied — NOT ContainmentRefused.  This
+        proves delegation occurred: the containment layer passed through to the
+        process-safety layer.
+
+        Note: launch_untrusted loads _process_safety via _load_sibling, producing
+        a separate class object from the ``process_safety`` fixture.  We compare
+        by type-name, not by isinstance, to prove the right layer raised.
+        """
+        cn, sc, ps = containment, security_capability, process_safety
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        host = self._FixtureHost(self._valid_attestation())
+        # An empty spec_dict is schema-invalid; _process_safety raises ProcessDenied.
+        # Catch any Exception — we inspect the class name to distinguish layers.
+        with pytest.raises(Exception) as exc_info:
+            cn.launch_untrusted(
+                {},    # bad spec → ProcessDenied from _process_safety
+                grant,
+                host=host,
+                audit_sink=lambda e: None,
+            )
+        raised = exc_info.value
+        # Key assertion: it must NOT be ContainmentRefused — containment passed.
+        assert not isinstance(raised, cn.ContainmentRefused), (
+            "ContainmentRefused must not be raised when attestation is valid — "
+            f"delegation to _process_safety must occur; got {raised!r}"
+        )
+        # The exception must be ProcessDenied from the process-safety layer.
+        assert type(raised).__name__ == "ProcessDenied", (
+            f"Expected ProcessDenied from _process_safety; got "
+            f"{type(raised).__name__!r}: {raised!r}"
+        )
+        # Its denial_code must be in the known set.
+        assert raised.denial_code in ps.DENIAL_CODES, (  # type: ignore[attr-defined]
+            f"ProcessDenied denial code must be in DENIAL_CODES; "
+            f"got {raised.denial_code!r}"  # type: ignore[attr-defined]
+        )
+
+    def test_invalid_attestation_schema_refuses(
+        self,
+        containment: ModuleType,
+        security_capability: ModuleType,
+    ) -> None:
+        """A fixture attestation that fails schema validation refuses before launch."""
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        host = self._FixtureHost({
+            "schema_version": 99,   # unknown schema version
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "sandbox",
+            "roots": [],
+            "limits": {},
+        })
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted({}, grant, host=host, audit_sink=lambda e: None)
+        assert exc_info.value.denial_code == "denied-unknown-schema-version"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AC-0020 / AC-0021: Broker and security-event appends with capability failures
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+_CREDENTIAL_SHAPED = "AKIAIOSFODNN7EXAMPLE"
+
+
+class TestBrokerAuditBoundary:
+    """Every broker event passes the content-safety check; sink failures stay redacted."""
+
+    def test_credential_shaped_grant_id_never_reaches_the_sink(
+        self, effect_broker: ModuleType
+    ) -> None:
+        """A denial for a credential-shaped grant ID is audited with the ID redacted."""
+        eb = effect_broker
+        session = eb.create_broker_session(session_id="s-cred", grants=[])
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=_CREDENTIAL_SHAPED,
+            operation="write",
+            path="/work/x",
+            audit_sink=events.append,
+        )
+        assert result.denial_code == "denied-missing-grant"
+        assert events, "the denial must still be audited"
+        assert all(_CREDENTIAL_SHAPED not in repr(e) for e in events), events
+        assert {e.correlation_id for e in events} == {"redacted"}
+
+    @pytest.mark.parametrize(
+        "failure",
+        [RuntimeError("boom /private/secret"), OSError("disk /private/secret-path full")],
+    )
+    def test_allow_path_sink_failure_refuses_with_stable_code(
+        self, effect_broker: ModuleType, failure: Exception
+    ) -> None:
+        """Any sink failure before an effect refuses with the stable sink code."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="g-allow", operations=("write",), allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(session_id="s-allow", grants=[grant])
+
+        def failing_sink(event: object) -> None:
+            raise failure
+
+        result = eb.request_effect(
+            session, grant_id="g-allow", operation="write", path="/work/out.txt",
+            audit_sink=failing_sink,
+        )
+        assert not result.success
+        assert result.denial_code == "denied-audit-sink-unavailable"
+        assert "/private" not in repr(result)
+
+
+class TestBrokerCapabilityFailures:
+    """AC-0020/AC-0021: broker refuses missing, expired, and mismatched producer capabilities."""
+
+    def test_missing_grant_refuses(self, effect_broker: ModuleType) -> None:
+        """A missing grant ID refuses with denied-missing-grant and emits a denial event."""
+        eb = effect_broker
+        session = eb.create_broker_session(session_id="s1", grants=[])
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id="nonexistent-grant-id",
+            operation="write",
+            path="/work/output.txt",
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success
+        assert result.denial_code == "denied-missing-grant"
+        # Denial event emitted
+        assert len(events) >= 1
+        assert all(e.outcome == "denied" for e in events)
+
+    def test_expired_grant_refuses(self, effect_broker: ModuleType) -> None:
+        """An expired grant refuses with denied-expired-grant and emits a denial event."""
+        eb = effect_broker
+        # Grant expires in the past
+        expired_grant = eb.BrokerGrant(
+            grant_id="expired-grant-id",
+            operations=("write",),
+            allowed_roots=("/work",),
+            expires_at_monotonic=time.monotonic() - 1.0,  # already expired
+        )
+        session = eb.create_broker_session(
+            session_id="s2", grants=[expired_grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=expired_grant.grant_id,
+            operation="write",
+            path="/work/output.txt",
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success
+        assert result.denial_code == "denied-expired-grant"
+        assert len(events) >= 1
+        assert all(e.outcome == "denied" for e in events)
+
+    def test_mismatched_grant_refuses_wrong_operation(self, effect_broker: ModuleType) -> None:
+        """A grant that does not cover the requested operation refuses."""
+        eb = effect_broker
+        read_grant = eb.BrokerGrant(
+            grant_id="read-only-grant",
+            operations=("read",),  # no write
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(
+            session_id="s3", grants=[read_grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=read_grant.grant_id,
+            operation="write",  # not in grant
+            path="/work/output.txt",
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success
+        assert result.denial_code in (
+            "denied-out-of-scope", "denied-operation-not-allowed"
+        ), f"unexpected denial code: {result.denial_code!r}"
+        assert len(events) >= 1
+        assert all(e.outcome == "denied" for e in events)
+
+    def test_mismatched_grant_refuses_wrong_path(self, effect_broker: ModuleType) -> None:
+        """A grant that does not cover the target path refuses."""
+        eb = effect_broker
+        narrow_grant = eb.BrokerGrant(
+            grant_id="narrow-grant",
+            operations=("write",),
+            allowed_roots=("/work/allowed",),  # only /work/allowed
+        )
+        session = eb.create_broker_session(
+            session_id="s4", grants=[narrow_grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=narrow_grant.grant_id,
+            operation="write",
+            path="/work/other/output.txt",  # not under /work/allowed
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success
+        assert result.denial_code == "denied-out-of-scope"
+        assert len(events) >= 1
+        assert all(e.outcome == "denied" for e in events)
+
+    def test_available_sink_policy_denial_persists_event(
+        self, effect_broker: ModuleType
+    ) -> None:
+        """Policy denial with available sink persists redacted event before acknowledgment."""
+        eb = effect_broker
+        session = eb.create_broker_session(session_id="s5", grants=[])
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id="no-such-grant",
+            operation="write",
+            path="/work/output.txt",
+            audit_sink=lambda e: events.append(e),
+        )
+        # Denial persisted before acknowledgment
+        assert not result.success
+        assert len(events) >= 1, "policy denial must persist an event"
+        event = events[0]
+        assert event.outcome == "denied"
+        # The event must carry no payload bytes
+        assert "no-such-grant" not in str(event.reason_code), (
+            "reason_code must not contain the refused grant_id"
+        )
+
+    def test_unavailable_sink_no_partial_record(self, effect_broker: ModuleType) -> None:
+        """With unavailable audit sink, no partial record or effect is exposed (AC-0021)."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="valid-grant",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(session_id="s6", grants=[grant])
+        # Unavailable sink: pass None
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="/work/output.txt",
+            audit_sink=None,  # unavailable sink
+        )
+        assert not result.success, "unavailable sink must refuse"
+        assert result.denial_code == "denied-audit-sink-unavailable", (
+            f"expected denied-audit-sink-unavailable; got {result.denial_code!r}"
+        )
+
+    def test_unavailable_sink_stable_denial_code(self, effect_broker: ModuleType) -> None:
+        """Unavailable sink returns a stable redacted denial code without a durable-event claim."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="valid-grant-retry",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(session_id="s7", grants=[grant])
+        # First attempt
+        result1 = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="/work/output.txt",
+            audit_sink=None,
+        )
+        # Retry
+        result2 = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="/work/output.txt",
+            audit_sink=None,
+        )
+        assert result1.denial_code == result2.denial_code, (
+            "retry must return the same stable denial code"
+        )
+        assert result1.denial_code == "denied-audit-sink-unavailable"
+
+    def test_unavailable_sink_stays_denied_on_retry(self, effect_broker: ModuleType) -> None:
+        """Retry with unavailable sink remains denied (AC-0020 cannot weaken refusal)."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="retry-grant",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(session_id="s8", grants=[grant])
+        for i in range(3):
+            result = eb.request_effect(
+                session,
+                grant_id=grant.grant_id,
+                operation="write",
+                path="/work/output.txt",
+                audit_sink=None,
+            )
+            assert not result.success, f"retry {i} must remain denied"
+            assert result.denial_code == "denied-audit-sink-unavailable"
+
+    def test_allow_emits_event_before_success(self, effect_broker: ModuleType) -> None:
+        """An allowed effect emits a security event before success is returned (AC-0021)."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="allow-grant",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(session_id="s9", grants=[grant])
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="/work/allowed-output.txt",
+            audit_sink=lambda e: events.append(e),
+        )
+        assert result.success, f"valid grant must allow; got code: {result.denial_code!r}"
+        assert len(events) == 1, "exactly one allow event must be emitted"
+        assert events[0].outcome == "allowed"
+
+    def test_allow_with_failing_sink_refuses(self, effect_broker: ModuleType) -> None:
+        """When the sink fails during allow emission, the effect is refused (AC-0021)."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="allow-fail-sink-grant",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(session_id="s10", grants=[grant])
+
+        def _fail_sink(event: object) -> None:
+            # Simulate a failing sink by raising OSError (caught by emit_security_event).
+            raise OSError("simulated sink failure")
+
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="/work/output.txt",
+            audit_sink=_fail_sink,
+        )
+        # The effect must be refused when the sink raises
+        assert not result.success, "effect must be refused when allow sink fails"
+        assert result.denial_code == "denied-audit-sink-unavailable"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Validate attestation dict
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAttestationValidation:
+    """validate_attestation_dict and ContainmentAttestation schema conformance."""
+
+    def test_valid_attestation_passes(self, containment: ModuleType) -> None:
+        """A well-formed attestation dict passes validation."""
+        cn = containment
+        ok, code = cn.validate_attestation_dict({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "sandbox-001",
+            "roots": ["/work"],
+            "limits": {},
+        })
+        assert ok, f"valid attestation must pass; got code: {code!r}"
+        assert code == "ok"
+
+    def test_unknown_schema_version_refused(self, containment: ModuleType) -> None:
+        """Unknown schema_version is refused."""
+        cn = containment
+        ok, code = cn.validate_attestation_dict({
+            "schema_version": 99,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "sandbox-001",
+            "roots": [],
+            "limits": {},
+        })
+        assert not ok
+        assert code == "denied-unknown-schema-version"
+
+    def test_missing_required_field_refused(self, containment: ModuleType) -> None:
+        """Missing required field is refused."""
+        cn = containment
+        ok, code = cn.validate_attestation_dict({
+            "schema_version": 1,
+            # host_mechanism missing
+            "principal_or_sandbox": "sandbox-001",
+            "roots": [],
+            "limits": {},
+        })
+        assert not ok
+        assert code == "denied-missing-required-field"
+
+    def test_unknown_authority_field_refused(self, containment: ModuleType) -> None:
+        """An unknown authority-shaped field is refused."""
+        cn = containment
+        ok, code = cn.validate_attestation_dict({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "sandbox-001",
+            "roots": [],
+            "limits": {},
+            "inject_escalation": "bypass",  # not in schema
+        })
+        assert not ok
+        assert code == "denied-unknown-authority-field"
+
+    def test_same_process_mechanism_refused(self, containment: ModuleType) -> None:
+        """Same-process isolation claims are refused."""
+        cn = containment
+        for mechanism in ["same-process", "wrapper", "in-process", "library-boundary"]:
+            ok, code = cn.validate_attestation_dict({
+                "schema_version": 1,
+                "host_mechanism": mechanism,
+                "principal_or_sandbox": "no-sandbox",
+                "roots": [],
+                "limits": {},
+            })
+            assert not ok, f"same-process mechanism {mechanism!r} must be refused"
+            assert code == "denied-same-process-isolation-claim", (
+                f"expected denied-same-process-isolation-claim for {mechanism!r}; got {code!r}"
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FINDING A: delivery-control path guard — forgery path spellings and additional
+# protected paths (.git, state files, shadow acceptance).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestDeliveryControlPathForgerySpellings:
+    """is_delivery_control_path must detect every delivery-control path regardless of spelling.
+
+    Tests fail when the normalization or component-detection fix is removed.
+    """
+
+    @pytest.mark.parametrize("delivery_path", [
+        # ./ prefixed — lstrip("./") incorrectly drops the leading dot,
+        # turning ./.claude/... into claude/... (misses the delivery-control prefix).
+        "./.claude/skills/work-loop/SKILL.md",
+        "./packs/core/.apm/skills/work-loop/SKILL.md",
+        # Absolute path forms — must be detected via the "anywhere in path" check.
+        "/repo/.claude/skills/work-loop/SKILL.md",
+        "/some/abs/.claude/skills/work-loop/SKILL.md",
+        "/work/.git/refs/heads/main",
+        # ../ traversal — must resolve correctly via posixpath.normpath.
+        ".other/../.claude/skills/work-loop/SKILL.md",
+        "packs/core/.apm/skills/../skills/work-loop/SKILL.md",
+        # Case variants — comparison must be case-insensitive.
+        ".CLAUDE/SKILLS/WORK-LOOP/SKILL.md",
+        "PACKS/CORE/.APM/SKILLS/WORK-LOOP/SKILL.md",
+        # .git anywhere in path.
+        ".git/refs/heads/main",
+        "repo/.git/config",
+        "/abs/path/.git/COMMIT_EDITMSG",
+        # Shadow acceptance.
+        ".shadow-acceptance/governance.json",
+        "/spec/.shadow-acceptance/result.json",
+        # Engine state filenames.
+        "state.json",
+        "engine-state.json",
+        "/some/dir/state.json",
+    ])
+    def test_forgery_spelling_is_detected(
+        self, containment: ModuleType, delivery_path: str
+    ) -> None:
+        """Every forgery spelling must be detected as a delivery-control path.
+
+        This test fails if the normalization fix is reverted (e.g., ./.claude/...
+        is no longer detected when lstrip removes the leading dot).
+        """
+        cn = containment
+        assert cn.is_delivery_control_path(delivery_path), (
+            f"delivery-control path not detected with spelling: {delivery_path!r}"
+        )
+
+    def test_dot_slash_prefix_specifically_detected(self, containment: ModuleType) -> None:
+        """Specifically: ./.claude/... must be detected (lstrip-bug regression guard).
+
+        lstrip('./') incorrectly strips the leading . making ./.claude → claude,
+        which no longer matches the .claude/skills/work-loop/ prefix.
+        This test fails if the lstrip-based normalization is used instead of posixpath.normpath.
+        """
+        cn = containment
+        assert cn.is_delivery_control_path("./.claude/skills/work-loop/SKILL.md"), (
+            "./.claude path must be detected (regression guard for lstrip normalization bug)"
+        )
+
+    def test_git_component_any_depth_detected(self, containment: ModuleType) -> None:
+        """A .git component at any path depth is always delivery-control."""
+        cn = containment
+        for path in [
+            ".git/config",
+            ".git/refs/heads/main",
+            "repo/.git/FETCH_HEAD",
+            "/abs/root/.git/packed-refs",
+            "nested/deep/.git/objects/ab/cdef",
+        ]:
+            assert cn.is_delivery_control_path(path), (
+                f".git component at any depth must be delivery-control: {path!r}"
+            )
+
+
+class TestProtectedRefGrantCoversTarget:
+    """AC-0013: protected-ref/git forgery where the grant EXPLICITLY covers the target.
+
+    These tests fail if the delivery-control guard is removed: the grant allows
+    the path, but the guard must still deny the write.
+    """
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    @pytest.mark.parametrize("git_path,grant_root", [
+        # Grant covers exactly the .git/ path — the delivery-control guard must fire.
+        (".git/refs/heads/main", ".git/"),
+        (".git/COMMIT_EDITMSG", ".git/"),
+        (".git/packed-refs", ".git/"),
+        # Absolute form: grant covers the absolute .git/ path.
+        ("/repo/.git/refs/heads/main", "/repo/.git/"),
+    ])
+    def test_git_write_refused_when_grant_covers_git(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        git_path: str,
+        grant_root: str,
+        adapter: str,
+    ) -> None:
+        """Git metadata write is refused even when the grant explicitly covers the .git path.
+
+        Before the fix, .git/ was not in DELIVERY_CONTROL_PATHS, so a grant
+        covering .git/ would allow the write.  After the fix, the delivery-control
+        guard fires and returns denied-control-plane-write regardless of the grant.
+
+        This test fails if .git/ is removed from DELIVERY_CONTROL_PATHS.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id=f"git-grant-{adapter}",
+            operations=("write",),
+            allowed_roots=(grant_root,),  # grant explicitly covers the .git path
+        )
+        session = eb.create_broker_session(
+            session_id=f"git-session-{adapter}", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=git_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"git write to {git_path!r} must be refused even when grant "
+            f"covers {grant_root!r} (adapter {adapter!r})"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write; got {result.denial_code!r}"
+        )
+
+
+class TestCrossAdapterCorpusVariesByAdapter:
+    """AC-0013: cross-adapter corpus must vary by adapter, not be the same call twice."""
+
+    @pytest.mark.parametrize("adapter,delivery_path,grant_root", [
+        # sequential-reference adapter → the pack source path.
+        (
+            "sequential-reference",
+            "packs/core/.apm/skills/work-loop/SKILL.md",
+            "packs/core/.apm/skills/work-loop/",
+        ),
+        # core-compatibility adapter → the claude-code projection path.
+        (
+            "core-compatibility",
+            ".claude/skills/work-loop/SKILL.md",
+            ".claude/skills/work-loop/",
+        ),
+    ])
+    def test_adapter_specific_skill_copy_path_refused(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        adapter: str,
+        delivery_path: str,
+        grant_root: str,
+    ) -> None:
+        """Each adapter's specific skill-copy path is refused on write.
+
+        The corpus varies by adapter: each leg tests a different delivery-control
+        path so the parametrize matrix is not the same call twice.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id=f"adapter-specific-grant-{adapter}",
+            operations=("write",),
+            allowed_roots=(grant_root,),
+        )
+        session = eb.create_broker_session(
+            session_id=f"adapter-specific-session-{adapter}", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=delivery_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"adapter {adapter!r}: skill-copy {delivery_path!r} must be refused; "
+            f"got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write"
+
+
+class TestPathTraversalCannotEscapeGrantRoot:
+    """BrokerGrant.is_valid_for must normalize paths to prevent ../ traversal attacks."""
+
+    def test_traversal_escape_refused(self, effect_broker: ModuleType) -> None:
+        """A ../ traversal path that escapes the grant root is refused as out-of-scope.
+
+        Without the posixpath.normpath fix, /work/output/../shared/secret.txt
+        passes startswith('/work/output/'), leaking the grant boundary.
+        With the fix, normpath resolves it to /work/shared/secret.txt which is
+        not within /work/output → denied-out-of-scope.
+
+        This test fails if posixpath.normpath is removed from is_valid_for.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="narrow-output-grant",
+            operations=("write",),
+            allowed_roots=("/work/output",),  # narrow grant: only /work/output
+        )
+        session = eb.create_broker_session(
+            session_id="traversal-escape-session", grants=[grant]
+        )
+        # Traversal path: /work/output/../shared/secret.txt resolves to /work/shared/secret.txt
+        # which is OUTSIDE /work/output → must be refused.
+        path = "/work/output/../shared/secret.txt"
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"traversal path {path!r} must be refused (escapes grant root /work/output)"
+        )
+        assert result.denial_code in ("denied-out-of-scope", "denied-control-plane-write"), (
+            f"expected out-of-scope or control-plane denial; got {result.denial_code!r}"
+        )
+
+    def test_dot_slash_prefix_in_grant_path_normalized(
+        self, effect_broker: ModuleType
+    ) -> None:
+        """A ./-prefixed path is normalized before grant containment check."""
+        eb = effect_broker
+        # Grant covers /work; path uses ./ prefix
+        grant = eb.BrokerGrant(
+            grant_id="work-grant",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(
+            session_id="dotslash-session", grants=[grant]
+        )
+        events: list = []
+        # ./work/file.txt normalizes to work/file.txt (relative) → not under /work
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="./work/output/file.txt",  # relative dotslash, not absolute /work
+            audit_sink=lambda e: events.append(e),
+        )
+        # posixpath.normpath("./work/output/file.txt") = "work/output/file.txt"
+        # which is not within /work (absolute) → out-of-scope.
+        assert not result.success, (
+            "relative ./work/... path must not match absolute /work grant root"
+        )
+
+    @pytest.mark.parametrize("adapter", ["sequential-reference", "core-compatibility"])
+    def test_traversal_to_delivery_control_refused_per_adapter(
+        self,
+        containment: ModuleType,
+        effect_broker: ModuleType,
+        adapter: str,
+    ) -> None:
+        """Traversal path escaping into a delivery-control path is refused.
+
+        Grant covers /work; traversal path /work/../../.claude/skills/work-loop/x
+        normalizes to /.claude/skills/work-loop/x which is both outside the grant
+        and a delivery-control path.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id=f"traversal-dc-grant-{adapter}",
+            operations=("write",),
+            allowed_roots=("/work",),
+        )
+        session = eb.create_broker_session(
+            session_id=f"traversal-dc-session-{adapter}", grants=[grant]
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path="/work/../../.claude/skills/work-loop/SKILL.md",
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"traversal to delivery-control path must be refused "
+            f"(adapter {adapter!r})"
+        )
+        assert result.denial_code in ("denied-out-of-scope", "denied-control-plane-write"), (
+            f"expected out-of-scope or control-plane denial; got {result.denial_code!r}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Forgery corpus: non-standard operations and case variants on control-plane paths
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestForgeryCorpusControlPlane:
+    """Forgery corpus: unusual and case-variant operation names must be refused on
+    delivery-control paths even when the grant root contains the target path."""
+
+    @pytest.mark.parametrize("operation,target_path", [
+        # Non-standard mutation verbs against .git/config
+        ("rename", ".git/config"),
+        ("replace", ".git/config"),
+        ("truncate", ".git/config"),
+        ("chmod", ".git/config"),
+        ("symlink", ".git/config"),
+        # Case variants of common verbs against .git/config
+        ("Write", ".git/config"),
+        ("APPEND", ".git/config"),
+        # Non-standard mutation verbs against a skill-copy path
+        ("rename", ".claude/skills/work-loop/scripts/forged.py"),
+        ("replace", ".claude/skills/work-loop/scripts/forged.py"),
+        ("truncate", ".claude/skills/work-loop/scripts/forged.py"),
+        ("chmod", ".claude/skills/work-loop/scripts/forged.py"),
+        ("symlink", ".claude/skills/work-loop/scripts/forged.py"),
+        ("Write", ".claude/skills/work-loop/scripts/forged.py"),
+        ("APPEND", ".claude/skills/work-loop/scripts/forged.py"),
+    ])
+    def test_non_standard_operation_on_control_plane_refused(
+        self,
+        effect_broker: ModuleType,
+        operation: str,
+        target_path: str,
+    ) -> None:
+        """Non-standard and case-variant operations on a delivery-control path
+        must be refused even when the grant root contains the target.
+
+        Each case must fail (return success=False, denied-control-plane-write)
+        with the fixed guard in place.  Reverting the guard to the original
+        four-operation list would allow all of these through.
+        """
+        eb = effect_broker
+        # Grant root is crafted to contain the target so the only thing
+        # blocking the effect is the delivery-control guard.
+        grant = eb.BrokerGrant(
+            grant_id=f"forgery-corpus-{operation}",
+            operations=(operation,),
+            allowed_roots=(target_path,),
+        )
+        session = eb.create_broker_session(
+            session_id=f"forgery-corpus-session-{operation}",
+            grants=[grant],
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation=operation,
+            path=target_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"operation {operation!r} on delivery-control path {target_path!r} "
+            f"must be refused; got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write for {operation!r} on "
+            f"{target_path!r}; got {result.denial_code!r}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Forgery corpus: .loop-run/ is a delivery-control path
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLoopRunDeliveryControl:
+    """.loop-run/ is a delivery-control path; write attempts must be refused."""
+
+    def test_loop_run_detected_as_delivery_control(
+        self, containment: ModuleType
+    ) -> None:
+        """is_delivery_control_path returns True for .loop-run/ paths."""
+        cn = containment
+        assert cn.is_delivery_control_path(".loop-run/events.jsonl"), (
+            ".loop-run/events.jsonl must be a delivery-control path"
+        )
+        assert cn.is_delivery_control_path(".loop-run/events.pending"), (
+            ".loop-run/events.pending must be a delivery-control path"
+        )
+
+    @pytest.mark.parametrize("target_path", [
+        ".loop-run/events.jsonl",
+        ".loop-run/events.pending",
+    ])
+    def test_loop_run_write_refused(
+        self,
+        effect_broker: ModuleType,
+        target_path: str,
+    ) -> None:
+        """A broker write to a .loop-run/ path is refused with denied-control-plane-write.
+
+        The grant root is crafted to contain the target so the only thing
+        blocking the effect is the delivery-control guard.  Reverting the
+        .loop-run/ addition to DELIVERY_CONTROL_PATHS would allow these through.
+        """
+        eb = effect_broker
+        grant = eb.BrokerGrant(
+            grant_id="loop-run-write-grant",
+            operations=("write",),
+            allowed_roots=(target_path,),
+        )
+        session = eb.create_broker_session(
+            session_id="loop-run-write-session",
+            grants=[grant],
+        )
+        events: list = []
+        result = eb.request_effect(
+            session,
+            grant_id=grant.grant_id,
+            operation="write",
+            path=target_path,
+            audit_sink=lambda e: events.append(e),
+        )
+        assert not result.success, (
+            f"write to {target_path!r} must be refused; got success=True"
+        )
+        assert result.denial_code == "denied-control-plane-write", (
+            f"expected denied-control-plane-write for {target_path!r}; "
+            f"got {result.denial_code!r}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 1: attestation check — network/children allowed=False, read-proof,
+# and root normalisation fixes.
+# Each test fails when its corresponding fix is reverted.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAttestationGrantAxesFixed:
+    """check_attestation_within_grant treats allowed=False the same as absent,
+    refuses absent or weaker read enforcement, and normalises roots before
+    the containment comparison.
+    """
+
+    def test_network_allowed_false_on_grant_refuses_attestation(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A grant network field of allowed=False refuses an attestation claiming network.
+
+        Before the fix the check only triggered when grant.network was None.
+        A grant with _NetworkGrant(allowed=False) would not fire the guard, so
+        an attestation claiming allowed=True would pass.  After the fix,
+        allowed=False is treated the same as absent.
+
+        Fails when the guard is reverted to check only grant_network is None.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], network=sc._NetworkGrant(allowed=False)
+        )
+        attestation = _make_attestation(cn, network={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation claiming network must be refused when grant has network.allowed=False"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_children_allowed_false_on_grant_refuses_attestation(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A grant children field of allowed=False refuses an attestation claiming children.
+
+        Mirrors the network case: before the fix, only None triggered the guard.
+        After the fix, _ChildrenGrant(allowed=False) is treated as absent.
+
+        Fails when the guard is reverted to check only grant_children is None.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], children=sc._ChildrenGrant(allowed=False)
+        )
+        attestation = _make_attestation(cn, children={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation claiming children must be refused when grant has children.allowed=False"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_read_enforcement_absent_refused_when_grant_sets_proof_mode(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Absent read_enforcement is refused when the grant sets product_read_proof_mode.
+
+        Before the fix, the read-mode comparison was skipped when attestation
+        read_enforcement was None.  A grant requiring trace would accept an
+        attestation with no read coverage at all.  After the fix, absent
+        read_enforcement when the grant requires a proof mode is refused.
+
+        Fails when the condition is reverted to require both sides to be non-None.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], product_read_proof_mode="trace"
+        )
+        # Attestation claims no read enforcement at all (None).
+        attestation = _make_attestation(cn, read_enforcement=None)
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "absent read_enforcement must be refused when grant requires a proof mode"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_read_enforcement_weaker_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """An attestation with weaker read enforcement than the grant is refused.
+
+        Grant requires trace (strictest); attestation claims allowlist (weaker).
+        After the fix the permissiveness comparison refuses this case.
+
+        Fails when the permissiveness comparison is removed or reversed.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], product_read_proof_mode="trace"
+        )
+        attestation = _make_attestation(cn, read_enforcement="allowlist")
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation with allowlist enforcement must be refused when grant requires trace"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_root_traversal_escape_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """An attestation root that uses traversal to escape the grant root is refused.
+
+        /w/../etc normalises to /etc, which is not inside the grant root /w.
+        Before the fix, the prefix comparison was done without normalisation so
+        /w/../etc passed the startswith('/w/') check incorrectly.
+
+        Fails when posixpath.normpath normalisation is removed from _roots_broader.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/w"])
+        # /w/../etc normalises to /etc — outside the grant root.
+        attestation = _make_attestation(cn, roots=("/w/../etc",))
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert not ok, (
+            "attestation root /w/../etc must be refused (normalises to /etc, outside /w)"
+        )
+        assert code == "denied-attestation-broader-than-grant"
+
+    def test_within_grant_attestation_still_passes(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: a well-formed attestation within the grant passes all axes.
+
+        Verifies that the fixes do not over-refuse valid attestations.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        attestation = _make_attestation(cn, roots=("/work",))
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"within-grant attestation must be allowed; got code: {code!r}"
+
+    def test_empty_roots_attestation_still_passes(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: an attestation with empty roots is not refused (it is narrower).
+
+        An empty roots list is more restricted than any non-empty grant root list;
+        refusing it would be over-broad.  The adjudicator ruled that empty roots
+        are narrower than the grant, not broader.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        attestation = _make_attestation(cn, roots=())
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"empty-roots attestation must not be refused; got code: {code!r}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 5: launch_untrusted issuer verification.
+# The test fails when the issuer check is removed.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLaunchUntrustedIssuerVerification:
+    """launch_untrusted refuses with an audited denial when an issuer is given
+    and the grant does not verify against it.
+    """
+
+    class _FixtureHost:
+        """Test fixture host that returns a valid attestation dict."""
+
+        def get_attestation(self, spec_dict: dict, grant: object) -> dict | None:
+            return {
+                "schema_version": 1,
+                "host_mechanism": "os-sandbox",
+                "principal_or_sandbox": "fixture-sandbox-002",
+                "roots": ("/work",),
+                "limits": {},
+            }
+
+    def test_unverified_grant_with_issuer_refused_with_one_denied_event(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A caller-built (unverified) grant is refused and one denied event is emitted.
+
+        launch_untrusted is called with an issuer whose registry does not contain
+        the supplied grant (it was built by hand, not issued).  The function must
+        refuse with denied-unverified-grant and emit exactly one denied event
+        through the audit sink.
+
+        Fails when the issuer-verification check is removed from launch_untrusted.
+        """
+        cn, sc = containment, security_capability
+        issuer = sc.CapabilityIssuer()
+        # Build a grant that was NOT issued by this issuer (caller-built).
+        caller_built_grant = sc.CapabilityGrant(
+            schema_version=sc.SUPPORTED_SCHEMA_VERSION,
+            grant_id="caller-built-grant-not-in-registry",
+            roots=("/work",),
+            operations=("read", "write"),
+            trust_class="trusted-adapter",
+            writes=sc._WritesGrant(allowed_roots=("/work",)),
+            control_denies=(),
+            limits=sc._Limits(),
+        )
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                caller_built_grant,
+                host=self._FixtureHost(),
+                audit_sink=events.append,
+                issuer=issuer,  # issuer does not know this grant
+            )
+        assert exc_info.value.denial_code == "denied-unverified-grant", (
+            f"expected denied-unverified-grant; got {exc_info.value.denial_code!r}"
+        )
+        assert len(events) == 1, (
+            f"exactly one denied event must be emitted; got {len(events)}"
+        )
+        assert events[0].outcome == "denied", (
+            f"emitted event must have outcome=denied; got {events[0].outcome!r}"
+        )
+        assert events[0].reason_code == "denied-unverified-grant", (
+            f"emitted event must carry the denial code; got {events[0].reason_code!r}"
+        )
+
+    def test_issuer_none_skips_verification(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """When issuer is None, no grant verification is performed (unchanged behaviour)."""
+        cn, sc = containment, security_capability
+        # No issuer: the default host refuses (no-verified-containment),
+        # not denied-unverified-grant.
+        _, grant = _make_root_grant(sc, roots=["/work"])
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                audit_sink=lambda e: None,
+                # issuer omitted (default None)
+            )
+        assert exc_info.value.denial_code == "denied-no-verified-containment", (
+            "omitting issuer must not change default-host refusal code"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Finding 4: attestation check — omitted limits and destination-restricted
+# network grants.  Each test fails when its corresponding fix is reverted.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAttestationLimitsAndDestinations:
+    """check_attestation_within_grant refuses when the grant sets a limit that
+    the attestation omits, and refuses a network-allowed attestation when the
+    grant restricts allowed_destinations (which v1 cannot express).
+    """
+
+    class _FixtureHost:
+        """Test fixture host that returns a configurable attestation dict."""
+
+        def __init__(self, attestation: dict) -> None:
+            self._attestation = attestation
+
+        def get_attestation(self, spec_dict: dict, grant: object) -> dict | None:
+            return self._attestation
+
+    def test_omitted_max_bytes_refused_with_denied_event(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation omitting max_bytes when the grant sets it is refused with one denied event.
+
+        Before the fix the limit comparison was skipped when attest_max_bytes was
+        None, so a grant with max_bytes=1000 accepted an attestation with
+        limits={}.  After the fix, an omitted max_bytes is treated as broader.
+
+        Fails when the None-omission guard is removed from check_attestation_within_grant.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], limits=sc._Limits(max_bytes=1000)
+        )
+        # Attestation omits max_bytes entirely.
+        host = self._FixtureHost({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-lim",
+            "roots": ("/work",),
+            "limits": {},
+        })
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=lambda e: events.append(e),
+            )
+        assert exc_info.value.denial_code == "denied-attestation-broader-than-grant", (
+            f"expected denied-attestation-broader-than-grant; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+        assert len(events) == 1, (
+            f"exactly one denied event must be emitted; got {len(events)}"
+        )
+        assert events[0].outcome == "denied"
+
+    def test_omitted_timeout_s_refused_with_denied_event(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Attestation omitting timeout_s when the grant sets it is refused with one denied event.
+
+        Mirrors the max_bytes case.
+
+        Fails when the None-omission guard is removed from check_attestation_within_grant.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], limits=sc._Limits(timeout_s=60)
+        )
+        host = self._FixtureHost({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-to",
+            "roots": ("/work",),
+            "limits": {},
+        })
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=lambda e: events.append(e),
+            )
+        assert exc_info.value.denial_code == "denied-attestation-broader-than-grant", (
+            f"expected denied-attestation-broader-than-grant; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+        assert len(events) == 1, (
+            f"exactly one denied event must be emitted; got {len(events)}"
+        )
+        assert events[0].outcome == "denied"
+
+    def test_network_allowed_against_destination_restricted_grant_refused(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """A network-allowed attestation against a destination-restricted grant is refused.
+
+        The v1 attestation schema has no allowed_destinations field.  When the
+        grant restricts destinations (non-empty allowed_destinations), an
+        attestation claiming network=allowed cannot prove that restriction and
+        must be refused.
+
+        Fails when the destination-restriction guard is removed from
+        check_attestation_within_grant.
+        """
+        cn, sc = containment, security_capability
+        # Grant allows network but restricts to specific destinations.
+        _, grant = _make_root_grant(
+            sc,
+            roots=["/work"],
+            network=sc._NetworkGrant(allowed=True, allowed_destinations=("api.example.com",)),
+        )
+        # Attestation claims network is allowed but cannot express the destination.
+        host = self._FixtureHost({
+            "schema_version": 1,
+            "host_mechanism": "os-sandbox",
+            "principal_or_sandbox": "fixture-sandbox-net",
+            "roots": ("/work",),
+            "limits": {},
+            "network": {"allowed": True},
+        })
+        events: list = []
+        with pytest.raises(cn.ContainmentRefused) as exc_info:
+            cn.launch_untrusted(
+                {},
+                grant,
+                host=host,
+                audit_sink=lambda e: events.append(e),
+            )
+        assert exc_info.value.denial_code == "denied-attestation-broader-than-grant", (
+            f"expected denied-attestation-broader-than-grant; got "
+            f"{exc_info.value.denial_code!r}"
+        )
+
+    def test_limits_present_and_within_pass(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: attestation with limits present and within the grant passes.
+
+        Verifies that the omission fix does not over-refuse when the attestation
+        supplies both max_bytes and timeout_s and they are within the grant.
+        """
+        cn, sc = containment, security_capability
+        _, grant = _make_root_grant(
+            sc, roots=["/work"], limits=sc._Limits(max_bytes=2000, timeout_s=120)
+        )
+        attestation = _make_attestation(
+            cn, limits={"max_bytes": 500, "timeout_s": 30}
+        )
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, f"attestation with limits within grant must pass; got code: {code!r}"
+
+    def test_network_allowed_against_unrestricted_grant_passes(
+        self, containment: ModuleType, security_capability: ModuleType
+    ) -> None:
+        """Control: network-allowed attestation against an unrestricted allowed grant passes.
+
+        When the grant allows network with no destination restriction (empty
+        allowed_destinations), a network-allowed attestation is not refused.
+        """
+        cn, sc = containment, security_capability
+        # Grant allows network with no destination restriction.
+        _, grant = _make_root_grant(
+            sc,
+            roots=["/work"],
+            network=sc._NetworkGrant(allowed=True, allowed_destinations=()),
+        )
+        attestation = _make_attestation(cn, network={"allowed": True})
+        ok, code = cn.check_attestation_within_grant(attestation, grant)
+        assert ok, (
+            "network-allowed attestation against unrestricted allowed grant must pass; "
+            f"got code: {code!r}"
+        )
