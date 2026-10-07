@@ -241,6 +241,7 @@ shipped = [
   # three are recorded in notes/verification-ledger.md against
   # 798cb5945d2224de825a1904f4d3c5c34cc26729.
   {path = "docs/specs/pack-javascript-ci-workflow/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/pack-javascript-ci-workflow.md"}, summary = "Give pack JavaScript a dedicated path-scoped remote workflow that installs every canonical pack npm project from a committed lockfile and runs the render-proof suites, while npm audit stays with make sast", needs = []},
+  {path = "docs/specs/optional-intelligence-exploration-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0030-optional-intelligence-exploration-composition.md", revision = "working-tree-2026-10-04"}, summary = "Add an optional repository-exploration method for native capability selection, evidence discipline, and deliberate fallback", needs = []},
   {path = "docs/specs/optional-intelligence-grounding-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0029-optional-intelligence-grounding-composition.md", revision = "working-tree-2026-10-04"}, summary = "Give Core grounding a provider-neutral owner that can add native evidence while preserving its no-provider result", needs = []},
   # Shipped 2026-09-28 after owner ratification of the delivered standalone
   # 16-obligation contract. Delivery event: f2b1f5ab4 (PR #1276).
@@ -505,7 +506,6 @@ shipped = [
   {path = "docs/specs/jsonl-otlp-exporter/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md"}, summary = "Publish a standalone JSONL-to-OTLP logs exporter with profile-defined field mapping and fail-closed input and endpoint controls", needs = []},
 ]
 queue   = [
-  {path = "docs/specs/optional-intelligence-exploration-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0030-optional-intelligence-exploration-composition.md", revision = "working-tree-2026-10-04"}, summary = "Add an optional repository-exploration method for native capability selection, evidence discipline, and deliberate fallback", needs = []},
   {path = "docs/specs/code-intelligence-golden-composition-example/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md", revision = "working-tree-2026-10-04"}, summary = "Show one complete Wicked Estate composition without making its provider-specific shape normative", needs = []},
   {path = "docs/specs/native-provider-selection-validation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0032-native-provider-selection-validation.md", revision = "working-tree-2026-10-04"}, summary = "Run a blind human validation that can survive, reframe, or leave inconclusive the native-provider selection bet", needs = []},
   # Draft 2026-10-05, carved out of `jsonl-otlp-exporter` when that spec closed.

@@ -1,0 +1,5 @@
+{
+  "serviceName": "SemanticBridgeAnalyzer",
+  "operation": "codebaseRelationshipQuery",
+  "description": "Queries semantic cross-domain relationships in the codebase and returns bridging modules between architectural domains."
+}
