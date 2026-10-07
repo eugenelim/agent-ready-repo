@@ -536,6 +536,18 @@ reading a frame surfaces as the same corruption error. Four new cases fail
 against the earlier code; the re-read test now shows poisoning through the
 public `denied-store-poisoned` refusal.
 
+Adversarial round 19 found that append did not check identity types, so it
+could write a frame its own replay then refused, and quality-engineer round 7
+found no test pinned the replay record schema check. The owner overrode the
+retry cap once more. The shared validators now require every receipt,
+supersession, and transaction identity, and every `ordered_record_ids` and
+`superseded_receipt_ids` item, to be a non-empty string, as the canonical
+schemas do, and append validates the built transaction header before staging
+a byte, so append and replay accept exactly the same frames. Five identity
+tests fail against the earlier code, and four replay tests fail when the record
+check is removed. The request to name the failing frame in the corruption
+error was refuted and left unchanged.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on

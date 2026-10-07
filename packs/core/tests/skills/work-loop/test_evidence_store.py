@@ -2264,3 +2264,109 @@ class TestDurableReReadFailures:
             es.EvidenceStore(log_path).open()
         self._append_and_expect(es, sc, store, "denied-log-corrupt")
         assert [r["receipt_id"] for r in store.get_all_active_receipts()] == ["r-first"]
+
+
+class TestIdentityTypesMatchAcrossAppendAndReplay:
+    """Append refuses every identity replay would reject, so the store never writes an unopenable frame."""
+
+    @pytest.mark.parametrize("bad_id", [0, None, False])
+    def test_non_string_receipt_id_is_refused_before_any_byte(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, bad_id: object
+    ) -> None:
+        log_path = tmp_path / "ev-bad-rid.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        events: list = []
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                {**_make_receipt("placeholder"), "receipt_id": bad_id},
+                transaction_id="tx-bad-rid",
+                issuer=issuer, grant=grant, audit_sink=events.append,
+            )
+        assert exc_info.value.denial_code == "denied-invalid-receipt-denied-invalid-identity"
+        assert log_path.read_bytes() == b""
+        allow, denial = events
+        assert denial.operation_id == allow.operation_id
+        _open_fresh_store(es, log_path)  # still opens
+
+    def test_non_string_transaction_id_is_refused_before_any_byte(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-bad-tx.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                _make_receipt("r-bad-tx"), transaction_id=["a"],  # type: ignore[arg-type]
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-invalid-transaction-denied-invalid-identity"
+        assert log_path.read_bytes() == b""
+        _open_fresh_store(es, log_path)
+
+    def test_non_string_superseded_id_is_refused_before_any_byte(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-bad-sup.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_supersession(
+                _make_supersession("sup-bad", [["a"]]),  # type: ignore[list-item]
+                transaction_id="tx-bad-sup", acceptance_fingerprint=_CURRENT_FP,
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-invalid-supersession-denied-invalid-identity"
+        assert log_path.read_bytes() == b""
+        _open_fresh_store(es, log_path)
+
+
+class TestReplaySchemaCheck:
+    """A record that indexes cleanly but breaks its schema is still rejected on replay."""
+
+    @staticmethod
+    def _frame(es: ModuleType, record: dict, record_id: str) -> bytes:
+        body = {
+            "schema_version": 1,
+            "transaction_id": f"tx-{record_id}",
+            "ordered_record_ids": [record_id],
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        tx = {**body, "checksum": es._compute_frame_checksum(body, [record])}
+        return (es._canonical_json({"tx": tx, "records": [record]}) + "\n").encode("utf-8")
+
+    def _schema_invalid_frames(self, es: ModuleType) -> list[bytes]:
+        receipt = {**_make_receipt("r-bad-mode"), "freshness_mode": "never-valid"}
+        supersession = {**_make_supersession("sup-empty", ["r-prev-001"]), "superseded_receipt_ids": []}
+        return [
+            self._frame(es, receipt, "r-bad-mode"),
+            self._frame(es, supersession, "sup-empty"),
+        ]
+
+    @pytest.mark.parametrize("which", [0, 1], ids=["receipt", "supersession"])
+    def test_schema_invalid_record_is_corruption_on_reopen(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, which: int
+    ) -> None:
+        log_path = tmp_path / "ev-schema-open.log"
+        _open_fresh_store(es, log_path)
+        log_path.write_bytes(self._schema_invalid_frames(es)[which])
+        with pytest.raises(es.EvidenceStoreError, match="record is invalid"):
+            es.EvidenceStore(log_path).open()
+
+    @pytest.mark.parametrize("which", [0, 1], ids=["receipt", "supersession"])
+    def test_schema_invalid_record_behind_an_open_store_refuses(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, which: int
+    ) -> None:
+        log_path = tmp_path / "ev-schema-reread.log"
+        store = _open_fresh_store(es, log_path)
+        log_path.write_bytes(self._schema_invalid_frames(es)[which])
+        issuer, grant = _make_grant(sc)
+        events: list = []
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(
+                _make_receipt("r-new"), transaction_id="tx-new",
+                issuer=issuer, grant=grant, audit_sink=events.append,
+            )
+        assert exc_info.value.denial_code == "denied-log-corrupt"
+        allow, denial = events
+        assert denial.operation_id == allow.operation_id

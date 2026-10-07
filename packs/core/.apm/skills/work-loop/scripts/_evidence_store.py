@@ -461,6 +461,11 @@ _SUPERSESSION_REQUIRED: Final[frozenset[str]] = frozenset({
 _SUPERSESSION_ALLOWED: Final[frozenset[str]] = _SUPERSESSION_REQUIRED
 
 
+def _is_identity(value: object) -> bool:
+    """Return True when *value* is a non-empty string, as every record identity must be."""
+    return isinstance(value, str) and bool(value)
+
+
 def validate_transaction_dict(d: object) -> tuple[bool, str]:
     """Validate a ``semantic-evidence-transaction.v1`` record dict in code.
 
@@ -471,6 +476,8 @@ def validate_transaction_dict(d: object) -> tuple[bool, str]:
       denied-missing-required-field  — a required field is absent.
       denied-unknown-authority-field — a field not in the schema is present.
       denied-empty-ordered-record-ids — ordered_record_ids is empty.
+      denied-invalid-identity        — transaction_id or an ordered_record_ids
+                                       item is not a non-empty string.
     """
     if not isinstance(d, dict):
         return False, "denied-not-a-dict"
@@ -486,6 +493,8 @@ def validate_transaction_dict(d: object) -> tuple[bool, str]:
     oids = d.get("ordered_record_ids")
     if not isinstance(oids, list) or len(oids) == 0:
         return False, "denied-empty-ordered-record-ids"
+    if not _is_identity(d.get("transaction_id")) or not all(_is_identity(o) for o in oids):
+        return False, "denied-invalid-identity"
     return True, "ok"
 
 
@@ -502,6 +511,7 @@ def validate_receipt_dict(d: object) -> tuple[bool, str]:
       denied-invalid-nested-field    — lineage, selector, observation, or producer
                                        is not an object with exactly its permitted
                                        non-empty string fields.
+      denied-invalid-identity        — receipt_id is not a non-empty string.
     """
     if not isinstance(d, dict):
         return False, "denied-not-a-dict"
@@ -514,6 +524,8 @@ def validate_receipt_dict(d: object) -> tuple[bool, str]:
     unknown = set(d) - _RECEIPT_ALLOWED
     if unknown:
         return False, "denied-unknown-authority-field"
+    if not _is_identity(d.get("receipt_id")):
+        return False, "denied-invalid-identity"
     mode = d.get("freshness_mode")
     if mode not in _RECEIPT_FRESHNESS_MODES:
         return False, "denied-invalid-enum"
@@ -539,6 +551,8 @@ def validate_supersession_dict(d: object) -> tuple[bool, str]:
       denied-missing-required-field   — a required field is absent.
       denied-unknown-authority-field  — a field not in the schema is present.
       denied-empty-superseded-ids     — superseded_receipt_ids is empty.
+      denied-invalid-identity         — supersession_id or a superseded_receipt_ids
+                                        item is not a non-empty string.
     """
     if not isinstance(d, dict):
         return False, "denied-not-a-dict"
@@ -554,6 +568,8 @@ def validate_supersession_dict(d: object) -> tuple[bool, str]:
     sids = d.get("superseded_receipt_ids")
     if not isinstance(sids, list) or len(sids) == 0:
         return False, "denied-empty-superseded-ids"
+    if not _is_identity(d.get("supersession_id")) or not all(_is_identity(s) for s in sids):
+        return False, "denied-invalid-identity"
     return True, "ok"
 
 
@@ -1091,6 +1107,21 @@ class EvidenceStore:
             return f"denied-duplicate-{kind}-id", None
         return "new", None
 
+    @staticmethod
+    def _refuse_invalid_header(
+        tx: dict, *, audit_sink: Callable[[Any], None], op_id: str
+    ) -> None:
+        """Refuse a transaction header replay would reject, before any byte is staged.
+
+        Append and replay share the validators, so the store never writes a
+        frame it cannot reopen.
+        """
+        ok, code = validate_transaction_dict(tx)
+        if not ok:
+            denial_code = f"denied-invalid-transaction-{code}"
+            _emit_post_allow_denial(audit_sink, op_id, denial_code)
+            raise EvidenceStoreRefused(denial_code, f"transaction header is invalid: {code}")
+
     def _write_frame_once(
         self,
         kind: str,
@@ -1370,6 +1401,7 @@ class EvidenceStore:
         # Step 4: build transaction and apply content-safety to the header.
         records = [receipt]
         tx = _build_transaction(transaction_id, [receipt_id], acceptance_fp, records)
+        self._refuse_invalid_header(tx, audit_sink=audit_sink, op_id=op_id)
         try:
             _check_record_safety(
                 tx, "semantic-evidence-transaction.v1", record_id=transaction_id
@@ -1485,6 +1517,7 @@ class EvidenceStore:
         # Step 4: build transaction and apply content-safety to the header.
         records = [supersession]
         tx = _build_transaction(transaction_id, [sup_id], acceptance_fingerprint, records)
+        self._refuse_invalid_header(tx, audit_sink=audit_sink, op_id=op_id)
         try:
             _check_record_safety(
                 tx, "semantic-evidence-transaction.v1", record_id=transaction_id
