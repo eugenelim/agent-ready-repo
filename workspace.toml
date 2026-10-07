@@ -2414,9 +2414,6 @@ backlog = [
 queue   = [
 ]
 active  = [
-  # FEAT-0003's single delivery unit, approved 2026-10-04 and started the
-  # same day; moved from `queue` with the spec's `Status: Implementing`.
-  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
@@ -2435,6 +2432,10 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # FEAT-0003's single delivery unit. Delivered 2026-10-07 and moved from
+  # `active` to `shipped` in the change that set the spec `Shipped` and the plan
+  # `Done`.
+  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
   # The final slice of `intent-identity-and-registration`. Delivered
   # 2026-10-03 and moved from `active` to `shipped` in the change that set the
   # spec `Shipped` and the plan `Done`. Ships the installed retire-and-issue
