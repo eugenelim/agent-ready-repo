@@ -48,6 +48,18 @@ Wicked Estate never learns that any of them exist.
 - **`impact-analyst`** — a forked-context subagent for structured change-impact
   analysis. Leads with its own completeness limits.
 
+## Composition example
+
+[`.apm/skills/code-intelligence/references/composition-example.md`](.apm/skills/code-intelligence/references/composition-example.md)
+shows one complete change-impact inquiry — the provider-fit path using an
+indexed call graph, and the fallback path using repository-native search when
+the provider is absent or the index is stale. Each path labels which obligations
+belong to Core inquiry behavior and which details are Wicked Estate-specific.
+
+The example is illustrative, not a contract. Other providers may expose fewer,
+different, or new capabilities and need not emulate Wicked Estate. The current
+investigation patterns may change as the pack evolves.
+
 ## Getting started
 
 You need the CLI and an index.

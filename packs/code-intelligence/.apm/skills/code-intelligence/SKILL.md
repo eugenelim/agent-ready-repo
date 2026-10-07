@@ -121,6 +121,18 @@ early as the objective allows.
 5. **Stop.** Stop when you have enough evidence for the user's objective, not
    when the graph is exhausted. An unbounded walk is the main failure mode here.
 
+## Composition example
+
+[`references/composition-example.md`](references/composition-example.md) shows
+one complete inquiry — before changing `parse_config`, which call sites must
+change, and which could not be established? — through the provider-fit path and
+the fallback path. It labels which obligations belong to Core inquiry behavior
+and which details are owned by this pack.
+
+The example is illustrative, not a contract. Other providers may expose fewer,
+different, or new capabilities and need not emulate Wicked Estate. The current
+investigation patterns may change.
+
 ## Investigation patterns
 
 Five reusable shapes cover nearly every request. Load

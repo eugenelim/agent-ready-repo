@@ -134,16 +134,17 @@ def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
         )
 
 
-def test_pack_version_is_0_1_3() -> None:
-    """AC-0032: pack.toml and plugin.json both carry version 0.1.3.
+def test_pack_version_is_0_1_4() -> None:
+    """pack.toml and plugin.json both carry version 0.1.4.
 
-    Fails until T3 bumps the release version.
+    Patch bump from 0.1.3: adds the composition example reference file and
+    evaluation cases to the existing skill without adding a new primitive.
     """
     pack_version = load_pack()["version"]
     plugin_version = load_plugin()["version"]
-    assert pack_version == "0.1.3", (
-        f"pack version is {pack_version!r}, expected '0.1.3'"
+    assert pack_version == "0.1.4", (
+        f"pack version is {pack_version!r}, expected '0.1.4'"
     )
-    assert plugin_version == "0.1.3", (
-        f"plugin version is {plugin_version!r}, expected '0.1.3'"
+    assert plugin_version == "0.1.4", (
+        f"plugin version is {plugin_version!r}, expected '0.1.4'"
     )
