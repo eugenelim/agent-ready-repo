@@ -485,6 +485,26 @@ cap and chose to fix all of it:
 
 The new retry, two-writer, and replay tests fail against the earlier code.
 
+## Corrupt re-read and coverage fixes (owner decision, 2026-10-07)
+
+Quality-engineer round 3, security round 14, and adversarial round 15
+confirmed the previous wave and found that a corrupt frame met during the
+re-read under the lock cleared the open store's indexes part-way and left the
+allow event without a denial. The owner overrode the retry cap and chose to
+fix all sustained findings:
+
+- the re-read builds its view aside and swaps it in only on success; any
+  failure keeps the last consistent view, poisons the instance until reopen,
+  and refuses with `denied-log-corrupt`, paired with the allow event;
+- tests now reach the re-read refusals (`denied-log-corrupt`,
+  `denied-log-needs-recovery`, `denied-log-not-regular`), the mid-read
+  `denied-product-drift`, a FIFO, linked, or overlong shadow `.gitignore`
+  marker, and every bad-authority retry case with its exact code;
+- the core 2.28.1 changelog entry has a Highlights bullet.
+
+The replay skip signal and a narrower `except` in the shadow sink were
+refuted and left unchanged.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on

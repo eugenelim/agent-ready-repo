@@ -29,6 +29,7 @@ import importlib.util
 import os
 import stat
 import sys
+import time
 from pathlib import Path
 from types import ModuleType
 
@@ -1997,9 +1998,18 @@ class TestRetryAuthorityAndConcurrentWriters:
         assert log_path.read_bytes() == log_after_first
         assert [e.outcome for e in events] == ["allowed"]
 
-    @pytest.mark.parametrize("case", ["no-grant", "out-of-scope-grant", "failing-sink"])
+    @pytest.mark.parametrize(
+        ("case", "code"),
+        [
+            ("no-grant", "denied-invalid-grant"),
+            ("out-of-scope-grant", "denied-producer-authority"),
+            ("expired-grant", "denied-producer-authority"),
+            ("mismatched-issuer", "denied-producer-authority"),
+            ("failing-sink", "denied-audit-sink-unavailable"),
+        ],
+    )
     def test_retry_after_commit_under_invalid_authority_is_refused(
-        self, es: ModuleType, sc: ModuleType, tmp_path: Path, case: str
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, case: str, code: str
     ) -> None:
         log_path = tmp_path / f"ev-retry-{case}.log"
         store = _open_fresh_store(es, log_path)
@@ -2008,6 +2018,7 @@ class TestRetryAuthorityAndConcurrentWriters:
             _make_receipt("r-retry"), transaction_id="tx-retry",
             issuer=issuer, grant=grant, audit_sink=_null_sink,
         )
+        log_after_commit = log_path.read_bytes()
         retry_issuer, retry_grant, sink = issuer, grant, _null_sink
         if case == "no-grant":
             retry_grant = None
@@ -2017,13 +2028,23 @@ class TestRetryAuthorityAndConcurrentWriters:
                 roots=["other"], operations=["read"], trust_class="trusted",
                 writes_allowed_roots=[], control_denies=[],
             )
+        elif case == "expired-grant":
+            retry_grant = issuer.issue_root_grant(
+                roots=["evidence"], operations=["append"], trust_class="trusted",
+                writes_allowed_roots=["evidence"], control_denies=[], expires_in_s=0.01,
+            )
+            time.sleep(0.05)
+        elif case == "mismatched-issuer":
+            retry_issuer = sc.CapabilityIssuer()  # never issued this grant
         else:
             sink = _failing_sink
-        with pytest.raises(es.EvidenceStoreRefused):
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
             store.append_receipt(
                 _make_receipt("r-retry"), transaction_id="tx-retry",
                 issuer=retry_issuer, grant=retry_grant, audit_sink=sink,
             )
+        assert exc_info.value.denial_code == code
+        assert log_path.read_bytes() == log_after_commit
 
     def test_supersession_retry_with_another_fingerprint_is_refused(
         self, es: ModuleType, sc: ModuleType, tmp_path: Path
@@ -2070,3 +2091,88 @@ class TestRetryAuthorityAndConcurrentWriters:
         assert [(r["receipt_id"], r["outcome"]) for r in reopened.get_all_active_receipts()] == [
             ("r-shared", "passed")
         ]
+
+
+class TestDurableReReadFailures:
+    """A re-read under the lock that fails refuses, pairs its denial, and keeps the last good view."""
+
+    @staticmethod
+    def _grow_behind(es: ModuleType, sc: ModuleType, log_path: Path) -> None:
+        """Append one valid frame through a second instance so the first must re-read."""
+        other = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        other.append_receipt(
+            _make_receipt("r-other"), transaction_id="tx-other",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+
+    def _first_store(self, es: ModuleType, sc: ModuleType, log_path: Path) -> object:
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        store.append_receipt(
+            _make_receipt("r-first"), transaction_id="tx-first",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+        return store
+
+    def _append_and_expect(
+        self, es: ModuleType, sc: ModuleType, store: object, code: str
+    ) -> list:
+        issuer, grant = _make_grant(sc)
+        events: list = []
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_receipt(  # type: ignore[attr-defined]
+                _make_receipt("r-new"), transaction_id="tx-new",
+                issuer=issuer, grant=grant, audit_sink=events.append,
+            )
+        assert exc_info.value.denial_code == code
+        allow, denial = events
+        assert (allow.outcome, denial.outcome) == ("allowed", "denied")
+        assert denial.operation_id == allow.operation_id
+        assert denial.reason_code == code
+        return events
+
+    def test_corrupt_frame_behind_an_open_store_refuses_and_keeps_its_view(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-corrupt.log"
+        store = self._first_store(es, sc, log_path)
+        self._grow_behind(es, sc, log_path)
+        log_path.write_bytes(log_path.read_bytes() + b'{"tx": {"transaction_id": "x"}, "records": []}\n')
+        before = log_path.read_bytes()
+        self._append_and_expect(es, sc, store, "denied-log-corrupt")
+        assert log_path.read_bytes() == before
+        assert [r["receipt_id"] for r in store.get_all_active_receipts()] == ["r-first"]
+        issuer, grant = _make_grant(sc)
+        with pytest.raises(es.EvidenceStoreRefused) as again:
+            store.append_receipt(
+                _make_receipt("r-later"), transaction_id="tx-later",
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert again.value.denial_code == "denied-store-poisoned"
+
+    def test_incomplete_frame_behind_an_open_store_needs_recovery(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-torn.log"
+        store = self._first_store(es, sc, log_path)
+        log_path.write_bytes(log_path.read_bytes() + b'{"tx": {"partial')
+        before = log_path.read_bytes()
+        self._append_and_expect(es, sc, store, "denied-log-needs-recovery")
+        assert log_path.read_bytes() == before
+
+    def test_unreadable_log_behind_an_open_store_is_refused(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        log_path = tmp_path / "ev-unreadable.log"
+        store = self._first_store(es, sc, log_path)
+        self._grow_behind(es, sc, log_path)
+        fs = es._file_safety()
+
+        def unreadable(*_args: object, **_kwargs: object) -> bytes:
+            raise OSError("simulated unreadable log")
+
+        monkeypatch.setattr(fs, "read_confined_regular_file", unreadable)
+        before = log_path.read_bytes()
+        self._append_and_expect(es, sc, store, "denied-log-not-regular")
+        assert log_path.read_bytes() == before

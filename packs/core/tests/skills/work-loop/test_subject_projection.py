@@ -996,3 +996,39 @@ class TestCumulativeByteBudget:
                 evidence_policy_ref="policy:v1",
             )
         assert exc_info.value.denial_code == "denied-byte-bound-exceeded"
+
+
+class TestMidReadDrift:
+    """A file whose size changes while it is hashed is refused as drift."""
+
+    def test_size_change_during_the_read_is_product_drift(
+        self, ss: ModuleType, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        target = tmp_path / "data.txt"
+        target.write_bytes(b"hello")
+        real_fstat = os.fstat
+        calls: list[int] = []
+
+        def counting_fstat(fd: int) -> os.stat_result:
+            calls.append(fd)
+            return real_fstat(fd)
+
+        monkeypatch.setattr(os, "fstat", counting_fstat)
+        ss._hash_file_with_budget(tmp_path, target, ss.MAX_PRODUCT_BYTES)
+        size_read_call = len(calls)
+        calls.clear()
+
+        def stale_size_read(fd: int) -> os.stat_result:
+            calls.append(fd)
+            result = real_fstat(fd)
+            if len(calls) == size_read_call:
+                # The size taken at open no longer matches what will be read.
+                fields = list(result)
+                fields[6] = result.st_size + 3
+                return os.stat_result(fields)
+            return result
+
+        monkeypatch.setattr(os, "fstat", stale_size_read)
+        with pytest.raises(ss.SubjectRefused) as exc_info:
+            ss._hash_file_with_budget(tmp_path, target, ss.MAX_PRODUCT_BYTES)
+        assert exc_info.value.denial_code == "denied-product-drift"

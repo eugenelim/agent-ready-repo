@@ -927,16 +927,18 @@ class EvidenceStore:
     def _index_frames(self, raw: bytes) -> None:
         """Rebuild every index from *raw*, a log prefix of complete frames.
 
+        The new view is built aside and swapped in only when the whole prefix
+        indexes cleanly, so a failure leaves the previous view untouched.
         Checksum or reference corruption raises ``EvidenceStoreError``.  A frame
         that reuses a transaction_id, receipt_id, or supersession_id already
         seen is skipped as a whole, so the first admitted record stays
         authoritative and the store still opens.
         """
-        self._receipts.clear()
-        self._receipts_by_criterion.clear()
-        self._supersessions.clear()
-        self._superseded.clear()
-        self._transactions.clear()
+        receipts: dict[str, dict] = {}
+        by_criterion: dict[Any, list[str]] = {}
+        supersessions: dict[str, dict] = {}
+        superseded: set[str] = set()
+        transactions: list[dict] = []
         seen_tx_ids: set[str] = set()
         for line in raw.split(b"\n"):
             if not line:
@@ -948,9 +950,13 @@ class EvidenceStore:
                     f"evidence log frame parse error: {exc}"
                 ) from exc
 
-            tx = frame.get("tx")
-            records = frame.get("records", [])
-            if not isinstance(tx, dict) or not isinstance(records, list):
+            tx = frame.get("tx") if isinstance(frame, dict) else None
+            records = frame.get("records", []) if isinstance(frame, dict) else None
+            if (
+                not isinstance(tx, dict)
+                or not isinstance(records, list)
+                or not all(isinstance(record, dict) for record in records)
+            ):
                 raise EvidenceStoreError(
                     "evidence log frame has invalid structure (tx or records is missing)"
                 )
@@ -960,22 +966,29 @@ class EvidenceStore:
 
             tx_id = tx.get("transaction_id", "")
             reused = tx_id in seen_tx_ids or any(
-                record.get("receipt_id") in self._receipts
-                or record.get("supersession_id") in self._supersessions
+                record.get("receipt_id") in receipts
+                or record.get("supersession_id") in supersessions
                 for record in records
             )
             if reused:
                 continue  # first-wins: a later reuse never replaces admitted evidence
             seen_tx_ids.add(tx_id)
 
-            self._transactions.append(tx)
+            transactions.append(tx)
             for record in records:
                 if "receipt_id" in record:
-                    self._index_receipt(record)
+                    receipt_id = record["receipt_id"]
+                    criterion_ref = record.get("lineage", {}).get("criterion_ref")
+                    by_criterion.setdefault(criterion_ref, []).append(receipt_id)
+                    receipts[receipt_id] = record
                 elif "supersession_id" in record:
-                    self._supersessions[record["supersession_id"]] = record
-                    for rid in record.get("superseded_receipt_ids", []):
-                        self._superseded.add(rid)
+                    supersessions[record["supersession_id"]] = record
+                    superseded.update(record.get("superseded_receipt_ids", []))
+        self._receipts = receipts
+        self._receipts_by_criterion = by_criterion
+        self._supersessions = supersessions
+        self._superseded = superseded
+        self._transactions = transactions
         self._log_size = len(raw)
 
     def _refresh_from_durable_log(self, current_size: int) -> None:
@@ -1000,7 +1013,16 @@ class EvidenceStore:
                 "denied-log-needs-recovery",
                 "evidence log ends in an incomplete frame; reopen the store to recover",
             )
-        self._index_frames(raw)
+        try:
+            self._index_frames(raw)
+        except (EvidenceStoreError, ValueError, TypeError, AttributeError, KeyError) as exc:
+            # The durable log is corrupt: keep the last consistent view and
+            # refuse further appends until the store is reopened.
+            self._poisoned = True
+            raise EvidenceStoreRefused(
+                "denied-log-corrupt",
+                "evidence log failed verification on re-read; reopen the store",
+            ) from exc
 
     def _decide_reuse(
         self,

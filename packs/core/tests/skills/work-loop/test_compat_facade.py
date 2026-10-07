@@ -1902,3 +1902,25 @@ class TestShadowWriterPort:
             assert not (shadow_dir / "shadow-security-events.jsonl").exists(), (
                 f"no log file must appear when .gitignore content is {label!r}"
             )
+
+    @pytest.mark.parametrize("kind", ["fifo", "symlink", "overlong"])
+    def test_sink_refuses_an_unsafe_or_overlong_marker(
+        self, facade: ModuleType, tmp_path: Path, kind: str
+    ) -> None:
+        """A FIFO, a linked, or an overlong marker never initialises the store, and never blocks."""
+        spec_dir = tmp_path / f"marker-{kind}"
+        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
+        shadow_dir.mkdir(parents=True)
+        marker = shadow_dir / ".gitignore"
+        if kind == "fifo":
+            os.mkfifo(marker)
+        elif kind == "symlink":
+            real = tmp_path / f"real-{kind}"
+            real.write_bytes(b"*\n")
+            marker.symlink_to(real)
+        else:
+            marker.write_bytes(b"*\nextra\n")
+        sink = facade._durable_sink(spec_dir, shadow_dir, facade._cm())
+        with pytest.raises(OSError, match="not initialised"):
+            sink({"schema_version": 1})
+        assert not (shadow_dir / "shadow-security-events.jsonl").exists()

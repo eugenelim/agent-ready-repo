@@ -66,6 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [core][2.28.1] — 2026-10-06
 
+### Highlights
+
+- You can set `WORK_LOOP_SHADOW_SERVICES=1` to have the work loop record acceptance evidence and a derived verdict alongside each run, without changing any outcome. Every shadow result is non-authoritative until a later, separately approved cutover.
+
 ### Added
 
 - Callable shadow acceptance services now ship in `packs/core`. The services — acceptance projection, approval import, evidence transactions, subject projection, security primitives, content-safety guard, and the compatibility facade — are standard-library-only scripts in the `work-loop` skill. With `WORK_LOOP_SHADOW_SERVICES=1`, the engine records an evidence receipt after each transition. When the plan locks, it also imports the approval against the approved spec and plan digests, projects the delivery subject when the tree allows (it skips a dirty tree or an oversized manifest), and derives a verdict, all under the feature's `.shadow-acceptance/` folder. The current engine keeps all authority, and every result stays non-authoritative shadow evidence until a separately accepted governance record enables a cutover. Maintainers can verify parity, run import and reversal checks, and confirm cross-adapter conformance without reading the delivery spec.
