@@ -7,7 +7,7 @@ metadata:
 
 # Skill: repository-exploration
 
-Answer an open question about repository behavior, dependencies, impact, or context. The caller keeps its own question, stopping rule, and decision. This skill selects by semantic fit, invokes natively, and returns attributed evidence; no provider is required and no tool is ever a required step. Path-seeded "what governs these paths?" questions belong to repository-grounding, not here.
+Answer an open question about repository behavior, dependencies, impact, or context. The caller keeps its own question, stopping rule, and decision. This skill selects by semantic fit, invokes natively, and returns attributed evidence; no provider or tool is ever a required step. Path-seeded "what governs these paths?" questions belong to repository-grounding, not here.
 
 ## Output rendering
 
