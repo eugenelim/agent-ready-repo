@@ -442,3 +442,15 @@ No capture: the run's lessons concern eval-fixture authoring (a directive case n
 - **Open gap.** `loop-cohort dispatch-receipt --decline` accepts only
   `no-implementer-installed` and `human-directed`, so a review repair the
   controller applies on its own has no accurate code.
+
+## Post-gates review close (2026-10-06)
+
+- **Final rounds.** adversarial-reviewer round 5 and quality-engineer round 2
+  returned the exact clean sentinel; security-reviewer round 2 is clean after
+  adjudicating its `## Not checked` footer; experience-reviewer round 3 is
+  Nit-only.
+- **Deferred Nits (experience-reviewer round 3, not acted on):**
+  `packs/core/README.md:230-231` uses "exposed capability" before the pointer
+  that explains it; `packs/core/README.md:236-239` stacks two dash asides in
+  one sentence. Both are wording polish in ungated adopter prose.
+- **Reusable learning.** No capture in this change, per T4.

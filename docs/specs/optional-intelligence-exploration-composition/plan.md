@@ -1,7 +1,7 @@
 # Plan: Optional intelligence in repository exploration
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/repository-grounding/SKILL.md`, `scripts/read-locator.py`, and `packs/core/tests/skills/repository-grounding/test_read_locator.py` as the shipped provider-evidence owner, locator reader, and its matrix and evaluation construction tests; `packs/core/.apm/skills/close-work/scripts/close_work.py` (`_load_regular_sibling`) as precedent for loading a sibling skill's script with no fallback; `packs/core/.apm/skills/bug-fix/SKILL.md` and `packs/core/.apm/skills/explain-diff/SKILL.md` as inquiry owners that keep their own procedures; `packs/code-intelligence/.apm/skills/code-intelligence/SKILL.md` and its `references/capability-map.md` as the optional provider-specific counterpart; `Makefile` `run-test-suite` list, `tools/lint-ci-parity.py` `SUITE_DISPOSITION`, `tools/shard_test_roster.py`, and `tools/test_local_ci_shared_test_deduplication.py` as the suite registration path; `packs/AGENTS.md#version-bump-rule` and `packs/AGENTS.local.md` § Marketplace and release pipeline; `docs/rfc/0079-codebase-context-pack.md`; `docs/specs/optional-intelligence-grounding-composition/notes/verification-ledger.md` for the evaluation-run and install-check procedure.
 
 > **Plan contract:** this is the implementation strategy. It may change

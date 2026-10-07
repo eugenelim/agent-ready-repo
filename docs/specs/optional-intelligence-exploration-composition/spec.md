@@ -1,6 +1,6 @@
 # Spec: Optional intelligence in repository exploration
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079
@@ -140,46 +140,46 @@ judged from the run's outcome evidence record, not from a tool-call trace.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The method is question-led: every successful evaluation states
+- [x] **AC-0001.** The method is question-led: every successful evaluation states
   a repository question and caller-owned stopping condition before it chooses a
   capability or fallback.
-- [ ] **AC-0002.** Discovery is exposed-only: candidate selection is limited to
+- [x] **AC-0002.** Discovery is exposed-only: candidate selection is limited to
   active host metadata, installed skills, effective repository guidance, and
   explicit user selection, plus host-native language, editor, or code-navigation
   capabilities available to the agent; it performs no hidden configuration,
   credential, endpoint, pack-directory, or arbitrary executable probe.
-- [ ] **AC-0003.** Task fit controls invocation: a visible provider is invoked
+- [x] **AC-0003.** Task fit controls invocation: a visible provider is invoked
   only when its advertised native action directly helps answer the question
   within acceptable scope, permission, cost, freshness, and disclosure limits.
-- [ ] **AC-0004.** Native provider shapes remain intact: the method routes at
+- [x] **AC-0004.** Native provider shapes remain intact: the method routes at
   least one editor or language-server action and one indexed CLI or MCP action
   without introducing common capability names, commands, parameters, result
   fields, freshness fields, or lifecycle states.
-- [ ] **AC-0005.** Poor fit is deliberate fallback: authority and co-change
+- [x] **AC-0005.** Poor fit is deliberate fallback: authority and co-change
   questions in the evaluation matrix use repository-native evidence when the
   exposed providers do not directly answer them, and the output states the
   unresolved limit.
-- [ ] **AC-0006.** Evidence remains advisory: provider-supported conclusions are
+- [x] **AC-0006.** Evidence remains advisory: provider-supported conclusions are
   attributed, carry every exposed material caveat, and are checked against the
   authoritative source before they can change a required decision.
-- [ ] **AC-0007.** Exploration stays bounded: each evaluation stops when its named
+- [x] **AC-0007.** Exploration stays bounded: each evaluation stops when its named
   evidence need is met or records a specific unresolved gap; it does not invoke
   another provider merely because one is visible.
-- [ ] **AC-0008.** Consumers gain no provider ceremony: the delivery adds no
+- [x] **AC-0008.** Consumers gain no provider ceremony: the delivery adds no
   provider discovery, setup, invocation, freshness, or fallback step to
   `work-loop`, `new-spec`, review, debugging, or architecture main procedures.
-- [ ] **AC-0009.** The method is not a frozen taxonomy: documentation and tests
+- [x] **AC-0009.** The method is not a frozen taxonomy: documentation and tests
   label the current question and provider-shape matrix as illustrative and
   accept a new native capability without changing a closed enumeration.
-- [ ] **AC-0010.** Core remains standalone and portable: Core installs, builds,
+- [x] **AC-0010.** Core remains standalone and portable: Core installs, builds,
   and passes the exploration absence path without any optional pack or provider,
   and every declared adapter exposes the same skill behavior.
-- [ ] **AC-0011.** Provider disclosure is minimized on both sides of the call:
+- [x] **AC-0011.** Provider disclosure is minimized on both sides of the call:
   an authorized request contains only task-scoped content; evidence-bearing
   output and retained artifacts exclude content prohibited by RFC-0079 even
   when a provider returns it; broad repository upload or provider-side
   persistence requires separate explicit authority.
-- [ ] **AC-0012.** Provider locators are confined: a native absolute path,
+- [x] **AC-0012.** Provider locators are confined: a native absolute path,
   `file:` URI, or the file location a symbol or source locator carries is read
   only through the exploration owner's locator reader, which receives the
   locator only as the standard base64 encoding of its UTF-8 text and reads it
@@ -196,7 +196,7 @@ judged from the run's outcome evidence record, not from a tool-call trace.
   or an unavailable reader is final for that locator: the agent reads its
   target by no other route. The
   grounding reader keeps its own ceiling when no caller ceiling is supplied.
-- [ ] **AC-0013.** The target Core version is derived from the approved-baseline
+- [x] **AC-0013.** The target Core version is derived from the approved-baseline
   versions and `packs/AGENTS.md#version-bump-rule`; `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` agree on that target; and a
   free-standing Core entry in `docs/product/changelog.md` includes outcome-led
@@ -204,7 +204,7 @@ judged from the run's outcome evidence record, not from a tool-call trace.
   records the required explicit no-`Highlights` reason. Core is a
   repository-only pack, so `.claude-plugin/marketplace.json` carries no Core
   entry.
-- [ ] **AC-0014.** Provider output stays data: provider metadata, provider
+- [x] **AC-0014.** Provider output stays data: provider metadata, provider
   output, and file text returned by the locator reader cannot supply or widen
   the reader's repository root or approved roots, which come only from the
   user's explicit statement or the calling workflow's declared bounds; cannot
