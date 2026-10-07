@@ -1,6 +1,6 @@
 # Spec: Code-intelligence golden composition example
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079 and RFC-0104
@@ -36,7 +36,7 @@ command, prerequisite, evidence field, gap, and investigation pattern.
 | Worked provider example | The feature exists to teach one complete composition | `packs/code-intelligence/.apm/skills/code-intelligence/references/composition-example.md` | Code-intelligence pack | Pack-local behavior evaluations and documentation review | Example shows provider-fit and fallback paths with ownership labels |
 | Pack release pipeline | Code-intelligence content changes require a coordinated pack release | `packs/code-intelligence/pack.toml`, `packs/code-intelligence/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and `docs/product/changelog.md` | Code-intelligence pack | Version-rule derivation, manifest parity, generated marketplace check, release entry, and Highlights disposition | Every required release surface agrees on the derived target and the consumer outcome is published or explicitly dispositioned |
 | Provider current truth | Existing skill references own commands, evidence, and gaps | `packs/code-intelligence/.apm/skills/code-intelligence/SKILL.md` and `references/` | Code-intelligence pack | Link, vocabulary, and native-contract tests | No duplicated or conflicting provider rule remains |
-| Maintainer and adopter truth | Users need the nonnormative composition story | `packs/code-intelligence/README.md` | Code-intelligence pack | Documentation assertions and link checks | README points to the example and states its limits |
+| Maintainer and adopter truth | Users need the nonnormative composition story | `packs/code-intelligence/README.md` and `guides/code-intelligence/how-to/investigate-a-codebase.md` | Code-intelligence pack | Documentation assertions, guide validation, and link checks | README and guide point to the example and state its limits |
 | Reusable learning | Cold readers may overgeneralize from one provider | FEAT-0031 validation hook through work intake if triggered | CAP-0011 owner | Named follow-on or explicit no-follow-on result | Closeout preserves the validation decision without claiming it ran |
 
 ## Agent Rules
@@ -76,23 +76,28 @@ command, prerequisite, evidence field, gap, and investigation pattern.
 
 ## Testing Strategy
 
-Provider-specific command, preflight, and evidence behavior uses **TDD** in the
-existing pack-local test suites. The worked path uses **goal-based behavior
-evaluations** that inspect the task-fit choice, native invocation, caveats,
-fallback, and ownership labels. A Core-outcome-level case asserts only that the
-acceptance question remains answerable without the provider; it does not import
-or define a provider interface.
+This delivery changes no provider command, preflight, or evidence behavior, so
+it has no TDD task: the existing CLI-contract and preflight suites stay
+authoritative and must pass unchanged. Documentation and fixture properties use
+**goal-based tests** in the pack's already-registered test directories. The
+worked path uses **behavior evaluations** that inspect the task-fit choice,
+native invocation, caveats, fallback, and authority limits; each run is graded
+from the outcome evidence record it produces, never from a tool-call trace. A
+Core-outcome-level case asserts only that the acceptance question remains
+answerable without the provider; it does not import or define a provider
+interface. Checks that read Core files are recorded commands, because pack tests
+may inspect only their own pack.
 
-- **VI-0001 — task-fit worked path (AC-0001):** goal-based provider-fit
+- **VI-0001 — task-fit worked path (AC-0001):** provider-fit behavior
   evaluation and its attributed answer.
-- **VI-0002 — fallback worked path (AC-0002):** goal-based absent or poor-fit
-  evaluation and labelled baseline result.
+- **VI-0002 — fallback worked path (AC-0002):** absent and poor-fit behavior
+  evaluations and their labelled baseline results.
 - **VI-0003 — explicit ownership (AC-0003):** goal-based document check plus the
   manual ownership audit in the verification ledger.
 - **VI-0004 — canonical detail (AC-0004):** link and duplication checks over the
   provider-owned references.
-- **VI-0005 — pack-local tests (AC-0005):** pack/Core boundary scan and targeted
-  pack test output.
+- **VI-0005 — pack-local tests (AC-0005):** recorded pack/Core boundary scan and
+  targeted pack test output.
 - **VI-0006 — neutral outcome (AC-0006):** outcome-level behavior evaluation and
   provider-vocabulary absence check.
 - **VI-0007 — standalone pack (AC-0007):** pack build and existing path test
@@ -101,8 +106,8 @@ or define a provider interface.
   vocabulary check.
 - **VI-0009 — open patterns (AC-0009):** pattern vocabulary and novel-provider
   checks.
-- **VI-0010 — no reverse dependency (AC-0010):** goal-based scan across Core
-  manifests, install hooks, tests, and baseline acceptance fixtures.
+- **VI-0010 — no reverse dependency (AC-0010):** recorded goal-based scan across
+  Core manifests, install hooks, tests, and baseline acceptance fixtures.
 - **VI-0011 — release pipeline (AC-0011):** version-rule derivation,
   baseline-to-target and manifest-parity checks, generated marketplace output,
   free-standing changelog entry, and Highlights-disposition evidence.
