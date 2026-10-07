@@ -175,9 +175,18 @@ CORE_COLLECTIONS = {
     # `test_vi1201_*` (snapshot-driven edges and diagnostics), `test_vi1203_*`
     # (fail-closed resolver invocation), `test_defect_*` and `test_fix*_*`
     # (no-fallback wiring, local contextual provenance, one break one class).
+    # Re-pinned 2026-10-06: 103 -> 98. Five removals, nothing added or renamed,
+    # and the surviving 98 keep their relative order. Removed nodes duplicate
+    # VI-1705 or used the retired module-global seam and could not fail for
+    # the behaviour their names stated (T12):
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-unavailable]
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-bad-json]
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-timeout]
+    # - test_vi1203_hostile_stderr_not_forwarded
+    # - test_vi1203_incomplete_snapshot_is_hard_violation
     SHARED_TESTS[2]: (
-        103,
-        "ba9e7ecfc2aeb17ea5f59f51f471d7831ac9e9c9a710821362b80ef33ab8c74b",
+        98,
+        "76badbf27b65da283276695e8c31aaa12caf74ba56a446e18d72cc7726b9afcf",
     ),
 }
 

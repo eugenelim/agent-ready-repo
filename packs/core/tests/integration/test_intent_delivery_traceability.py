@@ -348,8 +348,11 @@ def _subtest_direct(root: Path) -> None:
     )
 
     # close-work: ClosureEligible with descendant set equal to snapshot relations.
+    # Feed the single snapshot to the in-process seam (resolver already spawned once).
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(ci, "feat-direct", "Accepted", "spec", root)
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-direct", "Accepted", "spec", root, lambda _r: snapshot
+    )
     assert isinstance(verdict, ci.ClosureEligible), (
         f"direct: expected ClosureEligible, got {verdict!r}"
     )
@@ -361,14 +364,16 @@ def _subtest_direct(root: Path) -> None:
         f"expected from snapshot {expected_descendants!r}"
     )
 
-    # lint-traceability: exit 0, delivery edge set equals snapshot.
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 0, (
-        f"direct: lint-traceability must exit 0; got {lt_rc}\n"
-        f"stdout={lt_out}\nstderr={lt_err}"
+    # lint-traceability: in-process with the same snapshot (resolver already spawned once).
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
     )
-    assert "delivery-resolver-unavailable" not in lt_out + lt_err, (
-        "direct: delivery-resolver-unavailable must not appear when resolver is present"
+    assert exit_hint == 0, (
+        f"direct: lint-traceability must exit 0; got {exit_hint}\nhard={hard!r}"
+    )
+    assert not any("delivery-resolver-unavailable" in h for h in hard), (
+        f"direct: delivery-resolver-unavailable must not appear: {hard!r}"
     )
     expected_edges = _delivery_edges_from_snapshot(snapshot)
     actual_edges = _lint_delivery_edges(root, snapshot)
@@ -399,7 +404,9 @@ def _subtest_coordinated(root: Path) -> None:
     assert any(r["spec"] == "spec:coord-spec" for r in coord_rels)
 
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(ci, "feat-coord", "Accepted", "brief", root)
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-coord", "Accepted", "brief", root, lambda _r: snapshot
+    )
     assert isinstance(verdict, ci.ClosureEligible), (
         f"coordinated: expected ClosureEligible, got {verdict!r}"
     )
@@ -411,12 +418,16 @@ def _subtest_coordinated(root: Path) -> None:
         f"expected from snapshot {expected_descendants!r}"
     )
 
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 0, (
-        f"coordinated: lint-traceability must exit 0; got {lt_rc}\n"
-        f"stdout={lt_out}\nstderr={lt_err}"
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
     )
-    assert "delivery-resolver-unavailable" not in lt_out + lt_err
+    assert exit_hint == 0, (
+        f"coordinated: lint-traceability must exit 0; got {exit_hint}\nhard={hard!r}"
+    )
+    assert not any("delivery-resolver-unavailable" in h for h in hard), (
+        f"coordinated: delivery-resolver-unavailable must not appear: {hard!r}"
+    )
     expected_edges = _delivery_edges_from_snapshot(snapshot)
     actual_edges = _lint_delivery_edges(root, snapshot)
     assert actual_edges == expected_edges, (
@@ -446,18 +457,20 @@ def _subtest_explicit_empty(root: Path) -> None:
     )
 
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(
-        ci, "feat-empty", "Accepted", "direct-light", root
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-empty", "Accepted", "direct-light", root, lambda _r: snapshot
     )
     assert isinstance(verdict, ci.ClosureEligible), (
         f"explicit-empty: expected ClosureEligible, got {verdict!r}"
     )
     assert verdict.basis == "direct-light"
 
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 0, (
-        f"explicit-empty: lint-traceability must exit 0; got {lt_rc}\n"
-        f"stdout={lt_out}\nstderr={lt_err}"
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
+    )
+    assert exit_hint == 0, (
+        f"explicit-empty: lint-traceability must exit 0; got {exit_hint}\nhard={hard!r}"
     )
     expected_edges = _delivery_edges_from_snapshot(snapshot)
     actual_edges = _lint_delivery_edges(root, snapshot)
@@ -506,7 +519,10 @@ def _subtest_dual_provenance(root: Path) -> None:
 
     ci = _ci_mod
     # feat-dual1 (spec terminus): descendant set equals snapshot relations.
-    v1 = _check_ancestor_with_real_resolver(ci, "feat-dual1", "Accepted", "spec", root)
+    # Feed the single snapshot to the in-process seam (resolver spawned once above).
+    v1 = _check_ancestor_with_stub_provider(
+        ci, "feat-dual1", "Accepted", "spec", root, lambda _r: snapshot
+    )
     assert isinstance(v1, ci.ClosureEligible)
     assert v1.packet is not None
     desc1 = {x[0] for x in v1.packet.per_descendant_verdicts}
@@ -517,7 +533,9 @@ def _subtest_dual_provenance(root: Path) -> None:
     )
 
     # feat-dual2 (brief terminus): descendant set equals snapshot relations.
-    v2 = _check_ancestor_with_real_resolver(ci, "feat-dual2", "Accepted", "brief", root)
+    v2 = _check_ancestor_with_stub_provider(
+        ci, "feat-dual2", "Accepted", "brief", root, lambda _r: snapshot
+    )
     assert isinstance(v2, ci.ClosureEligible)
     assert v2.packet is not None
     desc2 = {x[0] for x in v2.packet.per_descendant_verdicts}
@@ -527,10 +545,12 @@ def _subtest_dual_provenance(root: Path) -> None:
         f"expected from snapshot {expected_desc2!r}"
     )
 
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 0, (
-        f"dual-provenance: lint-traceability must exit 0; got {lt_rc}\n"
-        f"stdout={lt_out}\nstderr={lt_err}"
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
+    )
+    assert exit_hint == 0, (
+        f"dual-provenance: lint-traceability must exit 0; got {exit_hint}\nhard={hard!r}"
     )
     expected_edges = _delivery_edges_from_snapshot(snapshot)
     actual_edges = _lint_delivery_edges(root, snapshot)
@@ -565,7 +585,9 @@ def _subtest_missing_direct(root: Path) -> None:
     assert missing_diags
 
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(ci, "feat-missing", "Accepted", "spec", root)
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-missing", "Accepted", "spec", root, lambda _r: snapshot
+    )
     assert isinstance(verdict, ci.ClosureRefuse), (
         f"missing-direct: expected ClosureRefuse, got {verdict!r}"
     )
@@ -573,14 +595,17 @@ def _subtest_missing_direct(root: Path) -> None:
         f"missing-direct: reason must name delivery-diagnostic; got {verdict.reason!r}"
     )
 
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    # delivery-target-missing for an intent subject is informational (not hard).
-    assert lt_rc == 0, (
-        f"missing-direct: lint-traceability must exit 0 in default mode; "
-        f"got {lt_rc}\nstdout={lt_out}\nstderr={lt_err}"
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
     )
-    assert "delivery-target-missing" in lt_out, (
-        "missing-direct: delivery-target-missing must appear in lint output"
+    # delivery-target-missing for an intent subject is informational (not hard).
+    assert exit_hint == 0, (
+        f"missing-direct: lint-traceability must exit 0 in default mode; "
+        f"got {exit_hint}\nhard={hard!r}"
+    )
+    assert any("delivery-target-missing" in ln for ln in out_lines), (
+        f"missing-direct: delivery-target-missing must appear in lint output: {out_lines!r}"
     )
 
 
@@ -612,20 +637,25 @@ def _subtest_missing_brief(root: Path) -> None:
     )
 
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(
-        ci, "feat-missingbrief", "Accepted", "brief", root
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-missingbrief", "Accepted", "brief", root, lambda _r: snapshot
     )
     assert isinstance(verdict, ci.ClosureRefuse), (
         f"missing-brief: expected ClosureRefuse, got {verdict!r}"
     )
     assert "delivery-diagnostic" in verdict.reason
 
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 0, (
-        f"missing-brief: lint-traceability must exit 0 in default mode; "
-        f"got {lt_rc}\nstdout={lt_out}\nstderr={lt_err}"
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
     )
-    assert "delivery-target-missing" in lt_out
+    assert exit_hint == 0, (
+        f"missing-brief: lint-traceability must exit 0 in default mode; "
+        f"got {exit_hint}\nhard={hard!r}"
+    )
+    assert any("delivery-target-missing" in ln for ln in out_lines), (
+        f"missing-brief: delivery-target-missing must appear in lint output: {out_lines!r}"
+    )
 
 
 def _subtest_direct_projection_mismatch(root: Path) -> None:
@@ -654,27 +684,34 @@ def _subtest_direct_projection_mismatch(root: Path) -> None:
     )
 
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(
-        ci, "feat-multimatch", "Accepted", "spec", root
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-multimatch", "Accepted", "spec", root, lambda _r: snapshot
     )
     assert isinstance(verdict, ci.ClosureRefuse), (
         f"direct-mismatch: expected ClosureRefuse, got {verdict!r}"
     )
     assert "delivery-diagnostic" in verdict.reason
 
+    lint = _lint_mod
     # Normal mode: delivery-projection-mismatch is informational (exit 0).
-    lt_rc_normal, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc_normal == 0, (
-        f"direct-mismatch: normal mode must exit 0; "
-        f"got {lt_rc_normal}\nstdout={lt_out}\nstderr={lt_err}"
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
     )
-    assert "delivery-projection-mismatch" in lt_out
+    assert exit_hint == 0, (
+        f"direct-mismatch: normal mode must exit 0; "
+        f"got {exit_hint}\nhard={hard!r}"
+    )
+    assert any("delivery-projection-mismatch" in ln for ln in out_lines), (
+        f"direct-mismatch: delivery-projection-mismatch must appear in lint output: {out_lines!r}"
+    )
 
     # Strict mode: delivery-projection-mismatch is a strict-fail (exit 1).
-    lt_rc_strict, _, _ = _run_lint_traceability(root, strict=True)
-    assert lt_rc_strict == 1, (
+    _, hard_strict, exit_strict = lint.check(
+        root, True, snapshot_provider=lambda _r: snapshot
+    )
+    assert exit_strict == 1, (
         f"direct-mismatch: strict mode must exit 1 for delivery-projection-mismatch; "
-        f"got {lt_rc_strict}"
+        f"got {exit_strict}"
     )
 
 
@@ -703,20 +740,25 @@ def _subtest_brief_projection_mismatch(root: Path) -> None:
     )
 
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(
-        ci, "feat-briefmatch", "Accepted", "brief", root
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-briefmatch", "Accepted", "brief", root, lambda _r: snapshot
     )
     assert isinstance(verdict, ci.ClosureRefuse), (
         f"brief-mismatch: expected ClosureRefuse, got {verdict!r}"
     )
     assert "delivery-diagnostic" in verdict.reason
 
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 0, (
-        f"brief-mismatch: lint-traceability must exit 0 in default mode; "
-        f"got {lt_rc}\nstdout={lt_out}\nstderr={lt_err}"
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
     )
-    assert "delivery-projection-mismatch" in lt_out
+    assert exit_hint == 0, (
+        f"brief-mismatch: lint-traceability must exit 0 in default mode; "
+        f"got {exit_hint}\nhard={hard!r}"
+    )
+    assert any("delivery-projection-mismatch" in ln for ln in out_lines), (
+        f"brief-mismatch: delivery-projection-mismatch must appear in output: {out_lines!r}"
+    )
 
 
 def _subtest_unsafe_corpus(root: Path) -> None:
@@ -858,8 +900,11 @@ def _subtest_broken_spec_reference(root: Path) -> None:
 
     # close-work: AC-0020 refuses the spec-route feature on the broken spec's
     # own diagnostic, although its only resolved descendant is terminal.
+    # Feed the single snapshot to the in-process seam (resolver spawned once above).
     ci = _ci_mod
-    verdict = _check_ancestor_with_real_resolver(ci, "feat-broken", "Accepted", "spec", root)
+    verdict = _check_ancestor_with_stub_provider(
+        ci, "feat-broken", "Accepted", "spec", root, lambda _r: snapshot
+    )
     assert isinstance(verdict, ci.ClosureRefuse), (
         f"broken-spec-ref: expected ClosureRefuse, got {verdict!r}"
     )
@@ -867,14 +912,17 @@ def _subtest_broken_spec_reference(root: Path) -> None:
         f"broken-spec-ref: reason must name the broken spec's code; got {verdict.reason!r}"
     )
 
-    # lint-traceability: informational in default mode (exit 0); line appears in stdout.
-    lt_rc, lt_out, lt_err = _run_lint_traceability(root)
-    assert lt_rc == 0, (
-        f"broken-spec-ref: lint-traceability must exit 0 in default mode; "
-        f"got {lt_rc}\nstdout={lt_out}\nstderr={lt_err}"
+    # lint-traceability: informational in default mode (exit 0); line appears in output.
+    lint = _lint_mod
+    out_lines, hard, exit_hint = lint.check(
+        root, False, snapshot_provider=lambda _r: snapshot
     )
-    assert "delivery-reference-unsafe" in lt_out, (
-        "broken-spec-ref: delivery-reference-unsafe must appear in lint stdout"
+    assert exit_hint == 0, (
+        f"broken-spec-ref: lint-traceability must exit 0 in default mode; "
+        f"got {exit_hint}\nhard={hard!r}"
+    )
+    assert any("delivery-reference-unsafe" in ln for ln in out_lines), (
+        f"broken-spec-ref: delivery-reference-unsafe must appear in lint output: {out_lines!r}"
     )
 
 

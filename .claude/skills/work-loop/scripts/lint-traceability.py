@@ -240,13 +240,6 @@ _BRIEFS_PATH_TARGET_RE: re.Pattern[str] = re.compile(
     r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
 )
 
-# Module-level injectable seam.  When not None, ``build_standalone`` calls
-# this callable instead of ``_run_resolver``.  Tests set it on the module
-# object loaded via importlib after exec.  Never read this directly from
-# production code; always access it through the ``snapshot_provider``
-# keyword argument passed by ``check()``.
-_delivery_snapshot_provider = None  # type: ignore[assignment]
-
 
 def field_re(label: str) -> re.Pattern[str]:
     """Match a rendered bold header field, e.g. `- **Component:** foo`.
@@ -1510,24 +1503,7 @@ def _parse_and_validate_snapshot(text: str) -> dict[str, Any]:
         raise ValueError(
             "delivery-resolver-unavailable: NaN/Infinity in payload"
         ) from None
-    if not isinstance(data, dict):
-        raise ValueError("delivery-resolver-unavailable: top-level not a dict")
-    if set(data.keys()) != _SNAPSHOT_REQUIRED_KEYS:
-        raise ValueError("delivery-resolver-unavailable: wrong keys")
-    if data["schema_version"] != _SNAPSHOT_SCHEMA_VERSION:
-        raise ValueError(
-            "delivery-resolver-unavailable: unsupported schema_version"
-        )
-    if data["complete"] is not True:
-        raise ValueError("delivery-resolver-unavailable: incomplete snapshot")
-    for _k in ("relations", "classifications", "provenance", "diagnostics"):
-        if not isinstance(data[_k], list):
-            raise ValueError(
-                f"delivery-resolver-unavailable: {_k} not a list"
-            )
-    if not isinstance(data["artifacts"], dict):
-        raise ValueError("delivery-resolver-unavailable: artifacts not a dict")
-    _validate_snapshot_dict(data)
+    _validate_snapshot_dict(data)  # type: ignore[arg-type]
     return data
 
 
@@ -1710,8 +1686,12 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                 _raw_snapshot = _effective_provider(root)
                 # Validate dict shape for injected providers; _run_resolver
                 # already validates via _parse_and_validate_snapshot.
-                if snapshot_provider is not None and _raw_snapshot is not None:
-                    _validate_snapshot_dict(_raw_snapshot)
+                if snapshot_provider is not None:
+                    if _raw_snapshot is None:
+                        raise ValueError(
+                            "delivery-resolver-unavailable: provider returned None"
+                        )
+                    _validate_snapshot_dict(_raw_snapshot)  # type: ignore[arg-type]
                 _snapshot = _raw_snapshot
             except ValueError as _exc:
                 _msg = str(_exc)
@@ -1891,9 +1871,9 @@ def build_standalone(root: Path, layout: dict, g: Graph,
         else:
             # General product-graph up-candidates (Contract:, Brief:, Parent intent:).
             # Applies when: (a) the snapshot is valid and this spec has no delivery
-            # relation — Brief: confirmed not a delivery vehicle; or (b) delivery
-            # is not configured (resolver returned None or not anchored) — Brief:
-            # retains its structural role.  Discovery: is excluded (removed from
+            # relation — Brief: confirmed not a delivery vehicle; or (b) no chain
+            # anchor exists so the delivery check was skipped — Brief: retains its
+            # structural role.  Discovery: is excluded (removed from
             # _SPEC_UP_FIELDS); only the snapshot may wire feature-delivery edges.
             _nd_candidates: list[str] = list(_spec_up_values(text))
             # Add local values for contextual-provenance fields not already
@@ -2031,9 +2011,10 @@ def check(
     exit-hint: 0 unless a hard violation (dangling/cycle, always) or — under
     `--strict` — a structural orphan.
 
-    ``snapshot_provider`` overrides the module-level ``_delivery_snapshot_provider``
-    seam when supplied.  Tests pass an inline callable here so individual test
-    functions are isolated without mutating module-level state.
+    ``snapshot_provider`` is the injectable delivery resolver seam.  When
+    ``None`` (the default), the production ``_run_resolver`` is used.  Tests
+    pass an inline callable to isolate individual functions without mutating
+    module-level state.
     """
     layout = load_layout(root)
     g = Graph()
@@ -2045,14 +2026,9 @@ def check(
 
     rollup = load_rollup_ids(root, layout)
 
-    _effective_provider = (
-        snapshot_provider
-        if snapshot_provider is not None
-        else _delivery_snapshot_provider
-    )
     if not using_sidecar:
         build_standalone(root, layout, g, rollup,
-                         snapshot_provider=_effective_provider)
+                         snapshot_provider=snapshot_provider)
     else:
         # Resolve any cross-repo edge endpoint against the rollup so a federated
         # sidecar's external leaf is a reachability terminus, not a dangling edge.

@@ -313,17 +313,6 @@ _DELIVERY_DIAGNOSTIC_CODES: frozenset[str] = frozenset({
     "delivery-reference-malformed",
 })
 
-# All relation types the resolver may produce.
-_RELATION_TYPES: frozenset[str] = frozenset({"direct-delivery", "coordinated-delivery"})
-
-# All delivery route values the resolver may produce.
-_SNAPSHOT_ROUTE_SET: frozenset[str] = frozenset({
-    "spec",
-    "brief",
-    "direct-light",
-    "closed-empty",
-})
-
 _SNAPSHOT_REQUIRED_KEYS: frozenset[str] = frozenset({
     "schema_version",
     "complete",

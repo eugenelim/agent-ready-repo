@@ -2024,15 +2024,18 @@ def test_vi1201_delivery_diag_strict_exit_one(tmp_path: Path) -> None:
     }
 
     mod = _load_linter("diag_strict")
-    mod._delivery_snapshot_provider = lambda _r: snapshot
 
-    out_lines, hard, exit_default = mod.check(tmp_path, False)
+    out_lines, hard, exit_default = mod.check(
+        tmp_path, False, snapshot_provider=lambda _r: snapshot
+    )
     expect(exit_default == 0,
            f"delivery mismatch: exit 0 in default mode, got {exit_default}")
     expect(any("delivery-projection-mismatch" in ln for ln in out_lines),
            f"mismatch reported in output: {out_lines!r}")
 
-    out_lines2, hard2, exit_strict = mod.check(tmp_path, True)
+    out_lines2, hard2, exit_strict = mod.check(
+        tmp_path, True, snapshot_provider=lambda _r: snapshot
+    )
     expect(exit_strict == 1,
            f"delivery mismatch: exit 1 under --strict, got {exit_strict}")
 
@@ -2065,80 +2068,6 @@ def test_vi1201_real_subprocess_resolver_installed(tmp_path: Path) -> None:
 
 
 # ---- VI-1203: resolver failure modes ----------------------------------------
-
-
-@pytest.mark.parametrize("failure_mode,expected_msg", [
-    ("raises_unavailable", "delivery-resolver-unavailable"),
-    ("raises_bad_json", "delivery-resolver-unavailable"),
-    ("raises_timeout", "delivery-resolver-unavailable"),
-], ids=["raises-unavailable", "raises-bad-json", "raises-timeout"])
-def test_vi1203_resolver_failure_is_hard_violation(
-    tmp_path: Path, failure_mode: str, expected_msg: str
-) -> None:
-    """Any resolver invocation failure → delivery-resolver-unavailable DANGLING,
-    exit 1, non-delivery checks still run."""
-    write_brief(tmp_path, "anchor")
-    write_spec(tmp_path, "foo", brief="anchor")
-
-    def failing_provider(_root: Path) -> dict:
-        raise ValueError(f"delivery-resolver-unavailable: {failure_mode}")
-
-    mod = _load_linter(f"fail_{failure_mode}")
-    mod._delivery_snapshot_provider = failing_provider
-
-    out_lines, hard, exit_hint = mod.check(tmp_path, False)
-
-    expect(exit_hint == 1,
-           f"{failure_mode} → exit 1, got {exit_hint}: {hard!r}")
-    expect(any("delivery-resolver-unavailable" in h for h in hard),
-           f"{failure_mode} → DANGLING with code, got {hard!r}")
-    # Non-delivery checks still run: orphan summary must appear in output.
-    expect(any("orphan" in ln.lower() for ln in out_lines),
-           f"non-delivery checks still reported: {out_lines!r}")
-
-
-def test_vi1203_hostile_stderr_not_forwarded(tmp_path: Path) -> None:
-    """Hostile content captured from a failing resolver subprocess (absolute
-    paths, tracebacks, tokens) must not appear in lint-traceability output."""
-    write_brief(tmp_path, "anchor")
-
-    hostile_markers = ["/absolute/path/secret", "Traceback", "TOKEN=abc123"]
-
-    def hostile_provider(_root: Path) -> dict:
-        raise ValueError("delivery-resolver-unavailable: non-zero exit")
-
-    mod = _load_linter("hostile_stderr")
-    mod._delivery_snapshot_provider = hostile_provider
-
-    out_lines, hard, exit_hint = mod.check(tmp_path, False)
-    blob = "\n".join(out_lines) + "\n".join(hard)
-    for marker in hostile_markers:
-        expect(marker not in blob,
-               f"hostile marker {marker!r} must not appear in output: {blob!r}")
-
-
-def test_vi1203_incomplete_snapshot_is_hard_violation(tmp_path: Path) -> None:
-    """An incomplete snapshot (complete: False) → delivery-resolver-unavailable."""
-    write_brief(tmp_path, "anchor")
-
-    incomplete = {**_EMPTY_SNAPSHOT, "complete": False}
-
-    mod = _load_linter("incomplete")
-    mod._delivery_snapshot_provider = lambda _r: (
-        # _run_resolver would reject incomplete → simulate via _parse_and_validate_snapshot
-        mod._parse_and_validate_snapshot(
-            __import__("json").dumps(incomplete)
-        )
-    )
-    # The provider raises ValueError; test that.
-    raised = False
-    try:
-        mod._parse_and_validate_snapshot(__import__("json").dumps(incomplete))
-    except ValueError as exc:
-        raised = True
-        expect("delivery-resolver-unavailable" in str(exc),
-               f"incomplete snapshot raises delivery-resolver-unavailable: {exc}")
-    expect(raised, "incomplete snapshot must raise ValueError")
 
 
 @pytest.mark.parametrize("bad_text,label", [
@@ -2255,9 +2184,8 @@ def test_vi1203_non_delivery_checks_run_when_resolver_fails(tmp_path: Path) -> N
         raise ValueError("delivery-resolver-unavailable: simulated")
 
     mod = _load_linter("fail_nondelivery")
-    mod._delivery_snapshot_provider = failing
 
-    out_lines, hard, exit_hint = mod.check(tmp_path, False)
+    out_lines, hard, exit_hint = mod.check(tmp_path, False, snapshot_provider=failing)
 
     # Both the resolver failure AND the dangling component must be reported.
     expect(exit_hint == 1, f"resolver fail + dangling → exit 1, got {exit_hint}")
@@ -2278,7 +2206,6 @@ def test_vi1203_no_retired_fallback_when_resolver_fails(tmp_path: Path) -> None:
         raise ValueError("delivery-resolver-unavailable: simulated")
 
     mod = _load_linter("fail_no_fallback")
-    mod._delivery_snapshot_provider = failing
 
     g = mod.Graph()
     mod.build_standalone(tmp_path, {}, g, {},
