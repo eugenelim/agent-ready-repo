@@ -520,6 +520,13 @@ and three nits. The owner overrode the retry cap and chose to:
 - pin the shadow `.gitignore` marker's two-byte read bound with a test;
 - name both poisoning causes, and index records through one shared helper.
 
+Quality-engineer round 5 and adversarial round 17 then found that a
+checksum-valid frame with a non-list `ordered_record_ids` still escaped frame
+verification as a raw `TypeError`. The owner overrode the retry cap once more;
+frame verification now maps any structural fault to the same corruption error,
+and four tests (reopen and re-read, two header shapes) fail against the earlier
+code.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on

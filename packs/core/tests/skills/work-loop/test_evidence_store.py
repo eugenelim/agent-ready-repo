@@ -2207,3 +2207,37 @@ class TestDurableReReadFailures:
         log_path.write_bytes(log_path.read_bytes() + self._malformed_frame(es))
         self._append_and_expect(es, sc, store, "denied-log-corrupt")
         assert [r["receipt_id"] for r in store.get_all_active_receipts()] == ["r-first"]
+
+    @staticmethod
+    def _bad_header_frame(es: ModuleType, ordered_ids: object) -> bytes:
+        """A frame whose checksum is recomputed over a non-list ordered_record_ids."""
+        record = _make_receipt("r-bad-header")
+        body = {
+            "schema_version": 1,
+            "transaction_id": "tx-bad-header",
+            "ordered_record_ids": ordered_ids,
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        tx = {**body, "checksum": es._compute_frame_checksum(body, [record])}
+        return (es._canonical_json({"tx": tx, "records": [record]}) + "\n").encode("utf-8")
+
+    @pytest.mark.parametrize("ordered_ids", [5, None])
+    def test_malformed_header_with_a_valid_checksum_is_corruption_on_reopen(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, ordered_ids: object
+    ) -> None:
+        log_path = tmp_path / "ev-bad-header-open.log"
+        self._first_store(es, sc, log_path)
+        log_path.write_bytes(log_path.read_bytes() + self._bad_header_frame(es, ordered_ids))
+        with pytest.raises(es.EvidenceStoreError, match="malformed transaction header"):
+            es.EvidenceStore(log_path).open()
+
+    @pytest.mark.parametrize("ordered_ids", [5, None])
+    def test_malformed_header_behind_an_open_store_refuses_and_poisons(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, ordered_ids: object
+    ) -> None:
+        log_path = tmp_path / "ev-bad-header-reread.log"
+        store = self._first_store(es, sc, log_path)
+        log_path.write_bytes(log_path.read_bytes() + self._bad_header_frame(es, ordered_ids))
+        self._append_and_expect(es, sc, store, "denied-log-corrupt")
+        assert [r["receipt_id"] for r in store.get_all_active_receipts()] == ["r-first"]
+        assert store._poisoned

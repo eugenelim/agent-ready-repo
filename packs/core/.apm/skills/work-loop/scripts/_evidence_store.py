@@ -984,7 +984,16 @@ class EvidenceStore:
                 )
 
             # Verify checksum and record references — hard error on corruption.
-            _verify_frame(tx, records)
+            # A checksum can be recomputed over a malformed body, so any
+            # structural fault the check meets is the same corruption error.
+            try:
+                _verify_frame(tx, records)
+            except EvidenceStoreError:
+                raise
+            except (AttributeError, TypeError, KeyError, ValueError) as exc:
+                raise EvidenceStoreError(
+                    "evidence log frame has a malformed transaction header"
+                ) from exc
 
             tx_id = tx.get("transaction_id", "")
             try:
