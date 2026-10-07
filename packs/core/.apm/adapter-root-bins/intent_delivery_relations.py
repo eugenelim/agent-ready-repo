@@ -1171,11 +1171,14 @@ def main(argv: list[str] | None = None) -> int:
         prog="intent_delivery_relations.py",
         description=(
             "What delivery relations does this repository declare? "
-            "Resolves relations from confined preamble headers and prints a "
-            "JSON snapshot to stdout. "
+            "Reads the header lines of specs, briefs, and intents to build a "
+            "typed JSON snapshot and prints it to stdout. "
             "Exit 0: complete snapshot. Exit 1: incomplete snapshot "
-            "(JSON still printed; caused by a resource limit or an unsafe "
-            "corpus entry). Exit 2: usage error or required helper missing."
+            "(JSON still printed; caused by a resource limit, reported in "
+            "`diagnostics` as `delivery-resource-limit` with its `limit` and "
+            "`root` values, or an unsafe file such as a link, special file, or "
+            "non-UTF-8 file, which leaves `diagnostics` empty). "
+            "Exit 2: usage error or required helper missing."
         ),
     )
     parser.add_argument(

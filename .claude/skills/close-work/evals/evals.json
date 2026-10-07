@@ -120,7 +120,7 @@
     },
     {
       "id": 16,
-      "prompt": "Run the closure eligibility check on this feature intent. The delivery resolver at .agentbundle/bin/intent_delivery_relations.py is absent.",
+      "prompt": "Run the closure eligibility check on this feature intent. The skill-local delivery resolver (intent_delivery_relations.py beside closure_index.py) is absent.",
       "expected_output": "The check returns a refuse verdict with reason delivery-resolver-unavailable. It does not fall back to a local inversion of Discovery: or Brief: fields. No status is written.",
       "assertions": [
         "Returns refuse with delivery-resolver-unavailable reason",

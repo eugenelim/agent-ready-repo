@@ -466,25 +466,32 @@ artifacts and migration evidence.
   its [behavior tests](../../packs/core/tests/skills/close-work/), and the
   [maintainer how-to](../../guides/core/how-to/close-and-disposition-work.md).
 - Feature delivery — which specs and briefs deliver a feature intent — has one
-  owner: the repo-scope resolver projected to
-  `.agentbundle/bin/intent_delivery_relations.py` from
+  canonical source:
   [`adapter-root-bins/intent_delivery_relations.py`](../../packs/core/.apm/adapter-root-bins/intent_delivery_relations.py).
-  It reads only confined artifact preambles through the repository file-safety
-  contract supplied by the co-located private helper `_file_safety.py`, so it
-  runs without importing `agentbundle` and supports pipx and zipapp installs.
-  It returns one typed JSON snapshot whose top-level keys include `relations`,
-  `classifications`, `provenance`, `diagnostics`, and an `artifacts` map from
-  each identifier to its repository-relative file path; its module docstring and
+  Byte-identical copies of that source and its private confinement helper
+  `_file_safety.py` ship inside each consuming skill's own `scripts/` folder
+  (`close-work` and `work-loop`); a parity test run at build and test time pins
+  them to the source. Each consumer runs the copy beside its own script file,
+  never from the analysed repository, so the copy carries the consumer's own
+  trust boundary. The source's projection to `.agentbundle/bin/` is a maintainer
+  diagnostic tool in this repository; the skill-local copies are what reaches
+  every adopter install. The resolver reads only confined artifact preambles
+  through the co-located `_file_safety.py`, so it runs without importing
+  `agentbundle` and supports every install route. It returns one typed JSON
+  snapshot whose top-level keys include `relations`, `classifications`,
+  `provenance`, `diagnostics`, and an `artifacts` map from each identifier to its
+  repository-relative file path; its module docstring and
   [construction tests](../../packs/core/tests/pack/test_intent_delivery_relations.py)
   own the relation vocabulary. An unsafe or over-budget corpus yields an
   incomplete snapshot rather than partial data.
-- `close-work` and `lint-traceability.py` each invoke that resolver once per run,
-  validate every record in the snapshot before use, and keep everything else:
-  `close-work` owns status, freshness, and the closure verdict, and the lint owns
-  the general product graph, contextual `Contract:` and `Discovery:` provenance,
-  and its orphan, dangling, and cycle checks. A missing, failing, or incomplete
-  resolver makes either consumer report `delivery-resolver-unavailable` instead of
-  falling back to its own scan. The
+- `close-work` calls the resolver once per ancestor lookup and once per closure
+  decision. `lint-traceability.py` calls it once per run when the repository has
+  a delivery anchor. Both consumers validate every record in the snapshot before
+  use and keep everything else: `close-work` owns status, freshness, and the
+  closure verdict, and the lint owns the general product graph, contextual
+  `Contract:` and `Discovery:` provenance, and its orphan, dangling, and cycle
+  checks. A missing, failing, or incomplete resolver makes either consumer report
+  `delivery-resolver-unavailable` instead of falling back to its own scan. The
   [integration suite](../../packs/core/tests/integration/test_intent_delivery_traceability.py)
   proves both consumers agree with the resolver.
 
@@ -523,4 +530,4 @@ delivery-brief create/continue, the normalized-intake handoff, semantic
 resolver, `work-loop` evidence handoff, `close-work` source, cooling source and
 tests, lifecycle record documentation, workspace projection, pack metadata,
 evaluation, and documentation surfaces. The feature-delivery resolver and its
-two consumers were verified against Core `2.28.0`.
+two consumers were verified against Core `2.29.0`.

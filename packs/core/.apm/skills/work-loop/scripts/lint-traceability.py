@@ -1653,11 +1653,11 @@ def build_standalone(root: Path, layout: dict, g: Graph,
         or bool(g.populated & _DISCOVERY_LAYERS)
     )
     if _has_any_anchor:
-        # VI-1703: if the resolved spec or intent base differs from the
-        # resolver's fixed defaults, the resolver would silently operate on
-        # different paths than the lint. Fail closed with a hard DANGLING
-        # violation so non-delivery checks still run but delivery edges are
-        # not silently dropped.
+        # If the resolved spec or intent base differs from the resolver's
+        # fixed defaults, the resolver would silently operate on different
+        # paths than the lint. Fail closed with a hard DANGLING violation
+        # so non-delivery checks still run but delivery edges are not
+        # silently dropped.
         _spec_default = _confined_path(root / Path(*_DEFAULT_BASES["spec"]), root)
         _intent_default = _confined_path(
             root / Path(*_DEFAULT_BASES["outcome"]), root
@@ -1822,7 +1822,8 @@ def build_standalone(root: Path, layout: dict, g: Graph,
     # pointers are never fed into the local winner-selection path.
     # Specs in _delivery_diag_specs keep their dangling_in guard (backward-
     # orphan suppression) but continue through all edge checks — the `continue`
-    # that used to skip them entirely was the VI-1701 bug.
+    # that used to skip them entirely; skipping them suppressed their
+    # component and dangling checks, which must still run.
     # -----------------------------------------------------------------------
     for slug, path in spec_paths.items():
         spec_id = _slug_id("spec", slug)

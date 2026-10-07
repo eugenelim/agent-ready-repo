@@ -1172,7 +1172,7 @@
     },
     {
       "id": "lint-traceability-delivery-resolver-unavailable-fail-closed",
-      "prompt": "The traceability lint runs in a repository where .agentbundle/bin/intent_delivery_relations.py is absent. The graph has a feature intent with a declared delivery route and at least one brief that anchors the delivery check.",
+      "prompt": "The traceability lint runs in a repository where the skill-local delivery resolver (intent_delivery_relations.py beside lint-traceability.py) is absent. The graph has a feature intent with a declared delivery route and at least one brief that anchors the delivery check.",
       "expected_output": "The lint exits with a hard violation and reports delivery-resolver-unavailable. It does not fall back to a local Discovery: or Brief: field inversion to derive delivery edges. The error appears in the hard-violations section, not as an informational notice.",
       "assertions": [
         "Exits non-zero with a hard violation",
