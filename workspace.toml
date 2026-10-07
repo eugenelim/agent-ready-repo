@@ -231,9 +231,13 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  {path = "docs/specs/acceptance-authority-and-evidence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:4f43ad971588c13cbef0180ba01e0fa3822673df62441b342caa201664b259c1", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Make accepted criteria and their evidence authoritative through atomic approval import, legacy subject projection, evidence transactions, a derived verdict, shared security primitives, capability refusal, and content-safety decisions without moving orchestration ownership", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-07. Slice 1 of the acceptance-centered work loop: shadow
+  # acceptance services behind WORK_LOOP_SHADOW_SERVICES=1, with the current engine
+  # keeping all authority. Evidence map, benchmarks, and owner decisions are in
+  # notes/verification-ledger.md; follow-ups are in [backlog].open.
+  {path = "docs/specs/acceptance-authority-and-evidence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:4f43ad971588c13cbef0180ba01e0fa3822673df62441b342caa201664b259c1", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Make accepted criteria and their evidence authoritative through atomic approval import, legacy subject projection, evidence transactions, a derived verdict, shared security primitives, capability refusal, and content-safety decisions without moving orchestration ownership", needs = []},
   # Shipped 2026-10-06. Delivered across #1506 (waves 1-4) and its closeout.
   # Registered 2026-10-05 from a Type 1 finding — the spec and plan were
   # approved 2026-10-02 with no workspace membership, so nothing could dispatch
@@ -651,7 +655,7 @@ open = [
   # resolvable after its successor spec moves to Platform Core's ready queue.
   # The approved spec owns implementation; this note is only the historical
   # anchor and retires through a governed amendment of that shipped spec.
-  {path = "docs/specs/acceptance-authority-and-evidence/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "Clean the caller-supplied operation and correlation IDs at the effect broker (request_effect) so an odd value is never stored or escapes unaudited, and take any later launch-boundary audit-hygiene finding routed here by the security review stop rule", needs = []},
+  {path = "docs/specs/acceptance-authority-and-evidence/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "Clean the caller-supplied operation and correlation IDs at the effect broker (request_effect) so an odd value is never stored or escapes unaudited; pin the evidence-store task_projection_revision, authority identity, and nested-value schema checks with tests that fail when each is removed; and take any later in-class finding routed here by the security stop rule or the owner's 2026-10-07 review cap", needs = []},
   {path = "docs/specs/acceptance-authority-and-evidence/notes/spec-review-retry-cap-dead-end.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "After a contract amendment, spec review inherits the code-review retry count, and findings-remain from SPEC-PLAN-REVIEW refuses the owner override, so an amended spec cannot loop back to drafting", needs = []},
   {path = "docs/specs/work-intake-migration-docs/notes/capture-work-alias-removal.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md"}, summary = "Preserve the historical capture-work-alias-removal deferral anchor while the approved removal spec is queued for Platform Core", needs = []},
   # The consumer half of the decomposed visual-target contract. Registered here

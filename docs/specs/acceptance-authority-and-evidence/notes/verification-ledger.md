@@ -52,18 +52,21 @@ work-loop pack suite, and the printed AC-0018 p95 and AC-0019 cold-rehydration
 figures into this ledger, because the job log expires under the repository's
 log-retention setting (deferred round-13 adversarial Nit).
 
-Binding evidence: `test-corpus.yml` run 37339103075, head commit
-`9fd5b5e6af1e43e15eba66e3f20f8730a88f10c0`, completed 2026-10-05 on
-`ubuntu-latest`. All four shards passed. The workflow file at that commit is
-byte-identical to the default branch's copy. Shard 2/4 ran the work-loop pack
-suite:
+Binding evidence: `test-corpus.yml` run 37664176813, head commit
+`c847c67fd938d680ed14bf098ef2bf388acd62ba` (the delivered head), completed
+2026-10-07 on `ubuntu-latest`. All four shards passed. Shard 2/4 ran the
+work-loop pack suite:
 
 - AC-0018: 1,000 criteria and 100,000 receipts, 5 warm-up runs and 100 timed
-  runs. p95 was 101.2 ms and p50 97.7 ms, against the 2,000 ms bound.
+  runs. p95 was 119.7 ms and p50 81.7 ms, against the 2,000 ms bound. Every
+  verdict was `supported`.
 - AC-0019: 1,000 criteria, 100,000 receipts, and 100,000 log frames rehydrated
-  to 1,000 verdicts in 2.949 s, against the 10 s bound.
+  to 1,000 verdicts in 2.402 s, against the 10 s bound, with the replay-time
+  schema checks in place.
 
-This replaces the earlier record of run 37096863910 at `d53bbc3af`. That run
+This replaces run 37339103075 at `9fd5b5e6a` (p95 101.2 ms, rehydration
+2.949 s), which predates the evidence-store retry, concurrency, and schema
+changes on the rehydration path. This replaces the earlier record of run 37096863910 at `d53bbc3af`. That run
 concluded as a failure on shard 4/4, from the then-pending version bump and
 workspace finding, and it predates the later evidence-store changes on the
 rehydration path.
@@ -560,6 +563,12 @@ shared validators enforce the canonical type, minimum-length, and
 closed-object rules for every field, including an integer-only
 `schema_version`. Seventeen of the nineteen new tests fail against the earlier
 code; the other two cover cases the earlier header check already refused.
+
+The final pair under the cap came back with adversarial round 21 clean and
+quality-engineer round 9 raising one Nit: the `task_projection_revision`,
+`authority` identity, and nested-value checks have no test that fails when
+each is removed. Under the cap it goes to the existing `[backlog].open`
+follow-up for this spec.
 
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
