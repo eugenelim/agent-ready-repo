@@ -1,7 +1,8 @@
 # Optional intelligence in repository exploration
 
 - **Slug:** `optional-intelligence-exploration-composition`
-- **Status:** Draft
+- **Status:** Fulfilled
+- **Accepted:** 2026-10-06 by eugenelim at closeout: shaping-reviewed and de-risked 2026-10-04, its spec approved for build after clean pre-EXECUTE reviews and delivered in PR #1513.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -11,6 +12,7 @@
 - **De-risked:** 2026-10-04
 - **Decomposed:** 2026-10-04 spec
 - **Governed by:** [RFC-0079](../../rfc/0079-codebase-context-pack.md)
+- **Fulfilled:** 2026-10-06 eugenelim: spec optional-intelligence-exploration-composition Shipped in 7991de05d (#1513); verified on main: packs/core/.apm/skills/repository-exploration/, Core 2.29.0 in pack.toml and plugin.json, changelog [core][2.29.0], README "Repository exploration" section, Core journey entry, spec in ini-002 shipped.
 
 ## Outcome
 
