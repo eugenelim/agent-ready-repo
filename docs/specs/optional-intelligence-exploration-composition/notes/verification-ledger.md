@@ -421,3 +421,13 @@ No capture: the run's lessons concern eval-fixture authoring (a directive case n
   passed`, exit 0, operator-attested.
 - **Map.** The AC evidence map above now uses only `evals.json` case ids and
   lists every case under the criteria it grades.
+
+## Post-gates review repair round 2 (2026-10-06)
+
+- Five sustained Nits (README glosses and plain wording, a merged SKILL.md
+  clause, the T2 fixture inventory) were applied by the controller directly,
+  not by an implementer. The cohort's decline vocabulary has no
+  controller-applied code, so the dispatch record uses `human-directed`.
+- Gates on the touched surfaces: README pin and exploration suites 55 passed;
+  `make lint-ruff lint-mypy` pass; governance-citation grep 0 hits;
+  `make build-self` exit 0.
