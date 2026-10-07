@@ -189,6 +189,8 @@ This is not a disclaimer to skip. The navigator reports what ADRs and RFCs say. 
 
 The `export` subcommand produces one self-contained HTML file with corpus list, lifecycle-graph, guidance-context, and record-detail views. The file performs no network or file reads after creation.
 
+The search box in the explorer matches record IDs (full, e.g. `ADR-0098`, or bare ordinal, e.g. `98` or `0098`), titles, and statuses. A bare ordinal matches both ADR and RFC records with that number; a prefixed form such as `adr-98` restricts to that kind.
+
 ### Reading the lifecycle graph
 
 Each label in the graph sits on or beside its own edge: `in part` with the scope for a partial supersession, `cycle` for a relationship inside a supersession cycle, `one-sided` for a reference to a record the export does not hold, and `asserted` for a caller assertion. A label is always drawn whole. Where it is longer than 16 characters or a crowded graph leaves no room for it, the edge shows a number instead, and a numbered list under the graph gives the full label and the relationship it belongs to. Records the export does not hold, and asserted records outside the chain, sit in a column on the right, joined to the selected record by a thin grey line along the row gap below it. The chain overview labels partial edges `in part` only; focus a chain to see each scope. **Lineage as text** under the graph lists every record and relationship.

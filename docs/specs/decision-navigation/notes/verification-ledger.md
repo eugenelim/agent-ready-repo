@@ -758,6 +758,8 @@ Answers are scored against the repository at the session's commit.
 | 4. Guidance context | Given the assertion "RFC-0105 is wider guidance for ADR-0134", what relates them and how far can you trust it? | The assertion is navigation-only; any `Related` links are contextual; no checked lineage is implied |
 | 5. Handoff | Where is ADR-0001's rationale, and where does its source live? | Its body or a source handoff, the repository-relative path, and the statement that this is not complete applicable policy |
 
+The task-2 key fits only commits before the RFC-0099 cleanup in T9 (2026-10-07). After it, RFC-0099's Status is exactly `Accepted`, and the partial-supersession note sits in its `Related` field. The key above is frozen and stays as written.
+
 ### Measurement rules
 
 - **Run:** one task attempted in one session in one condition.
@@ -822,6 +824,35 @@ Usability findings from the session:
 **Status: AC-0020 is not met on its frozen thresholds.** Agent runs fail the
 effort rule, and the human session has no effort counts. Whether this session
 satisfies the criterion is the owner's decision, made by amending AC-0020.
+
+**Owner acceptance (2026-10-07).** The owner amended AC-0020 to accept the
+human-run session above as the outcome evidence. The amended criterion needs no
+effort counts, no direct-browsing comparison, and no agent-run session.
+Dispositions of the session's findings:
+
+| Finding | Disposition |
+| --- | --- |
+| 104 RFCs shown, 105 expected | No change: RFC-0081 was never allocated, so 104 is correct. |
+| RFC-0099's Status is overloaded | Fixed in the source by T9: Status is now `Accepted`, and the note moved to `Related`. |
+| Search does not find `98` | Fixed by T9: search matches record IDs (AC-0027). |
+| Task 3 read the reverse direction | No change: record detail shows both directions, and the "superseded in part by" marker stays at the top, as AC-0025 requires. |
+| RFC-0105 and ADR-0134 show no relationship | No change: neither record's header names the other, so no link exists to show. |
+
+## T9 record-ID search and RFC-0099 cleanup (2026-10-07)
+
+- **Search (AC-0027):** `test_search_by_record_id` and
+  `test_search_label_names_ids_titles_statuses` in `browser_checks.py` pass.
+  `ADR-0098`, `adr-0098`, `98` and `0098` each find ADR-0098, and `98` and
+  `0098` also find RFC-0098. A title term still matches, and a term with no
+  match shows the no-result state. The visible label reads "Search IDs,
+  titles, statuses", the hint reads "e.g. ADR-0098 or 98", and the accessible
+  name reads "Search record IDs, titles, and statuses". The full
+  `browser_checks.py` suite passes: 114 tests in 295 s.
+- **RFC-0099, read back from the file after the edit.** Status line:
+  `- **Status:** Accepted`. Last `Related` item:
+  `[ADR-0111](../adr/0111-intent-review-splits-well-formedness-from-assumption-attack.md) — supersedes in part § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands`,
+  after `[RFC-0097](0097-agent-skill-engineering.md), and`.
+- **Index:** `index-records.py --check docs/rfc` exits 0.
 
 ## T7 stage 2 evidence
 

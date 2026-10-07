@@ -10,7 +10,7 @@ manually with: pytest packs/governance-extras/tests/skills/navigate-decisions/br
 Run command (from repo root, requires `playwright install chrome`):
     python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py -v
 
-Spec: docs/specs/decision-navigation/spec.md (AC-0008, AC-0010, AC-0025, AC-0026)
+Spec: docs/specs/decision-navigation/spec.md (AC-0008, AC-0010, AC-0025, AC-0026, AC-0027)
 """
 
 from __future__ import annotations
@@ -3039,3 +3039,128 @@ def test_a_selected_cycle_member_keeps_a_readable_cycle_tag(
         a, b = lum(pair["fg"]), lum(bg)
         ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
         assert ratio >= 4.5, (pair, round(ratio, 2))
+
+
+# ── Record-ID search (T9) ────────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def export_search(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """Export a corpus with ADR-0098, RFC-0098, and ADR-0001 for ID-search tests."""
+    root = tmp_path_factory.mktemp("search_fixture")
+    adr_dir = root / "docs" / "adr"
+    adr_dir.mkdir(parents=True)
+    rfc_dir = root / "docs" / "rfc"
+    rfc_dir.mkdir(parents=True)
+    (adr_dir / "0001-baseline-record.md").write_text(
+        "# ADR-0001: Baseline record\n\n- **Status:** Accepted\n\n## Context\n\nTest.\n",
+        encoding="utf-8",
+    )
+    (adr_dir / "0098-alpha-record.md").write_text(
+        "# ADR-0098: Alpha record\n\n- **Status:** Accepted\n\n## Context\n\nTest.\n",
+        encoding="utf-8",
+    )
+    (rfc_dir / "0098-alpha-proposal.md").write_text(
+        "# RFC-0098: Alpha proposal\n\n- **Status:** Accepted\n\n## Summary\n\nTest.\n",
+        encoding="utf-8",
+    )
+    return _export(tmp_path_factory, root, "search")
+
+
+def test_search_by_record_id(
+    browser: object, export_search: pathlib.Path
+) -> None:
+    """Search by full ID, lowercase ID, bare ordinal, and zero-padded ordinal each
+    leave ADR-0098 in the list; bare ordinals also leave RFC-0098; a title-only
+    term still matches; a non-matching term shows the no-result state."""
+    page = _open_page(browser, export_search)
+    page.wait_for_selector("li.record-item")
+
+    def visible_ids() -> list[str]:
+        return page.evaluate(
+            "() => [...document.querySelectorAll('li.record-item .rid')]"
+            ".map(e => e.textContent)"
+        )
+
+    # Full uppercase ID — substring match on r.id, kind-restricted to ADR
+    page.locator("#search-input").fill("ADR-0098")
+    page.wait_for_timeout(300)
+    ids = visible_ids()
+    assert "ADR-0098" in ids, ("ADR-0098 not found for query 'ADR-0098'", ids)
+    assert "RFC-0098" not in ids, ("RFC-0098 must not match 'ADR-0098'", ids)
+
+    # Lowercase ID — same substring match, case-insensitive
+    page.locator("#search-input").fill("adr-0098")
+    page.wait_for_timeout(300)
+    ids = visible_ids()
+    assert "ADR-0098" in ids, ("ADR-0098 not found for query 'adr-0098'", ids)
+    assert "RFC-0098" not in ids, ("RFC-0098 must not match 'adr-0098'", ids)
+
+    # Bare ordinal — ordinal match, both kinds
+    page.locator("#search-input").fill("98")
+    page.wait_for_timeout(300)
+    ids = visible_ids()
+    assert "ADR-0098" in ids, ("ADR-0098 not found for query '98'", ids)
+    assert "RFC-0098" in ids, ("RFC-0098 not found for query '98'", ids)
+
+    # Zero-padded ordinal — leading zeros stripped, both kinds
+    page.locator("#search-input").fill("0098")
+    page.wait_for_timeout(300)
+    ids = visible_ids()
+    assert "ADR-0098" in ids, ("ADR-0098 not found for query '0098'", ids)
+    assert "RFC-0098" in ids, ("RFC-0098 not found for query '0098'", ids)
+
+    # Title-only term — matches ADR-0001 by title
+    page.locator("#search-input").fill("Baseline")
+    page.wait_for_timeout(300)
+    ids = visible_ids()
+    assert "ADR-0001" in ids, ("ADR-0001 not found for title-only query 'Baseline'", ids)
+
+    # Non-matching term — shows the no-result state
+    page.locator("#search-input").fill("zzzzz-no-match-xqz")
+    page.wait_for_timeout(300)
+    assert page.locator(".empty-msg").is_visible(), (
+        "no-result state must be visible for a non-matching query"
+    )
+
+
+def test_search_label_names_ids_titles_statuses(
+    browser: object, export_search: pathlib.Path
+) -> None:
+    """The search box's visible label and its accessible name both mention
+    IDs, titles, and statuses."""
+    page = _open_page(browser, export_search)
+    page.wait_for_selector("li.record-item")
+
+    # Visible label text — the label wraps the input; strip the input's contribution
+    label_text = page.evaluate(
+        "() => { const lbl = document.querySelector('label:has(#search-input)');"
+        " if (!lbl) return '';"
+        " const clone = lbl.cloneNode(true);"
+        " clone.querySelectorAll('input').forEach(e => e.remove());"
+        " return clone.textContent.trim(); }"
+    )
+    assert "IDs" in label_text or "ids" in label_text.lower(), (
+        f"visible label must mention IDs; got {label_text!r}"
+    )
+    assert "title" in label_text.lower(), (
+        f"visible label must mention titles; got {label_text!r}"
+    )
+    assert "status" in label_text.lower(), (
+        f"visible label must mention statuses; got {label_text!r}"
+    )
+
+    # Accessible name (aria-label attribute)
+    aria_label = page.evaluate(
+        "() => document.getElementById('search-input').getAttribute('aria-label') || ''"
+    )
+    assert aria_label, "search input must have a non-empty aria-label"
+    assert "IDs" in aria_label or "ids" in aria_label.lower(), (
+        f"aria-label must mention IDs; got {aria_label!r}"
+    )
+    assert "title" in aria_label.lower(), (
+        f"aria-label must mention titles; got {aria_label!r}"
+    )
+    assert "status" in aria_label.lower(), (
+        f"aria-label must mention statuses; got {aria_label!r}"
+    )
