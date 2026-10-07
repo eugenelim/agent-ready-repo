@@ -351,9 +351,10 @@ function placeLabels(g,edges,keyHost){
 }
 function labelWidth(s,widths){return Math.ceil((widths[s]||s.length*6)+8);}
 // Points every 4 px along an edge with their unit normals, nearest the
-// three-quarter point first. A whole label uses only the half nearest the
+// three-quarter point first. A scope label uses only the half nearest the
 // arrowhead, so it sits by the record its edge points at; a keyed number,
-// spelled out in the key, may use the whole edge.
+// spelled out in the key, or a `cycle` label, which names no scope, may use
+// the whole edge.
 function edgePoints(path){
   var len=0;try{len=path&&path.getTotalLength?path.getTotalLength():0;}catch(e){}
   if(!len)return[];
@@ -474,7 +475,7 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   if(isCyc){
     var cb=svgEl('text');
     sa(cb,'x',x+nw-4);sa(cb,'y',y+fs1+2);
-    sa(cb,'text-anchor','end');sa(cb,'font-size',fs2+'');sa(cb,'fill','#b45309');
+    sa(cb,'text-anchor','end');sa(cb,'font-size',fs2+'');sa(cb,'fill',isSel?'#fde68a':'#b45309');
     cb.textContent='cycle';g.appendChild(cb);
   }
   var titleEl=svgEl('title');titleEl.textContent=nid+': '+titleTxt+' ('+lcv+')';
