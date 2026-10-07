@@ -11,7 +11,7 @@ function sa(e,k,v){e.setAttribute(k,String(v));return e;}
 var NW=160,NH=48,XG=112,YG=16,PX=20,PY=20;
 // Satellites sit SAT_GAP further out, so each branch into one is long enough
 // for its label.
-var SAT_GAP=40,SAT_BRANCH=96;
+var SAT_GAP=40,SAT_BRANCH=96,CYCLE_ROOM=96;
 
 // ── Connected component over checked edges (undirected)
 function chainOf(startId,rels){
@@ -276,7 +276,7 @@ function relDesc(path){
 // Placement runs in three passes — read all geometry, choose every spot,
 // then draw — because reading geometry after any drawing forces a fresh
 // layout of the whole diagram, which made placement quadratic.
-function placeLabels(g,edges,keyHost){
+function placeLabels(g,edges,keyHost,first){
   var svg=g.ownerSVGElement,vb=svg&&svg.viewBox&&svg.viewBox.baseVal;
   var grid=new BoxGrid();
   (g._blockBoxes||[]).forEach(function(b){grid.add(b);});
@@ -309,6 +309,12 @@ function placeLabels(g,edges,keyHost){
       to:rel&&!args[2].dataset.sat?rel.split('|')[2]:null,ends:ends};
   });
   g._defer=[];
+  // The selected record's own edges claim space first.
+  if(first)jobs.sort(function(a,b){
+    var fa=a.path&&a.path.dataset&&(a.path.dataset.rel||'').split('|').indexOf(first)>=0?0:1;
+    var fb=b.path&&b.path.dataset&&(b.path.dataset.rel||'').split('|').indexOf(first)>=0?0:1;
+    return fa-fb;
+  });
   // Measure each distinct label text once, in one batch.
   var widths={},probes=[];
   var measure=function(s){
@@ -328,7 +334,8 @@ function placeLabels(g,edges,keyHost){
     var whole=j.txt.length<=MAX_LABEL;
     var box=whole&&chooseSpot(grid,vb,j,labelWidth(j.txt,widths));
     if(box){draws.push({j:j,shown:j.txt,box:box});return;}
-    var num=String(key.length+1),mbox=chooseSpot(grid,vb,j,labelWidth(num,widths));
+    // A number is spelled out in the key, so it may sit anywhere clear on its edge.
+    var num=String(key.length+1),mbox=chooseSpot(grid,vb,j,labelWidth(num,widths),true);
     if(mbox)draws.push({j:j,shown:num,box:mbox});
     key.push({num:num,txt:j.txt,desc:relDesc(j.path),marked:!!mbox});
   });
@@ -365,7 +372,7 @@ function edgePoints(path){
 // lines leave no such spot (a fan-in), the second pass centres the plate on
 // its own line and lets other lines pass under it, but none within 7 px of
 // its centre, so the line through its middle is always the one it names.
-function chooseSpot(grid,vb,j,w){
+function chooseSpot(grid,vb,j,w,anyRecord){
   var h=LABEL_H,path=j.path,pts=j.pts;
   var outside=function(b){return vb&&vb.width>0&&(b.x<vb.x||b.y<vb.y||
     b.x+b.w>vb.x+vb.width||b.y+b.h>vb.y+vb.height);};
@@ -373,7 +380,7 @@ function chooseSpot(grid,vb,j,w){
   // A chain-edge label must sit nearest an arrowhead at its own record, so it
   // is never read as another record's scope.
   var byOwnRecord=function(cx,cy){
-    if(!j.to||!j.ends.length)return true;
+    if(anyRecord||!j.to||!j.ends.length)return true;
     var best=null,bd=Infinity;
     for(var e=0;e<j.ends.length;e++){
       var d=Math.hypot(j.ends[e].x-cx,j.ends[e].y-cy);if(d<bd){bd=d;best=j.ends[e];}
@@ -674,7 +681,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   var ctxCount=Object.keys(ctxRels.reduce(function(acc,r){
     var pid=r.from===selectedId?r.to:r.from;acc[pid]=1;return acc;},{})  ).length;
   var hasSat=satCount>0||ctxCount>0;
-  var svgW=PX*2+maxL*(NW+XG)+NW+(hasSat?XG+SAT_GAP+Math.round(NW*0.8):0);
+  // Cycle arcs bulge right of their column, and a cycle in the newest column
+  // needs that room even with no satellites.
+  var hasCycle=sccList.some(function(s){return s.length>1;});
+  var svgW=PX*2+maxL*(NW+XG)+NW+(hasSat?XG+SAT_GAP+Math.round(NW*0.8):hasCycle?CYCLE_ROOM:0);
   var chainH=PY*2+(maxRow+1)*(NH+YG)-YG+PY;
   var svgH=Math.max(chainH,PY+satCount*(NH+YG)+PY);
   // Hidden contextual peers add height only while they are shown.
@@ -883,7 +893,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   container.appendChild(axis);
   wrap.className='lineage-wrap';wrap.style.overflowX='auto';wrap.style.maxWidth='100%';
   wrap.appendChild(svg);container.appendChild(wrap);
-  placeLabels(lg,[eg,ctxG],container);
+  placeLabels(lg,[eg,ctxG],container,selectedId);
 
   // Contextual toggle
   if(ctxRels.length>0){

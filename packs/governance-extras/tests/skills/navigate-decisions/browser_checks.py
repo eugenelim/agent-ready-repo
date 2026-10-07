@@ -2410,6 +2410,11 @@ def test_crowded_labels_stay_on_their_own_edges(
         target = near["own"].split("|")[2]
         assert near["nearest"].split("|")[2] == target, (selected, "label by another record", near)
     markers = [x for x in labels if x["text"].isdigit()]
+    unmarked = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph .lineage-key li')]"
+        ".filter(l => l.textContent.includes('no room')).map(l => l.textContent)"
+    )
+    assert unmarked == [], (selected, "an edge has no mark on the diagram", unmarked)
     key = page.evaluate(
         "() => [...document.querySelectorAll('#view-graph .lineage-key li')]"
         ".map(l => l.textContent)"
@@ -2835,3 +2840,150 @@ def test_a_label_too_long_to_draw_whole_becomes_a_keyed_number(
     assert entry["text"].startswith(
         "in part · D7, D8, D9 — ADR-0004 supersedes in part ADR-0001"
     ), key
+
+
+_NEWEST_CYCLES = {
+    "two": [
+        (1, "Old", "- **Status:** Superseded\n- **Superseded by:** ADR-0002; ADR-0003\n"),
+        (
+            2,
+            "Two",
+            "- **Status:** Accepted\n- **Supersedes:** ADR-0001; ADR-0003\n"
+            "- **Superseded by:** ADR-0003\n",
+        ),
+        (
+            3,
+            "Three",
+            "- **Status:** Accepted\n- **Supersedes:** ADR-0001; ADR-0002\n"
+            "- **Superseded by:** ADR-0002\n",
+        ),
+    ],
+    "three": [
+        (1, "Old", "- **Status:** Superseded\n- **Superseded by:** ADR-0002\n"),
+        (
+            2,
+            "Two",
+            "- **Status:** Accepted\n- **Supersedes:** ADR-0001; ADR-0004\n"
+            "- **Superseded by:** ADR-0003\n",
+        ),
+        (
+            3,
+            "Three",
+            "- **Status:** Accepted\n- **Supersedes:** ADR-0002\n- **Superseded by:** ADR-0004\n",
+        ),
+        (
+            4,
+            "Four",
+            "- **Status:** Accepted\n- **Supersedes:** ADR-0003\n- **Superseded by:** ADR-0002\n",
+        ),
+    ],
+}
+
+
+@pytest.mark.parametrize("size", sorted(_NEWEST_CYCLES))
+def test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels(
+    browser: object, tmp_path_factory: pytest.TempPathFactory, size: str
+) -> None:
+    """A two- or three-record cycle right of an older record, with no
+    satellites, keeps every arc inside the drawing and a label on each."""
+    export = _publish_with(tmp_path_factory, f"cycle_newest_{size}", _NEWEST_CYCLES[size], [])
+    page = _satellite_page(browser, export, "ADR-0002")
+    info = page.evaluate(
+        """() => { const svg = document.querySelector('#view-graph .lineage-wrap svg');
+          const vb = svg.viewBox.baseVal;
+          const arcs = [...svg.querySelectorAll('path[data-rel][stroke-dasharray="8 4"]')];
+          const out = arcs.map(p => { const n = p.getTotalLength(); let maxX = 0;
+            for (let s = 0; s <= n; s += 1) maxX = Math.max(maxX, p.getPointAtLength(s).x);
+            return {rel: p.dataset.rel, maxX,
+              labels: [...svg.querySelectorAll('.edge-label')]
+                .filter(t => t.dataset.for === p.dataset.rel).length}; });
+          return {width: vb.width, arcs: out}; }"""
+    )
+    assert len(info["arcs"]) == (2 if size == "two" else 3), info
+    for arc in info["arcs"]:
+        assert arc["maxX"] <= info["width"], (arc, info["width"])
+        assert arc["labels"] == 1, info
+
+
+def test_a_same_column_assertion_runs_straight_between_its_records(
+    browser: object, export_partial_and_asserted: pathlib.Path
+) -> None:
+    """An assertion between two records in one column never climbs above the
+    higher of its two ends and never doubles back on itself."""
+    page = _open_page(browser, export_partial_and_asserted)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, "ADR-0001")
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    route = page.evaluate(
+        """() => { const p = document.querySelector(
+            '#view-graph path[data-rel="ADR-0002|guidance|ADR-0001|navigation_only"]');
+          const n = p.getTotalLength(), pts = [];
+          for (let s = 0; s <= n; s += 2) {
+            const q = p.getPointAtLength(s); pts.push([q.x, q.y]); }
+          return pts; }"""
+    )
+    top = min(route[0][1], route[-1][1])
+    assert min(y for _, y in route) >= top - 1, "the route climbs past its target"
+    ys = [y for _, y in route]
+    steps = [b - a for a, b in zip(ys, ys[1:], strict=False) if abs(b - a) > 0.5]
+    assert all(d < 0 for d in steps) or all(d > 0 for d in steps), "the route doubles back"
+
+
+# A dense chain shaped like a real corpus: one record supersedes five others in
+# part, and four more partial edges converge on the same older records.
+_DENSE_EDGES = [
+    (7, 2, "D8"),
+    (8, 2, "D3"),
+    (8, 4, "D7"),
+    (8, 6, ""),
+    (9, 1, "D2"),
+    (9, 3, "D6, D7"),
+    (9, 4, "D1, D2"),
+    (9, 5, "D1"),
+    (9, 6, "D6"),
+    (10, 2, "D4"),
+    (11, 9, "D3"),
+]
+
+
+@pytest.fixture(scope="module")
+def export_dense(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    root = tmp_path_factory.mktemp("dense_fixture")
+
+    def field(pairs: list[tuple[int, str]]) -> str:
+        return "; ".join(f"ADR-{n:04d}" + (f" {sc}" if sc else "") for n, sc in pairs)
+
+    records = []
+    for k in range(1, 12):
+        newer = [(f, sc) for f, t, sc in _DENSE_EDGES if t == k]
+        older = [(t, sc) for f, t, sc in _DENSE_EDGES if f == k]
+        header = "- **Status:** Accepted\n"
+        if older:
+            header += f"- **Supersedes in part:** {field(older)}\n"
+        if newer:
+            header += f"- **Superseded in part:** {field(newer)}\n"
+        records.append((k, f"Dense {k}", header))
+    _build_corpus(root, records)
+    return _export(tmp_path_factory, root, "dense")
+
+
+@pytest.mark.parametrize("selected", [f"ADR-{k:04d}" for k in range(1, 12)])
+def test_every_edge_of_a_dense_chain_is_marked(
+    browser: object, export_dense: pathlib.Path, selected: str
+) -> None:
+    """In a dense chain, whichever record is selected, every relationship has
+    its whole label or a keyed number on the diagram, and no whole label sits
+    by another record's arrowhead."""
+    page = _open_page(browser, export_dense)
+    page.wait_for_selector("li.record-item")
+    _navigate_graph(page, selected)
+    page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
+    _assert_labels_sound(page, "#view-graph .lineage-wrap svg", selected)
+    unmarked = page.evaluate(
+        "() => [...document.querySelectorAll('#view-graph .lineage-key li')]"
+        ".filter(l => l.textContent.includes('no room')).map(l => l.textContent)"
+    )
+    assert unmarked == [], (selected, unmarked)
+    for near in page.evaluate(_NEAREST_END_JS, "#view-graph .lineage-wrap svg"):
+        if not near["text"].isdigit():
+            assert near["nearest"].split("|")[2] == near["own"].split("|")[2], (selected, near)
