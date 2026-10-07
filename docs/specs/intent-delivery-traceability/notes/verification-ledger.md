@@ -149,3 +149,23 @@ feature (`test_named_brief_route_feature_is_refused`), and an ambiguous
 `Brief:` whose named briefs do not resolve
 (`test_no_resolving_target_refuses_every_brief_route_feature`). The other 15
 pass on that tree because T5–T10 already delivered the behaviour they pin.
+
+## 2026-10-07 — Post-build review round 3: close-work reads brief parents itself
+
+Observed by the adversarial reviewer and sustained on adjudication. To find the
+feature behind each brief an ambiguous spec `Brief:` names, close-work reads
+that brief's `Parent intent:` from its file, because the snapshot carries no
+brief-to-intent link when the brief's only spec is the ambiguous one. That is a
+second parser of a delivery field, against AC-0014 and T11's "from the snapshot
+alone". It also keeps only the first `Parent intent:` value, so a feature
+named by a second value is never refused. The same round found that the
+round-2 repair refuses every `spec`-route feature on any broken spec `Brief:`,
+which AC-0020 does not allow, and that the plan's `artifacts` definition no
+longer matches the resolver.
+
+## 2026-10-07 — Owner decision 7 (eugenelim)
+
+7. **Brief-to-intent links.** The resolver reports, in the snapshot, every
+   valid `Parent intent:` value of each brief that an ambiguous spec `Brief:`
+   names. Close-work maps a named brief to its features from the snapshot
+   alone and parses no delivery field. AC-0014 and T11 stay as written.
