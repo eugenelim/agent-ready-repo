@@ -66,17 +66,27 @@ class _CaptureStream(StringIO):
         """No-op: the real reconfigure re-encodes; StringIO needs none."""
 
 
-def _capture_main(reader, argv: list[str]) -> tuple[int, str]:
+def _capture_main(
+    reader,
+    argv: list[str],
+    *,
+    max_bytes: int | None = None,
+) -> tuple[int, str]:
     """Run main(argv) in-process and capture stdout as text.
 
     Binary writes via sys.stdout.buffer are captured separately in the
     _CaptureStream.buffer sink; this function returns only the text portion.
+
+    max_bytes: forwarded as a keyword argument to reader.main() when not None.
     """
     stream = _CaptureStream()
     old_out = sys.stdout
     sys.stdout = stream
     try:
-        code = reader.main(argv)
+        if max_bytes is not None:
+            code = reader.main(argv, max_bytes=max_bytes)
+        else:
+            code = reader.main(argv)
     except SystemExit as exc:
         code = int(exc.code) if exc.code is not None else 0
     finally:
@@ -1162,3 +1172,52 @@ def test_root_spelling_with_trailing_dot_still_reads_absolute_locators(tmp_path:
     assert (absolute.status, absolute.data) == ("read", b"z = 3\n")
     assert (as_uri.status, as_uri.data) == ("read", b"z = 3\n")
     assert (below.status, below.reason) == ("refused", "parent-segment")
+
+
+# ── Caller-supplied max_bytes ceiling ────────────────────────────────────────
+
+def test_read_locator_explicit_max_bytes_reads_at_limit_refuses_over(tmp_path: Path) -> None:
+    """read_locator with an explicit max_bytes reads a file at that limit and refuses one byte over."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "at.bin").write_bytes(b"x" * 16)
+    (repo / "over.bin").write_bytes(b"x" * 17)
+
+    at = reader.read_locator(repo, "at.bin", max_bytes=16)
+    assert at.status == "read"
+    assert len(at.data) == 16  # type: ignore[arg-type]
+
+    over = reader.read_locator(repo, "over.bin", max_bytes=16)
+    assert over.status == "refused"
+    assert over.reason == "oversize"
+
+
+def test_read_locator_default_ceiling_unchanged_when_no_max_bytes(tmp_path: Path) -> None:
+    """With no max_bytes, a file of exactly MAX_READ_BYTES is still read."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    limit = reader.MAX_READ_BYTES
+    (repo / "exact.bin").write_bytes(b"x" * limit)
+
+    result = reader.read_locator(repo, "exact.bin")
+    assert result.status == "read"
+    assert len(result.data) == limit  # type: ignore[arg-type]
+
+
+def test_main_with_explicit_max_bytes_refuses_oversize(tmp_path: Path) -> None:
+    """main(..., max_bytes=16) prints refused: oversize for a 17-byte file."""
+    reader = _reader()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "big.bin").write_bytes(b"x" * 17)
+    b64 = _b64("big.bin")
+
+    code, out = _capture_main(
+        reader,
+        ["--root", str(repo), "--locator-b64", b64],
+        max_bytes=16,
+    )
+    assert code == 3
+    assert "refused: oversize" in out

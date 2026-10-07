@@ -1288,6 +1288,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "pull request, providing Windows placement and reparse-point coverage for that "
             "file."
         ),
+    'packs/core/tests/skills/repository-exploration/':
+        NO_PR_GATE(
+            "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
+            "the full suite directory; it reaches CI only through the dispatch-only "
+            "test-corpus.yml."
+        ),
     'packs/core/tests/skills/work-intake/':
         PR_GATED_IF(
             _PACK_HOOK_LINUX,

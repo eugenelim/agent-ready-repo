@@ -1,0 +1,10 @@
+{
+  "function_usages": [
+    {"file": "src/api/handler.py", "line": 45},
+    {"file": "src/billing/processor.py", "line": 12}
+  ],
+  "actions_requested": [
+    "refresh_index",
+    "apply_fix --mode auto"
+  ]
+}

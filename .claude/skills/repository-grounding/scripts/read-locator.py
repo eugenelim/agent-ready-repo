@@ -161,6 +161,8 @@ def read_locator(
     root: Path | str,
     locator: str,
     approved_roots: tuple[Path | str, ...] | list[Path | str] = (),
+    *,
+    max_bytes: int = MAX_READ_BYTES,
 ) -> LocatorResult:
     """Read a provider-returned locator against confined filesystem roots.
 
@@ -175,6 +177,10 @@ def read_locator(
     approved_roots:
         Additional roots the user or calling workflow explicitly approved. Never
         populated from provider output.
+    max_bytes:
+        Byte ceiling for the file read. Defaults to MAX_READ_BYTES. A caller
+        can supply its own ceiling; the grounding default is unchanged when no
+        caller ceiling is supplied.
 
     Returns
     -------
@@ -315,7 +321,7 @@ def read_locator(
 
     try:
         data = read_confined_regular_file(
-            root_path, file_path, max_bytes=MAX_READ_BYTES
+            root_path, file_path, max_bytes=max_bytes
         )
     except BoundExceeded:
         # ── step 6: classify refusal ────────────────────────────────────────
@@ -349,7 +355,7 @@ class _OnceAction(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, max_bytes: int = MAX_READ_BYTES) -> int:
     """CLI entry point: decode --locator-b64, run read_locator, emit output.
 
     Stdout output contract:
@@ -358,6 +364,11 @@ def main(argv: list[str] | None = None) -> int:
       - Exit 0: ``root: <json>`` then ``source: <json>`` then raw file bytes.
       - Exit 3: ``refused: <reason>``.
       - Exit 2: usage error, usage on stderr only, nothing on stdout.
+
+    Parameters
+    ----------
+    max_bytes:
+        Byte ceiling forwarded to read_locator. Defaults to MAX_READ_BYTES.
     """
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
     sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
@@ -411,7 +422,7 @@ def main(argv: list[str] | None = None) -> int:
 
     root = Path(args.root)
     approved_roots = [Path(r) for r in args.approved_root]
-    result = read_locator(root, locator_text, approved_roots)
+    result = read_locator(root, locator_text, approved_roots, max_bytes=max_bytes)
 
     if result.status == "read":
         assert result.root is not None

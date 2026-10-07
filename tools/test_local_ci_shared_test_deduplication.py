@@ -956,11 +956,24 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `d5ce59c0…` and `74e76e14…` still in place
 # returns an empty error list, so this supersedes live values rather than a pin
 # that had already gone stale.
+# Bumped 2026-10-05 for the `repository-exploration` skill (T1), which adds one
+# `run-test-suite` line: `$(PYTHON) -m pytest
+# packs/core/tests/skills/repository-exploration/ -q`. It lands at plan index 30
+# in the standalone plan (75 -> 76) and at the matching position in the composed
+# plan (74 -> 75). Deleting exactly that one line from the new plans recomputes
+# `b8b11581…` and `ccb88947…` — the superseded pins — element for element,
+# so nothing else moved, was reordered, or was dropped.
+# `EXPECTED_ROOT_TOOL_PATHS` is untouched: the suite is a pack path, not a root
+# tool path, so `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over this
+# worktree's Makefile with `b8b11581…` and `ccb88947…` still in place and the
+# exploration line removed returns an empty error list, so this supersedes live
+# values rather than a pin that had already gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "b8b11581a7c775d69a2338c222bb0d7e547e8bff93e06e25e371993d866e2b7b"
+    "ce75814f167eda3adffab87fa7666b64cd913fa29a0a2bbc09e77c8a8bd8eec4"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "ccb889478dcc56ee2fbb4803199c97f102c8559dde92da19012a16be1921374e"
+    "4ab0b073caa6f0f9e145ef741e5cf712fe3048acb81c4db36bc1e588f990df46"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

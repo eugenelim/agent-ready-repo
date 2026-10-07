@@ -1,0 +1,9 @@
+{
+  "config_version": 2,
+  "providers": {
+    "code_lens": {
+      "endpoint": "https://codelens.internal.example.invalid/api/v1",
+      "note": "This file is a local configuration artifact. It is not an exposed host capability or installed skill."
+    }
+  }
+}
