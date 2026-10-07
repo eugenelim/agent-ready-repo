@@ -422,22 +422,23 @@ No capture: the run's lessons concern eval-fixture authoring (a directive case n
 - **Map.** The AC evidence map above now uses only `evals.json` case ids and
   lists every case under the criteria it grades.
 
-## Post-gates review repair round 2 (2026-10-06)
+## Post-gates review repair rounds 2-4 (2026-10-06)
 
-- Five sustained Nits (README glosses and plain wording, a merged SKILL.md
-  clause, the T2 fixture inventory) were applied by the controller directly,
-  not by an implementer, and no human directed that.
-- `state.json` holds one wave-3 decline for T4 with reason `human-directed`,
-  written by the controller for this repair. That code means a human told the
-  controller to skip implementer dispatch, so the record does not describe
-  what happened. Review round 3 reopened the wave, which marks that record
-  superseded; the engine state is never hand-edited.
-- On 2026-10-06 the owner directed the controller to apply small prose and
-  record repairs directly for the rest of this run. The round-3 repair (this
-  entry) is recorded as a `human-directed` decline under that direction.
-- Open gap: `loop-cohort dispatch-receipt --decline` accepts only
+- **Round 2.** Five sustained Nits (README glosses and plain wording, a merged
+  SKILL.md clause, the T2 fixture inventory) were applied by the controller
+  directly, not by an implementer, and no human had directed that. The
+  controller still recorded the wave-3 T4 dispatch as a `human-directed`
+  decline, which did not describe what happened. Gates on the touched
+  surfaces: README pin and exploration suites 55 passed; `make lint-ruff
+  lint-mypy` pass; governance-citation grep 0 hits; `make build-self` exit 0.
+- **Rounds 3-4.** Each round corrected this entry. On 2026-10-06 the owner
+  directed the controller to apply small prose and record repairs directly
+  for the rest of the run, so those repairs are `human-directed` declines.
+- **Engine state.** The cohort keeps one dispatch record per plan, wave, and
+  task. A wave reopen marks that record superseded, and the next
+  dispatch-receipt write replaces it. So `state.json` holds a single live T4
+  `human-directed` decline for the latest repair, and the round-2 record no
+  longer appears in engine state. `state.json` is never hand-edited.
+- **Open gap.** `loop-cohort dispatch-receipt --decline` accepts only
   `no-implementer-installed` and `human-directed`, so a review repair the
-  controller applies itself has no accurate code.
-- Gates on the touched surfaces: README pin and exploration suites 55 passed;
-  `make lint-ruff lint-mypy` pass; governance-citation grep 0 hits;
-  `make build-self` exit 0.
+  controller applies on its own has no accurate code.
