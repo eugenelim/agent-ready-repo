@@ -1047,7 +1047,7 @@ def _build_descendant_closure(
         if terminus in _COLLECTION_TERMINI:
             queue.append((slug, terminus))
 
-    # AC-0020: non-collection termini (closed-empty, direct-light) must still
+    # Non-collection termini (closed-empty, direct-light) must still
     # refuse if an ambiguous spec Discovery: or an ambiguous spec Brief: (via
     # Parent intent provenance records) names this feature intent.  These
     # termini never enter the collection loop, so the snapshot check runs here.
@@ -1150,7 +1150,7 @@ def _build_descendant_closure(
                 _DELIVERY_DIAGNOSTIC_CODES | frozenset({"delivery-reference-unsafe"})
             )
             # Build brief->feature map from Parent intent provenance records so
-            # no brief file needs to be read on the AC-0020 refusal path.
+            # no brief file needs to be read to decide a broken-reference refusal.
             _brief_parent_feats: dict[str, set[str]] = {}
             for _prov in snap["provenance"]:
                 if (
