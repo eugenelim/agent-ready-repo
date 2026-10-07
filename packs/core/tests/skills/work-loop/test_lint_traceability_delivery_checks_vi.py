@@ -545,11 +545,11 @@ def test_vi1705_provider_kwarg_not_module_global(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# VI-2405: deeply nested payload and 200-char label truncation
+# VI-2405: resolver JSON parse raising RecursionError, and 200-char label truncation
 # ---------------------------------------------------------------------------
 
 
-def test_vi2405_deeply_nested_payload_yields_unavailable(tmp_path: Path) -> None:
+def test_vi2405_recursion_error_in_json_parse_yields_unavailable(tmp_path: Path) -> None:
     """A resolver whose json.loads raises RecursionError yields
     delivery-resolver-unavailable with exit 1 and no traceback.
 
@@ -566,19 +566,12 @@ def test_vi2405_deeply_nested_payload_yields_unavailable(tmp_path: Path) -> None
         tmp_path / "docs/product/briefs/anchor.md",
         "# Brief\n\n- **Slug:** `anchor`\n",
     )
-    stub = tmp_path / "deep_resolver.py"
-    stub.write_text(
-        "import sys\n"
-        "sys.stdout.reconfigure(encoding='utf-8')\n"
-        "depth = 5000\n"
-        "text = '{\"a\":' * depth + '\"x\"' + '}' * depth + '\\n'\n"
-        "sys.stdout.write(text)\n",
-        encoding="utf-8",
-    )
+    stub = tmp_path / "json_resolver.py"
+    stub.write_text("print('{}')\n", encoding="utf-8")
 
-    mod = _load_linter("vi2405_deep")
+    mod = _load_linter("vi2405_recursion")
 
-    def deep_provider(root: Path) -> dict:
+    def recursion_provider(root: Path) -> dict:
         return mod._run_resolver(root, _resolver_path=stub)
 
     with patch.object(
@@ -587,13 +580,13 @@ def test_vi2405_deeply_nested_payload_yields_unavailable(tmp_path: Path) -> None
         side_effect=RecursionError("maximum recursion depth exceeded"),
     ):
         out_lines, hard, exit_hint = mod.check(
-            tmp_path, False, snapshot_provider=deep_provider
+            tmp_path, False, snapshot_provider=recursion_provider
         )
     assert exit_hint == 1, (
-        f"deeply nested payload → exit 1, got {exit_hint}: {hard!r}"
+        f"RecursionError in JSON parse → exit 1, got {exit_hint}: {hard!r}"
     )
     assert any("delivery-resolver-unavailable" in h for h in hard), (
-        f"deeply nested payload → delivery-resolver-unavailable in hard: {hard!r}"
+        f"RecursionError in JSON parse → delivery-resolver-unavailable in hard: {hard!r}"
     )
     all_output = "\n".join(out_lines + hard)
     assert "Traceback" not in all_output, (
