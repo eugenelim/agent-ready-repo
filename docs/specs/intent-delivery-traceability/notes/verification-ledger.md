@@ -169,3 +169,15 @@ longer matches the resolver.
    valid `Parent intent:` value of each brief that an ambiguous spec `Brief:`
    names. Close-work maps a named brief to its features from the snapshot
    alone and parses no delivery field. AC-0014 and T11 stay as written.
+
+## 2026-10-07 — Completion evidence handoff
+
+- **Delivery:** FEAT-0003, `docs/specs/intent-delivery-traceability/`, work-loop run `92bc8766-7fb1-4d67-b06a-3f5ffbf0e702`, branch `eugenelim/feat-0003`.
+- **Accepted outcome and authority:** AC-0001–AC-0020 of the spec, approved by eugenelim on 2026-10-04 and amended with approval on 2026-10-05, 2026-10-06, and 2026-10-07 under owner decisions 1–7 above.
+- **Implemented scope:** one canonical resolver (`packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` with `_file_safety.py`), byte-identical copies run by `close-work` and `work-loop`, both consumers validating every snapshot record, AC-0020 refusal sets, and Core `2.29.0` records. Tasks T1–T14 are delivered.
+- **Verification:** `make lint-ruff lint-mypy` exit 0; 895 targeted tests pass; `tools/check_closure_terminality_parity.py` exit 0; the shipped resolver on this repository returns a complete snapshot (46 relations, 31 classifications, 171 provenance records, 10 diagnostics); `lint-traceability.py` on this repository exits 0; `lint-spec-status.py` clean.
+- **Durable outputs:** spec `Shipped`, plan `Done`, this ledger, the changelog entry `[core][2.29.0]`, the close-work how-to's delivery-code list, and the architecture page's resolver paragraphs, all repository-durable on this branch.
+- **Non-goals and follow-ons:** `lint-brief-coverage.py` still reads `Brief:` itself; the ten features named under "Features still refused by their own delivery diagnostics" stay refused until their artifacts are repaired. Neither is required by the accepted intent, and no follow-on was created.
+- **Unresolved obligations:** none in the accepted intent. Merge needs the owner's review.
+- **Completion-event candidate:** merge of the pull request for `eugenelim/feat-0003`.
+- **Authority facts:** this run wrote only repository files on this branch. It holds no closeout, disposition, or deletion authority; `close-work` owns those.
