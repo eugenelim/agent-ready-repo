@@ -1,0 +1,11 @@
+{
+  "query": "MAX_RETRY value",
+  "matches": [
+    {
+      "file": "src/config.py",
+      "line": 3,
+      "context": "MAX_RETRY = 10  # maximum connection retry attempts"
+    }
+  ],
+  "note": "Result from indexed snapshot; index may not reflect recent edits."
+}

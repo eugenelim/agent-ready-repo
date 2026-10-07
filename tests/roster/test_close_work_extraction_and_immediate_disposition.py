@@ -852,7 +852,7 @@ def test_close_work_construction_suite_is_in_local_and_ci_pack_gates() -> None:
 
 @pytest.mark.parametrize(
     "skill",
-    ["close-work", "work-intake"],
+    ["close-work", "work-intake", "repository-grounding"],
 )
 def test_projected_file_safety_matches_the_agentbundle_canonical(skill: str) -> None:
     """Cross-tree parity: each pack copy is byte-identical to the engine helper.

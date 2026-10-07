@@ -1,0 +1,98 @@
+name: pack-javascript
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'packs/*/.apm/skills/*/**/*.js'
+      - 'packs/*/tests/**/*.test.js'
+      - 'packs/*/tests/**/*.spec.js'
+      - 'packs/*/.apm/skills/*/package.json'
+      - 'packs/*/.apm/skills/*/package-lock.json'
+      - '**/.npmrc'
+      - '.gitignore'
+      - '.github/workflows/pack-javascript.yml'
+      - 'tools/npm_project_discovery.py'
+      - 'tools/lint-pack-npm-projects.py'
+      - 'tools/lint-npm-allow-scripts.py'
+      - 'tools/lint-pack-test-boundary.py'
+      - 'tools/lint_harness.py'
+      - 'tools/selftest_harness.py'
+      - 'tools/test-lint-pack-npm-projects.py'
+      - 'tools/test-lint-npm-allow-scripts.py'
+      - 'tools/test-lint-pack-test-boundary.py'
+      - 'tools/test-pack-javascript-workflow.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pack-javascript-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pack-javascript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+      NPM_CONFIG_REPLACE_REGISTRY_HOST: never
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: '24'
+
+      # Two DISTINCT empty files, not /dev/null twice. npm refuses the same path
+      # in both slots with `double-loading config "/dev/null" as "global",
+      # previously loaded as "user"` and then exits before resolving any
+      # configuration at all — so the obvious neutralization silently disables
+      # every npm command rather than hardening it. $RUNNER_TEMP is
+      # platform-issued and carries no pull-request-controlled value.
+      - name: Neutralize user and global npm configuration
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/empty-user.npmrc"
+          : > "$RUNNER_TEMP/empty-global.npmrc"
+          echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/empty-user.npmrc" >> "$GITHUB_ENV"
+          echo "NPM_CONFIG_GLOBALCONFIG=$RUNNER_TEMP/empty-global.npmrc" >> "$GITHUB_ENV"
+
+      - name: Check pack npm policy
+        run: |
+          set -euo pipefail
+          python3 tools/test-lint-npm-allow-scripts.py
+          python3 tools/lint-npm-allow-scripts.py
+          python3 tools/test-lint-pack-npm-projects.py
+          python3 tools/lint-pack-npm-projects.py
+
+      - name: Verify npm registry configuration
+        run: |
+          set -euo pipefail
+          test "$(npm config get userconfig)" = "$RUNNER_TEMP/empty-user.npmrc"
+          test "$(npm config get globalconfig)" = "$RUNNER_TEMP/empty-global.npmrc"
+          test "$(npm config get registry)" = 'https://registry.npmjs.org/'
+          test "$(npm config get replace-registry-host)" = never
+          npm config list --json | node -e 'let s=""; process.stdin.on("data", c => s += c).on("end", () => { const config = JSON.parse(s); const unsafe = Object.keys(config).some(key => key.startsWith("@") && key.endsWith(":registry") || /(^|:)_auth(Token)?$/.test(key) || key.includes(":_auth")); process.exit(unsafe ? 1 : 0); })'
+
+      - name: Install canonical pack projects
+        run: |
+          set -euo pipefail
+          for manifest in packs/*/.apm/skills/*/package.json; do
+            npm ci --ignore-scripts --no-audit --prefix "$(dirname "$manifest")"
+          done
+
+      - name: renderer suite
+        working-directory: packs/converters/tests/skills/render-proof
+        run: node renderer.test.js
+
+      - name: security suite
+        working-directory: packs/converters/tests/skills/render-proof
+        run: node security.test.js
+
+      - name: pipeline suite
+        working-directory: packs/converters/tests/skills/render-proof
+        run: node pipeline.test.js

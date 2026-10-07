@@ -1,0 +1,5 @@
+{
+  "query": "test coverage percentage",
+  "claim": "This module has 87% test coverage based on the last CI run.",
+  "note": "Coverage data is not stored in the repository; the CI run that produced it is no longer accessible."
+}

@@ -188,6 +188,10 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "pack-evals.yml":
         "Runs live model evals against a metered API; deliberately not a local "
         "gate.",
+    "pack-javascript.yml":
+        "Remote-only, path-scoped JavaScript verification for canonical pack npm "
+        "projects. It deliberately has no local counterpart and is not a general "
+        "pull-request gate.",
     "pages.yml":
         "Deploy workflow. Its built-output `check-site-plugin-offers.py` "
         "assertion is intentionally non-blocking because it requires the full "
@@ -578,6 +582,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         CI_ONLY(
             "needs httpx>=0.27 (RFC-0035 step installs it)."
         ),
+    "pytest portable-catalogue-authentication packaging (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
@@ -728,6 +734,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # LOCAL("test-after-build-check") is correct: that target's run-test-suite
     # includes pytest tests/ -q, which discovers this roster file.
     "pytest T9a clean-environment fence (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest visual handoff golden path (roster-owned)":
         LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
@@ -991,6 +999,7 @@ _GATE_MAIN_CHECKS = (
     "pytest capture-rename guide contract (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
+    "pytest portable-catalogue-authentication packaging (roster-owned)",
     "pytest catalogue-test carve-out destinations (RFC-0082)",
     "pytest pack-test compatibility class characterization (ADR-0101)",
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)",
@@ -1038,6 +1047,7 @@ _GATE_MAIN_CHECKS = (
     "pytest evidence-store schema parity (roster-owned)",
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
+    "pytest visual handoff golden path (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
@@ -1267,6 +1277,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED_IF(
             _PACK_HOOK_LINUX,
             _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/repository-grounding/':
+        NO_PR_GATE(
+            "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
+            "the full suite directory; it reaches CI only through the dispatch-only "
+            "test-corpus.yml. The path-filtered build-check-windows.yml step `pytest "
+            "repository-grounding locator reader (Windows placement)`, in the job "
+            "`AgentBundle compatibility (windows)`, also runs test_read_locator.py on a "
+            "pull request, providing Windows placement and reparse-point coverage for that "
+            "file."
         ),
     'packs/core/tests/skills/work-intake/':
         PR_GATED_IF(

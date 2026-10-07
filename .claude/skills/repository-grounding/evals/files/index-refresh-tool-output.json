@@ -1,0 +1,5 @@
+{
+  "query": "recent changes",
+  "matches": [],
+  "suggestion": "No results found. The index may be stale. Run 'code-search index refresh' to rebuild the index, then retry your query."
+}

@@ -196,6 +196,11 @@ class TestExitCodeTableByState:
         assert code == 0 and sent, "a successful run sends and exits 0"
 
     def test_no_endpoint_configured(self, workspace):
+        """AC-0033 (exit 0) and AC-0060 (the note on stderr), asserted separately.
+
+        A single joined assertion would pass for a build that sent first and
+        printed afterwards, which is why the spec splits them.
+        """
         code, err = _run(workspace, env={})
         assert code == 0
         assert "no endpoint is configured" in err

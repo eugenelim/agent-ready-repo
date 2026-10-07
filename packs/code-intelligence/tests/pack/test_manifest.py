@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import tomllib
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
+_SKILL = PACK_ROOT / ".apm" / "skills" / "code-intelligence"
+
+
+def _load_preflight():
+    """Load estate_preflight.py under a unique pack-qualified module name.
+
+    Uses a distinct name from the one test_estate_preflight.py uses so the two
+    suites can import the module independently without caching conflicts.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "wicked_estate_code_intelligence_estate_preflight_manifest_check",
+        _SKILL / "scripts" / "estate_preflight.py",
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def load_pack() -> dict:
@@ -96,3 +114,36 @@ def test_skill_and_agents_exist() -> None:
     assert (PACK_ROOT / ".apm/skills/code-intelligence/SKILL.md").is_file()
     assert (AGENTS_DIR / "code-investigator.md").is_file()
     assert (AGENTS_DIR / "impact-analyst.md").is_file()
+
+
+def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
+    """AC-0003: both runtime-dependency entries declare >=0.18, tracking the preflight floor.
+
+    The floor in pack.toml and the preflight's MINIMUM_VERSION must agree so they
+    cannot drift independently.  This test fails until T2 updates both values to 0.18.
+    """
+    preflight = _load_preflight()
+    assert preflight.MINIMUM_VERSION == (0, 18), (
+        f"preflight MINIMUM_VERSION must be (0, 18), got {preflight.MINIMUM_VERSION!r}"
+    )
+    expected = ">=" + ".".join(str(p) for p in preflight.MINIMUM_VERSION)
+    for dep in load_pack()["runtime-dependencies"]:
+        assert dep.get("version") == expected, (
+            f"{dep['package']} version floor is {dep.get('version')!r},"
+            f" expected {expected!r}"
+        )
+
+
+def test_pack_version_is_0_1_3() -> None:
+    """AC-0032: pack.toml and plugin.json both carry version 0.1.3.
+
+    Fails until T3 bumps the release version.
+    """
+    pack_version = load_pack()["version"]
+    plugin_version = load_plugin()["version"]
+    assert pack_version == "0.1.3", (
+        f"pack version is {pack_version!r}, expected '0.1.3'"
+    )
+    assert plugin_version == "0.1.3", (
+        f"plugin version is {plugin_version!r}, expected '0.1.3'"
+    )

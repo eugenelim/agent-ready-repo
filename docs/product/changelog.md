@@ -64,11 +64,136 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.27.14] — 2026-10-03
+## [core][2.28.1] — 2026-10-06
 
 ### Added
 
 - Callable shadow acceptance services now ship in `packs/core`. The services — acceptance projection, approval import, evidence transactions, subject projection, security primitives, content-safety guard, and the compatibility facade — are standard-library-only scripts in the `work-loop` skill. With `WORK_LOOP_SHADOW_SERVICES=1`, the engine records an evidence receipt after each transition. When the plan locks, it also imports the approval against the approved spec and plan digests, projects the delivery subject when the tree allows (it skips a dirty tree or an oversized manifest), and derives a verdict, all under the feature's `.shadow-acceptance/` folder. The current engine keeps all authority, and every result stays non-authoritative shadow evidence until a separately accepted governance record enables a cutover. Maintainers can verify parity, run import and reversal checks, and confirm cross-adapter conformance without reading the delivery spec.
+
+## [core][2.28.0] — 2026-10-05
+
+### Highlights
+
+- Core now has a `repository-grounding` skill that answers "what already governs these paths?" from the repository alone, and can add evidence from a code-intelligence tool your agent already has. Provider evidence is labelled, its limits are kept, a claim that conflicts with source never decides the answer, and with no tool installed the answer is the same.
+- A path or `file:` URI a provider returns is read only if the file sits inside the repository or a folder that you or the calling workflow approved. Symlinks, hard links, non-regular and oversized files are refused with a stated reason, and the locator text never reaches a command line raw, so shell metacharacters in it cannot run.
+
+### Added
+
+- `repository-grounding` ships the path-seeded explorer, the `read-locator.py` locator reader with a co-located copy of the confinement helper, and 22 behavior evaluations covering provider fit, absence, failure, conflict, unsafe locators, disclosure, and provider output that tries to act as instructions.
+
+### Changed
+
+- `new-spec` step 3 now delegates its grounding inquiry to `repository-grounding` by skill name. The explorer moved from `new-spec/scripts/explore-grounding.py` to `repository-grounding/scripts/explore-grounding.py`; automation that called the old path should call the new one.
+
+## [converters][0.9.7] — 2026-10-05
+
+No `Highlights`: this release changes maintainer verification and dependency
+reproducibility, not a skill outcome or a user task. The omission is a recorded
+decision rather than an oversight.
+
+### Changed
+
+- Converters now carries committed lockfiles for its canonical JavaScript projects, so maintainer verification can reproduce dependencies without running dependency scripts.
+
+## [core][2.27.14] — 2026-10-03
+
+### Highlights
+
+- Installed Core can now rename an intent as a recoverable retire-and-issue operation. The old path becomes a tombstone, the successor receives a fresh target-token ordinal, citations and `workspace.toml` move with it, and an interrupted run can be driven forward or back.
+
+### Added
+
+- `work-intake` now ships `intent_rename.py` with installed `rename`, `recover`, and `resolve` commands for operators.
+- Product Engineering now includes a how-to for renaming an intent and recovering an interrupted rename.
+
+### Changed
+
+- `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
+- The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
+
+## [frontend-engineering][0.4.5] — 2026-10-04
+
+### Changed
+
+- The evidence manifest's `visual authority` field now lists every upstream gap the build held, with its axes, its operation kind and its route class — never the recorded owner or operation itself, which goes to the operator live — so a held axis is visible rather than read as an absence.
+- The `visual-authority-silent-domain` eval asks for the bound custom-property block and the gap record, so its fixed checks grade what the run produced.
+
+## [frontend-engineering][0.4.4] — 2026-10-04
+
+### Highlights
+
+- A token taxonomy that says nothing about a visual domain the surface needs — no value, and no `unresolved` record — is now an upstream gap. The build holds that axis and routes it to whoever produced the taxonomy, instead of inventing a type scale or stroke widths that read as resolved.
+
+### Added
+
+- A `visual-authority-silent-domain` eval case grades the hold, and the two golden-path cases now state typography, shape and layout values so they leave nothing silent.
+
+## [frontend-engineering][0.4.3] — 2026-10-04
+
+### Changed
+
+- The token-namespace rule now resolves in order: the naming a taxonomy's Binding section records, else the incumbent's own names, else `--ds-*` for a system this pack seeds. The manifest's `visual authority` field, not the prefix, records where values came from, and `frontend-reviewer` flags a parallel token system against that order rather than any `--ds-*` set.
+- The visual-authority eval cases are calibrated against live runs: the two gap cases and the standalone case start from what the handoff read extracted or name the product, every case asks for the `visual authority` line in the reply, hex values are lower-case, and fallback detection keys on the fallback's own values rather than the shared `--ds-*` names.
+
+## [frontend-engineering][0.4.2] — 2026-10-03
+
+### Added
+
+- Three golden-path eval cases for the visual handoff: a confirmed target with the taxonomy's concrete values, an unconfirmed target, and a design-handoff refusal that must stay a refusal. Each grades both sides deterministically — the values it must carry and the fallback declarations it must not.
+
+### Changed
+
+- The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
+
+## [agentbundle][0.51.0] — 2026-10-03
+
+### Highlights
+
+- **Protected catalogue installation without manual token injection.** AgentBundle
+  now picks credentials automatically from a priority-ordered set: bearer token,
+  JFrog CLI 2.105.0+ profile, exact-machine `.netrc` record, and anonymous. Public
+  catalogues need no setup. A broken configured provider stops resolution; no
+  fallback across types. Set `AGENTBUNDLE_CA_BUNDLE` for the direct path; use
+  `SSL_CERT_FILE` or `SSL_CERT_DIR` to reach `jf api` on Linux.
+
+### Added
+
+- HTTPS catalogue acquisition resolves credentials automatically from four
+  providers in priority order: bearer token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`),
+  JFrog CLI profile (2.105.0+), exact-machine `.netrc`, and anonymous. Each
+  provider binds credentials to one normalized origin and does not forward them
+  to any other host.
+- JFrog CLI delegated fetches: 10 s discovery, 5 s version probe, 30 s per fetch,
+  75 s aggregate subprocess budget, endpoint confinement, list-form arguments.
+- Exact-machine `.netrc`: host or host:port keys; `default` is never matched;
+  permissions checked before reading.
+
+### Changed
+
+- A broken configured provider terminates resolution immediately. It never falls
+  back to a lower provider.
+- Requires `credbroker>=0.7,<0.8`.
+
+## [credbroker][0.7.0] — 2026-10-03
+
+### Added
+
+- `resolve_http_access(target_url, *, env)` — resolves target-bound HTTP access
+  from a priority-ordered provider set (bearer, JFrog CLI, exact-machine `.netrc`,
+  anonymous). Returns one of `BearerHttpAccess`, `JfrogCliHttpAccess`,
+  `NetrcHttpAccess`, or `AnonymousHttpAccess`. Raises `HttpAccessError` with a
+  stable non-secret `provider` and `code` for broken configured providers.
+- `HttpAccessError`, `BearerHttpAccess`, `JfrogCliHttpAccess`, `NetrcHttpAccess`,
+  `AnonymousHttpAccess` — five new public names added to `__all__`.
+
+## [credential-brokers][0.3.4] — 2026-10-03
+
+### Changed
+
+- The vendored `credbroker` user-library floor in `.apm/user-libs/credbroker/`
+  is updated to match the `credbroker` 0.7.0 source. A co-located pip-installed
+  0.7 takes precedence via normal `sys.path` ordering; the floor remains the
+  zero-pip fallback for user-scope skill resolution.
 
 ## [core][2.27.13] — 2026-10-02
 
@@ -201,6 +326,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
+
+## [code-intelligence][0.1.3] — 2026-10-03
+
+### Highlights
+
+- The agent can now ask for the route from one symbol to another using `wicked-estate path`. A result of `found: false` with `depth_bounded: true` means the route was not proven absent — the search hit its depth limit — and you can raise `--max-depth` (up to 16) to look deeper.
+- A blast radius now tells you when the depth limit cut it short. `depth_horizon_reached: true` in the JSON output means the result is a floor, not the full set; `--depth N` (maximum 24) lets you search deeper, and `--depth 1` isolates the direct dependents from the transitive ones.
+
+### Changed
+
+- Requires Wicked Estate 0.18 — floor and pin are both 0.18.0; a binary older than 0.18 causes the preflight to exit 4 with a remediation command.
+- `wicked-estate path` is now documented: it follows dependency edges of every kind, returns the shortest route, and reports whether a `found: false` answer is bounded (`depth_bounded` or `node_bounded` true), names an unknown symbol (`unresolved` set), or is proven absent (neither). The 0-based `line` field in path hop endpoints is noted.
+- `blast-radius --depth N` and its three cut fields (`searched_depth`, `depth_horizon_reached`, `node_cap_reached`) replace the earlier silent-depth-12 guidance.
+- MCP-only additions are documented as schema-derived: the `Path` tool, `Lineage` with `relation: "flows_to"`, `SearchEntity` with `include_values`, `rules.recall` with `projects`, and the cut fields on `TraverseGraph`, `BlastRadius`, and `Lineage`. Tool counts are 30 without an embedding backend, 31 with one.
 
 ## [code-intelligence][0.1.2] — 2026-09-30
 

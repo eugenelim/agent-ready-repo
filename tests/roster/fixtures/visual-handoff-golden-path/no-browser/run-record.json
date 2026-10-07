@@ -1,0 +1,23 @@
+{
+  "fixture": "Hand-authored record of a run in an environment with no browser. Nothing was rendered, so nothing was observed or corrected.",
+  "authority": {
+    "composition": "approved-visual-target",
+    "values": "direction-and-taxonomy",
+    "token_namespace": "--color-*, --space-*"
+  },
+  "events": [
+    {"step": "gate", "name": "Structural HTML validation", "ran": true},
+    {"step": "gate", "name": "Accessibility audit", "ran": false, "reason": "no Chromium was reachable in this environment"},
+    {"step": "gate", "name": "CSS token enforcement", "ran": false, "reason": "stylelint is not configured in this repository"},
+    {"step": "gate", "name": "Visual QA checklist", "ran": true},
+    {"step": "gate", "name": "Rendered-page inspection", "ran": false, "reason": "no Chromium was reachable in this environment", "result_state": "skipped-no-browser"}
+  ],
+  "manifest": {
+    "visual_authority": "composition from approved-visual-target (direction/checkout.md); values from direction-and-taxonomy (tokens/checkout.md); namespace --color-*, --space-*",
+    "unverified_items": [
+      "rendered observation: not run, Chromium unavailable — no visual verification is claimed",
+      "accessibility audit: not run, Chromium unavailable",
+      "rendered-page inspection: skipped-no-browser, Chromium unavailable"
+    ]
+  }
+}

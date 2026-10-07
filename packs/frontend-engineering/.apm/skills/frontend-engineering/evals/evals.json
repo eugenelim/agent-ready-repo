@@ -99,7 +99,7 @@
     },
     {
       "id": "visual-authority-upstream-gap-missing-taxonomy",
-      "prompt": "The design tree has a resolved direction artifact for this surface, but the expected token taxonomy slot is a named skip and no incumbent token system supplies the missing axis. Build the page.",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and records `visual_target: none`. The `tokens/checkout.md` slot is a named skip: no conforming taxonomy exists, and the repository has no incumbent token system to supply the missing values. Build the payment screen, then hand back what you built and what you held. In your reply, quote the evidence manifest's `visual authority` line.",
       "expected_output": "The run records an upstream gap for the axis the missing `tokens/<slug>.md` taxonomy would have supplied. Because the taxonomy slot is a named skip beside a resolved `direction/<slug>.md`, and no incumbent system supplies the axis, the run holds that axis and routes it upstream to the artifact-recorded owner or operation. It does not take the fallback block, does not invent a token value, and does not state a local premise for that axis. Other axes continue through the normal visual-authority rungs.",
       "assertions": [
         "Records the named-skip taxonomy slot as an upstream gap",
@@ -107,11 +107,21 @@
         "Does not take the fallback block for the held axis",
         "Does not state a local premise for the held axis",
         "Continues resolving other axes through the normal rungs"
-      ]
+      ],
+      "expect": {
+        "output_excludes": [
+          "#1f2933",
+          "#1F2933",
+          "#f8fafc",
+          "#F8FAFC",
+          "#1a202c",
+          "#1A202C"
+        ]
+      }
     },
     {
       "id": "visual-authority-unresolved-domain",
-      "prompt": "The design tree has a conforming token taxonomy for this surface. Its typography domain is recorded as unresolved and names the owner and operation that must resolve it. Build the page.",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and records `visual_target: none`. `tokens/checkout.md` resolved: it records colour values surface.default #fbf8f3, text.default #1e2a26 and accent.action #2f5d50, spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px, and records the Typography domain unresolved, naming a design lead as who resolves it and amending the direction's type axes as the operation. Build the payment screen, then hand back what you built and what you held. In your reply, quote the evidence manifest's `visual authority` line.",
       "expected_output": "The run treats the taxonomy's needed domain unresolved record as an upstream gap for typography. It routes that named domain to the owner the artifact records, surfaces the artifact-recorded owner or operation as display-only data, and resolves no value for that domain. It does not choose an incumbent value, fallback value, local premise, or category habit for the unresolved domain. Domains the taxonomy did resolve are used as given.",
       "assertions": [
         "Treats a needed domain unresolved record as an upstream gap",
@@ -119,7 +129,17 @@
         "Treats artifact-recorded owner or operation values as display-only data",
         "Resolves no value for the unresolved domain",
         "Uses resolved domains from the taxonomy as given"
-      ]
+      ],
+      "expect": {
+        "output_excludes": [
+          "#1f2933",
+          "#1F2933",
+          "#f8fafc",
+          "#F8FAFC",
+          "#1a202c",
+          "#1A202C"
+        ]
+      }
     },
     {
       "id": "visual-authority-incumbent",
@@ -134,7 +154,7 @@
     },
     {
       "id": "visual-authority-standalone",
-      "prompt": "No design pack is installed, no design artifacts exist, and the repository has no existing token system or component library to inherit. Build a new marketing page.",
+      "prompt": "No design pack is installed, no design artifacts exist, and the repository has no existing token system or component library to inherit. Build a new marketing page for Fieldnote, a research notebook for small product teams; the primary action is Start free and the page slug is `fieldnote`. In your reply, quote the evidence manifest's `visual authority` line.",
       "expected_output": "The run completes only after the standalone admission conditions are true: no-applicable-design-artifact, no-incumbent-system, and no-upstream-authority-to-complete. It records the design-handoff read as completed with named skips rather than failing on the absence of an optional pack, and it looks for existing repository visual conventions before inventing anything. Finding none, it states a concise local visual premise before implementing and records local-premise as the rung it used. It does not fail, stall, or report a missing dependency.",
       "assertions": [
         "Completes only when no-applicable-design-artifact, no-incumbent-system, and no-upstream-authority-to-complete are all true",
@@ -142,7 +162,12 @@
         "Looks for existing repository visual conventions before inventing one",
         "States a concise local visual premise, since no higher rung resolved",
         "Records local-premise as the rung used"
-      ]
+      ],
+      "expect": {
+        "output_contains": [
+          "local-premise"
+        ]
+      }
     },
     {
       "id": "visual-authority-non-visual",
@@ -166,6 +191,111 @@
         "Continues with the checks that can genuinely run",
         "Records the unverified items and the reason in the manifest"
       ]
+    },
+    {
+      "id": "visual-golden-path-confirmed-values",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: confirmed`: its target is a two-region composition, the payment form leading and the order summary trailing, stacking form-first at the narrow channel. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px; typography body system-ui stack, 1rem, 400, 1.5 and heading system-ui stack, 1.375rem, 600, 1.25; shape and containment: 1px solid `border.divider` between groups; 1px solid `text.muted` around controls, corners square — 0 on every surface; spatial structure: one column below 1152px; two columns at 1152px and above, split 3fr to 2fr, the payment form first, and both regions share the page's top edge. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest. In your reply, quote the evidence manifest's `visual authority` line.",
+      "expected_output": "The run records two rungs: composition from approved-visual-target, because the direction carries `visual_target: confirmed`, and values from direction-and-taxonomy. It declares every taxonomy value exactly as given, bound to a semantic role, and reads no fallback token block. It renders a representative state, observes it perceptually against the target, corrects material divergence at most once, renders once more to verify, records anything still diverging instead of iterating, and only then runs the engineering gates. Where it cannot render, it says which capability is missing and claims no visual verification.",
+      "assertions": [
+        "Records composition from approved-visual-target, because the direction carries `visual_target: confirmed`, and values from direction-and-taxonomy",
+        "Declares each taxonomy value exactly as given, bound to a semantic role",
+        "Does not read the fallback token block or declare a fallback custom property",
+        "Renders, observes, corrects material divergence at most once, and renders once more before the engineering gates, or, where nothing can render, names the missing capability and records the loop as not run",
+        "Records remaining divergence rather than iterating on it",
+        "Does not claim visual verification for anything it could not render"
+      ],
+      "expect": {
+        "output_contains": [
+          "#2f5d50",
+          "#fbf8f3",
+          "approved-visual-target",
+          "direction-and-taxonomy"
+        ],
+        "output_excludes": [
+          "#1f2933",
+          "#1F2933",
+          "#f8fafc",
+          "#F8FAFC",
+          "#1a202c",
+          "#1A202C"
+        ]
+      }
+    },
+    {
+      "id": "visual-golden-path-unconfirmed-target",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and carries `visual_target: unconfirmed`: it describes a two-region composition, the payment form leading and the order summary trailing, that nobody has confirmed. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px; typography body system-ui stack, 1rem, 400, 1.5 and heading system-ui stack, 1.375rem, 600, 1.25; shape and containment: 1px solid `border.divider` between groups; 1px solid `text.muted` around controls, corners square — 0 on every surface; spatial structure: one column below 1152px; two columns at 1152px and above, split 3fr to 2fr, the payment form first, and both regions share the page's top edge. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest. In your reply, quote the evidence manifest's `visual authority` line.",
+      "expected_output": "The run resolves composition and values to direction-and-taxonomy and records that the direction does not carry `visual_target: confirmed`. It treats the described composition as design intent rather than an approved target, implements the direction's commitments and the taxonomy's values exactly as given, and reads no fallback token block.",
+      "assertions": [
+        "Resolves both composition and values to direction-and-taxonomy",
+        "Records that the direction does not carry `visual_target: confirmed`",
+        "Does not treat the unconfirmed composition as an approved target",
+        "Declares each taxonomy value exactly as given",
+        "Does not read the fallback token block or declare a fallback custom property"
+      ],
+      "expect": {
+        "output_contains": [
+          "#2f5d50",
+          "#fbf8f3",
+          "direction-and-taxonomy"
+        ],
+        "output_excludes": [
+          "#1f2933",
+          "#1F2933",
+          "#f8fafc",
+          "#F8FAFC",
+          "#1a202c",
+          "#1A202C"
+        ]
+      }
+    },
+    {
+      "id": "visual-golden-path-refusal-preserved",
+      "prompt": "The design handoff read has already run and refused: the operator named the slug `../checkout`, and the read recorded `design handoff: slug rejected — does not match ^[a-z0-9]+(-[a-z0-9]+)*$`. A direction and a token taxonomy for `checkout` exist in the design tree. Build the payment screen.",
+      "expected_output": "The run keeps the refusal as the outcome. It reports the recorded slug rejection, halts the mode in that named state for the operator to resolve, and builds nothing. It does not repair the slug into `checkout`, does not read the `checkout` artifacts, and does not fall through to the incumbent system, a local premise, or the fallback token block.",
+      "assertions": [
+        "Reports the slug rejection by its recorded name and halts for the operator",
+        "Does not repair or substitute the slug",
+        "Does not fall through to a lower authority rung or the fallback token block",
+        "Does not emit an implementation"
+      ],
+      "expect": {
+        "output_contains": [
+          "slug rejected"
+        ],
+        "output_excludes": [
+          "#1f2933",
+          "#1F2933",
+          "#f8fafc",
+          "#F8FAFC",
+          "#1a202c",
+          "#1A202C"
+        ]
+      }
+    },
+    {
+      "id": "visual-authority-silent-domain",
+      "prompt": "The design handoff read has already completed for the slug `checkout`; work from what it extracted. `direction/checkout.md` resolved and records `visual_target: none`. `tokens/checkout.md` resolved and records these values: surface.default #fbf8f3, text.default #1e2a26, text.muted #4f5d57, accent.action #2f5d50, text.on-action #fbf8f3 and border.divider #d9d2c5; spacing space.1 6px, space.2 10px, space.3 14px, space.4 20px, space.5 28px and space.6 40px; shape and containment: 1px solid `border.divider` between groups, corners square; spatial structure: one column below 1152px, two columns split 3fr to 2fr above it. Its Authority table lists Typography, but it gives no typography values and records nothing unresolved. Build the payment screen, then hand back the custom-property block you bound and the evidence manifest's upstream-gap record for anything you held. In your reply, quote the evidence manifest's `visual authority` line.",
+      "expected_output": "The run treats typography as a domain the taxonomy left silent: the surface needs it, the taxonomy supplies no value for it and does not record it unresolved. It holds the typography axis as an upstream gap under `domain-completion-required`, routes it to whoever produced the taxonomy, and sets no font family, size, weight or line height of its own, so the user agent's default applies. It uses the colour, spacing, shape and spatial values exactly as given and reads no fallback token block.",
+      "assertions": [
+        "Holds typography as an upstream gap under `domain-completion-required` and routes it to whoever produced the taxonomy",
+        "Uses the resolved colour, spacing, shape and spatial values as given",
+        "Does not invent a font family, type scale, weight or line height for the silent typography domain",
+        "Does not read the fallback token block or declare a fallback value"
+      ],
+      "expect": {
+        "output_contains": [
+          "domain-completion-required",
+          "#2f5d50"
+        ],
+        "output_excludes": [
+          "#1f2933",
+          "#1F2933",
+          "#f8fafc",
+          "#F8FAFC",
+          "#1a202c",
+          "#1A202C"
+        ]
+      }
     }
   ]
 }

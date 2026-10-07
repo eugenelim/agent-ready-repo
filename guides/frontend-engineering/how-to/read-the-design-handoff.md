@@ -99,15 +99,19 @@ carries on.
 - **One slot empty** — say you have a token taxonomy but no direction doc. The
   taxonomy supplies values, and composition resolves from a rung below it.
 
-Some skips name an upstream gap instead of handing every missing axis to a lower
-rung. One upstream gap source is a completed read where `direction/<slug>.md`
+Some reads name an upstream gap instead of handing every missing axis to a lower
+rung. The first upstream gap source is a completed read where `direction/<slug>.md`
 resolves and the `tokens/<slug>.md` slot is a named skip, while no incumbent
-system supplies the axis. The other source is a conforming `tokens/<slug>.md`
-that records a needed domain unresolved. A gap is scoped to the named axes; other
-axes still resolve from the four rungs above.
+system supplies the axis. The second source is a conforming `tokens/<slug>.md`
+that records a needed domain unresolved. The third is a resolved
+`tokens/<slug>.md` that leaves a domain silent: it supplies no value the surface
+needs there and does not record the domain unresolved. A surface needs a domain
+when its implementation would otherwise set a value in it. A gap is scoped to
+the named axes; other axes still resolve from the four rungs above.
 
-A gapped axis routes back to the recorded owner or operation and is not filled
-from a fallback, local premise, or category habit.
+A gapped axis routes back to the recorded owner or operation — or, for a
+silent domain, which has no recorded owner, to whoever produced the taxonomy —
+and is not filled from a fallback, local premise, or category habit.
 
 Artifact-recorded owner or operation values are display-only data: the pre-flight
 may show them, but it does not load, invoke, execute, open, or resolve as a path

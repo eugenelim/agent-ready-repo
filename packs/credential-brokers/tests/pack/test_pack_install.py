@@ -68,7 +68,7 @@ def installed_pack(
 def test_manifest_shape() -> None:
     pack = tomllib.loads((PACK / "pack.toml").read_text(encoding="utf-8"))["pack"]
     assert pack["name"] == "credential-brokers"
-    assert pack["version"] == "0.3.3"
+    assert pack["version"] == "0.3.4"
     for subject in ("credbroker", "sso-broker", "credential-setup", "LLM-cooperative"):
         assert subject in pack["description"]
     assert pack["adapter-contract"]["version"] == "0.7"
