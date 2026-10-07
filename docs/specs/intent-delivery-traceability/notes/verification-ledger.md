@@ -181,3 +181,17 @@ longer matches the resolver.
 - **Unresolved obligations:** none in the accepted intent. Merge needs the owner's review.
 - **Completion-event candidate:** merge of the pull request for `eugenelim/feat-0003`.
 - **Authority facts:** this run wrote only repository files on this branch. It holds no closeout, disposition, or deletion authority; `close-work` owns those.
+
+## 2026-10-07 — `main` released Core 2.29.0 from another change
+
+After this delivery passed review, `main` gained six commits. One of them,
+#1513 (`repository-exploration`), released Core `2.29.0`, the version owner
+decision 6 assigned here. This falsifies T13's version. The branch was rebased
+onto `origin/main` (`f6ecf90e2`), which also moved the Makefile the plan-digest
+pins read.
+
+## 2026-10-07 — Owner decision 8 (eugenelim)
+
+8. **Release version.** Rebase onto `origin/main` and take Core `2.30.0`
+   everywhere this delivery states its version, superseding decision 6's
+   `2.29.0`.
