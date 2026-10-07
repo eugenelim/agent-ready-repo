@@ -174,6 +174,11 @@ Three rules are load-bearing:
   absence is not evidence the graph is current — run a bare `wicked-estate
   stats` when freshness matters, and say which revision you answered from.
 
+Wherever you report a result, quote the command that produced it exactly as
+run, flags and all. `--depth 1` and the default depth answer different
+questions, so a bare verb name leaves the reader unable to tell which one you
+asked.
+
 Full handling — the confidence and provenance model, the annotation evidence
 envelope, freshness, and how to phrase a bounded claim — is in
 [`references/evidence.md`](references/evidence.md).
