@@ -187,7 +187,7 @@ longer matches the resolver.
 After this delivery passed review, `main` gained six commits. One of them,
 #1513 (`repository-exploration`), released Core `2.29.0`, the version owner
 decision 6 assigned here. This falsifies T13's version. The branch was rebased
-onto `origin/main` (`1b8dbe3f3`), which also moved the Makefile the plan-digest
+onto `origin/main` (`9d39eae8b`), which also moved the Makefile the plan-digest
 pins read.
 
 ## 2026-10-07 — Owner decision 8 (eugenelim)
@@ -201,6 +201,6 @@ pins read.
 This record replaces the 2026-10-07 completion handoff above, which named Core
 `2.29.0` before owner decision 8. Every field not listed here is unchanged.
 
-- **Delivery:** work-loop run `a0cadd63-4cf6-47d4-8184-141c3ed2e371`, which replaced run `92bc8766-7fb1-4d67-b06a-3f5ffbf0e702` after an engine reset; branch `eugenelim/feat-0003`, rebased onto `origin/main` at `1b8dbe3f3`.
+- **Delivery:** work-loop run `a0cadd63-4cf6-47d4-8184-141c3ed2e371`, which replaced run `92bc8766-7fb1-4d67-b06a-3f5ffbf0e702` after an engine reset; branch `eugenelim/feat-0003`, rebased onto `origin/main` at `9d39eae8b`.
 - **Implemented scope:** tasks T1–T15; this delivery releases Core `2.30.0`.
 - **Durable outputs:** the changelog entry `[core][2.30.0]`; `main`'s `[core][2.29.0]` entry belongs to `repository-exploration`.
