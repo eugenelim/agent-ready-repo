@@ -195,3 +195,12 @@ pins read.
 8. **Release version.** Rebase onto `origin/main` and take Core `2.30.0`
    everywhere this delivery states its version, superseding decision 6's
    `2.29.0`.
+
+## 2026-10-07 — Completion evidence handoff, superseding the earlier record
+
+This record replaces the 2026-10-07 completion handoff above, which named Core
+`2.29.0` before owner decision 8. Every field not listed here is unchanged.
+
+- **Delivery:** work-loop run `a0cadd63-4cf6-47d4-8184-141c3ed2e371`, which replaced run `92bc8766-7fb1-4d67-b06a-3f5ffbf0e702` after an engine reset; branch `eugenelim/feat-0003`, rebased onto `origin/main` at `1b8dbe3f3`.
+- **Implemented scope:** tasks T1–T15; this delivery releases Core `2.30.0`.
+- **Durable outputs:** the changelog entry `[core][2.30.0]`; `main`'s `[core][2.29.0]` entry belongs to `repository-exploration`.

@@ -530,4 +530,4 @@ delivery-brief create/continue, the normalized-intake handoff, semantic
 resolver, `work-loop` evidence handoff, `close-work` source, cooling source and
 tests, lifecycle record documentation, workspace projection, pack metadata,
 evaluation, and documentation surfaces. The feature-delivery resolver and its
-two consumers were verified against Core `2.29.0`.
+two consumers were verified against Core `2.30.0`.

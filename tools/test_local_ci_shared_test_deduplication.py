@@ -1001,21 +1001,19 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # returns an empty error list. The baseline is bare `origin/main`, which this
 # branch is merged up to and whose Makefile differs from this worktree's by the
 # single line above and nothing else.
-# Bumped 2026-10-06 for Core's new cross-consumer integration suite.
+# Bumped 2026-10-07 for Core's new cross-consumer integration suite.
 # (1) Sole cause: `git diff origin/main -- Makefile` is one added
 # `run-test-suite` line, `$(PYTHON) -m pytest packs/core/tests/integration/ -q`,
-# and none removed or reordered. It is a new process, so it takes plan index 17
-# in each plan (standalone 74 -> 75, composed 73 -> 74) and shifts every later
-# entry; deleting exactly that line from the new plans reproduces the
-# superseded plans element for element.
-# (2) Prior pins were current: `_effective_composition_errors` over
-# `origin/main:Makefile` with `b8b11581…` and `ccb88947…` in place returns an
-# empty error list.
+# after the `packs/core/tests/pack/` line, and none removed or reordered. It is
+# a new process, so each plan gains one entry (standalone 76 -> 77, composed
+# 75 -> 76) and every later entry shifts by one.
+# (2) The superseded pins `26c57c19…` and `198ae517…` are `origin/main`'s
+# (`1b8dbe3f3`) current values, set there for the `navigate-decisions` suite.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "26c57c1925a0d4b2d4949a166e24a4ed6fada6dbe42864e1d18a3cab32163be8"
+    "b666effcb2861baf09dff99c477b7d31539d5ec793d86f6e8ae3d0f069193967"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "198ae5173a5ef58b2d7d2fdd273fb2f4cbdb7a06e192f79fdd113608ff7a75c1"
+    "45dfc4643613f69c1bf99b666afe85f1205dd174354aff8068b741c8996e156d"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
