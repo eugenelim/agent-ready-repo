@@ -2991,3 +2991,49 @@ def test_every_edge_of_a_dense_chain_is_marked(
     for near in page.evaluate(_NEAREST_END_JS, "#view-graph .lineage-wrap svg"):
         if not near["text"].isdigit():
             assert near["nearest"].split("|")[2] == near["own"].split("|")[2], (selected, near)
+
+
+def test_a_selected_cycle_member_keeps_a_readable_cycle_tag(
+    browser: object, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """The node-level `cycle` tag reaches 4.5:1 against its node's fill on the
+    selected node and on an unselected one."""
+    export = _publish_with(
+        tmp_path_factory,
+        "cycle_tag",
+        [
+            (
+                1,
+                "One",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0002\n"
+                "- **Superseded by:** ADR-0002\n",
+            ),
+            (
+                2,
+                "Two",
+                "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"
+                "- **Superseded by:** ADR-0001\n",
+            ),
+        ],
+        [],
+    )
+    page = _satellite_page(browser, export, "ADR-0001")
+    pairs = page.evaluate(
+        """() => [...document.querySelectorAll('#view-graph [data-node-id]')].map(g => {
+          const tag = [...g.querySelectorAll('text')].find(t => t.textContent === 'cycle');
+          return {id: g.dataset.nodeId, fg: tag.getAttribute('fill'),
+                  bg: g.querySelector('rect').getAttribute('fill')}; })"""
+    )
+
+    def lum(hex_colour: str) -> float:
+        rgb = [int(hex_colour[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    assert {p["id"] for p in pairs} == {"ADR-0001", "ADR-0002"}, pairs
+    for pair in pairs:
+        # An unfilled (superseded) node shows the light graph panel behind it.
+        bg = pair["bg"] if pair["bg"].startswith("#") else "#f8fafc"
+        a, b = lum(pair["fg"]), lum(bg)
+        ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
+        assert ratio >= 4.5, (pair, round(ratio, 2))

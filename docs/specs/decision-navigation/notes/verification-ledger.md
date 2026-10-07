@@ -472,12 +472,24 @@ The twelfth post-gates review (2026-10-06, head `0bb4a0fc8`, merged with `main`)
 
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
-| R12-EXP-1 | Nit | The node `cycle` tag on a selected node was about 1.3:1 on its blue fill. | closed — on a selected node the tag is `#fde68a` (5.4:1 on `#1d4ed8`); unselected nodes keep `#b45309`. |
+| R12-EXP-1 | Nit | The node `cycle` tag on a selected node was about 1.3:1 on its blue fill. | closed — on a selected node the tag is `#fde68a` (5.4:1 on `#1d4ed8`); unselected nodes keep `#b45309`. Since round 13, `test_a_selected_cycle_member_keeps_a_readable_cycle_tag` asserts at least 4.5:1 on selected and unselected nodes (fails on the old colour at 1.33:1). |
 | R12-ADV-1 | Nit | The round-11 refuted count was wrong. | closed — 3. |
 | R12-ADV-2 | Nit | The `edgePoints` comment said every whole label keeps to the arrowhead half. | closed — it names scope labels for the half and numbers and `cycle` labels for the whole edge. |
 | R12-ADV-3 | Nit | The merged-head CI result was unrecorded. | closed — run 37570426791 on `0bb4a0fc8`, in the round-11 run line and the PR body. |
 
-Full runs on the round-12 fixes at `7896e53aa` (2026-10-07, desktop Chrome 154.0.8037.93): browser checks 111 passed in 393 s; unit suites 244 passed.
+Full runs on the round-12 fixes (2026-10-06, desktop Chrome 154.0.8037.93), on the working tree then committed unchanged as `7896e53aa`: browser checks 111 passed in 393 s; unit suites 244 passed. CI run 37573201726 (`test-corpus`, `ubuntu-latest`, Python 3.11, `d6d5f1dfc`) passed all four shards.
+
+## Round-13 review corrections
+
+The thirteenth post-gates review (2026-10-06, head `d6d5f1dfc`) found the security, frontend and experience lenses clean and raised four Nits in the other two, all about run-line provenance and an untested colour.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| R13-QE-1 | Nit | No check covered the selected node's `cycle` tag colour. | closed — see R12-EXP-1. |
+| R13-QE-2 / R13-ADV-1 | Nit | The round-12 run line named a commit made after the runs and a UTC date. | closed — it names the working tree committed unchanged as `7896e53aa` and the local date. Every full-run line from round 8 on reports runs on the working tree that was then committed unchanged as the named commit. |
+| R13-ADV-2 | Nit | CI for the round-12 head was unrecorded. | closed — run 37573201726 on `d6d5f1dfc`, in the round-12 run line and the PR body. |
+
+Full runs on the round-13 fixes (2026-10-07, desktop Chrome 154.0.8037.93), on the working tree committed unchanged with this ledger change: browser checks 112 passed in 326 s; unit suites 244 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
