@@ -40,23 +40,24 @@ A read-only probe on 2026-10-02 measured 1,668 KiB allocated under `docs/adr/` a
 
 - Query/HTML differential proof over the same corpus for membership, exact status, checked lineage, unresolved counts, provenance, and policy-boundary copy (**AC-0008, AC-0021**).
 - Built and installed pack proof for replacement activation and removal of operative `rfc-status` surfaces (**AC-0017–AC-0019**).
+- Scripted Chrome check that record-ID search finds a record by full, lowercase, and bare-ordinal ID, and that the search box names what it searches (**AC-0027**).
 
 **Manual verification:**
 
 - Offline Chrome review for keyboard access, visible focus, high-zoom reflow, reduced-motion handling, required states, source labelling, support references, and no double-click dependency (**AC-0011–AC-0016, AC-0021, AC-0025, AC-0026**).
 - The benchmark schedule named only in **AC-0015**, with thresholds frozen before measurement.
-- The frozen comparative evidence required by **AC-0020**.
+- The owner-run session and acceptance required by **AC-0020**.
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| User procedure and product documentation | T5, T7 | Guide examples, link checks, installed documentation | `close-work` confirms current public navigation and no stale operative name |
+| User procedure and product documentation | T5, T7, T9 | Guide examples, link checks, installed documentation | `close-work` confirms current public navigation and no stale operative name |
 | Pack promise and journey | T5 | Reviewed README and journey against shipped behavior | Durable surfaces name the same boundaries and workflow |
 | Architecture | T5, T7 | Design review against RFC-0105, CAP-0002, `docs/architecture/decision-graph.md`, and implementation controls | Read-only, on-demand, multi-form, checked-lineage, reference-policy, and safe-publication truth remains current |
 | Pack registration and generated projections | T4, T7 | Activation evaluation, build, and install results | Installed pack exposes `navigate-decisions` and no operative `rfc-status` |
-| Executable proof | T1-T4, T7 | Targeted tests and evaluation fixtures | Every criterion has named passing evidence |
-| Verification ledger | T3, T6, T7 | Chrome measurements, interaction review, destination checks, and task-panel results | Ledger records thresholds, exact version, results, and final representation rule |
+| Executable proof | T1-T4, T7, T9 | Targeted tests and evaluation fixtures | Every criterion has named passing evidence |
+| Verification ledger | T3, T6, T7, T9 | Chrome measurements, interaction review, destination checks, the owner session, and the RFC-0099 cleanup record | Ledger records thresholds, exact version, results, and final representation rule |
 | Release history | T5 | Owning changelog or release note | Shipped version and compatibility change are discoverable |
 
 ## Design (LLD)
@@ -294,20 +295,37 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 
 **Done when:** All 20 round-4 findings are closed by their modes and marked closed in the ledger, the AC-0016 evidence and the AC-0022 case-variant run are recorded on a commit containing T8's final code, and the T3 and T5 gates still pass.
 
-### T6 — Measured outcome evidence and completion gates pass
+### T9 — Record-ID search and the owner session's source cleanup
 
-**Depends on:** T3-T5, T7, T8
+**Depends on:** T8
 
-**Touches:** `docs/specs/decision-navigation/notes/verification-ledger.md`; a correction outside the T1–T5 Touches returns through controlled plan amendment
+**Touches:** `packs/governance-extras/.apm/skills/navigate-decisions/scripts/explorer.py`, `packs/governance-extras/.apm/skills/navigate-decisions/scripts/explorer_assets/explorer.js`, `packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py`, `guides/governance-extras/how-to/navigate-decisions.md`, `docs/rfc/0099-cut-before-adding-and-artifact-shaping.md`, `docs/specs/decision-navigation/notes/verification-ledger.md`, owned generated projections
 
-**Verification mode:** Goal-based and manual comparative evidence — `docs/specs/decision-navigation/notes/verification-ledger.md`.
+**Verification mode:** Scripted desktop Chrome check for the search; record-index check for the RFC edit — `browser_checks.py`, `index-records.py --check docs/rfc`, and the verification ledger.
 
 **Tests:**
 
-- Freeze the comparison tasks and measurement rules before sessions, then run the session mix and score the outcome exactly as **AC-0020** defines.
+- A scripted Chrome check types `ADR-0098`, `adr-0098`, `98`, and `0098` in turn on an export holding ADR-0098 and RFC-0098, and each leaves ADR-0098 in the results; `0098` and `98` also leave RFC-0098. A title-only term still matches as before, and a term that matches no ID, title, or status shows the no-result state (**AC-0027**).
+- The same check reads the search box's visible label or hint and its accessible name, and both name IDs, titles, and statuses (**AC-0027**).
+- Owner-directed source cleanup, outside any criterion: RFC-0099's Status reads exactly `Accepted`. Its `Related` list gains one last item, a link to ADR-0111 followed by "supersedes in part § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands", with that quoted text kept word for word; the list's closing "and" moves before the new item. `index-records.py --check docs/rfc` passes.
+- The ledger records the RFC-0099 Status line and the new `Related` item as read back from the file after the edit, and notes beside the frozen AC-0020 panel, without editing it, that the task-2 key applies only to commits before this cleanup.
+
+**Done when:** The search check passes, the RFC index check passes, and the ledger records the search result, the read-back RFC-0099 Status and `Related` item, and the task-2 key note.
+
+### T6 — Owner-accepted outcome evidence and completion gates pass
+
+**Depends on:** T3-T5, T7, T8, T9
+
+**Touches:** `docs/specs/decision-navigation/notes/verification-ledger.md`; a correction outside the T1–T5 Touches returns through controlled plan amendment
+
+**Verification mode:** Goal-based owner-session evidence — `docs/specs/decision-navigation/notes/verification-ledger.md`.
+
+**Tests:**
+
+- Record the owner-run session against the frozen panel, each usability finding with its disposition, and the owner's acceptance, exactly as **AC-0020** defines.
 - Confirm the ledger, targeted tests, activation evaluations, documentation checks, build/install proof, repository lint, and contract-item alignment cover every open criterion named by the preceding tasks.
 
-**Done when:** The comparative thresholds in **AC-0020** pass, every accepted criterion has named evidence, and every required gate passes.
+**Done when:** The ledger records the owner's accepted session for **AC-0020**, every accepted criterion has named evidence, and every required gate passes.
 
 ## Rollout
 
@@ -343,3 +361,6 @@ def test_record_returns_body_and_checked_partial_lineage() -> None:
 - 2026-10-05 — Controlled amendment during review round 4 (`owner-session-2026-10-05-grouping-and-header-extent-amendment`): the spec states one extent for every header field's value and reads supersession entries from it, and refuses a selector whose only key is a caller grouping (owner decision the same day). T8 is added for the round-4 corrections; T6 now depends on T8.
 - 2026-10-05 — Amended spec approved (scope decision) by the repository owner.
 - 2026-10-05 — Amended plan approved (build-strategy decision) by the repository owner.
+- 2026-10-07 — Controlled amendment after the owner's session: AC-0020 now takes the owner's recorded acceptance of an owner-run session on the frozen panel in place of the comparative effort thresholds; AC-0027 adds record-ID search; T9 adds that search and trims RFC-0099's Status to `Accepted`, with its partial-supersession note moved to `Related`; T6 depends on T9. Owner authorized in-session.
+- 2026-10-07 — Amended spec approved (scope decision) by the repository owner.
+- 2026-10-07 — Amended plan approved (build-strategy decision) by the repository owner.
