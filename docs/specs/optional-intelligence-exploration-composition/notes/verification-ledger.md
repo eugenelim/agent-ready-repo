@@ -426,8 +426,15 @@ No capture: the run's lessons concern eval-fixture authoring (a directive case n
 
 - Five sustained Nits (README glosses and plain wording, a merged SKILL.md
   clause, the T2 fixture inventory) were applied by the controller directly,
-  not by an implementer. The cohort's decline vocabulary has no
-  controller-applied code, so the dispatch record uses `human-directed`.
+  not by an implementer, and no human directed that.
+- `state.json` holds one wave-3 decline for T4 with reason `human-directed`,
+  written by the controller for this repair. That code means a human told the
+  controller to skip implementer dispatch, so the record does not describe
+  what happened. The engine state is never hand-edited, so the record stands
+  as written.
+- Open gap: `loop-cohort dispatch-receipt --decline` accepts only
+  `no-implementer-installed` and `human-directed`, so a review repair the
+  controller applies itself has no accurate code.
 - Gates on the touched surfaces: README pin and exploration suites 55 passed;
   `make lint-ruff lint-mypy` pass; governance-citation grep 0 hits;
   `make build-self` exit 0.
