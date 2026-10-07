@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one source resolver whose byte-identical, parity-pinned copies each consuming skill ships and runs, instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -48,15 +48,15 @@ The resolver is a pure TDD surface. Consumer wiring stays TDD but uses an implem
 
 ### Design decisions
 
-Owned by: T1, T2, T3, T5, T9
+Owned by: T1, T2, T3, T5, T9, T14
 
 The canonical source is `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` with its private `_file_safety.py`. Each consuming skill ships byte-identical copies of both in its own `scripts/` folder (`close-work` and `work-loop`), pinned to the source by parity tests, and runs its own copy. The approved assumption that a repo-scope adapter-root primitive reaches `<repository>/.agentbundle/bin/` proved false: `agentbundle install` delivers adapter-root binaries only at user scope, and Core installs only at repo scope (verification ledger, 2026-10-06). The source's own `.agentbundle/bin/` projection, produced by the self-host build, remains a maintainer diagnostic tool in this repository, not an adopter route; adopter-facing records name only the skill-local copies. Skill-local copies travel with every install route, while a sibling-skill import and the specialised `shared-libs` rail would not satisfy the skill portability rules.
 
-The resolver's in-process `resolve_repository(root)` result and CLI JSON share one dictionary shape: `schema_version`, `complete`, `relations`, `classifications`, `provenance`, and `diagnostics`. The amendment adds a seventh top-level key, `artifacts`, mapping each identifier any relation or provenance record names to its repository-relative artifact path, so a consumer reads exactly the artifact the resolver matched. Relation records keep their delivered shape — canonical endpoint identifiers, relation type, route, and a field-basis map — so the delivered AC-0001 equality holds unchanged. A provenance record whose target resolves to an admitted intent also carries that intent's identifier. Only an artifact whose `Slug:` matches the slug grammar becomes an identifier. Lists are sorted before strict serialization so an identical tree yields identical bytes.
+The resolver's in-process `resolve_repository(root)` result and CLI JSON share one dictionary shape: `schema_version`, `complete`, `relations`, `classifications`, `provenance`, and `diagnostics`. The amendment adds a seventh top-level key, `artifacts`, mapping each identifier any relation, provenance record, or diagnostic names to its repository-relative artifact path, so a consumer reads exactly the artifact the resolver matched. Relation records keep their delivered shape — canonical endpoint identifiers, relation type, route, and a field-basis map — so the delivered AC-0001 equality holds unchanged. A provenance record whose target resolves to an admitted intent also carries that intent's identifier. For each brief that an ambiguous spec `Brief:` names, the resolver adds one `Parent intent` provenance record per distinct valid `Parent intent:` value naming an admitted feature intent, `{subject: brief:<slug>, field: "Parent intent", intent: intent:<slug>}`, so a consumer maps a named brief to every feature it names from the snapshot alone. Only an artifact whose `Slug:` matches the slug grammar becomes an identifier. Lists are sorted before strict serialization so an identical tree yields identical bytes.
 
 ### Interfaces & contracts
 
-Owned by: T1, T2, T3, T5, T6, T7, T9, T10, T11
+Owned by: T1, T2, T3, T5, T6, T7, T9, T10, T11, T14
 
 Each consumer invokes the resolver copy in its own skill `scripts/` folder, located from its own resolved file path and never from the repository root, with the current Python interpreter, the repository root, JSON output, a bounded timeout, and captured standard streams. They validate the schema version, completeness flag, the exact seven top-level keys, output-size ceiling, the record shape of every item (a dict whose consumed fields are strings of the expected grammar), and every `artifacts` path against its identifier's type root and file grammar, before use. Absence, an incomplete result, non-zero exit, timeout, invalid UTF-8, malformed JSON, or an unsupported schema version produces the consumer-authored `delivery-resolver-unavailable` code and no consumer-specific fallback; captured stderr is never forwarded.
 
@@ -64,7 +64,7 @@ This is an internal Core runtime seam, not a portable service or API contract, s
 
 ### Failure, edge cases & resilience
 
-Owned by: T1, T2, T3, T5, T6, T7, T9, T10, T11
+Owned by: T1, T2, T3, T5, T6, T7, T9, T10, T11, T14
 
 The resolver distinguishes absent mappings, direct-route multiplicity, incompatible same-type targets, malformed references, unsafe lexical references, and explicit empty routes according to the spec criteria. The co-located, parity-pinned `_file_safety.py` — the resolver's only confinement source — validates each artifact root, bounds enumeration, and performs every preamble read before relation validation; therefore an unsafe corpus entry produces only the AC-0016 incomplete result, while AC-0010 handles absolute and parent-traversing reference text that never reaches corpus admission. Every admitted file is opened at most once per snapshot, and body text cannot affect the result. The resolver enforces the six AC-0017 budgets before materializing the next entry, file, byte range, or serialized result. A refused corpus or breached budget returns `complete: false` with no partial delivery data. Diagnostic rendering admits only stable codes, limit names, and identifiers or repository-relative paths that match the canonical grammar under a length cap; anything else is omitted. Every absolute or parent-traversing relation reference — any `Brief:` or `Parent intent:` value, or an intent-shaped `Discovery:` value — reports `delivery-reference-unsafe`; a non-intent-shaped `Discovery:` stays contextual provenance and is emitted without its target. Duplicate brief slugs are ambiguous, as duplicate intent slugs are. `_`-prefixed spec directories are not delivery artifacts. A link at any part of an artifact-root path makes the snapshot incomplete. The resolver reads only the default artifact roots, so the lint fails closed with `delivery-resolver-unavailable` when its configured or discovered spec or intent base differs from them. A consumer failure never falls back to its retired scanner because that would restore split answers.
 
@@ -652,9 +652,102 @@ def test_ac0020_path_form_ambiguous_discovery_refuses_named_feature(tmp_path: Pa
 
 **Done when:** VI-2201 through VI-2203 pass; one definition per constant, no unused sets, and no repeated top-level check remain in the touched consumer code; no lint comment says the resolver can return `None`; and no assertion checks for content its fixture never contained.
 
+### T14: Close-work maps named briefs from the snapshot and refuses only AC-0020's sets
+
+**Depends on:** T11, T12
+
+**Mode:** TDD
+
+**Touches:** `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/work-loop/scripts/intent_delivery_relations.py`, `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/tests/skills/close-work/test_closure_brief_parent_links.py` (stub materialization file), `packs/core/tests/skills/close-work/`, `packs/core/tests/skills/work-loop/`, `packs/core/tests/pack/`, `packs/core/tests/integration/test_intent_delivery_traceability.py`
+
+**Tests:**
+
+- **VI-2401.** `test_ac0020_every_parent_of_a_named_brief_is_refused` uses the real resolver: a brief whose file name differs from its slug carries two `Parent intent:` values and is named by an ambiguous spec `Brief:`; both named `spec`-route features are refused with `delivery-relation-ambiguous` and an unrelated `spec`-route feature stays eligible (AC-0020), `stub: true`.
+- **VI-2402.** With real-resolver snapshots, a malformed, an unsafe, and a missing-target spec `Brief:`, and an ambiguous spec `Brief:` whose named briefs resolve to no feature, each refuse a `brief`-route feature with that code while an unrelated `spec`-route feature stays eligible (AC-0020).
+- **VI-2403.** An ambiguous spec `Brief:` refuses a `closed-empty` and a `direct-light` feature named by a named brief's `Parent intent:`, and an ambiguous spec `Discovery:` refuses a named `direct-light` feature; an unrelated feature of the same route stays eligible in each case (AC-0020).
+- **VI-2404.** The resolver emits the `Parent intent` provenance records the design defines, both consumers' validators accept that field, the lint's results are unchanged by them, and `Parent intent:` values of different kinds that share one slug form one parent with no ambiguity diagnostic (AC-0001, AC-0008).
+- **VI-2405.** The lint returns exit 1 with `delivery-resolver-unavailable` and no traceback for a deeply nested resolver payload, and cuts a printed subject or target longer than 200 characters at the cap (AC-0018).
+- Stub validation: syntax and intended red (`beta` is judged `ClosureEligible`) passed on 2026-10-07 from a disposable scratch mirror of `packs/core/`; no repository test file was created.
+
+```python
+# STUB: AC-0020
+from __future__ import annotations
+
+import importlib.util
+import sys
+from pathlib import Path
+
+APM = Path(__file__).resolve().parents[3] / ".apm"
+
+
+def _load(name: str, path: Path):
+    module_spec = importlib.util.spec_from_file_location(name, path)
+    assert module_spec is not None and module_spec.loader is not None
+    module = importlib.util.module_from_spec(module_spec)
+    sys.modules[module_spec.name] = module
+    module_spec.loader.exec_module(module)
+    return module
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_ac0020_every_parent_of_a_named_brief_is_refused(tmp_path: Path) -> None:
+    resolver = _load(
+        "_core_intent_delivery_relations_brief_parents",
+        APM / "adapter-root-bins" / "intent_delivery_relations.py",
+    )
+    closure = _load(
+        "_core_close_work_closure_index_brief_parents",
+        APM / "skills" / "close-work" / "scripts" / "closure_index.py",
+    )
+    for slug in ("alpha", "beta", "gamma"):
+        _write(
+            tmp_path / f"docs/product/intents/{slug}.md",
+            f"# {slug}\n\n- **Slug:** `{slug}`\n- **Level:** feature\n"
+            "- **Status:** Accepted\n- **Decomposed:** 2026-10-07 spec\n",
+        )
+        _write(
+            tmp_path / f"docs/specs/{slug}-delivery/spec.md",
+            f"# Spec\n\n- **Status:** Shipped\n- **Discovery:** `intent:{slug}`\n",
+        )
+    _write(
+        tmp_path / "docs/product/briefs/BRF-0001-shared.md",
+        "# Shared\n\n- **Slug:** `shared`\n- **Status:** Executing\n"
+        "- **Parent intent:** intent:alpha\n- **Parent intent:** intent:beta\n",
+    )
+    _write(
+        tmp_path / "docs/specs/broken/spec.md",
+        "# Spec\n\n- **Status:** Draft\n"
+        "- **Brief:** `brief:shared`\n- **Brief:** `brief:missing`\n",
+    )
+
+    def verdict(slug: str):
+        return closure.check_ancestor_closure(
+            slug,
+            "Accepted",
+            "spec",
+            tmp_path,
+            _freshness_checker=lambda: True,
+            _snapshot_provider=resolver.resolve_repository,
+        )
+
+    for named in ("alpha", "beta"):
+        refused = verdict(named)
+        assert isinstance(refused, closure.ClosureRefuse), (named, refused)
+        assert "delivery-relation-ambiguous" in refused.reason
+    assert isinstance(verdict("gamma"), closure.ClosureEligible)
+```
+
+**Approach:** The resolver reports each named brief's parents in the snapshot. Close-work reads every named-brief mapping from those records, parses no delivery field, and applies a spec `Brief:` diagnostic to a `spec`-route, `closed-empty`, or `direct-light` feature only through that mapping.
+
+**Done when:** VI-2401 through VI-2405 pass; close-work reads no brief file to map a brief to a feature; the three resolver copies are byte-identical; and the integration docstring no longer says `direct-light` closure needs no snapshot.
+
 ### T13: Release 2.29.0 records agree with the shipped behaviour
 
-**Depends on:** T9, T10, T11, T12
+**Depends on:** T9, T10, T11, T12, T14
 
 **Mode:** Goal-based check
 
@@ -692,3 +785,4 @@ The resolver, both consumers, and their skill-local copies ship in one Core rele
 - 2026-10-06: second amendment revised from its pre-EXECUTE review: VI-1402 restated to accept the two parity-pinned copies (VI-1904); T9's stub pins AC-0014; T12 and T13 own the remaining comment, assertion, and file-scope gaps; the source's `.agentbundle/bin/` projection is named a maintainer diagnostic tool.
 - 2026-10-06: second amended spec approved by eugenelim
 - 2026-10-06: second amended plan approved by eugenelim
+- 2026-10-07: third controlled amendment after post-build review round 3. Close-work mapped a named brief to its features by reading the brief's file, against AC-0014 and T11; the owner chose resolver-reported brief parents (owner decision 7). Adds T14 for that decision and the round-3 findings, and T13 now depends on it; T1–T12 are delivered and unchanged. Authority: `notes/verification-ledger.md`.

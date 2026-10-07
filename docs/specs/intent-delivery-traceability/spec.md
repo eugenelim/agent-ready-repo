@@ -1,6 +1,6 @@
 # Spec: Intent delivery traceability
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0077, RFC-0103
