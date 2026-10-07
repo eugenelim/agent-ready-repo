@@ -288,6 +288,12 @@ def build_check(args: argparse.Namespace) -> int:
             ".claude", "skills", "new-adr", "scripts", "lint-adr-shape.py",
             args=("docs/adr",),
         ),
+        # Decision-navigation query and publication contract (spec
+        # docs/specs/decision-navigation). Runs the pack suite directly.
+        _pytest_step(
+            "test-navigate-decisions",
+            "packs", "governance-extras", "tests", "skills", "navigate-decisions",
+        ),
         _script_step(
             "check-rfc-index",
             ".claude", "skills", "new-rfc", "scripts", "index-records.py",

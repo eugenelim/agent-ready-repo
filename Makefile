@@ -632,6 +632,7 @@ $(PYTHON) -m pytest packs/product-documentation/tests/ -q
 $(PYTHON) -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q
 $(PYTHON) -m pytest packs/experience-design/tests/skills/creative-direction/ -q
 $(PYTHON) -m pytest packs/experience-design/tests/skills/design-system/ -q
+$(PYTHON) -m pytest packs/governance-extras/tests/skills/navigate-decisions/ -q
 $(PYTHON) -m pytest \
 	packs/architect/tests/pack/ \
 	packs/architect/tests/skills/architect-assess/ \

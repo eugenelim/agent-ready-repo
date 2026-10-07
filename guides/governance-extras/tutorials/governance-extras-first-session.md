@@ -35,7 +35,7 @@ Open your agent (Claude Code or equivalent) in the repo you'll work in, then run
 agentbundle install --pack governance-extras --scope repo
 ```
 
-The pack lands in your agent's skills directory with three skills: `new-adr`, `new-rfc`, and `rfc-status`.
+The pack lands in your agent's skills directory with three skills: `new-adr`, `new-rfc`, and `navigate-decisions`.
 
 You should see a confirmation that three skills installed. A seeded
 `docs/adr/README.md` is only a fallback candidate; it does not override adopter
@@ -46,10 +46,10 @@ policy or an established custom decision-record destination.
 In your agent, ask:
 
 ```
-run rfc-status
+show me the decision landscape
 ```
 
-You should see the RFC lifecycle states listed — `Draft`, `Open`, `Final Comment Period`, `Accepted`, `Rejected`, `Withdrawn`, `Experimental`, `Superseded` — and a count of any RFCs in `docs/rfc/`. If `docs/rfc/` is empty, the skill says so cleanly.
+You should see a summary of admitted ADRs and RFCs with lifecycle counts. If `docs/adr/` and `docs/rfc/` are empty, the skill reports zero records and says so cleanly.
 
 If this step fails, see [Recovery](#recovery) below.
 
@@ -138,7 +138,7 @@ git commit -m "docs(adr): record decision to use TOML for workspace coordination
 
 ## Recovery
 
-**Verification fails in Step 2.** Confirm `governance-extras` is installed at repo scope (confirm the `rfc-status` skill is present in your agent's skills directory). If the directory is absent, re-run the install. Also confirm `docs/rfc/` exists — the skill expects it; the seed creates it on install, but if the install was partial you may need to re-run.
+**Verification fails in Step 2.** Confirm `governance-extras` is installed at repo scope (confirm the `navigate-decisions` skill is present in your agent's skills directory). If the directory is absent, re-run the install. Also confirm `docs/rfc/` and `docs/adr/` exist — the skills expect them; the seed creates them on install, but if the install was partial you may need to re-run.
 
 **Wrong path shown in Step 6.** Say "cancel" before confirming. The skill stops. Re-run with a corrected prompt if needed.
 
@@ -157,7 +157,7 @@ Then start a new session with a revised prompt.
 
 You installed `governance-extras`, verified it, invoked `new-adr` with the starter prompt, read the decision frame, reviewed the full ADR content and target path, and confirmed the write. You now know where the file lands, what it contains, and how to stop the write at any point before confirming.
 
-The pack ships two more skills — `new-rfc` (for proposals whose direction is still open) and `rfc-status` (for scanning the RFC registry).
+The pack ships two more skills — `new-rfc` (for proposals whose direction is still open) and `navigate-decisions` (for querying and exploring the ADR and RFC corpus).
 
 ## What you have now
 

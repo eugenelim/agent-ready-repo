@@ -868,10 +868,10 @@
     },
     {
       "pack": "governance-extras",
-      "skill": "rfc-status",
+      "skill": "navigate-decisions",
       "families": [
         "orientation-read-model",
-        "state-status-lifecycle"
+        "deterministic-script-backed"
       ],
       "exception": null
     },

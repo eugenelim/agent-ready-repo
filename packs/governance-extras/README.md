@@ -22,13 +22,15 @@ new-rfc [adopt trunk-based development]
 Approve? ›
 ```
 
-On any session return, type `rfc-status` to see where proposals stand.
+On any session return, type `navigate-decisions` or ask "show me the RFC landscape" to see where proposals stand.
 
 ```text
-rfc-status
+navigate-decisions summary
 
-  Active: RFC-0043 (Draft) · RFC-0042 (Open)
-  Resolved: 14  ·  Candidates: 3
+  ADRs: 134  RFCs: 104
+  Accepted: 234  Superseded: 2  Draft: 1
+  Unresolved references: 0
+  RFC candidates: 8 entries  Roadmap intents: 4 entries
 ```
 
 ---
@@ -37,7 +39,7 @@ rfc-status
 
 **RFC (Request for Comments)** — a structured proposal for any cross-cutting change: a new convention, an architectural direction, a team process. An RFC is not a decision; it's the case for a decision. It carries a proposer perspective (why this is worth doing) and a genuine objector perspective (the strongest case against it). You can seed `new-rfc` with context — pass a desk-research brief, an architect design doc, or any prior analysis and the skill folds them in as the factual grounding instead of inventing the case from scratch. Accepted RFCs can be amended with a signed cover note (erratum) — a compact correction that does not reopen the full RFC cycle.
 
-`rfc-status` reads the full `docs/rfc/` landscape: active RFCs by lifecycle state (Draft / Open / Accepted / Rejected / Deferred), resolved counts, and any unproposed findings sitting in the candidate register waiting to become RFCs.
+`navigate-decisions` reads the full `docs/adr/` and `docs/rfc/` corpus: landscape by lifecycle state, checked supersession lineage, contextual references, exact record detail, and guidance context. Results are recorded decisions and candidate context, not the complete policy applicable to an action.
 
 **ADR (Architecture Decision Record)** — the record of a decision already made. It captures the decision, the alternatives that were considered and why they were rejected, and the consequences. ADRs are immutable once merged; when a decision is reversed, the original ADR is superseded, not deleted. `new-adr` resolves the repository's portable `decision-record` destination before choosing an ordinal or index, so adopter policy and established custom/external locations win; `docs/adr/` is only the catalogue fallback. Its existing critique, preview, and confirmation method then runs inside that destination. If an RFC preceded the decision, the ADR links back to it.
 
@@ -49,7 +51,7 @@ When core's `project-knowledge` skill is installed, `new-rfc` may capture reusab
 
 | Say this               | What happens                                            |
 |------------------------|---------------------------------------------------------|
-| `rfc-status`           | Orient — RFC landscape by status and findings count     |
+| `navigate-decisions`   | Orient — ADR and RFC landscape, lifecycle, and lineage  |
 | `new-rfc`              | Propose a cross-cutting change through a structured RFC |
 | `new-adr`              | Record an architectural decision with critique tracks   |
 
@@ -58,22 +60,11 @@ When core's `project-knowledge` skill is installed, `new-rfc` may capture reusab
 ## How a session runs
 
 ```text
-rfc-status
+navigate-decisions summary
 
-  Active:
-
-  | State | RFCs                                       |
-  |-------|--------------------------------------------|
-  | Draft | RFC-0043: Trunk-based development          |
-
-  Resolved:
-
-  | State    | Count |
-  |----------|------:|
-  | Accepted |    12 |
-  | Rejected |     2 |
-
-  RFC candidates: 3 entries
+  ADRs: 134  RFCs: 104
+  Accepted: 234  Superseded: 2  Draft: 1
+  RFC candidates: 8 entries
 ```
 
 ```text

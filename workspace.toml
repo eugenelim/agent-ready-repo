@@ -232,6 +232,9 @@ shipped   = [
 active  = [
 ]
 shipped = [
+  # Shipped 2026-10-07 (FEAT-0033, RFC-0105). AC-0020 closed on the owner's
+  # accepted session after the 2026-10-07 amendment.
+  {path = "docs/specs/decision-navigation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0033-decision-navigation.md"}, summary = "Replace rfc-status with bounded ADR/RFC queries and list, lifecycle, guidance-context, and detail views in one safe offline explorer", needs = []},
   # Shipped 2026-10-06. Delivered across #1506 (waves 1-4) and its closeout.
   # Registered 2026-10-05 from a Type 1 finding — the spec and plan were
   # approved 2026-10-02 with no workspace membership, so nothing could dispatch
@@ -2207,7 +2210,7 @@ open = [
   { path = "docs/specs/flow-distribution-sample-honest/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/delivery-state-and-flow-visibility.md", parent = "docs/product/briefs/delivery-state-and-flow-visibility.md" }, summary = "Cycle time, throughput and percentiles over those observations, reporting the strongest claim the sample supports and naming it", needs = [{type = "local", kind = "spec", path = "docs/specs/delivery-state-observation/spec.md"}] },
   { path = "docs/specs/delivery-forecast-with-uncertainty/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "A delivery forecast carrying its range and its sample, distinguishable from a committed date", needs = [{type = "local", kind = "spec", path = "docs/specs/flow-distribution-sample-honest/spec.md"}] },
   { path = "docs/specs/progress-review-two-answers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "Place the forecast beside the intent's declared outcome, read verbatim from its Outcome section, with both separations intact", needs = [{type = "local", kind = "spec", path = "docs/specs/delivery-forecast-with-uncertainty/spec.md"}] },
-  { path = "docs/product/intents/CAP-0002-decision-graph.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make the accepted decision corpus navigable as a generated read-only graph so a session reads the constraints that apply instead of rediscovering them from record headers; supersession is the checked backbone and Related is weaker adjacency; needs its own de-risk before decomposition", needs = [] },
+  { path = "docs/product/intents/FEAT-0035-decision-context-checks.md", kind = "intent", source = { mode = "repo-origin", ref = "docs/product/intents/CAP-0002-decision-graph.md" }, summary = "Test lightweight decision-context checks that cite bounded reference policy without inferring applicability, enforcing behavior, or burdening ordinary maintenance", needs = [] },
   # Work-item capture and disposition — delivery for CAP-0005 and its four
   # feature intents, all Accepted and therefore de-registered. These specs are
   # where the work stays visible. Each names exactly one parent feature intent

@@ -243,6 +243,15 @@ To be filled in on acceptance:
 
 ## Errata
 
+- **2026-10-03 — Artifact-derived navigation uses `navigate-<population>`.**
+  [RFC-0105](0105-artifact-derived-navigation-and-workspace-retirement.md)
+  replaces the read-only `rfc-status` surface with `navigate-decisions` and
+  establishes `navigate-intents` for the separate intent population. This
+  erratum governs navigation naming and activation only. RFC-0105 and RFC-0064
+  govern the gated retirement of `workspace-status`; other `*-status` skills
+  that report durable workflow state are unchanged. Approved by the Platform
+  Core maintainer.
+
 - **2026-09-10 — the `[design]` and `[research]` section names used throughout
   this RFC contradict the rule it states.** The rule is correct and stands:
   "one `[section]` per pack, one `output_dir` key per section" (Change B,

@@ -656,6 +656,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest contract backward-traceability registry (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest navigate-decisions file_safety mirror (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest repair-round predicate parity (spec contract vs shipped guard)":
         LOCAL("test-after-build-check"),
     "pytest spec-retirement candidate contract (roster-owned)":
@@ -969,6 +971,7 @@ _GATE_MAIN_CHECKS = (
     "pytest experience-design output-addressing contracts (roster-owned)",
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
+    "pytest navigate-decisions file_safety mirror (roster-owned)",
     "pytest repair-round predicate parity (spec contract vs shipped guard)",
     "pytest spec-retirement candidate contract (roster-owned)",
     "pytest spec-retirement candidate CLI (roster-owned)",
@@ -1184,6 +1187,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/governance-extras/tests/skills/navigate-decisions/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
+            "the build gate chain step `test-navigate-decisions`, which this lint does not trace."
         ),
     'packs/core/tests/skills/explain-diff/':
         NO_PR_GATE(
