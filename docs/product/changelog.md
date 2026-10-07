@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- A typed delivery resolver ships as `intent_delivery_relations.py` inside the `close-work` and `work-loop` skill `scripts/` folders, pinned byte-identical to one source. It returns a deterministic JSON snapshot of feature delivery: typed links, per-feature classification, contextual provenance, diagnostics, and an `artifacts` map from each identifier to its file path. It reads only confined artifact headers and refuses an unsafe or oversized corpus as an incomplete result. The source's projection to `.agentbundle/bin/` remains a maintainer diagnostic tool; adopter-facing behavior comes from the skill-local copies.
+- A typed delivery resolver ships as `intent_delivery_relations.py` inside the `close-work` and `work-loop` skill `scripts/` folders, pinned byte-identical to one source. It returns a deterministic JSON snapshot of feature delivery: typed links, per-feature classification, contextual provenance, diagnostics, and an `artifacts` map from each identifier to its file path. It reads only confined artifact headers and refuses an unsafe or oversized corpus as an incomplete result.
 
 ### Changed
 

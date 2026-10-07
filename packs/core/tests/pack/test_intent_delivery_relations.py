@@ -176,7 +176,7 @@ def test_ac0002_spec_route_no_matching_spec(tmp_path: Path) -> None:
         ],
         "provenance": [],
         "diagnostics": [{"code": "delivery-target-missing", "subject": "intent:alpha"}],
-        "artifacts": {},
+        "artifacts": {"intent:alpha": "docs/product/intents/alpha.md"},
     }
     assert snap == expected
 
@@ -232,7 +232,7 @@ def test_ac0003_spec_route_multiple_matching_specs(tmp_path: Path) -> None:
                 "targets": ["spec:alpha-spec-1", "spec:alpha-spec-2"],
             },
         ],
-        "artifacts": {},
+        "artifacts": {"intent:alpha": "docs/product/intents/alpha.md", "spec:alpha-spec-1": "docs/specs/alpha-spec-1/spec.md", "spec:alpha-spec-2": "docs/specs/alpha-spec-2/spec.md"},
     }
     assert snap == expected
 
@@ -560,7 +560,7 @@ def test_ac0008_ambiguous_discovery_two_intents(tmp_path: Path) -> None:
             {"code": "delivery-target-missing", "subject": "intent:alpha"},
             {"code": "delivery-target-missing", "subject": "intent:beta"},
         ],
-        "artifacts": {},
+        "artifacts": {"intent:alpha": "docs/product/intents/alpha.md", "intent:beta": "docs/product/intents/beta.md", "spec:multi": "docs/specs/multi/spec.md"},
     }
     assert snap == expected
 
@@ -669,7 +669,7 @@ def test_ac0008_ambiguous_decomposed(tmp_path: Path) -> None:
                 "targets": ["2026-01-01 spec", "2026-01-02 brief"],
             },
         ],
-        "artifacts": {},
+        "artifacts": {"intent:feat": "docs/product/intents/feat.md"},
     }
     assert snap == expected
 
@@ -687,7 +687,7 @@ def test_ac0009_malformed_discovery(tmp_path: Path) -> None:
         "diagnostics": [
             {"code": "delivery-reference-malformed", "field": "Discovery", "subject": "spec:foo"},
         ],
-        "artifacts": {},
+        "artifacts": {"spec:foo": "docs/specs/foo/spec.md"},
     }
     assert snap == expected
 
@@ -709,7 +709,7 @@ def test_ac0009_malformed_markdown_link_discovery(tmp_path: Path) -> None:
             {"code": "delivery-reference-malformed", "field": "Discovery", "subject": "spec:foo"},
             {"code": "delivery-target-missing", "subject": "intent:alpha"},
         ],
-        "artifacts": {},
+        "artifacts": {"intent:alpha": "docs/product/intents/alpha.md", "spec:foo": "docs/specs/foo/spec.md"},
     }
     assert snap == expected
 
@@ -728,7 +728,7 @@ def test_ac0010_absolute_discovery_unsafe(tmp_path: Path) -> None:
         "diagnostics": [
             {"code": "delivery-reference-unsafe", "field": "Discovery", "subject": "spec:foo"},
         ],
-        "artifacts": {},
+        "artifacts": {"spec:foo": "docs/specs/foo/spec.md"},
     }
     assert snap == expected
 
@@ -746,7 +746,7 @@ def test_ac0010_parent_traversal_discovery_unsafe(tmp_path: Path) -> None:
         "diagnostics": [
             {"code": "delivery-reference-unsafe", "field": "Discovery", "subject": "spec:foo"},
         ],
-        "artifacts": {},
+        "artifacts": {"spec:foo": "docs/specs/foo/spec.md"},
     }
     assert snap == expected
 
@@ -788,7 +788,7 @@ def test_ac0019_brief_route_no_brief(tmp_path: Path) -> None:
         ],
         "provenance": [],
         "diagnostics": [{"code": "delivery-target-missing", "subject": "intent:feat"}],
-        "artifacts": {},
+        "artifacts": {"intent:feat": "docs/product/intents/feat.md"},
     }
     assert snap == expected
 
@@ -814,7 +814,7 @@ def test_ac0019_brief_route_multiple_briefs(tmp_path: Path) -> None:
                 "targets": ["brief:brief-one", "brief:brief-two"],
             },
         ],
-        "artifacts": {},
+        "artifacts": {"brief:brief-one": "docs/product/briefs/brief-one.md", "brief:brief-two": "docs/product/briefs/brief-two.md", "intent:feat": "docs/product/intents/feat.md"},
     }
     assert snap == expected
 
@@ -1245,6 +1245,10 @@ def test_ac0018_no_raw_malformed_content_in_output(tmp_path: Path) -> None:
 
 
 # Projected CLI test (VI-1003 kill condition)
+# These three tests exercise the maintainer .agentbundle/bin/ projection path
+# specifically: they copy the resolver to a temporary bin/ and run it from
+# there, proving the projection mechanism works end-to-end.  Consumer tests
+# elsewhere run the skill-local copies (_RESOLVER_PATH) instead.
 
 def test_vi1003_projected_cli_produces_valid_json(tmp_path: Path) -> None:
     """Copying the resolver and its co-located helper to a tmp bin/ returns valid JSON."""

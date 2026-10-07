@@ -214,6 +214,7 @@ def test_vi1502_unsafe_brief_ref_absolute(tmp_path: Path) -> None:
     snap = _load_resolver().resolve_repository(tmp_path)
     expected = {
         **_empty_snap(),
+        "artifacts": {"spec:foo": "docs/specs/foo/spec.md"},
         "diagnostics": [
             {"code": "delivery-reference-unsafe", "field": "Brief", "subject": "spec:foo"},
         ],
@@ -227,6 +228,7 @@ def test_vi1502_unsafe_brief_ref_traversal(tmp_path: Path) -> None:
     snap = _load_resolver().resolve_repository(tmp_path)
     expected = {
         **_empty_snap(),
+        "artifacts": {"spec:foo": "docs/specs/foo/spec.md"},
         "diagnostics": [
             {"code": "delivery-reference-unsafe", "field": "Brief", "subject": "spec:foo"},
         ],
@@ -240,6 +242,7 @@ def test_vi1502_unsafe_parent_intent_absolute(tmp_path: Path) -> None:
     snap = _load_resolver().resolve_repository(tmp_path)
     expected = {
         **_empty_snap(),
+        "artifacts": {"brief:my-brief": "docs/product/briefs/my-brief.md"},
         "diagnostics": [
             {
                 "code": "delivery-reference-unsafe",
@@ -257,6 +260,7 @@ def test_vi1502_unsafe_parent_intent_traversal(tmp_path: Path) -> None:
     snap = _load_resolver().resolve_repository(tmp_path)
     expected = {
         **_empty_snap(),
+        "artifacts": {"brief:my-brief": "docs/product/briefs/my-brief.md"},
         "diagnostics": [
             {
                 "code": "delivery-reference-unsafe",
@@ -325,7 +329,7 @@ def test_vi1502_underscore_prefixed_spec_dir_not_admitted(tmp_path: Path) -> Non
         "diagnostics": [
             {"code": "delivery-target-missing", "subject": "intent:feat"},
         ],
-        "artifacts": {},
+        "artifacts": {"intent:feat": "docs/product/intents/feat.md"},
     }
     assert snap == expected
 

@@ -18,7 +18,7 @@ asserts:
   relation-type literals ``"direct-delivery"`` and ``"coordinated-delivery"``
   as dict *values* (i.e., implements feature-delivery parsing+inversion).
 - Both consumers (``closure_index.py`` and ``lint-traceability.py``) reference
-  ``.agentbundle/bin/intent_delivery_relations.py`` — the installed resolver.
+  their skill-local ``scripts/intent_delivery_relations.py`` copy.
 - The retired consumer-local delivery inversion entry points are absent:
   ``_resolve_discovery_path`` from the pre-T2 ``closure_index.py`` (present
   at commit ``a2b0f6140``) and ``"Discovery"`` in lint-traceability's
@@ -50,7 +50,6 @@ import ast
 import importlib.util
 import json
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -249,20 +248,28 @@ def _make_spec(
     )
 
 
+_CLOSE_WORK_RESOLVER_PATH: Path = (
+    _APM / "skills" / "close-work" / "scripts" / "intent_delivery_relations.py"
+)
+
+
 def _install_resolver(root: Path) -> None:
-    """Install the resolver source and its co-located helper at root/.agentbundle/bin/."""
-    dest_dir = root / ".agentbundle" / "bin"
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(_RESOLVER_SRC, dest_dir / "intent_delivery_relations.py")
-    _helper_src = _APM / "adapter-root-bins" / "_file_safety.py"
-    shutil.copy2(_helper_src, dest_dir / "_file_safety.py")
+    """No-op: each consumer already ships a skill-local resolver copy.
+
+    Kept as a stub so sub-tests that call it do not need refactoring.
+    Both close-work and lint-traceability load the resolver from their own
+    ``scripts/`` directory via ``_RESOLVER_PATH``; no install step is needed.
+    """
 
 
 def _run_resolver_cli(root: Path) -> tuple[int, dict[str, Any]]:
-    """Run the installed resolver CLI and return (exit_code, snapshot)."""
-    resolver_path = root / ".agentbundle" / "bin" / "intent_delivery_relations.py"
+    """Run the close-work skill-local resolver CLI and return (exit_code, snapshot).
+
+    Uses the same path that ``closure_index.py`` uses at runtime
+    (``_CLOSE_WORK_RESOLVER_PATH = _SCRIPT_DIR / 'intent_delivery_relations.py'``).
+    """
     proc = subprocess.run(
-        [sys.executable, str(resolver_path), "--root", str(root)],
+        [sys.executable, str(_CLOSE_WORK_RESOLVER_PATH), "--root", str(root)],
         capture_output=True,
         timeout=60,
     )

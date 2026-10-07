@@ -234,11 +234,6 @@ _DIAG_FIELD_VALUES: frozenset[str] = frozenset(
 _CANONICAL_DATE_ROUTE_RE: re.Pattern[str] = re.compile(
     r"^\d{4}-\d{2}-\d{2} (?:spec|brief|direct-light|closed-empty)$"
 )
-# Brief artifact paths appear in corpus-level slug-ambiguity diagnostics and
-# are grammar-checked by _ARTIFACT_FILE_RE during resolver traversal.
-_BRIEFS_PATH_TARGET_RE: re.Pattern[str] = re.compile(
-    r"^docs/product/briefs/[A-Za-z0-9][A-Za-z0-9._-]*\.md$"
-)
 
 
 def field_re(label: str) -> re.Pattern[str]:
@@ -1325,7 +1320,7 @@ def _is_canonical_target(t: str) -> bool:
         return True
     if _INTENT_PATH_RE.fullmatch(t):
         return True
-    if _BRIEFS_PATH_TARGET_RE.fullmatch(t):
+    if _BRIEF_PATH_RE.fullmatch(t):
         return True
     return bool(_CANONICAL_DATE_ROUTE_RE.fullmatch(t))
 
@@ -1494,7 +1489,7 @@ def _parse_and_validate_snapshot(text: str) -> dict[str, Any]:
     """
     try:
         data = json.loads(text)
-    except ValueError:
+    except (ValueError, RecursionError):
         raise ValueError("delivery-resolver-unavailable: bad JSON") from None
     # Reject NaN/Infinity by round-tripping through a strict encoder.
     try:
@@ -1771,10 +1766,15 @@ def build_standalone(root: Path, layout: dict, g: Graph,
 
             # Build a label: code, subject, field, and targets are all
             # validated by _validate_snapshot_dict; print only the closed-set
-            # field and canonical targets.
+            # field and canonical targets, each capped to 200 characters so
+            # an oversized slug cannot flood the log.
+            _MAX_LABEL_PART = 200
             _label_parts = [_code] if _code else ["delivery-diagnostic"]
             if _subject:
-                _label_parts.append(f"subject={_subject}")
+                _s_disp = _subject if len(_subject) <= _MAX_LABEL_PART else (
+                    _subject[:_MAX_LABEL_PART] + "…"
+                )
+                _label_parts.append(f"subject={_s_disp}")
             if _field:
                 _label_parts.append(f"field={_field}")
             if isinstance(_targets, list):
@@ -1784,7 +1784,11 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                     if isinstance(t, str)
                 )
                 if _safe_ts:
-                    _label_parts.append(f"targets=[{', '.join(_safe_ts)}]")
+                    _capped_ts = [
+                        t if len(t) <= _MAX_LABEL_PART else t[:_MAX_LABEL_PART] + "…"
+                        for t in _safe_ts
+                    ]
+                    _label_parts.append(f"targets=[{', '.join(_capped_ts)}]")
             _label = " ".join(_label_parts)
 
             if _code == "delivery-target-missing" and _subject.startswith(("spec:", "brief:")):

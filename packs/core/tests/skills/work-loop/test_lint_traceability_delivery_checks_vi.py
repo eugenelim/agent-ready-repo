@@ -306,11 +306,16 @@ def test_vi1704_hostile_snapshot_content_not_in_output(tmp_path: Path) -> None:
         "Traceback (most recent call last):",
     ]
 
-    # Snapshot with a diagnostic whose code contains hostile content.
+    # Snapshot with a diagnostic whose code contains all three hostile markers
+    # verbatim so that the assertions are non-vacuous.
     bad_snapshot = {
         **_EMPTY_SNAPSHOT,
         "diagnostics": [{
-            "code": "INJECTION:/absolute/path TOKEN=abc123secret Traceback",
+            "code": (
+                "INJECTION:/absolute/path/to/secret "
+                "TOKEN=abc123secret "
+                "Traceback (most recent call last):"
+            ),
             "subject": "spec:foo",
         }],
     }
@@ -469,13 +474,20 @@ def test_vi1705_timeout_lowered_and_fails_closed(tmp_path: Path) -> None:
     """A stub resolver that sleeps past a test-lowered timeout appears as a
     delivery-resolver-unavailable hard violation and exit 1 from check().
 
-    The timeout is a module constant that the test lowers; the resolver path
-    seam (_resolver_path kwarg) routes _run_resolver at the stub so the real
-    sibling copy is untouched.
+    The stub writes a valid complete snapshot after sleeping 5 s.  The timeout
+    is lowered to 1 s; elapsed wall-clock must be less than the stub's sleep to
+    prove the timeout fired (not the stub completing normally).
     """
     stub = tmp_path / "sleeping_resolver.py"
     stub.write_text(
-        "import time\ntime.sleep(10)\n",
+        "import time, sys, json\n"
+        "time.sleep(5)\n"
+        "snap = {\n"
+        "    'schema_version': 1, 'complete': True,\n"
+        "    'relations': [], 'classifications': [], 'provenance': [],\n"
+        "    'diagnostics': [], 'artifacts': {},\n"
+        "}\n"
+        "sys.stdout.write(json.dumps(snap) + '\\n')\n",
         encoding="utf-8",
     )
     _write(
@@ -490,14 +502,22 @@ def test_vi1705_timeout_lowered_and_fails_closed(tmp_path: Path) -> None:
     def timeout_provider(root: object) -> dict:
         return mod._run_resolver(root, _resolver_path=stub)
 
+    import time as _time
+    _t0 = _time.monotonic()
     out_lines, hard, exit_hint = mod.check(
         tmp_path, False, snapshot_provider=timeout_provider
     )
+    _elapsed = _time.monotonic() - _t0
+
     assert exit_hint == 1, (
         f"timeout → exit 1 from check(), got {exit_hint}: {hard!r}"
     )
     assert any("delivery-resolver-unavailable" in h for h in hard), (
         f"timeout → delivery-resolver-unavailable in hard violations: {hard!r}"
+    )
+    assert _elapsed < 4, (
+        f"timeout must fire before stub finishes (stub sleeps 5 s), "
+        f"elapsed={_elapsed:.2f}s"
     )
 
 

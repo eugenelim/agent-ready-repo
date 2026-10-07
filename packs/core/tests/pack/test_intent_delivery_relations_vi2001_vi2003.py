@@ -246,6 +246,67 @@ def test_vi2001_ambiguous_decomposed_hostile_targets_are_dropped(
 
 
 # ---------------------------------------------------------------------------
+# Security: ambiguous brief Parent intent: emits canonical targets only
+# ---------------------------------------------------------------------------
+
+
+def test_ambiguous_brief_parent_intent_canonical_targets_accepted_by_consumers(
+    tmp_path: Path,
+) -> None:
+    """A brief with two valid Parent intent: values of any kind emits a
+    delivery-relation-ambiguous diagnostic with canonical ``intent:<slug>``
+    targets; both consumers accept the resulting snapshot.
+
+    This covers the case where the kind is not ``intent`` (e.g. ``outcome``
+    or ``capability``): the raw ``outcome:a`` and ``capability:b`` values
+    must be normalised to ``intent:a`` and ``intent:b`` before being placed
+    in ``targets`` so the snapshot passes both consumers' validation.
+    """
+    resolver = _load_resolver("sec1_canonical_parents")
+    ci = _load_closure("sec1_canonical_parents")
+    lint = _load_lint("sec1_canonical_parents")
+
+    briefs_dir = tmp_path / "docs" / "product" / "briefs"
+    briefs_dir.mkdir(parents=True)
+    _write(
+        briefs_dir / "multi-parent.md",
+        "# Multi parent\n\n"
+        "- **Slug:** `multi-parent`\n"
+        "- **Status:** Draft\n"
+        "- **Parent intent:** outcome:alpha\n"
+        "- **Parent intent:** capability:beta\n",
+    )
+
+    snapshot = resolver.resolve_repository(tmp_path)
+
+    # Diagnostic must be emitted.
+    diag = [
+        d for d in snapshot["diagnostics"]
+        if d.get("code") == "delivery-relation-ambiguous"
+        and d.get("subject") == "brief:multi-parent"
+        and d.get("field") == "Parent intent"
+    ]
+    assert diag, (
+        "Expected delivery-relation-ambiguous for brief:multi-parent Parent intent"
+    )
+    targets = diag[0].get("targets", [])
+    # All targets must be canonical intent identifiers.
+    assert all(t.startswith("intent:") for t in targets), (
+        f"Targets must be canonical intent: identifiers; got {targets!r}"
+    )
+
+    # Both consumers must accept the snapshot without raising.
+    for consumer_label, module in [("close-work", ci), ("lint", lint)]:
+        try:
+            module._validate_snapshot_dict(dict(snapshot))
+        except (ValueError, TypeError) as exc:
+            pytest.fail(
+                f"[{consumer_label}] snapshot with non-intent Parent intent: "
+                f"kinds was rejected: {exc}"
+            )
+
+
+# ---------------------------------------------------------------------------
 # VI-2002: provenance carries intent identifier; absolute targets suppressed
 # ---------------------------------------------------------------------------
 
@@ -619,3 +680,48 @@ def test_vi2003_lint_label_prints_closed_set_field_and_canonical_targets(
     assert "field=Discovery" in combined
     # No hostile content (the snapshot is clean, so no escapes needed)
     assert "\x1b" not in combined
+
+
+def test_vi2003_both_consumers_accept_base_records_unchanged() -> None:
+    """Both consumer validators accept each base diagnostic, relation, and
+    classification unchanged.
+
+    This accepting-control ensures the malformed-record table's base rows are
+    themselves valid: a row could only be rejected because of its mutated field,
+    not because the base row was already broken.
+    """
+    ci = _load_closure("vi2003_accept_base")
+    lint = _load_lint("vi2003_accept_base")
+
+    # Base diagnostic (used as the template in _MALFORMED_RECORD_CASES).
+    diag_snap = _snapshot_with_diag(copy.deepcopy(_VALID_DIAG_BASE))
+
+    # Base relation (direct-delivery, spec route — the minimal valid form).
+    rel_snap = _snapshot_with_relation({
+        "type": "direct-delivery",
+        "route": "spec",
+        "intent": "intent:alpha",
+        "spec": "spec:alpha-delivery",
+        "basis": {},
+    })
+
+    # Base classification.
+    cls_snap = _snapshot_with_classification({
+        "classification": "direct-delivery",
+        "intent": "intent:alpha",
+        "route": "spec",
+    })
+
+    for label, snap in [
+        ("base diagnostic", diag_snap),
+        ("base relation", rel_snap),
+        ("base classification", cls_snap),
+    ]:
+        for consumer_label, module in [("close-work", ci), ("lint", lint)]:
+            try:
+                module._validate_snapshot_dict(copy.deepcopy(snap))
+            except (ValueError, TypeError) as exc:
+                pytest.fail(
+                    f"[{consumer_label}] {label}: _validate_snapshot_dict "
+                    f"rejected a valid base record: {exc}"
+                )

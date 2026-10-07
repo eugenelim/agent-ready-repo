@@ -924,12 +924,16 @@ def resolve_repository(
             valid_parents.append((pv, intent_slug))
 
         if len(valid_parents) > 1:
-            safe_targets = [pv for pv, _ in valid_parents]
+            # Emit only canonical intent identifiers as targets; raw values
+            # like ``outcome:x`` are not in consumers' closed canonical set and
+            # would invalidate the whole snapshot.  The slug is already
+            # validated at line 916; normalize every kind to ``intent:<slug>``.
+            safe_targets = sorted({f"intent:{slug}" for _, slug in valid_parents})
             diagnostics.append({
                 "code": "delivery-relation-ambiguous",
                 "subject": f"brief:{brief_slug}",
                 "field": "Parent intent",
-                "targets": sorted(safe_targets),
+                "targets": safe_targets,
             })
         else:
             feat_slugs: set[str] = set()
@@ -1110,6 +1114,15 @@ def resolve_repository(
         for key in ("subject", "intent"):
             val = prov_rec.get(key)
             if val and val not in artifacts:
+                p = _get_artifact_path(val)
+                if p:
+                    artifacts[val] = p
+    # A diagnostic can name an artifact no relation reaches (for example a brief
+    # whose only child is the spec that names it ambiguously), so consumers
+    # read its exact matched path here rather than rebuilding one from a slug.
+    for diag in diagnostics:
+        for val in [diag.get("subject"), *diag.get("targets", [])]:
+            if isinstance(val, str) and val not in artifacts:
                 p = _get_artifact_path(val)
                 if p:
                     artifacts[val] = p
