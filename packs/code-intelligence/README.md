@@ -53,8 +53,9 @@ Wicked Estate never learns that any of them exist.
 Before changing the signature of `parse_config`, which call sites must change, and which could not be established?
 [`.apm/skills/code-intelligence/references/composition-example.md`](.apm/skills/code-intelligence/references/composition-example.md)
 walks that question through two paths: the provider-fit path using an indexed
-call graph, and the fallback path using repository-native search when the
-provider is absent or the index is stale. It closes with a section labelling
+call graph, and the fallback path using repository-native search — the agent's
+own text search and file-reading tools — when the provider is absent or the
+index is stale. It closes with a section labelling
 which obligations belong to Core (the companion `core` pack) and which details
 are specific to this pack.
 

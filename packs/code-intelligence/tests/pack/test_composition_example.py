@@ -503,7 +503,8 @@ def test_example_retains_only_synthetic_evidence() -> None:
 def test_authority_bullet_covers_both_paths() -> None:
     """(a) The Core-owned Authority bullet must name both root sources, --locator-b64,
     and cover the standalone case (a provider-returned location is never opened directly
-    without Core's locator reader installed).
+    when Core's repository-exploration skill is not running the inquiry).
+    No text in the example may claim that source output does not meet the verification rule.
     """
     text: str = _read(EXAMPLE_PATH)
     who_section: str = _section_after(text, WHO_OWNS_HEADING)
@@ -531,13 +532,21 @@ def test_authority_bullet_covers_both_paths() -> None:
         "Core-owned Authority bullet must name the calling workflow's declared bounds as a root source"
     )
 
-    # Must cover the standalone case: without Core's reader, location is never opened.
-    standalone_covered = "without" in authority_text.lower() and (
-        "never" in authority_text.lower() or "not opened" in authority_text.lower()
+    # Must cover the standalone case using the complement condition: when Core's
+    # repository-exploration skill is not running the inquiry, a location is never opened.
+    standalone_covered = (
+        "not running the inquiry" in authority_text.lower()
+        and "never" in authority_text.lower()
     )
     assert standalone_covered, (
-        "Core-owned Authority bullet must cover the standalone case: "
-        "without Core's locator reader installed, a provider-returned location is never opened directly"
+        "Core-owned Authority bullet must cover the standalone case using the complement "
+        "condition: when Core's repository-exploration skill is not running the inquiry, "
+        "a provider-returned location is never opened directly"
+    )
+
+    # No text in the example may claim that source output does not meet the verification rule.
+    assert "does not meet the verification rule" not in text.lower(), (
+        "example must not claim that source output does not meet the verification rule"
     )
 
 
