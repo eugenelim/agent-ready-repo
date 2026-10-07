@@ -71,9 +71,9 @@ Read `packs/code-intelligence/.apm/skills/code-intelligence/references/compositi
 
 **Total load-bearing sentences: 101. Ambiguous: 0.**
 
-*Round-3 repairs updated this audit: sentences 39, 41 (split 41a/41b), 85, and 92 have changed text; new sentences 93 and 94 added; former sentences 93–99 renumbered 95–101.*
+*Round-3 repairs updated this audit: sentences 39, 41 (split 41a/41b), 85, and 92 have changed text; new sentences 93 and 94 added; former sentences 93–99 renumbered 95–101. Round-4 repairs updated sentence 71a.*
 
-Sentence 71 in the Fallback path is a semicolon-joined sentence whose two clauses have different owners: the first clause ("The graph surfaces them only as `unresolved` edges it could not follow") is pack-owned (Wicked Estate graph behavior) and the second clause ("text search cannot detect them at all") is Core-owned (text-search limitation in service of the Core attribution obligation). Both clauses are decidable; the sentence is not ambiguous.
+Sentence 71 in the Fallback path is a semicolon-joined sentence whose two clauses have different owners: the first clause ("The graph may count some of these uses as `unresolved` and may show nothing at all for others, so a zero `unresolved` count does not rule them out — see `references/gaps.md` § 12 Completeness") is pack-owned (Wicked Estate graph behavior and a cross-reference to a pack-owned reference) and the second clause ("text search cannot detect them at all") is Core-owned (text-search limitation in service of the Core attribution obligation). Both clauses are decidable; the sentence is not ambiguous.
 
 | # | Short exact prefix (section) | Verdict | Reason |
 |---|---|---|---|
@@ -148,7 +148,7 @@ Sentence 71 in the Fallback path is a semicolon-joined sentence whose two clause
 | 68 | "No way to tell a namesake from the intended `parse_config`." (Fallback, text-search limits) | Core-owned | Names a disambiguation limit; Core attribution obligation |
 | 69 | "No provenance: text search cannot establish whether a reference was compiler-verified or matched by name." (Fallback, text-search limits) | Core-owned | Names a provenance limit; Core attribution obligation |
 | 70 | "Dynamic dispatch or reflection: neither path can bind these." (Fallback, shared limits) | Core-owned | Names a shared gap; Core attribution obligation (applies across both evidence classes) |
-| 71a | "The graph surfaces them only as `unresolved` edges it could not follow" [first clause, sentence 71] (Fallback, shared limits) | Pack-owned | Describes how the Wicked Estate graph represents this limitation; pack-specific |
+| 71a | "The graph may count some of these uses as `unresolved` and may show nothing at all for others, so a zero `unresolved` count does not rule them out — see `references/gaps.md` § 12 Completeness" [first clause, sentence 71] (Fallback, shared limits) | Pack-owned | Describes how the Wicked Estate graph represents this limitation and links to a pack-owned reference; pack-specific |
 | 71b | "text search cannot detect them at all." [second clause, sentence 71] (Fallback, shared limits) | Core-owned | States a text-search limitation; Core attribution obligation |
 | 72 | "`blast-radius` rows carry no per-row confidence or provenance; `wicked-estate path --json` gives them per hop for a specific route -- see references/gaps.md section 10 Provenance and evidence." (Fallback) | Pack-owned | Wicked Estate output field comparison and cross-reference to pack-owned gaps reference |
 | 73 | "Name each applicable gap in the answer rather than leaving it implied." (Fallback) | Core-owned | Core attribution rule: gaps must be explicitly stated in the answer |
@@ -274,7 +274,7 @@ Grading command: `agentbundle pack evals run --pack code-intelligence --mode in-
 
 Final tally: `code-intelligence: 10/13 evals passed ⚠ 2 errored`.
 
-- **10 passed:** the four composition cases that load `code-intelligence` and cases `1`, `4`, and `7` (round 7); case `5` (round 8); `composition-core-only` (round 2); `cognitive-load-output-quality` (round 3). Each is graded from its run's evidence record or handoff in `eval-runs.md`.
+- **10 passed:** the four composition cases that load `code-intelligence` and cases `1`, `4`, and `7` (round 7); case `5` (counted from its round-8 pass — branch record is one fail and one pass, with one `origin/main` pass, which cannot separate run-to-run variation from a regression); `composition-core-only` (round 2); `cognitive-load-output-quality` (round 3). Each is graded from its run's evidence record or handoff in `eval-runs.md`.
 - **1 failed, pre-existing:** case `3` fails its observed/interpretation-labels assertion. The same case run against the `origin/main` skill fails the same way: it supplies no files, so an honest run declines to map an empty workspace. This delivery does not change the case or the skill text it exercises.
 - **2 errored by design:** cases `2` and `6` were not re-run. Their prompts supply no provider output, and their prompts, fixtures, and skill paths are unchanged.
 - **Not re-run after the supplied-output sentence:** `composition-core-only` (loads neither `code-intelligence` nor the example) and `cognitive-load-output-quality` (supplies no provider output; last run round 3).
@@ -416,15 +416,27 @@ Sustained findings from three round-3 reviewers repaired. The pack-suite gate re
 
 ### (h) Rounds 7 and 8 evaluations
 
-- **Round 7:** after the round-3 review repairs and the owner decision, the four composition cases that load `code-intelligence` ran again, together with every earlier case whose prompt supplies a provider output — `1`, `3`, `4`, `5`, and `7`. The round-6 note above said every supplied-output case had re-run; cases `3`, `4`, `5`, and `7` had not, and round 7 closes that gap.
+- **Round 7:** after the round-3 review repairs and the owner decision, the four composition cases that load `code-intelligence` ran again, together with every earlier case whose prompt supplies a provider output — `1`, `3`, `4`, `5`, and `7`. Cases `3`, `4`, `5`, and `7` first ran against the supplied-output sentence in round 7.
 - **Results:** the composition cases and cases `1`, `4`, and `7` passed. Case `3` failed its labels assertion; case `5` failed its no-readiness-verdict assertion ("a poor wave-one candidate").
-- **Round 8:** to tell a regression from a pre-existing or variable result, cases `3` and `5` ran once against the `origin/main` skill, and case `5` ran once more on the branch. Case `3` failed the same way on `origin/main`, so it is pre-existing. Case `5` passed on `origin/main` and passed on the branch re-run; this delivery does not change the boundary or workflow-state text that case exercises, so the round-7 result is recorded as run-to-run variation. Every run is kept in `eval-runs.md`.
+- **Round 8:** to tell a regression from a pre-existing or variable result, cases `3` and `5` ran once against the `origin/main` skill, and case `5` ran once more on the branch. Case `3` failed the same way on `origin/main`, so it is pre-existing. Case `5` passed on `origin/main` and passed on the branch re-run; case `5` has one fail (round 7) and one pass (round 8) on the branch, and one pass on `origin/main` — this evidence cannot separate run-to-run variation from a regression. Every run is kept in `eval-runs.md`.
+
+### (i) Review round 4 repairs
+
+Five sustained findings from the round-4 post-gates review. Security review had no sustained findings.
+
+| Reviewer | # | Sev | Finding | Change |
+|---|---|-----|---------|--------|
+| Experience | 2 | Concern | Shared-limits bullet overstated what the graph shows for dynamic dispatch and reflection — claimed these always appear as `unresolved` edges, contradicting `gaps.md` § 12 (lines 229-230) which says they produce edgeless symbols and that absence of an edge is not proof of absence of use | Updated the bullet to say the graph may count some of these uses as `unresolved` and may show nothing at all for others, so a zero `unresolved` count does not rule them out; links `gaps.md` § 12 Completeness instead of restating it |
+| Experience | 4 | Nit | `SKILL.md` § Composition example shortened the question to "before changing `parse_config`", dropping "the signature of", making it broader than the example's actual question | Quoted the question exactly as the example states it: "before changing the signature of `parse_config`" |
+| Adversarial | 1 | Concern | Case `5` recorded as run-to-run variation, but one pass on `origin/main` and one branch re-run cannot establish that the round-7 failure was variation rather than a regression | `eval-runs.md` and `verification-ledger.md` (tally and observation (h)) updated to state one fail and one pass on the branch plus one `origin/main` pass, and that this evidence cannot separate variation from regression |
+| Adversarial | 2 | Nit | AC-0001 evidence row cited `composition-provider-fit` round 6, which is superseded; the graded record is round 7 | AC-0001 row updated to cite round 7 |
+| Adversarial | 3 | Nit | Observation (h) corrected a round-6 sentence ("The round-6 note above said every supplied-output case had re-run") that is no longer in the ledger — draft-time narration pointing at text a reader cannot find | Dropped that sentence; kept the current fact that cases `3`, `4`, `5`, and `7` first ran against the supplied-output sentence in round 7 |
 
 ## Acceptance-criteria evidence map
 
 | AC | Description (short) | Evidence |
 | --- | --- | --- |
-| AC-0001 | Task-fit path complete | `composition-provider-fit` round 6 (all 7 assertions pass); `test_example_walks_the_provider_fit_path` |
+| AC-0001 | Task-fit path complete | `composition-provider-fit` round 7 (all 7 assertions pass); `test_example_walks_the_provider_fit_path` |
 | AC-0002 | Fallback path complete | `composition-provider-absent`, `composition-poor-fit` (all assertions pass); `test_example_walks_the_fallback_paths` |
 | AC-0003 | Ownership explicit | Cold-read audit updated for round-3 repairs (this ledger: 101 sentences, 0 ambiguous); `test_example_labels_every_owner`; `test_core_owned_rules_name_no_provider_detail` |
 | AC-0004 | Native details canonical | `test_example_links_canonical_references`; `test_example_copies_no_canonical_detail` |

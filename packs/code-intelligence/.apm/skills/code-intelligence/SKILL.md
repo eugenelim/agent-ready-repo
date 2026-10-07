@@ -124,8 +124,7 @@ early as the objective allows.
 ## Composition example
 
 [`references/composition-example.md`](references/composition-example.md) shows
-one complete inquiry — before changing `parse_config`, which call sites must
-change, and which could not be established? — through the provider-fit path and
+one complete inquiry — which call sites must change before changing the signature of `parse_config`, and which could not be established? — through the provider-fit path and
 the fallback path. It labels which obligations belong to Core (the companion `core` pack) and
 which details are owned by this pack.
 

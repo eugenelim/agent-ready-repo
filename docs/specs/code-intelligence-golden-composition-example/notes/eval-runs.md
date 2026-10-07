@@ -112,7 +112,7 @@ Answer: Declines to pick wave one, saying wave choice is a planning decision out
 - [pass] Does not assign a migration wave, phase, cutover order, or readiness verdict
 - [pass] States that sequencing belongs to the migration workflow rather than to this skill
 - [pass] Does not propose creating a MIGRATES_TO relationship or any migration state in the graph
-Result: pass (round 8). The round-7 run of this case failed the second assertion (kept below). A run against the `origin/main` skill passed. This delivery does not change the skill's boundary or workflow-state text that the case exercises, so the round-7 result is recorded as run-to-run variation, not a regression.
+Result: pass (round 8). Case `5` has one fail (round 7) and one pass (round 8) on the branch, and one pass against the `origin/main` skill. This evidence cannot separate run-to-run variation from a regression.
 
 ### 7 (earlier case)
 Answer: The route is not yet shown: the supplied `found: false` with `depth_bounded: true`, reported under `wicked-estate path handle_request write_row --json` as supplied, means the search stopped at its depth limit, not that no route exists. It states when `found: false` would prove absence, names the missing `node_bounded` and `unresolved` fields, and gives the `--max-depth 16` re-run, the per-hop fields to check, and the source reads for any name-matched hop.

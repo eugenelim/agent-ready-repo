@@ -93,7 +93,7 @@ In all four situations, text search and source reading form a different evidence
 
 **Limits both paths share:**
 
-- Dynamic dispatch or reflection: neither path can bind these. The graph surfaces them only as `unresolved` edges it could not follow; text search cannot detect them at all.
+- Dynamic dispatch or reflection: neither path can bind these. The graph may count some of these uses as `unresolved` and may show nothing at all for others, so a zero `unresolved` count does not rule them out — see [`references/gaps.md`](gaps.md#12-completeness--direct) § 12 Completeness; text search cannot detect them at all.
 
 `blast-radius` rows carry no per-row confidence or provenance; `wicked-estate path --json` gives them per hop for a specific route — see [`references/gaps.md`](gaps.md#10-provenance-and-evidence--partial-on-blast-radius-direct-on-path) § 10 Provenance and evidence.
 
