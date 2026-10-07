@@ -3031,6 +3031,8 @@ def test_a_selected_cycle_member_keeps_a_readable_cycle_tag(
         return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
 
     assert {p["id"] for p in pairs} == {"ADR-0001", "ADR-0002"}, pairs
+    selected = [p["id"] for p in pairs if p["bg"] == "#1d4ed8"]
+    assert selected == ["ADR-0001"], pairs  # the selected case is really measured
     for pair in pairs:
         # An unfilled (superseded) node shows the light graph panel behind it.
         bg = pair["bg"] if pair["bg"].startswith("#") else "#f8fafc"

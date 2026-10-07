@@ -491,6 +491,14 @@ The thirteenth post-gates review (2026-10-06, head `d6d5f1dfc`) found the securi
 
 Full runs on the round-13 fixes (2026-10-07, desktop Chrome 154.0.8037.93), on the working tree committed unchanged with this ledger change: browser checks 112 passed in 326 s; unit suites 244 passed.
 
+## Round-14 review corrections
+
+The fourteenth post-gates review (2026-10-07, head `6915df9ba`) found the security, experience, adversarial and frontend lenses clean and sustained one quality Nit.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| R14-QE-1 | Nit | The tag-contrast check never confirmed a node was drawn as selected. | closed — it now fails unless ADR-0001 is the one node with the selected fill `#1d4ed8`. |
+
 ## T7 stage 2b evidence — explorer visual redesign
 
 Date: 2026-10-05. Branch: this feature branch. Files changed:
