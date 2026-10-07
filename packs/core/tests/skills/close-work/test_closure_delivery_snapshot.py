@@ -616,3 +616,59 @@ def test_vi1103_real_subprocess_produces_valid_snapshot(tmp_path: Path) -> None:
 
     assert spec_slug in result, "spec must appear in closure via real subprocess snapshot"
     assert result[spec_slug].kind == "spec"
+
+
+# ---------------------------------------------------------------------------
+# VI-2404 negative validator tests for close-work closure_index
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "bad_record,label",
+    [
+        (
+            {"subject": "spec:foo", "field": "Parent intent", "intent": "intent:alpha"},
+            "subject-not-brief-typed",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent"},
+            "missing-intent",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent", "intent": "brief:alpha"},
+            "non-intent-typed-intent",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent", "intent": "intent:"},
+            "prefix-only-intent",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent", "intent": "intent:A/../b"},
+            "path-like-intent",
+        ),
+    ],
+    ids=[
+        "subject-not-brief-typed",
+        "missing-intent",
+        "non-intent-typed-intent",
+        "prefix-only-intent",
+        "path-like-intent",
+    ],
+)
+def test_vi2404_closure_rejects_malformed_parent_intent_provenance(
+    bad_record: dict,
+    label: str,
+) -> None:
+    """closure_index _validate_snapshot_dict raises delivery-resolver-unavailable
+    for a malformed Parent intent provenance record; each case goes red when its
+    specific check is removed from the validator."""
+    snapshot = {
+        "schema_version": 1,
+        "complete": True,
+        "relations": [],
+        "classifications": [],
+        "provenance": [bad_record],
+        "diagnostics": [],
+        "artifacts": {},
+    }
+    with pytest.raises(ValueError, match="delivery-resolver-unavailable"):
+        ci._validate_snapshot_dict(snapshot)

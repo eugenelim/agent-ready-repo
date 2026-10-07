@@ -558,6 +558,7 @@ def _validate_snapshot_dict(data: object) -> dict[str, Any]:
                     "delivery-resolver-unavailable:"
                     " Parent intent provenance requires intent-typed intent"
                 )
+            _require_identifier(_pi_intent, "Parent intent provenance intent")
         else:
             if "intent" in _item:
                 _require_identifier(_item["intent"], "provenance intent")
@@ -591,6 +592,27 @@ def _validate_snapshot_dict(data: object) -> dict[str, Any]:
             raise ValueError("delivery-resolver-unavailable: artifacts path mismatch")
 
     return data  # type: ignore[return-value]
+
+
+def _build_brief_parent_feat_map(snapshot: dict) -> dict[str, set[str]]:
+    """Return brief-identifier → set of feature intent identifiers.
+
+    Reads ``Parent intent`` provenance records from *snapshot*.  The validator
+    guarantees every record has a ``brief:``-typed subject and an
+    ``intent:``-typed intent field; records that do not match either form are
+    skipped defensively.
+    """
+    result: dict[str, set[str]] = {}
+    for _prov in snapshot["provenance"]:
+        if (
+            _prov.get("field") == "Parent intent"
+            and isinstance(_prov.get("subject"), str)
+            and _prov["subject"].startswith("brief:")
+            and isinstance(_prov.get("intent"), str)
+            and _prov["intent"].startswith("intent:")
+        ):
+            result.setdefault(_prov["subject"], set()).add(_prov["intent"])
+    return result
 
 
 # ── Default implementations of the injectable seams ──────────────────────────
@@ -1057,18 +1079,7 @@ def _build_descendant_closure(
         _artifacts_dl = snap_dl["artifacts"]
         _path_to_id_dl: dict[str, str] = {v: k for k, v in _artifacts_dl.items()}
         # Build brief->feature map from Parent intent provenance records.
-        _brief_parent_feats_dl: dict[str, set[str]] = {}
-        for _prov in snap_dl["provenance"]:
-            if (
-                _prov.get("field") == "Parent intent"
-                and isinstance(_prov.get("subject"), str)
-                and _prov["subject"].startswith("brief:")
-                and isinstance(_prov.get("intent"), str)
-                and _prov["intent"].startswith("intent:")
-            ):
-                _brief_parent_feats_dl.setdefault(_prov["subject"], set()).add(
-                    _prov["intent"]
-                )
+        _brief_parent_feats_dl = _build_brief_parent_feat_map(snap_dl)
         for _diag in snap_dl["diagnostics"]:
             if (
                 _diag.get("code") == "delivery-relation-ambiguous"
@@ -1151,18 +1162,7 @@ def _build_descendant_closure(
             )
             # Build brief->feature map from Parent intent provenance records so
             # no brief file needs to be read to decide a broken-reference refusal.
-            _brief_parent_feats: dict[str, set[str]] = {}
-            for _prov in snap["provenance"]:
-                if (
-                    _prov.get("field") == "Parent intent"
-                    and isinstance(_prov.get("subject"), str)
-                    and _prov["subject"].startswith("brief:")
-                    and isinstance(_prov.get("intent"), str)
-                    and _prov["intent"].startswith("intent:")
-                ):
-                    _brief_parent_feats.setdefault(_prov["subject"], set()).add(
-                        _prov["intent"]
-                    )
+            _brief_parent_feats = _build_brief_parent_feat_map(snap)
             for _diag in snap["diagnostics"]:
                 _code = _diag.get("code", "")
                 _subject = _diag.get("subject", "")
@@ -1281,18 +1281,7 @@ def _build_descendant_closure(
             # Reverse map for resolving any path-form targets to identifiers.
             _path_to_id_s: dict[str, str] = {v: k for k, v in _artifacts.items()}
             # Build brief->feature map from Parent intent provenance records.
-            _brief_parent_feats_s: dict[str, set[str]] = {}
-            for _prov in snap["provenance"]:
-                if (
-                    _prov.get("field") == "Parent intent"
-                    and isinstance(_prov.get("subject"), str)
-                    and _prov["subject"].startswith("brief:")
-                    and isinstance(_prov.get("intent"), str)
-                    and _prov["intent"].startswith("intent:")
-                ):
-                    _brief_parent_feats_s.setdefault(_prov["subject"], set()).add(
-                        _prov["intent"]
-                    )
+            _brief_parent_feats_s = _build_brief_parent_feat_map(snap)
             for _diag in snap["diagnostics"]:
                 _code = _diag.get("code", "")
                 _subject = _diag.get("subject", "")

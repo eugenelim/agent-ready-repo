@@ -868,3 +868,129 @@ def test_vi2404_same_slug_different_kind_yields_one_record_no_ambiguity(
     assert not brief_ambig, (
         f"same-slug deduplication must prevent ambiguity: {brief_ambig!r}"
     )
+
+
+def test_vi2404_lint_results_unchanged_by_parent_intent_provenance(
+    tmp_path: Any,
+) -> None:
+    """lint-traceability results are unchanged when Parent intent provenance
+    records are present versus when they are absent from the snapshot.
+
+    The resolver runs on a fixture with an ambiguous spec Brief: that names a
+    brief with Parent intent: values.  The lint receives that real snapshot via
+    snapshot_provider and also receives a copy with the Parent intent records
+    removed.  Both runs must produce the same violations and exit code.
+    """
+    resolver = _load_resolver("vi2404_lint_unchanged")
+    lint = _load_lint("vi2404_lint_unchanged")
+
+    _write_vi2404(
+        tmp_path / "docs/product/intents/alpha.md",
+        "# alpha\n\n- **Slug:** `alpha`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-07 spec\n",
+    )
+    _write_vi2404(
+        tmp_path / "docs/product/briefs/linked.md",
+        "# Linked\n\n- **Slug:** `linked`\n- **Status:** Executing\n"
+        "- **Parent intent:** intent:alpha\n",
+    )
+    _write_vi2404(
+        tmp_path / "docs/specs/broken/spec.md",
+        "# Spec\n\n- **Status:** Draft\n"
+        "- **Brief:** `brief:linked`\n"
+        "- **Brief:** `brief:missing`\n",
+    )
+
+    snapshot = resolver.resolve_repository(tmp_path)
+    assert snapshot["complete"] is True
+
+    # Confirm Parent intent records are present
+    pi_records = [p for p in snapshot["provenance"] if p.get("field") == "Parent intent"]
+    assert pi_records, "resolver must emit Parent intent provenance for this fixture"
+
+    # Snapshot without Parent intent records
+    snapshot_no_pi = {
+        **snapshot,
+        "provenance": [p for p in snapshot["provenance"] if p.get("field") != "Parent intent"],
+    }
+
+    # Run lint on both snapshots
+    out1, hard1, exit1 = lint.check(
+        tmp_path, False, snapshot_provider=lambda _: copy.deepcopy(snapshot)
+    )
+    out2, hard2, exit2 = lint.check(
+        tmp_path, False, snapshot_provider=lambda _: copy.deepcopy(snapshot_no_pi)
+    )
+
+    assert exit1 == exit2, (
+        f"exit codes must match: with PI={exit1}, without PI={exit2}"
+    )
+    assert set(hard1) == set(hard2), (
+        f"hard violations must match:\n  with PI: {hard1}\n  without PI: {hard2}"
+    )
+    assert set(out1) == set(out2), (
+        f"informational output must match:\n  with PI: {out1}\n  without PI: {out2}"
+    )
+
+
+def test_vi2404_cross_spec_dedup_emits_one_record_per_intent(
+    tmp_path: Any,
+) -> None:
+    """When two ambiguous spec Brief: diagnostics name the same brief, the
+    resolver emits exactly one Parent intent record per distinct feature intent
+    for that brief.
+
+    The _emitted_pi_prov guard prevents duplicate (brief, intent) pairs.  If
+    the guard is removed (replaced by 'if True:'), two records would be emitted
+    for each intent, and the length assertion here would fail.
+    """
+    resolver = _load_resolver("vi2404_cross_spec_dedup")
+
+    _write_vi2404(
+        tmp_path / "docs/product/intents/alpha.md",
+        "# alpha\n\n- **Slug:** `alpha`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-07 spec\n",
+    )
+    _write_vi2404(
+        tmp_path / "docs/product/intents/beta.md",
+        "# beta\n\n- **Slug:** `beta`\n- **Level:** feature\n"
+        "- **Decomposed:** 2026-10-07 spec\n",
+    )
+    # One brief named by two different specs' ambiguous Brief: fields
+    _write_vi2404(
+        tmp_path / "docs/product/briefs/shared.md",
+        "# Shared\n\n- **Slug:** `shared`\n- **Status:** Executing\n"
+        "- **Parent intent:** intent:alpha\n"
+        "- **Parent intent:** intent:beta\n",
+    )
+    # Spec 1: ambiguous Brief: naming brief:shared and brief:missing1
+    _write_vi2404(
+        tmp_path / "docs/specs/spec-one/spec.md",
+        "# Spec One\n\n- **Status:** Draft\n"
+        "- **Brief:** `brief:shared`\n"
+        "- **Brief:** `brief:missing1`\n",
+    )
+    # Spec 2: ambiguous Brief: also naming brief:shared and brief:missing2
+    _write_vi2404(
+        tmp_path / "docs/specs/spec-two/spec.md",
+        "# Spec Two\n\n- **Status:** Draft\n"
+        "- **Brief:** `brief:shared`\n"
+        "- **Brief:** `brief:missing2`\n",
+    )
+
+    snapshot = resolver.resolve_repository(tmp_path)
+    assert snapshot["complete"] is True
+
+    pi_provs = [
+        p for p in snapshot["provenance"]
+        if p.get("field") == "Parent intent" and p.get("subject") == "brief:shared"
+    ]
+    # Exactly one record per distinct admitted feature intent (alpha and beta),
+    # regardless of how many specs named this brief.
+    assert len(pi_provs) == 2, (
+        f"expected exactly 2 Parent intent records for brief:shared, got {pi_provs!r}"
+    )
+    intents = {p["intent"] for p in pi_provs}
+    assert intents == {"intent:alpha", "intent:beta"}, (
+        f"wrong intents: {intents!r}"
+    )

@@ -1462,6 +1462,7 @@ def _validate_snapshot_dict(data: dict[str, Any]) -> None:
                     "delivery-resolver-unavailable:"
                     " Parent intent provenance requires intent-typed intent"
                 )
+            _require_identifier(_pi_intent, "Parent intent provenance intent")
         else:
             if "intent" in _item:
                 _require_identifier(_item["intent"], "provenance intent")
@@ -1810,7 +1811,7 @@ def build_standalone(root: Path, layout: dict, g: Graph,
 
             if _code == "delivery-target-missing" and _subject.startswith(("spec:", "brief:")):
                 # Hard DANGLING: a local spec or brief pointer names a missing target.
-                g.dangling.append(f"{_subject}: {_label}")
+                g.dangling.append(f"{_s_disp}: {_label}")
             else:
                 # Informational in default mode; delivery-projection-mismatch and
                 # delivery-reference-unsafe also fail under --strict.

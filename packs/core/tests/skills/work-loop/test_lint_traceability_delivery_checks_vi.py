@@ -550,14 +550,18 @@ def test_vi1705_provider_kwarg_not_module_global(tmp_path: Path) -> None:
 
 
 def test_vi2405_deeply_nested_payload_yields_unavailable(tmp_path: Path) -> None:
-    """A resolver that outputs deeply nested JSON (RecursionError in json.loads)
-    yields delivery-resolver-unavailable with exit 1 and no traceback.
+    """A resolver whose json.loads raises RecursionError yields
+    delivery-resolver-unavailable with exit 1 and no traceback.
 
-    The stub writes JSON nested 5000 levels deep, exceeding Python's default
-    recursion limit.  _parse_and_validate_snapshot catches the RecursionError
-    and re-raises ValueError.  check() then adds the sanitized message to hard
-    violations.
+    json.loads is patched to raise RecursionError unconditionally so the handler
+    fires on every supported interpreter regardless of its C-scanner recursion
+    limit.  _parse_and_validate_snapshot catches RecursionError and re-raises
+    ValueError.  check() then adds the sanitized message to hard violations.
+    The test goes red if RecursionError is removed from the except clause at
+    _parse_and_validate_snapshot.
     """
+    from unittest.mock import patch
+
     _write(
         tmp_path / "docs/product/briefs/anchor.md",
         "# Brief\n\n- **Slug:** `anchor`\n",
@@ -577,9 +581,14 @@ def test_vi2405_deeply_nested_payload_yields_unavailable(tmp_path: Path) -> None
     def deep_provider(root: Path) -> dict:
         return mod._run_resolver(root, _resolver_path=stub)
 
-    out_lines, hard, exit_hint = mod.check(
-        tmp_path, False, snapshot_provider=deep_provider
-    )
+    with patch.object(
+        mod.json,
+        "loads",
+        side_effect=RecursionError("maximum recursion depth exceeded"),
+    ):
+        out_lines, hard, exit_hint = mod.check(
+            tmp_path, False, snapshot_provider=deep_provider
+        )
     assert exit_hint == 1, (
         f"deeply nested payload → exit 1, got {exit_hint}: {hard!r}"
     )
@@ -598,7 +607,13 @@ def test_vi2405_subject_longer_than_200_chars_is_truncated(tmp_path: Path) -> No
 
     The snapshot carries a valid delivery-target-missing diagnostic whose spec:
     subject is 201 characters long.  The printed DANGLING label must contain the
-    truncated subject (first 200 chars + ellipsis).
+    truncated subject (first 200 chars + ellipsis) and must NOT contain the full
+    over-long subject anywhere in the output.  The test goes red if either the
+    subject cap or target cap is removed, or if the uncapped prefix returns.
+
+    A second case exercises the over-long target cap: delivery-target-missing
+    on a spec: subject with a 201-char target.  The printed entry must contain
+    the truncated target and must NOT contain the full over-long target.
     """
     _write(
         tmp_path / "docs/product/briefs/anchor.md",
@@ -625,9 +640,109 @@ def test_vi2405_subject_longer_than_200_chars_is_truncated(tmp_path: Path) -> No
     assert exit_hint == 1, (
         f"delivery-target-missing → exit 1; got {exit_hint}: {hard!r}"
     )
+    truncated_subj = long_subject[:200] + "\u2026"
+    all_output = "\n".join(out_lines + hard)
     dangling_text = " ".join(hard)
-    truncated = long_subject[:200] + "\u2026"
-    assert truncated in dangling_text, (
-        f"truncated label (first 200 chars + ellipsis) not found in hard; "
+    assert truncated_subj in dangling_text, (
+        f"truncated subject (first 200 chars + ellipsis) not found in hard; "
+        f"hard={hard!r}"
+    )
+    # Full over-long subject must be absent from every output line and hard violations
+    assert long_subject not in all_output, (
+        f"full over-long subject must be absent from all output; "
+        f"found in: {all_output!r}"
+    )
+
+    # Over-long target case: delivery-target-missing with a 201-char canonical target.
+    # Use docs/product/briefs/<name>.md form so the target passes _is_canonical_target.
+    _brief_prefix = "docs/product/briefs/"
+    _brief_suffix = ".md"
+    long_target_name = "a" * (201 - len(_brief_prefix) - len(_brief_suffix))
+    long_target = f"{_brief_prefix}{long_target_name}{_brief_suffix}"
+    assert len(long_target) == 201
+    snapshot_with_target = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [
+            {
+                "code": "delivery-target-missing",
+                "subject": "spec:foo",
+                "targets": [long_target],
+            },
+        ],
+    }
+    mod2 = _load_linter("vi2405_truncation_target")
+    out2, hard2, exit2 = mod2.check(
+        tmp_path, False, snapshot_provider=lambda _: snapshot_with_target
+    )
+    all_output2 = "\n".join(out2 + hard2)
+    truncated_tgt = long_target[:200] + "\u2026"
+    assert truncated_tgt in all_output2, (
+        f"truncated target not found in output; out={out2!r} hard={hard2!r}"
+    )
+    assert long_target not in all_output2, (
+        f"full over-long target must be absent from all output; "
+        f"found in: {all_output2!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# VI-2404 negative validator tests for lint-traceability
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "bad_record,label",
+    [
+        (
+            {"subject": "spec:foo", "field": "Parent intent", "intent": "intent:alpha"},
+            "subject-not-brief-typed",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent"},
+            "missing-intent",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent", "intent": "brief:alpha"},
+            "non-intent-typed-intent",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent", "intent": "intent:"},
+            "prefix-only-intent",
+        ),
+        (
+            {"subject": "brief:foo", "field": "Parent intent", "intent": "intent:A/../b"},
+            "path-like-intent",
+        ),
+    ],
+    ids=[
+        "subject-not-brief-typed",
+        "missing-intent",
+        "non-intent-typed-intent",
+        "prefix-only-intent",
+        "path-like-intent",
+    ],
+)
+def test_vi2404_lint_rejects_malformed_parent_intent_provenance(
+    tmp_path: Path, bad_record: dict, label: str
+) -> None:
+    """lint-traceability _validate_snapshot_dict raises delivery-resolver-unavailable
+    for a malformed Parent intent provenance record; each case goes red when its
+    specific check is removed from the validator."""
+    _write(
+        tmp_path / "docs/product/briefs/anchor.md",
+        "# Brief\n\n- **Slug:** `anchor`\n",
+    )
+    snapshot = {**_EMPTY_SNAPSHOT, "provenance": [bad_record]}
+
+    mod = _load_linter(f"vi2404_lint_neg_{label}")
+
+    out_lines, hard, exit_hint = mod.check(
+        tmp_path, False, snapshot_provider=lambda _: snapshot
+    )
+    assert exit_hint == 1, (
+        f"{label}: malformed Parent intent provenance → exit 1; "
+        f"got {exit_hint}: {hard!r}"
+    )
+    assert any("delivery-resolver-unavailable" in h for h in hard), (
+        f"{label}: delivery-resolver-unavailable expected in hard; "
         f"hard={hard!r}"
     )
