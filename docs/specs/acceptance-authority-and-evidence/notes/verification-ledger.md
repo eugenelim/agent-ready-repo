@@ -548,6 +548,19 @@ tests fail against the earlier code, and four replay tests fail when the record
 check is removed. The request to name the failing frame in the corruption
 error was refuted and left unchanged.
 
+Adversarial round 20 and quality-engineer round 8 found three more gaps: an
+unhashable identity escaped as a raw `TypeError` before validation, append
+could grow the log past the size replay accepts, and the shared validators
+were looser than the canonical schemas. The owner overrode the retry cap a
+final time and capped the loop: after this wave and one more review pair, any
+further minor finding goes to the backlog follow-up rather than another wave.
+The fix checks identities before any identity-keyed lookup, refuses an append
+that would pass the replay bound (`denied-log-size-limit`), and makes the
+shared validators enforce the canonical type, minimum-length, and
+closed-object rules for every field, including an integer-only
+`schema_version`. Seventeen of the nineteen new tests fail against the earlier
+code; the other two cover cases the earlier header check already refused.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on

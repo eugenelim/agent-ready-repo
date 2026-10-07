@@ -2370,3 +2370,144 @@ class TestReplaySchemaCheck:
         assert exc_info.value.denial_code == "denied-log-corrupt"
         allow, denial = events
         assert denial.operation_id == allow.operation_id
+
+
+_RECEIPT_CASES = [
+    ("empty-receipt-id", {"receipt_id": ""}, "denied-invalid-receipt-denied-invalid-identity"),
+    ("list-receipt-id", {"receipt_id": ["a"]}, "denied-invalid-receipt-denied-invalid-identity"),
+    ("dict-receipt-id", {"receipt_id": {"a": 1}}, "denied-invalid-receipt-denied-invalid-identity"),
+    ("int-fingerprint", {"acceptance_fingerprint": 5}, "denied-invalid-receipt-denied-invalid-field"),
+    ("empty-fingerprint", {"acceptance_fingerprint": ""}, "denied-invalid-receipt-denied-invalid-field"),
+    ("dict-outcome", {"outcome": {"k": [1]}}, "denied-invalid-receipt-denied-invalid-field"),
+    ("bool-schema", {"schema_version": True}, "denied-invalid-receipt-denied-unknown-schema-version"),
+]
+_SUPERSESSION_CASES = [
+    ("list-supersession-id", {"supersession_id": ["a"]}, {},
+     "denied-invalid-supersession-denied-invalid-identity"),
+    ("dict-supersession-id", {"supersession_id": {"a": 1}}, {},
+     "denied-invalid-supersession-denied-invalid-identity"),
+    ("int-transaction-id", {}, {"transaction_id": 5},
+     "denied-invalid-transaction-denied-invalid-identity"),
+    ("none-fingerprint", {}, {"acceptance_fingerprint": None},
+     "denied-invalid-transaction-denied-invalid-field"),
+    ("int-authority", {"authority": 7}, {},
+     "denied-invalid-supersession-denied-invalid-nested-field"),
+    ("open-provenance", {"provenance": {"reason_code": "r", "extra": "x"}}, {},
+     "denied-invalid-supersession-denied-invalid-nested-field"),
+]
+
+
+class TestAppendMatchesTheCanonicalSchemas:
+    """Append refuses every record the canonical schemas call inadmissible, with a paired denial."""
+
+    @staticmethod
+    def _assert_refused_cleanly(
+        es: ModuleType, log_path: Path, call: object, code: str
+    ) -> None:
+        events: list = []
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            call(events.append)  # type: ignore[operator]
+        assert exc_info.value.denial_code == code
+        allow, denial = events
+        assert denial.operation_id == allow.operation_id
+        assert log_path.read_bytes() == b""
+        _open_fresh_store(es, log_path)  # the store still reopens
+
+    @pytest.mark.parametrize(("case", "change", "code"), _RECEIPT_CASES, ids=[c[0] for c in _RECEIPT_CASES])
+    def test_receipt_append_refuses(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, case: str, change: dict, code: str
+    ) -> None:
+        log_path = tmp_path / f"ev-{case}.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        self._assert_refused_cleanly(es, log_path, lambda sink: store.append_receipt(
+            {**_make_receipt("r-case"), **change}, transaction_id="tx-case",
+            issuer=issuer, grant=grant, audit_sink=sink,
+        ), code)
+
+    @pytest.mark.parametrize(
+        ("case", "change", "kwargs", "code"), _SUPERSESSION_CASES, ids=[c[0] for c in _SUPERSESSION_CASES]
+    )
+    def test_supersession_append_refuses(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path,
+        case: str, change: dict, kwargs: dict, code: str,
+    ) -> None:
+        log_path = tmp_path / f"ev-{case}.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        call_kwargs = {"transaction_id": "tx-case", "acceptance_fingerprint": _CURRENT_FP, **kwargs}
+        self._assert_refused_cleanly(es, log_path, lambda sink: store.append_supersession(
+            {**_make_supersession("sup-case", ["r-prev-001"]), **change},
+            issuer=issuer, grant=grant, audit_sink=sink, **call_kwargs,
+        ), code)
+
+    @pytest.mark.parametrize(
+        "change",
+        [{"acceptance_fingerprint": 5}, {"outcome": {"k": [1]}}, {"schema_version": True}],
+        ids=["int-fingerprint", "dict-outcome", "bool-schema"],
+    )
+    def test_replay_rejects_the_same_receipt_fields(
+        self, es: ModuleType, tmp_path: Path, change: dict
+    ) -> None:
+        record = {**_make_receipt("r-replay"), **change}
+        body = {
+            "schema_version": 1, "transaction_id": "tx-replay",
+            "ordered_record_ids": ["r-replay"], "acceptance_fingerprint": _CURRENT_FP,
+        }
+        tx = {**body, "checksum": es._compute_frame_checksum(body, [record])}
+        log_path = tmp_path / "ev-replay-field.log"
+        log_path.write_bytes((es._canonical_json({"tx": tx, "records": [record]}) + "\n").encode())
+        with pytest.raises(es.EvidenceStoreError, match="record is invalid"):
+            es.EvidenceStore(log_path).open()
+
+    def test_replay_rejects_a_supersession_without_closed_authority(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        record = {**_make_supersession("sup-replay", ["r-prev-001"]), "authority": 7}
+        body = {
+            "schema_version": 1, "transaction_id": "tx-sup-replay",
+            "ordered_record_ids": ["sup-replay"], "acceptance_fingerprint": _CURRENT_FP,
+        }
+        tx = {**body, "checksum": es._compute_frame_checksum(body, [record])}
+        log_path = tmp_path / "ev-replay-authority.log"
+        log_path.write_bytes((es._canonical_json({"tx": tx, "records": [record]}) + "\n").encode())
+        with pytest.raises(es.EvidenceStoreError, match="record is invalid"):
+            es.EvidenceStore(log_path).open()
+
+    def test_replay_rejects_a_header_without_a_fingerprint(
+        self, es: ModuleType, tmp_path: Path
+    ) -> None:
+        record = _make_receipt("r-no-fp-header")
+        body = {
+            "schema_version": 1, "transaction_id": "tx-no-fp",
+            "ordered_record_ids": ["r-no-fp-header"], "acceptance_fingerprint": None,
+        }
+        tx = {**body, "checksum": es._compute_frame_checksum(body, [record])}
+        log_path = tmp_path / "ev-replay-header-fp.log"
+        log_path.write_bytes((es._canonical_json({"tx": tx, "records": [record]}) + "\n").encode())
+        with pytest.raises(es.EvidenceStoreError, match="header is invalid"):
+            es.EvidenceStore(log_path).open()
+
+
+class TestAppendStaysWithinTheReplayBound:
+    """Append never grows the log past the size replay accepts."""
+
+    def test_append_that_would_pass_the_bound_is_refused_and_the_log_reopens(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(es, "_EVIDENCE_LOG_MAX_BYTES", 1000)
+        log_path = tmp_path / "ev-bound.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        events: list = []
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            for n in range(10):
+                store.append_receipt(
+                    _make_receipt(f"r-bound-{n}"), transaction_id=f"tx-bound-{n}",
+                    issuer=issuer, grant=grant, audit_sink=events.append,
+                )
+        assert exc_info.value.denial_code == "denied-log-size-limit"
+        assert events[-1].reason_code == "denied-log-size-limit"
+        assert events[-1].operation_id == events[-2].operation_id
+        assert len(log_path.read_bytes()) <= 1000
+        _open_fresh_store(es, log_path)

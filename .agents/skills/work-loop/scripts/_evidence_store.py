@@ -466,6 +466,23 @@ def _is_identity(value: object) -> bool:
     return isinstance(value, str) and bool(value)
 
 
+def _is_schema_v1(value: object) -> bool:
+    """Return True for the integer 1 only; a boolean is not a schema version."""
+    return type(value) is int and value == 1
+
+
+def _is_closed_string_object(
+    value: object, required: frozenset[str], allowed: frozenset[str]
+) -> bool:
+    """Return True for a closed object of non-empty strings with every *required* key."""
+    return (
+        isinstance(value, dict)
+        and required <= set(value)
+        and set(value) <= allowed
+        and all(_is_identity(v) for v in value.values())
+    )
+
+
 def validate_transaction_dict(d: object) -> tuple[bool, str]:
     """Validate a ``semantic-evidence-transaction.v1`` record dict in code.
 
@@ -478,11 +495,13 @@ def validate_transaction_dict(d: object) -> tuple[bool, str]:
       denied-empty-ordered-record-ids — ordered_record_ids is empty.
       denied-invalid-identity        — transaction_id or an ordered_record_ids
                                        item is not a non-empty string.
+      denied-invalid-field           — acceptance_fingerprint or checksum is not
+                                       a non-empty string.
     """
     if not isinstance(d, dict):
         return False, "denied-not-a-dict"
     sv = d.get("schema_version")
-    if sv != SUPPORTED_TRANSACTION_SCHEMA_VERSION:
+    if not _is_schema_v1(sv):
         return False, "denied-unknown-schema-version"
     for field in _TRANSACTION_REQUIRED:
         if field not in d:
@@ -495,6 +514,8 @@ def validate_transaction_dict(d: object) -> tuple[bool, str]:
         return False, "denied-empty-ordered-record-ids"
     if not _is_identity(d.get("transaction_id")) or not all(_is_identity(o) for o in oids):
         return False, "denied-invalid-identity"
+    if not _is_identity(d.get("acceptance_fingerprint")) or not _is_identity(d.get("checksum")):
+        return False, "denied-invalid-field"
     return True, "ok"
 
 
@@ -512,11 +533,14 @@ def validate_receipt_dict(d: object) -> tuple[bool, str]:
                                        is not an object with exactly its permitted
                                        non-empty string fields.
       denied-invalid-identity        — receipt_id is not a non-empty string.
+      denied-invalid-field           — acceptance_fingerprint, outcome, or
+                                       task_projection_revision is not a
+                                       non-empty string.
     """
     if not isinstance(d, dict):
         return False, "denied-not-a-dict"
     sv = d.get("schema_version")
-    if sv != SUPPORTED_RECEIPT_SCHEMA_VERSION:
+    if not _is_schema_v1(sv):
         return False, "denied-unknown-schema-version"
     for field in _RECEIPT_REQUIRED:
         if field not in d:
@@ -526,6 +550,10 @@ def validate_receipt_dict(d: object) -> tuple[bool, str]:
         return False, "denied-unknown-authority-field"
     if not _is_identity(d.get("receipt_id")):
         return False, "denied-invalid-identity"
+    if not _is_identity(d.get("acceptance_fingerprint")) or not _is_identity(d.get("outcome")):
+        return False, "denied-invalid-field"
+    if "task_projection_revision" in d and not _is_identity(d["task_projection_revision"]):
+        return False, "denied-invalid-field"
     mode = d.get("freshness_mode")
     if mode not in _RECEIPT_FRESHNESS_MODES:
         return False, "denied-invalid-enum"
@@ -553,11 +581,13 @@ def validate_supersession_dict(d: object) -> tuple[bool, str]:
       denied-empty-superseded-ids     — superseded_receipt_ids is empty.
       denied-invalid-identity         — supersession_id or a superseded_receipt_ids
                                         item is not a non-empty string.
+      denied-invalid-nested-field     — authority or provenance is not a closed
+                                        object of non-empty string fields.
     """
     if not isinstance(d, dict):
         return False, "denied-not-a-dict"
     sv = d.get("schema_version")
-    if sv != SUPPORTED_SUPERSESSION_SCHEMA_VERSION:
+    if not _is_schema_v1(sv):
         return False, "denied-unknown-schema-version"
     for field in _SUPERSESSION_REQUIRED:
         if field not in d:
@@ -570,6 +600,12 @@ def validate_supersession_dict(d: object) -> tuple[bool, str]:
         return False, "denied-empty-superseded-ids"
     if not _is_identity(d.get("supersession_id")) or not all(_is_identity(s) for s in sids):
         return False, "denied-invalid-identity"
+    if not _is_closed_string_object(
+        d.get("authority"), frozenset({"identity", "role"}), frozenset({"identity", "role"})
+    ) or not _is_closed_string_object(
+        d.get("provenance"), frozenset({"reason_code"}), frozenset({"reason_code", "source_ref"})
+    ):
+        return False, "denied-invalid-nested-field"
     return True, "ok"
 
 
@@ -1091,6 +1127,12 @@ class EvidenceStore:
         id_field = "receipt_id" if kind == "receipt" else "supersession_id"
         index = self._receipts if kind == "receipt" else self._supersessions
         record_id = record.get(id_field, "unknown")
+        # Identities are checked before any identity-keyed lookup, so an
+        # unhashable or empty one is a stable refusal, never a raw error.
+        if not _is_identity(record_id):
+            return f"denied-invalid-{kind}-denied-invalid-identity", None
+        if not _is_identity(transaction_id):
+            return "denied-invalid-transaction-denied-invalid-identity", None
         for prev_tx in self._transactions:
             if prev_tx.get("transaction_id") != transaction_id:
                 continue
@@ -1151,6 +1193,11 @@ class EvidenceStore:
             if decision != "new":
                 raise EvidenceStoreRefused(
                     decision, f"{kind} or transaction identity already admitted"
+                )
+            if self._log_size + len(frame_bytes) > _EVIDENCE_LOG_MAX_BYTES:
+                raise EvidenceStoreRefused(
+                    "denied-log-size-limit",
+                    "appending this frame would take the log past the size replay accepts",
                 )
             cm.confined_append(self._root, self._log_path, frame_bytes)
             self._log_size += len(frame_bytes)
