@@ -546,14 +546,17 @@ def _validate_snapshot_dict(data: object) -> dict[str, Any]:
         if _pf == "Parent intent":
             # Parent intent records require a brief:-typed subject and a
             # required intent:-typed intent field; no target field is used.
-            if not isinstance(_item.get("subject"), str) or not _item["subject"].startswith("brief:"):
+            _pi_subj = _item.get("subject")
+            if not isinstance(_pi_subj, str) or not _pi_subj.startswith("brief:"):
                 raise ValueError(
-                    "delivery-resolver-unavailable: Parent intent provenance subject must be brief-typed"
+                    "delivery-resolver-unavailable:"
+                    " Parent intent provenance subject must be brief-typed"
                 )
             _pi_intent = _item.get("intent")
             if not isinstance(_pi_intent, str) or not _pi_intent.startswith("intent:"):
                 raise ValueError(
-                    "delivery-resolver-unavailable: Parent intent provenance requires intent-typed intent"
+                    "delivery-resolver-unavailable:"
+                    " Parent intent provenance requires intent-typed intent"
                 )
         else:
             if "intent" in _item:
