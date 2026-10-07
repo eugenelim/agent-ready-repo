@@ -852,6 +852,12 @@ Dispositions of the session's findings:
   Chrome 155.0.8059.39 it measures 7.56:1 on light and 6.44:1 on dark; the
   browser default measured 3.55:1 on dark. The full `browser_checks.py` suite passes: 114 tests in
   360 s.
+- **CI at `7b7445f40` (2026-10-07):** every PR workflow passes, including
+  `build-check` and `docs`. CI run 37665473513 (`test-corpus`) passes. CI run
+  37665477834 (`test-roster`) passes on rerun; its first attempt failed one
+  unrelated test on a git `maintenance.lock` race in a temporary repository.
+- **Review:** round 30 is clean. The frontend reviewer returned clean, and the
+  adversarial reviewer's one finding was refuted on adjudication.
 - **RFC-0099, read back from the file after the edit.** Status line:
   `- **Status:** Accepted`. Last `Related` item:
   `[ADR-0111](../adr/0111-intent-review-splits-well-formedness-from-assumption-attack.md) — supersedes in part § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands`,
