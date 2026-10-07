@@ -387,7 +387,9 @@ function chooseSpot(grid,vb,j,w,anyRecord){
     return best.to===j.to;
   };
   var search=function(offs,strict){
-    // On the line anywhere in the half first, then beside it.
+    // On the line anywhere in the searched stretch first (the arrowhead half
+    // for a scope label, the whole edge for a number or `cycle` label), then
+    // beside it.
     for(var k=0;k<offs.length;k++){
       for(var i=0;i<pts.length;i++){
         var cx=pts[i].x+pts[i].nx*offs[k],cy=pts[i].y+pts[i].ny*offs[k];

@@ -2405,8 +2405,11 @@ def test_crowded_labels_stay_on_their_own_edges(
     _navigate_graph(page, selected)
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", selected)
-    # Each label sits nearest an arrowhead at the record its own edge points at.
+    # Each whole label sits nearest an arrowhead at the record its own edge
+    # points at; a keyed number is held only to its key entry.
     for near in page.evaluate(_NEAREST_END_JS, "#view-graph .lineage-wrap svg"):
+        if near["text"].isdigit():
+            continue
         target = near["own"].split("|")[2]
         assert near["nearest"].split("|")[2] == target, (selected, "label by another record", near)
     markers = [x for x in labels if x["text"].isdigit()]
