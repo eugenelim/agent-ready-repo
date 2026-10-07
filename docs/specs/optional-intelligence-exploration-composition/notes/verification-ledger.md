@@ -430,8 +430,11 @@ No capture: the run's lessons concern eval-fixture authoring (a directive case n
 - `state.json` holds one wave-3 decline for T4 with reason `human-directed`,
   written by the controller for this repair. That code means a human told the
   controller to skip implementer dispatch, so the record does not describe
-  what happened. The engine state is never hand-edited, so the record stands
-  as written.
+  what happened. Review round 3 reopened the wave, which marks that record
+  superseded; the engine state is never hand-edited.
+- On 2026-10-06 the owner directed the controller to apply small prose and
+  record repairs directly for the rest of this run. The round-3 repair (this
+  entry) is recorded as a `human-directed` decline under that direction.
 - Open gap: `loop-cohort dispatch-receipt --decline` accepts only
   `no-implementer-installed` and `human-directed`, so a review repair the
   controller applies itself has no accurate code.
