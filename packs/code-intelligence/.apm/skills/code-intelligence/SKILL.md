@@ -177,7 +177,9 @@ Three rules are load-bearing:
 Wherever you report a result, quote the command that produced it exactly as
 run, flags and all. `--depth 1` and the default depth answer different
 questions, so a bare verb name leaves the reader unable to tell which one you
-asked.
+asked. When a caller hands you an output instead of letting you run the
+command, report it under the full command it stands for, and say it was
+supplied rather than run.
 
 Full handling — the confidence and provenance model, the annotation evidence
 envelope, freshness, and how to phrase a bounded claim — is in

@@ -498,3 +498,109 @@ def test_example_retains_only_synthetic_evidence() -> None:
     assert "untrusted data" in text.lower(), (
         "example must state that provider output is untrusted data"
     )
+
+
+def test_authority_bullet_covers_both_paths() -> None:
+    """(a) The Core-owned Authority bullet must name both root sources, --locator-b64,
+    and cover the standalone case (a provider-returned location is never opened directly
+    without Core's locator reader installed).
+    """
+    text: str = _read(EXAMPLE_PATH)
+    who_section: str = _section_after(text, WHO_OWNS_HEADING)
+    core_text: str = _subsection_after(who_section, "### Core-owned")
+
+    # Find the Authority bullet.
+    authority_start = core_text.find("**Authority.**")
+    assert authority_start >= 0, "Core-owned section must contain an **Authority.** bullet"
+    authority_text = core_text[authority_start:]
+    # Trim to just the Authority bullet (stop at the next "- **" bullet).
+    next_bullet = authority_text.find("\n- **", 1)
+    if next_bullet >= 0:
+        authority_text = authority_text[:next_bullet]
+
+    # Must name --locator-b64.
+    assert "--locator-b64" in authority_text, (
+        "Core-owned Authority bullet must name --locator-b64"
+    )
+
+    # Must name both root sources: user's explicit statement and calling workflow's bounds.
+    assert "user" in authority_text.lower() and "explicit" in authority_text.lower(), (
+        "Core-owned Authority bullet must name the user's explicit statement as a root source"
+    )
+    assert "calling workflow" in authority_text.lower() or "workflow" in authority_text.lower(), (
+        "Core-owned Authority bullet must name the calling workflow's declared bounds as a root source"
+    )
+
+    # Must cover the standalone case: without Core's reader, location is never opened.
+    standalone_covered = "without" in authority_text.lower() and (
+        "never" in authority_text.lower() or "not opened" in authority_text.lower()
+    )
+    assert standalone_covered, (
+        "Core-owned Authority bullet must cover the standalone case: "
+        "without Core's locator reader installed, a provider-returned location is never opened directly"
+    )
+
+
+def test_step5_does_not_restate_authority_rule() -> None:
+    """(b) The provider-fit path (Step 5 and its Authority pointer) must not contain
+    --locator-b64; that detail belongs only in the Core-owned Authority bullet in Who owns what.
+    """
+    text: str = _read(EXAMPLE_PATH)
+    provider_fit_section: str = _section_after(text, PROVIDER_FIT_HEADING)
+
+    assert "--locator-b64" not in provider_fit_section, (
+        "--locator-b64 must appear only in the Core-owned Authority bullet in "
+        "Who owns what, not in the provider-fit path"
+    )
+
+
+def test_shared_limits_do_not_claim_provenance_unavailable_on_provider_path() -> None:
+    """(c) The 'Limits both paths share' list must not claim per-edge provenance is
+    unavailable on the provider path; blast-radius rows lack per-row provenance but
+    wicked-estate path --json gives per-hop provenance for a specific route.
+    """
+    text: str = _read(EXAMPLE_PATH)
+    section: str = _section_after(text, FALLBACK_HEADING)
+    shared_start = section.find("Limits both paths share")
+    assert shared_start >= 0, "Fallback section must contain 'Limits both paths share'"
+    shared_text = section[shared_start:]
+    # Trim to what comes before the "Name each applicable gap" paragraph.
+    name_pos = shared_text.find("Name each applicable gap")
+    if name_pos >= 0:
+        shared_text = shared_text[:name_pos]
+
+    # Check each bullet in the shared-limits list: no bullet may claim
+    # provenance is unavailable on both paths (since path --json gives per-hop provenance).
+    bullets = re.findall(r"^\s*-\s+.+$", shared_text, re.MULTILINE)
+    for bullet in bullets:
+        lower_bullet = bullet.lower()
+        if "provenance" in lower_bullet and "neither path" in lower_bullet:
+            raise AssertionError(
+                "Limits both paths share must not have a bullet claiming that neither path "
+                f"can establish provenance: {bullet!r}"
+            )
+
+
+def test_depth_pointers_reference_depth_cut_section() -> None:
+    """(d) Lines citing evidence.md for depth-cut or raise-depth guidance must reference
+    evidence.md#the-depth-cut-is-reported, not evidence.md#direct-and-transitive-dependents.
+    """
+    text: str = _read(EXAMPLE_PATH)
+
+    # The example must link to the depth-cut section at least once.
+    assert "the-depth-cut-is-reported" in text, (
+        "The example must reference evidence.md#the-depth-cut-is-reported for depth-cut guidance"
+    )
+
+    # Lines about depth_horizon_reached or raise-depth must not send readers to
+    # the direct-and-transitive-dependents section.
+    for line in text.split("\n"):
+        if (
+            "depth_horizon_reached" in line
+            or ("raise" in line.lower() and "--depth" in line)
+        ) and "direct-and-transitive-dependents" in line:
+            raise AssertionError(
+                "Lines about raising --depth must not reference "
+                "evidence.md#direct-and-transitive-dependents; "
+                f"use #the-depth-cut-is-reported instead: {line!r}"
+            )
