@@ -1,7 +1,8 @@
 # Optional intelligence in repository grounding
 
 - **Slug:** `optional-intelligence-grounding-composition`
-- **Status:** Draft
+- **Status:** Fulfilled
+- **Accepted:** 2026-10-05 by eugenelim at closeout: shaping-reviewed and de-risked 2026-10-04, its spec approved for build and delivered in PR #1504.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -11,6 +12,7 @@
 - **De-risked:** 2026-10-04
 - **Decomposed:** 2026-10-04 spec
 - **Governed by:** [RFC-0079](../../rfc/0079-codebase-context-pack.md)
+- **Fulfilled:** 2026-10-05 eugenelim: spec optional-intelligence-grounding-composition Shipped in ff170f0ad (#1504); verified on main: packs/core/.apm/skills/repository-grounding/, Core 2.28.0 in pack.toml and plugin.json, changelog [core][2.28.0], new-spec step-3 delegation, README "Repository grounding" section.
 
 ## Outcome
 
