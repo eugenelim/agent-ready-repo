@@ -799,6 +799,30 @@ run.
 or `cat` answers each task in about one call, so the navigator cannot beat it.
 Human-run sessions (owner or delegate) have not run.
 
+**Human-run session (owner, 2026-10-07, export of `638ee4f12`).** The owner ran
+the panel in the navigator and directed that this one session stand for the
+human-run sessions. Lookup effort was not counted, and the direct-browsing
+condition was not run, so the effort rule cannot be scored for this session.
+
+| Task | Owner's answer | Against the frozen key |
+| --- | --- | --- |
+| 1. Orientation | 139 ADRs and 104 RFCs shown; 105 expected from the last RFC ordinal | Counts correct: RFC-0081 was never allocated, so 104 is the true total. Non-`Accepted` RFC values not stated. |
+| 2. Exact status | RFC-0099's full qualified value, read in full | Correct. The owner judged the value overloaded in the source record. |
+| 3. Partial supersession | ADR-0098's D3 is superseded in part by ADR-0121 | True, but it answers the reverse question; the key asks what ADR-0098 supersedes in part (ADR-0019 D6, D7; ADR-0076 D1, D2). |
+| 4. Guidance context | No visible relationship between RFC-0105 and ADR-0134; ADR-0134's `Related` lists only ADRs | Consistent with the key (no checked lineage); the session ran without the frozen caller assertion, so the navigation-only trust label was not shown. ADR-0134's source `Related` names only ADR-0108 and ADR-0129. |
+| 5. Handoff | ADR-0001's direct repository link and its rationale | Correct; the boundary notice was not mentioned. |
+
+Usability findings from the session:
+- **Search scope.** Typing `98` does not find ADR-0098: the search box matches
+  titles and lifecycle values only (its accessible name says so; its visible
+  label is "Search").
+- **Partial supersession direction.** On ADR-0098 the "superseded in part by"
+  banner was read before what ADR-0098 itself supersedes in part.
+
+**Status: AC-0020 is not met on its frozen thresholds.** Agent runs fail the
+effort rule, and the human session has no effort counts. Whether this session
+satisfies the criterion is the owner's decision, made by amending AC-0020.
+
 ## T7 stage 2 evidence
 
 Chrome version: 154.0.8037.93 (confirmed via `bench.py` output, headless channel="chrome").
