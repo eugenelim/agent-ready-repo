@@ -845,9 +845,13 @@ Dispositions of the session's findings:
   `ADR-0098`, `adr-0098`, `98` and `0098` each find ADR-0098, and `98` and
   `0098` also find RFC-0098. A title term still matches, and a term with no
   match shows the no-result state. The visible label reads "Search IDs,
-  titles, statuses", the hint reads "e.g. ADR-0098 or 98", and the accessible
-  name reads "Search record IDs, titles, and statuses". The full
-  `browser_checks.py` suite passes: 114 tests in 295 s.
+  titles, statuses", and the hint reads "e.g. ADR-0098 or 98". The computed
+  accessible name is the visible label itself, so it meets WCAG 2.5.3 Label in
+  Name; the check reads the computed name and fails when an `aria-label` that
+  differs from the label is put back. The hint uses the muted text colour. In
+  Chrome 155.0.8059.39 it measures 7.56:1 on light and 6.44:1 on dark; the
+  browser default measured 3.55:1 on dark. The full `browser_checks.py` suite passes: 114 tests in
+  360 s.
 - **RFC-0099, read back from the file after the edit.** Status line:
   `- **Status:** Accepted`. Last `Related` item:
   `[ADR-0111](../adr/0111-intent-review-splits-well-formedness-from-assumption-attack.md) — supersedes in part § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands`,

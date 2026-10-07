@@ -189,7 +189,7 @@ This is not a disclaimer to skip. The navigator reports what ADRs and RFCs say. 
 
 The `export` subcommand produces one self-contained HTML file with corpus list, lifecycle-graph, guidance-context, and record-detail views. The file performs no network or file reads after creation.
 
-The search box in the explorer matches record IDs (full, e.g. `ADR-0098`, or bare ordinal, e.g. `98` or `0098`), titles, and statuses. A bare ordinal matches both ADR and RFC records with that number; a prefixed form such as `adr-98` restricts to that kind.
+The search box in the explorer matches record IDs (full, e.g. `ADR-0098`, or bare ordinal, e.g. `98` or `0098`), titles, and statuses. A bare ordinal matches both ADR and RFC records with that number, and also shows any record whose ID contains the digits you typed; a prefixed form such as `adr-98` restricts the number match to that kind.
 
 ### Reading the lifecycle graph
 

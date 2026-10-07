@@ -167,6 +167,7 @@ button{min-height:24px;min-width:24px}
   border:1.5px solid var(--border);border-radius:var(--radius-sm);
   font-size:.83rem;background:var(--surface);color:var(--text);
   min-width:5rem;max-width:100%}
+.controls input::placeholder{color:var(--text-muted);opacity:1}
 /* Kind pills (segmented) */
 .kind-pills{
   display:flex;gap:0;border-radius:var(--radius-sm);

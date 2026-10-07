@@ -3127,8 +3127,8 @@ def test_search_by_record_id(
 def test_search_label_names_ids_titles_statuses(
     browser: object, export_search: pathlib.Path
 ) -> None:
-    """The search box's visible label and its accessible name both mention
-    IDs, titles, and statuses."""
+    """The search box's visible label and its computed accessible name both
+    mention IDs, titles, and statuses, and the name contains the label."""
     page = _open_page(browser, export_search)
     page.wait_for_selector("li.record-item")
 
@@ -3150,17 +3150,11 @@ def test_search_label_names_ids_titles_statuses(
         f"visible label must mention statuses; got {label_text!r}"
     )
 
-    # Accessible name (aria-label attribute)
-    aria_label = page.evaluate(
-        "() => document.getElementById('search-input').getAttribute('aria-label') || ''"
-    )
-    assert aria_label, "search input must have a non-empty aria-label"
-    assert "IDs" in aria_label or "ids" in aria_label.lower(), (
-        f"aria-label must mention IDs; got {aria_label!r}"
-    )
-    assert "title" in aria_label.lower(), (
-        f"aria-label must mention titles; got {aria_label!r}"
-    )
-    assert "status" in aria_label.lower(), (
-        f"aria-label must mention statuses; got {aria_label!r}"
-    )
+    # Computed accessible name, as assistive technology reads it. It must
+    # contain the visible label so a speech-input user can say what they see.
+    snapshot = page.locator("#search-input").aria_snapshot()
+    assert snapshot.startswith("- searchbox "), snapshot
+    name = snapshot.split('"')[1] if '"' in snapshot else ""
+    assert label_text in name, (label_text, name)
+    for word in ("id", "title", "status"):
+        assert word in name.lower(), (word, name)

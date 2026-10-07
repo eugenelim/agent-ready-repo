@@ -1,6 +1,6 @@
 # Spec: Decision navigation
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** Platform Core maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0105](../../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md)
