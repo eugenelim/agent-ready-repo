@@ -439,18 +439,32 @@ Full runs on the round-9 fixes at `32b6c6cfc` (2026-10-06, desktop Chrome 154.0.
 
 ## Round-10 review corrections
 
-The tenth post-gates review (2026-10-06, head `d61408489`) found the security and experience lenses clean and sustained 6 findings across the other three, refuting 1. Two adversarial items came back undecided for lack of a runtime measurement; both are measured and acted on below (R10-ADV-2, R10-ADV-3). The engine's round-10 `findings-remain` record holds 2 fingerprints: the adversarial adjudication carries those undecided items, so its 3 sustained findings were not fingerprinted. They are closed here all the same. "Failed before" means the check failed on the code at `d61408489`.
+The tenth post-gates review (2026-10-06, head `d61408489`) found the security and experience lenses clean and sustained 5 findings across the other three, refuting 1. Two adversarial items came back undecided for lack of a runtime measurement; both are measured and acted on below (R10-ADV-2, R10-ADV-3). The engine's round-10 `findings-remain` record holds 2 fingerprints: the adversarial adjudication carries those undecided items, so its 3 sustained findings were not fingerprinted. They are closed here all the same. "Failed before" means the check failed on the code at `d61408489`.
 
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
-| R10-ADV-1 / R10-FE-1 | Concern | A keyed number was still held to the arrowhead half of its edge. | closed — a keyed number, and a `cycle` label, may use the whole edge; only a whole scope label keeps to the arrowhead half. The whole-edge search is not separately test-verified: turning it off leaves every check green. |
+| R10-ADV-1 / R10-FE-1 | Concern | A keyed number was still held to the arrowhead half of its edge. | closed — a keyed number, and a `cycle` label, may use the whole edge; only a whole scope label keeps to the arrowhead half. The `cycle` whole-edge rule is pinned by `test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels[three]` (restricting only `cycle` labels to the half fails it). The whole-edge search for keyed numbers is not separately test-verified: turning off only that leaves every check green. |
 | R10-ADV-2 | Concern | The corpus figure counted numbers as whole labels. | closed — on this repository's corpus, 37 focused routes draw 170 labels: 87 whole labels, none by another record's arrowhead, and 83 keyed numbers, of which 33 sit nearest another record's arrowhead. That is the accepted trade-off: each number's key entry names both records. No edge is unmarked. |
-| R10-ADV-3 | Concern | In a three-record newest-column cycle, two arcs showed numbers. | closed — `cycle` labels name no scope, so they skip the own-record rule and may use the whole edge; `test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels` now asserts each arc's label reads `cycle` (failed before). |
+| R10-ADV-3 | Concern | In a three-record newest-column cycle, two arcs showed numbers. | closed — `cycle` labels name no scope, so they skip the own-record rule and may use the whole edge; `test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels` now asserts each arc's label reads `cycle` (`[three]` failed before; `[two]` passed). |
 | R10-QE-1 | Concern | Neither placement rule of R9-FE-1 was checked on its own. | closed — the selected-record-first ordering was not needed and is removed; with it gone, turning off the any-record rule for numbers fails `test_every_edge_of_a_dense_chain_is_marked[ADR-0010]`. |
 | R10-ADV-4 | Nit | The round-9 refuted count was wrong. | closed — 4. |
 | R10-ADV-5 | Nit | The round-9 run line named no commit. | closed — `32b6c6cfc`, and CI run 37555604543 on `d61408489`. |
 
-Full runs on the round-10 fixes at `9f149324c` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 319 s; unit suites 244 passed.
+Full runs on the round-10 fixes at `9f149324c` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 319 s; unit suites 244 passed. CI run 37564170606 (`test-corpus`, `ubuntu-latest`, Python 3.11, `2dc835d83`) passed all four shards.
+
+## Round-11 review corrections
+
+The eleventh post-gates review (2026-10-06, head `5efc08a14`) found the security lens clean and sustained 5 Nits across the other four, refuting 4 (among them the experience lens's marker-position Concern, an already accepted trade-off, and an adversarial corpus figure taken from an uncommitted build). Two adjudications left the same item undecided: whether the `cycle` whole-edge rule is pinned. It is: restricting only `cycle` labels to the arrowhead half fails `[three]` on the committed code, and R10-ADV-1 now says so. The engine's round-11 `findings-remain` record holds 1 fingerprint (the frontend Nit); the adversarial and quality adjudications carry that undecided item, so their sustained Nits were not fingerprinted. They are closed here all the same.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| R11-FE-1 / R11-ADV-5 | Nit | A placement comment said every search covers the half edge. | closed — the comment names the arrowhead half for scope labels and the whole edge for numbers and `cycle` labels. |
+| R11-QE-2 | Nit | The crowded check held keyed numbers to the own-record rule. | closed — it applies that rule to whole labels only, as the dense check does. |
+| R11-ADV-3 | Nit | The round-10 sustained count was wrong. | closed — 5. |
+| R11-ADV-4 | Nit | The round-10 run line named no CI run. | closed — run 37564170606 on `2dc835d83`. |
+| (undecided) | — | Whether the `cycle` whole-edge rule is pinned. | closed — see R10-ADV-1. |
+
+Full runs on the round-11 fixes at `8663b8aa9` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 785 s; unit suites 244 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
