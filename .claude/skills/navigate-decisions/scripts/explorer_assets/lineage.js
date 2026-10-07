@@ -276,7 +276,7 @@ function relDesc(path){
 // Placement runs in three passes — read all geometry, choose every spot,
 // then draw — because reading geometry after any drawing forces a fresh
 // layout of the whole diagram, which made placement quadratic.
-function placeLabels(g,edges,keyHost,first){
+function placeLabels(g,edges,keyHost){
   var svg=g.ownerSVGElement,vb=svg&&svg.viewBox&&svg.viewBox.baseVal;
   var grid=new BoxGrid();
   (g._blockBoxes||[]).forEach(function(b){grid.add(b);});
@@ -305,16 +305,13 @@ function placeLabels(g,edges,keyHost,first){
   });
   var jobs=(g._defer||[]).map(function(args){
     var rel=args[2]&&args[2].dataset&&args[2].dataset.rel;
-    return{txt:args[0],fill:args[1],path:args[2],pts:edgePoints(args[2]),
-      to:rel&&!args[2].dataset.sat?rel.split('|')[2]:null,ends:ends};
+    var all=edgePoints(args[2]);
+    return{txt:args[0],fill:args[1],path:args[2],all:all,
+      pts:all.filter(function(e){return e.s>=e.len/2;}),
+      // A cycle label names no scope, so it may sit by any record.
+      to:rel&&!args[2].dataset.sat&&args[0]!=='cycle'?rel.split('|')[2]:null,ends:ends};
   });
   g._defer=[];
-  // The selected record's own edges claim space first.
-  if(first)jobs.sort(function(a,b){
-    var fa=a.path&&a.path.dataset&&(a.path.dataset.rel||'').split('|').indexOf(first)>=0?0:1;
-    var fb=b.path&&b.path.dataset&&(b.path.dataset.rel||'').split('|').indexOf(first)>=0?0:1;
-    return fa-fb;
-  });
   // Measure each distinct label text once, in one batch.
   var widths={},probes=[];
   var measure=function(s){
@@ -334,7 +331,8 @@ function placeLabels(g,edges,keyHost,first){
     var whole=j.txt.length<=MAX_LABEL;
     var box=whole&&chooseSpot(grid,vb,j,labelWidth(j.txt,widths));
     if(box){draws.push({j:j,shown:j.txt,box:box});return;}
-    // A number is spelled out in the key, so it may sit anywhere clear on its edge.
+    // A number is spelled out in the key, so it may sit anywhere clear on its
+    // whole edge, by any record.
     var num=String(key.length+1),mbox=chooseSpot(grid,vb,j,labelWidth(num,widths),true);
     if(mbox)draws.push({j:j,shown:num,box:mbox});
     key.push({num:num,txt:j.txt,desc:relDesc(j.path),marked:!!mbox});
@@ -352,20 +350,20 @@ function placeLabels(g,edges,keyHost,first){
   }
 }
 function labelWidth(s,widths){return Math.ceil((widths[s]||s.length*6)+8);}
-// Points every 4 px along the half of an edge nearest its arrowhead, with
-// their unit normals, nearest the three-quarter point first: a label then
-// sits by the record its edge points at, not by a neighbour's.
+// Points every 4 px along an edge with their unit normals, nearest the
+// three-quarter point first. A whole label uses only the half nearest the
+// arrowhead, so it sits by the record its edge points at; a keyed number,
+// spelled out in the key, may use the whole edge.
 function edgePoints(path){
   var len=0;try{len=path&&path.getTotalLength?path.getTotalLength():0;}catch(e){}
   if(!len)return[];
   var pts=[];
-  for(var s=0;s<=len;s+=4){var q=path.getPointAtLength(s);pts.push({s:s,x:q.x,y:q.y});}
+  for(var s=0;s<=len;s+=4){var q=path.getPointAtLength(s);pts.push({s:s,len:len,x:q.x,y:q.y});}
   pts.forEach(function(e,n){
     var a=pts[Math.max(0,n-1)],c=pts[Math.min(pts.length-1,n+1)];
     var dx=c.x-a.x,dy=c.y-a.y,dl=Math.sqrt(dx*dx+dy*dy)||1;e.nx=-dy/dl;e.ny=dx/dl;
   });
-  return pts.filter(function(e){return e.s>=len/2;})
-    .sort(function(a,b){return Math.abs(a.s-len*0.75)-Math.abs(b.s-len*0.75);});
+  return pts.sort(function(a,b){return Math.abs(a.s-len*0.75)-Math.abs(b.s-len*0.75);});
 }
 // The first pass wants a spot no other line touches: the plate centred on its
 // line, then just above or below it, within one plate height. Where crossing
@@ -373,7 +371,8 @@ function edgePoints(path){
 // its own line and lets other lines pass under it, but none within 7 px of
 // its centre, so the line through its middle is always the one it names.
 function chooseSpot(grid,vb,j,w,anyRecord){
-  var h=LABEL_H,path=j.path,pts=j.pts;
+  // A number or a `cycle` label names no scope, so it may use the whole edge.
+  var h=LABEL_H,path=j.path,pts=anyRecord||j.txt==='cycle'?j.all:j.pts;
   var outside=function(b){return vb&&vb.width>0&&(b.x<vb.x||b.y<vb.y||
     b.x+b.w>vb.x+vb.width||b.y+b.h>vb.y+vb.height);};
   var clearNear=function(cx,cy,r){return!grid.hits({x:cx-r,y:cy-r,w:2*r,h:2*r},path,true);};
@@ -893,7 +892,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   container.appendChild(axis);
   wrap.className='lineage-wrap';wrap.style.overflowX='auto';wrap.style.maxWidth='100%';
   wrap.appendChild(svg);container.appendChild(wrap);
-  placeLabels(lg,[eg,ctxG],container,selectedId);
+  placeLabels(lg,[eg,ctxG],container);
 
   // Contextual toggle
   if(ctxRels.length>0){

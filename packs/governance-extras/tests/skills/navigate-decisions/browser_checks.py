@@ -2885,7 +2885,8 @@ def test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels(
     browser: object, tmp_path_factory: pytest.TempPathFactory, size: str
 ) -> None:
     """A two- or three-record cycle right of an older record, with no
-    satellites, keeps every arc inside the drawing and a label on each."""
+    satellites, keeps every arc inside the drawing and its own `cycle` label
+    on each."""
     export = _publish_with(tmp_path_factory, f"cycle_newest_{size}", _NEWEST_CYCLES[size], [])
     page = _satellite_page(browser, export, "ADR-0002")
     info = page.evaluate(
@@ -2896,13 +2897,13 @@ def test_a_cycle_in_the_newest_column_keeps_its_arcs_and_labels(
             for (let s = 0; s <= n; s += 1) maxX = Math.max(maxX, p.getPointAtLength(s).x);
             return {rel: p.dataset.rel, maxX,
               labels: [...svg.querySelectorAll('.edge-label')]
-                .filter(t => t.dataset.for === p.dataset.rel).length}; });
+                .filter(t => t.dataset.for === p.dataset.rel).map(t => t.textContent)}; });
           return {width: vb.width, arcs: out}; }"""
     )
     assert len(info["arcs"]) == (2 if size == "two" else 3), info
     for arc in info["arcs"]:
         assert arc["maxX"] <= info["width"], (arc, info["width"])
-        assert arc["labels"] == 1, info
+        assert arc["labels"] == ["cycle"], info
 
 
 def test_a_same_column_assertion_runs_straight_between_its_records(
