@@ -149,10 +149,10 @@ Review result: clean.
 
 Grading command: `agentbundle pack evals run --pack code-intelligence --mode in-harness --check behavior --reports <reports.json>`.
 
-Reported tally: `code-intelligence: 5/13 evals passed ⚠ 8 errored`.
+Final tally: `code-intelligence: 7/13 evals passed ⚠ 6 errored`.
 
-- **5 passed:** `composition-provider-fit` (run 2), `composition-provider-absent`, `composition-poor-fit`, `composition-core-only`, `composition-untrusted-output` — the five new cases, all graded from their evidence records.
-- **8 errored by design:** The eight earlier cases (`provider-fit`, `provider-absent`, `provider-poor-fit`, `provider-unavailable`, `provider-fail`, `provider-conflict`, `provider-disclosure`, `blast-radius-completeness`) were not re-run in this delivery. Their prompts, fixtures, and skill paths are unchanged from the prior delivery; the grader reports them as errored because no new run record exists. This is expected and recorded in `eval-runs.md`.
+- **7 passed:** `composition-provider-fit` (round 4), `composition-provider-absent` (round 3), `composition-poor-fit` (round 3), `composition-core-only` (round 2), `composition-untrusted-output` (round 4), `1` (round 3), and `cognitive-load-output-quality` (round 3). Each is graded from its run's evidence record or handoff in `eval-runs.md`.
+- **6 errored by design:** cases `2` through `7` were not re-run, so the grader has no run record for them. Their prompts, fixtures, and skill paths are unchanged. The only shipped change that reaches them is the `SKILL.md` § Evidence discipline rule to quote each command exactly as run. Case `1` and `cognitive-load-output-quality` were re-run because that rule bears most directly on them — the latter grades leading with the outcome rather than the commands run — and both passed.
 
 ## Execution observations
 
@@ -167,17 +167,74 @@ Two earlier evaluation rounds were superseded before the final records in `eval-
 - **Round 1:** Fixtures coached the agent — a docstring in `composition-config_loader.py` stated what text search cannot establish — and carried row lines and a function count that disagreed with the source. The fixtures were made neutral (docstring removed, line numbers and counts made consistent), and every case ran again.
 - **Round 2 — `composition-provider-fit` run 1 failed:** The evidence record named the `blast-radius` action and `searched_depth: 1` but never the command as run. `SKILL.md` § Evidence discipline gained the rule "every command quoted exactly as run, flags included." `composition-provider-fit` ran again as run 2 and passed. The three other cases that load `code-intelligence` ran again against the repaired skill. `composition-core-only` does not load that skill, so its second-round run stands without a re-run.
 
+### (c) Repair round — post-gates review findings
+
+Eighteen sustained findings were adjudicated across three reviewers. The table below lists each by reviewer, severity, and what changed.
+
+**Security reviewer (2 sustained):**
+
+| # | Sev | Finding | Change |
+|---|-----|---------|--------|
+| 1 | Concern | Step 4 let a standalone run open a provider-returned file location directly | `composition-example.md` Step 5 and Authority paragraph now cover both Core-installed and standalone paths; standalone path uses `wicked-estate source` output as data, never opens the location directly |
+| 2 | Nit | Fallback freshness check ran unbounded `git log --name-only` | Changed to `git log -n <N> --name-only --format='%h %s'` with N from the `STALENESS:` line |
+
+**Adversarial reviewer (8 sustained):**
+
+| # | Sev | Finding | Change |
+|---|-----|---------|--------|
+| 1 | Nit | Ledger reason for not re-running earlier eight cases omitted the SKILL.md evidence-discipline change | Case `1` and `cognitive-load-output-quality` re-ran in round 3 and passed; the tally names the rule as the reason they were chosen and why cases `2`–`7` were not |
+| 2 | Concern | Ledger named invented case ids; CLI-contract count was directory total | Tally now names real ids (1–7 and `cognitive-load-output-quality`); AC-0007 now states 33 for CLI-contract module, 58 for directory |
+| 3 | Nit | Fallback gap list and changelog Highlight implied graph detects dynamic dispatch | Gap list restructured into text-search-only and shared limits; changelog Highlights rewritten as plain outcome sentences |
+| 4 | Concern | Core-owned Authority text used one root source; Core allows two | Both `composition-example.md` Authority paragraph and Who-owns-what Authority bullet now say "the user's explicit statement or the calling workflow's declared bounds" |
+| 5 | Concern | Provider-fit path did not cite the capability-map blast-radius entry; test accepted any capability-map link | `composition-example.md` now links to `capability-map.md#graph-relationships` and names "Blast radius / who depends on this"; `test_example_walks_the_provider_fit_path` tightened to require the specific citation and the resolve step |
+| 6 | Concern | Poor-fit fixtures disagreed on commit count (3 vs 2); history command had no range | `composition-stats-b.txt` STALENESS count changed to 2; history command changed to `git log -n <N> --name-only --format='%h %s'` |
+| 7 | Concern | Two T2 construction tests left out plan-required properties | `_PROVIDER_TERMS` in `test_composition_evals.py` expanded with capability-map output field names; hostname check added to `test_composition_fixtures_retain_only_synthetic_evidence` |
+| 8 | Nit | Two fixture names hinted at graded behavior | `composition-blast-radius-untrusted.json` → `composition-blast-radius-b.json`; `composition-stats-lagged.txt` → `composition-stats-b.txt`; "untrusted" and "lagged" added to `_GRADED_PHRASES`; evals.json and test pins updated |
+
+**Experience reviewer (8 sustained):**
+
+| # | Sev | Finding | Change |
+|---|-----|---------|--------|
+| 3 | Concern | Fallback freshness check gave no commit range | Same fix as security nit 2 above |
+| 4 | Concern | Provider-fit path skipped the resolve step | `wicked-estate resolve parse_config --json` added as Step 3; steps renumbered; resolve command added to Pack-owned Commands bullet |
+| 5 | Concern | Step 3 omitted depth-cut fields; no reconciliation with raise-depth rule | Step 4 (new) names `searched_depth`, `node_cap_reached`; points to `evidence.md` § Direct and transitive dependents for raise-depth; Step 6 (Stop) also points there; no new rule about `depth_horizon_reached` at depth 1 stated |
+| 8 | Concern | Core, the locator reader, and the root rule named without plain-word explanation | Preamble explains Core; Step 5 explains locator reader on first use; Binary-absent scenario explains repository-native search on first use |
+| 9 | Concern | Guide worked-example section never said where the example lives | Guide now opens with the installed path `references/composition-example.md` inside the `code-intelligence` skill |
+| 10 | Concern | Changelog Highlights used unexplained internal terms | Rewritten as two plain outcome sentences; term inventory moved to `### Added` |
+| 12 | Nit | "Repository-native search" used before explained | Explained at first use in the Binary-absent scenario |
+| 15 | Nit | README said each path labels ownership; only closing section does | README updated to say the example ends with a section labelling which obligations are Core's and which are this pack's |
+
+**Files changed in this repair round:**
+- `packs/code-intelligence/.apm/skills/code-intelligence/references/composition-example.md`
+- `packs/code-intelligence/.apm/skills/code-intelligence/SKILL.md`
+- `packs/code-intelligence/README.md`
+- `guides/code-intelligence/how-to/investigate-a-codebase.md`
+- `docs/product/changelog.md`
+- `packs/code-intelligence/.apm/skills/code-intelligence/evals/evals.json`
+- `packs/code-intelligence/.apm/skills/code-intelligence/evals/files/composition-stats-b.txt` (new; replaces composition-stats-lagged.txt)
+- `packs/code-intelligence/.apm/skills/code-intelligence/evals/files/composition-blast-radius-b.json` (new; replaces composition-blast-radius-untrusted.json)
+- `packs/code-intelligence/tests/pack/test_composition_example.py`
+- `packs/code-intelligence/tests/skills/code-intelligence/test_composition_evals.py`
+- `docs/specs/code-intelligence-golden-composition-example/notes/verification-ledger.md`
+
+### (d) Round 3 and round 4 evaluations
+
+- **Round 3:** after the repair round, the four composition cases that load `code-intelligence`, case `1`, and `cognitive-load-output-quality` ran again in fresh sessions. All passed.
+- **Round 4:** the repaired example added a resolve step, but no case supplied a captured `resolve` result, so the round-3 provider-fit run fell back to text search for that step. `evals/files/composition-resolve.json` was added in the shape `test_estate_cli_contract.py` pins (`symbol_id`, `name`, `kind`, `file`, `line`) and listed in `composition-provider-fit` and `composition-untrusted-output`; both ran again and passed.
+- **Two test corrections in the repair round:** the links check now skips same-page `#anchor` links, which the repaired example's Authority pointer introduced; the fixture hostname check now also catches bare hostnames, not only hostnames inside URLs. Mutation reds: removing the capability-map blast-radius citation or the resolve step fails `test_example_walks_the_provider_fit_path`; appending a bare non-example hostname, or one inside a URL, to a fixture fails `test_composition_fixtures_retain_only_synthetic_evidence`; adding a capability-map output field to the core-only case fails `test_core_only_case_names_no_provider`. Each fixture was restored afterwards.
+- **One de-duplication:** the repaired example stated the authority rule three times; the provider-fit Authority paragraph is now a one-line pointer to the Core-owned rule in "Who owns what".
+
 ## Acceptance-criteria evidence map
 
 | AC | Description (short) | Evidence |
 | --- | --- | --- |
-| AC-0001 | Task-fit path complete | `composition-provider-fit` run 2 (all 7 assertions pass); `test_example_walks_the_provider_fit_path` |
+| AC-0001 | Task-fit path complete | `composition-provider-fit` round 4 (all 7 assertions pass); `test_example_walks_the_provider_fit_path` |
 | AC-0002 | Fallback path complete | `composition-provider-absent`, `composition-poor-fit` (all assertions pass); `test_example_walks_the_fallback_paths` |
 | AC-0003 | Ownership explicit | Cold-read audit (this ledger, no ambiguous sentence); `test_example_labels_every_owner`; `test_core_owned_rules_name_no_provider_detail` |
 | AC-0004 | Native details canonical | `test_example_links_canonical_references`; `test_example_copies_no_canonical_detail` |
 | AC-0005 | Provider tests pack-local | Core-boundary scan (invocation grep empty); `lint-pack-test-boundary` pass; `test_composition_cases_are_pinned` |
 | AC-0006 | Reusable outcome provider-neutral | `composition-core-only` pass; `composition-provider-absent` pass; `test_core_owned_rules_name_no_provider_detail`; `test_core_only_case_names_no_provider` |
-| AC-0007 | Pack remains standalone | `test_estate_cli_contract.py` ran (not skipped) — 58 tests passed; `agentbundle catalogue verify` ok; `test_composition_cases_are_pinned` (existing cases unchanged) |
+| AC-0007 | Pack remains standalone | `test_estate_cli_contract.py` ran (not skipped) — 33 tests passed in that module alone; the 58-count covers the whole `tests/skills/code-intelligence/` directory; `agentbundle catalogue verify` ok; `test_composition_cases_are_pinned` (existing cases unchanged) |
 | AC-0008 | Example nonnormative | `test_skill_and_readme_route_to_the_example`; guide checks pass; governance-citation grep zero hits in shipped content |
 | AC-0009 | Pattern set stays open | `test_investigation_patterns_stay_open` |
 | AC-0010 | No Core reverse dependency | Core-boundary scan clean; `git diff origin/main --stat -- packs/core` empty; `composition-core-only` pass |

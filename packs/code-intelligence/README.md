@@ -50,11 +50,13 @@ Wicked Estate never learns that any of them exist.
 
 ## Composition example
 
+Before changing the signature of `parse_config`, which call sites must change, and which could not be established?
 [`.apm/skills/code-intelligence/references/composition-example.md`](.apm/skills/code-intelligence/references/composition-example.md)
-shows one complete change-impact inquiry — the provider-fit path using an
-indexed call graph, and the fallback path using repository-native search when
-the provider is absent or the index is stale. Each path labels which obligations
-belong to Core inquiry behavior and which details are Wicked Estate-specific.
+walks that question through two paths: the provider-fit path using an indexed
+call graph, and the fallback path using repository-native search when the
+provider is absent or the index is stale. It closes with a section labelling
+which obligations belong to Core (the companion `core` pack) and which details
+are specific to this pack.
 
 The example is illustrative, not a contract. Other providers may expose fewer,
 different, or new capabilities and need not emulate Wicked Estate. The current

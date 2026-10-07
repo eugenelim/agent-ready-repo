@@ -1,0 +1,9 @@
+[
+  {
+    "symbol_id": "sym-000",
+    "name": "parse_config",
+    "kind": "function",
+    "file": "composition-config_loader.py",
+    "line": 5
+  }
+]

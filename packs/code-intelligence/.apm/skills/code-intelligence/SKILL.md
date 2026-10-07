@@ -126,8 +126,8 @@ early as the objective allows.
 [`references/composition-example.md`](references/composition-example.md) shows
 one complete inquiry — before changing `parse_config`, which call sites must
 change, and which could not be established? — through the provider-fit path and
-the fallback path. It labels which obligations belong to Core inquiry behavior
-and which details are owned by this pack.
+the fallback path. It labels which obligations belong to Core (the companion `core` pack) and
+which details are owned by this pack.
 
 The example is illustrative, not a contract. Other providers may expose fewer,
 different, or new capabilities and need not emulate Wicked Estate. The current

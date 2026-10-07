@@ -27,9 +27,10 @@ _COMPOSITION_EVALS_FILES: tuple[Path, ...] = (
     SKILL_DIR / "evals/files/composition-preflight-exit0.txt",
     SKILL_DIR / "evals/files/composition-preflight-exit2.txt",
     SKILL_DIR / "evals/files/composition-stats-fresh.txt",
-    SKILL_DIR / "evals/files/composition-stats-lagged.txt",
+    SKILL_DIR / "evals/files/composition-resolve.json",
+    SKILL_DIR / "evals/files/composition-stats-b.txt",
     SKILL_DIR / "evals/files/composition-blast-radius.json",
-    SKILL_DIR / "evals/files/composition-blast-radius-untrusted.json",
+    SKILL_DIR / "evals/files/composition-blast-radius-b.json",
     SKILL_DIR / "evals/files/composition-git-log.txt",
     SKILL_DIR / "evals/files/composition-config_loader.py",
     SKILL_DIR / "evals/files/composition-app_main.py",
@@ -52,6 +53,7 @@ _NEW_CASE_FIXTURES: dict[str, tuple[str, ...]] = {
     "composition-provider-fit": (
         "evals/files/composition-preflight-exit0.txt",
         "evals/files/composition-stats-fresh.txt",
+        "evals/files/composition-resolve.json",
         "evals/files/composition-blast-radius.json",
         "evals/files/composition-config_loader.py",
         "evals/files/composition-app_main.py",
@@ -67,7 +69,7 @@ _NEW_CASE_FIXTURES: dict[str, tuple[str, ...]] = {
     ),
     "composition-poor-fit": (
         "evals/files/composition-preflight-exit0.txt",
-        "evals/files/composition-stats-lagged.txt",
+        "evals/files/composition-stats-b.txt",
         "evals/files/composition-git-log.txt",
         "evals/files/composition-config_loader.py",
         "evals/files/composition-app_main.py",
@@ -83,7 +85,8 @@ _NEW_CASE_FIXTURES: dict[str, tuple[str, ...]] = {
     "composition-untrusted-output": (
         "evals/files/composition-preflight-exit0.txt",
         "evals/files/composition-stats-fresh.txt",
-        "evals/files/composition-blast-radius-untrusted.json",
+        "evals/files/composition-resolve.json",
+        "evals/files/composition-blast-radius-b.json",
         "evals/files/composition-config_loader.py",
         "evals/files/composition-app_main.py",
         "evals/files/composition-cli_entry.py",
@@ -108,6 +111,8 @@ _EXISTING_CASE_PROMPT_SHA256: dict[str | int, str] = {
 
 # Wicked Estate provider terms that must not appear in the core-only case.
 # These identify the optional pack; their absence proves the case is provider-neutral.
+# Includes capability-map output field names: their presence would indicate
+# provider-specific evidence vocabulary in a case that must stay neutral.
 _PROVIDER_TERMS: tuple[str, ...] = (
     "wicked-estate",
     "wicked_estate",
@@ -115,6 +120,12 @@ _PROVIDER_TERMS: tuple[str, ...] = (
     "WickedEstate",
     "code-intelligence",
     "blast-radius",
+    "unresolved",
+    "truncated_dependents",
+    "dependents",
+    "searched_depth",
+    "depth_horizon_reached",
+    "node_cap_reached",
 )
 
 # Phrases from eval assertions that prompts must not echo back.
@@ -130,6 +141,8 @@ _GRADED_PHRASES: tuple[str, ...] = (
     "verify",
     "stale",
     "re-index",
+    "untrusted",
+    "lagged",
 )
 
 # Patterns that indicate forbidden content in fixtures (AC-0012).
@@ -148,6 +161,16 @@ _CREDENTIAL_PATTERN: re.Pattern[str] = re.compile(
 _PRIVATE_IP_PATTERN: re.Pattern[str] = re.compile(
     r"\b(?:192\.168\.|10\.\d+\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)\d+\.\d+\b"
 )
+_HOSTNAME_IN_URL_PATTERN: re.Pattern[str] = re.compile(
+    r"https?://([^/\s)\"']+)"
+)
+# A bare dotted name ending in a network suffix ("build.acme-corp.com"); file
+# names such as "config_loader.py" or "graph.db" end in other suffixes.
+_BARE_HOSTNAME_PATTERN: re.Pattern[str] = re.compile(
+    r"\b((?:[a-z0-9-]+\.)+(?:com|net|org|io|dev|co|ai|cloud|app|internal|local|corp|invalid))\b",
+    re.IGNORECASE,
+)
+_ALLOWED_HOSTNAMES: frozenset[str] = frozenset({"example.com", "example.invalid"})
 
 
 def _load_evals() -> dict[str | int, dict]:
@@ -298,3 +321,12 @@ def test_composition_fixtures_retain_only_synthetic_evidence() -> None:
             f"Fixture {name!r} contains a private IP address. "
             f"Use only public or example-range addresses."
         )
+        hosts = [m.group(1) for m in _HOSTNAME_IN_URL_PATTERN.finditer(text)]
+        hosts += [m.group(1) for m in _BARE_HOSTNAME_PATTERN.finditer(text)]
+        for host in hosts:
+            if host not in _ALLOWED_HOSTNAMES and \
+               not host.endswith((".example.com", ".example.invalid")):
+                raise AssertionError(
+                    f"Fixture {name!r} contains a disallowed hostname {host!r}. "
+                    f"Use only example.com or example.invalid."
+                )

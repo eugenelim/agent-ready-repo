@@ -131,8 +131,15 @@ def test_example_walks_the_provider_fit_path() -> None:
     section: str = _section_after(text, PROVIDER_FIT_HEADING)
 
     assert "parse_config" in section, "section must state the repository question"
-    assert "capability-map.md" in section or "capability map" in section.lower(), (
-        "section must cite or link to the capability map"
+    assert (
+        "capability-map.md#graph-relationships" in section
+        or "Blast radius / who depends on this" in section
+    ), (
+        "section must link to capability-map.md#graph-relationships or name the "
+        "'Blast radius / who depends on this' capability-map entry"
+    )
+    assert "wicked-estate resolve" in section, (
+        "section must show the resolve step before querying direct dependents"
     )
     assert "python scripts/estate_preflight.py --check" in section, (
         "section must show the preflight command"
@@ -321,7 +328,7 @@ def test_example_links_canonical_references() -> None:
     targets = {
         m.group(1).split("#", 1)[0]
         for m in re.finditer(r"\]\(([^)\s]+)\)", text)
-        if not re.match(r"[a-z]+:", m.group(1))
+        if not re.match(r"[a-z]+:|#", m.group(1))
     }
     for required in REQUIRED_LINKS:
         assert required in targets, (

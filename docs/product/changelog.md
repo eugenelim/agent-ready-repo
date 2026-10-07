@@ -68,13 +68,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- You can now see a complete worked example of one change-impact question answered through Wicked Estate and answered again through repository-native evidence when the provider is absent or the index is stale. Each path reaches the same acceptance question; the limits of text search — no resolver count, no dynamic-dispatch detection, no completeness guarantee — are named rather than rounded away.
-- The example shows which rules belong to the Core inquiry owner — the question, stopping condition, fallback, attribution, locator authority, and verification — and which belong to this pack: prerequisites, commands, capability mapping, evidence fields, gaps, and investigation patterns. Readers can reuse the Core rules with any provider.
+- The pack now includes a worked example showing how to answer a change-impact question with a code index and how to answer the same question without one, with the limits of each approach named rather than rounded away.
+- The example marks which steps come from the core pack's shared rules for answering code questions and which are specific to Wicked Estate, so another code-intelligence tool does not need to copy Wicked Estate's commands.
 
 ### Added
 
-- `references/composition-example.md`: a worked composition example covering a direct-dependents question through the provider-fit path (preflight ready, fresh index, `wicked-estate blast-radius parse_config --depth 1 --json`, completeness limits kept, load-bearing call sites verified in source, stopped at depth 1) and the fallback path (binary absent, no index, version below floor, or index stale for the changed file — text search and source reading with named gaps, no install or re-index).
-- Five pack-local behavior evaluations graded from each run's evidence record: provider-fit, provider-absent, poor-fit (stale index detected from `wicked-estate stats` and `git log`), Core-only (no provider in session), and untrusted-output (parent-segment locator refused by the locator reader, embedded instruction recorded as data).
+- `references/composition-example.md`: a worked composition example covering a direct-dependents question through the provider-fit path (preflight ready, fresh index, symbol resolved via `wicked-estate resolve parse_config --json`, direct dependents from `wicked-estate blast-radius parse_config --depth 1 --json`, completeness limits including `unresolved`, `truncated_dependents`, `searched_depth`, and `node_cap_reached` kept, load-bearing call sites retrieved via `wicked-estate source` by symbol ID, stopped at depth 1) and the fallback path (binary absent, no index, version below floor, or index stale for the changed file — text search and source reading with named gaps including those both paths share, commit range bounded by the `STALENESS:` count, no install or re-index).
+- Five pack-local behavior evaluations graded from each run's evidence record: provider-fit, provider-absent, poor-fit (staleness detected from `wicked-estate stats` and bounded commit history), Core-only (no provider in session), and untrusted output (parent-segment locator refused, embedded instruction recorded as data).
 
 ### Changed
 

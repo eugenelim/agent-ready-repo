@@ -69,13 +69,17 @@ them. If you see those words without an index, something has gone wrong.
 
 ## A worked example
 
-The pack ships a composition example that walks one question — before changing
-the signature of `parse_config`, which call sites must change, and which could
-not be established? — through two paths.
+The example lives at `references/composition-example.md` inside the installed
+`code-intelligence` skill. Reading it shows how to apply the investigation
+patterns to a specific question, follow the evidence discipline end-to-end, and
+fall back gracefully when the index is absent or stale.
 
-The **provider-fit path** shows the preflight check, a freshness check, the
-direct-dependents query, source verification of the load-bearing call sites, and
-the stopping point.
+It walks one question — before changing the signature of `parse_config`, which
+call sites must change, and which could not be established? — through two paths.
+
+The **provider-fit path** shows the preflight check, a freshness check,
+resolving the symbol, the direct-dependents query, source verification of the
+load-bearing call sites, and the stopping point.
 
 The **fallback path** shows what to do when the binary is absent, the index has
 not been built, the binary is older than the supported floor, or the index is
