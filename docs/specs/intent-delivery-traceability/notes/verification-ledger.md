@@ -187,7 +187,7 @@ longer matches the resolver.
 After this delivery passed review, `main` gained six commits. One of them,
 #1513 (`repository-exploration`), released Core `2.29.0`, the version owner
 decision 6 assigned here. This falsifies T13's version. The branch was rebased
-onto `origin/main` (`f6ecf90e2`), which also moved the Makefile the plan-digest
+onto `origin/main` (`1b8dbe3f3`), which also moved the Makefile the plan-digest
 pins read.
 
 ## 2026-10-07 — Owner decision 8 (eugenelim)

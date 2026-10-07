@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one source resolver whose byte-identical, parity-pinned copies each consuming skill ships and runs, instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -70,7 +70,7 @@ The resolver distinguishes absent mappings, direct-route multiplicity, incompati
 
 ### Dependencies & integration
 
-Owned by: T1, T2, T3, T4, T5, T8, T9, T13
+Owned by: T1, T2, T3, T4, T5, T8, T9, T13, T15
 
 No new dependency or adapter-contract version is introduced: the resolver reaches adopters inside the two skills that use it. T1's kill condition fired in review: a documented pipx or zipapp install cannot import `agentbundle` from repo-scope scripts. The owner chose the co-located, parity-pinned copy pattern already used by three Core skills, projected as the private helper `_file_safety.py`, so confinement logic is projected unchanged rather than vendored or weakened. `close-work` retains ownership of status, freshness, and closure verdicts. `lint-traceability.py` retains the general product graph, endpoint, cycle, and orphan checks. The resolver owns only feature-delivery relation parsing, inversion, classification, and strict serialization.
 
@@ -761,9 +761,24 @@ def test_ac0020_every_parent_of_a_named_brief_is_refused(tmp_path: Path) -> None
 
 **Done when:** VI-2301 through VI-2303 pass and the full gate set passes.
 
+### T15: Release 2.30.0 records agree with the shipped behaviour after rebasing
+
+**Depends on:** T13, T14
+
+**Mode:** Goal-based check
+
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `tools/test_local_ci_shared_test_deduplication.py`, `.claude/**`, `.agents/**`, `.agentbundle/**` (the last three are self-host projections)
+
+**Tests:**
+
+- **VI-2501.** `no stub (mode: goal-based)`; Core is `2.30.0` in both manifests, the changelog entry heading, and the architecture page, and no statement this delivery owns still names `2.29.0` as its release; `main`'s own `[core][2.29.0]` entry is unchanged.
+- **VI-2502.** `no stub (mode: goal-based)`; the plan-digest pins re-pin against the rebased `origin/main` Makefile with a disposition comment, and the dedup suite passes.
+
+**Done when:** VI-2501 and VI-2502 pass and the full gate set passes.
+
 ## Rollout
 
-The resolver, both consumers, and their skill-local copies ship in one Core release, `2.29.0`. There is no persisted state or migration. Rollback reverts the source changes and regenerates the self-host projection; corpus files remain untouched.
+The resolver, both consumers, and their skill-local copies ship in one Core release, `2.30.0`. There is no persisted state or migration. Rollback reverts the source changes and regenerates the self-host projection; corpus files remain untouched.
 
 ## Risks
 
@@ -789,3 +804,4 @@ The resolver, both consumers, and their skill-local copies ship in one Core rele
 - 2026-10-07: third amendment revised from its pre-EXECUTE review: T14's Done-when names the resolver comment and the unused set, scopes the no-brief-read rule to the AC-0020 refusal path, and the design counts one record per named intent.
 - 2026-10-07: third amended spec approved by eugenelim
 - 2026-10-07: third amended plan approved by eugenelim
+- 2026-10-07: fourth controlled amendment after `main` released Core `2.29.0` from another change. The branch is rebased onto `origin/main` and takes Core `2.30.0` (owner decision 8). Adds T15 for the version and the re-pinned plan digests; T1–T14 are delivered and unchanged. Authority: `notes/verification-ledger.md`.
