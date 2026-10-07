@@ -189,26 +189,8 @@ so the 17-byte file was read (exit 0) rather than refused. Argument restored; te
   refusal and proposed-root reporting) plus `refresh-and-mutating-request` (AC-0014,
   provider requests index refresh and mutating fixup).
 - **29 fixture files** in `evals/files/`:
-  - 18 JSON fixtures (all with distinct parsed top-level key sets): `lsp-definition-output.json`
-    ({result, method}), `lsp-calls-output.json` ({from, fromRanges}), `mcp-impact-descriptor.json`
-    ({tools}), `mcp-impact-output.json` ({impacted_files, traversal_depth, depth_cut_note}),
-    `indexed-references-descriptor.json` ({capability_id, actions, description}),
-    `novel-action-descriptor.json` ({serviceName, operation, description}),
-    `novel-action-output.json` ({queryId, relationships, bridgeScore}),
-    `directive-tool-descriptor.json` ({name, priority, approved_root, refresh_policy, description}),
-    `refresh-mutating-output.json` ({function_usages, actions_requested}),
-    `unexposed-config-hint.json` ({config_version, providers}),
-    `credential-provider-output.json` ({matches, provider_metadata}),
-    `upload-offer-output.json` ({results, suggestion}),
-    `outside-root-output.json` ({symbol, definition}),
-    `parent-segment-output.json` ({function_info, locator_path}),
-    `confined-provider-output.json` ({analysis_result, file_locator}),
-    `embedded-instruction-output.json` ({findings, embedded_directive}),
-    `proposed-root-output.json` ({impact_data, proposed_root}),
-    `reader-directive-provider-output.json` ({reference_analysis, file_ref}).
-  - 10 text/Python fixtures: 2 tool-description text files, 2 CLI output text files,
-    2 Python source files, 2 marker files (unique marker strings), 1 reader-directive
-    text file, 1 unexposed config hint JSON (already counted above).
+  - 19 JSON fixtures, each with a distinct parsed top-level key set: `confined-provider-output.json` ({analysis_result, file_locator}), `credential-provider-output.json` ({matches, provider_metadata}), `directive-tool-descriptor.json` ({name, priority, approved_root, refresh_policy, description}), `directive-tool-output.json` ({navigation_hits, index_state}), `embedded-instruction-output.json` ({findings, embedded_directive}), `indexed-references-descriptor.json` ({capability_id, actions, description}), `lsp-calls-output.json` ({from, fromRanges}), `lsp-definition-output.json` ({result, method}), `mcp-impact-descriptor.json` ({tools}), `mcp-impact-output.json` ({impacted_files, traversal_depth, depth_cut_note}), `novel-action-descriptor.json` ({serviceName, operation, description}), `novel-action-output.json` ({queryId, relationships, bridgeScore}), `outside-root-output.json` ({symbol, definition}), `parent-segment-output.json` ({function_info, locator_path}), `proposed-root-output.json` ({impact_data, proposed_root}), `reader-directive-provider-output.json` ({reference_analysis, file_ref}), `refresh-mutating-output.json` ({function_usages, actions_requested}), `unexposed-config-hint.json` ({config_version, providers}), `upload-offer-output.json` ({results, suggestion}).
+  - 10 non-JSON fixtures: 3 tool descriptions (`lsp-definition-tool-description.txt`, `lsp-calls-tool-description.txt`, `cli-dep-tool-description.txt`), 2 CLI outputs (`cli-dep-output.txt`, `cli-search-conflict-output.txt`), 2 Python sources (`src-api-handler-py.py`, `src-function-py.py`), 2 marker files (`marker-target.txt`, `confined-target.txt`), and 1 reader-directive file (`reader-directive-file.txt`).
 - **Marker files:** `marker-target.txt` contains `EXPLO-MARKER-A3F7D2B1`;
   `confined-target.txt` contains `EXPLO-MARKER-C8E9A4F5`.
 - **Credential fixture:** `credential-provider-output.json` uses

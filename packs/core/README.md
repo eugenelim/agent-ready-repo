@@ -220,17 +220,21 @@ set for discovery, task, or review work.
 ## Repository exploration
 
 `repository-exploration` answers an open question about repository behavior,
-dependencies, impact, or context. The skill is optional and caller-invoked —
-nothing runs it automatically. The caller — you, or a skill or workflow that
-asks the question — keeps its own question, stopping rule, and decision; the
-skill selects by fit, invokes natively, and returns attributed evidence.
+dependencies, impact, or context. The skill is optional and caller-invoked: it
+runs only when a caller — you, or a skill or workflow that asks the question —
+invokes it, and nothing runs it automatically. The caller keeps its own
+question, stopping rule, and decision. The skill picks a tool only when it
+suits the question, uses that tool as it is, and says where each piece of
+evidence came from.
 
 No provider, index, language server, or optional pack is required. When no
 exposed capability fits the question, the skill falls back to repository-native
 evidence — the repository's own files, history, and search. A provider adds
-evidence when it is a defensible fit; it never changes the caller's decision.
+evidence only when its own action directly answers the question; it never
+changes the caller's decision.
 
-An already-exposed code-intelligence capability is used in its own native
+A code-intelligence tool your agent already has — one of the exposed surfaces
+listed under Repository grounding — is used in its own native
 shape — the tool's own commands and results, with no shared wrapper — so there
 is no common schema across different providers. The question types and provider
 shapes the skill documents are illustrative. No closed list is defined; any
