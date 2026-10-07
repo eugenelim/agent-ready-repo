@@ -239,9 +239,10 @@ def _hash_file_with_budget(
             refused without reading its content.
 
     Returns:
-        A ``(file_size, sha256_hexdigest)`` pair.  *file_size* comes from ``os.fstat``
-        on the open descriptor; *sha256_hexdigest* is the hex-encoded SHA-256 of the
-        file content streamed in 1 MiB chunks.
+        A ``(bytes_hashed, sha256_hexdigest)`` pair.  *bytes_hashed* is the number
+        of bytes actually read and hashed, which equals the descriptor size taken
+        at open; *sha256_hexdigest* is the hex-encoded SHA-256 of that content,
+        streamed in 1 MiB chunks.
 
     Raises:
         SubjectRefused: ``"denied-path-violation"`` when the path is outside
@@ -252,6 +253,8 @@ def _hash_file_with_budget(
         SubjectRefused: ``"denied-byte-bound-exceeded"`` when the ``fstat`` size
             exceeds *remaining_budget*, or the file grows past the budget during a
             streaming read.
+        SubjectRefused: ``"denied-product-drift"`` when the bytes read differ from
+            the descriptor size taken at open, because the file changed mid-read.
     """
     fs = _file_safety()
     try:
@@ -264,19 +267,32 @@ def _hash_file_with_budget(
         with fs._open_confined_regular_file(  # noqa: SLF001 - this skill's own helper
             repo_root, abs_path, max_bytes=remaining_budget
         ) as handle:
-            file_size = os.fstat(handle.fileno()).st_size
-            # Stream and hash the content, capped against the budget in case the
-            # file grows during the read (e.g. an active log file tracked by git).
-            digest = hashlib.sha256()
-            bytes_read = 0
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                bytes_read += len(chunk)
-                if bytes_read > remaining_budget:
-                    raise SubjectRefused(
-                        "denied-byte-bound-exceeded",
-                        f"path {rel!r} grew past byte budget during streaming read",
-                    )
-                digest.update(chunk)
+            # OSErrors are mapped here: the confined walker would report any
+            # OSError raised inside its block as a confinement failure.
+            try:
+                file_size = os.fstat(handle.fileno()).st_size
+                # Stream and hash the content, capped against the budget in case
+                # the file grows during the read (e.g. an active tracked log).
+                digest = hashlib.sha256()
+                bytes_read = 0
+                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                    bytes_read += len(chunk)
+                    if bytes_read > remaining_budget:
+                        raise SubjectRefused(
+                            "denied-byte-bound-exceeded",
+                            f"path {rel!r} grew past byte budget during streaming read",
+                        )
+                    digest.update(chunk)
+            except OSError as exc:
+                raise SubjectRefused(
+                    "denied-unreadable-path",
+                    f"path {rel!r} cannot be read or its size cannot be established",
+                ) from exc
+            if bytes_read != file_size:
+                raise SubjectRefused(
+                    "denied-product-drift",
+                    f"path {rel!r} changed size while it was being read",
+                )
     except fs.BoundExceeded as exc:
         raise SubjectRefused(
             "denied-byte-bound-exceeded",
@@ -291,7 +307,7 @@ def _hash_file_with_budget(
             "denied-unreadable-path",
             f"path {rel!r} cannot be read or its size cannot be established",
         ) from exc
-    return file_size, digest.hexdigest()
+    return bytes_read, digest.hexdigest()
 
 
 # ── Git subprocess via _process_safety ───────────────────────────────────────
@@ -612,8 +628,8 @@ def project_legacy_subject(
         # then hash.  _hash_file_with_budget refuses before reading any content
         # when the file size would exceed the remaining budget.
         remaining = MAX_PRODUCT_BYTES - total_bytes
-        file_size, file_hash = _hash_file_with_budget(repo_root, abs_path, remaining)
-        total_bytes += file_size
+        bytes_hashed, file_hash = _hash_file_with_budget(repo_root, abs_path, remaining)
+        total_bytes += bytes_hashed
 
         manifest_pairs.append((rel_path, file_hash))
 

@@ -820,16 +820,31 @@ class TestTraversalLimitsAC0006:
         """
         target = tmp_path / "data.txt"
         target.write_bytes(b"hello")
+        real_fstat = os.fstat
+        calls: list[int] = []
 
-        def failing_fstat(fd: int) -> object:
-            raise OSError("simulated fstat failure for test")
+        def counting_fstat(fd: int) -> os.stat_result:
+            calls.append(fd)
+            return real_fstat(fd)
 
-        monkeypatch.setattr(os, "fstat", failing_fstat)
+        # Learn how many fstat calls a successful hash makes; the last one is the
+        # helper's own size read, after the confined opener's checks.
+        monkeypatch.setattr(os, "fstat", counting_fstat)
+        ss._hash_file_with_budget(tmp_path, target, ss.MAX_PRODUCT_BYTES)
+        size_read_call = len(calls)
+        calls.clear()
 
+        def failing_size_read(fd: int) -> os.stat_result:
+            calls.append(fd)
+            if len(calls) == size_read_call:
+                raise OSError("simulated fstat failure for test")
+            return real_fstat(fd)
+
+        monkeypatch.setattr(os, "fstat", failing_size_read)
         with pytest.raises(ss.SubjectRefused) as exc_info:
             ss._hash_file_with_budget(tmp_path, target, ss.MAX_PRODUCT_BYTES)
 
-        assert exc_info.value.denial_code in {"denied-unreadable-path", "denied-path-violation"}
+        assert exc_info.value.denial_code == "denied-unreadable-path"
 
     def test_oversized_file_refused_without_reading_past_bound(
         self,
@@ -950,3 +965,34 @@ class TestValidateSubjectDict:
         with pytest.raises(ss.SubjectRefused) as exc_info:
             ss._hash_file_with_budget(root, root / "linked" / "secret.txt", ss.MAX_PRODUCT_BYTES)
         assert exc_info.value.denial_code == "denied-path-violation"
+
+
+class TestCumulativeByteBudget:
+    """The traversal charges the bytes it actually hashes against the whole-tree bound."""
+
+    def test_files_each_under_budget_but_over_in_total_are_refused(
+        self,
+        ss: ModuleType,
+        guards: ModuleType,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        repo = tmp_path
+        _setup_git_repo(repo)
+        spec_dir = repo / "docs" / "specs" / "feat"
+        _make_spec_and_plan(spec_dir)
+        for name in ("a.txt", "b.txt", "c.txt"):
+            (repo / name).write_bytes(b"x" * 40)
+        _commit_all(repo)
+        monkeypatch.setattr(ss, "MAX_PRODUCT_BYTES", 100)  # each file fits; all three do not
+        with pytest.raises(ss.SubjectRefused) as exc_info:
+            ss.project_legacy_subject(
+                repo_root=repo,
+                spec_dir=spec_dir,
+                approved_spec_hash=guards.sha256_canonical_contract(spec_dir / "spec.md"),
+                approved_plan_hash=guards.sha256_canonical_contract(spec_dir / "plan.md"),
+                audit_sink=null_sink,
+                subject_id="subj-cumulative",
+                evidence_policy_ref="policy:v1",
+            )
+        assert exc_info.value.denial_code == "denied-byte-bound-exceeded"

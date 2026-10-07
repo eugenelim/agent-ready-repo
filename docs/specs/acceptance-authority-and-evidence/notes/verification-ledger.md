@@ -447,7 +447,7 @@ one wave:
   the remaining byte budget, refusing an oversized or unsizable file without
   reading past the bound;
 - the shadow audit store counts as initialised only when its `.gitignore`
-  holds exactly `*`;
+  holds exactly the bytes `*\n`;
 - tests now pin the AC-0002 import bindings (scope, envelope, intent, both
   digests), the AC-0017 reverse-read digests, the AC-0007 verdict through the
   persisted path with a planted cached verdict ignored, the AC-0016 shadow-on
@@ -457,6 +457,33 @@ one wave:
   test helpers are corrected.
 
 Each new test was checked against a mutation of the behaviour it guards.
+
+## Evidence-store retry and concurrency fixes (owner decision, 2026-10-06)
+
+Quality-engineer round 2, security round 13, and adversarial round 14 found
+that the previous wave's idempotent retry skipped the authority check and
+audit, and that two open store instances could each write a duplicate that
+replay then refused, making the store unreadable. The owner overrode the retry
+cap and chose to fix all of it:
+
+- every append, a retry included, passes the producer-authority check and
+  stores its allow first; an identical retry then writes nothing;
+- the reuse decision is retaken against the durable log under the same lock as
+  the write, so a stale instance cannot admit a duplicate;
+- replay skips a frame that reuses an identity already seen, so the first
+  admitted record stays authoritative and the store always opens (AC-0008
+  rejects only checksum or reference corruption);
+- a supersession retry is idempotent only under the same acceptance
+  fingerprint;
+- the subject projection charges the bytes it actually hashes and refuses a
+  file whose size changes mid-read (`denied-product-drift`);
+- the shadow `.gitignore` marker is read through the confined, bounded,
+  non-blocking reader;
+- the AC-0007 tests now plant the disagreeing cached verdict and delete the
+  mechanical state before a fresh store open, and the audit tests check the
+  shared operation ID and reason code.
+
+The new retry, two-writer, and replay tests fail against the earlier code.
 
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 

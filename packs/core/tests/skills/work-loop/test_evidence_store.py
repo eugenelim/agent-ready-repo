@@ -1648,22 +1648,20 @@ class TestDuplicateIdentityGuards:
                 issuer=issuer, grant=grant, audit_sink=capturing_sink,
             )
 
-        # At least one additional event (allow + denial) must have been emitted.
-        assert len(emitted) > before_count, (
-            "conflict refusal must emit security events via the post-allow denial path"
-        )
-        # The last event must be a denied outcome.
-        assert emitted[-1].outcome == "denied"
+        allow, denial = emitted[before_count:]
+        assert (allow.outcome, denial.outcome) == ("allowed", "denied")
+        assert denial.operation_id == allow.operation_id
+        assert denial.reason_code == "denied-duplicate-transaction-id"
 
     # ── Receipt: replay duplicate detection ───────────────────────────────────
 
-    def test_replay_duplicate_transaction_id_raises_store_error(
+    def test_replay_duplicate_transaction_id_keeps_the_first_frame(
         self, es: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """A log with duplicate transaction_ids fails on open (fail-closed corruption).
+        """A later frame reusing a transaction_id is skipped; the store still opens.
 
-        Red before: the replay loop silently overwrote the duplicate; no error
-        was raised.  Green after: EvidenceStoreError is raised by _load_and_truncate.
+        Replay rejects only checksum or reference corruption, so the first
+        admitted record stays authoritative.
         """
         log_path = tmp_path / "ev-replay-dup-tx.log"
         store = _open_fresh_store(es, log_path)
@@ -1691,18 +1689,17 @@ class TestDuplicateIdentityGuards:
         second_frame = (es._canonical_json({"tx": second_tx, "records": second_records}) + "\n").encode("utf-8")
         log_path.write_bytes(log_path.read_bytes() + second_frame)
 
-        # Re-opening the log must detect the duplicate and raise EvidenceStoreError.
         store2 = es.EvidenceStore(log_path)
-        with pytest.raises(es.EvidenceStoreError, match="duplicate transaction_id"):
-            store2.open()
+        store2.open()
+        ids = [r["receipt_id"] for r in store2.get_all_active_receipts()]
+        assert ids == ["r-replay-tx-001"]
 
-    def test_replay_duplicate_receipt_id_raises_store_error(
+    def test_replay_duplicate_receipt_id_keeps_the_first_receipt(
         self, es: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """A log with duplicate receipt_ids fails on open (fail-closed corruption).
+        """A later frame reusing a receipt_id never replaces the admitted receipt.
 
-        Red before: _index_receipt silently overwrote the first receipt; no
-        error was raised on open.  Green after: EvidenceStoreError is raised.
+        Before the fix, replay let the later receipt overwrite the first.
         """
         log_path = tmp_path / "ev-replay-dup-rid.log"
         store = _open_fresh_store(es, log_path)
@@ -1715,7 +1712,7 @@ class TestDuplicateIdentityGuards:
         )
 
         # Craft a second frame with the same receipt_id under a different tx.
-        dup_receipt = _make_receipt("r-replay-dup")  # same receipt_id
+        dup_receipt = {**_make_receipt("r-replay-dup"), "outcome": "failed"}  # same id
         dup_records = [dup_receipt]
         dup_tx_body = {
             "schema_version": 1,
@@ -1729,8 +1726,9 @@ class TestDuplicateIdentityGuards:
         log_path.write_bytes(log_path.read_bytes() + dup_frame)
 
         store2 = es.EvidenceStore(log_path)
-        with pytest.raises(es.EvidenceStoreError, match="duplicate receipt_id"):
-            store2.open()
+        store2.open()
+        active = store2.get_all_active_receipts()
+        assert [(r["receipt_id"], r["outcome"]) for r in active] == [("r-replay-dup", "passed")]
 
     # ── Supersession: idempotent retry ────────────────────────────────────────
 
@@ -1818,10 +1816,10 @@ class TestDuplicateIdentityGuards:
         assert store.supersession_count == 1
         assert store.transaction_count == 1
 
-    def test_replay_duplicate_supersession_id_raises_store_error(
+    def test_replay_duplicate_supersession_id_keeps_the_first(
         self, es: ModuleType, sc: ModuleType, tmp_path: Path
     ) -> None:
-        """A log with duplicate supersession_ids fails on open (fail-closed corruption)."""
+        """A later frame reusing a supersession_id is skipped; the first stays in force."""
         log_path = tmp_path / "ev-replay-dup-sup.log"
         store = _open_fresh_store(es, log_path)
         issuer, grant = _make_grant(sc)
@@ -1848,8 +1846,8 @@ class TestDuplicateIdentityGuards:
         log_path.write_bytes(log_path.read_bytes() + dup_frame)
 
         store2 = es.EvidenceStore(log_path)
-        with pytest.raises(es.EvidenceStoreError, match="duplicate supersession_id"):
-            store2.open()
+        store2.open()
+        assert store2._superseded == {"r-prev-001"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1908,6 +1906,7 @@ class TestLockTimeout:
         log_path = tmp_path / "ev-lock-timeout.log"
         store = _open_fresh_store(es, log_path)
         issuer, grant = _make_grant(sc)
+        log_before = log_path.read_bytes()
 
         with pytest.raises(es.EvidenceStoreRefused) as exc_info:
             store.append_receipt(
@@ -1921,7 +1920,8 @@ class TestLockTimeout:
         assert exc_info.value.denial_code == "denied-lock-timeout", (
             f"expected denied-lock-timeout, got {exc_info.value.denial_code!r}"
         )
-        assert store.receipt_count == 0, "no bytes must be staged on lock timeout"
+        assert log_path.read_bytes() == log_before, "no bytes must be staged on lock timeout"
+        assert store.receipt_count == 0
 
     def test_lock_timeout_emits_post_allow_denial_event(
         self,
@@ -1968,6 +1968,105 @@ class TestLockTimeout:
         assert len(emitted) >= 2, (
             f"expected allow + denied events, got {len(emitted)} events"
         )
-        outcomes = [e.outcome for e in emitted]
-        assert "allowed" in outcomes, "authority-check allow event must be emitted"
-        assert "denied" in outcomes, "post-allow denial event must be emitted on lock timeout"
+        allow, denial = emitted
+        assert (allow.outcome, denial.outcome) == ("allowed", "denied")
+        assert denial.operation_id == allow.operation_id
+        assert denial.reason_code == "denied-lock-timeout"
+
+
+class TestRetryAuthorityAndConcurrentWriters:
+    """A retry is authorised and audited like a first append; two writers cannot brick the log."""
+
+    def test_identical_retry_is_authorised_audited_and_writes_nothing(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-retry-ok.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        first = store.append_receipt(
+            _make_receipt("r-retry"), transaction_id="tx-retry",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+        log_after_first = log_path.read_bytes()
+        events: list = []
+        again = store.append_receipt(
+            _make_receipt("r-retry"), transaction_id="tx-retry",
+            issuer=issuer, grant=grant, audit_sink=events.append,
+        )
+        assert again == first
+        assert log_path.read_bytes() == log_after_first
+        assert [e.outcome for e in events] == ["allowed"]
+
+    @pytest.mark.parametrize("case", ["no-grant", "out-of-scope-grant", "failing-sink"])
+    def test_retry_after_commit_under_invalid_authority_is_refused(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, case: str
+    ) -> None:
+        log_path = tmp_path / f"ev-retry-{case}.log"
+        store = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        store.append_receipt(
+            _make_receipt("r-retry"), transaction_id="tx-retry",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+        retry_issuer, retry_grant, sink = issuer, grant, _null_sink
+        if case == "no-grant":
+            retry_grant = None
+        elif case == "out-of-scope-grant":
+            retry_issuer = sc.CapabilityIssuer()
+            retry_grant = retry_issuer.issue_root_grant(
+                roots=["other"], operations=["read"], trust_class="trusted",
+                writes_allowed_roots=[], control_denies=[],
+            )
+        else:
+            sink = _failing_sink
+        with pytest.raises(es.EvidenceStoreRefused):
+            store.append_receipt(
+                _make_receipt("r-retry"), transaction_id="tx-retry",
+                issuer=retry_issuer, grant=retry_grant, audit_sink=sink,
+            )
+
+    def test_supersession_retry_with_another_fingerprint_is_refused(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        store = _open_fresh_store(es, tmp_path / "ev-sup-fp.log")
+        issuer, grant = _make_grant(sc)
+        sup = _make_supersession("sup-fp", ["r-prev-001"])
+        store.append_supersession(
+            sup, transaction_id="tx-sup-fp", acceptance_fingerprint=_CURRENT_FP,
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            store.append_supersession(
+                sup, transaction_id="tx-sup-fp", acceptance_fingerprint="fp-other",
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-duplicate-transaction-id"
+
+    def test_two_open_instances_cannot_write_a_duplicate(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-two-writers.log"
+        first = _open_fresh_store(es, log_path)
+        second = _open_fresh_store(es, log_path)
+        issuer, grant = _make_grant(sc)
+        committed = first.append_receipt(
+            _make_receipt("r-shared"), transaction_id="tx-shared",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        )
+        # The second instance's view is stale, but the durable log decides.
+        assert second.append_receipt(
+            _make_receipt("r-shared"), transaction_id="tx-shared",
+            issuer=issuer, grant=grant, audit_sink=_null_sink,
+        ) == committed
+        with pytest.raises(es.EvidenceStoreRefused) as exc_info:
+            second.append_receipt(
+                {**_make_receipt("r-shared"), "outcome": "failed"},
+                transaction_id="tx-other",
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert exc_info.value.denial_code == "denied-duplicate-receipt-id"
+        assert log_path.read_bytes().count(b"\n") == 1
+        reopened = _open_fresh_store(es, log_path)
+        assert [(r["receipt_id"], r["outcome"]) for r in reopened.get_all_active_receipts()] == [
+            ("r-shared", "passed")
+        ]

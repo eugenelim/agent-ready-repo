@@ -1012,23 +1012,23 @@ class TestAC0007DualEmitCorpus:
         log_path = shadow_dir / "shadow-evidence.log"
         assert log_path.exists(), "evidence log must be written by shadow_call_on_transition"
 
-        # Read receipts back through the persisted evidence log.
+        # First plant a cached verdict that disagrees, and create then delete the
+        # mechanical state beside the store, so the read below happens after both.
+        (shadow_dir / "shadow-verdict.json").write_text(
+            '{"verdict": "unapproved"}', encoding="utf-8"
+        )
+        for name in ("state.json", "engine-state.json"):
+            (spec_dir / name).write_text('{"state": "DONE"}', encoding="utf-8")
+        for name in ("state.json", "engine-state.json"):
+            (spec_dir / name).unlink()
+
+        # Re-derive from the persisted evidence log through a fresh store open.
         es_mod = _load_module("es_ci", SCRIPTS / "_evidence_store.py")
         store = es_mod.EvidenceStore(log_path)
         store.open()
         receipts = store.get_all_active_receipts()
         assert len(receipts) == 1, "one receipt per transition"
         acceptance_fp = receipts[0]["acceptance_fingerprint"]
-
-        # Plant a cached-verdict file that disagrees — the evaluator must ignore it.
-        (shadow_dir / "shadow-verdict.json").write_text(
-            '{"verdict": "unapproved"}', encoding="utf-8"
-        )
-        # Plant then delete mechanical state files beside the store root.
-        for name in ("state.json", "engine-state.json"):
-            (spec_dir / name).write_text('{"state": "DONE"}', encoding="utf-8")
-        for name in ("state.json", "engine-state.json"):
-            (spec_dir / name).unlink()
 
         property_record = {
             "schema_version": 1,
