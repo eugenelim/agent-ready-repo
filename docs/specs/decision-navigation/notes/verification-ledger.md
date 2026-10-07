@@ -454,7 +454,7 @@ Full runs on the round-10 fixes at `9f149324c` (2026-10-06, desktop Chrome 154.0
 
 ## Round-11 review corrections
 
-The eleventh post-gates review (2026-10-06, head `5efc08a14`) found the security lens clean and sustained 5 Nits across the other four, refuting 4 (among them the experience lens's marker-position Concern, an already accepted trade-off, and an adversarial corpus figure taken from an uncommitted build). Two adjudications left the same item undecided: whether the `cycle` whole-edge rule is pinned. It is: restricting only `cycle` labels to the arrowhead half fails `[three]` on the committed code, and R10-ADV-1 now says so. The engine's round-11 `findings-remain` record holds 1 fingerprint (the frontend Nit); the adversarial and quality adjudications carry that undecided item, so their sustained Nits were not fingerprinted. They are closed here all the same.
+The eleventh post-gates review (2026-10-06, head `5efc08a14`) found the security lens clean and sustained 5 Nits across the other four, refuting 3 (the experience lens's marker-position Concern, an already accepted trade-off; an adversarial corpus figure taken from an uncommitted build; and a frontend focus-ring Nit no placement rule covers). Two adjudications left the same item undecided: whether the `cycle` whole-edge rule is pinned. It is: restricting only `cycle` labels to the arrowhead half fails `[three]` on the committed code, and R10-ADV-1 now says so. The engine's round-11 `findings-remain` record holds 1 fingerprint (the frontend Nit); the adversarial and quality adjudications carry that undecided item, so their sustained Nits were not fingerprinted. They are closed here all the same.
 
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
@@ -464,7 +464,20 @@ The eleventh post-gates review (2026-10-06, head `5efc08a14`) found the security
 | R11-ADV-4 | Nit | The round-10 run line named no CI run. | closed — run 37564170606 on `2dc835d83`. |
 | (undecided) | — | Whether the `cycle` whole-edge rule is pinned. | closed — see R10-ADV-1. |
 
-Full runs on the round-11 fixes at `8663b8aa9` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 785 s; unit suites 244 passed.
+Full runs on the round-11 fixes at `8663b8aa9` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 785 s; unit suites 244 passed. CI run 37570426791 (`test-corpus`, `ubuntu-latest`, Python 3.11, the merged head `0bb4a0fc8`) passed all four shards.
+
+## Round-12 review corrections
+
+The twelfth post-gates review (2026-10-06, head `0bb4a0fc8`, merged with `main`) found the security, frontend and quality lenses clean and sustained 4 Nits across the other two, refuting none.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| R12-EXP-1 | Nit | The node `cycle` tag on a selected node was about 1.3:1 on its blue fill. | closed — on a selected node the tag is `#fde68a` (5.4:1 on `#1d4ed8`); unselected nodes keep `#b45309`. |
+| R12-ADV-1 | Nit | The round-11 refuted count was wrong. | closed — 3. |
+| R12-ADV-2 | Nit | The `edgePoints` comment said every whole label keeps to the arrowhead half. | closed — it names scope labels for the half and numbers and `cycle` labels for the whole edge. |
+| R12-ADV-3 | Nit | The merged-head CI result was unrecorded. | closed — run 37570426791 on `0bb4a0fc8`, in the round-11 run line and the PR body. |
+
+Full runs on the round-12 fixes at `7896e53aa` (2026-10-07, desktop Chrome 154.0.8037.93): browser checks 111 passed in 393 s; unit suites 244 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
