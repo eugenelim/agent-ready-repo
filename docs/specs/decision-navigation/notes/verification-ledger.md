@@ -450,7 +450,7 @@ The tenth post-gates review (2026-10-06, head `d61408489`) found the security an
 | R10-ADV-4 | Nit | The round-9 refuted count was wrong. | closed — 4. |
 | R10-ADV-5 | Nit | The round-9 run line named no commit. | closed — `32b6c6cfc`, and CI run 37555604543 on `d61408489`. |
 
-Full runs on the round-10 fixes (2026-10-06, desktop Chrome 154.0.8037.93; the fix commit follows this ledger change's parent `d61408489`): browser checks 111 passed in 319 s; unit suites 244 passed.
+Full runs on the round-10 fixes at `9f149324c` (2026-10-06, desktop Chrome 154.0.8037.93): browser checks 111 passed in 319 s; unit suites 244 passed.
 
 ## T7 stage 2b evidence — explorer visual redesign
 
