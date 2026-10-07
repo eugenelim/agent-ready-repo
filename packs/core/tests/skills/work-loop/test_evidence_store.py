@@ -2196,7 +2196,7 @@ class TestDurableReReadFailures:
         log_path = tmp_path / "ev-malformed-open.log"
         self._first_store(es, sc, log_path)
         log_path.write_bytes(log_path.read_bytes() + self._malformed_frame(es))
-        with pytest.raises(es.EvidenceStoreError, match="malformed record"):
+        with pytest.raises(es.EvidenceStoreError, match="evidence log frame"):
             es.EvidenceStore(log_path).open()
 
     def test_malformed_record_behind_an_open_store_refuses_and_keeps_its_view(
@@ -2221,17 +2221,17 @@ class TestDurableReReadFailures:
         tx = {**body, "checksum": es._compute_frame_checksum(body, [record])}
         return (es._canonical_json({"tx": tx, "records": [record]}) + "\n").encode("utf-8")
 
-    @pytest.mark.parametrize("ordered_ids", [5, None])
+    @pytest.mark.parametrize("ordered_ids", [5, None, {"r-bad-header": 1}])
     def test_malformed_header_with_a_valid_checksum_is_corruption_on_reopen(
         self, es: ModuleType, sc: ModuleType, tmp_path: Path, ordered_ids: object
     ) -> None:
         log_path = tmp_path / "ev-bad-header-open.log"
         self._first_store(es, sc, log_path)
         log_path.write_bytes(log_path.read_bytes() + self._bad_header_frame(es, ordered_ids))
-        with pytest.raises(es.EvidenceStoreError, match="malformed transaction header"):
+        with pytest.raises(es.EvidenceStoreError, match="evidence log frame"):
             es.EvidenceStore(log_path).open()
 
-    @pytest.mark.parametrize("ordered_ids", [5, None])
+    @pytest.mark.parametrize("ordered_ids", [5, None, {"r-bad-header": 1}])
     def test_malformed_header_behind_an_open_store_refuses_and_poisons(
         self, es: ModuleType, sc: ModuleType, tmp_path: Path, ordered_ids: object
     ) -> None:
@@ -2240,4 +2240,27 @@ class TestDurableReReadFailures:
         log_path.write_bytes(log_path.read_bytes() + self._bad_header_frame(es, ordered_ids))
         self._append_and_expect(es, sc, store, "denied-log-corrupt")
         assert [r["receipt_id"] for r in store.get_all_active_receipts()] == ["r-first"]
-        assert store._poisoned
+        issuer, grant = _make_grant(sc)
+        with pytest.raises(es.EvidenceStoreRefused) as again:
+            store.append_receipt(
+                _make_receipt("r-later"), transaction_id="tx-later",
+                issuer=issuer, grant=grant, audit_sink=_null_sink,
+            )
+        assert again.value.denial_code == "denied-store-poisoned"
+
+    @pytest.mark.parametrize(
+        "bad_line",
+        [b'{"tx": ' + b"9" * 5000 + b"}", b"[" * 200000 + b"]" * 200000],
+        ids=["overlong-integer", "deep-nesting"],
+    )
+    def test_unparseable_frame_is_corruption_on_both_paths(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path, bad_line: bytes
+    ) -> None:
+        """Parse failures beyond JSON syntax still surface as the documented corruption error."""
+        log_path = tmp_path / "ev-unparseable.log"
+        store = self._first_store(es, sc, log_path)
+        log_path.write_bytes(log_path.read_bytes() + bad_line + b"\n")
+        with pytest.raises(es.EvidenceStoreError):
+            es.EvidenceStore(log_path).open()
+        self._append_and_expect(es, sc, store, "denied-log-corrupt")
+        assert [r["receipt_id"] for r in store.get_all_active_receipts()] == ["r-first"]

@@ -702,6 +702,39 @@ def _check_producer_authority(
 # ── EvidenceStore ──────────────────────────────────────────────────────────────
 
 
+def _parse_verified_frame(line: bytes) -> tuple[dict, list[dict]]:
+    """Parse one log line into a schema-valid, checksum-verified frame.
+
+    The checksum is unkeyed, so a writer can recompute it over a malformed
+    body; the transaction header and every record are therefore also checked
+    against their schemas.  Any failure raises ``EvidenceStoreError``.
+    """
+    try:
+        frame = json.loads(line.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise EvidenceStoreError(f"evidence log frame parse error: {exc}") from exc
+    tx = frame.get("tx") if isinstance(frame, dict) else None
+    records = frame.get("records", []) if isinstance(frame, dict) else None
+    if (
+        not isinstance(tx, dict)
+        or not isinstance(records, list)
+        or not all(isinstance(record, dict) for record in records)
+    ):
+        raise EvidenceStoreError(
+            "evidence log frame has invalid structure (tx or records is missing)"
+        )
+    ok, code = validate_transaction_dict(tx)
+    if not ok:
+        raise EvidenceStoreError(f"evidence log frame header is invalid: {code}")
+    for record in records:
+        validate = validate_receipt_dict if "receipt_id" in record else validate_supersession_dict
+        ok, code = validate(record)
+        if not ok:
+            raise EvidenceStoreError(f"evidence log frame record is invalid: {code}")
+    _verify_frame(tx, records)
+    return tx, records
+
+
 def _index_record(
     record: dict,
     receipts: dict[str, dict],
@@ -966,60 +999,26 @@ class EvidenceStore:
             if not line:
                 continue
             try:
-                frame = json.loads(line.decode("utf-8"))
-            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-                raise EvidenceStoreError(
-                    f"evidence log frame parse error: {exc}"
-                ) from exc
-
-            tx = frame.get("tx") if isinstance(frame, dict) else None
-            records = frame.get("records", []) if isinstance(frame, dict) else None
-            if (
-                not isinstance(tx, dict)
-                or not isinstance(records, list)
-                or not all(isinstance(record, dict) for record in records)
-            ):
-                raise EvidenceStoreError(
-                    "evidence log frame has invalid structure (tx or records is missing)"
-                )
-
-            # Verify checksum and record references — hard error on corruption.
-            # A checksum can be recomputed over a malformed body, so any
-            # structural fault the check meets is the same corruption error.
-            try:
-                _verify_frame(tx, records)
-            except EvidenceStoreError:
-                raise
-            except (AttributeError, TypeError, KeyError, ValueError) as exc:
-                raise EvidenceStoreError(
-                    "evidence log frame has a malformed transaction header"
-                ) from exc
-
-            tx_id = tx.get("transaction_id", "")
-            try:
+                tx, records = _parse_verified_frame(line)
+                tx_id = tx["transaction_id"]
                 reused = tx_id in seen_tx_ids or any(
                     record.get("receipt_id") in receipts
                     or record.get("supersession_id") in supersessions
                     for record in records
                 )
-            except TypeError as exc:  # an unhashable identity
-                raise EvidenceStoreError(
-                    "evidence log frame holds a malformed record identity"
-                ) from exc
-            if reused:
-                continue  # first-wins: a later reuse never replaces admitted evidence
-            seen_tx_ids.add(tx_id)
-
-            transactions.append(tx)
-            try:
+                if reused:
+                    continue  # first-wins: a later reuse never replaces admitted evidence
+                seen_tx_ids.add(tx_id)
+                transactions.append(tx)
                 for record in records:
                     _index_record(record, receipts, by_criterion, supersessions, superseded)
-            except (AttributeError, TypeError, KeyError, ValueError) as exc:
-                # A frame can carry a valid checksum yet a malformed record;
-                # surface it as the one documented corruption error.
-                raise EvidenceStoreError(
-                    "evidence log frame holds a malformed record"
-                ) from exc
+            except EvidenceStoreError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - any fault in a frame is corruption
+                # Corrupt bytes can fail anywhere (an over-long integer, deep
+                # nesting, a malformed field behind a recomputed checksum);
+                # every such fault surfaces as the one documented error.
+                raise EvidenceStoreError("evidence log frame is malformed") from exc
         self._receipts = receipts
         self._receipts_by_criterion = by_criterion
         self._supersessions = supersessions

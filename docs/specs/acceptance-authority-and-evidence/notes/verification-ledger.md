@@ -527,6 +527,15 @@ frame verification now maps any structural fault to the same corruption error,
 and four tests (reopen and re-read, two header shapes) fail against the earlier
 code.
 
+Adversarial round 18 found further inputs of the same class: a dict
+`ordered_record_ids`, an over-long integer, and deep nesting. Rather than fix
+shapes one at a time, the owner chose to close the class: replay now parses
+every frame through one helper that checks the transaction header and each
+record against their schemas before the checksum, and any other fault while
+reading a frame surfaces as the same corruption error. Four new cases fail
+against the earlier code; the re-read test now shows poisoning through the
+public `denied-store-poisoned` refusal.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on
