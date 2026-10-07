@@ -128,6 +128,26 @@ decision rather than an oversight.
 - `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
 - The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
 
+## [governance-extras][1.0.0] — 2026-10-04
+
+### Highlights
+
+- `navigate-decisions` replaces the retired `rfc-status` skill. It queries both ADRs and RFCs for exact lifecycle, checked supersession lineage, contextual references, guidance context, and record detail. It also exports a self-contained offline HTML explorer with list, lifecycle-graph, guidance-context, and record-detail views.
+
+### Changed
+
+- **Breaking:** `rfc-status` is removed. Use `navigate-decisions` with a `summary` prompt (or ask "show me the RFC landscape") to get the counts and lifecycle view `rfc-status` provided. All `rfc-status` activation prompts now route to `navigate-decisions`.
+
+### Migration
+
+Run `navigate-decisions summary` (or ask "how many RFCs are in each lifecycle state?") in place of `rfc-status`. For exact record detail, use `navigate-decisions record ADR-NNNN` or `navigate-decisions record RFC-NNNN`. For offline review, export with `navigate-decisions export`.
+
+## [iac-terraform][0.1.11] — 2026-10-04
+
+### Changed
+
+- The `governance-extras` dependency range is widened to `^1.0` (from `^0.11`). The `iac-terraform` pack behavior is unchanged; this update tracks the governance-extras major release that replaced `rfc-status` with `navigate-decisions`.
+
 ## [frontend-engineering][0.4.5] — 2026-10-04
 
 ### Changed

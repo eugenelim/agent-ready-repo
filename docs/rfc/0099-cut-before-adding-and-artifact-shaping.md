@@ -1,6 +1,6 @@
 # RFC-0099: Cut before adding and artifact shaping
 
-- **Status:** Accepted (superseded in part by ADR-0111 — § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands)
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-08-27
@@ -19,8 +19,9 @@
   [RFC-0083](0083-work-intake-and-artifact-routing.md),
   [RFC-0093](0093-intent-scoped-completion.md),
   [RFC-0094](0094-direct-light-execution-without-durable-planning-artifacts.md),
-  [RFC-0096](0096-portable-delivery-artifact-lifecycle.md), and
-  [RFC-0097](0097-agent-skill-engineering.md)
+  [RFC-0096](0096-portable-delivery-artifact-lifecycle.md),
+  [RFC-0097](0097-agent-skill-engineering.md), and
+  [ADR-0111](../adr/0111-intent-review-splits-well-formedness-from-assumption-attack.md) — supersedes in part § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands
 
 ## Reviewer brief
 

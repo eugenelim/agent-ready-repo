@@ -1,0 +1,504 @@
+/* Decision Navigator — explorer CSS */
+/* Tokens: custom properties for colour, spacing, radius, shadow, type */
+:root{
+  --bg:#f4f5f9;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --text:#111827;
+  --text-muted:#4b5563;
+  --id-color:#1d4ed8;
+  --accent:#1d4ed8;
+  --max-w:1100px;
+  --pad:1.5rem;
+  --pad-sm:1rem;
+  --radius:12px;
+  --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+  /* status pill colours — each pair meets WCAG 2.2 AA text contrast */
+  --s-accepted-bg:#dcfce7;--s-accepted-fg:#166534;
+  --s-proposed-bg:#dbeafe;--s-proposed-fg:#1e40af;
+  --s-superseded-bg:#f3f4f6;--s-superseded-fg:#374151;
+  --s-deprecated-bg:#fee2e2;--s-deprecated-fg:#991b1b;
+  --s-default-bg:#f3f4f6;--s-default-fg:#374151;
+}
+  :root[data-theme="dark"]{
+    --bg:#0f1117;
+    --surface:#1c1f2e;
+    --border:#2d3148;
+    --text:#e5e7eb;
+    --text-muted:#9ca3af;
+    --id-color:#60a5fa;
+    --accent:#60a5fa;
+    --s-accepted-bg:#052e16;--s-accepted-fg:#86efac;
+    --s-proposed-bg:#1e3a5f;--s-proposed-fg:#93c5fd;
+    --s-superseded-bg:#1f2937;--s-superseded-fg:#d1d5db;
+    --s-deprecated-bg:#450a0a;--s-deprecated-fg:#fca5a5;
+    --s-default-bg:#1f2937;--s-default-fg:#d1d5db;
+  }
+/* Before the script sets data-theme, follow the system so dark users see no light flash. */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme]){
+    --bg:#0f1117;
+    --surface:#1c1f2e;
+    --border:#2d3148;
+    --text:#e5e7eb;
+    --text-muted:#9ca3af;
+    --id-color:#60a5fa;
+    --accent:#60a5fa;
+    --s-accepted-bg:#052e16;--s-accepted-fg:#86efac;
+    --s-proposed-bg:#1e3a5f;--s-proposed-fg:#93c5fd;
+    --s-superseded-bg:#1f2937;--s-superseded-fg:#d1d5db;
+    --s-deprecated-bg:#450a0a;--s-deprecated-fg:#fca5a5;
+    --s-default-bg:#1f2937;--s-default-fg:#d1d5db;
+  }
+}
+
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box}
+html{font-size:100%}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  line-height:1.5;
+  color:var(--text);
+  background:var(--bg);
+  /* faint square grid: two overlapping 1-px linear gradients */
+  background-image:
+    linear-gradient(var(--border) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:48px 48px;
+  min-height:100vh;
+}
+/* ── Page column — white panel over grid ── */
+#app{
+  display:flex;
+  flex-direction:column;
+  max-width:var(--max-w);
+  margin:0 auto;
+  background:var(--surface);
+  min-height:100vh;
+  box-shadow:0 0 0 1px var(--border),0 8px 40px rgba(0,0,0,.07);
+}
+/* ── Focus ── */
+a:focus-visible,button:focus-visible,input:focus-visible,
+select:focus-visible,summary:focus-visible{
+  outline:3px solid var(--accent);outline-offset:2px}
+button{min-height:24px;min-width:24px}
+/* ── Header ── */
+#app-header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:2rem var(--pad) 1.25rem;
+}
+.eyebrow-row{
+  display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}
+.grad-mark{
+  width:22px;height:22px;border-radius:5px;flex-shrink:0;
+  background:linear-gradient(135deg,#1d4ed8,#7c3aed,#06b6d4)}
+.theme-toggle{
+  margin-left:auto;display:inline-flex;flex-shrink:0;border:1.5px solid var(--border);
+  border-radius:999px;overflow:hidden}
+.theme-toggle button{
+  border:0;background:var(--surface);color:var(--text-muted);
+  font-size:.75rem;padding:.2rem .7rem;min-height:28px;min-width:44px;cursor:pointer}
+.theme-toggle button+button{border-left:1px solid var(--border)}
+.theme-toggle button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:700}
+:root[data-theme="dark"] .theme-toggle button[aria-pressed="true"]{color:#0b1220}
+.eyebrow{
+  font-family:ui-monospace,"Cascadia Code","Source Code Pro",monospace;
+  font-size:.68rem;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--text-muted)}
+#app-header h1{
+  margin:0 0 .4rem;
+  font-size:clamp(1.4rem,4vw,2rem);
+  font-weight:800;line-height:1.2;color:var(--text)}
+/* gradient key-phrase in h1 */
+.title-gradient{
+  background:linear-gradient(90deg,#1d4ed8 0%,#6d28d9 50%,#0e7490 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  /* fallback for browsers without background-clip:text */
+  color:#1d4ed8}
+.lede{margin:0 0 .9rem;font-size:.88rem;color:var(--text-muted)}
+/* Rounded info panel for boundary notice */
+.info-panel{
+  background:#f0f4ff;
+  border:1px solid #c7d7fc;
+  border-radius:var(--radius-sm);
+  padding:.55rem .9rem;
+  font-size:.83rem;color:#374151;font-style:italic;
+  margin-bottom:.5rem}
+  :root[data-theme="dark"] .info-panel{background:#1a2040;border-color:#2d3a6e;color:#9ca3af}
+
+.mode-notice{
+  margin:.4rem 0;padding:.35rem .75rem;
+  background:#fef9c3;border:1px solid #fde68a;
+  border-radius:var(--radius-sm);font-size:.83rem;color:#713f12}
+  :root[data-theme="dark"] .mode-notice{background:#3b2200;border-color:#92400e;color:#fcd34d}
+
+/* ── Stat cards ── */
+.stat-cards{
+  display:flex;flex-wrap:wrap;gap:.65rem;
+  padding:.9rem var(--pad);
+  border-bottom:1px solid var(--border)}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:.65rem 1.1rem;
+  box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:.1rem}
+.stat-num{
+  font-size:1.45rem;font-weight:700;color:var(--text);line-height:1.1}
+.stat-label{
+  font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text-muted);font-weight:600}
+/* ── Controls / filter bar ── */
+.controls{
+  display:flex;flex-wrap:wrap;gap:.5rem;
+  padding:.65rem var(--pad);
+  border-bottom:1px solid var(--border);
+  align-items:center}
+.ctrl-label{
+  display:flex;align-items:center;gap:.3rem;
+  font-size:.83rem;color:var(--text-muted)}
+.controls input,.controls select{
+  padding:.28rem .55rem;
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-size:.83rem;background:var(--surface);color:var(--text);
+  min-width:5rem;max-width:100%}
+.controls input::placeholder{color:var(--text-muted);opacity:1}
+/* Kind pills (segmented) */
+.kind-pills{
+  display:flex;gap:0;border-radius:var(--radius-sm);
+  overflow:hidden;border:1.5px solid var(--border)}
+.kind-pill{
+  padding:.28rem .75rem;font-size:.83rem;font-weight:500;
+  border:0;border-right:1px solid var(--border);
+  background:var(--surface);color:var(--text-muted);
+  cursor:pointer;min-height:32px;min-width:48px}
+.kind-pill:last-child{border-right:0}
+.kind-pill.active{background:var(--accent);color:#fff}
+/* View nav as segmented control */
+nav[aria-label="Views"]{
+  display:flex;flex-wrap:wrap;gap:0;
+  border-radius:var(--radius-sm);overflow:hidden;border:1.5px solid var(--border)}
+nav[aria-label="Views"] button{
+  padding:.28rem .75rem;border:0;
+  border-right:1px solid var(--border);
+  background:var(--surface);color:var(--text-muted);
+  cursor:pointer;font-size:.83rem;min-height:32px;min-width:48px}
+nav[aria-label="Views"] button:last-child{border-right:0}
+nav[aria-label="Views"] button[aria-current="page"]{
+  background:var(--accent);color:#fff}
+/* Generic pill (expand-all, reset) */
+.pill-btn{
+  padding:.28rem .8rem;
+  border:1.5px solid var(--border);border-radius:999px;
+  background:var(--surface);color:var(--text);
+  font-size:.83rem;cursor:pointer;min-height:32px;min-width:48px}
+/* ── Main content area ── */
+#app-main{flex:1;padding:1.25rem var(--pad);width:100%}
+/* ── Record list ── */
+.record-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.45rem}
+.record-item{
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.record-item.selected{
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(29,78,216,.18),var(--shadow)}
+/* Superseded: muted visual */
+.record-item.is-superseded .rtitle{color:var(--text-muted)}
+.record-item.is-superseded .rid{text-decoration:line-through}
+.record-item.is-superseded-part .rid{text-decoration:underline;text-underline-offset:3px}
+.bounded-notice a{color:#1e3a8a}
+:root[data-theme="dark"] .bounded-notice{background:#3b2200;color:#fcd34d}
+:root[data-theme="dark"] .bounded-notice a{color:#bfdbfe}
+.lt-node-btn{vertical-align:top;background:none;border:0;padding:.2rem .3rem;font:inherit;text-align:left;
+  color:var(--id-color);cursor:pointer;min-height:24px}
+.lt-node-btn:hover{text-decoration:underline}
+.ctx-record{margin:.1rem 0 .5rem;color:var(--text-muted);font-size:.88rem}
+/* Links take the theme accent; the browser default blue is unreadable on dark. */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+a{color:var(--accent)}
+.supersede-banner a{color:#1e3a8a;font-weight:700;display:inline-block;min-height:24px;line-height:24px}
+:root[data-theme="dark"] .supersede-banner a{color:#bfdbfe}
+.record-btn{
+  width:100%;text-align:left;padding:.65rem var(--pad-sm);
+  background:none;border:none;cursor:pointer;
+  display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;
+  font-size:.88rem;min-height:44px;overflow-wrap:break-word;word-break:break-word}
+.record-btn:hover{background:rgba(29,78,216,.04)}
+/* Allow all flex children to shrink to 0 so they can wrap at narrow viewports */
+.record-btn>*{min-width:0;max-width:100%}
+/* Monospace blue ID chip */
+.rid{
+  font-family:ui-monospace,"Cascadia Code","Source Code Pro",monospace;
+  font-size:.78rem;font-weight:600;color:var(--id-color);
+  background:rgba(29,78,216,.09);padding:.1rem .4rem;
+  border-radius:4px;white-space:nowrap}
+.rtitle{flex:1;min-width:0;font-weight:500;color:var(--text);overflow-wrap:break-word}
+/* Kind badge chips */
+.badge{
+  padding:.12rem .45rem;border-radius:999px;
+  font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.04em;white-space:nowrap}
+.badge-adr{background:#dbeafe;color:#1e40af}
+.badge-rfc{background:#dcfce7;color:#166534}
+/* Status pill — coloured by lifecycle */
+.rstatus{
+  font-size:.72rem;font-weight:600;padding:.12rem .45rem;
+  border-radius:999px;white-space:nowrap}
+.status-accepted{background:var(--s-accepted-bg);color:var(--s-accepted-fg)}
+.status-proposed{background:var(--s-proposed-bg);color:var(--s-proposed-fg)}
+.status-superseded{background:var(--s-superseded-bg);color:var(--s-superseded-fg)}
+.status-deprecated{background:var(--s-deprecated-bg);color:var(--s-deprecated-fg)}
+.status-default{background:var(--s-default-bg);color:var(--s-default-fg)}
+/* Chevron affordance */
+.chevron{margin-left:auto;color:var(--text-muted);font-size:.7rem;flex-shrink:0}
+/* ── Supersede banner — amber strip, NOT matching evidence-rail borders ── */
+.supersede-banner{
+  display:block;font-size:.8rem;font-weight:600;
+  color:#92400e;
+  background:linear-gradient(90deg,#fff7ed,#fef3c7);
+  padding:.3rem .75rem .3rem .9rem;
+  border-top:1px solid #fde68a;
+  /* amber left accent — distinct from the evidence-rail (4 px solid/dashed/dotted/double) */
+  border-left:3px solid #f59e0b;
+  margin:0}
+  :root[data-theme="dark"] .supersede-banner{
+    color:#fcd34d;background:linear-gradient(90deg,#451a03,#3b1e00);
+    border-top-color:#92400e;border-left-color:#d97706}
+
+/* ── Empty / notices ── */
+.empty-msg{color:var(--text-muted);font-style:italic;padding:.8rem 0;font-size:.88rem}
+.bounded-notice{
+  color:#92400e;background:#fff7ed;padding:.35rem .65rem;
+  border-radius:var(--radius-sm);font-size:.83rem}
+/* ── Relationship evidence rail ── */
+.rel-list{list-style:none;margin:0;padding:0}
+.rel-item{
+  padding:.35rem .55rem;border-radius:var(--radius-sm);
+  margin-bottom:.28rem;font-size:.8rem;
+  font-family:ui-monospace,"Cascadia Code","Source Code Pro",monospace;
+  word-break:break-all;background:var(--surface)}
+/* Trust-class left borders: solid / dashed / dotted / double — 4 px each */
+.rel-checked{border-left:4px solid #16a34a;background:rgba(22,163,74,.06)}
+.rel-candidate{border-left:4px dashed #d97706;background:rgba(217,119,6,.06)}
+.rel-contextual{border-left:4px dotted #7c3aed;background:rgba(124,58,237,.06)}
+.rel-navigation-only{border-left:4px double #6b7280;background:rgba(107,114,128,.06)}
+.trust-label{
+  font-weight:700;font-size:.7rem;background:var(--border);
+  border-radius:3px;padding:.1rem .3rem;margin-right:.3rem;
+  white-space:nowrap;color:var(--text)}
+.trust-source{color:var(--text-muted);font-size:.76rem}
+/* ── Graph ── */
+.graph-list{list-style:none;margin:0;padding:0}
+.graph-edge{
+  padding:.35rem .55rem;margin-bottom:.28rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);box-shadow:var(--shadow)}
+.graph-note{color:var(--text-muted);font-size:.83rem;font-style:italic;margin:.25rem 0 .6rem}
+.edge-btn{
+  background:none;border:none;cursor:pointer;text-align:left;
+  font-family:ui-monospace,"Cascadia Code","Source Code Pro",monospace;
+  font-size:.83rem;color:var(--id-color);padding:.2rem .3rem;
+  min-height:24px;min-width:24px;display:inline-flex;align-items:center}
+/* ── Context ── */
+.ctx-btn{
+  background:none;border:none;cursor:pointer;color:var(--id-color);
+  text-decoration:underline;font-size:.88rem;padding:.2rem .3rem;
+  min-height:24px;min-width:24px;display:inline-flex;align-items:center}
+.ctx-list,.assert-list{list-style:none;margin:0;padding:0}
+.ctx-list li,.assert-list li{padding:.25rem 0;font-size:.88rem;border-bottom:1px solid var(--border)}
+/* ── Detail ── */
+.detail-heading{
+  position:sticky;top:0;background:var(--surface);
+  padding:.4rem 0;z-index:10;border-bottom:1px solid var(--border);margin-bottom:.75rem}
+.meta-table{
+  border-collapse:separate;border-spacing:0;margin-bottom:.9rem;font-size:.88rem;width:100%;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden}
+.meta-table th,.meta-table td{padding:.45rem var(--pad-sm);text-align:left;vertical-align:top;
+  border-bottom:1px solid var(--border)}
+.meta-table tr:last-child th,.meta-table tr:last-child td{border-bottom:none}
+.meta-table th{
+  color:var(--text-muted);white-space:nowrap;width:8rem;font-weight:600;
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+/* Detail <details> sections styled as cards */
+.rel-details,.sr-details,.body-details{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin-bottom:.65rem;overflow:hidden}
+.rel-details>summary,.sr-details>summary,.body-details>summary{
+  padding:.55rem var(--pad-sm);cursor:pointer;font-weight:600;font-size:.88rem;
+  background:rgba(229,231,235,.25);border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  list-style:none}
+.rel-details>summary::after,.sr-details>summary::after,.body-details>summary::after{
+  content:"▼";font-size:.65rem;color:var(--text-muted)}
+.rel-details[open]>summary::after,.sr-details[open]>summary::after,.body-details[open]>summary::after{
+  content:"▲"}
+.rel-details>.rel-list,.sr-details>ul{padding:.65rem var(--pad-sm)}
+/* ── Record-content panel ── */
+/* Border: 2 px uniform all-around — distinct from evidence-rail (4 px left-only) */
+/* and distinct from supersede-banner (3 px left amber) */
+.record-content{
+  border:2px solid var(--border);border-radius:var(--radius-sm);
+  padding:.9rem 1.1rem;background:rgba(244,245,249,.5);
+  overflow-x:auto;max-width:75ch;line-height:1.6}
+:root[data-theme="dark"] .record-content{background:rgba(15,17,23,.4)}
+
+/* Record-content headings — smaller than the h1/h2 page headings */
+.record-content h3{font-size:1.2rem;margin:.7rem 0 .3rem;font-weight:600;color:var(--text)}
+.record-content h4{font-size:1.05rem;margin:.55rem 0 .25rem;font-weight:600;color:var(--text)}
+.record-content h5,.record-content h6{font-size:1rem;margin:.45rem 0 .2rem;font-weight:600;color:var(--text)}
+.record-content p{margin:.35rem 0}
+.record-content ul,.record-content ol{margin:.28rem 0;padding-left:1.5rem}
+.record-content li{margin:.12rem 0}
+.record-content pre{
+  font-size:.8rem;background:rgba(229,231,235,.5);padding:.45rem .65rem;
+  border-radius:3px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:.35rem 0}
+.record-content code{
+  font-family:ui-monospace,"Cascadia Code","Source Code Pro",monospace;
+  font-size:.85em;background:rgba(229,231,235,.5);padding:.1em .25em;border-radius:2px}
+.record-content pre code{background:none;padding:0;font-size:inherit}
+/* Blockquote: background tint + italic — NO left-border rail; must not resemble evidence-rail */
+.record-content blockquote{
+  margin:.45rem 0;padding:.45rem .9rem;
+  background:rgba(29,78,216,.05);border-radius:var(--radius-sm);
+  font-style:italic;color:var(--text-muted);
+  border:none} /* explicit: no border-left, no border-right */
+.record-content table{border-collapse:collapse;margin:.45rem 0;font-size:.83rem;max-width:100%}
+.record-content th,.record-content td{
+  border:1px solid var(--border);padding:.28rem .45rem;text-align:left;vertical-align:top}
+.record-content th{background:rgba(229,231,235,.35);font-size:.78rem;font-weight:600}
+:root[data-theme="dark"] .record-content pre,
+:root[data-theme="dark"] .record-content code{background:rgba(255,255,255,.08)}
+:root[data-theme="dark"] .record-content pre code{background:none}
+:root[data-theme="dark"] .record-content th{background:rgba(255,255,255,.06)}
+.record-content hr{border:0;border-top:1px solid var(--border);margin:.65rem 0}
+.md-link-target{font-size:.83em;color:var(--text-muted)}
+.md-image-alt{font-style:italic;color:var(--text-muted)}
+/* ── Lineage SVG diagram ── */
+.lineage-caption{
+  font-size:.78rem;font-weight:600;color:var(--text-muted);
+  margin-bottom:.4rem;font-style:italic}
+.lineage-wrap{overflow-x:auto;max-width:100%;margin-bottom:.6rem}
+.lineage-wrap svg,.chain-svg-wrap svg{display:block;max-width:100%;height:auto}
+.lineage-axis{font-size:.78rem;color:var(--text-muted);margin:.2rem 0 .4rem;white-space:pre-wrap}
+/* Labels with no room on the graph are numbered there and spelled out here. */
+.lineage-key{font-size:.82rem;color:var(--text-muted);margin:.4rem 0 .6rem 1.4rem}
+/* The diagram palette is light; in dark mode it sits on a light canvas. */
+  :root[data-theme="dark"] .lineage-wrap,:root[data-theme="dark"] .chain-svg-wrap{background:#f8fafc;border-radius:var(--radius-sm);padding:.4rem}
+  :root[data-theme="dark"] .title-gradient{background:linear-gradient(90deg,#93c5fd 0%,#c4b5fd 50%,#67e8f9 100%);
+    -webkit-background-clip:text;background-clip:text;color:#93c5fd}
+  :root[data-theme="dark"] .kind-pill.active,:root[data-theme="dark"] nav[aria-label="Views"] button[aria-current="page"]{color:#0b1220}
+
+.error-panel{margin:1rem 0;padding:.8rem 1rem;border:2px solid #b91c1c;border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--text);font-weight:600}
+.lineage-legend{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin:.45rem 0;font-size:.78rem}
+.lineage-legend summary{
+  padding:.35rem .65rem;cursor:pointer;font-weight:600;color:var(--text-muted)}
+.lineage-legend ul{margin:.2rem 0 .4rem 1.4rem;padding:0}
+.lineage-legend li{margin:.15rem 0}
+.lineage-text{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin:.45rem 0;font-size:.78rem}
+.lineage-text summary{
+  padding:.35rem .65rem;cursor:pointer;font-weight:600;color:var(--text-muted)}
+.lineage-text ul{margin:.2rem 0 .4rem 1.4rem;padding:0}
+.lineage-text li{margin:.15rem 0;font-family:ui-monospace,monospace}
+/* Atlas chain cards */
+.chain-card{
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  margin-bottom:.65rem;background:var(--surface);box-shadow:var(--shadow);
+  overflow:hidden}
+.chain-card-label{
+  padding:.3rem .65rem;font-size:.72rem;font-weight:600;
+  color:var(--text-muted);border-bottom:1px solid var(--border);
+  background:rgba(229,231,235,.18)}
+.chain-svg-wrap{overflow-x:auto;max-width:100%;padding:.5rem .65rem}
+.chain-svg-wrap svg{display:block}
+/* Contextual toggle — reuses .pill-btn */
+.ctx-toggle{margin:.4rem 0}
+/* ── Reset button ── */
+.reset-btn{
+  margin-top:.45rem;padding:.3rem .75rem;border:1.5px solid var(--border);
+  border-radius:999px;background:var(--surface);cursor:pointer;
+  font-size:.83rem;min-height:32px}
+/* ── Footer ── */
+#app-footer{
+  padding:.9rem var(--pad);border-top:1px solid var(--border);
+  background:var(--surface);font-size:.8rem;color:var(--text-muted)}
+#app-footer details{margin-bottom:.45rem}
+#app-footer summary{cursor:pointer;font-weight:600;font-size:.83rem;color:var(--text)}
+#app-footer ul{margin:.2rem 0 0 1rem}
+#app-footer pre{
+  font-size:.72rem;white-space:pre-wrap;word-break:break-all;
+  background:var(--border);padding:.35rem;border-radius:3px}
+/* ── Screen-reader only ── */
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* ── Responsive — no horizontal scroll at 640 and 320 px ── */
+@media(max-width:40rem){
+  :root{--pad:var(--pad-sm)}
+  .stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(4.6rem,1fr));gap:.3rem;padding:.6rem var(--pad)}
+  .stat-card{min-width:0;padding:.35rem .3rem;box-shadow:none}
+  .stat-num{font-size:1.05rem}
+  .stat-label{font-size:.6rem;letter-spacing:.02em}
+  .controls{flex-direction:column;align-items:stretch}
+  .controls>*{max-width:100%;box-sizing:border-box}
+  nav[aria-label="Views"]{flex-wrap:wrap;width:100%;border-radius:var(--radius-sm)}
+  nav[aria-label="Views"] button{flex:1 1 auto;min-width:0}
+  .kind-pills{width:100%}
+  .kind-pill{flex:1 1 auto;min-width:0}
+  .meta-table{font-size:.78rem}
+  .record-content{max-width:100%}
+}
+/* Prevent any child from expanding the page horizontally at any viewport */
+#app{overflow-x:hidden}
+/* ── Reduced motion ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+
+/* Programmatic focus on view headings: no box unless the keyboard put it there */
+.detail-heading:focus,.view-heading:focus,h2[tabindex="-1"]:focus{outline:none}
+.detail-heading:focus-visible,h2[tabindex="-1"]:focus-visible{
+  outline:3px solid var(--accent);outline-offset:4px;border-radius:4px}
+/* Status filter sized to its content, not the full row */
+#status-filter{width:auto;max-width:min(26rem,100%)}
+/* List banners sit under the card's button as a full-width strip */
+.record-item>.supersede-banner{border-radius:0}
+/* Long qualified lifecycle values wrap inside their pill; the title keeps room */
+.rtitle{flex:1 1 18rem}
+.rstatus{white-space:normal;max-width:22rem;line-height:1.35;text-align:left}
+.atlas-back{margin:0 0 .6rem}
+.chain-atlas{display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start}
+.chain-atlas .chain-card{flex:1 1 auto;max-width:100%;margin:0}
+/* Header values keep their recorded line breaks. */
+.meta-table td{white-space:pre-wrap}
+/* System dark preference before the script sets data-theme: component rules. */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme]){color-scheme:dark}
+  :root:not([data-theme]) .theme-toggle button[aria-pressed="true"]{color:#0b1220}
+  :root:not([data-theme]) .info-panel{background:#1a2040;border-color:#2d3a6e;color:#9ca3af}
+  :root:not([data-theme]) .mode-notice{background:#3b2200;border-color:#92400e;color:#fcd34d}
+  :root:not([data-theme]) .bounded-notice{background:#3b2200;color:#fcd34d}
+  :root:not([data-theme]) .bounded-notice a{color:#bfdbfe}
+  :root:not([data-theme]) .supersede-banner a{color:#bfdbfe}
+  :root:not([data-theme]) .supersede-banner{color:#fcd34d;background:linear-gradient(90deg,#451a03,#3b1e00);
+    border-top-color:#92400e;border-left-color:#d97706}
+  :root:not([data-theme]) .record-content{background:rgba(15,17,23,.4)}
+  :root:not([data-theme]) .record-content pre,:root:not([data-theme]) .record-content code{background:rgba(255,255,255,.08)}
+  :root:not([data-theme]) .record-content pre code{background:none}
+  :root:not([data-theme]) .record-content th{background:rgba(255,255,255,.06)}
+  :root:not([data-theme]) .lineage-wrap,:root:not([data-theme]) .chain-svg-wrap{background:#f8fafc;border-radius:var(--radius-sm);padding:.4rem}
+  :root:not([data-theme]) .title-gradient{background:linear-gradient(90deg,#93c5fd 0%,#c4b5fd 50%,#67e8f9 100%);
+    -webkit-background-clip:text;background-clip:text;color:#93c5fd}
+  :root:not([data-theme]) .kind-pill.active,:root:not([data-theme]) nav[aria-label="Views"] button[aria-current="page"]{color:#0b1220}
+}

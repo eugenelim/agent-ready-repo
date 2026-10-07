@@ -589,6 +589,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_contract_backward_registry.py
 
+      # navigate-decisions vendors the blessed file_safety helper; this byte pin
+      # reads two packs, so lint-pack-test-boundary forbids a pack home. It sits
+      # ABOVE the carve-out step so a failure is attributed to this named step.
+      - name: pytest navigate-decisions file_safety mirror (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_navigate_decisions_file_safety_mirror.py
+
       # The repair-round parity check compares the spec's contract rules against the
       # shipped predicate, building its domain inline with no separate oracle.
       # It reads docs/ and packs/ together, so lint-pack-test-boundary forbids a

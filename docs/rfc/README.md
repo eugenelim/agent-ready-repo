@@ -105,3 +105,4 @@
 | 0102 | [An ADR's metadata is checkable, and the freeze binds its prose](0102-mechanically-checkable-adrs.md) | Accepted | 2026-09-16 | 2026-09-17 |
 | 0103 | [Pointer grammar update — `<kind>:<slug>` for `Parent intent:` and `Brief:`, and `intent:` as a node kind](0103-cross-artifact-reference-grammar.md) | Accepted | 2026-09-22 | 2026-09-22 |
 | 0104 | [The `code-intelligence` pack](0104-code-intelligence-pack.md) | Accepted | 2026-09-30 | 2026-09-30 |
+| 0105 | [Artifact-derived navigation and workspace retirement](0105-artifact-derived-navigation-and-workspace-retirement.md) | Accepted | 2026-10-02 | 2026-10-03 |

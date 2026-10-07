@@ -57,6 +57,10 @@ rules live with that split.
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by
   [RFC-0097](../rfc/0097-agent-skill-engineering.md).
+- **STATUS: PLANNED** — [Decision graph](decision-graph.md) describes the
+  reference-policy graph, multi-form decision navigation, bounded context
+  checks, and trust boundaries shaped by the accepted decision-graph capability
+  and governed by [RFC-0105](../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md).
 
 ## What belongs here
 
