@@ -2176,3 +2176,34 @@ class TestDurableReReadFailures:
         before = log_path.read_bytes()
         self._append_and_expect(es, sc, store, "denied-log-not-regular")
         assert log_path.read_bytes() == before
+
+    @staticmethod
+    def _malformed_frame(es: ModuleType) -> bytes:
+        """A frame with a valid checksum whose receipt has a non-dict lineage."""
+        record = {**_make_receipt("r-malformed"), "lineage": "not-a-dict"}
+        body = {
+            "schema_version": 1,
+            "transaction_id": "tx-malformed",
+            "ordered_record_ids": ["r-malformed"],
+            "acceptance_fingerprint": _CURRENT_FP,
+        }
+        tx = {**body, "checksum": es._compute_frame_checksum(body, [record])}
+        return (es._canonical_json({"tx": tx, "records": [record]}) + "\n").encode("utf-8")
+
+    def test_malformed_record_with_a_valid_checksum_is_corruption_on_reopen(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-malformed-open.log"
+        self._first_store(es, sc, log_path)
+        log_path.write_bytes(log_path.read_bytes() + self._malformed_frame(es))
+        with pytest.raises(es.EvidenceStoreError, match="malformed record"):
+            es.EvidenceStore(log_path).open()
+
+    def test_malformed_record_behind_an_open_store_refuses_and_keeps_its_view(
+        self, es: ModuleType, sc: ModuleType, tmp_path: Path
+    ) -> None:
+        log_path = tmp_path / "ev-malformed-reread.log"
+        store = self._first_store(es, sc, log_path)
+        log_path.write_bytes(log_path.read_bytes() + self._malformed_frame(es))
+        self._append_and_expect(es, sc, store, "denied-log-corrupt")
+        assert [r["receipt_id"] for r in store.get_all_active_receipts()] == ["r-first"]

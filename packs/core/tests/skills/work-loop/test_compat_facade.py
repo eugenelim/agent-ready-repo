@@ -1905,7 +1905,7 @@ class TestShadowWriterPort:
 
     @pytest.mark.parametrize("kind", ["fifo", "symlink", "overlong"])
     def test_sink_refuses_an_unsafe_or_overlong_marker(
-        self, facade: ModuleType, tmp_path: Path, kind: str
+        self, facade: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str
     ) -> None:
         """A FIFO, a linked, or an overlong marker never initialises the store, and never blocks."""
         spec_dir = tmp_path / f"marker-{kind}"
@@ -1920,7 +1920,19 @@ class TestShadowWriterPort:
             marker.symlink_to(real)
         else:
             marker.write_bytes(b"*\nextra\n")
+        fs = facade._file_safety()
+        real_read = fs.read_confined_regular_file
+        bounds: list[object] = []
+
+        def recording_read(*args: object, **kwargs: object) -> bytes:
+            bounds.append(kwargs.get("max_bytes"))
+            return real_read(*args, **kwargs)
+
+        monkeypatch.setattr(fs, "read_confined_regular_file", recording_read)
         sink = facade._durable_sink(spec_dir, shadow_dir, facade._cm())
         with pytest.raises(OSError, match="not initialised"):
             sink({"schema_version": 1})
+        # The marker is read with a two-byte bound, so an overlong file is
+        # refused by the bound rather than read in full.
+        assert bounds == [2]
         assert not (shadow_dir / "shadow-security-events.jsonl").exists()

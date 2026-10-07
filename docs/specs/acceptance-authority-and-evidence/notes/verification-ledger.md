@@ -505,6 +505,21 @@ fix all sustained findings:
 The replay skip signal and a narrower `except` in the shadow sink were
 refuted and left unchanged.
 
+## Release renumbering and final review fixes (owner decision, 2026-10-07)
+
+Adversarial round 16 found that main had already released core 2.29.0, and
+that the 2.28.1 Highlights bullet advertised an adopter invocation the spec
+says this slice does not provide. Quality-engineer round 4 found a test gap
+and three nits. The owner overrode the retry cap and chose to:
+
+- merge current main and release this change as core 2.29.1;
+- replace the Highlights bullet with a recorded no-Highlights verdict and its
+  reason, because the slice gives adopters no new invocation;
+- surface a malformed record behind a valid checksum as the documented
+  `EvidenceStoreError` on replay and as `denied-log-corrupt` on re-read;
+- pin the shadow `.gitignore` marker's two-byte read bound with a test;
+- name both poisoning causes, and index records through one shared helper.
+
 ## Accepted-risk amendment re-approval (owner decision, 2026-10-05)
 
 The owner re-approved the spec and the plan at their human gates on

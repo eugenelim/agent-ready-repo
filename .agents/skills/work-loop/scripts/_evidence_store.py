@@ -702,6 +702,27 @@ def _check_producer_authority(
 # ── EvidenceStore ──────────────────────────────────────────────────────────────
 
 
+def _index_record(
+    record: dict,
+    receipts: dict[str, dict],
+    by_criterion: dict[Any, list[str]],
+    supersessions: dict[str, dict],
+    superseded: set[str],
+) -> None:
+    """Index one admitted receipt or supersession into the given maps.
+
+    Shared by replay and the post-append update so both build the same view.
+    """
+    if "receipt_id" in record:
+        receipt_id = record["receipt_id"]
+        criterion_ref = record.get("lineage", {}).get("criterion_ref")
+        by_criterion.setdefault(criterion_ref, []).append(receipt_id)
+        receipts[receipt_id] = record
+    elif "supersession_id" in record:
+        supersessions[record["supersession_id"]] = record
+        superseded.update(record.get("superseded_receipt_ids", []))
+
+
 class EvidenceStore:
     """Append-only evidence transaction log with crash recovery.
 
@@ -743,8 +764,9 @@ class EvidenceStore:
         self._superseded: set[str] = set()
         self._transactions: list[dict] = []
         self._opened: bool = False
-        # Set when a rollback after a failed append itself fails; the file
-        # state is then unknown.  Cleared only by a fresh open() call.
+        # Set when a rollback after a failed append itself fails, or when a
+        # re-read under the lock finds the log corrupt; the file state is then
+        # unknown.  Cleared only by a fresh open() call.
         self._poisoned: bool = False
         # (st_dev, st_ino) of the log file recorded at the last read.
         # Used by _truncate_log_safe to refuse a truncation when the file
@@ -965,25 +987,30 @@ class EvidenceStore:
             _verify_frame(tx, records)
 
             tx_id = tx.get("transaction_id", "")
-            reused = tx_id in seen_tx_ids or any(
-                record.get("receipt_id") in receipts
-                or record.get("supersession_id") in supersessions
-                for record in records
-            )
+            try:
+                reused = tx_id in seen_tx_ids or any(
+                    record.get("receipt_id") in receipts
+                    or record.get("supersession_id") in supersessions
+                    for record in records
+                )
+            except TypeError as exc:  # an unhashable identity
+                raise EvidenceStoreError(
+                    "evidence log frame holds a malformed record identity"
+                ) from exc
             if reused:
                 continue  # first-wins: a later reuse never replaces admitted evidence
             seen_tx_ids.add(tx_id)
 
             transactions.append(tx)
-            for record in records:
-                if "receipt_id" in record:
-                    receipt_id = record["receipt_id"]
-                    criterion_ref = record.get("lineage", {}).get("criterion_ref")
-                    by_criterion.setdefault(criterion_ref, []).append(receipt_id)
-                    receipts[receipt_id] = record
-                elif "supersession_id" in record:
-                    supersessions[record["supersession_id"]] = record
-                    superseded.update(record.get("superseded_receipt_ids", []))
+            try:
+                for record in records:
+                    _index_record(record, receipts, by_criterion, supersessions, superseded)
+            except (AttributeError, TypeError, KeyError, ValueError) as exc:
+                # A frame can carry a valid checksum yet a malformed record;
+                # surface it as the one documented corruption error.
+                raise EvidenceStoreError(
+                    "evidence log frame holds a malformed record"
+                ) from exc
         self._receipts = receipts
         self._receipts_by_criterion = by_criterion
         self._supersessions = supersessions
@@ -1015,7 +1042,7 @@ class EvidenceStore:
             )
         try:
             self._index_frames(raw)
-        except (EvidenceStoreError, ValueError, TypeError, AttributeError, KeyError) as exc:
+        except EvidenceStoreError as exc:
             # The durable log is corrupt: keep the last consistent view and
             # refuse further appends until the store is reopened.
             self._poisoned = True
@@ -1111,12 +1138,10 @@ class EvidenceStore:
         if committed is not None:
             return committed
         self._transactions.append(tx)
-        if kind == "receipt":
-            self._index_receipt(record)
-        else:
-            self._supersessions[record["supersession_id"]] = record
-            for rid in record.get("superseded_receipt_ids", []):
-                self._superseded.add(rid)
+        _index_record(
+            record, self._receipts, self._receipts_by_criterion,
+            self._supersessions, self._superseded,
+        )
         return tx
 
     def _truncate_log(self, complete_bytes: bytes) -> None:
@@ -1287,7 +1312,8 @@ class EvidenceStore:
         if self._poisoned:
             raise EvidenceStoreRefused(
                 "denied-store-poisoned",
-                "store is in a failed-closed state from a rollback error; reopen to recover",
+                "store is in a failed-closed state after a rollback error or a "
+                "corrupt log; reopen to recover",
             )
 
         # Step 1: producer authority check, also for a retry.  Emits the allow
@@ -1405,7 +1431,8 @@ class EvidenceStore:
         if self._poisoned:
             raise EvidenceStoreRefused(
                 "denied-store-poisoned",
-                "store is in a failed-closed state from a rollback error; reopen to recover",
+                "store is in a failed-closed state after a rollback error or a "
+                "corrupt log; reopen to recover",
             )
 
         # Step 1: producer authority check, also for a retry.
@@ -1466,16 +1493,6 @@ class EvidenceStore:
         )
 
     # ── Read ───────────────────────────────────────────────────────────────────
-
-    def _index_receipt(self, receipt: dict) -> None:
-        """Record *receipt* in the receipt map and the per-criterion index.
-
-        Callers have already refused or skipped any reuse of its receipt_id.
-        """
-        receipt_id = receipt["receipt_id"]
-        criterion_ref = receipt.get("lineage", {}).get("criterion_ref")
-        self._receipts_by_criterion.setdefault(criterion_ref, []).append(receipt_id)
-        self._receipts[receipt_id] = receipt
 
     def get_active_receipts(self, criterion_ref: str) -> list[dict]:
         """Return active (non-superseded) receipts for *criterion_ref*, in insertion order.
