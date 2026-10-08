@@ -60,7 +60,7 @@ The `capture-work` skill directory, pack registration, activation evals, alias-e
 
 ### Interfaces & contracts
 
-The published Core skill inventory contains `work-intake` and no `capture-work` entry. Ordinary workspace status accepts only canonical target entries as lifecycle memberships. Explicit repair commands remain the sole current surface allowed to decode the historical shapes defined by RFC-0083. No new API contract, compatibility alias, fallback command, or result schema is introduced. Traces to: AC-0001–AC-0005. Owned by: T1, T2.
+The published Core skill inventory contains `work-intake` and no `capture-work` entry. Ordinary workspace status accepts only canonical target entries as lifecycle memberships. Only explicit repair commands (migration, prune, Type 2 repair) and the unchanged status-analysis layer (`extract_initiatives` listings, Type 1/2/3 scans, engine `explain_item`) decode the historical shapes defined by RFC-0083, and none of them dispatches. No new API contract, compatibility alias, fallback command, or result schema is introduced. Traces to: AC-0001–AC-0005. Owned by: T1, T2.
 
 ### Component / module decomposition
 
@@ -84,7 +84,7 @@ Core pack and plugin manifests move together to 3.0.0 before self-host regenerat
 
 **Depends on:** none
 
-**Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`, `packs/core/tests/skills/workspace-status/test_capture_work_removal.py`, `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py`
+**Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`, `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_capture_work_removal.py`, `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py`, `packs/core/tests/skills/workspace-status/test_work_intake_migration_planning.py`, `packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`, `packs/core/.apm/skills/workspace-status/scripts/workspace_status_prune.py`, `tests/roster/test_cooling_scope_closure.py`, `tests/roster/test_cooled_work_entry_classes.py`, `tests/roster/test_two_sided_prune_closure_invariant.py`, `tests/roster/test_workspace_status_progressive_disclosure.py`, `tests/roster/test_selection_scoped_membership_absence.py`, `tests/roster/test_status_projection_and_context_exclusion.py`, `tests/roster/test_cooling_brief_child_scope_closure.py`, `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `packs/core/.apm/skills/workspace-status/evals/**`
 
 **Review shape:** DEEP but localized parser-consumer split; review the ordinary and explicit-repair call graphs together.
 
@@ -189,18 +189,27 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - Stub validation on 2026-10-02: `python3 -m py_compile` exited 0 from disposable scratch, and the user-approved isolated execution failed at `assert result.legacy_memberships == []`, proving the intended red against the current ordinary reader. No repository test file was created.
 - Extend the focused test with the RFC-0083 section 10 item 2 fixture matrix and assertions that legacy aliases no longer affect duplicate, cooling, dependency, or dispatch derivation.
 - Run `test_work_intake_migration_planning.py` and `test_work_intake_migration_effects.py` unchanged in outcome for AC-0004 and AC-0005.
+- Move migration finding and selection setup to explicit migration parsing, and verify the CLI rollback path uses that same retained repair boundary. Preserve every existing planning, apply, interruption-recovery, and exact-byte rollback outcome assertion.
 - Run the current writer and workspace-seed evidence selected by historical AC14 for AC-0006.
+- Closeout keeps an open shaping or brief entry that no canonical parse accepts as `initiative-residue`, so a former legacy entry cannot make an initiative look empty. The legacy residue tests in `packs/core/tests/skills/workspace-status/test_closeout_initiative_residue.py` pass unchanged, and `test_capture_work_removal.py` covers shaping and brief shapes plus a canonical-only control.
+- Update `tests/roster/test_cooling_scope_closure.py` where it pins removed ordinary-legacy behavior: cooled legacy entries are rejected rather than cooled, the migration realness helper proves its fixture through the explicit migration extractor, and the AC24 call-site count reflects the rollback path's move to that extractor. Keep every cooling-identity assertion for migration plan, apply, recovery, and rollback.
+- In `tests/roster/test_cooled_work_entry_classes.py`, a former legacy `spec/<slug>` work entry is `unsupported_legacy` and is not a cooled closeout member, so the initiative's queue is not reported empty; the canonical bare-slug control stays unchanged.
+- Prune stays a repair operation (owner decision, 2026-10-07): `workspace_status_prune.py` decodes historical legacy aliases through the retained decoder, so a surviving legacy alias still denies closure and a clean prune still removes a selected legacy string alias. `tests/roster/test_two_sided_prune_closure_invariant.py` keeps those outcomes; only setup that reads ordinary `legacy_memberships` moves to the explicit migration extractor.
+- Update the remaining tests that pin ordinary accepted-legacy reconciliation so they expect `unsupported_legacy`, empty ordinary `legacy_memberships`, and no alias-derived membership or duplicate: `tests/roster/test_selection_scoped_membership_absence.py`, `tests/roster/test_status_projection_and_context_exclusion.py`, `tests/roster/test_cooling_brief_child_scope_closure.py`, `tools/test_workspace_status.py`, and `tools/test_workspace_status_cli.py`. Their migration CLI cases keep every plan, apply, recovery, and rollback outcome. Refresh the backend-script SHA-256 pins in `tests/roster/test_workspace_status_progressive_disclosure.py` to the candidate bytes.
+- The status-analysis layer keeps its HEAD behavior (owner decision, 2026-10-08): `extract_initiatives`, `_parse_work_entry`, the shaping and brief-queue parsers, the Type 1/2/3 scans, and engine `explain_item` are unchanged, so Type 2 `repair-plan` and `repair-apply` keep moving or removing a shipped or archived former legacy queue entry, ordinary `status`/`reconcile` keep their `type2_cleanup_ops` and Type 1 output, and the `type2-queue-structured-entry-required` and `type2-queue-canonical-blocked` manual findings stay. `test_capture_work_removal.py` pins that layer's view of canonical entries (canonical shaping entries stay out of the legacy shaping lists; a typed local work need stays `unsupported-typed-need`) and passes on the HEAD engine. CLI `explain` resolves through canonical reconciliation: a canonical selector is `matched`, and a former legacy selector is `not_found` with an `unregistered_work` finding; the `tools/` explain cases expect that.
+- No user-facing surface emits the migration finding after this change (owner decision, 2026-10-07; this repository has no migratable entry). The AC27 migration CLI tests in `tools/test_workspace_status_cli.py` build their selection from `extract_legacy_migration_memberships` and keep every plan, apply, recovery, and rollback outcome.
+- Update the workspace-status eval harness: eval 12 expects a former legacy string to be absent from `selected-membership` with no legacy occurrence, and eval 10's cooled-path-collision case expects the legacy string to surface as `unsupported_legacy` rather than a cooled membership. Their fixture workspaces change only where the case needs it.
 
 **Approach:**
 - Keep the historical decoder reachable only from explicit migration seams. Route ordinary membership extraction through canonical parsing and unsupported-input findings without inventing a second parser module.
 
-**Done when:** The AC-0003 focused test is green, the canonical positive control is evaluated, every historical legacy shape is unsupported in ordinary reconciliation, and the migration planning/effects suites remain green.
+**Done when:** The AC-0003 focused test is green, the canonical positive control is evaluated, every historical legacy shape is unsupported in ordinary reconciliation, the migration planning/effects suites remain green, closeout counts a rejected open entry as residue, prune and Type 2 repair keep their legacy outcomes, the workspace-status evals match the new expectations, and every test file named in this task's Touches passes except `test_pack_delivery_contract_is_complete_and_version_increased`, which T4's version bump satisfies.
 
 ### T2: Core exposes no capture-work alias or alias-only runtime path
 
 **Depends on:** none
 
-**Touches:** `packs/core/.apm/skills/capture-work/**`, `packs/core/pack.toml`, `packs/core/.apm/skills/work-intake/scripts/intake_router.py`, `packs/core/.apm/skills/work-intake/evals/**`, `packs/core/tests/skills/capture-work/**`, `packs/core/tests/pack/test_work_intake_surface.py`
+**Touches:** `packs/core/.apm/skills/capture-work/**`, `packs/core/pack.toml`, `packs/core/.apm/skills/work-intake/scripts/intake_router.py`, `packs/core/.apm/skills/work-intake/evals/**`, `packs/core/tests/skills/capture-work/**`, `packs/core/tests/pack/test_work_intake_surface.py`, `Makefile`, `.github/workflows/catalogue-tooling-ci-gates.yml`, `tools/lint-ci-parity.py`, `tools/add-rendering-directives.py`, `tests/roster/test_shaping_intake_handoff_matrix.py`, `tests/roster/test_work_intake_migration_contracts.py`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`
 
 **Review shape:** MIXED removal across one skill, one manifest, and its direct tests/evals.
 
@@ -209,15 +218,16 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 **Tests:**
 - Goal-based AC-0001 checks assert the authored skill directory, manifest entry, activation evals, alias-equivalence case, and alias-only router branch are absent while the canonical `work-intake` route and its `remember` behavior remain.
 - Update Core surface tests so a missing `capture-work` primitive is the expected inventory, not a skipped test.
+- Remove the deleted test directory from the `Makefile` suite list, the catalogue-tooling CI gate loop, and the CI-parity map; drop the `capture-work` rendering-directive key and skill-census entry; and replace the alias route record in the shaping-intake handoff matrix and the alias skill path in the migration contracts test. `python3 tools/lint-ci-parity.py`, `python3 tools/test-lint-ci-parity.py`, `tests/roster/test_skill_census.py`, and both roster tests pass.
 - Record `no stub (mode)`: this is a filesystem and manifest removal proved by inventory/build checks rather than a callable TDD surface.
 
-**Done when:** Focused Core pack tests pass with `work-intake` present, no authored `capture-work` surface, and no alias-only execution branch.
+**Done when:** Focused Core pack tests pass with `work-intake` present, no authored `capture-work` surface, and no alias-only execution branch; `python3 tools/lint-ci-parity.py`, `python3 tools/test-lint-ci-parity.py`, `tests/roster/test_skill_census.py`, and the two named roster tests pass.
 
 ### T3: Current guidance describes one intake name and a recovery-only migration path
 
 **Depends on:** T1, T2
 
-**Touches:** `guides/**/*.md`, `docs/guides/**/*.md`, `docs/architecture/*.md`, `packs/core/README.md`, `packs/core/DESIGN.md`, `packs/core/JOURNEY.md`, `packs/core/docs/*.md`, `packs/core/.apm/skills/work-intake/**/*.md`, `packs/core/.apm/skills/workspace-status/**/*.md`
+**Touches:** `guides/**/*.md`, `docs/guides/**/*.md`, `docs/architecture/*.md`, `packs/core/README.md`, `packs/core/DESIGN.md`, `packs/core/JOURNEY.md`, `packs/core/docs/*.md`, `packs/core/.apm/skills/work-intake/**/*.md`, `packs/core/.apm/skills/workspace-status/**/*.md`, `packs/product-engineering/.apm/skills/map-capabilities/SKILL.md`, `packs/product-engineering/.apm/skills/place-bet/SKILL.md`, `packs/product-engineering/.apm/skills/place-bet/examples/placing-a-bet.md`, `packs/product-engineering/.apm/skills/diverge-solutions/examples/opportunity-to-options.md`, `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/work-loop/evals/**`, `workspace.toml`
 
 **Review shape:** WIDE prose reconciliation with a closed current-surface audit; historical records and stable migration URLs remain outside rewrite scope.
 
@@ -228,18 +238,23 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - Goal-based AC-0008 audit classifies every derived current-surface match and rejects any unclassified match or current-state claim that the alias or ordinary accepted-legacy reader remains installed; surviving matches must be demonstrably historical or recovery-only.
 - Goal-based AC-0012 checks run guide, journey, site-generation, and rendered-link validation over the changed documentation surfaces.
 - Run guide-authoring, guide-index, journey, documentation-link, site-generation, and rendered-link checks.
+- Product-engineering skill guidance and examples that direct users to `capture-work` direct them to `work-intake` instead; the AC-0007 audit includes those four files.
+- The work-loop skill's orientation step no longer describes retained ordinary `legacy_memberships`; it states that former legacy entries surface as `unsupported_legacy` findings and never dispatch. The AC-0008 audit includes that file, and the work-loop eval harness gains or updates a case for the changed sentence.
+- `guides/core/how-to/migrate-capture-work.md` and `packs/core/.apm/skills/workspace-status/references/mutate.md` tell adopters to rewrite a former legacy entry in canonical form by hand, and describe the retained migration tooling only as recovery or rollback of an operation already in a migration ledger. The guide URL stays stable.
+- Goal-based AC-0007 hand-rewrite audit: a repository-confined search over every T3 Touches surface for migration planning, `--migration-selection`, `legacy_entry`, `legacy_finding_id`, and `migration` finding classifies each match; it fails any match that starts a new migration from a legacy finding, and passes only recovery or rollback of an existing ledger operation, historical records, or the hand-rewrite instruction. Surfaces known to need edits include `guides/_shared/how-to/use-work-intake.md`, `guides/_shared/reference/work-intake-routing-and-lifecycle.md`, `guides/core/reference/workspace-toml-schema.md`, `guides/core/README.md`, `guides/core/how-to/orient-at-session-start.md`, `guides/core/how-to/capture-work.md`, `packs/core/README.md`, `packs/core/JOURNEY.md`, `packs/core/.apm/skills/workspace-status/SKILL.md`, and `docs/guides/reference/work-intake-maintenance.md`.
+- The `workspace.toml` header comment no longer says entries reconcile as `legacy_entry`.
 - Record `no stub (mode)`: content and link gates verify maintained prose surfaces.
 
 **Approach:**
 - Keep the stable migration guide URL and historical term where needed for adopters arriving from old releases, but frame the page as explicit recovery and direct all new intake to `work-intake`.
 
-**Done when:** The current-surface audit has no instructional alias use or installed-compatibility claim, and every guide, journey, site, and link check is green.
+**Done when:** The current-surface audit has no instructional alias use or installed-compatibility claim; the AC-0007 hand-rewrite audit has no match that starts a new migration from a legacy finding; the product-engineering redirects, the work-loop sentence and its eval case, the migration guide and `mutate.md` edits, and the `workspace.toml` header comment are in place; and every guide, journey, site, and link check is green.
 
 ### T4: Core 3.0.0 and the synchronized AgentBundle runtime are release-ready
 
 **Depends on:** T1, T2, T3
 
-**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `tools/check-core-release.py`, `tools/test_check_core_release.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packages/agentbundle/tests/**`, generated self-host projections and marketplace metadata
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `tools/check-core-release.py`, `tools/test_check_core_release.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`, `packages/agentbundle/tests/**`, `web/src/content/journeys/core.md`, `packs/product-engineering/pack.toml`, `packs/product-engineering/.claude-plugin/plugin.json`, `packs/{code-intelligence,governance-extras,iac-terraform,monorepo-extras,release-engineering}/pack.toml`, `packs/{code-intelligence,governance-extras,iac-terraform,monorepo-extras,release-engineering}/.claude-plugin/plugin.json`, `tests/roster/test_shipped_pack_manifests.py`, `packs/governance-extras/tests/skills/new-rfc/test_project_knowledge_handoff.py`, `packs/code-intelligence/tests/pack/test_manifest.py`, `packs/monorepo-extras/README.md`, `profiles/full-ceremony.toml`, generated self-host projections and marketplace metadata
 
 **Review shape:** WIDE mechanically generated projection update with source-to-output equality checks.
 
@@ -253,9 +268,14 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - Run `make lint-ruff lint-mypy` for AC-0010.
 - Run self-host, catalogue, adapter-projection, and packaged-runtime parity checks for AC-0011.
 - Update both AgentBundle version owners to the same release version selected under the package release process, run `python3 -m pytest packages/agentbundle/tests/ -q`, and verify the built package contains a byte-identical candidate `workspace_status_engine.py`.
+- Regenerate `web/src/content/journeys/core.md` with `python3 tools/build-site.py --journeys-only` and run `python3 tools/lint-web-journey-parity.py`.
+- Change the `core` requirement in code-intelligence, governance-extras, iac-terraform, monorepo-extras, and release-engineering from `^2.0` to `^3.0`, bump each pack's two version owners to the same next patch version, and record each in the changelog. `agentbundle catalogue verify --root .` reports no `CAT-V-007` against Core 3.0.0.
+- Update the pins of those values: `tests/roster/test_shipped_pack_manifests.py` and `packs/governance-extras/tests/skills/new-rfc/test_project_knowledge_handoff.py` expect `^3.0`; `packs/code-intelligence/tests/pack/test_manifest.py` expects code-intelligence's new patch version in both manifests; `packs/monorepo-extras/README.md` and the `profiles/full-ceremony.toml` comments state `^3.0`. All three test files pass.
+- In `packages/agentbundle/tests/test_workspace_mcp_tools.py`, the MCP `workspace_status` result for a former legacy entry carries an `unsupported_legacy` finding, is absent from `ready` and `blocked`, and leaves the `legacy_memberships` key present and empty; `workspace_mcp.py` is unchanged.
+- Bump product-engineering's two version owners to the same next patch version and record it in the changelog, because T3 changes its shipped guidance.
 - Record `no stub (mode)`: version, changelog, build, and projection properties are goal-based.
 
-**Done when:** Authored sources and generated outputs agree, both Core version owners read 3.0.0, the explicit next-major Core release check passes while its default patch mode remains pinned, both AgentBundle version owners match their package release, the built package contains the candidate runtime, the release record is complete, and all required local gates are green.
+**Done when:** Authored sources and generated outputs agree, both Core version owners read 3.0.0, the explicit next-major Core release check passes while its default patch mode remains pinned, both AgentBundle version owners match their package release, the built package contains the candidate runtime and prune module, both product-engineering version owners and those of the five Core-dependent packs read their next patch versions, catalogue verify passes against Core 3.0.0, the three version-pin test files pass, `test_pack_delivery_contract_is_complete_and_version_increased` passes, the web journey parity lint passes, the release record is complete, and all required local gates are green.
 
 ### T5: The exact Core 3.0.0 candidate receives fresh removal authorization
 
@@ -269,11 +289,11 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 
 **Tests:**
 - Re-run the AC-0003 focused test; migration planning/effects suites; writer/seed/fixture checks; Core pack tests; the Core release checker in explicit major mode; projection parity; guide/link checks; `make lint-ruff lint-mypy`; and `git diff --check` against one candidate identity.
-- Record each command, result, candidate identity, Core 3.0.0 version, and the immediately preceding dual-reader release selected as rollback target in the verification ledger.
+- Record each command, result, candidate identity, Core 3.0.0 version, and the immediately preceding dual-reader release selected as rollback target in the verification ledger, together with the prior versions of code-intelligence, governance-extras, iac-terraform, monorepo-extras, and release-engineering that must be restored with it.
 - Manual QA for AC-0013: the RFC-0083 Approver reviews that exact ledger and records an authorize or reject decision before publication.
 - Record `no stub (mode)`: this task verifies candidate evidence and a human authorization boundary.
 
-**Done when:** Every required candidate check is current and passing, the authorization record binds the exact candidate and rollback target, and no release or merge effect occurred before authorization.
+**Done when:** Every required candidate check is current and passing, the authorization record binds the exact candidate and rollback target, including the restored versions of the five Core-dependent packs, and no release or merge effect occurred before authorization.
 
 ### T6: The authorized Core and AgentBundle releases carry one candidate
 
@@ -300,7 +320,7 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - **Infrastructure:** none.
 - **External-system integration:** none.
 - **Deployment sequencing:** finish T1–T4, freeze the candidate, and complete T5 authorization. T6 merges that exact candidate to `main`, records the resulting commit as the repo-only Core 3.0.0 release, then immediately pushes the AgentBundle version tag to trigger its synchronized package release. AgentBundle publication is registry-backed; Core evidence remains repository-backed.
-- **Rollback:** return to the immediately preceding published dual-reader Core release named in the fresh authorization. Existing migration ledgers, canonical artifacts, and receipts remain in place; no reverse data migration or deletion occurs.
+- **Rollback:** return to the immediately preceding published dual-reader Core release named in the fresh authorization, and restore code-intelligence, governance-extras, iac-terraform, monorepo-extras, and release-engineering to their recorded prior versions with it. Existing migration ledgers, canonical artifacts, and receipts remain in place; no reverse data migration or deletion occurs.
 - **Irreversibility:** publication removes a public skill name for 3.0.0 consumers. The repository change is revertible, but restoring compatibility requires another Core release.
 
 ## Risks
@@ -317,3 +337,6 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 
 - 2026-10-02: spec approved by owner
 - 2026-10-02: plan approved by owner
+- 2026-10-07: owner approved the bounded T1 amendment for explicit migration consumers and retained rollback verification.
+- 2026-10-08: amended spec approved by owner
+- 2026-10-08: amended plan approved by owner
