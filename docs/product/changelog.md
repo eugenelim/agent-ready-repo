@@ -64,6 +64,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.30.0] — 2026-10-07
+
+### Highlights
+
+- Installed Core now answers "which specs and briefs deliver this feature intent?" one way. A typed resolver ships inside the `close-work` and `work-loop` skills, so every Core install carries it and it runs without `agentbundle` importable. Both `close-work` and the traceability lint use its answer. A missing, contradictory, or unsafe mapping is reported by a stable code instead of being guessed.
+- `close-work` runs the resolver whenever it closes a spec or checks a feature's spec or brief delivery. The traceability lint runs it only when the repository has a delivery anchor (briefs, a rollup, or populated discovery layers), and fails with `delivery-resolver-unavailable` when the spec or intent folder has moved.
+
+### Added
+
+- A typed delivery resolver ships as `intent_delivery_relations.py` inside the `close-work` and `work-loop` skill `scripts/` folders, pinned byte-identical to one source. It returns a deterministic JSON snapshot of feature delivery: typed links, per-feature classification, contextual provenance, diagnostics, and an `artifacts` map from each identifier to its file path. It reads only confined artifact headers and refuses an unsafe or oversized corpus as an incomplete result.
+
+### Changed
+
+- `close-work` takes a feature intent's delivery descendants from that snapshot and refuses closure when the mapping is missing, ambiguous, or contradictory. When a spec or brief carries a broken delivery reference, it refuses every feature that artifact could belong to and names the stable code.
+- The `work-loop` traceability lint wires feature-delivery edges from the snapshot when a delivery anchor is present. A missing delivery target from a spec or brief fails the lint in every mode; contradictory or unsafe references fail under `--strict`; other delivery diagnostics are informational. A repository whose traceability layout moves the spec or intent folder away from the resolver's fixed defaults now fails the lint with `delivery-resolver-unavailable`, because the resolver reads only those default folders.
+- Both consumers validate every snapshot record and fail closed with `delivery-resolver-unavailable` when the resolver is absent, fails, or returns an incomplete snapshot. Neither falls back to its own scan.
+- The Core pack eval harness now covers shared delivery descendants, the broken-spec refusal, and the fail-closed outcome for both consumers.
+
 ## [code-intelligence][0.1.4] — 2026-10-07
 
 ### Highlights
@@ -82,24 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `SKILL.md` § Evidence discipline now asks for every command quoted exactly as run, flags included, and for an output a caller supplied to be reported under the command it stands for, so a run record is reproducible without inspecting a tool trace.
 - `SKILL.md`, `README.md`, and the how-to guide route to the composition example and state that other providers may expose fewer, different, or new capabilities and need not emulate Wicked Estate.
-
-## [core][2.30.0] — 2026-10-07
-
-### Highlights
-
-- Installed Core now answers "which specs and briefs deliver this feature intent?" one way. A typed resolver ships inside the `close-work` and `work-loop` skills, so every Core install carries it and it runs without `agentbundle` importable. Both `close-work` and the traceability lint use its answer. A missing, contradictory, or unsafe mapping is reported by a stable code instead of being guessed.
-- `close-work` runs the resolver whenever it closes a spec or checks a feature's spec or brief delivery. The traceability lint runs it only when the repository has a delivery anchor (briefs, a rollup, or populated discovery layers), and fails with `delivery-resolver-unavailable` when the spec or intent folder has moved.
-
-### Added
-
-- A typed delivery resolver ships as `intent_delivery_relations.py` inside the `close-work` and `work-loop` skill `scripts/` folders, pinned byte-identical to one source. It returns a deterministic JSON snapshot of feature delivery: typed links, per-feature classification, contextual provenance, diagnostics, and an `artifacts` map from each identifier to its file path. It reads only confined artifact headers and refuses an unsafe or oversized corpus as an incomplete result.
-
-### Changed
-
-- `close-work` takes a feature intent's delivery descendants from that snapshot and refuses closure when the mapping is missing, ambiguous, or contradictory. When a spec or brief carries a broken delivery reference, it refuses every feature that artifact could belong to and names the stable code.
-- The `work-loop` traceability lint wires feature-delivery edges from the snapshot when a delivery anchor is present. A missing delivery target from a spec or brief fails the lint in every mode; contradictory or unsafe references fail under `--strict`; other delivery diagnostics are informational. A repository whose traceability layout moves the spec or intent folder away from the resolver's fixed defaults now fails the lint with `delivery-resolver-unavailable`, because the resolver reads only those default folders.
-- Both consumers validate every snapshot record and fail closed with `delivery-resolver-unavailable` when the resolver is absent, fails, or returns an incomplete snapshot. Neither falls back to its own scan.
-- The Core pack eval harness now covers shared delivery descendants, the broken-spec refusal, and the fail-closed outcome for both consumers.
 
 ## [core][2.29.1] — 2026-10-07
 
