@@ -117,14 +117,14 @@ def test_skill_and_agents_exist() -> None:
 
 
 def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
-    """AC-0003: both runtime-dependency entries declare >=0.18, tracking the preflight floor.
+    """Both runtime-dependency entries declare >=0.21, matching the preflight floor.
 
     The floor in pack.toml and the preflight's MINIMUM_VERSION must agree so they
-    cannot drift independently.  This test fails until T2 updates both values to 0.18.
+    cannot drift independently.
     """
     preflight = _load_preflight()
-    assert preflight.MINIMUM_VERSION == (0, 18), (
-        f"preflight MINIMUM_VERSION must be (0, 18), got {preflight.MINIMUM_VERSION!r}"
+    assert preflight.MINIMUM_VERSION == (0, 21), (
+        f"preflight MINIMUM_VERSION must be (0, 21), got {preflight.MINIMUM_VERSION!r}"
     )
     expected = ">=" + ".".join(str(p) for p in preflight.MINIMUM_VERSION)
     for dep in load_pack()["runtime-dependencies"]:
@@ -134,17 +134,17 @@ def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
         )
 
 
-def test_pack_version_is_0_1_4() -> None:
-    """pack.toml and plugin.json both carry version 0.1.4.
+def test_pack_version_is_0_1_5() -> None:
+    """pack.toml and plugin.json both carry version 0.1.5.
 
-    Patch bump from 0.1.3: adds the composition example reference file and
-    evaluation cases to the existing skill without adding a new primitive.
+    Patch bump from 0.1.4: updates the Wicked Estate surface from 0.18 to 0.21
+    without adding a new primitive.
     """
     pack_version = load_pack()["version"]
     plugin_version = load_plugin()["version"]
-    assert pack_version == "0.1.4", (
-        f"pack version is {pack_version!r}, expected '0.1.4'"
+    assert pack_version == "0.1.5", (
+        f"pack version is {pack_version!r}, expected '0.1.5'"
     )
-    assert plugin_version == "0.1.4", (
-        f"plugin version is {plugin_version!r}, expected '0.1.4'"
+    assert plugin_version == "0.1.5", (
+        f"plugin version is {plugin_version!r}, expected '0.1.5'"
     )

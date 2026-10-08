@@ -60,11 +60,11 @@
     {
       "id": 6,
       "prompt": "The MCP server is not registered. Does BlastRadius give me per-dependent depth and a confidence envelope, and should I rely on that?",
-      "expected_output": "An answer that distinguishes what the pack observed from what it read in upstream's schemas: the MCP response shape is documented by upstream and has never been executed by this pack, so it is contract-complete rather than validated. It should say the CLI is the validated surface, that the CLI blast radius carries neither depth nor confidence, and that registering the server is what would make those available \u2014 without presenting the MCP behaviour as observed fact.",
+      "expected_output": "An answer that distinguishes what the pack observed from what it read in upstream's schemas: the MCP response shape is documented by upstream and has never been executed by this pack, so it is contract-complete rather than validated. It should say the CLI is the validated surface; that CLI blast-radius rows carry only id, name, kind, file and line, while `blast-radius --json` adds one `confidence` summary over the whole walk; that per-dependent depth and per-row evidence come from MCP `BlastRadius`; and that registering the server is what would make those available \u2014 without presenting the MCP behaviour as observed fact.",
       "assertions": [
         "States that the MCP surface is schema-derived and has not been executed by this pack",
         "Does not present the MCP response shape as observed behaviour",
-        "Says the CLI surface is the validated one and lacks depth and confidence on blast radius",
+        "Says the CLI surface is the validated one, that its blast-radius rows omit per-dependent depth, and that `blast-radius --json` carries one `confidence` summary rather than per-row values",
         "Distinguishes contract-complete from validated rather than treating both surfaces alike"
       ]
     },
@@ -77,6 +77,28 @@
         "Reports that `depth_bounded: true` means the route is not proven absent and offers to raise `--max-depth` (maximum 16)",
         "Does not claim no route exists",
         "Names the hop files to read when a route is found"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "What does `submit_order` depend on, all the way down? I only need its forward dependencies, and the MCP server is not registered.",
+      "expected_output": "An answer that resolves `submit_order` to a symbol id first with `wicked-estate resolve submit_order --json` (naming every candidate if the name is ambiguous), then runs `wicked-estate lineage --symbol <id> --json` and reads `content.dependencies` with each row's depth. It reports `searched_depth` and whether `depth_horizon_reached`, `node_cap_reached` or `truncated` is true, and offers a larger `--depth` (up to 24) when the horizon was reached. It does not pass the bare name to `lineage`, because a name returns an empty result with exit 0.",
+      "assertions": [
+        "Runs `wicked-estate resolve` before lineage and passes the resulting symbol id, not the name",
+        "Uses `wicked-estate lineage --symbol <id>` rather than saying forward dependencies need the MCP server",
+        "Reports the depth searched and any cut flag that is true",
+        "Does not present an empty lineage for a bare name as proof that the symbol has no dependencies"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "`blast-radius parse_config --json` returned 31 dependents. Which five matter most? The MCP server is not registered.",
+      "expected_output": "An answer that orders the dependents with `wicked-estate rank --seeds <dependent ids> --limit 200 --json`, then keeps only the hotspots whose `symbol` is one of the 31 dependents, because `--seeds` biases a graph-wide ranking rather than filtering to the seed set. It names any dependent missing from the output as unranked, including any whose id contains a comma and so could not be passed as a seed, and reports `truncated`. It presents the top five as a personalised-PageRank ordering, not as a measured impact.",
+      "assertions": [
+        "Uses `rank --seeds` with the dependent ids and then filters the hotspots to the dependent set",
+        "Does not treat seeded `rank` output as limited to the seeds",
+        "Names dependents absent from the ranked output as unranked rather than silently dropping them",
+        "Labels the ordering as PageRank importance rather than confirmed breakage"
       ]
     },
     {

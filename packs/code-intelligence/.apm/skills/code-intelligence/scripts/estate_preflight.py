@@ -20,6 +20,7 @@ Exit codes are the contract the skill branches on:
 install a pinned version with no sudo, then re-verify rather than trusting that
 a just-installed binary is resolvable in this session.
 """
+# Surface verified against: Wicked Estate 0.21.0.
 
 from __future__ import annotations
 
@@ -34,11 +35,11 @@ from pathlib import Path
 
 #: Minimum Wicked Estate release this skill's documented surface was verified
 #: against. Every CLI verb the skill names exists in this release.
-MINIMUM_VERSION = (0, 18)
+MINIMUM_VERSION = (0, 21)
 
-#: Exact pinned version. A caret range would resolve to whatever 0.18.x is
+#: Exact pinned version. A caret range would resolve to whatever 0.21.x is
 #: newest at install time, which is not a pin.
-PINNED_VERSION = "0.18.0"
+PINNED_VERSION = "0.21.0"
 
 #: Pinned install, matching `[[pack.runtime-dependencies]]` in pack.toml.
 #: `--locked` makes the build reproducible from the crate's shipped lockfile.
@@ -76,8 +77,8 @@ def read_version(binary: str) -> tuple[int, ...] | None:
     """Return the CLI's version as a tuple, or None when it cannot be parsed.
 
     Wicked Estate has no `--version` flag. The argument falls through to the
-    dispatcher's default arm, which prints a 68-line usage banner whose first
-    line reads ``wicked-estate 0.18.0 — usage:``. That banner is what this
+    dispatcher's default arm, which prints a usage banner whose first line
+    reads ``wicked-estate 0.21.0 — usage:``. That banner is what this
     parses, which is why the regex scans rather than anchoring, and why an
     unparseable result is deliberately not fatal: the pack is reading an
     unspecified fallback, so a future change to the banner must degrade to a

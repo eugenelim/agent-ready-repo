@@ -43,10 +43,12 @@ you get a bare list, ask:
 
 > How complete is that?
 
-Four things should come back: unresolved references, whether output was
-truncated, whether the depth horizon was reached (`depth_horizon_reached`), and
-which revision the index describes. When `depth_horizon_reached` is true, use
-`blast-radius <name> --depth N` (max 24) to look further.
+Five things should come back: unresolved references, whether output was
+truncated, whether the depth horizon was reached (`depth_horizon_reached`),
+whether the node cap was hit (`node_cap_reached`), and which revision the index
+describes. When `depth_horizon_reached` is true, use `blast-radius <name> --depth N`
+(max 24) to look further. A true `node_cap_reached` means the walk hit its node
+budget; no flag raises it.
 
 ## When architecture is the question
 
@@ -96,7 +98,8 @@ investigation patterns may change.
 - **A deletion list.** `dead-code` returns symbols with no edges, which on one
   real repository was 65% of all nodes — reflection and framework registration
   look identical to genuinely dead code.
-- **Ranked dependents on the CLI.** `rank` is a global top-25 with no seed and
-  no input set, so the CLI cannot tell you which of your 47 dependents matter most.
+- **A ranked-dependents list from a single call on the CLI.** Use the
+  seed-then-filter composition: `rank --seeds <dependent ids> --limit 200 --json`,
+  then keep only rows in your set.
 - **A recommendation.** The pack reports what is true. What to do about it
   belongs to whichever workflow asked.
