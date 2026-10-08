@@ -1,13 +1,13 @@
 # Native-provider selection validation
 
 - **Slug:** `native-provider-selection-validation`
-- **Status:** Draft
+- **Status:** Accepted
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:optional-code-intelligence-composition
-- **Shaping-reviewed:** 2026-10-04
+- **Shaping-reviewed:** 2026-10-08
 - **De-risked:** 2026-10-04
 - **Decomposed:** 2026-10-04 spec
 - **Governed by:** [RFC-0079](../../rfc/0079-codebase-context-pack.md)
@@ -31,8 +31,8 @@
   carry material evidence limits without coaching.
 - **Emotional job:** Know the provider-neutral bet survived contact with live
   environments rather than only a document exercise shaped by its authors.
-- **Social job:** Give RFC reviewers falsifiable evidence for accepting,
-  narrowing, or rejecting the composition model.
+- **Social job:** Give the capability owner falsifiable evidence for retaining,
+  narrowing, or rejecting the native-shape assumption.
 - **Struggling moment:** The construction exercise clears every scenario, but
   baseline fallback and RFC-derived vocabulary may have made success easier than
   independent use will be.
@@ -50,9 +50,10 @@ content, or weaken the parent boundary when a result is inconvenient.
 ## Assumptions
 
 - **Riskiest assumption:** A small blind exercise with three participants across
-  two live environments will produce a decision strong enough to survive,
-  reframe, or kill the parent bet instead of merely generating observations
-  that can be rationalized afterward.
+  two live environments can support a bounded next decision by the parent owner
+  instead of merely generating observations that can be rationalized afterward.
+  Passing this exercise does not establish selection reliability across other
+  users, repositories, or provider shapes.
 - The exercise can withhold golden-example vocabulary while giving participants
   enough ordinary tool metadata to act safely.
 - The same six questions remain representative enough to compare against the
@@ -84,12 +85,12 @@ content, or weaken the parent boundary when a result is inconvenient.
 
 | Synthetic result | Required disposition |
 | --- | --- |
-| Three participants clear at least five questions; provider-fit choices are explained; two live shapes are covered | Survive the parent assumption |
+| At least two of three participants independently clear at least five questions; provider-fit choices are explained; two live shapes are covered; no counted answer invents a shared provider contract | Survive the parent assumption within the tested coverage |
 | Two participants clear five questions only by using unexplained baseline fallback on provider-fit cases | Do not survive unchanged; reframe or kill native-shape selection through the parent owner |
 | Participants succeed only after receiving RFC or golden-example vocabulary | Do not survive unchanged; reframe or kill independent selection through the parent owner |
 | The run reaches only one provider shape or ordinary metadata is unavailable | Inconclusive; repair environment coverage and rerun without weakening the line |
 
-- **Result:** Every synthetic result maps to one action under the predeclared
+- **Result:** These four synthetic results map to one action under the predeclared
   parent hook. The decision does not need provider payload normalization,
   participant secrets, or private source; it needs only authorized native tool
   metadata, the question-level observations, and environment coverage.
@@ -99,12 +100,16 @@ content, or weaken the parent boundary when a result is inconvenient.
 - **Verdict:** **Survived.** The validation is decision-capable on paper and
   retains a genuine failure path. Its substantive verdict remains
   `to-validate` until the participant exercise runs.
-- **Reviews (2026-10-04):** Independent shaping and adversarial reviews were
-  rerun after decomposition and were clean. Only this updated receipt was added
-  after the final review.
+- **Reviews (2026-10-08):** Independent intent-mode shaping and adversarial
+  dispatches completed against Git blob
+  `91cab3382eeba48d3ffa9f00e1ee4ea8715fa51f`. Shaping returned no `MALFORMED`
+  token; the advisory assumption review returned no question or validation hook.
+  The review date and this receipt are nonmaterial updates after review.
+  Human confirmation of acceptance was given on 2026-10-08 after review;
+  the local Ruff and mypy gates passed before the status transition.
 
 ```yaml validation_hook
-assumption: A three-participant blind exercise across two live environments produces a decision strong enough to survive, reframe, or kill the parent native-shape bet.
+assumption: A three-participant blind exercise across two live environments supports a bounded next decision by the parent owner without claiming reliability beyond the tested coverage.
 kill_condition: Kill or redesign the validation if the live result cannot be classified by the predeclared parent thresholds, if environment coverage is mistaken for participant failure, or if running it requires provider-schema normalization, participant credentials, or private repository content.
 activity: Run the already specified blind six-question exercise with three maintainers or adopters across at least two authorized host and provider environments, retain question-level choices and explanations, and classify the result with the synthetic decision table before interpreting it.
 ```
@@ -146,7 +151,7 @@ and runs that protocol, with humans performing the live sessions.
   comparing review outcomes, normalizing provider interfaces, collecting
   credentials or private repository content, or letting the result amend the
   parent without owner action.
-- **Dependencies:** Accepted RFC-0079, CAP-0011's construction exercise and
+- **Dependencies:** RFC-0079, CAP-0011's construction exercise and
   validation hook, three consenting participants, and two authorized live
   environments. Missing participants or environment coverage makes execution
   inconclusive; it does not weaken the thresholds.
@@ -154,16 +159,32 @@ and runs that protocol, with humans performing the live sessions.
   transcript synthesis frame. A human runs each session. The spec owns the
   invariant protocol and decision boundary so the validation cannot grade
   itself after seeing results.
-- **Questions for `new-spec`:** Where the durable result record lives; how
-  participant and repository details are minimized or anonymized; how the
-  environment preflight distinguishes unavailable metadata from participant
-  failure; and which owner action records survive, reframe, or kill.
+- **Delivery answers:** The [spec](../../specs/native-provider-selection-validation/spec.md)
+  owns the result destination, minimized record, environment-versus-participant
+  distinction, and separate parent-owner decision. Its linked plan owns execution.
 - **Provenance:** This de-risked intent, CAP-0011's predeclared hook and
-  adversarial caveat, and Accepted RFC-0079.
+  adversarial caveat, and RFC-0079.
+
+## Unresolved questions
+
+- Can three consenting participants and the required live environments be
+  secured without answer coaching or prohibited data? The human facilitator
+  resolves this before sessions; inadequate coverage is inconclusive.
+- Can a second reader reproduce scoring from the minimized observations alone?
+  The delivery spec requires that check before the result is owner-routed.
+- What should change in CAP-0011 after the result? Its owner decides from the
+  recorded evidence, including prior RFC familiarity and the coverage limits.
+
+## Projection
+
+The existing [delivery spec](../../specs/native-provider-selection-validation/spec.md)
+owns the frozen protocol, evidence rules, and disposition thresholds. Continue
+through its linked plan when delivery is authorized; this intent's acceptance
+does not authorize participant recruitment or live-environment access.
 
 ## Source
 
 - **Mode:** repo-origin
 - **Locator:** `docs/product/intents/CAP-0011-optional-code-intelligence-composition.md`
-- **Revision:** `working-tree-2026-10-04`
+- **Revision:** `fe8a1fde266b83e23ea961a5cdd5f4fcbfb090be`
 - **Authority:** eugenelim, parent capability owner
