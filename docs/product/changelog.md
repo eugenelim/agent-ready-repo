@@ -82,6 +82,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Both consumers validate every snapshot record and fail closed with `delivery-resolver-unavailable` when the resolver is absent, fails, or returns an incomplete snapshot. Neither falls back to its own scan.
 - The Core pack eval harness now covers shared delivery descendants, the broken-spec refusal, and the fail-closed outcome for both consumers.
 
+## [code-intelligence][0.1.4] — 2026-10-07
+
+### Highlights
+
+- The pack now includes a worked example showing how to answer a change-impact question with a code index and how to answer the same question without one, with the limits of each approach named rather than rounded away.
+- The example marks which steps come from the core pack's shared rules for answering code questions and which are specific to Wicked Estate, so another code-intelligence tool does not need to copy Wicked Estate's commands.
+
+### Added
+
+- `references/composition-example.md`: a worked composition example covering a direct-dependents question through two paths.
+  - **Provider-fit path:** preflight ready, fresh index; symbol resolved via `wicked-estate resolve parse_config --json`; direct dependents from `wicked-estate blast-radius parse_config --depth 1 --json`; completeness limits including `unresolved`, `truncated_dependents`, `searched_depth`, and `node_cap_reached` kept; stopped at depth 1. When Core's `repository-exploration` skill runs the inquiry, load-bearing call sites are verified through Core's locator reader. When Core's `repository-exploration` skill is not running the inquiry, each call site is confirmed with repository-native search, with `wicked-estate source --symbols <id> --json` output labelled as indexed-revision snapshot evidence.
+  - **Fallback path:** binary absent, no index, version below floor, or index stale for the changed file. Text search and source reading with named gaps; commit range bounded by the `STALENESS:` count from `wicked-estate stats`; no install or re-index.
+- Five pack-local behavior evaluations graded from each run's evidence record: provider-fit, provider-absent, poor-fit (staleness detected from `wicked-estate stats` and bounded commit history), Core-only (no provider in session), and untrusted output (parent-segment locator refused, embedded instruction recorded as data).
+
+### Changed
+
+- `SKILL.md` § Evidence discipline now asks for every command quoted exactly as run, flags included, and for an output a caller supplied to be reported under the command it stands for, so a run record is reproducible without inspecting a tool trace.
+- `SKILL.md`, `README.md`, and the how-to guide route to the composition example and state that other providers may expose fewer, different, or new capabilities and need not emulate Wicked Estate.
+
 ## [core][2.29.1] — 2026-10-07
 
 No `Highlights`: this release adds maintainer-only shadow acceptance services behind an opt-in flag and changes no skill outcome or user task; adopters receive no new invocation. The omission is a recorded decision rather than an oversight.

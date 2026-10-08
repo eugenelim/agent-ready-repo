@@ -1,0 +1,2 @@
+status: binary-absent
+remediation: cargo install wicked-estate --version 0.18.0 --locked

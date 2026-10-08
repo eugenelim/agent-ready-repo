@@ -1,0 +1,24 @@
+{
+  "target": "parse_config",
+  "dependents": [
+    {
+      "id": "sym-001",
+      "name": "bootstrap",
+      "kind": "function",
+      "file": "composition-app_main.py",
+      "line": 7
+    },
+    {
+      "id": "sym-002",
+      "name": "run",
+      "kind": "function",
+      "file": "composition-cli_entry.py",
+      "line": 9
+    }
+  ],
+  "unresolved": 2,
+  "truncated_dependents": 0,
+  "searched_depth": 1,
+  "depth_horizon_reached": false,
+  "node_cap_reached": false
+}

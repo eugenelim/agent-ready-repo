@@ -121,6 +121,17 @@ early as the objective allows.
 5. **Stop.** Stop when you have enough evidence for the user's objective, not
    when the graph is exhausted. An unbounded walk is the main failure mode here.
 
+## Composition example
+
+[`references/composition-example.md`](references/composition-example.md) shows
+one complete inquiry — which call sites must change before changing the signature of `parse_config`, and which could not be established? — through the provider-fit path and
+the fallback path. It labels which obligations belong to Core (the companion `core` pack) and
+which details are owned by this pack.
+
+The example is illustrative, not a contract. Other providers may expose fewer,
+different, or new capabilities and need not emulate Wicked Estate. The current
+investigation patterns may change.
+
 ## Investigation patterns
 
 Five reusable shapes cover nearly every request. Load
@@ -161,6 +172,13 @@ Three rules are load-bearing:
   and `path` — and `blast-radius` and `path` suppress it under `--json`. Its
   absence is not evidence the graph is current — run a bare `wicked-estate
   stats` when freshness matters, and say which revision you answered from.
+
+Wherever you report a result, quote the command that produced it exactly as
+run, flags and all. `--depth 1` and the default depth answer different
+questions, so a bare verb name leaves the reader unable to tell which one you
+asked. When a caller hands you an output instead of letting you run the
+command, report it under the full command it stands for, and say it was
+supplied rather than run.
 
 Full handling — the confidence and provenance model, the annotation evidence
 envelope, freshness, and how to phrase a bounded claim — is in

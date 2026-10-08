@@ -67,6 +67,30 @@ must never do is present that fallback as a blast radius, lineage, or
 provenance — those are properties of an index, and text search does not have
 them. If you see those words without an index, something has gone wrong.
 
+## A worked example
+
+The example lives at `references/composition-example.md` inside the installed
+`code-intelligence` skill. Reading it shows how to apply the investigation
+patterns to a specific question, follow the evidence discipline end-to-end, and
+fall back gracefully when the index is absent or stale.
+
+It walks one question — before changing the signature of `parse_config`, which
+call sites must change, and which could not be established? — through two paths.
+
+The **provider-fit path** shows the preflight check, a freshness check,
+resolving the symbol, the direct-dependents query, source verification of the
+load-bearing call sites, and the stopping point.
+
+The **fallback path** shows what to do when the binary is absent, the index has
+not been built, the binary is older than the supported floor, or the index is
+stale for the file being changed. It labels text search and source reading as a
+different evidence class from an indexed call graph and names what they cannot
+establish.
+
+The example is illustrative, not a contract. Other providers may expose fewer,
+different, or new capabilities and need not emulate Wicked Estate. The current
+investigation patterns may change.
+
 ## What this will not give you
 
 - **A deletion list.** `dead-code` returns symbols with no edges, which on one
