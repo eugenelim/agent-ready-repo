@@ -127,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
 ## [core][2.30.1] — 2026-10-08
 
 ### Highlights

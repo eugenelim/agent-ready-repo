@@ -294,9 +294,33 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 
 **Done when:** Every bullet above holds, and the guide, guide-index, journey, and documentation-link checks are green.
 
+### T9: Round-2 review corrections close the remaining contract gaps
+
+**Depends on:** T7, T8
+
+**Touches:** `packs/core/.apm/skills/workspace-status/SKILL.md`, `packs/core/.apm/skills/workspace-status/references/mutate.md`, `packs/core/.apm/skills/workspace-status/evals/**`, `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`, `packs/core/.apm/skills/work-intake/SKILL.md`, `packs/core/.apm/skills/work-intake/evals/**`, `packs/core/tests/skills/workspace-status/**`, `packs/core/tests/pack/test_work_intake_surface.py`, `tests/roster/test_workspace_status_progressive_disclosure.py`, `docs/architecture/work-intake-and-artifact-routing.md`, `guides/core/how-to/capture-work.md`, `guides/core/reference/workspace-toml-schema.md`, `guides/product-engineering/how-to/frame-a-situation.md`, `docs/product/changelog.md`
+
+**Review shape:** MIXED: agent-facing skill text, one comment, tests, and guidance.
+
+**Grounding:** Implementation review round 2 adjudications (`.context/reviews/09925534-68c8-4cf6-894a-a085439b8d0f/impl/3-*-adjudication.md`) and the base-revision read of `references/mutate.md` recorded in the ledger.
+
+**Tests:**
+- `workspace-status/SKILL.md` names a surviving historical alias for the same artifact path as a cause of `duplicate_membership` and tells the agent to have the user delete the alias; the engine's next-action text is unchanged. Eval 16 gains a cross-initiative variant whose fixture puts the alias in another initiative, so naming the cause requires the skill guidance rather than matching slugs.
+- `references/mutate.md` restores the four agent restrictions the T3 rewrite dropped, scoped to recovery and rollback: never create, edit, prefill, or suggest substantive values for a selection or confirmation file; never choose among candidates; migration planning is read-only and rejects `--plan-file`; when the human needs opaque test-safe identifiers, tell them to run the `secrets` one-liner themselves and do not run it for them. Its `selected-membership` description lists only `canonical` and `parse-blocked` occurrence forms. A security-reviewer pass over the restored text is recorded in the ledger.
+- `work-intake/SKILL.md` no longer tells the agent to pass an alias signal, no longer routes compatibility-alias delegation through `work-intake`, and its description drops the older compatibility alias; `test_work_intake_surface.py` passes unchanged and `work-intake/evals/eval_queries.json` holds no query that depends on the dropped alias wording.
+- The Type 2 repair seam's alias check stays as defence in depth with a comment that states canonical reconciliation already refuses the alias.
+- Alias-refusal tests: the test is renamed to describe the refusal; a `work.shipped` alias case is added; one control with an Approved spec and plan on disk (a `tmp_path` root) asserts `dispatchable` true without the alias and false with it.
+- `docs/architecture/work-intake-and-artifact-routing.md` states the real decoder boundary: refuse-only alias decoding in canonical reconciliation, the repair seams (migration recovery and rollback, prune, Type 2 repair), and the information-only status-analysis readers.
+- `guides/core/how-to/capture-work.md` says old shaping entries still appear in the information-only shaping lists until rewritten (with a plain-words gloss), and says the canonical entry stays blocked with `duplicate_membership` while the old alias survives. `frame-a-situation.md` describes the canonical entry's shaping-queue listing without "`shape`-typed". The schema reference summary and intro drop "compatibility" for "former legacy forms" and "an `unsupported_legacy` or reconciliation finding".
+- `docs/product/changelog.md`: the Core 3.0.0 Highlight says to rewrite the entry in canonical form by hand and delete the old alias in the same edit; the product-engineering 0.13.23 entry names `frame-situation` and the shaping-list note.
+- Refresh the backend-script SHA-256 pins the engine comment moves.
+- Record `no stub (implementation-discovered)`: review findings define these cases.
+
+**Done when:** Every bullet above holds, every test file in Touches passes, the guide, guide-index, journey, and documentation-link checks pass, and `make lint-ruff lint-mypy` is green.
+
 ### T4: Core 3.0.0 and the synchronized AgentBundle runtime are release-ready
 
-**Depends on:** T1, T2, T3, T7, T8
+**Depends on:** T1, T2, T3, T7, T8, T9
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `tools/check-core-release.py`, `tools/test_check_core_release.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`, `packages/agentbundle/tests/**`, `web/src/content/journeys/core.md`, `packs/product-engineering/pack.toml`, `packs/product-engineering/.claude-plugin/plugin.json`, `packs/{code-intelligence,governance-extras,iac-terraform,monorepo-extras,release-engineering}/pack.toml`, `packs/{code-intelligence,governance-extras,iac-terraform,monorepo-extras,release-engineering}/.claude-plugin/plugin.json`, `tests/roster/test_shipped_pack_manifests.py`, `packs/governance-extras/tests/skills/new-rfc/test_project_knowledge_handoff.py`, `packs/code-intelligence/tests/pack/test_manifest.py`, `packs/monorepo-extras/README.md`, `profiles/full-ceremony.toml`, generated self-host projections and marketplace metadata
 
@@ -388,3 +412,5 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - 2026-10-08: amended plan approved by owner
 - 2026-10-08: second amended spec approved by owner
 - 2026-10-08: second amended plan approved by owner
+- 2026-10-08: third amended spec approved by owner
+- 2026-10-08: third amended plan approved by owner

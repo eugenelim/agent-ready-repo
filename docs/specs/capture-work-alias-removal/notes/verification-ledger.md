@@ -566,3 +566,30 @@ the same amendment for the owner's spec/plan re-approval.
 - Checks: 6 guide and journey validators pass. Guide tool tests,
   `test_work_intake_surface.py`, and `tools/test_workspace_status.py` ran 146
   passed. `make lint-ruff lint-mypy` and `git diff --check` pass.
+
+### Rebase and implementation review — round 2 (2026-10-08)
+
+- `main` moved 7 commits past the `9d39eae8b` base: Core is 2.30.1 and
+  code-intelligence 0.1.5. The owner chose a rebase. All 9 local commits
+  replayed onto `origin/main` (`8392ef8d6`), with the backup branch
+  `backup/capture-work-alias-removal-core3-pre-rebase`. Conflicts resolved:
+  Core manifests at 3.0.0, code-intelligence at 0.1.6 (main had released
+  0.1.4 and 0.1.5), and the changelog with the candidate's entries above
+  main's. `main` also rewrote this spec's `Discovery:` line as a typed
+  pointer, so the approved spec hash no longer matches.
+- Round 2 reports and adjudications: `.context/reviews/09925534-68c8-4cf6-894a-a085439b8d0f/impl/3-*`.
+  Security is clean. The others sustain 10 Concerns and 5 Nits. Among them,
+  the T3 rewrite of `references/mutate.md` dropped three agent restrictions
+  with no owner decision, which a base-revision read confirms: never choose
+  among candidates; migration planning is read-only and rejects
+  `--plan-file`; the human runs the opaque-identifier command themselves.
+- Amendment (sequence 46): the plan adds T9 for the round-2 corrections
+  before T4. The only spec change is `main`'s typed `Discovery:` pointer.
+  T1–T3, T7, and T8 stay complete, with evidence bound to their ledger
+  sections.
+- Round 14 (`14-pre-execute-adversarial-reviewer-raw.md`): 1 Concern and 2
+  Nits. The controller confirmed the Concern directly from the base diff: the
+  T3 rewrite also dropped "suggest substantive values", making four removed
+  restrictions, not three. All three findings are applied without a separate
+  adjudication. `findings-remain` follows.
+- Round 15: `Clean — ready to commit.`; `reviewers-clean` follows.
