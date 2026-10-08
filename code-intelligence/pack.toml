@@ -1,6 +1,6 @@
 [pack]
 name = "code-intelligence"
-version = "0.1.3"
+version = "0.1.5"
 description = "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing — answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses."
 readme = "README.md"
 display_name = "Code intelligence"
@@ -26,24 +26,26 @@ version = "^2.0"
 # drives and is the only hard requirement. `wicked-estate-mcp` is the MCP server; it is optional
 # because the CLI covers every capability this pack's primary patterns need, and the MCP surface
 # advertises 30 tool schemas that stay resident in the agent's context for the whole session.
-# Four capabilities exist only over MCP — see references/capability-map.md.
+# The MCP-only set is the memory, knowledge, and proposal domains, plus the richer MCP response
+# shapes (per-dependent depth and summary.top_by_pagerank on BlastRadius, Communities summaries,
+# ContextBundle) — see references/capability-map.md.
 [[pack.runtime-dependencies]]
 ecosystem = "cargo"
 package = "wicked-estate"
-version = ">=0.18"
+version = ">=0.21"
 optional = false
 skills = ["code-intelligence"]
-install = "cargo install wicked-estate --version 0.18.0 --locked"
+install = "cargo install wicked-estate --version 0.21.0 --locked"
 note = "Provides the `wicked-estate` binary. Tier-2 dependency: scripts/estate_preflight.py detects it first and installs only on explicit consent, and only when cargo is already present. Pinned to an exact version, not a range, per the three-tier policy. The policy's Tier-2 criterion is a manager the user demonstrably already has, detected first; cargo is detected before use and the install refuses without it. Upstream publishes only to crates.io and ships no release binaries, and `cargo install` compiles from source, so the consent prompt states the time cost. The pack reads an index the adopter builds with `wicked-estate index <path>`; it never writes to the graph."
 
 [[pack.runtime-dependencies]]
 ecosystem = "cargo"
 package = "wicked-estate-mcp"
-version = ">=0.18"
+version = ">=0.21"
 optional = true
 skills = ["code-intelligence"]
-install = "cargo install wicked-estate-mcp --version 0.18.0 --locked"
-note = "Optional structured provider. Register it only when the session needs Lineage, RulesInventory/rules.recall, or the memory/knowledge domains, which have no CLI verb. Registering it makes 30 tool schemas resident in the agent's context for the whole session, so it is off by default."
+install = "cargo install wicked-estate-mcp --version 0.21.0 --locked"
+note = "Optional structured provider. Register it for the memory, knowledge, and proposal domains, which have no CLI verb, or when the richer MCP response shapes are needed (per-dependent depth and summary.top_by_pagerank on BlastRadius, Communities summaries, ContextBundle). Registering it makes 30 tool schemas resident in the agent's context for the whole session, so it is off by default."
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
@@ -67,5 +69,5 @@ starter-prompt   = "What is the blast radius of changing the request handler in 
 expected-result  = "A list of resolved dependents with file:line, plus the count of call sites the indexer could not bind — stated as a completeness limit rather than hidden."
 next-action      = "Inspect the highest-risk dependents with `wicked-estate source`."
 verification     = "python scripts/estate_preflight.py --check"
-recovery         = "Exit 2 means the binary is absent — run `cargo install wicked-estate --version 0.18.0 --locked`. Exit 3 means no index — run `wicked-estate index .` from the repository root. Exit 4 means the binary is older than the 0.18 floor this pack was verified against — re-run the install command."
+recovery         = "Exit 2 means the binary is absent — run `cargo install wicked-estate --version 0.21.0 --locked`. Exit 3 means no index — run `wicked-estate index .` from the repository root. Exit 4 means the binary is older than the 0.21 floor this pack was verified against — re-run the install command."
 writes-to-repo   = false

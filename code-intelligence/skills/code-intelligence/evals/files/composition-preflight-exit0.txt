@@ -1,0 +1,3 @@
+status: ready
+version: 0.21.0
+database: .wicked-estate/graph.db

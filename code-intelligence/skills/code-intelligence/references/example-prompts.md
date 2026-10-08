@@ -48,6 +48,7 @@ bug, or write a fix. The `bug-fix` workflow owns the diagnosis and the change.
 wicked-estate stats                                  # freshness, before anything else
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
+wicked-estate rank --seeds <dep-id-1>,<dep-id-2>,<dep-id-3> --limit 200 --json
 wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
 ```
 
@@ -57,17 +58,18 @@ wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
 > false and `node_cap_reached` false at depth 12. `stats` reports the graph is
 > current with the working tree.
 >
-> I picked five to read — `Invoice`, `LedgerEntry`, `PaymentGateway`,
-> `RefundCalculator`, and the `Money` serde implementation — chosen because
-> they are public constructors or serialization paths, **not because the tool
-> ranked them**. The CLI cannot rank a supplied set. Four construct `Money`
-> positionally and will fail to compile with a new field; `RefundCalculator`
-> only reads `.amount` and is unaffected.
+> I ran `rank --seeds <dependent ids> --limit 200 --json` and kept the rows
+> whose `symbol` was in the 47-member set, giving a ranked view. Five were in
+> the top rows: `Invoice`, `LedgerEntry`, `PaymentGateway`, `RefundCalculator`,
+> and the `Money` serde implementation. Four construct `Money` positionally and
+> will fail to compile with a new field; `RefundCalculator` only reads `.amount`
+> and is unaffected. Members absent from the ranked output were reported as
+> unranked — cut by the row limit or character budget.
 >
 > I ran `blast-radius Money --depth 1 --json` to separate direct from transitive.
 > It reported no truncation, and the full run reported no cut, so the split is
 > complete: 12 of the 47 are direct dependents and 35 are transitive. Registering the MCP server would give per-
-> dependent depth and a PageRank ranking over exactly these 47.
+> dependent depth and `summary.top_by_pagerank` directly.
 
 **What the skill did not do:** estimate effort, propose a migration order, or
 decide whether the field should be optional.
@@ -162,8 +164,7 @@ wicked-estate by-requirement REQ-441          # only if requirements were annota
 
 **A good answer looks like:**
 
-> In the global top-25 by PageRank, the three heaviest batch programs are
-> `CALCINT` (interest
+> By global PageRank, the three heaviest batch programs are `CALCINT` (interest
 > calculation), `POSTGL` (general-ledger posting), and `VALACCT`. `CALCINT`
 > has 61 resolved dependents with 14 unresolved call sites — the highest
 > unresolved count in the graph, which for COBOL usually means dynamic `CALL`

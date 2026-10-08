@@ -1,0 +1,8 @@
+abc1234 Add strict mode parameter to parse_config
+
+composition-config_loader.py
+
+def5678 Update configuration handling
+
+composition-config_loader.py
+composition-app_main.py
