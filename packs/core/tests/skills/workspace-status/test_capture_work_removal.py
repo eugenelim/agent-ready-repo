@@ -138,20 +138,15 @@ def _section10_workspace() -> dict[str, object]:
     }
 
 
-def test_section10_legacy_matrix_is_unsupported_in_ordinary_reconciliation() -> None:
+def test_surviving_alias_refuses_canonical_twin_dispatch() -> None:
+    """A surviving legacy alias makes its canonical twin non-dispatchable.
+
+    _legacy_canonical_alias maps spec/<slug> to docs/specs/<slug>/spec.md.
+    When that canonical entry exists, it carries duplicate_membership and is
+    excluded from dispatch. Without the alias the same entry is dispatchable.
+    """
     engine = _load_engine()
-
-    result = engine.run_canonical_reconciliation(_section10_workspace())
-    codes = [finding.code for finding in result.findings]
-
-    assert result.legacy_memberships == []
-    assert "legacy_entry" not in codes
-    assert codes.count("unsupported_legacy") == 5
-
-
-def test_legacy_aliases_do_not_affect_duplicate_or_dispatch_derivation() -> None:
-    engine = _load_engine()
-    workspace = {
+    workspace_with_alias = {
         "ini-001": {
             "status": "active",
             "work": {
@@ -171,17 +166,44 @@ def test_legacy_aliases_do_not_affect_duplicate_or_dispatch_derivation() -> None
         }
     }
 
-    result = engine.run_canonical_reconciliation(workspace)
+    result = engine.run_canonical_reconciliation(workspace_with_alias)
     duplicate_paths = {
         finding.path for finding in result.findings if finding.code == "duplicate_membership"
     }
 
-    assert "docs/specs/canonical/spec.md" not in duplicate_paths
+    assert "docs/specs/canonical/spec.md" in duplicate_paths
+    evaluation = result.dispatch_by_path["docs/specs/canonical/spec.md"]
+    assert "duplicate_membership" in {finding.code for finding in evaluation.findings}
     assert "spec/canonical" not in result.dispatch_by_path
-    assert "docs/specs/canonical/spec.md" in result.dispatch_by_path
+
+    # Without the alias the canonical entry dispatches normally.
+    workspace_without_alias = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [
+                    {
+                        "path": "docs/specs/canonical/spec.md",
+                        "kind": "spec",
+                        "source": {"mode": "repo-origin"},
+                        "summary": "Canonical control",
+                        "needs": [],
+                    },
+                ],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    clean_result = engine.run_canonical_reconciliation(workspace_without_alias)
+    clean_duplicate_paths = {
+        finding.path for finding in clean_result.findings
+        if finding.code == "duplicate_membership"
+    }
+    assert "docs/specs/canonical/spec.md" not in clean_duplicate_paths
 
 
-def test_legacy_aliases_do_not_affect_cooling_or_dependency_derivation(
+def test_legacy_aliases_do_not_affect_cooling_derivation(
     tmp_path: Path,
 ) -> None:
     engine = _load_engine()
@@ -304,3 +326,113 @@ def test_rejected_open_entries_still_count_as_initiative_residue() -> None:
         empty_shaping,
         {"executing": "docs/product/briefs/legacy-brief.md", "ready": [], "draft": []},
     ).has_unsupported_open_entry
+
+
+def test_extractor_positions_cover_every_rfc0083_section10_shape() -> None:
+    """extract_legacy_migration_memberships returns exact positions for every §10 shape.
+
+    Pins (ini_slug, collection, entry_index) for each RFC-0083 section 10 shape
+    including multi-entry lists and the scalar brief_queue.executing form.
+    """
+    engine = _load_engine()
+
+    workspace: dict = {
+        # Top-level backlog: five-key spec object at index 1 (after a non-legacy entry)
+        "backlog": {
+            "open": [
+                {
+                    "path": "docs/specs/canonical/spec.md",
+                    "kind": "spec",
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Canonical — not legacy",
+                    "needs": [],
+                },
+                {
+                    "slug": "backlog-spec",
+                    "source": "capture-work",
+                    "summary": "Legacy backlog spec",
+                    "needs": [],
+                    "type": "spec",
+                },
+            ],
+            "closed": [],
+        },
+        "ini-001": {
+            "status": "active",
+            "work": {
+                # spec/<slug> strings at indices 0 and 1
+                "queue": ["spec/queue-a", "spec/queue-b"],
+                "active": [],
+                "shipped": [],
+            },
+            "shaping_queue": {
+                # bare slug string at index 0; typed design dict at index 1
+                "active": [
+                    "bare-shaping",
+                    {"slug": "design-one", "type": "design", "needs": []},
+                ],
+                "backlog": [
+                    {"slug": "research-one", "type": "research", "needs": []},
+                ],
+            },
+            "brief_queue": {
+                # scalar executing string (legacy brief path)
+                "executing": "docs/product/briefs/executing-brief.md",
+                "ready": ["docs/product/briefs/ready-brief.md"],
+                "draft": [],
+                "shipped": [],
+            },
+        },
+    }
+
+    memberships = engine.extract_legacy_migration_memberships(workspace)
+    positions = [
+        (m.ini_slug, m.collection, m.entry_index)
+        for m in memberships
+    ]
+
+    # Top-level backlog: five-key spec object is at index 1 (index 0 is canonical)
+    assert ("", "backlog.open", 1) in positions
+
+    # Initiative work.queue: two spec strings at indices 0 and 1
+    assert ("ini-001", "work.queue", 0) in positions
+    assert ("ini-001", "work.queue", 1) in positions
+
+    # shaping_queue.active: bare slug at index 0, typed design at index 1
+    assert ("ini-001", "shaping_queue.active", 0) in positions
+    assert ("ini-001", "shaping_queue.active", 1) in positions
+
+    # shaping_queue.backlog: typed research at index 0
+    assert ("ini-001", "shaping_queue.backlog", 0) in positions
+
+    # brief_queue.executing: scalar string becomes index 0
+    assert ("ini-001", "brief_queue.executing", 0) in positions
+
+    # brief_queue.ready: legacy brief path at index 0
+    assert ("ini-001", "brief_queue.ready", 0) in positions
+
+    # Total: 1 (backlog) + 2 (work.queue) + 2 (shaping.active) + 1 (shaping.backlog)
+    #        + 1 (executing) + 1 (ready) = 8
+    assert len(memberships) == 8
+
+
+def test_malformed_historical_type_is_a_finding_not_an_exception() -> None:
+    """A non-string `type` in a historical object ends as a finding, never a raise."""
+    engine = _load_engine()
+    workspace = {
+        "ini-001": {
+            "status": "active",
+            "work": {"queue": [], "active": [], "shipped": []},
+            "shaping_queue": {
+                "active": [],
+                "backlog": [{"slug": "x", "type": ["a"], "needs": []}],
+            },
+        },
+        "backlog": {"open": [{"slug": "y", "type": {"k": "v"}}], "closed": []},
+    }
+
+    assert engine.extract_legacy_migration_memberships(workspace) == []
+    result = engine.run_canonical_reconciliation(workspace)
+    assert result.legacy_memberships == []
+    assert result.evaluations == []
+    assert result.findings

@@ -601,7 +601,7 @@ def _canonical_projection(
 
 
 def _explain_selector_targets(selector: str) -> tuple[str, str] | None:
-    """Return canonical and legacy work paths for a confined selector."""
+    """Return the canonical work path and legacy spelling for a confined selector."""
     if not isinstance(selector, str) or not selector or len(selector) > 240:
         return None
     if "\\" in selector or (len(selector) >= 2 and selector[1] == ":"):
@@ -637,7 +637,12 @@ def _explain_selector_targets(selector: str) -> tuple[str, str] | None:
 
 
 def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
-    """Explain one canonical or accepted legacy work entry without path I/O."""
+    """Explain one canonical work entry using canonical-only resolution.
+
+    The `spec/<slug>` selector spelling still maps to the canonical path through
+    `_explain_selector_targets`. Legacy memberships are always empty after the
+    ordinary-reader removal, so only `evaluations` is searched.
+    """
     normalized_selector = selector
     if selector.endswith("/"):
         directory_parts = selector[:-1].split("/")
@@ -648,17 +653,14 @@ def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
     if targets is None:
         return public_selector, {"selector_status": "not_found"}
 
-    canonical_path, legacy_path = targets
+    canonical_path, _legacy_path = targets
     projection = _canonical_projection(root, result, *_cooling_selection(result, "explain"))
     candidates = [
         item
-        for item in [
-            *projection["evaluations"],
-            *projection["legacy_memberships"],
-        ]
+        for item in projection["evaluations"]
         if item["kind"] == "spec"
         and str(item["collection"]).startswith("work.")
-        and item["path"] in {canonical_path, legacy_path}
+        and item["path"] == canonical_path
     ]
     by_initiative: dict[str, list[dict]] = {}
     for candidate in candidates:

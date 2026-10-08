@@ -2154,6 +2154,36 @@ active  = []
 backlog = []
 """
 
+_TWO_INI_CANONICAL_SHARED_TOML = """\
+["ini-001"]
+name      = "Alpha"
+status    = "active"
+milestone = "M1"
+
+["ini-001".work]
+active  = []
+shipped = []
+queue   = [{path = "docs/specs/shared-canonical/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Shared canonical", needs = []}]
+
+["ini-001".shaping_queue]
+active  = []
+backlog = []
+
+["ini-002"]
+name      = "Beta"
+status    = "active"
+milestone = "M1"
+
+["ini-002".work]
+active  = []
+shipped = []
+queue   = [{path = "docs/specs/shared-canonical/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Shared canonical", needs = []}]
+
+["ini-002".shaping_queue]
+active  = []
+backlog = []
+"""
+
 
 class SubcommandTests(_CliBase):
     """Order 1B: status / reconcile / no-subcommand / explain routing."""
@@ -2288,6 +2318,57 @@ class SubcommandTests(_CliBase):
             "unregistered_work",
             {finding["code"] for finding in data.get("findings", [])},
         )
+
+    def test_explain_cli_canonical_ambiguous_exit0(self) -> None:
+        """Canonical path under two initiatives → exit 0, ambiguous, two matches.
+
+        Both initiatives carry the same canonical spec entry. Explain finds both
+        and reports selector_status 'ambiguous' with a matches list containing
+        both ini_slug values.
+        """
+        root = self._write_workspace(_TWO_INI_CANONICAL_SHARED_TOML)
+        r = self._run_explain(root, "shared-canonical")
+        self.assertEqual(r.returncode, 0,
+                         f"ambiguous must be exit 0, got {r.returncode}: {r.stderr}")
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("selector_status"), "ambiguous")
+        matches = data.get("matches", [])
+        self.assertEqual(len(matches), 2)
+        self.assertEqual(
+            {m["ini_slug"] for m in matches},
+            {"ini-001", "ini-002"},
+        )
+        self.assertTrue(all(m["path"] == "docs/specs/shared-canonical/spec.md" for m in matches))
+
+    def test_explain_cli_matched_item_keys(self) -> None:
+        """Matched canonical item includes the documented explained_item keys."""
+        canonical_root = self._write_workspace(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/ready-item/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "ready", needs = []}]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+"""
+        )
+        self._make_canonical_spec(canonical_root, "ready-item", "Approved")
+        r = self._run_explain(canonical_root, "ready-item")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("selector_status"), "matched")
+        item = data.get("explained_item", {})
+        for key in ("path", "slug", "ini_slug", "list", "classification",
+                    "blocking_needs", "dependencies", "downstream_unblocked",
+                    "dispatchable", "findings"):
+            self.assertIn(key, item, f"explained_item missing key: {key!r}")
 
     def test_reconciliation_metadata_fields(self) -> None:
         """AC12: status and reconcile include performed/complete/types_performed."""

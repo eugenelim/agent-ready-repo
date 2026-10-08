@@ -518,3 +518,33 @@ the same amendment for the owner's spec/plan re-approval.
   working-material Design text that names T7 in its prose. Nit 2 (`plan.md:258`,
   T7 Touches omits the ledger): the controller, not the implementer, writes
   ledger evidence for every task, as for T1–T4.
+
+## Execution after the second re-approval — 2026-10-08
+
+- The owner re-approved the spec and plan; `approve-plan`, `schedule`, and
+  `plan-locked` ran (sequence 41). The schedule runs T7, T8, T4, T5, then T6.
+
+### T7
+
+- An implementer added the alias refusal in `run_canonical_reconciliation`:
+  one `extract_legacy_migration_memberships` pass, mapped through
+  `_legacy_canonical_alias`, adds matching canonical paths to
+  `duplicate_paths`. It also restored the CLI `explain` canonical `ambiguous`
+  and full-key-set tests, removed the dead legacy matching in explain,
+  strengthened the cooling realness helper, pinned extractor positions for
+  every section 10 shape, cleaned up the focused tests, and added eval case 16
+  with its fixture.
+- Cases: spec alias in the same collection, in another work collection, and
+  in another initiative; the five-key backlog spec object; a brief string; a
+  shaping design object; no-alias dispatch controls; and an unmapped-shape
+  negative control. Mutation check: disabling the guard fails 2 tests.
+- Security review of the guard
+  (`impl/2-security-reviewer-raw.md`): one Nit, sustained on adjudication. A
+  non-string `type` in a historical object raised `TypeError` inside the
+  decoder. `_accepted_legacy_entry` now requires a string before the
+  shaping-type membership test. A new regression test raises on the previous
+  engine and passes now.
+- Gates: the T7 test set ran 782 passed, 1 skipped, 115 s, before the Nit fix.
+  After it, the workspace-status, tools, and disclosure suites ran 548 passed
+  with only the stale engine SHA pin failing; the refreshed pin then ran 19
+  passed. `make lint-ruff lint-mypy` and `git diff --check` pass.

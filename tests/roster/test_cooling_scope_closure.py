@@ -239,11 +239,20 @@ def migration_fixture(root: Path, *, cooled: bool = True) -> Path:
 
 
 def assert_migration_fixture_is_real(tmp_path: Path) -> None:
-    """Prove the fixture holds a real legacy membership the explicit migration extractor recognises."""
+    """Prove the fixture holds a real legacy membership the explicit migration extractor recognises.
+
+    Also proves the cooled fixture's lifecycle record resolves the legacy artifact's
+    locator in the status cooling projection.
+    """
     uncooled = migration_fixture(tmp_path / "migration-uncooled", cooled=False)
     workspace = ENGINE.parse_workspace(uncooled / "workspace.toml")
     legacy_memberships = ENGINE.extract_legacy_migration_memberships(workspace)
     assert [m.entry.path for m in legacy_memberships] == ["spec/legacy"]
+
+    cooled_root = migration_fixture(tmp_path / "migration-cooled", cooled=True)
+    result = run_status(cooled_root)
+    cooling_locators = [r["locator"] for r in result["cooling"]["records"]]
+    assert "docs/specs/legacy/spec.md" in cooling_locators
 
 
 def identity_collision_fixture(

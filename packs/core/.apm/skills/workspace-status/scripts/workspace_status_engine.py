@@ -1354,6 +1354,7 @@ def _accepted_legacy_entry(collection: str, raw: object) -> LegacyWorkspaceEntry
             )
             if (
                 _is_legacy_slug(raw.get("slug"))
+                and isinstance(entry_type, str)
                 and entry_type in _SHAPING_TYPES
                 and needs_are_supported
             ):
@@ -1385,6 +1386,7 @@ def _accepted_legacy_entry(collection: str, raw: object) -> LegacyWorkspaceEntry
         summary_is_supported = "summary" not in raw or isinstance(raw["summary"], str)
         if (
             _is_legacy_slug(raw.get("slug"))
+            and isinstance(raw.get("type"), str)
             and raw.get("type") in _SHAPING_TYPES
             and needs_are_supported
             and source_is_supported
@@ -3707,6 +3709,17 @@ def run_canonical_reconciliation(
         for path, items in by_path.items()
         if len(items) > 1
     }
+    # Alias-refused paths: canonical reconciliation may decode a historical alias
+    # only to refuse. A canonical entry stays non-dispatchable while any historical
+    # entry that the retained decoder maps to the same artifact path survives
+    # anywhere in the workspace. One extraction per reconciliation run.
+    _alias_refused_paths = {
+        _alias_path
+        for _m in extract_legacy_migration_memberships(workspace)
+        if (_alias_path := _legacy_canonical_alias(_m.entry)) is not None
+        and _alias_path in by_path
+    }
+    duplicate_paths.update(_alias_refused_paths)
     parse_only_duplicate_paths = {
         path
         for path, count in parse_blocked_path_counts.items()
