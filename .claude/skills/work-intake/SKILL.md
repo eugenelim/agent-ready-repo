@@ -129,8 +129,7 @@ Do not put chronology, rationale, procedure, review transcript, raw finding,
 copied source text, suggested order, soft priority, or conversation residue in
 adjacent comments, summaries, or workspace-only fields. If the context cannot
 fit that shape, materialize the context-owning artifact first and point to it.
-Legacy prose remains visible during compatibility windows, but an entry that
-this workflow materially updates must adopt the terse form.
+An entry that this workflow creates or updates adopts the terse form.
 
 For a separated follow-on from an amended spec, materialize the follow-on's
 owning artifact before registration. The follow-on's current state changes in
