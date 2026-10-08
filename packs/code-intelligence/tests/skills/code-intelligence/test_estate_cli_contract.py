@@ -8,7 +8,7 @@ and reading what actually comes back.
 It is skipped when `wicked-estate` is absent, so it self-declares as unrun
 rather than passing vacuously. To run it:
 
-    cargo install wicked-estate --version 0.18.0 --locked
+    cargo install wicked-estate --version 0.21.0 --locked
     pytest packs/code-intelligence/tests/skills/code-intelligence/
 
 The index is built once per session into a temp directory from a purpose-built
@@ -20,7 +20,6 @@ verb that mutates cannot corrupt the shared fixture.
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -65,7 +64,7 @@ BINARY = shutil.which("wicked-estate")
 
 pytestmark = pytest.mark.skipif(
     BINARY is None,
-    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.18.0 --locked`",
+    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.21.0 --locked`",
 )
 
 
@@ -137,11 +136,11 @@ def test_resolve_reports_ambiguity_rather_than_collapsing_it(graph: Path) -> Non
 
 
 def test_blast_radius_json_top_level_keys(graph: Path, known_symbol: dict) -> None:
-    """The seven CLI keys the pack's completeness guidance depends on.
+    """blast-radius --json carries the eight documented top-level keys including the confidence object.
 
-    0.18.0 adds searched_depth, depth_horizon_reached, and node_cap_reached
-    to the existing four, enabling the agent to distinguish a depth-cut result
-    from a complete one.  See gaps.md §Completeness for the gap this closes.
+    0.21.0 adds a ``confidence`` object with ``min``, ``avg``, and ``edge_count``
+    over the edges that admitted rows into the result.  The seven structural keys
+    from 0.18.0 remain.
     """
     payload = json.loads(run("blast-radius", known_symbol["name"], "--json", db=graph).stdout)
     assert set(payload) == {
@@ -152,7 +151,26 @@ def test_blast_radius_json_top_level_keys(graph: Path, known_symbol: dict) -> No
         "searched_depth",
         "depth_horizon_reached",
         "node_cap_reached",
+        "confidence",
     }
+    conf = payload["confidence"]
+    assert set(conf) >= {"min", "avg", "edge_count"}, (
+        f"confidence object must carry min, avg, edge_count; got {set(conf)}"
+    )
+
+
+def test_blast_radius_text_evidence_line(graph: Path) -> None:
+    """blast-radius text output prints a line starting 'evidence:'.
+
+    The evidence line summarises the edges and confidence used for the result,
+    giving a text caller the same signal that --json carries in the confidence
+    object.
+    """
+    result = run("blast-radius", "helper", db=graph)
+    assert result.returncode == 0
+    assert any(
+        line.startswith("evidence:") for line in result.stdout.splitlines()
+    ), "blast-radius text output must contain a line starting 'evidence:'"
 
 
 def test_blast_radius_dependents_have_no_depth_or_confidence(
@@ -179,27 +197,77 @@ def test_blast_radius_suppresses_staleness_under_json(
 # ── nodes ──────────────────────────────────────────────────────────────────
 
 
-def test_nodes_has_no_symbol_filter(graph: Path, known_symbol: dict) -> None:
-    """The pack forbids `nodes` for single-symbol lookup; prove it cannot do it."""
-    filtered = json.loads(run("nodes", "--symbol", known_symbol["symbol_id"], "--json", db=graph).stdout)
-    unfiltered = json.loads(run("nodes", "--json", db=graph).stdout)
-    assert len(filtered) == len(unfiltered) > 1, "--symbol was silently ignored"
+def test_nodes_symbol_flag_rejected_and_blast_radius_bogus_rejected(
+    graph: Path, known_symbol: dict
+) -> None:
+    """nodes exits non-zero for an unknown flag, and blast-radius exits non-zero for an unknown flag.
+
+    Strict flag parsing means a command exits 1 on any flag it does not read.
+    The pack teaches agents to use resolve for single-symbol lookup, not nodes.
+    """
+    # nodes does not accept --symbol; in 0.21.0 it exits non-zero
+    nodes_result = run("nodes", "--symbol", known_symbol["symbol_id"], "--json", db=graph)
+    assert nodes_result.returncode != 0, (
+        "nodes must exit non-zero when given --symbol (strict flag parsing)"
+    )
+
+    # blast-radius does not accept --bogus; must exit non-zero
+    bogus_result = run("blast-radius", "helper", "--bogus", "1", db=graph)
+    assert bogus_result.returncode != 0, (
+        "blast-radius must exit non-zero for an unknown flag"
+    )
 
 
 # ── rank ───────────────────────────────────────────────────────────────────
 
 
-def test_rank_ignores_json_and_is_fixed_width(graph: Path) -> None:
-    """capability-map.md says rank is text-only and capped at 25 rows.
+def test_rank_json_shape(graph: Path) -> None:
+    """rank --json returns a document with hotspots, total, and truncated; each hotspot carries the documented fields."""
+    result = run("rank", "--json", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert set(payload) >= {"hotspots", "total", "truncated"}, (
+        f"rank --json must carry hotspots, total, truncated; got {set(payload)}"
+    )
+    assert payload["hotspots"], "fixture graph must have at least one hotspot"
+    row = payload["hotspots"][0]
+    assert set(row) >= {"symbol", "name", "kind", "file", "line_1based", "score"}, (
+        f"hotspot must carry symbol, name, kind, file, line_1based, score; got {set(row)}"
+    )
 
-    The cap is a maximum, not a fixed count: a graph smaller than 25 symbols
-    prints however many it has.
-    """
-    stdout = run("rank", "--json", db=graph).stdout
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(stdout)
-    assert re.match(r"top \d+ symbols by PageRank", stdout)
-    assert int(re.match(r"top (\d+)", stdout).group(1)) <= 25
+
+def test_rank_limit(graph: Path) -> None:
+    """rank --limit 2 --json returns exactly two hotspots."""
+    result = run("rank", "--limit", "2", "--json", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert len(payload["hotspots"]) == 2, (
+        f"rank --limit 2 must return 2 hotspots, got {len(payload['hotspots'])}"
+    )
+
+
+def test_rank_seeds(graph: Path) -> None:
+    """rank --seeds with the entry id exits 0 and its hotspots include the other.py handle; an ambiguous seed name exits non-zero."""
+    entry_result = run("resolve", "entry", "--json", db=graph)
+    entry_id = json.loads(entry_result.stdout)[0]["symbol_id"]
+
+    result = run("rank", "--seeds", entry_id, "--json", db=graph)
+    assert result.returncode == 0, "rank --seeds with an exact id must exit 0"
+    payload = json.loads(result.stdout)
+    symbols = {h["symbol"] for h in payload["hotspots"]}
+    # Seeded PageRank biases toward the seed's neighbourhood but ranks the whole
+    # graph; other.py/handle() — which entry cannot reach — should still appear.
+    other_handle = "ts-python . . . other/handle()."
+    assert other_handle in symbols, (
+        f"rank --seeds (entry id) must include other.py handle ({other_handle!r}); "
+        f"got {sorted(symbols)}"
+    )
+
+    # An ambiguous seed name exits non-zero because it names two symbols.
+    ambiguous = run("rank", "--seeds", "handle", "--json", db=graph)
+    assert ambiguous.returncode != 0, (
+        "rank --seeds with an ambiguous name must exit non-zero"
+    )
 
 
 # ── annotations ────────────────────────────────────────────────────────────
@@ -333,27 +401,29 @@ def test_every_allowlisted_cli_verb_is_accepted_by_the_binary(graph: Path) -> No
 # ── the `source` selector trap ─────────────────────────────────────────────
 
 
-def test_source_selectors_require_json(graph: Path, known_symbol: dict) -> None:
-    """`--symbols` narrows only on the JSON path; the text path ignores it.
+def test_source_text_mode_honours_symbol_selector(graph: Path, known_symbol: dict) -> None:
+    """source text mode exits 0 and prints exactly one body when --symbols narrows to one match.
 
-    Found by running the pack's own documented Pattern 1 against a real index:
-    the text form returned every name match while appearing to be pinned to
-    one symbol. The references now require `--json` with any selector, and
-    this is what holds them to it.
+    In 0.21.0, the text path honours its selectors. A --symbols selector with a
+    single exact id narrows the output to that one symbol.  Also, --max-total-chars
+    is a JSON-only flag and exits non-zero without --json.
     """
-    # `handle` is defined twice in the fixture, so a working selector narrows
-    # two matches to one.
+    # `handle` is defined twice in the fixture; --symbols with one id gives one match.
     both = json.loads(run("resolve", "handle", "--json", db=graph).stdout)
     assert len(both) == 2
     one_id = both[0]["symbol_id"]
 
-    bundle = json.loads(
-        run("source", "--symbols", one_id, "--json", db=graph).stdout
+    result = run("source", "--symbols", one_id, db=graph)
+    assert result.returncode == 0, "source text mode with --symbols must exit 0"
+    assert "1 match" in result.stdout, (
+        "source text mode with one id must report exactly one match"
     )
-    assert len(bundle["nodes"]) == 1, "--json path must honour --symbols"
 
-    # Text path: the selector alone is refused outright.
-    assert run("source", "--symbols", one_id, db=graph).returncode != 0
+    # --max-total-chars is a JSON-only flag; text mode exits non-zero.
+    result_max = run("source", "helper", "--max-total-chars", "10", db=graph)
+    assert result_max.returncode != 0, (
+        "--max-total-chars without --json must exit non-zero"
+    )
 
 
 def test_signatures_only_requires_json(graph: Path, known_symbol: dict) -> None:
@@ -375,6 +445,172 @@ def test_signatures_only_requires_json(graph: Path, known_symbol: dict) -> None:
     assert with_body["nodes"][0]["source"]
 
 
+# ── 0.21.0: lineage ───────────────────────────────────────────────────────────
+
+
+def test_lineage_json_shape(graph: Path) -> None:
+    """lineage --symbol <entry id> --json returns content and diagnostics; searched_depth is 8; handle at depth 1, helper at depth 2; helper's line is one less than resolve reports."""
+    entry_id = "ts-python . . . caller/entry()."
+    result = run("lineage", "--symbol", entry_id, "--json", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert set(payload) >= {"content", "diagnostics"}, (
+        f"lineage --json must carry content and diagnostics; got {set(payload)}"
+    )
+    content = payload["content"]
+    assert content["searched_depth"] == 8, (
+        f"lineage default searched_depth must be 8, got {content['searched_depth']}"
+    )
+    deps = {d["name"]: d for d in content["dependencies"]}
+    assert "handle" in deps and deps["handle"]["depth"] == 1, (
+        "handle must appear at depth 1"
+    )
+    assert "helper" in deps and deps["helper"]["depth"] == 2, (
+        "helper must appear at depth 2"
+    )
+
+    # helper's lineage line (0-based) must be one less than resolve's line (1-based).
+    resolve_result = run("resolve", "helper", "--json", db=graph)
+    resolve_line = json.loads(resolve_result.stdout)[0]["line"]
+    lineage_line = deps["helper"]["line"]
+    assert lineage_line == resolve_line - 1, (
+        f"helper lineage line {lineage_line} must be resolve line {resolve_line} - 1"
+    )
+
+
+def test_lineage_name_exits_zero_with_empty_deps(graph: Path) -> None:
+    """lineage --symbol entry (a name, not an id) exits 0 with an empty dependencies list."""
+    result = run("lineage", "--symbol", "entry", "--json", db=graph)
+    assert result.returncode == 0, "lineage with a name must exit 0"
+    payload = json.loads(result.stdout)
+    assert payload["content"]["dependencies"] == [], (
+        "lineage with a name must return empty dependencies (no resolution)"
+    )
+
+
+def test_lineage_depth_ceiling_and_bad_relation(graph: Path) -> None:
+    """lineage --depth 25 exits non-zero; lineage --relation flow_to exits non-zero."""
+    entry_id = "ts-python . . . caller/entry()."
+    assert (
+        run("lineage", "--symbol", entry_id, "--depth", "25", db=graph).returncode != 0
+    ), "lineage --depth 25 must exit non-zero (ceiling is 24)"
+    assert (
+        run("lineage", "--symbol", entry_id, "--relation", "flow_to", db=graph).returncode != 0
+    ), "lineage --relation flow_to must exit non-zero (only flows_to is accepted)"
+
+
+# ── 0.21.0: traverse ──────────────────────────────────────────────────────────
+
+
+def test_traverse_json_shape_and_edge_keys(graph: Path) -> None:
+    """traverse helper --direction dependents --json returns the documented keys; each edge carries kind, confidence, provenance, resolved_by."""
+    result = run("traverse", "helper", "--direction", "dependents", "--json", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert set(payload) >= {
+        "nodes",
+        "edges",
+        "depths",
+        "truncated",
+        "searched_depth",
+        "depth_horizon_reached",
+        "node_cap_reached",
+    }, f"traverse --json missing keys; got {set(payload)}"
+    if payload["edges"]:
+        edge = payload["edges"][0]
+        assert set(edge) >= {"kind", "confidence", "provenance", "resolved_by"}, (
+            f"edge missing required keys; got {set(edge)}"
+        )
+
+
+def test_traverse_clamping_and_staleness(graph: Path) -> None:
+    """traverse with over-ceiling depth or max-nodes writes CLAMPED: to stderr while stdout still parses; traverse sideways exits non-zero; rank --json writes STALENESS: to stderr."""
+    # Invalid direction exits non-zero.
+    sideways = run("traverse", "helper", "--direction", "sideways", "--json", db=graph)
+    assert sideways.returncode != 0, "--direction sideways must exit non-zero"
+
+    # Over-ceiling --depth is clamped: CLAMPED on stderr, valid JSON on stdout.
+    depth_result = run("traverse", "helper", "--depth", "99", "--json", db=graph)
+    assert depth_result.returncode == 0
+    assert any(
+        line.startswith("CLAMPED:") for line in depth_result.stderr.splitlines()
+    ), "traverse --depth 99 must write a CLAMPED: line to stderr"
+    json.loads(depth_result.stdout)  # stdout must still parse
+
+    # Over-ceiling --max-nodes is clamped: CLAMPED on stderr, valid JSON on stdout.
+    nodes_result = run("traverse", "helper", "--max-nodes", "999999", "--json", db=graph)
+    assert nodes_result.returncode == 0
+    assert any(
+        line.startswith("CLAMPED:") for line in nodes_result.stderr.splitlines()
+    ), "traverse --max-nodes 999999 must write a CLAMPED: line to stderr"
+    json.loads(nodes_result.stdout)
+
+    # rank --json writes STALENESS: to stderr; stdout must parse.
+    rank_result = run("rank", "--json", db=graph)
+    assert rank_result.returncode == 0
+    assert any(
+        line.startswith("STALENESS:") for line in rank_result.stderr.splitlines()
+    ), "rank --json must write a STALENESS: line to stderr"
+    json.loads(rank_result.stdout)
+
+
+# ── 0.21.0: rules ─────────────────────────────────────────────────────────────
+
+
+def test_rules_inventory_and_recall_json(graph: Path) -> None:
+    """rules-inventory --json and rules-recall --json each exit 0 with stdout that parses as JSON; rules-recall --bogus exits non-zero."""
+    inv = run("rules-inventory", "--json", db=graph)
+    assert inv.returncode == 0, "rules-inventory --json must exit 0"
+    json.loads(inv.stdout)  # must parse
+
+    recall = run("rules-recall", "--json", db=graph)
+    assert recall.returncode == 0, "rules-recall --json must exit 0"
+    json.loads(recall.stdout)  # must parse
+
+    bogus = run("rules-recall", "--bogus", "x", db=graph)
+    assert bogus.returncode != 0, "rules-recall --bogus must exit non-zero"
+
+
+# ── 0.21.0: missing db ────────────────────────────────────────────────────────
+
+
+def test_traverse_missing_db_exits_nonzero_without_creating_file(
+    tmp_path: Path,
+) -> None:
+    """traverse with a missing --db exits non-zero and does not create the file."""
+    missing_db = tmp_path / "no_such_dir" / "graph.db"
+    assert not missing_db.exists()
+
+    result = subprocess.run(
+        [BINARY, "traverse", "helper", "--db", str(missing_db)],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert result.returncode != 0, (
+        "traverse must exit non-zero when the --db path does not exist"
+    )
+    assert not missing_db.exists(), (
+        "traverse must not create the missing --db file"
+    )
+
+
+# ── 0.21.0: graph-view edge shape ─────────────────────────────────────────────
+
+
+def test_graph_view_json_edge_shape(graph: Path) -> None:
+    """graph-view --limit 5 stdout parses as JSON and every edge carries kind, confidence, provenance, resolved_by."""
+    result = run("graph-view", "--limit", "5", db=graph)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert "edges" in payload, "graph-view stdout must be a JSON object with an 'edges' key"
+    for edge in payload["edges"]:
+        assert set(edge) >= {"kind", "confidence", "provenance", "resolved_by"}, (
+            f"graph-view edge missing required keys; got {set(edge)}"
+        )
+
+
 # ── 0.18.0: blast-radius --depth and searched_depth ───────────────────────────
 
 
@@ -388,7 +624,7 @@ def helper_symbol(indexed_graph: Path) -> dict:
 
 
 def test_blast_radius_default_searched_depth(graph: Path) -> None:
-    """AC-0014: blast-radius with no --depth reports searched_depth of 12.
+    """blast-radius with no --depth reports searched_depth of 12.
 
     See gaps.md §Completeness for the default traversal depth that 0.18.0 now
     reports explicitly via searched_depth.
@@ -398,7 +634,7 @@ def test_blast_radius_default_searched_depth(graph: Path) -> None:
 
 
 def test_blast_radius_depth_sets_horizon_reached_and_searched(graph: Path) -> None:
-    """AC-0015: --depth 1 reports depth_horizon_reached true and searched_depth 1.
+    """--depth 1 reports depth_horizon_reached true and searched_depth 1.
 
     See gaps.md §Completeness: depth_horizon_reached distinguishes a cut result
     from a complete one.
@@ -411,7 +647,7 @@ def test_blast_radius_depth_sets_horizon_reached_and_searched(graph: Path) -> No
 
 
 def test_blast_radius_depth_ceiling_is_24(graph: Path) -> None:
-    """AC-0016: --depth 24 exits 0 and --depth 25 exits non-zero.
+    """--depth 24 exits 0 and --depth 25 exits non-zero.
 
     See gaps.md §Completeness: the maximum depth is 24; values above it are
     refused rather than silently clamped.
@@ -421,7 +657,7 @@ def test_blast_radius_depth_ceiling_is_24(graph: Path) -> None:
 
 
 def test_blast_radius_text_cut_line(graph: Path) -> None:
-    """AC-0017: --depth 1 in text mode prints a line containing 'CUT AT depth=1'.
+    """--depth 1 in text mode prints a line containing 'CUT AT depth=1'.
 
     See gaps.md §Completeness: the text output now surfaces the depth horizon
     so an agent without --json can still see that output was cut.
@@ -434,7 +670,7 @@ def test_blast_radius_text_cut_line(graph: Path) -> None:
 
 
 def test_path_entry_to_helper_found_with_two_hops(graph: Path) -> None:
-    """AC-0018: path entry helper --json returns found true and exactly two hops.
+    """path entry helper --json returns found true and exactly two hops.
 
     Each hop must carry kind, confidence, provenance, resolved_by, source, and
     target.  The fixture path is entry -> handle (core.py) -> helper.
@@ -455,7 +691,7 @@ def test_path_entry_to_helper_found_with_two_hops(graph: Path) -> None:
 
 
 def test_path_helper_to_entry_not_found_unbounded(graph: Path) -> None:
-    """AC-0019: path helper entry --json returns found false with both bounds false.
+    """path helper entry --json returns found false with both bounds false.
 
     The dependency direction is entry->handle->helper, so the reverse walk
     finds no path.  Both depth_bounded and node_bounded must be false because
@@ -470,7 +706,7 @@ def test_path_helper_to_entry_not_found_unbounded(graph: Path) -> None:
 
 
 def test_path_entry_helper_depth_bounded_absence(graph: Path) -> None:
-    """AC-0020: path entry helper --max-depth 1 returns found false with depth_bounded true.
+    """path entry helper --max-depth 1 returns found false with depth_bounded true.
 
     The path from entry to helper takes 2 hops; with max-depth 1 the walk
     touches its frontier without finding the target.  See gaps.md §Paths.
@@ -483,7 +719,7 @@ def test_path_entry_helper_depth_bounded_absence(graph: Path) -> None:
 
 
 def test_path_entry_helper_found_with_depth_bounded(graph: Path) -> None:
-    """AC-0021: path entry helper --max-depth 2 returns found true with depth_bounded true.
+    """path entry helper --max-depth 2 returns found true with depth_bounded true.
 
     depth_bounded is true whenever the walk touches its frontier, even when a
     route is found.  The 2-hop path from entry to helper exactly reaches the
@@ -497,7 +733,7 @@ def test_path_entry_helper_found_with_depth_bounded(graph: Path) -> None:
 
 
 def test_path_unresolved_from_side(graph: Path) -> None:
-    """AC-0022: path nope helper --json exits 0 and returns unresolved 'from'.
+    """path nope helper --json exits 0 and returns unresolved 'from'.
 
     An unresolved input on the from side exits 0 so that a workflow can handle
     it gracefully.  See gaps.md §Paths.
@@ -514,7 +750,7 @@ def test_path_unresolved_from_side(graph: Path) -> None:
 
 
 def test_path_unresolved_to_side(graph: Path) -> None:
-    """AC-0023: path entry nope --json exits 0 and returns unresolved 'to'.
+    """path entry nope --json exits 0 and returns unresolved 'to'.
 
     An unresolved input on the to side exits 0 so that a workflow can handle
     it gracefully.  See gaps.md §Paths.
@@ -526,7 +762,7 @@ def test_path_unresolved_to_side(graph: Path) -> None:
 
 
 def test_path_above_16_max_depth_accepted(graph: Path) -> None:
-    """AC-0024: path entry helper --max-depth 17 exits 0 and returns found true.
+    """path entry helper --max-depth 17 exits 0 and returns found true.
 
     Values above 16 are accepted by the shared parser (clamped to 16 internally
     per source-read, but accepted without error).  See gaps.md §Paths.
@@ -538,7 +774,7 @@ def test_path_above_16_max_depth_accepted(graph: Path) -> None:
 
 
 def test_path_hop_endpoints_line_numbering(graph: Path) -> None:
-    """AC-0025: every path endpoint has line_1based equal to line + 1.
+    """Every path endpoint has line_1based equal to line + 1.
 
     The path command reports line as 0-based (unlike resolve and blast-radius),
     and provides line_1based as the 1-based equivalent.  See gaps.md §Paths for
@@ -560,7 +796,7 @@ def test_path_hop_endpoints_line_numbering(graph: Path) -> None:
 def test_path_helper_endpoint_matches_resolve_line(
     graph: Path, indexed_graph: Path, helper_symbol: dict
 ) -> None:
-    """AC-0026: the 'helper' endpoint in path entry helper has line_1based matching resolve.
+    """The 'helper' endpoint in path entry helper has line_1based matching resolve's line.
 
     resolve reports 1-based line numbers; path reports 0-based line plus
     line_1based.  They must agree: path.line_1based == resolve.line.  See

@@ -82,6 +82,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Both consumers validate every snapshot record and fail closed with `delivery-resolver-unavailable` when the resolver is absent, fails, or returns an incomplete snapshot. Neither falls back to its own scan.
 - The Core pack eval harness now covers shared delivery descendants, the broken-spec refusal, and the fail-closed outcome for both consumers.
 
+## [code-intelligence][0.1.5] — 2026-10-08
+
+### Highlights
+
+- Ask what a function depends on, all the way down, and get an answer from the `wicked-estate` command line. You no longer need the optional MCP server for forward dependencies, graph walks, or rules lookups.
+- Ask which of a change's dependents matter most, and get an importance ordering from the command line, with any dependent it could not rank named rather than dropped.
+
+### Changed
+
+- Wicked Estate 0.21.0 is the floor and the pinned install for both `wicked-estate` and `wicked-estate-mcp`. The preflight exits 4 on an older binary.
+- `wicked-estate lineage`, `traverse`, `rules-inventory`, and `rules-recall` are taught as CLI commands. `lineage` takes an exact symbol id, so the skill resolves the name first. The MCP server is needed only for the memory, knowledge, and proposal tools and for the richer MCP response shapes.
+- Ordering a dependent set uses `rank --seeds` followed by a filter to the set, because `--seeds` biases a ranking of the whole graph rather than limiting it.
+- `blast-radius --json` is taught with its `confidence` summary. Bridged commands are taught as reporting `STALENESS:` and `CLAMPED:` on stderr. `source` selectors are taught as working without `--json`, and a flag a command does not read is taught as an error.
+- The live CLI contract tests, the vocabulary allowlist, the retired-claim scanner, and the evals follow the 0.21.0 surface.
+
 ## [code-intelligence][0.1.4] — 2026-10-07
 
 ### Highlights

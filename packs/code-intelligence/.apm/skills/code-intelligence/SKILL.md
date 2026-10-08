@@ -57,7 +57,7 @@ consume this skill without any of them knowing about the others.
 Queries run against a graph built by the `wicked-estate` CLI. Install once:
 
 ```bash
-cargo install wicked-estate --version 0.18.0 --locked
+cargo install wicked-estate --version 0.21.0 --locked
 ```
 
 ### Step 1 — check the binary and the index before any real work
@@ -71,7 +71,7 @@ python scripts/estate_preflight.py --check
 | 0 | Binary and index both present | Proceed. |
 | 2 | Binary absent | Give the user the install command above. Offer `--install --yes` only if they ask; it compiles from source and takes minutes. Do not install silently. |
 | 3 | No index | Ask before running `wicked-estate index .` — it writes `.wicked-estate/graph.db`. |
-| 4 | Version below the floor | Report it; the documented verbs were verified against 0.18. |
+| 4 | Version below the floor | Report it; the documented verbs were verified against 0.21. |
 
 On exit 2, 3, or 4 you may still answer using your own repository tools, but you
 must say so — see [Degrading without the graph](#degrading-without-the-graph).
@@ -104,9 +104,8 @@ early as the objective allows.
    picked and why, or ask.
 
 2. **Retrieve.** `resolve --json` already gave you kind, file, and line. For the
-   signature use `wicked-estate source --symbols <id> --json --signatures-only`
-   (**`--json` is required** — without it every selector is silently ignored), and
-   for annotations `wicked-estate annotations --symbol <id> --json`.
+   signature use `wicked-estate source --symbols <id> --json --signatures-only`,
+   and for annotations `wicked-estate annotations --symbol <id> --json`.
    `wicked-estate nodes` has no symbol filter and returns the whole graph — it
    is an inventory verb, never a lookup.
 
@@ -115,8 +114,9 @@ early as the objective allows.
 
 4. **Expand.** Follow only the relationships the question needs —
    `blast-radius` for dependents, `wicked-estate path A B --json` for a specific
-   route from one symbol to another, `graph-view --focus` for a bounded
-   neighbourhood, `clusters` for subsystem shape.
+   route from one symbol to another, `wicked-estate lineage --symbol <id> --json`
+   for forward transitive dependencies (resolve first — a name returns empty),
+   `graph-view --focus` for a bounded neighbourhood, `clusters` for subsystem shape.
 
 5. **Stop.** Stop when you have enough evidence for the user's objective, not
    when the graph is exhausted. An unbounded walk is the main failure mode here.
@@ -162,16 +162,18 @@ Three rules are load-bearing:
   `depth_horizon_reached` is true, the result is bounded — raise `--depth`. A true
   `node_cap_reached` has no CLI remedy. Report `unresolved`,
   `truncated_dependents`, `searched_depth`, and any cut flag that is true; never
-  present the list as complete.
+  present the list as complete. `blast-radius --json` also carries a `confidence
+  {min, avg, edge_count}` summary over the traversal edges; `blast-radius` rows
+  carry no per-row confidence.
 - **A heuristic edge is not a fact.** Every edge carries confidence and
   provenance. A name-matched edge and a compiler-verified one look identical in
   a flat list. Where an edge is load-bearing for your conclusion, verify it
   against source before relying on it.
-- **Freshness will not appear in your JSON.** The `STALENESS:` line prints from
-  only six subcommands — `query`, `blast-radius`, `stats`, `clusters`, `context`,
-  and `path` — and `blast-radius` and `path` suppress it under `--json`. Its
-  absence is not evidence the graph is current — run a bare `wicked-estate
-  stats` when freshness matters, and say which revision you answered from.
+- **Freshness differs by command.** Bridged commands (`traverse`, `rank`,
+  `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr even under
+  `--json`. `blast-radius` and `path` suppress it under `--json`. Run a bare
+  `wicked-estate stats` before blast-radius or path queries when freshness
+  matters, and say which revision you answered from.
 
 Wherever you report a result, quote the command that produced it exactly as
 run, flags and all. `--depth 1` and the default depth answer different
@@ -191,10 +193,11 @@ tool that serves it is tabulated in
 [`references/capability-map.md`](references/capability-map.md), together with
 what each one actually returns.
 
-Four capabilities have **no CLI verb** and are reachable only if the optional
-MCP server is registered: `Lineage`, `RulesInventory`, `rules.recall`, and the
-memory and knowledge domains. The map says so per row rather than implying
-coverage the CLI does not have.
+The memory, knowledge, and proposal domains have no CLI verb and are reachable
+only if the optional MCP server is registered. The richer MCP response shapes
+(per-dependent `depth` and `summary.top_by_pagerank` on `BlastRadius`,
+`Communities` summaries, `ContextBundle`) are also MCP-only. The map says so
+per row rather than implying coverage the CLI does not have.
 
 ## Known gaps
 

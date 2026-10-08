@@ -68,7 +68,7 @@ investigation patterns may change as the pack evolves.
 You need the CLI and an index.
 
 ```bash
-cargo install wicked-estate --version 0.18.0 --locked
+cargo install wicked-estate --version 0.21.0 --locked
 echo '.wicked-estate/' >> .gitignore   # the index is large and local
 wicked-estate index .
 ```
@@ -88,7 +88,7 @@ python scripts/estate_preflight.py --check
 ```
 
 Exit 0 is ready, 2 means the binary is missing, 3 means there is no index, and
-4 means the binary is older than the 0.18 floor this pack was verified against.
+4 means the binary is older than the 0.21 floor this pack was verified against.
 
 ## CLI, not MCP, by default
 
@@ -99,15 +99,17 @@ The MCP server advertises **30 tool schemas**, and they stay resident in the
 agent's context for the entire session whether or not a single one is called.
 The CLI costs nothing until you run it.
 
-The CLI is also the larger surface. It accepts 35 subcommand names, including
-several with no MCP equivalent: requirement linkage (`by-requirement`,
-`semantics`), snapshot identity (`fingerprint`, `changed-since`, `stats`), the
-annotation evidence envelope (`annotations`, `stale-annotations`), and
-`entrypoints`, `leaves`, `dead-code`, `correspond`, and `drift`.
+The CLI is also the larger surface. It accepts 40 names, including several with
+no MCP equivalent: requirement linkage (`by-requirement`, `semantics`), snapshot
+identity (`fingerprint`, `changed-since`, `stats`), the annotation evidence
+envelope (`annotations`, `stale-annotations`), and `entrypoints`, `leaves`,
+`dead-code`, `correspond`, and `drift`.
 
-Four capabilities go the other way and have **no CLI verb at all** — `Lineage`,
-`RulesInventory`, `rules.recall`, and the memory and knowledge domains. For
-those, register the server, preferably read-only:
+The memory, knowledge, and proposal domains have **no CLI verb** and are
+reachable only over MCP. The richer MCP response shapes — per-dependent `depth`
+and `summary.top_by_pagerank` on `BlastRadius`, `Communities` summaries,
+`ContextBundle` — are also MCP-only. For those, register the server, preferably
+read-only:
 
 ```bash
 claude mcp add wicked-estate -s project -- \
@@ -126,13 +128,16 @@ composition, partially available, not available today, or unclear.
 
 Some of what that found:
 
-- **Nothing ranks a supplied set of symbols on the CLI** — `rank` is a fixed
-  global top-25, so "which of these 47 dependents matter most" has no CLI answer.
-- **Per-edge confidence and provenance are not in blast-radius rows**, even though
-  every edge carries them. Use `wicked-estate path A B --json` when you need
-  per-hop confidence and provenance on a specific route.
-- **Lineage and rules discovery are MCP-only.** Forward transitive reachability,
-  `RulesInventory`, and `rules.recall` have no CLI verb.
+- **Ranking a dependent set is a composition.** `rank --seeds` biases a
+  graph-wide ranking; keep only the rows in your set. The row list is capped at
+  25K characters, so report members absent from the output as unranked.
+- **Per-edge confidence and provenance are not in blast-radius rows**, although
+  every edge carries them. The `confidence` object in `blast-radius --json` covers
+  the full traversal, not individual rows. Use `wicked-estate path A B --json`
+  when you need per-hop confidence and provenance on a specific route.
+- **The memory, knowledge, and proposal domains are MCP-only.** Forward transitive
+  reachability (`lineage`), rules inventory, and rules recall have CLI verbs;
+  the memory, knowledge, and proposal domains do not.
 
 None of these are requests to change Wicked Estate, and nothing in this pack
 depends on them changing. They are the map of where an agent must stop and say
@@ -149,10 +154,11 @@ from `grep` is not a blast radius.
 ## Requires
 
 - `core` ≥ 2.0
-- `wicked-estate` ≥ 0.18 in `PATH` (Tier-2 dependency: detected first, installed
+- `wicked-estate` ≥ 0.21 in `PATH` (Tier-2 dependency: detected first, installed
   only on explicit consent, pinned, never with sudo)
 - An index built with `wicked-estate index <path>`
-- Optionally `wicked-estate-mcp` ≥ 0.18, for the four MCP-only capabilities
+- Optionally `wicked-estate-mcp` ≥ 0.21, for the memory, knowledge, and proposal
+  domains and richer MCP response shapes
 
 Read-only by default. The commands that mutate the graph — `index`, `annotate`,
 `semantics`, `compact`, and friends — always ask first.

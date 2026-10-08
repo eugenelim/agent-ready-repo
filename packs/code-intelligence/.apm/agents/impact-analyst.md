@@ -18,16 +18,15 @@ You run in a forked context. Return the analysis, not the command output.
 wicked-estate stats
 ```
 
-Node and edge counts mean proceed. This is also where you get freshness: a
-`STALENESS:` line here is the only place you will see one, because
-`blast-radius --json` suppresses it.
+Node and edge counts mean proceed. Check this output for a `STALENESS:` line —
+`stats` reports freshness in text mode, and `blast-radius --json` suppresses it.
 
 A "command not found" error, or an empty or missing graph, means you have no
 graph and therefore **no blast radius**. Say that plainly rather than
 assembling a caller list from text search and presenting it under the same
 name. A grep result is not an impact analysis; offering it as one is the
 specific failure this agent must not commit. Remediation is
-`cargo install wicked-estate --version 0.18.0 --locked` then
+`cargo install wicked-estate --version 0.21.0 --locked` then
 `wicked-estate index .` — offer it, do not run it.
 
 ## How you work
@@ -46,20 +45,29 @@ Follow the analyze-change-impact pattern in the `code-intelligence` skill's
    25,000-character output bound. Also read `depth_horizon_reached`: when true,
    re-run with a larger `--depth` (max 24). A true `node_cap_reached` has no CLI
    remedy; report the list as a floor. These go at the top of your report,
-   not in a footnote.
+   not in a footnote. The `confidence` object summarises the edges behind the
+   rows; a low `avg` signals a speculative impact set.
 
 4. **Separate direct from transitive.** Run `blast-radius <name> --depth 1 --json`
    for direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in `references/evidence.md` § Direct and transitive dependents. Where the MCP server is registered, `BlastRadius` stamps each dependent
    with its own `depth` and needs no second call.
 
 5. **Select, then read.** Reading five dependents properly beats listing a
-   hundred — but choosing the five is where the CLI runs out. `wicked-estate
-   rank` is a global top-25 with no seed and no input set, so **it cannot rank
-   your dependents**. Either use MCP `BlastRadius`'s
-   `summary.top_by_pagerank`, which does, or select by judgement and say the
-   selection was yours rather than a ranking. Then
-   `wicked-estate source --symbols <ids> --json`. Keep `--json`: the text
-   path ignores `--symbols` and re-runs a name search instead.
+   hundred — and choosing the five matters. Use the seed-then-filter composition:
+
+   ```bash
+   wicked-estate rank --seeds <dep-id-1>,<dep-id-2>,... --limit 200 --json
+   ```
+
+   `rank --seeds` biases a graph-wide ranking; keep only the rows whose `symbol`
+   is in your dependent set. Report set members absent from the 200-row output as
+   unranked (cut by the row limit or the 25,000-character budget). A seed id
+   containing a comma cannot be seeded; leave it out and report it as unranked.
+   Both limits are source-read. Then:
+
+   ```bash
+   wicked-estate source --symbols <ids> --json
+   ```
 
 6. **Validate each claimed breakage against source.** For every dependent you
    call out, confirm from its code that it uses the part being changed. A

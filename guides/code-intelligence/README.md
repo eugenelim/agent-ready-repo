@@ -38,9 +38,10 @@ Estate never learns any of them exist.
 
 The pack ships a fourteen-point assessment of what the provider does and does
 not expose, and the answer is not "everything". The command-line blast radius
-carries no per-row depth or confidence — use `wicked-estate path A B --json`
-for per-hop evidence on a specific route. Nothing ranks a supplied set of
-symbols on the CLI — `rank` is a fixed global top-25.
+carries no per-row depth or confidence per dependent row — use `wicked-estate path A B --json`
+for per-hop evidence on a specific route. Ranking a dependent set is a
+composition: `rank --seeds` biases a graph-wide ranking; keep only the rows in
+your set.
 
 Those are recorded rather than papered over, because an agent that knows where
 the map ends is more useful than one that does not.

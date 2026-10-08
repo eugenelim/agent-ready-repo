@@ -121,35 +121,63 @@ MCP `TraverseGraph` truncates at `max_nodes`, default 200 and maximum 1000. A
 result sitting at the cap is a partial subgraph. The response carries per-node
 depth, so you can at least say how far you got.
 
+`wicked-estate traverse` clamps `--depth` and `--max-nodes` when they exceed the
+ceiling and writes `CLAMPED: <param>=<actual>` to stderr, even under `--json`.
+Check stderr when you need to know whether the value you passed was honoured.
+
+---
+
+## Blast-radius confidence summary
+
+`blast-radius --json` carries a `confidence {min, avg, edge_count}` object over
+the edges that admitted the rows. This tells you the overall confidence profile
+of the impact set — a low `min` means at least one row came from a weak edge,
+and a low `avg` means the set is largely speculative.
+
+`blast-radius` rows carry no per-row confidence. Use `wicked-estate path A B
+--json` when you need per-hop confidence on a specific route.
+
+MCP `BlastRadius` also returns the `confidence` envelope, plus per-dependent
+`depth` and `summary.top_by_pagerank`. The CLI does not offer per-row depth or a
+ranked-dependents view.
+
+The `blast-radius` traversal excludes structural `contains` edges (source-read
+from `main.rs`), so its dependent count can be lower than what MCP `BlastRadius`
+reports for the same symbol.
+
 ---
 
 ## Freshness — the graph is a snapshot
 
 The index describes the revision it was built from, not your working tree.
 
-The CLI prints this on stdout:
+The CLI prints a staleness warning:
 
 ```
 STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate index . --repo my-repo` to refresh
 ```
 
-**But only from six subcommands** — `query`, `blast-radius`, `stats`,
-`clusters`, `context`, and `path` — and `blast-radius` and `path` suppress it
-under `--json`, because machine output must be exactly one JSON document. Since
-this skill teaches the `--json` forms, you will usually not see it at all.
+**Staleness channels differ by command:**
 
-So do not treat its absence as evidence of freshness. Run a bare
-`wicked-estate stats` when freshness matters; that is the one command that
-prints the line and is worth running anyway.
+- **Bridged commands** (`traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr even under `--json`, so machine output from those commands may carry the warning as a stderr line.
+- **`lineage --json`** carries staleness in the `diagnostics` array — a placeholder entry is always present; a real `STALENESS: commits_behind=N` entry appears when the graph is behind HEAD (source-read).
+- **`blast-radius` and `path`** suppress `STALENESS:` under `--json` so machine output stays one document. Do not treat its absence there as evidence of freshness.
+- **`stats`** in text mode always prints the staleness line when it applies, and is the best single command for a freshness check before blast-radius or path queries.
 
-When you see it, every answer in that session describes an older revision. Two
-honest options:
+When you see a staleness warning, every answer in that session describes an older
+revision. Two honest options:
 
 1. Answer, and state the revision gap: *"As of the indexed revision, 12 commits
    behind the working tree, …"*
 2. Ask whether to re-index first. Re-indexing writes, so it needs consent.
 
 Never silently present stale graph output as current.
+
+### Clamped parameters
+
+When `--depth` or `--max-nodes` exceeds the ceiling, bridged commands clamp the
+value and write `CLAMPED: <param>=<actual>` to stderr, even under `--json`. Check
+stderr when you need to know whether the value you passed was honoured.
 
 ### Establishing snapshot identity
 
@@ -163,6 +191,24 @@ Never silently present stale graph output as current.
 
 There is no single command that returns "the revision this graph was built
 from" as a value. Pair `stats` with the staleness line.
+
+---
+
+## Value lineage — `flows_to`
+
+`wicked-estate lineage --symbol <id> --relation flows_to --json` traces
+producer-to-consumer value flow through parameters, returns, and field writes.
+TypeScript only. Each flow hop carries:
+
+- `producer`, `consumer`, `confidence`, `provenance`, `resolved_by`
+- When present: `flow_semantics` (`value_preserving` / `may_influence`) and
+  `flow_evidence` (`syntax` / `call_derived` / `convention`)
+
+Additional fields (`constructs`, `flow_rules`, `flow_support`, etc.) may appear;
+the list is not exhaustive (source-read from `wicked-estate-retrieve` 0.21.0
+`flow_hop_row`). The Python fixture produces no value flow, so these fields
+cannot be observed on the standard test index — treat them as source-read and
+label them as such when you quote them.
 
 ---
 

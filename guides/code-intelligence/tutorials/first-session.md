@@ -17,7 +17,7 @@ change something — and you will know how much to trust the answer.
 The pack drives a command-line tool it does not bundle.
 
 ```bash
-cargo install wicked-estate --version 0.18.0 --locked
+cargo install wicked-estate --version 0.21.0 --locked
 ```
 
 This compiles from source and takes several minutes. It needs `cargo` already
@@ -54,8 +54,8 @@ python scripts/estate_preflight.py --check
 ```
 
 `status: ready` means the binary and the index are both in place. Exit 2 is a
-missing binary, 3 a missing index, 4 a version below the floor the pack was
-verified against.
+missing binary, 3 a missing index, 4 a version below the 0.21 floor the pack
+was verified against.
 
 ## 5. Ask a real question
 

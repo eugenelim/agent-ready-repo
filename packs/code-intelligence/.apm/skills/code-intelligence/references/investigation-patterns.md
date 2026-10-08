@@ -45,10 +45,6 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    wicked-estate source OrderService --json
    ```
 
-   `--json` is not optional here. The text path ignores every selector and
-   falls back to a name search, so dropping it silently returns the wrong
-   symbol when the name is ambiguous.
-
    For a large type, start with `--signatures-only` and pull full bodies only
    for the members that matter.
 
@@ -61,18 +57,21 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
 5. **Inspect outgoing relationships.** What it depends on:
 
    ```bash
-   wicked-estate graph-view --focus OrderService --limit 40
+   wicked-estate resolve OrderService --json
+   wicked-estate lineage --symbol <symbol_id> --json
    ```
 
-   For true transitive forward reachability you need MCP `Lineage`; if it is not
-   registered, say that this is a bounded neighbourhood rather than a full
-   dependency closure.
+   `lineage` takes an exact SymbolId only — always `resolve` first. Default depth
+   is 8. For a bounded neighbourhood view, `graph-view --focus OrderService
+   --limit 40` is an alternative. The two are not interchangeable: `lineage`
+   returns transitive forward reachability; `graph-view` returns a filtered
+   subgraph that may include non-dependency edges.
 
 6. **Find the supporting material, where the question warrants it.** Tests and
    configuration via `wicked-estate source --file <path> --json` on
    neighbouring files;
-   requirements via `wicked-estate by-requirement`; rules via MCP
-   `RulesInventory`.
+   requirements via `wicked-estate by-requirement`; rules via
+   `wicked-estate rules-inventory`.
 
 **Stop when** you can state what the entity is for, what it depends on, and who
 depends on it. A full transitive walk is almost never needed to answer "how does
@@ -115,24 +114,27 @@ this work".
    - MCP available: `TraverseGraph` with `direction: "dependents"` and
      `depth: 1` gives the direct set with per-node depth in the response.
 
-5. **Inspect the important paths, not the whole list.** A hundred-row list
-   pasted back is not impact analysis. Five paths read properly is.
+5. **Select the important paths from the list.** A hundred-row list pasted back
+   is not impact analysis. Five paths read properly is.
 
-   Choosing *which* five is where the CLI runs out. `wicked-estate rank` is a
-   global top-25 by PageRank; it takes no seed and no input set, so it cannot
-   rank your dependents. Two honest routes:
+   To order the dependent set by importance, use the seed-then-filter composition:
 
-   - **MCP registered:** `BlastRadius` returns `summary.top_by_pagerank`, which
-     ranks the dependents it found. This is the only ranked-dependents result
-     available anywhere in the surface.
-   - **CLI only:** select by judgement from `{file, kind, name}` — public
-     entry points, anything in a hot directory, anything whose name suggests it
-     touches the changing behaviour — and **say the selection was yours, not a
-     ranking**. Then read them:
+   ```bash
+   wicked-estate rank --seeds <dep-id-1>,<dep-id-2>,... --limit 200 --json
+   ```
 
-     ```bash
-     wicked-estate source --symbols <id1>,<id2> --json
-     ```
+   `rank --seeds` personalises PageRank over the whole graph — seeded output
+   includes symbols outside your set, so filter the result to rows whose `symbol`
+   is in your dependent set. Report members absent from the output as unranked
+   (cut by the 200-row limit or 25,000-character budget). A seed id containing
+   a comma cannot be seeded; leave it out and report it as unranked for that
+   reason. Both limits are source-read.
+
+   Then read the selected dependents:
+
+   ```bash
+   wicked-estate source --symbols <id1>,<id2> --json
+   ```
 
 6. **Validate the conclusions against source.** For every dependent you call
    out as breaking, confirm from its source that it actually uses the part you
@@ -160,8 +162,9 @@ caveat is stated, and each claimed breakage is grounded in source.
    the answer as bounded, because no flag raises the node budget.
 
 3. **Follow what the behaviour actually flows through.** Calls via
-   `graph-view --focus`; configuration via `source --file <path> --json`; rules via MCP
-   `RulesInventory` and `TraverseGraph` with `edge_kinds: ["invoked_by"]`.
+   `graph-view --focus`; configuration via `source --file <path> --json`; rules
+   tracing via `wicked-estate traverse <symbol> --edge-kinds invoked_by` and
+   `wicked-estate rules-inventory`.
 
 4. **Gather evidence incrementally.** One hop, read, decide whether the next hop
    is warranted. Pulling a large subgraph and then reasoning over it produces
