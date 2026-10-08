@@ -1,7 +1,8 @@
 # Code-intelligence golden composition example
 
 - **Slug:** `code-intelligence-golden-composition-example`
-- **Status:** Draft
+- **Status:** Fulfilled
+- **Accepted:** 2026-10-08 by eugenelim at closeout: shaping-reviewed and de-risked 2026-10-04, its spec approved for build and delivered in PR #1517.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -11,6 +12,7 @@
 - **De-risked:** 2026-10-04
 - **Decomposed:** 2026-10-04 spec
 - **Governed by:** [RFC-0079](../../rfc/0079-codebase-context-pack.md)
+- **Fulfilled:** 2026-10-08 eugenelim: spec code-intelligence-golden-composition-example Shipped in 46e064fc6 (#1517); verified on main: references/composition-example.md, pack 0.1.4 in pack.toml and plugin.json, changelog [code-intelligence][0.1.4], SKILL.md/README/how-to route to the example. The five-reader validation hook was not run and stays with the CAP-0011 owner.
 
 ## Outcome
 
